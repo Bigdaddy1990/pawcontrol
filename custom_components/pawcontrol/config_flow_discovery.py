@@ -1,9 +1,9 @@
 """Discovery steps for the PawControl config flow."""
-
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -12,12 +12,10 @@ from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
-from .types import (
-    ConfigFlowDiscoveryData,
-    ConfigFlowDiscoveryProperties,
-    DiscoveryConfirmInput,
-    freeze_placeholders,
-)
+from .types import ConfigFlowDiscoveryData
+from .types import ConfigFlowDiscoveryProperties
+from .types import DiscoveryConfirmInput
+from .types import freeze_placeholders
 
 if TYPE_CHECKING:
     from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
@@ -31,7 +29,8 @@ class DiscoveryFlowMixin:
     """Mixin that provides HA discovery steps for the config flow."""
 
     async def async_step_zeroconf(
-        self, discovery_info: ZeroconfServiceInfo
+        self,
+        discovery_info: ZeroconfServiceInfo,
     ) -> ConfigFlowResult:
         """Handle Zeroconf discovery."""
 
@@ -59,7 +58,8 @@ class DiscoveryFlowMixin:
             discovery_payload['name'] = discovery_info.name
 
         updates, comparison = self._prepare_discovery_updates(
-            discovery_payload, source='zeroconf'
+            discovery_payload,
+            source='zeroconf',
         )
 
         device_id = self._extract_device_id(properties)
@@ -76,7 +76,8 @@ class DiscoveryFlowMixin:
         return await self.async_step_discovery_confirm()
 
     async def async_step_dhcp(
-        self, discovery_info: DhcpServiceInfo
+        self,
+        discovery_info: DhcpServiceInfo,
     ) -> ConfigFlowResult:
         """Handle DHCP discovery."""
 
@@ -97,7 +98,8 @@ class DiscoveryFlowMixin:
             dhcp_payload['ip'] = discovery_info.ip
 
         updates, comparison = self._prepare_discovery_updates(
-            dhcp_payload, source='dhcp'
+            dhcp_payload,
+            source='dhcp',
         )
 
         await self.async_set_unique_id(macaddress)
@@ -141,7 +143,10 @@ class DiscoveryFlowMixin:
         if discovery_info.device:
             usb_payload['device'] = discovery_info.device
 
-        updates, comparison = self._prepare_discovery_updates(usb_payload, source='usb')
+        updates, comparison = self._prepare_discovery_updates(
+            usb_payload,
+            source='usb',
+        )
 
         unique_id = serial_number or f"{discovery_info.vid}:{discovery_info.pid}"
         if unique_id:
@@ -157,7 +162,8 @@ class DiscoveryFlowMixin:
         return await self.async_step_discovery_confirm()
 
     async def async_step_bluetooth(
-        self, discovery_info: BluetoothServiceInfoBleak
+        self,
+        discovery_info: BluetoothServiceInfoBleak,
     ) -> ConfigFlowResult:
         """Handle Bluetooth discovery for supported trackers."""
 
@@ -165,7 +171,9 @@ class DiscoveryFlowMixin:
 
         name = getattr(discovery_info, 'name', '') or ''
         address = getattr(discovery_info, 'address', '') or ''
-        service_uuids = list(getattr(discovery_info, 'service_uuids', []) or [])
+        service_uuids = list(
+            getattr(discovery_info, 'service_uuids', []) or [],
+        )
 
         hostname_hint = name or address
         properties: ConfigFlowDiscoveryProperties = {
@@ -185,7 +193,8 @@ class DiscoveryFlowMixin:
         }
 
         updates, comparison = self._prepare_discovery_updates(
-            bluetooth_payload, source='bluetooth'
+            bluetooth_payload,
+            source='bluetooth',
         )
 
         if address:
@@ -201,7 +210,8 @@ class DiscoveryFlowMixin:
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(
-        self, user_input: DiscoveryConfirmInput | None = None
+        self,
+        user_input: DiscoveryConfirmInput | None = None,
     ) -> ConfigFlowResult:
         """Confirm discovered device setup."""
 
@@ -215,13 +225,15 @@ class DiscoveryFlowMixin:
 
         return self.async_show_form(
             step_id='discovery_confirm',
-            data_schema=vol.Schema({vol.Required('confirm', default=True): cv.boolean}),
+            data_schema=vol.Schema(
+                {vol.Required('confirm', default=True): cv.boolean},
+            ),
             description_placeholders=dict(
                 freeze_placeholders(
                     {
                         'discovery_source': discovery_source,
                         'device_info': device_info,
-                    }
-                )
+                    },
+                ),
             ),
         )

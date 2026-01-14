@@ -7,19 +7,27 @@ module import which are not available in the execution environment.  We stub
 the minimal interfaces that the entity factory relies on so the module can be
 imported and exercised directly.
 """
-
 from __future__ import annotations
 
 import types
-from enum import Enum, StrEnum
+from enum import Enum
+from enum import StrEnum
 
 import pytest
 
-from tests.helpers.homeassistant_test_stubs import (
-    Platform as _Platform,
-)
+from custom_components.pawcontrol.entity_factory import _MIN_OPERATION_DURATION
+from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_FACTOR
+from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_THRESHOLD
+from custom_components.pawcontrol.entity_factory import _RUNTIME_EXPAND_THRESHOLD
+from custom_components.pawcontrol.entity_factory import _RUNTIME_MAX_FLOOR
+from custom_components.pawcontrol.entity_factory import _RUNTIME_TARGET_RATIO
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
+from custom_components.pawcontrol.entity_factory import EntityFactory
 from tests.helpers.homeassistant_test_stubs import (
     install_homeassistant_stubs,
+)
+from tests.helpers.homeassistant_test_stubs import (
+    Platform as _Platform,
 )
 
 
@@ -43,17 +51,6 @@ class _NestedPlatformAlias(Enum):
 
 install_homeassistant_stubs()
 
-from custom_components.pawcontrol.entity_factory import (
-    _MIN_OPERATION_DURATION,
-    _RUNTIME_CONTRACT_FACTOR,
-    _RUNTIME_CONTRACT_THRESHOLD,
-    _RUNTIME_EXPAND_THRESHOLD,
-    _RUNTIME_MAX_FLOOR,
-    _RUNTIME_TARGET_RATIO,
-    ENTITY_PROFILES,
-    EntityFactory,
-)
-
 
 def test_basic_profile_supports_buttons() -> None:
     """The basic profile must now recognise button entities."""
@@ -76,7 +73,10 @@ def test_should_create_entity_accepts_platform_enum() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
-        'standard', _Platform.SENSOR, 'feeding', priority=6
+        'standard',
+        _Platform.SENSOR,
+        'feeding',
+        priority=6,
     )
 
 
@@ -86,7 +86,10 @@ def test_should_create_entity_accepts_nested_enum_alias() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
-        'standard', _NestedPlatformAlias.SENSOR, 'feeding', priority=6
+        'standard',
+        _NestedPlatformAlias.SENSOR,
+        'feeding',
+        priority=6,
     )
 
 
@@ -96,7 +99,10 @@ def test_should_create_entity_blocks_unknown_module() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert not factory.should_create_entity(
-        'advanced', _Platform.SENSOR, 'unknown', priority=9
+        'advanced',
+        _Platform.SENSOR,
+        'unknown',
+        priority=9,
     )
 
 
@@ -156,7 +162,9 @@ def test_runtime_guard_expands_when_scheduler_starves() -> None:
     factory = EntityFactory(coordinator=None, enforce_min_runtime=True)
     baseline = factory._runtime_guard_floor
 
-    factory._recalibrate_runtime_floor(baseline * (_RUNTIME_EXPAND_THRESHOLD + 2.5))
+    factory._recalibrate_runtime_floor(
+        baseline * (_RUNTIME_EXPAND_THRESHOLD + 2.5),
+    )
 
     boosted = factory._runtime_guard_floor
     assert boosted > baseline
@@ -172,7 +180,7 @@ def test_runtime_guard_contracts_after_sustained_stability() -> None:
     factory._runtime_guard_floor = _RUNTIME_MAX_FLOOR
 
     factory._recalibrate_runtime_floor(
-        factory._runtime_guard_floor * (_RUNTIME_CONTRACT_THRESHOLD - 0.4)
+        factory._runtime_guard_floor * (_RUNTIME_CONTRACT_THRESHOLD - 0.4),
     )
 
     contracted = factory._runtime_guard_floor
@@ -196,7 +204,7 @@ def test_runtime_guard_records_telemetry() -> None:
 
     runtime_store = types.SimpleNamespace(performance_stats={})
     coordinator = types.SimpleNamespace(
-        config_entry=types.SimpleNamespace(runtime_data=runtime_store)
+        config_entry=types.SimpleNamespace(runtime_data=runtime_store),
     )
 
     factory = EntityFactory(coordinator=coordinator, enforce_min_runtime=True)
@@ -204,7 +212,7 @@ def test_runtime_guard_records_telemetry() -> None:
     assert baseline == pytest.approx(_MIN_OPERATION_DURATION)
 
     existing_metrics = runtime_store.performance_stats.get(
-        'entity_factory_guard_metrics'
+        'entity_factory_guard_metrics',
     )
     if isinstance(existing_metrics, dict):
         initial_samples = int(existing_metrics.get('samples', 0))
@@ -234,10 +242,10 @@ def test_runtime_guard_records_telemetry() -> None:
     assert metrics['lowest_runtime_floor'] >= baseline - 1e-12
     assert metrics['lowest_runtime_floor'] <= metrics['runtime_floor'] + 1e-12
     assert metrics['last_floor_change'] == pytest.approx(
-        metrics['runtime_floor'] - baseline
+        metrics['runtime_floor'] - baseline,
     )
     assert metrics['last_floor_change_ratio'] == pytest.approx(
-        (metrics['runtime_floor'] - baseline) / baseline
+        (metrics['runtime_floor'] - baseline) / baseline,
     )
     first_sample = metrics['last_actual_duration']
     updated_average = ((initial_average * initial_samples) + first_sample) / (
@@ -253,7 +261,7 @@ def test_runtime_guard_records_telemetry() -> None:
         min_candidates.append(float(initial_min))
     assert metrics['min_duration'] == pytest.approx(min(min_candidates))
     assert metrics['runtime_floor_delta'] == pytest.approx(
-        metrics['runtime_floor'] - metrics['baseline_floor']
+        metrics['runtime_floor'] - metrics['baseline_floor'],
     )
 
     expanded_floor = factory._runtime_guard_floor
@@ -268,10 +276,10 @@ def test_runtime_guard_records_telemetry() -> None:
     assert metrics['peak_runtime_floor'] >= expanded_floor
     assert metrics['lowest_runtime_floor'] <= metrics['runtime_floor']
     assert metrics['last_floor_change'] == pytest.approx(
-        metrics['runtime_floor'] - expanded_floor
+        metrics['runtime_floor'] - expanded_floor,
     )
     assert metrics['last_floor_change_ratio'] == pytest.approx(
-        metrics['last_floor_change'] / expanded_floor
+        metrics['last_floor_change'] / expanded_floor,
     )
     second_sample = metrics['last_actual_duration']
     combined_average = (
@@ -287,7 +295,7 @@ def test_runtime_guard_records_telemetry() -> None:
         min_candidates.append(float(initial_min))
     assert metrics['min_duration'] == pytest.approx(min(min_candidates))
     assert metrics['runtime_floor_delta'] == pytest.approx(
-        metrics['runtime_floor'] - metrics['baseline_floor']
+        metrics['runtime_floor'] - metrics['baseline_floor'],
     )
 
     stable_duration = factory._runtime_guard_floor * 1.8
@@ -300,41 +308,41 @@ def test_runtime_guard_records_telemetry() -> None:
     assert metrics['consecutive_stable_samples'] >= 1
     assert metrics['longest_stable_run'] >= metrics['consecutive_stable_samples']
     assert metrics['stable_ratio'] == pytest.approx(
-        metrics['stable_samples'] / metrics['samples']
+        metrics['stable_samples'] / metrics['samples'],
     )
     assert metrics['expansion_ratio'] == pytest.approx(
-        metrics['expansions'] / metrics['samples']
+        metrics['expansions'] / metrics['samples'],
     )
     assert metrics['contraction_ratio'] == pytest.approx(
-        metrics['contractions'] / metrics['samples']
+        metrics['contractions'] / metrics['samples'],
     )
     assert metrics['volatility_ratio'] == pytest.approx(
-        (metrics['expansions'] + metrics['contractions']) / metrics['samples']
+        (metrics['expansions'] + metrics['contractions']) / metrics['samples'],
     )
 
     recent = metrics['recent_durations']
     assert len(recent) == min(5, metrics['samples'])
     assert recent[-1] == pytest.approx(stable_duration)
     assert metrics['recent_average_duration'] == pytest.approx(
-        sum(recent) / len(recent)
+        sum(recent) / len(recent),
     )
     assert metrics['recent_max_duration'] == pytest.approx(max(recent))
     assert metrics['recent_min_duration'] == pytest.approx(min(recent))
     assert metrics['recent_duration_span'] == pytest.approx(
-        metrics['recent_max_duration'] - metrics['recent_min_duration']
+        metrics['recent_max_duration'] - metrics['recent_min_duration'],
     )
     if metrics['runtime_floor'] > 0:
         assert metrics['jitter_ratio'] == pytest.approx(
-            metrics['duration_span'] / metrics['runtime_floor']
+            metrics['duration_span'] / metrics['runtime_floor'],
         )
         assert metrics['recent_jitter_ratio'] == pytest.approx(
-            metrics['recent_duration_span'] / metrics['runtime_floor']
+            metrics['recent_duration_span'] / metrics['runtime_floor'],
         )
 
     assert metrics['recent_samples'] == len(recent)
     assert metrics['recent_events'][-1] == 'stable'
     assert metrics['recent_stable_samples'] <= metrics['recent_samples']
     assert metrics['recent_stable_ratio'] == pytest.approx(
-        metrics['recent_stable_samples'] / metrics['recent_samples']
+        metrics['recent_stable_samples'] / metrics['recent_samples'],
     )
     assert metrics['stability_trend'] == 'regressing'

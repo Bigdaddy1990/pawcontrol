@@ -1,51 +1,52 @@
 """Helper structures that keep :mod:`coordinator` lean and maintainable."""
-
 from __future__ import annotations
 
 import logging
 import sys
 from collections import deque
 from collections.abc import Mapping
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import cast
+from typing import Protocol
+from typing import runtime_checkable
+from typing import TYPE_CHECKING
 
-from .const import (
-    ALL_MODULES,
-    CONF_DOGS,
-    CONF_GPS_UPDATE_INTERVAL,
-    CONF_MODULES,
-    MAX_IDLE_POLL_INTERVAL,
-    MAX_POLLING_INTERVAL_SECONDS,
-    MODULE_FEEDING,
-    MODULE_GARDEN,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    MODULE_WEATHER,
-    UPDATE_INTERVALS,
-)
+from .const import ALL_MODULES
+from .const import CONF_DOGS
+from .const import CONF_GPS_UPDATE_INTERVAL
+from .const import CONF_MODULES
+from .const import MAX_IDLE_POLL_INTERVAL
+from .const import MAX_POLLING_INTERVAL_SECONDS
+from .const import MODULE_FEEDING
+from .const import MODULE_GARDEN
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
+from .const import MODULE_WEATHER
+from .const import UPDATE_INTERVALS
 from .exceptions import ValidationError
-from .types import (
-    DOG_ID_FIELD,
-    DOG_NAME_FIELD,
-    CacheRepairAggregate,
-    CacheRepairIssue,
-    CoordinatorDogData,
-    CoordinatorModuleState,
-    CoordinatorModuleTask,
-    CoordinatorRepairsSummary,
-    CoordinatorRuntimeManagers,
-    CoordinatorRuntimeStatisticsPayload,
-    CoordinatorStatisticsPayload,
-    DogConfigData,
-    DogModulesMapping,
-    JSONValue,
-    ModuleCacheMetrics,
-    PawControlConfigEntry,
-    coerce_dog_modules_config,
-    ensure_dog_config_data,
-)
+from .types import CacheRepairAggregate
+from .types import CacheRepairIssue
+from .types import coerce_dog_modules_config
+from .types import CoordinatorDogData
+from .types import CoordinatorModuleState
+from .types import CoordinatorModuleTask
+from .types import CoordinatorRepairsSummary
+from .types import CoordinatorRuntimeManagers
+from .types import CoordinatorRuntimeStatisticsPayload
+from .types import CoordinatorStatisticsPayload
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesMapping
+from .types import ensure_dog_config_data
+from .types import JSONValue
+from .types import ModuleCacheMetrics
+from .types import PawControlConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ _STATUS_DEFAULT_MODULES: frozenset[str] = frozenset(
         MODULE_WALK,
         MODULE_WEATHER,
         'geofencing',
-    }
+    },
 )
 
 if TYPE_CHECKING:
@@ -157,7 +158,11 @@ def ensure_cache_repair_aggregate(
         return None
 
     types_module = sys.modules.get('custom_components.pawcontrol.types')
-    aggregate_cls = getattr(types_module, 'CacheRepairAggregate', CacheRepairAggregate)
+    aggregate_cls = getattr(
+        types_module,
+        'CacheRepairAggregate',
+        CacheRepairAggregate,
+    )
 
     candidate_classes: list[type[CacheRepairAggregate]] = []
     if isinstance(aggregate_cls, type):
@@ -215,7 +220,9 @@ class CoordinatorModuleAdapter(Protocol):
         """Detach previously bound runtime managers."""
 
     def build_tasks(
-        self, dog_id: str, modules: DogModulesMapping
+        self,
+        dog_id: str,
+        modules: DogModulesMapping,
     ) -> list[CoordinatorModuleTask]:
         """Return coroutine tasks for each enabled module."""
 
@@ -245,7 +252,7 @@ class DogConfigRegistry:
                 continue
 
             candidate = ensure_dog_config_data(
-                cast(Mapping[str, JSONValue], raw_config)
+                cast(Mapping[str, JSONValue], raw_config),
             )
             if candidate is None:
                 continue
@@ -314,7 +321,10 @@ class DogConfigRegistry:
         config = self.get(dog_id)
         if not config:
             return frozenset()
-        modules_payload = cast(Mapping[str, object] | None, config.get(CONF_MODULES))
+        modules_payload = cast(
+            Mapping[str, object] | None,
+            config.get(CONF_MODULES),
+        )
         modules = coerce_dog_modules_config(modules_payload)
         return frozenset(module for module, enabled in modules.items() if bool(enabled))
 
@@ -346,7 +356,12 @@ class DogConfigRegistry:
 
         for module in sorted(ALL_MODULES):
             if module in _STATUS_DEFAULT_MODULES:
-                payload[module] = cast(CoordinatorModuleState, {'status': 'unknown'})
+                payload[module] = cast(
+                    CoordinatorModuleState,
+                    {
+                        'status': 'unknown',
+                    },
+                )
             else:
                 payload[module] = cast(CoordinatorModuleState, {})
 
@@ -391,12 +406,16 @@ class DogConfigRegistry:
 
         if not isinstance(interval, int):
             raise ValidationError(
-                'update_interval', interval, 'Polling interval must be an integer'
+                'update_interval',
+                interval,
+                'Polling interval must be an integer',
             )
 
         if interval <= 0:
             raise ValidationError(
-                'update_interval', interval, 'Polling interval must be positive'
+                'update_interval',
+                interval,
+                'Polling interval must be positive',
             )
 
         return min(interval, MAX_IDLE_POLL_INTERVAL, MAX_POLLING_INTERVAL_SECONDS)
@@ -407,30 +426,40 @@ class DogConfigRegistry:
 
         if isinstance(value, bool):
             raise ValidationError(
-                'gps_update_interval', value, 'Invalid GPS update interval'
+                'gps_update_interval',
+                value,
+                'Invalid GPS update interval',
             )
 
         if isinstance(value, str):
             candidate = value.strip()
             if not candidate:
                 raise ValidationError(
-                    'gps_update_interval', value, 'Invalid GPS update interval'
+                    'gps_update_interval',
+                    value,
+                    'Invalid GPS update interval',
                 )
             try:
                 value = int(candidate)
             except ValueError as err:  # pragma: no cover - defensive casting
                 raise ValidationError(
-                    'gps_update_interval', value, 'Invalid GPS update interval'
+                    'gps_update_interval',
+                    value,
+                    'Invalid GPS update interval',
                 ) from err
 
         if not isinstance(value, int):
             raise ValidationError(
-                'gps_update_interval', value, 'Invalid GPS update interval'
+                'gps_update_interval',
+                value,
+                'Invalid GPS update interval',
             )
 
         if value <= 0:
             raise ValidationError(
-                'gps_update_interval', value, 'Invalid GPS update interval'
+                'gps_update_interval',
+                value,
+                'Invalid GPS update interval',
             )
 
         return value
@@ -443,8 +472,12 @@ class CoordinatorMetrics:
     update_count: int = 0
     failed_cycles: int = 0
     consecutive_errors: int = 0
-    statistics_timings: deque[float] = field(default_factory=lambda: deque(maxlen=50))
-    visitor_mode_timings: deque[float] = field(default_factory=lambda: deque(maxlen=50))
+    statistics_timings: deque[float] = field(
+        default_factory=lambda: deque(maxlen=50),
+    )
+    visitor_mode_timings: deque[float] = field(
+        default_factory=lambda: deque(maxlen=50),
+    )
 
     def start_cycle(self) -> None:
         """Record the start of a coordinator update cycle."""
@@ -591,7 +624,8 @@ class CoordinatorMetrics:
         return payload
 
 
-MANAGER_ATTRIBUTES: tuple[str, ...] = CoordinatorRuntimeManagers.attribute_names()
+MANAGER_ATTRIBUTES: tuple[str, ...] = CoordinatorRuntimeManagers.attribute_names(
+)
 
 
 def bind_runtime_managers(
@@ -634,13 +668,18 @@ def bind_runtime_managers(
         and notification_manager is not None
         and isinstance(data_manager, CacheMonitorRegistrar)
     ):
-        register_method = getattr(notification_manager, 'register_cache_monitors', None)
+        register_method = getattr(
+            notification_manager,
+            'register_cache_monitors',
+            None,
+        )
         if callable(register_method):
             register_method(data_manager)
 
 
 def clear_runtime_managers(
-    coordinator: CoordinatorBindingTarget, modules: CoordinatorModuleAdapter
+    coordinator: CoordinatorBindingTarget,
+    modules: CoordinatorModuleAdapter,
 ) -> None:
     """Clear bound runtime managers from the coordinator."""
 

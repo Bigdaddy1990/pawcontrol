@@ -1,17 +1,21 @@
 """HTTP client helpers for communicating with Paw Control hardware."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
+from aiohttp import ClientError
+from aiohttp import ClientResponse
+from aiohttp import ClientSession
+from aiohttp import ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
 from yarl import URL
 
 from .compat import ConfigEntryAuthFailed
-from .exceptions import NetworkError, RateLimitError
+from .exceptions import NetworkError
+from .exceptions import RateLimitError
 from .http_client import ensure_shared_client_session
-from .resilience import ResilienceManager, RetryConfig
+from .resilience import ResilienceManager
+from .resilience import RetryConfig
 from .types import JSONMutableMapping
 from .utils import _coerce_json_mutable
 
@@ -71,7 +75,8 @@ class PawControlDeviceClient:
         base_url = validate_device_endpoint(endpoint)
 
         self._session = ensure_shared_client_session(
-            session, owner='PawControlDeviceClient'
+            session,
+            owner='PawControlDeviceClient',
         )
         self._endpoint = DeviceEndpoint(base_url=base_url, api_key=api_key)
         self._timeout = timeout or _DEFAULT_TIMEOUT
@@ -111,7 +116,7 @@ class PawControlDeviceClient:
             payload = await response.json()
         except (ContentTypeError, ValueError) as err:  # pragma: no cover - defensive
             raise NetworkError(
-                'Device API returned a non-JSON response. Check the configured endpoint.'
+                'Device API returned a non-JSON response. Check the configured endpoint.',
             ) from err
         return _coerce_json_mutable(payload)
 
@@ -156,15 +161,21 @@ class PawControlDeviceClient:
             )
         except TimeoutError as err:  # pragma: no cover - transport timeout
             raise NetworkError(
-                'Timed out while contacting the Paw Control device API'
+                'Timed out while contacting the Paw Control device API',
             ) from err
         except ClientError as err:  # pragma: no cover - transport errors
-            raise NetworkError(f"Client error talking to device API: {err}") from err
+            raise NetworkError(
+                f"Client error talking to device API: {err}",
+            ) from err
         except OSError as err:  # pragma: no cover - local network failures
-            raise NetworkError(f"Network error talking to device API: {err}") from err
+            raise NetworkError(
+                f"Network error talking to device API: {err}",
+            ) from err
 
         if response.status == 401:
-            raise ConfigEntryAuthFailed('Authentication with Paw Control device failed')
+            raise ConfigEntryAuthFailed(
+                'Authentication with Paw Control device failed',
+            )
         if response.status == 429:
             retry_after = response.headers.get('Retry-After')
             retry_seconds = (
@@ -174,7 +185,7 @@ class PawControlDeviceClient:
         if response.status >= 400:
             text = await response.text()
             raise NetworkError(
-                f"Device API returned HTTP {response.status}: {text.strip()}"
+                f"Device API returned HTTP {response.status}: {text.strip()}",
             )
 
         return response

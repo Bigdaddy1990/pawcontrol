@@ -1,23 +1,24 @@
 """Shared data accessor helpers for the PawControl coordinator."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Literal, TypeGuard, cast, overload
+from typing import cast
+from typing import Literal
+from typing import overload
+from typing import TYPE_CHECKING
+from typing import TypeGuard
 
-from .types import (
-    CoordinatorDataPayload,
-    CoordinatorDogData,
-    CoordinatorModuleLookupResult,
-    CoordinatorModuleState,
-    CoordinatorRuntimeManagers,
-    CoordinatorTypedModuleName,
-    CoordinatorUntypedModuleState,
-    DogConfigData,
-)
+from .types import CoordinatorDataPayload
+from .types import CoordinatorDogData
+from .types import CoordinatorModuleLookupResult
+from .types import CoordinatorModuleState
+from .types import CoordinatorRuntimeManagers
+from .types import CoordinatorTypedModuleName
+from .types import CoordinatorUntypedModuleState
+from .types import DogConfigData
 
 _TYPED_MODULES: frozenset[CoordinatorTypedModuleName] = frozenset(
-    {'feeding', 'garden', 'geofencing', 'gps', 'health', 'walk', 'weather'}
+    {'feeding', 'garden', 'geofencing', 'gps', 'health', 'walk', 'weather'},
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
@@ -69,12 +70,16 @@ class CoordinatorDataAccessMixin:
 
     @overload
     def get_module_data(
-        self, dog_id: str, module: str
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return cached data for a module without strict typing."""
 
     def get_module_data(
-        self, dog_id: str, module: str
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return cached data for a specific module."""
 

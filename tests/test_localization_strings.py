@@ -1,5 +1,4 @@
 """Ensure entity translation keys are defined in strings.json and translations."""
-
 from __future__ import annotations
 
 import ast
@@ -100,7 +99,8 @@ def test_entity_translation_keys_are_defined() -> None:
     entity = strings['entity']
 
     sensor_keys = _extract_decorator_keys(
-        COMPONENT_ROOT / 'sensor.py', 'register_sensor'
+        COMPONENT_ROOT / 'sensor.py',
+        'register_sensor',
     )
     binary_keys = _extract_init_keys(
         COMPONENT_ROOT / 'binary_sensor.py',

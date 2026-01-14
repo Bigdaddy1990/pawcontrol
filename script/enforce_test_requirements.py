@@ -1,5 +1,4 @@
 """Ensure test imports declare the third-party packages they rely on."""
-
 from __future__ import annotations
 
 import argparse

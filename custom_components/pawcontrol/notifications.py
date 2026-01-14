@@ -7,7 +7,6 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -15,15 +14,26 @@ import inspect
 import json
 import logging
 from collections import deque
-from collections.abc import Awaitable, Callable, Mapping, MutableMapping, Sequence
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
 from enum import Enum
 from functools import partial
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
+from typing import TypedDict
 from uuid import uuid4
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
+from aiohttp import ClientError
+from aiohttp import ClientSession
+from aiohttp import ClientTimeout
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -31,11 +41,16 @@ from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
 from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
-from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
-from .resilience import CircuitBreakerConfig, ResilienceManager
-from .types import JSONMutableMapping, PersonEntityStats, PersonNotificationContext
+from .person_entity_manager import PersonEntityConfigInput
+from .person_entity_manager import PersonEntityManager
+from .resilience import CircuitBreakerConfig
+from .resilience import ResilienceManager
+from .types import JSONMutableMapping
+from .types import PersonEntityStats
+from .types import PersonNotificationContext
 from .utils import async_call_hass_service_if_available
-from .webhook_security import WebhookSecurityError, WebhookSecurityManager
+from .webhook_security import WebhookSecurityError
+from .webhook_security import WebhookSecurityManager
 
 if TYPE_CHECKING:
     from .feeding_manager import (
@@ -266,20 +281,20 @@ class NotificationConfig:
 
     enabled: bool = True
     channels: list[NotificationChannel] = field(
-        default_factory=lambda: [NotificationChannel.PERSISTENT]
+        default_factory=lambda: [NotificationChannel.PERSISTENT],
     )
     priority_threshold: NotificationPriority = NotificationPriority.NORMAL
     quiet_hours: tuple[int, int] | None = None  # (start_hour, end_hour)
     retry_failed: bool = True
     custom_settings: NotificationCustomSettings = field(
-        default_factory=_empty_custom_settings
+        default_factory=_empty_custom_settings,
     )
     rate_limit: NotificationRateLimitConfig = field(
-        default_factory=_empty_rate_limit_config
+        default_factory=_empty_rate_limit_config,
     )  # OPTIMIZE: Added rate limiting
     batch_enabled: bool = True  # OPTIMIZE: Allow batching per config
     template_overrides: NotificationTemplateOverrides = field(
-        default_factory=dict
+        default_factory=dict,
     )  # OPTIMIZE: Custom templates
     # NEW: Person entity targeting
     use_person_entities: bool = True  # Dynamic person targeting
@@ -308,16 +323,20 @@ class NotificationEvent:
     acknowledged_at: datetime | None = None
 
     # OPTIMIZE: Enhanced metadata
-    grouped_with: list[str] = field(default_factory=list)  # For batched notifications
+    grouped_with: list[str] = field(
+        default_factory=list,
+    )  # For batched notifications
     template_used: str | None = None
     send_attempts: NotificationSendAttempts = field(
-        default_factory=dict
+        default_factory=dict,
     )  # Per-channel attempts
 
     # NEW: Person targeting metadata
-    targeted_persons: list[str] = field(default_factory=list)  # Person entity IDs
+    targeted_persons: list[str] = field(
+        default_factory=list,
+    )  # Person entity IDs
     notification_services: list[str] = field(
-        default_factory=list
+        default_factory=list,
     )  # Actual services used
     failed_notification_services: list[str] = field(default_factory=list)
 
@@ -480,7 +499,11 @@ class NotificationCache[ConfigT: NotificationConfig]:
         self._config_cache: dict[str, tuple[ConfigT, datetime]] = {}
         self._quiet_time_cache: dict[str, tuple[bool, datetime]] = {}
         self._rate_limit_cache: dict[str, dict[str, datetime]] = {}
-        self._person_targeting_cache: dict[str, tuple[list[str], datetime]] = {}  # NEW
+        self._person_targeting_cache: dict[
+            str,
+            # NEW
+            tuple[list[str], datetime],
+        ] = {}
         self._max_size = max_size
         self._access_order: deque[str] = deque()
         self._diagnostics: NotificationCacheDiagnosticsMetadata = {
@@ -530,7 +553,9 @@ class NotificationCache[ConfigT: NotificationConfig]:
         self._access_order.append(config_key)
 
     def get_person_targeting_cache(
-        self, cache_key: str, ttl_seconds: int = 180
+        self,
+        cache_key: str,
+        ttl_seconds: int = 180,
     ) -> list[str] | None:
         """Get cached person targeting results.
 
@@ -581,7 +606,10 @@ class NotificationCache[ConfigT: NotificationConfig]:
         self._quiet_time_cache[config_key] = (is_quiet, dt_util.now())
 
     def check_rate_limit(
-        self, config_key: str, channel: str, limit_minutes: int
+        self,
+        config_key: str,
+        channel: str,
+        limit_minutes: int,
     ) -> bool:
         """Check if rate limit allows sending.
 
@@ -729,7 +757,8 @@ class PawControlNotificationManager:
         self._handlers: dict[NotificationChannel, Callable] = {}
         self._lock = asyncio.Lock()
         self._session = ensure_shared_client_session(
-            session, owner='PawControlNotificationManager'
+            session,
+            owner='PawControlNotificationManager',
         )
 
         # NEW: Person entity manager for dynamic targeting
@@ -778,7 +807,8 @@ class PawControlNotificationManager:
             'walk_reminder': '🚶 {title}\n{message}',
             'health_alert': '⚕️ {title}\n{message}',
             'batch_summary': '📋 {count} notifications for {dog_name}:\n{summary}',
-            'person_targeted': '👤 {title} (Targeted: {person_names})\n{message}',  # NEW
+            # NEW
+            'person_targeted': '👤 {title} (Targeted: {person_names})\n{message}',
         }
 
         # Setup default handlers
@@ -832,7 +862,8 @@ class PawControlNotificationManager:
         """Persist a successful delivery outcome for diagnostics."""
 
         status = self._delivery_status.setdefault(
-            service_name, NotificationDeliveryStatus()
+            service_name,
+            NotificationDeliveryStatus(),
         )
         status.last_success_at = dt_util.now()
         status.total_successes += 1
@@ -850,7 +881,8 @@ class PawControlNotificationManager:
         """Persist a failed delivery outcome for diagnostics."""
 
         status = self._delivery_status.setdefault(
-            service_name, NotificationDeliveryStatus()
+            service_name,
+            NotificationDeliveryStatus(),
         )
         status.last_failure_at = dt_util.now()
         status.total_failures += 1
@@ -884,11 +916,14 @@ class PawControlNotificationManager:
         # Wrap handlers with error handling and performance monitoring
         for channel, handler in handlers.items():
             self._handlers[channel] = self._wrap_handler_with_monitoring(
-                handler, channel
+                handler,
+                channel,
             )
 
     def _wrap_handler_with_monitoring(
-        self, handler: Callable, channel: NotificationChannel
+        self,
+        handler: Callable,
+        channel: NotificationChannel,
     ) -> Callable:
         """Wrap handler with performance monitoring.
 
@@ -916,7 +951,9 @@ class PawControlNotificationManager:
                 raise
             finally:
                 # Update average delivery time
-                delivery_time_ms = (dt_util.now() - start_time).total_seconds() * 1000
+                delivery_time_ms = (
+                    dt_util.now() - start_time
+                ).total_seconds() * 1000
                 current_avg = self._performance_metrics['average_delivery_time_ms']
                 total_sent = self._performance_metrics['notifications_sent']
 
@@ -941,7 +978,11 @@ class PawControlNotificationManager:
         """
         async with self._lock:
             configs: NotificationConfigInputMap = (
-                {} if notification_configs is None else dict(notification_configs)
+                {}
+                if notification_configs is None
+                else dict(
+                    notification_configs,
+                )
             )
 
             for config_id, config_data in configs.items():
@@ -954,19 +995,21 @@ class PawControlNotificationManager:
                             channels.append(NotificationChannel(channel_str))
                         except ValueError:
                             _LOGGER.warning(
-                                'Invalid notification channel: %s', channel_str
+                                'Invalid notification channel: %s',
+                                channel_str,
                             )
 
                     # Parse priority threshold
                     priority_threshold = NotificationPriority(
-                        config_data.get('priority_threshold', 'normal')
+                        config_data.get('priority_threshold', 'normal'),
                     )
 
                     # Parse quiet hours
                     quiet_hours = None
                     if 'quiet_hours' in config_data:
                         quiet_config = cast(
-                            NotificationQuietHoursConfig, config_data['quiet_hours']
+                            NotificationQuietHoursConfig,
+                            config_data['quiet_hours'],
                         )
                         quiet_start = quiet_config.get('start', 22)
                         quiet_end = quiet_config.get('end', 7)
@@ -976,7 +1019,8 @@ class PawControlNotificationManager:
                     rate_limit: NotificationRateLimitConfig
                     if 'rate_limit' in config_data:
                         rate_limit = cast(
-                            NotificationRateLimitConfig, config_data['rate_limit']
+                            NotificationRateLimitConfig,
+                            config_data['rate_limit'],
                         )
                     else:
                         rate_limit = cast(NotificationRateLimitConfig, {})
@@ -992,7 +1036,8 @@ class PawControlNotificationManager:
 
                     if 'custom_settings' in config_data:
                         custom_settings = cast(
-                            NotificationCustomSettings, config_data['custom_settings']
+                            NotificationCustomSettings,
+                            config_data['custom_settings'],
                         )
                     else:
                         custom_settings = cast(NotificationCustomSettings, {})
@@ -1009,19 +1054,28 @@ class PawControlNotificationManager:
                         template_overrides=template_overrides,
                         # NEW: Person entity settings
                         use_person_entities=config_data.get(
-                            'use_person_entities', True
+                            'use_person_entities',
+                            True,
                         ),
                         include_away_persons=config_data.get(
-                            'include_away_persons', False
+                            'include_away_persons',
+                            False,
                         ),
-                        fallback_to_static=config_data.get('fallback_to_static', True),
+                        fallback_to_static=config_data.get(
+                            'fallback_to_static',
+                            True,
+                        ),
                     )
 
                     self._configs[config_id] = config
                     self._cache.set_config(config_id, config)
 
                 except Exception as err:
-                    _LOGGER.error('Failed to parse config for %s: %s', config_id, err)
+                    _LOGGER.error(
+                        'Failed to parse config for %s: %s',
+                        config_id,
+                        err,
+                    )
 
         # NEW: Initialize person entity manager
         await self._initialize_person_manager(person_entity_config)
@@ -1030,7 +1084,8 @@ class PawControlNotificationManager:
         await self._start_background_tasks()
 
     async def _initialize_person_manager(
-        self, config: Mapping[str, object] | None = None
+        self,
+        config: Mapping[str, object] | None = None,
     ) -> None:
         """Initialize person entity manager for dynamic targeting.
 
@@ -1038,7 +1093,10 @@ class PawControlNotificationManager:
             config: Person entity configuration
         """
         try:
-            self._person_manager = PersonEntityManager(self._hass, self._entry_id)
+            self._person_manager = PersonEntityManager(
+                self._hass,
+                self._entry_id,
+            )
 
             # Use provided config or defaults
             person_config: PersonEntityConfigInput
@@ -1056,30 +1114,41 @@ class PawControlNotificationManager:
             await self._person_manager.async_initialize(person_config)
             self._register_person_cache_monitor()
 
-            _LOGGER.info('Person entity manager initialized for notification targeting')
+            _LOGGER.info(
+                'Person entity manager initialized for notification targeting',
+            )
 
         except Exception as err:
-            _LOGGER.error('Failed to initialize person entity manager: %s', err)
+            _LOGGER.error(
+                'Failed to initialize person entity manager: %s',
+                err,
+            )
             self._person_manager = None
 
     async def _start_background_tasks(self) -> None:
         """Start background processing tasks."""
         # Start retry task
         if self._retry_task is None:
-            self._retry_task = asyncio.create_task(self._retry_failed_notifications())
+            self._retry_task = asyncio.create_task(
+                self._retry_failed_notifications(),
+            )
 
         # Start cleanup task
         if self._cleanup_task is None:
             self._cleanup_task = asyncio.create_task(
-                self._cleanup_expired_notifications()
+                self._cleanup_expired_notifications(),
             )
 
         # Start batch processing task
         if self._batch_task is None:
-            self._batch_task = asyncio.create_task(self._process_batch_notifications())
+            self._batch_task = asyncio.create_task(
+                self._process_batch_notifications(),
+            )
 
     async def async_set_priority_threshold(
-        self, dog_id: str, priority: NotificationPriority
+        self,
+        dog_id: str,
+        priority: NotificationPriority,
     ) -> None:
         """Set the default notification priority threshold for a dog."""
 
@@ -1178,7 +1247,8 @@ class PawControlNotificationManager:
             ):
                 # Use person entity targeting
                 person_targets = await self._get_person_notification_targets(
-                    config_key, config
+                    config_key,
+                    config,
                 )
                 if person_targets:
                     notification_services.extend(person_targets)
@@ -1200,26 +1270,38 @@ class PawControlNotificationManager:
                 elif config.fallback_to_static:
                     # Fallback to static configuration
                     notification_services.extend(
-                        config.custom_settings.get('mobile_services', ['mobile_app'])
+                        config.custom_settings.get(
+                            'mobile_services',
+                            ['mobile_app'],
+                        ),
                     )
                     self._performance_metrics['static_fallback_notifications'] += 1
 
-                    _LOGGER.debug('Using static fallback for mobile notifications')
+                    _LOGGER.debug(
+                        'Using static fallback for mobile notifications',
+                    )
 
             # OPTIMIZE: Check rate limits
             allowed_channels = []
             for channel in channels:
                 rate_limit_key = f"{channel.value}_limit_minutes"
-                limit_minutes = cast(int, config.rate_limit.get(rate_limit_key, 0))
+                limit_minutes = cast(
+                    int,
+                    config.rate_limit.get(rate_limit_key, 0),
+                )
 
                 if limit_minutes == 0 or self._cache.check_rate_limit(
-                    config_key, channel.value, limit_minutes
+                    config_key,
+                    channel.value,
+                    limit_minutes,
                 ):
                     allowed_channels.append(channel)
                 else:
                     self._performance_metrics['rate_limit_blocks'] += 1
                     _LOGGER.debug(
-                        'Rate limit blocked %s for %s', channel.value, config_key
+                        'Rate limit blocked %s for %s',
+                        channel.value,
+                        config_key,
                     )
 
             if not allowed_channels:
@@ -1236,18 +1318,23 @@ class PawControlNotificationManager:
                 person_context = self._person_manager.get_notification_context()
                 if isinstance(person_context, Mapping):
                     template_data.update(
-                        cast(NotificationTemplateData, dict(person_context))
+                        cast(NotificationTemplateData, dict(person_context)),
                     )
                     home_names = person_context.get('home_person_names')
                     if isinstance(home_names, Sequence) and not isinstance(
-                        home_names, (str, bytes)
+                        home_names,
+                        (str, bytes),
                     ):
                         template_data['person_names'] = ', '.join(
                             name for name in home_names if isinstance(name, str)
                         )
 
             formatted_title, formatted_message = self._apply_template(
-                notification_type, title, message, config, template_data
+                notification_type,
+                title,
+                message,
+                config,
+                template_data,
             )
 
             # Calculate expiration
@@ -1289,7 +1376,10 @@ class PawControlNotificationManager:
                 and self._should_batch(notification)
             ):
                 await self._add_to_batch_queue(notification)
-                _LOGGER.debug('Added notification %s to batch queue', notification_id)
+                _LOGGER.debug(
+                    'Added notification %s to batch queue',
+                    notification_id,
+                )
             else:
                 # Send immediately
                 await self._send_to_channels(notification)
@@ -1306,7 +1396,9 @@ class PawControlNotificationManager:
             return notification_id
 
     async def _get_person_notification_targets(
-        self, config_key: str, config: NotificationConfig
+        self,
+        config_key: str,
+        config: NotificationConfig,
     ) -> list[str]:
         """Get notification targets based on person entities.
 
@@ -1331,7 +1423,8 @@ class PawControlNotificationManager:
 
         # Get targets from person manager
         targets = self._person_manager.get_notification_targets(
-            include_away=config.include_away_persons, cache_key=cache_key
+            include_away=config.include_away_persons,
+            cache_key=cache_key,
         )
 
         # Cache the result
@@ -1431,7 +1524,8 @@ class PawControlNotificationManager:
 
         # Check for config override first
         template = config.template_overrides.get(
-            template_name, self._templates.get(template_name)
+            template_name,
+            self._templates.get(template_name),
         )
 
         if not template:
@@ -1454,7 +1548,11 @@ class PawControlNotificationManager:
             return formatted, message
 
         except (KeyError, ValueError) as err:
-            _LOGGER.warning('Template formatting failed for %s: %s', template_name, err)
+            _LOGGER.warning(
+                'Template formatting failed for %s: %s',
+                template_name,
+                err,
+            )
             return title, message
 
     def _get_template_name(self, notification_type: NotificationType) -> str:
@@ -1529,8 +1627,14 @@ class PawControlNotificationManager:
                             del self._pending_batches[batch_key]
                         elif notifications:
                             # Check if oldest notification is older than 5 minutes
-                            oldest = min(notifications, key=lambda n: n.created_at)
-                            age = (dt_util.now() - oldest.created_at).total_seconds()
+                            oldest = min(
+                                notifications,
+                                key=lambda n: n.created_at,
+                            )
+                            age = (
+                                dt_util.now() -
+                                oldest.created_at
+                            ).total_seconds()
                             if age > 300:  # 5 minutes
                                 batches_to_send[batch_key] = notifications
                                 del self._pending_batches[batch_key]
@@ -1559,7 +1663,9 @@ class PawControlNotificationManager:
         dog_name = dog_id.replace('_', ' ').title() if dog_id else 'System'
 
         # Create summary
-        summary_lines = [f"• {notification.title}" for notification in notifications]
+        summary_lines = [
+            f"• {notification.title}" for notification in notifications
+        ]
 
         # Create batch notification
         batch_title = f"📋 {len(notifications)} notifications for {dog_name}"
@@ -1581,7 +1687,9 @@ class PawControlNotificationManager:
         all_notification_services = []
         for notification in notifications:
             all_targeted_persons.extend(notification.targeted_persons)
-            all_notification_services.extend(notification.notification_services)
+            all_notification_services.extend(
+                notification.notification_services,
+            )
 
         # Remove duplicates while preserving order
         unique_persons = list(dict.fromkeys(all_targeted_persons))
@@ -1636,7 +1744,7 @@ class PawControlNotificationManager:
             if handler:
                 task_channels.append(channel)
                 send_tasks.append(
-                    self._send_to_channel_safe(notification, channel, handler)
+                    self._send_to_channel_safe(notification, channel, handler),
                 )
             else:
                 _LOGGER.warning('No handler for channel %s', channel.value)
@@ -1704,7 +1812,8 @@ class PawControlNotificationManager:
             raise
 
     def _build_webhook_payload(
-        self, notification: NotificationEvent
+        self,
+        notification: NotificationEvent,
     ) -> NotificationWebhookPayload:
         """Build a structured payload for webhook delivery."""
 
@@ -1732,7 +1841,7 @@ class PawControlNotificationManager:
         webhook_url = config.custom_settings.get('webhook_url')
         if not webhook_url:
             raise WebhookSecurityError(
-                f"Webhook channel requested without webhook_url for {config_key}"
+                f"Webhook channel requested without webhook_url for {config_key}",
             )
 
         payload = self._build_webhook_payload(notification)
@@ -1741,16 +1850,20 @@ class PawControlNotificationManager:
         headers = {'Content-Type': 'application/json'}
         secret = config.custom_settings.get('webhook_secret')
         header_prefix = config.custom_settings.get(
-            'webhook_header_prefix', 'X-PawControl'
+            'webhook_header_prefix',
+            'X-PawControl',
         )
 
         if secret:
-            algorithm = config.custom_settings.get('webhook_algorithm', 'sha256')
+            algorithm = config.custom_settings.get(
+                'webhook_algorithm',
+                'sha256',
+            )
             tolerance = int(
                 config.custom_settings.get(
                     'webhook_tolerance_seconds',
                     WebhookSecurityManager.DEFAULT_TOLERANCE_SECONDS,
-                )
+                ),
             )
             manager = WebhookSecurityManager(
                 secret,
@@ -1758,10 +1871,15 @@ class PawControlNotificationManager:
                 tolerance_seconds=tolerance,
             )
             headers.update(
-                manager.build_headers(payload_bytes, header_prefix=header_prefix)
+                manager.build_headers(
+                    payload_bytes,
+                    header_prefix=header_prefix,
+                ),
             )
 
-        timeout_seconds = float(config.custom_settings.get('webhook_timeout', 10))
+        timeout_seconds = float(
+            config.custom_settings.get('webhook_timeout', 10),
+        )
 
         async def _maybe_await(value: Any) -> Any:
             if inspect.isawaitable(value):
@@ -1771,12 +1889,14 @@ class PawControlNotificationManager:
         async def _response_status(response: Any) -> int:
             raw_status = await _maybe_await(getattr(response, 'status', None))
             if raw_status is None:
-                raise WebhookSecurityError('Webhook delivery failed: missing status')
+                raise WebhookSecurityError(
+                    'Webhook delivery failed: missing status',
+                )
             try:
                 return int(raw_status)
             except (TypeError, ValueError) as err:  # pragma: no cover - defensive guard
                 raise WebhookSecurityError(
-                    f"Webhook delivery failed: invalid status {raw_status!r}"
+                    f"Webhook delivery failed: invalid status {raw_status!r}",
                 ) from err
 
         async def _response_text(response: Any) -> str:
@@ -1792,7 +1912,7 @@ class PawControlNotificationManager:
             if status_code >= 400:
                 body = await _response_text(response)
                 raise WebhookSecurityError(
-                    f"Webhook delivery failed with status {status_code}: {body[:200]}"
+                    f"Webhook delivery failed with status {status_code}: {body[:200]}",
                 )
 
         async def _finalize_response(response: Any) -> None:
@@ -1808,7 +1928,8 @@ class PawControlNotificationManager:
                             await release_result
                         except Exception as err:  # pragma: no cover - defensive guard
                             _LOGGER.debug(
-                                'Webhook response release await failed: %s', err
+                                'Webhook response release await failed: %s',
+                                err,
                             )
 
             close = getattr(response, 'close', None)
@@ -1823,7 +1944,8 @@ class PawControlNotificationManager:
                             await close_result
                         except Exception as err:  # pragma: no cover - defensive guard
                             _LOGGER.debug(
-                                'Webhook response close await failed: %s', err
+                                'Webhook response close await failed: %s',
+                                err,
                             )
 
         async def _deliver_webhook(call_result: Any) -> None:
@@ -1857,11 +1979,14 @@ class PawControlNotificationManager:
             )
             await _deliver_webhook(post_call)
         except (TimeoutError, ClientError) as err:
-            raise WebhookSecurityError(f"Webhook delivery failed: {err}") from err
+            raise WebhookSecurityError(
+                f"Webhook delivery failed: {err}",
+            ) from err
 
     # OPTIMIZE: Enhanced notification handlers with better error handling and features
     async def _send_persistent_notification(
-        self, notification: NotificationEvent
+        self,
+        notification: NotificationEvent,
     ) -> None:
         """Send persistent notification in Home Assistant."""
         service_data: NotificationServicePayload = {
@@ -1894,7 +2019,8 @@ class PawControlNotificationManager:
                         )
                         failed_services.append(service_name)
                         self._record_delivery_failure(
-                            service_name, reason='missing_notify_service'
+                            service_name,
+                            reason='missing_notify_service',
                         )
                         continue
 
@@ -1919,7 +2045,10 @@ class PawControlNotificationManager:
                         data_payload = service_data.get('data')
                         actions_target: JSONMutableMapping
                         if isinstance(data_payload, MutableMapping):
-                            actions_target = cast(JSONMutableMapping, data_payload)
+                            actions_target = cast(
+                                JSONMutableMapping,
+                                data_payload,
+                            )
                         else:
                             actions_target = cast(JSONMutableMapping, {})
                             service_data['data'] = actions_target
@@ -1957,13 +2086,22 @@ class PawControlNotificationManager:
                             reason=guard_result.reason or 'service_not_executed',
                         )
 
-                    _LOGGER.debug('Sent mobile notification to %s', service_name)
+                    _LOGGER.debug(
+                        'Sent mobile notification to %s',
+                        service_name,
+                    )
 
                 except Exception as err:
-                    _LOGGER.error('Failed to send to service %s: %s', service_name, err)
+                    _LOGGER.error(
+                        'Failed to send to service %s: %s',
+                        service_name,
+                        err,
+                    )
                     failed_services.append(service_name)
                     self._record_delivery_failure(
-                        service_name, reason='exception', error=err
+                        service_name,
+                        reason='exception',
+                        error=err,
                     )
 
         else:
@@ -1971,7 +2109,10 @@ class PawControlNotificationManager:
             config_key = notification.dog_id if notification.dog_id else 'system'
             config = await self._get_config_cached(config_key)
 
-            mobile_service = config.custom_settings.get('mobile_service', 'mobile_app')
+            mobile_service = config.custom_settings.get(
+                'mobile_service',
+                'mobile_app',
+            )
             if not self._notify_service_available(mobile_service):
                 _LOGGER.warning(
                     'Notify service %s is not registered; skipping delivery',
@@ -1979,7 +2120,8 @@ class PawControlNotificationManager:
                 )
                 failed_services.append(mobile_service)
                 self._record_delivery_failure(
-                    mobile_service, reason='missing_notify_service'
+                    mobile_service,
+                    reason='missing_notify_service',
                 )
             else:
                 fallback_service_data: NotificationServicePayload = {
@@ -2003,7 +2145,10 @@ class PawControlNotificationManager:
                     fallback_data = fallback_service_data.get('data')
                     fallback_target: JSONMutableMapping
                     if isinstance(fallback_data, MutableMapping):
-                        fallback_target = cast(JSONMutableMapping, fallback_data)
+                        fallback_target = cast(
+                            JSONMutableMapping,
+                            fallback_data,
+                        )
                     else:
                         fallback_target = cast(JSONMutableMapping, {})
                         fallback_service_data['data'] = fallback_target
@@ -2042,7 +2187,7 @@ class PawControlNotificationManager:
 
         if failed_services:
             notification.failed_notification_services = list(
-                dict.fromkeys(failed_services)
+                dict.fromkeys(failed_services),
             )
         else:
             notification.failed_notification_services.clear()
@@ -2052,9 +2197,13 @@ class PawControlNotificationManager:
         config_key = notification.dog_id if notification.dog_id else 'system'
         config = await self._get_config_cached(config_key)
 
-        tts_service = config.custom_settings.get('tts_service', 'google_translate_say')
+        tts_service = config.custom_settings.get(
+            'tts_service',
+            'google_translate_say',
+        )
         tts_entity = config.custom_settings.get(
-            'tts_entity', 'media_player.living_room'
+            'tts_entity',
+            'media_player.living_room',
         )
 
         # Combine title and message for TTS
@@ -2073,7 +2222,8 @@ class PawControlNotificationManager:
         )
 
     async def _send_media_player_notification(
-        self, notification: NotificationEvent
+        self,
+        notification: NotificationEvent,
     ) -> None:
         """Send notification via media player."""
         config_key = notification.dog_id if notification.dog_id else 'system'
@@ -2137,7 +2287,10 @@ class PawControlNotificationManager:
         config_key = notification.dog_id if notification.dog_id else 'system'
         config = await self._get_config_cached(config_key)
 
-        discord_service = config.custom_settings.get('discord_service', 'discord')
+        discord_service = config.custom_settings.get(
+            'discord_service',
+            'discord',
+        )
 
         service_data: NotificationServicePayload = {
             'title': notification.title,
@@ -2237,7 +2390,10 @@ class PawControlNotificationManager:
             del self._notifications[notification_id]
 
         if expired_ids:
-            _LOGGER.debug('Cleaned up %d expired notifications', len(expired_ids))
+            _LOGGER.debug(
+                'Cleaned up %d expired notifications',
+                len(expired_ids),
+            )
 
         return len(expired_ids)
 
@@ -2267,7 +2423,8 @@ class PawControlNotificationManager:
                         return True
                 except Exception as err:
                     _LOGGER.warning(
-                        'Failed to dismiss persistent notification: %s', err
+                        'Failed to dismiss persistent notification: %s',
+                        err,
                     )
 
             _LOGGER.info('Acknowledged notification %s', notification_id)
@@ -2289,7 +2446,7 @@ class PawControlNotificationManager:
                     for n in self._notifications.values()
                     if not n.acknowledged
                     and (not n.expires_at or n.expires_at > dt_util.now())
-                ]
+                ],
             )
 
             # Calculate type and priority distribution
@@ -2301,7 +2458,13 @@ class PawControlNotificationManager:
                 type_counts[ntype] = type_counts.get(ntype, 0) + 1
 
                 priority = notification.priority.value
-                priority_counts[priority] = priority_counts.get(priority, 0) + 1
+                priority_counts[priority] = (
+                    priority_counts.get(
+                        priority,
+                        0,
+                    )
+                    + 1
+                )
 
             # NEW: Person targeting statistics
             person_stats: PersonEntityStats | None = None
@@ -2342,7 +2505,8 @@ class PawControlNotificationManager:
             return
 
         self._person_manager.register_cache_monitors(
-            self._cache_monitor_registrar, prefix='person_entity'
+            self._cache_monitor_registrar,
+            prefix='person_entity',
         )
 
     def webhook_security_status(self) -> WebhookSecurityStatus:
@@ -2443,7 +2607,7 @@ class PawControlNotificationManager:
                         )
 
                         failed_services = list(
-                            notification.failed_notification_services
+                            notification.failed_notification_services,
                         )
                         if failed_services:
                             notification.notification_services = failed_services
@@ -2478,7 +2642,11 @@ class PawControlNotificationManager:
 
         display_name = dog_name or dog_id
 
-        language = getattr(getattr(self._hass, 'config', None), 'language', None)
+        language = getattr(
+            getattr(self._hass, 'config', None),
+            'language',
+            None,
+        )
 
         if compliance['status'] != 'completed':
             no_data = cast('FeedingComplianceNoData', compliance)
@@ -2508,7 +2676,7 @@ class PawControlNotificationManager:
             completed['days_with_issues']
             or completed['compliance_issues']
             or completed['missed_meals']
-            or completed['compliance_score'] < 100
+            or completed['compliance_score'] < 100,
         )
 
         if not has_issues:
@@ -2530,7 +2698,10 @@ class PawControlNotificationManager:
             compliance=completed_payload,
         )
 
-        issues_payload = [cast(JSONMutableMapping, dict(issue)) for issue in issues]
+        issues_payload = [
+            cast(JSONMutableMapping, dict(issue))
+            for issue in issues
+        ]
         missed_meals_payload = [
             cast(JSONMutableMapping, dict(entry)) for entry in missed_meals
         ]
@@ -2581,7 +2752,9 @@ class PawControlNotificationManager:
         )
 
     async def async_send_walk_reminder(
-        self, dog_id: str, last_walk_hours: float | None = None
+        self,
+        dog_id: str,
+        last_walk_hours: float | None = None,
     ) -> str:
         """Send walk reminder notification."""
         title = f"🚶 Walk Time for {dog_id.title()}"
@@ -2622,7 +2795,8 @@ class PawControlNotificationManager:
 
     # NEW: Person entity management methods
     async def async_update_person_entity_config(
-        self, config: Mapping[str, object]
+        self,
+        config: Mapping[str, object],
     ) -> bool:
         """Update person entity configuration.
 

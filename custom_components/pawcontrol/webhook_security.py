@@ -1,5 +1,4 @@
 """HMAC signing and verification helpers for PawControl webhooks."""
-
 from __future__ import annotations
 
 import base64
@@ -8,7 +7,8 @@ import hmac
 import secrets
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from typing import ClassVar
 
 
@@ -46,7 +46,7 @@ class WebhookSecurityManager:
         normalized_algorithm = algorithm.lower()
         if normalized_algorithm not in self.SUPPORTED_ALGORITHMS:
             raise ValueError(
-                f"Unsupported HMAC algorithm: {algorithm}. Supported algorithms: {sorted(self.SUPPORTED_ALGORITHMS)}"
+                f"Unsupported HMAC algorithm: {algorithm}. Supported algorithms: {sorted(self.SUPPORTED_ALGORITHMS)}",
             )
 
         self._secret = secret.encode('utf-8')
@@ -62,7 +62,13 @@ class WebhookSecurityManager:
     ) -> WebhookSignature:
         """Create an HMAC signature for the provided payload."""
 
-        ts = timestamp if timestamp is not None else int(datetime.now(UTC).timestamp())
+        ts = (
+            timestamp
+            if timestamp is not None
+            else int(
+                datetime.now(UTC).timestamp(),
+            )
+        )
         nonce_value = nonce if nonce is not None else secrets.token_hex(16)
         digest = hmac.new(
             self._secret,
@@ -102,7 +108,10 @@ class WebhookSecurityManager:
         return hmac.compare_digest(expected, provided)
 
     def build_headers(
-        self, payload: bytes, *, header_prefix: str = 'X-PawControl'
+        self,
+        payload: bytes,
+        *,
+        header_prefix: str = 'X-PawControl',
     ) -> dict[str, str]:
         """Create HTTP headers containing an HMAC signature."""
 
@@ -116,7 +125,9 @@ class WebhookSecurityManager:
 
     @staticmethod
     def extract_signature(
-        headers: Mapping[str, str], *, header_prefix: str = 'X-PawControl'
+        headers: Mapping[str, str],
+        *,
+        header_prefix: str = 'X-PawControl',
     ) -> WebhookSignature | None:
         """Extract a signature from HTTP headers if present."""
 
@@ -132,7 +143,7 @@ class WebhookSecurityManager:
             timestamp = int(timestamp_str)
         except (TypeError, ValueError) as err:
             raise WebhookSecurityError(
-                f"Invalid webhook timestamp: {timestamp_str}"
+                f"Invalid webhook timestamp: {timestamp_str}",
             ) from err
 
         return WebhookSignature(

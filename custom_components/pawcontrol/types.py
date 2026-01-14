@@ -16,57 +16,53 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
 from asyncio import Task
 from collections import deque
-from collections.abc import (
-    Awaitable,
-    Callable,
-    Iterable,
-    Iterator,
-    Mapping,
-    MutableMapping,
-    Sequence,
-)
-from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from dataclasses import asdict
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import UTC
 from types import MappingProxyType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Final,
-    Literal,
-    NotRequired,
-    Required,
-    TypedDict,
-    cast,
-)
+from typing import Any
+from typing import cast
+from typing import ClassVar
+from typing import Final
+from typing import Literal
+from typing import NotRequired
+from typing import Required
+from typing import TYPE_CHECKING
+from typing import TypedDict
 
 from .compat import ConfigEntry
-from .const import (
-    CONF_API_ENDPOINT,
-    CONF_API_TOKEN,
-    CONF_BREAKFAST_TIME,
-    CONF_DAILY_FOOD_AMOUNT,
-    CONF_DINNER_TIME,
-    CONF_DOOR_SENSOR,
-    CONF_DOOR_SENSOR_SETTINGS,
-    CONF_EXTERNAL_INTEGRATIONS,
-    CONF_FOOD_TYPE,
-    CONF_GPS_SETTINGS,
-    CONF_LUNCH_TIME,
-    CONF_MEALS_PER_DAY,
-    CONF_NOTIFICATIONS,
-    CONF_QUIET_END,
-    CONF_QUIET_HOURS,
-    CONF_QUIET_START,
-    CONF_REMINDER_REPEAT_MIN,
-    DEFAULT_REMINDER_REPEAT_MIN,
-)
+from .const import CONF_API_ENDPOINT
+from .const import CONF_API_TOKEN
+from .const import CONF_BREAKFAST_TIME
+from .const import CONF_DAILY_FOOD_AMOUNT
+from .const import CONF_DINNER_TIME
+from .const import CONF_DOOR_SENSOR
+from .const import CONF_DOOR_SENSOR_SETTINGS
+from .const import CONF_EXTERNAL_INTEGRATIONS
+from .const import CONF_FOOD_TYPE
+from .const import CONF_GPS_SETTINGS
+from .const import CONF_LUNCH_TIME
+from .const import CONF_MEALS_PER_DAY
+from .const import CONF_NOTIFICATIONS
+from .const import CONF_QUIET_END
+from .const import CONF_QUIET_HOURS
+from .const import CONF_QUIET_START
+from .const import CONF_REMINDER_REPEAT_MIN
+from .const import DEFAULT_REMINDER_REPEAT_MIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -537,7 +533,7 @@ if TYPE_CHECKING:
 # and are immutable, preventing accidental modification while ensuring fast validation
 
 VALID_MEAL_TYPES: Final[frozenset[str]] = frozenset(
-    ['breakfast', 'lunch', 'dinner', 'snack']
+    ['breakfast', 'lunch', 'dinner', 'snack'],
 )
 """Valid meal types for feeding tracking.
 
@@ -547,7 +543,7 @@ accidental modification of the valid values.
 """
 
 VALID_FOOD_TYPES: Final[frozenset[str]] = frozenset(
-    ['dry_food', 'wet_food', 'barf', 'home_cooked', 'mixed']
+    ['dry_food', 'wet_food', 'barf', 'home_cooked', 'mixed'],
 )
 """Valid food types for feeding management.
 
@@ -556,7 +552,7 @@ commercial food types and home-prepared options for comprehensive diet tracking.
 """
 
 VALID_DOG_SIZES: Final[frozenset[str]] = frozenset(
-    ['toy', 'small', 'medium', 'large', 'giant']
+    ['toy', 'small', 'medium', 'large', 'giant'],
 )
 """Valid dog size categories for breed classification.
 
@@ -566,7 +562,7 @@ size classifications.
 """
 
 VALID_HEALTH_STATUS: Final[frozenset[str]] = frozenset(
-    ['excellent', 'very_good', 'good', 'normal', 'unwell', 'sick']
+    ['excellent', 'very_good', 'good', 'normal', 'unwell', 'sick'],
 )
 """Valid health status levels for health monitoring.
 
@@ -575,7 +571,7 @@ from excellent condition to requiring medical attention.
 """
 
 VALID_MOOD_OPTIONS: Final[frozenset[str]] = frozenset(
-    ['happy', 'neutral', 'content', 'normal', 'sad', 'angry', 'anxious', 'tired']
+    ['happy', 'neutral', 'content', 'normal', 'sad', 'angry', 'anxious', 'tired'],
 )
 """Valid mood states for behavioral tracking.
 
@@ -584,7 +580,7 @@ that may affect a dog's emotional well-being.
 """
 
 VALID_ACTIVITY_LEVELS: Final[frozenset[str]] = frozenset(
-    ['very_low', 'low', 'normal', 'high', 'very_high']
+    ['very_low', 'low', 'normal', 'high', 'very_high'],
 )
 """Valid activity levels for exercise and health monitoring.
 
@@ -593,7 +589,7 @@ and overall health assessments based on a dog's typical energy expenditure.
 """
 
 VALID_GEOFENCE_TYPES: Final[frozenset[str]] = frozenset(
-    ['safe_zone', 'restricted_area', 'point_of_interest']
+    ['safe_zone', 'restricted_area', 'point_of_interest'],
 )
 """Valid geofence zone types for GPS tracking.
 
@@ -610,7 +606,7 @@ VALID_GPS_SOURCES: Final[frozenset[str]] = frozenset(
         'tractive',
         'webhook',
         'mqtt',
-    ]
+    ],
 )
 """Valid GPS data sources for location tracking.
 
@@ -627,7 +623,7 @@ without falling back to loosely typed strings.
 """
 
 VALID_NOTIFICATION_PRIORITIES: Final[frozenset[NotificationPriority]] = frozenset(
-    ['low', 'normal', 'high', 'urgent']
+    ['low', 'normal', 'high', 'urgent'],
 )
 """Valid notification priority levels for alert management.
 
@@ -646,7 +642,7 @@ VALID_NOTIFICATION_CHANNELS: Final[frozenset[str]] = frozenset(
         'media_player',
         'slack',
         'discord',
-    ]
+    ],
 )
 """Valid notification delivery channels for flexible alert routing.
 
@@ -1072,7 +1068,11 @@ FeedingConfigKey = Literal[
     'snack_times',
 ]
 
-DEFAULT_FEEDING_SCHEDULE: Final[tuple[str, ...]] = ('10:00:00', '15:00:00', '20:00:00')
+DEFAULT_FEEDING_SCHEDULE: Final[tuple[str, ...]] = (
+    '10:00:00',
+    '15:00:00',
+    '20:00:00',
+)
 
 
 @dataclass(slots=True)
@@ -1094,7 +1094,11 @@ class DogModulesProjection:
 
 
 def _record_bool_coercion(
-    value: Any, *, default: bool, result: bool, reason: str
+    value: Any,
+    *,
+    default: bool,
+    result: bool,
+    reason: str,
 ) -> None:
     """Record bool coercion telemetry for diagnostics consumers."""
 
@@ -1105,7 +1109,10 @@ def _record_bool_coercion(
 
     try:
         record_bool_coercion_event(
-            value=value, default=default, result=result, reason=reason
+            value=value,
+            default=default,
+            result=result,
+            reason=reason,
         )
     except Exception:  # pragma: no cover - telemetry failures must not break coercion
         return
@@ -1173,10 +1180,10 @@ class BoolCoercionDiagnosticsPayload(TypedDict, total=False):
 
 
 _TRUTHY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
-    {'1', 'true', 'yes', 'y', 'on', 'enabled'}
+    {'1', 'true', 'yes', 'y', 'on', 'enabled'},
 )
 _FALSY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
-    {'0', 'false', 'no', 'n', 'off', 'disabled'}
+    {'0', 'false', 'no', 'n', 'off', 'disabled'},
 )
 
 
@@ -1184,7 +1191,12 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     """Return a boolean flag while tolerating common string/int representations."""
 
     if value is None:
-        _record_bool_coercion(value, default=default, result=default, reason='none')
+        _record_bool_coercion(
+            value,
+            default=default,
+            result=default,
+            reason='none',
+        )
         return default
     if isinstance(value, bool):
         result = value
@@ -1208,17 +1220,26 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
         text = value.strip().lower()
         if not text:
             _record_bool_coercion(
-                value, default=default, result=default, reason='blank_string'
+                value,
+                default=default,
+                result=default,
+                reason='blank_string',
             )
             return default
         if text in _TRUTHY_BOOL_STRINGS:
             _record_bool_coercion(
-                value, default=default, result=True, reason='truthy_string'
+                value,
+                default=default,
+                result=True,
+                reason='truthy_string',
             )
             return True
         if text in _FALSY_BOOL_STRINGS:
             _record_bool_coercion(
-                value, default=default, result=False, reason='falsy_string'
+                value,
+                default=default,
+                result=False,
+                reason='falsy_string',
             )
             return False
 
@@ -1232,7 +1253,12 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
         return result
 
     result = bool(value)
-    _record_bool_coercion(value, default=default, result=result, reason='fallback')
+    _record_bool_coercion(
+        value,
+        default=default,
+        result=result,
+        reason='fallback',
+    )
     return result
 
 
@@ -1305,13 +1331,13 @@ def freeze_placeholders(
 
 
 PERFORMANCE_MODE_VALUES: Final[frozenset[PerformanceMode]] = frozenset(
-    ('minimal', 'balanced', 'full')
+    ('minimal', 'balanced', 'full'),
 )
 """Canonical performance mode options for the integration."""
 
 
 PERFORMANCE_MODE_ALIASES: Final[Mapping[str, PerformanceMode]] = MappingProxyType(
-    {'standard': 'balanced'}
+    {'standard': 'balanced'},
 )
 """Backward-compatible aliases mapped to canonical performance modes."""
 
@@ -1363,14 +1389,19 @@ def ensure_advanced_options(
 
     baseline = defaults or {}
 
-    retention_default = _coerce_int(baseline.get('data_retention_days'), default=90)
+    retention_default = _coerce_int(
+        baseline.get('data_retention_days'),
+        default=90,
+    )
     debug_default = _coerce_bool(baseline.get('debug_logging'), default=False)
     backup_default = _coerce_bool(baseline.get('auto_backup'), default=False)
     experimental_default = _coerce_bool(
-        baseline.get('experimental_features'), default=False
+        baseline.get('experimental_features'),
+        default=False,
     )
     integrations_default = _coerce_bool(
-        baseline.get(CONF_EXTERNAL_INTEGRATIONS), default=False
+        baseline.get(CONF_EXTERNAL_INTEGRATIONS),
+        default=False,
     )
     endpoint_default = _coerce_str(baseline.get(CONF_API_ENDPOINT), default='')
     token_default = _coerce_str(baseline.get(CONF_API_TOKEN), default='')
@@ -1381,7 +1412,8 @@ def ensure_advanced_options(
             current=cast(str | None, baseline.get('performance_mode')),
         ),
         'debug_logging': _coerce_bool(
-            source.get('debug_logging'), default=debug_default
+            source.get('debug_logging'),
+            default=debug_default,
         ),
         'data_retention_days': _coerce_clamped_int(
             source.get('data_retention_days'),
@@ -1391,13 +1423,16 @@ def ensure_advanced_options(
         ),
         'auto_backup': _coerce_bool(source.get('auto_backup'), default=backup_default),
         'experimental_features': _coerce_bool(
-            source.get('experimental_features'), default=experimental_default
+            source.get('experimental_features'),
+            default=experimental_default,
         ),
         'external_integrations': _coerce_bool(
-            source.get(CONF_EXTERNAL_INTEGRATIONS), default=integrations_default
+            source.get(CONF_EXTERNAL_INTEGRATIONS),
+            default=integrations_default,
         ),
         'api_endpoint': _coerce_str(
-            source.get(CONF_API_ENDPOINT), default=endpoint_default
+            source.get(CONF_API_ENDPOINT),
+            default=endpoint_default,
         ),
         'api_token': _coerce_str(source.get(CONF_API_TOKEN), default=token_default),
     }
@@ -1434,7 +1469,8 @@ def dog_modules_projection_from_flow_input(
 
     for flow_flag, module_key in MODULE_TOGGLE_FLOW_FLAGS:
         modules[module_key] = _coerce_bool(
-            user_input.get(flow_flag), default=modules.get(module_key, False)
+            user_input.get(flow_flag),
+            default=modules.get(module_key, False),
         )
 
     config: DogModulesConfig = {}
@@ -1532,8 +1568,19 @@ def ensure_dog_modules_mapping(
 def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingConfig:
     """Build a :class:`DogFeedingConfig` structure from flow input data."""
 
-    meals_per_day = max(1, _coerce_int(user_input.get(CONF_MEALS_PER_DAY), default=2))
-    daily_amount = _coerce_float(user_input.get(CONF_DAILY_FOOD_AMOUNT), default=500.0)
+    meals_per_day = max(
+        1,
+        _coerce_int(
+            user_input.get(CONF_MEALS_PER_DAY),
+            default=2,
+        ),
+    )
+    daily_amount = _coerce_float(
+        user_input.get(
+            CONF_DAILY_FOOD_AMOUNT,
+        ),
+        default=500.0,
+    )
     portion_size = daily_amount / meals_per_day if meals_per_day else 0.0
 
     feeding_config: DogFeedingConfig = {
@@ -1542,29 +1589,35 @@ def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingC
         'portion_size': portion_size,
         'food_type': _coerce_str(user_input.get(CONF_FOOD_TYPE), default='dry_food'),
         'feeding_schedule': _coerce_str(
-            user_input.get('feeding_schedule'), default='flexible'
+            user_input.get('feeding_schedule'),
+            default='flexible',
         ),
         'enable_reminders': _coerce_bool(
-            user_input.get('enable_reminders'), default=True
+            user_input.get('enable_reminders'),
+            default=True,
         ),
         'reminder_minutes_before': _coerce_int(
-            user_input.get('reminder_minutes_before'), default=15
+            user_input.get('reminder_minutes_before'),
+            default=15,
         ),
     }
 
     if _coerce_bool(user_input.get('breakfast_enabled'), default=meals_per_day >= 1):
         feeding_config['breakfast_time'] = _coerce_str(
-            user_input.get(CONF_BREAKFAST_TIME), default='07:00:00'
+            user_input.get(CONF_BREAKFAST_TIME),
+            default='07:00:00',
         )
 
     if _coerce_bool(user_input.get('lunch_enabled'), default=meals_per_day >= 3):
         feeding_config['lunch_time'] = _coerce_str(
-            user_input.get(CONF_LUNCH_TIME), default='12:00:00'
+            user_input.get(CONF_LUNCH_TIME),
+            default='12:00:00',
         )
 
     if _coerce_bool(user_input.get('dinner_enabled'), default=meals_per_day >= 2):
         feeding_config['dinner_time'] = _coerce_str(
-            user_input.get(CONF_DINNER_TIME), default='18:00:00'
+            user_input.get(CONF_DINNER_TIME),
+            default='18:00:00',
         )
 
     if _coerce_bool(user_input.get('snacks_enabled'), default=False):
@@ -1790,7 +1843,7 @@ DEFAULT_NOTIFICATION_OPTIONS: Final[NotificationOptionsInput] = MappingProxyType
         NOTIFICATION_REMINDER_REPEAT_FIELD: DEFAULT_REMINDER_REPEAT_MIN,
         NOTIFICATION_PRIORITY_FIELD: True,
         NOTIFICATION_MOBILE_FIELD: True,
-    }
+    },
 )
 
 
@@ -1873,7 +1926,9 @@ def ensure_notification_options(
     _apply(CONF_QUIET_START, NOTIFICATION_QUIET_START_FIELD, _coerce_time)
     _apply(CONF_QUIET_END, NOTIFICATION_QUIET_END_FIELD, _coerce_time)
     _apply(
-        CONF_REMINDER_REPEAT_MIN, NOTIFICATION_REMINDER_REPEAT_FIELD, _coerce_interval
+        CONF_REMINDER_REPEAT_MIN,
+        NOTIFICATION_REMINDER_REPEAT_FIELD,
+        _coerce_interval,
     )
     _apply('priority_notifications', NOTIFICATION_PRIORITY_FIELD, _coerce_bool)
     _apply('mobile_notifications', NOTIFICATION_MOBILE_FIELD, _coerce_bool)
@@ -2187,7 +2242,10 @@ ConfigFlowDiscoverySource = Literal[
 type ConfigFlowDiscoveryPropertyValue = bool | int | float | str | bytes | Sequence[str]
 
 
-type ConfigFlowDiscoveryProperties = dict[str, ConfigFlowDiscoveryPropertyValue]
+type ConfigFlowDiscoveryProperties = dict[
+    str,
+    ConfigFlowDiscoveryPropertyValue,
+]
 
 
 type ConfigFlowInputMapping = Mapping[str, JSONValue]
@@ -3024,7 +3082,7 @@ MODULE_CONFIGURATION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast
             'total_modules': 0,
             'gps_dogs': 0,
             'health_dogs': 0,
-        }
+        },
     ),
 )
 ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3035,7 +3093,7 @@ ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'max_dogs': 0,
             'current_dogs': '',
             'remaining_spots': 0,
-        }
+        },
     ),
 )
 DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3051,7 +3109,7 @@ ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'dogs_configured': '',
             'max_dogs': '',
             'discovery_hint': '',
-        }
+        },
     ),
 )
 DOG_MODULES_SMART_DEFAULTS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3061,7 +3119,7 @@ DOG_MODULES_SMART_DEFAULTS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'dog_name': '',
             'dogs_configured': '',
             'smart_defaults': '',
-        }
+        },
     ),
 )
 ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3073,7 +3131,7 @@ ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'can_add_more': '',
             'max_dogs': '',
             'performance_note': '',
-        }
+        },
     ),
 )
 ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3085,7 +3143,7 @@ ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = c
             'max_dogs': 0,
             'remaining_spots': 0,
             'at_limit': '',
-        }
+        },
     ),
 )
 DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3109,7 +3167,7 @@ DOG_FEEDING_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'dog_name': '',
             'dog_weight': '',
             'suggested_amount': '',
-        }
+        },
     ),
 )
 DOG_HEALTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3124,7 +3182,7 @@ DOG_HEALTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'bcs_info': '',
             'special_diet_count': '',
             'diet_compatibility_info': '',
-        }
+        },
     ),
 )
 MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3137,12 +3195,14 @@ MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast
             'suggested_performance': '',
             'complexity_info': '',
             'next_step_info': '',
-        }
+        },
     ),
 )
 EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
     ConfigFlowPlaceholders,
-    MappingProxyType({'gps_enabled': False, 'visitor_enabled': False, 'dog_count': 0}),
+    MappingProxyType(
+        {'gps_enabled': False, 'visitor_enabled': False, 'dog_count': 0},
+    ),
 )
 REAUTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
     ConfigFlowPlaceholders,
@@ -3152,7 +3212,7 @@ REAUTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'dogs_count': '',
             'current_profile': '',
             'health_status': '',
-        }
+        },
     ),
 )
 RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3175,7 +3235,7 @@ RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             'reconfigure_valid_dogs': '',
             'reconfigure_invalid_dogs': '',
             'reconfigure_merge_notes': '',
-        }
+        },
     ),
 )
 
@@ -3268,7 +3328,13 @@ class HelperManagerGuardMetrics(TypedDict):
     last_results: ServiceGuardResultHistory
 
 
-EntityFactoryGuardEvent = Literal['expand', 'contract', 'stable', 'disabled', 'unknown']
+EntityFactoryGuardEvent = Literal[
+    'expand',
+    'contract',
+    'stable',
+    'disabled',
+    'unknown',
+]
 EntityFactoryGuardStabilityTrend = Literal[
     'improving',
     'steady',
@@ -4131,7 +4197,9 @@ def ensure_gps_payload(
     ):
         if payload_field not in gps_payload:
             continue
-        gps_payload[payload_field] = _coerce_float_value(gps_payload.get(payload_field))
+        gps_payload[payload_field] = _coerce_float_value(
+            gps_payload.get(payload_field),
+        )
 
     satellites = gps_payload.get('satellites')
     if satellites is None and 'satellites' in gps_payload:
@@ -4150,7 +4218,7 @@ def ensure_gps_payload(
         cast(
             Mapping[str, JSONValue] | JSONMutableMapping | None,
             payload.get('current_route'),
-        )
+        ),
     )
     if current_route_snapshot is not None:
         gps_payload['current_route'] = current_route_snapshot
@@ -4160,7 +4228,7 @@ def ensure_gps_payload(
     route_active_payload = payload.get('active_route')
     if isinstance(route_active_payload, Mapping):
         active_route = ensure_gps_route_snapshot(
-            cast(Mapping[str, JSONValue], route_active_payload)
+            cast(Mapping[str, JSONValue], route_active_payload),
         )
         if active_route is not None:
             gps_payload['active_route'] = active_route
@@ -4843,7 +4911,12 @@ class PersonEntityDiagnostics(CacheDiagnosticsMetadata, total=False):
     """Diagnostics payload enriched with person manager cache metadata."""
 
     cache_entries: dict[str, PersonNotificationCacheEntry]
-    discovery_task_state: Literal['not_started', 'running', 'completed', 'cancelled']
+    discovery_task_state: Literal[
+        'not_started',
+        'running',
+        'completed',
+        'cancelled',
+    ]
     listener_count: int
 
 
@@ -4881,7 +4954,8 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
             payload['error'] = self.error
         if isinstance(self.repair_summary, CacheRepairAggregate):
             payload['repair_summary'] = cast(
-                JSONValue, self.repair_summary.to_mapping()
+                JSONValue,
+                self.repair_summary.to_mapping(),
             )
         return payload
 
@@ -4901,7 +4975,7 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
         elif isinstance(repair_summary_payload, Mapping):
             try:
                 repair_summary = CacheRepairAggregate.from_mapping(
-                    repair_summary_payload
+                    repair_summary_payload,
                 )
             except Exception:  # pragma: no cover - defensive fallback
                 repair_summary = None
@@ -5055,18 +5129,20 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
             payload['caches_with_errors'] = list(self.caches_with_errors)
         if self.caches_with_expired_entries:
             payload['caches_with_expired_entries'] = list(
-                self.caches_with_expired_entries
+                self.caches_with_expired_entries,
             )
         if self.caches_with_pending_expired_entries:
             payload['caches_with_pending_expired_entries'] = list(
-                self.caches_with_pending_expired_entries
+                self.caches_with_pending_expired_entries,
             )
         if self.caches_with_override_flags:
             payload['caches_with_override_flags'] = list(
-                self.caches_with_override_flags
+                self.caches_with_override_flags,
             )
         if self.caches_with_low_hit_rate:
-            payload['caches_with_low_hit_rate'] = list(self.caches_with_low_hit_rate)
+            payload['caches_with_low_hit_rate'] = list(
+                self.caches_with_low_hit_rate,
+            )
         if self.totals is not None:
             payload['totals'] = self.totals.as_dict()
         if self.issues:
@@ -5112,18 +5188,20 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
                 entries=_coerce_int(totals_payload.get('entries')),
                 hits=_coerce_int(totals_payload.get('hits')),
                 misses=_coerce_int(totals_payload.get('misses')),
-                expired_entries=_coerce_int(totals_payload.get('expired_entries')),
+                expired_entries=_coerce_int(
+                    totals_payload.get('expired_entries'),
+                ),
                 expired_via_override=_coerce_int(
-                    totals_payload.get('expired_via_override')
+                    totals_payload.get('expired_via_override'),
                 ),
                 pending_expired_entries=_coerce_int(
-                    totals_payload.get('pending_expired_entries')
+                    totals_payload.get('pending_expired_entries'),
                 ),
                 pending_override_candidates=_coerce_int(
-                    totals_payload.get('pending_override_candidates')
+                    totals_payload.get('pending_override_candidates'),
                 ),
                 active_override_flags=_coerce_int(
-                    totals_payload.get('active_override_flags')
+                    totals_payload.get('active_override_flags'),
                 ),
                 overall_hit_rate=overall_hit_rate,
             )
@@ -5153,11 +5231,15 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
             severity=str(payload.get('severity', 'unknown')),
             generated_at=str(payload.get('generated_at', '')),
             caches_with_errors=_string_list('caches_with_errors'),
-            caches_with_expired_entries=_string_list('caches_with_expired_entries'),
-            caches_with_pending_expired_entries=_string_list(
-                'caches_with_pending_expired_entries'
+            caches_with_expired_entries=_string_list(
+                'caches_with_expired_entries',
             ),
-            caches_with_override_flags=_string_list('caches_with_override_flags'),
+            caches_with_pending_expired_entries=_string_list(
+                'caches_with_pending_expired_entries',
+            ),
+            caches_with_override_flags=_string_list(
+                'caches_with_override_flags',
+            ),
             caches_with_low_hit_rate=_string_list('caches_with_low_hit_rate'),
             totals=totals,
             issues=issues,
@@ -6165,7 +6247,14 @@ class SystemHealthServiceStatus(TypedDict):
     overall: SystemHealthIndicatorPayload
 
 
-type SystemHealthRemainingQuota = Literal['unknown', 'untracked', 'unlimited'] | int
+type SystemHealthRemainingQuota = (
+    Literal[
+        'unknown',
+        'untracked',
+        'unlimited',
+    ]
+    | int
+)
 
 
 class SystemHealthServiceExecutionSnapshot(TypedDict):
@@ -6267,7 +6356,9 @@ DOG_DISCOVERY_FIELD: Final[Literal['discovery_info']] = 'discovery_info'
 DOG_COLOR_FIELD: Final[Literal['dog_color']] = 'dog_color'
 DOG_MICROCHIP_ID_FIELD: Final[Literal['microchip_id']] = 'microchip_id'
 DOG_VET_CONTACT_FIELD: Final[Literal['vet_contact']] = 'vet_contact'
-DOG_EMERGENCY_CONTACT_FIELD: Final[Literal['emergency_contact']] = 'emergency_contact'
+DOG_EMERGENCY_CONTACT_FIELD: Final[
+    Literal['emergency_contact']
+] = 'emergency_contact'
 DOG_FEEDING_CONFIG_FIELD: Final[Literal['feeding_config']] = 'feeding_config'
 DOG_HEALTH_CONFIG_FIELD: Final[Literal['health_config']] = 'health_config'
 DOG_GPS_CONFIG_FIELD: Final[Literal['gps_config']] = 'gps_config'
@@ -6275,7 +6366,9 @@ DOG_IMAGE_FIELD: Final[Literal['dog_image']] = 'dog_image'
 DOG_TEXT_VALUES_FIELD: Final[Literal['text_values']] = 'text_values'
 DOG_TEXT_METADATA_FIELD: Final[Literal['text_metadata']] = 'text_metadata'
 WALK_IN_PROGRESS_FIELD: Final[Literal['walk_in_progress']] = 'walk_in_progress'
-VISITOR_MODE_ACTIVE_FIELD: Final[Literal['visitor_mode_active']] = 'visitor_mode_active'
+VISITOR_MODE_ACTIVE_FIELD: Final[
+    Literal['visitor_mode_active']
+] = 'visitor_mode_active'
 
 # Text snapshot keys maintained for text entity persistence.
 TextSnapshotKey = Literal[
@@ -6396,16 +6489,22 @@ DOOR_SENSOR_FIELD: Final[Literal['door_sensor']] = 'door_sensor'
 NOTIFY_FALLBACK_FIELD: Final[Literal['notify_fallback']] = 'notify_fallback'
 
 # Field literals for dashboard setup preferences.
-DASHBOARD_ENABLED_FIELD: Final[Literal['dashboard_enabled']] = 'dashboard_enabled'
+DASHBOARD_ENABLED_FIELD: Final[
+    Literal['dashboard_enabled']
+] = 'dashboard_enabled'
 DASHBOARD_AUTO_CREATE_FIELD: Final[Literal['dashboard_auto_create']] = (
     'dashboard_auto_create'
 )
-DASHBOARD_PER_DOG_FIELD: Final[Literal['dashboard_per_dog']] = 'dashboard_per_dog'
+DASHBOARD_PER_DOG_FIELD: Final[
+    Literal['dashboard_per_dog']
+] = 'dashboard_per_dog'
 DASHBOARD_THEME_FIELD: Final[Literal['dashboard_theme']] = 'dashboard_theme'
 DASHBOARD_MODE_FIELD: Final[Literal['dashboard_mode']] = 'dashboard_mode'
 SHOW_STATISTICS_FIELD: Final[Literal['show_statistics']] = 'show_statistics'
 SHOW_MAPS_FIELD: Final[Literal['show_maps']] = 'show_maps'
-SHOW_HEALTH_CHARTS_FIELD: Final[Literal['show_health_charts']] = 'show_health_charts'
+SHOW_HEALTH_CHARTS_FIELD: Final[
+    Literal['show_health_charts']
+] = 'show_health_charts'
 SHOW_FEEDING_SCHEDULE_FIELD: Final[Literal['show_feeding_schedule']] = (
     'show_feeding_schedule'
 )
@@ -6465,11 +6564,11 @@ def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | Non
     modules_payload = data.get(DOG_MODULES_FIELD)
     if _is_modules_projection_like(modules_payload):
         config[DOG_MODULES_FIELD] = coerce_dog_modules_config(
-            cast(DogModulesProjection, modules_payload)
+            cast(DogModulesProjection, modules_payload),
         )
     elif isinstance(modules_payload, Mapping):
         config[DOG_MODULES_FIELD] = coerce_dog_modules_config(
-            cast(Mapping[str, object], modules_payload)
+            cast(Mapping[str, object], modules_payload),
         )
 
     discovery_info = data.get(DOG_DISCOVERY_FIELD)
@@ -6504,7 +6603,7 @@ def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | Non
             config['door_sensor'] = trimmed_sensor
 
     normalised_settings = _normalise_door_sensor_settings_payload(
-        data.get(CONF_DOOR_SENSOR_SETTINGS)
+        data.get(CONF_DOOR_SENSOR_SETTINGS),
     )
     if normalised_settings is not None:
         config['door_sensor_settings'] = normalised_settings
@@ -6517,7 +6616,9 @@ def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | Non
 
     text_metadata_payload = data.get(DOG_TEXT_METADATA_FIELD)
     if isinstance(text_metadata_payload, Mapping):
-        metadata_snapshot = ensure_dog_text_metadata_snapshot(text_metadata_payload)
+        metadata_snapshot = ensure_dog_text_metadata_snapshot(
+            text_metadata_payload,
+        )
         if metadata_snapshot is not None:
             config[DOG_TEXT_METADATA_FIELD] = metadata_snapshot
 
@@ -6549,7 +6650,8 @@ def _normalise_door_sensor_settings_payload(
         return None
 
     if settings_payload == cast(
-        DoorSensorSettingsPayload, asdict(DEFAULT_DOOR_SENSOR_SETTINGS)
+        DoorSensorSettingsPayload,
+        asdict(DEFAULT_DOOR_SENSOR_SETTINGS),
     ):
         return None
 
@@ -6575,11 +6677,11 @@ def ensure_dog_options_entry(
     modules_payload = value.get(DOG_MODULES_FIELD)
     if _is_modules_projection_like(modules_payload):
         entry['modules'] = coerce_dog_modules_config(
-            cast(DogModulesProjection, modules_payload)
+            cast(DogModulesProjection, modules_payload),
         )
     elif isinstance(modules_payload, Mapping):
         entry['modules'] = coerce_dog_modules_config(
-            cast(Mapping[str, object], modules_payload)
+            cast(Mapping[str, object], modules_payload),
         )
 
     notifications_payload = value.get(CONF_NOTIFICATIONS)
@@ -6595,7 +6697,10 @@ def ensure_dog_options_entry(
 
     geofence_payload = value.get('geofence_settings')
     if isinstance(geofence_payload, Mapping):
-        entry['geofence_settings'] = cast(GeofenceOptions, dict(geofence_payload))
+        entry['geofence_settings'] = cast(
+            GeofenceOptions,
+            dict(geofence_payload),
+        )
 
     feeding_payload = value.get('feeding_settings')
     if isinstance(feeding_payload, Mapping):
@@ -6908,11 +7013,11 @@ class PawControlRuntimeData:
 
     # Enhanced runtime tracking for Platinum-targeted monitoring
     performance_stats: RuntimePerformanceStats = field(
-        default_factory=empty_runtime_performance_stats
+        default_factory=empty_runtime_performance_stats,
     )
     error_history: RuntimeErrorHistory = field(default_factory=list)
     manual_event_history: deque[ManualResilienceEventRecord] = field(
-        default_factory=lambda: deque(maxlen=5)
+        default_factory=lambda: deque(maxlen=5),
     )
     # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
     daily_reset_unsub: Any = field(default=None)
@@ -6920,7 +7025,9 @@ class PawControlRuntimeData:
     schema_created_version: int = DOMAIN_RUNTIME_STORE_VERSION
     schema_version: int = DOMAIN_RUNTIME_STORE_VERSION
     _runtime_managers_cache: CoordinatorRuntimeManagers | None = field(
-        default=None, init=False, repr=False
+        default=None,
+        init=False,
+        repr=False,
     )
 
     @property
@@ -6931,7 +7038,11 @@ class PawControlRuntimeData:
         if cached is not None:
             return cached
 
-        coordinator_managers = getattr(self.coordinator, 'runtime_managers', None)
+        coordinator_managers = getattr(
+            self.coordinator,
+            'runtime_managers',
+            None,
+        )
         if isinstance(coordinator_managers, CoordinatorRuntimeManagers):
             self._runtime_managers_cache = coordinator_managers
             return coordinator_managers
@@ -6943,7 +7054,11 @@ class PawControlRuntimeData:
             notification_manager=getattr(self, 'notification_manager', None),
             gps_geofence_manager=getattr(self, 'gps_geofence_manager', None),
             geofencing_manager=getattr(self, 'geofencing_manager', None),
-            weather_health_manager=getattr(self, 'weather_health_manager', None),
+            weather_health_manager=getattr(
+                self,
+                'weather_health_manager',
+                None,
+            ),
             garden_manager=getattr(self, 'garden_manager', None),
         )
         self._runtime_managers_cache = container
@@ -7218,7 +7333,8 @@ class RuntimeStoreAssessmentTimelineSummary(TypedDict, total=False):
     level_duration_medians: dict[RuntimeStoreHealthLevel, float | None]
     level_duration_standard_deviations: dict[RuntimeStoreHealthLevel, float | None]
     level_duration_percentiles: dict[
-        RuntimeStoreHealthLevel, RuntimeStoreLevelDurationPercentiles
+        RuntimeStoreHealthLevel,
+        RuntimeStoreLevelDurationPercentiles,
     ]
     level_duration_alert_thresholds: dict[RuntimeStoreHealthLevel, float | None]
     level_duration_guard_alerts: list[RuntimeStoreLevelDurationAlert]
@@ -7407,7 +7523,9 @@ class DailyStats:
             return default
 
         def _coerce_float(
-            value: JSONDateValue | None, *, default: float = 0.0
+            value: JSONDateValue | None,
+            *,
+            default: float = 0.0,
         ) -> float:
             if isinstance(value, bool):
                 return float(value)
@@ -7430,12 +7548,18 @@ class DailyStats:
             health_logs_count=_coerce_int(payload.get('health_logs_count')),
             gps_updates_count=_coerce_int(payload.get('gps_updates_count')),
             total_food_amount=_coerce_float(payload.get('total_food_amount')),
-            total_walk_distance=_coerce_float(payload.get('total_walk_distance')),
+            total_walk_distance=_coerce_float(
+                payload.get('total_walk_distance'),
+            ),
             total_walk_time=_coerce_int(payload.get('total_walk_time')),
-            total_calories_burned=_coerce_float(payload.get('total_calories_burned')),
+            total_calories_burned=_coerce_float(
+                payload.get('total_calories_burned'),
+            ),
             last_feeding=cls._parse_datetime(payload.get('last_feeding')),
             last_walk=cls._parse_datetime(payload.get('last_walk')),
-            last_health_event=cls._parse_datetime(payload.get('last_health_event')),
+            last_health_event=cls._parse_datetime(
+                payload.get('last_health_event'),
+            ),
         )
 
     def as_dict(self) -> DailyStatsPayload:
@@ -7680,7 +7804,14 @@ class HealthEvent:
         )
         event_data.pop('timestamp', None)
         raw_timestamp = payload.get('timestamp')
-        event_timestamp = raw_timestamp if isinstance(raw_timestamp, str) else None
+        event_timestamp = (
+            raw_timestamp
+            if isinstance(
+                raw_timestamp,
+                str,
+            )
+            else None
+        )
         if isinstance(raw_timestamp, datetime):
             event_timestamp = raw_timestamp.isoformat()
         if event_timestamp is None:
@@ -7773,7 +7904,14 @@ class WalkEvent:
             },
         )
         raw_timestamp = event_data.pop('timestamp', None)
-        timestamp_value = raw_timestamp if isinstance(raw_timestamp, str) else None
+        timestamp_value = (
+            raw_timestamp
+            if isinstance(
+                raw_timestamp,
+                str,
+            )
+            else None
+        )
         if isinstance(raw_timestamp, datetime):
             timestamp_value = raw_timestamp.isoformat()
         raw_action = event_data.pop('action', None)
@@ -7916,7 +8054,9 @@ class HealthData:
         if self.temperature is not None and (
             self.temperature < 35 or self.temperature > 45
         ):
-            raise ValueError('Temperature must be between 35 and 45 degrees Celsius')
+            raise ValueError(
+                'Temperature must be between 35 and 45 degrees Celsius',
+            )
         if self.heart_rate is not None and (
             self.heart_rate < 50 or self.heart_rate > 250
         ):
@@ -8388,5 +8528,5 @@ REAUTH_PLACEHOLDERS: Final = MappingProxyType(
         'dogs_count': '0',
         'current_profile': 'standard',
         'health_status': 'Unknown',
-    }
+    },
 )

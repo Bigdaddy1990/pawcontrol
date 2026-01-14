@@ -1,27 +1,25 @@
 """Feeding configuration steps for Paw Control options flow."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, cast
+from typing import cast
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
 from .exceptions import FlowValidationError
 from .selector_shim import selector
-from .types import (
-    DOG_ID_FIELD,
-    DOG_OPTIONS_FIELD,
-    DogConfigData,
-    DogOptionsMap,
-    FeedingOptions,
-    JSONLikeMapping,
-    JSONValue,
-    OptionsDogSelectionInput,
-    OptionsFeedingSettingsInput,
-    ensure_dog_options_entry,
-)
+from .types import DOG_ID_FIELD
+from .types import DOG_OPTIONS_FIELD
+from .types import DogConfigData
+from .types import DogOptionsMap
+from .types import ensure_dog_options_entry
+from .types import FeedingOptions
+from .types import JSONLikeMapping
+from .types import JSONValue
+from .types import OptionsDogSelectionInput
+from .types import OptionsFeedingSettingsInput
 
 if TYPE_CHECKING:
 
@@ -36,14 +34,18 @@ if TYPE_CHECKING:
         def _current_options(self) -> Mapping[str, JSONValue]: ...
 
         def _normalise_options_snapshot(
-            self, options: Mapping[str, JSONValue]
+            self,
+            options: Mapping[str, JSONValue],
         ) -> Mapping[str, JSONValue]: ...
 
         def _build_dog_selector_schema(self) -> vol.Schema: ...
 
         def _require_current_dog(self) -> DogConfigData | None: ...
 
-        def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None: ...
+        def _select_dog_by_id(
+            self,
+            dog_id: str | None,
+        ) -> DogConfigData | None: ...
 
         def async_show_form(
             self,
@@ -54,7 +56,10 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult: ...
 
         def async_create_entry(
-            self, *, title: str, data: Mapping[str, JSONValue]
+            self,
+            *,
+            title: str,
+            data: Mapping[str, JSONValue],
         ) -> ConfigFlowResult: ...
 
         async def async_step_init(self) -> ConfigFlowResult: ...
@@ -82,7 +87,8 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         return cast(FeedingOptions, {})
 
     async def async_step_select_dog_for_feeding_settings(
-        self, user_input: OptionsDogSelectionInput | None = None
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure feeding settings for."""
 
@@ -92,7 +98,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         if user_input is not None:
             selected_dog_id = user_input.get('dog_id')
             self._select_dog_by_id(
-                selected_dog_id if isinstance(selected_dog_id, str) else None
+                selected_dog_id if isinstance(selected_dog_id, str) else None,
             )
             if self._current_dog:
                 return await self.async_step_feeding_settings()
@@ -104,7 +110,8 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         )
 
     async def async_step_feeding_settings(
-        self, user_input: OptionsFeedingSettingsInput | None = None
+        self,
+        user_input: OptionsFeedingSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure feeding and nutrition settings."""
 
@@ -126,7 +133,8 @@ class FeedingOptionsMixin(FeedingOptionsHost):
                     dog_id=dog_id,
                 )
                 entry['feeding_settings'] = self._build_feeding_settings(
-                    user_input, current_feeding
+                    user_input,
+                    current_feeding,
                 )
                 dog_options[dog_id] = entry
                 new_options[DOG_OPTIONS_FIELD] = dog_options
@@ -136,13 +144,19 @@ class FeedingOptionsMixin(FeedingOptionsHost):
             except FlowValidationError as err:
                 return self.async_show_form(
                     step_id='feeding_settings',
-                    data_schema=self._get_feeding_settings_schema(dog_id, user_input),
+                    data_schema=self._get_feeding_settings_schema(
+                        dog_id,
+                        user_input,
+                    ),
                     errors=err.as_form_errors(),
                 )
             except Exception:
                 return self.async_show_form(
                     step_id='feeding_settings',
-                    data_schema=self._get_feeding_settings_schema(dog_id, user_input),
+                    data_schema=self._get_feeding_settings_schema(
+                        dog_id,
+                        user_input,
+                    ),
                     errors={'base': 'update_failed'},
                 )
 
@@ -152,7 +166,9 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         )
 
     def _get_feeding_settings_schema(
-        self, dog_id: str, user_input: OptionsFeedingSettingsInput | None = None
+        self,
+        dog_id: str,
+        user_input: OptionsFeedingSettingsInput | None = None,
     ) -> vol.Schema:
         """Get feeding settings schema."""
 
@@ -169,8 +185,11 @@ class FeedingOptionsMixin(FeedingOptionsHost):
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        min=1, max=6, step=1, mode=selector.NumberSelectorMode.BOX
-                    )
+                        min=1,
+                        max=6,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
                 ),
                 vol.Optional(
                     'feeding_reminders',
@@ -200,7 +219,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
                         current_feeding.get('auto_schedule', False),
                     ),
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
     def _build_feeding_settings(
@@ -215,26 +234,48 @@ class FeedingOptionsMixin(FeedingOptionsHost):
             {
                 'default_meals_per_day': int(
                     user_input.get(
-                        'meals_per_day', current.get('default_meals_per_day', 2)
-                    )
+                        'meals_per_day',
+                        current.get(
+                            'default_meals_per_day',
+                            2,
+                        ),
+                    ),
                 ),
                 'feeding_reminders': bool(
                     user_input.get(
-                        'feeding_reminders', current.get('feeding_reminders', True)
-                    )
+                        'feeding_reminders',
+                        current.get(
+                            'feeding_reminders',
+                            True,
+                        ),
+                    ),
                 ),
                 'portion_tracking': bool(
                     user_input.get(
-                        'portion_tracking', current.get('portion_tracking', True)
-                    )
+                        'portion_tracking',
+                        current.get(
+                            'portion_tracking',
+                            True,
+                        ),
+                    ),
                 ),
                 'calorie_tracking': bool(
                     user_input.get(
-                        'calorie_tracking', current.get('calorie_tracking', True)
-                    )
+                        'calorie_tracking',
+                        current.get(
+                            'calorie_tracking',
+                            True,
+                        ),
+                    ),
                 ),
                 'auto_schedule': bool(
-                    user_input.get('auto_schedule', current.get('auto_schedule', False))
+                    user_input.get(
+                        'auto_schedule',
+                        current.get(
+                            'auto_schedule',
+                            False,
+                        ),
+                    ),
                 ),
             },
         )

@@ -1,35 +1,38 @@
 """Reauthentication helpers for Paw Control config flow."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, ConfigEntryAuthFailed
-from .const import CONF_DOGS, CONF_MODULES
-from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .compat import ConfigEntry
+from .compat import ConfigEntryAuthFailed
+from .const import CONF_DOGS
+from .const import CONF_MODULES
+from .entity_factory import ENTITY_PROFILES
+from .entity_factory import EntityFactory
 from .exceptions import ValidationError
-from .types import (
-    DOG_ID_FIELD,
-    REAUTH_PLACEHOLDERS_TEMPLATE,
-    DogConfigData,
-    DogModulesConfig,
-    ReauthConfirmInput,
-    ReauthDataUpdates,
-    ReauthHealthSummary,
-    ReauthOptionsUpdates,
-    ReauthPlaceholders,
-    clone_placeholders,
-    freeze_placeholders,
-    is_dog_config_valid,
-)
+from .types import clone_placeholders
+from .types import DOG_ID_FIELD
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import freeze_placeholders
+from .types import is_dog_config_valid
+from .types import REAUTH_PLACEHOLDERS_TEMPLATE
+from .types import ReauthConfirmInput
+from .types import ReauthDataUpdates
+from .types import ReauthHealthSummary
+from .types import ReauthOptionsUpdates
+from .types import ReauthPlaceholders
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,11 +51,17 @@ if TYPE_CHECKING:
 
         def _normalise_string_list(self, values: Any) -> list[str]: ...
 
-        def _normalise_entry_dogs(self, entry: ConfigEntry) -> list[DogConfigData]: ...
+        def _normalise_entry_dogs(
+            self,
+            entry: ConfigEntry,
+        ) -> list[DogConfigData]: ...
 
         def _abort_if_unique_id_mismatch(self, *, reason: str) -> None: ...
 
-        async def async_set_unique_id(self, unique_id: str | None = None) -> None: ...
+        async def async_set_unique_id(
+            self,
+            unique_id: str | None = None,
+        ) -> None: ...
 
         async def async_update_reload_and_abort(
             self,
@@ -105,7 +114,8 @@ class ReauthFlowMixin(ReauthFlowHost):
         return '; '.join(parts)
 
     def _build_reauth_updates(
-        self, summary: ReauthHealthSummary
+        self,
+        summary: ReauthHealthSummary,
     ) -> tuple[ReauthDataUpdates, ReauthOptionsUpdates]:
         """Build typed update payloads for a successful reauth."""
 
@@ -122,10 +132,10 @@ class ReauthFlowMixin(ReauthFlowHost):
         options_updates: ReauthOptionsUpdates = {
             'last_reauth': timestamp,
             'reauth_health_issues': self._normalise_string_list(
-                summary.get('issues', [])
+                summary.get('issues', []),
             ),
             'reauth_health_warnings': self._normalise_string_list(
-                summary.get('warnings', [])
+                summary.get('warnings', []),
             ),
             'last_reauth_summary': self._render_reauth_health_status(summary),
         }
@@ -133,55 +143,81 @@ class ReauthFlowMixin(ReauthFlowHost):
         return data_updates, options_updates
 
     def _build_reauth_placeholders(
-        self, summary: ReauthHealthSummary
+        self,
+        summary: ReauthHealthSummary,
     ) -> ReauthPlaceholders:
         """Generate description placeholders for the reauth confirmation form."""
 
         if not self.reauth_entry:
-            raise ConfigEntryAuthFailed('No entry available for reauthentication')
+            raise ConfigEntryAuthFailed(
+                'No entry available for reauthentication',
+            )
 
         total_dogs = summary.get('total_dogs')
         if total_dogs is None:
             total_dogs = len(self.reauth_entry.data.get(CONF_DOGS, []))
 
-        profile_raw = self.reauth_entry.options.get('entity_profile', 'unknown')
-        profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)
+        profile_raw = self.reauth_entry.options.get(
+            'entity_profile',
+            'unknown',
+        )
+        profile = (
+            profile_raw
+            if isinstance(
+                profile_raw,
+                str,
+            )
+            else str(profile_raw)
+        )
 
         placeholders = clone_placeholders(REAUTH_PLACEHOLDERS_TEMPLATE)
         placeholders['integration_name'] = self.reauth_entry.title
         placeholders['dogs_count'] = str(total_dogs)
         placeholders['current_profile'] = profile
-        placeholders['health_status'] = self._render_reauth_health_status(summary)
+        placeholders['health_status'] = self._render_reauth_health_status(
+            summary,
+        )
         return cast(ReauthPlaceholders, freeze_placeholders(placeholders))
 
     async def async_step_reauth(
-        self, entry_data: Mapping[str, object]
+        self,
+        entry_data: Mapping[str, object],
     ) -> ConfigFlowResult:
         """Handle reauthentication flow with enhanced error handling."""
 
-        _LOGGER.debug('Starting reauthentication flow for entry data: %s', entry_data)
+        _LOGGER.debug(
+            'Starting reauthentication flow for entry data: %s',
+            entry_data,
+        )
 
         try:
             async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
                 self.reauth_entry = self.hass.config_entries.async_get_entry(
-                    self.context['entry_id']
+                    self.context['entry_id'],
                 )
 
             if not self.reauth_entry:
                 _LOGGER.error('Reauthentication failed: entry not found')
                 raise ConfigEntryAuthFailed(
-                    'Config entry not found for reauthentication'
+                    'Config entry not found for reauthentication',
                 )
 
             try:
                 async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
                     await self._validate_reauth_entry_enhanced(self.reauth_entry)
             except TimeoutError as err:
-                _LOGGER.error('Entry validation timeout during reauth: %s', err)
-                raise ConfigEntryAuthFailed('Entry validation timeout') from err
+                _LOGGER.error(
+                    'Entry validation timeout during reauth: %s',
+                    err,
+                )
+                raise ConfigEntryAuthFailed(
+                    'Entry validation timeout',
+                ) from err
             except ValidationError as err:
                 _LOGGER.error('Reauthentication validation failed: %s', err)
-                raise ConfigEntryAuthFailed(f"Entry validation failed: {err}") from err
+                raise ConfigEntryAuthFailed(
+                    f"Entry validation failed: {err}",
+                ) from err
 
             return await self.async_step_reauth_confirm()
 
@@ -190,7 +226,9 @@ class ReauthFlowMixin(ReauthFlowHost):
             raise ConfigEntryAuthFailed('Reauthentication timeout') from err
         except Exception as err:
             _LOGGER.error('Unexpected reauth error: %s', err)
-            raise ConfigEntryAuthFailed(f"Reauthentication failed: {err}") from err
+            raise ConfigEntryAuthFailed(
+                f"Reauthentication failed: {err}",
+            ) from err
 
     async def _validate_reauth_entry_enhanced(self, entry: ConfigEntry) -> None:
         """Enhanced config entry validation for reauthentication."""
@@ -212,7 +250,8 @@ class ReauthFlowMixin(ReauthFlowHost):
                     invalid_dogs.append(dog_id)
             except Exception as err:
                 _LOGGER.warning(
-                    'Dog validation error during reauth (non-critical): %s', err
+                    'Dog validation error during reauth (non-critical): %s',
+                    err,
                 )
                 dog_id = dog.get(DOG_ID_FIELD, 'corrupted')
                 invalid_dogs.append(dog_id)
@@ -238,12 +277,15 @@ class ReauthFlowMixin(ReauthFlowHost):
             )
 
     async def async_step_reauth_confirm(
-        self, user_input: ReauthConfirmInput | None = None
+        self,
+        user_input: ReauthConfirmInput | None = None,
     ) -> ConfigFlowResult:
         """Confirm reauthentication with enhanced validation and error handling."""
 
         if not self.reauth_entry:
-            raise ConfigEntryAuthFailed('No entry available for reauthentication')
+            raise ConfigEntryAuthFailed(
+                'No entry available for reauthentication',
+            )
 
         errors: dict[str, str] = {}
         summary: ReauthHealthSummary | None = None
@@ -253,19 +295,21 @@ class ReauthFlowMixin(ReauthFlowHost):
                 try:
                     async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
                         await self.async_set_unique_id(self.reauth_entry.unique_id)
-                        self._abort_if_unique_id_mismatch(reason='wrong_account')
+                        self._abort_if_unique_id_mismatch(
+                            reason='wrong_account',
+                        )
 
                         try:
                             async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
                                 summary = cast(
                                     ReauthHealthSummary,
                                     await self._check_config_health_enhanced(
-                                        self.reauth_entry
+                                        self.reauth_entry,
                                     ),
                                 )
                         except TimeoutError:
                             _LOGGER.warning(
-                                'Config health check timeout - proceeding with reauth'
+                                'Config health check timeout - proceeding with reauth',
                             )
                             summary = {
                                 'healthy': True,
@@ -273,7 +317,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                                 'warnings': [],
                                 'validated_dogs': 0,
                                 'total_dogs': len(
-                                    self.reauth_entry.data.get(CONF_DOGS, [])
+                                    self.reauth_entry.data.get(CONF_DOGS, []),
                                 ),
                             }
                         except Exception as err:
@@ -287,7 +331,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                                 'warnings': [],
                                 'validated_dogs': 0,
                                 'total_dogs': len(
-                                    self.reauth_entry.data.get(CONF_DOGS, [])
+                                    self.reauth_entry.data.get(CONF_DOGS, []),
                                 ),
                             }
 
@@ -298,7 +342,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                                 'warnings': [],
                                 'validated_dogs': 0,
                                 'total_dogs': len(
-                                    self.reauth_entry.data.get(CONF_DOGS, [])
+                                    self.reauth_entry.data.get(CONF_DOGS, []),
                                 ),
                             }
 
@@ -309,7 +353,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                             )
 
                         data_updates, options_updates = self._build_reauth_updates(
-                            summary
+                            summary,
                         )
 
                         return await self.async_update_reload_and_abort(
@@ -352,14 +396,17 @@ class ReauthFlowMixin(ReauthFlowHost):
             data_schema=vol.Schema(
                 {
                     vol.Required('confirm', default=True): cv.boolean,
-                }
+                },
             ),
             errors=errors,
-            description_placeholders=dict(self._build_reauth_placeholders(summary)),
+            description_placeholders=dict(
+                self._build_reauth_placeholders(summary),
+            ),
         )
 
     async def _check_config_health_enhanced(
-        self, entry: ConfigEntry
+        self,
+        entry: ConfigEntry,
     ) -> ReauthHealthSummary:
         """Enhanced configuration health check with graceful degradation."""
 
@@ -382,7 +429,9 @@ class ReauthFlowMixin(ReauthFlowHost):
                 else:
                     issues.append(f"Invalid dog config: {dog_id}")
             except Exception as err:
-                warnings.append(f"Dog config validation error for {dog_id}: {err}")
+                warnings.append(
+                    f"Dog config validation error for {dog_id}: {err}",
+                )
 
             modules = dog.get(CONF_MODULES)
             if isinstance(modules, Mapping):
@@ -390,7 +439,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                     if not isinstance(enabled, bool):
                         invalid_modules += 1
                         warnings.append(
-                            f"Module '{module}' has invalid flag for {dog_id}"
+                            f"Module '{module}' has invalid flag for {dog_id}",
                         )
             elif modules not in (None, {}):
                 invalid_modules += 1
@@ -400,9 +449,18 @@ class ReauthFlowMixin(ReauthFlowHost):
             issues.append('No valid dog configurations found')
 
         profile_raw = entry.options.get('entity_profile', 'standard')
-        profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)
+        profile = (
+            profile_raw
+            if isinstance(
+                profile_raw,
+                str,
+            )
+            else str(profile_raw)
+        )
         if profile not in _VALID_PROFILES:
-            warnings.append(f"Invalid profile '{profile}' - will use 'standard'")
+            warnings.append(
+                f"Invalid profile '{profile}' - will use 'standard'",
+            )
 
         try:
             dog_ids = [
@@ -426,14 +484,20 @@ class ReauthFlowMixin(ReauthFlowHost):
                     continue
                 modules_payload = dog.get(CONF_MODULES, {})
                 modules_mapping = (
-                    modules_payload if isinstance(modules_payload, Mapping) else {}
+                    modules_payload
+                    if isinstance(
+                        modules_payload,
+                        Mapping,
+                    )
+                    else {}
                 )
                 estimated_entities += factory.estimate_entity_count(
-                    profile, cast(DogModulesConfig, dict(modules_mapping))
+                    profile,
+                    cast(DogModulesConfig, dict(modules_mapping)),
                 )
             if estimated_entities > 200:
                 warnings.append(
-                    f"High entity count ({estimated_entities}) may impact performance"
+                    f"High entity count ({estimated_entities}) may impact performance",
                 )
         except Exception as err:
             warnings.append(f"Entity estimation failed: {err}")

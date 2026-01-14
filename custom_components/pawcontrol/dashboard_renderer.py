@@ -8,63 +8,58 @@ Quality Scale: Platinum target
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Literal, cast
+from typing import cast
+from typing import Literal
 
 import aiofiles  # type: ignore[import-not-found, import-untyped]
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
-from .const import (
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_VISITOR,
-    MODULE_WALK,
-)
-from .dashboard_cards import (
-    DogCardGenerator,
-    ModuleCardGenerator,
-    OverviewCardGenerator,
-    StatisticsCardGenerator,
-)
-from .dashboard_shared import (
-    coerce_dog_config,
-    coerce_dog_configs,
-    unwrap_async_result,
-)
+from .compat import bind_exception_alias
+from .compat import ensure_homeassistant_exception_symbols
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_VISITOR
+from .const import MODULE_WALK
+from .dashboard_cards import DogCardGenerator
+from .dashboard_cards import ModuleCardGenerator
+from .dashboard_cards import OverviewCardGenerator
+from .dashboard_cards import StatisticsCardGenerator
+from .dashboard_shared import coerce_dog_config
+from .dashboard_shared import coerce_dog_configs
+from .dashboard_shared import unwrap_async_result
 from .dashboard_templates import DashboardTemplates
-from .types import (
-    DOG_ID_FIELD,
-    DOG_MODULES_FIELD,
-    DOG_NAME_FIELD,
-    CoordinatorRejectionMetrics,
-    CoordinatorStatisticsPayload,
-    DashboardCardOptions,
-    DashboardRendererOptions,
-    DashboardRendererStatistics,
-    DashboardRenderJobConfig,
-    DashboardRenderResult,
-    DogConfigData,
-    HelperManagerGuardMetrics,
-    JSONMapping,
-    JSONMutableMapping,
-    LovelaceCardConfig,
-    LovelaceViewConfig,
-    RawDogConfig,
-    coerce_dog_modules_config,
-)
+from .types import coerce_dog_modules_config
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorStatisticsPayload
+from .types import DashboardCardOptions
+from .types import DashboardRendererOptions
+from .types import DashboardRendererStatistics
+from .types import DashboardRenderJobConfig
+from .types import DashboardRenderResult
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import HelperManagerGuardMetrics
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import LovelaceCardConfig
+from .types import LovelaceViewConfig
+from .types import RawDogConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,7 +96,14 @@ class RenderJob[
         self.job_id = job_id
         self.job_type: RenderJobType = job_type
         self.config: ConfigT = config
-        self.options: OptionsT = options if options is not None else cast(OptionsT, {})
+        self.options: OptionsT = (
+            options
+            if options is not None
+            else cast(
+                OptionsT,
+                {},
+            )
+        )
         self.created_at = dt_util.utcnow().timestamp()
         self.status = 'pending'
         self.result: DashboardRenderResult | None = None
@@ -192,7 +194,9 @@ class DashboardRenderer:
         """
         typed_dogs = self._ensure_dog_configs(dogs_config)
         if not typed_dogs:
-            _LOGGER.warning('No valid dog configurations supplied for dashboard render')
+            _LOGGER.warning(
+                'No valid dog configurations supplied for dashboard render',
+            )
             empty_result: DashboardRenderResult = {'views': []}
             return empty_result
 
@@ -235,7 +239,7 @@ class DashboardRenderer:
         typed_dog = self._ensure_dog_config(dog_config)
         if typed_dog is None:
             _LOGGER.warning(
-                'Dog dashboard render skipped: configuration payload is empty'
+                'Dog dashboard render skipped: configuration payload is empty',
             )
             empty_result: DashboardRenderResult = {'views': []}
             return empty_result
@@ -252,7 +256,8 @@ class DashboardRenderer:
         return await self._execute_render_job(job)
 
     async def _execute_render_job(
-        self, job: DashboardRenderJobState
+        self,
+        job: DashboardRenderJobState,
     ) -> DashboardRenderResult:
         """Execute a rendering job with resource management.
 
@@ -286,10 +291,13 @@ class DashboardRenderer:
             except TimeoutError as err:
                 job.status = 'timeout'
                 job.error = 'Rendering timed out'
-                _LOGGER.error('Dashboard rendering timeout for job %s', job.job_id)
+                _LOGGER.error(
+                    'Dashboard rendering timeout for job %s',
+                    job.job_id,
+                )
 
                 raise HomeAssistantError(
-                    f"Dashboard rendering timeout: {job.job_id}"
+                    f"Dashboard rendering timeout: {job.job_id}",
                 ) from err
 
             except Exception as err:
@@ -301,13 +309,16 @@ class DashboardRenderer:
                     err,
                     exc_info=True,
                 )
-                raise HomeAssistantError(f"Dashboard rendering failed: {err}") from err
+                raise HomeAssistantError(
+                    f"Dashboard rendering failed: {err}",
+                ) from err
 
             finally:
                 self._active_jobs.pop(job.job_id, None)
 
     async def _render_main_dashboard_job(
-        self, job: DashboardRenderJobState
+        self,
+        job: DashboardRenderJobState,
     ) -> DashboardRenderResult:
         """Render main dashboard job.
 
@@ -318,11 +329,11 @@ class DashboardRenderer:
             Main dashboard configuration
         """
         dogs_config = self._ensure_dog_configs(
-            cast(Sequence[RawDogConfig] | None, job.config.get('dogs'))
+            cast(Sequence[RawDogConfig] | None, job.config.get('dogs')),
         )
         if not dogs_config:
             _LOGGER.warning(
-                'Main dashboard job aborted: typed dog configurations missing'
+                'Main dashboard job aborted: typed dog configurations missing',
             )
             empty_result: DashboardRenderResult = {'views': []}
             return empty_result
@@ -370,7 +381,8 @@ class DashboardRenderer:
         return render_result
 
     async def _render_dog_dashboard_job(
-        self, job: DashboardRenderJobState
+        self,
+        job: DashboardRenderJobState,
     ) -> DashboardRenderResult:
         """Render dog dashboard job.
 
@@ -380,10 +392,12 @@ class DashboardRenderer:
         Returns:
             Dog dashboard configuration
         """
-        dog_config = self._ensure_dog_config(cast(RawDogConfig, job.config.get('dog')))
+        dog_config = self._ensure_dog_config(
+            cast(RawDogConfig, job.config.get('dog')),
+        )
         if dog_config is None:
             _LOGGER.warning(
-                'Dog dashboard job aborted: typed dog configuration missing'
+                'Dog dashboard job aborted: typed dog configuration missing',
             )
             empty_result: DashboardRenderResult = {'views': []}
             return empty_result
@@ -428,7 +442,8 @@ class DashboardRenderer:
             (
                 'welcome',
                 self.overview_generator.generate_welcome_card(
-                    dogs_config, card_options
+                    dogs_config,
+                    card_options,
                 ),
             ),
             (
@@ -449,7 +464,7 @@ class DashboardRenderer:
                 (
                     'activity_summary',
                     self._render_activity_summary(dogs_config),
-                )
+                ),
             )
 
         results = await asyncio.gather(
@@ -476,7 +491,8 @@ class DashboardRenderer:
         return overview_view
 
     async def _render_activity_summary(
-        self, dogs_config: Sequence[DogConfigData]
+        self,
+        dogs_config: Sequence[DogConfigData],
     ) -> LovelaceCardConfig | None:
         """Render activity summary card.
 
@@ -502,7 +518,9 @@ class DashboardRenderer:
             return None
 
         return await self.templates.get_history_graph_template(
-            activity_entities, 'Activity Summary', 24
+            activity_entities,
+            'Activity Summary',
+            24,
         )
 
     async def _render_dog_views_batch(
@@ -529,11 +547,12 @@ class DashboardRenderer:
         # Process dogs in batches to prevent memory issues
         estimated_cards_per_dog = max(1, MAX_CARDS_PER_BATCH // 10)
         batch_size = min(
-            estimated_cards_per_dog, len(dogs_list)
+            estimated_cards_per_dog,
+            len(dogs_list),
         )  # Estimate cards per dog
 
         for i in range(0, len(dogs_list), batch_size):
-            batch = dogs_list[i : i + batch_size]
+            batch = dogs_list[i: i + batch_size]
 
             # Process batch concurrently
             batch_jobs: list[
@@ -553,7 +572,13 @@ class DashboardRenderer:
 
             for (dog, _), result in zip(batch_jobs, batch_results, strict=False):
                 dog_name = dog.get(DOG_NAME_FIELD)
-                dog_identifier = dog_name or dog.get(DOG_ID_FIELD) or f"dog_{id(dog)}"
+                dog_identifier = (
+                    dog_name
+                    or dog.get(
+                        DOG_ID_FIELD,
+                    )
+                    or f"dog_{id(dog)}"
+                )
                 view_payload = _unwrap_async_result(
                     result,
                     context=f"Dog view generation failed for {dog_identifier}",
@@ -591,7 +616,9 @@ class DashboardRenderer:
 
         # Generate dog cards
         cards = await self.dog_generator.generate_dog_overview_cards(
-            dog_config, theme_colors, _as_card_options(options)
+            dog_config,
+            theme_colors,
+            _as_card_options(options),
         )
 
         view_config: LovelaceViewConfig = {
@@ -625,7 +652,9 @@ class DashboardRenderer:
         return themes[index % len(themes)]
 
     async def _render_dog_overview_view(
-        self, dog_config: DogConfigData, options: DashboardRendererOptions
+        self,
+        dog_config: DogConfigData,
+        options: DashboardRendererOptions,
     ) -> LovelaceViewConfig:
         """Render dog overview view.
 
@@ -636,10 +665,14 @@ class DashboardRenderer:
         Returns:
             Dog overview view configuration
         """
-        theme = self._get_dog_theme(0)  # Use first theme for individual dashboards
+        theme = self._get_dog_theme(
+            0,
+        )  # Use first theme for individual dashboards
 
         cards = await self.dog_generator.generate_dog_overview_cards(
-            dog_config, theme, _as_card_options(options)
+            dog_config,
+            theme,
+            _as_card_options(options),
         )
 
         overview_view: LovelaceViewConfig = {
@@ -708,16 +741,26 @@ class DashboardRenderer:
         ]
 
         # Generate views for enabled modules concurrently
-        task_definitions: list[tuple[str, Awaitable[LovelaceViewConfig | None]]] = []
+        task_definitions: list[
+            tuple[
+                str,
+                Awaitable[LovelaceViewConfig | None],
+            ]
+        ] = []
         for module_key, title, icon, generator in module_configs:
             if modules.get(module_key):
                 task_definitions.append(
                     (
                         module_key,
                         self._render_module_view(
-                            dog_config, options, module_key, title, icon, generator
+                            dog_config,
+                            options,
+                            module_key,
+                            title,
+                            icon,
+                            generator,
                         ),
-                    )
+                    ),
                 )
 
         if task_definitions:
@@ -852,7 +895,7 @@ class DashboardRenderer:
                     'select.paw_control_data_retention_days',
                     'switch.paw_control_advanced_logging',
                 ],
-            }
+            },
         )
 
         # Per-dog settings
@@ -879,7 +922,7 @@ class DashboardRenderer:
                     'type': 'entities',
                     'title': f"{dog_name} Settings",
                     'entities': dog_entities,
-                }
+                },
             )
 
         settings_view: LovelaceViewConfig = {
@@ -929,21 +972,30 @@ class DashboardRenderer:
 
             # Ensure parent directory exists without blocking the event loop
             await self.hass.async_add_executor_job(
-                partial(file_path.parent.mkdir, parents=True, exist_ok=True)
+                partial(file_path.parent.mkdir, parents=True, exist_ok=True),
             )
 
             # Write file asynchronously
             async with aiofiles.open(file_path, 'w', encoding='utf-8') as file:
-                content = json.dumps(dashboard_data, indent=2, ensure_ascii=False)
+                content = json.dumps(
+                    dashboard_data,
+                    indent=2,
+                    ensure_ascii=False,
+                )
                 await file.write(content)
 
             _LOGGER.debug('Dashboard file written: %s', file_path)
 
         except Exception as err:
             _LOGGER.error(
-                'Failed to write dashboard file %s: %s', file_path, err, exc_info=True
+                'Failed to write dashboard file %s: %s',
+                file_path,
+                err,
+                exc_info=True,
             )
-            raise HomeAssistantError(f"Dashboard file write failed: {err}") from err
+            raise HomeAssistantError(
+                f"Dashboard file write failed: {err}",
+            ) from err
 
     def _generate_job_id(self) -> str:
         """Generate unique job ID.
@@ -986,5 +1038,8 @@ _unwrap_async_result = partial(unwrap_async_result, logger=_LOGGER)
 
 
 ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+HomeAssistantError: type[Exception] = cast(
+    type[Exception],
+    compat.HomeAssistantError,
+)
 bind_exception_alias('HomeAssistantError', combine_with_current=True)

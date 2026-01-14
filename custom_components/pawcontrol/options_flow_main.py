@@ -12,157 +12,154 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from pathlib import Path
-from typing import Any, ClassVar, Final, Literal, cast
+from typing import Any
+from typing import cast
+from typing import ClassVar
+from typing import Final
+from typing import Literal
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import OptionsFlow
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
 from .config_flow_base import MAX_DOGS_PER_ENTRY
-from .config_flow_profile import (
-    DEFAULT_PROFILE,
-    get_profile_selector_options,
-    validate_profile_selection,
-)
-from .const import (
-    CONF_ADVANCED_SETTINGS,
-    CONF_API_ENDPOINT,
-    CONF_API_TOKEN,
-    CONF_DASHBOARD_MODE,
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_OPTIONS,
-    CONF_DOG_SIZE,
-    CONF_DOG_WEIGHT,
-    CONF_DOGS,
-    CONF_DOOR_SENSOR,
-    CONF_DOOR_SENSOR_SETTINGS,
-    CONF_EXTERNAL_INTEGRATIONS,
-    CONF_LAST_RECONFIGURE,
-    CONF_MODULES,
-    CONF_NOTIFICATIONS,
-    CONF_RECONFIGURE_TELEMETRY,
-    CONF_RESET_TIME,
-    CONF_WEATHER_ENTITY,
-    DASHBOARD_MODE_SELECTOR_OPTIONS,
-    DEFAULT_MANUAL_BREAKER_EVENT,
-    DEFAULT_MANUAL_CHECK_EVENT,
-    DEFAULT_MANUAL_GUARD_EVENT,
-    DEFAULT_RESET_TIME,
-    DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-    DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-    DEFAULT_WEATHER_ALERTS,
-    DEFAULT_WEATHER_HEALTH_MONITORING,
-    MANUAL_EVENT_SOURCE_CANONICAL,
-    MODULE_FEEDING,
-    MODULE_GARDEN,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    RESILIENCE_BREAKER_THRESHOLD_MAX,
-    RESILIENCE_BREAKER_THRESHOLD_MIN,
-    RESILIENCE_SKIP_THRESHOLD_MAX,
-    RESILIENCE_SKIP_THRESHOLD_MIN,
-)
+from .config_flow_profile import DEFAULT_PROFILE
+from .config_flow_profile import get_profile_selector_options
+from .config_flow_profile import validate_profile_selection
+from .const import CONF_ADVANCED_SETTINGS
+from .const import CONF_API_ENDPOINT
+from .const import CONF_API_TOKEN
+from .const import CONF_DASHBOARD_MODE
+from .const import CONF_DOG_AGE
+from .const import CONF_DOG_BREED
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOG_OPTIONS
+from .const import CONF_DOG_SIZE
+from .const import CONF_DOG_WEIGHT
+from .const import CONF_DOGS
+from .const import CONF_DOOR_SENSOR
+from .const import CONF_DOOR_SENSOR_SETTINGS
+from .const import CONF_EXTERNAL_INTEGRATIONS
+from .const import CONF_LAST_RECONFIGURE
+from .const import CONF_MODULES
+from .const import CONF_NOTIFICATIONS
+from .const import CONF_RECONFIGURE_TELEMETRY
+from .const import CONF_RESET_TIME
+from .const import CONF_WEATHER_ENTITY
+from .const import DASHBOARD_MODE_SELECTOR_OPTIONS
+from .const import DEFAULT_MANUAL_BREAKER_EVENT
+from .const import DEFAULT_MANUAL_CHECK_EVENT
+from .const import DEFAULT_MANUAL_GUARD_EVENT
+from .const import DEFAULT_RESET_TIME
+from .const import DEFAULT_RESILIENCE_BREAKER_THRESHOLD
+from .const import DEFAULT_RESILIENCE_SKIP_THRESHOLD
+from .const import DEFAULT_WEATHER_ALERTS
+from .const import DEFAULT_WEATHER_HEALTH_MONITORING
+from .const import MANUAL_EVENT_SOURCE_CANONICAL
+from .const import MODULE_FEEDING
+from .const import MODULE_GARDEN
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
+from .const import RESILIENCE_BREAKER_THRESHOLD_MAX
+from .const import RESILIENCE_BREAKER_THRESHOLD_MIN
+from .const import RESILIENCE_SKIP_THRESHOLD_MAX
+from .const import RESILIENCE_SKIP_THRESHOLD_MIN
 from .device_api import validate_device_endpoint
 from .diagnostics import normalize_value
 from .door_sensor_manager import ensure_door_sensor_settings_config
-from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .entity_factory import ENTITY_PROFILES
+from .entity_factory import EntityFactory
 from .exceptions import FlowValidationError
-from .flow_validation import validate_dog_setup_input, validate_dog_update_input
+from .flow_validation import validate_dog_setup_input
+from .flow_validation import validate_dog_update_input
 from .grooming_translations import translated_grooming_label
 from .language import normalize_language
 from .options_flow_feeding import FeedingOptionsMixin
 from .options_flow_gps import GPSOptionsMixin
 from .options_flow_health import HealthOptionsMixin
 from .options_flow_notifications import NotificationOptionsMixin
-from .repairs import (
-    ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
-    async_create_issue,
-    async_schedule_repair_evaluation,  # noqa: F401 - imported for flow-side effects
-)
-from .runtime_data import (
-    RuntimeDataUnavailableError,
-    get_runtime_data,
-    require_runtime_data,
-)
+from .repairs import async_create_issue
+from .repairs import ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE
+from .runtime_data import get_runtime_data
+from .runtime_data import require_runtime_data
+from .runtime_data import RuntimeDataUnavailableError
 from .script_manager import resolve_resilience_script_thresholds
 from .selector_shim import selector
 from .telemetry import record_door_sensor_persistence_failure
-from .types import (
-    DEFAULT_DOOR_SENSOR_SETTINGS,
-    DEFAULT_NOTIFICATION_OPTIONS,
-    DOG_AGE_FIELD,
-    DOG_BREED_FIELD,
-    DOG_ID_FIELD,
-    DOG_MODULES_FIELD,
-    DOG_NAME_FIELD,
-    DOG_SIZE_FIELD,
-    DOG_WEIGHT_FIELD,
-    RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
-    AdvancedOptions,
-    ConfigEntryOptionsPayload,
-    ConfigFlowPlaceholders,
-    DashboardOptions,
-    DogConfigData,
-    DogModulesConfig,
-    DogOptionsMap,
-    DogSetupStepInput,
-    DoorSensorSettingsConfig,
-    DoorSensorSettingsPayload,
-    EntityProfileOptionsInput,
-    JSONLikeMapping,
-    JSONMutableMapping,
-    JSONValue,
-    MutableConfigFlowPlaceholders,
-    NotificationOptionsInput,
-    NotificationThreshold,
-    OptionsAdvancedSettingsInput,
-    OptionsDashboardSettingsInput,
-    OptionsDogEditInput,
-    OptionsDogModulesInput,
-    OptionsDogRemovalInput,
-    OptionsDogSelectionInput,
-    OptionsDoorSensorInput,
-    OptionsExportDisplayInput,
-    OptionsExportPayload,
-    OptionsImportExportInput,
-    OptionsImportPayloadInput,
-    OptionsMainMenuInput,
-    OptionsMenuInput,
-    OptionsPerformanceSettingsInput,
-    OptionsProfilePreviewInput,
-    OptionsSystemSettingsInput,
-    OptionsWeatherSettingsInput,
-    PawControlOptionsData,
-    ReconfigureTelemetry,
-    SystemOptions,
-    WeatherOptions,
-    clone_placeholders,
-    ensure_advanced_options,
-    ensure_dog_config_data,
-    ensure_dog_modules_config,
-    ensure_dog_modules_mapping,
-    ensure_dog_options_entry,
-    ensure_json_mapping,
-    ensure_notification_options,
-    freeze_placeholders,
-    is_dog_config_valid,
-    normalize_performance_mode,
-)
+from .types import AdvancedOptions
+from .types import clone_placeholders
+from .types import ConfigEntryOptionsPayload
+from .types import ConfigFlowPlaceholders
+from .types import DashboardOptions
+from .types import DEFAULT_DOOR_SENSOR_SETTINGS
+from .types import DEFAULT_NOTIFICATION_OPTIONS
+from .types import DOG_AGE_FIELD
+from .types import DOG_BREED_FIELD
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DOG_SIZE_FIELD
+from .types import DOG_WEIGHT_FIELD
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import DogOptionsMap
+from .types import DogSetupStepInput
+from .types import DoorSensorSettingsConfig
+from .types import DoorSensorSettingsPayload
+from .types import ensure_advanced_options
+from .types import ensure_dog_config_data
+from .types import ensure_dog_modules_config
+from .types import ensure_dog_modules_mapping
+from .types import ensure_dog_options_entry
+from .types import ensure_json_mapping
+from .types import ensure_notification_options
+from .types import EntityProfileOptionsInput
+from .types import freeze_placeholders
+from .types import is_dog_config_valid
+from .types import JSONLikeMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import MutableConfigFlowPlaceholders
+from .types import normalize_performance_mode
+from .types import NotificationOptionsInput
+from .types import NotificationThreshold
+from .types import OptionsAdvancedSettingsInput
+from .types import OptionsDashboardSettingsInput
+from .types import OptionsDogEditInput
+from .types import OptionsDogModulesInput
+from .types import OptionsDogRemovalInput
+from .types import OptionsDogSelectionInput
+from .types import OptionsDoorSensorInput
+from .types import OptionsExportDisplayInput
+from .types import OptionsExportPayload
+from .types import OptionsImportExportInput
+from .types import OptionsImportPayloadInput
+from .types import OptionsMainMenuInput
+from .types import OptionsMenuInput
+from .types import OptionsPerformanceSettingsInput
+from .types import OptionsProfilePreviewInput
+from .types import OptionsSystemSettingsInput
+from .types import OptionsWeatherSettingsInput
+from .types import PawControlOptionsData
+from .types import RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE
+from .types import ReconfigureTelemetry
+from .types import SystemOptions
+from .types import WeatherOptions
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -180,34 +177,44 @@ ManualEventField = Literal[
 ]
 
 SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal['enable_analytics']] = cast(
-    Literal['enable_analytics'], 'enable_analytics'
+    Literal['enable_analytics'],
+    'enable_analytics',
 )
 SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal['enable_cloud_backup']] = cast(
-    Literal['enable_cloud_backup'], 'enable_cloud_backup'
+    Literal['enable_cloud_backup'],
+    'enable_cloud_backup',
 )
 EXTERNAL_INTEGRATIONS_FIELD: Final[Literal['external_integrations']] = cast(
-    Literal['external_integrations'], CONF_EXTERNAL_INTEGRATIONS
+    Literal['external_integrations'],
+    CONF_EXTERNAL_INTEGRATIONS,
 )
 API_ENDPOINT_FIELD: Final[Literal['api_endpoint']] = cast(
-    Literal['api_endpoint'], CONF_API_ENDPOINT
+    Literal['api_endpoint'],
+    CONF_API_ENDPOINT,
 )
 API_TOKEN_FIELD: Final[Literal['api_token']] = cast(
-    Literal['api_token'], CONF_API_TOKEN
+    Literal['api_token'],
+    CONF_API_TOKEN,
 )
 WEATHER_ENTITY_FIELD: Final[Literal['weather_entity']] = cast(
-    Literal['weather_entity'], CONF_WEATHER_ENTITY
+    Literal['weather_entity'],
+    CONF_WEATHER_ENTITY,
 )
 DOG_OPTIONS_FIELD: Final[Literal['dog_options']] = cast(
-    Literal['dog_options'], CONF_DOG_OPTIONS
+    Literal['dog_options'],
+    CONF_DOG_OPTIONS,
 )
 ADVANCED_SETTINGS_FIELD: Final[Literal['advanced_settings']] = cast(
-    Literal['advanced_settings'], CONF_ADVANCED_SETTINGS
+    Literal['advanced_settings'],
+    CONF_ADVANCED_SETTINGS,
 )
 LAST_RECONFIGURE_FIELD: Final[Literal['last_reconfigure']] = cast(
-    Literal['last_reconfigure'], CONF_LAST_RECONFIGURE
+    Literal['last_reconfigure'],
+    CONF_LAST_RECONFIGURE,
 )
 RECONFIGURE_TELEMETRY_FIELD: Final[Literal['reconfigure_telemetry']] = cast(
-    Literal['reconfigure_telemetry'], CONF_RECONFIGURE_TELEMETRY
+    Literal['reconfigure_telemetry'],
+    CONF_RECONFIGURE_TELEMETRY,
 )
 
 
@@ -274,9 +281,16 @@ class PawControlOptionsFlow(
         'blueprint',
         'default',
     )
-    _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = frozenset({'en', 'de'})
+    _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = frozenset(
+        {
+            'en',
+            'de',
+        },
+    )
     _STRINGS_PATH: ClassVar[Path] = Path(__file__).with_name('strings.json')
-    _TRANSLATIONS_DIR: ClassVar[Path] = Path(__file__).with_name('translations')
+    _TRANSLATIONS_DIR: ClassVar[Path] = Path(
+        __file__,
+    ).with_name('translations')
 
     def __init__(self) -> None:
         """Initialize the options flow with enhanced state management."""
@@ -297,7 +311,7 @@ class PawControlOptionsFlow(
 
         if self._config_entry is None:
             raise RuntimeError(
-                'Options flow accessed before being initialized with a config entry'
+                'Options flow accessed before being initialized with a config entry',
             )
         return self._config_entry
 
@@ -316,7 +330,9 @@ class PawControlOptionsFlow(
         for dog in dogs_iterable:
             if not isinstance(dog, Mapping):
                 continue
-            normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
+            normalised = ensure_dog_config_data(
+                cast(Mapping[str, JSONValue], dog),
+            )
             if normalised is not None:
                 self._dogs.append(normalised)
 
@@ -340,7 +356,8 @@ class PawControlOptionsFlow(
         )
 
     def _normalise_options_snapshot(
-        self, options: Mapping[str, JSONValue] | JSONMutableMapping
+        self,
+        options: Mapping[str, JSONValue] | JSONMutableMapping,
     ) -> PawControlOptionsData:
         """Return a typed options mapping with notifications and dog entries coerced."""
 
@@ -358,7 +375,9 @@ class PawControlOptionsFlow(
                 defaults=DEFAULT_NOTIFICATION_OPTIONS,
             )
 
-            dog_options = ensure_json_mapping(mutable.get(DOG_OPTIONS_FIELD, {}))
+            dog_options = ensure_json_mapping(
+                mutable.get(DOG_OPTIONS_FIELD, {}),
+            )
             if self._dogs:
                 for dog in self._dogs:
                     dog_id = dog.get(DOG_ID_FIELD)
@@ -368,7 +387,8 @@ class PawControlOptionsFlow(
                     if not isinstance(entry_source, Mapping):
                         entry_source = {}
                     entry = ensure_dog_options_entry(
-                        cast(JSONLikeMapping, dict(entry_source)), dog_id=dog_id
+                        cast(JSONLikeMapping, dict(entry_source)),
+                        dog_id=dog_id,
                     )
                     if CONF_NOTIFICATIONS not in entry:
                         entry[CONF_NOTIFICATIONS] = normalised_notifications
@@ -376,7 +396,10 @@ class PawControlOptionsFlow(
                 mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
                 mutable.pop(CONF_NOTIFICATIONS, None)
             else:
-                mutable[CONF_NOTIFICATIONS] = cast(JSONValue, normalised_notifications)
+                mutable[CONF_NOTIFICATIONS] = cast(
+                    JSONValue,
+                    normalised_notifications,
+                )
 
         if DOG_OPTIONS_FIELD in mutable:
             raw_dog_options = mutable.get(DOG_OPTIONS_FIELD)
@@ -390,7 +413,8 @@ class PawControlOptionsFlow(
                         else {}
                     )
                     entry = ensure_dog_options_entry(
-                        cast(JSONLikeMapping, dict(entry_source)), dog_id=dog_id
+                        cast(JSONLikeMapping, dict(entry_source)),
+                        dog_id=dog_id,
                     )
                     if dog_id and entry.get(DOG_ID_FIELD) != dog_id:
                         entry[DOG_ID_FIELD] = dog_id
@@ -415,13 +439,16 @@ class PawControlOptionsFlow(
         return cast(PawControlOptionsData, mutable)
 
     def _normalise_entry_dogs(
-        self, dogs: Sequence[Mapping[str, JSONValue]]
+        self,
+        dogs: Sequence[Mapping[str, JSONValue]],
     ) -> list[DogConfigData]:
         """Return typed dog configurations for entry persistence."""
 
         typed_dogs: list[DogConfigData] = []
         for dog in dogs:
-            normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
+            normalised = ensure_dog_config_data(
+                cast(Mapping[str, JSONValue], dog),
+            )
             if normalised is None:
                 raise FlowValidationError(base_errors=['invalid_dog_config'])
             typed_dogs.append(normalised)
@@ -489,11 +516,19 @@ class PawControlOptionsFlow(
 
     @classmethod
     def _load_setup_flag_translations_from_mapping(
-        cls, mapping: Mapping[str, JSONValue]
+        cls,
+        mapping: Mapping[str, JSONValue],
     ) -> dict[str, str]:
         """Extract setup flag translations from a loaded JSON mapping."""
 
-        common = mapping.get('common') if isinstance(mapping, Mapping) else None
+        common = (
+            mapping.get('common')
+            if isinstance(
+                mapping,
+                Mapping,
+            )
+            else None
+        )
         if not isinstance(common, Mapping):
             return {}
 
@@ -514,7 +549,10 @@ class PawControlOptionsFlow(
         except FileNotFoundError:
             return {}
         except ValueError:  # pragma: no cover - defensive against malformed JSON
-            _LOGGER.warning('Failed to parse setup flag translations from %s', path)
+            _LOGGER.warning(
+                'Failed to parse setup flag translations from %s',
+                path,
+            )
             return {}
 
         if not isinstance(content, Mapping):
@@ -578,7 +616,8 @@ class PawControlOptionsFlow(
         return None
 
     def _manual_event_defaults(
-        self, current: SystemOptions
+        self,
+        current: SystemOptions,
     ) -> dict[ManualEventField, str | None]:
         """Return preferred manual event defaults for the system settings form."""
 
@@ -591,12 +630,15 @@ class PawControlOptionsFlow(
         for field in self._MANUAL_EVENT_FIELDS:
             if field not in current:
                 continue
-            defaults[field] = self._normalise_manual_event_value(current.get(field))
+            defaults[field] = self._normalise_manual_event_value(
+                current.get(field),
+            )
 
         return defaults
 
     def _manual_event_schema_defaults(
-        self, current: SystemOptions
+        self,
+        current: SystemOptions,
     ) -> dict[ManualEventField, str]:
         """Return schema defaults for manual event inputs as strings."""
 
@@ -680,20 +722,22 @@ class PawControlOptionsFlow(
                     'manual_guard_event': 'system_guard_event',
                     'manual_breaker_event': 'system_breaker_event',
                 }
-                system_value = manual_snapshot.get(system_key_map.get(field, ''))
+                system_value = manual_snapshot.get(
+                    system_key_map.get(field, ''),
+                )
                 _register(system_value, 'system_settings')
 
             preferred = manual_snapshot.get('preferred_events')
             if isinstance(preferred, Mapping):
                 preferred_value = self._normalise_manual_event_value(
-                    preferred.get(field)
+                    preferred.get(field),
                 )
                 if preferred_value and preferred_value != default_map[field]:
                     _register(preferred_value, 'system_settings')
 
             specific_preference = manual_snapshot.get(f"preferred_{field}")
             specific_normalised = self._normalise_manual_event_value(
-                specific_preference
+                specific_preference,
             )
             if specific_normalised and specific_normalised != default_map[field]:
                 _register(specific_normalised, 'system_settings')
@@ -705,7 +749,8 @@ class PawControlOptionsFlow(
                         continue
                     for raw_source in self._string_sequence(raw_sources):
                         mapped = MANUAL_EVENT_SOURCE_CANONICAL.get(
-                            raw_source, raw_source
+                            raw_source,
+                            raw_source,
                         )
                         if mapped:
                             _register(event, mapped)
@@ -750,10 +795,12 @@ class PawControlOptionsFlow(
         language = self._determine_language()
 
         disabled_label = self._setup_flag_translation(
-            self._SETUP_FLAG_SOURCE_LABEL_KEYS['disabled'], language=language
+            self._SETUP_FLAG_SOURCE_LABEL_KEYS['disabled'],
+            language=language,
         )
         disabled_description = self._setup_flag_translation(
-            self._SETUP_FLAG_SOURCE_LABEL_KEYS['default'], language=language
+            self._SETUP_FLAG_SOURCE_LABEL_KEYS['default'],
+            language=language,
         )
 
         def _primary_source(source_set: set[str]) -> str | None:
@@ -780,7 +827,7 @@ class PawControlOptionsFlow(
                 key = self._MANUAL_SOURCE_HELP_KEYS.get(source_name)
                 if key:
                     help_segments.append(
-                        self._setup_flag_translation(key, language=language)
+                        self._setup_flag_translation(key, language=language),
                     )
             if help_segments:
                 return ' '.join(help_segments)
@@ -836,7 +883,7 @@ class PawControlOptionsFlow(
                 key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(source)
                 if key:
                     description_parts.append(
-                        self._setup_flag_translation(key, language=language)
+                        self._setup_flag_translation(key, language=language),
                     )
 
             option: JSONMutableMapping = {'value': value, 'label': value}
@@ -887,12 +934,19 @@ class PawControlOptionsFlow(
         placeholders: dict[str, str] = {}
         for field, values in choices.items():
             placeholder_key = f"{field}_options"
-            placeholders[placeholder_key] = ', '.join(values) if values else '—'
+            placeholders[placeholder_key] = (
+                ', '.join(
+                    values,
+                )
+                if values
+                else '—'
+            )
         return freeze_placeholders(placeholders)
 
     @staticmethod
     def _coerce_manual_event_with_default(
-        value: Any, default: str | None
+        value: Any,
+        default: str | None,
     ) -> str | None:
         """Return a normalised manual event or fallback to the provided default."""
 
@@ -906,9 +960,11 @@ class PawControlOptionsFlow(
 
         telemetry = self._reconfigure_telemetry()
         timestamp = self._format_local_timestamp(
-            (telemetry or {}).get('timestamp') if telemetry else None
+            (telemetry or {}).get('timestamp') if telemetry else None,
         )
-        placeholders = clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE)
+        placeholders = clone_placeholders(
+            RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
+        )
         placeholders['last_reconfigure'] = timestamp
         if not telemetry:
             placeholders['reconfigure_requested_profile'] = 'Not recorded'
@@ -920,18 +976,41 @@ class PawControlOptionsFlow(
             placeholders['reconfigure_merge_notes'] = 'No merge adjustments recorded'
             return freeze_placeholders(placeholders)
 
-        requested_profile = str(telemetry.get('requested_profile', '')) or 'Unknown'
-        previous_profile = str(telemetry.get('previous_profile', '')) or 'Unknown'
+        requested_profile = (
+            str(
+                telemetry.get(
+                    'requested_profile',
+                    '',
+                ),
+            )
+            or 'Unknown'
+        )
+        previous_profile = (
+            str(
+                telemetry.get(
+                    'previous_profile',
+                    '',
+                ),
+            )
+            or 'Unknown'
+        )
         dogs_count = telemetry.get('dogs_count')
         estimated_entities = telemetry.get('estimated_entities')
-        warnings = self._string_sequence(telemetry.get('compatibility_warnings'))
+        warnings = self._string_sequence(
+            telemetry.get('compatibility_warnings'),
+        )
         merge_notes = self._string_sequence(telemetry.get('merge_notes'))
         health_summary = telemetry.get('health_summary')
 
-        last_recorded = telemetry.get('timestamp') or self._last_reconfigure_timestamp()
+        last_recorded = (
+            telemetry.get(
+                'timestamp',
+            )
+            or self._last_reconfigure_timestamp()
+        )
 
         placeholders['last_reconfigure'] = self._format_local_timestamp(
-            str(last_recorded) if last_recorded else None
+            str(last_recorded) if last_recorded else None,
         )
         placeholders['reconfigure_requested_profile'] = requested_profile
         placeholders['reconfigure_previous_profile'] = previous_profile
@@ -941,16 +1020,25 @@ class PawControlOptionsFlow(
             else '0'
         )
         placeholders['reconfigure_dogs'] = (
-            str(int(dogs_count)) if isinstance(dogs_count, int | float) else '0'
+            str(int(dogs_count))
+            if isinstance(
+                dogs_count,
+                int | float,
+            )
+            else '0'
         )
         placeholders['reconfigure_health'] = self._summarise_health_summary(
-            health_summary
+            health_summary,
         )
         placeholders['reconfigure_warnings'] = (
             ', '.join(warnings) if warnings else 'None'
         )
         placeholders['reconfigure_merge_notes'] = (
-            '\n'.join(merge_notes) if merge_notes else 'No merge adjustments recorded'
+            '\n'.join(
+                merge_notes,
+            )
+            if merge_notes
+            else 'No merge adjustments recorded'
         )
         return freeze_placeholders(placeholders)
 
@@ -969,13 +1057,17 @@ class PawControlOptionsFlow(
 
         modules_raw = normalised.get(CONF_MODULES)
         if modules_raw is not None and not isinstance(modules_raw, Mapping):
-            raise FlowValidationError(field_errors={'payload': 'dog_invalid_modules'})
+            raise FlowValidationError(
+                field_errors={'payload': 'dog_invalid_modules'},
+            )
 
         modules = ensure_dog_modules_config(normalised)
         normalised[DOG_MODULES_FIELD] = modules
 
         if not is_dog_config_valid(normalised):
-            raise FlowValidationError(field_errors={'payload': 'dog_invalid_config'})
+            raise FlowValidationError(
+                field_errors={'payload': 'dog_invalid_config'},
+            )
 
         return normalised
 
@@ -1008,7 +1100,8 @@ class PawControlOptionsFlow(
             modules_mapping = ensure_dog_modules_mapping(normalised)
             if modules_mapping:
                 normalised[DOG_MODULES_FIELD] = cast(
-                    DogModulesConfig, dict(modules_mapping)
+                    DogModulesConfig,
+                    dict(modules_mapping),
                 )
             elif DOG_MODULES_FIELD in normalised:
                 normalised.pop(DOG_MODULES_FIELD, None)
@@ -1026,22 +1119,31 @@ class PawControlOptionsFlow(
         """Validate and normalise an imported payload."""
 
         if not isinstance(payload, Mapping):
-            raise FlowValidationError(field_errors={'payload': 'payload_not_mapping'})
+            raise FlowValidationError(
+                field_errors={'payload': 'payload_not_mapping'},
+            )
 
         version = payload.get('version')
         if version != self._EXPORT_VERSION:
-            raise FlowValidationError(field_errors={'payload': 'unsupported_version'})
+            raise FlowValidationError(
+                field_errors={'payload': 'unsupported_version'},
+            )
 
         options_raw = payload.get('options')
         if not isinstance(options_raw, Mapping):
-            raise FlowValidationError(field_errors={'payload': 'options_missing'})
+            raise FlowValidationError(
+                field_errors={'payload': 'options_missing'},
+            )
 
         sanitised_options = cast(
             PawControlOptionsData,
             self._normalise_export_value(dict(options_raw)),
         )
 
-        merged_candidate = cast(ConfigEntryOptionsPayload, dict(self._clone_options()))
+        merged_candidate = cast(
+            ConfigEntryOptionsPayload,
+            dict(self._clone_options()),
+        )
         merged_candidate.update(sanitised_options)
         merged_options = self._normalise_options_snapshot(merged_candidate)
 
@@ -1053,13 +1155,19 @@ class PawControlOptionsFlow(
         seen_ids: set[str] = set()
         for raw in dogs_raw:
             if not isinstance(raw, Mapping):
-                raise FlowValidationError(field_errors={'payload': 'dog_invalid'})
+                raise FlowValidationError(
+                    field_errors={'payload': 'dog_invalid'},
+                )
             normalised = self._sanitise_imported_dog(raw)
             dog_id = normalised.get(CONF_DOG_ID)
             if not isinstance(dog_id, str) or not dog_id.strip():
-                raise FlowValidationError(field_errors={'payload': 'dog_missing_id'})
+                raise FlowValidationError(
+                    field_errors={'payload': 'dog_missing_id'},
+                )
             if dog_id in seen_ids:
-                raise FlowValidationError(field_errors={'payload': 'dog_duplicate'})
+                raise FlowValidationError(
+                    field_errors={'payload': 'dog_duplicate'},
+                )
             seen_ids.add(dog_id)
             dogs_payload.append(normalised)
 
@@ -1108,7 +1216,8 @@ class PawControlOptionsFlow(
             if not isinstance(value, Mapping):
                 continue
             entry = ensure_dog_options_entry(
-                cast(JSONLikeMapping, dict(value)), dog_id=str(dog_id)
+                cast(JSONLikeMapping, dict(value)),
+                dog_id=str(dog_id),
             )
             if entry:
                 dog_options[str(dog_id)] = entry
@@ -1156,9 +1265,9 @@ class PawControlOptionsFlow(
                     selector.SelectSelectorConfig(
                         options=dog_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                )
-            }
+                    ),
+                ),
+            },
         )
 
     def _current_system_options(self) -> SystemOptions:
@@ -1177,7 +1286,9 @@ class PawControlOptionsFlow(
         if SYSTEM_ENABLE_ANALYTICS_FIELD not in system:
             system[SYSTEM_ENABLE_ANALYTICS_FIELD] = bool(enable_analytics)
         if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
-            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(enable_cloud_backup)
+            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(
+                enable_cloud_backup,
+            )
 
         has_skip = 'resilience_skip_threshold' in system
         has_breaker = 'resilience_breaker_threshold' in system
@@ -1243,13 +1354,13 @@ class PawControlOptionsFlow(
         }
 
         check_default: str | None = self._coerce_manual_event(
-            current_system.get('manual_check_event')
+            current_system.get('manual_check_event'),
         )
         guard_default: str | None = self._coerce_manual_event(
-            current_system.get('manual_guard_event')
+            current_system.get('manual_guard_event'),
         )
         breaker_default: str | None = self._coerce_manual_event(
-            current_system.get('manual_breaker_event')
+            current_system.get('manual_breaker_event'),
         )
 
         if manual_snapshot is None:
@@ -1257,10 +1368,10 @@ class PawControlOptionsFlow(
 
         if manual_snapshot is not None:
             system_guard = self._coerce_manual_event(
-                manual_snapshot.get('system_guard_event')
+                manual_snapshot.get('system_guard_event'),
             )
             system_breaker = self._coerce_manual_event(
-                manual_snapshot.get('system_breaker_event')
+                manual_snapshot.get('system_breaker_event'),
             )
 
             if guard_default is None:
@@ -1269,7 +1380,7 @@ class PawControlOptionsFlow(
                 breaker_default = system_breaker
 
             for event in self._string_sequence(
-                manual_snapshot.get('configured_check_events')
+                manual_snapshot.get('configured_check_events'),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
@@ -1278,13 +1389,13 @@ class PawControlOptionsFlow(
                         check_default = normalised
 
             for event in self._string_sequence(
-                manual_snapshot.get('configured_guard_events')
+                manual_snapshot.get('configured_guard_events'),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
                     guard_suggestions.add(normalised)
             for event in self._string_sequence(
-                manual_snapshot.get('configured_breaker_events')
+                manual_snapshot.get('configured_breaker_events'),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
@@ -1294,11 +1405,11 @@ class PawControlOptionsFlow(
                 preferred = manual_snapshot.get('preferred_events')
                 if isinstance(preferred, Mapping):
                     check_default = self._coerce_manual_event(
-                        preferred.get('manual_check_event')
+                        preferred.get('manual_check_event'),
                     )
             if check_default is None:
                 check_default = self._coerce_manual_event(
-                    manual_snapshot.get('preferred_check_event')
+                    manual_snapshot.get('preferred_check_event'),
                 )
 
         if guard_default is not None:
@@ -1339,7 +1450,10 @@ class PawControlOptionsFlow(
         return fallback
 
     def _resolve_script_threshold_fallbacks(
-        self, *, has_skip: bool, has_breaker: bool
+        self,
+        *,
+        has_skip: bool,
+        has_breaker: bool,
     ) -> tuple[int | None, int | None]:
         """Return script thresholds when options are missing values."""
 
@@ -1393,7 +1507,16 @@ class PawControlOptionsFlow(
 
         options = self._current_options()
         raw = options.get(ADVANCED_SETTINGS_FIELD)
-        source = cast(JSONLikeMapping, dict(raw)) if isinstance(raw, Mapping) else {}
+        source = (
+            cast(
+                JSONLikeMapping,
+                dict(
+                    raw,
+                ),
+            )
+            if isinstance(raw, Mapping)
+            else {}
+        )
         defaults = cast(JSONMutableMapping, dict(options))
         return ensure_advanced_options(source, defaults=defaults)
 
@@ -1465,7 +1588,12 @@ class PawControlOptionsFlow(
         return default
 
     def _coerce_clamped_int(
-        self, value: Any, default: int, *, minimum: int, maximum: int
+        self,
+        value: Any,
+        default: int,
+        *,
+        minimum: int,
+        maximum: int,
     ) -> int:
         """Normalise numeric selector input and clamp to an allowed range."""
 
@@ -1509,7 +1637,12 @@ class PawControlOptionsFlow(
 
         raw_interval_default = current.get('weather_update_interval')
         interval_default = (
-            raw_interval_default if isinstance(raw_interval_default, int) else 60
+            raw_interval_default
+            if isinstance(
+                raw_interval_default,
+                int,
+            )
+            else 60
         )
         interval = self._coerce_clamped_int(
             user_input.get('weather_update_interval'),
@@ -1529,7 +1662,8 @@ class PawControlOptionsFlow(
             'weather_health_monitoring': self._coerce_bool(
                 user_input.get('weather_health_monitoring'),
                 current.get(
-                    'weather_health_monitoring', DEFAULT_WEATHER_HEALTH_MONITORING
+                    'weather_health_monitoring',
+                    DEFAULT_WEATHER_HEALTH_MONITORING,
                 ),
             ),
             'weather_alerts': self._coerce_bool(
@@ -1658,20 +1792,22 @@ class PawControlOptionsFlow(
 
         if 'manual_guard_event' in user_input:
             guard_event = self._coerce_manual_event(
-                user_input.get('manual_guard_event')
+                user_input.get('manual_guard_event'),
             )
             if guard_event is None:
                 system['manual_guard_event'] = None
             else:
                 system['manual_guard_event'] = guard_event
         elif 'manual_guard_event' in current:
-            guard_event = self._coerce_manual_event(current.get('manual_guard_event'))
+            guard_event = self._coerce_manual_event(
+                current.get('manual_guard_event'),
+            )
             if guard_event is not None:
                 system['manual_guard_event'] = guard_event
 
         if 'manual_breaker_event' in user_input:
             breaker_event = self._coerce_manual_event(
-                user_input.get('manual_breaker_event')
+                user_input.get('manual_breaker_event'),
             )
             if breaker_event is None:
                 system['manual_breaker_event'] = None
@@ -1679,13 +1815,14 @@ class PawControlOptionsFlow(
                 system['manual_breaker_event'] = breaker_event
         elif 'manual_breaker_event' in current:
             breaker_event = self._coerce_manual_event(
-                current.get('manual_breaker_event')
+                current.get('manual_breaker_event'),
             )
             if breaker_event is not None:
                 system['manual_breaker_event'] = breaker_event
 
         reset_time = self._coerce_time_string(
-            user_input.get('reset_time'), reset_default
+            user_input.get('reset_time'),
+            reset_default,
         )
         return system, reset_time
 
@@ -1698,7 +1835,10 @@ class PawControlOptionsFlow(
     ) -> tuple[DashboardOptions, str]:
         """Create typed dashboard configuration and selected mode."""
 
-        valid_modes = {option['value'] for option in DASHBOARD_MODE_SELECTOR_OPTIONS}
+        valid_modes = {
+            option['value']
+            for option in DASHBOARD_MODE_SELECTOR_OPTIONS
+        }
         mode = self._normalize_choice(
             user_input.get('dashboard_mode'),
             valid=valid_modes,
@@ -1734,14 +1874,18 @@ class PawControlOptionsFlow(
         """Create typed advanced configuration metadata."""
 
         endpoint_raw = user_input.get(
-            CONF_API_ENDPOINT, current.get(CONF_API_ENDPOINT, '')
+            CONF_API_ENDPOINT,
+            current.get(CONF_API_ENDPOINT, ''),
         )
         endpoint = (
             endpoint_raw.strip()
             if isinstance(endpoint_raw, str)
             else str(current.get(CONF_API_ENDPOINT, ''))
         )
-        token_raw = user_input.get(CONF_API_TOKEN, current.get(CONF_API_TOKEN, ''))
+        token_raw = user_input.get(
+            CONF_API_TOKEN,
+            current.get(CONF_API_TOKEN, ''),
+        )
         token = (
             token_raw.strip()
             if isinstance(token_raw, str)
@@ -1754,10 +1898,12 @@ class PawControlOptionsFlow(
             elif isinstance(value, Mapping):
                 sanitized_input[str(key)] = cast(JSONValue, dict(value))
             elif isinstance(value, Sequence) and not isinstance(
-                value, (str, bytes, bytearray)
+                value,
+                (str, bytes, bytearray),
             ):
                 sanitized_input[str(key)] = cast(
-                    JSONValue, [cast(JSONValue, item) for item in value]
+                    JSONValue,
+                    [cast(JSONValue, item) for item in value],
                 )
             else:
                 _LOGGER.warning(
@@ -1775,12 +1921,18 @@ class PawControlOptionsFlow(
         current_advanced = self._current_options().get(ADVANCED_SETTINGS_FIELD, {})
         advanced_defaults = cast(
             JSONMutableMapping,
-            dict(current_advanced) if isinstance(current_advanced, Mapping) else {},
+            dict(current_advanced)
+            if isinstance(
+                current_advanced,
+                Mapping,
+            )
+            else {},
         )
         return ensure_advanced_options(sanitized_input, defaults=advanced_defaults)
 
     async def async_step_init(
-        self, user_input: OptionsMainMenuInput | None = None
+        self,
+        user_input: OptionsMainMenuInput | None = None,
     ) -> ConfigFlowResult:
         """Show the main options menu with enhanced navigation.
 
@@ -1814,7 +1966,8 @@ class PawControlOptionsFlow(
 
     # NEW: Geofencing configuration step per requirements
     async def async_step_entity_profiles(
-        self, user_input: EntityProfileOptionsInput | None = None
+        self,
+        user_input: EntityProfileOptionsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure entity profiles for performance optimization.
 
@@ -1829,7 +1982,7 @@ class PawControlOptionsFlow(
                 if preview_estimate:
                     # Show entity count preview
                     return await self.async_step_profile_preview(
-                        {'profile': current_profile}
+                        {'profile': current_profile},
                     )
 
                 # Save the profile selection
@@ -1837,13 +1990,18 @@ class PawControlOptionsFlow(
                     **self._entry.options,
                     'entity_profile': current_profile,
                 }
-                typed_options = self._normalise_options_snapshot(merged_options)
+                typed_options = self._normalise_options_snapshot(
+                    merged_options,
+                )
                 self._invalidate_profile_caches()
 
                 return self.async_create_entry(title='', data=typed_options)
 
             except vol.Invalid as err:
-                _LOGGER.warning('Invalid profile selection in options flow: %s', err)
+                _LOGGER.warning(
+                    'Invalid profile selection in options flow: %s',
+                    err,
+                )
                 return self.async_show_form(
                     step_id='entity_profiles',
                     data_schema=self._get_entity_profiles_schema(user_input),
@@ -1860,16 +2018,20 @@ class PawControlOptionsFlow(
         return self.async_show_form(
             step_id='entity_profiles',
             data_schema=self._get_entity_profiles_schema(),
-            description_placeholders=dict(self._get_profile_description_placeholders()),
+            description_placeholders=dict(
+                self._get_profile_description_placeholders(),
+            ),
         )
 
     def _get_entity_profiles_schema(
-        self, user_input: EntityProfileOptionsInput | None = None
+        self,
+        user_input: EntityProfileOptionsInput | None = None,
     ) -> vol.Schema:
         """Get entity profiles schema with current values."""
         current_options = self._entry.options
         current_values: JSONMutableMapping = cast(
-            JSONMutableMapping, dict(user_input or {})
+            JSONMutableMapping,
+            dict(user_input or {}),
         )
         current_profile = current_values.get(
             'entity_profile',
@@ -1884,17 +2046,19 @@ class PawControlOptionsFlow(
         return vol.Schema(
             {
                 vol.Required(
-                    'entity_profile', default=current_profile
+                    'entity_profile',
+                    default=current_profile,
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=profile_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'preview_estimate', default=False
+                    'preview_estimate',
+                    default=False,
                 ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
-            }
+            },
         )
 
     def _get_profile_description_placeholders_cached(self) -> ConfigFlowPlaceholders:
@@ -1906,16 +2070,22 @@ class PawControlOptionsFlow(
             for dog in dogs_raw:
                 if not isinstance(dog, Mapping):
                     continue
-                normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
+                normalised = ensure_dog_config_data(
+                    cast(Mapping[str, JSONValue], dog),
+                )
                 if normalised is not None:
                     current_dogs.append(normalised)
         current_dogs = cast(list[DogConfigData], current_dogs)
         current_dogs = cast(list[DogConfigData], current_dogs)
         dog_entries: list[Mapping[str, JSONValue]] = cast(
-            list[Mapping[str, JSONValue]], current_dogs
+            list[Mapping[str, JSONValue]],
+            current_dogs,
         )
 
-        current_profile_raw = self._entry.options.get('entity_profile', DEFAULT_PROFILE)
+        current_profile_raw = self._entry.options.get(
+            'entity_profile',
+            DEFAULT_PROFILE,
+        )
         current_profile = (
             current_profile_raw
             if isinstance(current_profile_raw, str)
@@ -1926,7 +2096,8 @@ class PawControlOptionsFlow(
         if telemetry:
             try:
                 telemetry_digest = json.dumps(
-                    self._normalise_export_value(dict(telemetry)), sort_keys=True
+                    self._normalise_export_value(dict(telemetry)),
+                    sort_keys=True,
                 )
             except (TypeError, ValueError):
                 telemetry_digest = repr(sorted(telemetry.items()))
@@ -1948,7 +2119,8 @@ class PawControlOptionsFlow(
         profile_compatibility_issues: list[str] = []
 
         profile_info = ENTITY_PROFILES.get(
-            current_profile, ENTITY_PROFILES[DEFAULT_PROFILE]
+            current_profile,
+            ENTITY_PROFILES[DEFAULT_PROFILE],
         )
         max_entities_value = profile_info.get('max_entities', 0)
         max_entities = (
@@ -1964,16 +2136,18 @@ class PawControlOptionsFlow(
         for dog_config in dog_entries_local:
             modules_config = ensure_dog_modules_config(dog_config)
             estimate = self._entity_factory.estimate_entity_count(
-                current_profile, modules_config
+                current_profile,
+                modules_config,
             )
             total_estimate += estimate
 
             if not self._entity_factory.validate_profile_for_modules(
-                current_profile, modules_config
+                current_profile,
+                modules_config,
             ):
                 dog_name = dog_config.get(CONF_DOG_NAME, 'Unknown')
                 profile_compatibility_issues.append(
-                    f"{dog_name} modules may not be optimal for {current_profile}"
+                    f"{dog_name} modules may not be optimal for {current_profile}",
                 )
 
         total_capacity = max_entities * len(dog_entries_local)
@@ -1984,7 +2158,7 @@ class PawControlOptionsFlow(
         )
 
         placeholders: MutableConfigFlowPlaceholders = clone_placeholders(
-            RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE
+            RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
         )
         placeholders.update(
             {
@@ -1994,17 +2168,19 @@ class PawControlOptionsFlow(
                 'estimated_entities': str(total_estimate),
                 'max_entities_per_dog': str(max_entities),
                 'performance_impact': self._get_performance_impact_description(
-                    current_profile or DEFAULT_PROFILE
+                    current_profile or DEFAULT_PROFILE,
                 ),
                 'compatibility_warnings': '; '.join(profile_compatibility_issues)
                 if profile_compatibility_issues
                 else 'No compatibility issues',
                 'utilization_percentage': utilization,
-            }
+            },
         )
 
         placeholders.update(
-            clone_placeholders(self._get_reconfigure_description_placeholders())
+            clone_placeholders(
+                self._get_reconfigure_description_placeholders(),
+            ),
         )
 
         frozen_placeholders = freeze_placeholders(placeholders)
@@ -2028,7 +2204,8 @@ class PawControlOptionsFlow(
         return impact_descriptions.get(profile, 'Balanced performance')
 
     async def _calculate_profile_preview_optimized(
-        self, profile: str
+        self,
+        profile: str,
     ) -> JSONMutableMapping:
         """Calculate profile preview with optimized performance."""
 
@@ -2038,7 +2215,9 @@ class PawControlOptionsFlow(
             for dog in dogs_raw:
                 if not isinstance(dog, Mapping):
                     continue
-                normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
+                normalised = ensure_dog_config_data(
+                    cast(Mapping[str, JSONValue], dog),
+                )
                 if normalised is not None:
                     current_dogs.append(normalised)
         dog_entries = cast(list[Mapping[str, JSONValue]], current_dogs)
@@ -2056,7 +2235,10 @@ class PawControlOptionsFlow(
         total_entities = 0
         performance_score = 100.0
 
-        profile_info = ENTITY_PROFILES.get(profile, ENTITY_PROFILES['standard'])
+        profile_info = ENTITY_PROFILES.get(
+            profile,
+            ENTITY_PROFILES['standard'],
+        )
         max_entities_value = profile_info.get('max_entities', 0)
         max_entities = (
             int(max_entities_value)
@@ -2070,14 +2252,16 @@ class PawControlOptionsFlow(
             modules_config = ensure_dog_modules_config(dog_config)
 
             estimate = self._entity_factory.estimate_entity_count(
-                profile, modules_config
+                profile,
+                modules_config,
             )
             total_entities += estimate
 
             enabled_modules = [
                 module for module, enabled in modules_config.items() if enabled
             ]
-            utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0
+            utilization = (estimate / max_entities) * \
+                100 if max_entities > 0 else 0
 
             entity_breakdown.append(
                 cast(
@@ -2089,7 +2273,7 @@ class PawControlOptionsFlow(
                         'modules': enabled_modules,
                         'utilization': utilization,
                     },
-                )
+                ),
             )
 
             if utilization > 80:
@@ -2098,7 +2282,14 @@ class PawControlOptionsFlow(
                 performance_score -= 5
 
         raw_profile = self._entry.options.get('entity_profile')
-        current_profile = raw_profile if isinstance(raw_profile, str) else 'standard'
+        current_profile = (
+            raw_profile
+            if isinstance(
+                raw_profile,
+                str,
+            )
+            else 'standard'
+        )
         if profile == current_profile:
             current_total = total_entities
         else:
@@ -2106,7 +2297,8 @@ class PawControlOptionsFlow(
             for dog_config in dog_entries:
                 modules = ensure_dog_modules_config(dog_config)
                 current_total += self._entity_factory.estimate_entity_count(
-                    current_profile, modules
+                    current_profile,
+                    modules,
                 )
 
         entity_difference = total_entities - current_total
@@ -2119,7 +2311,9 @@ class PawControlOptionsFlow(
             'entity_difference': entity_difference,
             'performance_score': performance_score,
             'recommendation': self._get_profile_recommendation_enhanced(
-                total_entities, len(current_dogs), performance_score
+                total_entities,
+                len(current_dogs),
+                performance_score,
             ),
             'warnings': self._get_profile_warnings(profile, current_dogs),
         }
@@ -2128,7 +2322,10 @@ class PawControlOptionsFlow(
         return preview
 
     def _get_profile_recommendation_enhanced(
-        self, total_entities: int, dog_count: int, performance_score: float
+        self,
+        total_entities: int,
+        dog_count: int,
+        performance_score: float,
     ) -> str:
         """Get enhanced profile recommendation with performance considerations."""
 
@@ -2141,7 +2338,9 @@ class PawControlOptionsFlow(
         return '✅ Current profile is well-suited for your configuration'
 
     def _get_profile_warnings(
-        self, profile: str, dogs: list[DogConfigData]
+        self,
+        profile: str,
+        dogs: list[DogConfigData],
     ) -> list[str]:
         """Get profile-specific warnings and recommendations."""
 
@@ -2150,29 +2349,30 @@ class PawControlOptionsFlow(
         for dog in dogs:
             dog_config = cast(DogConfigData, dog)
             module_flags = ensure_dog_modules_config(
-                cast(Mapping[str, JSONValue], dog_config)
+                cast(Mapping[str, JSONValue], dog_config),
             )
             dog_name = dog_config.get(CONF_DOG_NAME, 'Unknown')
 
             if profile == 'gps_focus' and not module_flags.get(MODULE_GPS, False):
                 warnings.append(
-                    f"🛰️ {dog_name}: GPS focus profile but GPS module disabled"
+                    f"🛰️ {dog_name}: GPS focus profile but GPS module disabled",
                 )
 
             if profile == 'health_focus' and not module_flags.get(MODULE_HEALTH, False):
                 warnings.append(
-                    f"🏥 {dog_name}: Health focus profile but health module disabled"
+                    f"🏥 {dog_name}: Health focus profile but health module disabled",
                 )
 
             if profile == 'basic' and sum(module_flags.values()) > 3:
                 warnings.append(
-                    f"⚡ {dog_name}: Many modules enabled for basic profile"
+                    f"⚡ {dog_name}: Many modules enabled for basic profile",
                 )
 
         return warnings
 
     async def async_step_profile_preview(
-        self, user_input: OptionsProfilePreviewInput | None = None
+        self,
+        user_input: OptionsProfilePreviewInput | None = None,
     ) -> ConfigFlowResult:
         """Show entity count preview for selected profile.
 
@@ -2212,11 +2412,16 @@ class PawControlOptionsFlow(
                 and not isinstance(modules_raw, str)
                 else ()
             )
-            modules_display = ', '.join(cast(Sequence[str], modules_sequence)) or 'none'
+            modules_display = (
+                ', '.join(
+                    cast(Sequence[str], modules_sequence),
+                )
+                or 'none'
+            )
             breakdown_lines.append(
                 f"• {item.get('dog_name', 'Unknown')}: {item.get('entities', 0)} "
                 f"entities (modules: {modules_display}, "
-                f"utilization: {as_float(item.get('utilization', 0.0)):.1f}%)"
+                f"utilization: {as_float(item.get('utilization', 0.0)):.1f}%)",
             )
 
         performance_change = (
@@ -2241,7 +2446,10 @@ class PawControlOptionsFlow(
             else 'No warnings'
         )
 
-        profile_info = ENTITY_PROFILES.get(profile, ENTITY_PROFILES['standard'])
+        profile_info = ENTITY_PROFILES.get(
+            profile,
+            ENTITY_PROFILES['standard'],
+        )
 
         return self.async_show_form(
             step_id='profile_preview',
@@ -2249,9 +2457,10 @@ class PawControlOptionsFlow(
                 {
                     vol.Required('profile', default=profile): vol.In([profile]),
                     vol.Optional(
-                        'apply_profile', default=False
+                        'apply_profile',
+                        default=False,
                     ): selector.BooleanSelector(),
-                }
+                },
             ),
             description_placeholders=dict(
                 freeze_placeholders(
@@ -2270,13 +2479,14 @@ class PawControlOptionsFlow(
                         'performance_score': f"{preview_data['performance_score']:.1f}",
                         'recommendation': preview_data['recommendation'],
                         'warnings': warnings_text,
-                    }
-                )
+                    },
+                ),
             ),
         )
 
     async def async_step_performance_settings(
-        self, user_input: OptionsPerformanceSettingsInput | None = None
+        self,
+        user_input: OptionsPerformanceSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure performance and optimization settings.
 
@@ -2296,7 +2506,9 @@ class PawControlOptionsFlow(
                     if isinstance(profile_candidate, str)
                     else str(profile_candidate)
                 )
-                profile = validate_profile_selection({'entity_profile': profile_input})
+                profile = validate_profile_selection(
+                    {'entity_profile': profile_input},
+                )
 
                 raw_batch = current_options.get('batch_size')
                 if isinstance(raw_batch, int):
@@ -2309,7 +2521,9 @@ class PawControlOptionsFlow(
                     cache_default: int = raw_cache
                 else:
                     cache_default = 300
-                selective_default = bool(current_options.get('selective_refresh', True))
+                selective_default = bool(
+                    current_options.get('selective_refresh', True),
+                )
 
                 new_options['entity_profile'] = profile
                 new_options['performance_mode'] = normalize_performance_mode(
@@ -2323,13 +2537,16 @@ class PawControlOptionsFlow(
                     ),
                 )
                 new_options['batch_size'] = self._coerce_int(
-                    user_input.get('batch_size'), batch_default
+                    user_input.get('batch_size'),
+                    batch_default,
                 )
                 new_options['cache_ttl'] = self._coerce_int(
-                    user_input.get('cache_ttl'), cache_default
+                    user_input.get('cache_ttl'),
+                    cache_default,
                 )
                 new_options['selective_refresh'] = self._coerce_bool(
-                    user_input.get('selective_refresh'), selective_default
+                    user_input.get('selective_refresh'),
+                    selective_default,
                 )
 
                 typed_options = self._normalise_options_snapshot(new_options)
@@ -2340,7 +2557,9 @@ class PawControlOptionsFlow(
                 _LOGGER.error('Error updating performance settings: %s', err)
                 return self.async_show_form(
                     step_id='performance_settings',
-                    data_schema=self._get_performance_settings_schema(user_input),
+                    data_schema=self._get_performance_settings_schema(
+                        user_input,
+                    ),
                     errors={'base': 'performance_update_failed'},
                 )
 
@@ -2350,7 +2569,8 @@ class PawControlOptionsFlow(
         )
 
     def _get_performance_settings_schema(
-        self, user_input: OptionsPerformanceSettingsInput | None = None
+        self,
+        user_input: OptionsPerformanceSettingsInput | None = None,
     ) -> vol.Schema:
         """Get performance settings schema."""
         current_options = self._entry.options
@@ -2365,7 +2585,7 @@ class PawControlOptionsFlow(
                 {
                     'value': profile_name,
                     'label': f"{profile_name.title()} ({max_entities}/dog) - {description}",
-                }
+                },
             )
 
         stored_mode_value = current_options.get('performance_mode')
@@ -2373,7 +2593,12 @@ class PawControlOptionsFlow(
         stored_mode = normalize_performance_mode(
             stored_mode_value if isinstance(stored_mode_value, str) else None,
             current=(
-                stored_mode_current if isinstance(stored_mode_current, str) else None
+                stored_mode_current
+                if isinstance(
+                    stored_mode_current,
+                    str,
+                )
+                else None
             ),
         )
         stored_batch = (
@@ -2400,7 +2625,7 @@ class PawControlOptionsFlow(
                     selector.SelectSelectorConfig(
                         options=profile_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'performance_mode',
@@ -2413,7 +2638,7 @@ class PawControlOptionsFlow(
                         options=['minimal', 'balanced', 'full'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='performance_mode',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'batch_size',
@@ -2424,7 +2649,7 @@ class PawControlOptionsFlow(
                         max=50,
                         step=5,
                         mode=selector.NumberSelectorMode.BOX,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'cache_ttl',
@@ -2436,7 +2661,7 @@ class PawControlOptionsFlow(
                         step=60,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='seconds',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'selective_refresh',
@@ -2445,11 +2670,12 @@ class PawControlOptionsFlow(
                         stored_selective,
                     ),
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
     async def async_step_manage_dogs(
-        self, user_input: OptionsMenuInput | None = None
+        self,
+        user_input: OptionsMenuInput | None = None,
     ) -> ConfigFlowResult:
         """Manage dogs - add, edit, or remove dogs."""
         if user_input is not None:
@@ -2489,9 +2715,9 @@ class PawControlOptionsFlow(
                             if current_dogs
                             else 'No dogs to remove',
                             'back': 'Back to main menu',
-                        }
-                    )
-                }
+                        },
+                    ),
+                },
             ),
             description_placeholders=dict(
                 freeze_placeholders(
@@ -2501,17 +2727,18 @@ class PawControlOptionsFlow(
                             [
                                 f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
                                 for dog in current_dogs
-                            ]
+                            ],
                         )
                         if current_dogs
                         else 'No dogs configured',
-                    }
-                )
+                    },
+                ),
             ),
         )
 
     async def async_step_select_dog_for_modules(
-        self, user_input: OptionsDogSelectionInput | None = None
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure modules for.
 
@@ -2553,14 +2780,15 @@ class PawControlOptionsFlow(
                         selector.SelectSelectorConfig(
                             options=dog_options,
                             mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                }
+                        ),
+                    ),
+                },
             ),
         )
 
     async def async_step_select_dog_for_door_sensor(
-        self, user_input: OptionsDogSelectionInput | None = None
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select a dog for door sensor configuration."""
 
@@ -2598,14 +2826,15 @@ class PawControlOptionsFlow(
                         selector.SelectSelectorConfig(
                             options=dog_options,
                             mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                }
+                        ),
+                    ),
+                },
             ),
         )
 
     async def async_step_configure_door_sensor(
-        self, user_input: OptionsDoorSensorInput | None = None
+        self,
+        user_input: OptionsDoorSensorInput | None = None,
     ) -> ConfigFlowResult:
         """Configure door sensor entity and overrides for the current dog."""
 
@@ -2623,9 +2852,18 @@ class PawControlOptionsFlow(
             dog_name = dog_id
 
         available_sensors = self._get_available_door_sensors()
-        existing_sensor = cast(str | None, self._current_dog.get(CONF_DOOR_SENSOR))
+        existing_sensor = cast(
+            str | None,
+            self._current_dog.get(CONF_DOOR_SENSOR),
+        )
         existing_payload = self._current_dog.get(CONF_DOOR_SENSOR_SETTINGS)
-        existing_settings: Mapping[str, bool | int | float | str | None] | None = None
+        existing_settings: (
+            Mapping[
+                str,
+                bool | int | float | str | None,
+            ]
+            | None
+        ) = None
         if isinstance(existing_payload, Mapping):
             filtered_settings: dict[str, bool | int | float | str | None] = {}
             for key, value in existing_payload.items():
@@ -2653,7 +2891,13 @@ class PawControlOptionsFlow(
 
             if trimmed_sensor:
                 state = self.hass.states.get(trimmed_sensor)
-                device_class = state.attributes.get('device_class') if state else None
+                device_class = (
+                    state.attributes.get(
+                        'device_class',
+                    )
+                    if state
+                    else None
+                )
                 if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
                     errors[CONF_DOOR_SENSOR] = 'door_sensor_not_found'
 
@@ -2686,7 +2930,10 @@ class PawControlOptionsFlow(
                 if not sensor_store or settings_payload == default_payload:
                     settings_store = None
                 else:
-                    settings_store = cast(DoorSensorSettingsPayload, settings_payload)
+                    settings_store = cast(
+                        DoorSensorSettingsPayload,
+                        settings_payload,
+                    )
 
                 existing_sensor_trimmed = (
                     existing_sensor.strip()
@@ -2695,7 +2942,8 @@ class PawControlOptionsFlow(
                 )
 
                 updated_dog: JSONMutableMapping = cast(
-                    JSONMutableMapping, dict(self._current_dog)
+                    JSONMutableMapping,
+                    dict(self._current_dog),
                 )
                 if sensor_store is None:
                     updated_dog.pop(CONF_DOOR_SENSOR, None)
@@ -2706,7 +2954,8 @@ class PawControlOptionsFlow(
                         updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)
                     else:
                         updated_dog[CONF_DOOR_SENSOR_SETTINGS] = cast(
-                            JSONValue, settings_store
+                            JSONValue,
+                            settings_store,
                         )
 
                 try:
@@ -2722,20 +2971,26 @@ class PawControlOptionsFlow(
 
                     existing_settings_payload = existing_settings
                     if isinstance(existing_settings_payload, Mapping):
-                        existing_settings_payload = dict(existing_settings_payload)
+                        existing_settings_payload = dict(
+                            existing_settings_payload,
+                        )
 
                     if (
                         existing_settings_payload is not None
                         or settings_store is not None
                     ) and existing_settings_payload != settings_store:
                         persist_updates[CONF_DOOR_SENSOR_SETTINGS] = cast(
-                            JSONValue, settings_store
+                            JSONValue,
+                            settings_store,
                         )
 
                     data_manager = None
                     if persist_updates:
                         try:
-                            runtime = require_runtime_data(self.hass, self._entry)
+                            runtime = require_runtime_data(
+                                self.hass,
+                                self._entry,
+                            )
                         except RuntimeDataUnavailableError:
                             _LOGGER.error(
                                 'Runtime data unavailable while updating door sensor '
@@ -2744,7 +2999,11 @@ class PawControlOptionsFlow(
                             )
                             errors['base'] = 'runtime_cache_unavailable'
                         else:
-                            data_manager = getattr(runtime, 'data_manager', None)
+                            data_manager = getattr(
+                                runtime,
+                                'data_manager',
+                                None,
+                            )
                             if data_manager is None:
                                 _LOGGER.error(
                                     'Door sensor overrides require an active data manager; '
@@ -2755,7 +3014,8 @@ class PawControlOptionsFlow(
                     if data_manager and persist_updates and 'base' not in errors:
                         try:
                             await data_manager.async_update_dog_data(
-                                dog_id, persist_updates
+                                dog_id,
+                                persist_updates,
                             )
                         except Exception as err:  # pragma: no cover - defensive
                             _LOGGER.error(
@@ -2823,9 +3083,13 @@ class PawControlOptionsFlow(
                             self._dogs = typed_dogs
                             self._current_dog = typed_dogs[dog_index]
 
-                            new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
+                            new_data = {
+                                **self._entry.data,
+                                CONF_DOGS: typed_dogs,
+                            }
                             self.hass.config_entries.async_update_entry(
-                                self._entry, data=new_data
+                                self._entry,
+                                data=new_data,
                             )
                             self._invalidate_profile_caches()
                         return await self.async_step_manage_dogs()
@@ -2848,7 +3112,8 @@ class PawControlOptionsFlow(
         )
 
     async def async_step_configure_dog_modules(
-        self, user_input: OptionsDogModulesInput | None = None
+        self,
+        user_input: OptionsDogModulesInput | None = None,
     ) -> ConfigFlowResult:
         """Configure modules for the selected dog.
 
@@ -2900,10 +3165,12 @@ class PawControlOptionsFlow(
                         },
                     )
                     normalised = ensure_dog_config_data(
-                        cast(Mapping[str, JSONValue], candidate)
+                        cast(Mapping[str, JSONValue], candidate),
                     )
                     if normalised is None:
-                        raise FlowValidationError(base_errors=['invalid_dog_config'])
+                        raise FlowValidationError(
+                            base_errors=['invalid_dog_config'],
+                        )
 
                     self._dogs[dog_index] = normalised
                     self._current_dog = normalised
@@ -2912,7 +3179,8 @@ class PawControlOptionsFlow(
                     new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                     self.hass.config_entries.async_update_entry(
-                        self._entry, data=new_data
+                        self._entry,
+                        data=new_data,
                     )
                     self._dogs = typed_dogs
             except FlowValidationError as err:
@@ -2932,7 +3200,8 @@ class PawControlOptionsFlow(
             dog_options = self._current_dog_options()
             existing = dog_options.get(dog_id, {})
             entry = ensure_dog_options_entry(
-                cast(JSONLikeMapping, dict(existing)), dog_id=dog_id
+                cast(JSONLikeMapping, dict(existing)),
+                dog_id=dog_id,
             )
             entry[DOG_ID_FIELD] = dog_id
             entry[DOG_MODULES_FIELD] = modules_payload
@@ -2947,7 +3216,9 @@ class PawControlOptionsFlow(
         return self.async_show_form(
             step_id='configure_dog_modules',
             data_schema=self._get_dog_modules_schema(),
-            description_placeholders=dict(self._get_module_description_placeholders()),
+            description_placeholders=dict(
+                self._get_module_description_placeholders(),
+            ),
         )
 
     def _get_door_sensor_settings_schema(
@@ -2981,7 +3252,7 @@ class PawControlOptionsFlow(
                     selector.SelectSelectorConfig(
                         options=options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 )
             )
         else:
@@ -2990,7 +3261,7 @@ class PawControlOptionsFlow(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         autocomplete='off',
-                    )
+                    ),
                 )
             )
 
@@ -3001,7 +3272,8 @@ class PawControlOptionsFlow(
             vol.Optional(
                 'walk_detection_timeout',
                 default=_value(
-                    'walk_detection_timeout', defaults.walk_detection_timeout
+                    'walk_detection_timeout',
+                    defaults.walk_detection_timeout,
                 ),
             )
         ] = selector.NumberSelector(
@@ -3011,12 +3283,15 @@ class PawControlOptionsFlow(
                 step=30,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'minimum_walk_duration',
-                default=_value('minimum_walk_duration', defaults.minimum_walk_duration),
+                default=_value(
+                    'minimum_walk_duration',
+                    defaults.minimum_walk_duration,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -3025,12 +3300,15 @@ class PawControlOptionsFlow(
                 step=30,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'maximum_walk_duration',
-                default=_value('maximum_walk_duration', defaults.maximum_walk_duration),
+                default=_value(
+                    'maximum_walk_duration',
+                    defaults.maximum_walk_duration,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -3039,12 +3317,15 @@ class PawControlOptionsFlow(
                 step=60,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'door_closed_delay',
-                default=_value('door_closed_delay', defaults.door_closed_delay),
+                default=_value(
+                    'door_closed_delay',
+                    defaults.door_closed_delay,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -3053,12 +3334,15 @@ class PawControlOptionsFlow(
                 step=5,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'require_confirmation',
-                default=_value('require_confirmation', defaults.require_confirmation),
+                default=_value(
+                    'require_confirmation',
+                    defaults.require_confirmation,
+                ),
             )
         ] = selector.BooleanSelector()
         schema_dict[
@@ -3070,7 +3354,10 @@ class PawControlOptionsFlow(
         schema_dict[
             vol.Optional(
                 'confidence_threshold',
-                default=_value('confidence_threshold', defaults.confidence_threshold),
+                default=_value(
+                    'confidence_threshold',
+                    defaults.confidence_threshold,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -3078,7 +3365,7 @@ class PawControlOptionsFlow(
                 max=1.0,
                 step=0.05,
                 mode=selector.NumberSelectorMode.BOX,
-            )
+            ),
         )
 
         return vol.Schema(schema_dict)
@@ -3136,7 +3423,7 @@ class PawControlOptionsFlow(
                     'module_training',
                     default=current_modules.get('training', False),
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
     def _get_available_door_sensors(self) -> dict[str, str]:
@@ -3161,7 +3448,12 @@ class PawControlOptionsFlow(
 
         profile_value = self._entry.options.get('entity_profile', 'standard')
         current_profile = (
-            profile_value if isinstance(profile_value, str) else str(profile_value)
+            profile_value
+            if isinstance(
+                profile_value,
+                str,
+            )
+            else str(profile_value)
         )
         current_modules_dict = ensure_dog_modules_config(self._current_dog)
 
@@ -3173,7 +3465,8 @@ class PawControlOptionsFlow(
 
         # Calculate current entity count
         current_estimate = self._entity_factory.estimate_entity_count(
-            current_profile, current_modules_dict
+            current_profile,
+            current_modules_dict,
         )
 
         # Module descriptions
@@ -3186,14 +3479,18 @@ class PawControlOptionsFlow(
             'dashboard': 'Custom dashboard generation',
             'visitor': 'Visitor mode for reduced monitoring',
             'grooming': translated_grooming_label(
-                hass_language, 'module_summary_description'
+                hass_language,
+                'module_summary_description',
             ),
             'medication': 'Medication reminders and tracking',
             'training': 'Training progress and notes',
         }
 
         module_labels = {
-            'grooming': translated_grooming_label(hass_language, 'module_summary_label')
+            'grooming': translated_grooming_label(
+                hass_language,
+                'module_summary_label',
+            ),
         }
 
         enabled_modules = [
@@ -3201,7 +3498,13 @@ class PawControlOptionsFlow(
             for module, enabled in current_modules_dict.items()
             if enabled
         ]
-        enabled_summary = '\n'.join(enabled_modules) if enabled_modules else 'None'
+        enabled_summary = (
+            '\n'.join(
+                enabled_modules,
+            )
+            if enabled_modules
+            else 'None'
+        )
 
         dog_name = str(self._current_dog.get(CONF_DOG_NAME, 'Unknown'))
 
@@ -3211,13 +3514,14 @@ class PawControlOptionsFlow(
                 'current_profile': str(current_profile),
                 'current_entities': str(current_estimate),
                 'enabled_modules': enabled_summary,
-            }
+            },
         )
 
     # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
 
     async def async_step_add_new_dog(
-        self, user_input: DogSetupStepInput | None = None
+        self,
+        user_input: DogSetupStepInput | None = None,
     ) -> ConfigFlowResult:
         """Add a new dog to the configuration."""
         errors: dict[str, str] = {}
@@ -3253,7 +3557,7 @@ class PawControlOptionsFlow(
                         'grooming': False,
                         'medication': False,
                         'training': False,
-                    }
+                    },
                 )
 
                 candidate: JSONMutableMapping = {
@@ -3264,7 +3568,10 @@ class PawControlOptionsFlow(
                     DOG_WEIGHT_FIELD: validated['dog_weight'],
                     DOG_SIZE_FIELD: validated['dog_size'],
                 }
-                candidate[DOG_BREED_FIELD] = validated.get('dog_breed', 'Mixed Breed')
+                candidate[DOG_BREED_FIELD] = validated.get(
+                    'dog_breed',
+                    'Mixed Breed',
+                )
 
                 new_dogs_raw = [
                     *self._dogs,
@@ -3276,7 +3583,10 @@ class PawControlOptionsFlow(
 
                 new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-                self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                self.hass.config_entries.async_update_entry(
+                    self._entry,
+                    data=new_data,
+                )
                 self._invalidate_profile_caches()
 
                 return await self.async_step_init()
@@ -3300,19 +3610,22 @@ class PawControlOptionsFlow(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         autocomplete='off',
-                    )
+                    ),
                 ),
                 vol.Required(CONF_DOG_NAME): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         autocomplete='name',
-                    )
+                    ),
                 ),
                 vol.Optional(CONF_DOG_BREED, default=''): selector.TextSelector(),
                 vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        min=0, max=30, step=1, mode=selector.NumberSelectorMode.BOX
-                    )
+                        min=0,
+                        max=30,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
                 ),
                 vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -3321,20 +3634,21 @@ class PawControlOptionsFlow(
                         step=0.1,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='kg',
-                    )
+                    ),
                 ),
                 vol.Optional(CONF_DOG_SIZE, default='medium'): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=['toy', 'small', 'medium', 'large', 'giant'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='dog_size',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
     def _get_remove_dog_schema(
-        self, dogs: Sequence[Mapping[str, JSONValue]]
+        self,
+        dogs: Sequence[Mapping[str, JSONValue]],
     ) -> vol.Schema:
         """Build the removal confirmation schema for the provided dog list."""
 
@@ -3344,12 +3658,20 @@ class PawControlOptionsFlow(
             dog_name = dog.get(DOG_NAME_FIELD)
             if not isinstance(dog_id, str) or not dog_id:
                 continue
-            label_name = dog_name if isinstance(dog_name, str) and dog_name else dog_id
+            label_name = (
+                dog_name
+                if isinstance(
+                    dog_name,
+                    str,
+                )
+                and dog_name
+                else dog_id
+            )
             dog_options.append(
                 {
                     'value': dog_id,
                     'label': f"{label_name} ({dog_id})",
-                }
+                },
             )
 
         return vol.Schema(
@@ -3358,17 +3680,18 @@ class PawControlOptionsFlow(
                     selector.SelectSelectorConfig(
                         options=dog_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Required(
                     'confirm_remove',
                     default=False,
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
     async def async_step_select_dog_to_edit(
-        self, user_input: OptionsDogSelectionInput | None = None
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to edit."""
         current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
@@ -3377,7 +3700,7 @@ class PawControlOptionsFlow(
             for dog in current_dogs_raw:
                 if isinstance(dog, Mapping):
                     normalised = ensure_dog_config_data(
-                        cast(Mapping[str, JSONValue], dog)
+                        cast(Mapping[str, JSONValue], dog),
                     )
                     if normalised is not None:
                         current_dogs.append(normalised)
@@ -3418,14 +3741,15 @@ class PawControlOptionsFlow(
                         selector.SelectSelectorConfig(
                             options=dog_options,
                             mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                }
+                        ),
+                    ),
+                },
             ),
         )
 
     async def async_step_edit_dog(
-        self, user_input: OptionsDogEditInput | None = None
+        self,
+        user_input: OptionsDogEditInput | None = None,
     ) -> ConfigFlowResult:
         """Edit the selected dog."""
         if not self._current_dog:
@@ -3458,7 +3782,9 @@ class PawControlOptionsFlow(
                     )
                     normalised = ensure_dog_config_data(candidate)
                     if normalised is None:
-                        raise FlowValidationError(base_errors=['invalid_dog_config'])
+                        raise FlowValidationError(
+                            base_errors=['invalid_dog_config'],
+                        )
 
                     self._dogs[dog_index] = normalised
                     typed_dogs = self._normalise_entry_dogs(self._dogs)
@@ -3468,7 +3794,8 @@ class PawControlOptionsFlow(
                     new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                     self.hass.config_entries.async_update_entry(
-                        self._entry, data=new_data
+                        self._entry,
+                        data=new_data,
                     )
                     self._invalidate_profile_caches()
 
@@ -3488,7 +3815,8 @@ class PawControlOptionsFlow(
                 )
 
         return self.async_show_form(
-            step_id='edit_dog', data_schema=self._get_edit_dog_schema()
+            step_id='edit_dog',
+            data_schema=self._get_edit_dog_schema(),
         )
 
     def _get_edit_dog_schema(self) -> vol.Schema:
@@ -3499,17 +3827,32 @@ class PawControlOptionsFlow(
         return vol.Schema(
             {
                 vol.Optional(
-                    CONF_DOG_NAME, default=self._current_dog.get(CONF_DOG_NAME, '')
+                    CONF_DOG_NAME,
+                    default=self._current_dog.get(
+                        CONF_DOG_NAME,
+                        '',
+                    ),
                 ): selector.TextSelector(),
                 vol.Optional(
-                    CONF_DOG_BREED, default=self._current_dog.get(CONF_DOG_BREED, '')
+                    CONF_DOG_BREED,
+                    default=self._current_dog.get(
+                        CONF_DOG_BREED,
+                        '',
+                    ),
                 ): selector.TextSelector(),
                 vol.Optional(
-                    CONF_DOG_AGE, default=self._current_dog.get(CONF_DOG_AGE, 3)
+                    CONF_DOG_AGE,
+                    default=self._current_dog.get(
+                        CONF_DOG_AGE,
+                        3,
+                    ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        min=0, max=30, step=1, mode=selector.NumberSelectorMode.BOX
-                    )
+                        min=0,
+                        max=30,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
                 ),
                 vol.Optional(
                     CONF_DOG_WEIGHT,
@@ -3521,7 +3864,7 @@ class PawControlOptionsFlow(
                         step=0.1,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='kg',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     CONF_DOG_SIZE,
@@ -3531,13 +3874,14 @@ class PawControlOptionsFlow(
                         options=['toy', 'small', 'medium', 'large', 'giant'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='dog_size',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
     async def async_step_select_dog_to_remove(
-        self, user_input: OptionsDogRemovalInput | None = None
+        self,
+        user_input: OptionsDogRemovalInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to remove."""
         current_dogs = list(self._dogs)
@@ -3558,7 +3902,10 @@ class PawControlOptionsFlow(
                 try:
                     typed_dogs = self._normalise_entry_dogs(updated_dogs)
                 except FlowValidationError as err:  # pragma: no cover - defensive guard
-                    _LOGGER.error('Invalid dog configuration during removal: %s', err)
+                    _LOGGER.error(
+                        'Invalid dog configuration during removal: %s',
+                        err,
+                    )
                     return self.async_show_form(
                         step_id='select_dog_to_remove',
                         data_schema=self._get_remove_dog_schema(current_dogs),
@@ -3568,7 +3915,10 @@ class PawControlOptionsFlow(
                 # Update config entry
                 new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-                self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                self.hass.config_entries.async_update_entry(
+                    self._entry,
+                    data=new_data,
+                )
                 self._dogs = typed_dogs
                 if self._current_dog and (
                     self._current_dog.get(DOG_ID_FIELD) == selected_dog_id
@@ -3599,15 +3949,16 @@ class PawControlOptionsFlow(
                         'warning': (
                             'This will permanently remove the selected dog and all '
                             'associated data!'
-                        )
-                    }
-                )
+                        ),
+                    },
+                ),
             ),
         )
 
     # NEW: Weather Settings Configuration
     async def async_step_weather_settings(
-        self, user_input: OptionsWeatherSettingsInput | None = None
+        self,
+        user_input: OptionsWeatherSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure weather-based health monitoring settings.
 
@@ -3625,29 +3976,42 @@ class PawControlOptionsFlow(
                     if weather_state is None:
                         return self.async_show_form(
                             step_id='weather_settings',
-                            data_schema=self._get_weather_settings_schema(user_input),
-                            errors={'weather_entity': 'weather_entity_not_found'},
+                            data_schema=self._get_weather_settings_schema(
+                                user_input,
+                            ),
+                            errors={
+                                'weather_entity': 'weather_entity_not_found',
+                            },
                         )
 
                     # Check if it's a weather entity
                     if not candidate.startswith('weather.'):
                         return self.async_show_form(
                             step_id='weather_settings',
-                            data_schema=self._get_weather_settings_schema(user_input),
+                            data_schema=self._get_weather_settings_schema(
+                                user_input,
+                            ),
                             errors={'weather_entity': 'invalid_weather_entity'},
                         )
 
                 current_weather = self._current_weather_options()
                 new_options = self._clone_options()
                 weather_settings = self._build_weather_settings(
-                    user_input, current_weather
+                    user_input,
+                    current_weather,
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))
-                mutable_options['weather_settings'] = cast(JSONValue, weather_settings)
-                mutable_options[CONF_WEATHER_ENTITY] = cast(
-                    JSONValue, weather_settings.get(CONF_WEATHER_ENTITY)
+                mutable_options['weather_settings'] = cast(
+                    JSONValue,
+                    weather_settings,
                 )
-                typed_options = self._normalise_options_snapshot(mutable_options)
+                mutable_options[CONF_WEATHER_ENTITY] = cast(
+                    JSONValue,
+                    weather_settings.get(CONF_WEATHER_ENTITY),
+                )
+                typed_options = self._normalise_options_snapshot(
+                    mutable_options,
+                )
                 return self.async_create_entry(title='', data=typed_options)
 
             except Exception as err:
@@ -3661,11 +4025,14 @@ class PawControlOptionsFlow(
         return self.async_show_form(
             step_id='weather_settings',
             data_schema=self._get_weather_settings_schema(),
-            description_placeholders=dict(self._get_weather_description_placeholders()),
+            description_placeholders=dict(
+                self._get_weather_description_placeholders(),
+            ),
         )
 
     def _get_weather_settings_schema(
-        self, user_input: OptionsWeatherSettingsInput | None = None
+        self,
+        user_input: OptionsWeatherSettingsInput | None = None,
     ) -> vol.Schema:
         """Get weather settings schema with current values and entity selection."""
         current_weather = self._current_weather_options()
@@ -3682,9 +4049,12 @@ class PawControlOptionsFlow(
         for entity_id in self.hass.states.async_entity_ids('weather'):
             entity_state = self.hass.states.get(entity_id)
             if entity_state:
-                friendly_name = entity_state.attributes.get('friendly_name', entity_id)
+                friendly_name = entity_state.attributes.get(
+                    'friendly_name',
+                    entity_id,
+                )
                 weather_entities.append(
-                    {'value': entity_id, 'label': str(friendly_name)}
+                    {'value': entity_id, 'label': str(friendly_name)},
                 )
 
         return vol.Schema(
@@ -3700,7 +4070,7 @@ class PawControlOptionsFlow(
                         options=weather_entities,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='weather_entity',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'weather_health_monitoring',
@@ -3716,7 +4086,10 @@ class PawControlOptionsFlow(
                     'weather_alerts',
                     default=current_values.get(
                         'weather_alerts',
-                        current_weather.get('weather_alerts', DEFAULT_WEATHER_ALERTS),
+                        current_weather.get(
+                            'weather_alerts',
+                            DEFAULT_WEATHER_ALERTS,
+                        ),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -3732,7 +4105,7 @@ class PawControlOptionsFlow(
                         step=15,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='minutes',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'temperature_alerts',
@@ -3773,37 +4146,49 @@ class PawControlOptionsFlow(
                     'breed_specific_recommendations',
                     default=current_values.get(
                         'breed_specific_recommendations',
-                        current_weather.get('breed_specific_recommendations', True),
+                        current_weather.get(
+                            'breed_specific_recommendations',
+                            True,
+                        ),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     'health_condition_adjustments',
                     default=current_values.get(
                         'health_condition_adjustments',
-                        current_weather.get('health_condition_adjustments', True),
+                        current_weather.get(
+                            'health_condition_adjustments',
+                            True,
+                        ),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     'auto_activity_adjustments',
                     default=current_values.get(
                         'auto_activity_adjustments',
-                        current_weather.get('auto_activity_adjustments', False),
+                        current_weather.get(
+                            'auto_activity_adjustments',
+                            False,
+                        ),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     'notification_threshold',
                     default=current_values.get(
                         'notification_threshold',
-                        current_weather.get('notification_threshold', 'moderate'),
+                        current_weather.get(
+                            'notification_threshold',
+                            'moderate',
+                        ),
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=['low', 'moderate', 'high'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='weather_notification_threshold',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
     def _get_weather_description_placeholders(self) -> ConfigFlowPlaceholders:
@@ -3815,7 +4200,7 @@ class PawControlOptionsFlow(
             for dog in current_dogs_raw:
                 if isinstance(dog, Mapping):
                     normalised = ensure_dog_config_data(
-                        cast(Mapping[str, JSONValue], dog)
+                        cast(Mapping[str, JSONValue], dog),
                     )
                     if normalised is not None:
                         current_dogs.append(normalised)
@@ -3829,7 +4214,10 @@ class PawControlOptionsFlow(
             weather_state = self.hass.states.get(weather_entity)
             if weather_state:
                 weather_status = 'Available'
-                temperature = weather_state.attributes.get('temperature', 'Unknown')
+                temperature = weather_state.attributes.get(
+                    'temperature',
+                    'Unknown',
+                )
                 condition = weather_state.state or 'Unknown'
                 weather_info = f"Current: {temperature}°C, {condition}"
             else:
@@ -3859,16 +4247,27 @@ class PawControlOptionsFlow(
         if current_weather.get('wind_alerts', False):
             enabled_alerts.append('Wind')
 
-        alerts_summary = ', '.join(enabled_alerts) if enabled_alerts else 'None'
+        alerts_summary = (
+            ', '.join(
+                enabled_alerts,
+            )
+            if enabled_alerts
+            else 'None'
+        )
 
         # Feature status
         weather_monitoring = current_weather.get(
-            'weather_health_monitoring', DEFAULT_WEATHER_HEALTH_MONITORING
+            'weather_health_monitoring',
+            DEFAULT_WEATHER_HEALTH_MONITORING,
         )
         breed_recommendations = current_weather.get(
-            'breed_specific_recommendations', True
+            'breed_specific_recommendations',
+            True,
         )
-        health_adjustments = current_weather.get('health_condition_adjustments', True)
+        health_adjustments = current_weather.get(
+            'health_condition_adjustments',
+            True,
+        )
 
         return freeze_placeholders(
             {
@@ -3886,19 +4285,21 @@ class PawControlOptionsFlow(
                 if health_adjustments
                 else 'Disabled',
                 'update_interval': str(
-                    current_weather.get('weather_update_interval', 60)
+                    current_weather.get('weather_update_interval', 60),
                 ),
                 'notification_threshold': current_weather.get(
-                    'notification_threshold', 'moderate'
+                    'notification_threshold',
+                    'moderate',
                 ).title(),
                 'available_weather_entities': str(
-                    len([e for e in self.hass.states.async_entity_ids('weather')])
+                    len([e for e in self.hass.states.async_entity_ids('weather')]),
                 ),
-            }
+            },
         )
 
     async def async_step_system_settings(
-        self, user_input: OptionsSystemSettingsInput | None = None
+        self,
+        user_input: OptionsSystemSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure system and performance settings."""
         placeholders = self._manual_event_description_placeholders()
@@ -3906,14 +4307,20 @@ class PawControlOptionsFlow(
             try:
                 current_system = self._current_system_options()
                 reset_default = self._coerce_time_string(
-                    self._current_options().get(CONF_RESET_TIME), DEFAULT_RESET_TIME
+                    self._current_options().get(CONF_RESET_TIME),
+                    DEFAULT_RESET_TIME,
                 )
                 new_options = self._clone_options()
                 mutable_options = cast(JSONMutableMapping, dict(new_options))
                 system_settings, reset_time = self._build_system_settings(
-                    user_input, current_system, reset_default=reset_default
+                    user_input,
+                    current_system,
+                    reset_default=reset_default,
                 )
-                mutable_options['system_settings'] = cast(JSONValue, system_settings)
+                mutable_options['system_settings'] = cast(
+                    JSONValue,
+                    system_settings,
+                )
                 mutable_options[CONF_RESET_TIME] = reset_time
                 mutable_options[SYSTEM_ENABLE_ANALYTICS_FIELD] = system_settings[
                     SYSTEM_ENABLE_ANALYTICS_FIELD
@@ -3937,17 +4344,19 @@ class PawControlOptionsFlow(
                     await script_manager.async_sync_manual_resilience_events(
                         {
                             'manual_check_event': system_settings.get(
-                                'manual_check_event'
+                                'manual_check_event',
                             ),
                             'manual_guard_event': system_settings.get(
-                                'manual_guard_event'
+                                'manual_guard_event',
                             ),
                             'manual_breaker_event': system_settings.get(
-                                'manual_breaker_event'
+                                'manual_breaker_event',
                             ),
-                        }
+                        },
                     )
-                typed_options = self._normalise_options_snapshot(mutable_options)
+                typed_options = self._normalise_options_snapshot(
+                    mutable_options,
+                )
                 return self.async_create_entry(title='', data=typed_options)
             except Exception:
                 return self.async_show_form(
@@ -3964,13 +4373,15 @@ class PawControlOptionsFlow(
         )
 
     def _get_system_settings_schema(
-        self, user_input: OptionsSystemSettingsInput | None = None
+        self,
+        user_input: OptionsSystemSettingsInput | None = None,
     ) -> vol.Schema:
         """Get system settings schema."""
         current_system = self._current_system_options()
         current_values = user_input or {}
         reset_default = self._coerce_time_string(
-            self._current_options().get(CONF_RESET_TIME), DEFAULT_RESET_TIME
+            self._current_options().get(CONF_RESET_TIME),
+            DEFAULT_RESET_TIME,
         )
         mode_default = normalize_performance_mode(
             current_system.get('performance_mode'),
@@ -3994,7 +4405,8 @@ class PawControlOptionsFlow(
         skip_threshold_default = self._coerce_clamped_int(
             current_values.get('resilience_skip_threshold'),
             current_system.get(
-                'resilience_skip_threshold', DEFAULT_RESILIENCE_SKIP_THRESHOLD
+                'resilience_skip_threshold',
+                DEFAULT_RESILIENCE_SKIP_THRESHOLD,
             ),
             minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
             maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
@@ -4065,12 +4477,13 @@ class PawControlOptionsFlow(
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='days',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'auto_backup',
                     default=current_values.get(
-                        'auto_backup', current_system.get('auto_backup', False)
+                        'auto_backup',
+                        current_system.get('auto_backup', False),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -4090,7 +4503,7 @@ class PawControlOptionsFlow(
                         max=RESILIENCE_SKIP_THRESHOLD_MAX,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'resilience_breaker_threshold',
@@ -4101,7 +4514,7 @@ class PawControlOptionsFlow(
                         max=RESILIENCE_BREAKER_THRESHOLD_MAX,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'manual_check_event',
@@ -4111,7 +4524,7 @@ class PawControlOptionsFlow(
                         options=manual_choices['manual_check_event'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'manual_guard_event',
@@ -4121,7 +4534,7 @@ class PawControlOptionsFlow(
                         options=manual_choices['manual_guard_event'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'manual_breaker_event',
@@ -4131,7 +4544,7 @@ class PawControlOptionsFlow(
                         options=manual_choices['manual_breaker_event'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'performance_mode',
@@ -4144,13 +4557,14 @@ class PawControlOptionsFlow(
                         options=['minimal', 'balanced', 'full'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='performance_mode',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
     async def async_step_dashboard_settings(
-        self, user_input: OptionsDashboardSettingsInput | None = None
+        self,
+        user_input: OptionsDashboardSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure dashboard and display settings."""
         if user_input is not None:
@@ -4165,19 +4579,26 @@ class PawControlOptionsFlow(
                 )
                 new_options = self._clone_options()
                 dashboard_settings, dashboard_mode = self._build_dashboard_settings(
-                    user_input, current_dashboard, default_mode=default_mode
+                    user_input,
+                    current_dashboard,
+                    default_mode=default_mode,
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))
                 mutable_options['dashboard_settings'] = cast(
-                    JSONValue, dashboard_settings
+                    JSONValue,
+                    dashboard_settings,
                 )
                 mutable_options[CONF_DASHBOARD_MODE] = dashboard_mode
-                typed_options = self._normalise_options_snapshot(mutable_options)
+                typed_options = self._normalise_options_snapshot(
+                    mutable_options,
+                )
                 return self.async_create_entry(title='', data=typed_options)
             except Exception:
                 return self.async_show_form(
                     step_id='dashboard_settings',
-                    data_schema=self._get_dashboard_settings_schema(user_input),
+                    data_schema=self._get_dashboard_settings_schema(
+                        user_input,
+                    ),
                     errors={'base': 'update_failed'},
                 )
 
@@ -4187,14 +4608,18 @@ class PawControlOptionsFlow(
         )
 
     def _get_dashboard_settings_schema(
-        self, user_input: OptionsDashboardSettingsInput | None = None
+        self,
+        user_input: OptionsDashboardSettingsInput | None = None,
     ) -> vol.Schema:
         """Get dashboard settings schema."""
         current_dashboard = self._current_dashboard_options()
         current_values = user_input or {}
         default_mode = self._normalize_choice(
             self._current_options().get(CONF_DASHBOARD_MODE, 'full'),
-            valid={option['value'] for option in DASHBOARD_MODE_SELECTOR_OPTIONS},
+            valid={
+                option['value']
+                for option in DASHBOARD_MODE_SELECTOR_OPTIONS
+            },
             default='full',
         )
 
@@ -4210,7 +4635,7 @@ class PawControlOptionsFlow(
                     selector.SelectSelectorConfig(
                         options=DASHBOARD_MODE_SELECTOR_OPTIONS,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'show_statistics',
@@ -4240,11 +4665,12 @@ class PawControlOptionsFlow(
                         current_dashboard.get('show_maps', True),
                     ),
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
     async def async_step_advanced_settings(
-        self, user_input: OptionsAdvancedSettingsInput | None = None
+        self,
+        user_input: OptionsAdvancedSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Handle advanced settings configuration."""
         if user_input is not None:
@@ -4270,17 +4696,22 @@ class PawControlOptionsFlow(
                 current_advanced = self._current_advanced_options()
                 new_options = self._clone_options()
                 advanced_settings = self._build_advanced_settings(
-                    user_input, current_advanced
+                    user_input,
+                    current_advanced,
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))
                 mutable_options[ADVANCED_SETTINGS_FIELD] = cast(
-                    JSONValue, advanced_settings
+                    JSONValue,
+                    advanced_settings,
                 )
                 for key, value in advanced_settings.items():
                     if isinstance(value, (bool, int, float, str)) or value is None:
                         mutable_options[str(key)] = value
                     elif isinstance(value, Mapping):
-                        mutable_options[str(key)] = cast(JSONValue, dict(value))
+                        mutable_options[str(key)] = cast(
+                            JSONValue,
+                            dict(value),
+                        )
                     else:
                         mutable_options[str(key)] = repr(value)
                 return self.async_create_entry(
@@ -4301,7 +4732,8 @@ class PawControlOptionsFlow(
         )
 
     def _get_advanced_settings_schema(
-        self, user_input: OptionsAdvancedSettingsInput | None = None
+        self,
+        user_input: OptionsAdvancedSettingsInput | None = None,
     ) -> vol.Schema:
         """Get schema for advanced settings form."""
         current_advanced = self._current_advanced_options()
@@ -4311,15 +4743,24 @@ class PawControlOptionsFlow(
             current=self._current_options().get('performance_mode'),
         )
         retention_default = self._coerce_int(
-            current_advanced.get('data_retention_days'), 90
+            current_advanced.get('data_retention_days'),
+            90,
         )
-        debug_default = self._coerce_bool(current_advanced.get('debug_logging'), False)
-        backup_default = self._coerce_bool(current_advanced.get('auto_backup'), False)
+        debug_default = self._coerce_bool(
+            current_advanced.get('debug_logging'),
+            False,
+        )
+        backup_default = self._coerce_bool(
+            current_advanced.get('auto_backup'),
+            False,
+        )
         experimental_default = self._coerce_bool(
-            current_advanced.get('experimental_features'), False
+            current_advanced.get('experimental_features'),
+            False,
         )
         integrations_default = self._coerce_bool(
-            current_advanced.get(CONF_EXTERNAL_INTEGRATIONS), False
+            current_advanced.get(CONF_EXTERNAL_INTEGRATIONS),
+            False,
         )
         endpoint_default = (
             current_advanced.get(CONF_API_ENDPOINT)
@@ -4336,13 +4777,16 @@ class PawControlOptionsFlow(
             {
                 vol.Optional(
                     'performance_mode',
-                    default=current_values.get('performance_mode', mode_default),
+                    default=current_values.get(
+                        'performance_mode',
+                        mode_default,
+                    ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=['minimal', 'balanced', 'full'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='performance_mode',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'debug_logging',
@@ -4351,7 +4795,8 @@ class PawControlOptionsFlow(
                 vol.Optional(
                     'data_retention_days',
                     default=current_values.get(
-                        'data_retention_days', retention_default
+                        'data_retention_days',
+                        retention_default,
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -4360,7 +4805,7 @@ class PawControlOptionsFlow(
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='days',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'auto_backup',
@@ -4369,23 +4814,28 @@ class PawControlOptionsFlow(
                 vol.Optional(
                     'experimental_features',
                     default=current_values.get(
-                        'experimental_features', experimental_default
+                        'experimental_features',
+                        experimental_default,
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_EXTERNAL_INTEGRATIONS,
                     default=current_values.get(
-                        CONF_EXTERNAL_INTEGRATIONS, integrations_default
+                        CONF_EXTERNAL_INTEGRATIONS,
+                        integrations_default,
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_API_ENDPOINT,
-                    default=current_values.get(CONF_API_ENDPOINT, endpoint_default),
+                    default=current_values.get(
+                        CONF_API_ENDPOINT,
+                        endpoint_default,
+                    ),
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         multiline=False,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     CONF_API_TOKEN,
@@ -4394,13 +4844,14 @@ class PawControlOptionsFlow(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.PASSWORD,
                         multiline=False,
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
     async def async_step_import_export(
-        self, user_input: OptionsImportExportInput | None = None
+        self,
+        user_input: OptionsImportExportInput | None = None,
     ) -> ConfigFlowResult:
         """Handle selection for the import/export utilities."""
 
@@ -4415,9 +4866,9 @@ class PawControlOptionsFlow(
                                 'Create a JSON backup of the current PawControl '
                                 'options or restore a backup previously exported '
                                 'from this menu.'
-                            )
-                        }
-                    )
+                            ),
+                        },
+                    ),
                 ),
             )
 
@@ -4434,7 +4885,8 @@ class PawControlOptionsFlow(
         )
 
     async def async_step_import_export_export(
-        self, user_input: OptionsExportDisplayInput | None = None
+        self,
+        user_input: OptionsExportDisplayInput | None = None,
     ) -> ConfigFlowResult:
         """Surface a JSON export of the current configuration."""
 
@@ -4455,22 +4907,23 @@ class PawControlOptionsFlow(
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.TEXT,
                             multiline=True,
-                        )
-                    )
-                }
+                        ),
+                    ),
+                },
             ),
             description_placeholders=dict(
                 freeze_placeholders(
                     {
                         'export_blob': export_blob,
                         'generated_at': payload['created_at'],
-                    }
-                )
+                    },
+                ),
             ),
         )
 
     async def async_step_import_export_import(
-        self, user_input: OptionsImportPayloadInput | None = None
+        self,
+        user_input: OptionsImportPayloadInput | None = None,
     ) -> ConfigFlowResult:
         """Import configuration from a JSON payload."""
 
@@ -4490,25 +4943,29 @@ class PawControlOptionsFlow(
                     try:
                         validated = self._validate_import_payload(parsed)
                     except FlowValidationError as err:
-                        _LOGGER.debug('Import payload validation failed: %s', err)
+                        _LOGGER.debug(
+                            'Import payload validation failed: %s',
+                            err,
+                        )
                         errors.update(err.as_form_errors())
                     else:
                         new_options = self._normalise_options_snapshot(
-                            validated['options']
+                            validated['options'],
                         )
                         new_dogs: list[DogConfigData] = []
                         for dog in validated.get('dogs', []):
                             if not isinstance(dog, Mapping):
                                 continue
                             normalised = ensure_dog_config_data(
-                                cast(Mapping[str, JSONValue], dog)
+                                cast(Mapping[str, JSONValue], dog),
                             )
                             if normalised is not None:
                                 new_dogs.append(normalised)
 
                         new_data = {**self._entry.data, CONF_DOGS: new_dogs}
                         self.hass.config_entries.async_update_entry(
-                            self._entry, data=new_data
+                            self._entry,
+                            data=new_data,
                         )
                         self._dogs = new_dogs
                         self._current_dog = None
@@ -4532,9 +4989,9 @@ class PawControlOptionsFlow(
                         options=['export', 'import'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='import_export_action',
-                    )
-                )
-            }
+                    ),
+                ),
+            },
         )
 
     def _get_import_export_import_schema(self, default_payload: str) -> vol.Schema:
@@ -4546,7 +5003,7 @@ class PawControlOptionsFlow(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         multiline=True,
-                    )
-                )
-            }
+                    ),
+                ),
+            },
         )

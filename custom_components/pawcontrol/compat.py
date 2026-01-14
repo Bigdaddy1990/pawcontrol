@@ -1,17 +1,24 @@
 """Compatibility helpers that keep the integration functional without Home Assistant."""
-
 from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Coroutine
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from enum import Enum
 from itertools import count
 from types import ModuleType
-from typing import Any, TypeVar, cast
+from typing import Any
+from typing import cast
+from typing import TypeVar
 
 type JSONPrimitive = None | bool | int | float | str
 """Primitive JSON-compatible value."""
@@ -152,7 +159,7 @@ def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
         resolved = sys.modules.get(module)
         if resolved is None:
             raise RuntimeError(
-                f"bind_exception_alias could not locate module '{module}'"
+                f"bind_exception_alias could not locate module '{module}'",
             )
         return resolved
 
@@ -161,7 +168,7 @@ def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
         frame = sys._getframe(2)
     except ValueError as exc:  # pragma: no cover - extremely defensive
         raise RuntimeError(
-            'bind_exception_alias could not determine the caller module'
+            'bind_exception_alias could not determine the caller module',
         ) from exc
 
     try:
@@ -175,7 +182,9 @@ def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
     finally:
         del frame
 
-    raise RuntimeError('bind_exception_alias could not determine the caller module')
+    raise RuntimeError(
+        'bind_exception_alias could not determine the caller module',
+    )
 
 
 def bind_exception_alias(
@@ -249,7 +258,11 @@ def bind_exception_alias(
         namespace[target] = candidate
 
     bound = _BoundExceptionAlias(
-        name, module_name, target, combine_with_current, _apply
+        name,
+        module_name,
+        target,
+        combine_with_current,
+        _apply,
     )
     _BOUND_EXCEPTION_ALIASES[key] = bound
     _apply(_current_exception_mapping())
@@ -306,7 +319,10 @@ def _auth_failed_factory() -> type[Exception]:
     base = cast(type[Exception], ConfigEntryError)
 
     def _init(
-        self: Any, message: str | None = None, *, auth_migration: bool | None = None
+        self: Any,
+        message: str | None = None,
+        *,
+        auth_migration: bool | None = None,
     ) -> None:
         base.__init__(self, message)
         self.auth_migration = auth_migration
@@ -497,7 +513,11 @@ def _build_subentries(
             data=data_mapping,
             subentry_type=str(subentry_data.get('subentry_type', 'subentry')),
             title=str(subentry_data.get('title', subentry_id)),
-            unique_id=str(raw_unique_id) if raw_unique_id is not None else None,
+            unique_id=str(
+                raw_unique_id,
+            )
+            if raw_unique_id is not None
+            else None,
         )
 
     return subentries
@@ -572,13 +592,18 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self.reason = reason
         self.error_reason_translation_key = error_reason_translation_key
         self.error_reason_translation_placeholders: TranslationPlaceholders = dict(
-            error_reason_translation_placeholders or {}
+            error_reason_translation_placeholders or {},
         )
         self.runtime_data: RuntimeT | None = None
         self.update_listeners: list[
             Callable[[Any, ConfigEntry[RuntimeT]], Awaitable[None] | None]
         ] = []
-        self._on_unload: list[Callable[[], Coroutine[Any, Any, None] | None]] = []
+        self._on_unload: list[
+            Callable[
+                [],
+                Coroutine[Any, Any, None] | None,
+            ]
+        ] = []
         self._async_cancel_retry_setup: Callable[[], Any] | None = None
         self._hass: Any | None = None
         self.created_at: datetime = created_at or _utcnow()
@@ -591,7 +616,9 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         if self._supports_options is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, 'async_supports_options_flow'):
-                self._supports_options = bool(handler.async_supports_options_flow(self))
+                self._supports_options = bool(
+                    handler.async_supports_options_flow(self),
+                )
 
         return bool(self._supports_options)
 
@@ -625,7 +652,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, 'async_supports_reconfigure_flow'):
                 self._supports_reconfigure = bool(
-                    handler.async_supports_reconfigure_flow(self)
+                    handler.async_supports_reconfigure_flow(self),
                 )
 
         return bool(self._supports_reconfigure)
@@ -637,12 +664,15 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         if self._supported_subentry_types is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, 'async_get_supported_subentry_types'):
-                supported_flows = handler.async_get_supported_subentry_types(self)
+                supported_flows = handler.async_get_supported_subentry_types(
+                    self,
+                )
                 self._supported_subentry_types = {
                     subentry_type: {
                         'supports_reconfigure': hasattr(
-                            subentry_handler, 'async_step_reconfigure'
-                        )
+                            subentry_handler,
+                            'async_step_reconfigure',
+                        ),
                     }
                     for subentry_type, subentry_handler in supported_flows.items()
                 }
@@ -653,7 +683,11 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         """Associate the entry with a Home Assistant instance."""
 
         self._hass = hass
-        manager = getattr(getattr(hass, 'config_entries', None), '_entries', None)
+        manager = getattr(
+            getattr(hass, 'config_entries', None),
+            '_entries',
+            None,
+        )
         if isinstance(manager, dict):  # pragma: no branch - test helper hook
             manager[self.entry_id] = self
 
@@ -672,7 +706,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         return _remove
 
     def async_on_unload(
-        self, callback: Callable[[], Coroutine[Any, Any, None] | None]
+        self,
+        callback: Callable[[], Coroutine[Any, Any, None] | None],
     ) -> Callable[[], Coroutine[Any, Any, None] | None]:
         """Register a callback invoked when the entry unloads."""
 
@@ -712,7 +747,9 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
     except (TypeError, ValueError):  # pragma: no cover - signature unavailable
         return False
 
-    parameter_names = {parameter.name for parameter in signature.parameters.values()}
+    parameter_names = {
+        parameter.name for parameter in signature.parameters.values()
+    }
     return {'domain', 'entry_id'}.issubset(parameter_names)
 
 
@@ -723,7 +760,8 @@ def _is_enum_type(value: Any) -> bool:
 
 
 def _sync_config_entry_symbols(
-    config_entries_module: Any | None, core_module: Any | None
+    config_entries_module: Any | None,
+    core_module: Any | None,
 ) -> None:
     """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""
 
@@ -755,7 +793,11 @@ def _sync_config_entry_symbols(
         else:
             config_entries_module.ConfigEntryState = ConfigEntryState
 
-        module_change = getattr(config_entries_module, 'ConfigEntryChange', None)
+        module_change = getattr(
+            config_entries_module,
+            'ConfigEntryChange',
+            None,
+        )
         if _is_enum_type(module_change):
             globals()['ConfigEntryChange'] = cast(type[Enum], module_change)
         else:

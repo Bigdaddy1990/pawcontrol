@@ -11,7 +11,6 @@ imported safely on modern Python versions.  The helpers delegate to the
 public ``uuid._generate_time_safe`` implementation available since Python
 3.8, keeping behaviour consistent with CPython's previous private APIs.
 """
-
 from __future__ import annotations
 
 import builtins
@@ -40,7 +39,8 @@ if not hasattr(uuid, '_uuid_generate_time'):
         # instances.
         return generated[0]
 
-    uuid._uuid_generate_time = _uuid_generate_time  # type: ignore[attr-defined]
+    # type: ignore[attr-defined]
+    uuid._uuid_generate_time = _uuid_generate_time
 
 if not hasattr(uuid, '_load_system_functions'):
 
@@ -54,9 +54,11 @@ if not hasattr(uuid, '_load_system_functions'):
         """
 
         if not hasattr(uuid, '_uuid_generate_time'):
-            uuid._uuid_generate_time = _uuid_generate_time  # type: ignore[attr-defined]
+            # type: ignore[attr-defined]
+            uuid._uuid_generate_time = _uuid_generate_time
 
-    uuid._load_system_functions = _load_system_functions  # type: ignore[attr-defined]
+    # type: ignore[attr-defined]
+    uuid._load_system_functions = _load_system_functions
 
 # ``freezegun`` also checks for ``uuid._UuidCreate`` on Windows.  That
 # attribute still exists on Python 3.13 when running on Windows, but the
@@ -101,20 +103,24 @@ def _patch_pytest_async_fixture() -> None:
         ):
             func = fixture_args[0]
             if inspect.iscoroutinefunction(func):
-                return original_fixture(_wrap_coroutine_fixture(func))  # type: ignore[misc]
+                # type: ignore[misc]
+                return original_fixture(_wrap_coroutine_fixture(func))
             return original_fixture(func)  # type: ignore[misc]
 
         def decorator(func):
             if inspect.iscoroutinefunction(func):
                 return original_fixture(*fixture_args, **fixture_kwargs)(
-                    _wrap_coroutine_fixture(func)
+                    _wrap_coroutine_fixture(func),
                 )  # type: ignore[misc]
-            return original_fixture(*fixture_args, **fixture_kwargs)(func)  # type: ignore[misc]
+            # type: ignore[misc]
+            return original_fixture(*fixture_args, **fixture_kwargs)(func)
 
         return decorator
 
-    async_aware_fixture.__pawcontrol_async_patch__ = True  # type: ignore[attr-defined]
-    async_aware_fixture.__wrapped_fixture__ = original_fixture  # type: ignore[attr-defined]
+    # type: ignore[attr-defined]
+    async_aware_fixture.__pawcontrol_async_patch__ = True
+    # type: ignore[attr-defined]
+    async_aware_fixture.__wrapped_fixture__ = original_fixture
     pytest.fixture = async_aware_fixture  # type: ignore[assignment]
 
 
@@ -195,17 +201,23 @@ def _import_hook(
 
     if name == 'homeassistant' or name.startswith('homeassistant.'):
         try:
-            compat = importlib.import_module('custom_components.pawcontrol.compat')
+            compat = importlib.import_module(
+                'custom_components.pawcontrol.compat',
+            )
         except Exception:  # pragma: no cover - compat unavailable during bootstrap
             pass
         else:
             ensure_symbols = getattr(
-                compat, 'ensure_homeassistant_config_entry_symbols', None
+                compat,
+                'ensure_homeassistant_config_entry_symbols',
+                None,
             )
             if callable(ensure_symbols):
                 ensure_symbols()
             ensure_exception_symbols = getattr(
-                compat, 'ensure_homeassistant_exception_symbols', None
+                compat,
+                'ensure_homeassistant_exception_symbols',
+                None,
             )
             if callable(ensure_exception_symbols):
                 ensure_exception_symbols()

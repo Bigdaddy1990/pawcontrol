@@ -1,5 +1,4 @@
 """Tests for coordinator resilience handling."""
-
 from __future__ import annotations
 
 import asyncio
@@ -7,17 +6,15 @@ import logging
 from typing import cast
 from unittest.mock import AsyncMock
 
-from custom_components.pawcontrol.coordinator_runtime import (
-    AdaptivePollingController,
-    CoordinatorRuntime,
-)
-from custom_components.pawcontrol.coordinator_support import (
-    CoordinatorMetrics,
-    DogConfigRegistry,
-)
-from custom_components.pawcontrol.exceptions import NetworkError, RateLimitError
+from custom_components.pawcontrol.coordinator_runtime import AdaptivePollingController
+from custom_components.pawcontrol.coordinator_runtime import CoordinatorRuntime
+from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
+from custom_components.pawcontrol.coordinator_support import DogConfigRegistry
+from custom_components.pawcontrol.exceptions import NetworkError
+from custom_components.pawcontrol.exceptions import RateLimitError
 from custom_components.pawcontrol.module_adapters import CoordinatorModuleAdapters
-from custom_components.pawcontrol.resilience import ResilienceManager, RetryConfig
+from custom_components.pawcontrol.resilience import ResilienceManager
+from custom_components.pawcontrol.resilience import RetryConfig
 from custom_components.pawcontrol.types import CoordinatorDogData
 
 
@@ -32,7 +29,7 @@ def _build_runtime(
                 'dog_name': dog_id.title(),
             }
             for dog_id in dog_ids
-        ]
+        ],
     )
 
     runtime = CoordinatorRuntime(
@@ -46,14 +43,18 @@ def _build_runtime(
             jitter=False,
         ),
         metrics=CoordinatorMetrics(),
-        adaptive_polling=AdaptivePollingController(initial_interval_seconds=60.0),
+        adaptive_polling=AdaptivePollingController(
+            initial_interval_seconds=60.0,
+        ),
         logger=logging.getLogger('tests.pawcontrol.resilience'),
     )
     return runtime, registry
 
 
 def _baseline_data(
-    registry: DogConfigRegistry, dog_id: str, status: str
+    registry: DogConfigRegistry,
+    dog_id: str,
+    status: str,
 ) -> CoordinatorDogData:
     dog_info = registry.get(dog_id)
     return {
@@ -80,14 +81,16 @@ def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:
             'last_update': 'now',
         }
 
-    runtime._resilience.execute_with_resilience = AsyncMock(side_effect=fake_execute)
+    runtime._resilience.execute_with_resilience = AsyncMock(
+        side_effect=fake_execute,
+    )
 
     data, cycle = asyncio.run(
         runtime.execute_cycle(
             ['buddy', 'offline'],
             current_data,
             empty_payload_factory=registry.empty_payload,
-        )
+        ),
     )
 
     assert data['offline'] == current_data['offline']
@@ -113,14 +116,16 @@ def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:
             'last_update': 'now',
         }
 
-    runtime._resilience.execute_with_resilience = AsyncMock(side_effect=fake_execute)
+    runtime._resilience.execute_with_resilience = AsyncMock(
+        side_effect=fake_execute,
+    )
 
     data, cycle = asyncio.run(
         runtime.execute_cycle(
             ['buddy', 'rate'],
             current_data,
             empty_payload_factory=registry.empty_payload,
-        )
+        ),
     )
 
     assert data['rate'] == current_data['rate']
@@ -146,14 +151,16 @@ def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
             'last_update': 'now',
         }
 
-    runtime._resilience.execute_with_resilience = AsyncMock(side_effect=fake_execute)
+    runtime._resilience.execute_with_resilience = AsyncMock(
+        side_effect=fake_execute,
+    )
 
     data, cycle = asyncio.run(
         runtime.execute_cycle(
             ['buddy', 'network'],
             current_data,
             empty_payload_factory=registry.empty_payload,
-        )
+        ),
     )
 
     assert data['network'] == current_data['network']
@@ -179,7 +186,9 @@ def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
             'last_update': 'now',
         }
 
-    runtime._resilience.execute_with_resilience = AsyncMock(side_effect=fake_execute)
+    runtime._resilience.execute_with_resilience = AsyncMock(
+        side_effect=fake_execute,
+    )
 
     initial_interval = runtime._adaptive_polling.current_interval
     data, cycle = asyncio.run(
@@ -187,7 +196,7 @@ def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
             ['buddy', 'flaky'],
             current_data,
             empty_payload_factory=registry.empty_payload,
-        )
+        ),
     )
 
     assert data['flaky'] == current_data['flaky']

@@ -7,29 +7,30 @@ Quality scale: Platinum - fixtures mirror Home Assistant behaviour while
 remaining lightweight enough to run the full suite (unit, integration,
 diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
-
 from __future__ import annotations
 
+from collections.abc import Callable
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
+from typing import Any
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+
+import pytest
+from aiohttp import ClientSession
+from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.types import CoordinatorDogData
+from custom_components.pawcontrol.types import FeedingManagerDogSetupPayload
+from custom_components.pawcontrol.types import JSONMutableMapping
+from sitecustomize import _patch_pytest_async_fixture
+from tests.helpers import typed_deepcopy
 from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 
 install_homeassistant_stubs()
 
-from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, Mock
-
-import pytest
-from aiohttp import ClientSession
-from custom_components.pawcontrol.types import (
-    CoordinatorDogData,
-    FeedingManagerDogSetupPayload,
-    JSONMutableMapping,
-)
-from homeassistant.core import HomeAssistant
-from sitecustomize import _patch_pytest_async_fixture
-
-from tests.helpers import typed_deepcopy
 
 if TYPE_CHECKING:
     from custom_components.pawcontrol.feeding_manager import (
@@ -225,13 +226,16 @@ class _MockClientSession(Mock):
             websocket.send_str = AsyncMock(name='send_str')
             websocket.send_bytes = AsyncMock(name='send_bytes')
             websocket.receive_json = AsyncMock(
-                return_value=kwargs.get('receive_json', {}), name='receive_json'
+                return_value=kwargs.get('receive_json', {}),
+                name='receive_json',
             )
             websocket.receive_str = AsyncMock(
-                return_value=kwargs.get('receive_str', ''), name='receive_str'
+                return_value=kwargs.get('receive_str', ''),
+                name='receive_str',
             )
             websocket.receive_bytes = AsyncMock(
-                return_value=kwargs.get('receive_bytes', b''), name='receive_bytes'
+                return_value=kwargs.get('receive_bytes', b''),
+                name='receive_bytes',
             )
 
             ws_cm = AsyncMock()
@@ -285,7 +289,9 @@ async def mock_resilience_manager(mock_hass):
             return await func(*args)
         return await func()
 
-    manager.execute_with_resilience = AsyncMock(side_effect=passthrough_execution)
+    manager.execute_with_resilience = AsyncMock(
+        side_effect=passthrough_execution,
+    )
     manager.get_all_circuit_breakers = Mock(return_value={})
 
     return manager
@@ -293,7 +299,10 @@ async def mock_resilience_manager(mock_hass):
 
 @pytest.fixture
 async def mock_coordinator(
-    mock_hass, mock_config_entry, mock_session, mock_resilience_manager
+    mock_hass,
+    mock_config_entry,
+    mock_session,
+    mock_resilience_manager,
 ):
     """Mock PawControlCoordinator with all managers.
 
@@ -308,7 +317,11 @@ async def mock_coordinator(
     """
     from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator = PawControlCoordinator(
+        mock_hass,
+        mock_config_entry,
+        mock_session,
+    )
     coordinator.resilience_manager = mock_resilience_manager
 
     coordinator.data = {
@@ -320,7 +333,7 @@ async def mock_coordinator(
             'walk': {},
             'gps': {},
             'health': {},
-        }
+        },
     }
 
     coordinator.last_update_success = True
@@ -401,7 +414,9 @@ async def mock_notification_manager(mock_hass, mock_resilience_manager, mock_ses
     from custom_components.pawcontrol.notifications import PawControlNotificationManager
 
     manager = PawControlNotificationManager(
-        mock_hass, 'test_entry', session=mock_session
+        mock_hass,
+        'test_entry',
+        session=mock_session,
     )
     manager.resilience_manager = mock_resilience_manager
 
@@ -592,10 +607,12 @@ def pytest_configure(config):
         config: Pytest configuration object
     """
     config.addinivalue_line(
-        'markers', "unit: Unit tests that don't require Home Assistant"
+        'markers',
+        "unit: Unit tests that don't require Home Assistant",
     )
     config.addinivalue_line(
-        'markers', 'integration: Integration tests that require Home Assistant'
+        'markers',
+        'integration: Integration tests that require Home Assistant',
     )
     config.addinivalue_line('markers', 'slow: Slow running tests (> 1 second)')
     config.addinivalue_line('markers', 'load: Load testing tests')

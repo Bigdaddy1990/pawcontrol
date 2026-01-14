@@ -1,19 +1,17 @@
 """Shared helpers and typing aliases for PawControl dashboard orchestration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from typing import cast
 
-from .types import (
-    DogConfigData,
-    JSONValue,
-    LovelaceCardConfig,
-    RawDogConfig,
-    ensure_dog_config_data,
-)
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import JSONValue
+from .types import LovelaceCardConfig
+from .types import RawDogConfig
 
 type CardConfig = LovelaceCardConfig
 type CardCollection = list[LovelaceCardConfig]

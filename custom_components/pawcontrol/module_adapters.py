@@ -1,11 +1,15 @@
 """Helpers that translate runtime managers into coordinator-facing adapters."""
-
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Literal, TypedDict, cast
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
+from typing import cast
+from typing import Literal
+from typing import TYPE_CHECKING
+from typing import TypedDict
 
 from aiohttp import ClientSession
 
@@ -223,7 +227,10 @@ def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
     raw_severity = str(payload.get('severity', 'medium')).lower()
     severity: Literal['low', 'medium', 'high', 'critical']
     if raw_severity in {'low', 'medium', 'high', 'critical'}:
-        severity = cast(Literal['low', 'medium', 'high', 'critical'], raw_severity)
+        severity = cast(
+            Literal['low', 'medium', 'high', 'critical'],
+            raw_severity,
+        )
     else:
         severity = 'medium'
 
@@ -232,7 +239,10 @@ def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
     if isinstance(raw_details, Mapping):
         details = cast(
             JSONMutableMapping,
-            {str(key): cast(JSONValue, value) for key, value in raw_details.items()},
+            {
+                str(key): cast(JSONValue, value)
+                for key, value in raw_details.items()
+            },
         )
 
     alert: HealthAlertEntry = {
@@ -345,7 +355,8 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
         """Initialise the feeding adapter with HTTP and manager context."""
         super().__init__(ttl)
         self._session = ensure_shared_client_session(
-            session, owner='FeedingModuleAdapter'
+            session,
+            owner='FeedingModuleAdapter',
         )
         self._use_external_api = use_external_api
         self._manager: FeedingManager | None = None
@@ -366,7 +377,11 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
             try:
                 manager_data = await self._manager.async_get_feeding_data(dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.debug('Feeding manager unavailable for %s: %s', dog_id, err)
+                _LOGGER.debug(
+                    'Feeding manager unavailable for %s: %s',
+                    dog_id,
+                    err,
+                )
             else:
                 payload = cast(FeedingModulePayload, dict(manager_data))
                 payload.setdefault('status', 'ready')
@@ -451,7 +466,11 @@ class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
         try:
             walk_data = await self._manager.async_get_walk_data(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to fetch walk data for %s: %s', dog_id, err)
+            _LOGGER.warning(
+                'Failed to fetch walk data for %s: %s',
+                dog_id,
+                err,
+            )
             return self._default_payload(status='error', message=str(err))
 
         if not walk_data:
@@ -462,7 +481,10 @@ class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
         return payload
 
     def _default_payload(
-        self, *, status: str = 'unavailable', message: str | None = None
+        self,
+        *,
+        status: str = 'unavailable',
+        message: str | None = None,
     ) -> WalkModulePayload:
         payload: WalkModulePayload = {
             'current_walk': None,
@@ -504,7 +526,11 @@ class GPSModuleAdapter:
             current_location = await self._manager.async_get_current_location(dog_id)
             active_route = await self._manager.async_get_active_route(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to retrieve GPS data for %s: %s', dog_id, err)
+            _LOGGER.warning(
+                'Failed to retrieve GPS data for %s: %s',
+                dog_id,
+                err,
+            )
             raise GPSUnavailableError(dog_id, str(err)) from err
 
         payload: GPSModulePayload = {
@@ -563,7 +589,9 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
                 geofence_status = await self._manager.async_get_geofence_status(dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.warning(
-                    'Failed to fetch geofence status for %s: %s', dog_id, err
+                    'Failed to fetch geofence status for %s: %s',
+                    dog_id,
+                    err,
                 )
                 payload = {
                     'status': 'error',
@@ -630,17 +658,24 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
         if self._data_manager is not None:
             try:
                 entries = await self._data_manager.async_get_module_history(
-                    MODULE_HEALTH, dog_id, limit=1
+                    MODULE_HEALTH,
+                    dog_id,
+                    limit=1,
                 )
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Unable to load stored health entries for %s: %s', dog_id, err
+                    'Unable to load stored health entries for %s: %s',
+                    dog_id,
+                    err,
                 )
             else:
                 if entries:
                     latest = entries[0]
                     if isinstance(latest, Mapping):
-                        latest_payload = cast(HealthModulePayload, dict(latest))
+                        latest_payload = cast(
+                            HealthModulePayload,
+                            dict(latest),
+                        )
                         health_data.update(latest_payload)
                         health_data.setdefault('status', 'healthy')
 
@@ -649,11 +684,13 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                         for medication in stored_medications:
                             if isinstance(medication, dict):
                                 medications.append(
-                                    _normalise_health_medication(medication)
+                                    _normalise_health_medication(medication),
                                 )
                             elif isinstance(medication, str):
                                 medications.append(
-                                    _normalise_health_medication({'name': medication})
+                                    _normalise_health_medication(
+                                        {'name': medication},
+                                    ),
                                 )
 
                     stored_alerts = latest.get('health_alerts')
@@ -664,7 +701,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                                     cast(
                                         HealthAlertEntry,
                                         _normalise_health_alert(stored_alert),
-                                    )
+                                    ),
                                 )
                             elif isinstance(stored_alert, str):
                                 health_alerts.append(
@@ -672,12 +709,13 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                                         {
                                             'type': stored_alert,
                                             'message': stored_alert.replace(
-                                                '_', ' '
+                                                '_',
+                                                ' ',
                                             ).title(),
                                             'severity': 'medium',
                                             'action_required': False,
-                                        }
-                                    )
+                                        },
+                                    ),
                                 )
 
                     health_data['medications'] = medications
@@ -687,11 +725,13 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
         if self._feeding_manager is not None:
             try:
                 feeding_context = await self._feeding_manager.async_get_feeding_data(
-                    dog_id
+                    dog_id,
                 )
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Failed to gather feeding context for %s: %s', dog_id, err
+                    'Failed to gather feeding context for %s: %s',
+                    dog_id,
+                    err,
                 )
 
         if feeding_context is not None:
@@ -701,20 +741,22 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     {
                         'weight': summary.get('current_weight', health_data['weight']),
                         'ideal_weight': summary.get(
-                            'ideal_weight', health_data['ideal_weight']
+                            'ideal_weight',
+                            health_data['ideal_weight'],
                         ),
                         'life_stage': summary.get('life_stage'),
                         'activity_level': summary.get('activity_level'),
                         'body_condition_score': summary.get('body_condition_score'),
                         'health_conditions': summary.get('health_conditions', []),
-                    }
+                    },
                 )
 
             if feeding_context.get('health_conditions') and not health_data.get(
-                'health_conditions'
+                'health_conditions',
             ):
                 health_data['health_conditions'] = feeding_context.get(
-                    'health_conditions', []
+                    'health_conditions',
+                    [],
                 )
 
             if feeding_context.get('health_emergency'):
@@ -724,7 +766,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                         cast(
                             JSONLikeMapping,
                             feeding_context.get('emergency_mode') or {},
-                        )
+                        ),
                     ),
                 )
                 health_data['status'] = 'attention'
@@ -741,33 +783,41 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
             if feeding_context.get('medication_with_meals'):
                 medications.append(
                     _normalise_health_medication(
-                        {'name': 'meal_medication', 'with_meals': True}
-                    )
+                        {'name': 'meal_medication', 'with_meals': True},
+                    ),
                 )
 
             health_data['health_status'] = feeding_context.get(
-                'health_feeding_status', health_data.get('health_status', 'healthy')
+                'health_feeding_status',
+                health_data.get(
+                    'health_status',
+                    'healthy',
+                ),
             )
             health_data['daily_calorie_target'] = feeding_context.get(
-                'daily_calorie_target'
+                'daily_calorie_target',
             )
             health_data['total_calories_today'] = feeding_context.get(
-                'total_calories_today'
+                'total_calories_today',
             )
             health_data['weight_goal_progress'] = feeding_context.get(
-                'weight_goal_progress'
+                'weight_goal_progress',
             )
             health_data['weight_goal'] = feeding_context.get('weight_goal')
             if feeding_context.get('daily_activity_level'):
                 health_data['activity_level'] = feeding_context.get(
-                    'daily_activity_level'
+                    'daily_activity_level',
                 )
 
         if self._walk_manager is not None and 'activity_level' not in health_data:
             try:
                 walk_overview = await self._walk_manager.async_get_walk_data(dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.debug('Walk context unavailable for %s: %s', dog_id, err)
+                _LOGGER.debug(
+                    'Walk context unavailable for %s: %s',
+                    dog_id,
+                    err,
+                )
             else:
                 if walk_overview and walk_overview.get('daily_walks'):
                     health_data['activity_level'] = 'active'
@@ -829,7 +879,9 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 await self._manager.async_update_weather_data(weather_entity)
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Failed to refresh weather data from %s: %s', weather_entity, err
+                    'Failed to refresh weather data from %s: %s',
+                    weather_entity,
+                    err,
                 )
 
         dog_config = self._resolve_dog_config(dog_id)
@@ -862,8 +914,16 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
         try:
             alerts: list[WeatherAlertPayload] = [
                 WeatherAlertPayload(
-                    type=getattr(alert.alert_type, 'value', str(alert.alert_type)),
-                    severity=getattr(alert.severity, 'value', str(alert.severity)),
+                    type=getattr(
+                        alert.alert_type,
+                        'value',
+                        str(alert.alert_type),
+                    ),
+                    severity=getattr(
+                        alert.severity,
+                        'value',
+                        str(alert.severity),
+                    ),
                     title=alert.title,
                     message=alert.message,
                     recommendations=list(alert.recommendations),
@@ -948,7 +1008,11 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
         try:
             snapshot = self._manager.build_garden_snapshot(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to build garden snapshot for %s: %s', dog_id, err)
+            _LOGGER.warning(
+                'Failed to build garden snapshot for %s: %s',
+                dog_id,
+                err,
+            )
             payload = cast(
                 GardenModulePayload,
                 {
@@ -1000,7 +1064,10 @@ class CoordinatorModuleAdapters:
         self.gps = GPSModuleAdapter()
         self.geofencing = GeofencingModuleAdapter(ttl=cache_ttl)
         self.health = HealthModuleAdapter(ttl=cache_ttl)
-        self.weather = WeatherModuleAdapter(config_entry=config_entry, ttl=cache_ttl)
+        self.weather = WeatherModuleAdapter(
+            config_entry=config_entry,
+            ttl=cache_ttl,
+        )
         self.garden = GardenModuleAdapter(ttl=cache_ttl)
 
     def attach_managers(
@@ -1041,7 +1108,9 @@ class CoordinatorModuleAdapters:
         self.garden.attach(None)
 
     def build_tasks(
-        self, dog_id: str, modules: DogModulesMapping
+        self,
+        dog_id: str,
+        modules: DogModulesMapping,
     ) -> list[CoordinatorModuleTask]:
         """Return coroutine tasks for every enabled module flag for the dog."""
         tasks: list[CoordinatorModuleTask] = []
@@ -1051,48 +1120,48 @@ class CoordinatorModuleAdapters:
                 CoordinatorModuleTask(
                     module='feeding',
                     coroutine=self.feeding.async_get_data(dog_id),
-                )
+                ),
             )
         if modules.get(MODULE_WALK):
             tasks.append(
                 CoordinatorModuleTask(
                     module='walk',
                     coroutine=self.walk.async_get_data(dog_id),
-                )
+                ),
             )
         if modules.get(MODULE_GPS):
             tasks.append(
                 CoordinatorModuleTask(
                     module='gps',
                     coroutine=self.gps.async_get_data(dog_id),
-                )
+                ),
             )
             tasks.append(
                 CoordinatorModuleTask(
                     module='geofencing',
                     coroutine=self.geofencing.async_get_data(dog_id),
-                )
+                ),
             )
         if modules.get(MODULE_HEALTH):
             tasks.append(
                 CoordinatorModuleTask(
                     module='health',
                     coroutine=self.health.async_get_data(dog_id),
-                )
+                ),
             )
         if modules.get(MODULE_WEATHER):
             tasks.append(
                 CoordinatorModuleTask(
                     module='weather',
                     coroutine=self.weather.async_get_data(dog_id),
-                )
+                ),
             )
         if modules.get(MODULE_GARDEN):
             tasks.append(
                 CoordinatorModuleTask(
                     module='garden',
                     coroutine=self.garden.async_get_data(dog_id),
-                )
+                ),
             )
 
         return tasks

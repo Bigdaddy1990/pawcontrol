@@ -1,5 +1,4 @@
 """Language normalization helpers for PawControl translations."""
-
 from __future__ import annotations
 
 from collections.abc import Collection
@@ -22,7 +21,16 @@ def normalize_language(
     if not language:
         return default
 
-    normalized = str(language).replace('_', '-').split('-', 1)[0].strip().lower()
+    normalized = (
+        str(language)
+        .replace(
+            '_',
+            '-',
+        )
+        .split('-', 1)[0]
+        .strip()
+        .lower()
+    )
     if not normalized:
         return default
 

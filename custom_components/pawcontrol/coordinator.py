@@ -1,16 +1,22 @@
 """Coordinator for the PawControl integration."""
-
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import Any
+from typing import cast
+from typing import Literal
+from typing import overload
+from typing import TYPE_CHECKING
 
 from aiohttp import ClientSession
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 try:  # Home Assistant 2025.10 renamed CoordinatorUpdateFailed to UpdateFailed
@@ -112,7 +118,8 @@ __all__ = ['EntityBudgetSnapshot', 'PawControlCoordinator', 'RuntimeCycleInfo']
 
 
 class PawControlCoordinator(
-    CoordinatorDataAccessMixin, DataUpdateCoordinator[CoordinatorDataPayload]
+    CoordinatorDataAccessMixin,
+    DataUpdateCoordinator[CoordinatorDataPayload],
 ):
     """Central orchestrator that keeps runtime logic in dedicated helpers."""
 
@@ -125,11 +132,12 @@ class PawControlCoordinator(
         """Initialise the coordinator with Home Assistant runtime context."""
         self.config_entry = entry
         self.session = ensure_shared_client_session(
-            session, owner='PawControlCoordinator'
+            session,
+            owner='PawControlCoordinator',
         )
         self.registry = DogConfigRegistry.from_entry(entry)
         self._use_external_api = bool(
-            entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
+            entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False),
         )
         endpoint = entry.options.get(CONF_API_ENDPOINT)
         token = entry.options.get(CONF_API_TOKEN)
@@ -223,7 +231,10 @@ class PawControlCoordinator(
             return UPDATE_INTERVALS.get('balanced', 120)
 
     def _build_api_client(
-        self, *, endpoint: str, token: str
+        self,
+        *,
+        endpoint: str,
+        token: str,
     ) -> PawControlDeviceClient | None:
         if not endpoint:
             return None
@@ -235,7 +246,11 @@ class PawControlCoordinator(
                 api_key=token.strip() or None,
             )
         except ValueError as err:
-            _LOGGER.warning("Invalid Paw Control API endpoint '%s': %s", endpoint, err)
+            _LOGGER.warning(
+                "Invalid Paw Control API endpoint '%s': %s",
+                endpoint,
+                err,
+            )
             return None
 
     @property
@@ -257,7 +272,7 @@ class PawControlCoordinator(
 
         self._entity_budget.record(snapshot)
         self._adaptive_polling.update_entity_saturation(
-            self._entity_budget.saturation()
+            self._entity_budget.saturation(),
         )
 
     def attach_runtime_managers(
@@ -323,7 +338,7 @@ class PawControlCoordinator(
         """Deprecated private alias retained for backward compatibility."""
 
         _LOGGER.warning(
-            'PawControlCoordinator._async_setup is deprecated; use async_prepare_entry instead.'
+            'PawControlCoordinator._async_setup is deprecated; use async_prepare_entry instead.',
         )
         await self.async_prepare_entry()
 
@@ -379,7 +394,8 @@ class PawControlCoordinator(
         self.update_interval = timedelta(seconds=new_interval)
 
     async def _execute_cycle(
-        self, dog_ids: Sequence[str]
+        self,
+        dog_ids: Sequence[str],
     ) -> tuple[CoordinatorDataPayload, RuntimeCycleInfo]:
         data, cycle = await self._runtime.execute_cycle(
             dog_ids,
@@ -411,7 +427,8 @@ class PawControlCoordinator(
         await self._refresh_subset([dog_id])
 
     async def async_request_selective_refresh(
-        self, dog_ids: Iterable[str] | None = None
+        self,
+        dog_ids: Iterable[str] | None = None,
     ) -> None:
         """Refresh a subset of dogs while keeping existing payloads."""
 
@@ -501,12 +518,16 @@ class PawControlCoordinator(
 
     @overload
     def get_module_data(
-        self, dog_id: str, module: str
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return module-specific data for the dog."""
 
     def get_module_data(
-        self, dog_id: str, module: str
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return module-specific data for the dog."""
 
@@ -579,11 +600,13 @@ class PawControlCoordinator(
 
         runtime_data = getattr(self.config_entry, 'runtime_data', None)
         performance_stats_payload = get_runtime_performance_stats(
-            cast(PawControlRuntimeData | None, runtime_data)
+            cast(PawControlRuntimeData | None, runtime_data),
         )
-        guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
+        guard_metrics = resolve_service_guard_metrics(
+            performance_stats_payload,
+        )
         entity_factory_guard = resolve_entity_factory_guard_metrics(
-            performance_stats_payload
+            performance_stats_payload,
         )
         snapshot['service_execution'] = {
             'guard_metrics': guard_metrics,

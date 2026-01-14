@@ -1,13 +1,14 @@
 """Unit tests for entity platform setup flows."""
-
 from __future__ import annotations
 
 import importlib
 from collections.abc import Iterable
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
+
 from custom_components.pawcontrol.entity_factory import EntityFactory
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
@@ -44,7 +45,9 @@ async def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeDa
 @pytest.mark.asyncio
 @pytest.mark.parametrize('module_path', PLATFORM_MODULES)
 async def test_platform_setup_skips_without_runtime_data(
-    hass, mock_config_entry, module_path: str
+    hass,
+    mock_config_entry,
+    module_path: str,
 ) -> None:
     module = importlib.import_module(module_path)
     async_add_entities = AsyncMock()

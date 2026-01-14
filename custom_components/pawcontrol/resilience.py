@@ -7,18 +7,23 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from collections.abc import Awaitable
+from collections.abc import Callable
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import UTC
 from enum import Enum
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -67,7 +72,8 @@ from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 
 ensure_homeassistant_exception_symbols()
 HOME_ASSISTANT_ERROR_CLS: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError
+    type[Exception],
+    compat.HomeAssistantError,
 )
 bind_exception_alias('HomeAssistantError', combine_with_current=True)
 
@@ -135,11 +141,21 @@ class CircuitBreakerStats:
     total_successes: int = 0
     rejected_calls: int = 0
     last_rejection_time: float | None = None
-    _last_failure_monotonic: float | None = field(default=None, init=False, repr=False)
-    _last_state_change_monotonic: float | None = field(
-        default=None, init=False, repr=False
+    _last_failure_monotonic: float | None = field(
+        default=None,
+        init=False,
+        repr=False,
     )
-    _last_success_monotonic: float | None = field(default=None, init=False, repr=False)
+    _last_state_change_monotonic: float | None = field(
+        default=None,
+        init=False,
+        repr=False,
+    )
+    _last_success_monotonic: float | None = field(
+        default=None,
+        init=False,
+        repr=False,
+    )
 
 
 def _utc_timestamp() -> float:
@@ -415,7 +431,9 @@ class RetryExhaustedError(HomeAssistantErrorType):
             attempts: Number of attempts made
             last_error: Last exception that occurred
         """
-        super().__init__(f"Retry exhausted after {attempts} attempts: {last_error}")
+        super().__init__(
+            f"Retry exhausted after {attempts} attempts: {last_error}",
+        )
         self.attempts = attempts
         self.last_error = last_error
 
@@ -439,7 +457,10 @@ async def retry_with_backoff[T](
     Raises:
         RetryExhaustedError: If all retry attempts fail
     """
-    retry_config = kwargs.pop('config', None) or kwargs.pop('retry_config', None)
+    retry_config = kwargs.pop(
+        'config',
+        None,
+    ) or kwargs.pop('retry_config', None)
     retry_config = retry_config or RetryConfig()
     if retry_config.max_attempts < 1:
         raise _resolve_homeassistant_error()('Retry requires at least one attempt')
@@ -583,7 +604,10 @@ class ResilienceManager:
         # Apply retry logic
         if retry_config:
             return await retry_with_backoff(
-                execution_func, *args, config=retry_config, **kwargs
+                execution_func,
+                *args,
+                config=retry_config,
+                **kwargs,
             )
         return await execution_func(*args, **kwargs)
 

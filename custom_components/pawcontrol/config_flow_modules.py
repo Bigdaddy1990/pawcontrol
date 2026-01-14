@@ -18,46 +18,44 @@ Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Final, Protocol, cast
+from typing import cast
+from typing import Final
+from typing import Protocol
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .const import (
-    CONF_MODULES,
-    FEEDING_SCHEDULE_TYPES,
-    FOOD_TYPES,
-    MODULE_DASHBOARD,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    SPECIAL_DIET_OPTIONS,
-)
+from .const import CONF_MODULES
+from .const import FEEDING_SCHEDULE_TYPES
+from .const import FOOD_TYPES
+from .const import MODULE_DASHBOARD
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import SPECIAL_DIET_OPTIONS
 from .language import normalize_language
 from .selector_shim import selector
-from .types import (
-    ConfigFlowGlobalSettings,
-    ConfigFlowPlaceholders,
-    ConfigFlowUserInput,
-    DashboardConfigurationPlaceholders,
-    DashboardConfigurationStepInput,
-    DashboardSetupConfig,
-    DogConfigData,
-    DogModulesConfig,
-    ExternalEntityConfig,
-    FeedingConfigurationPlaceholders,
-    FeedingConfigurationStepInput,
-    FeedingSetupConfig,
-    ModuleConfigurationPlaceholders,
-    ModuleConfigurationStepInput,
-    ModuleConfigurationSummary,
-    normalize_performance_mode,
-)
+from .types import ConfigFlowGlobalSettings
+from .types import ConfigFlowPlaceholders
+from .types import ConfigFlowUserInput
+from .types import DashboardConfigurationPlaceholders
+from .types import DashboardConfigurationStepInput
+from .types import DashboardSetupConfig
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import ExternalEntityConfig
+from .types import FeedingConfigurationPlaceholders
+from .types import FeedingConfigurationStepInput
+from .types import FeedingSetupConfig
+from .types import ModuleConfigurationPlaceholders
+from .types import ModuleConfigurationStepInput
+from .types import ModuleConfigurationSummary
+from .types import normalize_performance_mode
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,11 +140,18 @@ def _coerce_module_global_settings(
 
     return ConfigFlowGlobalSettings(
         performance_mode=normalize_performance_mode(
-            user_input.get('performance_mode'), fallback='balanced'
+            user_input.get('performance_mode'),
+            fallback='balanced',
         ),
         enable_analytics=cast(bool, user_input.get('enable_analytics', False)),
-        enable_cloud_backup=cast(bool, user_input.get('enable_cloud_backup', False)),
-        data_retention_days=cast(int, user_input.get('data_retention_days', 90)),
+        enable_cloud_backup=cast(
+            bool,
+            user_input.get('enable_cloud_backup', False),
+        ),
+        data_retention_days=cast(
+            int,
+            user_input.get('data_retention_days', 90),
+        ),
         debug_logging=cast(bool, user_input.get('debug_logging', False)),
     )
 
@@ -164,18 +169,41 @@ def _coerce_dashboard_configuration(
 
     return DashboardSetupConfig(
         dashboard_enabled=True,
-        dashboard_auto_create=cast(bool, user_input.get('auto_create_dashboard', True)),
+        dashboard_auto_create=cast(
+            bool,
+            user_input.get('auto_create_dashboard', True),
+        ),
         dashboard_per_dog=cast(
-            bool, user_input.get('create_per_dog_dashboards', per_dog_default)
+            bool,
+            user_input.get('create_per_dog_dashboards', per_dog_default),
         ),
         dashboard_theme=cast(str, user_input.get('dashboard_theme', 'modern')),
-        dashboard_template=cast(str, user_input.get('dashboard_template', 'cards')),
-        dashboard_mode=cast(str, user_input.get('dashboard_mode', mode_default)),
+        dashboard_template=cast(
+            str,
+            user_input.get(
+                'dashboard_template',
+                'cards',
+            ),
+        ),
+        dashboard_mode=cast(
+            str,
+            user_input.get(
+                'dashboard_mode',
+                mode_default,
+            ),
+        ),
         show_statistics=cast(bool, user_input.get('show_statistics', True)),
         show_maps=cast(bool, user_input.get('show_maps', has_gps)),
-        show_health_charts=cast(bool, user_input.get('show_health_charts', has_health)),
+        show_health_charts=cast(
+            bool,
+            user_input.get(
+                'show_health_charts',
+                has_health,
+            ),
+        ),
         show_feeding_schedule=cast(
-            bool, user_input.get('show_feeding_schedule', has_feeding)
+            bool,
+            user_input.get('show_feeding_schedule', has_feeding),
         ),
         show_alerts=cast(bool, user_input.get('show_alerts', True)),
         compact_mode=cast(bool, user_input.get('compact_mode', False)),
@@ -191,27 +219,38 @@ def _coerce_feeding_configuration(
 
     return FeedingSetupConfig(
         default_daily_food_amount=cast(
-            float | int, user_input.get('daily_food_amount', 500.0)
+            float | int,
+            user_input.get('daily_food_amount', 500.0),
         ),
         default_meals_per_day=cast(int, user_input.get('meals_per_day', 2)),
         default_food_type=cast(str, user_input.get('food_type', 'dry_food')),
-        default_special_diet=list(cast(list[str], user_input.get('special_diet', []))),
+        default_special_diet=list(
+            cast(list[str], user_input.get('special_diet', [])),
+        ),
         default_feeding_schedule_type=cast(
-            str, user_input.get('feeding_schedule_type', 'flexible')
+            str,
+            user_input.get('feeding_schedule_type', 'flexible'),
         ),
         auto_portion_calculation=cast(
-            bool, user_input.get('portion_calculation', True)
+            bool,
+            user_input.get('portion_calculation', True),
         ),
         medication_with_meals=cast(
-            bool, user_input.get('medication_with_meals', False)
+            bool,
+            user_input.get('medication_with_meals', False),
         ),
-        feeding_reminders=cast(bool, user_input.get('feeding_reminders', True)),
+        feeding_reminders=cast(
+            bool,
+            user_input.get('feeding_reminders', True),
+        ),
         portion_tolerance=cast(int, user_input.get('portion_tolerance', 10)),
     )
 
 
 def _build_module_placeholders(
-    *, summary: ModuleConfigurationSummary, dog_count: int
+    *,
+    summary: ModuleConfigurationSummary,
+    dog_count: int,
 ) -> ModuleConfigurationPlaceholders:
     """Return the placeholders rendered for the module configuration step."""
 
@@ -240,7 +279,9 @@ def _build_dashboard_placeholders(
 
 
 def _build_feeding_placeholders(
-    *, dog_count: int, summary: str
+    *,
+    dog_count: int,
+    summary: str,
 ) -> FeedingConfigurationPlaceholders:
     """Return the placeholders rendered for the feeding configuration step."""
 
@@ -265,25 +306,29 @@ if TYPE_CHECKING:
         hass: HomeAssistant
 
         async def async_step_configure_external_entities(
-            self, user_input: ExternalEntityConfig | None = None
+            self,
+            user_input: ExternalEntityConfig | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the external entity step."""
             ...
 
         async def async_step_configure_feeding_details(
-            self, user_input: FeedingConfigurationStepInput | None = None
+            self,
+            user_input: FeedingConfigurationStepInput | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the feeding configuration step."""
             ...
 
         async def async_step_configure_dashboard(
-            self, user_input: DashboardConfigurationStepInput | None = None
+            self,
+            user_input: DashboardConfigurationStepInput | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the dashboard configuration step."""
             ...
 
         async def async_step_final_setup(
-            self, user_input: ConfigFlowUserInput | None = None
+            self,
+            user_input: ConfigFlowUserInput | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the final setup step."""
             ...
@@ -309,7 +354,8 @@ class ModuleConfigurationMixin:
     """
 
     async def async_step_configure_modules(
-        self, user_input: ModuleConfigurationStepInput | None = None
+        self,
+        user_input: ModuleConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure global settings after per-dog configuration.
 
@@ -331,7 +377,8 @@ class ModuleConfigurationMixin:
             # Check if any dog has dashboard enabled
             dashboard_enabled = any(
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
-                    MODULE_DASHBOARD, True
+                    MODULE_DASHBOARD,
+                    True,
                 )
                 for dog in flow._dogs
             )
@@ -342,7 +389,8 @@ class ModuleConfigurationMixin:
             # Check if feeding details need configuration
             feeding_enabled = any(
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
-                    MODULE_FEEDING, False
+                    MODULE_FEEDING,
+                    False,
                 )
                 for dog in flow._dogs
             )
@@ -352,7 +400,10 @@ class ModuleConfigurationMixin:
 
             # Check if we need external entity configuration
             gps_enabled = any(
-                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
+                    MODULE_GPS,
+                    False,
+                )
                 for dog in flow._dogs
             )
 
@@ -374,7 +425,8 @@ class ModuleConfigurationMixin:
         schema = vol.Schema(
             {
                 vol.Optional(
-                    'performance_mode', default=suggested_mode
+                    'performance_mode',
+                    default=suggested_mode,
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -392,16 +444,19 @@ class ModuleConfigurationMixin:
                             },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'enable_analytics', default=False
+                    'enable_analytics',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_cloud_backup', default=len(flow._dogs) > 1
+                    'enable_cloud_backup',
+                    default=len(flow._dogs) > 1,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'data_retention_days', default=90
+                    'data_retention_days',
+                    default=90,
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=30,
@@ -409,12 +464,13 @@ class ModuleConfigurationMixin:
                         step=30,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='days',
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'debug_logging', default=False
+                    'debug_logging',
+                    default=False,
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
         return flow.async_show_form(
@@ -430,7 +486,8 @@ class ModuleConfigurationMixin:
         )
 
     async def async_step_configure_dashboard(
-        self, user_input: DashboardConfigurationStepInput | None = None
+        self,
+        user_input: DashboardConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure dashboard settings after per-dog setup.
 
@@ -451,7 +508,8 @@ class ModuleConfigurationMixin:
                 dog
                 for dog in flow._dogs
                 if cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
-                    MODULE_DASHBOARD, True
+                    MODULE_DASHBOARD,
+                    True,
                 )
             ]
 
@@ -476,7 +534,8 @@ class ModuleConfigurationMixin:
             dog
             for dog in flow._dogs
             if cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
-                MODULE_DASHBOARD, True
+                MODULE_DASHBOARD,
+                True,
             )
         ]
 
@@ -488,13 +547,16 @@ class ModuleConfigurationMixin:
         schema = vol.Schema(
             {
                 vol.Optional(
-                    'auto_create_dashboard', default=True
+                    'auto_create_dashboard',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'create_per_dog_dashboards', default=has_multiple_dogs
+                    'create_per_dog_dashboards',
+                    default=has_multiple_dogs,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'dashboard_theme', default='modern'
+                    'dashboard_theme',
+                    default='modern',
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -516,10 +578,11 @@ class ModuleConfigurationMixin:
                             },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'dashboard_template', default='cards'
+                    'dashboard_template',
+                    default='cards',
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -541,10 +604,11 @@ class ModuleConfigurationMixin:
                             },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'dashboard_mode', default='full' if has_multiple_dogs else 'cards'
+                    'dashboard_mode',
+                    default='full' if has_multiple_dogs else 'cards',
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -562,17 +626,20 @@ class ModuleConfigurationMixin:
                             },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'show_statistics', default=True
+                    'show_statistics',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional('show_maps', default=has_gps): selector.BooleanSelector(),
                 vol.Optional(
-                    'show_health_charts', default=has_health
+                    'show_health_charts',
+                    default=has_health,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'show_feeding_schedule', default=has_feeding
+                    'show_feeding_schedule',
+                    default=has_feeding,
                 ): selector.BooleanSelector(),
                 vol.Optional('show_alerts', default=True): selector.BooleanSelector(),
                 vol.Optional('compact_mode', default=False): selector.BooleanSelector(),
@@ -584,9 +651,9 @@ class ModuleConfigurationMixin:
                         step=30,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='seconds',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
         return flow.async_show_form(
@@ -617,7 +684,13 @@ class ModuleConfigurationMixin:
             modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
             for module_name, enabled in modules.items():
                 if enabled:
-                    module_counts[module_name] = module_counts.get(module_name, 0) + 1
+                    module_counts[module_name] = (
+                        module_counts.get(
+                            module_name,
+                            0,
+                        )
+                        + 1
+                    )
                     total_modules += 1
 
         gps_dogs = module_counts.get(MODULE_GPS, 0)
@@ -628,9 +701,13 @@ class ModuleConfigurationMixin:
         if gps_dogs > 0:
             description_parts.append(f"{gps_dogs} dogs with GPS")
         if health_dogs > 0:
-            description_parts.append(f"{health_dogs} dogs with health monitoring")
+            description_parts.append(
+                f"{health_dogs} dogs with health monitoring",
+            )
         if feeding_dogs > 0:
-            description_parts.append(f"{feeding_dogs} dogs with feeding tracking")
+            description_parts.append(
+                f"{feeding_dogs} dogs with feeding tracking",
+            )
 
         return ModuleConfigurationSummary(
             total=total_modules,
@@ -644,7 +721,8 @@ class ModuleConfigurationMixin:
         )
 
     def _suggest_performance_mode(
-        self, module_summary: ModuleConfigurationSummary
+        self,
+        module_summary: ModuleConfigurationSummary,
     ) -> str:
         """Suggest performance mode based on module complexity.
 
@@ -674,7 +752,10 @@ class ModuleConfigurationMixin:
         flow = cast('ModuleFlowHost', self)
 
         return any(
-            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
+                MODULE_GPS,
+                False,
+            )
             for dog in flow._dogs
         )
 
@@ -683,7 +764,10 @@ class ModuleConfigurationMixin:
         flow = cast('ModuleFlowHost', self)
 
         return any(
-            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_HEALTH, False)
+            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
+                MODULE_HEALTH,
+                False,
+            )
             for dog in flow._dogs
         )
 
@@ -692,7 +776,10 @@ class ModuleConfigurationMixin:
         flow = cast('ModuleFlowHost', self)
 
         return any(
-            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_FEEDING, False)
+            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
+                MODULE_FEEDING,
+                False,
+            )
             for dog in flow._dogs
         )
 
@@ -712,15 +799,21 @@ class ModuleConfigurationMixin:
         features: list[str] = []
         if module_summary['gps_dogs'] > 0:
             features.append(
-                translated_dashboard_feature(hass_language, 'live_location_tracking')
+                translated_dashboard_feature(
+                    hass_language,
+                    'live_location_tracking',
+                ),
             )
         if module_summary['health_dogs'] > 0:
             features.append(
-                translated_dashboard_feature(hass_language, 'health_charts')
+                translated_dashboard_feature(hass_language, 'health_charts'),
             )
         if module_summary['feeding_dogs'] > 0:
             features.append(
-                translated_dashboard_feature(hass_language, 'feeding_schedules')
+                translated_dashboard_feature(
+                    hass_language,
+                    'feeding_schedules',
+                ),
             )
 
         if features:
@@ -761,7 +854,8 @@ class ModuleConfigurationMixin:
         )
 
     async def async_step_configure_feeding_details(
-        self, user_input: FeedingConfigurationStepInput | None = None
+        self,
+        user_input: FeedingConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure detailed feeding settings when feeding module is enabled.
 
@@ -788,14 +882,16 @@ class ModuleConfigurationMixin:
             dog
             for dog in flow._dogs
             if cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
-                MODULE_FEEDING, False
+                MODULE_FEEDING,
+                False,
             )
         ]
 
         schema = vol.Schema(
             {
                 vol.Optional(
-                    'daily_food_amount', default=500.0
+                    'daily_food_amount',
+                    default=500.0,
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=50.0,
@@ -803,7 +899,7 @@ class ModuleConfigurationMixin:
                         step=10.0,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='g',
-                    )
+                    ),
                 ),
                 vol.Optional('meals_per_day', default=2): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -811,29 +907,42 @@ class ModuleConfigurationMixin:
                         max=6,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                    )
+                    ),
                 ),
                 vol.Optional('food_type', default='dry_food'): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {'value': ft, 'label': ft.replace('_', ' ').title()}
+                            {
+                                'value': ft,
+                                'label': ft.replace(
+                                    '_',
+                                    ' ',
+                                ).title(),
+                            }
                             for ft in FOOD_TYPES
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional('special_diet', default=[]): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {'value': sd, 'label': sd.replace('_', ' ').title()}
+                            {
+                                'value': sd,
+                                'label': sd.replace(
+                                    '_',
+                                    ' ',
+                                ).title(),
+                            }
                             for sd in SPECIAL_DIET_OPTIONS
                         ],
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'feeding_schedule_type', default='flexible'
+                    'feeding_schedule_type',
+                    default='flexible',
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -841,16 +950,19 @@ class ModuleConfigurationMixin:
                             for fst in FEEDING_SCHEDULE_TYPES
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'portion_calculation', default=True
+                    'portion_calculation',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'medication_with_meals', default=False
+                    'medication_with_meals',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'feeding_reminders', default=True
+                    'feeding_reminders',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional('portion_tolerance', default=10): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -859,9 +971,9 @@ class ModuleConfigurationMixin:
                         step=5,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='%',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
         return flow.async_show_form(
@@ -892,7 +1004,10 @@ class ModuleConfigurationMixin:
             dog_name = feeding_dogs[0].get('dog_name', 'Unknown')
             return f"Feeding configuration for {dog_name}"
 
-        dog_names = [dog.get('dog_name', 'Unknown') for dog in feeding_dogs[:3]]
+        dog_names = [
+            dog.get('dog_name', 'Unknown')
+            for dog in feeding_dogs[:3]
+        ]
         if len(feeding_dogs) > 3:
             dog_names.append(f"...and {len(feeding_dogs) - 3} more")
 
@@ -913,7 +1028,9 @@ class ModuleConfigurationMixin:
         for dog in flow._dogs[:3]:  # Show first 3 dogs
             dog_name = dog.get('dog_name', 'Unknown')
             modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
-            enabled_count = sum(1 for enabled in modules.values() if bool(enabled))
+            enabled_count = sum(
+                1 for enabled in modules.values() if bool(enabled)
+            )
             summary_parts.append(f"{dog_name}: {enabled_count} modules")
 
         if len(flow._dogs) > 3:

@@ -1,37 +1,37 @@
 """Notification configuration steps for Paw Control options flow."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .const import CONF_NOTIFICATIONS, DEFAULT_REMINDER_REPEAT_MIN
+from .const import CONF_NOTIFICATIONS
+from .const import DEFAULT_REMINDER_REPEAT_MIN
 from .exceptions import FlowValidationError
 from .selector_shim import selector
-from .types import (
-    DEFAULT_NOTIFICATION_OPTIONS,
-    DOG_ID_FIELD,
-    DOG_OPTIONS_FIELD,
-    NOTIFICATION_MOBILE_FIELD,
-    NOTIFICATION_PRIORITY_FIELD,
-    NOTIFICATION_QUIET_END_FIELD,
-    NOTIFICATION_QUIET_HOURS_FIELD,
-    NOTIFICATION_QUIET_START_FIELD,
-    NOTIFICATION_REMINDER_REPEAT_FIELD,
-    DogConfigData,
-    DogOptionsMap,
-    JSONLikeMapping,
-    JSONValue,
-    NotificationOptions,
-    NotificationOptionsInput,
-    NotificationSettingsInput,
-    OptionsDogSelectionInput,
-    ensure_dog_options_entry,
-    ensure_notification_options,
-)
+from .types import DEFAULT_NOTIFICATION_OPTIONS
+from .types import DOG_ID_FIELD
+from .types import DOG_OPTIONS_FIELD
+from .types import DogConfigData
+from .types import DogOptionsMap
+from .types import ensure_dog_options_entry
+from .types import ensure_notification_options
+from .types import JSONLikeMapping
+from .types import JSONValue
+from .types import NOTIFICATION_MOBILE_FIELD
+from .types import NOTIFICATION_PRIORITY_FIELD
+from .types import NOTIFICATION_QUIET_END_FIELD
+from .types import NOTIFICATION_QUIET_HOURS_FIELD
+from .types import NOTIFICATION_QUIET_START_FIELD
+from .types import NOTIFICATION_REMINDER_REPEAT_FIELD
+from .types import NotificationOptions
+from .types import NotificationOptionsInput
+from .types import NotificationSettingsInput
+from .types import OptionsDogSelectionInput
 
 if TYPE_CHECKING:
 
@@ -46,14 +46,18 @@ if TYPE_CHECKING:
         def _current_options(self) -> Mapping[str, JSONValue]: ...
 
         def _normalise_options_snapshot(
-            self, options: Mapping[str, JSONValue]
+            self,
+            options: Mapping[str, JSONValue],
         ) -> Mapping[str, JSONValue]: ...
 
         def _build_dog_selector_schema(self) -> vol.Schema: ...
 
         def _require_current_dog(self) -> DogConfigData | None: ...
 
-        def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None: ...
+        def _select_dog_by_id(
+            self,
+            dog_id: str | None,
+        ) -> DogConfigData | None: ...
 
         def async_show_form(
             self,
@@ -65,7 +69,10 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult: ...
 
         def async_create_entry(
-            self, *, title: str, data: Mapping[str, JSONValue]
+            self,
+            *,
+            title: str,
+            data: Mapping[str, JSONValue],
         ) -> ConfigFlowResult: ...
 
         async def async_step_init(self) -> ConfigFlowResult: ...
@@ -134,12 +141,19 @@ class NotificationOptionsMixin(NotificationOptionsHost):
 
         return ensure_notification_options(
             cast(JSONLikeMapping, dict(payload)),
-            defaults=cast(NotificationOptionsInput, dict(DEFAULT_NOTIFICATION_OPTIONS)),
+            defaults=cast(
+                NotificationOptionsInput,
+                dict(
+                    DEFAULT_NOTIFICATION_OPTIONS,
+                ),
+            ),
         )
 
     @classmethod
     def _build_notification_settings_payload(
-        cls, user_input: NotificationSettingsInput, current: NotificationOptions
+        cls,
+        user_input: NotificationSettingsInput,
+        current: NotificationOptions,
     ) -> NotificationOptions:
         """Create a typed notification payload from submitted form data."""
 
@@ -159,7 +173,8 @@ class NotificationOptionsMixin(NotificationOptionsHost):
             NOTIFICATION_REMINDER_REPEAT_FIELD: cls._coerce_int(
                 user_input.get(NOTIFICATION_REMINDER_REPEAT_FIELD),
                 current.get(
-                    NOTIFICATION_REMINDER_REPEAT_FIELD, DEFAULT_REMINDER_REPEAT_MIN
+                    NOTIFICATION_REMINDER_REPEAT_FIELD,
+                    DEFAULT_REMINDER_REPEAT_MIN,
                 ),
             ),
             NOTIFICATION_PRIORITY_FIELD: cls._coerce_bool(
@@ -184,7 +199,8 @@ class NotificationOptionsMixin(NotificationOptionsHost):
         return self._build_notification_settings_payload(user_input, current)
 
     async def async_step_select_dog_for_notifications(
-        self, user_input: OptionsDogSelectionInput | None = None
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure notifications for."""
 
@@ -194,7 +210,7 @@ class NotificationOptionsMixin(NotificationOptionsHost):
         if user_input is not None:
             selected_dog_id = user_input.get('dog_id')
             self._select_dog_by_id(
-                selected_dog_id if isinstance(selected_dog_id, str) else None
+                selected_dog_id if isinstance(selected_dog_id, str) else None,
             )
             if self._current_dog:
                 return await self.async_step_notifications()
@@ -206,7 +222,8 @@ class NotificationOptionsMixin(NotificationOptionsHost):
         )
 
     async def async_step_notifications(
-        self, user_input: NotificationSettingsInput | None = None
+        self,
+        user_input: NotificationSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure notification settings."""
 
@@ -220,7 +237,9 @@ class NotificationOptionsMixin(NotificationOptionsHost):
 
         if user_input is not None:
             try:
-                current_notifications = self._current_notification_options(dog_id)
+                current_notifications = self._current_notification_options(
+                    dog_id,
+                )
                 notification_settings = self._build_notification_settings(
                     user_input,
                     current_notifications,
@@ -242,13 +261,19 @@ class NotificationOptionsMixin(NotificationOptionsHost):
             except FlowValidationError as err:
                 return self.async_show_form(
                     step_id='notifications',
-                    data_schema=self._get_notifications_schema(dog_id, user_input),
+                    data_schema=self._get_notifications_schema(
+                        dog_id,
+                        user_input,
+                    ),
                     errors=err.as_form_errors(),
                 )
             except Exception:
                 return self.async_show_form(
                     step_id='notifications',
-                    data_schema=self._get_notifications_schema(dog_id, user_input),
+                    data_schema=self._get_notifications_schema(
+                        dog_id,
+                        user_input,
+                    ),
                     errors={'base': 'update_failed'},
                 )
 
@@ -273,7 +298,10 @@ class NotificationOptionsMixin(NotificationOptionsHost):
                     NOTIFICATION_QUIET_HOURS_FIELD,
                     default=current_values.get(
                         NOTIFICATION_QUIET_HOURS_FIELD,
-                        current_notifications.get(NOTIFICATION_QUIET_HOURS_FIELD, True),
+                        current_notifications.get(
+                            NOTIFICATION_QUIET_HOURS_FIELD,
+                            True,
+                        ),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -281,7 +309,8 @@ class NotificationOptionsMixin(NotificationOptionsHost):
                     default=current_values.get(
                         NOTIFICATION_QUIET_START_FIELD,
                         current_notifications.get(
-                            NOTIFICATION_QUIET_START_FIELD, '22:00:00'
+                            NOTIFICATION_QUIET_START_FIELD,
+                            '22:00:00',
                         ),
                     ),
                 ): selector.TimeSelector(),
@@ -290,7 +319,8 @@ class NotificationOptionsMixin(NotificationOptionsHost):
                     default=current_values.get(
                         NOTIFICATION_QUIET_END_FIELD,
                         current_notifications.get(
-                            NOTIFICATION_QUIET_END_FIELD, '07:00:00'
+                            NOTIFICATION_QUIET_END_FIELD,
+                            '07:00:00',
                         ),
                     ),
                 ): selector.TimeSelector(),
@@ -310,21 +340,27 @@ class NotificationOptionsMixin(NotificationOptionsHost):
                         step=5,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='minutes',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     NOTIFICATION_PRIORITY_FIELD,
                     default=current_values.get(
                         NOTIFICATION_PRIORITY_FIELD,
-                        current_notifications.get(NOTIFICATION_PRIORITY_FIELD, True),
+                        current_notifications.get(
+                            NOTIFICATION_PRIORITY_FIELD,
+                            True,
+                        ),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     NOTIFICATION_MOBILE_FIELD,
                     default=current_values.get(
                         NOTIFICATION_MOBILE_FIELD,
-                        current_notifications.get(NOTIFICATION_MOBILE_FIELD, True),
+                        current_notifications.get(
+                            NOTIFICATION_MOBILE_FIELD,
+                            True,
+                        ),
                     ),
                 ): selector.BooleanSelector(),
-            }
+            },
         )

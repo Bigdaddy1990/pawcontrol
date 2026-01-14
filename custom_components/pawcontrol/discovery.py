@@ -6,27 +6,36 @@ manages. The implementation targets Home Assistant's Platinum quality scale,
 keeps all runtime interactions asynchronous, and leans on typed payloads so the
 strict mypy gate can reason about gathered devices.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Final, Literal, TypedDict, cast
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import TypedDict
 
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import CALLBACK_TYPE
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistryEvent
+from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.device_registry import DeviceRegistryEvent
 from homeassistant.helpers.entity_registry import EntityRegistryEvent
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
 from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
-from .const import DEVICE_CATEGORIES, DOMAIN
+from .compat import bind_exception_alias
+from .compat import ensure_homeassistant_exception_symbols
+from .const import DEVICE_CATEGORIES
+from .const import DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,7 +56,12 @@ type DiscoveryCategory = Literal[
     'door_sensor',
 ]
 
-type DiscoveryConnectionType = Literal['bluetooth', 'network', 'usb', 'unknown']
+type DiscoveryConnectionType = Literal[
+    'bluetooth',
+    'network',
+    'usb',
+    'unknown',
+]
 
 type DiscoveryCapabilityList = list[str]
 
@@ -182,8 +196,14 @@ class PawControlDiscovery:
             _LOGGER.info('Paw Control discovery initialized successfully')
 
         except Exception as err:
-            _LOGGER.error('Failed to initialize discovery: %s', err, exc_info=True)
-            raise HomeAssistantError(f"Discovery initialization failed: {err}") from err
+            _LOGGER.error(
+                'Failed to initialize discovery: %s',
+                err,
+                exc_info=True,
+            )
+            raise HomeAssistantError(
+                f"Discovery initialization failed: {err}",
+            ) from err
 
     async def async_discover_devices(
         self,
@@ -203,7 +223,9 @@ class PawControlDiscovery:
             PawControlError: If discovery fails
         """
         if self._scan_active:
-            _LOGGER.warning('Discovery scan already active, waiting for completion')
+            _LOGGER.warning(
+                'Discovery scan already active, waiting for completion',
+            )
             await self._wait_for_scan_completion()
 
         categories_list: list[DiscoveryCategory]
@@ -254,7 +276,10 @@ class PawControlDiscovery:
             return unique_devices
 
         except TimeoutError:
-            _LOGGER.warning('Device discovery timed out after %ds', scan_timeout)
+            _LOGGER.warning(
+                'Device discovery timed out after %ds',
+                scan_timeout,
+            )
             return list(self._discovered_devices.values())
         except Exception as err:
             _LOGGER.error('Discovery failed: %s', err, exc_info=True)
@@ -263,7 +288,8 @@ class PawControlDiscovery:
             self._scan_active = False
 
     async def _discover_usb_devices(
-        self, categories: list[DiscoveryCategory]
+        self,
+        categories: list[DiscoveryCategory],
     ) -> list[DiscoveredDevice]:
         """Discover USB-connected dog devices (placeholder)."""
 
@@ -271,7 +297,8 @@ class PawControlDiscovery:
         return []
 
     async def _discover_registry_devices(
-        self, categories: list[DiscoveryCategory]
+        self,
+        categories: list[DiscoveryCategory],
     ) -> list[DiscoveredDevice]:
         """Discover devices by inspecting Home Assistant registries."""
 
@@ -282,7 +309,10 @@ class PawControlDiscovery:
         now_iso = utcnow().isoformat()
 
         for device_entry in device_registry.devices.values():
-            classification = self._classify_device(device_entry, entity_registry)
+            classification = self._classify_device(
+                device_entry,
+                entity_registry,
+            )
             if not classification:
                 continue
 
@@ -290,7 +320,9 @@ class PawControlDiscovery:
             if category not in categories:
                 continue
 
-            connection_type, connection_info = self._connection_details(device_entry)
+            connection_type, connection_info = self._connection_details(
+                device_entry,
+            )
             manufacturer = device_entry.manufacturer or 'Unknown'
             model = device_entry.model or device_entry.hw_version or 'Unknown'
             name = (
@@ -326,7 +358,7 @@ class PawControlDiscovery:
                     discovered_at=now_iso,
                     confidence=confidence,
                     metadata=metadata,
-                )
+                ),
             )
 
         _LOGGER.debug('Registry discovery found %d devices', len(discovered))
@@ -439,7 +471,8 @@ class PawControlDiscovery:
         return category, capabilities, confidence
 
     def _connection_details(
-        self, device_entry: DeviceEntry
+        self,
+        device_entry: DeviceEntry,
     ) -> tuple[DiscoveryConnectionType, DiscoveryConnectionInfo]:
         connection_info: DiscoveryConnectionInfo = {}
         connection_type: DiscoveryConnectionType = 'unknown'
@@ -485,8 +518,10 @@ class PawControlDiscovery:
         # Schedule regular discovery scans
         self._listeners.append(
             async_track_time_interval(
-                self.hass, _scheduled_scan, DISCOVERY_SCAN_INTERVAL
-            )
+                self.hass,
+                _scheduled_scan,
+                DISCOVERY_SCAN_INTERVAL,
+            ),
         )
 
         _LOGGER.debug('Background discovery scanning started')
@@ -507,7 +542,7 @@ class PawControlDiscovery:
                 )
                 if not self._scan_active:
                     self.hass.async_create_task(
-                        self.async_discover_devices(quick_scan=True)
+                        self.async_discover_devices(quick_scan=True),
                     )
 
             @callback
@@ -519,16 +554,23 @@ class PawControlDiscovery:
                 )
                 if not self._scan_active:
                     self.hass.async_create_task(
-                        self.async_discover_devices(quick_scan=True)
+                        self.async_discover_devices(quick_scan=True),
                     )
 
-            self._listeners.append(device_registry.async_listen(_handle_device_event))
-            self._listeners.append(entity_registry.async_listen(_handle_entity_event))
+            self._listeners.append(
+                device_registry.async_listen(_handle_device_event),
+            )
+            self._listeners.append(
+                entity_registry.async_listen(_handle_entity_event),
+            )
 
             _LOGGER.debug('Discovery listeners registered')
 
         except Exception as err:  # pragma: no cover - listener errors are rare
-            _LOGGER.warning('Failed to register some discovery listeners: %s', err)
+            _LOGGER.warning(
+                'Failed to register some discovery listeners: %s',
+                err,
+            )
 
     async def _wait_for_scan_completion(self) -> None:
         """Wait for active discovery scan to complete."""
@@ -541,7 +583,10 @@ class PawControlDiscovery:
             waited += 0.5
 
         if self._scan_active:
-            _LOGGER.warning('Discovery scan did not complete within %ds', max_wait)
+            _LOGGER.warning(
+                'Discovery scan did not complete within %ds',
+                max_wait,
+            )
 
     async def async_shutdown(self) -> None:
         """Shutdown discovery and cleanup resources."""
@@ -569,7 +614,8 @@ class PawControlDiscovery:
         _LOGGER.info('Paw Control discovery shutdown complete')
 
     def _deduplicate_devices(
-        self, devices: Iterable[DiscoveredDevice]
+        self,
+        devices: Iterable[DiscoveredDevice],
     ) -> list[DiscoveredDevice]:
         """Return a list of devices keyed by the strongest confidence value.
 
@@ -589,7 +635,8 @@ class PawControlDiscovery:
 
     @callback
     def get_discovered_devices(
-        self, category: str | None = None
+        self,
+        category: str | None = None,
     ) -> list[DiscoveredDevice]:
         """Get all discovered devices, optionally filtered by category."""
 
@@ -657,7 +704,7 @@ async def async_get_discovered_devices(
                 {
                     'source': device.connection_type,
                     'data': data,
-                }
+                },
             )
 
         return legacy_devices
@@ -711,5 +758,8 @@ async def async_shutdown_discovery_manager() -> None:
 
 
 ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+HomeAssistantError: type[Exception] = cast(
+    type[Exception],
+    compat.HomeAssistantError,
+)
 bind_exception_alias('HomeAssistantError', combine_with_current=True)
