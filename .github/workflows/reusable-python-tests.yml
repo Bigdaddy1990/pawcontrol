@@ -102,6 +102,10 @@ on:
         description: Coverage threshold enforced during the run
         value: ${{ jobs.tests.outputs.coverage-threshold }}
 
+
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: Run pytest with coverage

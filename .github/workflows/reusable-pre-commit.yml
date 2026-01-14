@@ -8,6 +8,10 @@ on:
         required: false
         type: string
 
+
+permissions:
+  contents: read
+
 jobs:
   run:
     name: Run pre-commit
@@ -30,8 +34,7 @@ jobs:
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
         with:
-          extra_args: --all-files
-
+          extra_args: --all-files --show-diff-on-failure
       - name: Summarise pre-commit result
         uses: pre-commit-ci/lite-action@v1.1.0
         if: always()

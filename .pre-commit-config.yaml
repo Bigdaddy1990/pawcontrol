@@ -1,139 +1,158 @@
-# To install the git pre-commit hooks run:
-#   pre-commit install --install-hooks
-# To update the versions:
-#   pre-commit autoupdate
 ci:
   autoupdate_schedule: weekly
   autofix_prs: true
-  autofix_commit_msg : '| [pre-commit.ci] Automatische Korrekturen von pre-commit.com-Hooks     Weitere Informationen finden Sie unter https://pre-commit.ci.'
-  autoupdate_branch : 'main'
-  autoupdate_commit_msg : '[pre-commit.ci] Pre-Commit- Autoupdate'
-  skip : []
-
+  autofix_commit_msg: '[pre-commit.ci] autofix'
+  autoupdate_branch: main
+  autoupdate_commit_msg: '[pre-commit.ci] autoupdate'
+  skip: []
 default_language_version:
-    python: python3.13
-
+  python: python3.13
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.11
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.14.11
+  hooks:
+  - id: ruff-check
+    args:
+    - --fix
+    - --exit-non-zero-on-fix
+    - --show-fixes
+    - --unsafe-fixes
+    types_or:
+    - python
+    - pyi
+  - id: ruff-format
+    types_or:
+    - python
+    - pyi
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: check-yaml
+    args:
+    - --unsafe
+    - --allow-multiple-documents
+    exclude: ^(tests/|docs/|examples?/)
+  - id: check-json
+  - id: check-toml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: mixed-line-ending
+    args:
+    - --fix=lf
+  - id: double-quote-string-fixer
+  - id: debug-statements
+  - id: requirements-txt-fixer
+  - id: check-added-large-files
+  - id: check-case-conflict
+  - id: check-builtin-literals
+  - id: check-merge-conflict
+    args:
+    - --assume-in-merge
+  - id: check-symlinks
+  - id: pretty-format-json
+    args:
+    - --autofix
+  - id: debug-statements
+  - id: fix-byte-order-marker
+  - id: destroyed-symlinks
+- repo: https://github.com/asottile/pyupgrade
+  rev: v3.21.2
+  hooks:
+  - id: pyupgrade
+    args:
+    - --py39-plus
+- repo: https://github.com/asottile/reorder-python-imports
+  rev: v3.16.0
+  hooks:
+  - id: reorder-python-imports
+    args:
+    - --py39-plus
+    - --add-import
+    - from __future__ import annotations
+- repo: https://github.com/hhatto/autopep8
+  rev: v2.3.2
+  hooks:
+  - id: autopep8
+- repo: https://github.com/asottile/add-trailing-comma
+  rev: v4.0.0
+  hooks:
+  - id: add-trailing-comma
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.19.1
+  hooks:
+  - id: mypy
+  # --- Config validation (früh failen) ---
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.24.1
     hooks:
-      # 1) Lint + Fix (inkl. unsichere Fixes EINMALIG freigeben)
-      - id: ruff-check
-        args: [--fix, --exit-non-zero-on-fix, --show-fixes, --unsafe-fixes]
-        types_or: [python, pyi]
-      # 2) Danach formatieren
-      - id: ruff-format
-        types_or: [python, pyi]
-
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
-    hooks:
-      - id: check-yaml
-        # Home Assistant nutzt Custom-Tags wie !input → per --unsafe erlauben
-        args: [--unsafe, --allow-multiple-documents]
-        # Blueprints & Beispiele optional ausnehmen (enthalten teils bewusst spezielle Syntax)
-        exclude: ^(tests/|docs/|examples?/)
-      - id: check-json
-      - id: check-toml
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: mixed-line-ending
-        args: [--fix=lf]
-      - id: double-quote-string-fixer
-      - id: debug-statements
-      - id: requirements-txt-fixer
-      - id: check-added-large-files
-      - id: check-case-conflict
-      - id: check-builtin-literals
-      - id: check-merge-conflict
-        args: [--assume-in-merge]
-      - id: check-symlinks
-      - id: pretty-format-json
-        args: [--autofix]
-      - id: debug-statements
-      - id: fix-byte-order-marker
-      - id: destroyed-symlinks
-
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-      - id: pyupgrade
-        args: [--py39-plus]
-
-  - repo: https://github.com/asottile/reorder-python-imports
-    rev: v3.16.0
-    hooks:
-    -   id: reorder-python-imports
-        args: [--py39-plus, --add-import, 'from __future__ import annotations']
-
-  - repo: https://github.com/hhatto/autopep8
-    rev: v2.3.2
-    hooks:
-    -   id: autopep8
-
-  - repo: https://github.com/asottile/add-trailing-comma
-    rev: v4.0.0
-    hooks:
-    -   id: add-trailing-comma
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
-    hooks:
-    -   id: mypy
+      - id: validate-pyproject
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.36.0
     hooks:
-    - id: check-github-workflows
-      args: ["--verbose"]
+      - id: check-github-workflows
 
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+  # --- Spelling (optional, aber hilfreich) ---
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.41.0
     hooks:
-      - id: codespell
-        args:
-          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha,ist,ende,alle,adresse,unter,als,startet,sie,oder,manuell,tage,ordner,probleme,ser
-          - --skip=./.*,*.csv,*.json,*.min.js,*.map,*.md,*.yaml,*example*
-          - --quiet-level=2
+      - id: typos
+        args: ["--config", ".typos.toml"]
         exclude: |
           (?x)(
-            ^tests/|
-            ^docs/|
+            ^custom_components/pawcontrol/translations/|
+            ^brands/|
             ^\.github/|
-            ^.*/snapshots/|
-            ^.*/translations/|
-            ^.*/node_modules/|
-            .*/\.git/|
-            .*/\.tox/|
-            .*/\.venv/|
             ^dist/|
             ^build/|
+            ^\.venv/
           )
 
-  - repo: local
+  # --- YAML formatting (nur wenn ihr es wirklich wollt) ---
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.7.4
     hooks:
-      - id: shared-session-guard
-        name: Enforce shared aiohttp session reuse
-        entry: python scripts/enforce_shared_session_guard.py
-        language: python
-        pass_filenames: false
-      - id: enforce-test-requirements
-        name: Ensure test imports declare requirements
-        entry: python -m script.enforce_test_requirements
-        language: python
-        additional_dependencies:
-          - packaging>=24.2
-        pass_filenames: false
-      - id: docstring-baseline
-        name: Ensure docstring baseline has no regressions
-        entry: python scripts/enforce_docstring_baseline.py
-        language: python
-        pass_filenames: false
-        additional_dependencies:
-          - ruff>=0.12.11
-      - id: contributor-guide-sync-check
-        name: Ensure assistant contributor guides are synced
-        entry: python -m script.sync_contributor_guides --check
-        language: python
-        pass_filenames: false
+      - id: prettier
+        types: [yaml]
+        files: |
+          (?x)(
+            ^\.github/workflows/.*\.ya?ml$|
+            ^\.pre-commit-config\.ya?ml$
+          )
+
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.1
+  hooks:
+  - id: codespell
+    args:
+    - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha,ist,ende,alle,adresse,unter,als,startet,sie,oder,manuell,tage,ordner,probleme,ser
+    - --skip=./.*,*.csv,*.json,*.min.js,*.map,*.md,*.yaml,*example*
+    - --quiet-level=2
+    exclude: "(?x)(\n  ^tests/|\n  ^docs/|\n  ^\\.github/|\n  ^.*/snapshots/|\n  ^.*/translations/|\n  ^.*/node_modules/|\n\
+      \  .*/\\.git/|\n  .*/\\.tox/|\n  .*/\\.venv/|\n  ^dist/|\n  ^build/|\n)\n"
+- repo: local
+  hooks:
+  - id: shared-session-guard
+    name: Enforce shared aiohttp session reuse
+    entry: python scripts/enforce_shared_session_guard.py
+    language: python
+    pass_filenames: false
+  - id: enforce-test-requirements
+    name: Ensure test imports declare requirements
+    entry: python -m script.enforce_test_requirements
+    language: python
+    additional_dependencies:
+    - packaging>=24.2
+    pass_filenames: false
+  - id: docstring-baseline
+    name: Ensure docstring baseline has no regressions
+    entry: python scripts/enforce_docstring_baseline.py
+    language: python
+    pass_filenames: false
+    additional_dependencies:
+    - ruff>=0.12.11
+  - id: contributor-guide-sync-check
+    name: Ensure assistant contributor guides are synced
+    entry: python -m script.sync_contributor_guides --check
+    language: python
+    pass_filenames: false
