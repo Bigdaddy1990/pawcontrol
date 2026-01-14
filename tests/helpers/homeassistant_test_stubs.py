@@ -1,3 +1,4 @@
+# ruff: noqa: N818
 """Home Assistant compatibility shims for PawControl's test suite."""
 from __future__ import annotations
 
