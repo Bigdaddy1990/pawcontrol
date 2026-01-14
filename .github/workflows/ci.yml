@@ -55,7 +55,7 @@ jobs:
         run: |
           echo "CodeFactor analysis runs automatically via webhook"
           echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
-      
+
   lint:
     name: Lint
     uses: ./.github/workflows/reusable-pre-commit.yml

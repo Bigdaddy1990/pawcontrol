@@ -13,8 +13,9 @@ import asyncio
 import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
-from typing import Any, ClassVar
+from typing import Any
 from typing import cast
+from typing import ClassVar
 
 from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.components.switch import SwitchEntity
@@ -382,7 +383,10 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
         await super().async_added_to_hass()
 
         # Restore previous state
-        if (last_state := await self.async_get_last_state()) and last_state.state in ('on', 'off'):
+        if (last_state := await self.async_get_last_state()) and last_state.state in (
+            'on',
+            'off',
+        ):
             self._is_on = last_state.state == 'on'
             _LOGGER.debug(
                 'Restored switch state for %s %s: %s',

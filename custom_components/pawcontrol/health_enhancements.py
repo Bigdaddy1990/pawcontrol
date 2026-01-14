@@ -11,14 +11,13 @@ Quality Scale: Platinum target++
 """
 from __future__ import annotations
 
-
-from typing import ClassVar
 import logging
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from datetime import timedelta
 from enum import Enum
+from typing import ClassVar
 
 from homeassistant.util import dt as dt_util
 
