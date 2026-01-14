@@ -11,64 +11,67 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from typing import cast
-from typing import Final
-from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Final, cast
 
-from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.const import STATE_UNKNOWN
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_VISITOR
-from .const import MODULE_WALK
-from .dashboard_shared import CardCollection
-from .dashboard_shared import CardConfig
-from .dashboard_shared import coerce_dog_config
-from .dashboard_shared import coerce_dog_configs
-from .dashboard_shared import unwrap_async_result
-from .dashboard_templates import DashboardTemplates
-from .dashboard_templates import MAP_OPTION_KEYS
-from .dashboard_templates import MapCardOptions
-from .dashboard_templates import MapOptionsInput
+from .const import (
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
+)
+from .dashboard_shared import (
+    CardCollection,
+    CardConfig,
+    coerce_dog_config,
+    coerce_dog_configs,
+    unwrap_async_result,
+)
+from .dashboard_templates import (
+    MAP_OPTION_KEYS,
+    DashboardTemplates,
+    MapCardOptions,
+    MapOptionsInput,
+)
 from .language import normalize_language
-from .types import coerce_dog_modules_config
-from .types import CoordinatorRejectionMetrics
-from .types import CoordinatorStatisticsPayload
-from .types import DashboardCardGlobalPerformanceStats
-from .types import DashboardCardOptions
-from .types import DashboardCardPerformanceStats
-from .types import DOG_ID_FIELD
-from .types import DOG_IMAGE_FIELD
-from .types import DOG_MODULES_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import HelperManagerGuardMetrics
-from .types import JSONMapping
-from .types import JSONMutableMapping
-from .types import RawDogConfig
+from .types import (
+    DOG_ID_FIELD,
+    DOG_IMAGE_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    CoordinatorRejectionMetrics,
+    CoordinatorStatisticsPayload,
+    DashboardCardGlobalPerformanceStats,
+    DashboardCardOptions,
+    DashboardCardPerformanceStats,
+    DogConfigData,
+    DogModulesConfig,
+    HelperManagerGuardMetrics,
+    JSONMapping,
+    JSONMutableMapping,
+    RawDogConfig,
+    coerce_dog_modules_config,
+)
 
 if TYPE_CHECKING:
     from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)
 _TEMPLATE_LOGGER = logging.getLogger(
-    'custom_components.pawcontrol.dashboard_templates',
+    "custom_components.pawcontrol.dashboard_templates",
 )
 
 # OPTIMIZED: Performance constants for batch processing
@@ -91,125 +94,125 @@ _cache_cleanup_threshold = 300  # 5 minutes
 
 
 _VISITOR_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'entities_title': {
-        'en': 'Visitor mode controls',
-        'de': 'Steuerungen für den Besuchermodus',
+    "entities_title": {
+        "en": "Visitor mode controls",
+        "de": "Steuerungen für den Besuchermodus",
     },
-    'status_heading': {
-        'en': 'Visitor mode status',
-        'de': 'Status des Besuchermodus',
+    "status_heading": {
+        "en": "Visitor mode status",
+        "de": "Status des Besuchermodus",
     },
-    'active': {'en': 'Active', 'de': 'Aktiv'},
-    'visitor': {'en': 'Visitor', 'de': 'Besucher'},
-    'started': {'en': 'Started', 'de': 'Gestartet'},
-    'alerts_reduced': {
-        'en': 'Alerts reduced',
-        'de': 'Warnungen reduziert',
+    "active": {"en": "Active", "de": "Aktiv"},
+    "visitor": {"en": "Visitor", "de": "Besucher"},
+    "started": {"en": "Started", "de": "Gestartet"},
+    "alerts_reduced": {
+        "en": "Alerts reduced",
+        "de": "Warnungen reduziert",
     },
 }
 
 _VISITOR_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'insights_title': {
-        'en': '{dog_name} visitor insights',
-        'de': '{dog_name} Besuchereinblicke',
+    "insights_title": {
+        "en": "{dog_name} visitor insights",
+        "de": "{dog_name} Besuchereinblicke",
     },
 }
 
 _VISITOR_VALUE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'yes': {'en': 'Yes', 'de': 'Ja'},
-    'no': {'en': 'No', 'de': 'Nein'},
-    'none': {'en': 'None', 'de': 'Keine'},
-    'unknown': {'en': 'Unknown', 'de': 'Unbekannt'},
+    "yes": {"en": "Yes", "de": "Ja"},
+    "no": {"en": "No", "de": "Nein"},
+    "none": {"en": "None", "de": "Keine"},
+    "unknown": {"en": "Unknown", "de": "Unbekannt"},
 }
 
 _QUICK_ACTION_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'feed_all': {'en': 'Feed All', 'de': 'Alle füttern'},
-    'daily_reset': {'en': 'Daily Reset', 'de': 'Täglicher Reset'},
+    "feed_all": {"en": "Feed All", "de": "Alle füttern"},
+    "daily_reset": {"en": "Daily Reset", "de": "Täglicher Reset"},
 }
 
 _WALK_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'status': {'en': 'Walk Status', 'de': 'Spazierstatus'},
-    'start': {'en': 'Start Walk', 'de': 'Spaziergang starten'},
-    'end': {'en': 'End Walk', 'de': 'Spaziergang beenden'},
-    'next_good_time': {
-        'en': 'Next Good Walk Time',
-        'de': 'Nächster guter Spaziergangszeitpunkt',
+    "status": {"en": "Walk Status", "de": "Spazierstatus"},
+    "start": {"en": "Start Walk", "de": "Spaziergang starten"},
+    "end": {"en": "End Walk", "de": "Spaziergang beenden"},
+    "next_good_time": {
+        "en": "Next Good Walk Time",
+        "de": "Nächster guter Spaziergangszeitpunkt",
     },
 }
 
 _WALK_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'history_title': {
-        'en': 'Walk History ({days} days)',
-        'de': 'Spazierverlauf ({days} Tage)',
+    "history_title": {
+        "en": "Walk History ({days} days)",
+        "de": "Spazierverlauf ({days} Tage)",
     },
-    'statistics_title': {
-        'en': 'Walk Statistics ({days} days)',
-        'de': 'Spazierstatistiken ({days} Tage)',
+    "statistics_title": {
+        "en": "Walk Statistics ({days} days)",
+        "de": "Spazierstatistiken ({days} Tage)",
     },
 }
 
 
 _HEALTH_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'health_status': {'en': 'Health Status', 'de': 'Gesundheitsstatus'},
-    'calorie_target': {'en': 'Calorie Target', 'de': 'Kalorienziel'},
-    'calories_today': {'en': 'Calories Today', 'de': 'Kalorien heute'},
-    'portion_adjustment': {
-        'en': 'Portion Adjustment',
-        'de': 'Portionsanpassung',
+    "health_status": {"en": "Health Status", "de": "Gesundheitsstatus"},
+    "calorie_target": {"en": "Calorie Target", "de": "Kalorienziel"},
+    "calories_today": {"en": "Calories Today", "de": "Kalorien heute"},
+    "portion_adjustment": {
+        "en": "Portion Adjustment",
+        "de": "Portionsanpassung",
     },
-    'calorie_tracking_title': {
-        'en': '📊 Calorie Tracking',
-        'de': '📊 Kalorienverlauf',
+    "calorie_tracking_title": {
+        "en": "📊 Calorie Tracking",
+        "de": "📊 Kalorienverlauf",
     },
-    'weight_management_title': {
-        'en': '⚖️ Weight Management',
-        'de': '⚖️ Gewichtsmanagement',
+    "weight_management_title": {
+        "en": "⚖️ Weight Management",
+        "de": "⚖️ Gewichtsmanagement",
     },
-    'current_weight': {'en': 'Current Weight', 'de': 'Aktuelles Gewicht'},
-    'ideal_weight': {'en': 'Ideal Weight', 'de': 'Idealgewicht'},
-    'body_condition': {
-        'en': 'Body Condition (1-9)',
-        'de': 'Körperkondition (1-9)',
+    "current_weight": {"en": "Current Weight", "de": "Aktuelles Gewicht"},
+    "ideal_weight": {"en": "Ideal Weight", "de": "Idealgewicht"},
+    "body_condition": {
+        "en": "Body Condition (1-9)",
+        "de": "Körperkondition (1-9)",
     },
-    'weight_goal_progress': {
-        'en': 'Weight Goal Progress',
-        'de': 'Fortschritt des Gewichtsziels',
+    "weight_goal_progress": {
+        "en": "Weight Goal Progress",
+        "de": "Fortschritt des Gewichtsziels",
     },
-    'recalculate': {'en': 'Recalculate', 'de': 'Neu berechnen'},
-    'update_health': {
-        'en': 'Update Health',
-        'de': 'Gesundheitsdaten aktualisieren',
+    "recalculate": {"en": "Recalculate", "de": "Neu berechnen"},
+    "update_health": {
+        "en": "Update Health",
+        "de": "Gesundheitsdaten aktualisieren",
     },
-    'smart_breakfast': {
-        'en': 'Smart Breakfast',
-        'de': 'Smartes Frühstück',
+    "smart_breakfast": {
+        "en": "Smart Breakfast",
+        "de": "Smartes Frühstück",
     },
-    'smart_dinner': {
-        'en': 'Smart Dinner',
-        'de': 'Smartes Abendessen',
+    "smart_dinner": {
+        "en": "Smart Dinner",
+        "de": "Smartes Abendessen",
     },
-    'log_health': {'en': 'Log Health', 'de': 'Gesundheit protokollieren'},
-    'log_medication': {
-        'en': 'Log Medication',
-        'de': 'Medikation protokollieren',
+    "log_health": {"en": "Log Health", "de": "Gesundheit protokollieren"},
+    "log_medication": {
+        "en": "Log Medication",
+        "de": "Medikation protokollieren",
     },
-    'health_metrics_title': {
-        'en': 'Health Metrics',
-        'de': 'Gesundheitsmetriken',
+    "health_metrics_title": {
+        "en": "Health Metrics",
+        "de": "Gesundheitsmetriken",
     },
-    'health_schedule_title': {
-        'en': 'Health Schedule',
-        'de': 'Gesundheitsplan',
+    "health_schedule_title": {
+        "en": "Health Schedule",
+        "de": "Gesundheitsplan",
     },
 }
 
 _HEALTH_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    'health_feeding_title': {
-        'en': '🔬 {dog_name} Health Feeding',
-        'de': '🔬 {dog_name} Gesundheitsfütterung',
+    "health_feeding_title": {
+        "en": "🔬 {dog_name} Health Feeding",
+        "de": "🔬 {dog_name} Gesundheitsfütterung",
     },
-    'portion_calculator': {
-        'en': """## 🧮 Health-Aware Portion Calculator
+    "portion_calculator": {
+        "en": """## 🧮 Health-Aware Portion Calculator
 
 **Current Recommendations:**
 - **Breakfast**: {{{{ states('sensor.{dog_id}_breakfast_portion_size') }}}}g
@@ -222,7 +225,7 @@ _HEALTH_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 - Activity Factor: {{{{ states('sensor.{dog_id}_activity_adjustment_factor') }}}}
 - Overall Adjustment: {{{{ states('sensor.{dog_id}_portion_adjustment_factor') }}}}x
 """,
-        'de': """## 🧮 Gesundheitsbasierter Portionsrechner
+        "de": """## 🧮 Gesundheitsbasierter Portionsrechner
 
 **Aktuelle Empfehlungen:**
 - **Frühstück**: {{{{ states('sensor.{dog_id}_breakfast_portion_size') }}}}g
@@ -236,9 +239,9 @@ _HEALTH_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 - Gesamtanpassung: {{{{ states('sensor.{dog_id}_portion_adjustment_factor') }}}}x
 """,
     },
-    'weight_history_title': {
-        'en': 'Weight Tracking ({days} days)',
-        'de': 'Gewichtsverlauf ({days} Tage)',
+    "weight_history_title": {
+        "en": "Weight Tracking ({days} days)",
+        "de": "Gewichtsverlauf ({days} Tage)",
     },
 }
 
@@ -254,7 +257,7 @@ def _translated_visitor_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get('en', label)
+    return translations.get("en", label)
 
 
 def _translated_visitor_template(
@@ -271,7 +274,7 @@ def _translated_visitor_template(
     normalized_language = normalize_language(language)
     template_value = translations.get(normalized_language)
     if template_value is None:
-        template_value = translations.get('en', template)
+        template_value = translations.get("en", template)
 
     return template_value.format(**values)
 
@@ -287,7 +290,7 @@ def _translated_visitor_value(language: str | None, value: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get('en', value)
+    return translations.get("en", value)
 
 
 def _translated_quick_action_label(language: str | None, label: str) -> str:
@@ -301,7 +304,7 @@ def _translated_quick_action_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get('en', label)
+    return translations.get("en", label)
 
 
 def _translated_walk_label(language: str | None, label: str) -> str:
@@ -315,7 +318,7 @@ def _translated_walk_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get('en', label)
+    return translations.get("en", label)
 
 
 def _translated_walk_template(
@@ -332,7 +335,7 @@ def _translated_walk_template(
     normalized_language = normalize_language(language)
     template_value = translations.get(normalized_language)
     if template_value is None:
-        template_value = translations.get('en', template)
+        template_value = translations.get("en", template)
 
     return template_value.format(**values)
 
@@ -348,7 +351,7 @@ def _translated_health_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get('en', label)
+    return translations.get("en", label)
 
 
 def _translated_health_template(
@@ -365,7 +368,7 @@ def _translated_health_template(
     normalized_language = normalize_language(language)
     template_value = translations.get(normalized_language)
     if template_value is None:
-        template_value = translations.get('en', template)
+        template_value = translations.get("en", template)
 
     return template_value.format(**values)
 
@@ -377,7 +380,7 @@ def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
         return DashboardTemplates._normalise_map_options(options)
 
     nested_entries: list[tuple[str, object]] = []
-    for candidate_key in ('map_options', 'map', 'map_card'):
+    for candidate_key in ("map_options", "map", "map_card"):
         nested = options.get(candidate_key)
         if nested is None:
             continue
@@ -403,12 +406,12 @@ def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
     for key, value in options.items():
         if not isinstance(key, str):
             _TEMPLATE_LOGGER.debug(
-                'Skipping map option entry with non-string key from mapping: %r',
+                "Skipping map option entry with non-string key from mapping: %r",
                 key,
             )
             continue
 
-        if key in {'map_options', 'map', 'map_card'}:
+        if key in {"map_options", "map", "map_card"}:
             continue
 
         if key not in MAP_OPTION_KEYS:
@@ -434,13 +437,13 @@ def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
 def _resolve_dashboard_theme_option(options: OptionsConfigType) -> str:
     """Return the sanitized theme identifier from ``options``."""
 
-    theme_value = options.get('theme')
+    theme_value = options.get("theme")
     if isinstance(theme_value, str):
         normalised_theme = theme_value.strip()
         if normalised_theme:
             return normalised_theme
 
-    return 'modern'
+    return "modern"
 
 
 class BaseCardGenerator:
@@ -465,11 +468,11 @@ class BaseCardGenerator:
             MAX_CONCURRENT_VALIDATIONS,
         )
         self._performance_stats: DashboardCardPerformanceStats = {
-            'validations_count': 0,
-            'cache_hits': 0,
-            'cache_misses': 0,
-            'generation_time_total': 0.0,
-            'errors_handled': 0,
+            "validations_count": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "generation_time_total": 0.0,
+            "errors_handled": 0,
         }
 
     @staticmethod
@@ -533,17 +536,17 @@ class BaseCardGenerator:
                     and (current_time - cache_entry[0]) < _cache_cleanup_threshold
                 ):
                     cached_results[entity_id] = cache_entry[1]
-                    self._performance_stats['cache_hits'] += 1
+                    self._performance_stats["cache_hits"] += 1
                 else:
                     uncached_entities.append(entity_id)
-                    self._performance_stats['cache_misses'] += 1
+                    self._performance_stats["cache_misses"] += 1
         else:
             uncached_entities = entities.copy()
 
         # OPTIMIZED: Process uncached entities in controlled batches
         batch_size = min(MAX_CONCURRENT_VALIDATIONS, len(uncached_entities))
         for i in range(0, len(uncached_entities), batch_size):
-            batch = uncached_entities[i: i + batch_size]
+            batch = uncached_entities[i : i + batch_size]
 
             async with self._validation_semaphore:
                 try:
@@ -579,29 +582,31 @@ class BaseCardGenerator:
 
                 except TimeoutError:
                     _LOGGER.warning(
-                        'Entity validation timeout for batch: %s',
+                        "Entity validation timeout for batch: %s",
                         batch,
                     )
                     for entity_id in batch:
                         cached_results[entity_id] = False
 
                 except Exception as err:
-                    _LOGGER.error('Batch validation error: %s', err)
+                    _LOGGER.error("Batch validation error: %s", err)
                     for entity_id in batch:
                         cached_results[entity_id] = False
-                    self._performance_stats['errors_handled'] += 1
+                    self._performance_stats["errors_handled"] += 1
 
         # OPTIMIZED: Collect all valid entities
-        valid_entities = [entity_id for entity_id in entities if cached_results.get(entity_id, False)]
+        valid_entities = [
+            entity_id for entity_id in entities if cached_results.get(entity_id, False)
+        ]
 
         # Update performance stats
         validation_time = asyncio.get_event_loop().time() - start_time
-        self._performance_stats['validations_count'] += len(entities)
-        self._performance_stats['generation_time_total'] += validation_time
+        self._performance_stats["validations_count"] += len(entities)
+        self._performance_stats["generation_time_total"] += validation_time
 
         if validation_time > 1.0:  # Log slow validations
             _LOGGER.debug(
-                'Slow entity validation: %.2fs for %d entities (%d valid)',
+                "Slow entity validation: %.2fs for %d entities (%d valid)",
                 validation_time,
                 len(entities),
                 len(valid_entities),
@@ -625,7 +630,7 @@ class BaseCardGenerator:
                 STATE_UNAVAILABLE,
             )
         except Exception as err:
-            _LOGGER.debug('Entity validation error for %s: %s', entity_id, err)
+            _LOGGER.debug("Entity validation error for %s: %s", entity_id, err)
             return False
 
     async def _entity_exists_cached(self, entity_id: str) -> bool:
@@ -694,7 +699,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         """
         typed_dogs = self._ensure_dog_configs(dogs_config)
         dog_count = len(typed_dogs)
-        title = options.get('title', 'Paw Control')
+        title = options.get("title", "Paw Control")
 
         # OPTIMIZED: Async active dog counting with timeout
         try:
@@ -703,7 +708,7 @@ class OverviewCardGenerator(BaseCardGenerator):
                 timeout=3.0,
             )
         except TimeoutError:
-            _LOGGER.debug('Active dog counting timeout, using total count')
+            _LOGGER.debug("Active dog counting timeout, using total count")
             active_dogs = dog_count
 
         # Generate dynamic content based on current status
@@ -718,14 +723,14 @@ class OverviewCardGenerator(BaseCardGenerator):
 
         content_parts.extend(
             [
-                '',
+                "",
                 "Last updated: {{ now().strftime('%H:%M') }}",
             ],
         )
 
         return {
-            'type': 'markdown',
-            'content': '\n'.join(content_parts),
+            "type": "markdown",
+            "content": "\n".join(content_parts),
         }
 
     async def _count_active_dogs(self, dogs_config: Sequence[DogConfigData]) -> int:
@@ -798,14 +803,14 @@ class OverviewCardGenerator(BaseCardGenerator):
         for dog_id, dog_name, entity_id in dog_candidates:
             if entity_id in valid_entity_set:
                 card: CardConfig = {
-                    'type': 'button',
-                    'entity': entity_id,
-                    'name': dog_name,
-                    'icon': 'mdi:dog',
-                    'show_state': True,
-                    'tap_action': {
-                        'action': 'navigate',
-                        'navigation_path': f"{dashboard_url}/{slugify(dog_id)}",
+                    "type": "button",
+                    "entity": entity_id,
+                    "name": dog_name,
+                    "icon": "mdi:dog",
+                    "show_state": True,
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"{dashboard_url}/{slugify(dog_id)}",
                     },
                 }
                 dog_cards.append(card)
@@ -817,9 +822,9 @@ class OverviewCardGenerator(BaseCardGenerator):
         columns = min(3, max(1, len(dog_cards)))
 
         grid_card: CardConfig = {
-            'type': 'grid',
-            'columns': columns,
-            'cards': dog_cards,
+            "type": "grid",
+            "columns": columns,
+            "cards": dog_cards,
         }
 
         return grid_card
@@ -840,7 +845,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         if not typed_dogs:
             return None
 
-        language: str | None = getattr(self.hass.config, 'language', None)
+        language: str | None = getattr(self.hass.config, "language", None)
 
         # OPTIMIZED: Single-pass module detection
         has_feeding = False
@@ -872,36 +877,36 @@ class OverviewCardGenerator(BaseCardGenerator):
         if has_feeding and f"button.{DOMAIN}_feed_all_dogs" in valid_entity_set:
             actions.append(
                 {
-                    'type': 'button',
-                    'name': _translated_quick_action_label(language, 'feed_all'),
-                    'icon': 'mdi:food-drumstick',
-                    'tap_action': {
-                        'action': 'more-info',
-                        'entity': f"button.{DOMAIN}_feed_all_dogs",
+                    "type": "button",
+                    "name": _translated_quick_action_label(language, "feed_all"),
+                    "icon": "mdi:food-drumstick",
+                    "tap_action": {
+                        "action": "more-info",
+                        "entity": f"button.{DOMAIN}_feed_all_dogs",
                     },
                 },
             )
 
         if has_walking and f"sensor.{DOMAIN}_dogs_walking" in valid_entity_set:
             walking_card: CardConfig = {
-                'type': 'button',
-                'name': _translated_walk_label(language, 'status'),
-                'icon': 'mdi:walk',
-                'tap_action': {
-                    'action': 'more-info',
-                    'entity': f"sensor.{DOMAIN}_dogs_walking",
+                "type": "button",
+                "name": _translated_walk_label(language, "status"),
+                "icon": "mdi:walk",
+                "tap_action": {
+                    "action": "more-info",
+                    "entity": f"sensor.{DOMAIN}_dogs_walking",
                 },
             }
             actions.append(walking_card)
 
         # Daily reset button (always available)
         reset_card: CardConfig = {
-            'type': 'button',
-            'name': _translated_quick_action_label(language, 'daily_reset'),
-            'icon': 'mdi:refresh',
-            'tap_action': {
-                'action': 'call-service',
-                'service': f"{DOMAIN}.daily_reset",
+            "type": "button",
+            "name": _translated_quick_action_label(language, "daily_reset"),
+            "icon": "mdi:refresh",
+            "tap_action": {
+                "action": "call-service",
+                "service": f"{DOMAIN}.daily_reset",
             },
         }
         actions.append(reset_card)
@@ -910,8 +915,8 @@ class OverviewCardGenerator(BaseCardGenerator):
             return None
 
         stack_card: CardConfig = {
-            'type': 'horizontal-stack',
-            'cards': actions,
+            "type": "horizontal-stack",
+            "cards": actions,
         }
         return stack_card
 
@@ -953,7 +958,7 @@ class DogCardGenerator(BaseCardGenerator):
         # Dog header card
         card_tasks.append(
             (
-                'header',
+                "header",
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_dog_header_card(dog_config, options),
@@ -965,7 +970,7 @@ class DogCardGenerator(BaseCardGenerator):
         # Status card
         card_tasks.append(
             (
-                'status',
+                "status",
                 asyncio.create_task(
                     self._collect_single_card(
                         self.templates.get_dog_status_card_template(
@@ -981,7 +986,7 @@ class DogCardGenerator(BaseCardGenerator):
         # Action buttons
         card_tasks.append(
             (
-                'actions',
+                "actions",
                 asyncio.create_task(
                     self._collect_action_buttons(dog_id, modules),
                 ),
@@ -992,7 +997,7 @@ class DogCardGenerator(BaseCardGenerator):
         if modules.get(MODULE_GPS):
             card_tasks.append(
                 (
-                    'gps_map',
+                    "gps_map",
                     asyncio.create_task(
                         self._collect_single_card(
                             self._generate_gps_map_card(dog_id, options),
@@ -1001,10 +1006,10 @@ class DogCardGenerator(BaseCardGenerator):
                 ),
             )
 
-        if options.get('show_activity_graph', True):
+        if options.get("show_activity_graph", True):
             card_tasks.append(
                 (
-                    'activity',
+                    "activity",
                     asyncio.create_task(
                         self._collect_single_card(
                             self._generate_activity_graph_card(
@@ -1034,7 +1039,7 @@ class DogCardGenerator(BaseCardGenerator):
                     logger=_LOGGER,
                 )
                 if card_payloads is None:
-                    self._performance_stats['errors_handled'] += 1
+                    self._performance_stats["errors_handled"] += 1
                     continue
                 cards.extend(card_payloads)
 
@@ -1042,24 +1047,24 @@ class DogCardGenerator(BaseCardGenerator):
             for _, task in card_tasks:
                 task.cancel()
             _LOGGER.error(
-                'Dog overview card generation timeout for %s',
+                "Dog overview card generation timeout for %s",
                 dog_name,
             )
-            self._performance_stats['errors_handled'] += 1
+            self._performance_stats["errors_handled"] += 1
             # Return minimal cards on timeout
             return [
                 {
-                    'type': 'markdown',
-                    'content': f"## {dog_name}\n\nTimeout generating dashboard cards. Please refresh.",
+                    "type": "markdown",
+                    "content": f"## {dog_name}\n\nTimeout generating dashboard cards. Please refresh.",
                 },
             ]
 
         generation_time = asyncio.get_event_loop().time() - start_time
-        self._performance_stats['generation_time_total'] += generation_time
+        self._performance_stats["generation_time_total"] += generation_time
 
         if generation_time > 2.0:
             _LOGGER.info(
-                'Slow dog card generation: %.2fs for %s',
+                "Slow dog card generation: %.2fs for %s",
                 generation_time,
                 dog_name,
             )
@@ -1089,7 +1094,7 @@ class DogCardGenerator(BaseCardGenerator):
         conditional_buttons = []
 
         for button in action_buttons:
-            if button.get('type') == 'conditional':
+            if button.get("type") == "conditional":
                 conditional_buttons.append(button)
             else:
                 regular_buttons.append(button)
@@ -1099,8 +1104,8 @@ class DogCardGenerator(BaseCardGenerator):
         if regular_buttons:
             cards.append(
                 {
-                    'type': 'horizontal-stack',
-                    'cards': regular_buttons,
+                    "type": "horizontal-stack",
+                    "cards": regular_buttons,
                 },
             )
 
@@ -1140,13 +1145,13 @@ class DogCardGenerator(BaseCardGenerator):
         )
 
         return {
-            'type': 'picture-entity',
-            'entity': status_entity,
-            'name': dog_name,
-            'image': dog_image,
-            'show_state': True,
-            'show_name': True,
-            'aspect_ratio': '16:9',
+            "type": "picture-entity",
+            "entity": status_entity,
+            "name": dog_name,
+            "image": dog_image,
+            "show_state": True,
+            "show_name": True,
+            "aspect_ratio": "16:9",
         }
 
     async def _generate_gps_map_card(
@@ -1186,7 +1191,7 @@ class DogCardGenerator(BaseCardGenerator):
         Returns:
             Activity graph card or None if no data
         """
-        if not options.get('show_activity_graph', True):
+        if not options.get("show_activity_graph", True):
             return None
 
         typed_dog = self._ensure_dog_config(dog_config)
@@ -1211,7 +1216,7 @@ class DogCardGenerator(BaseCardGenerator):
 
         return await self.templates.get_history_graph_template(
             valid_entities,
-            '24h Activity',
+            "24h Activity",
             24,
         )
 
@@ -1240,12 +1245,12 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
         dog_name = dog_config[DOG_NAME_FIELD]
-        language: str | None = getattr(self.hass.config, 'language', None)
+        language: str | None = getattr(self.hass.config, "language", None)
 
         # OPTIMIZED: Generate all cards concurrently
         card_generators: list[tuple[str, asyncio.Task[CardCollection]]] = [
             (
-                'health_status',
+                "health_status",
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_health_feeding_status_card(
@@ -1258,7 +1263,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 ),
             ),
             (
-                'calorie',
+                "calorie",
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_calorie_tracking_card(
@@ -1270,7 +1275,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 ),
             ),
             (
-                'weight',
+                "weight",
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_weight_management_card(
@@ -1282,7 +1287,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 ),
             ),
             (
-                'portion',
+                "portion",
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_portion_calculator_card(
@@ -1312,7 +1317,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                     logger=_LOGGER,
                 )
                 if card_payload is None:
-                    self._performance_stats['errors_handled'] += 1
+                    self._performance_stats["errors_handled"] += 1
                     continue
                 cards.extend(card_payload)
 
@@ -1322,10 +1327,10 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             for _, task in card_generators:
                 task.cancel()
             _LOGGER.error(
-                'Health feeding overview generation timeout for %s',
+                "Health feeding overview generation timeout for %s",
                 dog_name,
             )
-            self._performance_stats['errors_handled'] += 1
+            self._performance_stats["errors_handled"] += 1
             return []
 
     async def _generate_health_feeding_status_card(
@@ -1342,36 +1347,36 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'entities',
-            'title': _translated_health_template(
+            "type": "entities",
+            "title": _translated_health_template(
                 language,
-                'health_feeding_title',
+                "health_feeding_title",
                 dog_name=dog_name,
             ),
-            'entities': [
+            "entities": [
                 {
-                    'entity': f"sensor.{dog_id}_health_feeding_status",
-                    'name': _translated_health_label(language, 'health_status'),
-                    'icon': 'mdi:heart-pulse',
+                    "entity": f"sensor.{dog_id}_health_feeding_status",
+                    "name": _translated_health_label(language, "health_status"),
+                    "icon": "mdi:heart-pulse",
                 },
                 {
-                    'entity': f"sensor.{dog_id}_daily_calorie_target",
-                    'name': _translated_health_label(language, 'calorie_target'),
-                    'icon': 'mdi:fire',
+                    "entity": f"sensor.{dog_id}_daily_calorie_target",
+                    "name": _translated_health_label(language, "calorie_target"),
+                    "icon": "mdi:fire",
                 },
                 {
-                    'entity': f"sensor.{dog_id}_calories_consumed_today",
-                    'name': _translated_health_label(language, 'calories_today'),
-                    'icon': 'mdi:counter',
+                    "entity": f"sensor.{dog_id}_calories_consumed_today",
+                    "name": _translated_health_label(language, "calories_today"),
+                    "icon": "mdi:counter",
                 },
                 {
-                    'entity': f"sensor.{dog_id}_portion_adjustment_factor",
-                    'name': _translated_health_label(language, 'portion_adjustment'),
-                    'icon': 'mdi:scale-balance',
+                    "entity": f"sensor.{dog_id}_portion_adjustment_factor",
+                    "name": _translated_health_label(language, "portion_adjustment"),
+                    "icon": "mdi:scale-balance",
                 },
             ],
-            'state_color': True,
-            'show_header_toggle': False,
+            "state_color": True,
+            "show_header_toggle": False,
         }
 
     async def _generate_calorie_tracking_card(
@@ -1393,14 +1398,14 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'history-graph',
-            'title': _translated_health_label(language, 'calorie_tracking_title'),
-            'entities': [
+            "type": "history-graph",
+            "title": _translated_health_label(language, "calorie_tracking_title"),
+            "entities": [
                 f"sensor.{dog_id}_calories_consumed_today",
                 f"sensor.{dog_id}_daily_calorie_target",
             ],
-            'hours_to_show': 24,
-            'refresh_interval': 0,
+            "hours_to_show": 24,
+            "refresh_interval": 0,
         }
 
     async def _generate_weight_management_card(
@@ -1423,47 +1428,47 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'entities',
-                    'title': _translated_health_label(
+                    "type": "entities",
+                    "title": _translated_health_label(
                         language,
-                        'weight_management_title',
+                        "weight_management_title",
                     ),
-                    'entities': [
+                    "entities": [
                         {
-                            'entity': f"sensor.{dog_id}_current_weight",
-                            'name': _translated_health_label(
+                            "entity": f"sensor.{dog_id}_current_weight",
+                            "name": _translated_health_label(
                                 language,
-                                'current_weight',
+                                "current_weight",
                             ),
-                            'icon': 'mdi:weight-kilogram',
+                            "icon": "mdi:weight-kilogram",
                         },
                         {
-                            'entity': f"sensor.{dog_id}_ideal_weight",
-                            'name': _translated_health_label(language, 'ideal_weight'),
-                            'icon': 'mdi:target',
+                            "entity": f"sensor.{dog_id}_ideal_weight",
+                            "name": _translated_health_label(language, "ideal_weight"),
+                            "icon": "mdi:target",
                         },
                         {
-                            'entity': f"sensor.{dog_id}_body_condition_score",
-                            'name': _translated_health_label(
+                            "entity": f"sensor.{dog_id}_body_condition_score",
+                            "name": _translated_health_label(
                                 language,
-                                'body_condition',
+                                "body_condition",
                             ),
-                            'icon': 'mdi:dog-side',
+                            "icon": "mdi:dog-side",
                         },
                     ],
-                    'state_color': True,
+                    "state_color": True,
                 },
                 {
-                    'type': 'gauge',
-                    'entity': f"sensor.{dog_id}_weight_goal_progress",
-                    'name': _translated_health_label(language, 'weight_goal_progress'),
-                    'min': 0,
-                    'max': 100,
-                    'unit': '%',
-                    'severity': {'green': 80, 'yellow': 50, 'red': 0},
+                    "type": "gauge",
+                    "entity": f"sensor.{dog_id}_weight_goal_progress",
+                    "name": _translated_health_label(language, "weight_goal_progress"),
+                    "min": 0,
+                    "max": 100,
+                    "unit": "%",
+                    "severity": {"green": 80, "yellow": 50, "red": 0},
                 },
             ],
         }
@@ -1480,37 +1485,37 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'markdown',
-                    'content': _translated_health_template(
+                    "type": "markdown",
+                    "content": _translated_health_template(
                         language,
-                        'portion_calculator',
+                        "portion_calculator",
                         dog_id=dog_id,
                     ),
                 },
                 {
-                    'type': 'horizontal-stack',
-                    'cards': [
+                    "type": "horizontal-stack",
+                    "cards": [
                         {
-                            'type': 'button',
-                            'name': _translated_health_label(language, 'recalculate'),
-                            'icon': 'mdi:calculator-variant',
-                            'tap_action': {
-                                'action': 'call-service',
-                                'service': f"{DOMAIN}.recalculate_portions",
-                                'service_data': {'dog_id': dog_id},
+                            "type": "button",
+                            "name": _translated_health_label(language, "recalculate"),
+                            "icon": "mdi:calculator-variant",
+                            "tap_action": {
+                                "action": "call-service",
+                                "service": f"{DOMAIN}.recalculate_portions",
+                                "service_data": {"dog_id": dog_id},
                             },
                         },
                         {
-                            'type': 'button',
-                            'name': _translated_health_label(language, 'update_health'),
-                            'icon': 'mdi:heart-pulse',
-                            'tap_action': {
-                                'action': 'call-service',
-                                'service': f"{DOMAIN}.update_health_data",
-                                'service_data': {'dog_id': dog_id},
+                            "type": "button",
+                            "name": _translated_health_label(language, "update_health"),
+                            "icon": "mdi:heart-pulse",
+                            "tap_action": {
+                                "action": "call-service",
+                                "service": f"{DOMAIN}.update_health_data",
+                                "service_data": {"dog_id": dog_id},
                             },
                         },
                     ],
@@ -1530,7 +1535,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
-        language: str | None = getattr(self.hass.config, 'language', None)
+        language: str | None = getattr(self.hass.config, "language", None)
 
         # OPTIMIZED: Direct card generation without unnecessary async calls
         smart_buttons_card = self._generate_smart_feeding_buttons(
@@ -1548,34 +1553,34 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
     ) -> CardConfigType:
         """Generate optimized smart feeding buttons with health-calculated portions."""
         return {
-            'type': 'grid',
-            'columns': 2,
-            'cards': [
+            "type": "grid",
+            "columns": 2,
+            "cards": [
                 {
-                    'type': 'button',
-                    'name': _translated_health_label(language, 'smart_breakfast'),
-                    'icon': 'mdi:weather-sunny',
-                    'tap_action': {
-                        'action': 'call-service',
-                        'service': f"{DOMAIN}.feed_health_aware",
-                        'service_data': {
-                            'dog_id': dog_id,
-                            'meal_type': 'breakfast',
-                            'use_health_calculation': True,
+                    "type": "button",
+                    "name": _translated_health_label(language, "smart_breakfast"),
+                    "icon": "mdi:weather-sunny",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.feed_health_aware",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "meal_type": "breakfast",
+                            "use_health_calculation": True,
                         },
                     },
                 },
                 {
-                    'type': 'button',
-                    'name': _translated_health_label(language, 'smart_dinner'),
-                    'icon': 'mdi:weather-night',
-                    'tap_action': {
-                        'action': 'call-service',
-                        'service': f"{DOMAIN}.feed_health_aware",
-                        'service_data': {
-                            'dog_id': dog_id,
-                            'meal_type': 'dinner',
-                            'use_health_calculation': True,
+                    "type": "button",
+                    "name": _translated_health_label(language, "smart_dinner"),
+                    "icon": "mdi:weather-night",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.feed_health_aware",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "meal_type": "dinner",
+                            "use_health_calculation": True,
                         },
                     },
                 },
@@ -1644,26 +1649,26 @@ class ModuleCardGenerator(BaseCardGenerator):
 
                 health_overview_cards = _unwrap_async_result(
                     overview_result,
-                    context='Health overview generation failed',
+                    context="Health overview generation failed",
                     logger=_LOGGER,
                 )
                 if health_overview_cards is None:
-                    self._performance_stats['errors_handled'] += 1
+                    self._performance_stats["errors_handled"] += 1
                 else:
                     cards.extend(health_overview_cards)
 
                 health_control_cards = _unwrap_async_result(
                     controls_result,
-                    context='Health controls generation failed',
+                    context="Health controls generation failed",
                     logger=_LOGGER,
                 )
                 if health_control_cards is None:
-                    self._performance_stats['errors_handled'] += 1
+                    self._performance_stats["errors_handled"] += 1
                 else:
                     cards.extend(health_control_cards)
 
             except Exception as err:
-                _LOGGER.error('Health-aware feeding generation error: %s', err)
+                _LOGGER.error("Health-aware feeding generation error: %s", err)
                 # Fallback to standard feeding cards
                 cards.extend(await self._generate_standard_feeding_cards(dog_id))
         else:
@@ -1676,7 +1681,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             if history_card:
                 cards.append(history_card)
         except Exception as err:
-            _LOGGER.warning('Feeding history card generation failed: %s', err)
+            _LOGGER.warning("Feeding history card generation failed: %s", err)
 
         return cards
 
@@ -1698,10 +1703,10 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         if valid_entities:
             schedule_card: CardConfig = {
-                'type': 'entities',
-                'title': 'Feeding Schedule',
-                'entities': valid_entities,
-                'state_color': True,
+                "type": "entities",
+                "title": "Feeding Schedule",
+                "entities": valid_entities,
+                "state_color": True,
             }
             cards.append(schedule_card)
 
@@ -1712,7 +1717,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             )
             cards.append(feeding_controls)
         except Exception as err:
-            _LOGGER.debug('Feeding controls template error: %s', err)
+            _LOGGER.debug("Feeding controls template error: %s", err)
 
         return cards
 
@@ -1729,11 +1734,11 @@ class ModuleCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Get history graph template with entity validation
         history_card = await self.templates.get_history_graph_template(
             history_entities,
-            'Feeding History (7 days)',
+            "Feeding History (7 days)",
             168,
         )
 
-        return history_card if history_card.get('entities') else None
+        return history_card if history_card.get("entities") else None
 
     async def generate_walk_cards(
         self,
@@ -1755,7 +1760,7 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
-        language: str | None = getattr(self.hass.config, 'language', None)
+        language: str | None = getattr(self.hass.config, "language", None)
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Prepare all walk-related entities for batch validation
@@ -1774,10 +1779,10 @@ class ModuleCardGenerator(BaseCardGenerator):
         if valid_entities:
             cards.append(
                 {
-                    'type': 'entities',
-                    'title': _translated_walk_label(language, 'status'),
-                    'entities': valid_entities,
-                    'state_color': True,
+                    "type": "entities",
+                    "title": _translated_walk_label(language, "status"),
+                    "entities": valid_entities,
+                    "state_color": True,
                 },
             )
 
@@ -1796,7 +1801,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             if history_card:
                 cards.append(history_card)
         except Exception as err:
-            _LOGGER.debug('Walk history generation failed: %s', err)
+            _LOGGER.debug("Walk history generation failed: %s", err)
 
         return cards
 
@@ -1808,42 +1813,42 @@ class ModuleCardGenerator(BaseCardGenerator):
         """Generate optimized walk control buttons."""
         return [
             {
-                'type': 'conditional',
-                'conditions': [
+                "type": "conditional",
+                "conditions": [
                     {
-                        'entity': f"binary_sensor.{dog_id}_is_walking",
-                        'state': 'off',
+                        "entity": f"binary_sensor.{dog_id}_is_walking",
+                        "state": "off",
                     },
                 ],
-                'card': {
-                    'type': 'button',
-                    'name': _translated_walk_label(language, 'start'),
-                    'icon': 'mdi:walk',
-                    'icon_height': '60px',
-                    'tap_action': {
-                        'action': 'call-service',
-                        'service': f"{DOMAIN}.start_walk",
-                        'service_data': {'dog_id': dog_id},
+                "card": {
+                    "type": "button",
+                    "name": _translated_walk_label(language, "start"),
+                    "icon": "mdi:walk",
+                    "icon_height": "60px",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.start_walk",
+                        "service_data": {"dog_id": dog_id},
                     },
                 },
             },
             {
-                'type': 'conditional',
-                'conditions': [
+                "type": "conditional",
+                "conditions": [
                     {
-                        'entity': f"binary_sensor.{dog_id}_is_walking",
-                        'state': 'on',
+                        "entity": f"binary_sensor.{dog_id}_is_walking",
+                        "state": "on",
                     },
                 ],
-                'card': {
-                    'type': 'button',
-                    'name': _translated_walk_label(language, 'end'),
-                    'icon': 'mdi:stop',
-                    'icon_height': '60px',
-                    'tap_action': {
-                        'action': 'call-service',
-                        'service': f"{DOMAIN}.end_walk",
-                        'service_data': {'dog_id': dog_id},
+                "card": {
+                    "type": "button",
+                    "name": _translated_walk_label(language, "end"),
+                    "icon": "mdi:stop",
+                    "icon_height": "60px",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.end_walk",
+                        "service_data": {"dog_id": dog_id},
                     },
                 },
             },
@@ -1863,11 +1868,11 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         history_card = await self.templates.get_history_graph_template(
             history_entities,
-            _translated_walk_template(language, 'history_title', days=7),
+            _translated_walk_template(language, "history_title", days=7),
             168,
         )
 
-        return history_card if history_card.get('entities') else None
+        return history_card if history_card.get("entities") else None
 
     async def generate_health_cards(
         self,
@@ -1889,7 +1894,7 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
-        language: str | None = getattr(self.hass.config, 'language', None)
+        language: str | None = getattr(self.hass.config, "language", None)
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Prepare all health entities for batch validation
@@ -1924,7 +1929,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         valid_metrics: EntityListType = (
             _unwrap_async_result(
                 metrics_result,
-                context='Health metrics validation failed',
+                context="Health metrics validation failed",
                 logger=_LOGGER,
                 level=logging.DEBUG,
             )
@@ -1934,7 +1939,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         valid_dates: EntityListType = (
             _unwrap_async_result(
                 dates_result,
-                context='Health schedule validation failed',
+                context="Health schedule validation failed",
                 logger=_LOGGER,
                 level=logging.DEBUG,
             )
@@ -1943,7 +1948,7 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         weight_check = _unwrap_async_result(
             weight_result,
-            context='Weight entity validation failed',
+            context="Weight entity validation failed",
             logger=_LOGGER,
             level=logging.DEBUG,
         )
@@ -1953,10 +1958,10 @@ class ModuleCardGenerator(BaseCardGenerator):
         if valid_metrics:
             cards.append(
                 {
-                    'type': 'entities',
-                    'title': _translated_health_label(language, 'health_metrics_title'),
-                    'entities': valid_metrics,
-                    'state_color': True,
+                    "type": "entities",
+                    "title": _translated_health_label(language, "health_metrics_title"),
+                    "entities": valid_metrics,
+                    "state_color": True,
                 },
             )
 
@@ -1974,7 +1979,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                     [f"sensor.{dog_id}_weight"],
                     _translated_health_template(
                         language,
-                        'weight_history_title',
+                        "weight_history_title",
                         days=30,
                     ),
                     720,
@@ -1982,7 +1987,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 cards.append(weight_card)
             except Exception as err:
                 _LOGGER.debug(
-                    'Weight tracking card generation failed: %s',
+                    "Weight tracking card generation failed: %s",
                     err,
                 )
 
@@ -1990,12 +1995,12 @@ class ModuleCardGenerator(BaseCardGenerator):
         if valid_dates:
             cards.append(
                 {
-                    'type': 'entities',
-                    'title': _translated_health_label(
+                    "type": "entities",
+                    "title": _translated_health_label(
                         language,
-                        'health_schedule_title',
+                        "health_schedule_title",
                     ),
-                    'entities': valid_dates,
+                    "entities": valid_dates,
                 },
             )
 
@@ -2075,7 +2080,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         if not modules.get(MODULE_VISITOR):
             return []
 
-        hass_language: str | None = getattr(self.hass.config, 'language', None)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
         status_entities = [
             f"switch.{dog_id}_visitor_mode",
             f"binary_sensor.{dog_id}_visitor_mode",
@@ -2087,17 +2092,17 @@ class ModuleCardGenerator(BaseCardGenerator):
         if valid_entities:
             cards.append(
                 {
-                    'type': 'entities',
-                    'title': _translated_visitor_label(hass_language, 'entities_title'),
-                    'entities': valid_entities,
-                    'state_color': True,
+                    "type": "entities",
+                    "title": _translated_visitor_label(hass_language, "entities_title"),
+                    "entities": valid_entities,
+                    "state_color": True,
                 },
             )
 
-        yes_value = _translated_visitor_value(hass_language, 'yes')
-        no_value = _translated_visitor_value(hass_language, 'no')
-        none_value = _translated_visitor_value(hass_language, 'none')
-        unknown_value = _translated_visitor_value(hass_language, 'unknown')
+        yes_value = _translated_visitor_value(hass_language, "yes")
+        no_value = _translated_visitor_value(hass_language, "no")
+        none_value = _translated_visitor_value(hass_language, "none")
+        unknown_value = _translated_visitor_value(hass_language, "unknown")
 
         yes_literal = json.dumps(yes_value)
         no_literal = json.dumps(no_value)
@@ -2105,7 +2110,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         unknown_literal = json.dumps(unknown_value)
 
         summary_content = (
-            '### {status_heading}\n'
+            "### {status_heading}\n"
             "- {active_label}: {{{{ iif(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), {yes_value}, {no_value}) }}}}\n"
             "- {visitor_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_name') or {none_value} }}}}\n"
             "- {started_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_mode_started') or {unknown_value} }}}}\n"
@@ -2113,31 +2118,31 @@ class ModuleCardGenerator(BaseCardGenerator):
         ).format(
             status_heading=_translated_visitor_label(
                 hass_language,
-                'status_heading',
+                "status_heading",
             ),
-            active_label=_translated_visitor_label(hass_language, 'active'),
+            active_label=_translated_visitor_label(hass_language, "active"),
             yes_value=yes_literal,
             no_value=no_literal,
-            visitor_label=_translated_visitor_label(hass_language, 'visitor'),
+            visitor_label=_translated_visitor_label(hass_language, "visitor"),
             none_value=none_literal,
-            started_label=_translated_visitor_label(hass_language, 'started'),
+            started_label=_translated_visitor_label(hass_language, "started"),
             unknown_value=unknown_literal,
             alerts_reduced_label=_translated_visitor_label(
                 hass_language,
-                'alerts_reduced',
+                "alerts_reduced",
             ),
             dog_id=dog_id,
         )
 
         cards.append(
             {
-                'type': 'markdown',
-                'title': _translated_visitor_template(
+                "type": "markdown",
+                "title": _translated_visitor_template(
                     hass_language,
-                    'insights_title',
+                    "insights_title",
                     dog_name=dog_name,
                 ),
-                'content': summary_content,
+                "content": summary_content,
             },
         )
 
@@ -2150,29 +2155,29 @@ class ModuleCardGenerator(BaseCardGenerator):
     ) -> CardConfigType:
         """Generate optimized health management buttons."""
         return {
-            'type': 'horizontal-stack',
-            'cards': [
+            "type": "horizontal-stack",
+            "cards": [
                 {
-                    'type': 'button',
-                    'name': _translated_health_label(language, 'log_health'),
-                    'icon': 'mdi:heart-pulse',
-                    'tap_action': {
-                        'action': 'call-service',
-                        'service': f"{DOMAIN}.log_health",
-                        'service_data': {'dog_id': dog_id},
+                    "type": "button",
+                    "name": _translated_health_label(language, "log_health"),
+                    "icon": "mdi:heart-pulse",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.log_health",
+                        "service_data": {"dog_id": dog_id},
                     },
                 },
                 {
-                    'type': 'button',
-                    'name': _translated_health_label(language, 'log_medication'),
-                    'icon': 'mdi:pill',
-                    'tap_action': {
-                        'action': 'call-service',
-                        'service': f"{DOMAIN}.log_medication",
-                        'service_data': {
-                            'dog_id': dog_id,
-                            'medication_name': 'Daily Supplement',
-                            'dosage': '1 tablet',
+                    "type": "button",
+                    "name": _translated_health_label(language, "log_medication"),
+                    "icon": "mdi:pill",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.log_medication",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "medication_name": "Daily Supplement",
+                            "dosage": "1 tablet",
                         },
                     },
                 },
@@ -2212,7 +2217,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             map_card = await self.templates.get_map_card_template(dog_id, map_options)
             cards.append(map_card)
         except Exception as err:
-            _LOGGER.warning('GPS map card generation failed: %s', err)
+            _LOGGER.warning("GPS map card generation failed: %s", err)
 
         # OPTIMIZED: Prepare GPS entities for batch validation
         gps_entities = [
@@ -2243,7 +2248,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         valid_gps: EntityListType = (
             _unwrap_async_result(
                 gps_result,
-                context='GPS status validation failed',
+                context="GPS status validation failed",
                 logger=_LOGGER,
                 level=logging.DEBUG,
             )
@@ -2253,7 +2258,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         valid_geofence: EntityListType = (
             _unwrap_async_result(
                 geofence_result,
-                context='Geofence validation failed',
+                context="Geofence validation failed",
                 logger=_LOGGER,
                 level=logging.DEBUG,
             )
@@ -2264,19 +2269,19 @@ class ModuleCardGenerator(BaseCardGenerator):
         if valid_gps:
             cards.append(
                 {
-                    'type': 'entities',
-                    'title': 'GPS Status',
-                    'entities': valid_gps,
-                    'state_color': True,
+                    "type": "entities",
+                    "title": "GPS Status",
+                    "entities": valid_gps,
+                    "state_color": True,
                 },
             )
 
         if valid_geofence:
             cards.append(
                 {
-                    'type': 'entities',
-                    'title': 'Geofence & Safety',
-                    'entities': valid_geofence,
+                    "type": "entities",
+                    "title": "Geofence & Safety",
+                    "entities": valid_geofence,
                 },
             )
 
@@ -2289,15 +2294,15 @@ class ModuleCardGenerator(BaseCardGenerator):
 
             history_card = await self.templates.get_history_graph_template(
                 history_entities,
-                'Location History',
+                "Location History",
                 24,
             )
 
-            if history_card and history_card.get('entities'):
+            if history_card and history_card.get("entities"):
                 cards.append(history_card)
 
         except Exception as err:
-            _LOGGER.debug('GPS history card generation failed: %s', err)
+            _LOGGER.debug("GPS history card generation failed: %s", err)
 
         return cards
 
@@ -2320,10 +2325,10 @@ class WeatherCardGenerator(BaseCardGenerator):
             return []
 
         if isinstance(source, str):
-            cleaned = source.replace('\r', '\n')
+            cleaned = source.replace("\r", "\n")
             items: list[str] = []
-            for chunk in cleaned.split('\n'):
-                for part in chunk.split(';'):
+            for chunk in cleaned.split("\n"):
+                for part in chunk.split(";"):
                     candidate = part.strip()
                     if candidate:
                         items.append(candidate)
@@ -2332,12 +2337,12 @@ class WeatherCardGenerator(BaseCardGenerator):
         if isinstance(source, Mapping):
             mapping_results: list[str] = []
             for key in (
-                'recommendations',
-                'items',
-                'values',
-                'text',
-                'message',
-                'detail',
+                "recommendations",
+                "items",
+                "values",
+                "text",
+                "message",
+                "detail",
             ):
                 if key in source:
                     mapping_results.extend(
@@ -2367,17 +2372,17 @@ class WeatherCardGenerator(BaseCardGenerator):
 
         collected: list[str] = []
 
-        attributes = getattr(state, 'attributes', {})
+        attributes = getattr(state, "attributes", {})
         if isinstance(attributes, Mapping):
             collected.extend(
                 self._normalise_recommendations(
-                    attributes.get('recommendations'),
+                    attributes.get("recommendations"),
                 ),
             )
 
         collected.extend(
             self._normalise_recommendations(
-                getattr(state, 'state', ''),
+                getattr(state, "state", ""),
             ),
         )
 
@@ -2419,7 +2424,7 @@ class WeatherCardGenerator(BaseCardGenerator):
         modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
 
         # Check if weather module is enabled
-        if not modules.get('weather'):
+        if not modules.get("weather"):
             return []
 
         start_time = asyncio.get_event_loop().time()
@@ -2428,7 +2433,7 @@ class WeatherCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Generate weather cards concurrently
         weather_card_tasks = [
             (
-                'health_score',
+                "health_score",
                 self._generate_weather_health_score_card(
                     dog_id,
                     dog_name,
@@ -2436,7 +2441,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                 ),
             ),
             (
-                'active_alerts',
+                "active_alerts",
                 self._generate_active_weather_alerts_card(
                     dog_id,
                     dog_name,
@@ -2444,7 +2449,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                 ),
             ),
             (
-                'recommendations',
+                "recommendations",
                 self._generate_weather_recommendations_card(
                     dog_id,
                     dog_name,
@@ -2452,7 +2457,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                 ),
             ),
             (
-                'current_conditions',
+                "current_conditions",
                 self._generate_current_weather_conditions_card(
                     dog_id,
                     dog_name,
@@ -2462,10 +2467,10 @@ class WeatherCardGenerator(BaseCardGenerator):
         ]
 
         # Add breed-specific and forecast cards based on options
-        if options.get('show_breed_advice', True):
+        if options.get("show_breed_advice", True):
             weather_card_tasks.append(
                 (
-                    'breed_advice',
+                    "breed_advice",
                     self._generate_breed_weather_advice_card(
                         dog_config,
                         options,
@@ -2473,10 +2478,10 @@ class WeatherCardGenerator(BaseCardGenerator):
                 ),
             )
 
-        if options.get('show_weather_forecast', True):
+        if options.get("show_weather_forecast", True):
             weather_card_tasks.append(
                 (
-                    'forecast',
+                    "forecast",
                     self._generate_weather_forecast_card(
                         dog_id,
                         dog_name,
@@ -2506,27 +2511,27 @@ class WeatherCardGenerator(BaseCardGenerator):
                     logger=_LOGGER,
                 )
                 if card_payload is None:
-                    self._performance_stats['errors_handled'] += 1
+                    self._performance_stats["errors_handled"] += 1
                     continue
                 cards.append(card_payload)
 
         except TimeoutError:
-            _LOGGER.error('Weather cards generation timeout for %s', dog_name)
-            self._performance_stats['errors_handled'] += 1
+            _LOGGER.error("Weather cards generation timeout for %s", dog_name)
+            self._performance_stats["errors_handled"] += 1
             # Return minimal weather card on timeout
             return [
                 {
-                    'type': 'markdown',
-                    'content': f"## 🌤️ {dog_name} Weather\n\nTimeout generating weather cards. Please refresh.",
+                    "type": "markdown",
+                    "content": f"## 🌤️ {dog_name} Weather\n\nTimeout generating weather cards. Please refresh.",
                 },
             ]
 
         generation_time = asyncio.get_event_loop().time() - start_time
-        self._performance_stats['generation_time_total'] += generation_time
+        self._performance_stats["generation_time_total"] += generation_time
 
         if generation_time > 1.5:
             _LOGGER.info(
-                'Slow weather card generation: %.2fs for %s',
+                "Slow weather card generation: %.2fs for %s",
                 generation_time,
                 dog_name,
             )
@@ -2547,21 +2552,21 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'gauge',
-                    'entity': score_entity,
-                    'name': f"🌤️ {dog_name} Weather Safety",
-                    'min': 0,
-                    'max': 100,
-                    'unit': '/100',
-                    'needle': True,
-                    'severity': {'green': 80, 'yellow': 60, 'orange': 40, 'red': 0},
+                    "type": "gauge",
+                    "entity": score_entity,
+                    "name": f"🌤️ {dog_name} Weather Safety",
+                    "min": 0,
+                    "max": 100,
+                    "unit": "/100",
+                    "needle": True,
+                    "severity": {"green": 80, "yellow": 60, "orange": 40, "red": 0},
                 },
                 {
-                    'type': 'markdown',
-                    'content': f"""
+                    "type": "markdown",
+                    "content": f"""
 {{% set score = states('sensor.{dog_id}_weather_health_score') | int(0) %}}
 {{% if score >= 80 %}}
 **🌟 Excellent conditions** - Perfect for all activities
@@ -2603,67 +2608,67 @@ class WeatherCardGenerator(BaseCardGenerator):
         # Create conditional alert chips
         alert_chips: list[JSONMutableMapping] = []
         alert_configs = [
-            ('heat_stress_alert', '🔥', 'Heat Stress', 'red'),
-            ('cold_stress_alert', '🥶', 'Cold Stress', 'blue'),
-            ('uv_exposure_alert', '☀️', 'UV Risk', 'orange'),
-            ('humidity_warning', '💨', 'Humidity', 'purple'),
-            ('storm_warning', '⛈️', 'Storm', 'dark'),
-            ('paw_protection_needed', '🐾', 'Paw Protection', 'brown'),
+            ("heat_stress_alert", "🔥", "Heat Stress", "red"),
+            ("cold_stress_alert", "🥶", "Cold Stress", "blue"),
+            ("uv_exposure_alert", "☀️", "UV Risk", "orange"),
+            ("humidity_warning", "💨", "Humidity", "purple"),
+            ("storm_warning", "⛈️", "Storm", "dark"),
+            ("paw_protection_needed", "🐾", "Paw Protection", "brown"),
         ]
 
         for alert_type, icon, name, color in alert_configs:
             entity_id = f"binary_sensor.{dog_id}_{alert_type}"
             if entity_id in valid_alerts:
                 chip_definition: JSONMutableMapping = {
-                    'type': 'conditional',
-                    'conditions': [{'entity': entity_id, 'state': 'on'}],
-                    'chip': {
-                        'type': 'entity',
-                        'entity': entity_id,
-                        'name': f"{icon} {name}",
-                        'icon_color': color,
-                        'content_info': 'none',
-                        'tap_action': {
-                            'action': 'more-info',
-                            'entity': entity_id,
+                    "type": "conditional",
+                    "conditions": [{"entity": entity_id, "state": "on"}],
+                    "chip": {
+                        "type": "entity",
+                        "entity": entity_id,
+                        "name": f"{icon} {name}",
+                        "icon_color": color,
+                        "content_info": "none",
+                        "tap_action": {
+                            "action": "more-info",
+                            "entity": entity_id,
                         },
                     },
                 }
                 alert_chips.append(chip_definition)
 
         card: CardConfig = {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'custom:mushroom-title-card',
-                    'title': f"⚠️ {dog_name} Weather Alerts",
-                    'subtitle': 'Active weather health warnings',
+                    "type": "custom:mushroom-title-card",
+                    "title": f"⚠️ {dog_name} Weather Alerts",
+                    "subtitle": "Active weather health warnings",
                 },
                 {
-                    'type': 'conditional',
-                    'conditions': [
+                    "type": "conditional",
+                    "conditions": [
                         {
-                            'entity': f"binary_sensor.{dog_id}_weather_alerts_active",
-                            'state': 'on',
+                            "entity": f"binary_sensor.{dog_id}_weather_alerts_active",
+                            "state": "on",
                         },
                     ],
-                    'card': {
-                        'type': 'custom:mushroom-chips-card',
-                        'chips': alert_chips,
-                        'alignment': 'justify',
+                    "card": {
+                        "type": "custom:mushroom-chips-card",
+                        "chips": alert_chips,
+                        "alignment": "justify",
                     },
                 },
                 {
-                    'type': 'conditional',
-                    'conditions': [
+                    "type": "conditional",
+                    "conditions": [
                         {
-                            'entity': f"binary_sensor.{dog_id}_weather_alerts_active",
-                            'state': 'off',
+                            "entity": f"binary_sensor.{dog_id}_weather_alerts_active",
+                            "state": "off",
                         },
                     ],
-                    'card': {
-                        'type': 'markdown',
-                        'content': '✅ **No active weather alerts** - Conditions are safe for normal activities.',
+                    "card": {
+                        "type": "markdown",
+                        "content": "✅ **No active weather alerts** - Conditions are safe for normal activities.",
                     },
                 },
             ],
@@ -2702,49 +2707,49 @@ class WeatherCardGenerator(BaseCardGenerator):
         quick_actions: CardCollection = []
 
         update_weather_card: CardConfig = {
-            'type': 'custom:mushroom-entity-card',
-            'entity': f"button.{dog_id}_update_weather_data",
-            'name': 'Update Weather',
-            'icon': 'mdi:weather-cloudy-clock',
-            'icon_color': 'blue',
-            'tap_action': {
-                'action': 'call-service',
-                'service': 'pawcontrol.update_weather_data',
-                'service_data': {'dog_id': dog_id},
+            "type": "custom:mushroom-entity-card",
+            "entity": f"button.{dog_id}_update_weather_data",
+            "name": "Update Weather",
+            "icon": "mdi:weather-cloudy-clock",
+            "icon_color": "blue",
+            "tap_action": {
+                "action": "call-service",
+                "service": "pawcontrol.update_weather_data",
+                "service_data": {"dog_id": dog_id},
             },
         }
         quick_actions.append(update_weather_card)
 
         get_advice_card: CardConfig = {
-            'type': 'custom:mushroom-entity-card',
-            'entity': f"button.{dog_id}_get_weather_recommendations",
-            'name': 'Get Advice',
-            'icon': 'mdi:lightbulb-on',
-            'icon_color': 'amber',
-            'tap_action': {
-                'action': 'call-service',
-                'service': 'pawcontrol.get_weather_recommendations',
-                'service_data': {
-                    'dog_id': dog_id,
-                    'include_breed_specific': True,
-                    'include_health_conditions': True,
+            "type": "custom:mushroom-entity-card",
+            "entity": f"button.{dog_id}_get_weather_recommendations",
+            "name": "Get Advice",
+            "icon": "mdi:lightbulb-on",
+            "icon_color": "amber",
+            "tap_action": {
+                "action": "call-service",
+                "service": "pawcontrol.get_weather_recommendations",
+                "service_data": {
+                    "dog_id": dog_id,
+                    "include_breed_specific": True,
+                    "include_health_conditions": True,
                 },
             },
         }
         quick_actions.append(get_advice_card)
 
         actions_card: CardConfig = {
-            'type': 'horizontal-stack',
-            'cards': quick_actions,
+            "type": "horizontal-stack",
+            "cards": quick_actions,
         }
 
         card: CardConfig = {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'custom:mushroom-title-card',
-                    'title': f"💡 {dog_name} Weather Advice",
-                    'subtitle': 'Personalized recommendations based on current conditions',
+                    "type": "custom:mushroom-title-card",
+                    "title": f"💡 {dog_name} Weather Advice",
+                    "subtitle": "Personalized recommendations based on current conditions",
                 },
                 markdown_card,
                 actions_card,
@@ -2778,23 +2783,23 @@ class WeatherCardGenerator(BaseCardGenerator):
         entity_mappings = [
             (
                 f"sensor.{dog_id}_temperature_impact",
-                'Temperature Impact',
-                'mdi:thermometer',
+                "Temperature Impact",
+                "mdi:thermometer",
             ),
             (
                 f"sensor.{dog_id}_humidity_impact",
-                'Humidity Impact',
-                'mdi:water-percent',
+                "Humidity Impact",
+                "mdi:water-percent",
             ),
             (
                 f"sensor.{dog_id}_uv_exposure_level",
-                'UV Exposure Level',
-                'mdi:weather-sunny',
+                "UV Exposure Level",
+                "mdi:weather-sunny",
             ),
             (
                 f"sensor.{dog_id}_wind_impact",
-                'Wind Impact',
-                'mdi:weather-windy',
+                "Wind Impact",
+                "mdi:weather-windy",
             ),
         ]
 
@@ -2802,18 +2807,18 @@ class WeatherCardGenerator(BaseCardGenerator):
             if entity_id in valid_entities:
                 entity_configs.append(
                     {
-                        'entity': entity_id,
-                        'name': name,
-                        'icon': icon,
+                        "entity": entity_id,
+                        "name": name,
+                        "icon": icon,
                     },
                 )
 
         return {
-            'type': 'entities',
-            'title': f"🌡️ {dog_name} Weather Impact",
-            'entities': entity_configs,
-            'state_color': True,
-            'show_header_toggle': False,
+            "type": "entities",
+            "title": f"🌡️ {dog_name} Weather Impact",
+            "entities": entity_configs,
+            "state_color": True,
+            "show_header_toggle": False,
         }
 
     async def _generate_breed_weather_advice_card(
@@ -2829,7 +2834,7 @@ class WeatherCardGenerator(BaseCardGenerator):
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
         dog_name = dog_config[DOG_NAME_FIELD]
-        dog_breed = dog_config.get('breed', 'Mixed Breed')
+        dog_breed = dog_config.get("breed", "Mixed Breed")
 
         breed_advice_entity = f"sensor.{dog_id}_breed_weather_advice"
 
@@ -2837,16 +2842,16 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'custom:mushroom-title-card',
-                    'title': f"🐕 {dog_breed} Weather Guide",
-                    'subtitle': f"Breed-specific advice for {dog_name}",
+                    "type": "custom:mushroom-title-card",
+                    "title": f"🐕 {dog_breed} Weather Guide",
+                    "subtitle": f"Breed-specific advice for {dog_name}",
                 },
                 {
-                    'type': 'markdown',
-                    'content': f"""
+                    "type": "markdown",
+                    "content": f"""
 {{% set breed_advice = states('sensor.{dog_id}_breed_weather_advice') %}}
 {{% if breed_advice and breed_advice != 'unknown' %}}
 **Breed Characteristics:**
@@ -2876,22 +2881,22 @@ class WeatherCardGenerator(BaseCardGenerator):
         """Generate weather forecast card with health predictions."""
         forecast_entity = f"sensor.{dog_id}_weather_forecast_health"
 
-        language: str | None = getattr(self.hass.config, 'language', None)
+        language: str | None = getattr(self.hass.config, "language", None)
 
         if not await self._entity_exists_cached(forecast_entity):
             return None
 
         return {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'custom:mushroom-title-card',
-                    'title': f"🔮 {dog_name} Weather Forecast",
-                    'subtitle': 'Upcoming weather health predictions',
+                    "type": "custom:mushroom-title-card",
+                    "title": f"🔮 {dog_name} Weather Forecast",
+                    "subtitle": "Upcoming weather health predictions",
                 },
                 {
-                    'type': 'markdown',
-                    'content': f"""
+                    "type": "markdown",
+                    "content": f"""
 {{% set forecast_data = states('sensor.{dog_id}_weather_forecast_health') %}}
 {{% if forecast_data and forecast_data != 'unknown' %}}
 **Next 24 Hours:**
@@ -2907,21 +2912,21 @@ class WeatherCardGenerator(BaseCardGenerator):
                     """,
                 },
                 {
-                    'type': 'horizontal-stack',
-                    'cards': [
+                    "type": "horizontal-stack",
+                    "cards": [
                         {
-                            'type': 'custom:mushroom-entity-card',
-                            'entity': f"sensor.{dog_id}_next_optimal_walk_time",
-                            'name': _translated_walk_label(language, 'next_good_time'),
-                            'icon': 'mdi:clock-check',
-                            'icon_color': 'green',
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"sensor.{dog_id}_next_optimal_walk_time",
+                            "name": _translated_walk_label(language, "next_good_time"),
+                            "icon": "mdi:clock-check",
+                            "icon_color": "green",
                         },
                         {
-                            'type': 'custom:mushroom-entity-card',
-                            'entity': f"sensor.{dog_id}_weather_trend",
-                            'name': 'Weather Trend',
-                            'icon': 'mdi:trending-up',
-                            'icon_color': 'blue',
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"sensor.{dog_id}_weather_trend",
+                            "name": "Weather Trend",
+                            "icon": "mdi:trending-up",
+                            "icon_color": "blue",
                         },
                     ],
                 },
@@ -2948,57 +2953,57 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'vertical-stack',
-            'cards': [
+            "type": "vertical-stack",
+            "cards": [
                 {
-                    'type': 'custom:mushroom-title-card',
-                    'title': f"⚙️ {dog_name} Weather Settings",
-                    'subtitle': 'Control weather monitoring and alerts',
+                    "type": "custom:mushroom-title-card",
+                    "title": f"⚙️ {dog_name} Weather Settings",
+                    "subtitle": "Control weather monitoring and alerts",
                 },
                 {
-                    'type': 'entities',
-                    'entities': [
+                    "type": "entities",
+                    "entities": [
                         {
-                            'entity': f"switch.{dog_id}_weather_monitoring",
-                            'name': 'Weather Monitoring',
-                            'icon': 'mdi:weather-partly-cloudy',
+                            "entity": f"switch.{dog_id}_weather_monitoring",
+                            "name": "Weather Monitoring",
+                            "icon": "mdi:weather-partly-cloudy",
                         },
                         {
-                            'entity': f"switch.{dog_id}_heat_alerts",
-                            'name': 'Heat Stress Alerts',
-                            'icon': 'mdi:thermometer-high',
+                            "entity": f"switch.{dog_id}_heat_alerts",
+                            "name": "Heat Stress Alerts",
+                            "icon": "mdi:thermometer-high",
                         },
                         {
-                            'entity': f"switch.{dog_id}_cold_alerts",
-                            'name': 'Cold Stress Alerts',
-                            'icon': 'mdi:snowflake',
+                            "entity": f"switch.{dog_id}_cold_alerts",
+                            "name": "Cold Stress Alerts",
+                            "icon": "mdi:snowflake",
                         },
                         {
-                            'entity': f"switch.{dog_id}_uv_alerts",
-                            'name': 'UV Protection Alerts',
-                            'icon': 'mdi:weather-sunny-alert',
+                            "entity": f"switch.{dog_id}_uv_alerts",
+                            "name": "UV Protection Alerts",
+                            "icon": "mdi:weather-sunny-alert",
                         },
                     ],
-                    'show_header_toggle': False,
-                    'state_color': True,
+                    "show_header_toggle": False,
+                    "state_color": True,
                 },
                 {
-                    'type': 'grid',
-                    'columns': 2,
-                    'cards': [
+                    "type": "grid",
+                    "columns": 2,
+                    "cards": [
                         {
-                            'type': 'custom:mushroom-entity-card',
-                            'entity': f"number.{dog_id}_heat_threshold",
-                            'name': 'Heat Threshold',
-                            'icon': 'mdi:temperature-celsius',
-                            'icon_color': 'red',
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"number.{dog_id}_heat_threshold",
+                            "name": "Heat Threshold",
+                            "icon": "mdi:temperature-celsius",
+                            "icon_color": "red",
                         },
                         {
-                            'type': 'custom:mushroom-entity-card',
-                            'entity': f"number.{dog_id}_cold_threshold",
-                            'name': 'Cold Threshold',
-                            'icon': 'mdi:temperature-celsius',
-                            'icon_color': 'blue',
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"number.{dog_id}_cold_threshold",
+                            "name": "Cold Threshold",
+                            "icon": "mdi:temperature-celsius",
+                            "icon_color": "blue",
                         },
                     ],
                 },
@@ -3031,12 +3036,12 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         return {
-            'type': 'history-graph',
-            'title': f"📈 {dog_name} Weather History (7 days)",
-            'entities': valid_entities,
-            'hours_to_show': 168,  # 7 days
-            'refresh_interval': 0,
-            'logarithmic_scale': False,
+            "type": "history-graph",
+            "title": f"📈 {dog_name} Weather History (7 days)",
+            "entities": valid_entities,
+            "hours_to_show": 168,  # 7 days
+            "refresh_interval": 0,
+            "logarithmic_scale": False,
         }
 
 
@@ -3079,10 +3084,10 @@ class StatisticsCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Generate all statistics cards concurrently
         stats_generators = [
-            ('activity', self._generate_activity_statistics(typed_dogs, theme)),
-            ('feeding', self._generate_feeding_statistics(typed_dogs, theme)),
-            ('walk', self._generate_walk_statistics(typed_dogs, theme)),
-            ('health', self._generate_health_statistics(typed_dogs, theme)),
+            ("activity", self._generate_activity_statistics(typed_dogs, theme)),
+            ("feeding", self._generate_feeding_statistics(typed_dogs, theme)),
+            ("walk", self._generate_walk_statistics(typed_dogs, theme)),
+            ("health", self._generate_health_statistics(typed_dogs, theme)),
         ]
 
         try:
@@ -3102,13 +3107,13 @@ class StatisticsCardGenerator(BaseCardGenerator):
                     logger=_LOGGER,
                 )
                 if card_payload is None:
-                    self._performance_stats['errors_handled'] += 1
+                    self._performance_stats["errors_handled"] += 1
                     continue
                 cards.append(card_payload)
 
         except TimeoutError:
-            _LOGGER.error('Statistics cards generation timeout')
-            self._performance_stats['errors_handled'] += 1
+            _LOGGER.error("Statistics cards generation timeout")
+            self._performance_stats["errors_handled"] += 1
 
         # Add summary card (always include)
         summary_card = self._generate_summary_card(
@@ -3143,9 +3148,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         valid_entities = await self._validate_entities_batch(activity_entities)
 
         return await self.templates.get_statistics_graph_template(
-            'Activity Statistics (30 days)',
+            "Activity Statistics (30 days)",
             valid_entities,
-            ['mean', 'min', 'max'],
+            ["mean", "min", "max"],
             days_to_show=30,
             theme=theme,
         )
@@ -3171,9 +3176,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         valid_entities = await self._validate_entities_batch(feeding_entities)
 
         return await self.templates.get_statistics_graph_template(
-            'Feeding Statistics (30 days)',
+            "Feeding Statistics (30 days)",
             valid_entities,
-            ['sum', 'mean'],
+            ["sum", "mean"],
             days_to_show=30,
             theme=theme,
         )
@@ -3186,7 +3191,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
         """Generate optimized walk statistics card."""
         walk_entities = []
 
-        language: str | None = getattr(self.hass.config, 'language', None)
+        language: str | None = getattr(self.hass.config, "language", None)
 
         for dog in dogs_config:
             dog_id = dog[DOG_ID_FIELD]
@@ -3201,9 +3206,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         valid_entities = await self._validate_entities_batch(walk_entities)
 
         return await self.templates.get_statistics_graph_template(
-            _translated_walk_template(language, 'statistics_title', days=30),
+            _translated_walk_template(language, "statistics_title", days=30),
             valid_entities,
-            ['sum', 'mean', 'max'],
+            ["sum", "mean", "max"],
             days_to_show=30,
             theme=theme,
         )
@@ -3229,9 +3234,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         valid_entities = await self._validate_entities_batch(weight_entities)
 
         return await self.templates.get_statistics_graph_template(
-            'Weight Trends (60 days)',
+            "Weight Trends (60 days)",
             valid_entities,
-            ['mean', 'min', 'max'],
+            ["mean", "min", "max"],
             days_to_show=60,
             theme=theme,
         )
@@ -3275,7 +3280,7 @@ async def cleanup_validation_cache() -> None:
         _entity_validation_cache.pop(key, None)
 
     _LOGGER.debug(
-        'Cleaned %d expired entries from validation cache',
+        "Cleaned %d expired entries from validation cache",
         len(expired_keys),
     )
 
@@ -3284,11 +3289,11 @@ async def cleanup_validation_cache() -> None:
 def get_global_performance_stats() -> DashboardCardGlobalPerformanceStats:
     """Get global performance statistics for all card generators."""
     stats: DashboardCardGlobalPerformanceStats = {
-        'validation_cache_size': len(_entity_validation_cache),
-        'cache_threshold': float(_cache_cleanup_threshold),
-        'max_concurrent_validations': MAX_CONCURRENT_VALIDATIONS,
-        'validation_timeout': ENTITY_VALIDATION_TIMEOUT,
-        'card_generation_timeout': CARD_GENERATION_TIMEOUT,
+        "validation_cache_size": len(_entity_validation_cache),
+        "cache_threshold": float(_cache_cleanup_threshold),
+        "max_concurrent_validations": MAX_CONCURRENT_VALIDATIONS,
+        "validation_timeout": ENTITY_VALIDATION_TIMEOUT,
+        "card_generation_timeout": CARD_GENERATION_TIMEOUT,
     }
     return stats
 

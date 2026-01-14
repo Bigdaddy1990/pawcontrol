@@ -8,30 +8,30 @@ of the environment. The fallback mirrors Home Assistant's ``TypedDict`` based
 selector APIs to provide identical configuration schemas without depending on
 the Core runtime during tests.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 _REQUIRED_ATTRIBUTES = {
-    'BooleanSelector',
-    'BooleanSelectorConfig',
-    'DateSelector',
-    'DateSelectorConfig',
-    'NumberSelector',
-    'NumberSelectorConfig',
-    'NumberSelectorMode',
-    'SelectSelector',
-    'SelectSelectorConfig',
-    'SelectSelectorMode',
-    'TextSelector',
-    'TextSelectorConfig',
-    'TextSelectorType',
-    'TimeSelector',
-    'TimeSelectorConfig',
+    "BooleanSelector",
+    "BooleanSelectorConfig",
+    "DateSelector",
+    "DateSelectorConfig",
+    "NumberSelector",
+    "NumberSelectorConfig",
+    "NumberSelectorMode",
+    "SelectSelector",
+    "SelectSelectorConfig",
+    "SelectSelectorMode",
+    "TextSelector",
+    "TextSelectorConfig",
+    "TextSelectorType",
+    "TimeSelector",
+    "TimeSelectorConfig",
 }
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
@@ -67,15 +67,15 @@ else:
     class NumberSelectorMode(StrEnum):
         """Available modes for number selectors."""
 
-        BOX = 'box'
-        SLIDER = 'slider'
+        BOX = "box"
+        SLIDER = "slider"
 
     class NumberSelectorConfig(BaseSelectorConfig, total=False):
         """Number selector configuration shim."""
 
         min: float
         max: float
-        step: float | Literal['any']
+        step: float | Literal["any"]
         unit_of_measurement: str
         mode: NumberSelectorMode
         translation_key: str
@@ -89,8 +89,8 @@ else:
     class SelectSelectorMode(StrEnum):
         """Available modes for select selectors."""
 
-        LIST = 'list'
-        DROPDOWN = 'dropdown'
+        LIST = "list"
+        DROPDOWN = "dropdown"
 
     class SelectSelectorConfig(BaseSelectorConfig, total=False):
         """Select selector configuration shim."""
@@ -105,19 +105,19 @@ else:
     class TextSelectorType(StrEnum):
         """Valid text selector input types."""
 
-        COLOR = 'color'
-        DATE = 'date'
-        DATETIME_LOCAL = 'datetime-local'
-        EMAIL = 'email'
-        MONTH = 'month'
-        NUMBER = 'number'
-        PASSWORD = 'password'
-        SEARCH = 'search'
-        TEL = 'tel'
-        TEXT = 'text'
-        TIME = 'time'
-        URL = 'url'
-        WEEK = 'week'
+        COLOR = "color"
+        DATE = "date"
+        DATETIME_LOCAL = "datetime-local"
+        EMAIL = "email"
+        MONTH = "month"
+        NUMBER = "number"
+        PASSWORD = "password"
+        SEARCH = "search"
+        TEL = "tel"
+        TEXT = "text"
+        TIME = "time"
+        URL = "url"
+        WEEK = "week"
 
     class TextSelectorConfig(BaseSelectorConfig, total=False):
         """Text selector configuration shim."""
@@ -204,4 +204,4 @@ else:
         TimeSelectorConfig=TimeSelectorConfig,
     )
 
-__all__ = ['selector']
+__all__ = ["selector"]

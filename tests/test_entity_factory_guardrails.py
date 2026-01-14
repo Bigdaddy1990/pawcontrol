@@ -7,34 +7,36 @@ module import which are not available in the execution environment.  We stub
 the minimal interfaces that the entity factory relies on so the module can be
 imported and exercised directly.
 """
+
 from __future__ import annotations
 
 import types
-from enum import Enum
-from enum import StrEnum
+from enum import Enum, StrEnum
 
 import pytest
-
-from custom_components.pawcontrol.entity_factory import _MIN_OPERATION_DURATION
-from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_FACTOR
-from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_THRESHOLD
-from custom_components.pawcontrol.entity_factory import _RUNTIME_EXPAND_THRESHOLD
-from custom_components.pawcontrol.entity_factory import _RUNTIME_MAX_FLOOR
-from custom_components.pawcontrol.entity_factory import _RUNTIME_TARGET_RATIO
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
-from custom_components.pawcontrol.entity_factory import EntityFactory
-from tests.helpers.homeassistant_test_stubs import (
-    install_homeassistant_stubs,
+from custom_components.pawcontrol.entity_factory import (
+    _MIN_OPERATION_DURATION,
+    _RUNTIME_CONTRACT_FACTOR,
+    _RUNTIME_CONTRACT_THRESHOLD,
+    _RUNTIME_EXPAND_THRESHOLD,
+    _RUNTIME_MAX_FLOOR,
+    _RUNTIME_TARGET_RATIO,
+    ENTITY_PROFILES,
+    EntityFactory,
 )
+
 from tests.helpers.homeassistant_test_stubs import (
     Platform as _Platform,
+)
+from tests.helpers.homeassistant_test_stubs import (
+    install_homeassistant_stubs,
 )
 
 
 class _PlatformStringAlias(Enum):
     """Enum stub exposing string values for compatibility testing."""
 
-    SENSOR = 'sensor'
+    SENSOR = "sensor"
 
 
 class _PlatformEnumAlias(Enum):
@@ -55,16 +57,16 @@ install_homeassistant_stubs()
 def test_basic_profile_supports_buttons() -> None:
     """The basic profile must now recognise button entities."""
 
-    assert _Platform.BUTTON in ENTITY_PROFILES['basic']['platforms']
+    assert _Platform.BUTTON in ENTITY_PROFILES["basic"]["platforms"]
 
 
 def test_validate_profile_rejects_unknown_modules() -> None:
     """Unknown modules should cause profile validation to fail."""
 
     factory = EntityFactory(coordinator=None)
-    modules = {'feeding': True, 'unknown': True}
+    modules = {"feeding": True, "unknown": True}
 
-    assert not factory.validate_profile_for_modules('standard', modules)
+    assert not factory.validate_profile_for_modules("standard", modules)
 
 
 def test_should_create_entity_accepts_platform_enum() -> None:
@@ -73,9 +75,9 @@ def test_should_create_entity_accepts_platform_enum() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
-        'standard',
+        "standard",
         _Platform.SENSOR,
-        'feeding',
+        "feeding",
         priority=6,
     )
 
@@ -86,9 +88,9 @@ def test_should_create_entity_accepts_nested_enum_alias() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
-        'standard',
+        "standard",
         _NestedPlatformAlias.SENSOR,
-        'feeding',
+        "feeding",
         priority=6,
     )
 
@@ -99,9 +101,9 @@ def test_should_create_entity_blocks_unknown_module() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert not factory.should_create_entity(
-        'advanced',
+        "advanced",
         _Platform.SENSOR,
-        'unknown',
+        "unknown",
         priority=9,
     )
 
@@ -111,16 +113,16 @@ def test_create_entity_config_normalises_output() -> None:
 
     factory = EntityFactory(coordinator=None)
     config = factory.create_entity_config(
-        dog_id='buddy',
+        dog_id="buddy",
         entity_type=_Platform.BUTTON,
-        module='feeding',
-        profile='basic',
+        module="feeding",
+        profile="basic",
         priority=9,
     )
 
     assert config is not None
-    assert config['entity_type'] == 'button'
-    assert config['platform'] is _Platform.BUTTON
+    assert config["entity_type"] == "button"
+    assert config["platform"] is _Platform.BUTTON
 
 
 def test_create_entity_config_preserves_alias_enum_platform() -> None:
@@ -129,15 +131,15 @@ def test_create_entity_config_preserves_alias_enum_platform() -> None:
     factory = EntityFactory(coordinator=None)
 
     config = factory.create_entity_config(
-        dog_id='buddy',
+        dog_id="buddy",
         entity_type=_NestedPlatformAlias.SENSOR,
-        module='feeding',
-        profile='basic',
+        module="feeding",
+        profile="basic",
         priority=9,
     )
 
     assert config is not None
-    assert config['platform'] is _NestedPlatformAlias.SENSOR
+    assert config["platform"] is _NestedPlatformAlias.SENSOR
 
 
 def test_create_entity_config_rejects_invalid_type() -> None:
@@ -147,10 +149,10 @@ def test_create_entity_config_rejects_invalid_type() -> None:
 
     assert (
         factory.create_entity_config(
-            dog_id='buddy',
-            entity_type='unsupported',
-            module='feeding',
-            profile='standard',
+            dog_id="buddy",
+            entity_type="unsupported",
+            module="feeding",
+            profile="standard",
         )
         is None
     )
@@ -212,15 +214,15 @@ def test_runtime_guard_records_telemetry() -> None:
     assert baseline == pytest.approx(_MIN_OPERATION_DURATION)
 
     existing_metrics = runtime_store.performance_stats.get(
-        'entity_factory_guard_metrics',
+        "entity_factory_guard_metrics",
     )
     if isinstance(existing_metrics, dict):
-        initial_samples = int(existing_metrics.get('samples', 0))
-        initial_average = float(existing_metrics.get('average_duration', 0.0))
-        initial_max = existing_metrics.get('max_duration')
-        initial_min = existing_metrics.get('min_duration')
-        initial_expansions = int(existing_metrics.get('expansions', 0))
-        initial_contractions = int(existing_metrics.get('contractions', 0))
+        initial_samples = int(existing_metrics.get("samples", 0))
+        initial_average = float(existing_metrics.get("average_duration", 0.0))
+        initial_max = existing_metrics.get("max_duration")
+        initial_min = existing_metrics.get("min_duration")
+        initial_expansions = int(existing_metrics.get("expansions", 0))
+        initial_contractions = int(existing_metrics.get("contractions", 0))
     else:
         initial_samples = 0
         initial_average = 0.0
@@ -232,117 +234,117 @@ def test_runtime_guard_records_telemetry() -> None:
     expand_duration = baseline * (_RUNTIME_TARGET_RATIO + 2.0)
     factory._recalibrate_runtime_floor(expand_duration)
 
-    metrics = runtime_store.performance_stats['entity_factory_guard_metrics']
-    assert metrics['expansions'] == initial_expansions + 1
-    assert metrics['samples'] == initial_samples + 1
-    assert metrics['runtime_floor'] >= baseline
-    assert metrics['last_event'] == 'expand'
-    assert metrics['last_actual_duration'] == pytest.approx(expand_duration)
-    assert metrics['peak_runtime_floor'] >= metrics['runtime_floor']
-    assert metrics['lowest_runtime_floor'] >= baseline - 1e-12
-    assert metrics['lowest_runtime_floor'] <= metrics['runtime_floor'] + 1e-12
-    assert metrics['last_floor_change'] == pytest.approx(
-        metrics['runtime_floor'] - baseline,
+    metrics = runtime_store.performance_stats["entity_factory_guard_metrics"]
+    assert metrics["expansions"] == initial_expansions + 1
+    assert metrics["samples"] == initial_samples + 1
+    assert metrics["runtime_floor"] >= baseline
+    assert metrics["last_event"] == "expand"
+    assert metrics["last_actual_duration"] == pytest.approx(expand_duration)
+    assert metrics["peak_runtime_floor"] >= metrics["runtime_floor"]
+    assert metrics["lowest_runtime_floor"] >= baseline - 1e-12
+    assert metrics["lowest_runtime_floor"] <= metrics["runtime_floor"] + 1e-12
+    assert metrics["last_floor_change"] == pytest.approx(
+        metrics["runtime_floor"] - baseline,
     )
-    assert metrics['last_floor_change_ratio'] == pytest.approx(
-        (metrics['runtime_floor'] - baseline) / baseline,
+    assert metrics["last_floor_change_ratio"] == pytest.approx(
+        (metrics["runtime_floor"] - baseline) / baseline,
     )
-    first_sample = metrics['last_actual_duration']
+    first_sample = metrics["last_actual_duration"]
     updated_average = ((initial_average * initial_samples) + first_sample) / (
         initial_samples + 1
     )
-    assert metrics['average_duration'] == pytest.approx(updated_average)
+    assert metrics["average_duration"] == pytest.approx(updated_average)
     max_candidates = [first_sample]
     if isinstance(initial_max, (int, float)):
         max_candidates.append(float(initial_max))
-    assert metrics['max_duration'] == pytest.approx(max(max_candidates))
+    assert metrics["max_duration"] == pytest.approx(max(max_candidates))
     min_candidates = [first_sample]
     if isinstance(initial_min, (int, float)) and initial_samples > 0:
         min_candidates.append(float(initial_min))
-    assert metrics['min_duration'] == pytest.approx(min(min_candidates))
-    assert metrics['runtime_floor_delta'] == pytest.approx(
-        metrics['runtime_floor'] - metrics['baseline_floor'],
+    assert metrics["min_duration"] == pytest.approx(min(min_candidates))
+    assert metrics["runtime_floor_delta"] == pytest.approx(
+        metrics["runtime_floor"] - metrics["baseline_floor"],
     )
 
     expanded_floor = factory._runtime_guard_floor
     contract_duration = expanded_floor * (_RUNTIME_CONTRACT_THRESHOLD - 0.2)
     factory._recalibrate_runtime_floor(contract_duration)
 
-    metrics = runtime_store.performance_stats['entity_factory_guard_metrics']
-    assert metrics['samples'] == initial_samples + 2
-    assert metrics['contractions'] == initial_contractions + 1
-    assert metrics['last_event'] == 'contract'
-    assert metrics['last_actual_duration'] > 0
-    assert metrics['peak_runtime_floor'] >= expanded_floor
-    assert metrics['lowest_runtime_floor'] <= metrics['runtime_floor']
-    assert metrics['last_floor_change'] == pytest.approx(
-        metrics['runtime_floor'] - expanded_floor,
+    metrics = runtime_store.performance_stats["entity_factory_guard_metrics"]
+    assert metrics["samples"] == initial_samples + 2
+    assert metrics["contractions"] == initial_contractions + 1
+    assert metrics["last_event"] == "contract"
+    assert metrics["last_actual_duration"] > 0
+    assert metrics["peak_runtime_floor"] >= expanded_floor
+    assert metrics["lowest_runtime_floor"] <= metrics["runtime_floor"]
+    assert metrics["last_floor_change"] == pytest.approx(
+        metrics["runtime_floor"] - expanded_floor,
     )
-    assert metrics['last_floor_change_ratio'] == pytest.approx(
-        metrics['last_floor_change'] / expanded_floor,
+    assert metrics["last_floor_change_ratio"] == pytest.approx(
+        metrics["last_floor_change"] / expanded_floor,
     )
-    second_sample = metrics['last_actual_duration']
+    second_sample = metrics["last_actual_duration"]
     combined_average = (
         (initial_average * initial_samples) + first_sample + second_sample
     ) / (initial_samples + 2)
-    assert metrics['average_duration'] == pytest.approx(combined_average)
+    assert metrics["average_duration"] == pytest.approx(combined_average)
     max_candidates = [first_sample, second_sample]
     if isinstance(initial_max, (int, float)):
         max_candidates.append(float(initial_max))
-    assert metrics['max_duration'] == pytest.approx(max(max_candidates))
+    assert metrics["max_duration"] == pytest.approx(max(max_candidates))
     min_candidates = [first_sample, second_sample]
     if isinstance(initial_min, (int, float)) and initial_samples > 0:
         min_candidates.append(float(initial_min))
-    assert metrics['min_duration'] == pytest.approx(min(min_candidates))
-    assert metrics['runtime_floor_delta'] == pytest.approx(
-        metrics['runtime_floor'] - metrics['baseline_floor'],
+    assert metrics["min_duration"] == pytest.approx(min(min_candidates))
+    assert metrics["runtime_floor_delta"] == pytest.approx(
+        metrics["runtime_floor"] - metrics["baseline_floor"],
     )
 
     stable_duration = factory._runtime_guard_floor * 1.8
     factory._recalibrate_runtime_floor(stable_duration)
 
-    metrics = runtime_store.performance_stats['entity_factory_guard_metrics']
-    assert metrics['samples'] == initial_samples + 3
-    assert metrics['stable_samples'] >= 1
-    assert metrics['last_event'] == 'stable'
-    assert metrics['consecutive_stable_samples'] >= 1
-    assert metrics['longest_stable_run'] >= metrics['consecutive_stable_samples']
-    assert metrics['stable_ratio'] == pytest.approx(
-        metrics['stable_samples'] / metrics['samples'],
+    metrics = runtime_store.performance_stats["entity_factory_guard_metrics"]
+    assert metrics["samples"] == initial_samples + 3
+    assert metrics["stable_samples"] >= 1
+    assert metrics["last_event"] == "stable"
+    assert metrics["consecutive_stable_samples"] >= 1
+    assert metrics["longest_stable_run"] >= metrics["consecutive_stable_samples"]
+    assert metrics["stable_ratio"] == pytest.approx(
+        metrics["stable_samples"] / metrics["samples"],
     )
-    assert metrics['expansion_ratio'] == pytest.approx(
-        metrics['expansions'] / metrics['samples'],
+    assert metrics["expansion_ratio"] == pytest.approx(
+        metrics["expansions"] / metrics["samples"],
     )
-    assert metrics['contraction_ratio'] == pytest.approx(
-        metrics['contractions'] / metrics['samples'],
+    assert metrics["contraction_ratio"] == pytest.approx(
+        metrics["contractions"] / metrics["samples"],
     )
-    assert metrics['volatility_ratio'] == pytest.approx(
-        (metrics['expansions'] + metrics['contractions']) / metrics['samples'],
+    assert metrics["volatility_ratio"] == pytest.approx(
+        (metrics["expansions"] + metrics["contractions"]) / metrics["samples"],
     )
 
-    recent = metrics['recent_durations']
-    assert len(recent) == min(5, metrics['samples'])
+    recent = metrics["recent_durations"]
+    assert len(recent) == min(5, metrics["samples"])
     assert recent[-1] == pytest.approx(stable_duration)
-    assert metrics['recent_average_duration'] == pytest.approx(
+    assert metrics["recent_average_duration"] == pytest.approx(
         sum(recent) / len(recent),
     )
-    assert metrics['recent_max_duration'] == pytest.approx(max(recent))
-    assert metrics['recent_min_duration'] == pytest.approx(min(recent))
-    assert metrics['recent_duration_span'] == pytest.approx(
-        metrics['recent_max_duration'] - metrics['recent_min_duration'],
+    assert metrics["recent_max_duration"] == pytest.approx(max(recent))
+    assert metrics["recent_min_duration"] == pytest.approx(min(recent))
+    assert metrics["recent_duration_span"] == pytest.approx(
+        metrics["recent_max_duration"] - metrics["recent_min_duration"],
     )
-    if metrics['runtime_floor'] > 0:
-        assert metrics['jitter_ratio'] == pytest.approx(
-            metrics['duration_span'] / metrics['runtime_floor'],
+    if metrics["runtime_floor"] > 0:
+        assert metrics["jitter_ratio"] == pytest.approx(
+            metrics["duration_span"] / metrics["runtime_floor"],
         )
-        assert metrics['recent_jitter_ratio'] == pytest.approx(
-            metrics['recent_duration_span'] / metrics['runtime_floor'],
+        assert metrics["recent_jitter_ratio"] == pytest.approx(
+            metrics["recent_duration_span"] / metrics["runtime_floor"],
         )
 
-    assert metrics['recent_samples'] == len(recent)
-    assert metrics['recent_events'][-1] == 'stable'
-    assert metrics['recent_stable_samples'] <= metrics['recent_samples']
-    assert metrics['recent_stable_ratio'] == pytest.approx(
-        metrics['recent_stable_samples'] / metrics['recent_samples'],
+    assert metrics["recent_samples"] == len(recent)
+    assert metrics["recent_events"][-1] == "stable"
+    assert metrics["recent_stable_samples"] <= metrics["recent_samples"]
+    assert metrics["recent_stable_ratio"] == pytest.approx(
+        metrics["recent_stable_samples"] / metrics["recent_samples"],
     )
-    assert metrics['stability_trend'] == 'regressing'
+    assert metrics["stability_trend"] == "regressing"

@@ -1,59 +1,59 @@
 """Text platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
-from homeassistant.components.text import TextEntity
-from homeassistant.components.text import TextMode
+from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID
-from .const import DOMAIN
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_WALK
+from .const import (
+    ATTR_DOG_ID,
+    DOMAIN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
-from .notifications import NotificationPriority
-from .notifications import NotificationType
+from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
-from .types import _normalise_text_metadata_entry
-from .types import coerce_dog_modules_config
-from .types import ConfigFlowUserInput
-from .types import CoordinatorDogData
-from .types import DOG_ID_FIELD
-from .types import DOG_MODULES_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DOG_TEXT_METADATA_FIELD
-from .types import DOG_TEXT_VALUES_FIELD
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import DogModulesProjection
-from .types import DogTextMetadataEntry
-from .types import DogTextMetadataSnapshot
-from .types import DogTextSnapshot
-from .types import ensure_dog_config_data
-from .types import ensure_dog_text_metadata_snapshot
-from .types import ensure_dog_text_snapshot
-from .types import JSONMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import ModuleToggleKey
-from .types import PawControlConfigEntry
-from .types import TextSnapshotKey
+from .types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    DOG_TEXT_METADATA_FIELD,
+    DOG_TEXT_VALUES_FIELD,
+    ConfigFlowUserInput,
+    CoordinatorDogData,
+    DogConfigData,
+    DogModulesConfig,
+    DogModulesProjection,
+    DogTextMetadataEntry,
+    DogTextMetadataSnapshot,
+    DogTextSnapshot,
+    JSONMapping,
+    JSONMutableMapping,
+    JSONValue,
+    ModuleToggleKey,
+    PawControlConfigEntry,
+    TextSnapshotKey,
+    _normalise_text_metadata_entry,
+    coerce_dog_modules_config,
+    ensure_dog_config_data,
+    ensure_dog_text_metadata_snapshot,
+    ensure_dog_text_snapshot,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ def _normalize_dog_configs(
     for index, config in enumerate(raw_configs):
         if not isinstance(config, Mapping):
             _LOGGER.warning(
-                'Skipping dog configuration at index %d: expected mapping but got %s',
+                "Skipping dog configuration at index %d: expected mapping but got %s",
                 index,
                 type(config),
             )
@@ -97,7 +97,7 @@ def _normalize_dog_configs(
         typed_config = ensure_dog_config_data(typed_mapping)
         if typed_config is None:
             _LOGGER.warning(
-                'Skipping dog configuration at index %d: missing required identifiers',
+                "Skipping dog configuration at index %d: missing required identifiers",
                 index,
             )
             continue
@@ -109,10 +109,10 @@ def _normalize_dog_configs(
         if isinstance(modules_payload, Mapping):
             modules_source = cast(ConfigFlowUserInput, modules_payload)
         elif isinstance(modules_payload, DogModulesProjection) or (
-            hasattr(modules_payload, 'config')
+            hasattr(modules_payload, "config")
             and hasattr(
                 modules_payload,
-                'mapping',
+                "mapping",
             )
         ):
             modules_source = cast(DogModulesProjection, modules_payload)
@@ -140,18 +140,18 @@ async def _async_add_entities_in_batches(
     """
 
     if batch_size <= 0:
-        raise ValueError('batch_size must be greater than zero')
+        raise ValueError("batch_size must be greater than zero")
 
     total_entities = len(entities)
 
     if not total_entities:
-        _LOGGER.debug('No text entities to register for PawControl')
+        _LOGGER.debug("No text entities to register for PawControl")
         return
 
     total_batches = (total_entities + batch_size - 1) // batch_size
 
     _LOGGER.debug(
-        'Adding %d text entities across %d batches (size=%d, delay=%.2fs)',
+        "Adding %d text entities across %d batches (size=%d, delay=%.2fs)",
         total_entities,
         total_batches,
         batch_size,
@@ -160,10 +160,10 @@ async def _async_add_entities_in_batches(
 
     for batch_index in range(total_batches):
         start = batch_index * batch_size
-        batch = list(entities[start: start + batch_size])
+        batch = list(entities[start : start + batch_size])
 
         _LOGGER.debug(
-            'Processing text batch %d/%d with %d entities',
+            "Processing text batch %d/%d with %d entities",
             batch_index + 1,
             total_batches,
             len(batch),
@@ -188,7 +188,7 @@ async def async_setup_entry(
 
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
-        _LOGGER.error('Runtime data missing for entry %s', entry.entry_id)
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
 
     coordinator = runtime_data.coordinator
@@ -198,14 +198,14 @@ async def async_setup_entry(
     skipped_configs = len(raw_dogs) - len(dogs)
     if skipped_configs:
         _LOGGER.debug(
-            'Filtered %d invalid dog configurations for entry %s',
+            "Filtered %d invalid dog configurations for entry %s",
             skipped_configs,
             entry.entry_id,
         )
 
     if not dogs:
         _LOGGER.info(
-            'No dogs configured for PawControl entry %s',
+            "No dogs configured for PawControl entry %s",
             entry.entry_id,
         )
         return
@@ -289,7 +289,7 @@ async def async_setup_entry(
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=8)
 
     _LOGGER.info(
-        'Created %d text entities for %d dogs using batched approach',
+        "Created %d text entities for %d dogs using batched approach",
         len(entities),
         len(dogs),
     )
@@ -310,7 +310,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name)
         self._text_type: TextSnapshotKey = text_type
-        self._current_value: str = ''
+        self._current_value: str = ""
         self._last_updated: str | None = None
         self._last_updated_context_id: str | None = None
         self._last_updated_parent_id: str | None = None
@@ -323,9 +323,9 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
         # Link entity to PawControl device entry for the dog
         self.update_device_metadata(
-            model='Smart Dog',
-            sw_version='1.0.0',
-            configuration_url='https://github.com/BigDaddy1990/pawcontrol',
+            model="Smart Dog",
+            sw_version="1.0.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
         )
 
     @property
@@ -338,12 +338,12 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         """Return extra state attributes."""
         merged = self._build_base_state_attributes(
             {
-                'text_type': self._text_type,
-                'character_count': len(self._current_value),
-                'last_updated': self._last_updated,
-                'last_updated_context_id': self._last_updated_context_id,
-                'last_updated_parent_id': self._last_updated_parent_id,
-                'last_updated_user_id': self._last_updated_user_id,
+                "text_type": self._text_type,
+                "character_count": len(self._current_value),
+                "last_updated": self._last_updated,
+                "last_updated_context_id": self._last_updated_context_id,
+                "last_updated_parent_id": self._last_updated_parent_id,
+                "last_updated_user_id": self._last_updated_user_id,
             },
         )
 
@@ -354,8 +354,8 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
         max_length = getattr(
             self,
-            'native_max',
-            getattr(self, '_attr_native_max', None),
+            "native_max",
+            getattr(self, "_attr_native_max", None),
         )
         if isinstance(max_length, int) and len(value) > max_length:
             return value[:max_length]
@@ -395,7 +395,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         coordinator_value: str | None = None
         coordinator_metadata: DogTextMetadataEntry | None = None
 
-        coordinator_data = getattr(self.coordinator, 'data', None)
+        coordinator_data = getattr(self.coordinator, "data", None)
         if isinstance(coordinator_data, Mapping):
             dog_payload = coordinator_data.get(self._dog_id)
             if isinstance(dog_payload, Mapping):
@@ -424,7 +424,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
     ) -> None:
         """Persist updated text values and metadata to runtime caches and storage."""
 
-        should_remove = value == ''
+        should_remove = value == ""
         update_payload: JSONMutableMapping = cast(
             JSONMutableMapping,
             {self._text_type: None if should_remove else value},
@@ -444,7 +444,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         runtime_data = self._get_runtime_data()
         data_manager: Any = self._get_data_manager()
         if data_manager is None and runtime_data is not None:
-            candidate = getattr(runtime_data, 'data_manager', None)
+            candidate = getattr(runtime_data, "data_manager", None)
             if candidate is not None:
                 data_manager = candidate
 
@@ -506,7 +506,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
                         dog.pop(DOG_TEXT_METADATA_FIELD, None)
                     break
 
-            coordinator_data = getattr(self.coordinator, 'data', None)
+            coordinator_data = getattr(self.coordinator, "data", None)
             if isinstance(coordinator_data, dict):
                 dog_payload = coordinator_data.get(self._dog_id)
                 if isinstance(dog_payload, Mapping):
@@ -600,7 +600,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
                 )
             except HomeAssistantError:  # pragma: no cover - defensive log
                 _LOGGER.exception(
-                    'Failed to persist %s text value for %s',
+                    "Failed to persist %s text value for %s",
                     self._text_type,
                     self._dog_name,
                 )
@@ -616,20 +616,20 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
         metadata: DogTextMetadataEntry = cast(
             DogTextMetadataEntry,
-            {'last_updated': timestamp},
+            {"last_updated": timestamp},
         )
-        context = getattr(self, 'context', None)
+        context = getattr(self, "context", None)
         if context is None:
-            context = getattr(self, '_context', None)
-        context_id = getattr(context, 'id', None)
+            context = getattr(self, "_context", None)
+        context_id = getattr(context, "id", None)
         if isinstance(context_id, str) and context_id:
-            metadata['context_id'] = context_id
-        parent_id = getattr(context, 'parent_id', None)
+            metadata["context_id"] = context_id
+        parent_id = getattr(context, "parent_id", None)
         if isinstance(parent_id, str) and parent_id:
-            metadata['parent_id'] = parent_id
-        user_id = getattr(context, 'user_id', None)
+            metadata["parent_id"] = parent_id
+        user_id = getattr(context, "user_id", None)
         if isinstance(user_id, str) and user_id:
-            metadata['user_id'] = user_id
+            metadata["user_id"] = user_id
 
         return metadata
 
@@ -638,20 +638,20 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
         timestamp = (
             metadata.get(
-                'last_updated',
+                "last_updated",
             )
             if metadata is not None
             else None
         )
         self._last_updated = timestamp
         self._last_updated_context_id = (
-            metadata.get('context_id') if metadata is not None else None
+            metadata.get("context_id") if metadata is not None else None
         )
         self._last_updated_parent_id = (
-            metadata.get('parent_id') if metadata is not None else None
+            metadata.get("parent_id") if metadata is not None else None
         )
         self._last_updated_user_id = (
-            metadata.get('user_id') if metadata is not None else None
+            metadata.get("user_id") if metadata is not None else None
         )
 
     async def async_added_to_hass(self) -> None:
@@ -666,17 +666,17 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         last_state_timestamp: str | None = None
 
         if last_state is not None:
-            if getattr(last_state, 'state', None) not in ('unknown', 'unavailable'):
+            if getattr(last_state, "state", None) not in ("unknown", "unavailable"):
                 last_state_value = cast(str, last_state.state)
 
-            attributes = getattr(last_state, 'attributes', {})
+            attributes = getattr(last_state, "attributes", {})
             if isinstance(attributes, Mapping):
-                attribute_timestamp = attributes.get('last_updated')
+                attribute_timestamp = attributes.get("last_updated")
                 if isinstance(attribute_timestamp, str):
                     last_state_timestamp = attribute_timestamp
 
             if last_state_timestamp is None:
-                last_updated_dt = getattr(last_state, 'last_updated', None)
+                last_updated_dt = getattr(last_state, "last_updated", None)
                 if isinstance(last_updated_dt, datetime):
                     last_state_timestamp = dt_util.as_utc(
                         last_updated_dt,
@@ -689,40 +689,40 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
             attr_user_id: str | None = None
 
             if isinstance(attributes, Mapping):
-                raw_context_id = attributes.get('last_updated_context_id')
+                raw_context_id = attributes.get("last_updated_context_id")
                 if isinstance(raw_context_id, str) and raw_context_id:
                     attr_context_id = raw_context_id
 
-                raw_parent_id = attributes.get('last_updated_parent_id')
+                raw_parent_id = attributes.get("last_updated_parent_id")
                 if isinstance(raw_parent_id, str) and raw_parent_id:
                     attr_parent_id = raw_parent_id
 
-                raw_user_id = attributes.get('last_updated_user_id')
+                raw_user_id = attributes.get("last_updated_user_id")
                 if isinstance(raw_user_id, str) and raw_user_id:
                     attr_user_id = raw_user_id
 
-            state_context = getattr(last_state, 'context', None)
+            state_context = getattr(last_state, "context", None)
             if attr_context_id is None:
-                context_id = getattr(state_context, 'id', None)
+                context_id = getattr(state_context, "id", None)
                 if isinstance(context_id, str) and context_id:
                     attr_context_id = context_id
 
             if attr_parent_id is None:
-                parent_id = getattr(state_context, 'parent_id', None)
+                parent_id = getattr(state_context, "parent_id", None)
                 if isinstance(parent_id, str) and parent_id:
                     attr_parent_id = parent_id
 
             if attr_user_id is None:
-                user_id = getattr(state_context, 'user_id', None)
+                user_id = getattr(state_context, "user_id", None)
                 if isinstance(user_id, str) and user_id:
                     attr_user_id = user_id
 
             metadata_from_state = _normalise_text_metadata_entry(
                 {
-                    'last_updated': last_state_timestamp,
-                    'context_id': attr_context_id,
-                    'parent_id': attr_parent_id,
-                    'user_id': attr_user_id,
+                    "last_updated": last_state_timestamp,
+                    "context_id": attr_context_id,
+                    "parent_id": attr_parent_id,
+                    "user_id": attr_user_id,
                 },
             )
 
@@ -765,10 +765,10 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
     async def async_set_value(self, value: str) -> None:
         """Set new value."""
         clamped_value = self._clamp_value(value)
-        normalized_value = clamped_value if clamped_value.strip() else ''
+        normalized_value = clamped_value if clamped_value.strip() else ""
         if normalized_value == self._current_value:
             _LOGGER.debug(
-                'Skipping %s update for %s; value unchanged',
+                "Skipping %s update for %s; value unchanged",
                 self._text_type,
                 self._dog_name,
             )
@@ -781,7 +781,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         self.async_write_ha_state()
         await self._async_persist_text_value(normalized_value, metadata=metadata_entry)
         _LOGGER.debug(
-            'Set %s for %s to: %s',
+            "Set %s for %s to: %s",
             self._text_type,
             self._dog_name,
             normalized_value[:50],
@@ -802,11 +802,11 @@ class PawControlDogNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'notes',
+            "notes",
             max_length=1000,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:note-text'
+        self._attr_icon = "mdi:note-text"
 
     async def async_set_value(self, value: str) -> None:
         """Set new notes value."""
@@ -816,10 +816,10 @@ class PawControlDogNotesText(PawControlTextBase):
         trimmed_value = value.strip()
         if len(trimmed_value) > 10 and not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': f"Notes updated: {value[:100]}",
+                "note": f"Notes updated: {value[:100]}",
             },
         ):
             return
@@ -835,8 +835,8 @@ class PawControlCustomLabelText(PawControlTextBase):
         dog_name: str,
     ) -> None:
         """Initialize the text entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'custom_label', max_length=50)
-        self._attr_icon = 'mdi:label'
+        super().__init__(coordinator, dog_id, dog_name, "custom_label", max_length=50)
+        self._attr_icon = "mdi:label"
 
 
 class PawControlWalkNotesText(PawControlTextBase):
@@ -853,11 +853,11 @@ class PawControlWalkNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'walk_notes',
+            "walk_notes",
             max_length=500,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:walk'
+        self._attr_icon = "mdi:walk"
 
     async def async_set_value(self, value: str) -> None:
         """Set new walk notes."""
@@ -865,8 +865,8 @@ class PawControlWalkNotesText(PawControlTextBase):
 
         # Add notes to current walk if one is active
         dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if dog_data and dog_data.get('walk', {}).get('walk_in_progress', False):
-            _LOGGER.debug('Added notes to active walk for %s', self._dog_name)
+        if dog_data and dog_data.get("walk", {}).get("walk_in_progress", False):
+            _LOGGER.debug("Added notes to active walk for %s", self._dog_name)
 
 
 class PawControlCurrentWalkLabelText(PawControlTextBase):
@@ -883,10 +883,10 @@ class PawControlCurrentWalkLabelText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'current_walk_label',
+            "current_walk_label",
             max_length=100,
         )
-        self._attr_icon = 'mdi:tag'
+        self._attr_icon = "mdi:tag"
 
     @property
     def available(self) -> bool:
@@ -896,7 +896,7 @@ class PawControlCurrentWalkLabelText(PawControlTextBase):
             return False
 
         # Only available when walk is in progress
-        return dog_data.get('walk', {}).get('walk_in_progress', False)
+        return dog_data.get("walk", {}).get("walk_in_progress", False)
 
 
 class PawControlHealthNotesText(PawControlTextBase):
@@ -913,11 +913,11 @@ class PawControlHealthNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'health_notes',
+            "health_notes",
             max_length=1000,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:heart-pulse'
+        self._attr_icon = "mdi:heart-pulse"
 
     async def async_set_value(self, value: str) -> None:
         """Set new health notes."""
@@ -927,10 +927,10 @@ class PawControlHealthNotesText(PawControlTextBase):
         trimmed_value = value.strip()
         if trimmed_value and not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': value,
+                "note": value,
             },
         ):
             return
@@ -950,11 +950,11 @@ class PawControlMedicationNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'medication_notes',
+            "medication_notes",
             max_length=500,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:pill'
+        self._attr_icon = "mdi:pill"
 
     async def async_set_value(self, value: str) -> None:
         """Set new medication notes."""
@@ -967,11 +967,11 @@ class PawControlMedicationNotesText(PawControlTextBase):
             and len(trimmed_value) > 5
             and not await self._async_call_hass_service(
                 DOMAIN,
-                'log_medication',
+                "log_medication",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    'medication_name': 'Manual Entry',
-                    'dose': value,
+                    "medication_name": "Manual Entry",
+                    "dose": value,
                 },
             )
         ):
@@ -992,11 +992,11 @@ class PawControlVetNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'vet_notes',
+            "vet_notes",
             max_length=1000,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:medical-bag'
+        self._attr_icon = "mdi:medical-bag"
 
     async def async_set_value(self, value: str) -> None:
         """Set new vet notes."""
@@ -1006,10 +1006,10 @@ class PawControlVetNotesText(PawControlTextBase):
         trimmed_value = value.strip()
         if trimmed_value and not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': f"Vet notes: {value}",
+                "note": f"Vet notes: {value}",
             },
         ):
             return
@@ -1029,11 +1029,11 @@ class PawControlGroomingNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'grooming_notes',
+            "grooming_notes",
             max_length=500,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:content-cut'
+        self._attr_icon = "mdi:content-cut"
 
     async def async_set_value(self, value: str) -> None:
         """Set new grooming notes."""
@@ -1046,11 +1046,11 @@ class PawControlGroomingNotesText(PawControlTextBase):
             and len(trimmed_value) > 10
             and not await self._async_call_hass_service(
                 DOMAIN,
-                'start_grooming',
+                "start_grooming",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    'type': 'brush',
-                    'notes': value,
+                    "type": "brush",
+                    "notes": value,
                 },
             )
         ):
@@ -1071,11 +1071,11 @@ class PawControlCustomMessageText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'custom_message',
+            "custom_message",
             max_length=300,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:message-text'
+        self._attr_icon = "mdi:message-text"
 
     async def async_set_value(self, value: str) -> None:
         """Set new custom message and send notification."""
@@ -1093,17 +1093,17 @@ class PawControlCustomMessageText(PawControlTextBase):
                     message=message,
                     dog_id=self._dog_id,
                     priority=NotificationPriority.NORMAL,
-                    data={'source': 'text.custom_message'},
+                    data={"source": "text.custom_message"},
                     allow_batching=False,
                 )
                 return
 
             if not await self._async_call_hass_service(
                 DOMAIN,
-                'notify_test',
+                "notify_test",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    'message': message,
+                    "message": message,
                 },
             ):
                 return
@@ -1123,11 +1123,11 @@ class PawControlEmergencyContactText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'emergency_contact',
+            "emergency_contact",
             max_length=200,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:phone-alert'
+        self._attr_icon = "mdi:phone-alert"
 
 
 class PawControlMicrochipText(PawControlTextBase):
@@ -1140,8 +1140,8 @@ class PawControlMicrochipText(PawControlTextBase):
         dog_name: str,
     ) -> None:
         """Initialize the text entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'microchip', max_length=20)
-        self._attr_icon = 'mdi:chip'
+        super().__init__(coordinator, dog_id, dog_name, "microchip", max_length=20)
+        self._attr_icon = "mdi:chip"
         self._attr_mode = TextMode.PASSWORD  # Hide microchip number
 
 
@@ -1159,11 +1159,11 @@ class PawControlBreederInfoText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'breeder_info',
+            "breeder_info",
             max_length=300,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:account-group'
+        self._attr_icon = "mdi:account-group"
 
 
 class PawControlRegistrationText(PawControlTextBase):
@@ -1176,8 +1176,8 @@ class PawControlRegistrationText(PawControlTextBase):
         dog_name: str,
     ) -> None:
         """Initialize the text entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'registration', max_length=100)
-        self._attr_icon = 'mdi:certificate'
+        super().__init__(coordinator, dog_id, dog_name, "registration", max_length=100)
+        self._attr_icon = "mdi:certificate"
 
 
 class PawControlInsuranceText(PawControlTextBase):
@@ -1194,11 +1194,11 @@ class PawControlInsuranceText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'insurance_info',
+            "insurance_info",
             max_length=300,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:shield-account'
+        self._attr_icon = "mdi:shield-account"
 
 
 class PawControlAllergiesText(PawControlTextBase):
@@ -1215,11 +1215,11 @@ class PawControlAllergiesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'allergies',
+            "allergies",
             max_length=500,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:alert-circle'
+        self._attr_icon = "mdi:alert-circle"
 
     async def async_set_value(self, value: str) -> None:
         """Set new allergies information."""
@@ -1229,10 +1229,10 @@ class PawControlAllergiesText(PawControlTextBase):
         trimmed_value = value.strip()
         if trimmed_value and not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': f"Allergies/Restrictions updated: {value}",
+                "note": f"Allergies/Restrictions updated: {value}",
             },
         ):
             return
@@ -1252,11 +1252,11 @@ class PawControlTrainingNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'training_notes',
+            "training_notes",
             max_length=1000,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:school'
+        self._attr_icon = "mdi:school"
 
 
 class PawControlBehaviorNotesText(PawControlTextBase):
@@ -1273,11 +1273,11 @@ class PawControlBehaviorNotesText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'behavior_notes',
+            "behavior_notes",
             max_length=1000,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:emoticon-happy'
+        self._attr_icon = "mdi:emoticon-happy"
 
     async def async_set_value(self, value: str) -> None:
         """Set new behavior notes."""
@@ -1290,10 +1290,10 @@ class PawControlBehaviorNotesText(PawControlTextBase):
             and len(trimmed_value) > 10
             and not await self._async_call_hass_service(
                 DOMAIN,
-                'log_health_data',
+                "log_health_data",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    'note': f"Behavior notes: {value}",
+                    "note": f"Behavior notes: {value}",
                 },
             )
         ):
@@ -1314,11 +1314,11 @@ class PawControlLocationDescriptionText(PawControlTextBase):
             coordinator,
             dog_id,
             dog_name,
-            'location_description',
+            "location_description",
             max_length=200,
             mode=TextMode.TEXT,
         )
-        self._attr_icon = 'mdi:map-marker-outline'
+        self._attr_icon = "mdi:map-marker-outline"
 
     @property
     def available(self) -> bool:

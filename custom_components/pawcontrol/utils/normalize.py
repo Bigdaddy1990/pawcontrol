@@ -1,15 +1,11 @@
 """Utility functions for JSON normalization."""
+
 from __future__ import annotations
 
-from collections.abc import Iterable
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from collections.abc import Set as ABCSet
-from dataclasses import asdict
-from dataclasses import is_dataclass
-from datetime import date
-from datetime import datetime
-from datetime import time
-from datetime import timedelta
+from dataclasses import asdict, is_dataclass
+from datetime import date, datetime, time, timedelta
 
 # Type alias for JSON-serializable values.
 JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSONValue"]

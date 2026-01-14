@@ -1,9 +1,9 @@
 ci:
   autoupdate_schedule: weekly
   autofix_prs: true
-  autofix_commit_msg: '[pre-commit.ci] autofix'
+  autofix_commit_msg: "[pre-commit.ci] autofix"
   autoupdate_branch: main
-  autoupdate_commit_msg: '[pre-commit.ci] autoupdate'
+  autoupdate_commit_msg: "[pre-commit.ci] autoupdate"
   skip: []
 default_language_version:
   python: python3.13
