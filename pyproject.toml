@@ -176,12 +176,6 @@ score = false
 [tool.pylint.TYPING]
 runtime-typing = false
 
-[tool.pylint.CODE_STYLE]
-max-line-length-suggestions = 72
-
-[tool.ruff]
-required-version = "0.13.0"
-
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
