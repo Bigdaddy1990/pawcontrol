@@ -7,11 +7,9 @@ exclude_paths:
   - "tests/**"
   - "docs/**"
   - "scripts/**"
-  - "**/__pycache__/**"
-  - "**/test_*.py"
+  - "**/test*.py"
   - "**/conftest.py"
-  - "**/*.min.js"
-  - "**/*.min.css"
+  - "**/*.md"
 
 rules:
   # Python specific rules
