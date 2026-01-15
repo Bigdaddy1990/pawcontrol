@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -18,8 +18,6 @@ from .types import (
     DoorSensorSettingsPayload,
     JSONMutableMapping,
     JSONValue,
-    OptionsDogSelectionInput,
-    OptionsDoorSensorInput,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 class DoorSensorOptionsMixin:
     async def async_step_select_dog_for_door_sensor(
         self,
-        user_input: OptionsDogSelectionInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select a dog for door sensor configuration."""
 
@@ -74,7 +72,7 @@ class DoorSensorOptionsMixin:
 
     async def async_step_configure_door_sensor(
         self,
-        user_input: OptionsDoorSensorInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure door sensor entity and overrides for the current dog."""
 
@@ -101,7 +99,7 @@ class DoorSensorOptionsMixin:
         if isinstance(existing_payload, Mapping):  # noqa: F821
             filtered_settings: dict[str, bool | int | float | str | None] = {}
             for key, value in existing_payload.items():
-                if isinstance(value, (bool, int, float, str)) or value is None:
+                if isinstance(value, bool | int | float | str) or value is None:
                     filtered_settings[str(key)] = value
             existing_settings = filtered_settings
         base_settings = (
@@ -146,7 +144,7 @@ class DoorSensorOptionsMixin:
                 "confidence_threshold",
             ):
                 value = user_input.get(key)
-                if isinstance(value, (bool, int, float, str)) or value is None:
+                if isinstance(value, bool | int | float | str) or value is None:
                     settings_overrides[key] = value
 
             if not errors:

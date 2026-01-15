@@ -434,7 +434,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
                 serialized_last_feeding = dt_util.as_utc(
                     last_feeding,
                 ).isoformat()
-            elif isinstance(last_feeding, (float, int)):
+            elif isinstance(last_feeding, float | int):
                 serialized_last_feeding = float(last_feeding)
             elif isinstance(last_feeding, str):
                 serialized_last_feeding = last_feeding

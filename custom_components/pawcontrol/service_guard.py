@@ -168,7 +168,7 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
                 int(existing_value)
                 if isinstance(
                     existing_value,
-                    (int, float),
+                    int | float,
                 )
                 else 0
             )
@@ -180,7 +180,7 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         reasons_dict: dict[str, int]
         if isinstance(reasons_snapshot, Mapping):
             reasons_dict = {
-                key: int(value) if isinstance(value, (int, float)) else 0
+                key: int(value) if isinstance(value, int | float) else 0
                 for key, value in reasons_snapshot.items()
             }
         else:
@@ -235,7 +235,7 @@ def _coerce_int(value: object) -> int:
     if isinstance(value, bool):
         return int(value)
 
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return int(value)
 
     if isinstance(value, str):

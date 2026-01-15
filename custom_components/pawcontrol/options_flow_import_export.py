@@ -5,16 +5,10 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path  # noqa: F401
-from typing import cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
-
-from .types import (
-    OptionsExportDisplayInput,
-    OptionsImportExportInput,
-    OptionsImportPayloadInput,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 class ImportExportOptionsMixin:
     async def async_step_import_export(
         self,
-        user_input: OptionsImportExportInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Handle selection for the import/export utilities."""
 
@@ -57,7 +51,7 @@ class ImportExportOptionsMixin:
 
     async def async_step_import_export_export(
         self,
-        user_input: OptionsExportDisplayInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Surface a JSON export of the current configuration."""
 
@@ -94,7 +88,7 @@ class ImportExportOptionsMixin:
 
     async def async_step_import_export_import(
         self,
-        user_input: OptionsImportPayloadInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Import configuration from a JSON payload."""
 

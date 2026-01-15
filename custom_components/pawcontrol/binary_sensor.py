@@ -69,7 +69,7 @@ def _coerce_bool_flag(value: object) -> bool | None:
     if isinstance(value, bool):
         return value
 
-    if isinstance(value, (int, float)) and value in (0, 1):
+    if isinstance(value, int | float) and value in (0, 1):
         return bool(value)
 
     return None

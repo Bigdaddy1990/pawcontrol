@@ -77,15 +77,12 @@ from custom_components.pawcontrol.types import (
     MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE,
     MODULE_TOGGLE_FLAG_BY_KEY,
     MODULE_TOGGLE_KEYS,
-    AddAnotherDogInput,
     ConfigFlowPlaceholders,
     DietCompatibilityIssue,
     DietValidationResult,
     DogConfigData,
     DogFeedingConfig,
-    DogFeedingStepInput,
     DogGPSConfig,
-    DogGPSStepInput,
     DogHealthConfig,
     DogHealthStepInput,
     DogMedicationEntry,
@@ -97,7 +94,6 @@ from custom_components.pawcontrol.types import (
     DogValidationResult,
     JSONMapping,
     ModuleConfigurationSnapshot,
-    ModuleConfigurationStepInput,
     ModuleToggleKey,
     clone_placeholders,
     dog_feeding_config_from_flow,
@@ -446,7 +442,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def async_step_add_dog(
         self,
-        user_input: DogSetupStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Handle adding a dog with rate-limited validation.
 
@@ -534,7 +530,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def async_step_dog_modules(
         self,
-        user_input: DogModuleSelectionInput | DogModulesConfig | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure modules for the specific dog being added.
 
@@ -667,7 +663,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def async_step_dog_gps(
         self,
-        user_input: DogGPSStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure GPS settings for the specific dog.
 
@@ -831,7 +827,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def async_step_dog_feeding(
         self,
-        user_input: DogFeedingStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure feeding settings for the specific dog.
 
@@ -990,7 +986,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def async_step_dog_health(
         self,
-        user_input: DogHealthStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure comprehensive health settings including health-aware feeding.
 
@@ -1637,7 +1633,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def async_step_add_another_dog(
         self,
-        user_input: AddAnotherDogInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Ask if the user wants to add another dog with enhanced UX.
 
@@ -1971,10 +1967,10 @@ class DogManagementMixin(DogManagementMixinBase):
         """Get guidance text about diet compatibility based on dog characteristics."""
 
         translations, fallback = await self._async_get_translation_lookup()
-        guidance_prefix = "config.step.dog_health.guidance"
+        guidance_prefix = "config.error"
 
         def _lookup(key: str) -> str:
-            full_key = f"{guidance_prefix}.{key}"
+            full_key = f"{guidance_prefix}.diet_guidance_{key}"
             return translations.get(full_key) or fallback.get(full_key) or ""
 
         guidance_points: list[str] = []
@@ -2004,7 +2000,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def async_step_configure_modules(
         self,
-        user_input: ModuleConfigurationStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure global module settings after all dogs are added.
 

@@ -91,7 +91,7 @@ class PawControlErrorKwargs(TypedDict, total=False):
 def _serialise_json_value(value: object) -> JSONValue:
     """Convert arbitrary objects to JSON-compatible values for error payloads."""
 
-    if value is None or isinstance(value, (bool, int, float, str)):
+    if value is None or isinstance(value, bool | int | float | str):
         return cast(JSONValue, value)
 
     if isinstance(value, datetime):
@@ -103,7 +103,7 @@ def _serialise_json_value(value: object) -> JSONValue:
             serialised_mapping[str(key)] = _serialise_json_value(mapping_value)
         return serialised_mapping
 
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
         return [_serialise_json_value(item) for item in value]
 
     return str(value)

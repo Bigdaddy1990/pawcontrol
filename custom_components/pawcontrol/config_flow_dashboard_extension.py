@@ -12,7 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -39,13 +39,10 @@ from .types import (
     DASHBOARD_THEME_FIELD,
     SHOW_MAPS_FIELD,
     SHOW_STATISTICS_FIELD,
-    ConfigFlowInputMapping,
     ConfigFlowPlaceholders,
-    DashboardConfigurationStepInput,
     DashboardSetupConfig,
     DogConfigData,
     DogModulesConfig,
-    ExternalEntityConfig,
     clone_placeholders,
     freeze_placeholders,
 )
@@ -125,14 +122,14 @@ class DashboardFlowMixin:
 
         async def async_step_configure_external_entities(
             self,
-            user_input: ExternalEntityConfig | None = None,
+            user_input: dict[str, Any] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the GPS entity configuration step."""
             ...
 
         async def async_step_final_setup(
             self,
-            user_input: ConfigFlowInputMapping | None = None,
+            user_input: dict[str, Any] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the concluding config flow step."""
             ...
@@ -150,7 +147,7 @@ class DashboardFlowMixin:
 
     async def async_step_configure_dashboard(
         self,
-        user_input: DashboardConfigurationStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure dashboard settings.
 

@@ -235,18 +235,18 @@ def _coerce_runtime_store_assessment_event(
 
     divergence_rate_raw = candidate.get("divergence_rate")
     divergence_rate: float | None
-    if isinstance(divergence_rate_raw, (int, float)) and isfinite(divergence_rate_raw):
+    if isinstance(divergence_rate_raw, int | float) and isfinite(divergence_rate_raw):
         divergence_rate = float(divergence_rate_raw)
     else:
         divergence_rate = None
 
     checks_raw = candidate.get("checks")
-    checks = int(checks_raw) if isinstance(checks_raw, (int, float)) else 0
+    checks = int(checks_raw) if isinstance(checks_raw, int | float) else 0
 
     divergence_events_raw = candidate.get("divergence_events")
     divergence_events = (
         int(divergence_events_raw)
-        if isinstance(divergence_events_raw, (int, float))
+        if isinstance(divergence_events_raw, int | float)
         else 0
     )
 
@@ -255,7 +255,7 @@ def _coerce_runtime_store_assessment_event(
         int(level_streak_raw)
         if isinstance(
             level_streak_raw,
-            (int, float),
+            int | float,
         )
         else 0
     )
@@ -265,7 +265,7 @@ def _coerce_runtime_store_assessment_event(
         int(escalations_raw)
         if isinstance(
             escalations_raw,
-            (int, float),
+            int | float,
         )
         else 0
     )
@@ -275,7 +275,7 @@ def _coerce_runtime_store_assessment_event(
         int(deescalations_raw)
         if isinstance(
             deescalations_raw,
-            (int, float),
+            int | float,
         )
         else 0
     )
@@ -284,7 +284,7 @@ def _coerce_runtime_store_assessment_event(
 
     current_duration_raw = candidate.get("current_level_duration_seconds")
     current_duration: float | None
-    if isinstance(current_duration_raw, (int, float)) and isfinite(
+    if isinstance(current_duration_raw, int | float) and isfinite(
         current_duration_raw,
     ):
         current_duration = max(float(current_duration_raw), 0.0)
@@ -518,14 +518,14 @@ def _summarise_runtime_store_assessment_events(
         if isinstance(divergence_detected, bool):
             last_divergence_detected = divergence_detected
         divergence_rate = event.get("divergence_rate")
-        if isinstance(divergence_rate, (int, float)) and isfinite(divergence_rate):
+        if isinstance(divergence_rate, int | float) and isfinite(divergence_rate):
             last_divergence_rate = float(divergence_rate)
             divergence_rates.append(last_divergence_rate)
 
         if level in level_counts:
             duration: float | None = None
             duration_raw = event.get("current_level_duration_seconds")
-            if isinstance(duration_raw, (int, float)) and isfinite(duration_raw):
+            if isinstance(duration_raw, int | float) and isfinite(duration_raw):
                 duration = max(float(duration_raw), 0.0)
             elif start_dt is not None:
                 for _candidate_event, candidate_dt in parsed_events[index + 1 :]:
@@ -746,15 +746,15 @@ def _build_runtime_store_assessment_segments(
             segment["divergence_detected"] = divergence_detected
 
         divergence_rate = event.get("divergence_rate")
-        if isinstance(divergence_rate, (int, float)) and isfinite(divergence_rate):
+        if isinstance(divergence_rate, int | float) and isfinite(divergence_rate):
             segment["divergence_rate"] = float(divergence_rate)
 
         checks = event.get("checks")
-        if isinstance(checks, (int, float)):
+        if isinstance(checks, int | float):
             segment["checks"] = int(checks)
 
         divergence_events = event.get("divergence_events")
-        if isinstance(divergence_events, (int, float)):
+        if isinstance(divergence_events, int | float):
             segment["divergence_events"] = int(divergence_events)
 
         end_timestamp: str | None = None
@@ -776,7 +776,7 @@ def _build_runtime_store_assessment_segments(
             segment["end"] = end_timestamp
         else:
             current_duration = event.get("current_level_duration_seconds")
-            if isinstance(current_duration, (int, float)) and isfinite(
+            if isinstance(current_duration, int | float) and isfinite(
                 current_duration,
             ):
                 duration_seconds = max(float(current_duration), 0.0)
@@ -847,13 +847,13 @@ def _record_runtime_store_assessment_event(
 
     divergence_rate_raw = assessment.get("divergence_rate")
     divergence_rate: float | None
-    if isinstance(divergence_rate_raw, (int, float)) and isfinite(divergence_rate_raw):
+    if isinstance(divergence_rate_raw, int | float) and isfinite(divergence_rate_raw):
         divergence_rate = float(divergence_rate_raw)
     else:
         divergence_rate = None
 
     checks_raw = assessment.get("checks", history.get("checks", 0))
-    checks = int(checks_raw) if isinstance(checks_raw, (int, float)) else 0
+    checks = int(checks_raw) if isinstance(checks_raw, int | float) else 0
 
     divergence_events_raw = assessment.get(
         "divergence_events",
@@ -861,7 +861,7 @@ def _record_runtime_store_assessment_event(
     )
     divergence_events = (
         int(divergence_events_raw)
-        if isinstance(divergence_events_raw, (int, float))
+        if isinstance(divergence_events_raw, int | float)
         else 0
     )
 
@@ -873,7 +873,7 @@ def _record_runtime_store_assessment_event(
         int(level_streak_raw)
         if isinstance(
             level_streak_raw,
-            (int, float),
+            int | float,
         )
         else 0
     )
@@ -886,7 +886,7 @@ def _record_runtime_store_assessment_event(
         int(escalations_raw)
         if isinstance(
             escalations_raw,
-            (int, float),
+            int | float,
         )
         else 0
     )
@@ -899,14 +899,14 @@ def _record_runtime_store_assessment_event(
         int(deescalations_raw)
         if isinstance(
             deescalations_raw,
-            (int, float),
+            int | float,
         )
         else 0
     )
 
     current_duration_raw = assessment.get("current_level_duration_seconds")
     current_duration: float | None
-    if isinstance(current_duration_raw, (int, float)) and isfinite(
+    if isinstance(current_duration_raw, int | float) and isfinite(
         current_duration_raw,
     ):
         current_duration = max(float(current_duration_raw), 0.0)
@@ -1306,7 +1306,7 @@ def _build_runtime_store_assessment(
     previous_current_duration_raw = history.get(
         "assessment_current_level_duration_seconds",
     )
-    if isinstance(previous_current_duration_raw, (int, float)) and isfinite(
+    if isinstance(previous_current_duration_raw, int | float) and isfinite(
         previous_current_duration_raw,
     ):
         previous_current_duration = float(previous_current_duration_raw)
@@ -1322,7 +1322,7 @@ def _build_runtime_store_assessment(
         for key, value in level_durations_raw.items():
             if key not in _RUNTIME_STORE_LEVEL_ORDER:
                 continue
-            if not isinstance(value, (int, float)):
+            if not isinstance(value, int | float):
                 continue
             if not isfinite(value):
                 continue
@@ -1474,7 +1474,7 @@ def update_runtime_entity_factory_guard_metrics(
     if isinstance(stored_metrics, MutableMapping):
         previous_floor_raw = stored_metrics.get("runtime_floor")
     previous_floor: float | None = None
-    if isinstance(previous_floor_raw, (int, float)) and isfinite(previous_floor_raw):
+    if isinstance(previous_floor_raw, int | float) and isfinite(previous_floor_raw):
         previous_floor = float(previous_floor_raw)
     previous_samples = int(metrics.get("samples", 0) or 0)
     metrics.setdefault("stable_samples", 0)
@@ -1482,7 +1482,7 @@ def update_runtime_entity_factory_guard_metrics(
     metrics.setdefault("contractions", 0)
     previous_stable_ratio = (
         float(metrics["stable_ratio"])
-        if isinstance(metrics.get("stable_ratio"), (int, float))
+        if isinstance(metrics.get("stable_ratio"), int | float)
         else None
     )
     metrics["baseline_floor"] = max(baseline_floor, 0.0)
@@ -1497,7 +1497,7 @@ def update_runtime_entity_factory_guard_metrics(
         float(metrics.get("peak_runtime_floor", 0.0) or 0.0),
     )
     lowest_runtime_floor = metrics.get("lowest_runtime_floor")
-    if isinstance(lowest_runtime_floor, (int, float)) and lowest_runtime_floor > 0:
+    if isinstance(lowest_runtime_floor, int | float) and lowest_runtime_floor > 0:
         metrics["lowest_runtime_floor"] = min(
             lowest_runtime_floor,
             max(metrics["runtime_floor"], metrics["baseline_floor"]),
@@ -1529,7 +1529,7 @@ def update_runtime_entity_factory_guard_metrics(
     samples = metrics["samples"]
 
     average_duration = metrics.get("average_duration")
-    if isinstance(average_duration, (int, float)) and previous_samples > 0:
+    if isinstance(average_duration, int | float) and previous_samples > 0:
         metrics["average_duration"] = (
             (float(average_duration) * previous_samples) + duration
         ) / samples
@@ -1537,13 +1537,13 @@ def update_runtime_entity_factory_guard_metrics(
         metrics["average_duration"] = duration
 
     max_duration = metrics.get("max_duration")
-    if not isinstance(max_duration, (int, float)):
+    if not isinstance(max_duration, int | float):
         metrics["max_duration"] = duration
     else:
         metrics["max_duration"] = max(float(max_duration), duration)
 
     min_duration = metrics.get("min_duration")
-    if not isinstance(min_duration, (int, float)) or previous_samples == 0:
+    if not isinstance(min_duration, int | float) or previous_samples == 0:
         metrics["min_duration"] = duration
     else:
         metrics["min_duration"] = min(float(min_duration), duration)
@@ -1626,12 +1626,12 @@ def update_runtime_entity_factory_guard_metrics(
     existing_recent = metrics.get("recent_durations")
     if isinstance(existing_recent, Sequence) and not isinstance(
         existing_recent,
-        (str, bytes, bytearray),
+        str | bytes | bytearray,
     ):
         recent: list[float] = [
             max(float(sample), 0.0)
             for sample in existing_recent
-            if isinstance(sample, (int, float)) and isfinite(float(sample))
+            if isinstance(sample, int | float) and isfinite(float(sample))
         ]
     else:
         recent = []
@@ -1655,7 +1655,7 @@ def update_runtime_entity_factory_guard_metrics(
     existing_events = metrics.get("recent_events")
     if isinstance(existing_events, Sequence) and not isinstance(
         existing_events,
-        (str, bytes, bytearray),
+        str | bytes | bytearray,
     ):
         recent_events: list[EntityFactoryGuardEvent] = [
             cast(EntityFactoryGuardEvent, event_name)

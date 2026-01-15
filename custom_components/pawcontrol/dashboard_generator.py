@@ -472,7 +472,7 @@ class PawControlDashboardGenerator:
             return 0
         if isinstance(value, bool):
             return int(value)
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return int(value)
         if isinstance(value, str):
             try:
@@ -492,7 +492,7 @@ class PawControlDashboardGenerator:
             return 0.0
         if isinstance(value, bool):
             return float(value)
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return float(value)
         if isinstance(value, str):
             try:
@@ -556,7 +556,7 @@ class PawControlDashboardGenerator:
 
         if not isinstance(raw_views, Sequence) or isinstance(
             raw_views,
-            (str, bytes, bytearray),
+            str | bytes | bytearray,
         ):
             return []
 

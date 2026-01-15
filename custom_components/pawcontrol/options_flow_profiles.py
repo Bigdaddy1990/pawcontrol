@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Mapping, Sequence
-from typing import cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -22,12 +22,9 @@ from .types import (
     RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
     ConfigFlowPlaceholders,
     DogConfigData,
-    EntityProfileOptionsInput,
     JSONMutableMapping,
     JSONValue,
     MutableConfigFlowPlaceholders,
-    OptionsPerformanceSettingsInput,
-    OptionsProfilePreviewInput,
     clone_placeholders,
     ensure_dog_config_data,
     ensure_dog_modules_config,
@@ -40,7 +37,7 @@ _LOGGER = logging.getLogger(__name__)
 class ProfileOptionsMixin:
     async def async_step_entity_profiles(
         self,
-        user_input: EntityProfileOptionsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure entity profiles for performance optimization.
 
@@ -98,7 +95,7 @@ class ProfileOptionsMixin:
 
     def _get_entity_profiles_schema(
         self,
-        user_input: EntityProfileOptionsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get entity profiles schema with current values."""
         current_options = self._entry.options
@@ -198,7 +195,7 @@ class ProfileOptionsMixin:
         max_entities_value = profile_info.get("max_entities", 0)
         max_entities = (
             int(max_entities_value)
-            if isinstance(max_entities_value, (int, float, str))
+            if isinstance(max_entities_value, int | float | str)
             else 0
         )
         profile_description = str(profile_info.get("description", ""))
@@ -315,7 +312,7 @@ class ProfileOptionsMixin:
         max_entities_value = profile_info.get("max_entities", 0)
         max_entities = (
             int(max_entities_value)
-            if isinstance(max_entities_value, (int, float, str))
+            if isinstance(max_entities_value, int | float | str)
             else 0
         )
 
@@ -444,7 +441,7 @@ class ProfileOptionsMixin:
 
     async def async_step_profile_preview(
         self,
-        user_input: OptionsProfilePreviewInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Show entity count preview for selected profile.
 
@@ -467,10 +464,10 @@ class ProfileOptionsMixin:
         breakdown_lines = []
 
         def as_float(value):
-            return float(value) if isinstance(value, (int, float)) else 0.0
+            return float(value) if isinstance(value, int | float) else 0.0
 
         def as_int(value):
-            return int(value) if isinstance(value, (int, float)) else 0
+            return int(value) if isinstance(value, int | float) else 0
 
         entity_breakdown = cast(
             list[JSONMutableMapping],
@@ -558,7 +555,7 @@ class ProfileOptionsMixin:
 
     async def async_step_performance_settings(
         self,
-        user_input: OptionsPerformanceSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure performance and optimization settings.
 
@@ -642,7 +639,7 @@ class ProfileOptionsMixin:
 
     def _get_performance_settings_schema(
         self,
-        user_input: OptionsPerformanceSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get performance settings schema."""
         current_options = self._entry.options

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -21,10 +21,6 @@ from .device_api import validate_device_endpoint
 from .exceptions import FlowValidationError  # noqa: F401
 from .selector_shim import selector
 from .types import (
-    OptionsAdvancedSettingsInput,
-    OptionsDashboardSettingsInput,
-    OptionsSystemSettingsInput,
-    OptionsWeatherSettingsInput,
     freeze_placeholders,
 )
 
@@ -34,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 class SystemSettingsOptionsMixin:
     async def async_step_weather_settings(
         self,
-        user_input: OptionsWeatherSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure weather-based health monitoring settings.
 
@@ -105,7 +101,7 @@ class SystemSettingsOptionsMixin:
 
     def _get_weather_settings_schema(
         self,
-        user_input: OptionsWeatherSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get weather settings schema with current values and entity selection."""
         current_weather = self._current_weather_options()
@@ -369,7 +365,7 @@ class SystemSettingsOptionsMixin:
 
     async def async_step_system_settings(
         self,
-        user_input: OptionsSystemSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure system and performance settings."""
         placeholders = self._manual_event_description_placeholders()
@@ -441,7 +437,7 @@ class SystemSettingsOptionsMixin:
 
     def _get_system_settings_schema(
         self,
-        user_input: OptionsSystemSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get system settings schema."""
         current_system = self._current_system_options()
@@ -631,7 +627,7 @@ class SystemSettingsOptionsMixin:
 
     async def async_step_dashboard_settings(
         self,
-        user_input: OptionsDashboardSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure dashboard and display settings."""
         if user_input is not None:
@@ -676,7 +672,7 @@ class SystemSettingsOptionsMixin:
 
     def _get_dashboard_settings_schema(
         self,
-        user_input: OptionsDashboardSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get dashboard settings schema."""
         current_dashboard = self._current_dashboard_options()
@@ -734,7 +730,7 @@ class SystemSettingsOptionsMixin:
 
     async def async_step_advanced_settings(
         self,
-        user_input: OptionsAdvancedSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Handle advanced settings configuration."""
         if user_input is not None:
@@ -769,7 +765,7 @@ class SystemSettingsOptionsMixin:
                     advanced_settings,
                 )
                 for key, value in advanced_settings.items():
-                    if isinstance(value, (bool, int, float, str)) or value is None:
+                    if isinstance(value, bool | int | float | str) or value is None:
                         mutable_options[str(key)] = value
                     elif isinstance(value, Mapping):  # noqa: F821
                         mutable_options[str(key)] = cast(JSONValue, dict(value))  # noqa: F821
@@ -794,7 +790,7 @@ class SystemSettingsOptionsMixin:
 
     def _get_advanced_settings_schema(
         self,
-        user_input: OptionsAdvancedSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get schema for advanced settings form."""
         current_advanced = self._current_advanced_options()

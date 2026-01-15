@@ -758,19 +758,19 @@ def resolve_entity_factory_guard_metrics(
         snapshot["last_updated"] = last_updated
 
     samples = metrics.get("samples")
-    if isinstance(samples, (int, float)):
+    if isinstance(samples, int | float):
         snapshot["samples"] = int(samples)
 
     stable_samples = metrics.get("stable_samples")
-    if isinstance(stable_samples, (int, float)):
+    if isinstance(stable_samples, int | float):
         snapshot["stable_samples"] = int(stable_samples)
 
     expansions = metrics.get("expansions")
-    if isinstance(expansions, (int, float)):
+    if isinstance(expansions, int | float):
         snapshot["expansions"] = int(expansions)
 
     contractions = metrics.get("contractions")
-    if isinstance(contractions, (int, float)):
+    if isinstance(contractions, int | float):
         snapshot["contractions"] = int(contractions)
 
     last_expansion = _coerce_float(metrics.get("last_expansion_duration"))
@@ -834,11 +834,11 @@ def resolve_entity_factory_guard_metrics(
         snapshot["contraction_ratio"] = contraction_ratio
 
     consecutive_stable = metrics.get("consecutive_stable_samples")
-    if isinstance(consecutive_stable, (int, float)):
+    if isinstance(consecutive_stable, int | float):
         snapshot["consecutive_stable_samples"] = int(consecutive_stable)
 
     longest_stable = metrics.get("longest_stable_run")
-    if isinstance(longest_stable, (int, float)):
+    if isinstance(longest_stable, int | float):
         snapshot["longest_stable_run"] = int(longest_stable)
 
     volatility_ratio = _coerce_float(metrics.get("volatility_ratio"))
@@ -846,13 +846,13 @@ def resolve_entity_factory_guard_metrics(
         snapshot["volatility_ratio"] = volatility_ratio
 
     recent_samples = metrics.get("recent_samples")
-    if isinstance(recent_samples, (int, float)):
+    if isinstance(recent_samples, int | float):
         snapshot["recent_samples"] = int(recent_samples)
 
     recent_events_raw = metrics.get("recent_events")
     if isinstance(recent_events_raw, Sequence) and not isinstance(
         recent_events_raw,
-        (str, bytes, bytearray),
+        str | bytes | bytearray,
     ):
         recent_events: list[EntityFactoryGuardEvent] = [
             cast(EntityFactoryGuardEvent, item)
@@ -863,7 +863,7 @@ def resolve_entity_factory_guard_metrics(
             snapshot["recent_events"] = recent_events
 
     recent_stable_samples = metrics.get("recent_stable_samples")
-    if isinstance(recent_stable_samples, (int, float)):
+    if isinstance(recent_stable_samples, int | float):
         snapshot["recent_stable_samples"] = int(recent_stable_samples)
 
     recent_stable_ratio = _coerce_float(metrics.get("recent_stable_ratio"))

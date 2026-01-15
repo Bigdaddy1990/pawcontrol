@@ -15,7 +15,6 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from .types import (
     ConfigFlowDiscoveryData,
     ConfigFlowDiscoveryProperties,
-    DiscoveryConfirmInput,
     freeze_placeholders,
 )
 
@@ -213,7 +212,7 @@ class DiscoveryFlowMixin:
 
     async def async_step_discovery_confirm(
         self,
-        user_input: DiscoveryConfirmInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Confirm discovered device setup."""
 

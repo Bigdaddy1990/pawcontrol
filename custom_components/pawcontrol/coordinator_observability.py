@@ -221,7 +221,7 @@ def _coerce_string_list(value: object) -> list[str]:
     if value is None:
         return []
 
-    if isinstance(value, (str, bytes, bytearray)):
+    if isinstance(value, str | bytes | bytearray):
         return [_stringify_resilience_value(value)]
 
     if isinstance(value, Iterable):
@@ -240,7 +240,7 @@ def _stringify_resilience_value(value: object) -> str:
 
     if isinstance(value, str):
         return value
-    if isinstance(value, (bytes, bytearray)):
+    if isinstance(value, bytes | bytearray):
         try:
             return value.decode()
         except Exception:  # pragma: no cover - defensive fallback

@@ -925,7 +925,7 @@ def _coerce_medication_payload(data: JSONLikeMapping) -> JSONMutableMapping:
 def _normalise_history_entries(entries: object) -> list[JSONMutableMapping]:
     """Convert ``entries`` into JSON-compatible mutable mappings."""
 
-    if not isinstance(entries, Iterable) or isinstance(entries, (bytes, str)):
+    if not isinstance(entries, Iterable) or isinstance(entries, bytes | str):
         return []
 
     return [
@@ -1255,7 +1255,7 @@ class PawControlDataManager:
 
         self._ensure_metrics_containers()
         current = self._metrics.get(key)
-        base = current if isinstance(current, (int, float)) else 0
+        base = current if isinstance(current, int | float) else 0
         self._metrics[key] = base + increment
 
     async def async_initialize(self) -> None:
@@ -1966,7 +1966,7 @@ class PawControlDataManager:
                 continue
             feedings_today.append(entry)
             calories = entry.get("calories")
-            if isinstance(calories, (int, float)):
+            if isinstance(calories, int | float):
                 total_calories += float(calories)
             raw_timestamp = entry.get("timestamp")
             if isinstance(raw_timestamp, str):
@@ -2251,7 +2251,7 @@ class PawControlDataManager:
             total = 0.0
             for _, entry in feedings:
                 portion = entry.get("portion_size")
-                if isinstance(portion, (int, float)):
+                if isinstance(portion, int | float):
                     total += float(portion)
             result["feeding"] = {
                 "entries": len(feedings),
@@ -2275,7 +2275,7 @@ class PawControlDataManager:
             total_distance = 0.0
             for _, entry in walks:
                 distance = entry.get("distance")
-                if isinstance(distance, (int, float)):
+                if isinstance(distance, int | float):
                     total_distance += float(distance)
             result["walking"] = {
                 "entries": len(walks),
@@ -2405,7 +2405,7 @@ class PawControlDataManager:
                     continue
                 feedings.append(entry)
                 portion = entry.get("portion_size")
-                if isinstance(portion, (int, float)):
+                if isinstance(portion, int | float):
                     total_portion += float(portion)
 
             feeding_section = {
@@ -2422,7 +2422,7 @@ class PawControlDataManager:
                     continue
                 walks.append(entry)
                 distance = entry.get("distance")
-                if isinstance(distance, (int, float)):
+                if isinstance(distance, int | float):
                     total_distance += float(distance)
 
             walks_section = {
@@ -2653,7 +2653,7 @@ class PawControlDataManager:
                     return content
                 if isinstance(content, Sequence) and not isinstance(
                     content,
-                    (str, bytes, bytearray),
+                    str | bytes | bytearray,
                 ):
                     return list(content)
                 if content is None:
@@ -3184,7 +3184,7 @@ class PawControlDataManager:
         data_points: list[JSONMutableMapping] = []
         for entry in relevant:
             weight_value = entry.get("weight")
-            if not isinstance(weight_value, (int, float)):
+            if not isinstance(weight_value, int | float):
                 continue
             weights.append(float(weight_value))
             data_points.append(

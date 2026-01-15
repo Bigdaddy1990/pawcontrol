@@ -51,9 +51,7 @@ from .types import (
     JSONLikeMapping,
     JSONMutableMapping,
     JSONValue,
-    OptionsDogSelectionInput,
     OptionsGeofenceInput,
-    OptionsGPSSettingsInput,
     ensure_dog_options_entry,
 )
 from .validators import validate_radius, validate_timer
@@ -197,7 +195,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
     async def async_step_select_dog_for_gps_settings(
         self,
-        user_input: OptionsDogSelectionInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure GPS settings for."""
 
@@ -220,7 +218,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
     async def async_step_select_dog_for_geofence_settings(
         self,
-        user_input: OptionsDogSelectionInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure geofencing for."""
 
@@ -243,7 +241,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
     async def async_step_gps_settings(
         self,
-        user_input: OptionsGPSSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure GPS and location settings with enhanced route recording options."""
 
@@ -318,7 +316,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                 current.get(ROUTE_HISTORY_DAYS_FIELD, 30),
             )
             try:
-                if isinstance(history_candidate, (int, float, str)):
+                if isinstance(history_candidate, int | float | str):
                     route_history_days = int(history_candidate)
                 else:
                     raise TypeError
@@ -376,7 +374,7 @@ class GPSOptionsMixin(GPSOptionsHost):
     def _get_gps_settings_schema(
         self,
         dog_id: str,
-        user_input: OptionsGPSSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get GPS settings schema with current values and enhanced route options."""
 
@@ -464,7 +462,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
     async def async_step_geofence_settings(
         self,
-        user_input: OptionsGeofenceInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure geofencing and zone settings."""
 
@@ -547,7 +545,7 @@ class GPSOptionsMixin(GPSOptionsHost):
     def _get_geofence_settings_schema(
         self,
         dog_id: str,
-        user_input: OptionsGeofenceInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get geofencing settings schema with current values."""
 

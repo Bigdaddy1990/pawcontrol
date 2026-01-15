@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -18,7 +18,6 @@ from .types import (
     HealthOptions,
     JSONLikeMapping,
     JSONValue,
-    OptionsDogSelectionInput,
     OptionsHealthSettingsInput,
     ensure_dog_options_entry,
 )
@@ -90,7 +89,7 @@ class HealthOptionsMixin(HealthOptionsHost):
 
     async def async_step_select_dog_for_health_settings(
         self,
-        user_input: OptionsDogSelectionInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure health settings for."""
 
@@ -113,7 +112,7 @@ class HealthOptionsMixin(HealthOptionsHost):
 
     async def async_step_health_settings(
         self,
-        user_input: OptionsHealthSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure health monitoring settings."""
 
@@ -170,7 +169,7 @@ class HealthOptionsMixin(HealthOptionsHost):
     def _get_health_settings_schema(
         self,
         dog_id: str,
-        user_input: OptionsHealthSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get health settings schema."""
 

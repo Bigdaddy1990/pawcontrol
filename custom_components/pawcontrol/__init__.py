@@ -1051,14 +1051,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 radius_candidates = [
                     settings.get("geofence_radius_m")
                     for settings in per_dog_geofence_settings
-                    if isinstance(settings.get("geofence_radius_m"), (int, float))
+                    if isinstance(settings.get("geofence_radius_m"), int | float)
                 ]
                 if radius_candidates:
                     home_zone_radius = int(max(radius_candidates))
                 else:
                     radius = geofence_options.get("geofence_radius_m", 50)
                     home_zone_radius = (
-                        int(radius) if isinstance(radius, (int, float)) else 50
+                        int(radius) if isinstance(radius, int | float) else 50
                     )
 
                 initialization_tasks.append(
@@ -1781,7 +1781,7 @@ async def async_remove_config_entry_device(
 
         if isinstance(source, Sequence) and not isinstance(
             source,
-            (str, bytes, bytearray),
+            str | bytes | bytearray,
         ):
             for dog_cfg in source:
                 if not isinstance(dog_cfg, Mapping):

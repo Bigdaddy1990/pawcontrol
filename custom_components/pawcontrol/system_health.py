@@ -1001,7 +1001,7 @@ def _build_breaker_overview(
     raw_last_rejection_time = rejection_metrics.get("last_rejection_time")
     last_rejection_time = (
         float(raw_last_rejection_time)
-        if isinstance(raw_last_rejection_time, (int, float))
+        if isinstance(raw_last_rejection_time, int | float)
         else None
     )
 

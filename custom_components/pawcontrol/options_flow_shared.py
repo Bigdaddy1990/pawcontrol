@@ -240,7 +240,7 @@ class OptionsFlowSharedMixin:
         dogs_raw = self._entry.data.get(CONF_DOGS, [])  # noqa: F405
         dogs_iterable: Sequence[JSONLikeMapping] = (
             cast(Sequence[JSONLikeMapping], dogs_raw)
-            if isinstance(dogs_raw, Sequence) and not isinstance(dogs_raw, (bytes, str))
+            if isinstance(dogs_raw, Sequence) and not isinstance(dogs_raw, bytes | str)
             else ()
         )
         for raw in dogs_iterable:
@@ -1028,13 +1028,13 @@ class OptionsFlowSharedMixin:
         )
         sanitized_input: JSONMutableMapping = {}
         for key, value in user_input.items():
-            if isinstance(value, (bool, int, float, str)) or value is None:
+            if isinstance(value, bool | int | float | str) or value is None:
                 sanitized_input[str(key)] = value
             elif isinstance(value, Mapping):
                 sanitized_input[str(key)] = cast(JSONValue, dict(value))
             elif isinstance(value, Sequence) and not isinstance(
                 value,
-                (str, bytes, bytearray),
+                str | bytes | bytearray,
             ):
                 sanitized_input[str(key)] = cast(
                     JSONValue,

@@ -1306,7 +1306,7 @@ class PawControlNotificationManager:
                     home_names = person_context.get("home_person_names")
                     if isinstance(home_names, Sequence) and not isinstance(
                         home_names,
-                        (str, bytes),
+                        str | bytes,
                     ):
                         template_data["person_names"] = ", ".join(
                             name for name in home_names if isinstance(name, str)

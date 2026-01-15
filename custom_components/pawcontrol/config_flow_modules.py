@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Final, Protocol, cast
+from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -43,7 +43,6 @@ from .selector_shim import selector
 from .types import (
     ConfigFlowGlobalSettings,
     ConfigFlowPlaceholders,
-    ConfigFlowUserInput,
     DashboardConfigurationPlaceholders,
     DashboardConfigurationStepInput,
     DashboardSetupConfig,
@@ -309,28 +308,28 @@ if TYPE_CHECKING:
 
         async def async_step_configure_external_entities(
             self,
-            user_input: ExternalEntityConfig | None = None,
+            user_input: dict[str, Any] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the external entity step."""
             ...
 
         async def async_step_configure_feeding_details(
             self,
-            user_input: FeedingConfigurationStepInput | None = None,
+            user_input: dict[str, Any] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the feeding configuration step."""
             ...
 
         async def async_step_configure_dashboard(
             self,
-            user_input: DashboardConfigurationStepInput | None = None,
+            user_input: dict[str, Any] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the dashboard configuration step."""
             ...
 
         async def async_step_final_setup(
             self,
-            user_input: ConfigFlowUserInput | None = None,
+            user_input: dict[str, Any] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the final setup step."""
             ...
@@ -357,7 +356,7 @@ class ModuleConfigurationMixin:
 
     async def async_step_configure_modules(
         self,
-        user_input: ModuleConfigurationStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure global settings after per-dog configuration.
 
@@ -489,7 +488,7 @@ class ModuleConfigurationMixin:
 
     async def async_step_configure_dashboard(
         self,
-        user_input: DashboardConfigurationStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure dashboard settings after per-dog setup.
 
@@ -857,7 +856,7 @@ class ModuleConfigurationMixin:
 
     async def async_step_configure_feeding_details(
         self,
-        user_input: FeedingConfigurationStepInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure detailed feeding settings when feeding module is enabled.
 

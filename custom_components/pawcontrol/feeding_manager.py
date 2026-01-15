@@ -441,24 +441,24 @@ def _normalise_health_override(
 
     if (weight := data.get("weight")) is not None and isinstance(
         weight,
-        (int, float, str),
+        int | float | str,
     ):
         override["weight"] = float(weight)
 
     if (ideal_weight := data.get("ideal_weight")) is not None and isinstance(
         ideal_weight,
-        (int, float, str),
+        int | float | str,
     ):
         override["ideal_weight"] = float(ideal_weight)
 
     if (age_months := data.get("age_months")) is not None and isinstance(
         age_months,
-        (int, float, str),
+        int | float | str,
     ):
         override["age_months"] = int(age_months)
 
     conditions = data.get("health_conditions")
-    if isinstance(conditions, Sequence) and not isinstance(conditions, (str, bytes)):
+    if isinstance(conditions, Sequence) and not isinstance(conditions, str | bytes):
         override["health_conditions"] = [
             condition for condition in conditions if isinstance(condition, str)
         ]
@@ -1233,7 +1233,7 @@ class FeedingManager:
                 dog_id = dog_id_raw
 
                 weight = dog.get("weight")
-                if not isinstance(weight, (int, float, str)):
+                if not isinstance(weight, int | float | str):
                     raise ValueError(
                         f"Invalid feeding configuration for {dog_id}: weight is required",
                     )
@@ -1264,7 +1264,7 @@ class FeedingManager:
                 config.dog_weight = parsed_weight
                 if (ideal_weight := dog.get("ideal_weight")) is not None and isinstance(
                     ideal_weight,
-                    (int, float, str),
+                    int | float | str,
                 ):
                     try:
                         config.ideal_weight = float(ideal_weight)
@@ -1276,7 +1276,7 @@ class FeedingManager:
                         )
                 if (age_months := dog.get("age_months")) is not None and isinstance(
                     age_months,
-                    (int, float, str),
+                    int | float | str,
                 ):
                     config.age_months = int(age_months)
                 if (activity := dog.get("activity_level")) and isinstance(
@@ -1287,7 +1287,7 @@ class FeedingManager:
                 health_conditions = dog.get("health_conditions")
                 if isinstance(health_conditions, Sequence) and not isinstance(
                     health_conditions,
-                    (str, bytes),
+                    str | bytes,
                 ):
                     config.health_conditions = [
                         condition
@@ -1343,14 +1343,14 @@ class FeedingManager:
         meals_per_day_raw = config_data.get("meals_per_day", 2)
         meals_per_day = (
             int(meals_per_day_raw)
-            if isinstance(meals_per_day_raw, (int, float, str))
+            if isinstance(meals_per_day_raw, int | float | str)
             else 2
         )
 
         daily_food_amount_raw = config_data.get("daily_food_amount", 500.0)
         daily_food_amount = (
             float(daily_food_amount_raw)
-            if isinstance(daily_food_amount_raw, (int, float, str))
+            if isinstance(daily_food_amount_raw, int | float | str)
             else 500.0
         )
 
@@ -1416,7 +1416,7 @@ class FeedingManager:
         portion_tolerance_raw = config_data.get("portion_tolerance", 10)
         portion_tolerance = (
             int(portion_tolerance_raw)
-            if isinstance(portion_tolerance_raw, (int, float, str))
+            if isinstance(portion_tolerance_raw, int | float | str)
             else 10
         )
 
@@ -1433,21 +1433,21 @@ class FeedingManager:
         dog_weight_value = config_data.get("dog_weight")
         dog_weight = (
             float(dog_weight_value)
-            if isinstance(dog_weight_value, (int, float, str))
+            if isinstance(dog_weight_value, int | float | str)
             else None
         )
 
         ideal_weight_value = config_data.get("ideal_weight")
         ideal_weight = (
             float(ideal_weight_value)
-            if isinstance(ideal_weight_value, (int, float, str))
+            if isinstance(ideal_weight_value, int | float | str)
             else None
         )
 
         age_months_value = config_data.get("age_months")
         age_months = (
             int(age_months_value)
-            if isinstance(age_months_value, (int, float, str))
+            if isinstance(age_months_value, int | float | str)
             else None
         )
 
@@ -1469,7 +1469,7 @@ class FeedingManager:
         body_condition_raw = config_data.get("body_condition_score")
         body_condition_score = (
             int(body_condition_raw)
-            if isinstance(body_condition_raw, (int, float, str))
+            if isinstance(body_condition_raw, int | float | str)
             else None
         )
 
@@ -1481,7 +1481,7 @@ class FeedingManager:
                 if isinstance(condition, str)
             ]
             if isinstance(health_conditions_raw, Sequence)
-            and not isinstance(health_conditions_raw, (str, bytes))
+            and not isinstance(health_conditions_raw, str | bytes)
             else []
         )
 
@@ -1551,7 +1551,7 @@ class FeedingManager:
             ("dinner_time", MealType.DINNER),
         ]:
             meal_time_raw = config_data.get(meal_name)
-            if isinstance(meal_time_raw, (str, time)) and (
+            if isinstance(meal_time_raw, str | time) and (
                 parsed_time := self._parse_time(meal_time_raw)
             ):
                 portion_size_raw = config_data.get(
@@ -1560,7 +1560,7 @@ class FeedingManager:
                 )
                 portion_size_value = (
                     float(portion_size_raw)
-                    if isinstance(portion_size_raw, (int, float, str))
+                    if isinstance(portion_size_raw, int | float | str)
                     else portion_size
                 )
                 reminder_enabled_raw = config_data.get(
@@ -1578,7 +1578,7 @@ class FeedingManager:
                 )
                 reminder_minutes_before = (
                     int(reminder_minutes_raw)
-                    if isinstance(reminder_minutes_raw, (int, float, str))
+                    if isinstance(reminder_minutes_raw, int | float | str)
                     else 15
                 )
 
@@ -1596,10 +1596,10 @@ class FeedingManager:
         snack_times_raw = config_data.get("snack_times", [])
         if isinstance(snack_times_raw, Sequence) and not isinstance(
             snack_times_raw,
-            (str, bytes),
+            str | bytes,
         ):
             for snack_time_str in snack_times_raw:
-                if not isinstance(snack_time_str, (str, time)):
+                if not isinstance(snack_time_str, str | time):
                     continue
                 if parsed_time := self._parse_time(snack_time_str):
                     meal_schedules.append(
@@ -2240,21 +2240,21 @@ class FeedingManager:
         total_fed_raw = stats.get("total_fed_today", 0.0)
         total_fed_today = (
             float(total_fed_raw)
-            if isinstance(total_fed_raw, (int, float, str))
+            if isinstance(total_fed_raw, int | float | str)
             else 0.0
         )
 
         meals_today_raw = stats.get("meals_today", 0)
         meals_today = (
             int(meals_today_raw)
-            if isinstance(meals_today_raw, (int, float, str))
+            if isinstance(meals_today_raw, int | float | str)
             else 0
         )
 
         remaining_calories_raw = stats.get("remaining_calories")
         remaining_calories = (
             float(remaining_calories_raw)
-            if isinstance(remaining_calories_raw, (int, float, str))
+            if isinstance(remaining_calories_raw, int | float | str)
             else None
         )
 

@@ -43,7 +43,6 @@ from .runtime_data import (
 )
 from .telemetry import get_runtime_store_health
 from .types import (
-    ConfigFlowUserInput,
     DogConfigData,
     DogModulesConfig,
     FeedingComplianceDisplayMapping,
@@ -334,7 +333,7 @@ async def async_publish_feeding_compliance_issue(
     recommendations = (
         [str(rec) for rec in recommendations_raw if isinstance(rec, str)]
         if isinstance(recommendations_raw, Sequence)
-        and not isinstance(recommendations_raw, (str, bytes))
+        and not isinstance(recommendations_raw, str | bytes)
         else []
     )
 
@@ -343,7 +342,7 @@ async def async_publish_feeding_compliance_issue(
         float(score_raw)
         if isinstance(
             score_raw,
-            (int, float, str),
+            int | float | str,
         )
         else 0.0
     )
@@ -517,7 +516,7 @@ async def _check_dog_configuration_issues(
     raw_dogs = (
         raw_dogs_obj
         if isinstance(raw_dogs_obj, Sequence)
-        and not isinstance(raw_dogs_obj, (str, bytes))
+        and not isinstance(raw_dogs_obj, str | bytes)
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -603,7 +602,7 @@ async def _check_gps_configuration_issues(
     raw_dogs = (
         raw_dogs_obj
         if isinstance(raw_dogs_obj, Sequence)
-        and not isinstance(raw_dogs_obj, (str, bytes))
+        and not isinstance(raw_dogs_obj, str | bytes)
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -643,7 +642,7 @@ async def _check_gps_configuration_issues(
     update_interval_raw = gps_config.get("gps_update_interval", 60)
     update_interval = (
         int(update_interval_raw)
-        if isinstance(update_interval_raw, (int, float, str))
+        if isinstance(update_interval_raw, int | float | str)
         else 60
     )
     if update_interval < 10:  # Less than 10 seconds
@@ -674,7 +673,7 @@ async def _check_notification_configuration_issues(
     raw_dogs = (
         raw_dogs_obj
         if isinstance(raw_dogs_obj, Sequence)
-        and not isinstance(raw_dogs_obj, (str, bytes))
+        and not isinstance(raw_dogs_obj, str | bytes)
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -863,7 +862,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
     raw_dogs = (
         raw_dogs_obj
         if isinstance(raw_dogs_obj, Sequence)
-        and not isinstance(raw_dogs_obj, (str, bytes))
+        and not isinstance(raw_dogs_obj, str | bytes)
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -924,7 +923,7 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
         int(retention_raw)
         if isinstance(
             retention_raw,
-            (int, float, str),
+            int | float | str,
         )
         else 90
     )
@@ -1020,8 +1019,8 @@ def _normalise_duration_alerts(
         guard_limit_seconds = candidate.get("guard_limit_seconds")
         if (
             not isinstance(level, str)
-            or not isinstance(percentile_seconds, (int, float))
-            or not isinstance(guard_limit_seconds, (int, float))
+            or not isinstance(percentile_seconds, int | float)
+            or not isinstance(guard_limit_seconds, int | float)
         ):
             continue
         alert: RuntimeStoreLevelDurationAlert = {
@@ -1281,7 +1280,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_init(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle the initial step of a repair flow.
 
@@ -1333,7 +1332,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_missing_dog_config(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for missing dog configuration.
 
@@ -1383,7 +1382,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_add_first_dog(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle adding the first dog.
 
@@ -1429,10 +1428,10 @@ class PawControlRepairsFlow(RepairsFlow):
                                 if isinstance(dog_breed_raw, str)
                                 else "",
                                 "dog_age": int(dog_age_raw)
-                                if isinstance(dog_age_raw, (int, float, str))
+                                if isinstance(dog_age_raw, int | float | str)
                                 else 3,
                                 "dog_weight": float(dog_weight_raw)
-                                if isinstance(dog_weight_raw, (int, float, str))
+                                if isinstance(dog_weight_raw, int | float | str)
                                 else 20.0,
                                 "dog_size": dog_size_raw
                                 if isinstance(dog_size_raw, str)
@@ -1485,7 +1484,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_duplicate_dog_ids(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for duplicate dog IDs.
 
@@ -1513,7 +1512,7 @@ class PawControlRepairsFlow(RepairsFlow):
         duplicate_ids = (
             [str(item) for item in duplicate_ids_raw]
             if isinstance(duplicate_ids_raw, Sequence)
-            and not isinstance(duplicate_ids_raw, (str, bytes))
+            and not isinstance(duplicate_ids_raw, str | bytes)
             else []
         )
         total_dogs_raw = self._issue_data.get("total_dogs", 0)
@@ -1521,7 +1520,7 @@ class PawControlRepairsFlow(RepairsFlow):
             int(total_dogs_raw)
             if isinstance(
                 total_dogs_raw,
-                (int, float, str),
+                int | float | str,
             )
             else 0
         )
@@ -1557,7 +1556,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_invalid_gps_config(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for invalid GPS configuration.
 
@@ -1608,7 +1607,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_configure_gps(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle GPS configuration step.
 
@@ -1678,7 +1677,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_missing_notifications(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for missing notification services.
 
@@ -1735,7 +1734,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_performance_warning(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle performance warning repair flow.
 
@@ -1786,7 +1785,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_storage_warning(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for storage warnings."""
 
@@ -1835,7 +1834,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_module_conflict(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for high resource module conflicts."""
 
@@ -1891,7 +1890,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_invalid_dog_data(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for invalid dog configuration data."""
 
@@ -1912,7 +1911,7 @@ class PawControlRepairsFlow(RepairsFlow):
         invalid_dogs = (
             [str(dog) for dog in invalid_dogs_raw]
             if isinstance(invalid_dogs_raw, Sequence)
-            and not isinstance(invalid_dogs_raw, (str, bytes))
+            and not isinstance(invalid_dogs_raw, str | bytes)
             else []
         )
         total_dogs_raw = self._issue_data.get("total_dogs")
@@ -1920,7 +1919,7 @@ class PawControlRepairsFlow(RepairsFlow):
             int(total_dogs_raw)
             if isinstance(
                 total_dogs_raw,
-                (int, float, str),
+                int | float | str,
             )
             else 0
         )
@@ -1956,7 +1955,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_coordinator_error(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle repair flow for coordinator errors."""
 
@@ -2009,7 +2008,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_complete_repair(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Complete the repair flow.
 
@@ -2029,7 +2028,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def async_step_unknown_issue(
         self,
-        user_input: ConfigFlowUserInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Handle unknown issue types.
 

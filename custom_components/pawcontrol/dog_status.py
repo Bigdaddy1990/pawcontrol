@@ -76,7 +76,7 @@ def _resolve_safe_zone(geofence_status: JSONMapping, zone: str | None) -> bool:
         candidate = geofence_status.get("in_safe_zone")
         if isinstance(candidate, bool):
             return candidate
-        if isinstance(candidate, (int, float)):
+        if isinstance(candidate, int | float):
             return bool(candidate)
     if zone is None:
         return True

@@ -4134,7 +4134,7 @@ def ensure_gps_route_snapshot(
     base = ensure_json_mapping(payload)
     points_raw = base.get("points")
     points: list[GPSRoutePoint] = []
-    if isinstance(points_raw, Sequence) and not isinstance(points_raw, (str, bytes)):
+    if isinstance(points_raw, Sequence) and not isinstance(points_raw, str | bytes):
         for point in points_raw:
             if isinstance(point, Mapping):
                 normalised = _normalise_route_point(point)

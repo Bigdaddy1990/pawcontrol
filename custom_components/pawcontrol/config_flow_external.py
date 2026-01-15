@@ -12,7 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Final, Literal, Protocol, cast
+from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -89,7 +89,7 @@ if TYPE_CHECKING:
 
         async def async_step_final_setup(
             self,
-            user_input: ExternalEntityConfig | None = None,
+            user_input: dict[str, Any] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the mixin's final step delegation."""
             ...
@@ -150,7 +150,7 @@ class ExternalEntityConfigurationMixin:
 
     async def async_step_configure_external_entities(
         self,
-        user_input: ExternalEntityConfig | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure external entities required for enabled modules.
 

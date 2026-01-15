@@ -424,7 +424,7 @@ def _get_runtime_data_for_coordinator(
 def _coerce_service_details_value(value: Any) -> JSONValue:
     """Return a JSON-compatible representation for service detail values."""
 
-    if value is None or isinstance(value, (bool, int, float, str)):
+    if value is None or isinstance(value, bool | int | float | str):
         return value
 
     if isinstance(value, Mapping):
@@ -432,7 +432,7 @@ def _coerce_service_details_value(value: Any) -> JSONValue:
             str(key): _coerce_service_details_value(item) for key, item in value.items()
         }
 
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, list | tuple | set):
         return [_coerce_service_details_value(item) for item in value]
 
     return str(value)
@@ -450,7 +450,7 @@ def _normalise_service_details(payload: Any) -> ServiceDetailsPayload | None:
             for key, value in payload.items()
         }
 
-    if isinstance(payload, (list, tuple, set)):
+    if isinstance(payload, list | tuple | set):
         return {"items": _coerce_service_details_value(list(payload))}
 
     return {"value": _coerce_service_details_value(payload)}

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -17,11 +17,6 @@ from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
     JSONValue,
-    OptionsDogEditInput,
-    OptionsDogModulesInput,
-    OptionsDogRemovalInput,
-    OptionsDogSelectionInput,
-    OptionsMenuInput,
     freeze_placeholders,
 )
 
@@ -31,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 class DogManagementOptionsMixin:
     async def async_step_manage_dogs(
         self,
-        user_input: OptionsMenuInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Manage dogs - add, edit, or remove dogs."""
         if user_input is not None:
@@ -94,7 +89,7 @@ class DogManagementOptionsMixin:
 
     async def async_step_select_dog_for_modules(
         self,
-        user_input: OptionsDogSelectionInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure modules for.
 
@@ -144,7 +139,7 @@ class DogManagementOptionsMixin:
 
     async def async_step_configure_dog_modules(
         self,
-        user_input: OptionsDogModulesInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure modules for the selected dog.
 
@@ -258,7 +253,7 @@ class DogManagementOptionsMixin:
         *,
         current_sensor: str | None,
         defaults: DoorSensorSettingsConfig,  # noqa: F821
-        user_input: OptionsDoorSensorInput | None = None,  # noqa: F821
+        user_input: dict[str, Any] | None = None,  # noqa: F821
     ) -> vol.Schema:
         """Build schema for configuring per-dog door sensor overrides."""
 
@@ -552,7 +547,7 @@ class DogManagementOptionsMixin:
 
     async def async_step_add_new_dog(
         self,
-        user_input: DogSetupStepInput | None = None,  # noqa: F821
+        user_input: dict[str, Any] | None = None,  # noqa: F821
     ) -> ConfigFlowResult:
         """Add a new dog to the configuration."""
         errors: dict[str, str] = {}
@@ -719,7 +714,7 @@ class DogManagementOptionsMixin:
 
     async def async_step_select_dog_to_edit(
         self,
-        user_input: OptionsDogSelectionInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to edit."""
         current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
@@ -777,7 +772,7 @@ class DogManagementOptionsMixin:
 
     async def async_step_edit_dog(
         self,
-        user_input: OptionsDogEditInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Edit the selected dog."""
         if not self._current_dog:
@@ -903,7 +898,7 @@ class DogManagementOptionsMixin:
 
     async def async_step_select_dog_to_remove(
         self,
-        user_input: OptionsDogRemovalInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to remove."""
         current_dogs = list(self._dogs)

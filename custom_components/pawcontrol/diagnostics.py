@@ -845,7 +845,7 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMappin
     dogs_configured = (
         len(dogs_value)
         if isinstance(dogs_value, Sequence)
-        and not isinstance(dogs_value, (str, bytes, bytearray))
+        and not isinstance(dogs_value, str | bytes | bytearray)
         else 0
     )
 
@@ -1106,12 +1106,12 @@ def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
                 str(key): normalize_value(item, _seen) for key, item in value.items()
             }
 
-        if isinstance(value, (set, frozenset)):
+        if isinstance(value, set | frozenset):
             return [normalize_value(item, _seen) for item in value]
 
         if isinstance(value, Sequence) and not isinstance(
             value,
-            (str, bytes, bytearray),
+            str | bytes | bytearray,
         ):
             return [normalize_value(item, _seen) for item in value]
 
@@ -1391,7 +1391,7 @@ async def _get_dogs_summary(
     dogs_source: Sequence[Any] | None = (
         dogs_payload
         if isinstance(dogs_payload, Sequence)
-        and not isinstance(dogs_payload, (str, bytes, bytearray))
+        and not isinstance(dogs_payload, str | bytes | bytearray)
         else None
     )
     dogs: list[DogConfigData] = (
@@ -1923,7 +1923,7 @@ async def _get_data_statistics(
     dogs_payload = getattr(runtime_data, "dogs", None)
     if isinstance(dogs_payload, Sequence) and not isinstance(
         dogs_payload,
-        (str, bytes, bytearray),
+        str | bytes | bytearray,
     ):
         metrics.setdefault("dogs", len(dogs_payload))
 
@@ -2047,7 +2047,7 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
 
     dogs_sequence: Sequence[DogConfigData] = (
         dogs
-        if isinstance(dogs, Sequence) and not isinstance(dogs, (str, bytes, bytearray))
+        if isinstance(dogs, Sequence) and not isinstance(dogs, str | bytes | bytearray)
         else ()
     )
 

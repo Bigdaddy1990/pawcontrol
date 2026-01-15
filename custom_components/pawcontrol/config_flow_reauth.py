@@ -21,7 +21,6 @@ from .types import (
     REAUTH_PLACEHOLDERS_TEMPLATE,
     DogConfigData,
     DogModulesConfig,
-    ReauthConfirmInput,
     ReauthDataUpdates,
     ReauthHealthSummary,
     ReauthOptionsUpdates,
@@ -275,7 +274,7 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     async def async_step_reauth_confirm(
         self,
-        user_input: ReauthConfirmInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Confirm reauthentication with enhanced validation and error handling."""
 

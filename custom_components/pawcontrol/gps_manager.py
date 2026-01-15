@@ -279,7 +279,7 @@ def _coerce_tracking_float(value: object | None, default: float) -> float:
 
     if isinstance(value, bool):
         return default
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return float(value)
     return default
 

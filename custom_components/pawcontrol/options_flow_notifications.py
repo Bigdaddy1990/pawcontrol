@@ -28,7 +28,6 @@ from .types import (
     NotificationOptions,
     NotificationOptionsInput,
     NotificationSettingsInput,
-    OptionsDogSelectionInput,
     ensure_dog_options_entry,
     ensure_notification_options,
 )
@@ -200,7 +199,7 @@ class NotificationOptionsMixin(NotificationOptionsHost):
 
     async def async_step_select_dog_for_notifications(
         self,
-        user_input: OptionsDogSelectionInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure notifications for."""
 
@@ -223,7 +222,7 @@ class NotificationOptionsMixin(NotificationOptionsHost):
 
     async def async_step_notifications(
         self,
-        user_input: NotificationSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure notification settings."""
 
@@ -285,7 +284,7 @@ class NotificationOptionsMixin(NotificationOptionsHost):
     def _get_notifications_schema(
         self,
         dog_id: str,
-        user_input: NotificationSettingsInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Get notifications settings schema."""
 

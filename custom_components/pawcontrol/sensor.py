@@ -782,7 +782,7 @@ def _log_setup_metrics(
         if profile_info is not None
         else 0
     )
-    if isinstance(raw_max_entities, (int, float, str)):
+    if isinstance(raw_max_entities, int | float | str):
         try:
             max_entities = int(raw_max_entities)
         except (TypeError, ValueError):
@@ -864,7 +864,7 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
         if isinstance(value, bool):
             return float(value)
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return float(value)
         if isinstance(value, str):
             try:
@@ -894,7 +894,10 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     def _coerce_utc_datetime(value: object | None) -> datetime | None:
         """Return an aware UTC datetime when ``value`` is convertible."""
 
-        if isinstance(value, (datetime, date, str, int, float, Real)) or value is None:
+        if (
+            isinstance(value, datetime | date | str | int | float | Real)
+            or value is None
+        ):
             return ensure_utc_datetime(value)
         return None
 
@@ -4468,7 +4471,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
             normalized = [
                 str(cond)
                 for cond in condition_list
-                if isinstance(cond, (str, int, float))
+                if isinstance(cond, str | int | float)
             ]
             return ", ".join(normalized) if normalized else "none"
         return str(condition_list)
@@ -4487,7 +4490,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
             normalized_list = [
                 str(cond)
                 for cond in condition_list
-                if isinstance(cond, (str, int, float))
+                if isinstance(cond, str | int | float)
             ]
         attrs["conditions"] = normalized_list
         return _normalise_attributes(attrs)

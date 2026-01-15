@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigFlowResult
+from typing import Any
 
-from .types import OptionsMainMenuInput
+from homeassistant.config_entries import ConfigFlowResult
 
 
 class MenuOptionsMixin:
     async def async_step_init(
         self,
-        user_input: OptionsMainMenuInput | None = None,
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Show the main options menu with enhanced navigation.
 
