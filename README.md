@@ -9,7 +9,6 @@
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 [![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Bigdaddy1990/pawcontrol/main.svg)](https://results.pre-commit.ci/latest/github/Bigdaddy1990/pawcontrol/main)
 [![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml)
 
 **PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration **aims to comply with the Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports. As a custom integration, this is an alignment target rather than an official Home Assistant badge.
@@ -1192,9 +1191,9 @@ pytest tests/test_performance_*.py -v
 3. **Develop**: Write code with tests and documentation
 4. **Quality Check**: Ensure 100% test coverage and code quality
 5. **Sync Contributor Guides & Localizations**: After updating
-   `.github/copilot-instructions.md`, run `python -m script.sync_contributor_guides`
+   `.github/copilot-instructions.md`, run `python -m scripts.sync_contributor_guides`
    so the Claude and Gemini assistants stay aligned. Follow up with
-   `python -m script.sync_localization_flags --check` to confirm that the
+   `python -m scripts.sync_localization_flags --check` to confirm that the
    `setup_flags_panel_*` translations in every language mirror `strings.json`.
    The contributor guide pre-commit hook also runs in `--check` mode so wrappers
    never drift from the canonical text.
@@ -1206,16 +1205,16 @@ Follow this checklist when onboarding a new locale so diagnostics, tests, and
 documentation stay in sync:
 
 1. Append the lowercase language code (e.g. `es`, `fr`) to
-   [`script/sync_localization_flags.allowlist`](script/sync_localization_flags.allowlist)
+   [`scripts/sync_localization_flags.allowlist`](scripts/sync_localization_flags.allowlist)
    to keep the shared allowlist sorted.
-2. Run `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist`
+2. Run `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist`
    without `--check` to bootstrap the translation file from the canonical
    `en.json` template. The script will create `custom_components/pawcontrol/translations/<lang>.json`
    if it does not exist and synchronise the setup-flag keys across all locales.
 3. Translate the new file as needed and update the localization table in
    [`docs/diagnostik.md`](docs/diagnostik.md) so every key displays a column for the
    new language.
-4. Re-run `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist --check`
+4. Re-run `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist --check`
    to verify nothing drifted, then execute `ruff check` and the unit tests before
    opening your pull request.
 

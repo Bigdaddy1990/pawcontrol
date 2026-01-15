@@ -36,7 +36,7 @@ Run the same checks that continuous integration executes before you open a pull 
 ```bash
 ruff format custom_components/pawcontrol tests
 ruff check custom_components/pawcontrol tests
-python -m script.enforce_test_requirements
+python -m scripts.enforce_test_requirements
 mypy custom_components/pawcontrol
 pytest --cov=custom_components/pawcontrol tests
 pre-commit run --all-files

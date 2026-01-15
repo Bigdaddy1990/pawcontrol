@@ -933,7 +933,7 @@ script:
                 value_template: "{{ action == 'SNOOZE_30' }}"
             sequence:
               - delay: "00:30:00"
-              - service: script.send_walk_reminder
+              - service: scripts.send_walk_reminder
                 data:
                   dog_id: "{{ dog_id | default('buddy') }}"
 

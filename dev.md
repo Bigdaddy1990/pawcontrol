@@ -124,11 +124,11 @@ sequenceDiagram
 ```bash
 ruff format
 ruff check
-python -m script.enforce_test_requirements
+python -m scripts.enforce_test_requirements
 mypy custom_components/pawcontrol
 pytest -q
-python -m script.hassfest --integration-path custom_components/pawcontrol
-python -m script.sync_contributor_guides
+python -m scripts.hassfest --integration-path custom_components/pawcontrol
+python -m scripts.sync_contributor_guides
 ```
 
 ## Localization workflow
@@ -138,7 +138,7 @@ Missing translation keys are a common cause of `hassfest` failures.
 1. Add new user-facing strings to `custom_components/pawcontrol/strings.json`.
 2. Propagate them to all locale files under
    `custom_components/pawcontrol/translations/`.
-3. Re-run `python -m script.hassfest --integration-path custom_components/pawcontrol`
+3. Re-run `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
    to validate schema and localization.
 
 ## Testing strategy

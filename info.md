@@ -111,12 +111,12 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   `cp313`-`musllinux`-Wheels (PEP 656) das Entfernen des Vendor-Verzeichnisses
   ermöglichen. Der Lauf aktualisiert zusätzlich `generated/vendor_pyyaml_status.json`
   mit den zugehörigen Download-Links.
-- `python -m script.sync_homeassistant_dependencies --home-assistant-root /pfad/zum/core`
+- `python -m scripts.sync_homeassistant_dependencies --home-assistant-root /pfad/zum/core`
   synchronisiert `requirements*.txt`, Manifest-Anforderungen und das vendorte
   PyYAML automatisiert mit den Home-Assistant-Constraints (derzeit PyYAML 6.0.3)
   und regeneriert `generated/vendor_pyyaml_status.json` mitsamt Wheel-Links.
 - Der CI-Job „TypedDict audit“ aus [`ci.yml`](.github/workflows/ci.yml) führt bei
-  jedem Push sowie in Pull Requests `python -m script.check_typed_dicts --path
+  jedem Push sowie in Pull Requests `python -m scripts.check_typed_dicts --path
   custom_components/pawcontrol --path tests --fail-on-findings` aus und blockiert
   Releases sofort, falls neue untypisierte Dictionaries auftauchen.
 - Der Async-Dependency-Audit dokumentiert alle synchronen Bibliotheken, die

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from script.hassfest import run
+from scripts.hassfest import run
 
 
 def _build_stub_integration(tmp_path: Path, *, domain: str = "demo") -> Path:
