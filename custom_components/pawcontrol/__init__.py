@@ -121,7 +121,7 @@ def _resolve_config_entry_not_ready() -> type[Exception]:
             )
         elif _CANONICAL_CONFIG_ENTRY_NOT_READY is not None and candidate is None:
             # type: ignore[attr-defined]
-            module.ConfigEntryNotReady = _CANONICAL_CONFIG_ENTRY_NOT_READY
+            cast(Any, module).ConfigEntryNotReady = _CANONICAL_CONFIG_ENTRY_NOT_READY
         if isinstance(candidate, type) and issubclass(candidate, Exception):
             candidates.append(cast(type[Exception], candidate))
 
@@ -493,7 +493,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def _async_initialize_manager_with_timeout(
     manager_name: str,
-    coro: Any,
+    coro: Awaitable[Any],
     timeout: int = _MANAGER_INIT_TIMEOUT,
 ) -> None:
     """Initialize a manager with timeout and proper error handling.
@@ -531,7 +531,7 @@ async def _async_initialize_manager_with_timeout(
         raise
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:  # pyright: ignore[reportGeneralTypeIssues]  # pyright: ignore[reportGeneralTypeIssues]
     """Set up PawControl from a config entry.
 
     Args:
