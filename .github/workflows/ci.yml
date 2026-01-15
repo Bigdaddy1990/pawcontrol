@@ -6,7 +6,7 @@ true:
   pull_request:
     branches:
       - main
-  workflow_dispatch: null
+  workflow_dispatch: 
 permissions:
   contents: read
   pull-requests: write
@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "CodeFactor analysis runs automatically via webhook"
           echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
-
+          
   lint:
     name: Lint
     uses: ./.github/workflows/reusable-pre-commit.yml
@@ -97,6 +97,7 @@ jobs:
           "{\n  echo \"### \u2705 TypedDict audit\"\n  echo\n  echo \"- Python: ${{ env.PYTHON_VERSION }}\"\n  echo \"- Paths:\
           \ \\`custom_components/pawcontrol\\`, \\`tests\\`\"\n  echo \"- Command: \\`python -m script.check_typed_dicts --path\
           \ custom_components/pawcontrol --path tests --fail-on-findings\\`\"\n} >> \"$GITHUB_STEP_SUMMARY\"\n"
+          
   test-coverage:
     name: Test & Coverage
     uses: ./.github/workflows/reusable-python-tests.yml
@@ -159,6 +160,7 @@ jobs:
           \ \\\n  --mode pages \\\n  --pages-branch gh-pages \\\n  --pages-prefix coverage \\\n  --prune-expired-runs\n"
     permissions:
       contents: write
+      
   docs-diff-comment:
     name: Document change summary
     if: ${{ github.event_name == 'pull_request' }}
@@ -204,41 +206,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           body-path: docs-diff-comment.md
           comment-identifier: docs-diff
-  code-quality:
-    name: Code Quality
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: "pyproject.toml
-
-            requirements.txt
-
-            "
-      - name: Install Ruff
-        run: "python -m pip install --upgrade pip
-
-          pip install ruff
-
-          "
-      - name: Run Ruff check
-        run: "ruff check custom_components/pawcontrol --output-format=github
-
-          ruff format custom_components/pawcontrol --check
-
-          "
-      - name: CodeFactor Analysis
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: 'echo "CodeFactor analysis runs automatically via webhook"
-
-          echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
-
-          '
+  
   localization-guards:
     name: Localization & Guide Sync
     runs-on: ubuntu-latest
@@ -260,6 +228,7 @@ jobs:
           PYTHONPATH: .
         run:
           "python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist --check python -m script.sync_contributor_guides"
+  
   mypy-config:
     name: Type Check Config Flows
     runs-on: ubuntu-latest
@@ -293,6 +262,7 @@ jobs:
           "mypy --follow-imports=skip \\\n  custom_components/pawcontrol/repairs.py \\\n  custom_components/pawcontrol/types.py\
           \ \\\n  custom_components/pawcontrol/coordinator_tasks.py \\\n  custom_components/pawcontrol/performance.py \\\n \
           \ custom_components/pawcontrol/services.py \\\n  custom_components/pawcontrol/telemetry.py\n"
+  
   validate-manifest:
     name: Validate Manifest
     runs-on: ubuntu-latest
@@ -305,6 +275,7 @@ jobs:
           \    manifest = json.load(f)\n\nrequired = ['domain', 'name', 'version', 'documentation', 'codeowners', 'requirements']\n\
           missing = [field for field in required if field not in manifest]\n\nif missing:\n    print(f'Missing required fields:\
           \ {missing}')\n    sys.exit(1)\n\nprint('\u2705 Manifest validation passed')\n\"\n"
+  
   marketplace-validation:
     name: Hassfest & HACS validation
     uses: ./.github/workflows/reusable-marketplace-validation.yml
