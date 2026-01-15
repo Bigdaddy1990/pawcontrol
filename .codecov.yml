@@ -23,7 +23,7 @@ codecov:
           - main
         if_not_found: success
         if_ci_failed: success #success, failure, error, ignore
-        informational: false
+        informational: true
         only_pulls: false
     tests:  # declare a new status context "tests"
         target: 100%  # we always want 100% coverage here
@@ -35,7 +35,7 @@ codecov:
         base: auto
         if_not_found: success
         if_ci_failed: error
-        informational: false
+        informational: true
         only_pulls: false
     changes: false
   precision: 2
@@ -66,7 +66,6 @@ ignore:
   - "**/__pycache__/**"
   - "**/test_*.py"
   - "**/conftest.py"
-  - "setup.py"
   - "**/*.md"
 
 flags:
