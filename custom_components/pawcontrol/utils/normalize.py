@@ -17,11 +17,11 @@ def normalize_value(value: object) -> JSONValue:
     Converts datetimes to ISO strings, timedeltas to seconds, dataclasses to dicts,
     mappings, sets, and iterables to recursively normalised forms. Falls back to repr().
     """
-    if value is None or isinstance(value, (int, float, str, bool)):
+    if value is None or isinstance(value, int | float | str | bool):
         return value  # type: ignore[return-value]
     if isinstance(value, datetime):
         return value.isoformat()
-    if isinstance(value, (date, time)):
+    if isinstance(value, date | time):
         return value.isoformat()
     if isinstance(value, timedelta):
         return value.total_seconds()  # type: ignore[return-value]
@@ -31,6 +31,6 @@ def normalize_value(value: object) -> JSONValue:
         return {str(k): normalize_value(v) for k, v in value.items()}
     if isinstance(value, ABCSet):
         return [normalize_value(v) for v in value]
-    if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+    if isinstance(value, Iterable) and not isinstance(value, str | bytes):
         return [normalize_value(v) for v in value]
     return repr(value)
