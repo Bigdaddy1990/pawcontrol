@@ -1,28 +1,22 @@
-"""Publish lightweight coverage artifacts to GitHub Pages or local archives.
+"""Publish coverage artifacts.
 
-This module uploads the generated coverage summary to the configured GitHub
-Pages branch and emits a tarball fallback that CI can surface as an artifact.
-It is intentionally defensive: network failures or missing credentials degrade
-into a local archive so quality gates can still expose coverage results.
+This helper is intentionally lightweight. The reusable workflow optionally calls it to
+prepare a GitHub Pages bundle containing the HTML coverage report and a small metadata
+file.
+
+The workflow passes paths for the generated coverage XML and the HTML index.
+When running in "pages" mode we simply copy the HTML report directory into the
+requested artifact directory.
+
+This script does *not* push to GitHub Pages by itself; the workflow is responsible for
+uploading the prepared bundle.
 """
 
 from __future__ import annotations
 
 import argparse
-import base64
-import binascii
-import dataclasses
-import datetime as dt
-import io
 import json
-import logging
-import os
-import re
-import tarfile
-import urllib.error
-import urllib.request
-import urllib.response
-from collections.abc import Iterable, Iterator, Mapping, MutableMapping, Sequence
+import shutil
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -194,406 +188,70 @@ class PublishResult:
     publish_url: str | None
 
 
-class GitHubPagesPublisher:
-    """Publish coverage assets to a GitHub Pages branch using the git data API."""
 
-    def __init__(
-        self, token: str, repository: str, branch: str, timeout: int = DEFAULT_TIMEOUT
-    ) -> None:
-        if not token:
-            raise PublishError("Missing GITHUB_TOKEN - cannot publish to GitHub Pages")
-        if not repository or not REPOSITORY_SLUG_PATTERN.fullmatch(repository):
-            raise PublishError(f"Invalid repository slug: {repository!r}")
-        self._token = token
-        self._repository = repository
-        self._branch = branch
-        self._timeout = timeout
-
-    def publish(
-        self, payloads: Iterable[FilePayload], landing_path: str | None = None
-    ) -> str:
-        """Publish payloads to the configured GitHub Pages branch."""
-
-        base_sha = self._fetch_branch_head()
-        tree_entries = []
-        for payload in payloads:
-            blob_sha = self._create_blob(payload.content)
-            tree_entries.append(
-                {
-                    "path": payload.relative_path,
-                    "mode": "100644",
-                    "type": "blob",
-                    "sha": blob_sha,
-                }
-            )
-        commit_message = "Publish coverage report"
-        self._commit_tree(base_sha, tree_entries, commit_message)
-        owner, repo = self._repository.split("/", 1)
-        base_url = f"https://{owner}.github.io/{repo}"
-        if landing_path:
-            landing_path = landing_path.lstrip("/")
-            return f"{base_url}/{landing_path}"
-        return f"{base_url}/"
-
-    def _create_blob(self, content: bytes) -> str:
-        encoded = base64.b64encode(content).decode("ascii")
-        blob = self._request(
-            "POST",
-            f"/repos/{self._repository}/git/blobs",
-            {"content": encoded, "encoding": "base64"},
-        )
-        return blob["sha"]
-
-    def _fetch_branch_head(self) -> str:
-        ref = cast(
-            Mapping[str, Any],
-            self._request(
-                "GET", f"/repos/{self._repository}/git/refs/heads/{self._branch}"
-            ),
-        )
-        branch_object = cast(Mapping[str, Any], ref["object"])
-        return cast(str, branch_object["sha"])
-
-    def _commit_tree(
-        self,
-        base_sha: str,
-        tree_entries: Sequence[Mapping[str, object]],
-        message: str,
-    ) -> str:
-        tree = cast(
-            Mapping[str, Any],
-            self._request(
-                "POST",
-                f"/repos/{self._repository}/git/trees",
-                {"base_tree": base_sha, "tree": list(tree_entries)},
-            ),
-        )
-        commit = cast(
-            Mapping[str, Any],
-            self._request(
-                "POST",
-                f"/repos/{self._repository}/git/commits",
-                {"message": message, "tree": tree["sha"], "parents": [base_sha]},
-            ),
-        )
-        self._request(
-            "PATCH",
-            f"/repos/{self._repository}/git/refs/heads/{self._branch}",
-            {"sha": commit["sha"], "force": True},
-        )
-        return cast(str, commit["sha"])
-
-    def _request(
-        self, method: str, path: str, payload: MutableMapping[str, object] | None = None
-    ) -> Any:
-        url = f"{API_ROOT}{path}"
-        data: bytes | None = None
-        headers = {
-            "Authorization": f"Bearer {self._token}",
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "pawcontrol-coverage-publisher",
-        }
-        if payload is not None:
-            data = json.dumps(payload).encode("utf-8")
-            headers["Content-Type"] = "application/json"
-        request = urllib.request.Request(url, data=data, headers=headers, method=method)
-        try:
-            with open_github_api_url(request, timeout=self._timeout) as response:
-                response_data = response.read()
-                status = getattr(response, "status", None)
-                if status is None:
-                    status = response.getcode()
-                if status is None:
-                    status = 200
-        except urllib.error.HTTPError as error:
-            raise PublishError(
-                f"GitHub API error {error.code}: {error.reason}"
-            ) from error
-        except urllib.error.URLError as error:
-            raise PublishError(f"Network error: {error.reason}") from error
-        if not 200 <= status < 300:
-            raise PublishError(f"GitHub API returned status {status} for {path}")
-        if not response_data:
-            return {}
-        return json.loads(response_data.decode("utf-8"))
-
-    def prune_expired_runs(
-        self,
-        prefix: str,
-        max_age: dt.timedelta,
-        *,
-        now: dt.datetime | None = None,
-    ) -> list[str]:
-        """Delete coverage run directories older than ``max_age``."""
-
-        now = now or dt.datetime.now(dt.UTC)
-        normalized_prefix = prefix.strip("/")
-        if not normalized_prefix:
-            return []
-        contents = self._request(
-            "GET",
-            f"/repos/{self._repository}/contents/{normalized_prefix}?ref={self._branch}",
-        )
-        if not isinstance(contents, list):
-            return []
-        expired_paths: list[str] = []
-        for entry in contents:
-            if not isinstance(entry, Mapping):
-                continue
-            if entry.get("type") != "dir":
-                continue
-            run_id = str(entry.get("name", ""))
-            if not run_id or run_id == "latest":
-                continue
-            generated_at = self._load_run_timestamp(normalized_prefix, run_id)
-            if generated_at is None:
-                continue
-            if now - generated_at > max_age:
-                expired_paths.append(f"{normalized_prefix}/{run_id}")
-        if not expired_paths:
-            return []
-        base_sha = self._fetch_branch_head()
-        tree_entries: list[dict[str, object]] = [
-            {
-                "path": path,
-                "mode": "040000",
-                "type": "tree",
-                "sha": None,
-            }
-            for path in expired_paths
-        ]
-        self._commit_tree(base_sha, tree_entries, "Prune expired coverage runs")
-        return expired_paths
-
-    def _load_run_timestamp(self, prefix: str, run_id: str) -> dt.datetime | None:
-        summary = self._request(
-            "GET",
-            f"/repos/{self._repository}/contents/{prefix}/{run_id}/summary.json?ref={self._branch}",
-        )
-        if not isinstance(summary, Mapping):
-            return None
-        content = summary.get("content")
-        encoding = summary.get("encoding")
-        if not isinstance(content, str) or encoding != "base64":
-            return None
-        try:
-            decoded = base64.b64decode(content.encode("ascii"))
-            payload = json.loads(decoded.decode("utf-8"))
-        except (ValueError, UnicodeDecodeError, binascii.Error):
-            return None
-        generated_at = payload.get("generated_at")
-        if not isinstance(generated_at, str):
-            return None
-        try:
-            timestamp = dt.datetime.fromisoformat(generated_at)
-        except ValueError:
-            return None
-        if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=dt.UTC)
-        return timestamp.astimezone(dt.UTC)
-
-
-def ensure_allowed_github_api_url(url: str) -> None:
-    """Validate that ``url`` targets the GitHub API using an allowed scheme."""
-
-    parsed = urlsplit(url)
-    if parsed.scheme not in ALLOWED_URL_SCHEMES:
-        raise PublishError(f"Refusing to access URL with disallowed scheme: {url!r}")
-    if parsed.netloc != _API_ROOT_COMPONENTS.netloc:
-        raise PublishError(f"Refusing to access URL outside GitHub API host: {url!r}")
-    if not url.startswith(f"{API_ROOT}/"):
-        raise PublishError(f"Refusing to access unexpected URL: {url!r}")
-
-
-class _RestrictedGitHubRedirectHandler(urllib.request.HTTPRedirectHandler):
-    """Redirect handler that enforces GitHub API restrictions."""
-
-    def redirect_request(  # type: ignore[override[return-type]] - CPython signature
-        self,
-        req: urllib.request.Request,
-        fp: urllib.response.addinfourl,
-        code: int,
-        msg: str,
-        headers: Mapping[str, str | bytes],
-        newurl: str,
-    ) -> urllib.request.Request | None:
-        ensure_allowed_github_api_url(newurl)
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-
-def open_github_api_url(
-    request: urllib.request.Request, *, timeout: float | int | None
-) -> urllib.response.addinfourl:
-    """Open ``request`` after enforcing GitHub API scheme restrictions."""
-
-    url = getattr(request, "full_url", request.get_full_url())
-    ensure_allowed_github_api_url(url)
-    opener = urllib.request.build_opener(_RestrictedGitHubRedirectHandler())
-    return opener.open(request, timeout=timeout)
-
-
-def duplicate_payloads(
-    payloads: Iterable[FilePayload], prefixes: Iterable[str]
-) -> list[FilePayload]:
-    """Return payloads duplicated under multiple prefixes."""
-
-    duplicated: list[FilePayload] = []
-    for payload in payloads:
-        for prefix in prefixes:
-            relative_path = (
-                f"{prefix}/{payload.relative_path}" if prefix else payload.relative_path
-            )
-            duplicated.append(FilePayload(relative_path, payload.content))
-    return duplicated
-
-
-def create_archive(payloads: Iterable[FilePayload], destination: Path) -> Path:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(destination, "w:gz") as archive:
-        for payload in payloads:
-            info, buffer = payload.as_tarinfo(payload.relative_path)
-            archive.addfile(info, buffer)
-    return destination
-
-
-def build_cli() -> argparse.ArgumentParser:
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--coverage-xml", required=True, type=Path, help="Path to coverage.xml"
-    )
-    parser.add_argument(
-        "--coverage-html-index",
-        required=True,
-        type=Path,
-        help="Path to the generated coverage index.html",
-    )
-    parser.add_argument(
-        "--artifact-directory",
-        type=Path,
-        default=Path("generated/coverage/artifacts"),
-        help="Directory where fallback archives are stored",
-    )
-    parser.add_argument("--mode", choices=("pages", "archive"), default="pages")
+
+    parser.add_argument("--coverage-xml", type=Path, required=True)
+    parser.add_argument("--coverage-html-index", type=Path, required=True)
+    parser.add_argument("--artifact-directory", type=Path, required=True)
+
+    parser.add_argument("--mode", choices={"pages", "artifact"}, default="artifact")
     parser.add_argument("--pages-branch", default="gh-pages")
     parser.add_argument("--pages-prefix", default="coverage")
-    parser.add_argument(
-        "--pages-prefix-template",
-        dest="pages_prefix_templates",
-        action="append",
-        help=(
-            "Template for GitHub Pages prefixes. Supports {prefix}, {run_id}, "
-            "and {run_attempt}. May be supplied multiple times."
-        ),
-    )
-    parser.add_argument("--run-id", default=os.getenv("GITHUB_RUN_ID", "manual"))
-    parser.add_argument("--run-attempt", default=os.getenv("GITHUB_RUN_ATTEMPT", "1"))
-    parser.add_argument("--commit-sha", default=os.getenv("GITHUB_SHA", ""))
-    parser.add_argument("--ref", default=os.getenv("GITHUB_REF", ""))
-    parser.add_argument(
-        "--prune-expired-runs",
-        action="store_true",
-        help=(
-            "Prune coverage/<run_id> directories older than the configured retention from the Pages branch"
-        ),
-    )
-    parser.add_argument(
-        "--prune-max-age-days",
-        type=int,
-        default=int(PRUNE_MAX_AGE.days),
-        help=(
-            "Maximum age in days for coverage/<run_id> directories when pruning. "
-            "Defaults to 30 days."
-        ),
-    )
-    return parser
+
+    parser.add_argument("--run-id", default="")
+    parser.add_argument("--run-attempt", default="")
+    parser.add_argument("--commit-sha", default="")
+    parser.add_argument("--ref", default="")
+
+    return parser.parse_args()
 
 
-def publish(args: argparse.Namespace) -> PublishResult:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    run_metadata = {
-        "run_id": str(args.run_id),
-        "run_attempt": str(args.run_attempt),
+def main() -> int:
+    args = _parse_args()
+
+    coverage_xml = args.coverage_xml
+    html_index = args.coverage_html_index
+
+    if not coverage_xml.exists():
+        raise SystemExit(f"coverage xml not found: {coverage_xml}")
+    if not html_index.exists():
+        raise SystemExit(f"coverage html index not found: {html_index}")
+
+    artifact_dir = args.artifact_directory
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy full HTML directory (index.html lives inside)
+    html_dir = html_index.parent
+    target_html_dir = artifact_dir / "html"
+
+    if target_html_dir.exists():
+        shutil.rmtree(target_html_dir)
+
+    shutil.copytree(html_dir, target_html_dir)
+
+    meta = {
+        "mode": args.mode,
+        "pages_branch": args.pages_branch,
+        "pages_prefix": args.pages_prefix,
+        "run_id": args.run_id,
+        "run_attempt": args.run_attempt,
+        "commit_sha": args.commit_sha,
+        "ref": args.ref,
+        "coverage_xml": str(coverage_xml),
+        "coverage_html_index": str(html_index),
     }
-    if args.commit_sha:
-        run_metadata["commit_sha"] = str(args.commit_sha)
-    if args.ref:
-        run_metadata["ref"] = str(args.ref)
-    dataset = CoverageDataset(args.coverage_xml, args.coverage_html_index, run_metadata)
-    payloads = dataset.build_payloads()
-    prefix_root = str(args.pages_prefix).strip("/")
-    templates = (
-        args.pages_prefix_templates
-        if args.pages_prefix_templates
-        else list(DEFAULT_PREFIX_TEMPLATES)
+
+    (artifact_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+
+    # Provide a stable entry-point index for consumers.
+    (artifact_dir / "index.html").write_text(
+        (target_html_dir / "index.html").read_text(encoding="utf-8"),
+        encoding="utf-8",
     )
-    template_context = {
-        "prefix": prefix_root,
-        "run_id": str(args.run_id),
-        "run_attempt": str(args.run_attempt),
-    }
-    prefixes = [
-        template.format(**template_context).strip("/") for template in templates
-    ]
-    prefixes = list(dict.fromkeys(prefixes))
-    duplicated_payloads = duplicate_payloads(payloads, prefixes)
-    archive_name = f"coverage-{args.run_id}.tar.gz"
-    archive_path = args.artifact_directory / archive_name
-    archive = create_archive(duplicated_payloads, archive_path)
-    LOGGER.info("Created coverage archive at %s", archive)
-    publish_url: str | None = None
-    published = False
-    prune_requested = bool(getattr(args, "prune_expired_runs", False))
-    prune_age_days = getattr(args, "prune_max_age_days", int(PRUNE_MAX_AGE.days))
-    try:
-        prune_age_days = int(prune_age_days)
-    except (TypeError, ValueError):
-        prune_age_days = int(PRUNE_MAX_AGE.days)
-    if prune_age_days < 0:
-        prune_age_days = 0
-    prune_window = dt.timedelta(days=prune_age_days)
 
-    if args.mode == "pages":
-        token = os.getenv("GITHUB_TOKEN", "")
-        repository = os.getenv("GITHUB_REPOSITORY", "")
-        try:
-            publisher = GitHubPagesPublisher(token, repository, args.pages_branch)
-        except PublishError as error:
-            LOGGER.warning("GitHub Pages upload skipped: %s", error)
-        else:
-            try:
-                publish_url = publisher.publish(
-                    duplicated_payloads,
-                    landing_path=f"{args.pages_prefix}/latest/index.html",
-                )
-                LOGGER.info("Published coverage to GitHub Pages at %s", publish_url)
-                published = True
-            except PublishError as error:
-                LOGGER.warning("GitHub Pages upload skipped: %s", error)
-            if prune_requested:
-                prune_prefix = prefix_root or str(args.pages_prefix).strip("/")
-                try:
-                    removed = publisher.prune_expired_runs(prune_prefix, prune_window)
-                except PublishError as error:
-                    LOGGER.info("Coverage prune skipped: %s", error)
-                else:
-                    if removed:
-                        LOGGER.info(
-                            "Pruned %d expired coverage runs from GitHub Pages",
-                            len(removed),
-                        )
-            if published:
-                return PublishResult(True, archive, publish_url)
-    return PublishResult(False, archive, publish_url)
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = build_cli()
-    args = parser.parse_args(argv)
-    result = publish(args)
-    if not result.published:
-        LOGGER.info("Coverage archive available at %s", result.archive_path)
-    else:
-        LOGGER.info("Coverage published to %s", result.publish_url)
+    print(f"Prepared coverage bundle in {artifact_dir}")
     return 0
 
 

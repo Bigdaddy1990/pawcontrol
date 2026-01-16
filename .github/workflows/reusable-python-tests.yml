@@ -127,12 +127,12 @@ jobs:
       PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -231,7 +231,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: inputs.upload-coverage-artifact == true
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.coverage-artifact-name }}
           path: |
@@ -241,8 +241,34 @@ jobs:
 
       - name: Upload junit artifact
         if: inputs.upload-junit-artifact == true
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.junit-artifact-name }}
           path: ${{ env.JUNIT_PATH }}
+          retention-days: 7
+
+      - name: Publish coverage to GitHub Pages
+        if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python -m scripts.publish_coverage \
+            --coverage-xml "${{ env.COVERAGE_XML }}" \
+            --coverage-html-index "${{ env.COVERAGE_HTML_DIR }}/index.html" \
+            --artifact-directory "${{ env.PAGES_ARTIFACT_DIR }}" \
+            --mode pages \
+            --pages-branch "${{ env.PAGES_BRANCH }}" \
+            --pages-prefix "${{ env.PAGES_PREFIX }}" \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --commit-sha "${{ github.sha }}" \
+            --ref "${{ github.ref }}"
+
+      - name: Upload GitHub Pages bundle
+        if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.pages-artifact-name }}
+          path: ${{ env.PAGES_ARTIFACT_DIR }}
           retention-days: 7
