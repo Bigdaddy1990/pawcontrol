@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 
 import pytest
-from annotatedyaml._vendor import yaml as vendored_yaml
+
+vendored_yaml = pytest.importorskip(
+    "annotatedyaml._vendor.yaml",
+    reason="annotatedyaml does not vendor PyYAML in this environment",
+)
 
 
 class _DummyLoader:

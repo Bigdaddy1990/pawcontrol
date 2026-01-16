@@ -6,7 +6,7 @@ import argparse
 
 import pytest
 from pip._vendor.packaging.version import Version
-from script import check_vendor_pyyaml as module
+from scripts import check_vendor_pyyaml as module
 
 
 def _make_namespace(**overrides: object) -> argparse.Namespace:

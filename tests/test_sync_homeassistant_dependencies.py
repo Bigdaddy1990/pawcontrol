@@ -8,7 +8,7 @@ import tarfile
 from pathlib import Path
 
 from packaging.version import Version
-from script import sync_homeassistant_dependencies as module
+from scripts import sync_homeassistant_dependencies as module
 
 
 def _write_requirements(path: Path, lines: list[str]) -> None:
