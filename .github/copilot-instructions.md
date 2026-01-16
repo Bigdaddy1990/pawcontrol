@@ -42,6 +42,30 @@ python -m scripts.hassfest \
 python -m scripts.sync_contributor_guides           # Refresh assistant copies
 ```
 
+## Bot policy (strict)
+
+All automated assistants, bots, and code generation tools **must** follow the
+official Home Assistant Developer documentation for architecture, integration
+structure, manifests, config/option flows, YAML configuration, testing,
+internationalization, and review checklists. This is non-negotiable and applies
+to every change, suggestion, or review.
+
+Authoritative sources (non-exhaustive, must be consulted when relevant):
+
+- https://developers.home-assistant.io/docs/architecture_components
+- https://developers.home-assistant.io/docs/development_tips
+- https://developers.home-assistant.io/docs/internationalization/custom_integration
+- https://developers.home-assistant.io/docs/development_testing
+- https://developers.home-assistant.io/docs/creating_integration_file_structure
+- https://developers.home-assistant.io/docs/creating_integration_manifest
+- https://developers.home-assistant.io/docs/config_entries_config_flow_handler
+- https://developers.home-assistant.io/docs/config_entries_options_flow_handler
+- https://developers.home-assistant.io/docs/configuration_yaml_index
+- https://developers.home-assistant.io/docs/development_checklist
+- https://developers.home-assistant.io/docs/creating_component_code_review
+- https://developers.home-assistant.io/docs/creating_platform_code_review
+- https://developers.home-assistant.io/docs/
+
 * `pyproject.toml` pins Python 3.13, enforces branch coverage and strict lint
   gates, and enables `pytest` warnings-as-errors, strict markers, and HTML/XML
   coverage reports.【F:pyproject.toml†L7-L72】
