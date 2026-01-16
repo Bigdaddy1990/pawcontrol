@@ -18,7 +18,6 @@
     "@BigDaddy1990"
   ],
   "config_flow": true,
-  "dependencies": [],
   "dhcp": [
     {
       "hostname": "petnet-*",
@@ -49,7 +48,6 @@
   ],
   "quality_scale": "platinum",
   "requirements": [],
-  "supported_by": "community",
   "usb": [
     {
       "description": "tractive gps tracker",
