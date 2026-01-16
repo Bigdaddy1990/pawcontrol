@@ -27,9 +27,15 @@ def _copytree(src: Path, dst: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Prepare GitHub Pages artifact for coverage")
-    parser.add_argument("--coverage-html-index", required=True, help="Path to coverage HTML index.html")
-    parser.add_argument("--public-dir", required=True, help="Output directory for Pages artifact")
+    parser = argparse.ArgumentParser(
+        description="Prepare GitHub Pages artifact for coverage"
+    )
+    parser.add_argument(
+        "--coverage-html-index", required=True, help="Path to coverage HTML index.html"
+    )
+    parser.add_argument(
+        "--public-dir", required=True, help="Output directory for Pages artifact"
+    )
     parser.add_argument(
         "--mode",
         default="pages",
