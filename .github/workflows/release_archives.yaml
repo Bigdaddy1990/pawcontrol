@@ -17,12 +17,12 @@ jobs:
         run: |
           mkdir -p build
           cp -r custom_components build/
-          zip -r hundesystem.zip build/custom_components
-          tar -czvf hundesystem.tar.gz build/custom_components
+          zip -r pawcontrol.zip build/custom_components
+          tar -czvf pawcontrol.tar.gz build/custom_components
 
       - name: Upload GitHub Release Assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            hundesystem.zip
-            hundesystem.tar.gz
+            pawcontrol.zip
+            pawcontrol.tar.gz
