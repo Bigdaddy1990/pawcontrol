@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import re
 from collections.abc import Iterable, Mapping
 from typing import Final
@@ -19,7 +18,7 @@ __all__ = [
 ]
 
 
-RedactionPatterns: TypeAlias = tuple[re.Pattern[str], ...]
+type RedactionPatterns = tuple[re.Pattern[str], ...]
 """Precompiled redaction expressions keyed by normalised field names."""
 
 

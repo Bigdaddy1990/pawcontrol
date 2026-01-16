@@ -10,7 +10,6 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import asyncio
 import contextlib
 import json
@@ -163,7 +162,7 @@ class DashboardMetadata(DashboardMetadataBase, total=False):
 MetaT = TypeVar("MetaT", bound=DashboardMetadataBase)
 
 
-DashboardRegistry: TypeAlias = dict[str, MetaT]
+type DashboardRegistry[MetaT: DashboardMetadataBase] = dict[str, MetaT]
 
 
 class DashboardStorePayload(TypedDict, total=False):

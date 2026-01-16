@@ -10,7 +10,6 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import asyncio
 import csv
 import json
@@ -117,7 +116,7 @@ class GardenSessionStatus(Enum):
     CANCELLED = "cancelled"
 
 
-GardenActivityTypeSlug: TypeAlias = Literal[
+type GardenActivityTypeSlug = Literal[
     "general",
     "poop",
     "play",
@@ -127,7 +126,7 @@ GardenActivityTypeSlug: TypeAlias = Literal[
 ]
 
 
-GardenSessionStatusSlug: TypeAlias = Literal[
+type GardenSessionStatusSlug = Literal[
     "active",
     "completed",
     "timeout",
@@ -204,8 +203,8 @@ class GardenManagerConfig(TypedDict, total=False):
     confirmation_required: bool
 
 
-GardenSessionHistory: TypeAlias = list[GardenSessionPayload]
-GardenStatsMapping: TypeAlias = dict[str, GardenStatsPayload]
+type GardenSessionHistory = list[GardenSessionPayload]
+type GardenStatsMapping = dict[str, GardenStatsPayload]
 
 
 @dataclass

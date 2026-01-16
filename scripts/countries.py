@@ -1,6 +1,6 @@
 """Automatically generated file.
 
-To update, run python3 -m script.countries
+To update, run python3 -m scripts.countries
 
 The values are directly corresponding to the ISO 3166 standard. If you need changes
 to the political situation in the world, please contact the ISO 3166 working group.

@@ -11,7 +11,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 import asyncio
 import json
 import logging
@@ -82,7 +82,9 @@ def _as_card_options(options: DashboardRendererOptions) -> DashboardCardOptions:
 
 ConfigT = TypeVar("ConfigT", bound=DashboardRenderJobConfig)
 OptionsT = TypeVar("OptionsT", bound=DashboardRendererOptions)
-class RenderJob(Generic[ConfigT, OptionsT]):
+
+
+class RenderJob[ConfigT: DashboardRenderJobConfig, OptionsT: DashboardRendererOptions]:
     """Represents a dashboard rendering job."""
 
     def __init__(

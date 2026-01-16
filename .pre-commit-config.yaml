@@ -62,10 +62,8 @@ repos:
         args:
           - --autofix
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
-      - id: debug-statements
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
-      - id: requirements-txt-fixer
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
@@ -119,35 +117,17 @@ repos:
         language: python
         pass_filenames: false
       - id: typed-dict-audit
-       name: Audit TypedDict definitions
-       entry: python scripts/check_typed_dicts.py
-       language: python
-       pass_filenames: false
-     - id: gen_requirements_all
-       name: gen_requirements_all
-       entry: script/run-in-env.sh python3 -m script.gen_requirements_all
-       pass_filenames: false
-       language: script
-       types: [text]
-       files: ^(homeassistant/.+/manifest\.json|homeassistant/brands/.+\.json|pyproject\.toml|\.pre-commit-config\.yaml|script/gen_requirements_all\.py)$
-     - id: manifest-validate
-       name: Manifest Validation
-       entry: python3 -c "
-         import json, sys;
-         try:
-             with open('custom_components/hundesystem/manifest.json') as f:
-                 data = json.load(f);
-                 required = ['domain', 'name', 'documentation', 'dependencies', 'version'];
-                 missing = [k for k in required if k not in data];
-                 if missing:
-                     print(f'Missing required keys in manifest.json: {missing}');
-                     sys.exit(1);
-                 if not data.get('version', '').startswith(('0.', '1.', '2.')):
-                     print('❌ Invalid version format in manifest.json');
-                     sys.exit(1);
-                 print('✅ manifest.json is valid');
-             except Exception as e:
-                 print(f'❌ manifest.json validation failed: {e}');
-                 sys.exit(1)"
-       language: system
-       files: ^custom_components/.*/manifest\.json$
+        name: Audit TypedDict definitions
+        entry: python scripts/check_typed_dicts.py
+        language: python
+        pass_filenames: false
+      - id: hassfest-lite
+        name: Validate manifest and translations (hassfest shim)
+        entry: python -m scripts.hassfest --integration-path custom_components/pawcontrol
+        language: python
+        pass_filenames: false
+      - id: manifest-validate
+        name: Manifest Validation
+        entry: python -m scripts.validate_manifest
+        language: python
+        files: ^custom_components/pawcontrol/manifest\.json$

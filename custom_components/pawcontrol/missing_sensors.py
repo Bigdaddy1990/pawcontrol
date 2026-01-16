@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypeAlias, TypeVar
+from typing import TypeVar
 import contextlib
 from collections.abc import Mapping
 from datetime import datetime, timedelta
@@ -43,8 +43,8 @@ __all__ = [
 T = TypeVar("T")
 
 
-ModuleSnapshot: TypeAlias = T | None
-WalkHistory: TypeAlias = list[WalkSessionSnapshot]
+type ModuleSnapshot[T] = T | None
+type WalkHistory = list[WalkSessionSnapshot]
 
 
 class _ModuleDataProvider(Protocol):

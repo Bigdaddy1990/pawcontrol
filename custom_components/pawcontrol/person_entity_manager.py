@@ -10,7 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 import asyncio
 import contextlib
 import logging
@@ -64,7 +64,7 @@ class _PersonNotificationCachePayload:
 EntryT = TypeVar("EntryT", bound=PersonNotificationCacheEntry)
 
 
-class PersonNotificationCache(Generic[EntryT]):
+class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
     """Typed notification target cache with diagnostics helpers."""
 
     __slots__ = ("_entries",)

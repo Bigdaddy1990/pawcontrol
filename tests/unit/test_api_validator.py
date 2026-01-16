@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Iterable
 from types import TracebackType
-from typing import cast
+from typing import TypeAlias, cast
 
 import pytest
 from aiohttp import ClientSession

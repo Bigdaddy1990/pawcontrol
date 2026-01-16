@@ -8,7 +8,7 @@ maintainability, and graceful error handling.
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 import asyncio
 import csv
 import importlib
@@ -134,7 +134,7 @@ class AdaptiveCacheStats(TypedDict):
 ValueT = TypeVar("ValueT")
 
 
-class AdaptiveCache(Generic[ValueT]):
+class AdaptiveCache[ValueT]:
     """Simple asynchronous cache used by legacy tests."""
 
     def __init__(self, default_ttl: int = 300) -> None:
