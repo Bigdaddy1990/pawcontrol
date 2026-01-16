@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Validate Paw Control manifest.json file."""
 
+from __future__ import annotations
+
 import json
 import sys
 from pathlib import Path
@@ -15,7 +17,7 @@ def validate_manifest():
         return False
 
     try:
-        with open(manifest_path, "r") as f:
+        with open(manifest_path) as f:
             manifest = json.load(f)
     except json.JSONDecodeError as e:
         print(f"❌ Invalid JSON in manifest.json: {e}")

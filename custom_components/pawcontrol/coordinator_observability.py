@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import sys
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
@@ -32,7 +31,7 @@ from .types import (
     WebhookSecurityStatus,
 )
 
-ResilienceListField: TypeAlias = Literal[
+type ResilienceListField = Literal[
     "open_breakers",
     "open_breaker_ids",
     "half_open_breakers",

@@ -13,7 +13,7 @@ from custom_components.pawcontrol.dashboard_templates import (
     TemplateCacheSnapshot,
 )
 
-TemplatePayload: TypeAlias = CardConfig | CardCollection
+type TemplatePayload = CardConfig | CardCollection
 
 
 @pytest.mark.asyncio

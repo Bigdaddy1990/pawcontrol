@@ -11,7 +11,7 @@ the Core runtime during tests.
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 from collections.abc import Sequence
 from enum import StrEnum
 from types import SimpleNamespace
@@ -138,7 +138,7 @@ else:
 
     ConfigT = TypeVar("ConfigT", bound=BaseSelectorConfig)
 
-    class _BaseSelector(Generic[ConfigT]):
+    class _BaseSelector[ConfigT: BaseSelectorConfig]:
         """Typed selector stub that mirrors Home Assistant's runtime helpers.
 
         The shim relies on PEP 695 generics so each fallback selector exposes the

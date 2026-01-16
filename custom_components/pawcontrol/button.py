@@ -12,7 +12,6 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
@@ -120,7 +119,7 @@ class ServiceRegistryLike(Protocol):
         """Invoke a Home Assistant service call."""
 
 
-ServiceRegistryType: TypeAlias = ServiceRegistry | ServiceRegistryLike
+type ServiceRegistryType = ServiceRegistry | ServiceRegistryLike
 
 
 class ButtonRule(TypedDict, total=False):

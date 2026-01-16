@@ -9,7 +9,7 @@ from aiohttp import ClientSession
 from custom_components.pawcontrol.api_validator import APIValidator, JSONValue
 from homeassistant.core import HomeAssistant
 
-DummyPayload: TypeAlias = dict[str, JSONValue]
+type DummyPayload = dict[str, JSONValue]
 
 
 class DummyResponse:

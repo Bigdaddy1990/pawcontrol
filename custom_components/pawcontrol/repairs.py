@@ -8,7 +8,6 @@ Platinum quality ambitions.
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import logging
 from collections.abc import Mapping, Sequence
 from inspect import isawaitable
@@ -61,8 +60,8 @@ from .types import (
 _LOGGER = logging.getLogger(__name__)
 
 # JSON serialisable payload used for issue registry metadata
-JSONPrimitive: TypeAlias = str | int | float | bool | None
-JSONType: TypeAlias = JSONPrimitive | list["JSONType"] | dict[str, "JSONType"]
+type JSONPrimitive = str | int | float | bool | None
+type JSONType = JSONPrimitive | list["JSONType"] | dict[str, "JSONType"]
 
 # Issue types
 ISSUE_MISSING_DOG_CONFIG = "missing_dog_configuration"

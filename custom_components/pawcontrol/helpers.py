@@ -6,7 +6,6 @@ and memory-efficient data management for Platinum quality ambitions.
 
 from __future__ import annotations
 
-from typing import Generic
 import asyncio
 import logging
 from collections import deque
@@ -163,7 +162,7 @@ class OptimizedCacheSnapshot(TypedDict):
 ValueT = TypeVar("ValueT")
 
 
-class OptimizedDataCache(Generic[ValueT]):
+class OptimizedDataCache[ValueT]:
     """High-performance in-memory cache with automatic cleanup."""
 
     def __init__(

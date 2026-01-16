@@ -74,7 +74,9 @@ def main() -> int:
         "coverage_html_index": str(html_index),
     }
 
-    (artifact_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    (artifact_dir / "meta.json").write_text(
+        json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+    )
 
     # Provide a stable entry-point index for consumers.
     (artifact_dir / "index.html").write_text(

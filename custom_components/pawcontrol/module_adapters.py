@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
@@ -108,7 +108,7 @@ class ModuleAdapterCacheError(TypedDict):
 PayloadT = TypeVar("PayloadT")
 
 
-class _ExpiringCache(Generic[PayloadT]):
+class _ExpiringCache[PayloadT]:
     """Cache that evicts entries after a fixed TTL."""
 
     __slots__ = (
@@ -286,7 +286,7 @@ def _normalise_health_medication(
 PayloadT = TypeVar("PayloadT")
 
 
-class _BaseModuleAdapter(Generic[PayloadT]):
+class _BaseModuleAdapter[PayloadT]:
     """Base helper for adapters that maintain a TTL cache."""
 
     __slots__ = ("_cache", "_ttl")

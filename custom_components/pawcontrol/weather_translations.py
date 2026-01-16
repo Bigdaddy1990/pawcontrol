@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypeAlias, TypeVar
+from typing import TypeVar
 from copy import deepcopy
 from typing import Final, Literal, TypedDict, cast
 
@@ -16,7 +16,7 @@ class WeatherAlertTranslation(TypedDict):
     message: str
 
 
-WeatherAlertKey: TypeAlias = Literal[
+type WeatherAlertKey = Literal[
     "extreme_cold_warning",
     "extreme_heat_warning",
     "extreme_uv_warning",
@@ -31,10 +31,10 @@ WeatherAlertKey: TypeAlias = Literal[
 ]
 
 
-WeatherAlertTranslations: TypeAlias = dict[WeatherAlertKey, WeatherAlertTranslation]
+type WeatherAlertTranslations = dict[WeatherAlertKey, WeatherAlertTranslation]
 
 
-WeatherRecommendationKey: TypeAlias = Literal[
+type WeatherRecommendationKey = Literal[
     "avoid_peak_hours",
     "avoid_peak_uv",
     "avoid_until_passes",
@@ -90,7 +90,7 @@ WeatherRecommendationKey: TypeAlias = Literal[
 ]
 
 
-WeatherRecommendationTranslations: TypeAlias = dict[WeatherRecommendationKey, str]
+type WeatherRecommendationTranslations = dict[WeatherRecommendationKey, str]
 
 
 class WeatherTranslations(TypedDict):
@@ -100,13 +100,13 @@ class WeatherTranslations(TypedDict):
     recommendations: WeatherRecommendationTranslations
 
 
-LanguageCode: TypeAlias = Literal["de", "en"]
+type LanguageCode = Literal["de", "en"]
 
 
 T = TypeVar("T")
 
 
-LanguageMap: TypeAlias = dict[LanguageCode, T]
+type LanguageMap[T] = dict[LanguageCode, T]
 
 
 _WEATHER_TRANSLATIONS: LanguageMap[WeatherTranslations] = {

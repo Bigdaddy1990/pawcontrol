@@ -9,7 +9,6 @@ strict mypy gate can reason about gathered devices.
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import asyncio
 import logging
 from collections.abc import Iterable
@@ -36,7 +35,7 @@ _LOGGER = logging.getLogger(__name__)
 DISCOVERY_SCAN_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 DISCOVERY_TIMEOUT: Final[float] = 10.0
 
-DiscoveryCategory: TypeAlias = Literal[
+type DiscoveryCategory = Literal[
     "gps_tracker",
     "smart_feeder",
     "activity_monitor",
@@ -48,14 +47,14 @@ DiscoveryCategory: TypeAlias = Literal[
     "door_sensor",
 ]
 
-DiscoveryConnectionType: TypeAlias = Literal[
+type DiscoveryConnectionType = Literal[
     "bluetooth",
     "network",
     "usb",
     "unknown",
 ]
 
-DiscoveryCapabilityList: TypeAlias = list[str]
+type DiscoveryCapabilityList = list[str]
 
 
 class DiscoveryConnectionInfo(TypedDict, total=False):

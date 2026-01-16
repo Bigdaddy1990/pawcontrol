@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TypeAlias
 import asyncio
 import contextlib
 import logging
@@ -71,7 +70,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better readability
 SensorValue = str | int | float | datetime | None
-AttributeDict: TypeAlias = JSONMutableMapping
+type AttributeDict = JSONMutableMapping
 _STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
 
 # Home Assistant platform configuration
