@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Generic, TypeAlias, TypeVar
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from typing import Any, NotRequired, Required, TypedDict, cast
@@ -52,7 +53,7 @@ class ServiceGuardResultPayload(TypedDict, total=False):
     description: NotRequired[str]
 
 
-type ServiceGuardResultHistory = list[ServiceGuardResultPayload]
+ServiceGuardResultHistory: TypeAlias = list[ServiceGuardResultPayload]
 """Ordered telemetry entries for guarded service invocations."""
 
 
@@ -74,8 +75,9 @@ class ServiceGuardMetricsSnapshot(TypedDict, total=False):
     last_results: ServiceGuardResultHistory
 
 
+TGuardResult = TypeVar("TGuardResult", bound=ServiceGuardResult)
 @dataclass(slots=True, frozen=True)
-class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
+class ServiceGuardSnapshot(Generic[TGuardResult]):
     """Aggregated telemetry derived from a guard result sequence."""
 
     results: tuple[TGuardResult, ...]

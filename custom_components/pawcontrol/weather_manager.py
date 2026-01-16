@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import TypeAlias, TypeVar
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -87,20 +88,20 @@ class WeatherEntityAttributes(TypedDict, total=False):
     forecast: Sequence[ForecastEntry]
 
 
-type ForecastEntries = Sequence[ForecastEntry]
-type AlertField = Literal["title", "message"]
-type ActivityType = Literal["walk", "play", "exercise", "basic_needs"]
-type ActivityThresholdMap = dict[ActivityType, int]
-type AlertTranslationParts = tuple[
+ForecastEntries: TypeAlias = Sequence[ForecastEntry]
+AlertField: TypeAlias = Literal["title", "message"]
+ActivityType: TypeAlias = Literal["walk", "play", "exercise", "basic_needs"]
+ActivityThresholdMap: TypeAlias = dict[ActivityType, int]
+AlertTranslationParts: TypeAlias = tuple[
     Literal["alerts"],
     WeatherAlertKey,
     AlertField,
 ]
-type RecommendationTranslationParts = tuple[
+RecommendationTranslationParts: TypeAlias = tuple[
     Literal["recommendations"],
     WeatherRecommendationKey,
 ]
-type WeatherTranslationParts = AlertTranslationParts | RecommendationTranslationParts
+WeatherTranslationParts: TypeAlias = AlertTranslationParts | RecommendationTranslationParts
 
 TRANSLATION_PREFIX: Final[str] = "weather"
 ALERT_FIELD_TOKENS: Final[frozenset[AlertField]] = frozenset(("title", "message"))
@@ -120,9 +121,12 @@ class WeatherSeverity(Enum):
     EXTREME = "extreme"
 
 
-type SeverityMap[T] = dict[WeatherSeverity, T]
-type TemperatureBand = Literal["hot", "cold"]
-type TemperatureThresholdMap = dict[TemperatureBand, SeverityMap[float]]
+T = TypeVar("T")
+
+
+SeverityMap: TypeAlias = dict[WeatherSeverity, T]
+TemperatureBand: TypeAlias = Literal["hot", "cold"]
+TemperatureThresholdMap: TypeAlias = dict[TemperatureBand, SeverityMap[float]]
 
 
 class WeatherHealthImpact(Enum):

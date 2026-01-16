@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import TypeAlias
 import asyncio
 import logging
 import os
@@ -104,7 +105,7 @@ _ENTITY_TYPE_TO_PLATFORM: Final[dict[str, Platform]] = {
 EntityPerformanceImpact = Literal["minimal", "low", "medium"]
 
 
-type EntityCreationValue = (
+EntityCreationValue: TypeAlias = (
     bool
     | float
     | int
@@ -199,7 +200,7 @@ _EMPTY_ENTITY_CONFIG_EXTRAS: Final[Mapping[str, EntityCreationValue]] = (
 )
 
 
-type EntityProfileValue = (
+EntityProfileValue: TypeAlias = (
     str | int | tuple[Platform, ...] | tuple[str, ...] | EntityPerformanceImpact
 )
 
@@ -259,7 +260,7 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
         return 8
 
 
-type EntityProfilesTable = Mapping[str, EntityProfileDefinition]
+EntityProfilesTable: TypeAlias = Mapping[str, EntityProfileDefinition]
 
 
 @dataclass(slots=True, frozen=True)

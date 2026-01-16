@@ -1,0 +1,28 @@
+
+name: Release Archive Builder
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create ZIP and TAR.GZ
+        run: |
+          mkdir -p build
+          cp -r custom_components build/
+          zip -r pawcontrol.zip build/custom_components
+          tar -czvf pawcontrol.tar.gz build/custom_components
+
+      - name: Upload GitHub Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            pawcontrol.zip
+            pawcontrol.tar.gz

@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+import pytest_asyncio
 from custom_components.pawcontrol.entity_factory import EntityFactory
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
@@ -26,7 +27,7 @@ PLATFORM_MODULES: tuple[str, ...] = (
 )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeData:
     entity_factory = EntityFactory(mock_coordinator)
     return PawControlRuntimeData(

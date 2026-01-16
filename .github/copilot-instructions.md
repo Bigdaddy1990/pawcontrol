@@ -25,7 +25,7 @@ contributors consistently deliver Platinum-quality changes.
    setuptools build backend and enables branch coverage reporting for
    `custom_components/pawcontrol`.【F:pyproject.toml†L1-L62】
 3. Export `PYTHONPATH=$(pwd)` or invoke commands via `python -m …` so the local
-   `scripts/` and `pytest_*` packages resolve correctly.【F:sitecustomize.py†L1-L175】
+   `scripts/` and `pytest_*` packages resolve correctly.
 
 ## Core workflow
 

@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import TypeAlias
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
@@ -30,9 +31,9 @@ API_HEALTH_CHECK_TIMEOUT = 20.0  # seconds
 AUTH_SUCCESS_STATUS_CODES: Final = (200, 201, 204)
 
 
-type CapabilityList = list[str]
-type JSONPrimitive = None | bool | float | int | str
-type JSONValue = (
+CapabilityList: TypeAlias = list[str]
+JSONPrimitive: TypeAlias = None | bool | float | int | str
+JSONValue: TypeAlias = (
     JSONPrimitive
     | Mapping[
         str,
@@ -40,8 +41,8 @@ type JSONValue = (
     ]
     | Sequence["JSONValue"]
 )
-type JSONMapping = Mapping[str, JSONValue]
-type JSONSequence = Sequence[JSONValue]
+JSONMapping: TypeAlias = Mapping[str, JSONValue]
+JSONSequence: TypeAlias = Sequence[JSONValue]
 
 
 class APIAuthenticationResult(TypedDict):
@@ -52,7 +53,7 @@ class APIAuthenticationResult(TypedDict):
     capabilities: CapabilityList | None
 
 
-type HealthStatus = Literal[
+HealthStatus: TypeAlias = Literal[
     "healthy",
     "degraded",
     "unreachable",

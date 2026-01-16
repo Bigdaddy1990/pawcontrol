@@ -1,0 +1,28 @@
+
+name: Auto Version Tag
+
+on:
+  push:
+    paths:
+      - 'custom_components/hundesystem/manifest.json'
+
+jobs:
+  tag_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version custom_components/hundesystem/manifest.json)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create Git Tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag v$VERSION || echo "Tag already exists."
+          git push origin --tags || echo "Push failed or tag already exists."

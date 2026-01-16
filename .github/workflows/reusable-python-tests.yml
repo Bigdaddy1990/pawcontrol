@@ -127,12 +127,12 @@ jobs:
       PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -150,41 +150,9 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements_test.txt
 
-      - name: Install Ruff (lint/format)
-        run: |
-          python -m pip install -U "ruff==0.14.11"
-
-      - name: Ruff check (no auto-fix in CI)
-        run: |
-          ruff check .
-
-      - name: Ruff format check
-        run: |
-          ruff format --check .
-
-      - name: Docstring baseline check
-        run: |
-          python scripts/enforce_docstring_baseline.py
-
-      - name: TypedDict audit
-        run: |
-          python scripts/check_typed_dicts.py
-
-      - name: Contributor guide sync check
-        run: |
-          python scripts/sync_contributor_guides.py --check
-
-      - name: Localization flags sync check
-        run: |
-          python scripts/sync_localization_flags.py --check
-
-      - name: Shared session guard
-        run: |
-          python scripts/enforce_shared_session_guard.py
-
       - name: Audit declared test requirements
         run: |
-          python scripts/enforce_test_requirements.py
+          python -m scripts.enforce_test_requirements
 
       - name: Prepare coverage directories
         run: |
@@ -263,7 +231,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: inputs.upload-coverage-artifact == true
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.coverage-artifact-name }}
           path: |
@@ -273,7 +241,7 @@ jobs:
 
       - name: Upload junit artifact
         if: inputs.upload-junit-artifact == true
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.junit-artifact-name }}
           path: ${{ env.JUNIT_PATH }}
@@ -285,7 +253,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          python scripts/publish_coverage.py \
+          python -m scripts.publish_coverage \
             --coverage-xml "${{ env.COVERAGE_XML }}" \
             --coverage-html-index "${{ env.COVERAGE_HTML_DIR }}/index.html" \
             --artifact-directory "${{ env.PAGES_ARTIFACT_DIR }}" \
@@ -299,7 +267,7 @@ jobs:
 
       - name: Upload GitHub Pages bundle
         if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.pages-artifact-name }}
           path: ${{ env.PAGES_ARTIFACT_DIR }}

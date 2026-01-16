@@ -17,8 +17,8 @@ REQUIREMENT_FILES = [
     REPO_ROOT / "requirements.txt",
 ]
 STANDARD_LIB = {name.replace(".", "_") for name in sys.stdlib_module_names}
-INTERNAL_PREFIXES = ("tests", "custom_components", "script")
-INTERNAL_MODULES = {"sitecustomize"}
+INTERNAL_PREFIXES = ("tests", "custom_components", "scripts")
+INTERNAL_MODULES: set[str] = set()
 
 
 def _extract_requirement_name(line: str) -> str | None:

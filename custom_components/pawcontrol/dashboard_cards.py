@@ -14,6 +14,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import TypeAlias, TypeVar
 import asyncio
 import json
 import logging
@@ -81,12 +82,12 @@ CARD_GENERATION_TIMEOUT: Final[float] = 15.0
 VALIDATION_CACHE_SIZE: Final[int] = 200
 
 # OPTIMIZED: Type definitions for better performance
-type CardConfigType = CardConfig
-type EntityListType = list[str]
-type ModulesConfigType = DogModulesConfig
-type DogConfigType = DogConfigData
-type ThemeConfigType = Mapping[str, str]
-type OptionsConfigType = DashboardCardOptions
+CardConfigType: TypeAlias = CardConfig
+EntityListType: TypeAlias = list[str]
+ModulesConfigType: TypeAlias = DogModulesConfig
+DogConfigType: TypeAlias = DogConfigData
+ThemeConfigType: TypeAlias = Mapping[str, str]
+OptionsConfigType: TypeAlias = DashboardCardOptions
 
 # OPTIMIZED: Entity validation cache for performance
 _entity_validation_cache: dict[str, tuple[float, bool]] = {}
@@ -3298,7 +3299,10 @@ def get_global_performance_stats() -> DashboardCardGlobalPerformanceStats:
     return stats
 
 
-def _unwrap_async_result[ResultT](
+ResultT = TypeVar("ResultT")
+
+
+def _unwrap_async_result(
     result: ResultT | BaseException,
     *,
     context: str,

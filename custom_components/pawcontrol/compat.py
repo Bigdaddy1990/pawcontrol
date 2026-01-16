@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Generic, TypeAlias
 import inspect
 import sys
 from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
@@ -13,28 +14,28 @@ from itertools import count
 from types import ModuleType
 from typing import Any, TypeVar, cast
 
-type JSONPrimitive = None | bool | int | float | str
+JSONPrimitive: TypeAlias = None | bool | int | float | str
 """Primitive JSON-compatible value."""
 
-type JSONValue = JSONPrimitive | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
+JSONValue: TypeAlias = JSONPrimitive | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
 """Recursive JSON-compatible value supporting nested mappings."""
 
-type JSONMapping = Mapping[str, JSONValue]
+JSONMapping: TypeAlias = Mapping[str, JSONValue]
 """Immutable JSON mapping payload."""
 
-type JSONMutableMapping = dict[str, JSONValue]
+JSONMutableMapping: TypeAlias = dict[str, JSONValue]
 """Mutable JSON mapping payload used for config entry data."""
 
-type ConfigEntryData = JSONMutableMapping
+ConfigEntryData: TypeAlias = JSONMutableMapping
 """Mutable configuration data stored on compatibility config entries."""
 
-type ConfigEntryDataMapping = JSONMapping
+ConfigEntryDataMapping: TypeAlias = JSONMapping
 """Readonly view for compatibility config entry payloads."""
 
-type ConfigEntryOptions = JSONMutableMapping
+ConfigEntryOptions: TypeAlias = JSONMutableMapping
 """Mutable options payload stored on compatibility config entries."""
 
-type TranslationPlaceholders = dict[str, str]
+TranslationPlaceholders: TypeAlias = dict[str, str]
 """Translation placeholder mapping for compatibility error payloads."""
 
 RuntimeT = TypeVar("RuntimeT")
@@ -65,7 +66,7 @@ _ha_exceptions = _import_optional("homeassistant.exceptions")
 _ha_config_entries = _import_optional("homeassistant.config_entries")
 _ha_core = _import_optional("homeassistant.core")
 
-type _ExceptionRebindCallback = Callable[[dict[str, type[Exception]]], None]
+_ExceptionRebindCallback: TypeAlias = Callable[[dict[str, type[Exception]]], None]
 
 _EXCEPTION_REBIND_CALLBACKS: list[_ExceptionRebindCallback] = []
 
@@ -516,7 +517,10 @@ def _build_subentries(
     return subentries
 
 
-class ConfigEntry[RuntimeT]:  # type: ignore[override]
+RuntimeT = TypeVar("RuntimeT")
+
+
+class ConfigEntry(Generic[RuntimeT]):  # type: ignore[override]
     """Lightweight ConfigEntry implementation for test environments."""
 
     _id_source = count(1)

@@ -1,63 +1,153 @@
 ci:
+  autoupdate_schedule: weekly
   autofix_prs: true
-  autoupdate_schedule: monthly
-  autoupdate_commit_msg: "chore(pre-commit): autoupdate"
-
-# Keep Python here aligned with the repo's CI.
+  autofix_commit_msg: "[pre-commit.ci] autofix"
+  autoupdate_branch: main
+  autoupdate_commit_msg: "[pre-commit.ci] autoupdate"
+  skip: []
 default_language_version:
   python: python3.13
-
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: check-merge-conflict
-      - id: check-yaml
-      - id: check-json
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-
+  # Use Ruff for linting and formatting Python files.  The ``ruff-check`` hook
+  # previously used ``--exit-non-zero-on-fix`` which caused pre‑commit to
+  # repeatedly re-run fixes without ever reporting success.  By removing
+  # ``--exit-non-zero-on-fix`` we allow Ruff to apply fixes and exit cleanly
+  # once done.  ``--show-fixes`` still prints a summary of what was changed.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.11
     hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-check
+        args:
+          - --fix
+          - --show-fixes
+          # Avoid non-zero exit codes after fixing issues.  This prevents
+          # pre-commit from running Ruff endlessly.
+        types_or:
+          - python
+          - pyi
       - id: ruff-format
+        types_or:
+          - python
+          - pyi
 
+  # Standard pre-commit hooks for YAML/JSON/TOML validation and basic
+  # whitespace hygiene.  These remain unchanged from upstream.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        args:
+          - --unsafe
+          - --allow-multiple-documents
+        exclude: ^(tests/|docs/|examples?/)
+      - id: check-json
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args:
+          - --fix=lf
+      - id: debug-statements
+      - id: requirements-txt-fixer
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-builtin-literals
+      - id: check-merge-conflict
+        args:
+          - --assume-in-merge
+      - id: check-symlinks
+        args:
+          - --autofix
+      - id: pretty-format-json
+        args:
+          - --autofix
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
+      - id: debug-statements
+      - id: fix-byte-order-marker
+      - id: destroyed-symlinks
+      - id: requirements-txt-fixer
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+      - id: pyupgrade
+        args:
+          - --py39-plus
+  - repo: https://github.com/cdce8p/python-typing-update
+    rev: v0.6.0
+    hooks:
+      # Run `python-typing-update` hook manually from time to time
+      # to update python typing syntax.
+      # Will require manual work, before submitting changes!
+      # prek run --hook-stage manual python-typing-update --all-files
+      - id: python-typing-update
+        stages: [manual]
+        args:
+          - --py311-plus
+          - --force
+          - --keep-updates
+        files: ^(homeassistant|tests|scripts)/.+\.py$
   - repo: local
     hooks:
-      - id: enforce-test-requirements
-        name: Enforce requirements_test.txt consistency
-        entry: python scripts/enforce_test_requirements.py
-        language: system
-        pass_filenames: false
-
-      - id: enforce-docstring-baseline
-        name: Enforce docstring baseline (auto-update)
-        entry: python scripts/enforce_docstring_baseline.py --update
-        language: system
-        pass_filenames: false
-
-      - id: enforce-shared-session-guard
-        name: Enforce shared session guard
+      - id: shared-session-guard
+        name: Enforce shared aiohttp session reuse
         entry: python scripts/enforce_shared_session_guard.py
-        language: system
+        language: python
         pass_filenames: false
-
-      - id: check-typed-dicts
-        name: TypedDict audit
-        entry: python scripts/check_typed_dicts.py
-        language: system
+      - id: enforce-test-requirements
+        name: Ensure test imports declare requirements
+        entry: python -m scripts.enforce_test_requirements
+        language: python
+        additional_dependencies:
+          - packaging>=24.2
         pass_filenames: false
-
-      - id: sync-contributor-guides
-        name: Sync contributor guides (auto-update)
-        entry: python scripts/sync_contributor_guides.py
-        language: system
+      - id: docstring-baseline
+        name: Ensure docstring baseline has no regressions
+        entry: python scripts/enforce_docstring_baseline.py --update
+        language: python
         pass_filenames: false
-
-      - id: sync-localization-flags
-        name: Sync localization flags allowlist (auto-update)
-        entry: python scripts/sync_localization_flags.py
-        language: system
+        additional_dependencies:
+          - ruff>=0.12.11
+      - id: contributor-guide-sync-check
+        name: Ensure assistant contributor guides are synced
+        entry: python -m scripts.sync_contributor_guides --check
+        language: python
         pass_filenames: false
+      - id: localization-flags
+        name: Validate localization flags
+        entry: python -m scripts.sync_localization_flags --check
+        language: python
+        pass_filenames: false
+      - id: typed-dict-audit
+       name: Audit TypedDict definitions
+       entry: python scripts/check_typed_dicts.py
+       language: python
+       pass_filenames: false
+     - id: gen_requirements_all
+       name: gen_requirements_all
+       entry: script/run-in-env.sh python3 -m script.gen_requirements_all
+       pass_filenames: false
+       language: script
+       types: [text]
+       files: ^(homeassistant/.+/manifest\.json|homeassistant/brands/.+\.json|pyproject\.toml|\.pre-commit-config\.yaml|script/gen_requirements_all\.py)$
+     - id: manifest-validate
+       name: Manifest Validation
+       entry: python3 -c "
+         import json, sys;
+         try:
+             with open('custom_components/hundesystem/manifest.json') as f:
+                 data = json.load(f);
+                 required = ['domain', 'name', 'documentation', 'dependencies', 'version'];
+                 missing = [k for k in required if k not in data];
+                 if missing:
+                     print(f'Missing required keys in manifest.json: {missing}');
+                     sys.exit(1);
+                 if not data.get('version', '').startswith(('0.', '1.', '2.')):
+                     print('❌ Invalid version format in manifest.json');
+                     sys.exit(1);
+                 print('✅ manifest.json is valid');
+             except Exception as e:
+                 print(f'❌ manifest.json validation failed: {e}');
+                 sys.exit(1)"
+       language: system
+       files: ^custom_components/.*/manifest\.json$

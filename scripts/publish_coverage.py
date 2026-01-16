@@ -1,30 +1,31 @@
-"""Publish coverage HTML to GitHub Pages artifact.
+"""Publish coverage artifacts.
 
-This is used by the reusable-python-tests workflow when `publish-pages` is enabled.
-It collects the HTML coverage report and places it into a public directory
-that can be uploaded via `actions/upload-pages-artifact`.
+This helper is intentionally lightweight. The reusable workflow optionally calls it to
+prepare a GitHub Pages bundle containing the HTML coverage report and a small metadata
+file.
 
-The workflow passes:
-  - --coverage-html-index: path to the HTML coverage index (e.g. htmlcov/index.html)
-  - --public-dir: output directory for pages artifact (e.g. public)
+The workflow passes paths for the generated coverage XML and the HTML index.
+When running in "pages" mode we simply copy the HTML report directory into the
+requested artifact directory.
 
-The script is intentionally lightweight and has no external dependencies.
+This script does *not* push to GitHub Pages by itself; the workflow is responsible for
+uploading the prepared bundle.
 """
 
 from __future__ import annotations
 
 import argparse
-import os
+import json
 import shutil
 from pathlib import Path
 
 
-def _copytree(src: Path, dst: Path) -> None:
-    """Copy a directory tree (dst is overwritten if it exists)."""
-    if dst.exists():
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst)
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
+    parser.add_argument("--coverage-xml", type=Path, required=True)
+    parser.add_argument("--coverage-html-index", type=Path, required=True)
+    parser.add_argument("--artifact-directory", type=Path, required=True)
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -50,38 +51,62 @@ def main() -> int:
 
     if not index_path.exists():
         raise FileNotFoundError(f"Coverage HTML index not found: {index_path}")
+    parser.add_argument("--mode", choices={"pages", "artifact"}, default="artifact")
+    parser.add_argument("--pages-branch", default="gh-pages")
+    parser.add_argument("--pages-prefix", default="coverage")
 
-    html_root = index_path.parent
+    parser.add_argument("--run-id", default="")
+    parser.add_argument("--run-attempt", default="")
+    parser.add_argument("--commit-sha", default="")
+    parser.add_argument("--ref", default="")
 
-    public_dir.mkdir(parents=True, exist_ok=True)
+    return parser.parse_args()
 
-    # Copy coverage HTML to public/coverage
-    coverage_dst = public_dir / "coverage"
-    _copytree(html_root, coverage_dst)
 
-    # Ensure GitHub Pages does not try to treat this as a Jekyll site.
-    (public_dir / ".nojekyll").write_text("", encoding="utf-8")
+def main() -> int:
+    args = _parse_args()
 
-    # Create a tiny landing page.
-    rel_index = Path("coverage") / index_path.name
-    landing = """<!doctype html>
-<html lang=\"en\">
-  <head>
-    <meta charset=\"utf-8\" />
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-    <title>Paw Control – Coverage</title>
-  </head>
-  <body>
-    <h1>Paw Control – Coverage report</h1>
-    <p><a href=\"{href}\">Open coverage report</a></p>
-  </body>
-</html>
-""".format(href=str(rel_index).replace(os.sep, "/"))
+    coverage_xml = args.coverage_xml
+    html_index = args.coverage_html_index
 
-    (public_dir / "index.html").write_text(landing, encoding="utf-8")
+    if not coverage_xml.exists():
+        raise SystemExit(f"coverage xml not found: {coverage_xml}")
+    if not html_index.exists():
+        raise SystemExit(f"coverage html index not found: {html_index}")
 
-    print(f"Prepared Pages artifact in: {public_dir}")
-    print(f"Coverage report copied to: {coverage_dst}")
+    artifact_dir = args.artifact_directory
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy full HTML directory (index.html lives inside)
+    html_dir = html_index.parent
+    target_html_dir = artifact_dir / "html"
+
+    if target_html_dir.exists():
+        shutil.rmtree(target_html_dir)
+
+    shutil.copytree(html_dir, target_html_dir)
+
+    meta = {
+        "mode": args.mode,
+        "pages_branch": args.pages_branch,
+        "pages_prefix": args.pages_prefix,
+        "run_id": args.run_id,
+        "run_attempt": args.run_attempt,
+        "commit_sha": args.commit_sha,
+        "ref": args.ref,
+        "coverage_xml": str(coverage_xml),
+        "coverage_html_index": str(html_index),
+    }
+
+    (artifact_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+
+    # Provide a stable entry-point index for consumers.
+    (artifact_dir / "index.html").write_text(
+        (target_html_dir / "index.html").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    print(f"Prepared coverage bundle in {artifact_dir}")
     return 0
 
 

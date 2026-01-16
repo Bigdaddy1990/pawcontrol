@@ -9,6 +9,7 @@ automation flows without manual YAML editing.
 
 from __future__ import annotations
 
+from typing import TypeAlias
 import logging
 from collections import deque
 from collections.abc import (
@@ -151,8 +152,8 @@ class _FieldDefaultProvider(Protocol):
     default: JSONValue
 
 
-type ScriptFieldEntry = Mapping[str, JSONValue] | _FieldDefaultProvider
-type ScriptFieldDefinitions = Mapping[str, ScriptFieldEntry]
+ScriptFieldEntry: TypeAlias = Mapping[str, JSONValue] | _FieldDefaultProvider
+ScriptFieldDefinitions: TypeAlias = Mapping[str, ScriptFieldEntry]
 
 
 def _coerce_optional_int(value: object) -> int | None:
