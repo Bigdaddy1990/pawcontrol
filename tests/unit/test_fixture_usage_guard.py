@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Final
+from typing import Final, TypeAlias
 
-type DynamicPath = tuple[str, ...]
-type DynamicFixture = str | tuple[tuple[DynamicPath, str], ...]
+DynamicPath: TypeAlias = tuple[str, ...]
+DynamicFixture: TypeAlias = str | tuple[tuple[DynamicPath, str], ...]
 
 FORBIDDEN_FIXTURE_CALLS: Final[dict[str, str]] = {
     "aiohttp_server": "Use the ``aiohttp_client`` helpers instead of calling the fixture.",

@@ -21,10 +21,19 @@ filterwarnings = [
     "error"
 ]
 
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+src = ["custom_components"]
+unsafe-fixes = true
+indent-width = 4
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
+docstring-code-format = true
+skip-magic-trailing-comma = false
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
@@ -37,7 +46,18 @@ extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 # where each tool reorders imports differently on every run, we ignore
 # Ruff’s import‑sorting rule and let the dedicated hook handle ordering.
 [tool.ruff.lint]
-ignore = ["I001"]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501", "I001"]
+extend-ignore = [
+  "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403", "E402"]
+"tests/**" = ["E402", "F401"]
+"scripts/**" = ["E402", "F401"]
 
 [tool.setuptools.package-dir]
 "" = "."

@@ -17,7 +17,7 @@ from packaging.specifiers import Specifier
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 from pip._vendor import requests
-from script import check_vendor_pyyaml as vendor_monitor
+from scripts import check_vendor_pyyaml as vendor_monitor
 
 # Paths relative to the Home Assistant core repository root.
 HA_REQUIREMENTS = "requirements.txt"

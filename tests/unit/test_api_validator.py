@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Generator, Iterable
 from types import TracebackType
-from typing import cast
+from typing import TypeAlias, cast
 
 import pytest
 from aiohttp import ClientSession
 from custom_components.pawcontrol.api_validator import APIValidator, JSONValue
 from homeassistant.core import HomeAssistant
 
-type DummyPayload = dict[str, JSONValue]
+DummyPayload: TypeAlias = dict[str, JSONValue]
 
 
 class DummyResponse:

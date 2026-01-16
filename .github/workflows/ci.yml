@@ -48,6 +48,8 @@ jobs:
           python scripts/enforce_shared_session_guard.py
           python -m scripts.enforce_test_requirements
           python scripts/enforce_docstring_baseline.py
+          python -m scripts.hassfest --integration-path custom_components/pawcontrol
+          python -m scripts.validate_manifest
           python scripts/sync_contributor_guides.py --check
           python scripts/sync_localization_flags.py --check
 

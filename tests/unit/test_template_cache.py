@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import TypeAlias
 
 import pytest
 from custom_components.pawcontrol.dashboard_shared import CardCollection, CardConfig
@@ -12,7 +13,7 @@ from custom_components.pawcontrol.dashboard_templates import (
     TemplateCacheSnapshot,
 )
 
-type TemplatePayload = CardConfig | CardCollection
+TemplatePayload: TypeAlias = CardConfig | CardCollection
 
 
 @pytest.mark.asyncio
