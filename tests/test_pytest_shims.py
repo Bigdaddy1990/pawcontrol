@@ -43,7 +43,11 @@ def test_pytest_asyncio_stub_registers_asyncio_mode_and_loop() -> None:
 
     parser = _DummyParser()
     pytest_asyncio.pytest_addoption(parser)
-    assert ("asyncio_mode", "Select asyncio integration mode", "auto") in parser.inis
+    assert (
+        "asyncio_mode",
+        "Select asyncio integration mode",
+        "auto",
+    ) in parser.inis
 
     event_loop_func = pytest_asyncio.event_loop._fixture_function
     event_loop: Generator[asyncio.AbstractEventLoop] = event_loop_func()
