@@ -51,7 +51,6 @@
   "requirements": [
     "aiofiles>=24.1.0"
   ],
-  "supported_by": "community",
   "usb": [
     {
       "description": "tractive gps tracker",
