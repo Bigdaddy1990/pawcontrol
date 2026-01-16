@@ -130,8 +130,24 @@ repos:
        language: script
        types: [text]
        files: ^(homeassistant/.+/manifest\.json|homeassistant/brands/.+\.json|pyproject\.toml|\.pre-commit-config\.yaml|script/gen_requirements_all\.py)$
-     - id: validate-manifest
-       name: Validate manifest.json
-       entry: python -m json.tool
+     - id: manifest-validate
+       name: Manifest Validation
+       entry: python3 -c "
+         import json, sys;
+         try:
+             with open('custom_components/hundesystem/manifest.json') as f:
+                 data = json.load(f);
+                 required = ['domain', 'name', 'documentation', 'dependencies', 'version'];
+                 missing = [k for k in required if k not in data];
+                 if missing:
+                     print(f'Missing required keys in manifest.json: {missing}');
+                     sys.exit(1);
+                 if not data.get('version', '').startswith(('0.', '1.', '2.')):
+                     print('❌ Invalid version format in manifest.json');
+                     sys.exit(1);
+                 print('✅ manifest.json is valid');
+             except Exception as e:
+                 print(f'❌ manifest.json validation failed: {e}');
+                 sys.exit(1)"
        language: system
-       files: "custom_components/.*/manifest.json$"
+       files: ^custom_components/.*/manifest\.json$
