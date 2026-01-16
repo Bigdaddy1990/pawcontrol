@@ -7,9 +7,6 @@ Run `python -m scripts.sync_contributor_guides` after editing the canonical guid
 to refresh this view. Avoid editing the synced block manually.
 
 <!-- SYNC:START -->
-# PawControl Contributor Guide (Canonical)
-
-<!-- SYNC:START -->
 # PawControl Contributor Guide
 
 These instructions describe how to work on the `custom_components/pawcontrol`
@@ -176,5 +173,4 @@ python -m scripts.sync_contributor_guides           # Refresh assistant copies
 - [ ] New documentation includes citations to code/tests proving the behaviour.
 - [ ] Device removal (`async_remove_config_entry_device`) and diagnostics remain
       covered by tests when behaviour changes.
-<!-- SYNC:END -->
 <!-- SYNC:END -->
