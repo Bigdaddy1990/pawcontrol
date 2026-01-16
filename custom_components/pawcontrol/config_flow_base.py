@@ -29,6 +29,7 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    DOG_ID_PATTERN,
     DOG_SIZES,
     DOMAIN,
     MAX_DOG_AGE,
@@ -76,9 +77,6 @@ MAX_UPDATE_INTERVAL: Final = 600
 MIN_ACCURACY_FILTER: Final = 5
 MAX_ACCURACY_FILTER: Final = 500
 DEFAULT_GPS_UPDATE_INTERVAL: Final = 60
-
-# Dog ID validation pattern
-DOG_ID_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]*$")
 
 # Configuration schemas for validation
 INTEGRATION_SCHEMA: Final = vol.Schema(

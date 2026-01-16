@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
+import re
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
@@ -93,6 +94,9 @@ CONF_DOG_AGE: Final[str] = "dog_age"
 CONF_DOG_WEIGHT: Final[str] = "dog_weight"
 CONF_DOG_SIZE: Final[str] = "dog_size"
 CONF_DOG_COLOR: Final[str] = "dog_color"
+
+# OPTIMIZED: Dog ID validation pattern
+DOG_ID_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]*$")
 
 # OPTIMIZED: Module configuration as frozenset for fast lookups
 CONF_MODULES: Final[str] = "modules"

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 
-from .config_flow_base import DOG_ID_PATTERN
 from .const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -12,6 +11,7 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    DOG_ID_PATTERN,
     DOG_SIZES,
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
