@@ -48,6 +48,7 @@
     "custom_components.pawcontrol"
   ],
   "quality_scale": "platinum",
+  "supported_by": "community",
   "requirements": [
     "aiofiles>=24.1.0"
   ],
