@@ -253,7 +253,7 @@ class DogManagementOptionsMixin:
         *,
         current_sensor: str | None,
         defaults: DoorSensorSettingsConfig,  # noqa: F821
-        user_input: dict[str, Any] | None = None,  # noqa: F821
+        user_input: dict[str, Any] | None = None,
     ) -> vol.Schema:
         """Build schema for configuring per-dog door sensor overrides."""
 
@@ -262,7 +262,7 @@ class DogManagementOptionsMixin:
         if not isinstance(sensor_default, str):
             sensor_default = current_sensor or ""
 
-        schema_dict: dict[Any, Any] = {}  # noqa: F821
+        schema_dict: dict[Any, Any] = {}
 
         if available:
             options = [{"value": "", "label": "None (disable)"}]
@@ -291,7 +291,7 @@ class DogManagementOptionsMixin:
                 )
             )
 
-        def _value(key: str, fallback: Any) -> Any:  # noqa: F821
+        def _value(key: str, fallback: Any) -> Any:
             return values.get(key, fallback)
 
         schema_dict[
@@ -547,7 +547,7 @@ class DogManagementOptionsMixin:
 
     async def async_step_add_new_dog(
         self,
-        user_input: dict[str, Any] | None = None,  # noqa: F821
+        user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Add a new dog to the configuration."""
         errors: dict[str, str] = {}
