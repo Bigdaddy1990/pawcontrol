@@ -23,7 +23,6 @@ import ast
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "custom_components" / "pawcontrol"
 
@@ -40,7 +39,9 @@ def _is_typeddict_base(base: ast.expr) -> bool:
 
 
 def _iter_py_files(path: Path) -> list[Path]:
-    return [p for p in path.rglob("*.py") if p.is_file() and "__pycache__" not in p.parts]
+    return [
+        p for p in path.rglob("*.py") if p.is_file() and "__pycache__" not in p.parts
+    ]
 
 
 def _audit_file(path: Path) -> list[str]:
