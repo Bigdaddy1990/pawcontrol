@@ -108,6 +108,9 @@ def test_fallback_loader_exposes_stub_module(tmp_path: Path) -> None:
 def test_fallback_loader_uses_vendored_yaml(tmp_path: Path) -> None:
     """When system PyYAML is missing the vendored copy provides ``safe_load``."""
 
+    if importlib.util.find_spec("annotatedyaml._vendor.yaml") is None:
+        pytest.skip("annotatedyaml does not vendor PyYAML in this environment")
+
     with (
         _hide_modules("yaml"),
         _force_stub_loader(blocked_modules=("annotatedyaml", "yaml")),
