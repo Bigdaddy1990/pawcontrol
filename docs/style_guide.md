@@ -10,9 +10,9 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 
 ## Grundprinzipien
 
-- **Konformität mit Home Assistant**: Architektur, Stil, Übersetzungen, Testing und Review folgen den offiziellen Vorgaben. (https://developers.home-assistant.io/docs/development_guidelines)
-- **Klare Trennung von Verantwortlichkeiten**: Komponenten, Plattformen, Config/Options Flows und Services halten sich an die in den Architektur- und Integrationsdokumenten beschriebenen Zuständigkeiten. (https://developers.home-assistant.io/docs/architecture_components)
-- **Qualität vor Geschwindigkeit**: Jeder Beitrag muss den Entwicklungs- und Testempfehlungen folgen. (https://developers.home-assistant.io/docs/development_tips, https://developers.home-assistant.io/docs/development_testing)
+- **Konformität mit Home Assistant**: Architektur, Stil, Übersetzungen, Testing und Review folgen den [offiziellen Vorgaben](https://developers.home-assistant.io/docs/development_guidelines).
+- **Klare Trennung von Verantwortlichkeiten**: Komponenten, Plattformen, Config/Options Flows und Services halten sich an die in den [Architektur- und Integrationsdokumenten](https://developers.home-assistant.io/docs/architecture_components) beschriebenen Zuständigkeiten.
+- **Qualität vor Geschwindigkeit**: Jeder Beitrag muss den [Entwicklungs-](https://developers.home-assistant.io/docs/development_tips) und [Testempfehlungen](https://developers.home-assistant.io/docs/development_testing) folgen.
 
 ## Dateistruktur & Manifest
 
