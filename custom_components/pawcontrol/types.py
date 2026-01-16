@@ -19,6 +19,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import Generic, TypeAlias, TypeVar
 import logging
 from asyncio import Task
 from collections import deque
@@ -88,42 +89,42 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     dt_util = _DateTimeModule()
 
-type JSONPrimitive = None | bool | int | float | str
+JSONPrimitive: TypeAlias = None | bool | int | float | str
 """Primitive JSON-compatible values."""
 
-type JSONValue = JSONPrimitive | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
+JSONValue: TypeAlias = JSONPrimitive | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
 """Recursive JSON-compatible value used for diagnostics payloads."""
 
-type JSONMapping = Mapping[str, JSONValue]
+JSONMapping: TypeAlias = Mapping[str, JSONValue]
 """Mapping view for JSON-compatible payloads."""
 
-type JSONMutableMapping = dict[str, JSONValue]
+JSONMutableMapping: TypeAlias = dict[str, JSONValue]
 """Mutable mapping containing JSON-compatible payloads."""
 
-type JSONLikeMapping = JSONMapping | JSONMutableMapping
+JSONLikeMapping: TypeAlias = JSONMapping | JSONMutableMapping
 """Union covering immutable and mutable JSON-compatible mappings."""
 
-type ConfigFlowUserInput = Mapping[str, JSONValue] | JSONMutableMapping
+ConfigFlowUserInput: TypeAlias = Mapping[str, JSONValue] | JSONMutableMapping
 """Config flow user input payload accepted by setup and options steps."""
 
-type FlowInputMapping = Mapping[str, JSONValue]
+FlowInputMapping: TypeAlias = Mapping[str, JSONValue]
 """Typed mapping used for config and options flow payloads."""
 
-type JSONMutableSequence = list[JSONValue]
+JSONMutableSequence: TypeAlias = list[JSONValue]
 """Mutable sequence containing JSON-compatible payload entries."""
 
-type JSONDateValue = JSONValue | datetime
+JSONDateValue: TypeAlias = JSONValue | datetime
 """JSON-compatible value extended with ``datetime`` for legacy payloads."""
 
-type JSONDateMapping = Mapping[str, JSONDateValue]
+JSONDateMapping: TypeAlias = Mapping[str, JSONDateValue]
 """Mapping that tolerates ``datetime`` values during legacy hydration."""
 
-type VisitorModeSettingsPayload = JSONMutableMapping
+VisitorModeSettingsPayload: TypeAlias = JSONMutableMapping
 """Mutable payload persisted for visitor-mode configuration."""
 
 from .utils import is_number  # noqa: E402
 
-type ErrorContext = JSONMutableMapping
+ErrorContext: TypeAlias = JSONMutableMapping
 """Structured context payload attached to :class:`PawControlError` instances."""
 
 
@@ -179,25 +180,27 @@ class ErrorPayload(TypedDict):
     exception_type: str
 
 
-type GPXAttributeValue = JSONPrimitive
+GPXAttributeValue: TypeAlias = JSONPrimitive
 """Primitive attribute value allowed in GPX attribute mappings."""
 
-type GPXAttributeMap = Mapping[str, GPXAttributeValue]
+GPXAttributeMap: TypeAlias = Mapping[str, GPXAttributeValue]
 """Mapping for GPX/XML attribute rendering."""
 
-type EntityAttributePayload[T: JSONValue] = dict[str, T]
+T = TypeVar("T", bound=JSONValue)
+
+EntityAttributePayload: TypeAlias = dict[str, T]
 """Generic JSON-compatible attribute payload keyed by entity attribute name."""
 
-type EntityAttributeMutableMapping = EntityAttributePayload[JSONValue]
+EntityAttributeMutableMapping: TypeAlias = EntityAttributePayload[JSONValue]
 """Mutable attribute payload used when exporting Home Assistant entity state."""
 
-type NumberExtraAttributes = EntityAttributeMutableMapping
+NumberExtraAttributes: TypeAlias = EntityAttributeMutableMapping
 """Extra state attributes exposed by PawControl number entities."""
 
-type SelectExtraAttributes = EntityAttributeMutableMapping
+SelectExtraAttributes: TypeAlias = EntityAttributeMutableMapping
 """Extra state attributes exposed by PawControl select entities."""
 
-type PersonEntityAttributePayload = JSONMutableMapping
+PersonEntityAttributePayload: TypeAlias = JSONMutableMapping
 """Mutable attribute payload stored alongside discovered person entities."""
 
 
@@ -468,16 +471,19 @@ class GroomingTypeInfo(TypedDict, total=False):
     difficulty: str
 
 
-type MetadataPayload[T: JSONValue] = dict[str, T]
+T = TypeVar("T", bound=JSONValue)
+
+
+MetadataPayload: TypeAlias = dict[str, T]
 """Generic JSON-compatible mapping used for diagnostics metadata sections."""
 
-type MaintenanceMetadataPayload = MetadataPayload[JSONValue]
+MaintenanceMetadataPayload: TypeAlias = MetadataPayload[JSONValue]
 """JSON-compatible metadata payload captured during maintenance routines."""
 
-type ServiceDetailsPayload = MaintenanceMetadataPayload
+ServiceDetailsPayload: TypeAlias = MaintenanceMetadataPayload
 """Normalised service details payload stored alongside execution results."""
 
-type StorageNamespaceKey = Literal[
+StorageNamespaceKey: TypeAlias = Literal[
     "walks",
     "feedings",
     "health",
@@ -486,34 +492,34 @@ type StorageNamespaceKey = Literal[
 ]
 """Supported storage namespaces handled by :class:`PawControlDataStorage`."""
 
-type StorageNamespacePayload = dict[str, JSONValue]
+StorageNamespacePayload: TypeAlias = dict[str, JSONValue]
 """Serialized payload persisted for a single storage namespace."""
 
-type StorageNamespaceState = dict[StorageNamespaceKey, StorageNamespacePayload]
+StorageNamespaceState: TypeAlias = dict[StorageNamespaceKey, StorageNamespacePayload]
 """Combined storage state keyed by namespace identifier."""
 
-type StorageCacheValue = StorageNamespaceState | StorageNamespacePayload | None
+StorageCacheValue: TypeAlias = StorageNamespaceState | StorageNamespacePayload | None
 """Union of cache payloads tracked by :class:`PawControlDataStorage`."""
 
-type HealthHistoryEntry = JSONMutableMapping
+HealthHistoryEntry: TypeAlias = JSONMutableMapping
 """Health history entry stored in runtime storage queues."""
 
-type HealthNamespaceMutable = dict[str, list[HealthHistoryEntry] | JSONValue]
+HealthNamespaceMutable: TypeAlias = dict[str, list[HealthHistoryEntry] | JSONValue]
 """Mutable mapping of per-dog health history payloads."""
 
-type WalkHistoryEntry = JSONMutableMapping
+WalkHistoryEntry: TypeAlias = JSONMutableMapping
 """Walk history entry captured during runtime processing."""
 
-type WalkNamespaceValue = JSONValue | list[WalkHistoryEntry] | None
+WalkNamespaceValue: TypeAlias = JSONValue | list[WalkHistoryEntry] | None
 """Allowed value types persisted inside a walk namespace entry."""
 
-type WalkNamespaceMutableEntry = dict[str, WalkNamespaceValue]
+WalkNamespaceMutableEntry: TypeAlias = dict[str, WalkNamespaceValue]
 """Mutable walk namespace payload for a single dog identifier."""
 
-type WalkNamespaceMutable = dict[str, WalkNamespaceMutableEntry | JSONValue]
+WalkNamespaceMutable: TypeAlias = dict[str, WalkNamespaceMutableEntry | JSONValue]
 """Runtime mapping of walk namespace entries keyed by dog identifier."""
 
-type WalkStartPayload = Mapping[str, JSONValue]
+WalkStartPayload: TypeAlias = Mapping[str, JSONValue]
 """Structured payload accepted when starting an immediate walk."""
 
 # OPTIMIZE: Resolve circular imports with proper conditional imports
@@ -618,7 +624,7 @@ Supports multiple GPS input methods to accommodate different hardware setups
 and integration scenarios with various tracking devices and services.
 """
 
-type NotificationPriority = Literal["low", "normal", "high", "urgent"]
+NotificationPriority: TypeAlias = Literal["low", "normal", "high", "urgent"]
 """Supported notification priority values.
 
 The alias is reused across the helper and notification managers so every queue,
@@ -677,10 +683,10 @@ class DoorSensorSettingsConfig:
 
 DEFAULT_DOOR_SENSOR_SETTINGS = DoorSensorSettingsConfig()
 
-type DoorSensorOverrideScalar = bool | int | float | str | None
+DoorSensorOverrideScalar: TypeAlias = bool | int | float | str | None
 """Scalar values accepted when overriding door sensor settings."""
 
-type DoorSensorSettingsMapping = Mapping[str, DoorSensorOverrideScalar]
+DoorSensorSettingsMapping: TypeAlias = Mapping[str, DoorSensorOverrideScalar]
 """Mapping of setting names to override scalars."""
 
 
@@ -724,7 +730,7 @@ class DoorSensorSettingsPayload(TypedDict):
     confidence_threshold: float
 
 
-type DoorSensorSettingsInput = (
+DoorSensorSettingsInput: TypeAlias = (
     DoorSensorSettingsConfig | DoorSensorSettingsOverrides | DoorSensorSettingsMapping
 )
 """Accepted inputs when normalising door sensor settings."""
@@ -951,9 +957,9 @@ class HealthUpcomingCareEntry(TypedDict, total=False):
     details: str | JSONLikeMapping | None
 
 
-type HealthAlertList = list[HealthAlertEntry]
-type HealthUpcomingCareQueue = list[HealthUpcomingCareEntry]
-type HealthMedicationQueue = list[HealthMedicationReminder]
+HealthAlertList: TypeAlias = list[HealthAlertEntry]
+HealthUpcomingCareQueue: TypeAlias = list[HealthUpcomingCareEntry]
+HealthMedicationQueue: TypeAlias = list[HealthMedicationReminder]
 
 
 class HealthStatusSnapshot(TypedDict, total=False):
@@ -1004,7 +1010,7 @@ ModuleToggleFlowFlag = Literal[
     "enable_training",
 ]
 
-type ModuleToggleMapping = Mapping[ModuleToggleKey, JSONValue]
+ModuleToggleMapping: TypeAlias = Mapping[ModuleToggleKey, JSONValue]
 """Mapping of module toggle keys to JSON-compatible values."""
 
 MODULE_TOGGLE_KEYS: Final[tuple[ModuleToggleKey, ...]] = (
@@ -1312,9 +1318,9 @@ def _coerce_str(value: Any, *, default: str) -> str:
 PerformanceMode = Literal["minimal", "balanced", "full"]
 DashboardMode = Literal["full", "cards", "minimal"]
 
-type ConfigFlowPlaceholderValue = bool | int | float | str
-type ConfigFlowPlaceholders = Mapping[str, ConfigFlowPlaceholderValue]
-type MutableConfigFlowPlaceholders = dict[str, ConfigFlowPlaceholderValue]
+ConfigFlowPlaceholderValue: TypeAlias = bool | int | float | str
+ConfigFlowPlaceholders: TypeAlias = Mapping[str, ConfigFlowPlaceholderValue]
+MutableConfigFlowPlaceholders: TypeAlias = dict[str, ConfigFlowPlaceholderValue]
 """Accepted performance mode values for coordinator tuning."""
 
 
@@ -1835,7 +1841,7 @@ NOTIFICATION_PRIORITY_FIELD: Final[NotificationOptionsField] = "priority_notific
 NOTIFICATION_MOBILE_FIELD: Final[NotificationOptionsField] = "mobile_notifications"
 
 
-type NotificationOptionsInput = NotificationSettingsInput | JSONMapping
+NotificationOptionsInput: TypeAlias = NotificationSettingsInput | JSONMapping
 """Mapping accepted by :func:`ensure_notification_options`."""
 
 
@@ -2022,7 +2028,7 @@ class DashboardRendererOptions(DashboardOptions, total=False):
     show_weather_forecast: bool
 
 
-type DashboardCardOptions = DashboardRendererOptions
+DashboardCardOptions: TypeAlias = DashboardRendererOptions
 """Card generator options forwarded from the dashboard renderer."""
 
 
@@ -2079,7 +2085,7 @@ class CardModConfig(TypedDict, total=False):
     style: str
 
 
-type LovelaceCardValue = (
+LovelaceCardValue: TypeAlias = (
     JSONPrimitive
     | Sequence["LovelaceCardValue"]
     | Mapping[str, "LovelaceCardValue"]
@@ -2088,7 +2094,7 @@ type LovelaceCardValue = (
 """Valid value stored inside a Lovelace card configuration."""
 
 
-type LovelaceCardConfig = dict[str, LovelaceCardValue]
+LovelaceCardConfig: TypeAlias = dict[str, LovelaceCardValue]
 """Mutable Lovelace card configuration payload."""
 
 
@@ -2195,7 +2201,7 @@ class DogOptionsEntry(TypedDict, total=False):
     health_settings: HealthOptions
 
 
-type DogOptionsMap = dict[str, DogOptionsEntry]
+DogOptionsMap: TypeAlias = dict[str, DogOptionsEntry]
 
 
 class PawControlOptionsData(PerformanceOptions, total=False):
@@ -2243,16 +2249,16 @@ ConfigFlowDiscoverySource = Literal[
 ]
 
 
-type ConfigFlowDiscoveryPropertyValue = bool | int | float | str | bytes | Sequence[str]
+ConfigFlowDiscoveryPropertyValue: TypeAlias = bool | int | float | str | bytes | Sequence[str]
 
 
-type ConfigFlowDiscoveryProperties = dict[
+ConfigFlowDiscoveryProperties: TypeAlias = dict[
     str,
     ConfigFlowDiscoveryPropertyValue,
 ]
 
 
-type ConfigFlowInputMapping = Mapping[str, JSONValue]
+ConfigFlowInputMapping: TypeAlias = Mapping[str, JSONValue]
 """Generic mapping accepted by config flow steps for user input payloads."""
 
 
@@ -2305,11 +2311,11 @@ class ConfigFlowDiscoveryData(TypedDict, total=False):
     last_seen: str
 
 
-type ConfigFlowDiscoveryComparison = ConfigFlowDiscoveryData
+ConfigFlowDiscoveryComparison: TypeAlias = ConfigFlowDiscoveryData
 """Normalized discovery payload used for change comparison in config flows."""
 
 
-type DiscoveryUpdateValue = ConfigFlowDiscoveryData | str
+DiscoveryUpdateValue: TypeAlias = ConfigFlowDiscoveryData | str
 """Allowed value types stored in discovery update payloads."""
 
 
@@ -2464,7 +2470,7 @@ class AddAnotherDogInput(TypedDict, total=False):
     add_another: bool
 
 
-type OptionsMainMenuAction = Literal[
+OptionsMainMenuAction: TypeAlias = Literal[
     "entity_profiles",
     "manage_dogs",
     "performance_settings",
@@ -2488,7 +2494,7 @@ class OptionsMainMenuInput(TypedDict, total=False):
     action: OptionsMainMenuAction
 
 
-type OptionsMenuAction = Literal[
+OptionsMenuAction: TypeAlias = Literal[
     "add_dog",
     "edit_dog",
     "remove_dog",
@@ -2703,7 +2709,7 @@ class ConfigFlowOperationMetrics(TypedDict):
     count: int
 
 
-type ConfigFlowOperationMetricsMap = dict[str, ConfigFlowOperationMetrics]
+ConfigFlowOperationMetricsMap: TypeAlias = dict[str, ConfigFlowOperationMetrics]
 
 
 class ConfigFlowPerformanceStats(TypedDict):
@@ -2722,7 +2728,7 @@ class FeedingSizeDefaults(TypedDict):
     portion_size: int
 
 
-type FeedingSizeDefaultsMap = dict[str, FeedingSizeDefaults]
+FeedingSizeDefaultsMap: TypeAlias = dict[str, FeedingSizeDefaults]
 
 
 class FeedingSetupConfig(TypedDict, total=False):
@@ -3300,11 +3306,11 @@ class HelperEntityMetadata(TypedDict, total=False):
     unit_of_measurement: str | None
 
 
-type HelperEntityMetadataMapping = dict[str, HelperEntityMetadata]
+HelperEntityMetadataMapping: TypeAlias = dict[str, HelperEntityMetadata]
 """Mapping of entity identifiers to helper metadata payloads."""
 
 
-type DogHelperAssignments = dict[str, list[str]]
+DogHelperAssignments: TypeAlias = dict[str, list[str]]
 """Mapping of dog identifiers to the helpers provisioned for them."""
 
 
@@ -3622,10 +3628,10 @@ Standardizes timestamp handling across the integration with proper timezone
 awareness through Home Assistant's utility functions.
 """
 
-type ServiceData = JSONMutableMapping
+ServiceData: TypeAlias = JSONMutableMapping
 """Mutable service data payload used when invoking Home Assistant services."""
 
-type ConfigData = JSONMutableMapping
+ConfigData: TypeAlias = JSONMutableMapping
 """Generic mutable configuration payload consumed by PawControl helpers."""
 
 
@@ -3701,7 +3707,7 @@ class FeedingEmergencyState(TypedDict, total=False):
     food_type_recommendation: str | None
 
 
-type FeedingHealthStatus = Literal[
+FeedingHealthStatus: TypeAlias = Literal[
     "insufficient_data",
     "emergency",
     "underfed",
@@ -3814,11 +3820,11 @@ class FeedingModuleTelemetry(FeedingModulePayload):
     """Extended feeding module telemetry used by diagnostics consumers."""
 
 
-type FeedingSnapshotCache = dict[str, FeedingSnapshot]
+FeedingSnapshotCache: TypeAlias = dict[str, FeedingSnapshot]
 """Cache of per-dog feeding snapshots keyed by dog identifier."""
 
 
-type FeedingStatisticsCache = dict[str, FeedingStatisticsSnapshot]
+FeedingStatisticsCache: TypeAlias = dict[str, FeedingStatisticsSnapshot]
 """Cache of historical feeding statistics keyed by cache key."""
 
 
@@ -4313,13 +4319,14 @@ class GPSRouteExportJSONPayload(GPSRouteExportBasePayload):
     content: GPSRouteExportJSONContent
 
 
-type GPSRouteExportPayload = (
+GPSRouteExportPayload: TypeAlias = (
     GPSRouteExportGPXPayload | GPSRouteExportCSVPayload | GPSRouteExportJSONPayload
 )
 
 
+TPoint = TypeVar("TPoint", bound=GPSRoutePoint)
 @dataclass(slots=True)
-class GPSRouteBuffer[TPoint: GPSRoutePoint]:
+class GPSRouteBuffer(Generic[TPoint]):
     """Typed buffer that stores route samples for GPS tracking."""
 
     _points: list[TPoint] = field(default_factory=list)
@@ -4436,7 +4443,7 @@ class WeatherAlertPayload(TypedDict, total=False):
     age_considerations: list[str]
 
 
-type WeatherModuleStatus = Literal["ready", "disabled", "error"]
+WeatherModuleStatus: TypeAlias = Literal["ready", "disabled", "error"]
 
 
 class WeatherModulePayload(TypedDict, total=False):
@@ -4696,7 +4703,7 @@ ModuleAdapterPayload = (
     | GardenModulePayload
 )
 
-type DogModulesMapping = Mapping[str, bool]
+DogModulesMapping: TypeAlias = Mapping[str, bool]
 
 
 class WalkGPSSnapshot(TypedDict, total=False):
@@ -4749,14 +4756,14 @@ class WalkWeeklyStatistics(TypedDict):
     walk_streak: int
 
 
-type WalkRouteExportFormat = Literal["gpx", "json", "csv"]
+WalkRouteExportFormat: TypeAlias = Literal["gpx", "json", "csv"]
 """Supported export formats for walk routes."""
 
 
-type WalkDetectionMetadata = Mapping[str, JSONValue]
+WalkDetectionMetadata: TypeAlias = Mapping[str, JSONValue]
 """Immutable walk detection metadata forwarded by auto-detection sources."""
 
-type WalkDetectionMutableMetadata = dict[str, JSONValue]
+WalkDetectionMutableMetadata: TypeAlias = dict[str, JSONValue]
 """Mutable walk detection metadata payload stored during active sessions."""
 
 
@@ -5405,11 +5412,11 @@ class ResilienceEscalationFollowupEntry(ResilienceEscalationFieldEntry, total=Fa
     configured: bool
 
 
-type ResilienceEscalationThresholds = dict[str, ResilienceEscalationFieldEntry]
+ResilienceEscalationThresholds: TypeAlias = dict[str, ResilienceEscalationFieldEntry]
 """Mapping of resilience escalation thresholds keyed by identifier."""
 
 
-type ResilienceEscalationFields = dict[str, ResilienceEscalationFieldEntry]
+ResilienceEscalationFields: TypeAlias = dict[str, ResilienceEscalationFieldEntry]
 """Mapping of resilience escalation field defaults keyed by field name."""
 
 
@@ -5510,7 +5517,7 @@ class ManualResilienceOptionsSnapshot(TypedDict, total=False):
     system_settings: ManualResilienceSystemSettingsSnapshot
 
 
-type ManualResilienceEventSelection = dict[ManualResiliencePreferenceKey, str | None]
+ManualResilienceEventSelection: TypeAlias = dict[ManualResiliencePreferenceKey, str | None]
 """Preferred manual resilience events pushed to automation blueprints."""
 
 
@@ -5538,7 +5545,7 @@ class FeedingComplianceEventPayload(TypedDict, total=False):
     localized_summary: NotRequired[FeedingComplianceLocalizedSummary]
 
 
-type FeedingComplianceDisplayMapping = Mapping[str, object]
+FeedingComplianceDisplayMapping: TypeAlias = Mapping[str, object]
 """Mapping-compatible compliance payload accepted by translation helpers."""
 
 
@@ -5651,11 +5658,11 @@ class SetupFlagPanelEntry(TypedDict):
     source_label_translation_key: str
 
 
-type SetupFlagSourceBreakdown = dict[str, int]
+SetupFlagSourceBreakdown: TypeAlias = dict[str, int]
 """Aggregated setup-flag counts keyed by their source identifier."""
 
 
-type SetupFlagSourceLabels = dict[str, str]
+SetupFlagSourceLabels: TypeAlias = dict[str, str]
 """Mapping of setup-flag sources to the human-readable label."""
 
 
@@ -6059,23 +6066,23 @@ CoordinatorTypedModuleName = Literal[
 ]
 
 
-type CoordinatorUntypedModuleState = JSONMutableMapping
+CoordinatorUntypedModuleState: TypeAlias = JSONMutableMapping
 """Fallback module payload used when adapters expose open-ended mappings."""
 
 
-type CoordinatorModuleLookupResult = (
+CoordinatorModuleLookupResult: TypeAlias = (
     CoordinatorModuleState | CoordinatorUntypedModuleState
 )
 """Result payload returned when accessing coordinator module snapshots."""
 
 
-type OptimizedEntityStateCachePayload = (
+OptimizedEntityStateCachePayload: TypeAlias = (
     CoordinatorDogData | CoordinatorModuleState | CoordinatorUntypedModuleState
 )
 """Union of cache payloads stored by :mod:`optimized_entity_base`."""
 
 
-type OptimizedEntityAttributesPayload = JSONMutableMapping
+OptimizedEntityAttributesPayload: TypeAlias = JSONMutableMapping
 """Mutable attribute payload generated by optimized entities."""
 
 
@@ -6157,13 +6164,13 @@ class CoordinatorRejectionMetrics(TypedDict):
     rejection_breakers: list[str]
 
 
-type RejectionMetricsTarget = (
+RejectionMetricsTarget: TypeAlias = (
     CoordinatorRejectionMetrics | CoordinatorPerformanceMetrics | JSONMutableMapping
 )
 """Mutable mapping that can receive rejection metric updates."""
 
 
-type RejectionMetricsSource = (
+RejectionMetricsSource: TypeAlias = (
     CoordinatorRejectionMetrics | CoordinatorResilienceSummary | JSONMapping
 )
 """Mapping payload that exposes coordinator rejection metrics."""
@@ -6193,7 +6200,7 @@ class SystemHealthGuardReasonEntry(TypedDict):
     count: int
 
 
-type SystemHealthIndicatorLevel = Literal["critical", "warning", "normal"]
+SystemHealthIndicatorLevel: TypeAlias = Literal["critical", "warning", "normal"]
 
 
 class SystemHealthIndicatorPayload(TypedDict, total=False):
@@ -6251,7 +6258,7 @@ class SystemHealthServiceStatus(TypedDict):
     overall: SystemHealthIndicatorPayload
 
 
-type SystemHealthRemainingQuota = (
+SystemHealthRemainingQuota: TypeAlias = (
     Literal[
         "unknown",
         "untracked",
@@ -6788,10 +6795,10 @@ class DoorSensorDogSnapshot(TypedDict, total=False):
     state: DoorSensorStateSnapshot
 
 
-type DoorSensorConfigUpdateValue = DoorSensorSettingsPayload | str | None
+DoorSensorConfigUpdateValue: TypeAlias = DoorSensorSettingsPayload | str | None
 """Union of values persisted alongside door sensor configuration updates."""
 
-type DoorSensorConfigUpdate = dict[str, DoorSensorConfigUpdateValue]
+DoorSensorConfigUpdate: TypeAlias = dict[str, DoorSensorConfigUpdateValue]
 """Mutable payload pushed to the data manager during door sensor updates."""
 
 
@@ -6882,7 +6889,7 @@ class RuntimeErrorHistoryEntry(TypedDict, total=False):
     context: NotRequired[ErrorContext | None]
 
 
-type RuntimeErrorHistory = list[RuntimeErrorHistoryEntry]
+RuntimeErrorHistory: TypeAlias = list[RuntimeErrorHistoryEntry]
 
 
 class DoorSensorPersistenceFailure(TypedDict, total=False):
@@ -7180,7 +7187,7 @@ class DomainRuntimeStoreEntry:
         return self.created_version < self.MINIMUM_COMPATIBLE_VERSION
 
 
-type DomainRuntimeStore = MutableMapping[str, DomainRuntimeStoreEntry]
+DomainRuntimeStore: TypeAlias = MutableMapping[str, DomainRuntimeStoreEntry]
 
 
 RuntimeStoreEntryStatus = Literal[
@@ -7398,7 +7405,7 @@ class CoordinatorRuntimeStoreSummary(TypedDict, total=False):
 
 
 # PLATINUM: Custom ConfigEntry type for PawControl integrations
-type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
+PawControlConfigEntry: TypeAlias = ConfigEntry[PawControlRuntimeData]
 """Type alias for PawControl-specific config entries.
 
 By parameterising ``ConfigEntry`` with :class:`PawControlRuntimeData` we provide
