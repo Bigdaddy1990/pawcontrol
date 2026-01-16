@@ -16,8 +16,11 @@ TARGETS = [
 
 
 def _load_canonical_block() -> str:
-    content = CANONICAL_SOURCE.read_text(encoding="utf-8").strip()
-    return f"{SYNC_START}\n{content}\n{SYNC_END}"
+    content = CANONICAL_SOURCE.read_text(encoding="utf-8")
+    start = content.index(SYNC_START) + len(SYNC_START)
+    end = content.index(SYNC_END, start)
+    block = content[start:end].strip("\n")
+    return f"{SYNC_START}\n{block}\n{SYNC_END}"
 
 
 def _apply_sync_block(target: Path, block: str) -> tuple[str, str]:
