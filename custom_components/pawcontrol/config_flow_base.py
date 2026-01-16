@@ -18,7 +18,7 @@ import time
 from typing import TYPE_CHECKING, ClassVar, Final
 
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant import config_entries as ha_config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
@@ -65,15 +65,6 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigFlow as HomeAssistantConfigFlow
-else:
-    HomeAssistantConfigFlow = getattr(
-        config_entries,
-        "ConfigFlow",
-        object,
-    )
 
 # FIX: Rate limiting for Entity Registry
 VALIDATION_SEMAPHORE = asyncio.Semaphore(3)  # Max 3 concurrent validations
@@ -134,7 +125,13 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
 )
 
 
-class PawControlBaseConfigFlow(HomeAssistantConfigFlow):
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigFlow as HAConfigFlow
+else:
+    HAConfigFlow = getattr(ha_config_entries, "ConfigFlow", object)
+
+
+class PawControlBaseConfigFlow(HAConfigFlow):
     """Base configuration flow with common functionality.
 
     This base class provides shared validation, error handling, and utility
