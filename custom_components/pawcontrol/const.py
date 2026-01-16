@@ -55,29 +55,29 @@ DEFAULT_MODEL: Final[str] = "Smart Dog Monitoring"
 
 # OPTIMIZED: Platforms as tuple for immutability and better performance
 PLATFORMS: Final[tuple[Platform, ...]] = (
-    Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
-    Platform.SWITCH,
-    Platform.NUMBER,
-    Platform.SELECT,
-    Platform.TEXT,
-    Platform.DEVICE_TRACKER,
     Platform.DATE,
     Platform.DATETIME,
+    Platform.DEVICE_TRACKER,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.TEXT,
 )
 
 # OPTIMIZED: Supported device categories as tuple for immutability
 DEVICE_CATEGORIES: Final[tuple[str, ...]] = (
-    "gps_tracker",
-    "smart_feeder",
     "activity_monitor",
-    "health_device",
-    "smart_collar",
-    "treat_dispenser",
-    "water_fountain",
     "camera",
     "door_sensor",
+    "gps_tracker",
+    "health_device",
+    "smart_collar",
+    "smart_feeder",
+    "treat_dispenser",
+    "water_fountain",
 )
 
 # Cache diagnostics timing thresholds tuned against nightly telemetry
