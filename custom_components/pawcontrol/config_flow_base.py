@@ -15,10 +15,10 @@ import asyncio
 import logging
 import re
 import time
-from typing import ClassVar, Final
+from typing import TYPE_CHECKING, ClassVar, Final
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow
+from homeassistant import config_entries as ha_config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
@@ -125,7 +125,13 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
 )
 
 
-class PawControlBaseConfigFlow(ConfigFlow):
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigFlow as HAConfigFlow
+else:
+    HAConfigFlow = getattr(ha_config_entries, "ConfigFlow", object)
+
+
+class PawControlBaseConfigFlow(HAConfigFlow):
     """Base configuration flow with common functionality.
 
     This base class provides shared validation, error handling, and utility
