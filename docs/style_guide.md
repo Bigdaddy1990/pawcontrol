@@ -1,7 +1,6 @@
 # PawControl Style Guide (Home Assistant)
 
-Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assistant Developer Docs zusammen und dient als Maßstab für alle Beiträge am
-`custom_components/pawcontrol`-Projekt. Die Quelle der Wahrheit sind die offiziellen Home Assistant Developer Guidelines.
+Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assistant Developer Docs zusammen, die als Quelle der Wahrheit für alle Beiträge am `custom_components/pawcontrol`-Projekt dienen.
 
 ## Geltungsbereich
 
