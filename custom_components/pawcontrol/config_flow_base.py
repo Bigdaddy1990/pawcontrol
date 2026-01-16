@@ -66,15 +66,6 @@ from .types import (
 
 _LOGGER = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigFlow as HomeAssistantConfigFlow
-else:
-    HomeAssistantConfigFlow = getattr(
-        config_entries,
-        "ConfigFlow",
-        object,
-    )
-
 # FIX: Rate limiting for Entity Registry
 VALIDATION_SEMAPHORE = asyncio.Semaphore(3)  # Max 3 concurrent validations
 ENTITY_CREATION_DELAY = 0.05  # 50ms delay between operations
