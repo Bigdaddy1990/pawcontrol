@@ -95,6 +95,6 @@ jobs:
 
       - name: Run pytest
         run: |
-          pytest -q --disable-warnings --maxfail=1 \
+          pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing
