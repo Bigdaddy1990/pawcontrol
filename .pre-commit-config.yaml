@@ -113,3 +113,13 @@ repos:
         entry: python -m scripts.sync_contributor_guides --check
         language: python
         pass_filenames: false
+      - id: localization-flags
+        name: Validate localization flags
+        entry: python -m scripts.sync_localization_flags --check
+        language: python
+        pass_filenames: false
+      - id: typed-dict-audit
+       name: Audit TypedDict definitions
+       entry: python scripts/check_typed_dicts.py
+       language: python
+       pass_filenames: false
