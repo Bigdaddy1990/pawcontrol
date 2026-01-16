@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from script import sync_localization_flags
+from scripts import sync_localization_flags
 
 
 def _build_translations(

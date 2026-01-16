@@ -2,8 +2,11 @@
 
 This file mirrors the canonical contributor guide that lives in
 `.github/copilot-instructions.md`. Run
-`python -m script.sync_contributor_guides` after updating the canonical guide to
+`python -m scripts.sync_contributor_guides` after updating the canonical guide to
 refresh this file automatically. Do not modify the synced block below manually.
+
+<!-- SYNC:START -->
+# PawControl Contributor Guide (Canonical)
 
 <!-- SYNC:START -->
 # PawControl Contributor Guide
@@ -30,7 +33,7 @@ contributors consistently deliver Platinum-quality changes.
    setuptools build backend and enables branch coverage reporting for
    `custom_components/pawcontrol`.【F:pyproject.toml†L1-L62】
 3. Export `PYTHONPATH=$(pwd)` or invoke commands via `python -m …` so the local
-   `script/` and `pytest_*` packages resolve correctly.【F:sitecustomize.py†L1-L175】
+   `scripts/` and `pytest_*` packages resolve correctly.
 
 ## Core workflow
 
@@ -40,11 +43,11 @@ Run every command before opening a pull request:
 ruff format                          # Apply repository formatting rules
 ruff check                           # Run Ruff lint (includes docstring gates)
 pytest -q                            # Execute the async pytest suite with coverage
-python -m script.enforce_test_requirements  # Confirm tests declare third-party deps
+python -m scripts.enforce_test_requirements  # Confirm tests declare third-party deps
 mypy custom_components/pawcontrol    # Ensure static typing stays strict
-python -m script.hassfest \
+python -m scripts.hassfest \
   --integration-path custom_components/pawcontrol  # Validate manifest & strings
-python -m script.sync_contributor_guides           # Refresh assistant copies
+python -m scripts.sync_contributor_guides           # Refresh assistant copies
 ```
 
 * `pyproject.toml` pins Python 3.13, enforces branch coverage and strict lint
@@ -53,12 +56,12 @@ python -m script.sync_contributor_guides           # Refresh assistant copies
 * `scripts/enforce_docstring_baseline.py` and
   `scripts/enforce_shared_session_guard.py` run in CI to block regressions; run
   them manually when touching diagnostics or guard metrics.
-* `python -m script.sync_localization_flags` keeps
+* `python -m scripts.sync_localization_flags` keeps
   `setup_flags_panel_*` translations aligned across locales; execute it after
-  editing localization strings.【F:script/sync_localization_flags.py†L1-L129】
-* `python -m script.enforce_test_requirements` ensures new tests add their
+  editing localization strings.【F:scripts/sync_localization_flags.py†L1-L129】
+* `python -m scripts.enforce_test_requirements` ensures new tests add their
   third-party dependencies to `requirements_test.txt` so CI never regresses on
-  missing packages.【F:script/enforce_test_requirements.py†L1-L130】
+  missing packages.【F:scripts/enforce_test_requirements.py†L1-L130】
 
 ## Integration architecture
 
@@ -156,13 +159,13 @@ python -m script.sync_contributor_guides           # Refresh assistant copies
   quality_scale badge so Platinum evidence stays current.【F:docs/compliance_gap_analysis.md†L1-L80】
 - Log new work in `CHANGELOG.md`/`RELEASE_NOTES.md` and refresh brand assets
   once the Home Assistant brand repository accepts updates.【F:docs/compliance_gap_analysis.md†L59-L75】
-- After editing this guide, run `python -m script.sync_contributor_guides` so the
-  Claude and Gemini mirrors stay in sync.【F:script/sync_contributor_guides.py†L1-L121】
+- After editing this guide, run `python -m scripts.sync_contributor_guides` so the
+  Claude and Gemini mirrors stay in sync.【F:scripts/sync_contributor_guides.py†L1-L121】
 
 ## Review checklist
 
 - [ ] `ruff format`, `ruff check`, `mypy`, and `pytest -q` all pass locally.
-- [ ] `script.hassfest` succeeds for `custom_components/pawcontrol`.
+- [ ] `scripts.hassfest` succeeds for `custom_components/pawcontrol`.
 - [ ] Async flows, coordinators, and managers reuse shared helpers instead of
       introducing duplicate code.
 - [ ] Config/Options flows validate input, prevent duplicates, and provide
@@ -172,4 +175,5 @@ python -m script.sync_contributor_guides           # Refresh assistant copies
 - [ ] New documentation includes citations to code/tests proving the behaviour.
 - [ ] Device removal (`async_remove_config_entry_device`) and diagnostics remain
       covered by tests when behaviour changes.
+<!-- SYNC:END -->
 <!-- SYNC:END -->
