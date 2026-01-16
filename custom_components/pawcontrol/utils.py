@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import TypeAlias, TypeVar
 import asyncio
 import hashlib
 import inspect
@@ -190,8 +191,8 @@ P = ParamSpec("P")
 R = TypeVar("R")
 Number = Real
 
-type DateTimeConvertible = datetime | date | str | float | int | Number
-type JSONMappingLike = Mapping[str, "JSONValue"]
+DateTimeConvertible: TypeAlias = datetime | date | str | float | int | Number
+JSONMappingLike: TypeAlias = Mapping[str, "JSONValue"]
 
 
 class ServiceCallKeywordArgs(TypedDict, total=False):
@@ -847,7 +848,10 @@ class PawControlDeviceLinkMixin:
                 )
 
 
-def deep_merge_dicts[T: JSONMutableMapping](
+T = TypeVar("T", bound=JSONMutableMapping)
+
+
+def deep_merge_dicts(
     base: T,
     updates: Mapping[str, JSONValue],
 ) -> T:
@@ -868,7 +872,10 @@ def deep_merge_dicts[T: JSONMutableMapping](
     return result
 
 
-def safe_get_nested[DefaultT](
+DefaultT = TypeVar("DefaultT")
+
+
+def safe_get_nested(
     data: JSONMapping,
     path: str,
     *,
@@ -891,7 +898,10 @@ def safe_get_nested[DefaultT](
         return default
 
 
-def safe_set_nested[T: JSONMutableMapping](
+T = TypeVar("T", bound=JSONMutableMapping)
+
+
+def safe_set_nested(
     data: T,
     path: str,
     value: JSONValue,
@@ -1272,7 +1282,10 @@ def validate_portion_size(
     return result
 
 
-def chunk_list[T](items: Sequence[T], chunk_size: int) -> list[list[T]]:
+T = TypeVar("T")
+
+
+def chunk_list(items: Sequence[T], chunk_size: int) -> list[list[T]]:
     """Split a list into chunks of specified size.
 
     Args:

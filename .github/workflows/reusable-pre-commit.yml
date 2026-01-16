@@ -1,25 +1,41 @@
-name: Reusable Pre-Commit
+name: Pre-commit Runner
 
 on:
   workflow_call:
     inputs:
       python-version:
-        description: "Python version to use"
+        description: Python version to use for the job
         required: false
         type: string
-        default: "3.13"
+
+permissions:
+  contents: read
 
 jobs:
-  pre-commit:
+  run:
+    name: Run pre-commit
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version: ${{ inputs.python-version != '' && inputs.python-version || (vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13') }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements_test.txt
+            pyproject.toml
+            .pre-commit-config.yaml
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files --show-diff-on-failure
+      - name: Summarise pre-commit result
+        uses: pre-commit-ci/lite-action@v1.1.0
+        if: always()
+
+      - uses: stefanzweifel/git-auto-commit-action@v7

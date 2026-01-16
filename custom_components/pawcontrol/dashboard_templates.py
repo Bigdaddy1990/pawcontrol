@@ -11,6 +11,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import Generic, TypeAlias, TypeVar
 import asyncio
 import json
 import logging
@@ -337,8 +338,8 @@ class MapCardOptions(TypedDict, total=False):
     hours_to_show: int
 
 
-type _MapOptionPairs = Iterable[tuple[str, object]]
-type MapOptionsInput = (
+_MapOptionPairs: TypeAlias = Iterable[tuple[str, object]]
+MapOptionsInput: TypeAlias = (
     MapCardOptions
     | Mapping[
         str,
@@ -683,10 +684,13 @@ MAP_OPTION_KEYS: Final[frozenset[str]] = frozenset(
 )
 
 
-type CardTemplatePayload = CardConfig | CardCollection
+CardTemplatePayload: TypeAlias = CardConfig | CardCollection
 
 
-def _clone_template[PayloadT: CardTemplatePayload](template: PayloadT) -> PayloadT:
+PayloadT = TypeVar("PayloadT", bound=CardTemplatePayload)
+
+
+def _clone_template(template: PayloadT) -> PayloadT:
     """Return a shallow copy of a cached template payload."""
 
     if isinstance(template, list):
@@ -694,7 +698,7 @@ def _clone_template[PayloadT: CardTemplatePayload](template: PayloadT) -> Payloa
     return cast(PayloadT, template.copy())
 
 
-class TemplateCache[PayloadT: CardTemplatePayload]:
+class TemplateCache(Generic[PayloadT]):
     """High-performance template cache with LRU eviction and TTL.
 
     Provides memory-efficient caching of dashboard card templates with

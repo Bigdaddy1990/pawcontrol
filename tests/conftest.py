@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+import pytest_asyncio
 from aiohttp import ClientSession
 from custom_components.pawcontrol.types import (
     CoordinatorDogData,
@@ -23,7 +24,6 @@ from custom_components.pawcontrol.types import (
     JSONMutableMapping,
 )
 from homeassistant.core import HomeAssistant
-from sitecustomize import _patch_pytest_async_fixture
 
 from tests.helpers import typed_deepcopy
 from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     from custom_components.pawcontrol.walk_manager import WalkManager
     from homeassistant.config_entries import ConfigEntry
 
-_patch_pytest_async_fixture()
 
 pytest_plugins = (
     "pytest_homeassistant_custom_component",
@@ -267,7 +266,7 @@ def mock_session(
     return session_factory()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_resilience_manager(mock_hass):
     """Mock ResilienceManager for testing without actual resilience logic.
 
@@ -296,7 +295,7 @@ async def mock_resilience_manager(mock_hass):
     return manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_coordinator(
     mock_hass,
     mock_config_entry,
@@ -340,7 +339,7 @@ async def mock_coordinator(
     yield coordinator
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_feeding_manager(
     mock_dog_config: FeedingManagerDogSetupPayload,
 ) -> FeedingManager:
@@ -360,7 +359,7 @@ async def mock_feeding_manager(
     return manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_walk_manager(
     mock_dog_config: FeedingManagerDogSetupPayload,
 ) -> WalkManager:
@@ -380,7 +379,7 @@ async def mock_walk_manager(
     return manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_gps_manager(mock_hass, mock_resilience_manager):
     """Mock GPSGeofenceManager for testing.
 
@@ -399,7 +398,7 @@ async def mock_gps_manager(mock_hass, mock_resilience_manager):
     return manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
     """Mock PawControlNotificationManager for testing.
 
@@ -424,7 +423,7 @@ async def mock_notification_manager(mock_hass, mock_resilience_manager, mock_ses
     return manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_data_manager(mock_hass):
     """Mock PawControlDataManager for testing.
 

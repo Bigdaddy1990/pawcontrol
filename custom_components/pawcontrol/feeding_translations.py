@@ -587,7 +587,10 @@ def build_feeding_compliance_notification(
     return summary["title"], summary["message"]
 
 
-class _BoundedSequenceSnapshot[T](Sequence[T]):
+T = TypeVar("T")
+
+
+class _BoundedSequenceSnapshot(Sequence[T]):
     """Cache at most ``limit`` items from an iterable for safe re-iteration."""
 
     __slots__ = ("_cache", "_iterator", "_limit")

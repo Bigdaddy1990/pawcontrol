@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import TypeAlias
 import asyncio
 import importlib
 import inspect
@@ -234,9 +235,9 @@ ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # OPTIMIZED: Enhanced platform determination cache with TTL and monitoring
-type PlatformCacheKey = tuple[int, str, frozenset[str]]
-type PlatformTuple = tuple[Platform, ...]
-type CacheEntry = tuple[PlatformTuple, float]  # (platforms, timestamp)
+PlatformCacheKey: TypeAlias = tuple[int, str, frozenset[str]]
+PlatformTuple: TypeAlias = tuple[Platform, ...]
+CacheEntry: TypeAlias = tuple[PlatformTuple, float]  # (platforms, timestamp)
 
 _DEFAULT_PLATFORMS: Final[PlatformTuple] = (
     Platform.BUTTON,

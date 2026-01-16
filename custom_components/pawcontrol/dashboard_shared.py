@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import TypeAlias, TypeVar
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
@@ -15,8 +16,8 @@ from .types import (
     ensure_dog_config_data,
 )
 
-type CardConfig = LovelaceCardConfig
-type CardCollection = list[LovelaceCardConfig]
+CardConfig: TypeAlias = LovelaceCardConfig
+CardCollection: TypeAlias = list[LovelaceCardConfig]
 
 __all__ = [
     "CardCollection",
@@ -53,7 +54,10 @@ def coerce_dog_configs(dogs_config: Sequence[RawDogConfig]) -> list[DogConfigDat
     return typed
 
 
-def unwrap_async_result[T](
+T = TypeVar("T")
+
+
+def unwrap_async_result(
     result: T | BaseException,
     *,
     context: str,

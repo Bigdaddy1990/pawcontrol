@@ -24,6 +24,7 @@ Features:
 
 from __future__ import annotations
 
+from typing import TypeAlias
 import asyncio
 import gc
 import inspect
@@ -1808,4 +1809,4 @@ bind_exception_alias(
     "HomeAssistantError",
     combine_with_current=True,
 )
-type CoordinatorLike = PawControlCoordinator | "_RegistrySentinelCoordinator"
+CoordinatorLike: TypeAlias = PawControlCoordinator | "_RegistrySentinelCoordinator"

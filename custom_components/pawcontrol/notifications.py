@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import Generic, TypeAlias, TypeVar
 import asyncio
 import inspect
 import json
@@ -151,19 +152,19 @@ class NotificationRateLimitConfig(TypedDict, total=False):
     discord_limit_minutes: int
 
 
-type NotificationTemplateOverrides = dict[str, str]
+NotificationTemplateOverrides: TypeAlias = dict[str, str]
 """Template override mapping keyed by template identifier."""
 
 
-type NotificationTemplateData = JSONMutableMapping
+NotificationTemplateData: TypeAlias = JSONMutableMapping
 """JSON-compatible mapping injected into notification templates."""
 
 
-type NotificationSendAttempts = dict[str, int]
+NotificationSendAttempts: TypeAlias = dict[str, int]
 """Channel-specific delivery attempt counters."""
 
 
-type NotificationServicePayload = JSONMutableMapping
+NotificationServicePayload: TypeAlias = JSONMutableMapping
 """Service call payload passed to Home Assistant notify integrations."""
 
 
@@ -468,11 +469,14 @@ class NotificationConfigInput(TypedDict, total=False):
     fallback_to_static: bool
 
 
-type NotificationConfigInputMap = Mapping[str, NotificationConfigInput]
+NotificationConfigInputMap: TypeAlias = Mapping[str, NotificationConfigInput]
 """Mapping of configuration identifiers to raw notification payloads."""
 
 
-class NotificationCache[ConfigT: NotificationConfig]:
+ConfigT = TypeVar("ConfigT", bound=NotificationConfig)
+
+
+class NotificationCache(Generic[ConfigT]):
     """OPTIMIZE: Advanced caching system for notification configurations and state."""
 
     def __init__(self, max_size: int = CONFIG_CACHE_SIZE_LIMIT) -> None:

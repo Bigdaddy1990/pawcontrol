@@ -433,7 +433,10 @@ class RetryExhaustedError(HomeAssistantErrorType):
         self.last_error = last_error
 
 
-async def retry_with_backoff[T](
+T = TypeVar("T")
+
+
+async def retry_with_backoff(
     func: AsyncCallable[T],
     *args: Any,
     **kwargs: Any,

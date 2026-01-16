@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import Generic, TypeAlias, TypeVar
 import asyncio
 import contextlib
 import json
@@ -83,11 +84,14 @@ GPX_SCHEMA_LOCATION = (
 )
 
 
-type CachedGPSLocation = tuple[float, float, datetime]
-type DistanceCacheKey = tuple[tuple[float, float], tuple[float, float]]
+CachedGPSLocation: TypeAlias = tuple[float, float, datetime]
+DistanceCacheKey: TypeAlias = tuple[tuple[float, float], tuple[float, float]]
 
 
-class GPSCache[LocationT: CachedGPSLocation]:
+LocationT = TypeVar("LocationT", bound=CachedGPSLocation)
+
+
+class GPSCache(Generic[LocationT]):
     """Optimized GPS data cache with LRU eviction."""
 
     _DISTANCE_CACHE_LIMIT: Final[int] = DISTANCE_CALCULATION_CACHE_SIZE
