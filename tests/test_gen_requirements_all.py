@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from script import gen_requirements_all
+from scripts import gen_requirements_all
 
 
 def test_overrides_normalized() -> None:

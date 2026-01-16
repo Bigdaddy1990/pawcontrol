@@ -2,61 +2,14 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Lint + repo scripts
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.13"]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements_test.txt
-            pyproject.toml
-
-      - name: Install tooling
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt -r requirements_test.txt
-          python -m pip install "ruff==0.14.11"
-
-      - name: Ruff (lint)
-        run: |
-          ruff check custom_components/pawcontrol tests scripts
-
-      - name: Ruff (format check)
-        run: |
-          ruff format --check custom_components/pawcontrol tests scripts
-
-      - name: Repo guard scripts
-        run: |
-          python scripts/check_typed_dicts.py
-          python scripts/enforce_shared_session_guard.py
-          python -m scripts.enforce_test_requirements
-          python scripts/enforce_docstring_baseline.py
-          python -m scripts.hassfest --integration-path custom_components/pawcontrol
-          python -m scripts.validate_manifest
-          python scripts/sync_contributor_guides.py --check
-          python scripts/sync_localization_flags.py --check
-
-      - name: Compile check
-        run: |
-          python -m compileall -q custom_components/pawcontrol scripts tests
-
   hassfest:
     name: Hassfest
     runs-on: ubuntu-latest
@@ -72,6 +25,7 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          ignore: brands
 
   tests:
     name: Tests

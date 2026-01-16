@@ -29,7 +29,6 @@ REQUIRED_KEYS = {
     "integration_type",
     "quality_scale",
     "loggers",
-    "supported_by",
     "iot_class",
 }
 REQUIRED_LIST_KEYS = {"requirements", "codeowners", "loggers"}

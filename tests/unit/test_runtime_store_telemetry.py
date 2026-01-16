@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import cast
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
+from pytest import MonkeyPatch
 from custom_components.pawcontrol import telemetry as telemetry_module
 from custom_components.pawcontrol.telemetry import (
     get_runtime_store_health,

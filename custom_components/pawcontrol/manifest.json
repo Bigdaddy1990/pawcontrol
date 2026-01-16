@@ -4,8 +4,8 @@
   "after_dependencies": [
     "bluetooth",
     "device_tracker",
-    "usb",
     "person",
+    "usb",
     "zone"
   ],
   "bluetooth": [
@@ -18,14 +18,15 @@
     "@BigDaddy1990"
   ],
   "config_flow": true,
+  "dependencies": [],
   "dhcp": [
-    {
-      "hostname": "tractive-*",
-      "macaddress": "00:11:22:*"
-    },
     {
       "hostname": "petnet-*",
       "macaddress": "44:55:66:*"
+    },
+    {
+      "hostname": "tractive-*",
+      "macaddress": "00:11:22:*"
     },
     {
       "hostname": "whistle-*",
@@ -35,8 +36,8 @@
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
   "homekit": {
     "models": [
-      "tractive gps tracker",
       "petnet smart feeder",
+      "tractive gps tracker",
       "whistle health monitor"
     ]
   },
@@ -47,7 +48,12 @@
     "custom_components.pawcontrol"
   ],
   "quality_scale": "platinum",
-  "requirements": [],
+  "requirements": [
+    "aiofiles>=24.1.0",
+    "aiohttp==3.13.3",
+    "jinja2==3.1.6",
+    "voluptuous>=0.15.2"
+  ],
   "usb": [
     {
       "description": "tractive gps tracker",

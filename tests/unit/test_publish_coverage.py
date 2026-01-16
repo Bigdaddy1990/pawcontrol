@@ -10,7 +10,7 @@ import urllib.error
 import urllib.request
 
 import pytest
-from script import publish_coverage
+from scripts import publish_coverage
 
 
 @pytest.mark.ci_only

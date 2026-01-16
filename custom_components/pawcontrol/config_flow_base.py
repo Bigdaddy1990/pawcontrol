@@ -15,10 +15,10 @@ import asyncio
 import logging
 import re
 import time
-from typing import ClassVar, Final
+from typing import TYPE_CHECKING, ClassVar, Final
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow
+from homeassistant import config_entries as ha_config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
@@ -29,6 +29,7 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    DOG_ID_PATTERN,
     DOG_SIZES,
     DOMAIN,
     MAX_DOG_AGE,
@@ -77,9 +78,6 @@ MIN_ACCURACY_FILTER: Final = 5
 MAX_ACCURACY_FILTER: Final = 500
 DEFAULT_GPS_UPDATE_INTERVAL: Final = 60
 
-# Dog ID validation pattern
-DOG_ID_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]*$")
-
 # Configuration schemas for validation
 INTEGRATION_SCHEMA: Final = vol.Schema(
     {
@@ -127,7 +125,13 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
 )
 
 
-class PawControlBaseConfigFlow(ConfigFlow):
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigFlow as HAConfigFlow
+else:
+    HAConfigFlow = getattr(ha_config_entries, "ConfigFlow", object)
+
+
+class PawControlBaseConfigFlow(HAConfigFlow):
     """Base configuration flow with common functionality.
 
     This base class provides shared validation, error handling, and utility

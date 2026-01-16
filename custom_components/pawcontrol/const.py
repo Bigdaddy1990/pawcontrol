@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
+import re
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
@@ -54,29 +55,29 @@ DEFAULT_MODEL: Final[str] = "Smart Dog Monitoring"
 
 # OPTIMIZED: Platforms as tuple for immutability and better performance
 PLATFORMS: Final[tuple[Platform, ...]] = (
-    Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
-    Platform.SWITCH,
-    Platform.NUMBER,
-    Platform.SELECT,
-    Platform.TEXT,
-    Platform.DEVICE_TRACKER,
     Platform.DATE,
     Platform.DATETIME,
+    Platform.DEVICE_TRACKER,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.TEXT,
 )
 
 # OPTIMIZED: Supported device categories as tuple for immutability
 DEVICE_CATEGORIES: Final[tuple[str, ...]] = (
-    "gps_tracker",
-    "smart_feeder",
     "activity_monitor",
-    "health_device",
-    "smart_collar",
-    "treat_dispenser",
-    "water_fountain",
     "camera",
     "door_sensor",
+    "gps_tracker",
+    "health_device",
+    "smart_collar",
+    "smart_feeder",
+    "treat_dispenser",
+    "water_fountain",
 )
 
 # Cache diagnostics timing thresholds tuned against nightly telemetry
@@ -93,6 +94,9 @@ CONF_DOG_AGE: Final[str] = "dog_age"
 CONF_DOG_WEIGHT: Final[str] = "dog_weight"
 CONF_DOG_SIZE: Final[str] = "dog_size"
 CONF_DOG_COLOR: Final[str] = "dog_color"
+
+# OPTIMIZED: Dog ID validation pattern
+DOG_ID_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]*$")
 
 # OPTIMIZED: Module configuration as frozenset for fast lookups
 CONF_MODULES: Final[str] = "modules"
