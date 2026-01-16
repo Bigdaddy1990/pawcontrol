@@ -18,7 +18,6 @@
     "@BigDaddy1990"
   ],
   "config_flow": true,
-  "dependencies": [],
   "dhcp": [
     {
       "hostname": "tractive-*",
@@ -48,7 +47,9 @@
     "custom_components.pawcontrol"
   ],
   "quality_scale": "platinum",
-  "requirements": [],
+  "requirements": [
+    "aiofiles>=24.1.0"
+  ],
   "usb": [
     {
       "description": "tractive gps tracker",
