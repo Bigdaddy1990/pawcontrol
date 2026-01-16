@@ -47,9 +47,7 @@
     "custom_components.pawcontrol"
   ],
   "quality_scale": "platinum",
-  "requirements": [
-    "aiofiles>=24.1.0"
-  ],
+  "requirements": [],
   "usb": [
     {
       "description": "tractive gps tracker",
