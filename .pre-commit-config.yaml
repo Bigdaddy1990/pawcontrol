@@ -130,3 +130,8 @@ repos:
        language: script
        types: [text]
        files: ^(homeassistant/.+/manifest\.json|homeassistant/brands/.+\.json|pyproject\.toml|\.pre-commit-config\.yaml|script/gen_requirements_all\.py)$
+     - id: validate-manifest
+       name: Validate manifest.json
+       entry: python -m json.tool
+       language: system
+       files: "custom_components/.*/manifest.json$"
