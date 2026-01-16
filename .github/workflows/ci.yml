@@ -8,15 +8,44 @@ permissions:
   contents: read
 
 jobs:
-  hassfest:
-    name: Hassfest
+  quality:
+    name: Lint + project guards
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: home-assistant/actions/hassfest@master
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+            requirements_test.txt
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "ruff==0.12.9"
+
+      - name: Ruff format (check)
+        run: ruff format --check .
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Docstring baseline check
+        run: python scripts/enforce_docstring_baseline.py
+
+      - name: Ensure test requirements are external-only
+        run: python -m scripts.enforce_test_requirements
+
+      - name: Shared session guard
+        run: python scripts/enforce_shared_session_guard.py
 
   hacs:
-    name: HACS Validation
+    name: HACS
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,28 +53,9 @@ jobs:
         with:
           category: integration
 
-  tests:
-    name: Tests
+  hassfest:
+    name: Hassfest
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.13"]
-
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements_test.txt
-
-      - name: Run pytest
-        run: |
-          pytest -q --disable-warnings --maxfail=1 \
-            --cov=custom_components/pawcontrol \
-            --cov-report=term-missing
+      - uses: home-assistant/actions/hassfest@master
