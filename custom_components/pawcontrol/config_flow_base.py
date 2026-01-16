@@ -126,7 +126,9 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
 
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigFlow as HAConfigFlow
+from homeassistant.config_entries import ConfigFlow
+
+class PawControlBaseConfigFlow(ConfigFlow):
 else:
     HAConfigFlow = getattr(ha_config_entries, "ConfigFlow", object)
 
