@@ -43,11 +43,11 @@ from custom_components.pawcontrol.types import (
     JSONMutableMapping,
     PawControlOptionsData,
 )
+from homeassistant import const as ha_const
 from homeassistant.components.script.const import CONF_FIELDS
 from homeassistant.const import (
     CONF_ALIAS,
     CONF_DEFAULT,
-    CONF_SEQUENCE,
     STATE_OFF,
     STATE_ON,
 )
@@ -69,6 +69,7 @@ if hasattr(ha_slugify, "slugify"):
     ha_slugify = ha_slugify.slugify
 
 
+CONF_SEQUENCE = getattr(ha_const, "CONF_SEQUENCE", "sequence")
 CONF_DESCRIPTION = "description"
 
 

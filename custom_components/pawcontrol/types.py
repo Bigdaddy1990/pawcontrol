@@ -2189,6 +2189,25 @@ class GPSOptions(TypedDict, total=False):
     auto_track_walks: bool
 
 
+GPS_SETTINGS_FIELD: Final[Literal["gps_settings"]] = "gps_settings"
+GPSOptionsField = Literal[
+    "gps_enabled",
+    "gps_update_interval",
+    "gps_accuracy_filter",
+    "gps_distance_filter",
+    "route_recording",
+    "route_history_days",
+    "auto_track_walks",
+]
+GPS_ENABLED_FIELD: Final[GPSOptionsField] = "gps_enabled"
+GPS_UPDATE_INTERVAL_FIELD: Final[GPSOptionsField] = "gps_update_interval"
+GPS_ACCURACY_FILTER_FIELD: Final[GPSOptionsField] = "gps_accuracy_filter"
+GPS_DISTANCE_FILTER_FIELD: Final[GPSOptionsField] = "gps_distance_filter"
+ROUTE_RECORDING_FIELD: Final[GPSOptionsField] = "route_recording"
+ROUTE_HISTORY_DAYS_FIELD: Final[GPSOptionsField] = "route_history_days"
+AUTO_TRACK_WALKS_FIELD: Final[GPSOptionsField] = "auto_track_walks"
+
+
 class DogOptionsEntry(TypedDict, total=False):
     """Per-dog overrides captured via the options flow."""
 

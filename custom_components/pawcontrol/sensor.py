@@ -10,13 +10,13 @@ from datetime import date, datetime, timedelta
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
+from homeassistant import const as ha_const
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
     PERCENTAGE,
     STATE_UNKNOWN,
     UnitOfEnergy,
     UnitOfLength,
-    UnitOfSpeed,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
@@ -70,6 +70,11 @@ _LOGGER = logging.getLogger(__name__)
 SensorValue = str | int | float | datetime | None
 type AttributeDict = JSONMutableMapping
 _STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
+UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
+if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
+    class UnitOfSpeed:  # noqa: D101 - compatibility shim
+        KILOMETERS_PER_HOUR = "km/h"
+        METERS_PER_SECOND = "m/s"
 
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
