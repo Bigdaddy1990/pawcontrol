@@ -56,6 +56,7 @@ from .const import (
     CONF_DINNER_TIME,
     CONF_DOOR_SENSOR,
     CONF_DOOR_SENSOR_SETTINGS,
+    CONF_DOG_OPTIONS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_FOOD_TYPE,
     CONF_GPS_SETTINGS,
@@ -6370,6 +6371,10 @@ DOG_COLOR_FIELD: Final[Literal["dog_color"]] = "dog_color"
 DOG_MICROCHIP_ID_FIELD: Final[Literal["microchip_id"]] = "microchip_id"
 DOG_VET_CONTACT_FIELD: Final[Literal["vet_contact"]] = "vet_contact"
 DOG_EMERGENCY_CONTACT_FIELD: Final[Literal["emergency_contact"]] = "emergency_contact"
+DOG_OPTIONS_FIELD: Final[Literal["dog_options"]] = cast(
+    Literal["dog_options"],
+    CONF_DOG_OPTIONS,
+)
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"

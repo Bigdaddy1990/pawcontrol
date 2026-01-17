@@ -12,11 +12,12 @@ from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
+    MASS_GRAMS,
+    MASS_KILOGRAMS,
     PERCENTAGE,
     STATE_UNKNOWN,
     UnitOfEnergy,
     UnitOfLength,
-    UnitOfMass,
     UnitOfSpeed,
     UnitOfTime,
 )
@@ -2328,7 +2329,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
             dog_name,
             "health_aware_portion",
             state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=UnitOfMass.GRAMS,
+            unit_of_measurement=MASS_GRAMS,
             icon="mdi:scale",
             translation_key="health_aware_portion",
         )
@@ -3166,7 +3167,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
             dog_name,
             "food_consumption",
             state_class=SensorStateClass.TOTAL_INCREASING,
-            unit_of_measurement=UnitOfMass.GRAMS,
+            unit_of_measurement=MASS_GRAMS,
             icon="mdi:food-drumstick",
             translation_key="food_consumption",
         )
@@ -4314,7 +4315,7 @@ class PawControlWeightSensor(PawControlSensorBase):
             "weight",
             state_class=SensorStateClass.MEASUREMENT,
             device_class=SensorDeviceClass.WEIGHT,
-            unit_of_measurement=UnitOfMass.KILOGRAMS,
+            unit_of_measurement=MASS_KILOGRAMS,
             icon="mdi:scale-bathroom",
             translation_key="weight",
         )

@@ -15,10 +15,11 @@ from typing import cast
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
+    MASS_GRAMS,
+    MASS_KILOGRAMS,
     PERCENTAGE,
     UnitOfEnergy,
     UnitOfLength,
-    UnitOfMass,
     UnitOfSpeed,
     UnitOfTime,
 )
@@ -572,7 +573,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
             "weight",
             device_class=NumberDeviceClass.WEIGHT,
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+            native_unit_of_measurement=MASS_KILOGRAMS,
             native_min_value=MIN_DOG_WEIGHT,
             native_max_value=MAX_DOG_WEIGHT,
             native_step=0.1,
@@ -724,7 +725,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
             dog_name,
             "daily_food_amount",
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.GRAMS,
+            native_unit_of_measurement=MASS_GRAMS,
             native_min_value=50,
             native_max_value=2000,
             native_step=10,
@@ -852,7 +853,7 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
             dog_name,
             "portion_size",
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.GRAMS,
+            native_unit_of_measurement=MASS_GRAMS,
             native_min_value=10,
             native_max_value=500,
             native_step=5,
@@ -1220,7 +1221,7 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
             "target_weight",
             device_class=NumberDeviceClass.WEIGHT,
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+            native_unit_of_measurement=MASS_KILOGRAMS,
             native_min_value=MIN_DOG_WEIGHT,
             native_max_value=MAX_DOG_WEIGHT,
             native_step=0.1,
