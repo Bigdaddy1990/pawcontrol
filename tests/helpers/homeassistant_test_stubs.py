@@ -1382,7 +1382,7 @@ class CoordinatorEntity(Entity):
         super().__init__()
         self.coordinator = coordinator
 
-    def __class_getitem__(cls, item: object) -> type["CoordinatorEntity"]:
+    def __class_getitem__(cls, item: object) -> type[CoordinatorEntity]:
         return cls
 
     @property
@@ -1892,12 +1892,8 @@ def install_homeassistant_stubs() -> None:
     sys.modules["homeassistant.components.input_datetime"] = (
         input_datetime_component_module
     )
-    sys.modules["homeassistant.components.input_number"] = (
-        input_number_component_module
-    )
-    sys.modules["homeassistant.components.input_select"] = (
-        input_select_component_module
-    )
+    sys.modules["homeassistant.components.input_number"] = input_number_component_module
+    sys.modules["homeassistant.components.input_select"] = input_select_component_module
     sys.modules["homeassistant.components.number"] = number_component_module
     sys.modules["homeassistant.components.script"] = script_component_module
     sys.modules["homeassistant.components.script.config"] = script_config_module

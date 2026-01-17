@@ -31,6 +31,8 @@ except ImportError:  # pragma: no cover - coverage API differs across versions
                 return compile(source, filename, "exec")
             except SyntaxError:
                 return None
+
+
 from homeassistant.helpers import aiohttp_client
 from pytest_cov import plugin as pytest_cov_plugin
 
