@@ -10,14 +10,13 @@ from datetime import date, datetime, timedelta
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
+from homeassistant import const as ha_const
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
     PERCENTAGE,
     STATE_UNKNOWN,
     UnitOfEnergy,
     UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
@@ -25,9 +24,8 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    MODULE_GARDEN,
-)
+from .compat import MASS_GRAMS, MASS_KILOGRAMS
+from .const import MODULE_GARDEN
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
@@ -72,6 +70,13 @@ _LOGGER = logging.getLogger(__name__)
 SensorValue = str | int | float | datetime | None
 type AttributeDict = JSONMutableMapping
 _STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
+UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
+if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
+
+    class UnitOfSpeed:  # noqa: D101 - compatibility shim
+        KILOMETERS_PER_HOUR = "km/h"
+        METERS_PER_SECOND = "m/s"
+
 
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
@@ -2328,7 +2333,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
             dog_name,
             "health_aware_portion",
             state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=UnitOfMass.GRAMS,
+            unit_of_measurement=MASS_GRAMS,
             icon="mdi:scale",
             translation_key="health_aware_portion",
         )
@@ -3166,7 +3171,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
             dog_name,
             "food_consumption",
             state_class=SensorStateClass.TOTAL_INCREASING,
-            unit_of_measurement=UnitOfMass.GRAMS,
+            unit_of_measurement=MASS_GRAMS,
             icon="mdi:food-drumstick",
             translation_key="food_consumption",
         )
@@ -4314,7 +4319,7 @@ class PawControlWeightSensor(PawControlSensorBase):
             "weight",
             state_class=SensorStateClass.MEASUREMENT,
             device_class=SensorDeviceClass.WEIGHT,
-            unit_of_measurement=UnitOfMass.KILOGRAMS,
+            unit_of_measurement=MASS_KILOGRAMS,
             icon="mdi:scale-bathroom",
             translation_key="weight",
         )

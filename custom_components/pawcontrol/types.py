@@ -2189,6 +2189,25 @@ class GPSOptions(TypedDict, total=False):
     auto_track_walks: bool
 
 
+GPS_SETTINGS_FIELD: Final[Literal["gps_settings"]] = "gps_settings"
+GPSOptionsField = Literal[
+    "gps_enabled",
+    "gps_update_interval",
+    "gps_accuracy_filter",
+    "gps_distance_filter",
+    "route_recording",
+    "route_history_days",
+    "auto_track_walks",
+]
+GPS_ENABLED_FIELD: Final[GPSOptionsField] = "gps_enabled"
+GPS_UPDATE_INTERVAL_FIELD: Final[GPSOptionsField] = "gps_update_interval"
+GPS_ACCURACY_FILTER_FIELD: Final[GPSOptionsField] = "gps_accuracy_filter"
+GPS_DISTANCE_FILTER_FIELD: Final[GPSOptionsField] = "gps_distance_filter"
+ROUTE_RECORDING_FIELD: Final[GPSOptionsField] = "route_recording"
+ROUTE_HISTORY_DAYS_FIELD: Final[GPSOptionsField] = "route_history_days"
+AUTO_TRACK_WALKS_FIELD: Final[GPSOptionsField] = "auto_track_walks"
+
+
 class DogOptionsEntry(TypedDict, total=False):
     """Per-dog overrides captured via the options flow."""
 
@@ -6370,6 +6389,7 @@ DOG_COLOR_FIELD: Final[Literal["dog_color"]] = "dog_color"
 DOG_MICROCHIP_ID_FIELD: Final[Literal["microchip_id"]] = "microchip_id"
 DOG_VET_CONTACT_FIELD: Final[Literal["vet_contact"]] = "vet_contact"
 DOG_EMERGENCY_CONTACT_FIELD: Final[Literal["emergency_contact"]] = "emergency_contact"
+DOG_OPTIONS_FIELD: Final[Literal["dog_options"]] = "dog_options"
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"

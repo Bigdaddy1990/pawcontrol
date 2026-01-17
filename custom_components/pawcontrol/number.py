@@ -13,13 +13,12 @@ import logging
 from collections.abc import Mapping
 from typing import cast
 
+from homeassistant import const as ha_const
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfEnergy,
     UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
@@ -28,7 +27,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
+from .compat import ConfigEntry, HomeAssistantError, MASS_GRAMS, MASS_KILOGRAMS
 from .const import (
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
@@ -65,6 +64,14 @@ _LOGGER = logging.getLogger(__name__)
 # coordinator applies its own throttling so we can keep Home Assistant's
 # parallel scheduling fully enabled.
 PARALLEL_UPDATES = 0
+
+UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
+if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
+
+    class UnitOfSpeed:  # noqa: D101 - compatibility shim
+        KILOMETERS_PER_HOUR = "km/h"
+        METERS_PER_SECOND = "m/s"
+
 
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes
@@ -572,7 +579,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
             "weight",
             device_class=NumberDeviceClass.WEIGHT,
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+            native_unit_of_measurement=MASS_KILOGRAMS,
             native_min_value=MIN_DOG_WEIGHT,
             native_max_value=MAX_DOG_WEIGHT,
             native_step=0.1,
@@ -724,7 +731,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
             dog_name,
             "daily_food_amount",
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.GRAMS,
+            native_unit_of_measurement=MASS_GRAMS,
             native_min_value=50,
             native_max_value=2000,
             native_step=10,
@@ -852,7 +859,7 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
             dog_name,
             "portion_size",
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.GRAMS,
+            native_unit_of_measurement=MASS_GRAMS,
             native_min_value=10,
             native_max_value=500,
             native_step=5,
@@ -1220,7 +1227,7 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
             "target_weight",
             device_class=NumberDeviceClass.WEIGHT,
             mode=NumberMode.BOX,
-            native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+            native_unit_of_measurement=MASS_KILOGRAMS,
             native_min_value=MIN_DOG_WEIGHT,
             native_max_value=MAX_DOG_WEIGHT,
             native_step=0.1,
