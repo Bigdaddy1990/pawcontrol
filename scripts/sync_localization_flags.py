@@ -11,6 +11,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+TABLE_START_MARKER = "<!-- START_SETUP_FLAGS_TABLE -->"
+TABLE_END_MARKER = "<!-- END_SETUP_FLAGS_TABLE -->"
+
+_LANGUAGE_LABELS = {
+    "en": "Englisch",
+    "de": "Deutsch",
+    "es": "Spanisch",
+    "fr": "Französisch",
+}
+
 
 def _read_allowlist(path: Path) -> set[str]:
     try:
@@ -25,6 +35,66 @@ def _read_allowlist(path: Path) -> set[str]:
 
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _update_markdown_table(
+    markdown_path: Path,
+    keys: list[str],
+    translations: dict[str, dict[str, dict[str, str]]],
+    languages: list[str],
+    *,
+    check_only: bool,
+) -> bool:
+    content = markdown_path.read_text(encoding="utf-8")
+    lines = content.splitlines()
+    start_index: int | None = None
+    end_index: int | None = None
+    for index, line in enumerate(lines):
+        if line.strip() == TABLE_START_MARKER:
+            start_index = index
+        elif line.strip() == TABLE_END_MARKER and start_index is not None:
+            end_index = index
+            break
+
+    if start_index is None or end_index is None or end_index <= start_index:
+        raise SystemExit("Setup flags table markers missing.")
+
+    header_cells = [
+        "Übersetzungsschlüssel",
+        *(
+            f"{_LANGUAGE_LABELS.get(code, code)} (`{code}`)"
+            for code in languages
+        ),
+    ]
+    table_lines = [
+        "| " + " | ".join(header_cells) + " |",
+        "| " + " | ".join("---" for _ in header_cells) + " |",
+    ]
+
+    for key in keys:
+        row = [
+            f"component.pawcontrol.common.{key}",
+            *(
+                translations[language]["common"][key]
+                for language in languages
+            ),
+        ]
+        table_lines.append("| " + " | ".join(row) + " |")
+
+    new_lines = (
+        lines[: start_index + 1]
+        + table_lines
+        + lines[end_index:]
+    )
+    new_content = "\n".join(new_lines) + "\n"
+
+    if new_content != content:
+        if check_only:
+            raise SystemExit("Setup flags table is out of date.")
+        markdown_path.write_text(new_content, encoding="utf-8")
+        return True
+
+    return False
 
 
 def main() -> int:

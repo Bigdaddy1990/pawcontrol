@@ -8,10 +8,11 @@ import sys
 import types
 from collections.abc import Callable, Iterable
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock
 
 __all__ = [
     "ConfigEntry",
@@ -1310,6 +1311,80 @@ def _config_entry_only_config_schema(domain: str):
     return _schema
 
 
+def _cv_string(value: Any) -> str:
+    """Coerce values to strings for config validation."""
+
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _cv_boolean(value: Any) -> bool:
+    """Coerce values to booleans for config validation."""
+
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"1", "true", "yes", "on"}:
+            return True
+        if lowered in {"0", "false", "no", "off"}:
+            return False
+    if isinstance(value, (int, float)):
+        return bool(value)
+    raise ValueError(value)
+
+
+def _cv_date(value: Any) -> date:
+    """Coerce values to dates for config validation."""
+
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        return date.fromisoformat(value)
+    raise ValueError(value)
+
+
+def _cv_datetime(value: Any) -> datetime:
+    """Coerce values to datetimes for config validation."""
+
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        return datetime.fromisoformat(value)
+    raise ValueError(value)
+
+
+def _async_file_handle(handle: Any) -> AsyncMock:
+    """Return an async-compatible file handle wrapper."""
+
+    async_handle = AsyncMock()
+    async_handle.read.side_effect = lambda *args, **kwargs: handle.read(
+        *args,
+        **kwargs,
+    )
+    async_handle.write.side_effect = lambda *args, **kwargs: handle.write(
+        *args,
+        **kwargs,
+    )
+    async_handle.flush.side_effect = lambda *args, **kwargs: handle.flush(
+        *args,
+        **kwargs,
+    )
+    async_handle.seek.side_effect = lambda *args, **kwargs: handle.seek(
+        *args,
+        **kwargs,
+    )
+    async_handle.close.side_effect = lambda *args, **kwargs: handle.close(
+        *args,
+        **kwargs,
+    )
+    async_handle.__getattr__.side_effect = lambda name: getattr(handle, name)
+    return async_handle
+
+
 async def _async_get_clientsession(hass: object) -> object:
     """Return a stub clientsession for aiohttp helper tests."""
 
@@ -1622,6 +1697,7 @@ def install_homeassistant_stubs() -> None:
     const_module.__version__ = HOME_ASSISTANT_VERSION
     const_module.CONF_NAME = "name"
     const_module.CONF_ALIAS = "alias"
+    const_module.CONF_DEFAULT = "default"
     const_module.STATE_ON = "on"
     const_module.STATE_OFF = "off"
     const_module.STATE_UNKNOWN = "unknown"
@@ -1632,6 +1708,7 @@ def install_homeassistant_stubs() -> None:
     const_module.UnitOfLength = UnitOfLength
     const_module.UnitOfTime = UnitOfTime
     const_module.UnitOfTemperature = UnitOfTemperature
+    const_module.PERCENTAGE = "%"
 
     core_module.HomeAssistant = HomeAssistant
     core_module.Event = Event
@@ -1696,6 +1773,10 @@ def install_homeassistant_stubs() -> None:
     config_validation_module.config_entry_only_config_schema = (
         _config_entry_only_config_schema
     )
+    config_validation_module.string = _cv_string
+    config_validation_module.boolean = _cv_boolean
+    config_validation_module.date = _cv_date
+    config_validation_module.datetime = _cv_datetime
     aiohttp_client_module.async_get_clientsession = _async_get_clientsession
     aiohttp_client_module._async_make_resolver = _async_make_resolver
     event_module.async_track_time_interval = _async_track_time_interval
@@ -1755,7 +1836,7 @@ def install_homeassistant_stubs() -> None:
         encoding: str | None = None,
     ):
         with builtins.open(file, mode, encoding=encoding) as handle:
-            yield handle
+            yield _async_file_handle(handle)
 
     aiofiles_module.open = _aiofiles_open
 
