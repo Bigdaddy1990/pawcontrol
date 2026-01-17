@@ -52,8 +52,13 @@ to every change, suggestion, or review.
 
 Authoritative sources (non-exhaustive, must be consulted when relevant):
 
+- https://developers.home-assistant.io/blog
+- https://developers.home-assistant.io/
 - https://developers.home-assistant.io/docs/architecture_components
+- https://developers.home-assistant.io/docs/development_guidelines
 - https://developers.home-assistant.io/docs/development_tips
+- https://developers.home-assistant.io/docs/development_validation
+- https://developers.home-assistant.io/docs/development_typing
 - https://developers.home-assistant.io/docs/internationalization/custom_integration
 - https://developers.home-assistant.io/docs/development_testing
 - https://developers.home-assistant.io/docs/creating_integration_file_structure
@@ -64,6 +69,32 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 - https://developers.home-assistant.io/docs/development_checklist
 - https://developers.home-assistant.io/docs/creating_component_code_review
 - https://developers.home-assistant.io/docs/creating_platform_code_review
+- https://developers.home-assistant.io/docs/core/integration-quality-scale/rules
+- https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/
+- https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/common-modules
+- https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist
+- https://www.home-assistant.io/docs/tools/check_config/
+- https://developers.home-assistant.io/docs/documenting/yaml-style-guide
+- https://developers.home-assistant.io/docs/documenting/create-page
+- https://developers.home-assistant.io/docs/documenting/integration-docs-examples
+- https://developers.home-assistant.io/docs/instance_url
+- https://developers.home-assistant.io/docs/core/platform/significant_change
+- https://developers.home-assistant.io/docs/core/platform/reproduce_state
+- https://developers.home-assistant.io/docs/core/platform/repairs
+- https://developers.home-assistant.io/docs/api/native-app-integration/setup
+- https://developers.home-assistant.io/docs/api/native-app-integration/sending-data
+- https://developers.home-assistant.io/docs/api/native-app-integration/sensors
+- https://developers.home-assistant.io/docs/api/native-app-integration/notifications
+- https://developers.home-assistant.io/docs/intent_conversation_api
+- https://developers.home-assistant.io/docs/core/llm/
+- https://developers.home-assistant.io/docs/intent_builtin
+- https://developers.home-assistant.io/docs/device_automation_index
+- https://developers.home-assistant.io/docs/device_automation_trigger
+- https://developers.home-assistant.io/docs/device_automation_condition
+- https://developers.home-assistant.io/docs/device_automation_action
+- https://developers.home-assistant.io/docs/automations
+- https://developers.home-assistant.io/docs/data_entry_flow_index
+- https://developers.home-assistant.io/docs/config_entries_index
 - https://developers.home-assistant.io/docs/
 
 * `pyproject.toml` pins Python 3.13, enforces branch coverage and strict lint
