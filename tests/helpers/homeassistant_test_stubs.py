@@ -1357,32 +1357,10 @@ def _cv_datetime(value: Any) -> datetime:
     raise ValueError(value)
 
 
-def _async_file_handle(handle: Any) -> AsyncMock:
+def _async_file_handle(handle: Any) -> "_AsyncFile":
     """Return an async-compatible file handle wrapper."""
 
-    async_handle = AsyncMock()
-    async_handle.read.side_effect = lambda *args, **kwargs: handle.read(
-        *args,
-        **kwargs,
-    )
-    async_handle.write.side_effect = lambda *args, **kwargs: handle.write(
-        *args,
-        **kwargs,
-    )
-    async_handle.flush.side_effect = lambda *args, **kwargs: handle.flush(
-        *args,
-        **kwargs,
-    )
-    async_handle.seek.side_effect = lambda *args, **kwargs: handle.seek(
-        *args,
-        **kwargs,
-    )
-    async_handle.close.side_effect = lambda *args, **kwargs: handle.close(
-        *args,
-        **kwargs,
-    )
-    async_handle.__getattr__.side_effect = lambda name: getattr(handle, name)
-    return async_handle
+    return _AsyncFile(handle)
 
 
 async def _async_get_clientsession(hass: object) -> object:
@@ -1856,6 +1834,17 @@ def install_homeassistant_stubs() -> None:
             if not line:
                 raise StopAsyncIteration
             return line
+
+        async def __aenter__(self) -> "_AsyncFile":
+            return self
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            traceback: Any,
+        ) -> None:
+            self._handle.close()
 
     @asynccontextmanager
     async def _aiofiles_open(
