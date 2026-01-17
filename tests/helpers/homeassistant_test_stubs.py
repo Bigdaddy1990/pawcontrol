@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import builtins
 import re
 import sys
 import types
 from collections.abc import Callable, Iterable
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from enum import Enum, StrEnum
 from pathlib import Path
@@ -19,6 +21,7 @@ __all__ = [
     "ConfigSubentry",
     "HomeAssistantError",
     "IssueSeverity",
+    "MutableFlowResultDict",
     "Platform",
     "install_homeassistant_stubs",
     "support_entry_unload",
@@ -54,6 +57,13 @@ class Platform(StrEnum):
     DEVICE_TRACKER = "device_tracker"
     DATE = "date"
     DATETIME = "datetime"
+
+
+class EntityCategory(StrEnum):
+    """Subset of Home Assistant's entity categories."""
+
+    CONFIG = "config"
+    DIAGNOSTIC = "diagnostic"
 
 
 class ConfigEntryState(Enum):
@@ -118,6 +128,37 @@ class IssueSeverity(StrEnum):
         return cls.WARNING
 
 
+class UnitOfEnergy(StrEnum):
+    """Subset of Home Assistant energy units."""
+
+    KILO_CALORIE = "kcal"
+
+
+class UnitOfLength(StrEnum):
+    """Subset of Home Assistant length units."""
+
+    METERS = "m"
+    KILOMETERS = "km"
+
+
+class UnitOfTime(StrEnum):
+    """Subset of Home Assistant time units."""
+
+    SECONDS = "s"
+    MINUTES = "min"
+    HOURS = "h"
+    DAYS = "d"
+    MONTHS = "mo"
+    YEARS = "y"
+
+
+class UnitOfTemperature(StrEnum):
+    """Subset of Home Assistant temperature units."""
+
+    CELSIUS = "°C"
+    FAHRENHEIT = "°F"
+
+
 class _ConfigEntryError(Exception):
     """Base class for stub config entry exceptions."""
 
@@ -172,6 +213,13 @@ class Context:
 
 def _callback(func: Callable[..., None]) -> Callable[..., None]:
     return func
+
+
+class ServiceRegistry:
+    """Minimal stand-in for Home Assistant's ServiceRegistry."""
+
+    async def async_register(self, *args: object, **kwargs: object) -> None:
+        return None
 
 
 # Minimal registry matching Home Assistant's ConfigEntry handler mapping.
@@ -468,6 +516,20 @@ class DeviceInfo(dict):
 
 
 FlowResult = dict[str, object]
+MutableFlowResultDict = dict[str, object]
+
+
+class FlowResultType(StrEnum):
+    """Subset of flow result types used by tests."""
+
+    FORM = "form"
+    CREATE_ENTRY = "create_entry"
+    ABORT = "abort"
+    MENU = "menu"
+    EXTERNAL = "external"
+    EXTERNAL_DONE = "external_done"
+    SHOW_PROGRESS = "progress"
+    SHOW_PROGRESS_DONE = "progress_done"
 
 
 class DeviceEntry:
@@ -511,6 +573,14 @@ class DeviceEntry:
         for key, value in kwargs.items():
             if not hasattr(self, key):
                 setattr(self, key, value)
+
+
+class DeviceRegistryEvent:
+    """Event payload used by device registry listeners."""
+
+    def __init__(self, action: str, device_id: str) -> None:
+        self.action = action
+        self.device_id = device_id
 
 
 class DeviceRegistry:
@@ -1086,6 +1156,14 @@ class EntityRegistry:
                 setattr(entry, key, value)
 
 
+class EntityRegistryEvent:
+    """Event payload used by entity registry listeners."""
+
+    def __init__(self, action: str, entity_id: str) -> None:
+        self.action = action
+        self.entity_id = entity_id
+
+
 def _async_get_entity_registry(*args: object, **kwargs: object) -> EntityRegistry:
     global _ENTITY_REGISTRY
 
@@ -1130,6 +1208,99 @@ class Entity:
     """Base entity stub."""
 
     pass
+
+
+class SensorEntity(Entity):
+    """Sensor entity stub."""
+
+
+class BinarySensorEntity(Entity):
+    """Binary sensor entity stub."""
+
+
+class ButtonEntity(Entity):
+    """Button entity stub."""
+
+
+class SwitchEntity(Entity):
+    """Switch entity stub."""
+
+
+class NumberEntity(Entity):
+    """Number entity stub."""
+
+
+class SelectEntity(Entity):
+    """Select entity stub."""
+
+
+class TextEntity(Entity):
+    """Text entity stub."""
+
+
+class DateEntity(Entity):
+    """Date entity stub."""
+
+
+class DateTimeEntity(Entity):
+    """Datetime entity stub."""
+
+
+class TrackerEntity(Entity):
+    """Device tracker entity stub."""
+
+
+class ScriptEntity(Entity):
+    """Script entity stub."""
+
+
+class SensorDeviceClass(StrEnum):
+    TEMPERATURE = "temperature"
+    HUMIDITY = "humidity"
+
+
+class SensorStateClass(StrEnum):
+    MEASUREMENT = "measurement"
+    TOTAL = "total"
+    TOTAL_INCREASING = "total_increasing"
+
+
+class BinarySensorDeviceClass(StrEnum):
+    MOTION = "motion"
+    PROBLEM = "problem"
+    CONNECTIVITY = "connectivity"
+
+
+class ButtonDeviceClass(StrEnum):
+    RESTART = "restart"
+
+
+class SwitchDeviceClass(StrEnum):
+    SWITCH = "switch"
+
+
+class NumberDeviceClass(StrEnum):
+    DISTANCE = "distance"
+    DURATION = "duration"
+    TEMPERATURE = "temperature"
+
+
+class NumberMode(StrEnum):
+    BOX = "box"
+    SLIDER = "slider"
+
+
+class TextMode(StrEnum):
+    TEXT = "text"
+    PASSWORD = "password"
+
+
+class SourceType(StrEnum):
+    GPS = "gps"
+
+
+class WeatherEntity(Entity):
+    """Weather entity stub."""
 
 
 def _config_entry_only_config_schema(domain: str):
@@ -1210,6 +1381,9 @@ class CoordinatorEntity(Entity):
     def __init__(self, coordinator: DataUpdateCoordinator) -> None:
         super().__init__()
         self.coordinator = coordinator
+
+    def __class_getitem__(cls, item: object) -> type["CoordinatorEntity"]:
+        return cls
 
     @property
     def available(self) -> bool:
@@ -1305,12 +1479,14 @@ def install_homeassistant_stubs() -> None:
     """Register lightweight Home Assistant modules required by the tests."""
 
     for module_name in [
+        "aiofiles",
         "homeassistant",
         "homeassistant.const",
         "homeassistant.core",
         "homeassistant.exceptions",
         "homeassistant.helpers",
         "homeassistant.helpers.entity",
+        "homeassistant.helpers.entity_platform",
         "homeassistant.helpers.config_validation",
         "homeassistant.helpers.aiohttp_client",
         "homeassistant.helpers.event",
@@ -1320,11 +1496,34 @@ def install_homeassistant_stubs() -> None:
         "homeassistant.helpers.entity_registry",
         "homeassistant.helpers.storage",
         "homeassistant.helpers.issue_registry",
+        "homeassistant.helpers.service_info",
+        "homeassistant.helpers.service_info.dhcp",
+        "homeassistant.helpers.service_info.usb",
+        "homeassistant.helpers.service_info.zeroconf",
         "homeassistant.util",
         "homeassistant.util.dt",
         "homeassistant.util.logging",
         "homeassistant.config_entries",
         "homeassistant.components",
+        "homeassistant.components.binary_sensor",
+        "homeassistant.components.button",
+        "homeassistant.components.date",
+        "homeassistant.components.datetime",
+        "homeassistant.components.device_tracker",
+        "homeassistant.components.input_boolean",
+        "homeassistant.components.input_datetime",
+        "homeassistant.components.input_number",
+        "homeassistant.components.input_select",
+        "homeassistant.components.number",
+        "homeassistant.components.script",
+        "homeassistant.components.script.config",
+        "homeassistant.components.script.const",
+        "homeassistant.components.select",
+        "homeassistant.components.sensor",
+        "homeassistant.components.switch",
+        "homeassistant.components.system_health",
+        "homeassistant.components.text",
+        "homeassistant.components.weather",
         "homeassistant.components.repairs",
         "homeassistant.data_entry_flow",
     ]:
@@ -1344,6 +1543,9 @@ def install_homeassistant_stubs() -> None:
     helpers_module = types.ModuleType("homeassistant.helpers")
     helpers_module.__path__ = []
     entity_module = types.ModuleType("homeassistant.helpers.entity")
+    entity_platform_module = types.ModuleType(
+        "homeassistant.helpers.entity_platform",
+    )
     config_validation_module = types.ModuleType(
         "homeassistant.helpers.config_validation",
     )
@@ -1370,20 +1572,66 @@ def install_homeassistant_stubs() -> None:
     dt_util_module = types.ModuleType("homeassistant.util.dt")
     logging_util_module = types.ModuleType("homeassistant.util.logging")
     selector_module = types.ModuleType("homeassistant.helpers.selector")
+    service_info_module = types.ModuleType("homeassistant.helpers.service_info")
+    service_info_module.__path__ = []
+    dhcp_module = types.ModuleType("homeassistant.helpers.service_info.dhcp")
+    usb_module = types.ModuleType("homeassistant.helpers.service_info.usb")
+    zeroconf_module = types.ModuleType("homeassistant.helpers.service_info.zeroconf")
     components_module = types.ModuleType("homeassistant.components")
     components_module.__path__ = []
+    binary_sensor_component_module = types.ModuleType(
+        "homeassistant.components.binary_sensor",
+    )
+    button_component_module = types.ModuleType("homeassistant.components.button")
+    date_component_module = types.ModuleType("homeassistant.components.date")
+    datetime_component_module = types.ModuleType("homeassistant.components.datetime")
+    device_tracker_component_module = types.ModuleType(
+        "homeassistant.components.device_tracker",
+    )
+    input_boolean_component_module = types.ModuleType(
+        "homeassistant.components.input_boolean",
+    )
+    input_datetime_component_module = types.ModuleType(
+        "homeassistant.components.input_datetime",
+    )
+    input_number_component_module = types.ModuleType(
+        "homeassistant.components.input_number",
+    )
+    input_select_component_module = types.ModuleType(
+        "homeassistant.components.input_select",
+    )
+    number_component_module = types.ModuleType("homeassistant.components.number")
+    script_component_module = types.ModuleType("homeassistant.components.script")
+    script_config_module = types.ModuleType("homeassistant.components.script.config")
+    script_const_module = types.ModuleType("homeassistant.components.script.const")
+    select_component_module = types.ModuleType("homeassistant.components.select")
+    sensor_component_module = types.ModuleType("homeassistant.components.sensor")
+    switch_component_module = types.ModuleType("homeassistant.components.switch")
+    system_health_component_module = types.ModuleType(
+        "homeassistant.components.system_health",
+    )
+    text_component_module = types.ModuleType("homeassistant.components.text")
+    weather_component_module = types.ModuleType("homeassistant.components.weather")
     repairs_component_module = types.ModuleType(
         "homeassistant.components.repairs",
     )
     data_entry_flow_module = types.ModuleType("homeassistant.data_entry_flow")
+    aiofiles_module = types.ModuleType("aiofiles")
 
     const_module.Platform = Platform
     const_module.__version__ = HOME_ASSISTANT_VERSION
+    const_module.CONF_NAME = "name"
+    const_module.CONF_ALIAS = "alias"
     const_module.STATE_ON = "on"
     const_module.STATE_OFF = "off"
     const_module.STATE_UNKNOWN = "unknown"
+    const_module.STATE_UNAVAILABLE = "unavailable"
     const_module.STATE_HOME = "home"
     const_module.STATE_NOT_HOME = "not_home"
+    const_module.UnitOfEnergy = UnitOfEnergy
+    const_module.UnitOfLength = UnitOfLength
+    const_module.UnitOfTime = UnitOfTime
+    const_module.UnitOfTemperature = UnitOfTemperature
 
     core_module.HomeAssistant = HomeAssistant
     core_module.Event = Event
@@ -1392,6 +1640,7 @@ def install_homeassistant_stubs() -> None:
     core_module.Context = Context
     core_module.callback = _callback
     core_module.CALLBACK_TYPE = Callable[..., None]
+    core_module.ServiceRegistry = ServiceRegistry
 
     exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
     exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
@@ -1408,6 +1657,7 @@ def install_homeassistant_stubs() -> None:
     device_registry_module.DeviceInfo = DeviceInfo
     device_registry_module.DeviceEntry = DeviceEntry
     device_registry_module.DeviceRegistry = DeviceRegistry
+    device_registry_module.DeviceRegistryEvent = DeviceRegistryEvent
     device_registry_module.async_get = _async_get_device_registry
     device_registry_module.async_get_device = _async_get_device_by_hints
     device_registry_module.async_entries_for_config_entry = (
@@ -1417,6 +1667,7 @@ def install_homeassistant_stubs() -> None:
 
     entity_registry_module.RegistryEntry = RegistryEntry
     entity_registry_module.EntityRegistry = EntityRegistry
+    entity_registry_module.EntityRegistryEvent = EntityRegistryEvent
     entity_registry_module.async_get = _async_get_entity_registry
     entity_registry_module.async_entries_for_config_entry = (
         _async_entries_for_registry_config
@@ -1435,6 +1686,12 @@ def install_homeassistant_stubs() -> None:
     storage_module.Store = Store
 
     entity_module.Entity = Entity
+    entity_module.EntityCategory = EntityCategory
+
+    entity_platform_module.AddEntitiesCallback = Callable[
+        [list[Entity], bool],
+        None,
+    ]
 
     config_validation_module.config_entry_only_config_schema = (
         _config_entry_only_config_schema
@@ -1453,13 +1710,28 @@ def install_homeassistant_stubs() -> None:
     dt_util_module.utcnow = _utcnow
     logging_util_module.log_exception = _log_exception
 
+    def _slugify(value: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
+
+    util_module.slugify = _slugify
+
     class _RepairsFlow(_FlowBase):
         """Placeholder for Home Assistant repairs flow base class."""
 
     repairs_component_module.RepairsFlow = _RepairsFlow
     repairs_component_module.DOMAIN = "repairs"
 
+    class _ServiceInfo:
+        def __init__(self, **kwargs: object) -> None:
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    dhcp_module.DhcpServiceInfo = _ServiceInfo
+    usb_module.UsbServiceInfo = _ServiceInfo
+    zeroconf_module.ZeroconfServiceInfo = _ServiceInfo
+
     data_entry_flow_module.FlowResult = FlowResult
+    data_entry_flow_module.FlowResultType = FlowResultType
     config_entries_module.FlowResult = FlowResult
 
     selector_module.SelectSelectorMode = SelectSelectorMode
@@ -1476,6 +1748,68 @@ def install_homeassistant_stubs() -> None:
     selector_module.DateSelector = DateSelector
     selector_module.selector = selector
 
+    @asynccontextmanager
+    async def _aiofiles_open(
+        file: str | Path,
+        mode: str = "r",
+        encoding: str | None = None,
+    ):
+        with builtins.open(file, mode, encoding=encoding) as handle:
+            yield handle
+
+    aiofiles_module.open = _aiofiles_open
+
+    sensor_component_module.SensorEntity = SensorEntity
+    sensor_component_module.SensorDeviceClass = SensorDeviceClass
+    sensor_component_module.SensorStateClass = SensorStateClass
+    binary_sensor_component_module.BinarySensorEntity = BinarySensorEntity
+    binary_sensor_component_module.BinarySensorDeviceClass = BinarySensorDeviceClass
+    button_component_module.ButtonEntity = ButtonEntity
+    button_component_module.ButtonDeviceClass = ButtonDeviceClass
+    switch_component_module.SwitchEntity = SwitchEntity
+    switch_component_module.SwitchDeviceClass = SwitchDeviceClass
+    number_component_module.NumberEntity = NumberEntity
+    number_component_module.NumberDeviceClass = NumberDeviceClass
+    number_component_module.NumberMode = NumberMode
+    select_component_module.SelectEntity = SelectEntity
+    text_component_module.TextEntity = TextEntity
+    text_component_module.TextMode = TextMode
+    date_component_module.DateEntity = DateEntity
+    datetime_component_module.DateTimeEntity = DateTimeEntity
+    device_tracker_component_module.TrackerEntity = TrackerEntity
+    device_tracker_component_module.SourceType = SourceType
+    weather_component_module.WeatherEntity = WeatherEntity
+    weather_component_module.DOMAIN = "weather"
+    weather_component_module.ATTR_FORECAST = "forecast"
+    weather_component_module.ATTR_FORECAST_CONDITION = "condition"
+    weather_component_module.ATTR_FORECAST_HUMIDITY = "humidity"
+    weather_component_module.ATTR_FORECAST_PRECIPITATION = "precipitation"
+    weather_component_module.ATTR_FORECAST_PRECIPITATION_PROBABILITY = (
+        "precipitation_probability"
+    )
+    weather_component_module.ATTR_FORECAST_PRESSURE = "pressure"
+    weather_component_module.ATTR_FORECAST_TEMP = "temperature"
+    weather_component_module.ATTR_FORECAST_TEMP_LOW = "templow"
+    weather_component_module.ATTR_FORECAST_TIME = "datetime"
+    weather_component_module.ATTR_FORECAST_UV_INDEX = "uv_index"
+    weather_component_module.ATTR_FORECAST_WIND_SPEED = "wind_speed"
+    weather_component_module.ATTR_WEATHER_HUMIDITY = "humidity"
+    weather_component_module.ATTR_WEATHER_PRESSURE = "pressure"
+    weather_component_module.ATTR_WEATHER_TEMPERATURE = "temperature"
+    weather_component_module.ATTR_WEATHER_UV_INDEX = "uv_index"
+    weather_component_module.ATTR_WEATHER_VISIBILITY = "visibility"
+    weather_component_module.ATTR_WEATHER_WIND_SPEED = "wind_speed"
+    input_boolean_component_module.DOMAIN = "input_boolean"
+    input_datetime_component_module.DOMAIN = "input_datetime"
+    input_number_component_module.DOMAIN = "input_number"
+    input_select_component_module.DOMAIN = "input_select"
+    script_component_module.DOMAIN = "script"
+    script_component_module.ScriptEntity = ScriptEntity
+    script_config_module.SCRIPT_ENTITY_SCHEMA = {}
+    script_const_module.CONF_FIELDS = "fields"
+    script_const_module.CONF_TRACE = "trace"
+    system_health_component_module.DOMAIN = "system_health"
+
     homeassistant.const = const_module
     homeassistant.core = core_module
     homeassistant.exceptions = exceptions_module
@@ -1484,6 +1818,7 @@ def install_homeassistant_stubs() -> None:
     homeassistant.util = util_module
 
     helpers_module.entity = entity_module
+    helpers_module.entity_platform = entity_platform_module
     helpers_module.config_validation = config_validation_module
     helpers_module.aiohttp_client = aiohttp_client_module
     helpers_module.event = event_module
@@ -1493,10 +1828,28 @@ def install_homeassistant_stubs() -> None:
     helpers_module.entity_registry = entity_registry_module
     helpers_module.issue_registry = issue_registry_module
     helpers_module.storage = storage_module
+    helpers_module.service_info = service_info_module
 
     util_module.dt = dt_util_module
     util_module.logging = logging_util_module
 
+    components_module.binary_sensor = binary_sensor_component_module
+    components_module.button = button_component_module
+    components_module.date = date_component_module
+    components_module.datetime = datetime_component_module
+    components_module.device_tracker = device_tracker_component_module
+    components_module.input_boolean = input_boolean_component_module
+    components_module.input_datetime = input_datetime_component_module
+    components_module.input_number = input_number_component_module
+    components_module.input_select = input_select_component_module
+    components_module.number = number_component_module
+    components_module.script = script_component_module
+    components_module.select = select_component_module
+    components_module.sensor = sensor_component_module
+    components_module.switch = switch_component_module
+    components_module.system_health = system_health_component_module
+    components_module.text = text_component_module
+    components_module.weather = weather_component_module
     components_module.repairs = repairs_component_module
 
     sys.modules["homeassistant"] = homeassistant
@@ -1505,6 +1858,7 @@ def install_homeassistant_stubs() -> None:
     sys.modules["homeassistant.exceptions"] = exceptions_module
     sys.modules["homeassistant.helpers"] = helpers_module
     sys.modules["homeassistant.helpers.entity"] = entity_module
+    sys.modules["homeassistant.helpers.entity_platform"] = entity_platform_module
     sys.modules["homeassistant.helpers.config_validation"] = config_validation_module
     sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client_module
     sys.modules["homeassistant.helpers.event"] = event_module
@@ -1514,10 +1868,48 @@ def install_homeassistant_stubs() -> None:
     sys.modules["homeassistant.helpers.entity_registry"] = entity_registry_module
     sys.modules["homeassistant.helpers.issue_registry"] = issue_registry_module
     sys.modules["homeassistant.helpers.storage"] = storage_module
+    sys.modules["homeassistant.helpers.service_info"] = service_info_module
+    sys.modules["homeassistant.helpers.service_info.dhcp"] = dhcp_module
+    sys.modules["homeassistant.helpers.service_info.usb"] = usb_module
+    sys.modules["homeassistant.helpers.service_info.zeroconf"] = zeroconf_module
     sys.modules["homeassistant.util"] = util_module
     sys.modules["homeassistant.util.dt"] = dt_util_module
     sys.modules["homeassistant.util.logging"] = logging_util_module
     sys.modules["homeassistant.config_entries"] = config_entries_module
     sys.modules["homeassistant.components"] = components_module
+    sys.modules["homeassistant.components.binary_sensor"] = (
+        binary_sensor_component_module
+    )
+    sys.modules["homeassistant.components.button"] = button_component_module
+    sys.modules["homeassistant.components.date"] = date_component_module
+    sys.modules["homeassistant.components.datetime"] = datetime_component_module
+    sys.modules["homeassistant.components.device_tracker"] = (
+        device_tracker_component_module
+    )
+    sys.modules["homeassistant.components.input_boolean"] = (
+        input_boolean_component_module
+    )
+    sys.modules["homeassistant.components.input_datetime"] = (
+        input_datetime_component_module
+    )
+    sys.modules["homeassistant.components.input_number"] = (
+        input_number_component_module
+    )
+    sys.modules["homeassistant.components.input_select"] = (
+        input_select_component_module
+    )
+    sys.modules["homeassistant.components.number"] = number_component_module
+    sys.modules["homeassistant.components.script"] = script_component_module
+    sys.modules["homeassistant.components.script.config"] = script_config_module
+    sys.modules["homeassistant.components.script.const"] = script_const_module
+    sys.modules["homeassistant.components.select"] = select_component_module
+    sys.modules["homeassistant.components.sensor"] = sensor_component_module
+    sys.modules["homeassistant.components.switch"] = switch_component_module
+    sys.modules["homeassistant.components.system_health"] = (
+        system_health_component_module
+    )
+    sys.modules["homeassistant.components.text"] = text_component_module
+    sys.modules["homeassistant.components.weather"] = weather_component_module
     sys.modules["homeassistant.components.repairs"] = repairs_component_module
     sys.modules["homeassistant.data_entry_flow"] = data_entry_flow_module
+    sys.modules["aiofiles"] = aiofiles_module

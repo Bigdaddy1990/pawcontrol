@@ -7,6 +7,7 @@ build-backend = "setuptools.build_meta"
 addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-missing --cov-report=xml --cov-report=html --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=10"
 markers = [
   "asyncio: mark a test as using asyncio",
+  "ci_only: mark a test to run only in CI",
 ]
 testpaths = [
     "tests"
