@@ -19,7 +19,6 @@ from .const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOG_OPTIONS,
     CONF_DOGS,
     CONF_MODULES,

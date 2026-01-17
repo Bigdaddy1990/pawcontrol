@@ -52,7 +52,6 @@ from .const import (
     CONF_DOOR_SENSOR_SETTINGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_LAST_RECONFIGURE,
-    CONF_MODULES,
     CONF_NOTIFICATIONS,
     CONF_RECONFIGURE_TELEMETRY,
     CONF_RESET_TIME,
@@ -131,7 +130,6 @@ from .types import (
     ensure_json_mapping,
     ensure_notification_options,
     freeze_placeholders,
-    is_dog_config_valid,
     normalize_performance_mode,
 )
 
