@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
-    MASS_GRAMS,
-    MASS_KILOGRAMS,
     PERCENTAGE,
     STATE_UNKNOWN,
     UnitOfEnergy,
@@ -26,9 +24,8 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    MODULE_GARDEN,
-)
+from .compat import MASS_GRAMS, MASS_KILOGRAMS
+from .const import MODULE_GARDEN
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase

@@ -15,8 +15,6 @@ from typing import cast
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
-    MASS_GRAMS,
-    MASS_KILOGRAMS,
     PERCENTAGE,
     UnitOfEnergy,
     UnitOfLength,
@@ -29,7 +27,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
+from .compat import ConfigEntry, HomeAssistantError, MASS_GRAMS, MASS_KILOGRAMS
 from .const import (
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,

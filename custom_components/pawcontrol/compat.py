@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from itertools import count
 from types import ModuleType
-from typing import Any, TypeVar, cast
+from typing import Any, Final, TypeVar, cast
 
 type JSONPrimitive = None | bool | int | float | str
 """Primitive JSON-compatible value."""
@@ -64,6 +64,21 @@ def _import_optional(module: str) -> Any:
 _ha_exceptions = _import_optional("homeassistant.exceptions")
 _ha_config_entries = _import_optional("homeassistant.config_entries")
 _ha_core = _import_optional("homeassistant.core")
+_ha_const = _import_optional("homeassistant.const")
+
+if _ha_const is not None and hasattr(_ha_const, "UnitOfMass"):
+    _mass_grams = _ha_const.UnitOfMass.GRAMS
+    _mass_kilograms = _ha_const.UnitOfMass.KILOGRAMS
+else:
+    _mass_grams = (
+        getattr(_ha_const, "MASS_GRAMS", "g") if _ha_const is not None else "g"
+    )
+    _mass_kilograms = (
+        getattr(_ha_const, "MASS_KILOGRAMS", "kg") if _ha_const is not None else "kg"
+    )
+
+MASS_GRAMS: Final[str] = _mass_grams
+MASS_KILOGRAMS: Final[str] = _mass_kilograms
 
 type _ExceptionRebindCallback = Callable[[dict[str, type[Exception]]], None]
 
