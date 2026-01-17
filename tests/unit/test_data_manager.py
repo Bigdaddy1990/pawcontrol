@@ -44,7 +44,13 @@ from custom_components.pawcontrol.types import (
     PawControlOptionsData,
 )
 from homeassistant.components.script.const import CONF_FIELDS
-from homeassistant.const import CONF_ALIAS, CONF_DEFAULT, CONF_SEQUENCE, STATE_OFF, STATE_ON
+from homeassistant.const import (
+    CONF_ALIAS,
+    CONF_DEFAULT,
+    CONF_SEQUENCE,
+    STATE_OFF,
+    STATE_ON,
+)
 from homeassistant.core import Event
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify as ha_slugify
