@@ -1357,7 +1357,7 @@ def _cv_datetime(value: Any) -> datetime:
     raise ValueError(value)
 
 
-def _async_file_handle(handle: Any) -> "_AsyncFile":
+def _async_file_handle(handle: Any) -> _AsyncFile:
     """Return an async-compatible file handle wrapper."""
 
     return _AsyncFile(handle)
@@ -1835,7 +1835,7 @@ def install_homeassistant_stubs() -> None:
                 raise StopAsyncIteration
             return line
 
-        async def __aenter__(self) -> "_AsyncFile":
+        async def __aenter__(self) -> _AsyncFile:
             return self
 
         async def __aexit__(
