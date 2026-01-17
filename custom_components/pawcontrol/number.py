@@ -13,12 +13,12 @@ import logging
 from collections.abc import Mapping
 from typing import cast
 
+from homeassistant import const as ha_const
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfEnergy,
     UnitOfLength,
-    UnitOfSpeed,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
@@ -64,6 +64,13 @@ _LOGGER = logging.getLogger(__name__)
 # coordinator applies its own throttling so we can keep Home Assistant's
 # parallel scheduling fully enabled.
 PARALLEL_UPDATES = 0
+
+UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
+if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
+
+    class UnitOfSpeed:  # noqa: D101 - compatibility shim
+        KILOMETERS_PER_HOUR = "km/h"
+        METERS_PER_SECOND = "m/s"
 
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes
