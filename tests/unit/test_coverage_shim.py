@@ -15,7 +15,24 @@ from unittest.mock import MagicMock, Mock, patch
 
 import coverage
 import pytest
-from coverage import _compile_cached
+from functools import lru_cache
+
+try:
+    from coverage import _compile_cached
+except ImportError:  # pragma: no cover - coverage API differs across versions
+    _compile_cached = getattr(coverage, "_compile_cached", None)
+    if _compile_cached is None and hasattr(coverage, "misc"):
+        _compile_cached = getattr(coverage.misc, "_compile_cached", None)
+    if _compile_cached is None:
+
+        @lru_cache(maxsize=128)
+        def _compile_cached(filename: str, source: str) -> CodeType | None:
+            try:
+                return compile(source, filename, "exec")
+            except SyntaxError:
+                return None
+
+
 from homeassistant.helpers import aiohttp_client
 from pytest_cov import plugin as pytest_cov_plugin
 

@@ -4,14 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
-from importlib import import_module
+from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 
-# Reuse the comprehensive Home Assistant stub installation from the guard rail
-# tests so that helper modules can be imported without the real dependency.
-install_stubs = import_module(
-    "tests.test_entity_factory_guardrails"
-)._install_homeassistant_stubs
-install_stubs()
+# Ensure Home Assistant stubs are available for helper imports.
+install_homeassistant_stubs()
 
 from homeassistant.util import dt as dt_util
 
