@@ -57,10 +57,6 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 
 - Native App Integration (Setup, Daten, Sensoren, Benachrichtigungen) ist strikt nach den offiziellen APIs umzusetzen. (https://developers.home-assistant.io/docs/api/native-app-integration/setup, https://developers.home-assistant.io/docs/api/native-app-integration/sending-data, https://developers.home-assistant.io/docs/api/native-app-integration/sensors, https://developers.home-assistant.io/docs/api/native-app-integration/notifications)
 
-## Internationalisierung
-
-- Internationale Unterstützung folgt den HA-Richtlinien für Custom Integrations. (https://developers.home-assistant.io/docs/internationalization/custom_integration)
-
 ## Laufende Aktualisierung
 
 - Die Home Assistant Developer Docs gelten als lebende Dokumentation. Wenn sich Regeln ändern, muss dieser Style Guide umgehend aktualisiert werden.
