@@ -30,6 +30,53 @@ Thank you for your interest in improving the PawControl integration. This guide 
 - Update or add tests under `tests/` for every behavior change so coverage stays above the threshold defined in `pyproject.toml`.
 - Revise documentation, release notes, and translations (for example files in `docs/`, `README.md`, and `custom_components/pawcontrol/translations/`) whenever behavior or options change.
 
+### Required Home Assistant references
+PawControl contributions must align with the official Home Assistant developer documentation and policy updates. Review the following sources before you begin and use them as the authoritative reference when implementing or reviewing changes:
+
+- Home Assistant developer blog and platform overview:
+  - https://developers.home-assistant.io/
+  - https://developers.home-assistant.io/blog
+- Development expectations and validation:
+  - https://developers.home-assistant.io/docs/development_checklist
+  - https://developers.home-assistant.io/docs/development_guidelines
+  - https://developers.home-assistant.io/docs/development_testing
+  - https://developers.home-assistant.io/docs/development_typing
+  - https://developers.home-assistant.io/docs/development_validation
+  - https://www.home-assistant.io/docs/tools/check_config/
+- Quality scale rules and checklists:
+  - https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist
+  - https://developers.home-assistant.io/docs/core/integration-quality-scale/rules
+  - https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/
+  - https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/common-modules
+- Code review and documentation standards:
+  - https://developers.home-assistant.io/docs/creating_component_code_review
+  - https://developers.home-assistant.io/docs/creating_platform_code_review
+  - https://developers.home-assistant.io/docs/documenting/create-page
+  - https://developers.home-assistant.io/docs/documenting/integration-docs-examples
+  - https://developers.home-assistant.io/docs/documenting/yaml-style-guide
+- Core platform behaviors and helpers:
+  - https://developers.home-assistant.io/docs/instance_url
+  - https://developers.home-assistant.io/docs/core/platform/repairs
+  - https://developers.home-assistant.io/docs/core/platform/reproduce_state
+  - https://developers.home-assistant.io/docs/core/platform/significant_change
+- Config entries, flows, and automations:
+  - https://developers.home-assistant.io/docs/automations
+  - https://developers.home-assistant.io/docs/config_entries_index
+  - https://developers.home-assistant.io/docs/data_entry_flow_index
+  - https://developers.home-assistant.io/docs/device_automation_action
+  - https://developers.home-assistant.io/docs/device_automation_condition
+  - https://developers.home-assistant.io/docs/device_automation_index
+  - https://developers.home-assistant.io/docs/device_automation_trigger
+  - https://developers.home-assistant.io/docs/internationalization/custom_integration
+- Mobile app and intent integrations:
+  - https://developers.home-assistant.io/docs/api/native-app-integration/notifications
+  - https://developers.home-assistant.io/docs/api/native-app-integration/sending-data
+  - https://developers.home-assistant.io/docs/api/native-app-integration/sensors
+  - https://developers.home-assistant.io/docs/api/native-app-integration/setup
+  - https://developers.home-assistant.io/docs/core/llm/
+  - https://developers.home-assistant.io/docs/intent_builtin
+  - https://developers.home-assistant.io/docs/intent_conversation_api
+
 ## Run local checks
 Run the same checks that continuous integration executes before you open a pull request:
 

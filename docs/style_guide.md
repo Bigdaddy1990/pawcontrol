@@ -12,6 +12,7 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 - **Konformität mit Home Assistant**: Architektur, Stil, Übersetzungen, Testing und Review folgen den [offiziellen Vorgaben](https://developers.home-assistant.io/docs/development_guidelines).
 - **Klare Trennung von Verantwortlichkeiten**: Komponenten, Plattformen, Config/Options Flows und Services halten sich an die in den [Architektur- und Integrationsdokumenten](https://developers.home-assistant.io/docs/architecture_components) beschriebenen Zuständigkeiten.
 - **Qualität vor Geschwindigkeit**: Jeder Beitrag muss den [Entwicklungs-](https://developers.home-assistant.io/docs/development_tips) und [Testempfehlungen](https://developers.home-assistant.io/docs/development_testing) folgen.
+- **Aktualität der Regeln**: Relevante Updates aus dem [Home Assistant Developer Blog](https://developers.home-assistant.io/blog) gelten sofort und sind in Style Guide, Bot-Regeln und Review-Checklisten zu spiegeln.
 
 ## Dateistruktur & Manifest
 
@@ -32,11 +33,29 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 
 - Tests gemäß Home Assistant Testing Guidelines schreiben und pflegen. (https://developers.home-assistant.io/docs/development_testing)
 - Vor einem Release die Home Assistant Development Checklist abarbeiten. (https://developers.home-assistant.io/docs/development_checklist)
+- Quality-Scale Regeln, Action-Setup und Common-Modules beachten und mit der Checkliste abgleichen. (https://developers.home-assistant.io/docs/core/integration-quality-scale/rules, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/common-modules, https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist)
+- Entwicklungs-Validierung, Typisierung und `check_config` als verbindliche Prüfungen behandeln. (https://developers.home-assistant.io/docs/development_validation, https://developers.home-assistant.io/docs/development_typing, https://www.home-assistant.io/docs/tools/check_config/)
 
 ## Code Review Standards
 
 - Komponenten-Review-Checkliste anwenden. (https://developers.home-assistant.io/docs/creating_component_code_review)
 - Plattform-Review-Checkliste anwenden. (https://developers.home-assistant.io/docs/creating_platform_code_review)
+
+## Dokumentation, YAML & Examples
+
+- YAML-Dokumentation folgt dem Home Assistant YAML Style Guide. (https://developers.home-assistant.io/docs/documenting/yaml-style-guide)
+- Neue Dokumentationsseiten und Beispiele orientieren sich an den offiziellen Templates. (https://developers.home-assistant.io/docs/documenting/create-page, https://developers.home-assistant.io/docs/documenting/integration-docs-examples)
+
+## Plattformverhalten & Automationen
+
+- Signifikante Änderungen, `reproduce_state` und Reparaturen müssen die Core-Plattformregeln erfüllen. (https://developers.home-assistant.io/docs/core/platform/significant_change, https://developers.home-assistant.io/docs/core/platform/reproduce_state, https://developers.home-assistant.io/docs/core/platform/repairs)
+- Device Automations und Automations-APIs richten sich nach den offiziellen Spezifikationen. (https://developers.home-assistant.io/docs/device_automation_index, https://developers.home-assistant.io/docs/device_automation_trigger, https://developers.home-assistant.io/docs/device_automation_condition, https://developers.home-assistant.io/docs/device_automation_action, https://developers.home-assistant.io/docs/automations)
+- Config Entries und Data Entry Flows folgen den Core-Leitfäden. (https://developers.home-assistant.io/docs/config_entries_index, https://developers.home-assistant.io/docs/data_entry_flow_index)
+- Instanz-URL, Reparatur- und LLM/Intent-Integrationen folgen den Home Assistant Richtlinien. (https://developers.home-assistant.io/docs/instance_url, https://developers.home-assistant.io/docs/intent_conversation_api, https://developers.home-assistant.io/docs/intent_builtin, https://developers.home-assistant.io/docs/core/llm/)
+
+## Mobile App Integration
+
+- Native App Integration (Setup, Daten, Sensoren, Benachrichtigungen) ist strikt nach den offiziellen APIs umzusetzen. (https://developers.home-assistant.io/docs/api/native-app-integration/setup, https://developers.home-assistant.io/docs/api/native-app-integration/sending-data, https://developers.home-assistant.io/docs/api/native-app-integration/sensors, https://developers.home-assistant.io/docs/api/native-app-integration/notifications)
 
 ## Laufende Aktualisierung
 
