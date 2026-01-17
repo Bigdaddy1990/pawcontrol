@@ -61,10 +61,7 @@ def _update_markdown_table(
 
     header_cells = [
         "Übersetzungsschlüssel",
-        *(
-            f"{_LANGUAGE_LABELS.get(code, code)} (`{code}`)"
-            for code in languages
-        ),
+        *(f"{_LANGUAGE_LABELS.get(code, code)} (`{code}`)" for code in languages),
     ]
     table_lines = [
         "| " + " | ".join(header_cells) + " |",
@@ -74,18 +71,11 @@ def _update_markdown_table(
     for key in keys:
         row = [
             f"component.pawcontrol.common.{key}",
-            *(
-                translations[language]["common"][key]
-                for language in languages
-            ),
+            *(translations[language]["common"][key] for language in languages),
         ]
         table_lines.append("| " + " | ".join(row) + " |")
 
-    new_lines = (
-        lines[: start_index + 1]
-        + table_lines
-        + lines[end_index:]
-    )
+    new_lines = lines[: start_index + 1] + table_lines + lines[end_index:]
     new_content = "\n".join(new_lines) + "\n"
 
     if new_content != content:
