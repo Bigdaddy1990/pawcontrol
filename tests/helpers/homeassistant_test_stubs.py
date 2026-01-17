@@ -1829,6 +1829,34 @@ def install_homeassistant_stubs() -> None:
     selector_module.DateSelector = DateSelector
     selector_module.selector = selector
 
+    class _AsyncFile:
+        def __init__(self, handle: Any) -> None:
+            self._handle = handle
+            self.name = getattr(handle, "name", None)
+            self.mode = getattr(handle, "mode", None)
+            self.encoding = getattr(handle, "encoding", None)
+            self.read = AsyncMock(side_effect=handle.read)
+            self.write = AsyncMock(side_effect=handle.write)
+            self.readline = AsyncMock(side_effect=handle.readline)
+            self.readlines = AsyncMock(side_effect=handle.readlines)
+            self.writelines = AsyncMock(side_effect=handle.writelines)
+            self.seek = AsyncMock(side_effect=handle.seek)
+            self.tell = AsyncMock(side_effect=handle.tell)
+            self.flush = AsyncMock(side_effect=handle.flush)
+            self.close = AsyncMock(side_effect=handle.close)
+
+        def __getattr__(self, name: str) -> Any:
+            return getattr(self._handle, name)
+
+        def __aiter__(self) -> _AsyncFile:
+            return self
+
+        async def __anext__(self) -> str:
+            line = self._handle.readline()
+            if not line:
+                raise StopAsyncIteration
+            return line
+
     @asynccontextmanager
     async def _aiofiles_open(
         file: str | Path,
