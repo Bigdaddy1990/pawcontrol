@@ -72,6 +72,7 @@ if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constant
         KILOMETERS_PER_HOUR = "km/h"
         METERS_PER_SECOND = "m/s"
 
+
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes
 DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
