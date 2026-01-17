@@ -18,17 +18,19 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 import pytest_asyncio
 from aiohttp import ClientSession
-from custom_components.pawcontrol.types import (
+
+from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
+
+install_homeassistant_stubs()
+
+from custom_components.pawcontrol.types import (  # noqa: E402
     CoordinatorDogData,
     FeedingManagerDogSetupPayload,
     JSONMutableMapping,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant  # noqa: E402
 
-from tests.helpers import typed_deepcopy
-from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
-
-install_homeassistant_stubs()
+from tests.helpers import typed_deepcopy  # noqa: E402
 
 
 if TYPE_CHECKING:
