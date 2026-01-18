@@ -171,9 +171,6 @@ module = ["untyped_package.*", "homeassistant.*", "voluptuous"]
 follow_untyped_imports = true
 ignore_missing_imports = true
 
-[tool.setuptools.packages.find]
-exclude = ["tests*"]
-
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
 known-first-party = ["homeassistant"]
