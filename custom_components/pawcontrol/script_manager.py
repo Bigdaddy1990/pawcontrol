@@ -27,13 +27,7 @@ from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.script import ScriptEntity
 from homeassistant.components.script.config import SCRIPT_ENTITY_SCHEMA
 from homeassistant.components.script.const import CONF_FIELDS, CONF_TRACE
-from homeassistant.const import (
-    CONF_ALIAS,
-    CONF_DEFAULT,
-    CONF_DESCRIPTION,
-    CONF_NAME,
-    CONF_SEQUENCE,
-)
+from homeassistant import const as ha_const
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import EntityComponent
@@ -85,6 +79,12 @@ from .types import (
     ScriptManagerStats,
     ensure_dog_modules_mapping,
 )
+
+CONF_ALIAS = getattr(ha_const, "CONF_ALIAS", "alias")
+CONF_DEFAULT = getattr(ha_const, "CONF_DEFAULT", "default")
+CONF_DESCRIPTION = getattr(ha_const, "CONF_DESCRIPTION", "description")
+CONF_NAME = getattr(ha_const, "CONF_NAME", "name")
+CONF_SEQUENCE = getattr(ha_const, "CONF_SEQUENCE", "sequence")
 
 _LOGGER = logging.getLogger(__name__)
 

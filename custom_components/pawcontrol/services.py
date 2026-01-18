@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 from typing import Any, Literal, TypeVar, cast
 
 import voluptuous as vol
-from homeassistant.config_entries import SIGNAL_CONFIG_ENTRY_CHANGED
+from homeassistant import config_entries as ha_config_entries
 from homeassistant.core import Context, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -73,6 +73,12 @@ from .const import (
     SERVICE_START_GROOMING,
     SERVICE_TOGGLE_VISITOR_MODE,
     SERVICE_UPDATE_WEATHER,
+)
+
+SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
+    ha_config_entries,
+    "SIGNAL_CONFIG_ENTRY_CHANGED",
+    "config_entry_changed",
 )
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
