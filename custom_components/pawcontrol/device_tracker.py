@@ -165,9 +165,13 @@ async def async_setup_entry(
     finally:
       entity_factory.finalize_budget(dog_id, profile)
 
-  if not entities and Platform.DEVICE_TRACKER in entity_factory.get_profile_info(
-    profile,
-  ).platforms:
+  if (
+    not entities
+    and Platform.DEVICE_TRACKER
+    in entity_factory.get_profile_info(
+      profile,
+    ).platforms
+  ):
     for dog in dogs:
       dog_id = dog[DOG_ID_FIELD]
       dog_name = dog[DOG_NAME_FIELD]

@@ -40,6 +40,7 @@ def _dt_now() -> datetime:
 
   return dt_util.now() if hasattr(dt_util, "now") else dt_util.utcnow()
 
+
 # Date/time helpers write settings back to Paw Control. The coordinator
 # serialises writes, so we lift the entity-level cap and let Home Assistant run
 # updates in parallel when possible.
