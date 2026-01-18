@@ -22,7 +22,7 @@ def pytest_addoption(parser) -> None:
   )
 
 
-def _event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+def _event_loop() -> Generator[asyncio.AbstractEventLoop]:
   loop = asyncio.new_event_loop()
   try:
     yield loop
@@ -32,4 +32,3 @@ def _event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
 event_loop = pytest.fixture(_event_loop)
 event_loop._fixture_function = _event_loop
-
