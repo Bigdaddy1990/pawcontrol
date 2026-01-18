@@ -27,7 +27,16 @@ target-version = "py313"
 line-length = 88
 src = ["custom_components"]
 unsafe-fixes = true
-indent-width = 4
+indent-width = 2
+show-fixes = true
+fix = true
+
+[tool.ruff.analyze]
+detect-string-imports = true
+direction = "dependencies"
+string-imports-min-dots = 2
+type-checking-imports = false
+
 
 [tool.ruff.format]
 quote-style = "double"
@@ -54,6 +63,7 @@ extend-ignore = [
 ]
 fixable = ["ALL"]
 unfixable = []
+extend-unsafe-fixes = ["E", "F401"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
@@ -139,7 +149,6 @@ classifiers = [
 dynamic = ["version", "dependencies", "optional-dependencies"]
 requires-python = ">=3.13"
 
-
 [project.urls]
 Homepage = "https://github.com/BigDaddy1990/pawcontrol"
 Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
@@ -161,6 +170,9 @@ tests = { file = ["requirements_test.txt"] }
 module = ["untyped_package.*", "homeassistant.*", "voluptuous"]
 follow_untyped_imports = true
 ignore_missing_imports = true
+
+[tool.setuptools.packages.find]
+exclude = ["tests*"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
@@ -189,6 +201,3 @@ score = false
 [tool.pylint.TYPING]
 runtime-typing = false
 
-[tool.ruff.lint.flake8-pytest-style]
-fixture-parentheses = false
-mark-parentheses = false
