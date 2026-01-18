@@ -1638,10 +1638,7 @@ class PawControlScriptManager:
     user_id = getattr(context, "user_id", None)
 
     raw_data = getattr(event, "data", None)
-    if isinstance(raw_data, Mapping):
-      data = _serialise_event_data(raw_data)
-    else:
-      data = None
+    data = _serialise_event_data(raw_data) if isinstance(raw_data, Mapping) else None
 
     origin = getattr(event, "origin", None)
     origin_text = str(origin) if origin is not None else None

@@ -1414,10 +1414,7 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
 
     last_seen_input = gps_data.get("last_seen")
     last_seen: datetime | str | None
-    if isinstance(last_seen_input, datetime | str):
-      last_seen = last_seen_input
-    else:
-      last_seen = None
+    last_seen = last_seen_input if isinstance(last_seen_input, datetime | str) else None
 
     # Check accuracy threshold and data freshness
     accuracy_good = self._evaluate_threshold(

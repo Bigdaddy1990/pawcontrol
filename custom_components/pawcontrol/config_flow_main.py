@@ -810,10 +810,7 @@ class PawControlConfigFlow(
       raise
 
     cloned_result: DogSetupStepInput | None
-    if result is None:
-      cloned_result = None
-    else:
-      cloned_result = cast(DogSetupStepInput, dict(result))
+    cloned_result = None if result is None else cast(DogSetupStepInput, dict(result))
 
     cache_payload: DogValidationCacheEntry = {
       "result": cloned_result,

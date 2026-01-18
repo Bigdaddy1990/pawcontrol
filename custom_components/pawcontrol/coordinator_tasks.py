@@ -281,10 +281,7 @@ def _summarise_resilience(
 
   rejection_rate: float | None
   total_attempts = total_calls + rejected_call_count
-  if total_attempts > 0:
-    rejection_rate = rejected_call_count / total_attempts
-  else:
-    rejection_rate = None
+  rejection_rate = rejected_call_count / total_attempts if total_attempts > 0 else None
 
   summary: CoordinatorResilienceSummary = {
     "total_breakers": len(breakers),

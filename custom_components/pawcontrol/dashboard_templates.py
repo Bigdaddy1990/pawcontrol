@@ -3397,10 +3397,7 @@ class DashboardTemplates:
 
     comfort_range_obj = breed_advice_attrs.get("comfort_range", {})
     comfort_range: Mapping[str, object]
-    if isinstance(comfort_range_obj, Mapping):
-      comfort_range = comfort_range_obj
-    else:
-      comfort_range = {}
+    comfort_range = comfort_range_obj if isinstance(comfort_range_obj, Mapping) else {}
 
     def _coerce_temperature(value: object, fallback: float) -> float:
       if isinstance(value, int | float):

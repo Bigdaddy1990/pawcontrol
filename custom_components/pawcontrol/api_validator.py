@@ -343,10 +343,7 @@ class APIValidator:
       }
 
       request_kwargs: _RequestOptions
-      if self._ssl_override is None:
-        request_kwargs = {}
-      else:
-        request_kwargs = {"ssl": self._ssl_override}
+      request_kwargs = {} if self._ssl_override is None else {"ssl": self._ssl_override}
 
       # Try each endpoint until one works
       for auth_endpoint in auth_endpoints:

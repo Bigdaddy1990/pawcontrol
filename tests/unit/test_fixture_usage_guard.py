@@ -580,10 +580,7 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
             trimmed_paths: list[tuple[DynamicPath, str]] = []
             direct_alias: str | None = None
             for path, alias in dynamic_parents:
-              if path and path[0] == "parents":
-                new_path = path[1:]
-              else:
-                new_path = path
+              new_path = path[1:] if path and path[0] == "parents" else path
               if not new_path:
                 direct_alias = alias
                 continue
