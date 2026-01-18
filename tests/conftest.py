@@ -19,16 +19,23 @@ import pytest
 import pytest_asyncio
 from aiohttp import ClientSession
 
-from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
+from tests.helpers.homeassistant_test_stubs import (
+    HomeAssistant as StubHomeAssistant,
+    install_homeassistant_stubs,
+)
 
 install_homeassistant_stubs()
+
+from custom_components.pawcontrol import compat as pawcontrol_compat  # noqa: E402
+
+pawcontrol_compat.ensure_homeassistant_config_entry_symbols()
+pawcontrol_compat.ensure_homeassistant_exception_symbols()
 
 from custom_components.pawcontrol.types import (  # noqa: E402
     CoordinatorDogData,
     FeedingManagerDogSetupPayload,
     JSONMutableMapping,
 )
-from homeassistant.core import HomeAssistant  # noqa: E402
 
 from tests.helpers import typed_deepcopy  # noqa: E402
 
@@ -50,10 +57,10 @@ pytest_plugins = (
 
 
 @pytest.fixture
-def hass() -> HomeAssistant:
+def hass() -> StubHomeAssistant:
     """Return a minimal Home Assistant test instance."""
 
-    return HomeAssistant()
+    return StubHomeAssistant()
 
 
 # ==============================================================================
