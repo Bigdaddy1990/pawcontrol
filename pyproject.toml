@@ -200,4 +200,3 @@ score = false
 
 [tool.pylint.TYPING]
 runtime-typing = false
-
