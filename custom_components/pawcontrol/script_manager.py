@@ -80,10 +80,10 @@ from .types import (
     ensure_dog_modules_mapping,
 )
 
-CONF_ALIAS = ha_const.CONF_ALIAS
-CONF_DEFAULT = ha_const.CONF_DEFAULT
+CONF_ALIAS = getattr(ha_const, "CONF_ALIAS", "alias")
+CONF_DEFAULT = getattr(ha_const, "CONF_DEFAULT", "default")
 CONF_DESCRIPTION = getattr(ha_const, "CONF_DESCRIPTION", "description")
-CONF_NAME = ha_const.CONF_NAME
+CONF_NAME = getattr(ha_const, "CONF_NAME", "name")
 CONF_SEQUENCE = getattr(ha_const, "CONF_SEQUENCE", "sequence")
 
 _LOGGER = logging.getLogger(__name__)
