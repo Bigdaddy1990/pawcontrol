@@ -57,7 +57,7 @@ extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 # Ruff’s import‑sorting rule and let the dedicated hook handle ordering.
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["402","E501", "I001"]
+ignore = ["E501", "I001"]
 extend-ignore = [
   "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
 ]
