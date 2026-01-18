@@ -74,12 +74,6 @@ from .const import (
   SERVICE_TOGGLE_VISITOR_MODE,
   SERVICE_UPDATE_WEATHER,
 )
-
-SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
-  ha_config_entries,
-  "SIGNAL_CONFIG_ENTRY_CHANGED",
-  "config_entry_changed",
-)
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
@@ -133,6 +127,12 @@ from .types import (
 )
 from .utils import async_capture_service_guard_results, async_fire_event
 from .walk_manager import WeatherCondition
+
+SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
+  ha_config_entries,
+  "SIGNAL_CONFIG_ENTRY_CHANGED",
+  "config_entry_changed",
+)
 
 _LOGGER = logging.getLogger(__name__)
 
