@@ -938,7 +938,7 @@
       "title": "Coordinator is unavailable"
     },
     "door_sensor_persistence_failure": {
-      "description": "Paw Control n'a pas pu enregistrer la configuration du capteur de porte pour {dog_name} ({dog_id}). Capteur : {door_sensor}. Erreur : {error}. Dernière tentative : {timestamp}.",
+      "description": "Paw Control n'a pas pu enregistrer la configuration du capteur de porte pour {dog_name} ({dog_id}). Capteur : {door_sensor}. Erreur : {error}. Derni\u00e8re tentative : {timestamp}.",
       "title": "Door sensor settings could not be saved"
     },
     "duplicate_dog_ids": {
