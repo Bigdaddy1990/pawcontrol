@@ -1716,6 +1716,8 @@ def install_homeassistant_stubs() -> None:
     const_module.CONF_NAME = "name"
     const_module.CONF_ALIAS = "alias"
     const_module.CONF_DEFAULT = "default"
+    const_module.CONF_DESCRIPTION = "description"
+    const_module.CONF_SEQUENCE = "sequence"
     const_module.STATE_ON = "on"
     const_module.STATE_OFF = "off"
     const_module.STATE_UNKNOWN = "unknown"
@@ -1748,6 +1750,7 @@ def install_homeassistant_stubs() -> None:
     config_entries_module.ConfigEntryState = ConfigEntryState
     config_entries_module.OptionsFlow = OptionsFlow
     config_entries_module.ConfigFlowResult = ConfigFlowResult
+    config_entries_module.SIGNAL_CONFIG_ENTRY_CHANGED = "config_entry_changed"
 
     device_registry_module.DeviceInfo = DeviceInfo
     device_registry_module.DeviceEntry = DeviceEntry
