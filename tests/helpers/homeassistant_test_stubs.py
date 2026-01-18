@@ -212,6 +212,22 @@ class Context:
         self.user_id = user_id
 
 
+class ServiceCall:
+    """Simplified version of ``homeassistant.core.ServiceCall``."""
+
+    def __init__(
+        self,
+        domain: str,
+        service: str,
+        data: dict[str, object] | None = None,
+        context: Context | None = None,
+    ) -> None:
+        self.domain = domain
+        self.service = service
+        self.data = data or {}
+        self.context = context
+
+
 def _callback(func: Callable[..., None]) -> Callable[..., None]:
     return func
 
@@ -1735,6 +1751,7 @@ def install_homeassistant_stubs() -> None:
     core_module.EventStateChangedData = dict[str, object]
     core_module.State = State
     core_module.Context = Context
+    core_module.ServiceCall = ServiceCall
     core_module.callback = _callback
     core_module.CALLBACK_TYPE = Callable[..., None]
     core_module.ServiceRegistry = ServiceRegistry
