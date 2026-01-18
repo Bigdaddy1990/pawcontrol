@@ -1451,7 +1451,6 @@ class DataUpdateCoordinator:
     hass: object,
     logger: object | None = None,
     *args: object,
-    *,
     name: str | None = None,
     **kwargs: object,
   ) -> None:
