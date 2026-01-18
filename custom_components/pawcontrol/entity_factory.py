@@ -351,6 +351,7 @@ ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
         Platform.BINARY_SENSOR,
         Platform.SELECT,
         Platform.SWITCH,
+        Platform.DEVICE_TRACKER,
       ),
       priority_threshold=5,
     ),

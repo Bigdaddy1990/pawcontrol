@@ -39,6 +39,9 @@ def _reload(module_name: str):
   if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
   sys.modules.pop(module_name, None)
+  if "." in module_name:
+    parent = module_name.split(".", 1)[0]
+    sys.modules.pop(parent, None)
   return importlib.import_module(module_name)
 
 

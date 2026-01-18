@@ -45,6 +45,12 @@ def _utcnow() -> datetime:
   return datetime.now(UTC)
 
 
+def _now() -> datetime:
+  """Return a timezone-aware current timestamp."""
+
+  return datetime.now(UTC)
+
+
 class Platform(StrEnum):
   """StrEnum stub that mirrors ``homeassistant.const.Platform``."""
 
@@ -1260,6 +1266,10 @@ class ScriptEntity(Entity):
 class SensorDeviceClass(StrEnum):
   TEMPERATURE = "temperature"
   HUMIDITY = "humidity"
+  TIMESTAMP = "timestamp"
+  DURATION = "duration"
+  BATTERY = "battery"
+  WEIGHT = "weight"
 
 
 class SensorStateClass(StrEnum):
@@ -1272,10 +1282,16 @@ class BinarySensorDeviceClass(StrEnum):
   MOTION = "motion"
   PROBLEM = "problem"
   CONNECTIVITY = "connectivity"
+  RUNNING = "running"
+  PRESENCE = "presence"
+  SAFETY = "safety"
+  BATTERY = "battery"
 
 
 class ButtonDeviceClass(StrEnum):
   RESTART = "restart"
+  UPDATE = "update"
+  IDENTIFY = "identify"
 
 
 class SwitchDeviceClass(StrEnum):
@@ -1286,6 +1302,7 @@ class NumberDeviceClass(StrEnum):
   DISTANCE = "distance"
   DURATION = "duration"
   TEMPERATURE = "temperature"
+  WEIGHT = "weight"
 
 
 class NumberMode(StrEnum):
@@ -1816,6 +1833,7 @@ def install_homeassistant_stubs() -> None:
   update_coordinator_module.CoordinatorUpdateFailed = CoordinatorUpdateFailed
 
   dt_util_module.utcnow = _utcnow
+  dt_util_module.now = _now
   logging_util_module.log_exception = _log_exception
 
   def _slugify(value: str) -> str:
