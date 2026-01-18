@@ -21,25 +21,25 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
-    from homeassistant.const import Platform
+  from homeassistant.const import Platform
 else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
-    try:
-        from homeassistant.const import Platform
-    except ModuleNotFoundError:
+  try:
+    from homeassistant.const import Platform
+  except ModuleNotFoundError:
 
-        class Platform(str, Enum):  # type: ignore[misc]
-            """Minimal Platform enum used when Home Assistant isn't installed."""
+    class Platform(str, Enum):  # type: ignore[misc]
+      """Minimal Platform enum used when Home Assistant isn't installed."""
 
-            SENSOR = "sensor"
-            BINARY_SENSOR = "binary_sensor"
-            BUTTON = "button"
-            SWITCH = "switch"
-            NUMBER = "number"
-            SELECT = "select"
-            TEXT = "text"
-            DEVICE_TRACKER = "device_tracker"
-            DATE = "date"
-            DATETIME = "datetime"
+      SENSOR = "sensor"
+      BINARY_SENSOR = "binary_sensor"
+      BUTTON = "button"
+      SWITCH = "switch"
+      NUMBER = "number"
+      SELECT = "select"
+      TEXT = "text"
+      DEVICE_TRACKER = "device_tracker"
+      DATE = "date"
+      DATETIME = "datetime"
 
 
 from .selector_shim import selector
@@ -55,29 +55,29 @@ DEFAULT_MODEL: Final[str] = "Smart Dog Monitoring"
 
 # OPTIMIZED: Platforms as tuple for immutability and better performance
 PLATFORMS: Final[tuple[Platform, ...]] = (
-    Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-    Platform.DATE,
-    Platform.DATETIME,
-    Platform.DEVICE_TRACKER,
-    Platform.NUMBER,
-    Platform.SELECT,
-    Platform.SENSOR,
-    Platform.SWITCH,
-    Platform.TEXT,
+  Platform.BINARY_SENSOR,
+  Platform.BUTTON,
+  Platform.DATE,
+  Platform.DATETIME,
+  Platform.DEVICE_TRACKER,
+  Platform.NUMBER,
+  Platform.SELECT,
+  Platform.SENSOR,
+  Platform.SWITCH,
+  Platform.TEXT,
 )
 
 # OPTIMIZED: Supported device categories as tuple for immutability
 DEVICE_CATEGORIES: Final[tuple[str, ...]] = (
-    "activity_monitor",
-    "camera",
-    "door_sensor",
-    "gps_tracker",
-    "health_device",
-    "smart_collar",
-    "smart_feeder",
-    "treat_dispenser",
-    "water_fountain",
+  "activity_monitor",
+  "camera",
+  "door_sensor",
+  "gps_tracker",
+  "health_device",
+  "smart_collar",
+  "smart_feeder",
+  "treat_dispenser",
+  "water_fountain",
 )
 
 # Cache diagnostics timing thresholds tuned against nightly telemetry
@@ -116,20 +116,20 @@ MODULE_WEATHER: Final[str] = "weather"
 
 # OPTIMIZED: All modules as frozenset for O(1) membership testing
 ALL_MODULES: Final[frozenset[str]] = frozenset(
-    [
-        MODULE_GPS,
-        MODULE_FEEDING,
-        MODULE_HEALTH,
-        MODULE_WALK,
-        MODULE_GARDEN,
-        MODULE_NOTIFICATIONS,
-        MODULE_DASHBOARD,
-        MODULE_VISITOR,
-        MODULE_GROOMING,
-        MODULE_MEDICATION,
-        MODULE_TRAINING,
-        MODULE_WEATHER,
-    ],
+  [
+    MODULE_GPS,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MODULE_GARDEN,
+    MODULE_NOTIFICATIONS,
+    MODULE_DASHBOARD,
+    MODULE_VISITOR,
+    MODULE_GROOMING,
+    MODULE_MEDICATION,
+    MODULE_TRAINING,
+    MODULE_WEATHER,
+  ],
 )
 
 # OPTIMIZED: Source entities configuration
@@ -224,15 +224,15 @@ DEFAULT_MANUAL_GUARD_EVENT: Final[str] = "pawcontrol_manual_guard"
 DEFAULT_MANUAL_BREAKER_EVENT: Final[str] = "pawcontrol_manual_breaker"
 
 MANUAL_EVENT_SOURCE_CANONICAL: Final[Mapping[str, str]] = MappingProxyType(
-    {
-        "blueprint": "blueprint",
-        "config_entry": "config_entry",
-        "default": "default",
-        "disabled": "disabled",
-        "options": "options",
-        "system_options": "system_settings",
-        "system_settings": "system_settings",
-    },
+  {
+    "blueprint": "blueprint",
+    "config_entry": "config_entry",
+    "default": "default",
+    "disabled": "disabled",
+    "options": "options",
+    "system_options": "system_settings",
+    "system_settings": "system_settings",
+  },
 )
 RESILIENCE_SKIP_THRESHOLD_MIN: Final[int] = 0
 RESILIENCE_SKIP_THRESHOLD_MAX: Final[int] = 50
@@ -241,57 +241,57 @@ RESILIENCE_BREAKER_THRESHOLD_MAX: Final[int] = 10
 
 # OPTIMIZED: Reusable selector configurations
 GPS_UPDATE_INTERVAL_SELECTOR: Final[selector.NumberSelector] = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        min=30,
-        max=600,
-        step=10,
-        mode=selector.NumberSelectorMode.BOX,
-        unit_of_measurement="seconds",
-    ),
+  selector.NumberSelectorConfig(
+    min=30,
+    max=600,
+    step=10,
+    mode=selector.NumberSelectorMode.BOX,
+    unit_of_measurement="seconds",
+  ),
 )
 
 GPS_ACCURACY_FILTER_SELECTOR: Final[selector.NumberSelector] = selector.NumberSelector(
-    selector.NumberSelectorConfig(
-        min=5,
-        max=500,
-        step=5,
-        mode=selector.NumberSelectorMode.BOX,
-        unit_of_measurement="meters",
-    ),
+  selector.NumberSelectorConfig(
+    min=5,
+    max=500,
+    step=5,
+    mode=selector.NumberSelectorMode.BOX,
+    unit_of_measurement="meters",
+  ),
 )
 
 # OPTIMIZED: Food types as tuple for immutability (better performance than list)
 FOOD_TYPES: Final[tuple[str, ...]] = (
-    "dry_food",
-    "wet_food",
-    "barf",
-    "home_cooked",
-    "mixed",
+  "dry_food",
+  "wet_food",
+  "barf",
+  "home_cooked",
+  "mixed",
 )
 
 # OPTIMIZED: Special diet options as tuple
 SPECIAL_DIET_OPTIONS: Final[tuple[str, ...]] = (
-    "grain_free",
-    "hypoallergenic",
-    "low_fat",
-    "senior_formula",
-    "puppy_formula",
-    "weight_control",
-    "sensitive_stomach",
-    "organic",
-    "raw_diet",
-    "prescription",
-    "diabetic",
-    "kidney_support",
-    "dental_care",
-    "joint_support",
+  "grain_free",
+  "hypoallergenic",
+  "low_fat",
+  "senior_formula",
+  "puppy_formula",
+  "weight_control",
+  "sensitive_stomach",
+  "organic",
+  "raw_diet",
+  "prescription",
+  "diabetic",
+  "kidney_support",
+  "dental_care",
+  "joint_support",
 )
 
 # OPTIMIZED: Schedule types as tuple for better performance
 FEEDING_SCHEDULE_TYPES: Final[tuple[str, ...]] = (
-    "flexible",
-    "strict",
-    "custom",
+  "flexible",
+  "strict",
+  "custom",
 )
 
 # OPTIMIZED: Meal types as tuple
@@ -299,76 +299,76 @@ MEAL_TYPES: Final[tuple[str, ...]] = ("breakfast", "lunch", "dinner", "snack")
 
 # OPTIMIZED: Dog sizes as tuple for consistency and performance
 DOG_SIZES: Final[tuple[str, ...]] = (
-    "toy",
-    "small",
-    "medium",
-    "large",
-    "giant",
+  "toy",
+  "small",
+  "medium",
+  "large",
+  "giant",
 )
 
 # OPTIMIZED: Size-weight mapping for validation (frozenset for fast lookup)
 DOG_SIZE_WEIGHT_RANGES: Final[dict[str, tuple[float, float]]] = {
-    "toy": (1.0, 6.0),
-    "small": (4.0, 15.0),
-    "medium": (8.0, 30.0),
-    "large": (22.0, 50.0),
-    "giant": (35.0, 90.0),
+  "toy": (1.0, 6.0),
+  "small": (4.0, 15.0),
+  "medium": (8.0, 30.0),
+  "large": (22.0, 50.0),
+  "giant": (35.0, 90.0),
 }
 
 # OPTIMIZED: GPS sources as tuple
 GPS_SOURCES: Final[tuple[str, ...]] = (
-    "manual",
-    "device_tracker",
-    "person_entity",
-    "smartphone",
-    "tractive",
-    "webhook",
-    "mqtt",
+  "manual",
+  "device_tracker",
+  "person_entity",
+  "smartphone",
+  "tractive",
+  "webhook",
+  "mqtt",
 )
 
 # OPTIMIZED: Status and mood options as tuples
 HEALTH_STATUS_OPTIONS: Final[tuple[str, ...]] = (
-    "excellent",
-    "very_good",
-    "good",
-    "normal",
-    "unwell",
-    "sick",
+  "excellent",
+  "very_good",
+  "good",
+  "normal",
+  "unwell",
+  "sick",
 )
 
 MOOD_OPTIONS: Final[tuple[str, ...]] = (
-    "happy",
-    "neutral",
-    "sad",
-    "angry",
-    "anxious",
-    "tired",
+  "happy",
+  "neutral",
+  "sad",
+  "angry",
+  "anxious",
+  "tired",
 )
 
 ACTIVITY_LEVELS: Final[tuple[str, ...]] = (
-    "very_low",
-    "low",
-    "normal",
-    "high",
-    "very_high",
+  "very_low",
+  "low",
+  "normal",
+  "high",
+  "very_high",
 )
 
 # OPTIMIZED: Dashboard configuration
 DASHBOARD_MODES: Final[tuple[str, ...]] = ("full", "cards", "minimal")
 
 DASHBOARD_MODE_SELECTOR_OPTIONS: Final[tuple[dict[str, str], ...]] = (
-    {
-        "value": "full",
-        "label": "Full - Complete dashboard with all features",
-    },
-    {
-        "value": "cards",
-        "label": "Cards - Organized card-based layout",
-    },
-    {
-        "value": "minimal",
-        "label": "Minimal - Essential information only",
-    },
+  {
+    "value": "full",
+    "label": "Full - Complete dashboard with all features",
+  },
+  {
+    "value": "cards",
+    "label": "Cards - Organized card-based layout",
+  },
+  {
+    "value": "minimal",
+    "label": "Minimal - Essential information only",
+  },
 )
 
 CONF_DASHBOARD_ENABLED: Final = "dashboard_enabled"
@@ -389,9 +389,9 @@ DEFAULT_DASHBOARD_MODE: Final[str] = "full"
 # OPTIMIZED: Performance modes as tuple
 DEFAULT_PERFORMANCE_MODE: Final[str] = "balanced"
 PERFORMANCE_MODES: Final[tuple[str, ...]] = (
-    "minimal",
-    DEFAULT_PERFORMANCE_MODE,
-    "full",
+  "minimal",
+  DEFAULT_PERFORMANCE_MODE,
+  "full",
 )
 
 # NEW: Weather services
@@ -435,15 +435,15 @@ SERVICE_ADD_HEALTH_SNACK: Final[str] = "add_health_snack"
 
 # OPTIMIZED: Core services as frozenset for fast lookup
 CORE_SERVICES: Final[frozenset[str]] = frozenset(
-    [
-        SERVICE_FEED_DOG,
-        SERVICE_START_WALK,
-        SERVICE_END_WALK,
-        SERVICE_LOG_HEALTH,
-        SERVICE_NOTIFY_TEST,
-        SERVICE_START_GARDEN_SESSION,
-        SERVICE_END_GARDEN_SESSION,
-    ],
+  [
+    SERVICE_FEED_DOG,
+    SERVICE_START_WALK,
+    SERVICE_END_WALK,
+    SERVICE_LOG_HEALTH,
+    SERVICE_NOTIFY_TEST,
+    SERVICE_START_GARDEN_SESSION,
+    SERVICE_END_GARDEN_SESSION,
+  ],
 )
 
 # OPTIMIZED: Entity and event identifiers
@@ -490,28 +490,28 @@ MINUTES_IN_HOUR: Final[int] = 60
 
 # OPTIMIZED: Type definitions as tuples
 GEOFENCE_TYPES: Final[tuple[str, ...]] = (
-    "safe_zone",
-    "restricted_area",
-    "point_of_interest",
+  "safe_zone",
+  "restricted_area",
+  "point_of_interest",
 )
 NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
-    "persistent",
-    "mobile",
-    "email",
-    "sms",
-    "webhook",
-    "tts",
-    "media_player",
-    "slack",
-    "discord",
+  "persistent",
+  "mobile",
+  "email",
+  "sms",
+  "webhook",
+  "tts",
+  "media_player",
+  "slack",
+  "discord",
 )
 
 # PLATINUM: Update intervals with consistent key naming throughout codebase
 _BASE_UPDATE_INTERVALS: Final[dict[str, int]] = {
-    "minimal": 300,  # 5 minutes - power saving
-    "balanced": 120,  # 2 minutes - balanced default cadence
-    "frequent": 60,  # 1 minute - responsive
-    "real_time": 30,  # 30 seconds - high performance
+  "minimal": 300,  # 5 minutes - power saving
+  "balanced": 120,  # 2 minutes - balanced default cadence
+  "frequent": 60,  # 1 minute - responsive
+  "real_time": 30,  # 30 seconds - high performance
 }
 UPDATE_INTERVALS: Final[dict[str, int]] = dict(_BASE_UPDATE_INTERVALS)
 UPDATE_INTERVALS["standard"] = _BASE_UPDATE_INTERVALS["balanced"]
@@ -549,54 +549,54 @@ ERROR_SERVICE_UNAVAILABLE: Final[str] = "service_unavailable"
 
 # OPTIMIZED: Performance thresholds for monitoring
 PERFORMANCE_THRESHOLDS: Final[dict[str, float]] = {
-    "update_timeout": 30.0,  # seconds
-    "cache_hit_rate_min": 70.0,  # percentage
-    "memory_usage_max": 100.0,  # MB
-    "response_time_max": 2.0,  # seconds
+  "update_timeout": 30.0,  # seconds
+  "cache_hit_rate_min": 70.0,  # percentage
+  "memory_usage_max": 100.0,  # MB
+  "response_time_max": 2.0,  # seconds
 }
 
 # OPTIMIZED: Streamlined exports - only frequently used constants
 __all__ = (
-    "ACTIVITY_LEVELS",
-    "ALL_MODULES",
-    "CONF_DASHBOARD_ENABLED",
-    "CONF_DOGS",
-    "CONF_DOG_ID",
-    "CONF_DOG_NAME",
-    "CONF_MODULES",
-    "CORE_SERVICES",
-    "DEFAULT_DASHBOARD_ENABLED",
-    "DEFAULT_GPS_UPDATE_INTERVAL",
-    "DEFAULT_PERFORMANCE_MODE",
-    "DOG_SIZES",
-    "DOG_SIZE_WEIGHT_RANGES",
-    "DOMAIN",
-    "EVENT_FEEDING_COMPLIANCE_CHECKED",
-    "EVENT_FEEDING_LOGGED",
-    "EVENT_HEALTH_LOGGED",
-    "EVENT_WALK_STARTED",
-    "FOOD_TYPES",
-    "HEALTH_STATUS_OPTIONS",
-    "MAX_DOG_WEIGHT",
-    "MAX_IDLE_POLL_INTERVAL",
-    "MAX_POLLING_INTERVAL_SECONDS",
-    "MODULE_DASHBOARD",
-    "MODULE_FEEDING",
-    "MODULE_GARDEN",
-    "MODULE_GPS",
-    "MODULE_HEALTH",
-    "MODULE_NOTIFICATIONS",
-    "MODULE_VISITOR",
-    "MODULE_WALK",
-    "PERFORMANCE_MODES",
-    "PERFORMANCE_THRESHOLDS",
-    "PLATFORMS",
-    "SERVICE_ADD_GARDEN_ACTIVITY",
-    "SERVICE_CONFIRM_GARDEN_POOP",
-    "SERVICE_END_GARDEN_SESSION",
-    "SERVICE_FEED_DOG",
-    "SERVICE_LOG_HEALTH",
-    "SERVICE_START_GARDEN_SESSION",
-    "SERVICE_START_WALK",
-    "UPDATE_INTERVALS",
+  "ACTIVITY_LEVELS",
+  "ALL_MODULES",
+  "CONF_DASHBOARD_ENABLED",
+  "CONF_DOGS",
+  "CONF_DOG_ID",
+  "CONF_DOG_NAME",
+  "CONF_MODULES",
+  "CORE_SERVICES",
+  "DEFAULT_DASHBOARD_ENABLED",
+  "DEFAULT_GPS_UPDATE_INTERVAL",
+  "DEFAULT_PERFORMANCE_MODE",
+  "DOG_SIZES",
+  "DOG_SIZE_WEIGHT_RANGES",
+  "DOMAIN",
+  "EVENT_FEEDING_COMPLIANCE_CHECKED",
+  "EVENT_FEEDING_LOGGED",
+  "EVENT_HEALTH_LOGGED",
+  "EVENT_WALK_STARTED",
+  "FOOD_TYPES",
+  "HEALTH_STATUS_OPTIONS",
+  "MAX_DOG_WEIGHT",
+  "MAX_IDLE_POLL_INTERVAL",
+  "MAX_POLLING_INTERVAL_SECONDS",
+  "MODULE_DASHBOARD",
+  "MODULE_FEEDING",
+  "MODULE_GARDEN",
+  "MODULE_GPS",
+  "MODULE_HEALTH",
+  "MODULE_NOTIFICATIONS",
+  "MODULE_VISITOR",
+  "MODULE_WALK",
+  "PERFORMANCE_MODES",
+  "PERFORMANCE_THRESHOLDS",
+  "PLATFORMS",
+  "SERVICE_ADD_GARDEN_ACTIVITY",
+  "SERVICE_CONFIRM_GARDEN_POOP",
+  "SERVICE_END_GARDEN_SESSION",
+  "SERVICE_FEED_DOG",
+  "SERVICE_LOG_HEALTH",
+  "SERVICE_START_GARDEN_SESSION",
+  "SERVICE_START_WALK",
+  "UPDATE_INTERVALS",
 )
