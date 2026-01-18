@@ -7,7 +7,11 @@ from pathlib import Path
 
 
 def test_runtime_dependencies_match_requirements_txt() -> None:
-  repo_root = Path(__file__).resolve().parents[1]
+  repo_root = next(
+    parent
+    for parent in Path(__file__).resolve().parents
+    if (parent / "pyproject.toml").exists()
+  )
   pyproject_data = tomllib.loads((repo_root / "pyproject.toml").read_text())
   pyproject_deps = pyproject_data["project"]["dependencies"]
 

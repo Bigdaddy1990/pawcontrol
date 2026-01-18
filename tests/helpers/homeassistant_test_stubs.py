@@ -1289,6 +1289,7 @@ class NumberDeviceClass(StrEnum):
 
 
 class NumberMode(StrEnum):
+  AUTO = "auto"
   BOX = "box"
   SLIDER = "slider"
 
@@ -1448,11 +1449,14 @@ class DataUpdateCoordinator:
   def __init__(
     self,
     hass: object,
+    logger: object | None = None,
+    *args: object,
     *,
     name: str | None = None,
     **kwargs: object,
   ) -> None:
     self.hass = hass
+    self.logger = logger
     self.name = name or "stub"
 
   async def async_config_entry_first_refresh(self) -> None:

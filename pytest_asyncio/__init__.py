@@ -32,3 +32,10 @@ def _event_loop() -> Generator[asyncio.AbstractEventLoop]:
 
 event_loop = pytest.fixture(_event_loop)
 event_loop._fixture_function = _event_loop
+fixture = pytest.fixture
+
+__all__ = [
+  "event_loop",
+  "fixture",
+  "pytest_addoption",
+]

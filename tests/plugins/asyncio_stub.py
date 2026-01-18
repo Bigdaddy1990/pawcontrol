@@ -56,10 +56,6 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 def pytest_unconfigure(config: pytest.Config) -> None:
   """Close the temporary loop created during :func:`pytest_configure`."""
 
-  loop = getattr(config, "_pawcontrol_asyncio_loop", None)
-  if isinstance(loop, asyncio.AbstractEventLoop):
-    loop.close()
-
   # type: ignore[assignment]
   asyncio.get_event_loop = _ORIGINAL_GET_EVENT_LOOP
 
