@@ -34,6 +34,12 @@ from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def _dt_now() -> datetime:
+  """Return the current datetime using available Home Assistant helpers."""
+
+  return dt_util.now() if hasattr(dt_util, "now") else dt_util.utcnow()
+
 # Date/time helpers write settings back to Paw Control. The coordinator
 # serialises writes, so we lift the entity-level cap and let Home Assistant run
 # updates in parallel when possible.
@@ -286,7 +292,7 @@ class PawControlBirthdateDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Calculate and update age
-    now = dt_util.now()
+    now = _dt_now()
     age_years = (now - value).days / 365.25
 
     # This could update the dog age number entity
@@ -325,7 +331,7 @@ class PawControlBreakfastTimeDateTime(PawControlDateTimeBase):
     self._attr_icon = "mdi:food-croissant"
 
     # Set default breakfast time
-    now = dt_util.now()
+    now = _dt_now()
     default_time = now.replace(hour=8, minute=0, second=0, microsecond=0)
     self._current_value = default_time
 
@@ -344,7 +350,7 @@ class PawControlLunchTimeDateTime(PawControlDateTimeBase):
     self._attr_icon = "mdi:food"
 
     # Set default lunch time
-    now = dt_util.now()
+    now = _dt_now()
     default_time = now.replace(hour=13, minute=0, second=0, microsecond=0)
     self._current_value = default_time
 
@@ -363,7 +369,7 @@ class PawControlDinnerTimeDateTime(PawControlDateTimeBase):
     self._attr_icon = "mdi:silverware-fork-knife"
 
     # Set default dinner time
-    now = dt_util.now()
+    now = _dt_now()
     default_time = now.replace(hour=18, minute=0, second=0, microsecond=0)
     self._current_value = default_time
 

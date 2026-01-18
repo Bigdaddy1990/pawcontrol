@@ -78,6 +78,11 @@ from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
+_UPDATE_DEVICE_CLASS = cast(
+  ButtonDeviceClass,
+  getattr(ButtonDeviceClass, "UPDATE", "update"),
+)
+
 
 def _normalise_attributes(
   attrs: JSONLikeMapping,
@@ -1113,7 +1118,7 @@ class PawControlRefreshDataButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "refresh_data",
-      device_class=ButtonDeviceClass.UPDATE,
+      device_class=_UPDATE_DEVICE_CLASS,
       icon="mdi:database-refresh",
       action_description="Refresh integration data",
     )
@@ -1144,7 +1149,7 @@ class PawControlSyncDataButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "sync_data",
-      device_class=ButtonDeviceClass.UPDATE,
+      device_class=_UPDATE_DEVICE_CLASS,
       icon="mdi:database-sync",
       action_description="Synchronize dog data",
     )
@@ -1631,7 +1636,7 @@ class PawControlRefreshLocationButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "refresh_location",
-      device_class=ButtonDeviceClass.UPDATE,
+      device_class=_UPDATE_DEVICE_CLASS,
       icon="mdi:crosshairs-gps",
       action_description="Request GPS update",
     )
@@ -2004,7 +2009,7 @@ class PawControlHealthCheckButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "health_check",
-      device_class=ButtonDeviceClass.UPDATE,
+      device_class=_UPDATE_DEVICE_CLASS,
       icon="mdi:heart-pulse",
       action_description="Perform health check",
     )

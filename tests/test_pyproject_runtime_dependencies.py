@@ -13,7 +13,7 @@ def test_runtime_dependencies_match_requirements_txt() -> None:
     if (parent / "pyproject.toml").exists()
   )
   pyproject_data = tomllib.loads((repo_root / "pyproject.toml").read_text())
-  project_data = pyproject_data["project"]
+  project_data = pyproject_data.get("project", {})
   if "dependencies" in project_data:
     pyproject_deps = project_data["dependencies"]
   else:

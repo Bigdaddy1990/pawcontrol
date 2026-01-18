@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 from typing import cast
 
 from homeassistant.components.device_tracker import SourceType, TrackerEntity
-from homeassistant.const import STATE_HOME, STATE_NOT_HOME, STATE_UNKNOWN
+from homeassistant.const import Platform, STATE_HOME, STATE_NOT_HOME, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -164,6 +164,18 @@ async def async_setup_entry(
         entities.append(tracker)
     finally:
       entity_factory.finalize_budget(dog_id, profile)
+
+  if not entities and Platform.DEVICE_TRACKER in entity_factory.get_profile_info(
+    profile,
+  ).platforms:
+    for dog in dogs:
+      dog_id = dog[DOG_ID_FIELD]
+      dog_name = dog[DOG_NAME_FIELD]
+      entities.append(PawControlGPSTracker(coordinator, dog_id, dog_name))
+    _LOGGER.info(
+      "Created baseline GPS device trackers for profile '%s'",
+      profile,
+    )
 
   if entities:
     await async_call_add_entities(

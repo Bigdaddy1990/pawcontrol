@@ -74,6 +74,10 @@ if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constant
 
 
 DEFAULT_NUMBER_MODE = getattr(NumberMode, "AUTO", NumberMode.BOX)
+_WEIGHT_DEVICE_CLASS = cast(
+  NumberDeviceClass,
+  getattr(NumberDeviceClass, "WEIGHT", "weight"),
+)
 
 
 # Configuration limits and defaults
@@ -580,7 +584,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
       dog_id,
       dog_name,
       "weight",
-      device_class=NumberDeviceClass.WEIGHT,
+      device_class=_WEIGHT_DEVICE_CLASS,
       mode=NumberMode.BOX,
       native_unit_of_measurement=MASS_KILOGRAMS,
       native_min_value=MIN_DOG_WEIGHT,
@@ -1223,7 +1227,7 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
       dog_id,
       dog_name,
       "target_weight",
-      device_class=NumberDeviceClass.WEIGHT,
+      device_class=_WEIGHT_DEVICE_CLASS,
       mode=NumberMode.BOX,
       native_unit_of_measurement=MASS_KILOGRAMS,
       native_min_value=MIN_DOG_WEIGHT,

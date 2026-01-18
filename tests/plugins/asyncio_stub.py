@@ -68,7 +68,8 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop]:
   try:
     yield loop
   finally:
-    loop.close()
+    if not loop.is_closed():
+      loop.stop()
 
 
 @pytest.fixture(autouse=True)

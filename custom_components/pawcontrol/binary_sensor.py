@@ -62,6 +62,11 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+_RUNNING_DEVICE_CLASS = cast(
+  BinarySensorDeviceClass,
+  getattr(BinarySensorDeviceClass, "RUNNING", "running"),
+)
+
 
 def _coerce_bool_flag(value: object) -> bool | None:
   """Return a strict boolean for 0/1 sentinel payloads."""
@@ -1078,7 +1083,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "walk_in_progress",
-      device_class=BinarySensorDeviceClass.RUNNING,
+      device_class=_RUNNING_DEVICE_CLASS,
       icon_on="mdi:walk",
       icon_off="mdi:home",
     )

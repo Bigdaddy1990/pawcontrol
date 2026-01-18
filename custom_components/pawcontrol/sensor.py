@@ -66,6 +66,11 @@ else:
 
 _LOGGER = logging.getLogger(__name__)
 
+_TIMESTAMP_DEVICE_CLASS = cast(
+  SensorDeviceClass,
+  getattr(SensorDeviceClass, "TIMESTAMP", "timestamp"),
+)
+
 # Type aliases for better readability
 SensorValue = str | int | float | datetime | None
 type AttributeDict = JSONMutableMapping
@@ -1175,7 +1180,7 @@ class PawControlLastActionSensor(PawControlSensorBase):
       dog_id,
       dog_name,
       "last_action",
-      device_class=SensorDeviceClass.TIMESTAMP,
+      device_class=_TIMESTAMP_DEVICE_CLASS,
       icon="mdi:clock-outline",
     )
 
@@ -1756,7 +1761,7 @@ class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
       dog_id,
       dog_name,
       "last_garden_session",
-      device_class=SensorDeviceClass.TIMESTAMP,
+      device_class=_TIMESTAMP_DEVICE_CLASS,
       icon="mdi:calendar-clock",
       translation_key="last_garden_session",
     )
@@ -2051,7 +2056,7 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
       dog_id,
       dog_name,
       "last_feeding",
-      device_class=SensorDeviceClass.TIMESTAMP,
+      device_class=_TIMESTAMP_DEVICE_CLASS,
       icon="mdi:food-drumstick",
     )
 
@@ -3270,7 +3275,7 @@ class PawControlLastWalkSensor(PawControlSensorBase):
       dog_id,
       dog_name,
       "last_walk",
-      device_class=SensorDeviceClass.TIMESTAMP,
+      device_class=_TIMESTAMP_DEVICE_CLASS,
       icon="mdi:walk",
     )
 
@@ -4401,7 +4406,7 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
       dog_id,
       dog_name,
       "last_vet_visit",
-      device_class=SensorDeviceClass.TIMESTAMP,
+      device_class=_TIMESTAMP_DEVICE_CLASS,
       icon="mdi:stethoscope",
     )
 
