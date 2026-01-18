@@ -11,6 +11,6 @@ import pytest
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Register a marker placeholder when coverage plugin is absent."""
+  """Register a marker placeholder when coverage plugin is absent."""
 
-    config.addinivalue_line("markers", "cov: dummy marker for pytest-cov shim")
+  config.addinivalue_line("markers", "cov: dummy marker for pytest-cov shim")

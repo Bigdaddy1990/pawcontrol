@@ -8,38 +8,38 @@ from homeassistant.config_entries import ConfigFlowResult
 
 
 class MenuOptionsMixin:
-    async def async_step_init(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Show the main options menu with enhanced navigation.
+  async def async_step_init(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> ConfigFlowResult:
+    """Show the main options menu with enhanced navigation.
 
-        Provides organized access to all configuration categories
-        with clear descriptions and intelligent suggestions.
+    Provides organized access to all configuration categories
+    with clear descriptions and intelligent suggestions.
 
-        Args:
-            user_input: User menu selection
+    Args:
+        user_input: User menu selection
 
-        Returns:
-            Configuration flow result for selected option
-        """
-        return self.async_show_menu(
-            step_id="init",
-            menu_options=[
-                "entity_profiles",  # NEW: Profile management
-                "manage_dogs",
-                "performance_settings",  # NEW: Performance & profiles
-                "gps_settings",
-                "geofence_settings",  # NEW: Geofencing configuration
-                "weather_settings",  # NEW: Weather configuration
-                "notifications",
-                "feeding_settings",
-                "health_settings",
-                "system_settings",
-                "dashboard_settings",
-                "advanced_settings",
-                "import_export",
-            ],
-        )
+    Returns:
+        Configuration flow result for selected option
+    """
+    return self.async_show_menu(
+      step_id="init",
+      menu_options=[
+        "entity_profiles",  # NEW: Profile management
+        "manage_dogs",
+        "performance_settings",  # NEW: Performance & profiles
+        "gps_settings",
+        "geofence_settings",  # NEW: Geofencing configuration
+        "weather_settings",  # NEW: Weather configuration
+        "notifications",
+        "feeding_settings",
+        "health_settings",
+        "system_settings",
+        "dashboard_settings",
+        "advanced_settings",
+        "import_export",
+      ],
+    )
 
-    # NEW: Geofencing configuration step per requirements
+  # NEW: Geofencing configuration step per requirements

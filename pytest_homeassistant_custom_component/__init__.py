@@ -11,8 +11,8 @@ import pytest
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Register a marker placeholder used by the upstream plugin."""
+  """Register a marker placeholder used by the upstream plugin."""
 
-    config.addinivalue_line(
-        "markers", "hacc: compatibility marker for pytest-homeassistant stubs"
-    )
+  config.addinivalue_line(
+    "markers", "hacc: compatibility marker for pytest-homeassistant stubs"
+  )
