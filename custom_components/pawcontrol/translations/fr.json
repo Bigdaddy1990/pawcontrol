@@ -663,7 +663,7 @@
           "conflicts_detected": "Conflicts Detected",
           "no_data": "No Data",
           "validated_safe": "Validated Safe",
-          "validation_error": "Validation Error",
+          "validation_error": "Erreur de validation",
           "warnings_present": "Warnings Present"
         }
       },
@@ -938,7 +938,7 @@
       "title": "Coordinator is unavailable"
     },
     "door_sensor_persistence_failure": {
-      "description": "Paw Control could not persist the door sensor configuration for {dog_name} ({dog_id}). Sensor: {door_sensor}. Error: {error}. Last attempt: {timestamp}.",
+      "description": "Paw Control n'a pas pu enregistrer la configuration du capteur de porte pour {dog_name} ({dog_id}). Capteur : {door_sensor}. Erreur : {error}. Derni\u00e8re tentative : {timestamp}.",
       "title": "Door sensor settings could not be saved"
     },
     "duplicate_dog_ids": {
