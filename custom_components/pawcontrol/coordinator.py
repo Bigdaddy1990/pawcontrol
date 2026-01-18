@@ -151,7 +151,7 @@ class PawControlCoordinator(
 
     super().__init__(
       hass,
-      _LOGGER,
+      logger=_LOGGER,
       name="PawControl Data",
       update_interval=timedelta(seconds=base_interval),
       config_entry=entry,

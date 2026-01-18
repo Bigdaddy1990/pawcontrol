@@ -73,6 +73,9 @@ if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constant
     METERS_PER_SECOND = "m/s"
 
 
+DEFAULT_NUMBER_MODE = getattr(NumberMode, "AUTO", NumberMode.BOX)
+
+
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes
 DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
@@ -363,7 +366,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     number_type: str,
     *,
     device_class: NumberDeviceClass | None = None,
-    mode: NumberMode = NumberMode.AUTO,
+    mode: NumberMode = DEFAULT_NUMBER_MODE,
     native_unit_of_measurement: str | None = None,
     native_min_value: float = 0,
     native_max_value: float = 100,

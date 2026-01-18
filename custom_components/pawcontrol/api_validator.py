@@ -220,7 +220,7 @@ class APIValidator:
       return APIValidationResult(
         valid=True,
         reachable=True,
-        authenticated=authenticated if api_token else True,
+        authenticated=authenticated if api_token else False,
         response_time_ms=response_time_ms,
         error_message=None,
         api_version=api_version,
