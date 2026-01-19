@@ -24,15 +24,10 @@ trigger:
     id: manual_breaker_event
 
 action:
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id in ['manual_event', 'manual_guard_event', 'manual_breaker_event'] }}"
-        sequence:
-          - service: logbook.log
-            data:
-              name: PawControl
-              message: Resilience follow-up triggered.
+  - service: logbook.log
+    data:
+      name: PawControl
+      message: Resilience follow-up triggered.
   - service: "{{ notify_service }}"
     data:
       message: "PawControl resilience follow-up event: {{ trigger.id }}"
