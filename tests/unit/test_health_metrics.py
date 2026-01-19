@@ -7,7 +7,7 @@ import pathlib
 import sys
 import types
 from dataclasses import dataclass
-from datetime import UTC
+from datetime import UTC, datetime
 
 import pytest
 
@@ -25,18 +25,30 @@ def _load_health_calculator_module() -> types.ModuleType:
     homeassistant_pkg.__path__ = []
     sys.modules["homeassistant"] = homeassistant_pkg
 
-  ha_util = types.ModuleType("homeassistant.util")
-  ha_dt = types.ModuleType("homeassistant.util.dt")
+  ha_util = sys.modules.get("homeassistant.util") or types.ModuleType(
+    "homeassistant.util"
+  )
+  ha_dt = sys.modules.get("homeassistant.util.dt") or types.ModuleType(
+    "homeassistant.util.dt"
+  )
 
-  def _now():
-    from datetime import datetime, timezone
-
+  def _now() -> datetime:
     return datetime.now(UTC)
 
+  def _utcnow() -> datetime:
+    return datetime.now(UTC)
+
+  def _start_of_local_day(value: datetime) -> datetime:
+    if isinstance(value, datetime):
+      return value.replace(hour=0, minute=0, second=0, microsecond=0)
+    return datetime.combine(value, datetime.min.time(), tzinfo=UTC)
+
   ha_dt.now = _now
+  ha_dt.utcnow = _utcnow
+  ha_dt.start_of_local_day = _start_of_local_day
   ha_util.dt = ha_dt
-  sys.modules["homeassistant.util"] = ha_util
-  sys.modules["homeassistant.util.dt"] = ha_dt
+  sys.modules.setdefault("homeassistant.util", ha_util)
+  sys.modules.setdefault("homeassistant.util.dt", ha_dt)
 
   module_name = "custom_components.pawcontrol.health_calculator"
   module = types.ModuleType(module_name)

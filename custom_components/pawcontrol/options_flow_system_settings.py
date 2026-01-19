@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from importlib import import_module
 from typing import Any, cast
 
 import voluptuous as vol
@@ -20,11 +21,23 @@ from .const import (
 from .device_api import validate_device_endpoint
 from .exceptions import FlowValidationError  # noqa: F401
 from .selector_shim import selector
-from .types import (
-  freeze_placeholders,
-)
+from .runtime_data import get_runtime_data as _get_runtime_data
+from .types import freeze_placeholders
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_get_runtime_data():
+  """Return the patched runtime data helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "get_runtime_data", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return _get_runtime_data
 
 
 class SystemSettingsOptionsMixin:
@@ -399,7 +412,7 @@ class SystemSettingsOptionsMixin:
           mutable_options.pop("manual_breaker_event", None)
         else:
           mutable_options["manual_breaker_event"] = breaker_option
-        runtime = get_runtime_data(self.hass, self._entry)  # noqa: F821
+        runtime = _resolve_get_runtime_data()(self.hass, self._entry)
         script_manager = getattr(runtime, "script_manager", None)
         if script_manager is not None:
           await script_manager.async_sync_manual_resilience_events(

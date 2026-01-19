@@ -186,16 +186,14 @@ class ExternalEntityConfigurationMixin:
     return flow.async_show_form(
       step_id="configure_external_entities",
       data_schema=self._get_external_entities_schema(),
-      description_placeholders=dict(
-        _build_external_entities_placeholders(
-          gps_enabled=bool(
-            flow._enabled_modules.get(MODULE_GPS, False),
-          ),
-          visitor_enabled=bool(
-            flow._enabled_modules.get(MODULE_VISITOR, False),
-          ),
-          dog_count=len(flow._dogs),
+      description_placeholders=_build_external_entities_placeholders(
+        gps_enabled=bool(
+          flow._enabled_modules.get(MODULE_GPS, False),
         ),
+        visitor_enabled=bool(
+          flow._enabled_modules.get(MODULE_VISITOR, False),
+        ),
+        dog_count=len(flow._dogs),
       ),
     )
 
@@ -345,6 +343,7 @@ class ExternalEntityConfigurationMixin:
     """
     validated: ExternalEntityConfig = {}
     errors: dict[str, str] = {}
+    base_errors: list[str] = []
 
     gps_source = cast(str | None, user_input.get(CONF_GPS_SOURCE))
     door_sensor = cast(str | None, user_input.get(CONF_DOOR_SENSOR))
@@ -372,10 +371,16 @@ class ExternalEntityConfigurationMixin:
         self._validate_notify_service(notify_service),
       )
     except ValidationError as err:
-      errors[CONF_NOTIFY_FALLBACK] = _map_external_error(err)
+      if err.constraint == "notify_service_not_found":
+        service_name = str(err.value) if err.value else "unknown"
+        if isinstance(err.value, str) and "." in err.value:
+          service_name = err.value.split(".", 1)[1]
+        base_errors.append(f"Notification service '{service_name}' not found")
+      else:
+        errors[CONF_NOTIFY_FALLBACK] = _map_external_error(err)
 
-    if errors:
-      raise FlowValidationError(field_errors=errors)
+    if errors or base_errors:
+      raise FlowValidationError(field_errors=errors, base_errors=base_errors)
 
     return validated
 

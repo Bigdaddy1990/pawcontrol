@@ -7,7 +7,29 @@ dependencies.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 import pytest
+
+
+@dataclass
+class MockConfigEntry:
+  """Minimal config entry stub for tests."""
+
+  domain: str
+  data: dict[str, object] = field(default_factory=dict)
+  options: dict[str, object] = field(default_factory=dict)
+  unique_id: str | None = None
+  entry_id: str = "mock-entry"
+  title: str | None = None
+  runtime_data: object | None = None
+
+  def add_to_hass(self, hass) -> None:
+    """Attach the config entry to the stub Home Assistant instance."""
+
+    if self.title is None:
+      self.title = self.domain
+    hass.data.setdefault("config_entries", {})[self.entry_id] = self
 
 
 def pytest_configure(config: pytest.Config) -> None:

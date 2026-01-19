@@ -3196,6 +3196,7 @@ DOG_FEEDING_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
       "dog_name": "",
       "dog_weight": "",
       "suggested_amount": "",
+      "portion_info": "",
     },
   ),
 )
@@ -3208,9 +3209,10 @@ DOG_HEALTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
       "dog_weight": "",
       "suggested_ideal_weight": "",
       "suggested_activity": "",
+      "medication_enabled": "",
       "bcs_info": "",
       "special_diet_count": "",
-      "diet_compatibility_info": "",
+      "health_diet_info": "",
     },
   ),
 )
@@ -4165,6 +4167,9 @@ def ensure_gps_route_snapshot(
         normalised = _normalise_route_point(point)
         if normalised is not None:
           points.append(normalised)
+      else:
+        # Skip non-mapping points to avoid corrupting the route data.
+        pass
 
   start_time = _coerce_iso_timestamp(base.get("start_time"))
   end_time = _coerce_iso_timestamp(base.get("end_time"))

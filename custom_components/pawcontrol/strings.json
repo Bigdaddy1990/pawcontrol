@@ -228,7 +228,7 @@
           "reminder_minutes_before": "How many minutes before a meal the reminder should trigger.",
           "snacks_enabled": "Track snacks separately from regular meals."
         },
-        "description": "Set up feeding schedule for {dog_name} ({dog_weight}kg).\n\nSuggested daily amount: {suggested_amount}g\nAutomatic portion calculation: {suggested_amount}g per day",
+        "description": "Set up feeding schedule for {dog_name} ({dog_weight}kg).\n\nSuggested daily amount: {suggested_amount}g\n{portion_info}",
         "title": "Feeding Configuration for {dog_name}"
       },
       "dog_gps": {
@@ -354,7 +354,7 @@
           "weight_goal": "Choose whether the dog should maintain, lose, or gain weight.",
           "weight_tracking": "Enable to log weight entries and show weight trend sensors."
         },
-        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\nSelect all special diet requirements that apply to optimize feeding calculations.\n\n\u26a0\ufe0f Compatibility Info:\n{diet_compatibility_info}",
+        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\nMedication enabled: {medication_enabled}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\nSelect all special diet requirements that apply to optimize feeding calculations.\n\n\u26a0\ufe0f Compatibility Info:\n{health_diet_info}",
         "title": "Health & Diet Configuration for {dog_name}"
       },
       "dog_modules": {
@@ -437,14 +437,29 @@
   },
   "entity": {
     "binary_sensor": {
+      "activity_level_concern": {
+        "name": "Activity Level Concern"
+      },
+      "attention_needed": {
+        "name": "Attention Needed"
+      },
+      "daily_feeding_goal_met": {
+        "name": "Daily Feeding Goal Met"
+      },
       "extreme_cold_warning": {
         "name": "Extreme Cold Warning"
       },
       "extreme_heat_warning": {
         "name": "Extreme Heat Warning"
       },
+      "feeding_due": {
+        "name": "Feeding Due"
+      },
       "feeding_overdue": {
         "name": "Feeding Overdue"
+      },
+      "feeding_schedule_on_track": {
+        "name": "Feeding Schedule On Track"
       },
       "garden_poop_pending": {
         "name": "Garden Poop Confirmation Pending"
@@ -452,8 +467,20 @@
       "garden_session_active": {
         "name": "Garden Session Active"
       },
+      "geofence_alert": {
+        "name": "Geofence Alert"
+      },
+      "gps_accurately_tracked": {
+        "name": "GPS Accurately Tracked"
+      },
+      "gps_battery_low": {
+        "name": "GPS Battery Low"
+      },
       "gps_signal": {
         "name": "GPS Signal"
+      },
+      "health_alert": {
+        "name": "Health Alert"
       },
       "health_aware_feeding": {
         "name": "Health-Aware Feeding"
@@ -476,11 +503,17 @@
       "is_hungry": {
         "name": "Is Hungry"
       },
+      "long_walk_overdue": {
+        "name": "Long Walk Overdue"
+      },
       "medication_due": {
         "name": "Medication Due"
       },
       "medication_with_meals": {
         "name": "Medication With Meals"
+      },
+      "moving": {
+        "name": "Moving"
       },
       "needs_grooming": {
         "name": "Needs Grooming"
@@ -500,6 +533,9 @@
       "visitor_mode": {
         "name": "Visitor Mode"
       },
+      "walk_goal_met": {
+        "name": "Walk Goal Met"
+      },
       "walk_in_progress": {
         "name": "Walk In Progress"
       },
@@ -511,6 +547,12 @@
       }
     },
     "button": {
+      "call_dog": {
+        "name": "Call Dog"
+      },
+      "center_map": {
+        "name": "Center Map"
+      },
       "confirm_garden_poop": {
         "name": "Confirm Garden Poop"
       },
@@ -529,6 +571,12 @@
       "export_data": {
         "name": "Export Data"
       },
+      "export_route": {
+        "name": "Export Route"
+      },
+      "feed_now": {
+        "name": "Feed Now"
+      },
       "get_weather_alerts": {
         "name": "Get Weather Alerts"
       },
@@ -541,6 +589,12 @@
       "gps_start_walk": {
         "name": "GPS Start Walk"
       },
+      "health_check": {
+        "name": "Health Check"
+      },
+      "log_custom_feeding": {
+        "name": "Log Custom Feeding"
+      },
       "log_garden_activity": {
         "name": "Log Garden Activity"
       },
@@ -552,6 +606,15 @@
       },
       "log_poop": {
         "name": "Log Poop"
+      },
+      "log_walk_manually": {
+        "name": "Log Walk Manually"
+      },
+      "log_weight": {
+        "name": "Log Weight"
+      },
+      "mark_fed": {
+        "name": "Mark Fed"
       },
       "mark_fed_breakfast": {
         "name": "Mark Fed (Breakfast)"
@@ -568,6 +631,21 @@
       "notify_test": {
         "name": "Test Notification"
       },
+      "quick_walk": {
+        "name": "Quick Walk"
+      },
+      "refresh_data": {
+        "name": "Refresh Data"
+      },
+      "refresh_location": {
+        "name": "Refresh Location"
+      },
+      "reset_daily_stats": {
+        "name": "Reset Daily Stats"
+      },
+      "schedule_vet": {
+        "name": "Schedule Vet"
+      },
       "start_garden_session": {
         "name": "Start Garden Session"
       },
@@ -576,6 +654,12 @@
       },
       "start_walk": {
         "name": "Start Walk"
+      },
+      "sync_data": {
+        "name": "Sync Data"
+      },
+      "test_notification": {
+        "name": "Test Notification"
       },
       "toggle_visitor_mode": {
         "name": "Toggle Visitor Mode"
@@ -689,6 +773,77 @@
         "name": "GPS"
       }
     },
+    "number": {
+      "activity_goal": {
+        "name": "Activity Goal"
+      },
+      "age": {
+        "name": "Age"
+      },
+      "calorie_target": {
+        "name": "Calorie Target"
+      },
+      "daily_food_amount": {
+        "name": "Daily Food Amount"
+      },
+      "daily_walk_target": {
+        "name": "Daily Walk Target"
+      },
+      "feeding_reminder_hours": {
+        "name": "Feeding Reminder Hours"
+      },
+      "geofence_radius": {
+        "name": "Geofence Radius"
+      },
+      "gps_accuracy_threshold": {
+        "name": "GPS Accuracy Threshold"
+      },
+      "gps_battery_threshold": {
+        "name": "GPS Battery Threshold"
+      },
+      "gps_update_interval": {
+        "name": "GPS Update Interval"
+      },
+      "grooming_interval": {
+        "name": "Grooming Interval"
+      },
+      "health_score_threshold": {
+        "name": "Health Score Threshold"
+      },
+      "location_update_distance": {
+        "name": "Location Update Distance"
+      },
+      "max_walk_speed": {
+        "name": "Max Walk Speed"
+      },
+      "meals_per_day": {
+        "name": "Meals Per Day"
+      },
+      "portion_size": {
+        "name": "Portion Size"
+      },
+      "target_weight": {
+        "name": "Target Weight"
+      },
+      "vet_checkup_interval": {
+        "name": "Vet Checkup Interval"
+      },
+      "walk_distance_target": {
+        "name": "Walk Distance Target"
+      },
+      "walk_duration_target": {
+        "name": "Walk Duration Target"
+      },
+      "walk_reminder_hours": {
+        "name": "Walk Reminder Hours"
+      },
+      "weight": {
+        "name": "Weight"
+      },
+      "weight_change_threshold": {
+        "name": "Weight Change Threshold"
+      }
+    },
     "select": {
       "activity_level": {
         "name": "Activity Level",
@@ -700,6 +855,15 @@
           "very_low": "Very Low"
         }
       },
+      "default_meal_type": {
+        "name": "Default Meal Type"
+      },
+      "feeding_mode": {
+        "name": "Feeding Mode"
+      },
+      "feeding_schedule": {
+        "name": "Feeding Schedule"
+      },
       "food_type": {
         "name": "Food Type",
         "state": {
@@ -709,6 +873,18 @@
           "mixed": "Mixed",
           "wet_food": "Wet Food"
         }
+      },
+      "gps_source": {
+        "name": "GPS Source"
+      },
+      "grooming_type": {
+        "name": "Grooming Type"
+      },
+      "health_status": {
+        "name": "Health Status"
+      },
+      "location_accuracy": {
+        "name": "Location Accuracy"
       },
       "mood": {
         "name": "Mood",
@@ -721,6 +897,12 @@
           "tired": "Tired"
         }
       },
+      "notification_priority": {
+        "name": "Notification Priority"
+      },
+      "performance_mode": {
+        "name": "Performance Mode"
+      },
       "size": {
         "name": "Size",
         "state": {
@@ -730,6 +912,18 @@
           "small": "Small",
           "toy": "Toy"
         }
+      },
+      "tracking_mode": {
+        "name": "Tracking Mode"
+      },
+      "walk_intensity": {
+        "name": "Walk Intensity"
+      },
+      "walk_mode": {
+        "name": "Walk Mode"
+      },
+      "weather_preference": {
+        "name": "Weather Preference"
       },
       "weather_severity": {
         "name": "Weather Severity",
@@ -758,6 +952,9 @@
       "activity_score": {
         "name": "Activity Score"
       },
+      "average_walk_duration": {
+        "name": "Average Walk Duration"
+      },
       "avg_garden_duration": {
         "name": "Average Garden Duration"
       },
@@ -773,6 +970,9 @@
       "calories_consumed_today": {
         "name": "Calories Consumed Today"
       },
+      "current_location": {
+        "name": "Current Location"
+      },
       "current_speed": {
         "name": "Current Speed"
       },
@@ -787,6 +987,9 @@
       },
       "daily_calorie_target": {
         "name": "Daily Calorie Target"
+      },
+      "daily_calories": {
+        "name": "Daily Calories"
       },
       "daily_portions": {
         "name": "Daily Portions"
@@ -844,6 +1047,9 @@
       "feeding_recommendation": {
         "name": "Feeding Recommendation"
       },
+      "feeding_schedule_adherence": {
+        "name": "Feeding Schedule Adherence"
+      },
       "food_consumption": {
         "name": "Food Consumption"
       },
@@ -873,6 +1079,9 @@
       },
       "gps_battery_level": {
         "name": "GPS Battery Level"
+      },
+      "health_aware_portion": {
+        "name": "Health-Aware Portion"
       },
       "health_conditions": {
         "name": "Health Conditions"
@@ -974,6 +1183,9 @@
       },
       "walk_count_today": {
         "name": "Walk Count Today"
+      },
+      "walk_distance_today": {
+        "name": "Walk Distance Today"
       },
       "walks_this_week": {
         "name": "Walks This Week"

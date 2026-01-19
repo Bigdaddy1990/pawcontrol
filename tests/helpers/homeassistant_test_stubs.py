@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import builtins
+import importlib
 import re
 import sys
 import types
@@ -11,7 +13,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Generic, TypeVar
 from unittest.mock import AsyncMock
 
 __all__ = [
@@ -24,6 +26,7 @@ __all__ = [
   "IssueSeverity",
   "MutableFlowResultDict",
   "Platform",
+  "RestoreEntity",
   "install_homeassistant_stubs",
   "support_entry_unload",
   "support_remove_from_device",
@@ -49,6 +52,42 @@ def _now() -> datetime:
   """Return a timezone-aware current timestamp."""
 
   return datetime.now(UTC)
+
+
+def _parse_datetime(value: str | None) -> datetime | None:
+  """Parse ISO formatted datetimes used by telemetry helpers."""
+
+  if not value:
+    return None
+  try:
+    return datetime.fromisoformat(value)
+  except ValueError:
+    return None
+
+
+def _as_utc(value: datetime) -> datetime:
+  """Return the datetime converted to UTC."""
+
+  if value.tzinfo is None:
+    return value.replace(tzinfo=UTC)
+  return value.astimezone(UTC)
+
+
+def _as_local(value: datetime) -> datetime:
+  """Return the datetime converted to local time (UTC fallback)."""
+
+  if value.tzinfo is None:
+    return value.replace(tzinfo=UTC)
+  return value
+
+
+def _start_of_local_day(value: datetime) -> datetime:
+  """Return the start of the local day for the provided datetime."""
+
+  if isinstance(value, date) and not isinstance(value, datetime):
+    return datetime.combine(value, datetime.min.time(), tzinfo=UTC)
+  local = _as_local(value)
+  return local.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 class Platform(StrEnum):
@@ -164,6 +203,7 @@ class UnitOfTemperature(StrEnum):
 
   CELSIUS = "°C"
   FAHRENHEIT = "°F"
+  KELVIN = "K"
 
 
 class _ConfigEntryError(Exception):
@@ -187,6 +227,19 @@ class HomeAssistant:
 
   def __init__(self) -> None:
     self.data: dict[str, object] = {}
+    self.config = types.SimpleNamespace(language=None)
+    self.config_entries = types.SimpleNamespace(async_update_entry=AsyncMock())
+    self.services = types.SimpleNamespace(async_call=AsyncMock())
+    self.states = StateMachine()
+
+  def async_create_task(
+    self,
+    awaitable: object,
+    *,
+    name: str | None = None,
+  ) -> asyncio.Task:
+    loop = asyncio.get_running_loop()
+    return loop.create_task(awaitable, name=name)
 
 
 class Event:
@@ -211,11 +264,45 @@ class State:
     self.attributes = attributes or {}
 
 
+class StateMachine:
+  """Minimal state storage for tests."""
+
+  def __init__(self) -> None:
+    self._states: dict[str, State] = {}
+
+  def get(self, entity_id: str) -> State | None:
+    return self._states.get(entity_id)
+
+  def async_set(
+    self,
+    entity_id: str,
+    state: str,
+    attributes: dict[str, object] | None = None,
+  ) -> None:
+    self._states[entity_id] = State(entity_id, state, attributes)
+
+  def async_entity_ids(self, domain: str | None = None) -> list[str]:
+    """Return entity ids, optionally filtered by domain."""
+
+    if domain is None:
+      return list(self._states)
+    prefix = f"{domain}."
+    return [entity_id for entity_id in self._states if entity_id.startswith(prefix)]
+
+
 class Context:
   """Lightweight ``homeassistant.core.Context`` replacement."""
 
-  def __init__(self, user_id: str | None = None) -> None:
+  def __init__(
+    self,
+    user_id: str | None = None,
+    context_id: str | None = None,
+    parent_id: str | None = None,
+  ) -> None:
     self.user_id = user_id
+    self.context_id = context_id or "context"
+    self.id = self.context_id
+    self.parent_id = parent_id
 
 
 class ServiceCall:
@@ -1203,7 +1290,8 @@ def _async_remove_registry_entry(registry: EntityRegistry, entity_id: str) -> bo
 class Store:
   """Persistence helper used by coordinator storage tests."""
 
-  def __init__(self) -> None:
+  def __init__(self, *args: object, **kwargs: object) -> None:
+    _ = args, kwargs
     self.data: object | None = None
 
   async def async_load(self) -> object | None:
@@ -1213,10 +1301,58 @@ class Store:
     self.data = data
 
 
+def async_dispatcher_connect(
+  hass: HomeAssistant, signal: str, target: Callable
+) -> Callable:
+  """Minimal dispatcher connect helper used by service wiring."""
+
+  dispatcher = hass.data.setdefault("_dispatcher", {})
+  listeners = dispatcher.setdefault(signal, [])
+  listeners.append(target)
+
+  def _unsubscribe() -> None:
+    if target in listeners:
+      listeners.remove(target)
+
+  return _unsubscribe
+
+
 class Entity:
   """Base entity stub."""
 
   pass
+
+
+class RestoreEntity(Entity):
+  """Mixin stub for state restoration helpers."""
+
+  async def async_get_last_state(self) -> State | None:
+    return None
+
+
+EntityT = TypeVar("EntityT", bound=Entity)
+
+
+class EntityComponent[EntityT: Entity]:
+  """Minimal entity component container."""
+
+  def __init__(self) -> None:
+    self._entities: dict[str, EntityT] = {}
+
+  def get_entity(self, entity_id: str) -> EntityT | None:
+    return self._entities.get(entity_id)
+
+  async def async_add_entities(self, entities: Iterable[EntityT]) -> None:
+    for entity in entities:
+      entity_id = getattr(entity, "entity_id", None)
+      if entity_id is None:
+        entity_id = getattr(entity, "_attr_unique_id", None)
+      if entity_id is None:
+        entity_id = f"entity.{len(self._entities)}"
+      self._entities[str(entity_id)] = entity
+
+  async def async_remove_entity(self, entity_id: str) -> None:
+    self._entities.pop(entity_id, None)
 
 
 class SensorEntity(Entity):
@@ -1444,20 +1580,20 @@ def _log_exception(format_err: Callable[..., str], *args: object) -> None:
   format_err(*args)
 
 
-async def _async_track_time_interval(*args: object, **kwargs: object):
-  return None
+def _async_track_time_interval(*args: object, **kwargs: object):
+  return lambda: None
 
 
-async def _async_track_time_change(*args: object, **kwargs: object):
-  return None
+def _async_track_time_change(*args: object, **kwargs: object):
+  return lambda: None
 
 
-async def _async_call_later(*args: object, **kwargs: object):
-  return None
+def _async_call_later(*args: object, **kwargs: object):
+  return lambda: None
 
 
-async def _async_track_state_change_event(*args: object, **kwargs: object):
-  return None
+def _async_track_state_change_event(*args: object, **kwargs: object):
+  return lambda: None
 
 
 class DataUpdateCoordinator:
@@ -1587,7 +1723,13 @@ def _register_custom_component_packages() -> None:
 
   pawcontrol_pkg = types.ModuleType("custom_components.pawcontrol")
   pawcontrol_pkg.__path__ = [str(PAWCONTROL_ROOT)]
+
+  def _load_submodule(name: str):
+    return importlib.import_module(f"custom_components.pawcontrol.{name}")
+
+  pawcontrol_pkg.__getattr__ = _load_submodule  # type: ignore[assignment]
   sys.modules["custom_components.pawcontrol"] = pawcontrol_pkg
+  custom_components_pkg.pawcontrol = pawcontrol_pkg
 
 
 def install_homeassistant_stubs() -> None:
@@ -1601,10 +1743,14 @@ def install_homeassistant_stubs() -> None:
     "homeassistant.exceptions",
     "homeassistant.helpers",
     "homeassistant.helpers.entity",
+    "homeassistant.helpers.entity_component",
     "homeassistant.helpers.entity_platform",
     "homeassistant.helpers.config_validation",
     "homeassistant.helpers.aiohttp_client",
+    "homeassistant.helpers.dispatcher",
     "homeassistant.helpers.event",
+    "homeassistant.helpers.restore_state",
+    "homeassistant.helpers.typing",
     "homeassistant.helpers.update_coordinator",
     "homeassistant.helpers.selector",
     "homeassistant.helpers.device_registry",
@@ -1658,6 +1804,9 @@ def install_homeassistant_stubs() -> None:
   helpers_module = types.ModuleType("homeassistant.helpers")
   helpers_module.__path__ = []
   entity_module = types.ModuleType("homeassistant.helpers.entity")
+  entity_component_module = types.ModuleType(
+    "homeassistant.helpers.entity_component",
+  )
   entity_platform_module = types.ModuleType(
     "homeassistant.helpers.entity_platform",
   )
@@ -1667,7 +1816,10 @@ def install_homeassistant_stubs() -> None:
   aiohttp_client_module = types.ModuleType(
     "homeassistant.helpers.aiohttp_client",
   )
+  dispatcher_module = types.ModuleType("homeassistant.helpers.dispatcher")
   event_module = types.ModuleType("homeassistant.helpers.event")
+  restore_state_module = types.ModuleType("homeassistant.helpers.restore_state")
+  typing_module = types.ModuleType("homeassistant.helpers.typing")
   update_coordinator_module = types.ModuleType(
     "homeassistant.helpers.update_coordinator",
   )
@@ -1808,6 +1960,9 @@ def install_homeassistant_stubs() -> None:
 
   entity_module.Entity = Entity
   entity_module.EntityCategory = EntityCategory
+  entity_component_module.EntityComponent = EntityComponent
+  restore_state_module.RestoreEntity = RestoreEntity
+  dispatcher_module.async_dispatcher_connect = async_dispatcher_connect
 
   entity_platform_module.AddEntitiesCallback = Callable[
     [list[Entity], bool],
@@ -1828,12 +1983,18 @@ def install_homeassistant_stubs() -> None:
   event_module.async_call_later = _async_call_later
   event_module.async_track_state_change_event = _async_track_state_change_event
 
+  typing_module.ConfigType = dict[str, Any]
+
   update_coordinator_module.DataUpdateCoordinator = DataUpdateCoordinator
   update_coordinator_module.CoordinatorEntity = CoordinatorEntity
   update_coordinator_module.CoordinatorUpdateFailed = CoordinatorUpdateFailed
 
   dt_util_module.utcnow = _utcnow
   dt_util_module.now = _now
+  dt_util_module.parse_datetime = _parse_datetime
+  dt_util_module.as_utc = _as_utc
+  dt_util_module.as_local = _as_local
+  dt_util_module.start_of_local_day = _start_of_local_day
   logging_util_module.log_exception = _log_exception
 
   def _slugify(value: str) -> str:
@@ -1944,10 +2105,14 @@ def install_homeassistant_stubs() -> None:
   homeassistant.util = util_module
 
   helpers_module.entity = entity_module
+  helpers_module.entity_component = entity_component_module
   helpers_module.entity_platform = entity_platform_module
   helpers_module.config_validation = config_validation_module
   helpers_module.aiohttp_client = aiohttp_client_module
+  helpers_module.dispatcher = dispatcher_module
   helpers_module.event = event_module
+  helpers_module.restore_state = restore_state_module
+  helpers_module.typing = typing_module
   helpers_module.update_coordinator = update_coordinator_module
   helpers_module.selector = selector_module
   helpers_module.device_registry = device_registry_module
@@ -1984,10 +2149,14 @@ def install_homeassistant_stubs() -> None:
   sys.modules["homeassistant.exceptions"] = exceptions_module
   sys.modules["homeassistant.helpers"] = helpers_module
   sys.modules["homeassistant.helpers.entity"] = entity_module
+  sys.modules["homeassistant.helpers.entity_component"] = entity_component_module
   sys.modules["homeassistant.helpers.entity_platform"] = entity_platform_module
   sys.modules["homeassistant.helpers.config_validation"] = config_validation_module
   sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client_module
+  sys.modules["homeassistant.helpers.dispatcher"] = dispatcher_module
   sys.modules["homeassistant.helpers.event"] = event_module
+  sys.modules["homeassistant.helpers.restore_state"] = restore_state_module
+  sys.modules["homeassistant.helpers.typing"] = typing_module
   sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator_module
   sys.modules["homeassistant.helpers.selector"] = selector_module
   sys.modules["homeassistant.helpers.device_registry"] = device_registry_module

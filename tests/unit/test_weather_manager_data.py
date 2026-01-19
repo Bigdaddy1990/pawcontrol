@@ -6,6 +6,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from enum import Enum
 from typing import cast
@@ -73,11 +74,11 @@ from custom_components.pawcontrol.weather_manager import (
 
 
 @pytest.fixture
-async def weather_manager(hass: HomeAssistant) -> WeatherHealthManager:
+def weather_manager(hass: HomeAssistant) -> WeatherHealthManager:
   """Return a fresh weather health manager for each test."""
 
   manager = WeatherHealthManager(hass)
-  await manager.async_load_translations()
+  asyncio.run(manager.async_load_translations())
   return manager
 
 

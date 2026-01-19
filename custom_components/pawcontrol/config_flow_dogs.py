@@ -211,6 +211,7 @@ def _build_dog_feeding_placeholders(
   dog_name: str,
   dog_weight: str,
   suggested_amount: str,
+  portion_info: str,
 ) -> ConfigFlowPlaceholders:
   """Return immutable placeholders for the feeding configuration step."""
 
@@ -218,6 +219,7 @@ def _build_dog_feeding_placeholders(
   placeholders["dog_name"] = dog_name
   placeholders["dog_weight"] = dog_weight
   placeholders["suggested_amount"] = suggested_amount
+  placeholders["portion_info"] = portion_info
   return freeze_placeholders(placeholders)
 
 
@@ -228,9 +230,10 @@ def _build_dog_health_placeholders(
   dog_weight: str,
   suggested_ideal_weight: str,
   suggested_activity: str,
+  medication_enabled: str,
   bcs_info: str,
   special_diet_count: str,
-  diet_compatibility_info: str,
+  health_diet_info: str,
 ) -> ConfigFlowPlaceholders:
   """Return immutable placeholders for the health configuration step."""
 
@@ -240,9 +243,10 @@ def _build_dog_health_placeholders(
   placeholders["dog_weight"] = dog_weight
   placeholders["suggested_ideal_weight"] = suggested_ideal_weight
   placeholders["suggested_activity"] = suggested_activity
+  placeholders["medication_enabled"] = medication_enabled
   placeholders["bcs_info"] = bcs_info
   placeholders["special_diet_count"] = special_diet_count
-  placeholders["diet_compatibility_info"] = diet_compatibility_info
+  placeholders["health_diet_info"] = health_diet_info
   return freeze_placeholders(placeholders)
 
 
@@ -980,6 +984,7 @@ class DogManagementMixin(DogManagementMixinBase):
           dog_name=current_dog[DOG_NAME_FIELD],
           dog_weight=str(dog_weight_value),
           suggested_amount=str(suggested_amount),
+          portion_info=(f"Automatic portion calculation: {suggested_amount}g per day"),
         ),
       ),
     )
@@ -1325,10 +1330,11 @@ class DogManagementMixin(DogManagementMixinBase):
     bcs_key = "config.step.dog_health.bcs_info"
     bcs_info = translations.get(bcs_key) or fallback.get(bcs_key) or ""
 
-    diet_compatibility_info = await self._get_diet_compatibility_guidance(
+    health_diet_info = await self._get_diet_compatibility_guidance(
       dog_age,
       dog_size,
     )
+    medication_enabled = "yes" if current_dog.get("medications") else "no"
 
     return self.async_show_form(
       step_id="dog_health",
@@ -1340,9 +1346,10 @@ class DogManagementMixin(DogManagementMixinBase):
           dog_weight=str(dog_weight),
           suggested_ideal_weight=str(suggested_ideal_weight),
           suggested_activity=suggested_activity,
+          medication_enabled=medication_enabled,
           bcs_info=bcs_info,
           special_diet_count=str(len(SPECIAL_DIET_OPTIONS)),
-          diet_compatibility_info=diet_compatibility_info,
+          health_diet_info=health_diet_info,
         ),
       ),
     )

@@ -354,13 +354,18 @@ class GPSOptionsMixin(GPSOptionsHost):
 
       new_options = self._clone_options()
       dog_options = self._current_dog_options()
-      entry = ensure_dog_options_entry(
-        cast(JSONLikeMapping, dict(dog_options.get(dog_id, {}))),
-        dog_id=dog_id,
-      )
-      entry[GPS_SETTINGS_FIELD] = gps_settings
-      dog_options[dog_id] = entry
-      new_options[DOG_OPTIONS_FIELD] = dog_options
+      if dog_id in dog_options or not dog_options:
+        entry = ensure_dog_options_entry(
+          cast(JSONLikeMapping, dict(dog_options.get(dog_id, {}))),
+          dog_id=dog_id,
+        )
+        entry[GPS_SETTINGS_FIELD] = gps_settings
+        dog_options[dog_id] = entry
+        new_options[DOG_OPTIONS_FIELD] = dog_options
+      new_options[GPS_SETTINGS_FIELD] = gps_settings
+      new_options[CONF_GPS_UPDATE_INTERVAL] = validated_interval
+      new_options[CONF_GPS_ACCURACY_FILTER] = validated_accuracy
+      new_options[CONF_GPS_DISTANCE_FILTER] = validated_distance
 
       typed_options = self._normalise_options_snapshot(new_options)
 
@@ -508,8 +513,10 @@ class GPSOptionsMixin(GPSOptionsHost):
           default_lat=default_lat,
           default_lon=default_lon,
         )
-        dog_options[dog_id] = entry
-        new_options[DOG_OPTIONS_FIELD] = dog_options
+        if dog_id in dog_options or not dog_options:
+          dog_options[dog_id] = entry
+          new_options[DOG_OPTIONS_FIELD] = dog_options
+        new_options["geofence_settings"] = entry["geofence_settings"]
 
         typed_options = self._normalise_options_snapshot(new_options)
 
