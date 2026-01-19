@@ -13,76 +13,29 @@ from .selector_shim import selector
 from .types import (
   DOG_ID_FIELD,
   DOG_OPTIONS_FIELD,
-  DogConfigData,
-  DogOptionsMap,
   HealthOptions,
   JSONLikeMapping,
-  JSONValue,
   OptionsHealthSettingsInput,
   ensure_dog_options_entry,
 )
 
 if TYPE_CHECKING:
+  from .options_flow_hosts import DogOptionsHost
 
-  class HealthOptionsHost:
-    _current_dog: DogConfigData | None
-    _dogs: list[DogConfigData]
-
-    def _clone_options(self) -> dict[str, JSONValue]: ...
-
-    def _current_dog_options(self) -> DogOptionsMap: ...
-
-    def _current_options(self) -> Mapping[str, JSONValue]: ...
-
-    def _normalise_options_snapshot(
-      self,
-      options: Mapping[str, JSONValue],
-    ) -> Mapping[str, JSONValue]: ...
-
-    def _build_dog_selector_schema(self) -> vol.Schema: ...
-
-    def _require_current_dog(self) -> DogConfigData | None: ...
-
-    def _select_dog_by_id(
-      self,
-      dog_id: str | None,
-    ) -> DogConfigData | None: ...
-
-    def async_show_form(
-      self,
-      *,
-      step_id: str,
-      data_schema: vol.Schema,
-      errors: dict[str, str] | None = None,
-    ) -> ConfigFlowResult: ...
-
-    def async_create_entry(
-      self,
-      *,
-      title: str,
-      data: Mapping[str, JSONValue],
-    ) -> ConfigFlowResult: ...
-
-    async def async_step_init(self) -> ConfigFlowResult: ...
+  class HealthOptionsHost(DogOptionsHost):
+    """Type-checking host for health options mixin."""
 
 else:  # pragma: no cover
-  HealthOptionsHost = object
+  from .options_flow_shared import OptionsFlowSharedMixin
+
+  class HealthOptionsHost(OptionsFlowSharedMixin):
+    """Runtime host for health options mixin."""
+
+    pass
 
 
 class HealthOptionsMixin(HealthOptionsHost):
   """Handle per-dog health options."""
-
-  @staticmethod
-  def _coerce_bool(value: Any, default: bool) -> bool:
-    """Return a boolean value using Home Assistant style truthiness rules."""
-
-    if value is None:
-      return default
-    if isinstance(value, bool):
-      return value
-    if isinstance(value, str):
-      return value.strip().lower() in {"1", "true", "on", "yes"}
-    return bool(value)
 
   def _current_health_options(self, dog_id: str) -> HealthOptions:
     """Return the stored health configuration as a typed mapping."""

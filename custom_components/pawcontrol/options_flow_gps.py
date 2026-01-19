@@ -111,7 +111,12 @@ if TYPE_CHECKING:
     async def async_step_init(self) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-  GPSOptionsHost = object
+  from .options_flow_shared import OptionsFlowSharedMixin
+
+  class GPSOptionsHost(OptionsFlowSharedMixin):
+    """Runtime host for GPS options mixin."""
+
+    pass
 
 
 class GPSOptionsMixin(GPSOptionsHost):
