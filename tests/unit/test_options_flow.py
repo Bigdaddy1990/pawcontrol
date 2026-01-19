@@ -73,6 +73,24 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 
+def _assert_notification_values(
+  notifications: NotificationOptions,
+  *,
+  quiet_hours: bool,
+  quiet_start: str,
+  quiet_end: str,
+  reminder_repeat_min: int,
+  priority_notifications: bool,
+  mobile_notifications: bool,
+) -> None:
+  assert notifications[NOTIFICATION_QUIET_HOURS_FIELD] is quiet_hours
+  assert notifications[NOTIFICATION_QUIET_START_FIELD] == quiet_start
+  assert notifications[NOTIFICATION_QUIET_END_FIELD] == quiet_end
+  assert notifications[NOTIFICATION_REMINDER_REPEAT_FIELD] == reminder_repeat_min
+  assert notifications[NOTIFICATION_PRIORITY_FIELD] is priority_notifications
+  assert notifications[NOTIFICATION_MOBILE_FIELD] is mobile_notifications
+
+
 def _assert_notifications(
   options: PawControlOptionsData,
   *,
@@ -84,13 +102,15 @@ def _assert_notifications(
   mobile_notifications: bool,
 ) -> None:
   notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
-
-  assert notifications[NOTIFICATION_QUIET_HOURS_FIELD] is quiet_hours
-  assert notifications[NOTIFICATION_QUIET_START_FIELD] == quiet_start
-  assert notifications[NOTIFICATION_QUIET_END_FIELD] == quiet_end
-  assert notifications[NOTIFICATION_REMINDER_REPEAT_FIELD] == reminder_repeat_min
-  assert notifications[NOTIFICATION_PRIORITY_FIELD] is priority_notifications
-  assert notifications[NOTIFICATION_MOBILE_FIELD] is mobile_notifications
+  _assert_notification_values(
+    notifications,
+    quiet_hours=quiet_hours,
+    quiet_start=quiet_start,
+    quiet_end=quiet_end,
+    reminder_repeat_min=reminder_repeat_min,
+    priority_notifications=priority_notifications,
+    mobile_notifications=mobile_notifications,
+  )
 
 
 def _assert_dog_modules(
@@ -310,14 +330,15 @@ async def test_notification_settings_structured(
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
   options = cast(PawControlOptionsData, result["data"])
-  notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
-
-  assert notifications[CONF_QUIET_HOURS] is False
-  assert notifications[CONF_QUIET_START] == "21:30:00"
-  assert notifications[CONF_QUIET_END] == "06:45:00"
-  assert notifications[CONF_REMINDER_REPEAT_MIN] == 45
-  assert notifications["priority_notifications"] is True
-  assert notifications["mobile_notifications"] is False
+  _assert_notifications(
+    options,
+    quiet_hours=False,
+    quiet_start="21:30:00",
+    quiet_end="06:45:00",
+    reminder_repeat_min=45,
+    priority_notifications=True,
+    mobile_notifications=False,
+  )
 
 
 def test_notification_settings_normalise_existing_payload(
@@ -341,12 +362,15 @@ def test_notification_settings_normalise_existing_payload(
 
   notifications = flow._current_notification_options()
 
-  assert notifications[CONF_QUIET_HOURS] is False
-  assert notifications[CONF_QUIET_START] == "20:00:00"
-  assert notifications[CONF_QUIET_END] == "07:00:00"
-  assert notifications[CONF_REMINDER_REPEAT_MIN] == 180
-  assert notifications["priority_notifications"] is False
-  assert notifications["mobile_notifications"] is False
+  _assert_notification_values(
+    notifications,
+    quiet_hours=False,
+    quiet_start="20:00:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=180,
+    priority_notifications=False,
+    mobile_notifications=False,
+  )
 
 
 @pytest.mark.asyncio
@@ -399,22 +423,27 @@ async def test_performance_settings_normalisation(
   assert options["cache_ttl"] == 900
   assert options["selective_refresh"] is False
 
-  notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
-  assert notifications[CONF_QUIET_HOURS] is True
-  assert notifications[CONF_QUIET_START] == "19:45:00"
-  assert notifications[CONF_QUIET_END] == "07:00:00"
-  assert notifications[CONF_REMINDER_REPEAT_MIN] == 180
-  assert notifications["priority_notifications"] is False
-  assert notifications["mobile_notifications"] is True
+  _assert_notifications(
+    options,
+    quiet_hours=True,
+    quiet_start="19:45:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=180,
+    priority_notifications=False,
+    mobile_notifications=True,
+  )
 
   dog_options = cast(DogOptionsMap, options["dog_options"])
   assert set(dog_options) == {"test_dog"}
 
-  dog_entry = dog_options["test_dog"]
-  assert dog_entry[DOG_ID_FIELD] == "test_dog"
-  modules = dog_entry[DOG_MODULES_FIELD]
-  assert modules[MODULE_HEALTH] is True
-  assert modules[MODULE_WALK] is False
+  _assert_dog_modules(
+    dog_options,
+    "test_dog",
+    {
+      MODULE_HEALTH: True,
+      MODULE_WALK: False,
+    },
+  )
 
 
 @pytest.mark.asyncio
@@ -563,22 +592,27 @@ async def test_profile_preview_apply_normalises_snapshot(
   options = cast(PawControlOptionsData, result["data"])
   assert options["entity_profile"] == "gps_focus"
 
-  notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
-  assert notifications[CONF_QUIET_HOURS] is False
-  assert notifications[CONF_QUIET_START] == "20:15:00"
-  assert notifications[CONF_QUIET_END] == "07:00:00"
-  assert notifications[CONF_REMINDER_REPEAT_MIN] == 5
-  assert notifications["priority_notifications"] is False
-  assert notifications["mobile_notifications"] is True
+  _assert_notifications(
+    options,
+    quiet_hours=False,
+    quiet_start="20:15:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=5,
+    priority_notifications=False,
+    mobile_notifications=True,
+  )
 
   dog_options = cast(DogOptionsMap, options["dog_options"])
   assert set(dog_options) == {"scout"}
 
-  scout_entry = dog_options["scout"]
-  assert scout_entry[DOG_ID_FIELD] == "scout"
-  scout_modules = scout_entry[DOG_MODULES_FIELD]
-  assert scout_modules[MODULE_GPS] is True
-  assert scout_modules[MODULE_HEALTH] is False
+  _assert_dog_modules(
+    dog_options,
+    "scout",
+    {
+      MODULE_GPS: True,
+      MODULE_HEALTH: False,
+    },
+  )
 
 
 @pytest.mark.asyncio
@@ -933,22 +967,27 @@ async def test_system_settings_normalisation(
   assert options["manual_guard_event"] == "pawcontrol_manual_guard"
   assert "manual_breaker_event" not in options
 
-  notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
-  assert notifications[CONF_QUIET_HOURS] is True
-  assert notifications[CONF_QUIET_START] == "05:15:00"
-  assert notifications[CONF_QUIET_END] == "07:00:00"
-  assert notifications[CONF_REMINDER_REPEAT_MIN] == 180
-  assert notifications["priority_notifications"] is False
-  assert notifications["mobile_notifications"] is True
+  _assert_notifications(
+    options,
+    quiet_hours=True,
+    quiet_start="05:15:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=180,
+    priority_notifications=False,
+    mobile_notifications=True,
+  )
 
   dog_options = cast(DogOptionsMap, options["dog_options"])
   assert set(dog_options) == {"buddy"}
 
-  buddy_entry = dog_options["buddy"]
-  assert buddy_entry[DOG_ID_FIELD] == "buddy"
-  buddy_modules = buddy_entry[DOG_MODULES_FIELD]
-  assert buddy_modules[MODULE_WALK] is True
-  assert buddy_modules[MODULE_FEEDING] is False
+  _assert_dog_modules(
+    dog_options,
+    "buddy",
+    {
+      MODULE_WALK: True,
+      MODULE_FEEDING: False,
+    },
+  )
 
   script_manager.async_sync_manual_resilience_events.assert_awaited_once_with(
     {

@@ -63,6 +63,23 @@ def _make_runtime_data(
   )
 
 
+def _make_basic_entry(module: Any) -> SimpleNamespace:
+  return SimpleNamespace(
+    entry_id="entry",
+    data={
+      module.CONF_DOGS: [
+        {
+          module.CONF_DOG_ID: "dog",
+          module.CONF_DOG_NAME: "Dog",
+          "modules": {},
+        },
+      ],
+    },
+    options={},
+    version=1,
+  )
+
+
 def _make_reconfigure_entry(
   module: Any,
   *,
@@ -592,29 +609,8 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     caches_with_expired_entries=["adaptive_cache"],
   )
 
-  class _DataManager:
-    def cache_repair_summary(self) -> CacheRepairAggregate:
-      return summary
-
-  runtime_data = SimpleNamespace(
-    data_manager=_DataManager(),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
-    options={},
-    version=1,
-  )
+  runtime_data = _make_runtime_data(summary)
+  entry = _make_basic_entry(module)
 
   original_require_runtime_data = module.require_runtime_data
   module.require_runtime_data = lambda _hass, _entry: runtime_data
@@ -658,29 +654,8 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     generated_at="2024-01-01T00:00:00+00:00",
   )
 
-  class _DataManager:
-    def cache_repair_summary(self) -> CacheRepairAggregate:
-      return summary
-
-  runtime_data = SimpleNamespace(
-    data_manager=_DataManager(),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
-    options={},
-    version=1,
-  )
+  runtime_data = _make_runtime_data(summary)
+  entry = _make_basic_entry(module)
 
   original_require_runtime_data = module.require_runtime_data
   module.require_runtime_data = lambda _hass, _entry: runtime_data
