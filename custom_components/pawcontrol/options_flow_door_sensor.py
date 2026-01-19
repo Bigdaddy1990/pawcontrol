@@ -38,6 +38,7 @@ from .types import (
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class DoorSensorOptionsMixin:
   async def async_step_select_dog_for_door_sensor(
     self,
