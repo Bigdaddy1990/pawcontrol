@@ -13,63 +13,25 @@ from .selector_shim import selector
 from .types import (
   DOG_ID_FIELD,
   DOG_OPTIONS_FIELD,
-  DogConfigData,
-  DogOptionsMap,
   FeedingOptions,
   JSONLikeMapping,
-  JSONValue,
   OptionsFeedingSettingsInput,
   ensure_dog_options_entry,
 )
 
 if TYPE_CHECKING:
+  from .options_flow_hosts import DogOptionsHost
 
-  class FeedingOptionsHost:
-    _current_dog: DogConfigData | None
-    _dogs: list[DogConfigData]
-
-    def _clone_options(self) -> dict[str, JSONValue]: ...
-
-    def _current_dog_options(self) -> DogOptionsMap: ...
-
-    def _current_options(self) -> Mapping[str, JSONValue]: ...
-
-    def _normalise_options_snapshot(
-      self,
-      options: Mapping[str, JSONValue],
-    ) -> Mapping[str, JSONValue]: ...
-
-    def _build_dog_selector_schema(self) -> vol.Schema: ...
-
-    def _require_current_dog(self) -> DogConfigData | None: ...
-
-    @staticmethod
-    def _coerce_bool(value: Any, default: bool) -> bool: ...
-
-    def _select_dog_by_id(
-      self,
-      dog_id: str | None,
-    ) -> DogConfigData | None: ...
-
-    def async_show_form(
-      self,
-      *,
-      step_id: str,
-      data_schema: vol.Schema,
-      errors: dict[str, str] | None = None,
-    ) -> ConfigFlowResult: ...
-
-    def async_create_entry(
-      self,
-      *,
-      title: str,
-      data: Mapping[str, JSONValue],
-    ) -> ConfigFlowResult: ...
-
-    async def async_step_init(self) -> ConfigFlowResult: ...
+  class FeedingOptionsHost(DogOptionsHost):
+    """Type-checking host for feeding options mixin."""
 
 else:  # pragma: no cover
-  FeedingOptionsHost = object
+  from .options_flow_shared import OptionsFlowSharedMixin
+
+  class FeedingOptionsHost(OptionsFlowSharedMixin):
+    """Runtime host for feeding options mixin."""
+
+    pass
 
 
 class FeedingOptionsMixin(FeedingOptionsHost):

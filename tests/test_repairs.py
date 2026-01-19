@@ -54,6 +54,65 @@ def _load_module(name: str, path: Path) -> ModuleType:
   return module
 
 
+def _make_runtime_data(
+  summary: CacheRepairAggregate | None = None,
+) -> SimpleNamespace:
+  return SimpleNamespace(
+    data_manager=SimpleNamespace(cache_repair_summary=lambda: summary),
+    coordinator=SimpleNamespace(last_update_success=True),
+  )
+
+
+def _make_basic_entry(module: Any) -> SimpleNamespace:
+  return SimpleNamespace(
+    entry_id="entry",
+    data={
+      module.CONF_DOGS: [
+        {
+          module.CONF_DOG_ID: "dog",
+          module.CONF_DOG_NAME: "Dog",
+          "modules": {},
+        },
+      ],
+    },
+    options={},
+    version=1,
+  )
+
+
+def _make_reconfigure_entry(
+  module: Any,
+  *,
+  compatibility_warnings: list[str],
+  health_summary: Mapping[str, object],
+) -> SimpleNamespace:
+  return SimpleNamespace(
+    entry_id="entry",
+    data={
+      module.CONF_DOGS: [
+        {
+          module.CONF_DOG_ID: "dog",
+          module.CONF_DOG_NAME: "Dog",
+          "modules": {},
+        },
+      ],
+    },
+    options={
+      "last_reconfigure": "2024-01-02T03:04:05+00:00",
+      "reconfigure_telemetry": {
+        "timestamp": "2024-01-02T03:04:05+00:00",
+        "requested_profile": "balanced",
+        "previous_profile": "advanced",
+        "dogs_count": 1,
+        "estimated_entities": 8,
+        "compatibility_warnings": compatibility_warnings,
+        "health_summary": health_summary,
+      },
+    },
+    version=1,
+  )
+
+
 def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]:
   """Register Home Assistant stubs required by repairs.py."""
 
@@ -592,16 +651,11 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     caches_with_expired_entries=["adaptive_cache"],
   )
 
-  class _DataManager:
-    def cache_repair_summary(self) -> CacheRepairAggregate:
-      return summary
+  runtime_data = _make_runtime_data(summary)
+  entry = _make_basic_entry(module)
 
-  runtime_data = SimpleNamespace(
-    data_manager=_DataManager(),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = _build_entry(module)
+  original_require_runtime_data = module.require_runtime_data
+  module.require_runtime_data = lambda _hass, _entry: runtime_data
 
   _run_check_for_issues(module, hass, entry, runtime_data)
 
@@ -637,16 +691,8 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     generated_at="2024-01-01T00:00:00+00:00",
   )
 
-  class _DataManager:
-    def cache_repair_summary(self) -> CacheRepairAggregate:
-      return summary
-
-  runtime_data = SimpleNamespace(
-    data_manager=_DataManager(),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = _build_entry(module)
+  runtime_data = _make_runtime_data(summary)
+  entry = _make_basic_entry(module)
 
   _run_check_for_issues(module, hass, entry, runtime_data)
 
@@ -670,27 +716,11 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
 
   hass = _build_hass()
 
-  runtime_data = SimpleNamespace(
-    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = _build_entry(
+  runtime_data = _make_runtime_data()
+  entry = _make_reconfigure_entry(
     module,
-    options={
-      "last_reconfigure": "2024-01-02T03:04:05+00:00",
-      "reconfigure_telemetry": {
-        "timestamp": "2024-01-02T03:04:05+00:00",
-        "requested_profile": "balanced",
-        "previous_profile": "advanced",
-        "dogs_count": 1,
-        "estimated_entities": 8,
-        "compatibility_warnings": [
-          "GPS module disabled for configured dog",
-        ],
-        "health_summary": {"healthy": True, "issues": [], "warnings": []},
-      },
-    },
+    compatibility_warnings=["GPS module disabled for configured dog"],
+    health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
   _run_check_for_issues(module, hass, entry, runtime_data)
@@ -712,28 +742,14 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
 
   hass = _build_hass()
 
-  runtime_data = SimpleNamespace(
-    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = _build_entry(
+  runtime_data = _make_runtime_data()
+  entry = _make_reconfigure_entry(
     module,
-    options={
-      "last_reconfigure": "2024-01-02T03:04:05+00:00",
-      "reconfigure_telemetry": {
-        "timestamp": "2024-01-02T03:04:05+00:00",
-        "requested_profile": "balanced",
-        "previous_profile": "advanced",
-        "dogs_count": 1,
-        "estimated_entities": 8,
-        "compatibility_warnings": [],
-        "health_summary": {
-          "healthy": False,
-          "issues": ["profile missing GPS support"],
-          "warnings": ["consider reauth"],
-        },
-      },
+    compatibility_warnings=[],
+    health_summary={
+      "healthy": False,
+      "issues": ["profile missing GPS support"],
+      "warnings": ["consider reauth"],
     },
   )
 
@@ -836,25 +852,11 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
 
   hass = _build_hass()
 
-  runtime_data = SimpleNamespace(
-    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = _build_entry(
+  runtime_data = _make_runtime_data()
+  entry = _make_reconfigure_entry(
     module,
-    options={
-      "last_reconfigure": "2024-01-02T03:04:05+00:00",
-      "reconfigure_telemetry": {
-        "timestamp": "2024-01-02T03:04:05+00:00",
-        "requested_profile": "balanced",
-        "previous_profile": "advanced",
-        "dogs_count": 1,
-        "estimated_entities": 8,
-        "compatibility_warnings": [],
-        "health_summary": {"healthy": True, "issues": [], "warnings": []},
-      },
-    },
+    compatibility_warnings=[],
+    health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
   _run_check_for_issues(module, hass, entry, runtime_data)
