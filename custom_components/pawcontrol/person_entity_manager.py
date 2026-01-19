@@ -58,6 +58,7 @@ def _resolve_cache_snapshot_class():
     pass
   return CacheDiagnosticsSnapshot
 
+
 _LOGGER = logging.getLogger(__name__)
 
 # Configuration constants

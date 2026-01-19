@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal, cast, overload

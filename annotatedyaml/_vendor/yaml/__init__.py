@@ -47,9 +47,8 @@ def _parse_scalar(value: str) -> Any:
     return True
   if lowered == "false":
     return False
-  if (
-    (text.startswith('"') and text.endswith('"'))
-    or (text.startswith("'") and text.endswith("'"))
+  if (text.startswith('"') and text.endswith('"')) or (
+    text.startswith("'") and text.endswith("'")
   ):
     return text[1:-1]
   with contextlib.suppress(ValueError):
