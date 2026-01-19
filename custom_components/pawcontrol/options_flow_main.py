@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import logging
-from importlib import import_module
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import asdict
@@ -138,45 +137,6 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _resolve_get_runtime_data():
-  """Return the patched runtime data helper when available."""
-
-  try:
-    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
-    patched = getattr(options_flow_module, "get_runtime_data", None)
-    if callable(patched):
-      return patched
-  except Exception:
-    pass
-  return _get_runtime_data
-
-
-def _resolve_require_runtime_data():
-  """Return the patched runtime data validator when available."""
-
-  try:
-    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
-    patched = getattr(options_flow_module, "require_runtime_data", None)
-    if callable(patched):
-      return patched
-  except Exception:
-    pass
-  return _require_runtime_data
-
-
-def _resolve_async_create_issue():
-  """Return the patched repairs helper when available."""
-
-  try:
-    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
-    patched = getattr(options_flow_module, "async_create_issue", None)
-    if callable(patched):
-      return patched
-  except Exception:
-    pass
-  return _async_create_issue
 
 
 DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
@@ -669,7 +629,7 @@ class PawControlOptionsFlow(
 
     runtime: Any | None = None
     with suppress(Exception):
-      runtime = _resolve_get_runtime_data()(hass, self._entry)
+      runtime = _get_runtime_data(hass, self._entry)
     if runtime is None:
       return None
 
@@ -1979,7 +1939,7 @@ class PawControlOptionsFlow(
           data_manager = None
           if persist_updates:
             try:
-              runtime = _resolve_require_runtime_data()(
+              runtime = _require_runtime_data(
                 self.hass,
                 self._entry,
               )
@@ -2037,7 +1997,7 @@ class PawControlOptionsFlow(
                 "timestamp": issue_timestamp,
               }
               try:
-                await _resolve_async_create_issue()(
+                await _async_create_issue()(
                   self.hass,
                   self._entry,
                   f"{self._entry.entry_id}_door_sensor_{dog_id}",
@@ -3309,7 +3269,7 @@ class PawControlOptionsFlow(
           mutable_options.pop("manual_breaker_event", None)
         else:
           mutable_options["manual_breaker_event"] = breaker_option
-        runtime = _resolve_get_runtime_data()(self.hass, self._entry)
+        runtime = _get_runtime_data(self.hass, self._entry)
         script_manager = getattr(runtime, "script_manager", None)
         if script_manager is not None:
           await script_manager.async_sync_manual_resilience_events(

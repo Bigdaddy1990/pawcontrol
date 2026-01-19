@@ -176,10 +176,8 @@ class PawControlCoordinator(
     }
     self._metrics = CoordinatorMetrics()
     self._entity_budget = EntityBudgetTracker()
-self._setup_complete = False
-self._maintenance_unsub: callback | None = None
-# Remove: self.last_update_success = False
-# Remove: self.last_update_time: datetime | None = None
+    self._setup_complete = False
+    self._maintenance_unsub: callback | None = None
 
     self.data_manager: PawControlDataManager | None = None
     self.feeding_manager: FeedingManager | None = None
