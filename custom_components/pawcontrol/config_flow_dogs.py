@@ -101,6 +101,7 @@ from custom_components.pawcontrol.types import (
   ensure_dog_modules_config,
   freeze_placeholders,
   normalize_performance_mode,
+  _coerce_int,
 )
 from custom_components.pawcontrol.validators import (
   validate_gps_source,
@@ -288,40 +289,6 @@ def _build_module_setup_placeholders(
   placeholders["complexity_info"] = complexity_info
   placeholders["next_step_info"] = next_step_info
   return freeze_placeholders(placeholders)
-
-
-def _coerce_int(value: Any, *, default: int) -> int:
-  """Coerce a value into an integer, tolerating numeric strings."""
-
-  if isinstance(value, bool):
-    return 1 if value else default
-  if isinstance(value, int):
-    return value
-  if isinstance(value, float):
-    return int(value)
-  if isinstance(value, str):
-    try:
-      return int(value.strip())
-    except ValueError:
-      return default
-  return default
-
-
-def _coerce_float(value: Any, *, default: float) -> float:
-  """Coerce a value into a floating point number."""
-
-  if isinstance(value, bool):
-    return 1.0 if value else default
-  if isinstance(value, float):
-    return value
-  if isinstance(value, int):
-    return float(value)
-  if isinstance(value, str):
-    try:
-      return float(value.strip())
-    except ValueError:
-      return default
-  return default
 
 
 def _coerce_optional_float(value: Any) -> float | None:

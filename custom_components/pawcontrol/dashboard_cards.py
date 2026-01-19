@@ -247,6 +247,39 @@ _HEALTH_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 }
 
 
+def _translated_health_label(language: str | None, label: str) -> str:
+  """Return a localized health dashboard label for card outputs."""
+
+  translations = _HEALTH_LABEL_TRANSLATIONS.get(label)
+  if translations is None:
+    return label
+
+  normalized_language = normalize_language(language)
+  if normalized_language in translations:
+    return translations[normalized_language]
+
+  return translations.get("en", label)
+
+
+def _translated_health_template(
+  language: str | None,
+  template: str,
+  **values: str,
+) -> str:
+  """Return a formatted health dashboard template string for cards."""
+
+  translations = _HEALTH_TEMPLATE_TRANSLATIONS.get(template)
+  if translations is None:
+    return template.format(**values)
+
+  normalized_language = normalize_language(language)
+  template_value = translations.get(normalized_language)
+  if template_value is None:
+    template_value = translations.get("en", template)
+
+  return template_value.format(**values)
+
+
 def _translated_visitor_label(language: str | None, label: str) -> str:
   """Return a localized visitor dashboard label."""
 
@@ -330,39 +363,6 @@ def _translated_walk_template(
   """Return a localized walk dashboard template string."""
 
   translations = _WALK_TEMPLATE_TRANSLATIONS.get(template)
-  if translations is None:
-    return template.format(**values)
-
-  normalized_language = normalize_language(language)
-  template_value = translations.get(normalized_language)
-  if template_value is None:
-    template_value = translations.get("en", template)
-
-  return template_value.format(**values)
-
-
-def _translated_health_label(language: str | None, label: str) -> str:
-  """Return a localized label for health dashboards."""
-
-  translations = _HEALTH_LABEL_TRANSLATIONS.get(label)
-  if translations is None:
-    return label
-
-  normalized_language = normalize_language(language)
-  if normalized_language in translations:
-    return translations[normalized_language]
-
-  return translations.get("en", label)
-
-
-def _translated_health_template(
-  language: str | None,
-  template: str,
-  **values: object,
-) -> str:
-  """Return a localized health dashboard template string."""
-
-  translations = _HEALTH_TEMPLATE_TRANSLATIONS.get(template)
   if translations is None:
     return template.format(**values)
 

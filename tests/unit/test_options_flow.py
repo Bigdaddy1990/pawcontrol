@@ -125,6 +125,20 @@ def _assert_dog_modules(
     assert modules[module_key] is expected_value
 
 
+def _set_raw_options(
+  mock_config_entry: ConfigEntry,
+  *,
+  notifications: dict[str, Any] | None = None,
+  dog_options: dict[Any, Any] | None = None,
+) -> None:
+  raw_options = dict(mock_config_entry.options)
+  if notifications is not None:
+    raw_options[CONF_NOTIFICATIONS] = notifications
+  if dog_options is not None:
+    raw_options["dog_options"] = dog_options
+  mock_config_entry.options = raw_options
+
+
 def test_ensure_notification_options_normalises_values() -> None:
   """Notification options should coerce overrides and preserve defaults."""
 
@@ -225,31 +239,32 @@ async def test_geofence_settings_normalises_snapshot(
 ) -> None:
   """Geofence updates should reapply typed notifications and dog payloads."""
 
-  raw_options = dict(mock_config_entry.options)
-  raw_options[CONF_NOTIFICATIONS] = {
-    CONF_QUIET_HOURS: "False",
-    CONF_QUIET_START: " 19:00:00 ",
-    CONF_QUIET_END: "",
-    CONF_REMINDER_REPEAT_MIN: "3",
-    "priority_notifications": "no",
-    "mobile_notifications": "1",
-  }
-  raw_options["dog_options"] = {
-    "buddy": {
-      DOG_ID_FIELD: "buddy",
-      DOG_MODULES_FIELD: {
-        MODULE_FEEDING: "no",
-        MODULE_HEALTH: "1",
+  _set_raw_options(
+    mock_config_entry,
+    notifications={
+      CONF_QUIET_HOURS: "False",
+      CONF_QUIET_START: " 19:00:00 ",
+      CONF_QUIET_END: "",
+      CONF_REMINDER_REPEAT_MIN: "3",
+      "priority_notifications": "no",
+      "mobile_notifications": "1",
+    },
+    dog_options={
+      "buddy": {
+        DOG_ID_FIELD: "buddy",
+        DOG_MODULES_FIELD: {
+          MODULE_FEEDING: "no",
+          MODULE_HEALTH: "1",
+        },
+      },
+      123: {
+        DOG_MODULES_FIELD: {
+          MODULE_GPS: "true",
+          MODULE_WALK: "",
+        }
       },
     },
-    123: {
-      DOG_MODULES_FIELD: {
-        MODULE_GPS: "true",
-        MODULE_WALK: "",
-      }
-    },
-  }
-  mock_config_entry.options = raw_options
+  )
 
   hass.config.latitude = 12.34
   hass.config.longitude = 56.78
@@ -499,25 +514,26 @@ async def test_entity_profiles_normalises_snapshot(
 ) -> None:
   """Entity profile saves should reapply typed notifications and dog data."""
 
-  raw_options = dict(mock_config_entry.options)
-  raw_options[CONF_NOTIFICATIONS] = {
-    CONF_QUIET_HOURS: 1,
-    CONF_QUIET_START: None,
-    CONF_QUIET_END: "  ",
-    CONF_REMINDER_REPEAT_MIN: 500,
-    "priority_notifications": "ON",
-    "mobile_notifications": "off",
-  }
-  raw_options["dog_options"] = {
-    "luna": {
-      DOG_ID_FIELD: "luna",
-      DOG_MODULES_FIELD: {
-        MODULE_HEALTH: True,
-        MODULE_FEEDING: "false",
-      },
-    }
-  }
-  mock_config_entry.options = raw_options
+  _set_raw_options(
+    mock_config_entry,
+    notifications={
+      CONF_QUIET_HOURS: 1,
+      CONF_QUIET_START: None,
+      CONF_QUIET_END: "  ",
+      CONF_REMINDER_REPEAT_MIN: 500,
+      "priority_notifications": "ON",
+      "mobile_notifications": "off",
+    },
+    dog_options={
+      "luna": {
+        DOG_ID_FIELD: "luna",
+        DOG_MODULES_FIELD: {
+          MODULE_HEALTH: True,
+          MODULE_FEEDING: "false",
+        },
+      }
+    },
+  )
 
   flow = PawControlOptionsFlow()
   flow.hass = hass
@@ -559,25 +575,26 @@ async def test_profile_preview_apply_normalises_snapshot(
 ) -> None:
   """Applying a preview should rehydrate typed options snapshots."""
 
-  raw_options = dict(mock_config_entry.options)
-  raw_options[CONF_NOTIFICATIONS] = {
-    CONF_QUIET_HOURS: "false",
-    CONF_QUIET_START: " 20:15:00 ",
-    CONF_QUIET_END: "",
-    CONF_REMINDER_REPEAT_MIN: "2",
-    "priority_notifications": "off",
-    "mobile_notifications": "yes",
-  }
-  raw_options["dog_options"] = {
-    "scout": {
-      DOG_ID_FIELD: "scout",
-      DOG_MODULES_FIELD: {
-        MODULE_GPS: "on",
-        MODULE_HEALTH: "0",
-      },
-    }
-  }
-  mock_config_entry.options = raw_options
+  _set_raw_options(
+    mock_config_entry,
+    notifications={
+      CONF_QUIET_HOURS: "false",
+      CONF_QUIET_START: " 20:15:00 ",
+      CONF_QUIET_END: "",
+      CONF_REMINDER_REPEAT_MIN: "2",
+      "priority_notifications": "off",
+      "mobile_notifications": "yes",
+    },
+    dog_options={
+      "scout": {
+        DOG_ID_FIELD: "scout",
+        DOG_MODULES_FIELD: {
+          MODULE_GPS: "on",
+          MODULE_HEALTH: "0",
+        },
+      }
+    },
+  )
 
   flow = PawControlOptionsFlow()
   flow.hass = hass
@@ -737,31 +754,32 @@ async def test_feeding_settings_normalises_snapshot(
 ) -> None:
   """Feeding menu updates should reapply typed notification and dog payloads."""
 
-  raw_options = dict(mock_config_entry.options)
-  raw_options[CONF_NOTIFICATIONS] = {
-    CONF_QUIET_HOURS: "False",
-    CONF_QUIET_START: " 19:00:00 ",
-    CONF_QUIET_END: "",
-    CONF_REMINDER_REPEAT_MIN: "3",
-    "priority_notifications": "no",
-    "mobile_notifications": "1",
-  }
-  raw_options["dog_options"] = {
-    "buddy": {
-      DOG_ID_FIELD: "buddy",
-      DOG_MODULES_FIELD: {
-        MODULE_FEEDING: "no",
-        MODULE_HEALTH: "1",
+  _set_raw_options(
+    mock_config_entry,
+    notifications={
+      CONF_QUIET_HOURS: "False",
+      CONF_QUIET_START: " 19:00:00 ",
+      CONF_QUIET_END: "",
+      CONF_REMINDER_REPEAT_MIN: "3",
+      "priority_notifications": "no",
+      "mobile_notifications": "1",
+    },
+    dog_options={
+      "buddy": {
+        DOG_ID_FIELD: "buddy",
+        DOG_MODULES_FIELD: {
+          MODULE_FEEDING: "no",
+          MODULE_HEALTH: "1",
+        },
+      },
+      123: {
+        DOG_MODULES_FIELD: {
+          MODULE_GPS: "true",
+          MODULE_WALK: "",
+        }
       },
     },
-    123: {
-      DOG_MODULES_FIELD: {
-        MODULE_GPS: "true",
-        MODULE_WALK: "",
-      }
-    },
-  }
-  mock_config_entry.options = raw_options
+  )
 
   flow = PawControlOptionsFlow()
   flow.hass = hass
@@ -817,25 +835,26 @@ async def test_health_settings_normalises_snapshot(
 ) -> None:
   """Health menu updates should keep notifications and dogs on typed surfaces."""
 
-  raw_options = dict(mock_config_entry.options)
-  raw_options[CONF_NOTIFICATIONS] = {
-    CONF_QUIET_HOURS: 1,
-    CONF_QUIET_START: None,
-    CONF_QUIET_END: "  ",
-    CONF_REMINDER_REPEAT_MIN: 500,
-    "priority_notifications": "ON",
-    "mobile_notifications": "off",
-  }
-  raw_options["dog_options"] = {
-    "luna": {
-      DOG_ID_FIELD: "luna",
-      DOG_MODULES_FIELD: {
-        MODULE_HEALTH: True,
-        MODULE_FEEDING: "false",
-      },
-    }
-  }
-  mock_config_entry.options = raw_options
+  _set_raw_options(
+    mock_config_entry,
+    notifications={
+      CONF_QUIET_HOURS: 1,
+      CONF_QUIET_START: None,
+      CONF_QUIET_END: "  ",
+      CONF_REMINDER_REPEAT_MIN: 500,
+      "priority_notifications": "ON",
+      "mobile_notifications": "off",
+    },
+    dog_options={
+      "luna": {
+        DOG_ID_FIELD: "luna",
+        DOG_MODULES_FIELD: {
+          MODULE_HEALTH: True,
+          MODULE_FEEDING: "false",
+        },
+      }
+    },
+  )
 
   flow = PawControlOptionsFlow()
   flow.hass = hass

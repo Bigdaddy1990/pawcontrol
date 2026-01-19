@@ -5,9 +5,52 @@ from __future__ import annotations
 import asyncio
 import sys
 import types
+from collections.abc import Awaitable, Callable, MutableMapping
 from datetime import UTC, datetime
 
 from tests.helpers import install_homeassistant_stubs
+
+
+def _assert_support_helpers_follow_handler_hooks(
+  handlers: MutableMapping[str, object],
+  support_entry_unload: Callable[[object, str], Awaitable[bool]],
+  support_remove_from_device: Callable[[object, str], Awaitable[bool]],
+  config_entry_type: type,
+) -> None:
+  class FlowHandler:
+    @staticmethod
+    def async_unload_entry(config_entry: config_entry_type) -> bool:
+      del config_entry
+      return True
+
+    @staticmethod
+    def async_remove_config_entry_device(config_entry: config_entry_type) -> bool:
+      del config_entry
+      return True
+
+  handlers.clear()
+  handlers["with_support"] = FlowHandler()
+
+  assert asyncio.run(support_entry_unload(object(), "with_support")) is True
+  assert (
+    asyncio.run(
+      support_remove_from_device(
+        object(),
+        "with_support",
+      ),
+    )
+    is True
+  )
+  assert asyncio.run(support_entry_unload(object(), "missing")) is False
+  assert (
+    asyncio.run(
+      support_remove_from_device(
+        object(),
+        "missing",
+      ),
+    )
+    is False
+  )
 
 
 def test_repairs_flow_stub_matches_home_assistant_contract() -> None:
@@ -510,39 +553,11 @@ def test_support_helpers_follow_handler_hooks() -> None:
     support_remove_from_device,
   )
 
-  class FlowHandler:
-    @staticmethod
-    def async_unload_entry(config_entry: ConfigEntry) -> bool:
-      del config_entry
-      return True
-
-    @staticmethod
-    def async_remove_config_entry_device(config_entry: ConfigEntry) -> bool:
-      del config_entry
-      return True
-
-  HANDLERS.clear()
-  HANDLERS["with_support"] = FlowHandler()
-
-  assert asyncio.run(support_entry_unload(object(), "with_support")) is True
-  assert (
-    asyncio.run(
-      support_remove_from_device(
-        object(),
-        "with_support",
-      ),
-    )
-    is True
-  )
-  assert asyncio.run(support_entry_unload(object(), "missing")) is False
-  assert (
-    asyncio.run(
-      support_remove_from_device(
-        object(),
-        "missing",
-      ),
-    )
-    is False
+  _assert_support_helpers_follow_handler_hooks(
+    HANDLERS,
+    support_entry_unload,
+    support_remove_from_device,
+    ConfigEntry,
   )
 
 
@@ -691,39 +706,11 @@ def test_compat_support_helpers_follow_handler_hooks() -> None:
     support_remove_from_device,
   )
 
-  class FlowHandler:
-    @staticmethod
-    def async_unload_entry(config_entry: ConfigEntry) -> bool:
-      del config_entry
-      return True
-
-    @staticmethod
-    def async_remove_config_entry_device(config_entry: ConfigEntry) -> bool:
-      del config_entry
-      return True
-
-  HANDLERS.clear()
-  HANDLERS["with_support"] = FlowHandler()
-
-  assert asyncio.run(support_entry_unload(object(), "with_support")) is True
-  assert (
-    asyncio.run(
-      support_remove_from_device(
-        object(),
-        "with_support",
-      ),
-    )
-    is True
-  )
-  assert asyncio.run(support_entry_unload(object(), "missing")) is False
-  assert (
-    asyncio.run(
-      support_remove_from_device(
-        object(),
-        "missing",
-      ),
-    )
-    is False
+  _assert_support_helpers_follow_handler_hooks(
+    HANDLERS,
+    support_entry_unload,
+    support_remove_from_device,
+    ConfigEntry,
   )
 
 
