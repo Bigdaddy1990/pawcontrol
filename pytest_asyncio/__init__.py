@@ -17,6 +17,13 @@ import pytest
 def pytest_addoption(parser) -> None:
   """Register asyncio configuration defaults used by pytest-asyncio."""
 
+  parser.addoption(
+    "--asyncio-mode",
+    action="store",
+    dest="asyncio_mode",
+    default=None,
+    help="Select asyncio integration mode",
+  )
   parser.addini(
     "asyncio_mode",
     "Select asyncio integration mode",
