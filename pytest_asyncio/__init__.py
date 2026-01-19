@@ -125,6 +125,7 @@ def pytest_unconfigure(config: pytest.Config) -> None:
   loop.close()
   _shared_loop = None
 
+
 __all__ = [
   "event_loop",
   "fixture",

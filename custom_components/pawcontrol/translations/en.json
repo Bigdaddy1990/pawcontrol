@@ -437,12 +437,6 @@
   },
   "entity": {
     "binary_sensor": {
-      "extreme_cold_warning": {
-        "name": "Extreme Cold Warning"
-      },
-      "extreme_heat_warning": {
-        "name": "Extreme Heat Warning"
-      },
       "activity_level_concern": {
         "name": "Activity Level Concern"
       },
@@ -451,6 +445,12 @@
       },
       "daily_feeding_goal_met": {
         "name": "Daily Feeding Goal Met"
+      },
+      "extreme_cold_warning": {
+        "name": "Extreme Cold Warning"
+      },
+      "extreme_heat_warning": {
+        "name": "Extreme Heat Warning"
       },
       "feeding_due": {
         "name": "Feeding Due"
@@ -470,20 +470,20 @@
       "geofence_alert": {
         "name": "Geofence Alert"
       },
-      "gps_signal": {
-        "name": "GPS Signal"
-      },
       "gps_accurately_tracked": {
         "name": "GPS Accurately Tracked"
       },
       "gps_battery_low": {
         "name": "GPS Battery Low"
       },
-      "health_aware_feeding": {
-        "name": "Health-Aware Feeding"
+      "gps_signal": {
+        "name": "GPS Signal"
       },
       "health_alert": {
         "name": "Health Alert"
+      },
+      "health_aware_feeding": {
+        "name": "Health-Aware Feeding"
       },
       "health_emergency": {
         "name": "Health Emergency"
@@ -503,14 +503,14 @@
       "is_hungry": {
         "name": "Is Hungry"
       },
+      "long_walk_overdue": {
+        "name": "Long Walk Overdue"
+      },
       "medication_due": {
         "name": "Medication Due"
       },
       "medication_with_meals": {
         "name": "Medication With Meals"
-      },
-      "long_walk_overdue": {
-        "name": "Long Walk Overdue"
       },
       "moving": {
         "name": "Moving"
@@ -547,14 +547,14 @@
       }
     },
     "button": {
-      "confirm_garden_poop": {
-        "name": "Confirm Garden Poop"
-      },
       "call_dog": {
         "name": "Call Dog"
       },
       "center_map": {
         "name": "Center Map"
+      },
+      "confirm_garden_poop": {
+        "name": "Confirm Garden Poop"
       },
       "daily_reset": {
         "name": "Daily Reset"
@@ -568,11 +568,11 @@
       "end_walk": {
         "name": "End Walk"
       },
-      "export_route": {
-        "name": "Export Route"
-      },
       "export_data": {
         "name": "Export Data"
+      },
+      "export_route": {
+        "name": "Export Route"
       },
       "feed_now": {
         "name": "Feed Now"
@@ -589,20 +589,17 @@
       "gps_start_walk": {
         "name": "GPS Start Walk"
       },
-      "log_garden_activity": {
-        "name": "Log Garden Activity"
+      "health_check": {
+        "name": "Health Check"
       },
       "log_custom_feeding": {
         "name": "Log Custom Feeding"
       },
+      "log_garden_activity": {
+        "name": "Log Garden Activity"
+      },
       "log_health": {
         "name": "Log Health"
-      },
-      "log_walk_manually": {
-        "name": "Log Walk Manually"
-      },
-      "log_weight": {
-        "name": "Log Weight"
       },
       "log_medication": {
         "name": "Log Medication"
@@ -610,11 +607,17 @@
       "log_poop": {
         "name": "Log Poop"
       },
-      "mark_fed_breakfast": {
-        "name": "Mark Fed (Breakfast)"
+      "log_walk_manually": {
+        "name": "Log Walk Manually"
+      },
+      "log_weight": {
+        "name": "Log Weight"
       },
       "mark_fed": {
         "name": "Mark Fed"
+      },
+      "mark_fed_breakfast": {
+        "name": "Mark Fed (Breakfast)"
       },
       "mark_fed_dinner": {
         "name": "Mark Fed (Dinner)"
@@ -627,9 +630,6 @@
       },
       "notify_test": {
         "name": "Test Notification"
-      },
-      "health_check": {
-        "name": "Health Check"
       },
       "quick_walk": {
         "name": "Quick Walk"
@@ -646,12 +646,6 @@
       "schedule_vet": {
         "name": "Schedule Vet"
       },
-      "sync_data": {
-        "name": "Sync Data"
-      },
-      "test_notification": {
-        "name": "Test Notification"
-      },
       "start_garden_session": {
         "name": "Start Garden Session"
       },
@@ -661,82 +655,17 @@
       "start_walk": {
         "name": "Start Walk"
       },
+      "sync_data": {
+        "name": "Sync Data"
+      },
+      "test_notification": {
+        "name": "Test Notification"
+      },
       "toggle_visitor_mode": {
         "name": "Toggle Visitor Mode"
       },
       "update_weather": {
         "name": "Update Weather"
-      }
-    },
-    "number": {
-      "activity_goal": {
-        "name": "Activity Goal"
-      },
-      "age": {
-        "name": "Age"
-      },
-      "calorie_target": {
-        "name": "Calorie Target"
-      },
-      "daily_food_amount": {
-        "name": "Daily Food Amount"
-      },
-      "daily_walk_target": {
-        "name": "Daily Walk Target"
-      },
-      "feeding_reminder_hours": {
-        "name": "Feeding Reminder Hours"
-      },
-      "geofence_radius": {
-        "name": "Geofence Radius"
-      },
-      "gps_accuracy_threshold": {
-        "name": "GPS Accuracy Threshold"
-      },
-      "gps_battery_threshold": {
-        "name": "GPS Battery Threshold"
-      },
-      "gps_update_interval": {
-        "name": "GPS Update Interval"
-      },
-      "grooming_interval": {
-        "name": "Grooming Interval"
-      },
-      "health_score_threshold": {
-        "name": "Health Score Threshold"
-      },
-      "location_update_distance": {
-        "name": "Location Update Distance"
-      },
-      "max_walk_speed": {
-        "name": "Max Walk Speed"
-      },
-      "meals_per_day": {
-        "name": "Meals Per Day"
-      },
-      "portion_size": {
-        "name": "Portion Size"
-      },
-      "target_weight": {
-        "name": "Target Weight"
-      },
-      "vet_checkup_interval": {
-        "name": "Vet Checkup Interval"
-      },
-      "walk_distance_target": {
-        "name": "Walk Distance Target"
-      },
-      "walk_duration_target": {
-        "name": "Walk Duration Target"
-      },
-      "walk_reminder_hours": {
-        "name": "Walk Reminder Hours"
-      },
-      "weight": {
-        "name": "Weight"
-      },
-      "weight_change_threshold": {
-        "name": "Weight Change Threshold"
       }
     },
     "date": {
@@ -842,6 +771,77 @@
     "device_tracker": {
       "gps": {
         "name": "GPS"
+      }
+    },
+    "number": {
+      "activity_goal": {
+        "name": "Activity Goal"
+      },
+      "age": {
+        "name": "Age"
+      },
+      "calorie_target": {
+        "name": "Calorie Target"
+      },
+      "daily_food_amount": {
+        "name": "Daily Food Amount"
+      },
+      "daily_walk_target": {
+        "name": "Daily Walk Target"
+      },
+      "feeding_reminder_hours": {
+        "name": "Feeding Reminder Hours"
+      },
+      "geofence_radius": {
+        "name": "Geofence Radius"
+      },
+      "gps_accuracy_threshold": {
+        "name": "GPS Accuracy Threshold"
+      },
+      "gps_battery_threshold": {
+        "name": "GPS Battery Threshold"
+      },
+      "gps_update_interval": {
+        "name": "GPS Update Interval"
+      },
+      "grooming_interval": {
+        "name": "Grooming Interval"
+      },
+      "health_score_threshold": {
+        "name": "Health Score Threshold"
+      },
+      "location_update_distance": {
+        "name": "Location Update Distance"
+      },
+      "max_walk_speed": {
+        "name": "Max Walk Speed"
+      },
+      "meals_per_day": {
+        "name": "Meals Per Day"
+      },
+      "portion_size": {
+        "name": "Portion Size"
+      },
+      "target_weight": {
+        "name": "Target Weight"
+      },
+      "vet_checkup_interval": {
+        "name": "Vet Checkup Interval"
+      },
+      "walk_distance_target": {
+        "name": "Walk Distance Target"
+      },
+      "walk_duration_target": {
+        "name": "Walk Duration Target"
+      },
+      "walk_reminder_hours": {
+        "name": "Walk Reminder Hours"
+      },
+      "weight": {
+        "name": "Weight"
+      },
+      "weight_change_threshold": {
+        "name": "Weight Change Threshold"
       }
     },
     "select": {
@@ -952,11 +952,11 @@
       "activity_score": {
         "name": "Activity Score"
       },
-      "avg_garden_duration": {
-        "name": "Average Garden Duration"
-      },
       "average_walk_duration": {
         "name": "Average Walk Duration"
+      },
+      "avg_garden_duration": {
+        "name": "Average Garden Duration"
       },
       "body_condition_score": {
         "name": "Body Condition Score"
@@ -985,11 +985,11 @@
       "daily_activity_level": {
         "name": "Daily Activity Level"
       },
-      "daily_calories": {
-        "name": "Daily Calories"
-      },
       "daily_calorie_target": {
         "name": "Daily Calorie Target"
+      },
+      "daily_calories": {
+        "name": "Daily Calories"
       },
       "daily_portions": {
         "name": "Daily Portions"
@@ -1080,14 +1080,14 @@
       "gps_battery_level": {
         "name": "GPS Battery Level"
       },
+      "health_aware_portion": {
+        "name": "Health-Aware Portion"
+      },
       "health_conditions": {
         "name": "Health Conditions"
       },
       "health_feeding_status": {
         "name": "Health Feeding Status"
-      },
-      "health_aware_portion": {
-        "name": "Health-Aware Portion"
       },
       "health_status": {
         "name": "Health Status",
@@ -1172,9 +1172,6 @@
       "total_distance_today": {
         "name": "Total Distance Today"
       },
-      "walk_distance_today": {
-        "name": "Walk Distance Today"
-      },
       "total_feedings_today": {
         "name": "Total Feedings Today"
       },
@@ -1186,6 +1183,9 @@
       },
       "walk_count_today": {
         "name": "Walk Count Today"
+      },
+      "walk_distance_today": {
+        "name": "Walk Distance Today"
       },
       "walks_this_week": {
         "name": "Walks This Week"
@@ -1596,80 +1596,80 @@
   "selector": {
     "select": {
       "activity_level": {
-      "options": {
-        "high": "\ud83c\udfcb\ufe0f High - Very active, long walks/runs",
-        "low": "\ud83d\udeb6 Low - Light exercise, mostly indoor",
-        "moderate": "\ud83c\udfc3 Moderate - Regular walks and play",
-        "very_high": "\ud83c\udfc6 Very high - Working or athletic dogs",
-        "very_low": "\ud83d\udecc Very low - Inactive, elderly, or sick"
-      }
-    },
-    "dog_size": {
-      "options": {
-        "giant": "\ud83d\udc3a Giant (45-90kg)",
-        "large": "\ud83d\udc15\u200d\ud83e\uddba Large (27-45kg)",
-        "medium": "\ud83d\udc36 Medium (12-27kg)",
-        "small": "\ud83d\udc15 Small (6-12kg)",
-        "toy": "\ud83d\udc2d Toy (1-6kg)"
-      }
-    },
-    "feeding_schedule": {
-      "options": {
-        "custom": "\u2699\ufe0f Custom schedule",
-        "flexible": "\u23f0 Flexible times",
-        "strict": "\ud83c\udfaf Strict schedule"
-      }
-    },
-    "food_type": {
-      "options": {
-        "barf": "\ud83e\udd69 BARF",
-        "dry_food": "\ud83e\udd5c Dry food",
-        "home_cooked": "\ud83c\udf72 Home cooked",
-        "mixed": "\ud83d\udd04 Mixed",
-        "wet_food": "\ud83e\udd6b Wet food"
-      }
-    },
-    "gps_source": {
-      "options": {
-        "manual": "\ud83d\udcdd Manual GPS (configure later)",
-        "mqtt": "\ud83d\udce1 MQTT topic",
-        "tractive": "\ud83d\udc15 Tractive GPS collar",
-        "webhook": "\ud83c\udf10 Webhook (REST API)"
-      }
-    },
-    "import_export_action": {
-      "options": {
-        "export": "Export current settings",
-        "import": "Import settings from backup"
-      }
-    },
-    "medication_frequency": {
-      "options": {
-        "as_needed": "As needed",
-        "daily": "Daily",
-        "twice_daily": "Twice daily",
-        "weekly": "Weekly"
-      }
-    },
-    "performance_mode": {
-      "options": {
-        "balanced": "\u2696\ufe0f Balanced - Good performance and efficiency",
-        "full": "\ud83d\ude80 Full - Maximum features and responsiveness",
-        "minimal": "\u26a1 Minimal - Low resource usage"
-      }
-    },
-    "weather_entity": {
-      "options": {
-        "none": "No weather entity (disable weather features)"
-      }
-    },
-    "weather_notification_threshold": {
-      "options": {
-        "high": "High - All weather recommendations",
-        "low": "Low - Only extreme weather warnings",
-        "moderate": "Moderate - Important weather alerts"
-      }
-    },
+        "options": {
+          "high": "\ud83c\udfcb\ufe0f High - Very active, long walks/runs",
+          "low": "\ud83d\udeb6 Low - Light exercise, mostly indoor",
+          "moderate": "\ud83c\udfc3 Moderate - Regular walks and play",
+          "very_high": "\ud83c\udfc6 Very high - Working or athletic dogs",
+          "very_low": "\ud83d\udecc Very low - Inactive, elderly, or sick"
+        }
+      },
+      "dog_size": {
+        "options": {
+          "giant": "\ud83d\udc3a Giant (45-90kg)",
+          "large": "\ud83d\udc15\u200d\ud83e\uddba Large (27-45kg)",
+          "medium": "\ud83d\udc36 Medium (12-27kg)",
+          "small": "\ud83d\udc15 Small (6-12kg)",
+          "toy": "\ud83d\udc2d Toy (1-6kg)"
+        }
+      },
+      "feeding_schedule": {
+        "options": {
+          "custom": "\u2699\ufe0f Custom schedule",
+          "flexible": "\u23f0 Flexible times",
+          "strict": "\ud83c\udfaf Strict schedule"
+        }
+      },
+      "food_type": {
+        "options": {
+          "barf": "\ud83e\udd69 BARF",
+          "dry_food": "\ud83e\udd5c Dry food",
+          "home_cooked": "\ud83c\udf72 Home cooked",
+          "mixed": "\ud83d\udd04 Mixed",
+          "wet_food": "\ud83e\udd6b Wet food"
+        }
+      },
+      "gps_source": {
+        "options": {
+          "manual": "\ud83d\udcdd Manual GPS (configure later)",
+          "mqtt": "\ud83d\udce1 MQTT topic",
+          "tractive": "\ud83d\udc15 Tractive GPS collar",
+          "webhook": "\ud83c\udf10 Webhook (REST API)"
+        }
+      },
+      "import_export_action": {
+        "options": {
+          "export": "Export current settings",
+          "import": "Import settings from backup"
+        }
+      },
+      "medication_frequency": {
+        "options": {
+          "as_needed": "As needed",
+          "daily": "Daily",
+          "twice_daily": "Twice daily",
+          "weekly": "Weekly"
+        }
+      },
+      "performance_mode": {
+        "options": {
+          "balanced": "\u2696\ufe0f Balanced - Good performance and efficiency",
+          "full": "\ud83d\ude80 Full - Maximum features and responsiveness",
+          "minimal": "\u26a1 Minimal - Low resource usage"
+        }
+      },
+      "weather_entity": {
+        "options": {
+          "none": "No weather entity (disable weather features)"
+        }
+      },
+      "weather_notification_threshold": {
+        "options": {
+          "high": "High - All weather recommendations",
+          "low": "Low - Only extreme weather warnings",
+          "moderate": "Moderate - Important weather alerts"
+        }
+      },
       "weight_goal": {
         "options": {
           "gain": "\ud83d\udcc8 Weight gain",

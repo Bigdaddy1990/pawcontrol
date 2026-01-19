@@ -18,8 +18,7 @@ from typing import Any, Protocol
 class TraceFunc(Protocol):
   """Protocol for trace callback functions."""
 
-  def __call__(self, frame: FrameType, event: str, arg: object) -> TraceFunc | None:
-    ...
+  def __call__(self, frame: FrameType, event: str, arg: object) -> TraceFunc | None: ...
 
 
 @lru_cache(maxsize=128)
@@ -36,9 +35,7 @@ class Coverage:
   """Minimal coverage shim to satisfy the PawControl test suite."""
 
   def __init__(self, *, source: Iterable[str] | None = None) -> None:
-    self._source_roots = tuple(
-      Path(root).resolve() for root in (source or ()) if root
-    )
+    self._source_roots = tuple(Path(root).resolve() for root in (source or ()) if root)
     self._executed: dict[Path, set[int]] = defaultdict(set)
     self._runtime_seconds: dict[Path, float] = defaultdict(float)
     self._previous_trace: TraceFunc | None = None
@@ -206,8 +203,7 @@ class Coverage:
 
     csv_path = metrics_dir / "runtime.csv"
     csv_lines = [
-      "file,statements,executed,missed,coverage_percent,"
-      "runtime_seconds,host,cpu_count"
+      "file,statements,executed,missed,coverage_percent,runtime_seconds,host,cpu_count"
     ]
     for entry in files:
       csv_lines.append(

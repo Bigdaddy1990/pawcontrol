@@ -984,9 +984,7 @@ class DogManagementMixin(DogManagementMixinBase):
           dog_name=current_dog[DOG_NAME_FIELD],
           dog_weight=str(dog_weight_value),
           suggested_amount=str(suggested_amount),
-          portion_info=(
-            f"Automatic portion calculation: {suggested_amount}g per day"
-          ),
+          portion_info=(f"Automatic portion calculation: {suggested_amount}g per day"),
         ),
       ),
     )

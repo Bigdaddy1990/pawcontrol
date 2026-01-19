@@ -58,7 +58,7 @@ pytest_plugins = (
 
 def _run_async(coro):
   try:
-    loop = asyncio.get_running_loop()
+    asyncio.get_running_loop()
   except RuntimeError:
     return asyncio.run(coro)
   runner_loop = asyncio.new_event_loop()

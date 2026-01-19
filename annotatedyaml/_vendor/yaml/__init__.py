@@ -105,7 +105,7 @@ def load(stream: str, loader_cls: type | None = None, **kwargs: Any) -> dict[str
 
 def load_all(
   stream: str, loader_cls: type | None = None, **kwargs: Any
-) -> Generator[dict[str, Any], None, None]:
+) -> Generator[dict[str, Any]]:
   legacy_loader = _extract_legacy_loader("load_all", kwargs)
   loader = _select_loader(
     "load_all",
@@ -135,7 +135,7 @@ def safe_load(
 
 def safe_load_all(
   stream: str, loader_cls: type | None = None, **kwargs: Any
-) -> Generator[dict[str, Any], None, None]:
+) -> Generator[dict[str, Any]]:
   legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)
   loader = _select_loader(
     "safe_load_all",

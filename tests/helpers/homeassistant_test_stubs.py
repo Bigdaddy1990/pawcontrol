@@ -1301,7 +1301,9 @@ class Store:
     self.data = data
 
 
-def async_dispatcher_connect(hass: HomeAssistant, signal: str, target: Callable) -> Callable:
+def async_dispatcher_connect(
+  hass: HomeAssistant, signal: str, target: Callable
+) -> Callable:
   """Minimal dispatcher connect helper used by service wiring."""
 
   dispatcher = hass.data.setdefault("_dispatcher", {})
@@ -1331,7 +1333,7 @@ class RestoreEntity(Entity):
 EntityT = TypeVar("EntityT", bound=Entity)
 
 
-class EntityComponent(Generic[EntityT]):
+class EntityComponent[EntityT: Entity]:
   """Minimal entity component container."""
 
   def __init__(self) -> None:
@@ -1351,6 +1353,7 @@ class EntityComponent(Generic[EntityT]):
 
   async def async_remove_entity(self, entity_id: str) -> None:
     self._entities.pop(entity_id, None)
+
 
 class SensorEntity(Entity):
   """Sensor entity stub."""

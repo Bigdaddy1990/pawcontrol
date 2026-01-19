@@ -49,6 +49,7 @@ def _dt_now() -> datetime:
   except Exception:
     return dt_util.now()
 
+
 if TYPE_CHECKING:
   from .feeding_manager import (
     FeedingComplianceCompleted,

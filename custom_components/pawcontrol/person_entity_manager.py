@@ -56,6 +56,8 @@ def _resolve_cache_snapshot_class():
   except Exception:
     pass
   return CacheDiagnosticsSnapshot
+
+
 from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)

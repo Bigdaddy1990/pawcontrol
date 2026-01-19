@@ -178,6 +178,7 @@ def _resolve_async_create_issue():
     pass
   return _async_create_issue
 
+
 DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
   "door",
   "window",

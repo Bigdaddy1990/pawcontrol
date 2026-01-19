@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 
 class PublishError(RuntimeError):
@@ -288,9 +288,11 @@ class GitHubPagesPublisher:
 
     ref_url = f"{base_url}/git/refs/heads/{self._branch}"
     ref_payload = self._request_json("GET", ref_url)
-    base_sha = ref_payload.get("object", {}).get("sha") if isinstance(
-      ref_payload, dict
-    ) else None
+    base_sha = (
+      ref_payload.get("object", {}).get("sha")
+      if isinstance(ref_payload, dict)
+      else None
+    )
     if not base_sha:
       return []
 
@@ -306,7 +308,9 @@ class GitHubPagesPublisher:
         for removed_path in removed
       ],
     }
-    tree_response = self._request_json("POST", f"{base_url}/git/trees", payload=tree_payload)
+    tree_response = self._request_json(
+      "POST", f"{base_url}/git/trees", payload=tree_payload
+    )
     tree_sha = tree_response.get("sha") if isinstance(tree_response, dict) else None
     if not tree_sha:
       return removed
@@ -319,9 +323,9 @@ class GitHubPagesPublisher:
     commit_response = self._request_json(
       "POST", f"{base_url}/git/commits", payload=commit_payload
     )
-    commit_sha = commit_response.get("sha") if isinstance(
-      commit_response, dict
-    ) else None
+    commit_sha = (
+      commit_response.get("sha") if isinstance(commit_response, dict) else None
+    )
     if not commit_sha:
       return removed
 
