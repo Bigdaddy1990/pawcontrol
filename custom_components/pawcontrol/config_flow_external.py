@@ -371,13 +371,11 @@ class ExternalEntityConfigurationMixin:
         self._validate_notify_service(notify_service),
       )
     except ValidationError as err:
-      if err.constraint == "notify_service_not_found":
-        service_name = ""
-        if isinstance(err.value, str) and "." in err.value:
-          service_name = err.value.split(".", 1)[1]
-        base_errors.append(
-          f"Notification service {service_name or err.value} not found"
-        )
+if err.constraint == "notify_service_not_found":
+    service_name = str(err.value) if err.value else "unknown"
+    if isinstance(err.value, str) and "." in err.value:
+        service_name = err.value.split(".", 1)[1]
+    base_errors.append(f"Notification service '{service_name}' not found")
       else:
         errors[CONF_NOTIFY_FALLBACK] = _map_external_error(err)
 
