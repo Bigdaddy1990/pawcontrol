@@ -136,6 +136,12 @@ ALL_MODULES: Final[frozenset[str]] = frozenset(
 CONF_SOURCES: Final[str] = "sources"
 CONF_DOOR_SENSOR: Final[str] = "door_sensor"
 CONF_DOOR_SENSOR_SETTINGS: Final[str] = "door_sensor_settings"
+DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
+  "door",
+  "window",
+  "opening",
+  "garage_door",
+)
 CONF_DOG_OPTIONS: Final[str] = "dog_options"
 CONF_PERSON_ENTITIES: Final[str] = "person_entities"
 CONF_DEVICE_TRACKERS: Final[str] = "device_trackers"
@@ -533,6 +539,7 @@ DATA_FILE_STATS: Final[str] = "statistics.json"
 # OPTIMIZED: Validation limits as immutable constants
 MIN_DOG_NAME_LENGTH: Final[int] = 2
 MAX_DOG_NAME_LENGTH: Final[int] = 30
+MAX_DOGS_PER_ENTRY: Final[int] = 10
 MIN_DOG_WEIGHT: Final[float] = 0.5
 MAX_DOG_WEIGHT: Final[float] = 200.0
 MIN_DOG_AGE: Final[int] = 0

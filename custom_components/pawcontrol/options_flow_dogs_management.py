@@ -3,20 +3,52 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS
+from .const import (
+  CONF_DOG_AGE,
+  CONF_DOG_BREED,
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOG_SIZE,
+  CONF_DOG_WEIGHT,
+  CONF_DOGS,
+  CONF_DOOR_SENSOR,
+  DOOR_SENSOR_DEVICE_CLASSES,
+  MAX_DOGS_PER_ENTRY,
+  MODULE_FEEDING,
+  MODULE_GARDEN,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_WALK,
+)
 from .exceptions import FlowValidationError
 from .flow_validation import validate_dog_setup_input, validate_dog_update_input
 from .grooming_translations import translated_grooming_label
 from .selector_shim import selector
 from .types import (
+  DOG_AGE_FIELD,
+  DOG_BREED_FIELD,
   DOG_ID_FIELD,
+  DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
+  DOG_OPTIONS_FIELD,
+  DOG_SIZE_FIELD,
+  DOG_WEIGHT_FIELD,
+  ConfigFlowPlaceholders,
+  DogConfigData,
+  DoorSensorSettingsConfig,
+  JSONLikeMapping,
+  JSONMutableMapping,
   JSONValue,
+  ensure_dog_config_data,
+  ensure_dog_modules_config,
+  ensure_dog_modules_mapping,
+  ensure_dog_options_entry,
   freeze_placeholders,
 )
 

@@ -3,21 +3,37 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from dataclasses import asdict
 from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOG_NAME, CONF_DOOR_SENSOR, CONF_DOOR_SENSOR_SETTINGS
+from .const import (
+  CONF_DOG_NAME,
+  CONF_DOOR_SENSOR,
+  CONF_DOOR_SENSOR_SETTINGS,
+  DOOR_SENSOR_DEVICE_CLASSES,
+)
 from .door_sensor_manager import ensure_door_sensor_settings_config
+from .repairs import (
+  ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
+  async_create_issue,
+)
+from .runtime_data import RuntimeDataUnavailableError, require_runtime_data
 from .selector_shim import selector
+from .telemetry import record_door_sensor_persistence_failure
 from .types import (
   DEFAULT_DOOR_SENSOR_SETTINGS,
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
   DoorSensorSettingsPayload,
+  JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
+  ensure_dog_config_data,
 )
 
 _LOGGER = logging.getLogger(__name__)
