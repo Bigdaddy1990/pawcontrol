@@ -42,6 +42,6 @@ def test_selector_options_are_localized() -> None:
 
   for key, option_keys in required.items():
     assert key in selectors
-    assert option_keys.issubset(set(selectors[key]["options"]))
-    assert option_keys.issubset(set(en[key]["options"]))
-    assert option_keys.issubset(set(de[key]["options"]))
+    assert option_keys.issubset(set(selectors[key]))
+    assert option_keys.issubset(set(en[key]))
+    assert option_keys.issubset(set(de[key]))
