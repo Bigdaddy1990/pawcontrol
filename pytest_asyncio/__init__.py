@@ -12,12 +12,13 @@ import inspect
 from typing import Any
 
 import pytest
+import contextlib
 
 
 def pytest_addoption(parser) -> None:
   """Register asyncio configuration defaults used by pytest-asyncio."""
 
-  try:
+  with contextlib.suppress(ValueError):
     parser.addoption(
       "--asyncio-mode",
       action="store",
@@ -25,16 +26,12 @@ def pytest_addoption(parser) -> None:
       default=None,
       help="Select asyncio integration mode",
     )
-  except ValueError:
-    pass
-  try:
+  with contextlib.suppress(ValueError):
     parser.addini(
       "asyncio_mode",
       "Select asyncio integration mode",
       default="auto",
     )
-  except ValueError:
-    pass
 
 
 def _event_loop() -> Generator[asyncio.AbstractEventLoop]:
