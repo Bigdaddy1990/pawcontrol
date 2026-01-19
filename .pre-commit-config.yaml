@@ -14,7 +14,7 @@ repos:
   # ``--exit-non-zero-on-fix`` we allow Ruff to apply fixes and exit cleanly
   # once done.  ``--show-fixes`` still prints a summary of what was changed.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.11
+    rev: v0.14.13
     hooks:
       - id: ruff-check
         args:
@@ -72,7 +72,7 @@ repos:
         args:
           - --py39-plus
   - repo: https://github.com/cdce8p/python-typing-update
-    rev: v0.6.0
+    rev: v0.8.1
     hooks:
       # Run `python-typing-update` hook manually from time to time
       # to update python typing syntax.
