@@ -654,7 +654,6 @@ def test_async_check_for_issues_publishes_cache_health_issue(
   runtime_data = _make_runtime_data(summary)
   entry = _make_basic_entry(module)
 
-  original_require_runtime_data = module.require_runtime_data
   module.require_runtime_data = lambda _hass, _entry: runtime_data
 
   _run_check_for_issues(module, hass, entry, runtime_data)
