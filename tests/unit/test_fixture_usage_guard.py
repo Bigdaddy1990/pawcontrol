@@ -325,8 +325,8 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
         self._record_alias(node.target, fixture_name)
         self._record_dynamic_alias(node.target, fixture_name)
       dynamic_fixture = self._resolve_dynamic_instance(node.value)
-    if dynamic_fixture is not None:
-      self._record_dynamic_alias(node.target, dynamic_fixture)
+      if dynamic_fixture is not None:
+        self._record_dynamic_alias(node.target, dynamic_fixture)
     self.visit(node.target)
 
   def _visit_with_items(
