@@ -539,6 +539,7 @@ DATA_FILE_STATS: Final[str] = "statistics.json"
 # OPTIMIZED: Validation limits as immutable constants
 MIN_DOG_NAME_LENGTH: Final[int] = 2
 MAX_DOG_NAME_LENGTH: Final[int] = 30
+MAX_DOGS_PER_ENTRY: Final[int] = 10
 MIN_DOG_WEIGHT: Final[float] = 0.5
 MAX_DOG_WEIGHT: Final[float] = 200.0
 MIN_DOG_AGE: Final[int] = 0

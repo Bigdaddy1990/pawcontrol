@@ -23,7 +23,6 @@ from homeassistant.config_entries import ConfigFlowResult
 
 from custom_components.pawcontrol.config_flow_base import (
   ENTITY_CREATION_DELAY,
-  MAX_DOGS_PER_ENTRY,
   VALIDATION_SEMAPHORE,
 )
 from custom_components.pawcontrol.const import (
@@ -46,6 +45,7 @@ from custom_components.pawcontrol.const import (
   GPS_ACCURACY_FILTER_SELECTOR,
   GPS_UPDATE_INTERVAL_SELECTOR,
   MAX_DOG_AGE,
+  MAX_DOGS_PER_ENTRY,
   MAX_DOG_WEIGHT,
   MIN_DOG_AGE,
   MIN_DOG_WEIGHT,

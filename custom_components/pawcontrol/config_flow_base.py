@@ -71,7 +71,6 @@ VALIDATION_SEMAPHORE = asyncio.Semaphore(3)  # Max 3 concurrent validations
 ENTITY_CREATION_DELAY = 0.05  # 50ms delay between operations
 
 # Constants for improved maintainability
-MAX_DOGS_PER_ENTRY: Final = 10
 MIN_UPDATE_INTERVAL: Final = 30
 MAX_UPDATE_INTERVAL: Final = 600
 MIN_ACCURACY_FILTER: Final = 5
