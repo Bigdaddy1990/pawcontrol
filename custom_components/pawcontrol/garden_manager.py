@@ -1471,11 +1471,19 @@ class GardenManager:
     weather_conditions: list[str] = []
     temperatures: list[float] = []
 
+    weather_sessions = list(sessions)
+    if active_session and not any(
+      session.session_id == active_session.session_id for session in weather_sessions
+    ):
+      weather_sessions.append(active_session)
+
     for session in sessions_to_process:
       duration = session.calculate_duration()
       total_seconds_today += duration
       total_poop_today += session.poop_count
       total_activities_today += len(session.activities)
+
+    for session in weather_sessions:
       if session.weather_conditions:
         weather_conditions.append(session.weather_conditions)
       if session.temperature is not None:

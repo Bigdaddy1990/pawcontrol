@@ -355,7 +355,11 @@ class PawControlDogEntityBase(PawControlEntity):
       return cast(CoordinatorUntypedModuleState, {})
 
     try:
-      payload = self.coordinator.get_module_data(self._dog_id, module)
+      if hasattr(self.coordinator, "get_module_data"):
+        payload = self.coordinator.get_module_data(self._dog_id, module)
+      else:
+        dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
+        payload = dog_data.get(module, {})
     except Exception as err:  # pragma: no cover - defensive log path
       _LOGGER.error(
         "Error fetching module data for %s/%s: %s",

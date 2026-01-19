@@ -17,9 +17,12 @@ TARGETS = [
 
 def _load_canonical_block() -> str:
   content = CANONICAL_SOURCE.read_text(encoding="utf-8")
-  start = content.index(SYNC_START) + len(SYNC_START)
-  end = content.index(SYNC_END, start)
-  block = content[start:end].strip("\n")
+  if SYNC_START in content and SYNC_END in content:
+    start = content.index(SYNC_START) + len(SYNC_START)
+    end = content.index(SYNC_END, start)
+    block = content[start:end].strip("\n")
+  else:
+    block = content.strip("\n")
   return f"{SYNC_START}\n{block}\n{SYNC_END}"
 
 

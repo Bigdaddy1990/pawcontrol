@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import TypeVar
 import asyncio
+from importlib import import_module
 import contextlib
 import logging
 from collections.abc import Callable, Mapping, Sequence
@@ -42,6 +43,19 @@ from .types import (
   PersonNotificationCacheEntry,
   PersonNotificationContext,
 )
+
+
+def _resolve_cache_snapshot_class():
+  """Return the cache snapshot class from the active types module."""
+
+  try:
+    module = import_module("custom_components.pawcontrol.types")
+    snapshot_class = getattr(module, "CacheDiagnosticsSnapshot", None)
+    if isinstance(snapshot_class, type):
+      return snapshot_class
+  except Exception:
+    pass
+  return CacheDiagnosticsSnapshot
 from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -953,7 +967,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
     diagnostics = self.get_diagnostics()
     snapshot = self._build_person_snapshot()
 
-    return CacheDiagnosticsSnapshot(
+    snapshot_class = _resolve_cache_snapshot_class()
+    return snapshot_class(
       stats=cast(JSONMutableMapping, dict(stats)),
       diagnostics=diagnostics,
       snapshot=cast(JSONMutableMapping, dict(snapshot)),

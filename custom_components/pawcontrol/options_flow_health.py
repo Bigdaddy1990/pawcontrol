@@ -72,6 +72,18 @@ else:  # pragma: no cover
 class HealthOptionsMixin(HealthOptionsHost):
   """Handle per-dog health options."""
 
+  @staticmethod
+  def _coerce_bool(value: Any, default: bool) -> bool:
+    """Return a boolean value using Home Assistant style truthiness rules."""
+
+    if value is None:
+      return default
+    if isinstance(value, bool):
+      return value
+    if isinstance(value, str):
+      return value.strip().lower() in {"1", "true", "on", "yes"}
+    return bool(value)
+
   def _current_health_options(self, dog_id: str) -> HealthOptions:
     """Return the stored health configuration as a typed mapping."""
 
@@ -137,8 +149,10 @@ class HealthOptionsMixin(HealthOptionsHost):
           user_input,
           current_health,
         )
-        dog_options[dog_id] = entry
-        new_options[DOG_OPTIONS_FIELD] = dog_options
+        if dog_id in dog_options or not dog_options:
+          dog_options[dog_id] = entry
+          new_options[DOG_OPTIONS_FIELD] = dog_options
+        new_options["health_settings"] = entry["health_settings"]
 
         typed_options = self._normalise_options_snapshot(new_options)
         return self.async_create_entry(title="", data=typed_options)
@@ -186,10 +200,10 @@ class HealthOptionsMixin(HealthOptionsHost):
           ),
         ): selector.BooleanSelector(),
         vol.Optional(
-          "medication_tracking",
+          "medication_reminders",
           default=current_values.get(
-            "medication_tracking",
-            current_health.get("medication_tracking", True),
+            "medication_reminders",
+            current_health.get("medication_reminders", True),
           ),
         ): selector.BooleanSelector(),
         vol.Optional(
@@ -200,10 +214,10 @@ class HealthOptionsMixin(HealthOptionsHost):
           ),
         ): selector.BooleanSelector(),
         vol.Optional(
-          "activity_monitoring",
+          "grooming_reminders",
           default=current_values.get(
-            "activity_monitoring",
-            current_health.get("activity_monitoring", True),
+            "grooming_reminders",
+            current_health.get("grooming_reminders", True),
           ),
         ): selector.BooleanSelector(),
         vol.Optional(
@@ -226,47 +240,25 @@ class HealthOptionsMixin(HealthOptionsHost):
     return cast(
       HealthOptions,
       {
-        "weight_tracking": bool(
-          user_input.get(
-            "weight_tracking",
-            current.get("weight_tracking", True),
-          ),
+        "weight_tracking": self._coerce_bool(
+          user_input.get("weight_tracking"),
+          current.get("weight_tracking", True),
         ),
-        "medication_tracking": bool(
-          user_input.get(
-            "medication_tracking",
-            current.get(
-              "medication_tracking",
-              True,
-            ),
-          ),
+        "medication_reminders": self._coerce_bool(
+          user_input.get("medication_reminders"),
+          current.get("medication_reminders", True),
         ),
-        "vet_reminders": bool(
-          user_input.get(
-            "vet_reminders",
-            current.get(
-              "vet_reminders",
-              True,
-            ),
-          ),
+        "vet_reminders": self._coerce_bool(
+          user_input.get("vet_reminders"),
+          current.get("vet_reminders", True),
         ),
-        "activity_monitoring": bool(
-          user_input.get(
-            "activity_monitoring",
-            current.get(
-              "activity_monitoring",
-              True,
-            ),
-          ),
+        "grooming_reminders": self._coerce_bool(
+          user_input.get("grooming_reminders"),
+          current.get("grooming_reminders", True),
         ),
-        "health_alerts": bool(
-          user_input.get(
-            "health_alerts",
-            current.get(
-              "health_alerts",
-              True,
-            ),
-          ),
+        "health_alerts": self._coerce_bool(
+          user_input.get("health_alerts"),
+          current.get("health_alerts", True),
         ),
       },
     )

@@ -58,6 +58,9 @@ def pytest_unconfigure(config: pytest.Config) -> None:
 
   # type: ignore[assignment]
   asyncio.get_event_loop = _ORIGINAL_GET_EVENT_LOOP
+  loop = getattr(config, "_pawcontrol_asyncio_loop", None)
+  if loop is not None and not loop.is_closed():
+    loop.close()
 
 
 @pytest.fixture(scope="session")
@@ -69,7 +72,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop]:
     yield loop
   finally:
     if not loop.is_closed():
-      loop.stop()
+      loop.close()
 
 
 @pytest.fixture(autouse=True)

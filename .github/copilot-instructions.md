@@ -1,6 +1,3 @@
-# PawControl Contributor Guide (Canonical)
-
-<!-- SYNC:START -->
 # PawControl Contributor Guide
 
 These instructions describe how to work on the `custom_components/pawcontrol`
@@ -222,4 +219,3 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 - [ ] New documentation includes citations to code/tests proving the behaviour.
 - [ ] Device removal (`async_remove_config_entry_device`) and diagnostics remain
       covered by tests when behaviour changes.
-<!-- SYNC:END -->

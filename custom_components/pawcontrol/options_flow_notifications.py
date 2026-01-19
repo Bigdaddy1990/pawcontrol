@@ -125,12 +125,17 @@ class NotificationOptionsMixin(NotificationOptionsHost):
       return str(iso_format())
     return default
 
-  def _current_notification_options(self, dog_id: str) -> NotificationOptions:
+  def _current_notification_options(
+    self,
+    dog_id: str | None = None,
+  ) -> NotificationOptions:
     """Fetch per-dog notification configuration with legacy fallbacks."""
 
-    dog_options = self._current_dog_options()
-    entry = dog_options.get(dog_id, {})
-    raw = entry.get(CONF_NOTIFICATIONS)
+    raw = None
+    if dog_id is not None:
+      dog_options = self._current_dog_options()
+      entry = dog_options.get(dog_id, {})
+      raw = entry.get(CONF_NOTIFICATIONS)
     payload: Mapping[str, JSONValue]
     if isinstance(raw, Mapping):
       payload = raw
@@ -251,8 +256,10 @@ class NotificationOptionsMixin(NotificationOptionsHost):
           dog_id=dog_id,
         )
         entry[CONF_NOTIFICATIONS] = notification_settings
-        dog_options[dog_id] = entry
-        new_options[DOG_OPTIONS_FIELD] = dog_options
+        if dog_id in dog_options or not dog_options:
+          dog_options[dog_id] = entry
+          new_options[DOG_OPTIONS_FIELD] = dog_options
+        new_options[CONF_NOTIFICATIONS] = notification_settings
 
         typed_options = self._normalise_options_snapshot(new_options)
         return self.async_create_entry(title="", data=typed_options)

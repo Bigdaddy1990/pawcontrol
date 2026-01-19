@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from inspect import isawaitable
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
@@ -178,6 +178,8 @@ class PawControlCoordinator(
     self._entity_budget = EntityBudgetTracker()
     self._setup_complete = False
     self._maintenance_unsub: callback | None = None
+    self.last_update_success = False
+    self.last_update_time: datetime | None = None
 
     self.data_manager: PawControlDataManager | None = None
     self.feeding_manager: FeedingManager | None = None

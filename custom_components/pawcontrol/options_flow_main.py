@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+from importlib import import_module
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import asdict
@@ -88,11 +89,14 @@ from .options_flow_gps import GPSOptionsMixin
 from .options_flow_health import HealthOptionsMixin
 from .options_flow_notifications import NotificationOptionsMixin
 from .options_flow_shared import OptionsFlowSharedMixin
-from .repairs import ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE, async_create_issue
+from .repairs import (
+  ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
+  async_create_issue as _async_create_issue,
+)
 from .runtime_data import (
   RuntimeDataUnavailableError,
-  get_runtime_data,
-  require_runtime_data,
+  get_runtime_data as _get_runtime_data,
+  require_runtime_data as _require_runtime_data,
 )
 from .selector_shim import selector
 from .telemetry import record_door_sensor_persistence_failure
@@ -134,6 +138,45 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_get_runtime_data():
+  """Return the patched runtime data helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "get_runtime_data", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return _get_runtime_data
+
+
+def _resolve_require_runtime_data():
+  """Return the patched runtime data validator when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "require_runtime_data", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return _require_runtime_data
+
+
+def _resolve_async_create_issue():
+  """Return the patched repairs helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "async_create_issue", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return _async_create_issue
 
 DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
   "door",
@@ -348,31 +391,29 @@ class PawControlOptionsFlow(
         defaults=DEFAULT_NOTIFICATION_OPTIONS,
       )
 
-      dog_options = ensure_json_mapping(
-        mutable.get(DOG_OPTIONS_FIELD, {}),
-      )
-      if self._dogs:
-        for dog in self._dogs:
-          dog_id = dog.get(DOG_ID_FIELD)
-          if not isinstance(dog_id, str) or not dog_id:
-            continue
-          entry_source = dog_options.get(dog_id, {})
-          if not isinstance(entry_source, Mapping):
-            entry_source = {}
+      raw_dog_options = mutable.get(DOG_OPTIONS_FIELD, {})
+      dog_options: DogOptionsMap = {}
+      if isinstance(raw_dog_options, Mapping):
+        for raw_id, entry_source in raw_dog_options.items():
+          dog_id = str(raw_id)
+          entry_payload = (
+            cast(Mapping[str, JSONValue], entry_source)
+            if isinstance(entry_source, Mapping)
+            else {}
+          )
           entry = ensure_dog_options_entry(
-            cast(JSONLikeMapping, dict(entry_source)),
+            cast(JSONLikeMapping, dict(entry_payload)),
             dog_id=dog_id,
           )
           if CONF_NOTIFICATIONS not in entry:
             entry[CONF_NOTIFICATIONS] = normalised_notifications
           dog_options[dog_id] = entry
+      if dog_options:
         mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
-        mutable.pop(CONF_NOTIFICATIONS, None)
-      else:
-        mutable[CONF_NOTIFICATIONS] = cast(
-          JSONValue,
-          normalised_notifications,
-        )
+      mutable[CONF_NOTIFICATIONS] = cast(
+        JSONValue,
+        normalised_notifications,
+      )
 
     if DOG_OPTIONS_FIELD in mutable:
       raw_dog_options = mutable.get(DOG_OPTIONS_FIELD)
@@ -627,7 +668,7 @@ class PawControlOptionsFlow(
 
     runtime: Any | None = None
     with suppress(Exception):
-      runtime = get_runtime_data(hass, self._entry)
+      runtime = _resolve_get_runtime_data()(hass, self._entry)
     if runtime is None:
       return None
 
@@ -1937,7 +1978,7 @@ class PawControlOptionsFlow(
           data_manager = None
           if persist_updates:
             try:
-              runtime = require_runtime_data(
+              runtime = _resolve_require_runtime_data()(
                 self.hass,
                 self._entry,
               )
@@ -1995,7 +2036,7 @@ class PawControlOptionsFlow(
                 "timestamp": issue_timestamp,
               }
               try:
-                await async_create_issue(
+                await _resolve_async_create_issue()(
                   self.hass,
                   self._entry,
                   f"{self._entry.entry_id}_door_sensor_{dog_id}",
@@ -3267,7 +3308,7 @@ class PawControlOptionsFlow(
           mutable_options.pop("manual_breaker_event", None)
         else:
           mutable_options["manual_breaker_event"] = breaker_option
-        runtime = get_runtime_data(self.hass, self._entry)
+        runtime = _resolve_get_runtime_data()(self.hass, self._entry)
         script_manager = getattr(runtime, "script_manager", None)
         if script_manager is not None:
           await script_manager.async_sync_manual_resilience_events(

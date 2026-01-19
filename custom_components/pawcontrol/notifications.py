@@ -38,6 +38,17 @@ from .types import JSONMutableMapping, PersonEntityStats, PersonNotificationCont
 from .utils import async_call_hass_service_if_available
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
+
+def _dt_now() -> datetime:
+  """Return the current time using the active Home Assistant dt helper."""
+
+  try:
+    from homeassistant.util import dt as dt_util_module
+
+    return dt_util_module.now()
+  except Exception:
+    return dt_util.now()
+
 if TYPE_CHECKING:
   from .feeding_manager import (
     FeedingComplianceCompleted,
@@ -533,7 +544,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
       oldest = self._access_order.popleft()
       del self._config_cache[oldest]
 
-    self._config_cache[config_key] = (config, dt_util.now())
+    self._config_cache[config_key] = (config, _dt_now())
 
     # Update access order
     if config_key in self._access_order:
@@ -556,7 +567,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
     """
     if cache_key in self._person_targeting_cache:
       targets, timestamp = self._person_targeting_cache[cache_key]
-      if (dt_util.now() - timestamp).total_seconds() < ttl_seconds:
+      if (_dt_now() - timestamp).total_seconds() < ttl_seconds:
         return targets
     return None
 
@@ -567,7 +578,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
         cache_key: Cache key
         targets: Target services list
     """
-    self._person_targeting_cache[cache_key] = (targets, dt_util.now())
+    self._person_targeting_cache[cache_key] = (targets, _dt_now())
 
   def is_quiet_time_cached(self, config_key: str) -> tuple[bool, bool]:
     """Check if quiet time status is cached.
@@ -580,7 +591,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
     """
     if config_key in self._quiet_time_cache:
       is_quiet, cache_time = self._quiet_time_cache[config_key]
-      if (dt_util.now() - cache_time).total_seconds() < QUIET_TIME_CACHE_TTL:
+      if (_dt_now() - cache_time).total_seconds() < QUIET_TIME_CACHE_TTL:
         return True, is_quiet
     return False, False
 
@@ -591,7 +602,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
         config_key: Configuration key
         is_quiet: Whether it's currently quiet time
     """
-    self._quiet_time_cache[config_key] = (is_quiet, dt_util.now())
+    self._quiet_time_cache[config_key] = (is_quiet, _dt_now())
 
   def check_rate_limit(
     self,
@@ -609,7 +620,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
     Returns:
         True if sending is allowed
     """
-    now = dt_util.now()
+    now = _dt_now()
 
     if config_key not in self._rate_limit_cache:
       self._rate_limit_cache[config_key] = {}
@@ -631,7 +642,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
     Returns:
         Number of entries cleaned up
     """
-    now = dt_util.now()
+    now = _dt_now()
     cleaned = 0
 
     # Clean quiet time cache
@@ -1465,7 +1476,7 @@ class PawControlNotificationManager:
       return is_quiet
 
     # Calculate quiet time status
-    now = dt_util.now()
+    now = _dt_now()
     current_hour = now.hour
     start_hour, end_hour = config.quiet_hours
 

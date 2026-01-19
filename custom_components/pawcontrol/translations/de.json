@@ -228,7 +228,7 @@
           "reminder_minutes_before": "Wie viele Minuten vor der Mahlzeit die Erinnerung ausgel\u00f6st wird.",
           "snacks_enabled": "Erfasse Snacks separat von den Hauptmahlzeiten."
         },
-        "description": "F\u00fctterungsplan f\u00fcr {dog_name} ({dog_weight} kg) einrichten.\n\nVorgeschlagene Tagesmenge: {suggested_amount} g\nAutomatische Portionsberechnung: {suggested_amount} g pro Tag",
+        "description": "F\u00fctterungsplan f\u00fcr {dog_name} ({dog_weight} kg) einrichten.\n\nVorgeschlagene Tagesmenge: {suggested_amount} g\n{portion_info}",
         "title": "F\u00fctterungskonfiguration f\u00fcr {dog_name}"
       },
       "dog_gps": {
@@ -354,7 +354,7 @@
           "weight_goal": "Ziel: Gewicht halten, reduzieren oder erh\u00f6hen.",
           "weight_tracking": "Aktivieren, um Gewichtseintr\u00e4ge zu protokollieren."
         },
-        "description": "Umfassende Gesundheitsdaten f\u00fcr {dog_name} ({dog_age} Jahre, {dog_weight} kg) konfigurieren.\n\nEmpfohlenes Idealgewicht: {suggested_ideal_weight} kg\nEmpfohlene Aktivit\u00e4tsstufe: {suggested_activity}\n\n{bcs_info}\n\nSpezielle Di\u00e4toptionen ({special_diet_count} verf\u00fcgbar):\nW\u00e4hle alle speziellen Ern\u00e4hrungsanforderungen aus, um die F\u00fctterungsberechnung zu optimieren.\n\n\u26a0\ufe0f Kompatibilit\u00e4tsinfo:\n{diet_compatibility_info}",
+        "description": "Umfassende Gesundheitsdaten f\u00fcr {dog_name} ({dog_age} Jahre, {dog_weight} kg) konfigurieren.\n\nEmpfohlenes Idealgewicht: {suggested_ideal_weight} kg\nEmpfohlene Aktivit\u00e4tsstufe: {suggested_activity}\nMedikation aktiviert: {medication_enabled}\n\n{bcs_info}\n\nSpezielle Di\u00e4toptionen ({special_diet_count} verf\u00fcgbar):\nW\u00e4hle alle speziellen Ern\u00e4hrungsanforderungen aus, um die F\u00fctterungsberechnung zu optimieren.\n\n\u26a0\ufe0f Kompatibilit\u00e4tsinfo:\n{health_diet_info}",
         "title": "Gesundheits- & Di\u00e4tkonfiguration f\u00fcr {dog_name}"
       },
       "dog_modules": {
@@ -443,8 +443,23 @@
       "extreme_heat_warning": {
         "name": "Extreme Hitzewarnung"
       },
+      "activity_level_concern": {
+        "name": "Aktivit\u00e4tslevel-Bedenken"
+      },
+      "attention_needed": {
+        "name": "Aufmerksamkeit erforderlich"
+      },
+      "daily_feeding_goal_met": {
+        "name": "T\u00e4gliches F\u00fctterungsziel erreicht"
+      },
+      "feeding_due": {
+        "name": "F\u00fctterung f\u00e4llig"
+      },
       "feeding_overdue": {
         "name": "F\u00fctterung \u00fcberf\u00e4llig"
+      },
+      "feeding_schedule_on_track": {
+        "name": "F\u00fctterungsplan im Zeitplan"
       },
       "garden_poop_pending": {
         "name": "Offene Garten-Kotbest\u00e4tigung"
@@ -452,11 +467,23 @@
       "garden_session_active": {
         "name": "Gartensitzung aktiv"
       },
+      "geofence_alert": {
+        "name": "Geofence-Warnung"
+      },
       "gps_signal": {
         "name": "GPS-Signal"
       },
+      "gps_accurately_tracked": {
+        "name": "GPS genau verfolgt"
+      },
+      "gps_battery_low": {
+        "name": "GPS-Batterie schwach"
+      },
       "health_aware_feeding": {
         "name": "Gesundheitsbewusste F\u00fctterung"
+      },
+      "health_alert": {
+        "name": "Gesundheitswarnung"
       },
       "health_emergency": {
         "name": "Gesundheitsnotfall"
@@ -482,6 +509,12 @@
       "medication_with_meals": {
         "name": "Medikamentengabe zu Mahlzeiten"
       },
+      "long_walk_overdue": {
+        "name": "Langer Spaziergang \u00fcberf\u00e4llig"
+      },
+      "moving": {
+        "name": "In Bewegung"
+      },
       "needs_grooming": {
         "name": "Braucht Pflege"
       },
@@ -500,6 +533,9 @@
       "visitor_mode": {
         "name": "Besuchermodus"
       },
+      "walk_goal_met": {
+        "name": "Spaziergangsziel erreicht"
+      },
       "walk_in_progress": {
         "name": "Spaziergang l\u00e4uft"
       },
@@ -514,6 +550,12 @@
       "confirm_garden_poop": {
         "name": "Garten-Kot best\u00e4tigen"
       },
+      "call_dog": {
+        "name": "Hund rufen"
+      },
+      "center_map": {
+        "name": "Karte zentrieren"
+      },
       "daily_reset": {
         "name": "T\u00e4glicher Reset"
       },
@@ -526,8 +568,14 @@
       "end_walk": {
         "name": "Spaziergang beenden"
       },
+      "export_route": {
+        "name": "Route exportieren"
+      },
       "export_data": {
         "name": "Daten exportieren"
+      },
+      "feed_now": {
+        "name": "Jetzt f\u00fcttern"
       },
       "get_weather_alerts": {
         "name": "Wetter-Warnungen abrufen"
@@ -544,8 +592,17 @@
       "log_garden_activity": {
         "name": "Gartenaktivit\u00e4t protokollieren"
       },
+      "log_custom_feeding": {
+        "name": "Individuelle F\u00fctterung protokollieren"
+      },
       "log_health": {
         "name": "Gesundheit protokollieren"
+      },
+      "log_walk_manually": {
+        "name": "Spaziergang manuell protokollieren"
+      },
+      "log_weight": {
+        "name": "Gewicht protokollieren"
       },
       "log_medication": {
         "name": "Medikation protokollieren"
@@ -555,6 +612,9 @@
       },
       "mark_fed_breakfast": {
         "name": "Als gef\u00fcttert markieren (Fr\u00fchst\u00fcck)"
+      },
+      "mark_fed": {
+        "name": "F\u00fctterung markieren"
       },
       "mark_fed_dinner": {
         "name": "Als gef\u00fcttert markieren (Abendessen)"
@@ -567,6 +627,30 @@
       },
       "notify_test": {
         "name": "Test-Benachrichtigung"
+      },
+      "health_check": {
+        "name": "Gesundheitscheck"
+      },
+      "quick_walk": {
+        "name": "Kurzer Spaziergang"
+      },
+      "refresh_data": {
+        "name": "Daten aktualisieren"
+      },
+      "refresh_location": {
+        "name": "Standort aktualisieren"
+      },
+      "reset_daily_stats": {
+        "name": "Tagesstatistiken zur\u00fccksetzen"
+      },
+      "schedule_vet": {
+        "name": "Tierarzttermin planen"
+      },
+      "sync_data": {
+        "name": "Daten synchronisieren"
+      },
+      "test_notification": {
+        "name": "Testbenachrichtigung"
       },
       "start_garden_session": {
         "name": "Gartensitzung starten"
@@ -582,6 +666,77 @@
       },
       "update_weather": {
         "name": "Wetter aktualisieren"
+      }
+    },
+    "number": {
+      "activity_goal": {
+        "name": "Aktivit\u00e4tsziel"
+      },
+      "age": {
+        "name": "Alter"
+      },
+      "calorie_target": {
+        "name": "Kalorienziel"
+      },
+      "daily_food_amount": {
+        "name": "T\u00e4gliche Futtermenge"
+      },
+      "daily_walk_target": {
+        "name": "T\u00e4gliches Spaziergangsziel"
+      },
+      "feeding_reminder_hours": {
+        "name": "F\u00fctterungserinnerung (Stunden)"
+      },
+      "geofence_radius": {
+        "name": "Geofence-Radius"
+      },
+      "gps_accuracy_threshold": {
+        "name": "GPS-Genauigkeitsschwelle"
+      },
+      "gps_battery_threshold": {
+        "name": "GPS-Batterieschwelle"
+      },
+      "gps_update_interval": {
+        "name": "GPS-Aktualisierungsintervall"
+      },
+      "grooming_interval": {
+        "name": "Pflegeintervall"
+      },
+      "health_score_threshold": {
+        "name": "Gesundheits-Score-Schwelle"
+      },
+      "location_update_distance": {
+        "name": "Abstand f\u00fcr Standortaktualisierung"
+      },
+      "max_walk_speed": {
+        "name": "Maximale Spaziergangsgeschwindigkeit"
+      },
+      "meals_per_day": {
+        "name": "Mahlzeiten pro Tag"
+      },
+      "portion_size": {
+        "name": "Portionsgr\u00f6\u00dfe"
+      },
+      "target_weight": {
+        "name": "Zielgewicht"
+      },
+      "vet_checkup_interval": {
+        "name": "Tierarzt-Checkup-Intervall"
+      },
+      "walk_distance_target": {
+        "name": "Zielstrecke Spaziergang"
+      },
+      "walk_duration_target": {
+        "name": "Ziel-Spaziergangsdauer"
+      },
+      "walk_reminder_hours": {
+        "name": "Spaziergangserinnerung (Stunden)"
+      },
+      "weight": {
+        "name": "Gewicht"
+      },
+      "weight_change_threshold": {
+        "name": "Schwelle f\u00fcr Gewichts\u00e4nderung"
       }
     },
     "date": {
@@ -700,6 +855,15 @@
           "very_low": "Sehr niedrig"
         }
       },
+      "default_meal_type": {
+        "name": "Standard-Mahlzeitentyp"
+      },
+      "feeding_mode": {
+        "name": "F\u00fctterungsmodus"
+      },
+      "feeding_schedule": {
+        "name": "F\u00fctterungszeitplan"
+      },
       "food_type": {
         "name": "Futtertyp",
         "state": {
@@ -709,6 +873,18 @@
           "mixed": "Gemischt",
           "wet_food": "Nassfutter"
         }
+      },
+      "gps_source": {
+        "name": "GPS-Quelle"
+      },
+      "grooming_type": {
+        "name": "Pflegeart"
+      },
+      "health_status": {
+        "name": "Gesundheitsstatus"
+      },
+      "location_accuracy": {
+        "name": "Standortgenauigkeit"
       },
       "mood": {
         "name": "Stimmung",
@@ -721,6 +897,12 @@
           "tired": "M\u00fcde"
         }
       },
+      "notification_priority": {
+        "name": "Benachrichtigungspriorit\u00e4t"
+      },
+      "performance_mode": {
+        "name": "Leistungsmodus"
+      },
       "size": {
         "name": "Gr\u00f6\u00dfe",
         "state": {
@@ -730,6 +912,18 @@
           "small": "Klein",
           "toy": "Spielzeughund"
         }
+      },
+      "tracking_mode": {
+        "name": "Tracking-Modus"
+      },
+      "walk_intensity": {
+        "name": "Spaziergangsintensit\u00e4t"
+      },
+      "walk_mode": {
+        "name": "Spaziergangsmodus"
+      },
+      "weather_preference": {
+        "name": "Wetterpr\u00e4ferenz"
       },
       "weather_severity": {
         "name": "Wetter-Schweregrad",
@@ -761,6 +955,9 @@
       "avg_garden_duration": {
         "name": "Durchschnittliche Gartendauer"
       },
+      "average_walk_duration": {
+        "name": "Durchschnittliche Gassidauer"
+      },
       "body_condition_score": {
         "name": "K\u00f6rperkonditions-Score"
       },
@@ -773,6 +970,9 @@
       "calories_consumed_today": {
         "name": "Heute verzehrte Kalorien"
       },
+      "current_location": {
+        "name": "Aktueller Standort"
+      },
       "current_speed": {
         "name": "Aktuelle Geschwindigkeit"
       },
@@ -784,6 +984,9 @@
       },
       "daily_activity_level": {
         "name": "T\u00e4gliches Aktivit\u00e4tsniveau"
+      },
+      "daily_calories": {
+        "name": "T\u00e4gliche Kalorien"
       },
       "daily_calorie_target": {
         "name": "T\u00e4gliches Kalorienziel"
@@ -844,6 +1047,9 @@
       "feeding_recommendation": {
         "name": "F\u00fctterungsempfehlung"
       },
+      "feeding_schedule_adherence": {
+        "name": "Einhaltung des F\u00fctterungsplans"
+      },
       "food_consumption": {
         "name": "Futterverbrauch"
       },
@@ -879,6 +1085,9 @@
       },
       "health_feeding_status": {
         "name": "Gesundheitsf\u00fctterungsstatus"
+      },
+      "health_aware_portion": {
+        "name": "Gesundheitsbewusste Portion"
       },
       "health_status": {
         "name": "Gesundheitsstatus",
@@ -962,6 +1171,9 @@
       },
       "total_distance_today": {
         "name": "Gesamte Distanz heute"
+      },
+      "walk_distance_today": {
+        "name": "Heutige Gassistrecke"
       },
       "total_feedings_today": {
         "name": "Gesamte F\u00fctterungen heute"
@@ -1382,7 +1594,8 @@
     }
   },
   "selector": {
-    "activity_level": {
+    "select": {
+      "activity_level": {
       "options": {
         "high": "\ud83c\udfcb\ufe0f Hoch - Sehr aktiv, lange Spazierg\u00e4nge/L\u00e4ufe",
         "low": "\ud83d\udeb6 Niedrig - Leichte Bewegung, meist drinnen",
@@ -1457,11 +1670,12 @@
         "moderate": "Mittel - Wichtige Wetterwarnungen"
       }
     },
-    "weight_goal": {
-      "options": {
-        "gain": "\ud83d\udcc8 Gewichtszunahme",
-        "lose": "\ud83d\udcc9 Gewichtsabnahme",
-        "maintain": "\u2696\ufe0f Gewicht halten"
+      "weight_goal": {
+        "options": {
+          "gain": "\ud83d\udcc8 Gewichtszunahme",
+          "lose": "\ud83d\udcc9 Gewichtsabnahme",
+          "maintain": "\u2696\ufe0f Gewicht halten"
+        }
       }
     }
   },

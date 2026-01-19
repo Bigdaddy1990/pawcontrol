@@ -2783,14 +2783,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         try:
           expires_in_hours = float(expires_in_hours_raw)
         except (TypeError, ValueError):
-          raise _service_validation_error(
-            "expires_in_hours must be a positive number",
-          ) from None
-        if expires_in_hours <= 0:
-          raise _service_validation_error(
-            "expires_in_hours must be greater than 0",
+          _LOGGER.warning(
+            "Invalid expires_in_hours value %r; ignoring override",
+            expires_in_hours_raw,
           )
-        expires_in = timedelta(hours=expires_in_hours)
+          expires_in_hours = None
+        if expires_in_hours is not None and expires_in_hours <= 0:
+          _LOGGER.warning(
+            "Non-positive expires_in_hours value %s; ignoring override",
+            expires_in_hours,
+          )
+          expires_in_hours = None
+        if expires_in_hours is not None:
+          expires_in = timedelta(hours=expires_in_hours)
 
       async with async_capture_service_guard_results() as captured_guards:
         guard_results = captured_guards

@@ -10,13 +10,13 @@ diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-import pytest_asyncio
 from aiohttp import ClientSession
 
 from tests.helpers.homeassistant_test_stubs import (
@@ -54,6 +54,18 @@ pytest_plugins = (
   "pytest_asyncio",
   "tests.plugins.asyncio_stub",
 )
+
+
+def _run_async(coro):
+  try:
+    loop = asyncio.get_running_loop()
+  except RuntimeError:
+    return asyncio.run(coro)
+  runner_loop = asyncio.new_event_loop()
+  try:
+    return runner_loop.run_until_complete(coro)
+  finally:
+    runner_loop.close()
 
 
 @pytest.fixture
@@ -275,8 +287,8 @@ def mock_session(
   return session_factory()
 
 
-@pytest_asyncio.fixture
-async def mock_resilience_manager(mock_hass):
+@pytest.fixture
+def mock_resilience_manager(mock_hass):
   """Mock ResilienceManager for testing without actual resilience logic.
 
   Args:
@@ -304,8 +316,8 @@ async def mock_resilience_manager(mock_hass):
   return manager
 
 
-@pytest_asyncio.fixture
-async def mock_coordinator(
+@pytest.fixture
+def mock_coordinator(
   mock_hass,
   mock_config_entry,
   mock_session,
@@ -348,8 +360,8 @@ async def mock_coordinator(
   yield coordinator
 
 
-@pytest_asyncio.fixture
-async def mock_feeding_manager(
+@pytest.fixture
+def mock_feeding_manager(
   mock_dog_config: FeedingManagerDogSetupPayload,
 ) -> FeedingManager:
   """Mock FeedingManager for testing.
@@ -363,13 +375,13 @@ async def mock_feeding_manager(
   from custom_components.pawcontrol.feeding_manager import FeedingManager
 
   manager = FeedingManager()
-  await manager.async_initialize([mock_dog_config])
+  _run_async(manager.async_initialize([mock_dog_config]))
 
   return manager
 
 
-@pytest_asyncio.fixture
-async def mock_walk_manager(
+@pytest.fixture
+def mock_walk_manager(
   mock_dog_config: FeedingManagerDogSetupPayload,
 ) -> WalkManager:
   """Mock WalkManager for testing.
@@ -383,13 +395,13 @@ async def mock_walk_manager(
   from custom_components.pawcontrol.walk_manager import WalkManager
 
   manager = WalkManager()
-  await manager.async_initialize([mock_dog_config["dog_id"]])
+  _run_async(manager.async_initialize([mock_dog_config["dog_id"]]))
 
   return manager
 
 
-@pytest_asyncio.fixture
-async def mock_gps_manager(mock_hass, mock_resilience_manager):
+@pytest.fixture
+def mock_gps_manager(mock_hass, mock_resilience_manager):
   """Mock GPSGeofenceManager for testing.
 
   Args:
@@ -407,8 +419,8 @@ async def mock_gps_manager(mock_hass, mock_resilience_manager):
   return manager
 
 
-@pytest_asyncio.fixture
-async def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
+@pytest.fixture
+def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
   """Mock PawControlNotificationManager for testing.
 
   Args:
@@ -427,13 +439,13 @@ async def mock_notification_manager(mock_hass, mock_resilience_manager, mock_ses
   )
   manager.resilience_manager = mock_resilience_manager
 
-  await manager.async_initialize()
+  _run_async(manager.async_initialize())
 
   return manager
 
 
-@pytest_asyncio.fixture
-async def mock_data_manager(mock_hass):
+@pytest.fixture
+def mock_data_manager(mock_hass):
   """Mock PawControlDataManager for testing.
 
   Args:
@@ -445,7 +457,7 @@ async def mock_data_manager(mock_hass):
   from custom_components.pawcontrol.data_manager import PawControlDataManager
 
   manager = PawControlDataManager(mock_hass, "test_entry")
-  await manager.async_initialize()
+  _run_async(manager.async_initialize())
 
   return manager
 
