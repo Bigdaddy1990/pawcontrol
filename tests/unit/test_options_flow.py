@@ -125,6 +125,20 @@ def _assert_dog_modules(
     assert modules[module_key] is expected_value
 
 
+def _set_raw_options(
+  mock_config_entry: ConfigEntry,
+  *,
+  notifications: dict[str, Any] | None = None,
+  dog_options: dict[Any, Any] | None = None,
+) -> None:
+  raw_options = dict(mock_config_entry.options)
+  if notifications is not None:
+    raw_options[CONF_NOTIFICATIONS] = notifications
+  if dog_options is not None:
+    raw_options["dog_options"] = dog_options
+  mock_config_entry.options = raw_options
+
+
 def test_ensure_notification_options_normalises_values() -> None:
   """Notification options should coerce overrides and preserve defaults."""
 
