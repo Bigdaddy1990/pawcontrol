@@ -40,6 +40,13 @@ from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
 
 def _dt_now() -> datetime:
+    """Return the current time using the active Home Assistant dt helper."""
+    try:
+        from homeassistant.util import dt as dt_util
+        return dt_util.now()
+    except ImportError:
+        from datetime import datetime
+        return datetime.now()
   """Return the current time using the active Home Assistant dt helper."""
 
   try:
