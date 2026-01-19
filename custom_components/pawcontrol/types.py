@@ -4168,7 +4168,8 @@ def ensure_gps_route_snapshot(
         if normalised is not None:
           points.append(normalised)
       else:
-        points.append({})
+        # Skip non-mapping points to avoid corrupting the route data.
+        pass
 
   start_time = _coerce_iso_timestamp(base.get("start_time"))
   end_time = _coerce_iso_timestamp(base.get("end_time"))
