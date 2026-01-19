@@ -160,7 +160,7 @@ def _set_raw_options_with_buddy_and_max(
           MODULE_HEALTH: "1",
         },
       },
-      123: {
+      "123": {
         DOG_MODULES_FIELD: {
           MODULE_GPS: "true",
           MODULE_WALK: "",

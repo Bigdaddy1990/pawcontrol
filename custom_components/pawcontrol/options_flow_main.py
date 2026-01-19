@@ -52,7 +52,6 @@ from .options_flow_profiles import ProfileOptionsMixin
 from .options_flow_shared import (
   ADVANCED_SETTINGS_FIELD,
   DOG_OPTIONS_FIELD,
-  OptionsFlowSharedMixin,
 )
 from .options_flow_system_settings import SystemSettingsOptionsMixin
 from .runtime_data import get_runtime_data as _get_runtime_data
@@ -102,7 +101,6 @@ class PawControlOptionsFlow(
   DoorSensorOptionsMixin,
   SystemSettingsOptionsMixin,
   ImportExportOptionsMixin,
-  OptionsFlowSharedMixin,
   NotificationOptionsMixin,
   GPSOptionsMixin,
   FeedingOptionsMixin,

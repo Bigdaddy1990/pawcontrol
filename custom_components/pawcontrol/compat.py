@@ -685,7 +685,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
   ) -> bool:
     current = getattr(self, attr_name)
     if current is not None:
-      return bool(current)
+      return current
 
     handler = HANDLERS.get(self.domain)
     if not handler or not hasattr(handler, handler_attribute):
@@ -693,7 +693,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
     current = bool(getattr(handler, handler_attribute)(self)) if call_handler else True
     setattr(self, attr_name, current)
-    return bool(current)
+    return current
 
   def add_to_hass(self, hass: Any) -> None:
     """Associate the entry with a Home Assistant instance."""
