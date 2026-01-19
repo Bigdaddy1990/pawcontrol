@@ -9,7 +9,6 @@ from typing import Any, cast
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .config_flow_base import MAX_DOGS_PER_ENTRY
 from .const import (
   CONF_DOG_AGE,
   CONF_DOG_BREED,
@@ -20,6 +19,7 @@ from .const import (
   CONF_DOGS,
   CONF_DOOR_SENSOR,
   DOOR_SENSOR_DEVICE_CLASSES,
+  MAX_DOGS_PER_ENTRY,
   MODULE_FEEDING,
   MODULE_GARDEN,
   MODULE_GPS,
