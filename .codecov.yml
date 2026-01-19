@@ -43,7 +43,7 @@ codecov:
   range:
   - 70.0
   - 100.0
-  
+
 parsers:
   gcov:
     branch_detection:

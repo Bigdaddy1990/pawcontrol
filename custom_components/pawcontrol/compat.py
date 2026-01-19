@@ -691,10 +691,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     if not handler or not hasattr(handler, handler_attribute):
       return False
 
-    if call_handler:
-      current = bool(getattr(handler, handler_attribute)(self))
-    else:
-      current = True
+    current = bool(getattr(handler, handler_attribute)(self)) if call_handler else True
     setattr(self, attr_name, current)
     return bool(current)
 
