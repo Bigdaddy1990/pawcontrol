@@ -10,7 +10,7 @@ import tarfile
 import urllib.error
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -37,6 +37,18 @@ def ensure_allowed_github_api_url(url: str) -> None:
     raise PublishError("GitHub API URL must use HTTPS")
   if parsed.netloc != "api.github.com":
     raise PublishError("GitHub API URL must target api.github.com")
+
+
+def _open_github_api_request(
+  request: urllib.request.Request,
+  *,
+  timeout: int = 30,
+) -> urllib.response.addinfourl:
+  """Open a GitHub API request after validating the URL."""
+
+  ensure_allowed_github_api_url(request.full_url)
+  opener = urllib.request.build_opener(urllib.request.HTTPSHandler())
+  return opener.open(request, timeout=timeout)
 
 
 def build_cli() -> argparse.ArgumentParser:
@@ -225,7 +237,7 @@ class GitHubPagesPublisher:
     request.add_header("Accept", "application/vnd.github+json")
     if data is not None:
       request.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with _open_github_api_request(request, timeout=30) as response:
       return json.loads(response.read())
 
   def publish(

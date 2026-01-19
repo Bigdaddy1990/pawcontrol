@@ -1,5 +1,6 @@
 annotatedyaml==1.0.2
 coverage[toml]>=7.5.4
+defusedxml>=0.7.1
 homeassistant>=2026.1.1
 jinja2==3.1.6
 packaging==25.0
