@@ -54,9 +54,11 @@ def _load_module(name: str, path: Path) -> ModuleType:
   return module
 
 
-def _make_runtime_data() -> SimpleNamespace:
+def _make_runtime_data(
+  summary: CacheRepairAggregate | None = None,
+) -> SimpleNamespace:
   return SimpleNamespace(
-    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+    data_manager=SimpleNamespace(cache_repair_summary=lambda: summary),
     coordinator=SimpleNamespace(last_update_success=True),
   )
 

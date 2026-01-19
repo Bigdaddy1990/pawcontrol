@@ -82,17 +82,15 @@ def _assert_notifications(
   reminder_repeat_min: int,
   priority_notifications: bool,
   mobile_notifications: bool,
-) -> NotificationOptions:
+) -> None:
   notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
 
-  assert notifications[CONF_QUIET_HOURS] is quiet_hours
-  assert notifications[CONF_QUIET_START] == quiet_start
-  assert notifications[CONF_QUIET_END] == quiet_end
-  assert notifications[CONF_REMINDER_REPEAT_MIN] == reminder_repeat_min
-  assert notifications["priority_notifications"] is priority_notifications
-  assert notifications["mobile_notifications"] is mobile_notifications
-
-  return notifications
+  assert notifications[NOTIFICATION_QUIET_HOURS_FIELD] is quiet_hours
+  assert notifications[NOTIFICATION_QUIET_START_FIELD] == quiet_start
+  assert notifications[NOTIFICATION_QUIET_END_FIELD] == quiet_end
+  assert notifications[NOTIFICATION_REMINDER_REPEAT_FIELD] == reminder_repeat_min
+  assert notifications[NOTIFICATION_PRIORITY_FIELD] is priority_notifications
+  assert notifications[NOTIFICATION_MOBILE_FIELD] is mobile_notifications
 
 
 def _assert_dog_modules(

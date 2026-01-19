@@ -68,7 +68,12 @@ if TYPE_CHECKING:
     async def async_step_init(self) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-  FeedingOptionsHost = object
+  from .options_flow_shared import OptionsFlowSharedMixin
+
+  class FeedingOptionsHost(OptionsFlowSharedMixin):
+    """Runtime host for feeding options mixin."""
+
+    pass
 
 
 class FeedingOptionsMixin(FeedingOptionsHost):
