@@ -54,6 +54,7 @@ from .types import (
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class DogManagementOptionsMixin:
   async def async_step_manage_dogs(
     self,
