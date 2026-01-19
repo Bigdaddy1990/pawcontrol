@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 
     def _current_options(self) -> Mapping[str, JSONValue]: ...
 
+    def _coerce_bool(self, value: Any, default: bool) -> bool: ...
+
     def _normalise_options_snapshot(
       self,
       options: Mapping[str, JSONValue],
@@ -71,18 +73,6 @@ else:  # pragma: no cover
 
 class FeedingOptionsMixin(FeedingOptionsHost):
   """Handle per-dog feeding options."""
-
-  @staticmethod
-  def _coerce_bool(value: Any, default: bool) -> bool:
-    """Return a boolean value using Home Assistant style truthiness rules."""
-
-    if value is None:
-      return default
-    if isinstance(value, bool):
-      return value
-    if isinstance(value, str):
-      return value.strip().lower() in {"1", "true", "on", "yes"}
-    return bool(value)
 
   @staticmethod
   def _coerce_meals_per_day(value: Any, default: int) -> int:

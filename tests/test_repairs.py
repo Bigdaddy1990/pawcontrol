@@ -54,6 +54,46 @@ def _load_module(name: str, path: Path) -> ModuleType:
   return module
 
 
+def _make_runtime_data() -> SimpleNamespace:
+  return SimpleNamespace(
+    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+    coordinator=SimpleNamespace(last_update_success=True),
+  )
+
+
+def _make_reconfigure_entry(
+  module: Any,
+  *,
+  compatibility_warnings: list[str],
+  health_summary: Mapping[str, object],
+) -> SimpleNamespace:
+  return SimpleNamespace(
+    entry_id="entry",
+    data={
+      module.CONF_DOGS: [
+        {
+          module.CONF_DOG_ID: "dog",
+          module.CONF_DOG_NAME: "Dog",
+          "modules": {},
+        },
+      ],
+    },
+    options={
+      "last_reconfigure": "2024-01-02T03:04:05+00:00",
+      "reconfigure_telemetry": {
+        "timestamp": "2024-01-02T03:04:05+00:00",
+        "requested_profile": "balanced",
+        "previous_profile": "advanced",
+        "dogs_count": 1,
+        "estimated_entities": 8,
+        "compatibility_warnings": compatibility_warnings,
+        "health_summary": health_summary,
+      },
+    },
+    version=1,
+  )
+
+
 def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]:
   """Register Home Assistant stubs required by repairs.py."""
 
@@ -669,37 +709,11 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
   hass = SimpleNamespace()
   hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
-  runtime_data = SimpleNamespace(
-    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
-    options={
-      "last_reconfigure": "2024-01-02T03:04:05+00:00",
-      "reconfigure_telemetry": {
-        "timestamp": "2024-01-02T03:04:05+00:00",
-        "requested_profile": "balanced",
-        "previous_profile": "advanced",
-        "dogs_count": 1,
-        "estimated_entities": 8,
-        "compatibility_warnings": [
-          "GPS module disabled for configured dog",
-        ],
-        "health_summary": {"healthy": True, "issues": [], "warnings": []},
-      },
-    },
-    version=1,
+  runtime_data = _make_runtime_data()
+  entry = _make_reconfigure_entry(
+    module,
+    compatibility_warnings=["GPS module disabled for configured dog"],
+    health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
   original_require_runtime_data = module.require_runtime_data
@@ -728,39 +742,15 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
   hass = SimpleNamespace()
   hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
-  runtime_data = SimpleNamespace(
-    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
+  runtime_data = _make_runtime_data()
+  entry = _make_reconfigure_entry(
+    module,
+    compatibility_warnings=[],
+    health_summary={
+      "healthy": False,
+      "issues": ["profile missing GPS support"],
+      "warnings": ["consider reauth"],
     },
-    options={
-      "last_reconfigure": "2024-01-02T03:04:05+00:00",
-      "reconfigure_telemetry": {
-        "timestamp": "2024-01-02T03:04:05+00:00",
-        "requested_profile": "balanced",
-        "previous_profile": "advanced",
-        "dogs_count": 1,
-        "estimated_entities": 8,
-        "compatibility_warnings": [],
-        "health_summary": {
-          "healthy": False,
-          "issues": ["profile missing GPS support"],
-          "warnings": ["consider reauth"],
-        },
-      },
-    },
-    version=1,
   )
 
   original_require_runtime_data = module.require_runtime_data
@@ -869,35 +859,11 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
   hass = SimpleNamespace()
   hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
-  runtime_data = SimpleNamespace(
-    data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
-    coordinator=SimpleNamespace(last_update_success=True),
-  )
-
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
-    options={
-      "last_reconfigure": "2024-01-02T03:04:05+00:00",
-      "reconfigure_telemetry": {
-        "timestamp": "2024-01-02T03:04:05+00:00",
-        "requested_profile": "balanced",
-        "previous_profile": "advanced",
-        "dogs_count": 1,
-        "estimated_entities": 8,
-        "compatibility_warnings": [],
-        "health_summary": {"healthy": True, "issues": [], "warnings": []},
-      },
-    },
-    version=1,
+  runtime_data = _make_runtime_data()
+  entry = _make_reconfigure_entry(
+    module,
+    compatibility_warnings=[],
+    health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
   original_require_runtime_data = module.require_runtime_data
