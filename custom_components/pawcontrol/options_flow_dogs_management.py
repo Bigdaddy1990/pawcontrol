@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, Final, cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -19,6 +19,7 @@ from .const import (
   CONF_DOG_WEIGHT,
   CONF_DOGS,
   CONF_DOOR_SENSOR,
+  DOOR_SENSOR_DEVICE_CLASSES,
   MODULE_FEEDING,
   MODULE_GARDEN,
   MODULE_GPS,
@@ -52,14 +53,6 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
-  "door",
-  "window",
-  "opening",
-  "garage_door",
-)
-
 
 class DogManagementOptionsMixin:
   async def async_step_manage_dogs(

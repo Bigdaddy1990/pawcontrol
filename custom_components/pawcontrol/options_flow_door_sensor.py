@@ -5,13 +5,18 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict
-from typing import Any, Final, cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOG_NAME, CONF_DOOR_SENSOR, CONF_DOOR_SENSOR_SETTINGS
+from .const import (
+  CONF_DOG_NAME,
+  CONF_DOOR_SENSOR,
+  CONF_DOOR_SENSOR_SETTINGS,
+  DOOR_SENSOR_DEVICE_CLASSES,
+)
 from .door_sensor_manager import ensure_door_sensor_settings_config
 from .repairs import (
   ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
@@ -32,14 +37,6 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
-  "door",
-  "window",
-  "opening",
-  "garage_door",
-)
-
 
 class DoorSensorOptionsMixin:
   async def async_step_select_dog_for_door_sensor(

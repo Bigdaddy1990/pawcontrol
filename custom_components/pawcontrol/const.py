@@ -136,6 +136,12 @@ ALL_MODULES: Final[frozenset[str]] = frozenset(
 CONF_SOURCES: Final[str] = "sources"
 CONF_DOOR_SENSOR: Final[str] = "door_sensor"
 CONF_DOOR_SENSOR_SETTINGS: Final[str] = "door_sensor_settings"
+DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
+  "door",
+  "window",
+  "opening",
+  "garage_door",
+)
 CONF_DOG_OPTIONS: Final[str] = "dog_options"
 CONF_PERSON_ENTITIES: Final[str] = "person_entities"
 CONF_DEVICE_TRACKERS: Final[str] = "device_trackers"
