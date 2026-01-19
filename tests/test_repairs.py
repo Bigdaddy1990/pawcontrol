@@ -116,6 +116,50 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
   return async_create_issue, IssueSeverity, async_delete_issue
 
 
+def _build_hass(*, domain: str | None = None) -> SimpleNamespace:
+  hass = SimpleNamespace()
+  if domain is not None:
+    hass.data = {domain: {}}
+  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  return hass
+
+
+def _build_entry(
+  module: Any,
+  *,
+  options: Mapping[str, Any] | None = None,
+) -> SimpleNamespace:
+  return SimpleNamespace(
+    entry_id="entry",
+    data={
+      module.CONF_DOGS: [
+        {
+          module.CONF_DOG_ID: "dog",
+          module.CONF_DOG_NAME: "Dog",
+          "modules": {},
+        },
+      ],
+    },
+    options=dict(options or {}),
+    version=1,
+  )
+
+
+def _run_check_for_issues(
+  module: Any,
+  hass: SimpleNamespace,
+  entry: SimpleNamespace,
+  runtime_data: SimpleNamespace,
+) -> None:
+  original_require_runtime_data = module.require_runtime_data
+  module.require_runtime_data = lambda _hass, _entry: runtime_data
+
+  try:
+    asyncio.run(module.async_check_for_issues(hass, entry))
+  finally:
+    module.require_runtime_data = original_require_runtime_data
+
+
 @pytest.fixture
 def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
   """Return the loaded repairs module alongside the issue registry mock."""
@@ -528,9 +572,7 @@ def test_async_check_for_issues_publishes_cache_health_issue(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
-  hass.data = {module.DOMAIN: {}}
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  hass = _build_hass(domain=module.DOMAIN)
 
   summary = CacheRepairAggregate(
     total_caches=1,
@@ -559,28 +601,9 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     coordinator=SimpleNamespace(last_update_success=True),
   )
 
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
-    options={},
-    version=1,
-  )
+  entry = _build_entry(module)
 
-  original_require_runtime_data = module.require_runtime_data
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
-
-  try:
-    asyncio.run(module.async_check_for_issues(hass, entry))
-  finally:
-    module.require_runtime_data = original_require_runtime_data
+  _run_check_for_issues(module, hass, entry, runtime_data)
 
   assert create_issue_mock.await_count == 1
   await_args = create_issue_mock.await_args
@@ -605,9 +628,7 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
-  hass.data = {module.DOMAIN: {}}
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  hass = _build_hass(domain=module.DOMAIN)
 
   summary = CacheRepairAggregate(
     total_caches=1,
@@ -625,28 +646,9 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     coordinator=SimpleNamespace(last_update_success=True),
   )
 
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
-    options={},
-    version=1,
-  )
+  entry = _build_entry(module)
 
-  original_require_runtime_data = module.require_runtime_data
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
-
-  try:
-    asyncio.run(module.async_check_for_issues(hass, entry))
-  finally:
-    module.require_runtime_data = original_require_runtime_data
+  _run_check_for_issues(module, hass, entry, runtime_data)
 
   assert create_issue_mock.await_count == 0
   cache_delete_calls = [
@@ -666,25 +668,15 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  hass = _build_hass()
 
   runtime_data = SimpleNamespace(
     data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
     coordinator=SimpleNamespace(last_update_success=True),
   )
 
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
+  entry = _build_entry(
+    module,
     options={
       "last_reconfigure": "2024-01-02T03:04:05+00:00",
       "reconfigure_telemetry": {
@@ -699,16 +691,9 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
         "health_summary": {"healthy": True, "issues": [], "warnings": []},
       },
     },
-    version=1,
   )
 
-  original_require_runtime_data = module.require_runtime_data
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
-
-  try:
-    asyncio.run(module.async_check_for_issues(hass, entry))
-  finally:
-    module.require_runtime_data = original_require_runtime_data
+  _run_check_for_issues(module, hass, entry, runtime_data)
 
   assert any(
     invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_WARNINGS
@@ -725,25 +710,15 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  hass = _build_hass()
 
   runtime_data = SimpleNamespace(
     data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
     coordinator=SimpleNamespace(last_update_success=True),
   )
 
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
+  entry = _build_entry(
+    module,
     options={
       "last_reconfigure": "2024-01-02T03:04:05+00:00",
       "reconfigure_telemetry": {
@@ -760,16 +735,9 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
         },
       },
     },
-    version=1,
   )
 
-  original_require_runtime_data = module.require_runtime_data
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
-
-  try:
-    asyncio.run(module.async_check_for_issues(hass, entry))
-  finally:
-    module.require_runtime_data = original_require_runtime_data
+  _run_check_for_issues(module, hass, entry, runtime_data)
 
   assert any(
     invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_HEALTH
@@ -866,25 +834,15 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  hass = _build_hass()
 
   runtime_data = SimpleNamespace(
     data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
     coordinator=SimpleNamespace(last_update_success=True),
   )
 
-  entry = SimpleNamespace(
-    entry_id="entry",
-    data={
-      module.CONF_DOGS: [
-        {
-          module.CONF_DOG_ID: "dog",
-          module.CONF_DOG_NAME: "Dog",
-          "modules": {},
-        },
-      ],
-    },
+  entry = _build_entry(
+    module,
     options={
       "last_reconfigure": "2024-01-02T03:04:05+00:00",
       "reconfigure_telemetry": {
@@ -897,16 +855,9 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
         "health_summary": {"healthy": True, "issues": [], "warnings": []},
       },
     },
-    version=1,
   )
 
-  original_require_runtime_data = module.require_runtime_data
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
-
-  try:
-    asyncio.run(module.async_check_for_issues(hass, entry))
-  finally:
-    module.require_runtime_data = original_require_runtime_data
+  _run_check_for_issues(module, hass, entry, runtime_data)
 
   assert not any(
     invocation.kwargs["translation_key"]

@@ -325,12 +325,16 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
         self._record_alias(node.target, fixture_name)
         self._record_dynamic_alias(node.target, fixture_name)
       dynamic_fixture = self._resolve_dynamic_instance(node.value)
-      if dynamic_fixture is not None:
-        self._record_dynamic_alias(node.target, dynamic_fixture)
+    if dynamic_fixture is not None:
+      self._record_dynamic_alias(node.target, dynamic_fixture)
     self.visit(node.target)
 
-  def visit_With(self, node: ast.With) -> None:
-    for item in node.items:
+  def _visit_with_items(
+    self,
+    items: list[ast.withitem],
+    body: list[ast.stmt],
+  ) -> None:
+    for item in items:
       self.visit(item.context_expr)
       if item.optional_vars is None:
         continue
@@ -351,33 +355,14 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
       ):
         self._record_dynamic_alias(item.optional_vars, dynamic_fixture)
       self.visit(item.optional_vars)
-    for statement in node.body:
+    for statement in body:
       self.visit(statement)
 
+  def visit_With(self, node: ast.With) -> None:
+    self._visit_with_items(node.items, node.body)
+
   def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
-    for item in node.items:
-      self.visit(item.context_expr)
-      if item.optional_vars is None:
-        continue
-      wrapper_name = self._resolve_wrapper_name(item.context_expr)
-      base_wrapper = None
-      if wrapper_name is not None:
-        base_wrapper = wrapper_name.rsplit(".", 1)[-1]
-      fixture_name = self._resolve_name(item.context_expr)
-      if fixture_name is not None and base_wrapper not in {
-        "nullcontext",
-        "closing",
-      }:
-        self._record_alias(item.optional_vars, fixture_name)
-        self._record_dynamic_alias(item.optional_vars, fixture_name)
-      dynamic_fixture = self._resolve_dynamic_instance(item.context_expr)
-      if dynamic_fixture is not None and not (
-        base_wrapper in {"nullcontext", "closing"} and isinstance(dynamic_fixture, str)
-      ):
-        self._record_dynamic_alias(item.optional_vars, dynamic_fixture)
-      self.visit(item.optional_vars)
-    for statement in node.body:
-      self.visit(statement)
+    self._visit_with_items(node.items, node.body)
 
   def visit_Call(self, node: ast.Call) -> None:
     fixture_candidate = self._resolve_callable(node.func)

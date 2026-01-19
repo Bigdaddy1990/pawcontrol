@@ -43,6 +43,9 @@ if TYPE_CHECKING:
 
     def _require_current_dog(self) -> DogConfigData | None: ...
 
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool: ...
+
     def _select_dog_by_id(
       self,
       dog_id: str | None,
@@ -71,18 +74,6 @@ else:  # pragma: no cover
 
 class HealthOptionsMixin(HealthOptionsHost):
   """Handle per-dog health options."""
-
-  @staticmethod
-  def _coerce_bool(value: Any, default: bool) -> bool:
-    """Return a boolean value using Home Assistant style truthiness rules."""
-
-    if value is None:
-      return default
-    if isinstance(value, bool):
-      return value
-    if isinstance(value, str):
-      return value.strip().lower() in {"1", "true", "on", "yes"}
-    return bool(value)
 
   def _current_health_options(self, dog_id: str) -> HealthOptions:
     """Return the stored health configuration as a typed mapping."""

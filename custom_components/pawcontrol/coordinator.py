@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, cast
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
@@ -75,7 +75,6 @@ from .telemetry import get_runtime_performance_stats
 from .types import (
   CoordinatorDataPayload,
   CoordinatorDogData,
-  CoordinatorModuleLookupResult,
   CoordinatorModuleState,
   CoordinatorPerformanceSnapshot,
   CoordinatorRuntimeManagers,
@@ -493,49 +492,6 @@ class PawControlCoordinator(
         CoordinatorModuleState,
         garden_manager.build_garden_snapshot(dog_id),
       )
-
-  @overload
-  def get_module_data(
-    self,
-    dog_id: str,
-    module: Literal[
-      "feeding",
-      "garden",
-      "geofencing",
-      "gps",
-      "health",
-      "walk",
-      "weather",
-    ],
-  ) -> CoordinatorModuleState:
-    """Return typed module data for the dog."""
-
-  @overload
-  def get_module_data(
-    self,
-    dog_id: str,
-    module: str,
-  ) -> CoordinatorModuleLookupResult:
-    """Return module-specific data for the dog."""
-
-  def get_module_data(
-    self,
-    dog_id: str,
-    module: str,
-  ) -> CoordinatorModuleLookupResult:
-    """Return module-specific data for the dog."""
-
-    return CoordinatorDataAccessMixin.get_module_data(self, dog_id, module)
-
-  def get_configured_dog_name(self, dog_id: str) -> str | None:
-    """Return the configured display name for the dog."""
-
-    return CoordinatorDataAccessMixin.get_configured_dog_name(self, dog_id)
-
-  def get_dog_info(self, dog_id: str) -> DogConfigData:
-    """Return core dog information from the coordinator cache."""
-
-    return CoordinatorDataAccessMixin.get_dog_info(self, dog_id)
 
   @property
   def available(self) -> bool:

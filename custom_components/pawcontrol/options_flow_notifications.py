@@ -53,6 +53,15 @@ if TYPE_CHECKING:
 
     def _require_current_dog(self) -> DogConfigData | None: ...
 
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool: ...
+
+    @staticmethod
+    def _coerce_int(value: Any, default: int) -> int: ...
+
+    @staticmethod
+    def _coerce_time_string(value: Any, default: str) -> str: ...
+
     def _select_dog_by_id(
       self,
       dog_id: str | None,
@@ -82,48 +91,6 @@ else:  # pragma: no cover
 
 class NotificationOptionsMixin(NotificationOptionsHost):
   """Handle per-dog notification options."""
-
-  @staticmethod
-  def _coerce_bool(value: Any, default: bool) -> bool:
-    """Return a boolean value using Home Assistant style truthiness rules."""
-
-    if value is None:
-      return default
-    if isinstance(value, bool):
-      return value
-    if isinstance(value, str):
-      return value.strip().lower() in {"1", "true", "on", "yes"}
-    return bool(value)
-
-  @staticmethod
-  def _coerce_int(value: Any, default: int) -> int:
-    """Return an integer, falling back to the provided default on error."""
-
-    if value is None:
-      return default
-    if isinstance(value, int):
-      return value
-    if isinstance(value, float):
-      return int(value)
-    if isinstance(value, str):
-      try:
-        return int(value)
-      except ValueError:
-        return default
-    return default
-
-  @staticmethod
-  def _coerce_time_string(value: Any, default: str) -> str:
-    """Normalise selector values into Home Assistant time strings."""
-
-    if value is None:
-      return default
-    if isinstance(value, str):
-      return value
-    iso_format = getattr(value, "isoformat", None)
-    if callable(iso_format):
-      return str(iso_format())
-    return default
 
   def _current_notification_options(
     self,
