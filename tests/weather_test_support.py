@@ -34,21 +34,27 @@ _MISSING_WEATHER_ATTRS: dict[str, str] = {
   "ATTR_WEATHER_WIND_SPEED": "wind_speed",
 }
 
+_WEATHER_COMPAT_READY = False
+
 
 def ensure_weather_module_compat() -> UnitOfTemperatureType:
   """Ensure weather modules have the expected constants for tests."""
 
-  for attr, value in _MISSING_WEATHER_ATTRS.items():
-    if not hasattr(weather_module, attr):
-      setattr(weather_module, attr, value)
+  global _WEATHER_COMPAT_READY
+  if not _WEATHER_COMPAT_READY:
+    for attr, value in _MISSING_WEATHER_ATTRS.items():
+      if not hasattr(weather_module, attr):
+        setattr(weather_module, attr, value)
 
-  if not hasattr(ha_const, "UnitOfTemperature"):
+    if not hasattr(ha_const, "UnitOfTemperature"):
 
-    class UnitOfTemperature(str, Enum):
-      CELSIUS = "°C"
-      FAHRENHEIT = "°F"
-      KELVIN = "K"
+      class UnitOfTemperature(str, Enum):
+        CELSIUS = "°C"
+        FAHRENHEIT = "°F"
+        KELVIN = "K"
 
-    ha_const.UnitOfTemperature = UnitOfTemperature
+      ha_const.UnitOfTemperature = UnitOfTemperature
+
+    _WEATHER_COMPAT_READY = True
 
   return ha_const.UnitOfTemperature
