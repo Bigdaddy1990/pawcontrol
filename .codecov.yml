@@ -52,7 +52,7 @@ parsers:
       method: true
       macro: false
 
-comment: true
+comment:
   layout: "header,reach,diff,flags,files,footer"
   behavior: default
   require_changes: false
