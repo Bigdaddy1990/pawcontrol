@@ -13,11 +13,8 @@ from .selector_shim import selector
 from .types import (
   DOG_ID_FIELD,
   DOG_OPTIONS_FIELD,
-  DogConfigData,
-  DogOptionsMap,
   HealthOptions,
   JSONLikeMapping,
-  JSONValue,
   OptionsHealthSettingsInput,
   ensure_dog_options_entry,
 )
