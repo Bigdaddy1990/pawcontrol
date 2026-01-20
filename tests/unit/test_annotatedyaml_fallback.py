@@ -38,9 +38,7 @@ def _isolated_import(module_name: str) -> Iterator[None]:
 
 
 @contextmanager
-def _force_stub_loader(
-  *, blocked_modules: tuple[str, ...] = ()
-) -> Iterator[None]:
+def _force_stub_loader(*, blocked_modules: tuple[str, ...] = ()) -> Iterator[None]:
   """Prevent specified modules from resolving so the stub executes."""
 
   original_find_spec = importlib.machinery.PathFinder.find_spec
