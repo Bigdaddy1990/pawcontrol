@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
   CONF_DOG_NAME,
+  CONF_DOGS,
   CONF_DOOR_SENSOR,
   CONF_DOOR_SENSOR_SETTINGS,
   DOOR_SENSOR_DEVICE_CLASSES,
@@ -51,6 +52,19 @@ def _resolve_require_runtime_data():
   except Exception:
     pass
   return require_runtime_data
+
+
+def _resolve_async_create_issue():
+  """Return the patched repairs helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "async_create_issue", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return async_create_issue
 
 
 class DoorSensorOptionsMixin:
@@ -302,7 +316,7 @@ class DoorSensorOptionsMixin:
                 "timestamp": issue_timestamp,
               }
               try:
-                await async_create_issue(  # noqa: F821
+                await _resolve_async_create_issue()(  # noqa: F821
                   self.hass,
                   self._entry,
                   f"{self._entry.entry_id}_door_sensor_{dog_id}",

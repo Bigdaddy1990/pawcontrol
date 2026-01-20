@@ -39,7 +39,7 @@ def _isolated_import(module_name: str) -> Iterator[None]:
 
 @contextmanager
 def _force_stub_loader(
-  *, blocked_modules: tuple[str, ...] = ("annotatedyaml",)
+  *, blocked_modules: tuple[str, ...] = ()
 ) -> Iterator[None]:
   """Prevent specified modules from resolving so the stub executes."""
 
@@ -113,7 +113,7 @@ def test_fallback_loader_uses_vendored_yaml(tmp_path: Path) -> None:
 
   with (
     _hide_modules("yaml"),
-    _force_stub_loader(blocked_modules=("annotatedyaml", "yaml")),
+    _force_stub_loader(blocked_modules=("yaml",)),
     _isolated_import("annotatedyaml"),
   ):
     module = importlib.import_module("annotatedyaml")

@@ -49,7 +49,11 @@ def test_extra_state_attributes_coerce_runtime_payload() -> None:
       "start_time": now - timedelta(minutes=5),
       "duration": 300.0,
       "distance": 560.0,
-      "points": [1, 2, 3],
+      "points": [
+        {"latitude": 40.0, "longitude": -74.0},
+        {"latitude": 40.1, "longitude": -74.1},
+        {"latitude": 40.2, "longitude": -74.2},
+      ],
     },
     "geofence_status": {
       "in_safe_zone": True,
