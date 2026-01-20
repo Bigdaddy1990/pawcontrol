@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict
+from importlib import import_module
 from typing import Any, cast
 
 import voluptuous as vol
@@ -37,6 +38,19 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_require_runtime_data():
+  """Return the patched runtime data helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "require_runtime_data", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return require_runtime_data
 
 
 class DoorSensorOptionsMixin:
@@ -230,7 +244,10 @@ class DoorSensorOptionsMixin:
           data_manager = None
           if persist_updates:
             try:
-              runtime = require_runtime_data(self.hass, self._entry)  # noqa: F821
+              runtime = _resolve_require_runtime_data()(  # noqa: F821
+                self.hass,
+                self._entry,
+              )
             except RuntimeDataUnavailableError:  # noqa: F821
               _LOGGER.error(
                 "Runtime data unavailable while updating door sensor "

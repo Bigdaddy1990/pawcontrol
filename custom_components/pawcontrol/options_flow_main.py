@@ -20,6 +20,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from datetime import UTC
+from importlib import import_module
 from pathlib import Path
 from typing import Any, ClassVar, Final, Literal, cast
 
@@ -77,6 +78,19 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_get_runtime_data():
+  """Return the patched runtime data helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "get_runtime_data", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return _get_runtime_data
 
 
 ManualEventField = Literal[
@@ -534,7 +548,7 @@ class PawControlOptionsFlow(
 
     runtime: Any | None = None
     with suppress(Exception):
-      runtime = _get_runtime_data(hass, self._entry)
+      runtime = _resolve_get_runtime_data()(hass, self._entry)
     if runtime is None:
       return None
 

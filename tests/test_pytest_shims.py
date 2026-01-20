@@ -19,6 +19,10 @@ class _DummyParser:
 
   def __init__(self) -> None:
     self.inis: list[tuple[str, str, str | None]] = []
+    self.options: list[tuple[str, dict[str, object]]] = []
+
+  def addoption(self, name: str, **kwargs: object) -> None:
+    self.options.append((name, dict(kwargs)))
 
   def addini(self, name: str, help: str, *, default: str | None = None) -> None:
     self.inis.append((name, help, default))

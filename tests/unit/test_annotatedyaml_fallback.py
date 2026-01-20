@@ -49,7 +49,7 @@ def _force_stub_loader(
     fullname: str, path: list[str] | None = None, target: object | None = None
   ):
     for module in blocked_modules:
-      if fullname == module and path is not None:
+      if fullname == module:
         return None
     return original_find_spec(fullname, path, target)
 
