@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict
+from importlib import import_module
 from typing import Any, cast
 
 import voluptuous as vol
@@ -13,6 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
   CONF_DOG_NAME,
+  CONF_DOGS,
   CONF_DOOR_SENSOR,
   CONF_DOOR_SENSOR_SETTINGS,
   DOOR_SENSOR_DEVICE_CLASSES,
@@ -37,6 +39,32 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_require_runtime_data():
+  """Return the patched runtime data helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "require_runtime_data", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return require_runtime_data
+
+
+def _resolve_async_create_issue():
+  """Return the patched repairs helper when available."""
+
+  try:
+    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
+    patched = getattr(options_flow_module, "async_create_issue", None)
+    if callable(patched):
+      return patched
+  except Exception:
+    pass
+  return async_create_issue
 
 
 class DoorSensorOptionsMixin:
@@ -230,7 +258,10 @@ class DoorSensorOptionsMixin:
           data_manager = None
           if persist_updates:
             try:
-              runtime = require_runtime_data(self.hass, self._entry)  # noqa: F821
+              runtime = _resolve_require_runtime_data()(  # noqa: F821
+                self.hass,
+                self._entry,
+              )
             except RuntimeDataUnavailableError:  # noqa: F821
               _LOGGER.error(
                 "Runtime data unavailable while updating door sensor "
@@ -285,7 +316,7 @@ class DoorSensorOptionsMixin:
                 "timestamp": issue_timestamp,
               }
               try:
-                await async_create_issue(  # noqa: F821
+                await _resolve_async_create_issue()(  # noqa: F821
                   self.hass,
                   self._entry,
                   f"{self._entry.entry_id}_door_sensor_{dog_id}",

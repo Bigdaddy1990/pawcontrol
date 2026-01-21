@@ -47,8 +47,7 @@ def _open_github_api_request(
   """Open a GitHub API request after validating the URL."""
 
   ensure_allowed_github_api_url(request.full_url)
-  opener = urllib.request.build_opener(urllib.request.HTTPSHandler())
-  return opener.open(request, timeout=timeout)
+  return urllib.request.urlopen(request, timeout=timeout)  # nosec B310
 
 
 def build_cli() -> argparse.ArgumentParser:

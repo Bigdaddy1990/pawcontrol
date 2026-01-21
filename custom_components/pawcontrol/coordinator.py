@@ -155,6 +155,8 @@ class PawControlCoordinator(
       update_interval=timedelta(seconds=base_interval),
       config_entry=entry,
     )
+    self.last_update_success = True
+    self.last_update_time = None
 
     # DataUpdateCoordinator initialises ``update_interval`` but MyPy cannot
     # determine the attribute on subclasses without an explicit assignment.

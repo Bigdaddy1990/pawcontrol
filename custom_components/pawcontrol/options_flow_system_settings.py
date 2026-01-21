@@ -29,6 +29,11 @@ from .const import (
 )
 from .device_api import validate_device_endpoint
 from .exceptions import FlowValidationError  # noqa: F401
+from .options_flow_shared import (
+  ADVANCED_SETTINGS_FIELD,
+  SYSTEM_ENABLE_ANALYTICS_FIELD,
+  SYSTEM_ENABLE_CLOUD_BACKUP_FIELD,
+)
 from .selector_shim import selector
 from .runtime_data import get_runtime_data as _get_runtime_data
 from .types import (
@@ -38,6 +43,7 @@ from .types import (
   JSONValue,
   ensure_dog_config_data,
   freeze_placeholders,
+  normalize_performance_mode,
 )
 
 _LOGGER = logging.getLogger(__name__)

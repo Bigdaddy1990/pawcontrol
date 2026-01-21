@@ -74,4 +74,7 @@ def pytest_configure(config: pytest.Config) -> None:
   config.addinivalue_line("markers", "cov: dummy marker for pytest-cov shim")
   controller = _CoverageController(config)
   controller.pytest_configure(config)
-  config.pluginmanager.register(controller, "cov-controller-shim")
+  pluginmanager = getattr(config, "pluginmanager", None)
+  register = getattr(pluginmanager, "register", None)
+  if callable(register):
+    register(controller, "cov-controller-shim")

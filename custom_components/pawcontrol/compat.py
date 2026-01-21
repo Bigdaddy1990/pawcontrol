@@ -622,71 +622,78 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
   def supports_options(self) -> bool:
     """Return whether the entry exposes an options flow."""
 
-    if self._supports_options is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_supports_options_flow"):
-        self._supports_options = bool(
-          handler.async_supports_options_flow(self),
-        )
-
-    return bool(self._supports_options)
+    return self._resolve_supports_flag(
+      "_supports_options",
+      "async_supports_options_flow",
+      call_handler=True,
+    )
 
   @property
   def supports_unload(self) -> bool:
     """Return whether the entry exposes an unload hook."""
 
-    if self._supports_unload is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_unload_entry"):
-        self._supports_unload = True
-
-    return bool(self._supports_unload)
+    return self._resolve_supports_flag("_supports_unload", "async_unload_entry")
 
   @property
   def supports_remove_device(self) -> bool:
     """Return whether the entry exposes a remove-device hook."""
 
-    if self._supports_remove_device is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_remove_config_entry_device"):
-        self._supports_remove_device = True
-
-    return bool(self._supports_remove_device)
+    return self._resolve_supports_flag(
+      "_supports_remove_device",
+      "async_remove_config_entry_device",
+    )
 
   @property
   def supports_reconfigure(self) -> bool:
     """Return whether the entry exposes a reconfigure flow."""
 
-    if self._supports_reconfigure is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_supports_reconfigure_flow"):
-        self._supports_reconfigure = bool(
-          handler.async_supports_reconfigure_flow(self),
-        )
-
-    return bool(self._supports_reconfigure)
+    return self._resolve_supports_flag(
+      "_supports_reconfigure",
+      "async_supports_reconfigure_flow",
+      call_handler=True,
+    )
 
   @property
   def supported_subentry_types(self) -> dict[str, dict[str, bool]]:
     """Return the supported subentry types mapping."""
 
-    if self._supported_subentry_types is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_get_supported_subentry_types"):
-        supported_flows = handler.async_get_supported_subentry_types(
-          self,
-        )
-        self._supported_subentry_types = {
-          subentry_type: {
-            "supports_reconfigure": hasattr(
-              subentry_handler,
-              "async_step_reconfigure",
-            ),
-          }
-          for subentry_type, subentry_handler in supported_flows.items()
-        }
+    if self._supported_subentry_types is not None:
+      return self._supported_subentry_types
 
-    return self._supported_subentry_types or {}
+    handler = HANDLERS.get(self.domain)
+    if not handler or not hasattr(handler, "async_get_supported_subentry_types"):
+      return {}
+
+    supported_flows = handler.async_get_supported_subentry_types(self)
+    self._supported_subentry_types = {
+      subentry_type: {
+        "supports_reconfigure": hasattr(
+          subentry_handler,
+          "async_step_reconfigure",
+        ),
+      }
+      for subentry_type, subentry_handler in supported_flows.items()
+    }
+    return self._supported_subentry_types
+
+  def _resolve_supports_flag(
+    self,
+    attr_name: str,
+    handler_attribute: str,
+    *,
+    call_handler: bool = False,
+  ) -> bool:
+    current = getattr(self, attr_name)
+    if current is not None:
+      return current
+
+    handler = HANDLERS.get(self.domain)
+    if not handler or not hasattr(handler, handler_attribute):
+      return False
+
+    current = bool(getattr(handler, handler_attribute)(self)) if call_handler else True
+    setattr(self, attr_name, current)
+    return current
 
   def add_to_hass(self, hass: Any) -> None:
     """Associate the entry with a Home Assistant instance."""

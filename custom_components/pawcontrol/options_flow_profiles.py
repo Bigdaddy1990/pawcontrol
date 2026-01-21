@@ -29,6 +29,7 @@ from .types import (
   ensure_dog_config_data,
   ensure_dog_modules_config,
   freeze_placeholders,
+  normalize_performance_mode,
 )
 
 _LOGGER = logging.getLogger(__name__)
