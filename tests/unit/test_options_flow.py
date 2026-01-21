@@ -195,64 +195,32 @@ def _set_raw_options_with_luna(
   )
 
 
-def _assert_buddy_and_max_notifications(
+def _assert_notification_snapshot(
   options: PawControlOptionsData,
+  *,
+  quiet_hours: bool,
+  quiet_start: str,
+  quiet_end: str,
+  reminder_repeat_min: int,
+  priority_notifications: bool,
+  mobile_notifications: bool,
+  dog_modules: dict[str, dict[str, bool]],
 ) -> None:
   _assert_notifications(
     options,
-    quiet_hours=False,
-    quiet_start="19:00:00",
-    quiet_end="07:00:00",
-    reminder_repeat_min=5,
-    priority_notifications=False,
-    mobile_notifications=True,
+    quiet_hours=quiet_hours,
+    quiet_start=quiet_start,
+    quiet_end=quiet_end,
+    reminder_repeat_min=reminder_repeat_min,
+    priority_notifications=priority_notifications,
+    mobile_notifications=mobile_notifications,
   )
 
   dog_options = cast(DogOptionsMap, options["dog_options"])
-  assert set(dog_options) == {"buddy", "123"}
+  assert set(dog_options) == set(dog_modules)
 
-  _assert_dog_modules(
-    dog_options,
-    "buddy",
-    {
-      MODULE_FEEDING: False,
-      MODULE_HEALTH: True,
-    },
-  )
-  _assert_dog_modules(
-    dog_options,
-    "123",
-    {
-      MODULE_GPS: True,
-      MODULE_WALK: False,
-    },
-  )
-
-
-def _assert_luna_notifications(
-  options: PawControlOptionsData,
-) -> None:
-  _assert_notifications(
-    options,
-    quiet_hours=True,
-    quiet_start="22:00:00",
-    quiet_end="07:00:00",
-    reminder_repeat_min=180,
-    priority_notifications=True,
-    mobile_notifications=False,
-  )
-
-  dog_options = cast(DogOptionsMap, options["dog_options"])
-  assert set(dog_options) == {"luna"}
-
-  _assert_dog_modules(
-    dog_options,
-    "luna",
-    {
-      MODULE_HEALTH: True,
-      MODULE_FEEDING: False,
-    },
-  )
+  for dog_id, modules in dog_modules.items():
+    _assert_dog_modules(dog_options, dog_id, modules)
 
 
 def test_ensure_notification_options_normalises_values() -> None:
@@ -381,7 +349,25 @@ async def test_geofence_settings_normalises_snapshot(
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
   options = cast(PawControlOptionsData, result["data"])
-  _assert_buddy_and_max_notifications(options)
+  _assert_notification_snapshot(
+    options,
+    quiet_hours=False,
+    quiet_start="19:00:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=5,
+    priority_notifications=False,
+    mobile_notifications=True,
+    dog_modules={
+      "buddy": {
+        MODULE_FEEDING: False,
+        MODULE_HEALTH: True,
+      },
+      "123": {
+        MODULE_GPS: True,
+        MODULE_WALK: False,
+      },
+    },
+  )
 
 
 @pytest.mark.asyncio
@@ -588,7 +574,21 @@ async def test_entity_profiles_normalises_snapshot(
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
   options = cast(PawControlOptionsData, result["data"])
-  _assert_luna_notifications(options)
+  _assert_notification_snapshot(
+    options,
+    quiet_hours=True,
+    quiet_start="22:00:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=180,
+    priority_notifications=True,
+    mobile_notifications=False,
+    dog_modules={
+      "luna": {
+        MODULE_HEALTH: True,
+        MODULE_FEEDING: False,
+      },
+    },
+  )
 
   assert options["entity_profile"] == "advanced"
 
@@ -797,7 +797,25 @@ async def test_feeding_settings_normalises_snapshot(
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
   options = cast(PawControlOptionsData, result["data"])
-  _assert_buddy_and_max_notifications(options)
+  _assert_notification_snapshot(
+    options,
+    quiet_hours=False,
+    quiet_start="19:00:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=5,
+    priority_notifications=False,
+    mobile_notifications=True,
+    dog_modules={
+      "buddy": {
+        MODULE_FEEDING: False,
+        MODULE_HEALTH: True,
+      },
+      "123": {
+        MODULE_GPS: True,
+        MODULE_WALK: False,
+      },
+    },
+  )
 
 
 @pytest.mark.asyncio
@@ -825,7 +843,21 @@ async def test_health_settings_normalises_snapshot(
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
   options = cast(PawControlOptionsData, result["data"])
-  _assert_luna_notifications(options)
+  _assert_notification_snapshot(
+    options,
+    quiet_hours=True,
+    quiet_start="22:00:00",
+    quiet_end="07:00:00",
+    reminder_repeat_min=180,
+    priority_notifications=True,
+    mobile_notifications=False,
+    dog_modules={
+      "luna": {
+        MODULE_HEALTH: True,
+        MODULE_FEEDING: False,
+      },
+    },
+  )
 
   health = cast(HealthOptions, options["health_settings"])
   assert health["weight_tracking"] is True
