@@ -406,35 +406,7 @@ async def test_geofence_settings_normalises_snapshot(
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
   options = cast(PawControlOptionsData, result["data"])
-  _assert_notifications(
-    options,
-    quiet_hours=False,
-    quiet_start="19:00:00",
-    quiet_end="07:00:00",
-    reminder_repeat_min=5,
-    priority_notifications=False,
-    mobile_notifications=True,
-  )
-
-  dog_options = cast(DogOptionsMap, options["dog_options"])
-  assert set(dog_options) == {"buddy", "123"}
-
-  _assert_dog_modules(
-    dog_options,
-    "buddy",
-    {
-      MODULE_FEEDING: False,
-      MODULE_HEALTH: True,
-    },
-  )
-  _assert_dog_modules(
-    dog_options,
-    "123",
-    {
-      MODULE_GPS: True,
-      MODULE_WALK: False,
-    },
-  )
+  _assert_buddy_and_max_notifications(options)
 
 
 @pytest.mark.asyncio
