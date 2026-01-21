@@ -25,10 +25,14 @@ def _select_options(selectors: dict[str, object], key: str) -> set[str]:
 
 def test_selector_options_are_localized() -> None:
   strings = _load_strings(COMPONENT_ROOT / "strings.json")
-  selectors = strings["selector"]["select"]
+  selectors = strings["selector"]["select"]["options"]
 
-  en = _load_strings(COMPONENT_ROOT / "translations" / "en.json")["selector"]["select"]
-  de = _load_strings(COMPONENT_ROOT / "translations" / "de.json")["selector"]["select"]
+  en = _load_strings(COMPONENT_ROOT / "translations" / "en.json")["selector"][
+    "select"
+  ]["options"]
+  de = _load_strings(COMPONENT_ROOT / "translations" / "de.json")["selector"][
+    "select"
+  ]["options"]
 
   required = {
     "activity_level": {
