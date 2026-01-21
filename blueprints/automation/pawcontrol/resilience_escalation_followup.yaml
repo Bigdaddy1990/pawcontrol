@@ -29,6 +29,9 @@ action:
         - manual_event
         - manual_guard_event
         - manual_breaker_event
+  - condition: template
+    value_template: >-
+      {{ trigger.id in ['manual_event', 'manual_guard_event', 'manual_breaker_event'] }}
   - choose:
       - conditions:
           - condition: template

@@ -714,6 +714,8 @@ class EntityFactory:
   def _prewarm_caches(self) -> None:
     """Warm up internal caches for consistent performance."""
 
+    original_runtime_floor = self._runtime_guard_floor
+
     default_modules = self._get_default_modules()
     default_estimate = self._get_entity_estimate(
       "standard",
@@ -748,6 +750,8 @@ class EntityFactory:
           "feeding",
           priority,
         )
+
+    self._runtime_guard_floor = original_runtime_floor
 
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)
