@@ -716,42 +716,43 @@ class EntityFactory:
 
     original_runtime_floor = self._runtime_guard_floor
 
-    default_modules = self._get_default_modules()
-    default_estimate = self._get_entity_estimate(
-      "standard",
-      default_modules,
-      log_invalid_inputs=False,
-    )
-
-    default_module_dict = dict(default_modules)
-    self.estimate_entity_count("standard", default_module_dict)
-    self.get_performance_metrics("standard", default_module_dict)
-    for priority in (3, 5, 7, 9):
-      self.should_create_entity(
+    try:
+      default_modules = self._get_default_modules()
+      default_estimate = self._get_entity_estimate(
         "standard",
-        "sensor",
-        "feeding",
-        priority,
-      )
-
-    for profile, modules in _COMMON_PROFILE_PRESETS:
-      module_dict = dict(modules)
-      self._get_entity_estimate(
-        profile,
-        module_dict,
+        default_modules,
         log_invalid_inputs=False,
       )
-      self.estimate_entity_count(profile, module_dict)
-      self.get_performance_metrics(profile, module_dict)
+
+      default_module_dict = dict(default_modules)
+      self.estimate_entity_count("standard", default_module_dict)
+      self.get_performance_metrics("standard", default_module_dict)
       for priority in (3, 5, 7, 9):
         self.should_create_entity(
-          profile,
+          "standard",
           "sensor",
           "feeding",
           priority,
         )
 
-    self._runtime_guard_floor = original_runtime_floor
+      for profile, modules in _COMMON_PROFILE_PRESETS:
+        module_dict = dict(modules)
+        self._get_entity_estimate(
+          profile,
+          module_dict,
+          log_invalid_inputs=False,
+        )
+        self.estimate_entity_count(profile, module_dict)
+        self.get_performance_metrics(profile, module_dict)
+        for priority in (3, 5, 7, 9):
+          self.should_create_entity(
+            profile,
+            "sensor",
+            "feeding",
+            priority,
+          )
+    finally:
+      self._runtime_guard_floor = original_runtime_floor
 
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)
