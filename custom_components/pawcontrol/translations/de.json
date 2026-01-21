@@ -1594,68 +1594,86 @@
     }
   },
   "selector": {
-    "select": {
+    "activity_level": {
       "options": {
-        "activity_level": {
-          "high": "\ud83c\udfcb\ufe0f Hoch - Sehr aktiv, lange Spazierg\u00e4nge/L\u00e4ufe",
-          "low": "\ud83d\udeb6 Niedrig - Leichte Bewegung, meist drinnen",
-          "moderate": "\ud83c\udfc3 Mittel - Regelm\u00e4\u00dfige Spazierg\u00e4nge und Spiel",
-          "very_high": "\ud83c\udfc6 Sehr hoch - Arbeits- oder Sporthunde",
-          "very_low": "\ud83d\udecc Sehr niedrig - Inaktiv, \u00e4lter oder krank"
-        },
-        "dog_size": {
-          "giant": "\ud83d\udc3a Riese (45-90 kg)",
-          "large": "\ud83d\udc15\u200d\ud83e\uddba Gro\u00df (27-45 kg)",
-          "medium": "\ud83d\udc36 Mittel (12-27 kg)",
-          "small": "\ud83d\udc15 Klein (6-12 kg)",
-          "toy": "\ud83d\udc2d Toy (1-6 kg)"
-        },
-        "feeding_schedule": {
-          "custom": "\u2699\ufe0f Individueller Zeitplan",
-          "flexible": "\u23f0 Flexible Zeiten",
-          "strict": "\ud83c\udfaf Fester Zeitplan"
-        },
-        "food_type": {
-          "barf": "\ud83e\udd69 BARF",
-          "dry_food": "\ud83e\udd5c Trockenfutter",
-          "home_cooked": "\ud83c\udf72 Hausgemacht",
-          "mixed": "\ud83d\udd04 Gemischt",
-          "wet_food": "\ud83e\udd6b Nassfutter"
-        },
-        "gps_source": {
-          "manual": "\ud83d\udcdd Manuelles GPS (sp\u00e4ter konfigurieren)",
-          "mqtt": "\ud83d\udce1 MQTT-Topic",
-          "tractive": "\ud83d\udc15 Tractive-GPS-Halsband",
-          "webhook": "\ud83c\udf10 Webhook (REST-API)"
-        },
-        "import_export_action": {
-          "export": "Aktuelle Einstellungen exportieren",
-          "import": "Einstellungen aus Backup importieren"
-        },
-        "medication_frequency": {
-          "as_needed": "Bei Bedarf",
-          "daily": "T\u00e4glich",
-          "twice_daily": "Zweimal t\u00e4glich",
-          "weekly": "W\u00f6chentlich"
-        },
-        "performance_mode": {
-          "balanced": "\u2696\ufe0f Ausgewogen - Gute Leistung und Effizienz",
-          "full": "\ud83d\ude80 Vollst\u00e4ndig - Maximale Funktionen und Reaktionsf\u00e4higkeit",
-          "minimal": "\u26a1 Minimal - Geringe Ressourcennutzung"
-        },
-        "weather_entity": {
-          "none": "Keine Wetter-Entit\u00e4t (Wetterfunktionen deaktivieren)"
-        },
-        "weather_notification_threshold": {
-          "high": "Hoch - Alle Wetterempfehlungen",
-          "low": "Niedrig - Nur extreme Wetterwarnungen",
-          "moderate": "Mittel - Wichtige Wetterwarnungen"
-        },
-        "weight_goal": {
-          "gain": "\ud83d\udcc8 Gewichtszunahme",
-          "lose": "\ud83d\udcc9 Gewichtsabnahme",
-          "maintain": "\u2696\ufe0f Gewicht halten"
-        }
+        "high": "\ud83c\udfcb\ufe0f Hoch - Sehr aktiv, lange Spazierg\u00e4nge/L\u00e4ufe",
+        "low": "\ud83d\udeb6 Niedrig - Leichte Bewegung, meist drinnen",
+        "moderate": "\ud83c\udfc3 Mittel - Regelm\u00e4\u00dfige Spazierg\u00e4nge und Spiel",
+        "very_high": "\ud83c\udfc6 Sehr hoch - Arbeits- oder Sporthunde",
+        "very_low": "\ud83d\udecc Sehr niedrig - Inaktiv, \u00e4lter oder krank"
+      }
+    },
+    "dog_size": {
+      "options": {
+        "giant": "\ud83d\udc3a Riese (45-90 kg)",
+        "large": "\ud83d\udc15\u200d\ud83e\uddba Gro\u00df (27-45 kg)",
+        "medium": "\ud83d\udc36 Mittel (12-27 kg)",
+        "small": "\ud83d\udc15 Klein (6-12 kg)",
+        "toy": "\ud83d\udc2d Toy (1-6 kg)"
+      }
+    },
+    "feeding_schedule": {
+      "options": {
+        "custom": "\u2699\ufe0f Individueller Zeitplan",
+        "flexible": "\u23f0 Flexible Zeiten",
+        "strict": "\ud83c\udfaf Fester Zeitplan"
+      }
+    },
+    "food_type": {
+      "options": {
+        "barf": "\ud83e\udd69 BARF",
+        "dry_food": "\ud83e\udd5c Trockenfutter",
+        "home_cooked": "\ud83c\udf72 Hausgemacht",
+        "mixed": "\ud83d\udd04 Gemischt",
+        "wet_food": "\ud83e\udd6b Nassfutter"
+      }
+    },
+    "gps_source": {
+      "options": {
+        "manual": "\ud83d\udcdd Manuelles GPS (sp\u00e4ter konfigurieren)",
+        "mqtt": "\ud83d\udce1 MQTT-Topic",
+        "tractive": "\ud83d\udc15 Tractive-GPS-Halsband",
+        "webhook": "\ud83c\udf10 Webhook (REST-API)"
+      }
+    },
+    "import_export_action": {
+      "options": {
+        "export": "Aktuelle Einstellungen exportieren",
+        "import": "Einstellungen aus Backup importieren"
+      }
+    },
+    "medication_frequency": {
+      "options": {
+        "as_needed": "Bei Bedarf",
+        "daily": "T\u00e4glich",
+        "twice_daily": "Zweimal t\u00e4glich",
+        "weekly": "W\u00f6chentlich"
+      }
+    },
+    "performance_mode": {
+      "options": {
+        "balanced": "\u2696\ufe0f Ausgewogen - Gute Leistung und Effizienz",
+        "full": "\ud83d\ude80 Vollst\u00e4ndig - Maximale Funktionen und Reaktionsf\u00e4higkeit",
+        "minimal": "\u26a1 Minimal - Geringe Ressourcennutzung"
+      }
+    },
+    "weather_entity": {
+      "options": {
+        "none": "Keine Wetter-Entit\u00e4t (Wetterfunktionen deaktivieren)"
+      }
+    },
+    "weather_notification_threshold": {
+      "options": {
+        "high": "Hoch - Alle Wetterempfehlungen",
+        "low": "Niedrig - Nur extreme Wetterwarnungen",
+        "moderate": "Mittel - Wichtige Wetterwarnungen"
+      }
+    },
+    "weight_goal": {
+      "options": {
+        "gain": "\ud83d\udcc8 Gewichtszunahme",
+        "lose": "\ud83d\udcc9 Gewichtsabnahme",
+        "maintain": "\u2696\ufe0f Gewicht halten"
       }
     }
   },
