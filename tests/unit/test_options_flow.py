@@ -355,32 +355,7 @@ async def test_geofence_settings_normalises_snapshot(
 ) -> None:
   """Geofence updates should reapply typed notifications and dog payloads."""
 
-  _set_raw_options(
-    mock_config_entry,
-    notifications={
-      CONF_QUIET_HOURS: "False",
-      CONF_QUIET_START: " 19:00:00 ",
-      CONF_QUIET_END: "",
-      CONF_REMINDER_REPEAT_MIN: "3",
-      "priority_notifications": "no",
-      "mobile_notifications": "1",
-    },
-    dog_options={
-      "buddy": {
-        DOG_ID_FIELD: "buddy",
-        DOG_MODULES_FIELD: {
-          MODULE_FEEDING: "no",
-          MODULE_HEALTH: "1",
-        },
-      },
-      123: {
-        DOG_MODULES_FIELD: {
-          MODULE_GPS: "true",
-          MODULE_WALK: "",
-        }
-      },
-    },
-  )
+  _set_raw_options_with_buddy_and_max(mock_config_entry)
 
   hass.config.latitude = 12.34
   hass.config.longitude = 56.78
