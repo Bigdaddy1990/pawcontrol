@@ -1596,64 +1596,86 @@
   "selector": {
     "select": {
       "activity_level": {
-        "high": "\ud83c\udfcb\ufe0f High - Very active, long walks/runs",
-        "low": "\ud83d\udeb6 Low - Light exercise, mostly indoor",
-        "moderate": "\ud83c\udfc3 Moderate - Regular walks and play",
-        "very_high": "\ud83c\udfc6 Very high - Working or athletic dogs",
-        "very_low": "\ud83d\udecc Very low - Inactive, elderly, or sick"
+        "options": {
+          "high": "\ud83c\udfcb\ufe0f High - Very active, long walks/runs",
+          "low": "\ud83d\udeb6 Low - Light exercise, mostly indoor",
+          "moderate": "\ud83c\udfc3 Moderate - Regular walks and play",
+          "very_high": "\ud83c\udfc6 Very high - Working or athletic dogs",
+          "very_low": "\ud83d\udecc Very low - Inactive, elderly, or sick"
+        }
       },
       "dog_size": {
-        "giant": "\ud83d\udc3a Giant (45-90kg)",
-        "large": "\ud83d\udc15\u200d\ud83e\uddba Large (27-45kg)",
-        "medium": "\ud83d\udc36 Medium (12-27kg)",
-        "small": "\ud83d\udc15 Small (6-12kg)",
-        "toy": "\ud83d\udc2d Toy (1-6kg)"
+        "options": {
+          "giant": "\ud83d\udc3a Giant (45-90kg)",
+          "large": "\ud83d\udc15\u200d\ud83e\uddba Large (27-45kg)",
+          "medium": "\ud83d\udc36 Medium (12-27kg)",
+          "small": "\ud83d\udc15 Small (6-12kg)",
+          "toy": "\ud83d\udc2d Toy (1-6kg)"
+        }
       },
       "feeding_schedule": {
-        "custom": "\u2699\ufe0f Custom schedule",
-        "flexible": "\u23f0 Flexible times",
-        "strict": "\ud83c\udfaf Strict schedule"
+        "options": {
+          "custom": "\u2699\ufe0f Custom schedule",
+          "flexible": "\u23f0 Flexible times",
+          "strict": "\ud83c\udfaf Strict schedule"
+        }
       },
       "food_type": {
-        "barf": "\ud83e\udd69 BARF",
-        "dry_food": "\ud83e\udd5c Dry food",
-        "home_cooked": "\ud83c\udf72 Home cooked",
-        "mixed": "\ud83d\udd04 Mixed",
-        "wet_food": "\ud83e\udd6b Wet food"
+        "options": {
+          "barf": "\ud83e\udd69 BARF",
+          "dry_food": "\ud83e\udd5c Dry food",
+          "home_cooked": "\ud83c\udf72 Home cooked",
+          "mixed": "\ud83d\udd04 Mixed",
+          "wet_food": "\ud83e\udd6b Wet food"
+        }
       },
       "gps_source": {
-        "manual": "\ud83d\udcdd Manual GPS (configure later)",
-        "mqtt": "\ud83d\udce1 MQTT topic",
-        "tractive": "\ud83d\udc15 Tractive GPS collar",
-        "webhook": "\ud83c\udf10 Webhook (REST API)"
+        "options": {
+          "manual": "\ud83d\udcdd Manual GPS (configure later)",
+          "mqtt": "\ud83d\udce1 MQTT topic",
+          "tractive": "\ud83d\udc15 Tractive GPS collar",
+          "webhook": "\ud83c\udf10 Webhook (REST API)"
+        }
       },
       "import_export_action": {
-        "export": "Export current settings",
-        "import": "Import settings from backup"
+        "options": {
+          "export": "Export current settings",
+          "import": "Import settings from backup"
+        }
       },
       "medication_frequency": {
-        "as_needed": "As needed",
-        "daily": "Daily",
-        "twice_daily": "Twice daily",
-        "weekly": "Weekly"
+        "options": {
+          "as_needed": "As needed",
+          "daily": "Daily",
+          "twice_daily": "Twice daily",
+          "weekly": "Weekly"
+        }
       },
       "performance_mode": {
-        "balanced": "\u2696\ufe0f Balanced - Good performance and efficiency",
-        "full": "\ud83d\ude80 Full - Maximum features and responsiveness",
-        "minimal": "\u26a1 Minimal - Low resource usage"
+        "options": {
+          "balanced": "\u2696\ufe0f Balanced - Good performance and efficiency",
+          "full": "\ud83d\ude80 Full - Maximum features and responsiveness",
+          "minimal": "\u26a1 Minimal - Low resource usage"
+        }
       },
       "weather_entity": {
-        "none": "No weather entity (disable weather features)"
+        "options": {
+          "none": "No weather entity (disable weather features)"
+        }
       },
       "weather_notification_threshold": {
-        "high": "High - All weather recommendations",
-        "low": "Low - Only extreme weather warnings",
-        "moderate": "Moderate - Important weather alerts"
+        "options": {
+          "high": "High - All weather recommendations",
+          "low": "Low - Only extreme weather warnings",
+          "moderate": "Moderate - Important weather alerts"
+        }
       },
       "weight_goal": {
-        "gain": "\ud83d\udcc8 Weight gain",
-        "lose": "\ud83d\udcc9 Weight loss",
-        "maintain": "\u2696\ufe0f Maintain current weight"
+        "options": {
+          "gain": "\ud83d\udcc8 Weight gain",
+          "lose": "\ud83d\udcc9 Weight loss",
+          "maintain": "\u2696\ufe0f Maintain current weight"
+        }
       }
     }
   },
