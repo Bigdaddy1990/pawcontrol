@@ -3,7 +3,7 @@ coverage[toml]>=7.5.4
 defusedxml>=0.7.1
 homeassistant>=2026.1.1
 jinja2==3.1.6
-packaging==25.0
+packaging==26.0
 pip==25.3
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
