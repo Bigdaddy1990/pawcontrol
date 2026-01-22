@@ -710,6 +710,8 @@ class EntityFactory:
     self._ensure_loop_state()
     if prewarm:
       self._prewarm_caches()
+    if self._runtime_guard_floor < _MIN_OPERATION_DURATION:
+      self._runtime_guard_floor = _MIN_OPERATION_DURATION
 
   def _prewarm_caches(self) -> None:
     """Warm up internal caches for consistent performance."""
