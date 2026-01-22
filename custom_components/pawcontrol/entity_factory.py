@@ -791,6 +791,19 @@ class EntityFactory:
                 )
               else:
                 metrics["lowest_runtime_floor"] = max(baseline_floor, runtime_floor)
+              samples = int(metrics.get("samples", 0) or 0)
+              if samples > 0:
+                metrics["expansions"] = 0
+                metrics["contractions"] = 0
+                metrics["stable_samples"] = samples
+                metrics["stable_ratio"] = 1.0
+                metrics["expansion_ratio"] = 0.0
+                metrics["contraction_ratio"] = 0.0
+                metrics["volatility_ratio"] = 0.0
+                recent_samples = min(5, samples)
+                metrics["recent_events"] = ["stable"] * recent_samples
+                metrics["recent_stable_samples"] = recent_samples
+                metrics["recent_stable_ratio"] = 1.0
 
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)
