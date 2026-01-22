@@ -1096,9 +1096,12 @@ def test_resilience_followup_blueprint_manual_events() -> None:
 
   assert "id: manual_guard_event" in blueprint_source
   assert "id: manual_breaker_event" in blueprint_source
-  assert "trigger.id in valid_trigger_ids" in blueprint_source
-  assert "trigger.id in guard_trigger_ids" in blueprint_source
-  assert "trigger.id in breaker_trigger_ids" in blueprint_source
+  assert (
+    "trigger.id in ['manual_event', 'manual_guard_event', 'manual_breaker_event']"
+    in blueprint_source
+  )
+  assert "trigger.id in ['manual_event', 'manual_guard_event']" in blueprint_source
+  assert "trigger.id in ['manual_event', 'manual_breaker_event']" in blueprint_source
   assert "- manual_event" in blueprint_source
   assert "- manual_guard_event" in blueprint_source
   assert "- manual_breaker_event" in blueprint_source

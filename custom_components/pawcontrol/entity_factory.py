@@ -767,14 +767,27 @@ class EntityFactory:
           if isinstance(performance_stats, dict):
             metrics = performance_stats.get("entity_factory_guard_metrics")
             if isinstance(metrics, dict):
-              runtime_floor = max(original_runtime_floor, 0.0)
+              runtime_floor = max(original_runtime_floor, _MIN_OPERATION_DURATION)
+              baseline_floor = max(
+                float(metrics.get("baseline_floor", _MIN_OPERATION_DURATION)),
+                _MIN_OPERATION_DURATION,
+              )
+              metrics["baseline_floor"] = baseline_floor
               metrics["runtime_floor"] = runtime_floor
               metrics["runtime_floor_delta"] = max(
-                runtime_floor - float(metrics.get("baseline_floor", runtime_floor)),
+                runtime_floor - baseline_floor,
                 0.0,
               )
               metrics["last_floor_change"] = 0.0
               metrics["last_floor_change_ratio"] = 0.0
+              lowest_runtime_floor = metrics.get("lowest_runtime_floor")
+              if isinstance(lowest_runtime_floor, int | float) and lowest_runtime_floor > 0:
+                metrics["lowest_runtime_floor"] = max(
+                  baseline_floor,
+                  min(float(lowest_runtime_floor), runtime_floor),
+                )
+              else:
+                metrics["lowest_runtime_floor"] = max(baseline_floor, runtime_floor)
 
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)

@@ -24,28 +24,17 @@ trigger:
     id: manual_breaker_event
 
 action:
-  - variables:
-      valid_trigger_ids:
-        - manual_event
-        - manual_guard_event
-        - manual_breaker_event
-      guard_trigger_ids:
-        - manual_event
-        - manual_guard_event
-      breaker_trigger_ids:
-        - manual_event
-        - manual_breaker_event
   - condition: template
     value_template: >-
-      {{ trigger.id in valid_trigger_ids }}
+      {{ trigger.id in ['manual_event', 'manual_guard_event', 'manual_breaker_event'] }}
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.id in guard_trigger_ids }}"
+            value_template: "{{ trigger.id in ['manual_event', 'manual_guard_event'] }}"
         sequence: []
       - conditions:
           - condition: template
-            value_template: "{{ trigger.id in breaker_trigger_ids }}"
+            value_template: "{{ trigger.id in ['manual_event', 'manual_breaker_event'] }}"
         sequence: []
   - service: logbook.log
     data:
