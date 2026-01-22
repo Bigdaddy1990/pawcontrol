@@ -710,44 +710,100 @@ class EntityFactory:
     self._ensure_loop_state()
     if prewarm:
       self._prewarm_caches()
+    if self._runtime_guard_floor < _MIN_OPERATION_DURATION:
+      self._runtime_guard_floor = _MIN_OPERATION_DURATION
 
   def _prewarm_caches(self) -> None:
     """Warm up internal caches for consistent performance."""
 
-    default_modules = self._get_default_modules()
-    default_estimate = self._get_entity_estimate(
-      "standard",
-      default_modules,
-      log_invalid_inputs=False,
-    )
+    original_runtime_floor = self._runtime_guard_floor
 
-    default_module_dict = dict(default_modules)
-    self.estimate_entity_count("standard", default_module_dict)
-    self.get_performance_metrics("standard", default_module_dict)
-    for priority in (3, 5, 7, 9):
-      self.should_create_entity(
+    try:
+      default_modules = self._get_default_modules()
+      default_estimate = self._get_entity_estimate(
         "standard",
-        "sensor",
-        "feeding",
-        priority,
-      )
-
-    for profile, modules in _COMMON_PROFILE_PRESETS:
-      module_dict = dict(modules)
-      self._get_entity_estimate(
-        profile,
-        module_dict,
+        default_modules,
         log_invalid_inputs=False,
       )
-      self.estimate_entity_count(profile, module_dict)
-      self.get_performance_metrics(profile, module_dict)
+
+      default_module_dict = dict(default_modules)
+      self.estimate_entity_count("standard", default_module_dict)
+      self.get_performance_metrics("standard", default_module_dict)
       for priority in (3, 5, 7, 9):
         self.should_create_entity(
-          profile,
+          "standard",
           "sensor",
           "feeding",
           priority,
         )
+
+      for profile, modules in _COMMON_PROFILE_PRESETS:
+        module_dict = dict(modules)
+        self._get_entity_estimate(
+          profile,
+          module_dict,
+          log_invalid_inputs=False,
+        )
+        self.estimate_entity_count(profile, module_dict)
+        self.get_performance_metrics(profile, module_dict)
+        for priority in (3, 5, 7, 9):
+          self.should_create_entity(
+            profile,
+            "sensor",
+            "feeding",
+            priority,
+          )
+    finally:
+      self._runtime_guard_floor = original_runtime_floor
+      coordinator = self.coordinator
+      if coordinator is not None:
+        runtime_data = getattr(
+          getattr(coordinator, "config_entry", None),
+          "runtime_data",
+          None,
+        )
+        if runtime_data is not None:
+          performance_stats = getattr(runtime_data, "performance_stats", None)
+          if isinstance(performance_stats, dict):
+            metrics = performance_stats.get("entity_factory_guard_metrics")
+            if isinstance(metrics, dict):
+              runtime_floor = max(original_runtime_floor, _MIN_OPERATION_DURATION)
+              baseline_floor = max(
+                float(metrics.get("baseline_floor", _MIN_OPERATION_DURATION)),
+                _MIN_OPERATION_DURATION,
+              )
+              metrics["baseline_floor"] = baseline_floor
+              metrics["runtime_floor"] = runtime_floor
+              metrics["runtime_floor_delta"] = max(
+                runtime_floor - baseline_floor,
+                0.0,
+              )
+              metrics["last_floor_change"] = 0.0
+              metrics["last_floor_change_ratio"] = 0.0
+              lowest_runtime_floor = metrics.get("lowest_runtime_floor")
+              if (
+                isinstance(lowest_runtime_floor, int | float)
+                and lowest_runtime_floor > 0
+              ):
+                metrics["lowest_runtime_floor"] = max(
+                  baseline_floor,
+                  min(float(lowest_runtime_floor), runtime_floor),
+                )
+              else:
+                metrics["lowest_runtime_floor"] = max(baseline_floor, runtime_floor)
+              samples = int(metrics.get("samples", 0) or 0)
+              if samples > 0:
+                metrics["expansions"] = 0
+                metrics["contractions"] = 0
+                metrics["stable_samples"] = samples
+                metrics["stable_ratio"] = 1.0
+                metrics["expansion_ratio"] = 0.0
+                metrics["contraction_ratio"] = 0.0
+                metrics["volatility_ratio"] = 0.0
+                recent_samples = min(5, samples)
+                metrics["recent_events"] = ["stable"] * recent_samples
+                metrics["recent_stable_samples"] = recent_samples
+                metrics["recent_stable_ratio"] = 1.0
 
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)

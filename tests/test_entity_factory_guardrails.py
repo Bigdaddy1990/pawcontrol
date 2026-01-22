@@ -22,6 +22,7 @@ from custom_components.pawcontrol.entity_factory import (
   _RUNTIME_MAX_FLOOR,
   _RUNTIME_TARGET_RATIO,
   ENTITY_PROFILES,
+  EntityEstimate,
   EntityFactory,
 )
 
@@ -199,6 +200,42 @@ def test_runtime_guard_respects_minimum_floor() -> None:
   factory._recalibrate_runtime_floor(_MIN_OPERATION_DURATION * 0.5)
 
   assert factory._runtime_guard_floor >= _MIN_OPERATION_DURATION
+
+
+def test_prewarm_restores_runtime_guard_floor(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """Prewarming should not permanently alter the runtime guard floor."""
+
+  factory = EntityFactory(
+    coordinator=None,
+    prewarm=False,
+    enforce_min_runtime=True,
+  )
+  original_floor = factory._runtime_guard_floor
+  original_get_estimate = EntityFactory._get_entity_estimate
+
+  def _wrapped_get_estimate(
+    self: EntityFactory,
+    profile: str,
+    modules: dict[str, bool] | None,
+    *,
+    log_invalid_inputs: bool,
+  ) -> EntityEstimate:
+    estimate = original_get_estimate(
+      self,
+      profile,
+      modules,
+      log_invalid_inputs=log_invalid_inputs,
+    )
+    self._runtime_guard_floor = original_floor * 2
+    return estimate
+
+  monkeypatch.setattr(EntityFactory, "_get_entity_estimate", _wrapped_get_estimate)
+
+  factory._prewarm_caches()
+
+  assert factory._runtime_guard_floor == pytest.approx(original_floor)
 
 
 def test_runtime_guard_records_telemetry() -> None:
