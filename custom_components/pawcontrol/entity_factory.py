@@ -752,7 +752,7 @@ class EntityFactory:
             "sensor",
             "feeding",
             priority,
-        )
+          )
     finally:
       self._runtime_guard_floor = original_runtime_floor
       coordinator = self.coordinator
