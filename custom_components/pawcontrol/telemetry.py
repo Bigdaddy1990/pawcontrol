@@ -1454,6 +1454,8 @@ def update_runtime_entity_factory_guard_metrics(
   previous_floor: float | None = None
   if isinstance(previous_floor_raw, int | float) and isfinite(previous_floor_raw):
     previous_floor = float(previous_floor_raw)
+  if previous_floor is None:
+    previous_floor = max(baseline_floor, 0.0)
   previous_samples = int(metrics.get("samples", 0) or 0)
   metrics.setdefault("stable_samples", 0)
   metrics.setdefault("expansions", 0)

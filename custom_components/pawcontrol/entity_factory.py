@@ -752,9 +752,29 @@ class EntityFactory:
             "sensor",
             "feeding",
             priority,
-          )
+        )
     finally:
       self._runtime_guard_floor = original_runtime_floor
+      coordinator = self.coordinator
+      if coordinator is not None:
+        runtime_data = getattr(
+          getattr(coordinator, "config_entry", None),
+          "runtime_data",
+          None,
+        )
+        if runtime_data is not None:
+          performance_stats = getattr(runtime_data, "performance_stats", None)
+          if isinstance(performance_stats, dict):
+            metrics = performance_stats.get("entity_factory_guard_metrics")
+            if isinstance(metrics, dict):
+              runtime_floor = max(original_runtime_floor, 0.0)
+              metrics["runtime_floor"] = runtime_floor
+              metrics["runtime_floor_delta"] = max(
+                runtime_floor - float(metrics.get("baseline_floor", runtime_floor)),
+                0.0,
+              )
+              metrics["last_floor_change"] = 0.0
+              metrics["last_floor_change_ratio"] = 0.0
 
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)
