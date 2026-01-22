@@ -11,7 +11,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import copy
 import logging
 import os
 import time
@@ -718,24 +717,6 @@ class EntityFactory:
     """Warm up internal caches for consistent performance."""
 
     original_runtime_floor = self._runtime_guard_floor
-    performance_stats: dict[str, object] | None = None
-    cached_metrics: object | None = None
-    cached_metrics_present = False
-    coordinator = self.coordinator
-    if coordinator is not None:
-      runtime_data = getattr(
-        getattr(coordinator, "config_entry", None),
-        "runtime_data",
-        None,
-      )
-      if runtime_data is not None:
-        performance_stats = getattr(runtime_data, "performance_stats", None)
-        if isinstance(performance_stats, dict):
-          cached_metrics_present = "entity_factory_guard_metrics" in performance_stats
-          if cached_metrics_present:
-            cached_metrics = copy.deepcopy(
-              performance_stats["entity_factory_guard_metrics"],
-            )
 
     try:
       default_modules = self._get_default_modules()
@@ -774,11 +755,42 @@ class EntityFactory:
           )
     finally:
       self._runtime_guard_floor = original_runtime_floor
-      if isinstance(performance_stats, dict):
-        if cached_metrics_present:
-          performance_stats["entity_factory_guard_metrics"] = cached_metrics
-        else:
-          performance_stats.pop("entity_factory_guard_metrics", None)
+      coordinator = self.coordinator
+      if coordinator is not None:
+        runtime_data = getattr(
+          getattr(coordinator, "config_entry", None),
+          "runtime_data",
+          None,
+        )
+        if runtime_data is not None:
+          performance_stats = getattr(runtime_data, "performance_stats", None)
+          if isinstance(performance_stats, dict):
+            metrics = performance_stats.get("entity_factory_guard_metrics")
+            if isinstance(metrics, dict):
+              runtime_floor = max(original_runtime_floor, _MIN_OPERATION_DURATION)
+              baseline_floor = max(
+                float(metrics.get("baseline_floor", _MIN_OPERATION_DURATION)),
+                _MIN_OPERATION_DURATION,
+              )
+              metrics["baseline_floor"] = baseline_floor
+              metrics["runtime_floor"] = runtime_floor
+              metrics["runtime_floor_delta"] = max(
+                runtime_floor - baseline_floor,
+                0.0,
+              )
+              metrics["last_floor_change"] = 0.0
+              metrics["last_floor_change_ratio"] = 0.0
+              lowest_runtime_floor = metrics.get("lowest_runtime_floor")
+              if (
+                isinstance(lowest_runtime_floor, int | float)
+                and lowest_runtime_floor > 0
+              ):
+                metrics["lowest_runtime_floor"] = max(
+                  baseline_floor,
+                  min(float(lowest_runtime_floor), runtime_floor),
+                )
+              else:
+                metrics["lowest_runtime_floor"] = max(baseline_floor, runtime_floor)
 
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)
