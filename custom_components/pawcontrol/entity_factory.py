@@ -781,7 +781,10 @@ class EntityFactory:
               metrics["last_floor_change"] = 0.0
               metrics["last_floor_change_ratio"] = 0.0
               lowest_runtime_floor = metrics.get("lowest_runtime_floor")
-              if isinstance(lowest_runtime_floor, int | float) and lowest_runtime_floor > 0:
+              if (
+                isinstance(lowest_runtime_floor, int | float)
+                and lowest_runtime_floor > 0
+              ):
                 metrics["lowest_runtime_floor"] = max(
                   baseline_floor,
                   min(float(lowest_runtime_floor), runtime_floor),
