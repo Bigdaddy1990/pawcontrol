@@ -92,8 +92,6 @@ from custom_components.pawcontrol.types import (
   normalize_performance_mode,
 )
 
-from .flows.gps import _build_dog_gps_placeholders
-from .flows.health import _build_dog_health_placeholders
 from .selector_shim import selector
 
 _LOGGER = logging.getLogger(__name__)
