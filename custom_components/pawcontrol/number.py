@@ -472,9 +472,9 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
       self._build_base_state_attributes(
         {
           "number_type": self._number_type,
-          "min_value": self.native_min_value,
-          "max_value": self.native_max_value,
-          "step": self.native_step,
+          "min_value": getattr(self, "_attr_native_min_value", None),
+          "max_value": getattr(self, "_attr_native_max_value", None),
+          "step": getattr(self, "_attr_native_step", None),
           "last_changed": dt_util.utcnow().isoformat(),
         },
       ),
@@ -548,7 +548,10 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     Returns:
         Module data dictionary or None if not available
     """
-    return self.coordinator.get_module_data(self._dog_id, module)
+    getter = getattr(self.coordinator, "get_module_data", None)
+    if callable(getter):
+      return getter(self._dog_id, module)
+    return None
 
   @property
   def available(self) -> bool:
@@ -572,10 +575,11 @@ class PawControlDogWeightNumber(PawControlNumberBase):
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    dog_config: DogConfigData,
+    dog_config: DogConfigData | None = None,
   ) -> None:
     """Initialize the dog weight number."""
-    current_weight = cast(float | None, dog_config.get(DOG_WEIGHT_FIELD))
+    config = dog_config or {}
+    current_weight = cast(float | None, config.get(DOG_WEIGHT_FIELD))
     if current_weight is None:
       current_weight = 20.0
 
