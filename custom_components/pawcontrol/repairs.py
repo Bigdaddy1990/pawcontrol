@@ -35,6 +35,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
+from .exceptions import RepairRequiredError
 from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import (
   RuntimeDataUnavailableError,
@@ -148,10 +149,15 @@ async def async_create_issue(
 
   create_issue = getattr(ir, "async_create_issue", None)
   if not callable(create_issue):
+    repair_error = RepairRequiredError(
+      "Issue registry unavailable",
+      context={"issue_id": issue_id, "issue_type": issue_type},
+    )
     _LOGGER.debug(
-      "Issue registry unavailable; skipping issue %s (type %s)",
+      "Issue registry unavailable; skipping issue %s (type %s): %s",
       issue_id,
       issue_type,
+      repair_error,
     )
     return
 
@@ -202,18 +208,26 @@ async def async_create_issue(
     if value is not None
   }
 
-  result = create_issue(
-    hass,
-    DOMAIN,
-    issue_id,
-    breaks_in_ha_version=None,
-    is_fixable=True,
-    issue_domain=DOMAIN,
-    severity=issue_severity,
-    translation_key=issue_type,
-    translation_placeholders=translation_placeholders,
-    data=serialised_issue_data,
-  )
+  try:
+    result = create_issue(
+      hass,
+      DOMAIN,
+      issue_id,
+      breaks_in_ha_version=None,
+      is_fixable=True,
+      issue_domain=DOMAIN,
+      severity=issue_severity,
+      translation_key=issue_type,
+      translation_placeholders=translation_placeholders,
+      data=serialised_issue_data,
+    )
+  except Exception as err:  # pragma: no cover - depends on HA internals
+    repair_error = RepairRequiredError(
+      "Issue registry call failed",
+      context={"issue_id": issue_id, "issue_type": issue_type},
+    )
+    _LOGGER.warning("Failed to create repair issue: %s (%s)", repair_error, err)
+    return
 
   if not isawaitable(result):
     _LOGGER.debug(
@@ -222,7 +236,15 @@ async def async_create_issue(
     )
     return
 
-  await result
+  try:
+    await result
+  except Exception as err:  # pragma: no cover - depends on HA internals
+    repair_error = RepairRequiredError(
+      "Issue registry await failed",
+      context={"issue_id": issue_id, "issue_type": issue_type},
+    )
+    _LOGGER.warning("Failed to await repair issue creation: %s (%s)", repair_error, err)
+    return
 
   _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
 

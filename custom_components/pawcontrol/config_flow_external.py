@@ -41,7 +41,7 @@ from .types import (
   clone_placeholders,
   freeze_placeholders,
 )
-from .validators import validate_gps_source
+from .validators import validate_gps_source, validate_notify_service
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
   Literal["gps_source"],
@@ -416,23 +416,12 @@ class ExternalEntityConfigurationMixin:
     """Validate notification service selection."""
     if not notify_service:
       return {}
-    service_parts = notify_service.split(".", 1)
-    if len(service_parts) != 2 or service_parts[0] != "notify":
-      raise ValidationError(
-        CONF_NOTIFY_FALLBACK,
-        notify_service,
-        "notify_service_invalid",
-      )
-
-    services = self.hass.services.async_services().get("notify", {})
-    if service_parts[1] not in services:
-      raise ValidationError(
-        CONF_NOTIFY_FALLBACK,
-        notify_service,
-        "notify_service_not_found",
-      )
-
-    return {NOTIFY_FALLBACK_FIELD: notify_service}
+    validated = validate_notify_service(
+      self.hass,
+      notify_service,
+      field=CONF_NOTIFY_FALLBACK,
+    )
+    return {NOTIFY_FALLBACK_FIELD: validated}
 
 
 def _map_external_error(error: ValidationError) -> str:

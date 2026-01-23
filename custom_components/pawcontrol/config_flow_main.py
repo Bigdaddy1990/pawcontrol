@@ -43,6 +43,8 @@ from .config_flow_profile import (
   validate_profile_selection,
 )
 from .config_flow_reauth import ReauthFlowMixin
+from .flows.gps import DogGPSFlowMixin
+from .flows.health import DogHealthFlowMixin
 from .config_flow_schemas import DOG_SCHEMA, MODULE_SELECTION_KEYS, MODULES_SCHEMA
 from .const import (
   CONF_API_ENDPOINT,
@@ -67,6 +69,7 @@ from .exceptions import (
   ConfigurationError,
   FlowValidationError,
   PawControlSetupError,
+  ReconfigureRequiredError,
   ValidationError,
 )
 from .flow_validation import validate_dog_setup_input
@@ -149,6 +152,8 @@ class PawControlConfigFlow(
   ModuleConfigurationMixin,
   DashboardFlowMixin,
   ExternalEntityConfigurationMixin,
+  DogGPSFlowMixin,
+  DogHealthFlowMixin,
   DogManagementMixin,
   ReauthFlowMixin,
   PawControlBaseConfigFlow,
@@ -1570,9 +1575,11 @@ class PawControlConfigFlow(
       else None
     )
     if entry is None:
-      raise ConfigEntryNotReady(
+      reconfigure_error = ReconfigureRequiredError(
         "Config entry not found for reconfiguration",
+        context={"entry_id": entry_id},
       )
+      raise ConfigEntryNotReady(str(reconfigure_error)) from reconfigure_error
 
     dogs, merge_notes = self._extract_entry_dogs(entry)
     current_profile = self._resolve_entry_profile(entry)

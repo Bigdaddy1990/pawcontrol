@@ -15,7 +15,7 @@ from homeassistant.util import dt as dt_util
 from .compat import ConfigEntry, ConfigEntryAuthFailed
 from .const import CONF_DOGS, CONF_MODULES
 from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import ValidationError
+from .exceptions import ReauthRequiredError, ValidationError
 from .types import (
   DOG_ID_FIELD,
   REAUTH_PLACEHOLDERS_TEMPLATE,
@@ -194,8 +194,9 @@ class ReauthFlowMixin(ReauthFlowHost):
 
       if not self.reauth_entry:
         _LOGGER.error("Reauthentication failed: entry not found")
-        raise ConfigEntryAuthFailed(
+        raise ReauthRequiredError(
           "Config entry not found for reauthentication",
+          context={"entry_id": self.context.get("entry_id")},
         )
 
       try:
@@ -206,25 +207,36 @@ class ReauthFlowMixin(ReauthFlowHost):
           "Entry validation timeout during reauth: %s",
           err,
         )
-        raise ConfigEntryAuthFailed(
+        raise ReauthRequiredError(
           "Entry validation timeout",
+          context={"reason": "timeout"},
         ) from err
       except ValidationError as err:
         _LOGGER.error("Reauthentication validation failed: %s", err)
-        raise ConfigEntryAuthFailed(
+        raise ReauthRequiredError(
           f"Entry validation failed: {err}",
+          context={"reason": "validation"},
         ) from err
 
       return await self.async_step_reauth_confirm()
 
+    except ReauthRequiredError as err:
+      _LOGGER.error("Reauthentication required: %s", err)
+      raise ConfigEntryAuthFailed(str(err)) from err
     except TimeoutError as err:
       _LOGGER.error("Reauth step timeout: %s", err)
-      raise ConfigEntryAuthFailed("Reauthentication timeout") from err
+      reauth_error = ReauthRequiredError(
+        "Reauthentication timeout",
+        context={"reason": "timeout"},
+      )
+      raise ConfigEntryAuthFailed(str(reauth_error)) from reauth_error
     except Exception as err:
       _LOGGER.error("Unexpected reauth error: %s", err)
-      raise ConfigEntryAuthFailed(
+      reauth_error = ReauthRequiredError(
         f"Reauthentication failed: {err}",
-      ) from err
+        context={"reason": "unexpected"},
+      )
+      raise ConfigEntryAuthFailed(str(reauth_error)) from reauth_error
 
   async def _validate_reauth_entry_enhanced(self, entry: ConfigEntry) -> None:
     """Enhanced config entry validation for reauthentication."""
@@ -277,9 +289,11 @@ class ReauthFlowMixin(ReauthFlowHost):
     """Confirm reauthentication with enhanced validation and error handling."""
 
     if not self.reauth_entry:
-      raise ConfigEntryAuthFailed(
+      reauth_error = ReauthRequiredError(
         "No entry available for reauthentication",
+        context={"reason": "missing_entry"},
       )
+      raise ConfigEntryAuthFailed(str(reauth_error)) from reauth_error
 
     errors: dict[str, str] = {}
     summary: ReauthHealthSummary | None = None
