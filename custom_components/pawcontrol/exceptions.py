@@ -292,6 +292,66 @@ class PawControlSetupError(PawControlError):
     )
 
 
+class ReauthRequiredError(PawControlError):
+  """Exception raised when reauthentication is required."""
+
+  def __init__(
+    self,
+    message: str,
+    *,
+    context: Mapping[str, object] | None = None,
+  ) -> None:
+    super().__init__(
+      message,
+      error_code="reauth_required",
+      severity=ErrorSeverity.HIGH,
+      category=ErrorCategory.AUTHENTICATION,
+      context=context,
+      recovery_suggestions=["Restart the reauthentication flow in Home Assistant"],
+      user_message="Reauthentication is required for Paw Control.",
+    )
+
+
+class ReconfigureRequiredError(PawControlError):
+  """Exception raised when reconfiguration is required."""
+
+  def __init__(
+    self,
+    message: str,
+    *,
+    context: Mapping[str, object] | None = None,
+  ) -> None:
+    super().__init__(
+      message,
+      error_code="reconfigure_required",
+      severity=ErrorSeverity.MEDIUM,
+      category=ErrorCategory.CONFIGURATION,
+      context=context,
+      recovery_suggestions=["Start the reconfigure flow in Home Assistant"],
+      user_message="Reconfiguration is required for Paw Control.",
+    )
+
+
+class RepairRequiredError(PawControlError):
+  """Exception raised when a repairs flow should be surfaced."""
+
+  def __init__(
+    self,
+    message: str,
+    *,
+    context: Mapping[str, object] | None = None,
+  ) -> None:
+    super().__init__(
+      message,
+      error_code="repair_required",
+      severity=ErrorSeverity.MEDIUM,
+      category=ErrorCategory.SYSTEM,
+      context=context,
+      recovery_suggestions=["Review the Repairs panel in Home Assistant"],
+      user_message="A repair action is required for Paw Control.",
+    )
+
+
 class DogNotFoundError(PawControlError):
   """Exception raised when a dog with the specified ID is not found."""
 
@@ -1037,6 +1097,9 @@ EXCEPTION_MAP: Final[dict[str, type[PawControlError]]] = {
   "network_error": NetworkError,
   "data_export_failed": DataExportError,
   "data_import_failed": DataImportError,
+  "reauth_required": ReauthRequiredError,
+  "reconfigure_required": ReconfigureRequiredError,
+  "repair_required": RepairRequiredError,
   "setup_failed": PawControlSetupError,
 }
 

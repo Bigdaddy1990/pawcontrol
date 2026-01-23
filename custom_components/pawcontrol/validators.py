@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from .const import (
   CONF_DOG_NAME,
   CONF_GPS_SOURCE,
+  CONF_NOTIFY_FALLBACK,
   MAX_DOG_NAME_LENGTH,
   MAX_GEOFENCE_RADIUS,
   MIN_DOG_NAME_LENGTH,
@@ -151,5 +152,71 @@ def validate_gps_source(
     raise ValidationError(field, candidate, "gps_source_not_found")
   if state.state in {"unknown", "unavailable"}:
     raise ValidationError(field, candidate, "gps_source_unavailable")
+
+  return candidate
+
+
+def validate_coordinate(
+  value: Any,
+  *,
+  field: str,
+  min_value: float,
+  max_value: float,
+  allow_none: bool = False,
+) -> float | None:
+  """Validate a latitude/longitude value within bounds."""
+
+  if value is None:
+    if allow_none:
+      return None
+    raise ValidationError(field, value, "coordinate_not_numeric")
+
+  if isinstance(value, bool):
+    raise ValidationError(field, value, "coordinate_not_numeric")
+  if isinstance(value, int | float):
+    coordinate = float(value)
+  elif isinstance(value, str):
+    stripped = value.strip()
+    if not stripped:
+      raise ValidationError(field, value, "coordinate_not_numeric")
+    try:
+      coordinate = float(stripped)
+    except ValueError as err:
+      raise ValidationError(field, value, "coordinate_not_numeric") from err
+  else:
+    raise ValidationError(field, value, "coordinate_not_numeric")
+
+  if coordinate < min_value or coordinate > max_value:
+    raise ValidationError(
+      field,
+      coordinate,
+      "coordinate_out_of_range",
+      min_value=min_value,
+      max_value=max_value,
+    )
+  return coordinate
+
+
+def validate_notify_service(
+  hass: HomeAssistant,
+  notify_service: Any,
+  *,
+  field: str = CONF_NOTIFY_FALLBACK,
+) -> str:
+  """Validate notification service selection."""
+
+  if not isinstance(notify_service, str):
+    raise ValidationError(field, notify_service, "notify_service_invalid")
+  candidate = notify_service.strip()
+  if not candidate:
+    raise ValidationError(field, notify_service, "notify_service_invalid")
+
+  service_parts = candidate.split(".", 1)
+  if len(service_parts) != 2 or service_parts[0] != "notify":
+    raise ValidationError(field, candidate, "notify_service_invalid")
+
+  services = hass.services.async_services().get("notify", {})
+  if service_parts[1] not in services:
+    raise ValidationError(field, candidate, "notify_service_not_found")
 
   return candidate

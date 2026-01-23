@@ -44,11 +44,11 @@ from .language import normalize_language
 from .options_flow_dogs_management import DogManagementOptionsMixin
 from .options_flow_door_sensor import DoorSensorOptionsMixin
 from .options_flow_feeding import FeedingOptionsMixin
-from .options_flow_gps import GPSOptionsMixin
-from .options_flow_health import HealthOptionsMixin
+from .flows.gps import GPSOptionsMixin
+from .flows.health import HealthOptionsMixin
+from .flows.notifications import NotificationOptionsMixin
 from .options_flow_import_export import ImportExportOptionsMixin
 from .options_flow_menu import MenuOptionsMixin
-from .options_flow_notifications import NotificationOptionsMixin
 from .options_flow_profiles import ProfileOptionsMixin
 from .options_flow_shared import (
   ADVANCED_SETTINGS_FIELD,
