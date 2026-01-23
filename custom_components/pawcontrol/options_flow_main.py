@@ -30,9 +30,15 @@ from homeassistant.util import dt as dt_util
 from .compat import ConfigEntry
 from .const import (
   CONF_DOGS,
+  CONF_GPS_ACCURACY_FILTER,
+  CONF_GPS_DISTANCE_FILTER,
+  CONF_GPS_UPDATE_INTERVAL,
   CONF_LAST_RECONFIGURE,
   CONF_NOTIFICATIONS,
   CONF_RECONFIGURE_TELEMETRY,
+  DEFAULT_GPS_ACCURACY_FILTER,
+  DEFAULT_GPS_DISTANCE_FILTER,
+  DEFAULT_GPS_UPDATE_INTERVAL,
   DEFAULT_MANUAL_BREAKER_EVENT,
   DEFAULT_MANUAL_CHECK_EVENT,
   DEFAULT_MANUAL_GUARD_EVENT,
@@ -58,16 +64,25 @@ from .options_flow_system_settings import SystemSettingsOptionsMixin
 from .runtime_data import get_runtime_data as _get_runtime_data
 from .types import (
   DEFAULT_NOTIFICATION_OPTIONS,
+  AUTO_TRACK_WALKS_FIELD,
   DOG_ID_FIELD,
+  GPS_ACCURACY_FILTER_FIELD,
+  GPS_DISTANCE_FILTER_FIELD,
+  GPS_ENABLED_FIELD,
+  GPS_SETTINGS_FIELD,
+  GPS_UPDATE_INTERVAL_FIELD,
   ConfigEntryOptionsPayload,
   ConfigFlowPlaceholders,
   DogConfigData,
   DogOptionsMap,
+  GPSOptions,
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
   NotificationOptionsInput,
   PawControlOptionsData,
+  ROUTE_HISTORY_DAYS_FIELD,
+  ROUTE_RECORDING_FIELD,
   ReconfigureTelemetry,
   SystemOptions,
   ensure_advanced_options,
@@ -258,6 +273,49 @@ class PawControlOptionsFlow(
     """Return a typed options mapping with notifications and dog entries coerced."""
 
     mutable = ensure_json_mapping(options)
+    gps_settings: GPSOptions | None = None
+
+    def _normalise_gps_settings(raw: Mapping[str, JSONValue]) -> GPSOptions:
+      return {
+        GPS_ENABLED_FIELD: self._coerce_bool(
+          raw.get(GPS_ENABLED_FIELD),
+          True,
+        ),
+        GPS_UPDATE_INTERVAL_FIELD: self._coerce_clamped_int(
+          raw.get(GPS_UPDATE_INTERVAL_FIELD),
+          DEFAULT_GPS_UPDATE_INTERVAL,
+          minimum=5,
+          maximum=600,
+        ),
+        GPS_ACCURACY_FILTER_FIELD: cast(
+          float,
+          self._coerce_optional_float(
+            raw.get(GPS_ACCURACY_FILTER_FIELD),
+            float(DEFAULT_GPS_ACCURACY_FILTER),
+          ),
+        ),
+        GPS_DISTANCE_FILTER_FIELD: cast(
+          float,
+          self._coerce_optional_float(
+            raw.get(GPS_DISTANCE_FILTER_FIELD),
+            float(DEFAULT_GPS_DISTANCE_FILTER),
+          ),
+        ),
+        ROUTE_RECORDING_FIELD: self._coerce_bool(
+          raw.get(ROUTE_RECORDING_FIELD),
+          True,
+        ),
+        ROUTE_HISTORY_DAYS_FIELD: self._coerce_clamped_int(
+          raw.get(ROUTE_HISTORY_DAYS_FIELD),
+          30,
+          minimum=1,
+          maximum=365,
+        ),
+        AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
+          raw.get(AUTO_TRACK_WALKS_FIELD),
+          True,
+        ),
+      }
 
     if CONF_NOTIFICATIONS in mutable:
       raw_notifications = mutable.get(CONF_NOTIFICATIONS)
@@ -285,6 +343,12 @@ class PawControlOptionsFlow(
             cast(JSONLikeMapping, dict(entry_payload)),
             dog_id=dog_id,
           )
+          dog_gps = entry.get(GPS_SETTINGS_FIELD)
+          if isinstance(dog_gps, Mapping):
+            entry[GPS_SETTINGS_FIELD] = _normalise_gps_settings(
+              cast(Mapping[str, JSONValue], dog_gps),
+            )
+            gps_settings = entry[GPS_SETTINGS_FIELD]
           if CONF_NOTIFICATIONS not in entry:
             entry[CONF_NOTIFICATIONS] = normalised_notifications
           dog_options[dog_id] = entry
@@ -310,10 +374,38 @@ class PawControlOptionsFlow(
             cast(JSONLikeMapping, dict(entry_source)),
             dog_id=dog_id,
           )
+          dog_gps = entry.get(GPS_SETTINGS_FIELD)
+          if isinstance(dog_gps, Mapping):
+            entry[GPS_SETTINGS_FIELD] = _normalise_gps_settings(
+              cast(Mapping[str, JSONValue], dog_gps),
+            )
+            gps_settings = entry[GPS_SETTINGS_FIELD]
           if dog_id and entry.get(DOG_ID_FIELD) != dog_id:
             entry[DOG_ID_FIELD] = dog_id
           typed_dog_options[dog_id] = entry
       mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, typed_dog_options)
+
+    if GPS_SETTINGS_FIELD in mutable:
+      raw_gps_settings = mutable.get(GPS_SETTINGS_FIELD)
+      if isinstance(raw_gps_settings, Mapping):
+        gps_settings = _normalise_gps_settings(
+          cast(Mapping[str, JSONValue], raw_gps_settings),
+        )
+        mutable[GPS_SETTINGS_FIELD] = cast(JSONValue, gps_settings)
+
+    if gps_settings is not None:
+      mutable[CONF_GPS_UPDATE_INTERVAL] = cast(
+        JSONValue,
+        gps_settings[GPS_UPDATE_INTERVAL_FIELD],
+      )
+      mutable[CONF_GPS_ACCURACY_FILTER] = cast(
+        JSONValue,
+        gps_settings[GPS_ACCURACY_FILTER_FIELD],
+      )
+      mutable[CONF_GPS_DISTANCE_FILTER] = cast(
+        JSONValue,
+        gps_settings[GPS_DISTANCE_FILTER_FIELD],
+      )
 
     if ADVANCED_SETTINGS_FIELD in mutable:
       raw_advanced = mutable.get(ADVANCED_SETTINGS_FIELD)

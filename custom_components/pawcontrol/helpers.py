@@ -1210,6 +1210,12 @@ class PawControlData:
   ) -> JSONMutableMapping | None:
     """Return a storage-safe health history entry or ``None`` if invalid."""
 
+    entry_as_dict = getattr(entry, "as_dict", None)
+    if callable(entry_as_dict):
+      payload = entry_as_dict()
+      if isinstance(payload, Mapping):
+        return cast(JSONMutableMapping, dict(payload))
+
     if isinstance(entry, HealthEvent):
       return cast(JSONMutableMapping, entry.as_dict())
 

@@ -514,12 +514,14 @@ class GPSOptionsMixin(GPSOptionsHost):
             typed_input.get(ROUTE_RECORDING_FIELD),
             current_settings.get(ROUTE_RECORDING_FIELD, True),
           ),
-          ROUTE_HISTORY_DAYS_FIELD: cast(
-            int,
+          ROUTE_HISTORY_DAYS_FIELD: validate_timer(
             typed_input.get(
               ROUTE_HISTORY_DAYS_FIELD,
               current_settings.get(ROUTE_HISTORY_DAYS_FIELD, 30),
             ),
+            field=ROUTE_HISTORY_DAYS_FIELD,
+            min_value=1,
+            max_value=365,
           ),
           AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
             typed_input.get(AUTO_TRACK_WALKS_FIELD),

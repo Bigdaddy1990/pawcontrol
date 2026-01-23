@@ -877,7 +877,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
       self._build_base_state_attributes(
         {
           "select_type": self._select_type,
-          "available_options": list(self.options),
+          "available_options": list(getattr(self, "_attr_options", [])),
           "last_changed": dt_util.utcnow().isoformat(),
         },
       ),
@@ -976,10 +976,11 @@ class PawControlDogSizeSelect(PawControlSelectBase):
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    dog_config: DogConfigData,
+    dog_config: DogConfigData | None = None,
   ) -> None:
     """Initialize the dog size select."""
-    current_size = dog_config.get(DOG_SIZE_FIELD, "medium")
+    config = dog_config or {}
+    current_size = config.get(DOG_SIZE_FIELD, "medium")
 
     super().__init__(
       coordinator,
