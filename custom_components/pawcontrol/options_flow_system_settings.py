@@ -401,6 +401,7 @@ class SystemSettingsOptionsMixin:
     user_input: dict[str, Any] | None = None,
   ) -> ConfigFlowResult:
     """Configure system and performance settings."""
+    await self._async_prepare_setup_flag_translations()
     placeholders = self._manual_event_description_placeholders()
     if user_input is not None:
       try:
