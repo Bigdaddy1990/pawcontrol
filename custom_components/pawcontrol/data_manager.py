@@ -3349,7 +3349,13 @@ class PawControlDataManager:
     except OSError as err:
       error_cls = _resolve_homeassistant_error()
       raise error_cls(
+except OSError as err:
+      error_cls = _resolve_homeassistant_error()
+      raise error_cls(
         f"Unable to read PawControl backup: {err}",
+      ) from err
+
+    return {}
       ) from err
 
       return {}
