@@ -10,10 +10,6 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
 from ..const import (
-  CONF_BREAKFAST_TIME,
-  CONF_DINNER_TIME,
-  CONF_LUNCH_TIME,
-  CONF_MEALS_PER_DAY,
   MAX_DOG_WEIGHT,
   MIN_DOG_WEIGHT,
   MODULE_MEDICATION,
@@ -85,11 +81,14 @@ def _build_dog_health_placeholders(
 
 
 if TYPE_CHECKING:
+
   class DogHealthFlowHost(Protocol):
     _current_dog_config: DogConfigData | None
     _dogs: list[DogConfigData]
 
-    def _collect_health_conditions(self, user_input: Mapping[str, Any]) -> list[str]: ...
+    def _collect_health_conditions(
+      self, user_input: Mapping[str, Any]
+    ) -> list[str]: ...
 
     def _collect_special_diet(self, user_input: Mapping[str, Any]) -> list[str]: ...
 
@@ -377,9 +376,7 @@ class DogHealthFlowMixin(DogHealthFlowHost):
     for diet in lifestyle_diets:
       if diet in SPECIAL_DIET_OPTIONS:
         default_value = False
-        if diet == "joint_support" and (
-          dog_age >= 7 or dog_size in ("large", "giant")
-        ):
+        if diet == "joint_support" and (dog_age >= 7 or dog_size in ("large", "giant")):
           default_value = True
         schema_dict[vol.Optional(diet, default=default_value)] = (
           selector.BooleanSelector()

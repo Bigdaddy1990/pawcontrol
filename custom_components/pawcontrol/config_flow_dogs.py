@@ -739,6 +739,7 @@ class DogManagementMixin(DogManagementMixinBase):
         ),
       ),
     )
+
   async def _async_validate_dog_config(
     self,
     user_input: DogSetupStepInput,

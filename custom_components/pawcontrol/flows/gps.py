@@ -279,6 +279,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
 
 
 if TYPE_CHECKING:
+
   class GPSOptionsHost:
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
