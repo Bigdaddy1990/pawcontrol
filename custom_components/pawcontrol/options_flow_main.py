@@ -15,6 +15,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import Mapping, Sequence
@@ -25,6 +26,7 @@ from pathlib import Path
 from typing import Any, ClassVar, Final, Literal, cast
 
 from homeassistant.config_entries import OptionsFlow
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
@@ -527,11 +529,19 @@ class PawControlOptionsFlow(
     return translations
 
   @classmethod
-  def _load_setup_flag_translations_from_path(cls, path: Path) -> dict[str, str]:
+  async def _load_setup_flag_translations_from_path(
+    cls,
+    path: Path,
+    hass: HomeAssistant | None = None,
+  ) -> dict[str, str]:
     """Load setup flag translations from a JSON file if it exists."""
 
     try:
-      content = json.loads(path.read_text(encoding="utf-8"))
+      if hass is not None:
+        raw = await hass.async_add_executor_job(path.read_text, "utf-8")
+      else:
+        raw = await asyncio.to_thread(path.read_text, encoding="utf-8")
+      content = json.loads(raw)
     except FileNotFoundError:
       return {}
     except ValueError:  # pragma: no cover - defensive against malformed JSON
@@ -547,12 +557,19 @@ class PawControlOptionsFlow(
     return cls._load_setup_flag_translations_from_mapping(content)
 
   @classmethod
-  def _setup_flag_translations_for_language(cls, language: str) -> dict[str, str]:
+  async def _async_setup_flag_translations_for_language(
+    cls,
+    language: str,
+    hass: HomeAssistant | None = None,
+  ) -> dict[str, str]:
     """Return setup flag translations for the provided language."""
 
     if cls._SETUP_FLAG_EN_TRANSLATIONS is None:
-      cls._SETUP_FLAG_EN_TRANSLATIONS = cls._load_setup_flag_translations_from_path(
-        cls._STRINGS_PATH
+      cls._SETUP_FLAG_EN_TRANSLATIONS = (
+        await cls._load_setup_flag_translations_from_path(
+          cls._STRINGS_PATH,
+          hass=hass,
+        )
       )
 
     base = cls._SETUP_FLAG_EN_TRANSLATIONS or {}
@@ -564,11 +581,28 @@ class PawControlOptionsFlow(
       return cached
 
     translation_path = cls._TRANSLATIONS_DIR / f"{language}.json"
-    overlay = cls._load_setup_flag_translations_from_path(translation_path)
+    overlay = await cls._load_setup_flag_translations_from_path(
+      translation_path,
+      hass=hass,
+    )
     merged = dict(base)
     merged.update(overlay)
     cls._SETUP_FLAG_TRANSLATION_CACHE[language] = merged
     return merged
+
+  @classmethod
+  def _setup_flag_translations_for_language(cls, language: str) -> dict[str, str]:
+    """Return setup flag translations for the provided language."""
+
+    base = cls._SETUP_FLAG_EN_TRANSLATIONS or {}
+    if language == "en":
+      return base
+
+    cached = cls._SETUP_FLAG_TRANSLATION_CACHE.get(language)
+    if cached is not None:
+      return cached
+
+    return base
 
   def _determine_language(self) -> str:
     """Return the preferred language for localized labels."""
@@ -591,6 +625,16 @@ class PawControlOptionsFlow(
 
     translations = self._setup_flag_translations_for_language(language)
     return translations.get(key, key)
+
+  async def _async_prepare_setup_flag_translations(self) -> None:
+    """Preload setup flag translations without blocking the event loop."""
+
+    language = self._determine_language()
+    hass = getattr(self, "hass", None)
+    await self._async_setup_flag_translations_for_language(
+      language,
+      hass if isinstance(hass, HomeAssistant) else None,
+    )
 
   @staticmethod
   def _normalise_manual_event_value(value: Any) -> str | None:
