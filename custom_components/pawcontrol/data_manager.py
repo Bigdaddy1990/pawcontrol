@@ -3358,7 +3358,7 @@ except OSError as err:
     return {}
       ) from err
 
-      return {}
+    return {}
 
   async def _async_save_dog_data(self, dog_id: str) -> None:
     """Persist all dog data to disk."""
