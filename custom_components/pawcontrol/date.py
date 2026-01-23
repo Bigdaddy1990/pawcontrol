@@ -29,7 +29,6 @@ from homeassistant.util import dt as dt_util
 from .compat import ConfigEntry
 from .const import ATTR_DOG_ID, DOMAIN, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK
 from .coordinator import PawControlCoordinator
-from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
@@ -364,7 +363,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
           1,
         )
 
-    return cast(JSONMutableMapping, normalize_value(attributes))
+    return self._finalize_entity_attributes(attributes)
 
   async def async_added_to_hass(self) -> None:
     """Called when entity is added to Home Assistant.

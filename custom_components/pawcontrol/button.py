@@ -48,7 +48,7 @@ from .const import (
   SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import normalize_value
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
@@ -90,7 +90,7 @@ def _normalise_attributes(
   """Return JSON-serialisable attributes for button entities."""
 
   payload = ensure_json_mapping(attrs)
-  return cast(JSONMutableMapping, normalize_value(payload))
+  return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
 
 
 ensure_homeassistant_exception_symbols()

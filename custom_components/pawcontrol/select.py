@@ -38,7 +38,7 @@ from .const import (
   PERFORMANCE_MODES,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import normalize_value
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, PawControlNotificationManager
 from .runtime_data import get_runtime_data
@@ -84,7 +84,7 @@ def _normalise_attributes(attrs: Mapping[str, object]) -> SelectExtraAttributes:
   """Return JSON-serialisable attributes for select entities."""
 
   payload = ensure_json_mapping(attrs)
-  return cast(SelectExtraAttributes, normalize_value(payload))
+  return cast(SelectExtraAttributes, _normalise_diagnostics_json(payload))
 
 
 # Additional option lists for selects

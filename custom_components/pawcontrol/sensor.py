@@ -27,7 +27,7 @@ from homeassistant.util import dt as dt_util
 from .compat import MASS_GRAMS, MASS_KILOGRAMS
 from .const import MODULE_GARDEN
 from .coordinator import PawControlCoordinator
-from .diagnostics import normalize_value
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
 from .entity_factory import EntityFactory, EntityProfileDefinition
 from .runtime_data import get_runtime_data
@@ -108,7 +108,7 @@ def _normalise_attributes(attrs: Mapping[str, object]) -> AttributeDict:
   """Return JSON-serialisable attributes for sensor entities."""
 
   payload = ensure_json_mapping(attrs)
-  return cast(AttributeDict, normalize_value(payload))
+  return cast(AttributeDict, _normalise_diagnostics_json(payload))
 
 
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
