@@ -92,23 +92,9 @@ from custom_components.pawcontrol.types import (
   normalize_performance_mode,
 )
 
-from .flows.gps import _build_dog_gps_placeholders
-from .flows.health import _build_dog_health_placeholders
 from .selector_shim import selector
 
 _LOGGER = logging.getLogger(__name__)
-
-# TODO: Refactor callers to import _build_dog_gps_placeholders from .flows.gps directly.
-build_dog_gps_placeholders = _build_dog_gps_placeholders
-# TODO: Refactor callers to import _build_dog_health_placeholders from .flows.health directly.
-build_dog_health_placeholders = _build_dog_health_placeholders
-
-__all__ = (
-  "_build_dog_gps_placeholders",
-  "_build_dog_health_placeholders",
-  "build_dog_gps_placeholders",
-  "build_dog_health_placeholders",
-)
 
 _TRANSLATIONS_IMPORT_PATH = "homeassistant.helpers.translation"
 _ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
