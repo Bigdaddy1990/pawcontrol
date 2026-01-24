@@ -1124,8 +1124,70 @@ async def _get_notification_diagnostics(
       "available": True,
       "manager_stats": stats,
       "delivery_status": delivery,
+      "rejection_metrics": _build_notification_rejection_metrics(delivery),
     },
   )
+
+
+def _build_notification_rejection_metrics(
+  delivery: Mapping[str, object] | None,
+) -> JSONMutableMapping:
+  """Return a per-service rejection/failure snapshot for notifications."""
+
+  payload: JSONMutableMapping = {
+    "schema_version": 1,
+    "total_services": 0,
+    "total_failures": 0,
+    "services_with_failures": [],
+    "service_failures": {},
+    "service_consecutive_failures": {},
+    "service_last_error_reasons": {},
+    "service_last_errors": {},
+  }
+
+  if not isinstance(delivery, Mapping):
+    return payload
+
+  services = delivery.get("services")
+  if not isinstance(services, Mapping):
+    return payload
+
+  service_failures: dict[str, int] = {}
+  consecutive_failures: dict[str, int] = {}
+  last_error_reasons: dict[str, str] = {}
+  last_errors: dict[str, str] = {}
+  services_with_failures: list[str] = []
+  total_failures = 0
+
+  for service_name, service_payload in services.items():
+    if not isinstance(service_name, str) or not isinstance(service_payload, Mapping):
+      continue
+
+    failures = _coerce_int(service_payload.get("total_failures")) or 0
+    consecutive = _coerce_int(service_payload.get("consecutive_failures")) or 0
+    service_failures[service_name] = failures
+    consecutive_failures[service_name] = consecutive
+    total_failures += failures
+    if failures:
+      services_with_failures.append(service_name)
+
+    last_error_reason = service_payload.get("last_error_reason")
+    if isinstance(last_error_reason, str) and last_error_reason:
+      last_error_reasons[service_name] = last_error_reason
+
+    last_error = service_payload.get("last_error")
+    if isinstance(last_error, str) and last_error:
+      last_errors[service_name] = last_error
+
+  payload["total_services"] = len(service_failures)
+  payload["total_failures"] = total_failures
+  payload["services_with_failures"] = sorted(services_with_failures)
+  payload["service_failures"] = service_failures
+  payload["service_consecutive_failures"] = consecutive_failures
+  payload["service_last_error_reasons"] = last_error_reasons
+  payload["service_last_errors"] = last_errors
+
+  return payload
 
 
 async def _get_coordinator_diagnostics(
@@ -1651,17 +1713,17 @@ async def _get_service_execution_diagnostics(
       _normalise_json(dict(entity_guard_payload)),
     )
 
+  metrics_payload = default_rejection_metrics()
   rejection_metrics = performance_stats.get("rejection_metrics")
   if isinstance(rejection_metrics, Mapping):
-    metrics_payload = default_rejection_metrics()
     merge_rejection_metric_values(
       metrics_payload,
       cast(JSONMapping, rejection_metrics),
     )
-    diagnostics["rejection_metrics"] = cast(
-      JSONMutableMapping,
-      _normalise_json(metrics_payload),
-    )
+  diagnostics["rejection_metrics"] = cast(
+    JSONMutableMapping,
+    _normalise_json(metrics_payload),
+  )
 
   service_results = performance_stats.get("service_results")
   if isinstance(service_results, Sequence) and not isinstance(
