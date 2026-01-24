@@ -52,7 +52,6 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
-from custom_components.pawcontrol.flows.gps import _build_dog_gps_placeholders
 from custom_components.pawcontrol.types import (
   ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
   ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
