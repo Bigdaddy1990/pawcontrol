@@ -186,8 +186,6 @@ type GPXAttributeValue = JSONPrimitive
 type GPXAttributeMap = Mapping[str, GPXAttributeValue]
 """Mapping for GPX/XML attribute rendering."""
 
-T = TypeVar("T", bound=JSONValue)
-
 type EntityAttributePayload[T: JSONValue] = dict[str, T]
 """Generic JSON-compatible attribute payload keyed by entity attribute name."""
 
@@ -469,9 +467,6 @@ class GroomingTypeInfo(TypedDict, total=False):
   frequency: str
   duration: str
   difficulty: str
-
-
-T = TypeVar("T", bound=JSONValue)
 
 
 type MetadataPayload[T: JSONValue] = dict[str, T]
@@ -1502,7 +1497,7 @@ def dog_modules_from_flow_input(
 
 
 def ensure_dog_modules_projection(
-  data: ConfigFlowUserInput | DogModulesProjection,
+  data: Mapping[str, object] | ConfigFlowUserInput | DogModulesProjection,
 ) -> DogModulesProjection:
   """Extract module toggle projections from ``data``.
 
@@ -1534,7 +1529,7 @@ def ensure_dog_modules_projection(
 
 
 def ensure_dog_modules_config(
-  data: Mapping[str, object] | DogModulesProjection,
+  data: Mapping[str, object] | ConfigFlowUserInput | DogModulesProjection,
 ) -> DogModulesConfig:
   """Extract a :class:`DogModulesConfig` from supported module payloads."""
 
@@ -1551,7 +1546,11 @@ def _is_modules_projection_like(value: Any) -> bool:
 
 
 def coerce_dog_modules_config(
-  payload: ConfigFlowUserInput | DogModulesProjection | DogModulesConfig | None,
+  payload: Mapping[str, object]
+  | ConfigFlowUserInput
+  | DogModulesProjection
+  | DogModulesConfig
+  | None,
 ) -> DogModulesConfig:
   """Return a defensive ``DogModulesConfig`` copy tolerant of projections."""
 
@@ -2405,6 +2404,7 @@ class ConfigEntryDataPayload(TypedDict, total=False):
   entity_profile: Required[str]
   setup_timestamp: Required[str]
   discovery_info: NotRequired[ConfigFlowDiscoveryData]
+  external_entities: NotRequired[ExternalEntityConfig]
 
 
 class ConfigEntryOptionsPayload(PawControlOptionsData, total=False):
@@ -2417,6 +2417,8 @@ class ConfigEntryOptionsPayload(PawControlOptionsData, total=False):
   previous_profile: NotRequired[str]
   reconfigure_telemetry: NotRequired[ReconfigureTelemetry]
   dashboard_mode: DashboardMode
+  resilience_skip_threshold: int | float | str | None
+  resilience_breaker_threshold: int | float | str | None
   manual_guard_event: str | None
   manual_breaker_event: str | None
   manual_check_event: str | None
@@ -3855,7 +3857,7 @@ class GPSRoutePoint(TypedDict, total=False):
   latitude: Required[float]
   longitude: Required[float]
   timestamp: Required[datetime | str]
-  accuracy: Required[float | int]
+  accuracy: NotRequired[float | int]
   altitude: float | None
   speed: float | None
   heading: float | None
@@ -4042,7 +4044,7 @@ class GPSTelemetryPayload(TypedDict, total=False):
   geofence_status: JSONMutableMapping | None
   walk_info: JSONMutableMapping | None
   current_route: GPSRouteSnapshot | None
-  active_route: JSONMutableMapping | None
+  active_route: GPSRouteSnapshot | JSONMutableMapping | None
 
 
 class GPSModulePayload(GPSTelemetryPayload, total=False):
@@ -4123,13 +4125,14 @@ def _normalise_route_point(point: Mapping[str, object]) -> GPSRoutePoint | None:
   if latitude is None or longitude is None:
     return None
 
+  timestamp = (
+    _coerce_iso_timestamp(point.get("timestamp")) or dt_util.utcnow().isoformat()
+  )
   payload: GPSRoutePoint = {
     "latitude": latitude,
     "longitude": longitude,
+    "timestamp": timestamp,
   }
-
-  timestamp = _coerce_iso_timestamp(point.get("timestamp"))
-  payload["timestamp"] = timestamp or dt_util.utcnow().isoformat()
 
   altitude = _coerce_float_value(point.get("altitude"))
   if altitude is not None:
@@ -4171,7 +4174,9 @@ def ensure_gps_route_snapshot(
         # Skip non-mapping points to avoid corrupting the route data.
         pass
 
-  start_time = _coerce_iso_timestamp(base.get("start_time"))
+  start_time = (
+    _coerce_iso_timestamp(base.get("start_time")) or dt_util.utcnow().isoformat()
+  )
   end_time = _coerce_iso_timestamp(base.get("end_time"))
   last_point_time = _coerce_iso_timestamp(base.get("last_point_time"))
 
@@ -4179,7 +4184,7 @@ def ensure_gps_route_snapshot(
     "active": bool(base.get("active", False)),
     "id": str(base.get("id") or ""),
     "name": str(base.get("name") or base.get("id") or "GPS Route"),
-    "start_time": start_time or None,
+    "start_time": start_time,
     "points": points,
     "point_count": len(points),
   }
@@ -4208,7 +4213,7 @@ def ensure_gps_payload(
   if payload is None or not isinstance(payload, Mapping):
     return None
 
-  gps_payload: GPSModulePayload = ensure_json_mapping(payload)
+  gps_payload = cast(GPSModulePayload, ensure_json_mapping(payload))
   if not gps_payload:
     return None
   last_seen = _coerce_iso_timestamp(gps_payload.get("last_seen"))
@@ -4812,7 +4817,7 @@ class WalkRouteExportPayload(TypedDict, total=False):
   total_distance_meters: float
   total_duration_seconds: float
   total_gps_points: int
-  walks: list[WalkSessionSnapshot]
+  walks: list[WalkSessionSnapshot] | list[JSONMutableMapping]
   export_metadata: WalkRouteExportMetadata
   file_extension: NotRequired[str]
   mime_type: NotRequired[str]

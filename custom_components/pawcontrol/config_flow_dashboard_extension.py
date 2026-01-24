@@ -40,6 +40,7 @@ from .types import (
   SHOW_MAPS_FIELD,
   SHOW_STATISTICS_FIELD,
   ConfigFlowPlaceholders,
+  DashboardMode,
   DashboardSetupConfig,
   DogConfigData,
   DogModulesConfig,
@@ -185,7 +186,8 @@ class DashboardFlowMixin:
         DASHBOARD_THEME_FIELD: str(
           user_input.get("dashboard_theme", DEFAULT_DASHBOARD_THEME),
         ),
-        DASHBOARD_MODE_FIELD: str(
+        DASHBOARD_MODE_FIELD: cast(
+          DashboardMode,
           user_input.get(
             "dashboard_mode",
             DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",

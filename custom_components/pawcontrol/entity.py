@@ -316,7 +316,7 @@ class PawControlDogEntityBase(PawControlEntity):
     attrs.setdefault(ATTR_DOG_ID, self._dog_id)
     attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
     if extra:
-      attrs.update(extra)
+      attrs.update(ensure_json_mapping(extra))
     self._append_dog_info_attributes(attrs)
     return attrs
 

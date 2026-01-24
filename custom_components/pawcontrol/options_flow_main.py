@@ -73,7 +73,6 @@ from .types import (
   GPS_ENABLED_FIELD,
   GPS_SETTINGS_FIELD,
   GPS_UPDATE_INTERVAL_FIELD,
-  ConfigEntryOptionsPayload,
   ConfigFlowPlaceholders,
   DogConfigData,
   DogOptionsMap,
@@ -82,7 +81,6 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   NotificationOptionsInput,
-  PawControlOptionsData,
   ROUTE_HISTORY_DAYS_FIELD,
   ROUTE_RECORDING_FIELD,
   ReconfigureTelemetry,
@@ -208,7 +206,7 @@ class PawControlOptionsFlow(
   def __init__(self) -> None:
     """Initialize the options flow with enhanced state management."""
     super().__init__()
-    self._config_entry: ConfigEntry | None = None
+    self._entry = cast(ConfigEntry, None)
     self._current_dog: DogConfigData | None = None
     self._dogs: list[DogConfigData] = []
     self._navigation_stack: list[str] = []
@@ -218,20 +216,10 @@ class PawControlOptionsFlow(
     self._profile_cache: dict[str, ConfigFlowPlaceholders] = {}
     self._entity_estimates_cache: dict[str, JSONMutableMapping] = {}
 
-  @property
-  def _entry(self) -> ConfigEntry:
-    """Return the config entry for this options flow."""
-
-    if self._config_entry is None:
-      raise RuntimeError(
-        "Options flow accessed before being initialized with a config entry",
-      )
-    return self._config_entry
-
   def initialize_from_config_entry(self, config_entry: ConfigEntry) -> None:
     """Attach the originating config entry to this options flow."""
 
-    self._config_entry = config_entry
+    self._entry = config_entry
     dogs_data_raw = config_entry.data.get(CONF_DOGS, [])
     dogs_iterable: Sequence[JSONLikeMapping] = (
       cast(Sequence[JSONLikeMapping], dogs_data_raw)
@@ -255,69 +243,72 @@ class PawControlOptionsFlow(
     self._profile_cache.clear()
     self._entity_estimates_cache.clear()
 
-  def _current_options(self) -> PawControlOptionsData:
+  def _current_options(self) -> Mapping[str, JSONValue]:
     """Return the current config entry options as a typed mapping."""
 
-    return cast(PawControlOptionsData, self._entry.options)
+    return cast(Mapping[str, JSONValue], self._entry.options)
 
-  def _clone_options(self) -> ConfigEntryOptionsPayload:
+  def _clone_options(self) -> dict[str, JSONValue]:
     """Return a shallow copy of the current options for mutation."""
 
     return cast(
-      ConfigEntryOptionsPayload,
+      dict[str, JSONValue],
       dict(cast(Mapping[str, JSONValue], self._entry.options)),
     )
 
   def _normalise_options_snapshot(
     self,
     options: Mapping[str, JSONValue] | JSONMutableMapping,
-  ) -> PawControlOptionsData:
+  ) -> Mapping[str, JSONValue]:
     """Return a typed options mapping with notifications and dog entries coerced."""
 
     mutable = ensure_json_mapping(options)
     gps_settings: GPSOptions | None = None
 
     def _normalise_gps_settings(raw: Mapping[str, JSONValue]) -> GPSOptions:
-      return {
-        GPS_ENABLED_FIELD: self._coerce_bool(
-          raw.get(GPS_ENABLED_FIELD),
-          True,
-        ),
-        GPS_UPDATE_INTERVAL_FIELD: self._coerce_clamped_int(
-          raw.get(GPS_UPDATE_INTERVAL_FIELD),
-          DEFAULT_GPS_UPDATE_INTERVAL,
-          minimum=5,
-          maximum=600,
-        ),
-        GPS_ACCURACY_FILTER_FIELD: cast(
-          float,
-          self._coerce_optional_float(
-            raw.get(GPS_ACCURACY_FILTER_FIELD),
-            float(DEFAULT_GPS_ACCURACY_FILTER),
+      return cast(
+        GPSOptions,
+        {
+          GPS_ENABLED_FIELD: self._coerce_bool(
+            raw.get(GPS_ENABLED_FIELD),
+            True,
           ),
-        ),
-        GPS_DISTANCE_FILTER_FIELD: cast(
-          float,
-          self._coerce_optional_float(
-            raw.get(GPS_DISTANCE_FILTER_FIELD),
-            float(DEFAULT_GPS_DISTANCE_FILTER),
+          GPS_UPDATE_INTERVAL_FIELD: self._coerce_clamped_int(
+            raw.get(GPS_UPDATE_INTERVAL_FIELD),
+            DEFAULT_GPS_UPDATE_INTERVAL,
+            minimum=5,
+            maximum=600,
           ),
-        ),
-        ROUTE_RECORDING_FIELD: self._coerce_bool(
-          raw.get(ROUTE_RECORDING_FIELD),
-          True,
-        ),
-        ROUTE_HISTORY_DAYS_FIELD: self._coerce_clamped_int(
-          raw.get(ROUTE_HISTORY_DAYS_FIELD),
-          30,
-          minimum=1,
-          maximum=365,
-        ),
-        AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
-          raw.get(AUTO_TRACK_WALKS_FIELD),
-          True,
-        ),
-      }
+          GPS_ACCURACY_FILTER_FIELD: cast(
+            float,
+            self._coerce_optional_float(
+              raw.get(GPS_ACCURACY_FILTER_FIELD),
+              float(DEFAULT_GPS_ACCURACY_FILTER),
+            ),
+          ),
+          GPS_DISTANCE_FILTER_FIELD: cast(
+            float,
+            self._coerce_optional_float(
+              raw.get(GPS_DISTANCE_FILTER_FIELD),
+              float(DEFAULT_GPS_DISTANCE_FILTER),
+            ),
+          ),
+          ROUTE_RECORDING_FIELD: self._coerce_bool(
+            raw.get(ROUTE_RECORDING_FIELD),
+            True,
+          ),
+          ROUTE_HISTORY_DAYS_FIELD: self._coerce_clamped_int(
+            raw.get(ROUTE_HISTORY_DAYS_FIELD),
+            30,
+            minimum=1,
+            maximum=365,
+          ),
+          AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
+            raw.get(AUTO_TRACK_WALKS_FIELD),
+            True,
+          ),
+        },
+      )
 
     if CONF_NOTIFICATIONS in mutable:
       raw_notifications = mutable.get(CONF_NOTIFICATIONS)
@@ -351,12 +342,12 @@ class PawControlOptionsFlow(
               cast(Mapping[str, JSONValue], dog_gps),
             )
             gps_settings = entry[GPS_SETTINGS_FIELD]
-          if CONF_NOTIFICATIONS not in entry:
-            entry[CONF_NOTIFICATIONS] = normalised_notifications
+          if "notifications" not in entry:
+            entry["notifications"] = normalised_notifications
           dog_options[dog_id] = entry
       if dog_options:
         mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
-      mutable[CONF_NOTIFICATIONS] = cast(
+      mutable["notifications"] = cast(
         JSONValue,
         normalised_notifications,
       )
@@ -424,7 +415,7 @@ class PawControlOptionsFlow(
         ),
       )
 
-    return cast(PawControlOptionsData, mutable)
+    return cast(Mapping[str, JSONValue], mutable)
 
   def _normalise_entry_dogs(
     self,

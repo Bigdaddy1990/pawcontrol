@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from importlib import import_module
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -14,6 +14,9 @@ from .const import (
   CONF_API_ENDPOINT,
   CONF_API_TOKEN,
   CONF_DASHBOARD_MODE,
+  CONF_DOGS,
+  CONF_DOG_BREED,
+  CONF_EXTERNAL_INTEGRATIONS,
   CONF_RESET_TIME,
   CONF_WEATHER_ENTITY,
   DASHBOARD_MODE_SELECTOR_OPTIONS,
@@ -46,6 +49,9 @@ from .types import (
   normalize_performance_mode,
 )
 
+if TYPE_CHECKING:
+  from .compat import ConfigEntry
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -62,7 +68,25 @@ def _resolve_get_runtime_data():
   return _get_runtime_data
 
 
-class SystemSettingsOptionsMixin:
+if TYPE_CHECKING:
+
+  class SystemSettingsOptionsHost(Protocol):
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+
+    @property
+    def _entry(self) -> ConfigEntry: ...
+
+    def __getattr__(self, name: str) -> Any: ...
+
+else:  # pragma: no cover
+  SystemSettingsOptionsHost = object
+
+
+class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
+  _current_dog: DogConfigData | None
+  _dogs: list[DogConfigData]
+
   async def async_step_weather_settings(
     self,
     user_input: dict[str, Any] | None = None,

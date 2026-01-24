@@ -1978,7 +1978,7 @@ class ModuleCardGenerator(BaseCardGenerator):
           _translated_health_template(
             language,
             "weight_history_title",
-            days=30,
+            days="30",
           ),
           720,
         )

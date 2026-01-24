@@ -47,8 +47,8 @@ from .types import (
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
   DOG_WEIGHT_FIELD,
+  CoordinatorModuleLookupResult,
   CoordinatorDogData,
-  CoordinatorModuleState,
   DogConfigData,
   DogModulesMapping,
   DogProfileSnapshot,
@@ -68,9 +68,11 @@ PARALLEL_UPDATES = 0
 UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
 if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
 
-  class UnitOfSpeed:  # noqa: D101 - compatibility shim
+  class _FallbackUnitOfSpeed:  # noqa: D101 - compatibility shim
     KILOMETERS_PER_HOUR = "km/h"
     METERS_PER_SECOND = "m/s"
+
+  UnitOfSpeed = _FallbackUnitOfSpeed
 
 
 DEFAULT_NUMBER_MODE = getattr(NumberMode, "AUTO", NumberMode.BOX)
@@ -539,7 +541,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     return self._get_dog_data_cached()
 
-  def _get_module_data(self, module: str) -> CoordinatorModuleState | None:
+  def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
     """Get specific module data for this dog.
 
     Args:
@@ -548,10 +550,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     Returns:
         Module data dictionary or None if not available
     """
-    getter = getattr(self.coordinator, "get_module_data", None)
-    if callable(getter):
-      return getter(self._dog_id, module)
-    return None
+    return super()._get_module_data(module)
 
   @property
   def available(self) -> bool:
@@ -578,7 +577,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
     dog_config: DogConfigData | None = None,
   ) -> None:
     """Initialize the dog weight number."""
-    config = dog_config or {}
+    config: DogConfigData = cast(DogConfigData, dog_config or {})
     current_weight = cast(float | None, config.get(DOG_WEIGHT_FIELD))
     if current_weight is None:
       current_weight = 20.0
@@ -1047,7 +1046,11 @@ class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
       dog_name,
       "max_walk_speed",
       mode=NumberMode.BOX,
-      native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+      native_unit_of_measurement=getattr(
+        UnitOfSpeed,
+        "KILOMETERS_PER_HOUR",
+        "km/h",
+      ),
       native_min_value=2,
       native_max_value=30,
       native_step=1,

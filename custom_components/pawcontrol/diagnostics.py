@@ -1075,7 +1075,7 @@ def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
 
   _seen.add(obj_id)
   try:
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
       return normalize_value(asdict(value), _seen)
 
     if hasattr(value, "to_mapping") and callable(value.to_mapping):

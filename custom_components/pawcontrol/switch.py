@@ -345,7 +345,6 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
 
   # OPTIMIZATION: Enhanced state cache with TTL
   _state_cache: ClassVar[dict[str, tuple[bool, float]]] = {}
-  _cache_ttl: ClassVar[float] = 3.0  # Reduced to 3 seconds for better responsiveness
 
   def __init__(
     self,
@@ -364,6 +363,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
     self._switch_type = switch_type
     self._is_on = initial_state
     self._last_changed = dt_util.utcnow()
+    self._set_cache_ttl(3.0)
 
     # Entity configuration
     self._attr_unique_id = f"pawcontrol_{dog_id}_{switch_type}"

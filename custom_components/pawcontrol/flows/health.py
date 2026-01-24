@@ -43,6 +43,7 @@ from ..types import (
   DietValidationResult,
   HealthOptions,
   JSONLikeMapping,
+  JSONValue,
   OptionsHealthSettingsInput,
   clone_placeholders,
   ensure_dog_modules_config,
@@ -95,7 +96,7 @@ if TYPE_CHECKING:
     def _build_vaccination_records(
       self,
       user_input: Mapping[str, Any],
-    ) -> list[DogVaccinationRecord]: ...
+    ) -> dict[str, DogVaccinationRecord]: ...
 
     def _build_medication_entries(
       self,
@@ -457,16 +458,19 @@ class DogHealthFlowMixin(DogHealthFlowHost):
       step_id="dog_health",
       data_schema=schema,
       description_placeholders=dict(
-        _build_dog_health_placeholders(
-          dog_name=current_dog[DOG_NAME_FIELD],
-          dog_age=str(dog_age),
-          dog_weight=str(dog_weight),
-          suggested_ideal_weight=str(suggested_ideal_weight),
-          suggested_activity=suggested_activity,
-          medication_enabled=medication_enabled,
-          bcs_info=bcs_info,
-          special_diet_count=str(len(SPECIAL_DIET_OPTIONS)),
-          health_diet_info=health_diet_info,
+        cast(
+          Mapping[str, str],
+          _build_dog_health_placeholders(
+            dog_name=current_dog[DOG_NAME_FIELD],
+            dog_age=str(dog_age),
+            dog_weight=str(dog_weight),
+            suggested_ideal_weight=str(suggested_ideal_weight),
+            suggested_activity=suggested_activity,
+            medication_enabled=medication_enabled,
+            bcs_info=bcs_info,
+            special_diet_count=str(len(SPECIAL_DIET_OPTIONS)),
+            health_diet_info=health_diet_info,
+          ),
         ),
       ),
     )
@@ -552,13 +556,13 @@ class HealthOptionsMixin(HealthOptionsHost):
           dog_id=dog_id,
         )
         entry["health_settings"] = self._build_health_settings(
-          user_input,
+          cast(OptionsHealthSettingsInput, user_input),
           current_health,
         )
         if dog_id in dog_options or not dog_options:
           dog_options[dog_id] = entry
-          new_options[DOG_OPTIONS_FIELD] = dog_options
-        new_options["health_settings"] = entry["health_settings"]
+          new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
+        new_options["health_settings"] = cast(JSONValue, entry["health_settings"])
 
         typed_options = self._normalise_options_snapshot(new_options)
         return self.async_create_entry(title="", data=typed_options)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -52,10 +52,33 @@ from .types import (
   freeze_placeholders,
 )
 
+if TYPE_CHECKING:
+  from .compat import ConfigEntry
+
 _LOGGER = logging.getLogger(__name__)
 
 
-class DogManagementOptionsMixin:
+if TYPE_CHECKING:
+
+  class DogManagementOptionsHost(Protocol):
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+
+    @property
+    def _entry(self) -> ConfigEntry: ...
+
+    hass: Any
+
+    def __getattr__(self, name: str) -> Any: ...
+
+else:  # pragma: no cover
+  DogManagementOptionsHost = object
+
+
+class DogManagementOptionsMixin(DogManagementOptionsHost):
+  _current_dog: DogConfigData | None
+  _dogs: list[DogConfigData]
+
   async def async_step_manage_dogs(
     self,
     user_input: dict[str, Any] | None = None,
@@ -76,7 +99,12 @@ class DogManagementOptionsMixin:
       return await self.async_step_init()
 
     # Show dog management menu
-    current_dogs = self._entry.data.get(CONF_DOGS, [])
+    dogs_raw = self._entry.data.get(CONF_DOGS, [])
+    current_dogs: list[JSONLikeMapping] = (
+      list(cast(Sequence[JSONLikeMapping], dogs_raw))
+      if isinstance(dogs_raw, Sequence) and not isinstance(dogs_raw, str | bytes)
+      else []
+    )
 
     return self.async_show_form(
       step_id="manage_dogs",
@@ -106,6 +134,7 @@ class DogManagementOptionsMixin:
               [
                 f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
                 for dog in current_dogs
+                if isinstance(dog, Mapping)
               ],
             )
             if current_dogs
@@ -815,7 +844,9 @@ class DogManagementOptionsMixin:
             user_input,
             existing_names=existing_names,
           )
-          normalised = ensure_dog_config_data(candidate)  # noqa: F821
+          normalised = ensure_dog_config_data(  # noqa: F821
+            cast(Mapping[str, JSONValue], candidate),
+          )
           if normalised is None:
             raise FlowValidationError(
               base_errors=["invalid_dog_config"],
@@ -935,7 +966,9 @@ class DogManagementOptionsMixin:
           )
           return self.async_show_form(
             step_id="select_dog_to_remove",
-            data_schema=self._get_remove_dog_schema(current_dogs),
+            data_schema=self._get_remove_dog_schema(
+              cast(Sequence[Mapping[str, JSONValue]], current_dogs),
+            ),
             errors={"base": "dog_remove_failed"},
           )
 
@@ -969,7 +1002,9 @@ class DogManagementOptionsMixin:
     # Create removal confirmation form
     return self.async_show_form(
       step_id="select_dog_to_remove",
-      data_schema=self._get_remove_dog_schema(current_dogs),
+      data_schema=self._get_remove_dog_schema(
+        cast(Sequence[Mapping[str, JSONValue]], current_dogs),
+      ),
       description_placeholders=dict(
         freeze_placeholders(
           {

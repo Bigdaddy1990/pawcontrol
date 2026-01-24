@@ -283,9 +283,6 @@ def _normalise_health_medication(
   return entry
 
 
-PayloadT = TypeVar("PayloadT")
-
-
 class _BaseModuleAdapter[PayloadT]:
   """Base helper for adapters that maintain a TTL cache."""
 

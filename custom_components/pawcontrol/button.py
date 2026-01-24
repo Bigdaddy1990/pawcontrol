@@ -1813,7 +1813,7 @@ class PawControlLogWeightButton(PawControlButtonBase):
           "No valid weight found in health data. Update the health profile.",
         )
 
-      payload = {
+      payload: JSONMutableMapping = {
         ATTR_DOG_ID: self._dog_id,
         "notes": "Weight logged via button",
       }

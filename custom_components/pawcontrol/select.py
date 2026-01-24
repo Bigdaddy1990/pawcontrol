@@ -47,6 +47,7 @@ from .types import (
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
   DOG_SIZE_FIELD,
+  CoordinatorModuleLookupResult,
   CoordinatorDogData,
   DogConfigData,
   DogSizeInfo,
@@ -940,7 +941,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     return self._get_dog_data_cached()
 
-  def _get_module_data(self, module: str) -> JSONMapping | None:
+  def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
     """Get specific module data for this dog.
 
     Args:
@@ -949,10 +950,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     Returns:
         Module data dictionary or None if not available
     """
-    module_data = self.coordinator.get_module_data(self._dog_id, module)
-    if isinstance(module_data, Mapping):
-      return cast(JSONMapping, module_data)
-    return None
+    return super()._get_module_data(module)
 
   @property
   def available(self) -> bool:
@@ -979,7 +977,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
     dog_config: DogConfigData | None = None,
   ) -> None:
     """Initialize the dog size select."""
-    config = dog_config or {}
+    config: DogConfigData = cast(DogConfigData, dog_config or {})
     current_size = config.get(DOG_SIZE_FIELD, "medium")
 
     super().__init__(

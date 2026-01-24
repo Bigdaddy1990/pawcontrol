@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -15,7 +15,13 @@ from .config_flow_profile import (
   get_profile_selector_options,
   validate_profile_selection,
 )
-from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS
+from .const import (
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOGS,
+  MODULE_GPS,
+  MODULE_HEALTH,
+)
 from .entity_factory import ENTITY_PROFILES
 from .selector_shim import selector
 from .types import (
@@ -25,17 +31,39 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   MutableConfigFlowPlaceholders,
+  ProfileSelectionInput,
   clone_placeholders,
   ensure_dog_config_data,
-  ensure_dog_modules_config,
+  ensure_dog_modules_mapping,
   freeze_placeholders,
   normalize_performance_mode,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+  from .compat import ConfigEntry
+  from .entity_factory import EntityFactory
 
-class ProfileOptionsMixin:
+  class ProfileOptionsHost(Protocol):
+    @property
+    def _entry(self) -> ConfigEntry: ...
+
+    _profile_cache: dict[str, ConfigFlowPlaceholders]
+    _entity_estimates_cache: dict[str, JSONMutableMapping]
+    _entity_factory: EntityFactory
+
+    def __getattr__(self, name: str) -> Any: ...
+
+else:  # pragma: no cover
+  ProfileOptionsHost = object
+
+
+class ProfileOptionsMixin(ProfileOptionsHost):
+  _entry: ConfigEntry
+  _profile_cache: dict[str, ConfigFlowPlaceholders]
+  _entity_estimates_cache: dict[str, JSONMutableMapping]
+
   async def async_step_entity_profiles(
     self,
     user_input: dict[str, Any] | None = None,
@@ -47,7 +75,9 @@ class ProfileOptionsMixin:
     """
     if user_input is not None:
       try:
-        current_profile = validate_profile_selection(user_input)
+        current_profile = validate_profile_selection(
+          cast(ProfileSelectionInput, user_input),
+        )
         preview_estimate = user_input.get("preview_estimate", False)
 
         if preview_estimate:
@@ -203,7 +233,7 @@ class ProfileOptionsMixin:
     dog_entries_local = dog_entries
 
     for dog_config in dog_entries_local:
-      modules_config = ensure_dog_modules_config(dog_config)
+      modules_config = ensure_dog_modules_mapping(dog_config)
       estimate = self._entity_factory.estimate_entity_count(
         current_profile,
         modules_config,
@@ -315,7 +345,7 @@ class ProfileOptionsMixin:
     for dog_config in dog_entries:
       dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
       dog_id = dog_config.get(CONF_DOG_ID, "unknown")
-      modules_config = ensure_dog_modules_config(dog_config)
+      modules_config = ensure_dog_modules_mapping(dog_config)
 
       estimate = self._entity_factory.estimate_entity_count(
         profile,
@@ -360,7 +390,7 @@ class ProfileOptionsMixin:
     else:
       current_total = 0
       for dog_config in dog_entries:
-        modules = ensure_dog_modules_config(dog_config)
+        modules = ensure_dog_modules_mapping(dog_config)
         current_total += self._entity_factory.estimate_entity_count(
           current_profile,
           modules,
@@ -413,7 +443,7 @@ class ProfileOptionsMixin:
 
     for dog in dogs:
       dog_config = cast(DogConfigData, dog)
-      module_flags = ensure_dog_modules_config(
+      module_flags = ensure_dog_modules_mapping(
         cast(Mapping[str, JSONValue], dog_config),
       )
       dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
@@ -529,7 +559,7 @@ class ProfileOptionsMixin:
       description_placeholders=dict(
         freeze_placeholders(
           {
-            "profile_name": preview_data["profile"],
+            "profile_name": str(preview_data["profile"]),
             "total_entities": str(preview_data["total_entities"]),
             "entity_breakdown": "\n".join(breakdown_lines),
             "current_total": str(preview_data["current_total"]),
@@ -538,10 +568,10 @@ class ProfileOptionsMixin:
               if preview_data["entity_difference"]
               else "0"
             ),
-            "performance_change": performance_change,
-            "profile_description": profile_info["description"],
+            "performance_change": str(performance_change),
+            "profile_description": str(profile_info.get("description", "")),
             "performance_score": f"{preview_data['performance_score']:.1f}",
-            "recommendation": preview_data["recommendation"],
+            "recommendation": str(preview_data["recommendation"]),
             "warnings": warnings_text,
           },
         ),

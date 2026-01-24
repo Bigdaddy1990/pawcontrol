@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, Literal, cast
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
@@ -103,6 +103,10 @@ if TYPE_CHECKING:
 
 
 _LOGGER = logging.getLogger(__name__)
+GARDEN_MODULE_FIELD: Final[Literal["garden"]] = cast(
+  Literal["garden"],
+  MODULE_GARDEN,
+)
 
 CACHE_TTL_SECONDS = 300
 MAINTENANCE_INTERVAL = timedelta(hours=1)
@@ -490,7 +494,7 @@ class PawControlCoordinator(
         notes="Paused due to active walk",
         suppress_notifications=True,
       )
-      dog_payload[MODULE_GARDEN] = cast(
+      dog_payload[GARDEN_MODULE_FIELD] = cast(
         CoordinatorModuleState,
         garden_manager.build_garden_snapshot(dog_id),
       )

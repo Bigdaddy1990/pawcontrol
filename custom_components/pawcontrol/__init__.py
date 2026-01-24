@@ -1033,11 +1033,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
           if per_dog_geofence_settings
           else bool(geofence_options.get("use_home_location", True))
         )
-        radius_candidates = [
-          settings.get("geofence_radius_m")
-          for settings in per_dog_geofence_settings
-          if isinstance(settings.get("geofence_radius_m"), int | float)
-        ]
+        radius_candidates: list[float] = []
+        for settings in per_dog_geofence_settings:
+          radius_value = settings.get("geofence_radius_m")
+          if isinstance(radius_value, int | float):
+            radius_candidates.append(float(radius_value))
         if radius_candidates:
           home_zone_radius = int(max(radius_candidates))
         else:

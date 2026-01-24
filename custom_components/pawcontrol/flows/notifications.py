@@ -128,37 +128,39 @@ class NotificationOptionsMixin(NotificationOptionsHost):
   ) -> NotificationOptions:
     """Create a typed notification payload from submitted form data."""
 
-    notifications: NotificationOptions = {
+    notifications = {
       NOTIFICATION_QUIET_HOURS_FIELD: cls._coerce_bool(
         user_input.get(NOTIFICATION_QUIET_HOURS_FIELD),
-        current.get(NOTIFICATION_QUIET_HOURS_FIELD, True),
+        bool(current.get(NOTIFICATION_QUIET_HOURS_FIELD, True)),
       ),
       NOTIFICATION_QUIET_START_FIELD: cls._coerce_time_string(
         user_input.get(NOTIFICATION_QUIET_START_FIELD),
-        current.get(NOTIFICATION_QUIET_START_FIELD, "22:00:00"),
+        str(current.get(NOTIFICATION_QUIET_START_FIELD, "22:00:00")),
       ),
       NOTIFICATION_QUIET_END_FIELD: cls._coerce_time_string(
         user_input.get(NOTIFICATION_QUIET_END_FIELD),
-        current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00"),
+        str(current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00")),
       ),
       NOTIFICATION_REMINDER_REPEAT_FIELD: cls._coerce_int(
         user_input.get(NOTIFICATION_REMINDER_REPEAT_FIELD),
-        current.get(
-          NOTIFICATION_REMINDER_REPEAT_FIELD,
-          DEFAULT_REMINDER_REPEAT_MIN,
+        int(
+          current.get(
+            NOTIFICATION_REMINDER_REPEAT_FIELD,
+            DEFAULT_REMINDER_REPEAT_MIN,
+          ),
         ),
       ),
       NOTIFICATION_PRIORITY_FIELD: cls._coerce_bool(
         user_input.get(NOTIFICATION_PRIORITY_FIELD),
-        current.get(NOTIFICATION_PRIORITY_FIELD, True),
+        bool(current.get(NOTIFICATION_PRIORITY_FIELD, True)),
       ),
       NOTIFICATION_MOBILE_FIELD: cls._coerce_bool(
         user_input.get(NOTIFICATION_MOBILE_FIELD),
-        current.get(NOTIFICATION_MOBILE_FIELD, True),
+        bool(current.get(NOTIFICATION_MOBILE_FIELD, True)),
       ),
     }
 
-    return notifications
+    return cast(NotificationOptions, notifications)
 
   def _build_notification_settings(
     self,
@@ -212,7 +214,7 @@ class NotificationOptionsMixin(NotificationOptionsHost):
           dog_id,
         )
         notification_settings = self._build_notification_settings(
-          user_input,
+          cast(NotificationSettingsInput, user_input),
           current_notifications,
         )
 
@@ -222,11 +224,11 @@ class NotificationOptionsMixin(NotificationOptionsHost):
           cast(JSONLikeMapping, dict(dog_options.get(dog_id, {}))),
           dog_id=dog_id,
         )
-        entry[CONF_NOTIFICATIONS] = notification_settings
+        entry["notifications"] = notification_settings
         if dog_id in dog_options or not dog_options:
           dog_options[dog_id] = entry
-          new_options[DOG_OPTIONS_FIELD] = dog_options
-        new_options[CONF_NOTIFICATIONS] = notification_settings
+          new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
+        new_options["notifications"] = cast(JSONValue, notification_settings)
 
         typed_options = self._normalise_options_snapshot(new_options)
         return self.async_create_entry(title="", data=typed_options)

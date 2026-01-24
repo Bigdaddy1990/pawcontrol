@@ -529,9 +529,6 @@ def _build_subentries(
   return subentries
 
 
-RuntimeT = TypeVar("RuntimeT")
-
-
 class ConfigEntry[RuntimeT]:  # type: ignore[override]
   """Lightweight ConfigEntry implementation for test environments."""
 

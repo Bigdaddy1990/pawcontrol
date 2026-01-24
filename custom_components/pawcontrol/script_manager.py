@@ -74,6 +74,7 @@ from .types import (
   ManualResilienceSystemSettingsSnapshot,
   ResilienceEscalationSnapshot,
   ResilienceEscalationThresholds,
+  SystemOptions,
   ScriptManagerDogScripts,
   ScriptManagerSnapshot,
   ScriptManagerStats,
@@ -812,8 +813,10 @@ class PawControlScriptManager:
   ) -> ManualResilienceSystemSettingsSnapshot | None:
     """Return a system settings payload with migrated thresholds."""
 
-    original: ManualResilienceSystemSettingsSnapshot
-    original = dict(system_settings) if system_settings is not None else {}
+    original = cast(
+      ManualResilienceSystemSettingsSnapshot,
+      dict(system_settings) if system_settings is not None else {},
+    )
     updated: ManualResilienceSystemSettingsSnapshot = {}
     if system_settings is not None:
       if "manual_check_event" in system_settings:
@@ -860,7 +863,7 @@ class PawControlScriptManager:
     """Return updated options including migrated system settings."""
 
     updated_options = cast(ConfigEntryOptionsPayload, dict(options))
-    updated_options["system_settings"] = dict(system_settings)
+    updated_options["system_settings"] = cast(SystemOptions, dict(system_settings))
 
     for key in ("resilience_skip_threshold", "resilience_breaker_threshold"):
       if key not in updated_options and key in system_settings:

@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from homeassistant.config_entries import ConfigFlowResult
 
 
-class MenuOptionsMixin:
+if TYPE_CHECKING:
+
+  class MenuOptionsHost(Protocol):
+    def async_show_menu(
+      self,
+      *,
+      step_id: str,
+      menu_options: list[str],
+    ) -> ConfigFlowResult: ...
+
+else:  # pragma: no cover
+  MenuOptionsHost = object
+
+
+class MenuOptionsMixin(MenuOptionsHost):
   async def async_step_init(
     self,
     user_input: dict[str, Any] | None = None,

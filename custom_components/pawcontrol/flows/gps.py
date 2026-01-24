@@ -97,13 +97,25 @@ if TYPE_CHECKING:
 
     def _get_available_person_entities(self) -> dict[str, str]: ...
 
-    async def async_step_add_dog(self) -> ConfigFlowResult: ...
+    async def async_step_add_dog(
+      self,
+      user_input: dict[str, Any] | None = None,
+    ) -> Any: ...
 
-    async def async_step_dog_feeding(self) -> ConfigFlowResult: ...
+    async def async_step_dog_feeding(
+      self,
+      user_input: dict[str, Any] | None = None,
+    ) -> Any: ...
 
-    async def async_step_dog_health(self) -> ConfigFlowResult: ...
+    async def async_step_dog_health(
+      self,
+      user_input: dict[str, Any] | None = None,
+    ) -> Any: ...
 
-    async def async_step_add_another_dog(self) -> ConfigFlowResult: ...
+    async def async_step_add_another_dog(
+      self,
+      user_input: dict[str, Any] | None = None,
+    ) -> Any: ...
 
     def async_show_form(
       self,
@@ -120,6 +132,8 @@ else:  # pragma: no cover
 
 class DogGPSFlowMixin(DogGPSFlowHost):
   """Handle GPS configuration steps in the config flow."""
+
+  _current_dog_config: DogConfigData | None
 
   async def async_step_dog_gps(
     self,
@@ -191,8 +205,11 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           data_schema=self._get_dog_gps_schema(),
           errors=errors,
           description_placeholders=dict(
-            _build_dog_gps_placeholders(
-              dog_name=current_dog[DOG_NAME_FIELD],
+            cast(
+              Mapping[str, str],
+              _build_dog_gps_placeholders(
+                dog_name=current_dog[DOG_NAME_FIELD],
+              ),
             ),
           ),
         )
@@ -224,7 +241,10 @@ class DogGPSFlowMixin(DogGPSFlowHost):
       step_id="dog_gps",
       data_schema=self._get_dog_gps_schema(),
       description_placeholders=dict(
-        _build_dog_gps_placeholders(dog_name=current_dog[DOG_NAME_FIELD]),
+        cast(
+          Mapping[str, str],
+          _build_dog_gps_placeholders(dog_name=current_dog[DOG_NAME_FIELD]),
+        ),
       ),
     )
 
@@ -341,6 +361,7 @@ else:  # pragma: no cover
 
 
 class GPSOptionsMixin(GPSOptionsHost):
+  _current_dog_config: DogConfigData | None
   """Handle per-dog GPS and geofencing options."""
 
   def _current_gps_options(self, dog_id: str) -> GPSOptions:
@@ -397,10 +418,14 @@ class GPSOptionsMixin(GPSOptionsHost):
         with suppress(ValueError):
           current[GPS_DISTANCE_FILTER_FIELD] = float(distance)
 
-    current.setdefault(GPS_ENABLED_FIELD, True)
-    current.setdefault(ROUTE_RECORDING_FIELD, True)
-    current.setdefault(ROUTE_HISTORY_DAYS_FIELD, 30)
-    current.setdefault(AUTO_TRACK_WALKS_FIELD, True)
+    if GPS_ENABLED_FIELD not in current:
+      current[GPS_ENABLED_FIELD] = True
+    if ROUTE_RECORDING_FIELD not in current:
+      current[ROUTE_RECORDING_FIELD] = True
+    if ROUTE_HISTORY_DAYS_FIELD not in current:
+      current[ROUTE_HISTORY_DAYS_FIELD] = 30
+    if AUTO_TRACK_WALKS_FIELD not in current:
+      current[AUTO_TRACK_WALKS_FIELD] = True
 
     return current
 
@@ -502,32 +527,35 @@ class GPSOptionsMixin(GPSOptionsHost):
           max_value=2000,
         )
 
-        new_settings: GPSOptions = {
-          GPS_ENABLED_FIELD: self._coerce_bool(
-            typed_input.get(GPS_ENABLED_FIELD),
-            current_settings.get(GPS_ENABLED_FIELD, True),
-          ),
-          GPS_UPDATE_INTERVAL_FIELD: interval,
-          GPS_ACCURACY_FILTER_FIELD: accuracy,
-          GPS_DISTANCE_FILTER_FIELD: distance,
-          ROUTE_RECORDING_FIELD: self._coerce_bool(
-            typed_input.get(ROUTE_RECORDING_FIELD),
-            current_settings.get(ROUTE_RECORDING_FIELD, True),
-          ),
-          ROUTE_HISTORY_DAYS_FIELD: validate_timer(
-            typed_input.get(
-              ROUTE_HISTORY_DAYS_FIELD,
-              current_settings.get(ROUTE_HISTORY_DAYS_FIELD, 30),
+        new_settings = cast(
+          GPSOptions,
+          {
+            GPS_ENABLED_FIELD: self._coerce_bool(
+              typed_input.get(GPS_ENABLED_FIELD),
+              bool(current_settings.get(GPS_ENABLED_FIELD, True)),
             ),
-            field=ROUTE_HISTORY_DAYS_FIELD,
-            min_value=1,
-            max_value=365,
-          ),
-          AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
-            typed_input.get(AUTO_TRACK_WALKS_FIELD),
-            current_settings.get(AUTO_TRACK_WALKS_FIELD, True),
-          ),
-        }
+            GPS_UPDATE_INTERVAL_FIELD: interval,
+            GPS_ACCURACY_FILTER_FIELD: accuracy,
+            GPS_DISTANCE_FILTER_FIELD: distance,
+            ROUTE_RECORDING_FIELD: self._coerce_bool(
+              typed_input.get(ROUTE_RECORDING_FIELD),
+              bool(current_settings.get(ROUTE_RECORDING_FIELD, True)),
+            ),
+            ROUTE_HISTORY_DAYS_FIELD: validate_timer(
+              typed_input.get(
+                ROUTE_HISTORY_DAYS_FIELD,
+                current_settings.get(ROUTE_HISTORY_DAYS_FIELD, 30),
+              ),
+              field=ROUTE_HISTORY_DAYS_FIELD,
+              min_value=1,
+              max_value=365,
+            ),
+            AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
+              typed_input.get(AUTO_TRACK_WALKS_FIELD),
+              bool(current_settings.get(AUTO_TRACK_WALKS_FIELD, True)),
+            ),
+          },
+        )
 
         new_options = self._clone_options()
         dog_options = self._current_dog_options()
@@ -538,8 +566,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         entry[GPS_SETTINGS_FIELD] = new_settings
         if dog_id in dog_options or not dog_options:
           dog_options[dog_id] = entry
-          new_options[DOG_OPTIONS_FIELD] = dog_options
-        new_options[GPS_SETTINGS_FIELD] = new_settings
+          new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
+        new_options[GPS_SETTINGS_FIELD] = cast(JSONValue, new_settings)
 
         typed_options = self._normalise_options_snapshot(new_options)
         return self.async_create_entry(title="", data=typed_options)
@@ -708,8 +736,11 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
         if dog_id in dog_options or not dog_options:
           dog_options[dog_id] = entry
-          new_options[DOG_OPTIONS_FIELD] = dog_options
-        new_options["geofence_settings"] = entry["geofence_settings"]
+          new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
+        new_options["geofence_settings"] = cast(
+          JSONValue,
+          entry["geofence_settings"],
+        )
 
         typed_options = self._normalise_options_snapshot(new_options)
 
@@ -900,41 +931,41 @@ class GPSOptionsMixin(GPSOptionsHost):
       current.get(GEOFENCE_LON_FIELD, default_lon),
     )
 
-    geofence: GeofenceOptions = {
+    geofence = {
       GEOFENCE_ENABLED_FIELD: self._coerce_bool(
         user_input.get(GEOFENCE_ENABLED_FIELD),
-        current.get(GEOFENCE_ENABLED_FIELD, False),
+        bool(current.get(GEOFENCE_ENABLED_FIELD, False)),
       ),
       GEOFENCE_USE_HOME_FIELD: self._coerce_bool(
         user_input.get(GEOFENCE_USE_HOME_FIELD),
-        current.get(GEOFENCE_USE_HOME_FIELD, True),
+        bool(current.get(GEOFENCE_USE_HOME_FIELD, True)),
       ),
       GEOFENCE_LAT_FIELD: lat,
       GEOFENCE_LON_FIELD: lon,
       GEOFENCE_RADIUS_FIELD: radius,
       GEOFENCE_ALERTS_FIELD: self._coerce_bool(
         user_input.get(GEOFENCE_ALERTS_FIELD),
-        current.get(GEOFENCE_ALERTS_FIELD, True),
+        bool(current.get(GEOFENCE_ALERTS_FIELD, True)),
       ),
       GEOFENCE_SAFE_ZONE_FIELD: self._coerce_bool(
         user_input.get(GEOFENCE_SAFE_ZONE_FIELD),
-        current.get(GEOFENCE_SAFE_ZONE_FIELD, True),
+        bool(current.get(GEOFENCE_SAFE_ZONE_FIELD, True)),
       ),
       GEOFENCE_RESTRICTED_ZONE_FIELD: self._coerce_bool(
         user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),
-        current.get(GEOFENCE_RESTRICTED_ZONE_FIELD, True),
+        bool(current.get(GEOFENCE_RESTRICTED_ZONE_FIELD, True)),
       ),
       GEOFENCE_ZONE_ENTRY_FIELD: self._coerce_bool(
         user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),
-        current.get(GEOFENCE_ZONE_ENTRY_FIELD, True),
+        bool(current.get(GEOFENCE_ZONE_ENTRY_FIELD, True)),
       ),
       GEOFENCE_ZONE_EXIT_FIELD: self._coerce_bool(
         user_input.get(GEOFENCE_ZONE_EXIT_FIELD),
-        current.get(GEOFENCE_ZONE_EXIT_FIELD, True),
+        bool(current.get(GEOFENCE_ZONE_EXIT_FIELD, True)),
       ),
     }
 
-    return geofence
+    return cast(GeofenceOptions, geofence)
 
   def _get_geofence_description_placeholders(self) -> Mapping[str, str]:
     """Build geofence description placeholders."""

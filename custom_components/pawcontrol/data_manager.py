@@ -2802,17 +2802,16 @@ class PawControlDataManager:
         "garden",
         "routes",
       ]
+      exports: dict[str, str] = {}
       export_manifest = {
         "dog_id": dog_id,
         "data_type": "all",
         "generated_at": _utcnow().isoformat(),
-        "exports": {},
+        "exports": exports,
       }
 
       for export_type in export_types:
-        export_manifest["exports"][export_type] = str(
-          await _export_single(export_type),
-        )
+        exports[export_type] = str(await _export_single(export_type))
 
       await asyncio.to_thread(
         export_path.write_text,
