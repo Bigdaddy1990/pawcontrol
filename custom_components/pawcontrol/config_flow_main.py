@@ -2320,11 +2320,7 @@ class PawControlConfigFlow(
 
     legacy_name = candidate.get("name")
     dog_name = candidate.get(DOG_NAME_FIELD)
-    if (
-      preserve_empty_name
-      and isinstance(dog_name, str)
-      and not dog_name.strip()
-    ):
+    if preserve_empty_name and isinstance(dog_name, str) and not dog_name.strip():
       candidate[DOG_NAME_FIELD] = dog_name
     else:
       resolved_name: str | None = None
