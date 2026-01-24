@@ -15,19 +15,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntry
 
-import pytest
-from custom_components.pawcontrol import async_remove_config_entry_device
-from custom_components.pawcontrol.const import CONF_DOGS, DOMAIN
-from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
-from custom_components.pawcontrol.utils import (
-  async_get_or_create_dog_device_entry,
-  sanitize_dog_id,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.device_registry import DeviceEntry
-
 
 @pytest.mark.asyncio
 async def test_remove_config_entry_device_blocks_configured_dog(
