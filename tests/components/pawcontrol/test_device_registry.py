@@ -11,6 +11,7 @@ from custom_components.pawcontrol.utils import (
   sanitize_dog_id,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntry
 
@@ -43,7 +44,9 @@ async def test_remove_config_entry_device_blocks_configured_dog(
 
 
 @pytest.mark.asyncio
-async def test_remove_config_entry_device_allows_orphaned_device(hass) -> None:
+async def test_remove_config_entry_device_allows_orphaned_device(
+  hass: HomeAssistant,
+) -> None:
   """Allow removal when no configured dogs match the device identifiers."""
 
   entry = ConfigEntry(
@@ -69,7 +72,7 @@ async def test_remove_config_entry_device_allows_orphaned_device(hass) -> None:
 
 @pytest.mark.asyncio
 async def test_async_get_or_create_dog_device_entry_updates_metadata(
-  hass,
+  hass: HomeAssistant,
 ) -> None:
   """Verify dog devices are created and updated dynamically."""
 
