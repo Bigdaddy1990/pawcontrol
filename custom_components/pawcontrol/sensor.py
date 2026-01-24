@@ -1063,11 +1063,17 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     last_session = data.get("last_session") or {}
     if last_session:
+      last_session_start = self._coerce_utc_datetime(
+        last_session.get("start_time"),
+      )
+      last_session_end = self._coerce_utc_datetime(
+        last_session.get("end_time"),
+      )
       attrs.update(
         {
           "last_session_id": last_session.get("session_id"),
-          "last_session_start": last_session.get("start_time"),
-          "last_session_end": last_session.get("end_time"),
+          "last_session_start": last_session_start,
+          "last_session_end": last_session_end,
           "last_session_duration": last_session.get("duration_minutes"),
           "last_session_activities": last_session.get("activity_count"),
           "last_session_poop": last_session.get("poop_count"),
@@ -1078,7 +1084,9 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     stats = data.get("stats") or {}
     if stats:
-      attrs["last_garden_visit"] = stats.get("last_garden_visit")
+      attrs["last_garden_visit"] = self._coerce_utc_datetime(
+        stats.get("last_garden_visit"),
+      )
       attrs["favorite_garden_activities"] = cast(
         JSONValue,
         stats.get("favorite_activities"),
@@ -1099,6 +1107,28 @@ class PawControlGardenSensorBase(PawControlSensorBase):
     attrs["hours_since_last_session"] = data.get(
       "hours_since_last_session",
     )
+
+    active_session = data.get("active_session")
+    started_at = None
+    duration_minutes = None
+    if isinstance(active_session, Mapping):
+      started_at = active_session.get("start_time")
+      duration_minutes = active_session.get("duration_minutes")
+    if started_at is None and last_session:
+      started_at = last_session.get("start_time")
+    if duration_minutes is None and last_session:
+      duration_minutes = last_session.get("duration_minutes")
+    last_seen = None
+    if last_session:
+      last_seen = last_session.get("end_time")
+    if last_seen is None and stats:
+      last_seen = stats.get("last_garden_visit")
+
+    attrs["started_at"] = self._coerce_utc_datetime(started_at)
+    attrs["duration_minutes"] = (
+      float(duration_minutes) if is_number(duration_minutes) else None
+    )
+    attrs["last_seen"] = self._coerce_utc_datetime(last_seen)
 
     return _normalise_attributes(attrs)
 
