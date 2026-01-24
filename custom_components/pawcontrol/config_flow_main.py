@@ -43,8 +43,8 @@ from .config_flow_profile import (
   validate_profile_selection,
 )
 from .config_flow_reauth import ReauthFlowMixin
-from .flows.gps import DogGPSFlowMixin
-from .flows.health import DogHealthFlowMixin
+from .flows.flow_gps import DogGPSFlowMixin
+from .flows.flow_health import DogHealthFlowMixin
 from .config_flow_schemas import DOG_SCHEMA, MODULE_SELECTION_KEYS, MODULES_SCHEMA
 from .const import (
   CONF_DOG_OPTIONS,

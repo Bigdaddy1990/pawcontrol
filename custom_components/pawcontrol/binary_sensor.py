@@ -14,7 +14,7 @@ import asyncio
 import logging
 import os
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
 from homeassistant.components.binary_sensor import (
@@ -107,6 +107,37 @@ def _normalise_attributes(
 
   payload = ensure_json_mapping(attrs)
   return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+
+
+def _coerce_timestamp(value: object | None) -> datetime | None:
+  """Return a UTC datetime for supported timestamp values."""
+
+  if value is None:
+    return None
+
+  if isinstance(value, datetime | date | str | int | float):
+    return ensure_utc_datetime(value)
+
+  return None
+
+
+def _apply_standard_timing_attributes(
+  attrs: JSONMutableMapping,
+  *,
+  started_at: object | None,
+  duration_minutes: object | None,
+  last_seen: object | None,
+) -> None:
+  """Populate standardized timing attributes on the attribute mapping."""
+
+  attrs["started_at"] = _coerce_timestamp(started_at)
+
+  if isinstance(duration_minutes, int | float):
+    attrs["duration_minutes"] = float(duration_minutes)
+  else:
+    attrs["duration_minutes"] = None
+
+  attrs["last_seen"] = _coerce_timestamp(last_seen)
 
 
 # Home Assistant platform configuration
@@ -660,6 +691,26 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
         JSONValue,
         pending_confirmations,
       )
+    active_session = data.get("active_session")
+    last_session = data.get("last_session")
+    started_at = None
+    duration_minutes = None
+    last_seen = None
+    if isinstance(active_session, Mapping):
+      started_at = active_session.get("start_time")
+      duration_minutes = active_session.get("duration_minutes")
+    if started_at is None and isinstance(last_session, Mapping):
+      started_at = last_session.get("start_time")
+    if duration_minutes is None and isinstance(last_session, Mapping):
+      duration_minutes = last_session.get("duration_minutes")
+    if isinstance(last_session, Mapping):
+      last_seen = last_session.get("end_time")
+    _apply_standard_timing_attributes(
+      attrs,
+      started_at=started_at,
+      duration_minutes=duration_minutes,
+      last_seen=last_seen,
+    )
     return _normalise_attributes(attrs)
 
 
@@ -1107,19 +1158,38 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
     walk_data = self._get_walk_payload()
 
     if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
-      walk_start = walk_data.get("current_walk_start")
-      if isinstance(walk_start, datetime):
-        attrs["walk_start_time"] = _as_local(walk_start).isoformat()
-      elif isinstance(walk_start, str):
-        attrs["walk_start_time"] = walk_start
+      current_walk = walk_data.get("current_walk")
+      started_at = None
+      duration_minutes = walk_data.get("current_walk_duration")
+      distance_meters = walk_data.get("current_walk_distance")
 
-      current_duration = walk_data.get("current_walk_duration")
-      if isinstance(current_duration, int | float):
-        attrs["walk_duration"] = float(current_duration)
+      if isinstance(current_walk, Mapping):
+        started_at = current_walk.get("start_time")
+        duration_minutes = current_walk.get(
+          "current_duration",
+          current_walk.get("duration"),
+        )
+        distance_meters = current_walk.get(
+          "current_distance",
+          current_walk.get("distance"),
+        )
 
-      current_distance = walk_data.get("current_walk_distance")
-      if isinstance(current_distance, int | float):
-        attrs["walk_distance"] = float(current_distance)
+      started_at = started_at or walk_data.get("current_walk_start")
+
+      gps_data = self._get_gps_payload()
+      last_seen = None
+      if gps_data is not None:
+        last_seen = gps_data.get("last_seen")
+
+      _apply_standard_timing_attributes(
+        attrs,
+        started_at=started_at,
+        duration_minutes=duration_minutes,
+        last_seen=last_seen,
+      )
+
+      if isinstance(distance_meters, int | float):
+        attrs["distance_meters"] = float(distance_meters)
 
       estimated_remaining = self._estimate_remaining_time(walk_data)
       if estimated_remaining is not None:
@@ -1378,6 +1448,23 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
     safe_zones = {"home", "park", "vet", "friend_house"}  # Configurable
 
     return isinstance(current_zone, str) and current_zone in safe_zones
+
+  @property
+  def extra_state_attributes(self) -> JSONMutableMapping:
+    """Return standardized timing attributes for safe zone status."""
+    attrs: JSONMutableMapping = self._inherit_extra_attributes()
+    gps_data = self._get_gps_payload()
+    last_seen = None
+    if gps_data is not None:
+      last_seen = gps_data.get("last_seen")
+
+    _apply_standard_timing_attributes(
+      attrs,
+      started_at=None,
+      duration_minutes=None,
+      last_seen=last_seen,
+    )
+    return _normalise_attributes(attrs)
 
 
 class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
