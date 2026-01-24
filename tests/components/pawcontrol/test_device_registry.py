@@ -16,7 +16,7 @@ from homeassistant.helpers.device_registry import DeviceEntry
 
 
 @pytest.mark.asyncio
-async def test_remove_config_entry_device_blocks_configured_dog(hass) -> None:
+async def test_remove_config_entry_device_blocks_configured_dog(hass: HomeAssistant) -> None:
   """Ensure configured dogs are not removed from the device registry."""
 
   entry = ConfigEntry(
