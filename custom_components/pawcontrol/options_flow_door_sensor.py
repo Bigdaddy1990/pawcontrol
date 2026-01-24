@@ -79,6 +79,7 @@ if TYPE_CHECKING:
 
     @property
     def _entry(self) -> ConfigEntry: ...
+
     hass: Any
 
     def __getattr__(self, name: str) -> Any: ...

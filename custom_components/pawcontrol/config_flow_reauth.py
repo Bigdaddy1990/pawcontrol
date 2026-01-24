@@ -20,7 +20,6 @@ from .types import (
   DOG_ID_FIELD,
   REAUTH_PLACEHOLDERS_TEMPLATE,
   DogConfigData,
-  DogModulesConfig,
   ReauthDataUpdates,
   ReauthHealthSummary,
   ReauthOptionsUpdates,

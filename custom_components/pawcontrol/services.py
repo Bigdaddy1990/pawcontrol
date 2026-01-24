@@ -1412,15 +1412,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     total_calls_raw = target.get("total_calls", 0)
     total_calls = (
-      int(total_calls_raw)
-      if isinstance(total_calls_raw, int | float)
-      else 0
+      int(total_calls_raw) if isinstance(total_calls_raw, int | float) else 0
     ) + 1
     success_calls_raw = target.get("success_calls", 0)
     success_calls = (
-      int(success_calls_raw)
-      if isinstance(success_calls_raw, int | float)
-      else 0
+      int(success_calls_raw) if isinstance(success_calls_raw, int | float) else 0
     )
     error_calls_raw = target.get("error_calls", 0)
     error_calls = (

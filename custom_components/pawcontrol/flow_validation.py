@@ -24,7 +24,6 @@ from .health_calculator import HealthMetrics
 from .types import (
   DOG_AGE_FIELD,
   DOG_BREED_FIELD,
-  DOG_ID_FIELD,
   DOG_NAME_FIELD,
   DOG_SIZE_FIELD,
   DOG_WEIGHT_FIELD,

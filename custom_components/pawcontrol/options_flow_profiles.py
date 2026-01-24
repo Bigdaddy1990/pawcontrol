@@ -34,7 +34,6 @@ from .types import (
   ProfileSelectionInput,
   clone_placeholders,
   ensure_dog_config_data,
-  ensure_dog_modules_config,
   ensure_dog_modules_mapping,
   freeze_placeholders,
   normalize_performance_mode,
@@ -49,6 +48,7 @@ if TYPE_CHECKING:
   class ProfileOptionsHost(Protocol):
     @property
     def _entry(self) -> ConfigEntry: ...
+
     _profile_cache: dict[str, ConfigFlowPlaceholders]
     _entity_estimates_cache: dict[str, JSONMutableMapping]
     _entity_factory: EntityFactory

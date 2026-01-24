@@ -45,7 +45,9 @@ if TYPE_CHECKING:
       source: ConfigFlowDiscoverySource,
     ) -> tuple[DiscoveryUpdatePayload, ConfigFlowDiscoveryData]: ...
 
-    def _extract_device_id(self, properties: ConfigFlowDiscoveryProperties) -> str | None: ...
+    def _extract_device_id(
+      self, properties: ConfigFlowDiscoveryProperties
+    ) -> str | None: ...
 
     async def _handle_existing_discovery_entry(
       self,

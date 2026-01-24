@@ -47,9 +47,6 @@ from .flows.gps import DogGPSFlowMixin
 from .flows.health import DogHealthFlowMixin
 from .config_flow_schemas import DOG_SCHEMA, MODULE_SELECTION_KEYS, MODULES_SCHEMA
 from .const import (
-  CONF_API_ENDPOINT,
-  CONF_API_TOKEN,
-  CONF_DATA_RETENTION_DAYS,
   CONF_DOG_OPTIONS,
   CONF_DOG_SIZE,
   CONF_DOG_WEIGHT,
