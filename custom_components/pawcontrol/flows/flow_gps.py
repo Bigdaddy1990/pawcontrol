@@ -27,6 +27,12 @@ from ..const import (
 )
 from ..exceptions import ValidationError
 from ..flow_helpers import coerce_bool
+from ..schemas import (
+  GEOFENCE_OPTIONS_JSON_SCHEMA,
+  GPS_DOG_CONFIG_JSON_SCHEMA,
+  GPS_OPTIONS_JSON_SCHEMA,
+  validate_json_schema_payload,
+)
 from ..selector_shim import selector
 from ..types import (
   AUTO_TRACK_WALKS_FIELD,
@@ -224,6 +230,28 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         ),
         "home_zone_radius": home_zone_radius,
       }
+      schema_issues = validate_json_schema_payload(
+        gps_config,
+        GPS_DOG_CONFIG_JSON_SCHEMA,
+      )
+      if schema_issues:
+        _LOGGER.error(
+          "GPS config failed JSON schema validation: %s",
+          [issue.constraint for issue in schema_issues],
+        )
+        return self.async_show_form(
+          step_id="dog_gps",
+          data_schema=self._get_dog_gps_schema(),
+          errors={"base": "invalid_config"},
+          description_placeholders=dict(
+            cast(
+              Mapping[str, str],
+              _build_dog_gps_placeholders(
+                dog_name=current_dog[DOG_NAME_FIELD],
+              ),
+            ),
+          ),
+        )
 
       current_dog[DOG_GPS_CONFIG_FIELD] = gps_config
 
@@ -556,6 +584,21 @@ class GPSOptionsMixin(GPSOptionsHost):
             ),
           },
         )
+        schema_issues = validate_json_schema_payload(
+          new_settings,
+          GPS_OPTIONS_JSON_SCHEMA,
+        )
+        if schema_issues:
+          _LOGGER.error(
+            "GPS options failed JSON schema validation for %s: %s",
+            dog_id,
+            [issue.constraint for issue in schema_issues],
+          )
+          return self.async_show_form(
+            step_id="gps_settings",
+            data_schema=self._get_gps_settings_schema(dog_id, user_input),
+            errors={"base": "invalid_configuration"},
+          )
 
         new_options = self._clone_options()
         dog_options = self._current_dog_options()
@@ -734,6 +777,21 @@ class GPSOptionsMixin(GPSOptionsHost):
           default_lat=lat if lat is not None else default_lat,
           default_lon=lon if lon is not None else default_lon,
         )
+        schema_issues = validate_json_schema_payload(
+          entry["geofence_settings"],
+          GEOFENCE_OPTIONS_JSON_SCHEMA,
+        )
+        if schema_issues:
+          _LOGGER.error(
+            "Geofence settings failed JSON schema validation for %s: %s",
+            dog_id,
+            [issue.constraint for issue in schema_issues],
+          )
+          return self.async_show_form(
+            step_id="geofence_settings",
+            data_schema=self._get_geofence_settings_schema(dog_id, user_input),
+            errors={"base": "invalid_configuration"},
+          )
         if dog_id in dog_options or not dog_options:
           dog_options[dog_id] = entry
           new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)

@@ -23,7 +23,34 @@ Der erweiterte Options Flow für die Paw Control Integration bietet eine umfasse
 
 ## Konfigurationsbereiche
 
-### 1. Geofence-Einstellungen (`geofence`)
+### 1. GPS-Tracking (`gps_settings`)
+
+Konfiguration der GPS-Tracking-Parameter pro Hund:
+
+**Validierte Felder:**
+- `gps_enabled`: GPS-Tracking aktiv (Boolean)
+- `gps_update_interval`: Update-Intervall in Sekunden (Integer, 5-600)
+- `gps_accuracy_filter`: Mindestgenauigkeit in Metern (Float, 5-500)
+- `gps_distance_filter`: Mindestdistanz für neue Punkte in Metern (Float, 1-2000)
+- `route_recording`: Routenaufzeichnung aktiv (Boolean)
+- `route_history_days`: Verlaufsspeicher in Tagen (Integer, 1-365)
+- `auto_track_walks`: Automatische Walk-Erkennung (Boolean)
+
+**Verwendung:**
+```python
+# Beispiel GPS-Tracking-Konfiguration
+gps_config = {
+    "gps_enabled": True,
+    "gps_update_interval": 60,
+    "gps_accuracy_filter": 50.0,
+    "gps_distance_filter": 15.0,
+    "route_recording": True,
+    "route_history_days": 30,
+    "auto_track_walks": True
+}
+```
+
+### 2. Geofence-Einstellungen (`geofence`)
 
 Konfiguration der Heimposition und Geofencing-Optionen:
 
@@ -31,7 +58,7 @@ Konfiguration der Heimposition und Geofencing-Optionen:
 - `geofencing_enabled`: Aktivierung des Geofencing (Boolean)
 - `geofence_lat`: Breitengrad der Heimposition (Float, -90 bis 90)
 - `geofence_lon`: Längengrad der Heimposition (Float, -180 bis 180)
-- `geofence_radius_m`: Radius der Geofence in Metern (Integer, 5-2000)
+- `geofence_radius_m`: Radius der Geofence in Metern (Integer, 5-5000)
 - `geofence_alerts_enabled`: Aktivierung von Geofence-Benachrichtigungen (Boolean)
 - `use_home_location`: Verwendung der Home Assistant Heimposition (Boolean)
 
@@ -48,7 +75,7 @@ geofence_config = {
 }
 ```
 
-### 2. Benachrichtigungseinstellungen (`notifications`)
+### 3. Benachrichtigungseinstellungen (`notifications`)
 
 Konfiguration von Benachrichtigungen und Ruhezeiten:
 
@@ -71,7 +98,7 @@ notifications_config = {
 }
 ```
 
-### 3. Feature-Module (`modules`)
+### 4. Feature-Module (`modules`)
 
 Aktivierung/Deaktivierung spezifischer Funktionen:
 
@@ -98,7 +125,7 @@ modules_config = {
 }
 ```
 
-### 4. Systemeinstellungen (`system`)
+### 5. Systemeinstellungen (`system`)
 
 Allgemeine Systemkonfiguration:
 
