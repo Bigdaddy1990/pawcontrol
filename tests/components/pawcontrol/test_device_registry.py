@@ -77,7 +77,7 @@ async def test_async_get_or_create_dog_device_entry_updates_metadata(
 ) -> None:
   """Verify dog devices are created and updated dynamically."""
 
-  registry = dr.async_get(hass)
+  dr.async_get(hass)
 
   device = await async_get_or_create_dog_device_entry(
     hass,
