@@ -118,6 +118,7 @@ from .types import (
   is_dog_config_valid,
   normalize_performance_mode,
 )
+from .validation import InputCoercionError, normalize_dog_id, validate_dog_name
 
 ensure_homeassistant_exception_symbols()
 
@@ -2319,20 +2320,18 @@ class PawControlConfigFlow(
 
     legacy_name = candidate.get("name")
     dog_name = candidate.get(DOG_NAME_FIELD)
-    if not isinstance(dog_name, str):
-      if isinstance(legacy_name, str) and legacy_name.strip():
-        candidate[DOG_NAME_FIELD] = legacy_name.strip()
-      else:
-        candidate[DOG_NAME_FIELD] = dog_id
-    elif not dog_name.strip():
-      if preserve_empty_name:
-        candidate[DOG_NAME_FIELD] = dog_name
-      elif isinstance(legacy_name, str) and legacy_name.strip():
-        candidate[DOG_NAME_FIELD] = legacy_name.strip()
-      else:
-        candidate[DOG_NAME_FIELD] = dog_id
+    if preserve_empty_name and isinstance(dog_name, str) and not dog_name.strip():
+      candidate[DOG_NAME_FIELD] = dog_name
     else:
-      candidate[DOG_NAME_FIELD] = dog_name.strip()
+      resolved_name: str | None = None
+      for raw_name in (dog_name, legacy_name):
+        try:
+          resolved_name = validate_dog_name(raw_name, required=False)
+        except ValidationError:
+          continue
+        if resolved_name:
+          break
+      candidate[DOG_NAME_FIELD] = resolved_name or dog_id
 
     modules = candidate.get(DOG_MODULES_FIELD)
     if isinstance(modules, Mapping):
@@ -2400,12 +2399,19 @@ class PawControlConfigFlow(
     for key in potential_keys:
       value = candidate.get(key)
       if isinstance(value, str):
-        trimmed = value.strip()
-        if trimmed:
-          return trimmed
+        try:
+          normalized = normalize_dog_id(value)
+        except InputCoercionError:
+          continue
+        if normalized:
+          return normalized
 
     if isinstance(fallback_id, str) and fallback_id.strip():
-      return fallback_id.strip()
+      try:
+        normalized_fallback = normalize_dog_id(fallback_id)
+      except InputCoercionError:
+        return fallback_id.strip()
+      return normalized_fallback or fallback_id.strip()
 
     return None
 
