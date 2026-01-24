@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -74,3 +75,69 @@ async def test_platform_setup_adds_entities_when_configured(
   args, _ = async_add_entities.call_args
   added_entities: Iterable[Any] = args[0]
   assert list(added_entities)
+
+
+def test_walk_and_garden_attributes_are_standardised(mock_coordinator) -> None:
+  from custom_components.pawcontrol.binary_sensor import (
+    PawControlInSafeZoneBinarySensor,
+    PawControlWalkInProgressBinarySensor,
+  )
+  from custom_components.pawcontrol.sensor import PawControlGardenTimeTodaySensor
+
+  started_at = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+  last_seen = datetime(2024, 1, 1, 12, 45, tzinfo=UTC)
+
+  dog_payload = mock_coordinator._data["test_dog"]
+  dog_payload["walk"] = {
+    "walk_in_progress": True,
+    "current_walk_start": started_at,
+    "current_walk_duration": 15,
+    "current_walk_distance": 1200,
+  }
+  dog_payload["gps"] = {
+    "last_seen": last_seen,
+    "in_safe_zone": True,
+  }
+  dog_payload["garden"] = {
+    "status": "active",
+    "active_session": {
+      "session_id": "garden-1",
+      "start_time": started_at.isoformat(),
+      "duration_minutes": 12,
+    },
+    "last_session": {
+      "session_id": "garden-0",
+      "start_time": started_at.isoformat(),
+      "end_time": last_seen.isoformat(),
+      "duration_minutes": 10,
+    },
+    "stats": {"last_garden_visit": last_seen.isoformat()},
+  }
+
+  walk_sensor = PawControlWalkInProgressBinarySensor(
+    mock_coordinator,
+    "test_dog",
+    "Buddy",
+  )
+  walk_attrs = walk_sensor.extra_state_attributes
+  assert walk_attrs["started_at"] == started_at.isoformat()
+  assert walk_attrs["duration_minutes"] == 15.0
+  assert walk_attrs["last_seen"] == last_seen.isoformat()
+
+  safe_zone_sensor = PawControlInSafeZoneBinarySensor(
+    mock_coordinator,
+    "test_dog",
+    "Buddy",
+  )
+  safe_zone_attrs = safe_zone_sensor.extra_state_attributes
+  assert safe_zone_attrs["last_seen"] == last_seen.isoformat()
+
+  garden_sensor = PawControlGardenTimeTodaySensor(
+    mock_coordinator,
+    "test_dog",
+    "Buddy",
+  )
+  garden_attrs = garden_sensor.extra_state_attributes
+  assert garden_attrs["started_at"] == started_at.isoformat()
+  assert garden_attrs["duration_minutes"] == 12.0
+  assert garden_attrs["last_seen"] == last_seen.isoformat()
