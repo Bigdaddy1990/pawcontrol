@@ -131,6 +131,23 @@ python -m scripts.hassfest --integration-path custom_components/pawcontrol
 python -m scripts.sync_contributor_guides
 ```
 
+## Integration perfection checklist (Home Assistant aligned)
+
+Use this checklist to keep improvements aligned with Home Assistant developer
+guidelines while you iterate on new features or refactors:
+
+- Keep all runtime state on `ConfigEntry.runtime_data` and reuse the coordinator
+  + managers pattern. Avoid ad‑hoc background tasks or direct client calls from
+  entities.
+- Ensure every user‑facing string lives in `strings.json` and translations are
+  synced across locales.
+- Update diagnostics, docs, and tests together whenever a feature changes data
+  payloads or service behavior.
+- Validate all config/option flows with shared helpers and HA‑style error
+  messages, including explicit min/max checks and unique‑ID guards.
+- Ensure `extra_state_attributes` are JSON‑serializable and follow the
+  normalization logic used for diagnostics.
+
 ## Localization workflow
 
 Missing translation keys are a common cause of `hassfest` failures.

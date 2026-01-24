@@ -9,6 +9,8 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - **Modularisierung der Flows**: Die voluminösen Dateien `config_flow.py` und `options_flow.py` in logisch getrennte Module (z. B. GPS‑Konfiguration, Notifications, Health‑Settings) aufteilen, um Wartbarkeit und Testbarkeit zu verbessern.
 - **Zentralisierte Validierung & Fehlerbehandlung**: Validierungsfunktionen (für Eingabewerte wie Hundename, Koordinaten, Timer) in ein gemeinsames Modul auslagern. Exceptions aus `exceptions.py` konsistent einsetzen, damit Reauth‑ und Reparatur‑Flows korrekt ausgelöst werden.
 - **Dokumentationspflege**: Nach jeder Code‑Änderung `README`, `docs/` und `strings.json` aktualisieren, damit Übersetzungen und Hinweise zum Qualitätslevel synchron bleiben.
+- **Home‑Assistant‑Konformität**: Neue Features strikt entlang der HA‑Guidelines implementieren (Config Entry Pattern, Coordinator, async‑only I/O). Abweichungen als Tech‑Debt erfassen und zeitnah bereinigen.
+- **Qualitätsnachweise bündeln**: Tests, Diagnostik und Dokumentation pro Feature gemeinsam aktualisieren, damit der Platinum‑Nachweis konsistent bleibt (Qualitätsskala, Diagnostics, Tests).
 
 ## 1. Basis‑Setup & GPS‑Kernfunktionen
 
@@ -16,6 +18,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Den automatischen Service `pawcontrol.setup_automatic_gps` absichern: Pflichtfelder prüfen, Fehlerfeedback verbessern und eine Erfolgsmeldung für das UI ergänzen.
 - Sicherstellen, dass das GPS‑Tracking nahtlos für Tractive, Companion‑App‑Tracker und DIY‑Integrationen funktioniert; ggf. Beispiel‑Blueprints ergänzen.
 - **Neue Aufgabe:** JSON‑Schema‑Validierung für GPS‑Parameter (Update‑Intervalle, Genauigkeit) einbauen, um Null‑ oder ungültige Werte frühzeitig abzufangen.
+- **Neue Aufgabe:** Validierung an HA‑Standards koppeln (z. B. min/max‑Werte, Eindeutigkeit, klare Fehlermeldungen im Flow).
 
 ## 2. Spaziergangs‑ & Gartenlogik
 
@@ -23,6 +26,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Automatische Spaziergang‑Erkennung gegenüber den dokumentierten Benachrichtigungen testen und Optimierungen (z. B. Verzögerungen, Mindestdauer) dokumentieren.
 - Sicherheitszonenlogik mit Warn‑Timeout (2 Minuten) als Standardautomation anbieten und auf Mehr‑Hund‑Szenarien prüfen.
 - **Neue Aufgabe:** Walk‑ und Garden‑Sensoren sollen die vereinheitlichte Attributbasis aus Abschnitt 0 nutzen (JSON‑Mapping, Zeitstempel serialisieren)【947475147972407†L335-L343】【385432702482431†L799-L811】.
+- **Neue Aufgabe:** Statuswechsel über den Coordinator stabilisieren (keine direkten Client‑Zugriffe aus Entities).
 
 ## 3. Push‑Benachrichtigungen & Rückfragen
 
@@ -30,6 +34,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Interaktive Rückfragen vereinheitlichen: gleiche Texte, Emojis und Quittierungs‑Logik gemäß Info‑Dokument.
 - Push‑Test‑Service verbessern, damit Benutzer:innen Feedback zur Zustellung sehen (Erfolg/Fehler pro Gerät).
 - **Neue Aufgabe:** Fehlerbehandlung in der Benachrichtigungs‑Pipeline zentralisieren; Service‑Guard‑Metriken in die Diagnostik integrieren, um abgelehnte/fehlgeschlagene Nachrichten sichtbar zu machen.
+- **Neue Aufgabe:** Reparatur‑Flows (Repairs) für wiederkehrende Zustellfehler definieren und dokumentieren.
 
 ## 4. Fütterung & Gesundheitsüberwachung
 
@@ -37,6 +42,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Gesundheits‑/Kot‑Tracking erweitern: Notfallstatus, Tierarzt‑Erinnerungen und optionale Wetterabhängigkeiten vorbereiten.
 - Tagesübersichten validieren (Reset um 23:59 Uhr), inklusive konfigurierbarer Uhrzeit pro Hund.
 - **Neue Aufgabe:** Vorbereitung auf KI‑gestützte Gesundheitsanalyse (geplant für v1.1): Datenströme standardisieren und API‑Hook definieren, um Trends (Gewicht, Aktivität, Futtermenge) evaluieren zu können.
+- **Neue Aufgabe:** Datenflüsse strikt über Manager + DataManager führen, damit Diagnostik und Reauth‑Pfad konsistent bleiben.
 
 ## 5. Dashboard & UI‑Erlebnis
 
@@ -44,6 +50,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Responsive Varianten für Desktop/Mobile testen; bei Bedarf CSS/Template‑Anpassungen dokumentieren.
 - Besucherhund‑Modus visuell klar abgrenzen (Farbcode, Icon, eigener Abschnitt) und Aktivierungs‑Workflow beschreiben.
 - **Neue Aufgabe:** Dashboard‑Komponenten auf die neuen Metriken und Guard‑Telemetrie (Service‑Guard‑Ergebnisse) erweitern, sodass Qualitätsscale‑Berichte direkt im UI sichtbar sind.
+- **Neue Aufgabe:** UI‑Texte mit HA‑String‑Guidelines abgleichen (Ton, Klarheit, konsistente Terminologie).
 
 ## 6. Automationen & Skripte
 
@@ -51,6 +58,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Standard‑Automationen für Spaziergang und Sicherheitszone als Blueprints/Rezepte veröffentlichen.
 - Service‑Schemas validieren und alle Services mit ausführlicher Fehlerbehandlung (`ServiceValidationError`) versehen.
 - **Neue Aufgabe:** Integrations‑Blueprints bereitstellen, die die neuen Validierungsfunktionen und Fehlerabfangmechanismen nutzen; Service‑Guard‑Telemetrie als Bedingung in Automationen verwenden.
+- **Neue Aufgabe:** Automations‑Beispiele so strukturieren, dass sie ohne YAML‑Nebenwirkungen reproduzierbar sind (HA‑Best‑Practice).
 
 ## 7. Erweiterbarkeit & Mehr‑Hund‑Unterstützung
 
@@ -58,6 +66,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Besucherhund‑Modus so erweitern, dass er sämtliche Sensoren, Benachrichtigungen und Statistiken isoliert behandelt.
 - Vorbereitung für weitere Sensoren (Futterschale, Wasserspender) skizzieren und Schnittstellen definieren.
 - **Neue Aufgabe:** Mehr‑Tier‑Architektur (v2.0) anreißen: Datenmodelle generalisieren, Config‑Flows tierunabhängig gestalten und einen Pet‑Profile‑Manager vorsehen.
+- **Neue Aufgabe:** Geräte‑ und Entitätsnamen zentral normalisieren (device_info + identifiers konsistent halten).
 
 ---
 
