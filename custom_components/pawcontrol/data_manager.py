@@ -3301,11 +3301,23 @@ class PawControlDataManager:
       dict(data),
     )
 
+  async def _async_add_executor_job(
+    self,
+    func: Callable[..., ValueT],
+    *args: Any,
+  ) -> ValueT:
+    """Run a sync function in the executor, falling back to a thread."""
+
+    async_add_executor_job = getattr(self.hass, "async_add_executor_job", None)
+    if callable(async_add_executor_job):
+      return await async_add_executor_job(func, *args)
+    return await asyncio.to_thread(func, *args)
+
   async def _async_load_storage(self) -> JSONMutableMapping:
     """Load stored JSON data, falling back to the backup if required."""
 
     try:
-      data = await self.hass.async_add_executor_job(
+      data = await self._async_add_executor_job(
         self._read_storage_payload,
         self._storage_path,
       )
@@ -3328,7 +3340,7 @@ class PawControlDataManager:
       raise error_cls(f"Unable to read PawControl data: {err}") from err
 
     try:
-      data = await self.hass.async_add_executor_job(
+      data = await self._async_add_executor_job(
         self._read_storage_payload,
         self._backup_path,
       )
@@ -3363,7 +3375,7 @@ class PawControlDataManager:
         for k, profile in self._dog_profiles.items()
       }
       try:
-        await self.hass.async_add_executor_job(
+        await self._async_add_executor_job(
           self._write_storage,
           payload,
         )

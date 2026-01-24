@@ -241,6 +241,15 @@ class HomeAssistant:
     loop = asyncio.get_running_loop()
     return loop.create_task(awaitable, name=name)
 
+  async def async_add_executor_job(
+    self,
+    func: Callable[..., Any],
+    *args: Any,
+  ) -> Any:
+    """Run a synchronous function in the default executor."""
+
+    return await asyncio.to_thread(func, *args)
+
 
 class Event:
   """Simplified version of ``homeassistant.core.Event`` used by tests."""
@@ -1725,7 +1734,18 @@ def _register_custom_component_packages() -> None:
   pawcontrol_pkg.__path__ = [str(PAWCONTROL_ROOT)]
 
   def _load_submodule(name: str):
-    return importlib.import_module(f"custom_components.pawcontrol.{name}")
+    module_name = f"custom_components.pawcontrol.{name}"
+    try:
+      return importlib.import_module(module_name)
+    except ModuleNotFoundError as err:
+      if err.name != module_name:
+        raise
+      init_module = importlib.import_module("custom_components.pawcontrol.__init__")
+      if hasattr(init_module, name):
+        value = getattr(init_module, name)
+        setattr(pawcontrol_pkg, name, value)
+        return value
+      raise
 
   pawcontrol_pkg.__getattr__ = _load_submodule  # type: ignore[assignment]
   sys.modules["custom_components.pawcontrol"] = pawcontrol_pkg
