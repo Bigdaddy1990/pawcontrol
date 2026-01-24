@@ -194,6 +194,95 @@ type DateTimeConvertible = datetime | date | str | float | int | Number
 type JSONMappingLike = Mapping[str, "JSONValue"]
 
 
+def normalise_json_value(
+  value: object,
+  _seen: set[int] | None = None,
+) -> JSONValue:
+  """Normalise values into JSON-serialisable primitives."""
+
+  if isinstance(value, int | float | str | bool) or value is None:
+    return value
+
+  if isinstance(value, datetime):
+    return value.isoformat()
+
+  if isinstance(value, date):
+    return value.isoformat()
+
+  if isinstance(value, time):
+    return value.isoformat()
+
+  if isinstance(value, timedelta):
+    return str(value)
+
+  if _seen is None:
+    _seen = set()
+
+  obj_id = id(value)
+  if obj_id in _seen:
+    return None
+
+  _seen.add(obj_id)
+  try:
+    if is_dataclass(value) and not isinstance(value, type):
+      return normalise_json_value(asdict(value), _seen)
+
+    if hasattr(value, "to_mapping") and callable(value.to_mapping):
+      try:
+        mapping_value = cast(Mapping[str, object], value.to_mapping())
+        return normalise_json_value(mapping_value, _seen)
+      except Exception:  # pragma: no cover - defensive guard
+        _LOGGER.debug(
+          "Failed to normalise to_mapping payload for %s",
+          value,
+        )
+
+    if hasattr(value, "to_dict") and callable(value.to_dict):
+      try:
+        dict_value = cast(Mapping[str, object], value.to_dict())
+        return normalise_json_value(dict_value, _seen)
+      except Exception:  # pragma: no cover - defensive guard
+        _LOGGER.debug(
+          "Failed to normalise to_dict payload for %s",
+          value,
+        )
+
+    if hasattr(value, "__dict__") and not isinstance(value, type):
+      return normalise_json_value(vars(value), _seen)
+
+    if isinstance(value, Mapping):
+      return {
+        str(key): normalise_json_value(item, _seen) for key, item in value.items()
+      }
+
+    if isinstance(value, set | frozenset):
+      return [normalise_json_value(item, _seen) for item in value]
+
+    if isinstance(value, Sequence) and not isinstance(
+      value,
+      str | bytes | bytearray,
+    ):
+      return [normalise_json_value(item, _seen) for item in value]
+
+    return repr(value)
+  finally:
+    _seen.discard(obj_id)
+
+
+def normalise_json_mapping(
+  data: Mapping[str, object] | None,
+) -> JSONMutableMapping:
+  """Return JSON-serialisable mapping values for entity attributes."""
+
+  if not data:
+    return {}
+
+  return {
+    str(key): cast(JSONValue, normalise_json_value(value))
+    for key, value in data.items()
+  }
+
+
 class ServiceCallKeywordArgs(TypedDict, total=False):
   """Keyword arguments forwarded to Home Assistant service calls."""
 

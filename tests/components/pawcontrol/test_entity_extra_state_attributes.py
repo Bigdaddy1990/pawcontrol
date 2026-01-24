@@ -18,6 +18,7 @@ from custom_components.pawcontrol.datetime import PawControlBirthdateDateTime
 from custom_components.pawcontrol.number import PawControlDogWeightNumber
 from custom_components.pawcontrol.select import PawControlDogSizeSelect
 from custom_components.pawcontrol.sensor import PawControlDogStatusSensor
+from custom_components.pawcontrol.switch import PawControlMainPowerSwitch
 from custom_components.pawcontrol.text import PawControlDogNotesText
 from custom_components.pawcontrol.types import (
   CoordinatorDogData,
@@ -56,6 +57,12 @@ class _DummyCoordinator:
   @property
   def available(self) -> bool:  # pragma: no cover - compatibility helper
     return True
+
+
+@dataclass
+class _DummyPayload:
+  token: str
+  count: int
 
 
 def _make_coordinator() -> _DummyCoordinator:
@@ -173,6 +180,18 @@ def _make_coordinator() -> _DummyCoordinator:
       ),
       "marker",
       str,
+    ),
+    (
+      lambda coordinator: PawControlMainPowerSwitch(
+        cast(PawControlCoordinator, coordinator),
+        "dog-1",
+        "Buddy",
+      ),
+      lambda entity: entity._attr_extra_state_attributes.update(
+        {"payload": _DummyPayload(token="ok", count=3)},
+      ),
+      "payload",
+      dict,
     ),
   ],
 )

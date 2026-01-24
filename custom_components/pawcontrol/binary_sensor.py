@@ -29,7 +29,6 @@ from homeassistant.util import dt as dt_util
 
 from .const import MODULE_FEEDING, MODULE_GARDEN, MODULE_GPS, MODULE_HEALTH, MODULE_WALK
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
@@ -54,7 +53,7 @@ from .types import (
   ensure_dog_modules_mapping,
   ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime
+from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json_mapping
 
 if TYPE_CHECKING:
   from .garden_manager import GardenManager
@@ -106,7 +105,7 @@ def _normalise_attributes(
   """Return JSON-serialisable attributes for entity state."""
 
   payload = ensure_json_mapping(attrs)
-  return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+  return cast(JSONMutableMapping, normalise_json_mapping(payload))
 
 
 def _coerce_timestamp(value: object | None) -> datetime | None:
