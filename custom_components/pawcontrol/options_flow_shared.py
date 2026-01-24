@@ -756,6 +756,25 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         return default
     return default
 
+  def _coerce_clamped_float(
+    self,
+    value: Any,
+    default: float,
+    *,
+    minimum: float,
+    maximum: float,
+  ) -> float:
+    """Normalise numeric input and clamp it to an allowed range."""
+
+    candidate = self._coerce_optional_float(value, default)
+    if candidate is None:
+      return default
+    if candidate < minimum:
+      return minimum
+    if candidate > maximum:
+      return maximum
+    return candidate
+
   def _coerce_clamped_int(
     self,
     value: Any,
