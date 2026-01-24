@@ -22,9 +22,16 @@ validation = load_module(
   "custom_components.pawcontrol.validation",
   PROJECT_ROOT / "custom_components" / "pawcontrol" / "validation.py",
 )
+schemas = load_module(
+  "custom_components.pawcontrol.schemas",
+  PROJECT_ROOT / "custom_components" / "pawcontrol" / "schemas.py",
+)
 
 InputValidator = validation.InputValidator
 ValidationError = validation.ValidationError
+validate_json_schema_payload = schemas.validate_json_schema_payload
+GPS_DOG_CONFIG_JSON_SCHEMA = schemas.GPS_DOG_CONFIG_JSON_SCHEMA
+GPS_OPTIONS_JSON_SCHEMA = schemas.GPS_OPTIONS_JSON_SCHEMA
 
 
 def test_validate_gps_coordinates_success() -> None:
@@ -70,3 +77,25 @@ def test_validate_geofence_radius_bounds(radius: float, field: str) -> None:
     InputValidator.validate_geofence_radius(radius)
 
   assert err.value.field == field
+
+
+def test_validate_gps_json_schema_accepts_config() -> None:
+  payload = {
+    "gps_source": "manual",
+    "gps_update_interval": 60,
+    "gps_accuracy_filter": 25.0,
+    "enable_geofencing": True,
+    "home_zone_radius": 50.0,
+  }
+
+  assert validate_json_schema_payload(payload, GPS_DOG_CONFIG_JSON_SCHEMA) == []
+
+
+def test_validate_gps_json_schema_rejects_invalid_payload() -> None:
+  payload = {
+    "gps_source": "",
+    "gps_update_interval": 2,
+  }
+
+  violations = validate_json_schema_payload(payload, GPS_OPTIONS_JSON_SCHEMA)
+  assert violations

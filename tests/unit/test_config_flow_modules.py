@@ -21,6 +21,10 @@ from custom_components.pawcontrol.const import (
   MODULE_GPS,
   MODULE_HEALTH,
 )
+from custom_components.pawcontrol.schemas import (
+  GPS_DOG_CONFIG_JSON_SCHEMA,
+  validate_json_schema_payload,
+)
 from custom_components.pawcontrol.types import (
   MODULE_TOGGLE_KEYS,
   ConfigFlowGlobalSettings,
@@ -162,6 +166,20 @@ def test_build_dashboard_and_feeding_placeholders() -> None:
     "features": "status_cards, quick_actions",
   }
   assert feeding == {"dog_count": 1, "feeding_summary": "Doggo"}
+
+
+def test_gps_config_schema_accepts_payload() -> None:
+  """GPS schema should accept typed configuration payloads."""
+
+  payload = {
+    "gps_source": "manual",
+    "gps_update_interval": 120,
+    "gps_accuracy_filter": 30.0,
+    "enable_geofencing": False,
+    "home_zone_radius": 100.0,
+  }
+
+  assert validate_json_schema_payload(payload, GPS_DOG_CONFIG_JSON_SCHEMA) == []
 
 
 def test_dog_modules_from_flow_input_flags() -> None:
