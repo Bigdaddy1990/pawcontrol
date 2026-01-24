@@ -19,3 +19,26 @@ Sprache. Sie wird automatisch durch `scripts/sync_localization_flags` gepflegt.
 | component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow | Flujo de opciones | Flux d'options |
 | component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen | Configuración del sistema | Paramètres système |
 <!-- END_SETUP_FLAGS_TABLE -->
+
+## Benachrichtigungen
+
+Die Diagnostik-Payload enthält unter `notifications.rejection_metrics` eine
+zusätzliche Zusammenfassung für Benachrichtigungs-Ablehnungen/Fehler. Die Werte
+werden aus dem `delivery_status` des Notification-Managers abgeleitet und
+erleichtern die Analyse von fehlerhaften oder abgelehnten Zustellungen pro
+Notify-Service.
+
+Felder:
+
+- `schema_version`: Version des Rejection-Schemas (aktuell `1`).
+- `total_services`: Anzahl der bekannten Notify-Services im Snapshot.
+- `total_failures`: Summe aller Fehlzustellungen über alle Services.
+- `services_with_failures`: Liste der Services mit mindestens einer
+  Fehlzustellung.
+- `service_failures`: Mapping `{service_name: total_failures}` je Service.
+- `service_consecutive_failures`: Mapping `{service_name: consecutive_failures}`
+  je Service.
+- `service_last_error_reasons`: Mapping `{service_name: last_error_reason}` je
+  Service (z. B. `missing_notify_service`, `service_not_executed`).
+- `service_last_errors`: Mapping `{service_name: last_error}` je Service (inkl.
+  Exception-Text, falls vorhanden).
