@@ -16,42 +16,21 @@ from .const import (
   MIN_GEOFENCE_RADIUS,
 )
 from .exceptions import ValidationError
+from .validation import InputCoercionError, coerce_float, coerce_int
 
 
 def _coerce_int(field: str, value: Any) -> int:
-  if isinstance(value, bool):
-    raise ValidationError(field, value, "timer_not_numeric")
-  if isinstance(value, int):
-    return value
-  if isinstance(value, float):
-    if value.is_integer():
-      return int(value)
-    raise ValidationError(field, value, "timer_not_numeric")
-  if isinstance(value, str):
-    stripped = value.strip()
-    if not stripped:
-      raise ValidationError(field, value, "timer_not_numeric")
-    try:
-      return int(stripped)
-    except ValueError as err:
-      raise ValidationError(field, value, "timer_not_numeric") from err
-  raise ValidationError(field, value, "timer_not_numeric")
+  try:
+    return coerce_int(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, "timer_not_numeric") from err
 
 
 def _coerce_float(field: str, value: Any) -> float:
-  if isinstance(value, bool):
-    raise ValidationError(field, value, "radius_not_numeric")
-  if isinstance(value, int | float):
-    return float(value)
-  if isinstance(value, str):
-    stripped = value.strip()
-    if not stripped:
-      raise ValidationError(field, value, "radius_not_numeric")
-    try:
-      return float(stripped)
-    except ValueError as err:
-      raise ValidationError(field, value, "radius_not_numeric") from err
-  raise ValidationError(field, value, "radius_not_numeric")
+  try:
+    return coerce_float(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, "radius_not_numeric") from err
 
 
 def validate_name(

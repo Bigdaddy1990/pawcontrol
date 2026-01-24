@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import cast
 
 from .const import (
@@ -33,6 +32,7 @@ from .types import (
   validate_dog_weight_for_size,
 )
 from .validators import validate_name
+from .validation import InputCoercionError, coerce_float, coerce_int, normalize_dog_id
 
 MAX_BREED_NAME_LENGTH = 100
 
@@ -48,43 +48,17 @@ def _map_name_error(err: ValidationError) -> str:
 
 
 def _coerce_int(field: str, value: object) -> int:
-  if isinstance(value, bool):
-    raise ValidationError(field, value, "Must be a whole number")
-  if isinstance(value, int):
-    return value
-  if isinstance(value, float):
-    if value.is_integer():
-      return int(value)
-    raise ValidationError(field, value, "Must be a whole number")
-  if isinstance(value, str):
-    stripped = value.strip()
-    if not stripped:
-      raise ValidationError(field, value, "Must be a whole number")
-    try:
-      return int(stripped)
-    except ValueError as err:
-      raise ValidationError(
-        field,
-        value,
-        "Must be a whole number",
-      ) from err
-  raise ValidationError(field, value, "Must be a whole number")
+  try:
+    return coerce_int(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, "Must be a whole number") from err
 
 
 def _coerce_float(field: str, value: object) -> float:
-  if isinstance(value, bool):
-    raise ValidationError(field, value, "Must be numeric")
-  if isinstance(value, int | float):
-    return float(value)
-  if isinstance(value, str):
-    stripped = value.strip()
-    if not stripped:
-      raise ValidationError(field, value, "Must be numeric")
-    try:
-      return float(stripped)
-    except ValueError as err:
-      raise ValidationError(field, value, "Must be numeric") from err
-  raise ValidationError(field, value, "Must be numeric")
+  try:
+    return coerce_float(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, "Must be numeric") from err
 
 
 def _validate_breed(raw_breed: object) -> str | None:
@@ -121,8 +95,11 @@ def validate_dog_setup_input(
   base_errors: list[str] = []
 
   raw_id = user_input.get(CONF_DOG_ID, "")
-  dog_id_raw = str(raw_id).strip().lower() if raw_id is not None else ""
-  dog_id = re.sub(r"\s+", "_", dog_id_raw)
+  try:
+    dog_id = normalize_dog_id(raw_id)
+  except InputCoercionError:
+    dog_id = ""
+    field_errors[CONF_DOG_ID] = "invalid_dog_id_format"
   if not dog_id:
     field_errors[CONF_DOG_ID] = "invalid_dog_id_format"
   elif len(dog_id) < 2:

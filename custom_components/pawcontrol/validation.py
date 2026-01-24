@@ -56,6 +56,114 @@ MIN_GEOFENCE_RADIUS: Final[float] = 5.0
 MAX_GEOFENCE_RADIUS: Final[float] = 5000.0
 
 
+class InputCoercionError(ValueError):
+  """Raised when raw input cannot be coerced to the expected type."""
+
+  def __init__(self, field: str, value: Any, message: str) -> None:
+    super().__init__(message)
+    self.field = field
+    self.value = value
+    self.message = message
+
+
+def normalize_dog_id(raw_id: Any) -> str:
+  """Normalize a dog identifier for flow and service validation."""
+
+  if raw_id is None:
+    return ""
+
+  if not isinstance(raw_id, str):
+    raise InputCoercionError("dog_id", raw_id, "Must be a string")
+
+  dog_id_raw = raw_id.strip().lower()
+  return re.sub(r"\s+", "_", dog_id_raw)
+
+
+def coerce_float(field: str, value: Any) -> float:
+  """Convert a value to float while raising typed coercion errors."""
+
+  if isinstance(value, bool):
+    raise InputCoercionError(field, value, "Must be numeric")
+
+  if isinstance(value, Real):
+    return float(value)
+
+  if isinstance(value, str):
+    stripped = value.strip()
+    if not stripped:
+      raise InputCoercionError(field, value, "Must be numeric")
+    try:
+      return float(stripped)
+    except ValueError as err:
+      raise InputCoercionError(
+        field,
+        value,
+        "Must be numeric",
+      ) from err
+
+  raise InputCoercionError(
+    field,
+    value,
+    "Must be numeric",
+  )
+
+
+def coerce_int(field: str, value: Any) -> int:
+  """Convert a value to int while validating fractional input."""
+
+  if isinstance(value, bool):
+    raise InputCoercionError(field, value, "Must be a whole number")
+
+  if isinstance(value, int):
+    return value
+
+  if isinstance(value, Real):
+    float_value = float(value)
+    if float_value.is_integer():
+      return int(float_value)
+    raise InputCoercionError(
+      field,
+      value,
+      "Must be a whole number",
+    )
+
+  if isinstance(value, str):
+    stripped = value.strip()
+    if not stripped:
+      raise InputCoercionError(
+        field,
+        value,
+        "Must be a whole number",
+      )
+
+    try:
+      return int(stripped)
+    except ValueError:
+      try:
+        float_value = float(stripped)
+      except ValueError as err:
+        raise InputCoercionError(
+          field,
+          value,
+          "Must be a whole number",
+        ) from err
+
+      if not float_value.is_integer():
+        raise InputCoercionError(
+          field,
+          value,
+          "Must be a whole number",
+        ) from None
+
+      return int(float_value)
+
+  raise InputCoercionError(
+    field,
+    value,
+    "Must be a whole number",
+  )
+
+
 class ValidationError(Exception):
   """Validation error with detailed context.
 
@@ -92,108 +200,41 @@ class ValidationError(Exception):
 def _coerce_float(field: str, value: Any) -> float:
   """Convert a value to float while providing helpful validation errors."""
 
-  if isinstance(value, bool):
+  try:
+    return coerce_float(field, value)
+  except InputCoercionError as err:
+    suggestion = (
+      "Use digits like 12.5 instead of true/false"
+      if isinstance(value, bool)
+      else "Provide a number such as 12.5"
+    )
     raise ValidationError(
       field,
       value,
       "Must be numeric",
-      "Use digits like 12.5 instead of true/false",
-    )
-
-  if isinstance(value, Real):
-    return float(value)
-
-  if isinstance(value, str):
-    stripped = value.strip()
-    if not stripped:
-      raise ValidationError(
-        field,
-        value,
-        "Must be numeric",
-        "Provide a number such as 12.5",
-      )
-    try:
-      return float(stripped)
-    except ValueError as err:
-      raise ValidationError(
-        field,
-        value,
-        "Must be numeric",
-        "Use digits with an optional decimal, for example 12.5",
-      ) from err
-
-  raise ValidationError(
-    field,
-    value,
-    "Must be numeric",
-    f"Received {type(value).__name__}",
-  )
+      suggestion,
+    ) from err
 
 
 def _coerce_int(field: str, value: Any) -> int:
   """Convert a value to int while validating fractional input."""
 
-  if isinstance(value, bool):
+  try:
+    return coerce_int(field, value)
+  except InputCoercionError as err:
+    suggestion = (
+      "Provide digits like 15 instead of true/false"
+      if isinstance(value, bool)
+      else "Provide digits such as 15"
+    )
+    if isinstance(value, Real) and not isinstance(value, int | bool):
+      suggestion = "Use digits without decimals, for example 15"
     raise ValidationError(
       field,
       value,
       "Must be a whole number",
-      "Provide digits like 15 instead of true/false",
-    )
-
-  if isinstance(value, int):
-    return value
-
-  if isinstance(value, Real):
-    float_value = float(value)
-    if float_value.is_integer():
-      return int(float_value)
-    raise ValidationError(
-      field,
-      value,
-      "Must be a whole number",
-      f"Received fractional value: {value}",
-    )
-
-  if isinstance(value, str):
-    stripped = value.strip()
-    if not stripped:
-      raise ValidationError(
-        field,
-        value,
-        "Must be a whole number",
-        "Provide digits such as 15",
-      )
-
-    try:
-      return int(stripped)
-    except ValueError:
-      try:
-        float_value = float(stripped)
-      except ValueError as err:
-        raise ValidationError(
-          field,
-          value,
-          "Must be a whole number",
-          "Use digits without decimals, for example 15",
-        ) from err
-
-      if not float_value.is_integer():
-        raise ValidationError(
-          field,
-          value,
-          "Must be a whole number",
-          f"Received fractional value: {float_value}",
-        ) from None
-
-      return int(float_value)
-
-  raise ValidationError(
-    field,
-    value,
-    "Must be a whole number",
-    f"Received {type(value).__name__}",
-  )
+      suggestion,
+    ) from err
 
 
 class InputValidator:

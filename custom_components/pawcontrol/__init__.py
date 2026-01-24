@@ -45,7 +45,12 @@ from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .door_sensor_manager import DoorSensorManager
 from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
+from .exceptions import (
+  ConfigEntryAuthFailed,
+  ConfigurationError,
+  PawControlSetupError,
+  ValidationError,
+)
 from .feeding_manager import FeedingManager
 from .garden_manager import GardenManager
 from .geofencing import PawControlGeofencing
@@ -539,7 +544,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
   Raises:
       compat.ConfigEntryNotReady: If setup prerequisites not met
-      compat.ConfigEntryAuthFailed: If authentication fails
+      ConfigEntryAuthFailed: If authentication fails
       PawControlSetupError: If setup validation fails
   """
   setup_start_time = time.time()
@@ -575,7 +580,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
   known_setup_errors: tuple[type[BaseException], ...] = (
     *not_ready_hierarchy,
-    compat.ConfigEntryAuthFailed,
+    ConfigEntryAuthFailed,
     PawControlSetupError,
   )
 
@@ -845,7 +850,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       raise not_ready_cls(
         f"Coordinator pre-setup timeout after {coordinator_setup_duration:.2f}s",
       ) from err
-    except compat.ConfigEntryAuthFailed:
+    except ConfigEntryAuthFailed:
       raise
     except (OSError, ConnectionError) as err:
       raise not_ready_cls(
@@ -882,7 +887,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       raise not_ready_cls(
         f"Coordinator initialization timeout after {coordinator_refresh_duration:.2f}s",
       ) from err
-    except compat.ConfigEntryAuthFailed:
+    except ConfigEntryAuthFailed:
       raise  # Re-raise auth failures directly
     except (OSError, ConnectionError) as err:
       raise not_ready_cls(
