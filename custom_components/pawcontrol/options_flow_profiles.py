@@ -28,9 +28,11 @@ from .types import (
   RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
   ConfigFlowPlaceholders,
   DogConfigData,
+  EntityProfileOptionsInput,
   JSONMutableMapping,
   JSONValue,
   MutableConfigFlowPlaceholders,
+  OptionsProfilePreviewInput,
   ProfileSelectionInput,
   clone_placeholders,
   ensure_dog_config_data,
@@ -66,7 +68,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
   async def async_step_entity_profiles(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: EntityProfileOptionsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure entity profiles for performance optimization.
 
@@ -126,7 +128,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
   def _get_entity_profiles_schema(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: EntityProfileOptionsInput | None = None,
   ) -> vol.Schema:
     """Get entity profiles schema with current values."""
     current_options = self._entry.options
@@ -467,7 +469,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
   async def async_step_profile_preview(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsProfilePreviewInput | None = None,
   ) -> ConfigFlowResult:
     """Show entity count preview for selected profile.
 

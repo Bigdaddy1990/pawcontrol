@@ -108,6 +108,7 @@ from .types import (
   ReconfigureOptionsUpdates,
   ReconfigureProfileInput,
   ReconfigureTelemetry,
+  AddAnotherDogInput,
   clone_placeholders,
   coerce_dog_modules_config,
   dog_modules_from_flow_input,
@@ -188,7 +189,7 @@ class PawControlConfigFlow(
 
   async def async_step_user(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ConfigFlowUserInput | None = None,
   ) -> ConfigFlowResult:
     """Handle initial step with enhanced uniqueness validation.
 
@@ -714,7 +715,7 @@ class PawControlConfigFlow(
 
   async def async_step_add_dog(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ConfigFlowUserInput | None = None,
   ) -> ConfigFlowResult:
     """Add a dog configuration with optimized validation.
 
@@ -967,7 +968,7 @@ class PawControlConfigFlow(
 
   async def async_step_dog_modules(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ConfigFlowUserInput | None = None,
   ) -> ConfigFlowResult:
     """Configure optional modules for the newly added dog.
 
@@ -1137,7 +1138,7 @@ class PawControlConfigFlow(
 
   async def async_step_add_another(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: AddAnotherDogInput | None = None,
   ) -> ConfigFlowResult:
     """Ask if user wants to add another dog with enhanced logic.
 
@@ -1200,7 +1201,7 @@ class PawControlConfigFlow(
 
   async def async_step_entity_profile(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ProfileSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select entity profile with performance guidance.
 
@@ -1287,7 +1288,7 @@ class PawControlConfigFlow(
 
   async def async_step_final_setup(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ConfigFlowUserInput | None = None,
   ) -> ConfigFlowResult:
     """Complete setup and create config entry with enhanced validation.
 
@@ -1575,7 +1576,7 @@ class PawControlConfigFlow(
 
   async def async_step_configure_modules(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ConfigFlowUserInput | None = None,
   ) -> ConfigFlowResult:
     """Update cached module summary before delegating to mixin."""
 
@@ -1584,7 +1585,7 @@ class PawControlConfigFlow(
 
   async def async_step_configure_dashboard(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ConfigFlowUserInput | None = None,
   ) -> ConfigFlowResult:
     """Delegate dashboard configuration to the dashboard mixin implementation."""
 
@@ -1592,7 +1593,7 @@ class PawControlConfigFlow(
 
   async def async_step_reconfigure(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ReconfigureProfileInput | None = None,
   ) -> ConfigFlowResult:
     """Handle reconfiguration with typed telemetry and validation."""
 
