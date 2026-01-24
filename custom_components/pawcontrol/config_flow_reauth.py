@@ -12,10 +12,10 @@ from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, ConfigEntryAuthFailed
+from .compat import ConfigEntry
 from .const import CONF_DOGS, CONF_MODULES
 from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import ReauthRequiredError, ValidationError
+from .exceptions import ConfigEntryAuthFailed, ReauthRequiredError, ValidationError
 from .types import (
   DOG_ID_FIELD,
   REAUTH_PLACEHOLDERS_TEMPLATE,

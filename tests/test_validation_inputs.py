@@ -24,7 +24,11 @@ validation = load_module(
 )
 
 InputValidator = validation.InputValidator
+InputCoercionError = validation.InputCoercionError
 ValidationError = validation.ValidationError
+coerce_float = validation.coerce_float
+coerce_int = validation.coerce_int
+normalize_dog_id = validation.normalize_dog_id
 
 
 def test_validate_gps_coordinates_success() -> None:
@@ -70,3 +74,23 @@ def test_validate_geofence_radius_bounds(radius: float, field: str) -> None:
     InputValidator.validate_geofence_radius(radius)
 
   assert err.value.field == field
+
+
+def test_normalize_dog_id_strips_and_normalizes() -> None:
+  assert normalize_dog_id("  My Pup  ") == "my_pup"
+
+
+def test_normalize_dog_id_rejects_non_string() -> None:
+  with pytest.raises(InputCoercionError):
+    normalize_dog_id(123)
+
+
+def test_coerce_helpers_reject_invalid_types() -> None:
+  assert coerce_int("age", "7") == 7
+  assert coerce_float("weight", "2.5") == pytest.approx(2.5)
+
+  with pytest.raises(InputCoercionError):
+    coerce_int("age", 2.5)
+
+  with pytest.raises(InputCoercionError):
+    coerce_float("weight", "")

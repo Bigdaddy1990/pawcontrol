@@ -13,13 +13,6 @@ from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-try:  # Home Assistant 2025.10 renamed CoordinatorUpdateFailed to UpdateFailed
-  from homeassistant.helpers.update_coordinator import UpdateFailed
-except ImportError:  # pragma: no cover - compatibility with older cores
-  from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed as UpdateFailed,
-  )
-
 from .const import (
   CONF_API_ENDPOINT,
   CONF_API_TOKEN,
@@ -67,7 +60,7 @@ from .coordinator_tasks import (
   shutdown as shutdown_tasks,
 )
 from .device_api import PawControlDeviceClient
-from .exceptions import ValidationError
+from .exceptions import UpdateFailed, ValidationError
 from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig

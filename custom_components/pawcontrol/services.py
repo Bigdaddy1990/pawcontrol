@@ -126,6 +126,7 @@ from .types import (
   ServiceExecutionResult,
 )
 from .utils import async_capture_service_guard_results, async_fire_event
+from .validation import InputCoercionError, normalize_dog_id
 from .walk_manager import WeatherCondition
 
 SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
@@ -1349,12 +1350,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
   ) -> tuple[str, DogConfigData]:
     """Validate and normalize a dog identifier for service handling."""
 
-    if not isinstance(raw_dog_id, str):
+    try:
+      dog_id = normalize_dog_id(raw_dog_id)
+    except InputCoercionError as err:
       raise _service_validation_error(
         "dog_id must be provided as a string",
-      )
+      ) from err
 
-    dog_id = raw_dog_id.strip()
     if not dog_id:
       raise _service_validation_error(
         "dog_id must be a non-empty string",

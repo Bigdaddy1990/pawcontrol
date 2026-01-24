@@ -12,19 +12,7 @@ from datetime import UTC, datetime
 from statistics import fmean
 from typing import cast
 
-from .compat import ConfigEntryAuthFailed
-
-try:  # pragma: no cover - exercised when Home Assistant provides the helper
-  from homeassistant.helpers.update_coordinator import (
-    UpdateFailed as _UpdateFailedType,
-  )
-except ImportError:  # pragma: no cover - support legacy naming
-  try:
-    from homeassistant.helpers.update_coordinator import (
-      CoordinatorUpdateFailed as _UpdateFailedType,
-    )
-  except (ImportError, ModuleNotFoundError):
-    _UpdateFailedType = cast(type[Exception], RuntimeError)
+from .exceptions import ConfigEntryAuthFailed, UpdateFailed
 
 
 try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
@@ -62,8 +50,7 @@ from .types import (
   ensure_dog_modules_mapping,
 )
 
-UpdateFailed = _UpdateFailedType
-CoordinatorUpdateFailed = _UpdateFailedType
+CoordinatorUpdateFailed = UpdateFailed
 
 API_TIMEOUT = 30.0
 

@@ -38,6 +38,21 @@ else:  # pragma: no cover - fallback when Home Assistant isn't installed
     from .compat import HomeAssistantError as HomeAssistantErrorType
 
 try:
+  from homeassistant.exceptions import ConfigEntryAuthFailed as _AuthFailedType
+except ModuleNotFoundError:  # pragma: no cover - fallback for tests
+  from .compat import ConfigEntryAuthFailed as _AuthFailedType
+
+try:  # Home Assistant 2025.10 renamed CoordinatorUpdateFailed to UpdateFailed
+  from homeassistant.helpers.update_coordinator import UpdateFailed as _UpdateFailedType
+except ImportError:  # pragma: no cover - compatibility with older cores
+  try:
+    from homeassistant.helpers.update_coordinator import (
+      CoordinatorUpdateFailed as _UpdateFailedType,
+    )
+  except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback
+    _UpdateFailedType = cast(type[Exception], RuntimeError)
+
+try:
   from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
@@ -52,6 +67,10 @@ from .types import ErrorContext, ErrorPayload, GPSLocation, JSONValue
 
 P = ParamSpec("P")
 T = TypeVar("T")
+
+ConfigEntryAuthFailed = _AuthFailedType
+UpdateFailed = _UpdateFailedType
+CoordinatorUpdateFailed = _UpdateFailedType
 
 
 class ErrorSeverity(Enum):
