@@ -52,6 +52,9 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
+from custom_components.pawcontrol.flows.gps import (
+  _build_dog_gps_placeholders as _build_dog_gps_placeholders_impl,
+)
 from custom_components.pawcontrol.types import (
   ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
   ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
@@ -197,6 +200,12 @@ def _build_dog_feeding_placeholders(
   placeholders["suggested_amount"] = suggested_amount
   placeholders["portion_info"] = portion_info
   return freeze_placeholders(placeholders)
+
+
+def _build_dog_gps_placeholders(*, dog_name: str) -> ConfigFlowPlaceholders:
+  """Return immutable placeholders for the GPS configuration step."""
+
+  return _build_dog_gps_placeholders_impl(dog_name=dog_name)
 
 
 def _build_add_another_summary_placeholders(

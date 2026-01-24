@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import pytest
-from homeassistant.core import HomeAssistant  # Add this import
-from custom_components.pawcontrol import async_remove_config_entry_device
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntry
+
+from custom_components.pawcontrol.__init__ import async_remove_config_entry_device
 from custom_components.pawcontrol.const import CONF_DOGS, DOMAIN
 from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 from custom_components.pawcontrol.utils import (
   async_get_or_create_dog_device_entry,
   sanitize_dog_id,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.device_registry import DeviceEntry
 
 
 @pytest.mark.asyncio
@@ -76,9 +76,6 @@ async def test_async_get_or_create_dog_device_entry_updates_metadata(
 ) -> None:
   """Verify dog devices are created and updated dynamically."""
 
-  registry = dr.async_get(hass)
-  registry.devices.clear()
-
   device = await async_get_or_create_dog_device_entry(
     hass,
     config_entry_id="entry-1",
@@ -121,3 +118,6 @@ async def test_async_get_or_create_dog_device_entry_updates_metadata(
   assert updated.name == "Fido"
   assert updated.serial_number == "SN-123"
   assert updated.hw_version == "HW-1"
+  assert (DOMAIN, sanitize_dog_id("Fido 99")) in updated.identifiers
+  assert ("external", "ext-42") in updated.identifiers
+  assert ("microchip", "ABC123") in updated.identifiers
