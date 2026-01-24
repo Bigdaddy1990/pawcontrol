@@ -54,3 +54,35 @@ def test_validate_dog_setup_rejects_non_string_dog_id() -> None:
     )
 
   assert err.value.field_errors[CONF_DOG_ID] == "invalid_dog_id_format"
+
+
+def test_validate_dog_setup_rejects_invalid_weight() -> None:
+  user_input = _valid_dog_input()
+  user_input[CONF_DOG_WEIGHT] = "heavy"
+
+  with pytest.raises(FlowValidationError) as err:
+    validate_dog_setup_input(
+      user_input,
+      existing_ids=set(),
+      existing_names=set(),
+      current_dog_count=0,
+      max_dogs=3,
+    )
+
+  assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"
+
+
+def test_validate_dog_setup_rejects_duplicate_name() -> None:
+  user_input = _valid_dog_input()
+  user_input[CONF_DOG_NAME] = "Buddy"
+
+  with pytest.raises(FlowValidationError) as err:
+    validate_dog_setup_input(
+      user_input,
+      existing_ids=set(),
+      existing_names={"buddy"},
+      current_dog_count=0,
+      max_dogs=3,
+    )
+
+  assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"

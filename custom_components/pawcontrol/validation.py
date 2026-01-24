@@ -16,6 +16,7 @@ from typing import Any, Final, cast
 
 from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+from .exceptions import ValidationError as PawControlValidationError
 
 ensure_homeassistant_exception_symbols()
 ServiceValidationError: type[Exception] = cast(
@@ -23,6 +24,8 @@ ServiceValidationError: type[Exception] = cast(
   compat.ServiceValidationError,
 )
 bind_exception_alias("ServiceValidationError")
+
+ValidationError = PawControlValidationError
 
 # Validation constants
 VALID_DOG_ID_PATTERN: Final[str] = r"^[a-zA-Z0-9_-]{1,50}$"
@@ -164,55 +167,16 @@ def coerce_int(field: str, value: Any) -> int:
   )
 
 
-class ValidationError(Exception):
-  """Validation error with detailed context.
-
-  Provides structured error information for debugging and user feedback.
-  """
-
-  def __init__(
-    self,
-    field: str,
-    value: Any,
-    constraint: str,
-    suggestion: str | None = None,
-  ) -> None:
-    """Initialize validation error.
-
-    Args:
-        field: Field name that failed validation
-        value: Value that was provided
-        constraint: Description of the validation constraint
-        suggestion: Optional suggestion for fixing the error
-    """
-    self.field = field
-    self.value = value
-    self.constraint = constraint
-    self.suggestion = suggestion
-
-    message = f"Validation failed for '{field}': {constraint}"
-    if suggestion:
-      message += f". {suggestion}"
-
-    super().__init__(message)
-
-
 def _coerce_float(field: str, value: Any) -> float:
   """Convert a value to float while providing helpful validation errors."""
 
   try:
     return coerce_float(field, value)
   except InputCoercionError as err:
-    suggestion = (
-      "Use digits like 12.5 instead of true/false"
-      if isinstance(value, bool)
-      else "Provide a number such as 12.5"
-    )
     raise ValidationError(
       field,
       value,
       "Must be numeric",
-      suggestion,
     ) from err
 
 
@@ -222,19 +186,190 @@ def _coerce_int(field: str, value: Any) -> int:
   try:
     return coerce_int(field, value)
   except InputCoercionError as err:
-    suggestion = (
-      "Provide digits like 15 instead of true/false"
-      if isinstance(value, bool)
-      else "Provide digits such as 15"
-    )
-    if isinstance(value, Real) and not isinstance(value, int | bool):
-      suggestion = "Use digits without decimals, for example 15"
     raise ValidationError(
       field,
       value,
       "Must be a whole number",
-      suggestion,
     ) from err
+
+
+def validate_dog_name(
+  name: Any,
+  *,
+  required: bool = True,
+  min_length: int = 1,
+  max_length: int = 100,
+) -> str | None:
+  """Validate dog name input and return a trimmed value."""
+
+  if name is None or name == "":
+    if required:
+      raise ValidationError(
+        "dog_name",
+        name,
+        "Dog name is required",
+      )
+    return None
+
+  if not isinstance(name, str):
+    raise ValidationError(
+      "dog_name",
+      name,
+      "Must be a string",
+    )
+
+  trimmed = name.strip()
+  if not trimmed:
+    if required:
+      raise ValidationError(
+        "dog_name",
+        name,
+        "Cannot be empty",
+      )
+    return None
+
+  if len(trimmed) < min_length:
+    raise ValidationError(
+      "dog_name",
+      trimmed,
+      f"Minimum length is {min_length} characters",
+      min_value=min_length,
+    )
+
+  if len(trimmed) > max_length:
+    raise ValidationError(
+      "dog_name",
+      trimmed,
+      f"Maximum length is {max_length} characters",
+      max_value=max_length,
+    )
+
+  return trimmed
+
+
+def validate_coordinate(
+  value: Any,
+  *,
+  field: str,
+  minimum: float,
+  maximum: float,
+  required: bool = True,
+) -> float | None:
+  """Validate a single coordinate within bounds."""
+
+  if value is None:
+    if required:
+      raise ValidationError(
+        field,
+        value,
+        "Coordinate is required",
+      )
+    return None
+
+  coordinate = _coerce_float(field, value)
+  if coordinate < minimum or coordinate > maximum:
+    raise ValidationError(
+      field,
+      coordinate,
+      f"Must be between {minimum} and {maximum}",
+      min_value=minimum,
+      max_value=maximum,
+    )
+  return coordinate
+
+
+def validate_interval(
+  value: Any,
+  *,
+  field: str,
+  minimum: int,
+  maximum: int,
+  default: int | None = None,
+  clamp: bool = False,
+  required: bool = False,
+) -> int:
+  """Validate timer/interval values within bounds."""
+
+  if value is None:
+    if default is not None:
+      return default
+    if required:
+      raise ValidationError(
+        field,
+        value,
+        "Interval is required",
+      )
+    return minimum if clamp else 0
+
+  interval = _coerce_int(field, value)
+  if interval < minimum:
+    if clamp:
+      return minimum
+    raise ValidationError(
+      field,
+      interval,
+      f"Minimum interval is {minimum}",
+      min_value=minimum,
+      max_value=maximum,
+    )
+  if interval > maximum:
+    if clamp:
+      return maximum
+    raise ValidationError(
+      field,
+      interval,
+      f"Maximum interval is {maximum}",
+      min_value=minimum,
+      max_value=maximum,
+    )
+  return interval
+
+
+def validate_float_range(
+  value: Any,
+  *,
+  field: str,
+  minimum: float,
+  maximum: float,
+  default: float | None = None,
+  clamp: bool = False,
+  required: bool = False,
+) -> float:
+  """Validate a floating-point range within bounds."""
+
+  if value is None:
+    if default is not None:
+      return default
+    if required:
+      raise ValidationError(
+        field,
+        value,
+        "Value is required",
+      )
+    return minimum if clamp else 0.0
+
+  candidate = _coerce_float(field, value)
+  if candidate < minimum:
+    if clamp:
+      return minimum
+    raise ValidationError(
+      field,
+      candidate,
+      f"Minimum value is {minimum}",
+      min_value=minimum,
+      max_value=maximum,
+    )
+  if candidate > maximum:
+    if clamp:
+      return maximum
+    raise ValidationError(
+      field,
+      candidate,
+      f"Maximum value is {maximum}",
+      min_value=minimum,
+      max_value=maximum,
+    )
+  return candidate
 
 
 class InputValidator:
@@ -320,45 +455,12 @@ class InputValidator:
     Raises:
         ValidationError: If validation fails
     """
-    if name is None or name == "":
-      if required:
-        raise ValidationError(
-          "dog_name",
-          name,
-          "Dog name is required",
-          "Provide a display name for the dog",
-        )
-      return None
-
-    if not isinstance(name, str):
-      raise ValidationError(
-        "dog_name",
-        name,
-        "Must be a string",
-        f"Received {type(name).__name__}",
-      )
-
-    name = name.strip()
-
-    if not name:
-      if required:
-        raise ValidationError(
-          "dog_name",
-          name,
-          "Cannot be empty",
-          "Provide a display name",
-        )
-      return None
-
-    if len(name) > 100:
-      raise ValidationError(
-        "dog_name",
-        name,
-        "Maximum 100 characters",
-        f"Current length: {len(name)}",
-      )
-
-    return name
+    return validate_dog_name(
+      name,
+      required=required,
+      min_length=1,
+      max_length=100,
+    )
 
   @staticmethod
   def validate_weight(
@@ -487,42 +589,19 @@ class InputValidator:
     Raises:
         ValidationError: If validation fails
     """
-    if latitude is None:
-      raise ValidationError(
-        "latitude",
-        latitude,
-        "Latitude is required",
-        "Provide GPS latitude coordinate",
-      )
-
-    if longitude is None:
-      raise ValidationError(
-        "longitude",
-        longitude,
-        "Longitude is required",
-        "Provide GPS longitude coordinate",
-      )
-
-    latitude = _coerce_float("latitude", latitude)
-    longitude = _coerce_float("longitude", longitude)
-
-    if not MIN_LATITUDE <= latitude <= MAX_LATITUDE:
-      raise ValidationError(
-        "latitude",
-        latitude,
-        f"Must be between {MIN_LATITUDE} and {MAX_LATITUDE}",
-        f"Provided: {latitude}",
-      )
-
-    if not MIN_LONGITUDE <= longitude <= MAX_LONGITUDE:
-      raise ValidationError(
-        "longitude",
-        longitude,
-        f"Must be between {MIN_LONGITUDE} and {MAX_LONGITUDE}",
-        f"Provided: {longitude}",
-      )
-
-    return latitude, longitude
+    latitude = validate_coordinate(
+      latitude,
+      field="latitude",
+      minimum=MIN_LATITUDE,
+      maximum=MAX_LATITUDE,
+    )
+    longitude = validate_coordinate(
+      longitude,
+      field="longitude",
+      minimum=MIN_LONGITUDE,
+      maximum=MAX_LONGITUDE,
+    )
+    return cast(float, latitude), cast(float, longitude)
 
   @staticmethod
   def validate_gps_accuracy(
@@ -762,29 +841,16 @@ class InputValidator:
           "duration",
           duration,
           "Duration is required",
-          "Provide duration in minutes",
         )
       return None
 
-    duration = _coerce_int("duration", duration)
-
-    if duration < min_minutes:
-      raise ValidationError(
-        "duration",
-        duration,
-        f"Minimum duration: {min_minutes} minutes",
-        f"Provided: {duration} minutes",
-      )
-
-    if duration > max_minutes:
-      raise ValidationError(
-        "duration",
-        duration,
-        f"Maximum duration: {max_minutes} minutes ({max_minutes // 60} hours)",
-        f"Provided: {duration} minutes - unusually long",
-      )
-
-    return duration
+    return validate_interval(
+      duration,
+      field="duration",
+      minimum=min_minutes,
+      maximum=max_minutes,
+      required=required,
+    )
 
   @staticmethod
   def validate_geofence_radius(

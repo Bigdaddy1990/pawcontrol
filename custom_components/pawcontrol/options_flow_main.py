@@ -47,7 +47,7 @@ from .const import (
   MANUAL_EVENT_SOURCE_CANONICAL,
 )
 from .entity_factory import EntityFactory
-from .exceptions import FlowValidationError
+from .exceptions import FlowValidationError, ValidationError
 from .language import normalize_language
 from .options_flow_dogs_management import DogManagementOptionsMixin
 from .options_flow_door_sensor import DoorSensorOptionsMixin
@@ -93,6 +93,7 @@ from .types import (
   ensure_json_mapping,
   ensure_notification_options,
 )
+from .validation import validate_float_range, validate_interval
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -263,38 +264,82 @@ class PawControlOptionsFlow(
     gps_settings: GPSOptions | None = None
 
     def _normalise_gps_settings(raw: Mapping[str, JSONValue]) -> GPSOptions:
+      def _safe_interval(
+        value: JSONValue | None,
+        *,
+        default: int,
+        minimum: int,
+        maximum: int,
+        field: str,
+      ) -> int:
+        try:
+          return validate_interval(
+            value,
+            field=field,
+            minimum=minimum,
+            maximum=maximum,
+            default=default,
+            clamp=True,
+          )
+        except ValidationError:
+          return default
+
+      def _safe_float_range(
+        value: JSONValue | None,
+        *,
+        default: float,
+        minimum: float,
+        maximum: float,
+        field: str,
+      ) -> float:
+        try:
+          return validate_float_range(
+            value,
+            field=field,
+            minimum=minimum,
+            maximum=maximum,
+            default=default,
+            clamp=True,
+          )
+        except ValidationError:
+          return default
+
       payload: GPSOptions = {
         GPS_ENABLED_FIELD: self._coerce_bool(
           raw.get(GPS_ENABLED_FIELD),
           True,
         ),
-        GPS_UPDATE_INTERVAL_FIELD: self._coerce_clamped_int(
+        GPS_UPDATE_INTERVAL_FIELD: _safe_interval(
           raw.get(GPS_UPDATE_INTERVAL_FIELD),
-          DEFAULT_GPS_UPDATE_INTERVAL,
+          default=DEFAULT_GPS_UPDATE_INTERVAL,
           minimum=5,
           maximum=600,
+          field=GPS_UPDATE_INTERVAL_FIELD,
         ),
-        GPS_ACCURACY_FILTER_FIELD: self._coerce_clamped_float(
+        GPS_ACCURACY_FILTER_FIELD: _safe_float_range(
           raw.get(GPS_ACCURACY_FILTER_FIELD),
-          float(DEFAULT_GPS_ACCURACY_FILTER),
+          default=float(DEFAULT_GPS_ACCURACY_FILTER),
           minimum=5.0,
           maximum=500.0,
+          field=GPS_ACCURACY_FILTER_FIELD,
         ),
-        GPS_DISTANCE_FILTER_FIELD: self._coerce_clamped_float(
+        GPS_DISTANCE_FILTER_FIELD: _safe_float_range(
           raw.get(GPS_DISTANCE_FILTER_FIELD),
-          float(DEFAULT_GPS_DISTANCE_FILTER),
+          default=float(DEFAULT_GPS_DISTANCE_FILTER),
           minimum=1.0,
           maximum=2000.0,
+          field=GPS_DISTANCE_FILTER_FIELD,
         ),
         ROUTE_RECORDING_FIELD: self._coerce_bool(
           raw.get(ROUTE_RECORDING_FIELD),
           True,
         ),
-        ROUTE_HISTORY_DAYS_FIELD: self._coerce_clamped_int(
+        ROUTE_HISTORY_DAYS_FIELD: _safe_interval(
           raw.get(ROUTE_HISTORY_DAYS_FIELD),
-          30,
+          default=30,
           minimum=1,
           maximum=365,
+          field=ROUTE_HISTORY_DAYS_FIELD,
         ),
         AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
           raw.get(AUTO_TRACK_WALKS_FIELD),
