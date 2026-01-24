@@ -29,6 +29,8 @@ from .config_flow_dashboard_extension import DashboardFlowMixin
 from .config_flow_discovery import DiscoveryFlowMixin
 from .config_flow_dogs import DogManagementMixin
 from .config_flow_external import ExternalEntityConfigurationMixin
+from .config_flow_gps import GPSModuleDefaultsMixin
+from .config_flow_health import HealthSummaryMixin
 from .config_flow_modules import ModuleConfigurationMixin
 from .config_flow_monitor import config_flow_monitor, timed_operation
 from .config_flow_placeholders import (
@@ -55,11 +57,7 @@ from .const import (
   DEFAULT_DATA_RETENTION_DAYS,
   DEFAULT_PERFORMANCE_MODE,
   DOMAIN,
-  MODULE_FEEDING,
   MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
 )
 from .entity_factory import ENTITY_PROFILES, EntityFactory, EntityProfileDefinition
 from .exceptions import (
@@ -154,9 +152,11 @@ class PawControlConfigFlow(
   ModuleConfigurationMixin,
   DashboardFlowMixin,
   ExternalEntityConfigurationMixin,
+  GPSModuleDefaultsMixin,
   DogGPSFlowMixin,
   DogHealthFlowMixin,
   DogManagementMixin,
+  HealthSummaryMixin,
   ReauthFlowMixin,
   PawControlBaseConfigFlow,
 ):
@@ -1064,79 +1064,6 @@ class PawControlConfigFlow(
       ),
     )
 
-  def _get_enhanced_modules_schema(self, dog_config: DogConfigData) -> vol.Schema:
-    """Get enhanced modules schema with smart defaults.
-
-    Args:
-        dog_config: Dog configuration
-
-    Returns:
-        Enhanced modules schema
-    """
-    # Smart defaults based on discovery info or dog characteristics
-    defaults = {
-      MODULE_FEEDING: True,
-      MODULE_WALK: True,
-      MODULE_HEALTH: True,
-      MODULE_GPS: self._should_enable_gps(dog_config),
-      MODULE_NOTIFICATIONS: True,
-    }
-
-    return vol.Schema(
-      {
-        vol.Optional(
-          MODULE_FEEDING,
-          default=defaults[MODULE_FEEDING],
-        ): cv.boolean,
-        vol.Optional(MODULE_WALK, default=defaults[MODULE_WALK]): cv.boolean,
-        vol.Optional(
-          MODULE_HEALTH,
-          default=defaults[MODULE_HEALTH],
-        ): cv.boolean,
-        vol.Optional(MODULE_GPS, default=defaults[MODULE_GPS]): cv.boolean,
-        vol.Optional(
-          MODULE_NOTIFICATIONS,
-          default=defaults[MODULE_NOTIFICATIONS],
-        ): cv.boolean,
-      },
-    )
-
-  def _should_enable_gps(self, dog_config: DogConfigData) -> bool:
-    """Determine if GPS should be enabled by default.
-
-    Args:
-        dog_config: Dog configuration
-
-    Returns:
-        True if GPS should be enabled by default
-    """
-    # Enable GPS for discovered devices or large dogs
-    if self._discovery_info:
-      return True
-
-    dog_size = dog_config.get("dog_size", "medium")
-    return dog_size in {"large", "giant"}
-
-  def _get_smart_module_defaults(self, dog_config: DogConfigData) -> str:
-    """Get explanation for smart module defaults.
-
-    Args:
-        dog_config: Dog configuration
-
-    Returns:
-        Explanation text
-    """
-    reasons = []
-
-    if self._discovery_info:
-      reasons.append("GPS enabled due to discovered tracking device")
-
-    dog_size = dog_config.get("dog_size", "medium")
-    if dog_size in {"large", "giant"}:
-      reasons.append("GPS recommended for larger dogs")
-
-    return "; ".join(reasons) if reasons else "Standard defaults applied"
-
   async def async_step_add_another(
     self,
     user_input: AddAnotherDogInput | None = None,
@@ -1977,29 +1904,6 @@ class PawControlConfigFlow(
       else parsed.astimezone()
     )
     return local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
-
-  def _summarise_health_summary(self, summary: Any) -> str:
-    """Convert a health summary mapping into a user-facing string."""
-
-    if not isinstance(summary, Mapping):
-      return "No recent health summary"
-
-    healthy = bool(summary.get("healthy", True))
-    issues = self._normalise_string_list(summary.get("issues"))
-    warnings = self._normalise_string_list(summary.get("warnings"))
-
-    if healthy and not issues and not warnings:
-      return "Healthy"
-
-    segments: list[str] = []
-    if not healthy:
-      segments.append("Issues detected")
-    if issues:
-      segments.append(f"Issues: {', '.join(issues)}")
-    if warnings:
-      segments.append(f"Warnings: {', '.join(warnings)}")
-
-    return " | ".join(segments)
 
   def _normalise_entry_dogs(self, entry: ConfigEntry) -> list[DogConfigData]:
     """Normalise raw dog payloads from a config entry to typed dictionaries."""
