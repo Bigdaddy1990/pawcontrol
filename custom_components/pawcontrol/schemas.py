@@ -147,12 +147,11 @@ def _validate_schema_property(
 ) -> list[SchemaViolation]:
   violations: list[SchemaViolation] = []
   expected_type = schema.get("type")
-  if expected_type is not None:
-    if not _matches_type(value, expected_type):
-      violations.append(
-        SchemaViolation(field=key, value=value, constraint="type"),
-      )
-      return violations
+  if expected_type is not None and not _matches_type(value, expected_type):
+    violations.append(
+      SchemaViolation(field=key, value=value, constraint="type"),
+    )
+    return violations
 
   if "enum" in schema and value not in schema["enum"]:
     violations.append(SchemaViolation(field=key, value=value, constraint="enum"))
