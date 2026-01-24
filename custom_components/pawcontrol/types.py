@@ -1043,20 +1043,20 @@ MODULE_TOGGLE_FLAG_BY_KEY: Final[dict[ModuleToggleKey, ModuleToggleFlowFlag]] = 
 }
 
 
-class DogModuleSelectionInput(TypedDict, total=False):
+class DogModuleSelectionInput(TypedDict):
   """Raw module toggle payload collected during per-dog setup."""
 
-  enable_feeding: bool
-  enable_walk: bool
-  enable_health: bool
-  enable_gps: bool
-  enable_garden: bool
-  enable_notifications: bool
-  enable_dashboard: bool
-  enable_visitor: bool
-  enable_grooming: bool
-  enable_medication: bool
-  enable_training: bool
+  enable_feeding: NotRequired[bool]
+  enable_walk: NotRequired[bool]
+  enable_health: NotRequired[bool]
+  enable_gps: NotRequired[bool]
+  enable_garden: NotRequired[bool]
+  enable_notifications: NotRequired[bool]
+  enable_dashboard: NotRequired[bool]
+  enable_visitor: NotRequired[bool]
+  enable_grooming: NotRequired[bool]
+  enable_medication: NotRequired[bool]
+  enable_training: NotRequired[bool]
 
 
 FeedingConfigKey = Literal[
@@ -2346,13 +2346,13 @@ class DiscoveryUpdatePayload(TypedDict, total=False):
   address: str
 
 
-class DiscoveryConfirmInput(TypedDict, total=False):
+class DiscoveryConfirmInput(TypedDict):
   """Form payload submitted when the user confirms discovery."""
 
   confirm: bool
 
 
-class ProfileSelectionInput(TypedDict, total=False):
+class ProfileSelectionInput(TypedDict):
   """User input captured when selecting an entity profile."""
 
   entity_profile: str
@@ -2365,10 +2365,10 @@ class ProfileSelectorOption(TypedDict):
   label: str
 
 
-class EntityProfileOptionsInput(ProfileSelectionInput, total=False):
+class EntityProfileOptionsInput(ProfileSelectionInput):
   """Options flow payload for selecting an entity profile."""
 
-  preview_estimate: bool
+  preview_estimate: NotRequired[bool]
 
 
 class IntegrationNameValidationResult(TypedDict):
@@ -2467,28 +2467,35 @@ class DashboardSetupConfig(TypedDict, total=False):
   refresh_interval: int
 
 
-class DashboardConfigurationStepInput(TypedDict, total=False):
+class DashboardConfigurationStepInput(TypedDict):
   """Raw dashboard configuration payload received from the UI step."""
 
-  auto_create_dashboard: bool
-  create_per_dog_dashboards: bool
-  dashboard_theme: str
-  dashboard_template: str
-  dashboard_mode: DashboardMode
-  show_statistics: bool
-  show_maps: bool
-  show_health_charts: bool
-  show_feeding_schedule: bool
-  show_alerts: bool
-  compact_mode: bool
-  auto_refresh: bool
-  refresh_interval: int
+  auto_create_dashboard: NotRequired[bool]
+  create_per_dog_dashboards: NotRequired[bool]
+  dashboard_theme: NotRequired[str]
+  dashboard_template: NotRequired[str]
+  dashboard_mode: NotRequired[DashboardMode]
+  show_statistics: NotRequired[bool]
+  show_maps: NotRequired[bool]
+  show_health_charts: NotRequired[bool]
+  show_feeding_schedule: NotRequired[bool]
+  show_alerts: NotRequired[bool]
+  compact_mode: NotRequired[bool]
+  auto_refresh: NotRequired[bool]
+  refresh_interval: NotRequired[int]
 
 
-class AddAnotherDogInput(TypedDict, total=False):
+class AddAnotherDogInput(TypedDict):
   """Payload for yes/no "add another dog" prompts in flows."""
 
-  add_another: bool
+  add_another: NotRequired[bool]
+
+
+ManualEventField = Literal[
+  "manual_check_event",
+  "manual_guard_event",
+  "manual_breaker_event",
+]
 
 
 type OptionsMainMenuAction = Literal[
@@ -2509,7 +2516,7 @@ type OptionsMainMenuAction = Literal[
 """Supported menu actions for the options flow root menu."""
 
 
-class OptionsMainMenuInput(TypedDict, total=False):
+class OptionsMainMenuInput(TypedDict):
   """Menu selection payload for the options flow root."""
 
   action: OptionsMainMenuAction
@@ -2526,39 +2533,39 @@ type OptionsMenuAction = Literal[
 """Supported menu actions for the options flow dog management step."""
 
 
-class OptionsMenuInput(TypedDict, total=False):
+class OptionsMenuInput(TypedDict):
   """Menu selection payload for the dog management options menu."""
 
   action: OptionsMenuAction
 
 
-class OptionsDogSelectionInput(TypedDict, total=False):
+class OptionsDogSelectionInput(TypedDict):
   """Payload used when selecting a dog in the options flow."""
 
   dog_id: str
 
 
-class OptionsDogRemovalInput(OptionsDogSelectionInput, total=False):
+class OptionsDogRemovalInput(OptionsDogSelectionInput):
   """Payload used when confirming dog removal in the options flow."""
 
   confirm_remove: bool
 
 
-class OptionsDogEditInput(TypedDict, total=False):
+class OptionsDogEditInput(TypedDict):
   """Payload for editing dog metadata in the options flow."""
 
-  dog_name: str
-  dog_breed: str
-  dog_age: int | float | str | None
-  dog_weight: int | float | str | None
-  dog_size: str | None
+  dog_name: NotRequired[str]
+  dog_breed: NotRequired[str]
+  dog_age: NotRequired[int | float | str | None]
+  dog_weight: NotRequired[int | float | str | None]
+  dog_size: NotRequired[str | None]
 
 
-class OptionsProfilePreviewInput(TypedDict, total=False):
+class OptionsProfilePreviewInput(TypedDict):
   """Payload used for profile preview interactions in the options flow."""
 
   profile: str
-  apply_profile: bool
+  apply_profile: NotRequired[bool]
 
 
 class OptionsPerformanceSettingsInput(TypedDict, total=False):
@@ -2975,7 +2982,7 @@ class ReauthOptionsUpdates(TypedDict, total=False):
   last_reauth_summary: str
 
 
-class ReauthConfirmInput(TypedDict, total=False):
+class ReauthConfirmInput(TypedDict):
   """Schema-constrained payload submitted by the reauth confirmation form."""
 
   confirm: bool
@@ -3092,16 +3099,16 @@ class DogValidationCacheEntry(TypedDict):
   state_signature: NotRequired[str]
 
 
-class DogSetupStepInput(TypedDict, total=False):
+class DogSetupStepInput(TypedDict):
   """Minimal dog setup fields collected during the primary form."""
 
   dog_id: Required[str]
   dog_name: Required[str]
-  dog_breed: str | None
-  dog_age: int | float | None
-  dog_weight: float | int | None
-  dog_size: str | None
-  weight: float | int | str | None
+  dog_breed: NotRequired[str | None]
+  dog_age: NotRequired[int | float | None]
+  dog_weight: NotRequired[float | int | None]
+  dog_size: NotRequired[str | None]
+  weight: NotRequired[float | int | str | None]
 
 
 MODULE_CONFIGURATION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
