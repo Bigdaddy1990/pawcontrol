@@ -6,7 +6,7 @@ import json
 import logging
 from collections.abc import Mapping
 from pathlib import Path  # noqa: F401
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -21,10 +21,32 @@ from .types import (
   freeze_placeholders,
 )
 
+if TYPE_CHECKING:
+  from .compat import ConfigEntry
+
 _LOGGER = logging.getLogger(__name__)
 
 
-class ImportExportOptionsMixin:
+if TYPE_CHECKING:
+
+  class ImportExportOptionsHost(Protocol):
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+
+    @property
+    def _entry(self) -> ConfigEntry: ...
+    hass: Any
+
+    def __getattr__(self, name: str) -> Any: ...
+
+else:  # pragma: no cover
+  ImportExportOptionsHost = object
+
+
+class ImportExportOptionsMixin(ImportExportOptionsHost):
+  _current_dog: DogConfigData | None
+  _dogs: list[DogConfigData]
+
   async def async_step_import_export(
     self,
     user_input: dict[str, Any] | None = None,

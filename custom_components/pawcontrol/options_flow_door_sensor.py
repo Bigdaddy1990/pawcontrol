@@ -6,7 +6,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import asdict
 from importlib import import_module
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -31,12 +31,16 @@ from .types import (
   DEFAULT_DOOR_SENSOR_SETTINGS,
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
+  DogConfigData,
   DoorSensorSettingsPayload,
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
   ensure_dog_config_data,
 )
+
+if TYPE_CHECKING:
+  from .compat import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,7 +71,26 @@ def _resolve_async_create_issue():
   return async_create_issue
 
 
-class DoorSensorOptionsMixin:
+if TYPE_CHECKING:
+
+  class DoorSensorOptionsHost(Protocol):
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+
+    @property
+    def _entry(self) -> ConfigEntry: ...
+    hass: Any
+
+    def __getattr__(self, name: str) -> Any: ...
+
+else:  # pragma: no cover
+  DoorSensorOptionsHost = object
+
+
+class DoorSensorOptionsMixin(DoorSensorOptionsHost):
+  _current_dog: DogConfigData | None
+  _dogs: list[DogConfigData]
+
   async def async_step_select_dog_for_door_sensor(
     self,
     user_input: dict[str, Any] | None = None,

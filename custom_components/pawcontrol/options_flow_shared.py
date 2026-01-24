@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Any, Final, Literal, cast
+from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 
 import voluptuous as vol
 
@@ -72,6 +72,9 @@ from .types import (
   normalize_performance_mode,
 )
 
+if TYPE_CHECKING:
+  from .compat import ConfigEntry
+
 _LOGGER = logging.getLogger(__name__)
 
 SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = cast(
@@ -96,12 +99,31 @@ ADVANCED_SETTINGS_FIELD: Final[Literal["advanced_settings"]] = cast(
 )
 
 
-class OptionsFlowSharedMixin:
+if TYPE_CHECKING:
+
+  class OptionsFlowSharedHost(Protocol):
+    _EXPORT_VERSION: int
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+
+    @property
+    def _entry(self) -> ConfigEntry: ...
+
+    def __getattr__(self, name: str) -> Any: ...
+
+else:  # pragma: no cover
+  OptionsFlowSharedHost = object
+
+
+class OptionsFlowSharedMixin(OptionsFlowSharedHost):
+  _current_dog: DogConfigData | None
+  _dogs: list[DogConfigData]
+
   def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:
     """Return description placeholders enumerating known manual events."""
 
     choices = self._resolve_manual_event_choices()
-    placeholders: dict[str, str] = {}
+    placeholders: dict[str, bool | int | float | str] = {}
     for field, values in choices.items():
       placeholder_key = f"{field}_options"
       placeholders[placeholder_key] = (

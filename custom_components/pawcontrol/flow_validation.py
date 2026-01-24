@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import cast
 
 from .const import (
   CONF_DOG_AGE,
@@ -21,6 +22,12 @@ from .const import (
 from .exceptions import FlowValidationError, ValidationError
 from .health_calculator import HealthMetrics
 from .types import (
+  DOG_AGE_FIELD,
+  DOG_BREED_FIELD,
+  DOG_ID_FIELD,
+  DOG_NAME_FIELD,
+  DOG_SIZE_FIELD,
+  DOG_WEIGHT_FIELD,
   DogConfigData,
   DogSetupStepInput,
   FlowInputMapping,
@@ -213,7 +220,7 @@ def validate_dog_update_input(
 
   field_errors: dict[str, str] = {}
 
-  candidate: DogConfigData = dict(current_dog)
+  candidate: DogConfigData = cast(DogConfigData, dict(current_dog))
 
   raw_name = user_input.get(CONF_DOG_NAME, candidate.get(CONF_DOG_NAME, ""))
   try:
@@ -228,11 +235,11 @@ def validate_dog_update_input(
     }
     if dog_name.lower() in normalized_names:
       field_errors[CONF_DOG_NAME] = "dog_name_already_exists"
-    candidate[CONF_DOG_NAME] = dog_name
+    candidate[DOG_NAME_FIELD] = dog_name
 
   raw_breed = user_input.get(CONF_DOG_BREED, candidate.get(CONF_DOG_BREED))
   if raw_breed is None:
-    candidate.pop(CONF_DOG_BREED, None)
+    candidate.pop(DOG_BREED_FIELD, None)
   else:
     try:
       normalized_breed = _validate_breed(raw_breed)
@@ -243,13 +250,13 @@ def validate_dog_update_input(
         field_errors[CONF_DOG_BREED] = "invalid_dog_breed"
     else:
       if normalized_breed is None:
-        candidate.pop(CONF_DOG_BREED, None)
+        candidate.pop(DOG_BREED_FIELD, None)
       else:
-        candidate[CONF_DOG_BREED] = normalized_breed
+        candidate[DOG_BREED_FIELD] = normalized_breed
 
   raw_age = user_input.get(CONF_DOG_AGE, candidate.get(CONF_DOG_AGE))
   if raw_age is None:
-    candidate.pop(CONF_DOG_AGE, None)
+    candidate.pop(DOG_AGE_FIELD, None)
     dog_age = None
   else:
     try:
@@ -261,14 +268,14 @@ def validate_dog_update_input(
       if dog_age < MIN_DOG_AGE or dog_age > MAX_DOG_AGE:
         field_errors[CONF_DOG_AGE] = "age_out_of_range"
       else:
-        candidate[CONF_DOG_AGE] = dog_age
+        candidate[DOG_AGE_FIELD] = dog_age
 
   raw_weight = user_input.get(
     CONF_DOG_WEIGHT,
     candidate.get(CONF_DOG_WEIGHT),
   )
   if raw_weight is None:
-    candidate.pop(CONF_DOG_WEIGHT, None)
+    candidate.pop(DOG_WEIGHT_FIELD, None)
     dog_weight = None
   else:
     try:
@@ -280,22 +287,22 @@ def validate_dog_update_input(
       if dog_weight < MIN_DOG_WEIGHT or dog_weight > MAX_DOG_WEIGHT:
         field_errors[CONF_DOG_WEIGHT] = "weight_out_of_range"
       else:
-        candidate[CONF_DOG_WEIGHT] = dog_weight
+        candidate[DOG_WEIGHT_FIELD] = dog_weight
 
   raw_size = user_input.get(CONF_DOG_SIZE, candidate.get(CONF_DOG_SIZE))
   if raw_size is None:
-    candidate.pop(CONF_DOG_SIZE, None)
+    candidate.pop(DOG_SIZE_FIELD, None)
     dog_size = None
   else:
     dog_size = str(raw_size).strip()
     if not dog_size:
-      candidate.pop(CONF_DOG_SIZE, None)
+      candidate.pop(DOG_SIZE_FIELD, None)
       dog_size = None
     elif dog_size not in DOG_SIZES:
       field_errors[CONF_DOG_SIZE] = "invalid_dog_size"
       dog_size = None
     else:
-      candidate[CONF_DOG_SIZE] = dog_size
+      candidate[DOG_SIZE_FIELD] = dog_size
 
   if (
     dog_weight is not None
@@ -307,8 +314,8 @@ def validate_dog_update_input(
   if field_errors:
     raise FlowValidationError(field_errors=field_errors)
 
-  if dog_age is None and CONF_DOG_AGE in candidate:
-    candidate.pop(CONF_DOG_AGE, None)
-  if dog_weight is None and CONF_DOG_WEIGHT in candidate:
-    candidate.pop(CONF_DOG_WEIGHT, None)
+  if dog_age is None and DOG_AGE_FIELD in candidate:
+    candidate.pop(DOG_AGE_FIELD, None)
+  if dog_weight is None and DOG_WEIGHT_FIELD in candidate:
+    candidate.pop(DOG_WEIGHT_FIELD, None)
   return candidate

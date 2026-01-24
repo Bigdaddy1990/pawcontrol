@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -15,6 +16,8 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from .types import (
   ConfigFlowDiscoveryData,
   ConfigFlowDiscoveryProperties,
+  ConfigFlowDiscoverySource,
+  DiscoveryUpdatePayload,
   freeze_placeholders,
 )
 
@@ -26,7 +29,49 @@ else:  # pragma: no cover - only used for typing
 _LOGGER = logging.getLogger(__name__)
 
 
-class DiscoveryFlowMixin:
+if TYPE_CHECKING:
+
+  class DiscoveryFlowHost(Protocol):
+    def _is_supported_device(
+      self,
+      hostname: str,
+      properties: ConfigFlowDiscoveryProperties,
+    ) -> bool: ...
+
+    def _prepare_discovery_updates(
+      self,
+      payload: Mapping[str, object],
+      *,
+      source: ConfigFlowDiscoverySource,
+    ) -> tuple[DiscoveryUpdatePayload, ConfigFlowDiscoveryData]: ...
+
+    def _extract_device_id(self, properties: ConfigFlowDiscoveryProperties) -> str | None: ...
+
+    async def _handle_existing_discovery_entry(
+      self,
+      *,
+      updates: DiscoveryUpdatePayload,
+      comparison: ConfigFlowDiscoveryData,
+      reload_on_update: bool,
+    ) -> ConfigFlowResult | None: ...
+
+    def _format_discovery_info(self) -> str: ...
+
+    async def async_set_unique_id(self, unique_id: str | None = None) -> None: ...
+
+    def async_abort(self, *, reason: str) -> ConfigFlowResult: ...
+
+    def async_show_form(self, **kwargs: Any) -> ConfigFlowResult: ...
+
+    async def async_step_add_dog(self) -> ConfigFlowResult: ...
+
+    def __getattr__(self, name: str) -> Any: ...
+
+else:  # pragma: no cover
+  DiscoveryFlowHost = object
+
+
+class DiscoveryFlowMixin(DiscoveryFlowHost):
   """Mixin that provides HA discovery steps for the config flow."""
 
   async def async_step_zeroconf(
@@ -230,11 +275,14 @@ class DiscoveryFlowMixin:
         {vol.Required("confirm", default=True): cv.boolean},
       ),
       description_placeholders=dict(
-        freeze_placeholders(
-          {
-            "discovery_source": discovery_source,
-            "device_info": device_info,
-          },
+        cast(
+          Mapping[str, str],
+          freeze_placeholders(
+            {
+              "discovery_source": discovery_source,
+              "device_info": device_info,
+            },
+          ),
         ),
       ),
     )

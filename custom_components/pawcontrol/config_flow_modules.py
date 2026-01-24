@@ -45,6 +45,7 @@ from .types import (
   ConfigFlowPlaceholders,
   DashboardConfigurationPlaceholders,
   DashboardConfigurationStepInput,
+  DashboardMode,
   DashboardSetupConfig,
   DogConfigData,
   DogModulesConfig,
@@ -187,7 +188,7 @@ def _coerce_dashboard_configuration(
       ),
     ),
     dashboard_mode=cast(
-      str,
+      DashboardMode,
       user_input.get(
         "dashboard_mode",
         mode_default,
@@ -373,7 +374,9 @@ class ModuleConfigurationMixin:
 
     if user_input is not None:
       # Store global settings
-      flow._global_settings = _coerce_module_global_settings(user_input)
+      flow._global_settings = _coerce_module_global_settings(
+        cast(ModuleConfigurationStepInput, user_input),
+      )
 
       # Check if any dog has dashboard enabled
       dashboard_enabled = any(
@@ -516,7 +519,7 @@ class ModuleConfigurationMixin:
 
       # Store dashboard configuration
       flow._dashboard_config = _coerce_dashboard_configuration(
-        user_input,
+        cast(DashboardConfigurationStepInput, user_input),
         has_gps=self._has_gps_dogs(),
         has_health=self._has_health_dogs(),
         has_feeding=self._has_feeding_dogs(),
@@ -870,7 +873,9 @@ class ModuleConfigurationMixin:
 
     if user_input is not None:
       # Store feeding configuration
-      flow._feeding_config = _coerce_feeding_configuration(user_input)
+      flow._feeding_config = _coerce_feeding_configuration(
+        cast(FeedingConfigurationStepInput, user_input),
+      )
 
       # Continue to GPS configuration if needed
       if self._has_gps_dogs():

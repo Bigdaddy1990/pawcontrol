@@ -73,6 +73,7 @@ from custom_components.pawcontrol.types import (
   DietValidationResult,
   DogConfigData,
   DogFeedingConfig,
+  DogFeedingStepInput,
   DogHealthStepInput,
   DogMedicationEntry,
   DogModulesConfig,
@@ -81,6 +82,7 @@ from custom_components.pawcontrol.types import (
   DogVaccinationRecord,
   DogValidationCacheEntry,
   DogValidationResult,
+  JSONValue,
   JSONMapping,
   ModuleConfigurationSnapshot,
   ModuleToggleKey,
@@ -388,7 +390,7 @@ class DogManagementMixin(DogManagementMixinBase):
           # Add timeout for validation
           async with asyncio.timeout(5):
             validation_result = await self._async_validate_dog_config(
-              user_input,
+              cast(DogSetupStepInput, user_input),
             )
 
         if validation_result["valid"]:
@@ -423,8 +425,12 @@ class DogManagementMixin(DogManagementMixinBase):
         errors["base"] = "add_dog_failed"
 
     # Generate intelligent suggestions
-    suggested_id = await self._generate_smart_dog_id_suggestion(user_input)
-    suggested_breed = await self._suggest_dog_breed(user_input)
+    suggested_id = await self._generate_smart_dog_id_suggestion(
+      cast(DogSetupStepInput | None, user_input),
+    )
+    suggested_breed = await self._suggest_dog_breed(
+      cast(DogSetupStepInput | None, user_input),
+    )
 
     # Create dynamic schema with enhanced UX
     schema = await self._create_enhanced_dog_schema(
@@ -603,7 +609,9 @@ class DogManagementMixin(DogManagementMixinBase):
       return await self.async_step_add_dog()
 
     if user_input is not None:
-      feeding_config: DogFeedingConfig = dog_feeding_config_from_flow(user_input)
+      feeding_config: DogFeedingConfig = dog_feeding_config_from_flow(
+        cast(DogFeedingStepInput, user_input),
+      )
 
       current_dog[DOG_FEEDING_CONFIG_FIELD] = feeding_config
 
@@ -784,7 +792,7 @@ class DogManagementMixin(DogManagementMixinBase):
       }
 
       validated = validate_dog_setup_input(
-        user_input,
+        cast(Mapping[str, JSONValue], user_input),
         existing_ids=existing_ids,
         existing_names=existing_names,
         current_dog_count=len(self._dogs),

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, cast
 
 import voluptuous as vol
@@ -25,7 +25,9 @@ from .types import (
   ReauthHealthSummary,
   ReauthOptionsUpdates,
   ReauthPlaceholders,
+  JSONValue,
   clone_placeholders,
+  ensure_dog_modules_mapping,
   freeze_placeholders,
   is_dog_config_valid,
 )
@@ -83,6 +85,22 @@ else:  # pragma: no cover
 
 class ReauthFlowMixin(ReauthFlowHost):
   """Mixin for reauthentication steps and validation."""
+
+  @staticmethod
+  def _normalise_dog_payload(
+    dogs: object,
+  ) -> list[Mapping[str, JSONValue]]:
+    """Return stored dog payloads normalised to a list of mappings."""
+
+    if isinstance(dogs, Sequence) and not isinstance(dogs, str | bytes):
+      return [dog for dog in dogs if isinstance(dog, Mapping)]
+    return []
+
+  @classmethod
+  def _count_dogs(cls, dogs: object) -> int:
+    """Return the number of stored dogs from an entry payload."""
+
+    return len(cls._normalise_dog_payload(dogs))
 
   def _render_reauth_health_status(self, summary: ReauthHealthSummary) -> str:
     """Render a concise description of the reauth health snapshot."""
@@ -151,7 +169,7 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     total_dogs = summary.get("total_dogs")
     if total_dogs is None:
-      total_dogs = len(self.reauth_entry.data.get(CONF_DOGS, []))
+      total_dogs = self._count_dogs(self.reauth_entry.data.get(CONF_DOGS, []))
 
     profile_raw = self.reauth_entry.options.get(
       "entity_profile",
@@ -241,7 +259,8 @@ class ReauthFlowMixin(ReauthFlowHost):
   async def _validate_reauth_entry_enhanced(self, entry: ConfigEntry) -> None:
     """Enhanced config entry validation for reauthentication."""
 
-    dogs = entry.data.get(CONF_DOGS, [])
+    dogs_raw = entry.data.get(CONF_DOGS, [])
+    dogs = self._normalise_dog_payload(dogs_raw)
     if not dogs:
       _LOGGER.debug(
         "Reauthentication proceeding without stored dog data for entry %s",
@@ -249,20 +268,20 @@ class ReauthFlowMixin(ReauthFlowHost):
       )
       return
 
-    invalid_dogs = []
+    invalid_dogs: list[str] = []
 
     for dog in dogs:
       try:
         if not is_dog_config_valid(dog):
           dog_id = dog.get(DOG_ID_FIELD, "unknown")
-          invalid_dogs.append(dog_id)
+          invalid_dogs.append(str(dog_id))
       except Exception as err:
         _LOGGER.warning(
           "Dog validation error during reauth (non-critical): %s",
           err,
         )
         dog_id = dog.get(DOG_ID_FIELD, "corrupted")
-        invalid_dogs.append(dog_id)
+        invalid_dogs.append(str(dog_id))
 
     if invalid_dogs:
       _LOGGER.warning(
@@ -319,40 +338,49 @@ class ReauthFlowMixin(ReauthFlowHost):
               _LOGGER.warning(
                 "Config health check timeout - proceeding with reauth",
               )
-              summary = {
-                "healthy": True,
-                "issues": ["Health check timeout"],
-                "warnings": [],
-                "validated_dogs": 0,
-                "total_dogs": len(
-                  self.reauth_entry.data.get(CONF_DOGS, []),
-                ),
-              }
+              summary = cast(
+                ReauthHealthSummary,
+                {
+                  "healthy": True,
+                  "issues": ["Health check timeout"],
+                  "warnings": [],
+                  "validated_dogs": 0,
+                  "total_dogs": self._count_dogs(
+                    self.reauth_entry.data.get(CONF_DOGS, []),
+                  ),
+                },
+              )
             except Exception as err:
               _LOGGER.warning(
                 "Config health check failed: %s - proceeding with reauth",
                 err,
               )
-              summary = {
-                "healthy": True,
-                "issues": [f"Health check error: {err}"],
-                "warnings": [],
-                "validated_dogs": 0,
-                "total_dogs": len(
-                  self.reauth_entry.data.get(CONF_DOGS, []),
-                ),
-              }
+              summary = cast(
+                ReauthHealthSummary,
+                {
+                  "healthy": True,
+                  "issues": [f"Health check error: {err}"],
+                  "warnings": [],
+                  "validated_dogs": 0,
+                  "total_dogs": self._count_dogs(
+                    self.reauth_entry.data.get(CONF_DOGS, []),
+                  ),
+                },
+              )
 
             if summary is None:
-              summary = {
-                "healthy": True,
-                "issues": [],
-                "warnings": [],
-                "validated_dogs": 0,
-                "total_dogs": len(
-                  self.reauth_entry.data.get(CONF_DOGS, []),
-                ),
-              }
+              summary = cast(
+                ReauthHealthSummary,
+                {
+                  "healthy": True,
+                  "issues": [],
+                  "warnings": [],
+                  "validated_dogs": 0,
+                  "total_dogs": self._count_dogs(
+                    self.reauth_entry.data.get(CONF_DOGS, []),
+                  ),
+                },
+              )
 
             if not summary.get("healthy", True):
               _LOGGER.warning(
@@ -391,13 +419,16 @@ class ReauthFlowMixin(ReauthFlowHost):
           )
       except Exception as err:
         _LOGGER.warning("Error getting reauth display info: %s", err)
-        summary = {
-          "healthy": True,
-          "issues": [],
-          "warnings": [f"Status check failed: {err}"],
-          "validated_dogs": 0,
-          "total_dogs": len(self.reauth_entry.data.get(CONF_DOGS, [])),
-        }
+        summary = cast(
+          ReauthHealthSummary,
+          {
+            "healthy": True,
+            "issues": [],
+            "warnings": [f"Status check failed: {err}"],
+            "validated_dogs": 0,
+            "total_dogs": self._count_dogs(self.reauth_entry.data.get(CONF_DOGS, [])),
+          },
+        )
 
     return self.async_show_form(
       step_id="reauth_confirm",
@@ -408,7 +439,10 @@ class ReauthFlowMixin(ReauthFlowHost):
       ),
       errors=errors,
       description_placeholders=dict(
-        self._build_reauth_placeholders(summary),
+        cast(
+          Mapping[str, str],
+          self._build_reauth_placeholders(cast(ReauthHealthSummary, summary)),
+        ),
       ),
     )
 
@@ -488,18 +522,10 @@ class ReauthFlowMixin(ReauthFlowHost):
       for dog in dogs:
         if not is_dog_config_valid(dog):
           continue
-        modules_payload = dog.get(CONF_MODULES, {})
-        modules_mapping = (
-          modules_payload
-          if isinstance(
-            modules_payload,
-            Mapping,
-          )
-          else {}
-        )
+        modules_mapping = ensure_dog_modules_mapping(dog)
         estimated_entities += factory.estimate_entity_count(
           profile,
-          cast(DogModulesConfig, dict(modules_mapping)),
+          modules_mapping,
         )
       if estimated_entities > 200:
         warnings.append(

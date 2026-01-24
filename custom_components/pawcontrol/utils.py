@@ -271,7 +271,7 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
 
   _seen.add(obj_id)
   try:
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
       return normalise_json(asdict(value), _seen)
 
     if hasattr(value, "to_mapping") and callable(value.to_mapping):
@@ -844,9 +844,6 @@ class PawControlDeviceLinkMixin:
         )
 
 
-T = TypeVar("T", bound=JSONMutableMapping)
-
-
 def deep_merge_dicts[T: JSONMutableMapping](
   base: T,
   updates: Mapping[str, JSONValue],
@@ -866,9 +863,6 @@ def deep_merge_dicts[T: JSONMutableMapping](
       result[key] = value
 
   return result
-
-
-DefaultT = TypeVar("DefaultT")
 
 
 def safe_get_nested[DefaultT](
@@ -892,9 +886,6 @@ def safe_get_nested[DefaultT](
     return current
   except (AttributeError, KeyError, TypeError):
     return default
-
-
-T = TypeVar("T", bound=JSONMutableMapping)
 
 
 def safe_set_nested[T: JSONMutableMapping](
@@ -1276,9 +1267,6 @@ def validate_portion_size(
     )
 
   return result
-
-
-T = TypeVar("T")
 
 
 def chunk_list[T](items: Sequence[T], chunk_size: int) -> list[list[T]]:

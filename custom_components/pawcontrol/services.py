@@ -1410,9 +1410,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
   ) -> None:
     """Accumulate service call metrics into ``target``."""
 
-    total_calls = int(target.get("total_calls", 0) or 0) + 1
-    success_calls = int(target.get("success_calls", 0) or 0)
-    error_calls = int(target.get("error_calls", 0) or 0)
+    total_calls_raw = target.get("total_calls", 0)
+    total_calls = (
+      int(total_calls_raw)
+      if isinstance(total_calls_raw, int | float)
+      else 0
+    ) + 1
+    success_calls_raw = target.get("success_calls", 0)
+    success_calls = (
+      int(success_calls_raw)
+      if isinstance(success_calls_raw, int | float)
+      else 0
+    )
+    error_calls_raw = target.get("error_calls", 0)
+    error_calls = (
+      int(error_calls_raw) if isinstance(error_calls_raw, int | float) else 0
+    )
     if status == "success":
       success_calls += 1
     else:
@@ -1447,7 +1460,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       performance_stats["service_call_telemetry"] = telemetry_raw
 
     _apply_service_call_metrics(
-      telemetry_raw,
+      cast(MutableMapping[str, JSONValue], telemetry_raw),
       status=status,
       duration_ms=duration_ms,
     )
@@ -1466,7 +1479,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       per_service_raw[service] = entry_raw
 
     _apply_service_call_metrics(
-      entry_raw,
+      cast(MutableMapping[str, JSONValue], entry_raw),
       status=status,
       duration_ms=duration_ms,
     )

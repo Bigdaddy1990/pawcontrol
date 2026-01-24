@@ -25,7 +25,7 @@ def normalize_value(value: object) -> JSONValue:
     return value.isoformat()
   if isinstance(value, timedelta):
     return value.total_seconds()  # type: ignore[return-value]
-  if is_dataclass(value):
+  if is_dataclass(value) and not isinstance(value, type):
     return {k: normalize_value(v) for k, v in asdict(value).items()}
   if isinstance(value, Mapping):
     return {str(k): normalize_value(v) for k, v in value.items()}

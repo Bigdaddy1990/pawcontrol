@@ -87,6 +87,8 @@ from .types import (
   ConfigFlowDiscoveryProperties,
   ConfigFlowDiscoverySource,
   ConfigFlowGlobalSettings,
+  ConfigFlowImportData,
+  ConfigFlowImportOptions,
   ConfigFlowImportResult,
   ConfigFlowPlaceholders,
   ConfigFlowUserInput,
@@ -102,6 +104,7 @@ from .types import (
   JSONValue,
   ModuleToggleKey,
   PerformanceMode,
+  ProfileSelectionInput,
   ReconfigureCompatibilityResult,
   ReconfigureDataUpdates,
   ReconfigureFormPlaceholders,
@@ -345,7 +348,8 @@ class PawControlConfigFlow(
             constraint="No valid dogs found in import configuration",
           )
 
-        profile = import_config.get("entity_profile", "standard")
+        profile_raw = import_config.get("entity_profile", "standard")
+        profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)
         if profile not in VALID_PROFILES:
           validation_errors.append(
             f"Invalid profile '{profile}', using 'standard'",
@@ -370,14 +374,14 @@ class PawControlConfigFlow(
 
         config_flow_monitor.record_validation("import_validated")
 
-        data_payload: ConfigEntryDataPayload = {
-          "name": import_config.get("name", "PawControl (Imported)"),
-          CONF_DOGS: validated_dogs,
+        data_payload: ConfigFlowImportData = {
+          "name": str(import_config.get("name", "PawControl (Imported)")),
+          "dogs": validated_dogs,
           "entity_profile": profile,
           "import_warnings": validation_errors,
           "import_timestamp": dt_util.utcnow().isoformat(),
         }
-        options_payload: ConfigEntryOptionsPayload = {
+        options_payload: ConfigFlowImportOptions = {
           "entity_profile": profile,
           "dashboard_enabled": bool(
             import_config.get("dashboard_enabled", True),
@@ -469,7 +473,7 @@ class PawControlConfigFlow(
       else UNKNOWN_DISCOVERY_SOURCE
     )
 
-    normalised: ConfigFlowDiscoveryData = {
+    normalised: JSONMutableMapping = {
       "source": cast(ConfigFlowDiscoverySource, resolved_source),
     }
 
@@ -760,10 +764,13 @@ class PawControlConfigFlow(
         data_schema=DOG_SCHEMA,
         errors=errors,
         description_placeholders=dict(
-          _build_add_dog_summary_placeholders(
-            dogs_configured=len(self._dogs),
-            max_dogs=MAX_DOGS_PER_INTEGRATION,
-            discovery_hint=self._get_discovery_hint(),
+          cast(
+            Mapping[str, str],
+            _build_add_dog_summary_placeholders(
+              dogs_configured=len(self._dogs),
+              max_dogs=MAX_DOGS_PER_INTEGRATION,
+              discovery_hint=self._get_discovery_hint(),
+            ),
           ),
         ),
       )
@@ -889,7 +896,7 @@ class PawControlConfigFlow(
         FlowValidationError: If validation fails
     """
     return validate_dog_setup_input(
-      user_input,
+      cast(Mapping[str, JSONValue], user_input),
       existing_ids=self._existing_dog_ids,
       existing_names={
         str(dog.get(DOG_NAME_FIELD)).strip().lower()
@@ -1001,11 +1008,14 @@ class PawControlConfigFlow(
       else:
         mapping_candidate = coerce_dog_modules_config(user_input)
 
-      filtered_candidate: DogModulesConfig = {
-        key: mapping_candidate.get(key)
-        for key in MODULE_SELECTION_KEYS
-        if key in mapping_candidate
-      }
+      filtered_candidate = cast(
+        DogModulesConfig,
+        {
+          key: bool(mapping_candidate.get(key))
+          for key in MODULE_SELECTION_KEYS
+          if key in mapping_candidate
+        },
+      )
 
       try:
         # Validate modules configuration
@@ -1022,11 +1032,14 @@ class PawControlConfigFlow(
           data_schema=MODULES_SCHEMA,
           errors={"base": "invalid_modules"},
           description_placeholders=dict(
-            _build_dog_modules_form_placeholders(
-              dog_name=current_dog[DOG_NAME_FIELD],
-              dogs_configured=len(self._dogs),
-              smart_defaults=self._get_smart_module_defaults(
-                current_dog,
+            cast(
+              Mapping[str, str],
+              _build_dog_modules_form_placeholders(
+                dog_name=current_dog[DOG_NAME_FIELD],
+                dogs_configured=len(self._dogs),
+                smart_defaults=self._get_smart_module_defaults(
+                  current_dog,
+                ),
               ),
             ),
           ),
@@ -1039,11 +1052,14 @@ class PawControlConfigFlow(
       step_id="dog_modules",
       data_schema=enhanced_schema,
       description_placeholders=dict(
-        _build_dog_modules_form_placeholders(
-          dog_name=current_dog[DOG_NAME_FIELD],
-          dogs_configured=len(self._dogs),
-          smart_defaults=self._get_smart_module_defaults(
-            current_dog,
+        cast(
+          Mapping[str, str],
+          _build_dog_modules_form_placeholders(
+            dog_name=current_dog[DOG_NAME_FIELD],
+            dogs_configured=len(self._dogs),
+            smart_defaults=self._get_smart_module_defaults(
+              current_dog,
+            ),
           ),
         ),
       ),
@@ -1159,12 +1175,15 @@ class PawControlConfigFlow(
       step_id="add_another",
       data_schema=schema,
       description_placeholders=dict(
-        _build_add_another_placeholders(
-          dogs_configured=len(self._dogs),
-          dogs_list=self._format_dogs_list_enhanced(),
-          can_add_more=can_add_more,
-          max_dogs=MAX_DOGS_PER_INTEGRATION,
-          performance_note=self._get_performance_note(),
+        cast(
+          Mapping[str, str],
+          _build_add_another_placeholders(
+            dogs_configured=len(self._dogs),
+            dogs_list=self._format_dogs_list_enhanced(),
+            can_add_more=can_add_more,
+            max_dogs=MAX_DOGS_PER_INTEGRATION,
+            performance_note=self._get_performance_note(),
+          ),
         ),
       ),
     )
@@ -1196,7 +1215,9 @@ class PawControlConfigFlow(
     """
     if user_input is not None:
       try:
-        self._entity_profile = validate_profile_selection(user_input)
+        self._entity_profile = validate_profile_selection(
+          cast(ProfileSelectionInput, user_input),
+        )
         modules = self._aggregate_enabled_modules()
         if modules.get(MODULE_GPS, False):
           self._enabled_modules = modules
@@ -1210,13 +1231,16 @@ class PawControlConfigFlow(
           data_schema=PROFILE_SCHEMA,
           errors={"base": "invalid_profile"},
           description_placeholders=dict(
-            freeze_placeholders(
-              {
-                "dogs_count": str(len(self._dogs)),
-                "profiles_info": self._get_profiles_info_enhanced(),
-                "profiles_summary": build_profile_summary_text(),
-                "recommendation": self._get_profile_recommendation(),
-              },
+            cast(
+              Mapping[str, str],
+              freeze_placeholders(
+                {
+                  "dogs_count": str(len(self._dogs)),
+                  "profiles_info": self._get_profiles_info_enhanced(),
+                  "profiles_summary": build_profile_summary_text(),
+                  "recommendation": self._get_profile_recommendation(),
+                },
+              ),
             ),
           ),
         )
@@ -1225,14 +1249,17 @@ class PawControlConfigFlow(
       step_id="entity_profile",
       data_schema=PROFILE_SCHEMA,
       description_placeholders=dict(
-        freeze_placeholders(
-          {
-            "dogs_count": str(len(self._dogs)),
-            "profiles_info": self._get_profiles_info_enhanced(),
-            "estimated_entities": str(self._estimate_total_entities()),
-            "profiles_summary": build_profile_summary_text(),
-            "recommendation": self._get_profile_recommendation(),
-          },
+        cast(
+          Mapping[str, str],
+          freeze_placeholders(
+            {
+              "dogs_count": str(len(self._dogs)),
+              "profiles_info": self._get_profiles_info_enhanced(),
+              "estimated_entities": str(self._estimate_total_entities()),
+              "profiles_summary": build_profile_summary_text(),
+              "recommendation": self._get_profile_recommendation(),
+            },
+          ),
         ),
       ),
     )
@@ -1363,13 +1390,17 @@ class PawControlConfigFlow(
     """
     config_data: ConfigEntryDataPayload = {
       "name": self._integration_name,
-      CONF_DOGS: self._dogs,
+      "dogs": self._dogs,
       "entity_profile": self._entity_profile,
       "setup_timestamp": dt_util.utcnow().isoformat(),
     }
 
     if self._external_entities:
-      config_data["external_entities"] = dict(self._external_entities)
+      config_data = cast(ConfigEntryDataPayload, dict(config_data))
+      config_data["external_entities"] = cast(
+        ExternalEntityConfig,
+        dict(self._external_entities),
+      )
 
     # Add discovery info if available
     if self._discovery_info:
@@ -1399,7 +1430,7 @@ class PawControlConfigFlow(
       settings.get("debug_logging", False),
     )
 
-    options_data[CONF_DATA_RETENTION_DAYS] = cast(
+    options_data["data_retention_days"] = cast(
       int,
       settings.get("data_retention_days", DEFAULT_DATA_RETENTION_DAYS),
     )
@@ -1411,7 +1442,7 @@ class PawControlConfigFlow(
       port = discovery_info.get("port")
       properties = discovery_info.get("properties", {})
 
-      if host and CONF_API_ENDPOINT not in options_data:
+      if host and "api_endpoint" not in options_data:
         raw_https: object = properties.get("https")
         if isinstance(raw_https, str):
           normalized = raw_https.strip().lower()
@@ -1423,15 +1454,15 @@ class PawControlConfigFlow(
 
         scheme = "https" if https_enabled else "http"
         if port:
-          options_data[CONF_API_ENDPOINT] = f"{scheme}://{host}:{port}"
+          options_data["api_endpoint"] = f"{scheme}://{host}:{port}"
         else:
-          options_data[CONF_API_ENDPOINT] = f"{scheme}://{host}"
+          options_data["api_endpoint"] = f"{scheme}://{host}"
 
       api_token = properties.get(
         "api_key",
       ) or discovery_info.get("api_key")
-      if api_token and CONF_API_TOKEN not in options_data:
-        options_data[CONF_API_TOKEN] = api_token
+      if isinstance(api_token, str) and api_token and "api_token" not in options_data:
+        options_data["api_token"] = api_token
 
     return config_data, options_data
 
@@ -1610,8 +1641,11 @@ class PawControlConfigFlow(
           data_schema=form_schema,
           errors={"base": "invalid_profile"},
           description_placeholders=dict(
-            freeze_placeholders(
-              {**base_placeholders, "error_details": str(err)},
+            cast(
+              Mapping[str, str],
+              freeze_placeholders(
+                {**base_placeholders, "error_details": str(err)},
+              ),
             ),
           ),
         )
@@ -1622,8 +1656,11 @@ class PawControlConfigFlow(
           data_schema=form_schema,
           errors={"base": "profile_unchanged"},
           description_placeholders=dict(
-            freeze_placeholders(
-              {**base_placeholders, "requested_profile": new_profile},
+            cast(
+              Mapping[str, str],
+              freeze_placeholders(
+                {**base_placeholders, "requested_profile": new_profile},
+              ),
             ),
           ),
         )
@@ -1700,12 +1737,13 @@ class PawControlConfigFlow(
         entry,
         data_updates=data_updates,
         options_updates=options_updates,
+        reason="reconfigure_successful",
       )
 
     return self.async_show_form(
       step_id="reconfigure",
       data_schema=form_schema,
-      description_placeholders=dict(base_placeholders),
+      description_placeholders=dict(cast(Mapping[str, str], base_placeholders)),
     )
 
   def _extract_entry_dogs(
@@ -1806,7 +1844,9 @@ class PawControlConfigFlow(
         cast(Mapping[str, JSONValue], entry.options),
       ),
     )
-    return freeze_placeholders(placeholders)
+    return freeze_placeholders(
+      cast(dict[str, bool | int | float | str], placeholders),
+    )
 
   def _reconfigure_history_placeholders(
     self,
@@ -2072,7 +2112,7 @@ class PawControlConfigFlow(
           value,
         )
         continue
-      merged[key] = value
+      merged[key] = cast(JSONValue, value)
 
     return merged
 
@@ -2115,7 +2155,7 @@ class PawControlConfigFlow(
         )
       return
 
-    combined: JSONMutableMapping = dict(existing)
+    combined: JSONMutableMapping = cast(JSONMutableMapping, dict(existing))
 
     existing_name_value = existing.get(DOG_NAME_FIELD)
     existing_name = (
@@ -2145,7 +2185,7 @@ class PawControlConfigFlow(
           action = "enabled" if enabled_flag else "disabled"
           module_changes.append(f"{action} {module}")
         merged_modules[toggle] = enabled_flag
-      combined[DOG_MODULES_FIELD] = merged_modules
+      combined[DOG_MODULES_FIELD] = cast(JSONValue, merged_modules)
 
     for key, value in candidate.items():
       if key in (DOG_ID_FIELD, DOG_MODULES_FIELD):
@@ -2156,10 +2196,10 @@ class PawControlConfigFlow(
           if not trimmed_name:
             continue
           if trimmed_name == dog_id:
-            existing_name_value = combined.get(DOG_NAME_FIELD)
+            combined_name_value = combined.get(DOG_NAME_FIELD)
             if (
-              not isinstance(existing_name_value, str)
-              or not existing_name_value.strip()
+              not isinstance(combined_name_value, str)
+              or not combined_name_value.strip()
             ):
               combined[DOG_NAME_FIELD] = trimmed_name
           else:
@@ -2191,7 +2231,7 @@ class PawControlConfigFlow(
           value,
         )
         continue
-      combined[key] = value
+      combined[key] = cast(JSONValue, value)
 
     merged[dog_id] = cast(DogConfigData, combined)
 
@@ -2334,7 +2374,7 @@ class PawControlConfigFlow(
         )
 
       if toggles:
-        candidate[DOG_MODULES_FIELD] = toggles
+        candidate[DOG_MODULES_FIELD] = cast(JSONValue, toggles)
       else:
         candidate.pop(DOG_MODULES_FIELD, None)
     elif modules is not None:
@@ -2406,14 +2446,15 @@ class PawControlConfigFlow(
     """Estimate entities for reconfiguration display."""
 
     try:
-      return sum(
-        self._entity_factory.estimate_entity_count(
+      total = 0
+      for dog in dogs:
+        if not is_dog_config_valid(dog):
+          continue
+        total += self._entity_factory.estimate_entity_count(
           profile,
-          self._normalise_dog_modules(dog),
+          ensure_dog_modules_mapping(dog),
         )
-        for dog in dogs
-        if is_dog_config_valid(dog)
-      )
+      return total
     except Exception as err:  # pragma: no cover - defensive guard
       _LOGGER.debug("Entity estimation failed: %s", err)
       return 0

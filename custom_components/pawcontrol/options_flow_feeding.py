@@ -15,6 +15,7 @@ from .types import (
   DOG_OPTIONS_FIELD,
   FeedingOptions,
   JSONLikeMapping,
+  JSONValue,
   OptionsFeedingSettingsInput,
   ensure_dog_options_entry,
 )
@@ -111,13 +112,13 @@ class FeedingOptionsMixin(FeedingOptionsHost):
           dog_id=dog_id,
         )
         entry["feeding_settings"] = self._build_feeding_settings(
-          user_input,
+          cast(OptionsFeedingSettingsInput, user_input),
           current_feeding,
         )
         if dog_id in dog_options or not dog_options:
           dog_options[dog_id] = entry
-          new_options[DOG_OPTIONS_FIELD] = dog_options
-        new_options["feeding_settings"] = entry["feeding_settings"]
+          new_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
+        new_options["feeding_settings"] = cast(JSONValue, entry["feeding_settings"])
 
         typed_options = self._normalise_options_snapshot(new_options)
         return self.async_create_entry(title="", data=typed_options)
