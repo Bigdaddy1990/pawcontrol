@@ -5,6 +5,6 @@ This module re-exports the shared notifications mixin to keep import paths stabl
 
 from __future__ import annotations
 
-from .flows.notifications import NotificationOptionsMixin
+from .flows.flow_notifications import NotificationOptionsMixin
 
 __all__ = ["NotificationOptionsMixin"]
