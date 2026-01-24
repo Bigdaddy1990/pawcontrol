@@ -56,10 +56,13 @@ def _parse_scalar(value: str) -> Any:
       return float(text)
     return int(text)
   if text.startswith("[") or text.startswith("{"):
-    with contextlib.suppress(json.JSONDecodeError, ValueError, SyntaxError):
+    try:
       return json.loads(text)
-    with contextlib.suppress(ValueError, SyntaxError):
-      return ast.literal_eval(text)
+    except (json.JSONDecodeError, ValueError, SyntaxError):
+      try:
+        return ast.literal_eval(text)
+      except (ValueError, SyntaxError) as err:
+        raise ValueError("Invalid YAML content") from err
   return text
 
 

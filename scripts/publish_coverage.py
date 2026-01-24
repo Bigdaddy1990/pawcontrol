@@ -4,17 +4,24 @@ from __future__ import annotations
 
 import argparse
 import base64
+import importlib
+import importlib.util
 import json
 import os
 import tarfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from defusedxml import ElementTree as ET
+import xml.etree.ElementTree as StdlibET
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from collections.abc import Iterable, Sequence
+
+if importlib.util.find_spec("defusedxml") is not None:
+  ET = importlib.import_module("defusedxml.ElementTree")
+else:
+  ET = StdlibET
 
 
 class PublishError(RuntimeError):

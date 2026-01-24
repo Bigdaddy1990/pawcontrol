@@ -550,6 +550,29 @@ class PawControlOptionsFlow(
     return cls._load_setup_flag_translations_from_mapping(content)
 
   @classmethod
+  def _load_setup_flag_translations_from_path_sync(
+    cls,
+    path: Path,
+  ) -> dict[str, str]:
+    """Synchronously load setup flag translations from a JSON file."""
+
+    try:
+      content = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+      return {}
+    except ValueError:  # pragma: no cover - defensive against malformed JSON
+      _LOGGER.warning(
+        "Failed to parse setup flag translations from %s",
+        path,
+      )
+      return {}
+
+    if not isinstance(content, Mapping):
+      return {}
+
+    return cls._load_setup_flag_translations_from_mapping(content)
+
+  @classmethod
   async def _async_setup_flag_translations_for_language(
     cls,
     language: str,
@@ -587,6 +610,11 @@ class PawControlOptionsFlow(
   def _setup_flag_translations_for_language(cls, language: str) -> dict[str, str]:
     """Return setup flag translations for the provided language."""
 
+    if cls._SETUP_FLAG_EN_TRANSLATIONS is None:
+      cls._SETUP_FLAG_EN_TRANSLATIONS = (
+        cls._load_setup_flag_translations_from_path_sync(cls._STRINGS_PATH)
+      )
+
     base = cls._SETUP_FLAG_EN_TRANSLATIONS or {}
     if language == "en":
       return base
@@ -595,7 +623,13 @@ class PawControlOptionsFlow(
     if cached is not None:
       return cached
 
-    return base
+    overlay = cls._load_setup_flag_translations_from_path_sync(
+      cls._TRANSLATIONS_DIR / f"{language}.json",
+    )
+    merged = dict(base)
+    merged.update(overlay)
+    cls._SETUP_FLAG_TRANSLATION_CACHE[language] = merged
+    return merged
 
   def _determine_language(self) -> str:
     """Return the preferred language for localized labels."""
