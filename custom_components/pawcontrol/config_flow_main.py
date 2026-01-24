@@ -57,11 +57,7 @@ from .const import (
   DEFAULT_DATA_RETENTION_DAYS,
   DEFAULT_PERFORMANCE_MODE,
   DOMAIN,
-  MODULE_FEEDING,
   MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
 )
 from .entity_factory import ENTITY_PROFILES, EntityFactory, EntityProfileDefinition
 from .exceptions import (
@@ -1068,7 +1064,6 @@ class PawControlConfigFlow(
       ),
     )
 
-
   async def async_step_add_another(
     self,
     user_input: AddAnotherDogInput | None = None,
@@ -1909,7 +1904,6 @@ class PawControlConfigFlow(
       else parsed.astimezone()
     )
     return local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
-
 
   def _normalise_entry_dogs(self, entry: ConfigEntry) -> list[DogConfigData]:
     """Normalise raw dog payloads from a config entry to typed dictionaries."""
