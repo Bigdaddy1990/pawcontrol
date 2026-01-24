@@ -52,9 +52,9 @@ from .language import normalize_language
 from .options_flow_dogs_management import DogManagementOptionsMixin
 from .options_flow_door_sensor import DoorSensorOptionsMixin
 from .options_flow_feeding import FeedingOptionsMixin
-from .flows.gps import GPSOptionsMixin
-from .flows.health import HealthOptionsMixin
-from .flows.notifications import NotificationOptionsMixin
+from .flows.flow_gps import GPSOptionsMixin
+from .flows.flow_health import HealthOptionsMixin
+from .flows.flow_notifications import NotificationOptionsMixin
 from .options_flow_import_export import ImportExportOptionsMixin
 from .options_flow_menu import MenuOptionsMixin
 from .options_flow_profiles import ProfileOptionsMixin
@@ -80,6 +80,7 @@ from .types import (
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
+  ManualEventField,
   NotificationOptionsInput,
   ROUTE_HISTORY_DAYS_FIELD,
   ROUTE_RECORDING_FIELD,
@@ -108,11 +109,6 @@ def _resolve_get_runtime_data():
   return _get_runtime_data
 
 
-ManualEventField = Literal[
-  "manual_check_event",
-  "manual_guard_event",
-  "manual_breaker_event",
-]
 LAST_RECONFIGURE_FIELD: Final[Literal["last_reconfigure"]] = cast(
   Literal["last_reconfigure"],
   CONF_LAST_RECONFIGURE,

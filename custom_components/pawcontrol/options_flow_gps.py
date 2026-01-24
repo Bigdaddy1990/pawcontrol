@@ -5,6 +5,6 @@ This module re-exports the shared GPS mixin to keep import paths stable.
 
 from __future__ import annotations
 
-from .flows.gps import GPSOptionsMixin
+from .flows.flow_gps import GPSOptionsMixin
 
 __all__ = ["GPSOptionsMixin"]
