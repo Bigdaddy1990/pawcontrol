@@ -62,6 +62,7 @@ from .options_flow_shared import (
   ADVANCED_SETTINGS_FIELD,
   DOG_OPTIONS_FIELD,
 )
+from .schemas import GPS_OPTIONS_JSON_SCHEMA, validate_json_schema_payload
 from .options_flow_system_settings import SystemSettingsOptionsMixin
 from .runtime_data import get_runtime_data as _get_runtime_data
 from .types import (
@@ -262,49 +263,63 @@ class PawControlOptionsFlow(
     gps_settings: GPSOptions | None = None
 
     def _normalise_gps_settings(raw: Mapping[str, JSONValue]) -> GPSOptions:
-      return cast(
-        GPSOptions,
-        {
-          GPS_ENABLED_FIELD: self._coerce_bool(
-            raw.get(GPS_ENABLED_FIELD),
-            True,
-          ),
-          GPS_UPDATE_INTERVAL_FIELD: self._coerce_clamped_int(
-            raw.get(GPS_UPDATE_INTERVAL_FIELD),
-            DEFAULT_GPS_UPDATE_INTERVAL,
-            minimum=5,
-            maximum=600,
-          ),
-          GPS_ACCURACY_FILTER_FIELD: cast(
-            float,
-            self._coerce_optional_float(
-              raw.get(GPS_ACCURACY_FILTER_FIELD),
-              float(DEFAULT_GPS_ACCURACY_FILTER),
-            ),
-          ),
-          GPS_DISTANCE_FILTER_FIELD: cast(
-            float,
-            self._coerce_optional_float(
-              raw.get(GPS_DISTANCE_FILTER_FIELD),
-              float(DEFAULT_GPS_DISTANCE_FILTER),
-            ),
-          ),
-          ROUTE_RECORDING_FIELD: self._coerce_bool(
-            raw.get(ROUTE_RECORDING_FIELD),
-            True,
-          ),
-          ROUTE_HISTORY_DAYS_FIELD: self._coerce_clamped_int(
-            raw.get(ROUTE_HISTORY_DAYS_FIELD),
-            30,
-            minimum=1,
-            maximum=365,
-          ),
-          AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
-            raw.get(AUTO_TRACK_WALKS_FIELD),
-            True,
-          ),
-        },
+      payload: GPSOptions = {
+        GPS_ENABLED_FIELD: self._coerce_bool(
+          raw.get(GPS_ENABLED_FIELD),
+          True,
+        ),
+        GPS_UPDATE_INTERVAL_FIELD: self._coerce_clamped_int(
+          raw.get(GPS_UPDATE_INTERVAL_FIELD),
+          DEFAULT_GPS_UPDATE_INTERVAL,
+          minimum=5,
+          maximum=600,
+        ),
+        GPS_ACCURACY_FILTER_FIELD: self._coerce_clamped_float(
+          raw.get(GPS_ACCURACY_FILTER_FIELD),
+          float(DEFAULT_GPS_ACCURACY_FILTER),
+          minimum=5.0,
+          maximum=500.0,
+        ),
+        GPS_DISTANCE_FILTER_FIELD: self._coerce_clamped_float(
+          raw.get(GPS_DISTANCE_FILTER_FIELD),
+          float(DEFAULT_GPS_DISTANCE_FILTER),
+          minimum=1.0,
+          maximum=2000.0,
+        ),
+        ROUTE_RECORDING_FIELD: self._coerce_bool(
+          raw.get(ROUTE_RECORDING_FIELD),
+          True,
+        ),
+        ROUTE_HISTORY_DAYS_FIELD: self._coerce_clamped_int(
+          raw.get(ROUTE_HISTORY_DAYS_FIELD),
+          30,
+          minimum=1,
+          maximum=365,
+        ),
+        AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
+          raw.get(AUTO_TRACK_WALKS_FIELD),
+          True,
+        ),
+      }
+      schema_issues = validate_json_schema_payload(
+        payload,
+        GPS_OPTIONS_JSON_SCHEMA,
       )
+      if schema_issues:
+        _LOGGER.warning(
+          "GPS options payload failed JSON schema validation; using defaults: %s",
+          [issue.constraint for issue in schema_issues],
+        )
+        payload = {
+          GPS_ENABLED_FIELD: True,
+          GPS_UPDATE_INTERVAL_FIELD: DEFAULT_GPS_UPDATE_INTERVAL,
+          GPS_ACCURACY_FILTER_FIELD: float(DEFAULT_GPS_ACCURACY_FILTER),
+          GPS_DISTANCE_FILTER_FIELD: float(DEFAULT_GPS_DISTANCE_FILTER),
+          ROUTE_RECORDING_FIELD: True,
+          ROUTE_HISTORY_DAYS_FIELD: 30,
+          AUTO_TRACK_WALKS_FIELD: True,
+        }
+      return cast(GPSOptions, payload)
 
     if CONF_NOTIFICATIONS in mutable:
       raw_notifications = mutable.get(CONF_NOTIFICATIONS)

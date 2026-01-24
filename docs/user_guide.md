@@ -48,6 +48,14 @@ PawControl bundles focused modules that can be enabled per dog profile:
 3. Configure **geofences** with radius + coordinates, then test entry/exit
    events.
 
+**Validated fields:**
+- Update interval: 5-600 seconds.
+- Accuracy filter: 5-500 meters.
+- Distance filter: 1-2000 meters.
+- Route history retention: 1-365 days.
+- Geofence radius: 5-5000 meters.
+- Latitude/longitude: -90 to 90 / -180 to 180.
+
 **Tip:** If the dog does not move often, increase the update interval to reduce
 noise, but keep a shorter interval for walk detection.
 
