@@ -3305,14 +3305,17 @@ class PawControlDataManager:
     """Load stored JSON data, falling back to the backup if required."""
 
     try:
-      if Path.exists(self._storage_path):
-        with open(self._storage_path, encoding="utf-8") as handle:
-          data = json.load(handle)
-          if isinstance(data, Mapping):
-            return _coerce_json_mutable(
-              cast(JSONMappingLike | JSONMutableMapping, data),
-            )
-          return {}
+      data = await self.hass.async_add_executor_job(
+        self._read_storage_payload,
+        self._storage_path,
+      )
+      if data is None:
+        return {}
+      if isinstance(data, Mapping):
+        return _coerce_json_mutable(
+          cast(JSONMappingLike | JSONMutableMapping, data),
+        )
+      return {}
     except FileNotFoundError:
       return {}
     except json.JSONDecodeError:
@@ -3325,14 +3328,17 @@ class PawControlDataManager:
       raise error_cls(f"Unable to read PawControl data: {err}") from err
 
     try:
-      if Path.exists(self._backup_path):
-        with open(self._backup_path, encoding="utf-8") as handle:
-          data = json.load(handle)
-          if isinstance(data, Mapping):
-            return _coerce_json_mutable(
-              cast(JSONMappingLike | JSONMutableMapping, data),
-            )
-          return {}
+      data = await self.hass.async_add_executor_job(
+        self._read_storage_payload,
+        self._backup_path,
+      )
+      if data is None:
+        return {}
+      if isinstance(data, Mapping):
+        return _coerce_json_mutable(
+          cast(JSONMappingLike | JSONMutableMapping, data),
+        )
+      return {}
     except FileNotFoundError:
       return {}
     except json.JSONDecodeError:
@@ -3357,12 +3363,24 @@ class PawControlDataManager:
         for k, profile in self._dog_profiles.items()
       }
       try:
-        self._write_storage(payload)
+        await self.hass.async_add_executor_job(
+          self._write_storage,
+          payload,
+        )
       except OSError as err:
         error_cls = _resolve_homeassistant_error()
         raise error_cls(
           f"Failed to persist PawControl data: {err}",
         ) from err
+
+  @staticmethod
+  def _read_storage_payload(path: Path) -> Mapping[str, Any] | None:
+    """Read a JSON payload from ``path`` when it exists."""
+
+    if not path.exists():
+      return None
+    with path.open(encoding="utf-8") as handle:
+      return json.load(handle)
 
   def _write_storage(self, payload: JSONMutableMapping) -> None:
     """Write data to the JSON storage file."""
