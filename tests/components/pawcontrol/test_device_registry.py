@@ -115,3 +115,6 @@ async def test_async_get_or_create_dog_device_entry_updates_metadata(
   assert updated.id == device.id
   assert updated.suggested_area == "Yard"
   assert updated.sw_version == "1.1.0"
+  assert updated.name == "Fido"
+  assert updated.serial_number == "SN-123"
+  assert updated.hw_version == "HW-1"
