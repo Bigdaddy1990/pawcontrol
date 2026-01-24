@@ -13,7 +13,6 @@ from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .dog_status import build_dog_status_snapshot
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
@@ -31,6 +30,7 @@ from .utils import (
   JSONMappingLike,
   PawControlDeviceLinkMixin,
   async_call_hass_service_if_available,
+  normalise_json_mapping,
 )
 
 __all__ = ["PawControlDogEntityBase", "PawControlEntity"]
@@ -156,11 +156,9 @@ class PawControlEntity(
     else:
       attributes["last_updated"] = None
 
-    # Normalise attributes to ensure all values are JSON-serialisable. Use the
-    # internal diagnostics normalisation helper instead of an undefined
-    # `normalize_value` symbol. This avoids flake8 F821 errors and ensures
-    # consistency with PawControlDogEntityBase._finalize_entity_attributes().
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
+    # Normalise attributes to ensure all values are JSON-serialisable using the
+    # shared helper so entity attributes stay consistent with diagnostics.
+    return normalise_json_mapping(attributes)
 
   @callback
   def update_device_metadata(self, **details: Any) -> None:
@@ -334,7 +332,7 @@ class PawControlDogEntityBase(PawControlEntity):
   ) -> JSONMutableMapping:
     """Normalize entity attributes for Home Assistant."""
 
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+    return normalise_json_mapping(attrs)
 
   def _extra_state_attributes(self) -> Mapping[str, object] | None:
     """Return extra attributes for the base entity payload."""

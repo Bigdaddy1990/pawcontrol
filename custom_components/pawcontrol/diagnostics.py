@@ -12,8 +12,6 @@ from __future__ import annotations
 import importlib
 import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import asdict, is_dataclass
-from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
@@ -90,6 +88,7 @@ from .types import (
   SetupFlagSourceLabels,
   SetupFlagsPanelPayload,
 )
+from .utils import normalise_json_value
 
 if TYPE_CHECKING:
   from .data_manager import PawControlDataManager
@@ -1049,79 +1048,15 @@ def _serialise_cache_snapshot(snapshot: object) -> JSONMutableMapping:
 
 
 def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
-  """Normalise values into JSON-serialisable primitives."""
+  """Backwards-compatible wrapper for JSON normalisation."""
 
-  if isinstance(value, int | float | str | bool) or value is None:
-    return value
-
-  if isinstance(value, datetime):
-    return value.isoformat()
-
-  if isinstance(value, date):
-    return value.isoformat()
-
-  if isinstance(value, time):
-    return value.isoformat()
-
-  if isinstance(value, timedelta):
-    return str(value)
-
-  if _seen is None:
-    _seen = set()
-
-  obj_id = id(value)
-  if obj_id in _seen:
-    return None
-
-  _seen.add(obj_id)
-  try:
-    if is_dataclass(value) and not isinstance(value, type):
-      return normalize_value(asdict(value), _seen)
-
-    if hasattr(value, "to_mapping") and callable(value.to_mapping):
-      try:
-        mapping_value = cast(Mapping[str, object], value.to_mapping())
-        return normalize_value(mapping_value, _seen)
-      except Exception:  # pragma: no cover - defensive guard
-        _LOGGER.debug(
-          "Failed to normalise to_mapping payload for %s",
-          value,
-        )
-
-    if hasattr(value, "to_dict") and callable(value.to_dict):
-      try:
-        dict_value = cast(Mapping[str, object], value.to_dict())
-        return normalize_value(dict_value, _seen)
-      except Exception:  # pragma: no cover - defensive guard
-        _LOGGER.debug(
-          "Failed to normalise to_dict payload for %s",
-          value,
-        )
-
-    if hasattr(value, "__dict__") and not isinstance(value, type):
-      return normalize_value(vars(value), _seen)
-
-    if isinstance(value, Mapping):
-      return {str(key): normalize_value(item, _seen) for key, item in value.items()}
-
-    if isinstance(value, set | frozenset):
-      return [normalize_value(item, _seen) for item in value]
-
-    if isinstance(value, Sequence) and not isinstance(
-      value,
-      str | bytes | bytearray,
-    ):
-      return [normalize_value(item, _seen) for item in value]
-
-    return repr(value)
-  finally:
-    _seen.discard(obj_id)
+  return normalise_json_value(value, _seen)
 
 
 def _normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
   """Normalise diagnostics payloads into JSON-serialisable data."""
 
-  return normalize_value(value, _seen)
+  return normalise_json_value(value, _seen)
 
 
 async def _get_integration_status(
