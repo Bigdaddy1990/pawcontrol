@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from collections.abc import Iterable
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -74,3 +75,26 @@ async def test_platform_setup_adds_entities_when_configured(
   args, _ = async_add_entities.call_args
   added_entities: Iterable[Any] = args[0]
   assert list(added_entities)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("module_path", PLATFORM_MODULES)
+async def test_platform_setup_extra_state_attributes_are_json(
+  hass,
+  mock_config_entry,
+  runtime_data: PawControlRuntimeData,
+  module_path: str,
+) -> None:
+  store_runtime_data(hass, mock_config_entry, runtime_data)
+  module = importlib.import_module(module_path)
+  async_add_entities = AsyncMock()
+
+  await module.async_setup_entry(hass, mock_config_entry, async_add_entities)
+
+  args, _ = async_add_entities.call_args
+  added_entities: Iterable[Any] = args[0]
+
+  for entity in added_entities:
+    attrs = entity.extra_state_attributes
+    assert isinstance(attrs, dict)
+    json.dumps(attrs)
