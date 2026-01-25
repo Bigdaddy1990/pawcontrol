@@ -890,10 +890,14 @@ logger:
   logs:
     custom_components.pawcontrol: debug
 
-# Diagnostics laufen lassen
-service: pawcontrol.gps_generate_diagnostics
+# Report für das GPS-Modul erzeugen
+service: pawcontrol.generate_report
 data:
   dog_id: "buddy"
+  report_type: "weekly"
+  include_sections:
+    - "gps"
+    - "summary"
 ```
 
 **Benachrichtigungen kommen nicht an:**

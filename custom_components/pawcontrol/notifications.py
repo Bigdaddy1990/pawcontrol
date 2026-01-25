@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import partial
+import time
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 from uuid import uuid4
 
@@ -496,13 +497,13 @@ class NotificationCache[ConfigT: NotificationConfig]:
     Args:
         max_size: Maximum cache entries
     """
-    self._config_cache: dict[str, tuple[ConfigT, datetime]] = {}
-    self._quiet_time_cache: dict[str, tuple[bool, datetime]] = {}
-    self._rate_limit_cache: dict[str, dict[str, datetime]] = {}
+    self._config_cache: dict[str, tuple[ConfigT, float, datetime]] = {}
+    self._quiet_time_cache: dict[str, tuple[bool, float, datetime]] = {}
+    self._rate_limit_cache: dict[str, dict[str, tuple[float, datetime]]] = {}
     self._person_targeting_cache: dict[
       str,
       # NEW
-      tuple[list[str], datetime],
+      tuple[list[str], float, datetime],
     ] = {}
     self._max_size = max_size
     self._access_order: deque[str] = deque()
@@ -522,7 +523,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
         Cached configuration or None
     """
     if config_key in self._config_cache:
-      config, _timestamp = self._config_cache[config_key]
+      config, _monotonic, _timestamp = self._config_cache[config_key]
       # Update access order for LRU
       if config_key in self._access_order:
         self._access_order.remove(config_key)
@@ -544,7 +545,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
       oldest = self._access_order.popleft()
       del self._config_cache[oldest]
 
-    self._config_cache[config_key] = (config, _dt_now())
+    now = _dt_now()
+    self._config_cache[config_key] = (config, time.monotonic(), now)
 
     # Update access order
     if config_key in self._access_order:
@@ -566,8 +568,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
         Cached targeting list or None
     """
     if cache_key in self._person_targeting_cache:
-      targets, timestamp = self._person_targeting_cache[cache_key]
-      if (_dt_now() - timestamp).total_seconds() < ttl_seconds:
+      targets, cache_monotonic, _timestamp = self._person_targeting_cache[cache_key]
+      if time.monotonic() - cache_monotonic < ttl_seconds:
         return targets
     return None
 
@@ -578,7 +580,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
         cache_key: Cache key
         targets: Target services list
     """
-    self._person_targeting_cache[cache_key] = (targets, _dt_now())
+    now = _dt_now()
+    self._person_targeting_cache[cache_key] = (targets, time.monotonic(), now)
 
   def is_quiet_time_cached(self, config_key: str) -> tuple[bool, bool]:
     """Check if quiet time status is cached.
@@ -590,8 +593,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
         Tuple of (is_cached, is_quiet_time)
     """
     if config_key in self._quiet_time_cache:
-      is_quiet, cache_time = self._quiet_time_cache[config_key]
-      if (_dt_now() - cache_time).total_seconds() < QUIET_TIME_CACHE_TTL:
+      is_quiet, cache_monotonic, _timestamp = self._quiet_time_cache[config_key]
+      if time.monotonic() - cache_monotonic < QUIET_TIME_CACHE_TTL:
         return True, is_quiet
     return False, False
 
@@ -602,7 +605,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
         config_key: Configuration key
         is_quiet: Whether it's currently quiet time
     """
-    self._quiet_time_cache[config_key] = (is_quiet, _dt_now())
+    now = _dt_now()
+    self._quiet_time_cache[config_key] = (is_quiet, time.monotonic(), now)
 
   def check_rate_limit(
     self,
@@ -620,6 +624,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
     Returns:
         True if sending is allowed
     """
+    now_monotonic = time.monotonic()
     now = _dt_now()
 
     if config_key not in self._rate_limit_cache:
@@ -628,12 +633,12 @@ class NotificationCache[ConfigT: NotificationConfig]:
     channel_cache = self._rate_limit_cache[config_key]
 
     if channel in channel_cache:
-      last_sent = channel_cache[channel]
-      if (now - last_sent).total_seconds() < limit_minutes * 60:
+      last_sent_monotonic, _timestamp = channel_cache[channel]
+      if now_monotonic - last_sent_monotonic < limit_minutes * 60:
         return False
 
     # Update rate limit cache
-    channel_cache[channel] = now
+    channel_cache[channel] = (now_monotonic, now)
     return True
 
   def cleanup_expired(self) -> int:
@@ -642,14 +647,15 @@ class NotificationCache[ConfigT: NotificationConfig]:
     Returns:
         Number of entries cleaned up
     """
+    now_monotonic = time.monotonic()
     now = _dt_now()
     cleaned = 0
 
     # Clean quiet time cache
     expired_quiet_keys = [
       key
-      for key, (_, cache_time) in self._quiet_time_cache.items()
-      if (now - cache_time).total_seconds() > QUIET_TIME_CACHE_TTL
+      for key, (_, cache_monotonic, _timestamp) in self._quiet_time_cache.items()
+      if now_monotonic - cache_monotonic > QUIET_TIME_CACHE_TTL
     ]
     for key in expired_quiet_keys:
       del self._quiet_time_cache[key]
@@ -658,8 +664,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
     # Clean person targeting cache (5 minute TTL)
     expired_person_keys = [
       key
-      for key, (_, cache_time) in self._person_targeting_cache.items()
-      if (now - cache_time).total_seconds() > 300
+      for key, (_, cache_monotonic, _timestamp) in self._person_targeting_cache.items()
+      if now_monotonic - cache_monotonic > 300
     ]
     for key in expired_person_keys:
       del self._person_targeting_cache[key]
@@ -669,8 +675,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
     for channels in self._rate_limit_cache.values():
       expired_channels = [
         channel
-        for channel, last_sent in channels.items()
-        if (now - last_sent).total_seconds() > 86400
+        for channel, (last_sent_monotonic, _timestamp) in channels.items()
+        if now_monotonic - last_sent_monotonic > 86400
       ]
       for channel in expired_channels:
         del channels[channel]

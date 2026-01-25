@@ -6407,6 +6407,8 @@ class DogConfigData(TypedDict, total=False):
   walk_config: NotRequired[DogWalkConfig]
   feeding_config: NotRequired[DogFeedingConfig]
   health_config: NotRequired[DogHealthConfig]
+  feeding: NotRequired[JSONMutableMapping]
+  walk: NotRequired[JSONMutableMapping]
   door_sensor: NotRequired[str | None]
   door_sensor_settings: NotRequired[DoorSensorSettingsPayload | None]
   text_values: NotRequired[DogTextSnapshot]
@@ -6660,6 +6662,14 @@ def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | Non
       DogHealthConfig,
       dict(health_config),
     )
+
+  feeding_module = data.get("feeding")
+  if isinstance(feeding_module, Mapping):
+    config["feeding"] = ensure_json_mapping(feeding_module)
+
+  walk_module = data.get("walk")
+  if isinstance(walk_module, Mapping):
+    config["walk"] = ensure_json_mapping(walk_module)
 
   door_sensor = data.get(CONF_DOOR_SENSOR)
   if isinstance(door_sensor, str):
