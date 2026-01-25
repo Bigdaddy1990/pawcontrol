@@ -1,54 +1,54 @@
 {
-  "walk_detection": {
-    "name": "PawControl Spaziergang-Erkennung",
-    "description": "Führt Aktionen aus, wenn ein PawControl-Spaziergang startet oder endet, basierend auf dem Binary Sensor für laufende Spaziergänge.",
-    "input": {
-      "walk_sensor": {
-        "name": "Sensor für laufenden Spaziergang",
-        "description": "PawControl-Entity binary_sensor.<dog_id>_walk_in_progress."
-      },
-      "walk_start_actions": {
-        "name": "Aktionen bei Spaziergang-Start",
-        "description": "Aktionen, die beim Start des Spaziergangs ausgeführt werden."
-      },
-      "walk_end_actions": {
-        "name": "Aktionen bei Spaziergang-Ende",
-        "description": "Aktionen, die beim Ende des Spaziergangs ausgeführt werden."
-      },
-      "logbook_entry": {
-        "name": "Logbuch-Eintrag hinzufügen",
-        "description": "Protokolliert Start und Ende des Spaziergangs im Home-Assistant-Logbuch."
-      }
-    }
-  },
   "safe_zone_alert": {
-    "name": "PawControl Sicherheitszonen-Alarm",
-    "description": "Benachrichtigt oder startet Aktionen, wenn ein PawControl-Hund die Sicherheitszone verlässt oder zurückkehrt, basierend auf dem In-Safe-Zone-Sensor.",
+    "description": "Benachrichtigt oder startet Aktionen, wenn ein PawControl-Hund die Sicherheitszone verl\u00e4sst oder zur\u00fcckkehrt, basierend auf dem In-Safe-Zone-Sensor.",
     "input": {
-      "safe_zone_sensor": {
-        "name": "Sensor für Sicherheitszone",
-        "description": "PawControl-Entity binary_sensor.<dog_id>_in_safe_zone."
-      },
       "leave_delay": {
-        "name": "Verzögerung außerhalb der Sicherheitszone",
-        "description": "Zeit, die der Hund außerhalb bleiben muss, bevor Aktionen ausgelöst werden."
-      },
-      "return_delay": {
-        "name": "Verzögerung bei Rückkehr",
-        "description": "Zeit, die der Hund innerhalb bleiben muss, bevor Rückkehr-Aktionen ausgelöst werden."
+        "description": "Zeit, die der Hund au\u00dferhalb bleiben muss, bevor Aktionen ausgel\u00f6st werden.",
+        "name": "Verz\u00f6gerung au\u00dferhalb der Sicherheitszone"
       },
       "left_actions": {
-        "name": "Aktionen beim Verlassen",
-        "description": "Aktionen, die ausgeführt werden, wenn der Hund die Sicherheitszone verlässt."
-      },
-      "return_actions": {
-        "name": "Aktionen bei Rückkehr",
-        "description": "Aktionen, die ausgeführt werden, wenn der Hund in die Sicherheitszone zurückkehrt."
+        "description": "Aktionen, die ausgef\u00fchrt werden, wenn der Hund die Sicherheitszone verl\u00e4sst.",
+        "name": "Aktionen beim Verlassen"
       },
       "logbook_entry": {
-        "name": "Logbuch-Eintrag hinzufügen",
-        "description": "Protokolliert Sicherheitszonen-Wechsel im Home-Assistant-Logbuch."
+        "description": "Protokolliert Sicherheitszonen-Wechsel im Home-Assistant-Logbuch.",
+        "name": "Logbuch-Eintrag hinzuf\u00fcgen"
+      },
+      "return_actions": {
+        "description": "Aktionen, die ausgef\u00fchrt werden, wenn der Hund in die Sicherheitszone zur\u00fcckkehrt.",
+        "name": "Aktionen bei R\u00fcckkehr"
+      },
+      "return_delay": {
+        "description": "Zeit, die der Hund innerhalb bleiben muss, bevor R\u00fcckkehr-Aktionen ausgel\u00f6st werden.",
+        "name": "Verz\u00f6gerung bei R\u00fcckkehr"
+      },
+      "safe_zone_sensor": {
+        "description": "PawControl-Entity binary_sensor.<dog_id>_in_safe_zone.",
+        "name": "Sensor f\u00fcr Sicherheitszone"
       }
-    }
+    },
+    "name": "PawControl Sicherheitszonen-Alarm"
+  },
+  "walk_detection": {
+    "description": "F\u00fchrt Aktionen aus, wenn ein PawControl-Spaziergang startet oder endet, basierend auf dem Binary Sensor f\u00fcr laufende Spazierg\u00e4nge.",
+    "input": {
+      "logbook_entry": {
+        "description": "Protokolliert Start und Ende des Spaziergangs im Home-Assistant-Logbuch.",
+        "name": "Logbuch-Eintrag hinzuf\u00fcgen"
+      },
+      "walk_end_actions": {
+        "description": "Aktionen, die beim Ende des Spaziergangs ausgef\u00fchrt werden.",
+        "name": "Aktionen bei Spaziergang-Ende"
+      },
+      "walk_sensor": {
+        "description": "PawControl-Entity binary_sensor.<dog_id>_walk_in_progress.",
+        "name": "Sensor f\u00fcr laufenden Spaziergang"
+      },
+      "walk_start_actions": {
+        "description": "Aktionen, die beim Start des Spaziergangs ausgef\u00fchrt werden.",
+        "name": "Aktionen bei Spaziergang-Start"
+      }
+    },
+    "name": "PawControl Spaziergang-Erkennung"
   }
 }
