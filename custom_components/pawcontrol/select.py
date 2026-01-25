@@ -43,6 +43,7 @@ from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, PawControlNotificationManager
+from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_ID_FIELD,
@@ -536,43 +537,46 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce select states for PawControl entities."""
+  await async_reproduce_platform_states(
+    hass,
+    states,
+    "select",
+    _preprocess_select_state,
+    _async_reproduce_select_state,
+    context=context,
+  )
 
-  for state in states:
-    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      _LOGGER.warning(
-        "Cannot reproduce select state for %s: %s",
-        state.entity_id,
-        state.state,
-      )
-      continue
 
-    current_state = hass.states.get(state.entity_id)
-    if current_state is None:
-      _LOGGER.warning(
-        "Select entity %s not found for state reproduction",
-        state.entity_id,
-      )
-      continue
+def _preprocess_select_state(state: State) -> str:
+  return state.state
 
-    if current_state.state == state.state:
-      continue
 
-    options = current_state.attributes.get(ATTR_OPTIONS, [])
-    if options and state.state not in options:
-      _LOGGER.warning(
-        "Invalid select option for %s: %s",
-        state.entity_id,
-        state.state,
-      )
-      continue
+async def _async_reproduce_select_state(
+  hass: HomeAssistant,
+  state: State,
+  current_state: State,
+  target_option: str,
+  context: Context | None,
+) -> None:
+  if current_state.state == target_option:
+    return
 
-    await hass.services.async_call(
-      select_component.DOMAIN,
-      select_component.SERVICE_SELECT_OPTION,
-      {ATTR_ENTITY_ID: state.entity_id, ATTR_OPTION: state.state},
-      context=context,
-      blocking=True,
+  options = current_state.attributes.get(ATTR_OPTIONS, [])
+  if options and target_option not in options:
+    _LOGGER.warning(
+      "Invalid select option for %s: %s",
+      state.entity_id,
+      target_option,
     )
+    return
+
+  await hass.services.async_call(
+    select_component.DOMAIN,
+    select_component.SERVICE_SELECT_OPTION,
+    {ATTR_ENTITY_ID: state.entity_id, ATTR_OPTION: target_option},
+    context=context,
+    blocking=True,
+  )
 
 
 def _create_base_selects(

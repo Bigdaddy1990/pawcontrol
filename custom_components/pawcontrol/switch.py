@@ -49,6 +49,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_label
+from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_ID_FIELD,
@@ -353,43 +354,44 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce switch states for PawControl entities."""
+  await async_reproduce_platform_states(
+    hass,
+    states,
+    "switch",
+    _preprocess_switch_state,
+    _async_reproduce_switch_state,
+    context=context,
+  )
 
-  for state in states:
-    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      _LOGGER.warning(
-        "Cannot reproduce switch state for %s: %s",
-        state.entity_id,
-        state.state,
-      )
-      continue
-
-    if state.state not in (STATE_ON, STATE_OFF):
-      _LOGGER.warning(
-        "Invalid switch state for %s: %s",
-        state.entity_id,
-        state.state,
-      )
-      continue
-
-    current_state = hass.states.get(state.entity_id)
-    if current_state is None:
-      _LOGGER.warning(
-        "Switch entity %s not found for state reproduction",
-        state.entity_id,
-      )
-      continue
-
-    if current_state.state == state.state:
-      continue
-
-    service = SERVICE_TURN_ON if state.state == STATE_ON else SERVICE_TURN_OFF
-    await hass.services.async_call(
-      switch_component.DOMAIN,
-      service,
-      {ATTR_ENTITY_ID: state.entity_id},
-      context=context,
-      blocking=True,
+def _preprocess_switch_state(state: State) -> str | None:
+  if state.state not in (STATE_ON, STATE_OFF):
+    _LOGGER.warning(
+      "Invalid switch state for %s: %s",
+      state.entity_id,
+      state.state,
     )
+    return None
+  return state.state
+
+
+async def _async_reproduce_switch_state(
+  hass: HomeAssistant,
+  state: State,
+  current_state: State,
+  target_state: str,
+  context: Context | None,
+) -> None:
+  if current_state.state == target_state:
+    return
+
+  service = SERVICE_TURN_ON if target_state == STATE_ON else SERVICE_TURN_OFF
+  await hass.services.async_call(
+    switch_component.DOMAIN,
+    service,
+    {ATTR_ENTITY_ID: state.entity_id},
+    context=context,
+    blocking=True,
+  )
 
 
 class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):

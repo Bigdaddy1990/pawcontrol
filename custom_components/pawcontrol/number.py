@@ -46,6 +46,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
+from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_AGE_FIELD,
@@ -248,50 +249,50 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce number states for PawControl entities."""
+  await async_reproduce_platform_states(
+    hass,
+    states,
+    "number",
+    _preprocess_number_state,
+    _async_reproduce_number_state,
+    context=context,
+  )
 
-  for state in states:
-    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      _LOGGER.warning(
-        "Cannot reproduce number state for %s: %s",
-        state.entity_id,
-        state.state,
-      )
-      continue
-
-    try:
-      target_value = float(state.state)
-    except (TypeError, ValueError):
-      _LOGGER.warning(
-        "Invalid number state for %s: %s",
-        state.entity_id,
-        state.state,
-      )
-      continue
-
-    current_state = hass.states.get(state.entity_id)
-    if current_state is None:
-      _LOGGER.warning(
-        "Number entity %s not found for state reproduction",
-        state.entity_id,
-      )
-      continue
-
-    if current_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      try:
-        current_value = float(current_state.state)
-      except (TypeError, ValueError):
-        current_value = None
-      else:
-        if current_value == target_value:
-          continue
-
-    await hass.services.async_call(
-      number_component.DOMAIN,
-      number_component.SERVICE_SET_VALUE,
-      {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
-      context=context,
-      blocking=True,
+def _preprocess_number_state(state: State) -> float | None:
+  try:
+    return float(state.state)
+  except (TypeError, ValueError):
+    _LOGGER.warning(
+      "Invalid number state for %s: %s",
+      state.entity_id,
+      state.state,
     )
+    return None
+
+
+async def _async_reproduce_number_state(
+  hass: HomeAssistant,
+  state: State,
+  current_state: State,
+  target_value: float,
+  context: Context | None,
+) -> None:
+  if current_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+    try:
+      current_value = float(current_state.state)
+    except (TypeError, ValueError):
+      current_value = None
+    else:
+      if current_value == target_value:
+        return
+
+  await hass.services.async_call(
+    number_component.DOMAIN,
+    number_component.SERVICE_SET_VALUE,
+    {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
+    context=context,
+    blocking=True,
+  )
 
 
 def _create_base_numbers(

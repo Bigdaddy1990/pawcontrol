@@ -33,6 +33,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, NotificationType
+from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_ID_FIELD,
@@ -306,34 +307,36 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce text states for PawControl entities."""
+  await async_reproduce_platform_states(
+    hass,
+    states,
+    "text",
+    _preprocess_text_state,
+    _async_reproduce_text_state,
+    context=context,
+  )
 
-  for state in states:
-    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      _LOGGER.warning(
-        "Cannot reproduce text state for %s: %s",
-        state.entity_id,
-        state.state,
-      )
-      continue
+def _preprocess_text_state(state: State) -> str:
+  return state.state
 
-    current_state = hass.states.get(state.entity_id)
-    if current_state is None:
-      _LOGGER.warning(
-        "Text entity %s not found for state reproduction",
-        state.entity_id,
-      )
-      continue
 
-    if current_state.state == state.state:
-      continue
+async def _async_reproduce_text_state(
+  hass: HomeAssistant,
+  state: State,
+  current_state: State,
+  target_value: str,
+  context: Context | None,
+) -> None:
+  if current_state.state == target_value:
+    return
 
-    await hass.services.async_call(
-      text_component.DOMAIN,
-      text_component.SERVICE_SET_VALUE,
-      {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: state.state},
-      context=context,
-      blocking=True,
-    )
+  await hass.services.async_call(
+    text_component.DOMAIN,
+    text_component.SERVICE_SET_VALUE,
+    {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
+    context=context,
+    blocking=True,
+  )
 
 
 class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
