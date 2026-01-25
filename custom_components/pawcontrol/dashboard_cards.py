@@ -518,7 +518,8 @@ class BaseCardGenerator:
     if not entities:
       return []
 
-    start_time = asyncio.get_event_loop().time()
+    loop = asyncio.get_running_loop()
+    start_time = loop.time()
     valid_entities: list[str] = []
 
     # OPTIMIZED: Clean cache if needed
@@ -529,7 +530,7 @@ class BaseCardGenerator:
     uncached_entities: list[str] = []
 
     if use_cache:
-      current_time = asyncio.get_event_loop().time()
+      current_time = loop.time()
       for entity_id in entities:
         cache_entry = _entity_validation_cache.get(entity_id)
         if cache_entry and (current_time - cache_entry[0]) < _cache_cleanup_threshold:
@@ -574,7 +575,7 @@ class BaseCardGenerator:
             # Update cache
             if use_cache:
               _entity_validation_cache[entity_id] = (
-                asyncio.get_event_loop().time(),
+                loop.time(),
                 cached_results[entity_id],
               )
 
@@ -598,7 +599,7 @@ class BaseCardGenerator:
     ]
 
     # Update performance stats
-    validation_time = asyncio.get_event_loop().time() - start_time
+    validation_time = loop.time() - start_time
     self._performance_stats["validations_count"] += len(entities)
     self._performance_stats["generation_time_total"] += validation_time
 
@@ -648,7 +649,7 @@ class BaseCardGenerator:
     if len(_entity_validation_cache) <= VALIDATION_CACHE_SIZE:
       return
 
-    current_time = asyncio.get_event_loop().time()
+    current_time = asyncio.get_running_loop().time()
     expired_keys = [
       entity_id
       for entity_id, (timestamp, _) in _entity_validation_cache.items()
@@ -947,7 +948,8 @@ class DogCardGenerator(BaseCardGenerator):
     dog_name = dog_config[DOG_NAME_FIELD]
     modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
 
-    start_time = asyncio.get_event_loop().time()
+    loop = asyncio.get_running_loop()
+    start_time = loop.time()
     cards: list[CardConfigType] = []
 
     # OPTIMIZED: Generate cards in parallel for better performance
@@ -1057,7 +1059,7 @@ class DogCardGenerator(BaseCardGenerator):
         },
       ]
 
-    generation_time = asyncio.get_event_loop().time() - start_time
+    generation_time = loop.time() - start_time
     self._performance_stats["generation_time_total"] += generation_time
 
     if generation_time > 2.0:
@@ -2425,7 +2427,8 @@ class WeatherCardGenerator(BaseCardGenerator):
     if not modules.get("weather"):
       return []
 
-    start_time = asyncio.get_event_loop().time()
+    loop = asyncio.get_running_loop()
+    start_time = loop.time()
     cards: list[CardConfigType] = []
 
     # OPTIMIZED: Generate weather cards concurrently
@@ -2524,7 +2527,7 @@ class WeatherCardGenerator(BaseCardGenerator):
         },
       ]
 
-    generation_time = asyncio.get_event_loop().time() - start_time
+    generation_time = loop.time() - start_time
     self._performance_stats["generation_time_total"] += generation_time
 
     if generation_time > 1.5:
@@ -3258,7 +3261,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
 async def cleanup_validation_cache() -> None:
   """Clean up global validation cache."""
   global _entity_validation_cache
-  current_time = asyncio.get_event_loop().time()
+  current_time = asyncio.get_running_loop().time()
 
   expired_keys = [
     entity_id
