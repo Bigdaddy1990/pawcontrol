@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Generic, TypeVar
 from unittest.mock import AsyncMock
 
+import voluptuous as vol
 __all__ = [
   "ConfigEntry",
   "ConfigEntryAuthFailed",
@@ -1790,6 +1791,7 @@ def install_homeassistant_stubs() -> None:
     "homeassistant.components.button",
     "homeassistant.components.date",
     "homeassistant.components.datetime",
+    "homeassistant.components.device_automation",
     "homeassistant.components.device_tracker",
     "homeassistant.components.input_boolean",
     "homeassistant.components.input_datetime",
@@ -1872,6 +1874,9 @@ def install_homeassistant_stubs() -> None:
   button_component_module = types.ModuleType("homeassistant.components.button")
   date_component_module = types.ModuleType("homeassistant.components.date")
   datetime_component_module = types.ModuleType("homeassistant.components.datetime")
+  device_automation_component_module = types.ModuleType(
+    "homeassistant.components.device_automation",
+  )
   device_tracker_component_module = types.ModuleType(
     "homeassistant.components.device_tracker",
   )
@@ -1912,6 +1917,14 @@ def install_homeassistant_stubs() -> None:
   const_module.CONF_DEFAULT = "default"
   const_module.CONF_DESCRIPTION = "description"
   const_module.CONF_SEQUENCE = "sequence"
+  const_module.CONF_DEVICE_ID = "device_id"
+  const_module.CONF_ENTITY_ID = "entity_id"
+  const_module.CONF_DOMAIN = "domain"
+  const_module.CONF_PLATFORM = "platform"
+  const_module.CONF_TYPE = "type"
+  const_module.CONF_FROM = "from"
+  const_module.CONF_TO = "to"
+  const_module.CONF_CONDITION = "condition"
   const_module.STATE_ON = "on"
   const_module.STATE_OFF = "off"
   const_module.STATE_UNKNOWN = "unknown"
@@ -1923,6 +1936,27 @@ def install_homeassistant_stubs() -> None:
   const_module.UnitOfTime = UnitOfTime
   const_module.UnitOfTemperature = UnitOfTemperature
   const_module.PERCENTAGE = "%"
+
+  device_automation_component_module.DEVICE_TRIGGER_BASE_SCHEMA = vol.Schema(
+    {
+      vol.Required(const_module.CONF_PLATFORM): vol.Any("device"),
+      vol.Required(const_module.CONF_DEVICE_ID): vol.Coerce(str),
+      vol.Required(const_module.CONF_DOMAIN): vol.Coerce(str),
+    },
+  )
+  device_automation_component_module.DEVICE_CONDITION_BASE_SCHEMA = vol.Schema(
+    {
+      vol.Required(const_module.CONF_CONDITION): vol.Any("device"),
+      vol.Required(const_module.CONF_DEVICE_ID): vol.Coerce(str),
+      vol.Required(const_module.CONF_DOMAIN): vol.Coerce(str),
+    },
+  )
+  device_automation_component_module.DEVICE_ACTION_BASE_SCHEMA = vol.Schema(
+    {
+      vol.Required(const_module.CONF_DEVICE_ID): vol.Coerce(str),
+      vol.Required(const_module.CONF_DOMAIN): vol.Coerce(str),
+    },
+  )
 
   core_module.HomeAssistant = HomeAssistant
   core_module.Event = Event
@@ -2148,6 +2182,7 @@ def install_homeassistant_stubs() -> None:
   components_module.button = button_component_module
   components_module.date = date_component_module
   components_module.datetime = datetime_component_module
+  components_module.device_automation = device_automation_component_module
   components_module.device_tracker = device_tracker_component_module
   components_module.input_boolean = input_boolean_component_module
   components_module.input_datetime = input_datetime_component_module
@@ -2196,6 +2231,9 @@ def install_homeassistant_stubs() -> None:
   sys.modules["homeassistant.components.button"] = button_component_module
   sys.modules["homeassistant.components.date"] = date_component_module
   sys.modules["homeassistant.components.datetime"] = datetime_component_module
+  sys.modules["homeassistant.components.device_automation"] = (
+    device_automation_component_module
+  )
   sys.modules["homeassistant.components.device_tracker"] = (
     device_tracker_component_module
   )

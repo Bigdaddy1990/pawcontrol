@@ -67,7 +67,9 @@ action:
       message: "Meal is overdue for {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}"
 ```
 
-More samples live in [`docs/automation_examples.md`](docs/automation_examples.md).
+Device-based triggers, conditions, and actions are available for PawControl dog
+devices (see the device automation examples in
+[`docs/automation_examples.md`](docs/automation_examples.md)).
 
 ## 🛠️ Troubleshooting (Quick hits)
 
