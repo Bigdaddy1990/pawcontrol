@@ -209,7 +209,7 @@ class PawControlCoordinator(
     self._last_cycle: RuntimeCycleInfo | None = None
 
     _LOGGER.info(
-      "Coordinator initialised: %d dogs, %ds interval, external_api=%s",
+      "Coordinator started (event=coordinator_start dogs=%d interval_s=%d external_api=%s)",
       len(self.registry),
       base_interval,
       self._use_external_api,
@@ -389,10 +389,22 @@ class PawControlCoordinator(
     self,
     dog_ids: Sequence[str],
   ) -> tuple[CoordinatorDataPayload, RuntimeCycleInfo]:
+    _LOGGER.debug(
+      "Update cycle starting (event=update_cycle_start dogs=%d)",
+      len(dog_ids),
+    )
+    cycle_start = perf_counter()
     data, cycle = await self._runtime.execute_cycle(
       dog_ids,
       self._data,
       empty_payload_factory=self.registry.empty_payload,
+    )
+    duration = perf_counter() - cycle_start
+    _LOGGER.debug(
+      "Update cycle completed (event=update_cycle_end dogs=%d duration_ms=%.2f interval_s=%.2f)",
+      len(dog_ids),
+      duration * 1000,
+      cycle.new_interval,
     )
     self._apply_adaptive_interval(cycle.new_interval)
     self._last_cycle = cycle

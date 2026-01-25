@@ -27,7 +27,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import MODULE_GPS
+from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, MODULE_GPS
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
@@ -224,8 +224,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
 
     # Link to PawControl device
     self._set_device_link_info(
-      model="GPS Tracker",
-      sw_version="1.0.0",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
     )
 
     # GPS tracker state
