@@ -1183,8 +1183,8 @@ widget_entities:
 # 1. Integration-Logs prüfen
 # Einstellungen → System → Logs → Filter: pawcontrol
 
-# 2. GPS-Konfiguration prüfen
-# Entwicklertools → Dienste → pawcontrol.gps_generate_diagnostics
+# 2. Diagnose herunterladen
+# Einstellungen → Geräte & Dienste → Paw Control → Diagnose
 
 # 3. Webhook testen
 curl -X POST "https://ihr-ha-server.com/api/webhook/paw_control_gps" \
@@ -1267,16 +1267,16 @@ logger:
     custom_components.pawcontrol.garden_manager: debug
     pawcontrol: debug
 
-# Erweiterte Diagnostics
+# Erweiterte Reports
 # Entwicklertools → Dienste
-service: pawcontrol.gps_generate_diagnostics
+service: pawcontrol.generate_report
 data:
   dog_id: "buddy"
-
-# Garden-spezifische Diagnostics
-service: pawcontrol.garden_generate_diagnostics
-data:
-  dog_id: "buddy"
+  report_type: "weekly"
+  include_sections:
+    - "gps"
+    - "grooming"
+    - "summary"
 ```
 
 ### Performance-Probleme beheben
@@ -1430,10 +1430,14 @@ service: pawcontrol.route_history_purge
 data:
   older_than_days: 90
 
-# Monatlich: Garden-Daten bereinigen
-service: pawcontrol.garden_history_purge
+# Monatlich: Garden-Daten exportieren
+service: pawcontrol.export_data
 data:
-  older_than_days: 90
+  dog_id: "buddy"
+  data_type: "garden"
+  date_from: "{{ (now() - timedelta(days=90)).date() }}"
+  date_to: "{{ now().date() }}"
+  format: "csv"
 
 # Bei Updates: Backup erstellen
 service: pawcontrol.backup_configuration
@@ -1461,14 +1465,14 @@ automation:
       - condition: template
         value_template: "{{ now().day == 1 }}"  # Ersten des Monats
     action:
-      # Garden-Statistiken neu berechnen
-      - service: pawcontrol.recalculate_garden_stats
+      # Garden-Daten archivieren
+      - service: pawcontrol.export_data
         data:
           dog_id: "buddy"
-      # Alte Garden-Sessions archivieren
-      - service: pawcontrol.archive_old_garden_sessions
-        data:
-          older_than_days: 90
+          data_type: "garden"
+          date_from: "{{ (now() - timedelta(days=90)).date() }}"
+          date_to: "{{ now().date() }}"
+          format: "csv"
 ```
 
 ---
