@@ -1301,8 +1301,14 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
 
   async def _async_set_select_option(self, option: str) -> None:
     """Set the default meal type."""
-    # This would update default feeding behavior
-    pass
+    timestamp = dt_util.utcnow().isoformat()
+    await self._async_update_module_settings(
+      "feeding",
+      {
+        "default_meal_type": option,
+        "default_meal_type_updated_at": timestamp,
+      },
+    )
 
 
 class PawControlFeedingModeSelect(PawControlSelectBase):
@@ -1327,8 +1333,29 @@ class PawControlFeedingModeSelect(PawControlSelectBase):
 
   async def _async_set_select_option(self, option: str) -> None:
     """Set the feeding mode."""
-    # This would configure feeding automation level
-    pass
+    runtime_data = self._get_runtime_data()
+    feeding_manager = runtime_data.feeding_manager if runtime_data else None
+
+    if feeding_manager is not None:
+      if option == "diabetic":
+        await feeding_manager.async_activate_diabetic_feeding_mode(
+          self._dog_id,
+        )
+      elif option == "emergency":
+        await feeding_manager.async_activate_emergency_feeding_mode(
+          self._dog_id,
+          "illness",
+        )
+
+    timestamp = dt_util.utcnow().isoformat()
+    await self._async_update_module_settings(
+      "feeding",
+      {
+        "mode": option,
+        "mode_updated_at": timestamp,
+      },
+    )
+    await self.coordinator.async_refresh_dog(self._dog_id)
 
 
 # Walk selects
@@ -1354,8 +1381,14 @@ class PawControlWalkModeSelect(PawControlSelectBase):
 
   async def _async_set_select_option(self, option: str) -> None:
     """Set the walk mode."""
-    # This would configure walk detection and tracking
-    pass
+    timestamp = dt_util.utcnow().isoformat()
+    await self._async_update_module_settings(
+      "walk",
+      {
+        "mode": option,
+        "mode_updated_at": timestamp,
+      },
+    )
 
   @property
   def extra_state_attributes(self) -> SelectExtraAttributes:
