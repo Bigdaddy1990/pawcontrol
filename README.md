@@ -1182,14 +1182,6 @@ pytest
 ```bash
 # Run full test suite
 pytest --cov=custom_components.pawcontrol --cov-report=html
-
-# Run specific test categories
-pytest tests/test_config_flow.py -v
-pytest tests/test_*_edge_cases*.py -v
-pytest tests/test_end_to_end_integration.py -v
-
-# Performance benchmarks
-pytest tests/test_performance_*.py -v
 ```
 
 **Contribution Process**:
@@ -1267,7 +1259,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - **Quality Scale Status**: Platinum alignment target with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
 - **Automated Test Suite**: Unit, integration, and end-to-end suites enforce 100% coverage and nightly telemetry checks across coordinators, entities, services, and blueprints.
 - **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
-- **Production Hardening**: Installation, removal, diagnostics, repairs, and maintenance runbooks are documented in README, `docs/MAINTENANCE.md`, and the documentation portal.
+- **Production Hardening**: Installation, removal, diagnostics, and repairs are documented in README and the documentation portal.
 - **Runtime Architecture**: Coordinators, runtime data containers, and managers back every platform with regression coverage verifying reload safety and service orchestration.
 - **Runtime Cache Compatibility**: The config-entry runtime store now records creation versions, upgrades legacy payloads to the supported schema, and blocks future-version caches so reloads fall back to a clean setup instead of deserialising incompatible telemetry.【F:custom_components/pawcontrol/runtime_data.py†L1-L312】【F:tests/test_runtime_data.py†L1-L640】
 - **Runtime Store Compatibility Snapshot**: Diagnostics and system health expose a shared runtime store summary showing entry/store metadata, migration requirements, divergence detection, and future-version rejections so support teams can confirm cache health without manual attribute inspection.【F:custom_components/pawcontrol/runtime_data.py†L1-L390】【F:custom_components/pawcontrol/diagnostics.py†L610-L684】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/test_runtime_data.py†L520-L640】【F:tests/components/pawcontrol/test_diagnostics.py†L430-L520】【F:tests/components/pawcontrol/test_system_health.py†L20-L940】
@@ -1311,7 +1303,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 - ✅ Platinum alignment blockers cleared – Device removal coverage, brand asset publication, strict typing remediation, diagnostics resilience validation, and release artefact updates now ship with matching regression suites and documentation evidence.
 - ♻️ Sustainment tasks such as automated coverage publication and documentation sync cadences remain tracked in `dev.md` and the compliance report to keep future audits transparent.【F:dev.md†L5-L75】【F:docs/compliance_gap_analysis.md†L1-L58】
 - Runtime data, repairs, diagnostics, and config-entry reload safety are actively validated by the coordinator and entity suites under `tests/`.
-- `docs/markdown_compliance_review.md` details documentation obligations (installation, configuration, troubleshooting, removal) and maps them to the maintained Markdown files for ongoing Platinum-alignment sustainment checks.
+- Documentation obligations (installation, configuration, troubleshooting, removal) are mapped to the maintained Markdown files for ongoing Platinum-alignment sustainment checks.
 
 **⭐ HACS Integration**: **Submission-readiness**
 - Repository layout, `info.md`, and brand placeholders follow the HACS integration checklist while upstream assets are finalised.
@@ -1320,7 +1312,6 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 **🧪 Testing**: **Continuous verification**
 - Unit and integration tests exercise config flow, coordinator updates, diagnostics, and repairs using modern Home Assistant fixtures.
-- Coverage reporting and performance snapshots are regenerated on every release cycle and stored in `docs/testing/coverage_reporting.md` and `generated/perf_samples/`.
 - Ruff, MyPy, and pytest are enforced locally and in CI as documented in this README and `dev.md`.
 
 **🏗️ Architecture Notes**: **Ready for review**
