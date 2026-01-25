@@ -82,6 +82,7 @@ from .types import (
   ConfigFlowDiscoveryProperties,
   ConfigFlowDiscoverySource,
   ConfigFlowGlobalSettings,
+  ConfigFlowInputMapping,
   ConfigFlowImportData,
   ConfigFlowImportOptions,
   ConfigFlowImportResult,
@@ -212,7 +213,7 @@ class PawControlConfigFlow(
 
   async def async_step_import(
     self,
-    import_config: dict[str, Any],
+    import_config: ConfigFlowInputMapping,
   ) -> ConfigFlowResult:
     """Handle import from configuration.yaml.
 
@@ -635,7 +636,7 @@ class PawControlConfigFlow(
     updates: Mapping[str, object],
     comparison: Mapping[str, object],
     reload_on_update: bool,
-  ) -> ConfigFlowResult | None:
+  ) -> ConfigFlowResult:
     """Abort or update when discovery encounters an existing entry."""
 
     entry = await self._async_get_entry_for_unique_id()
