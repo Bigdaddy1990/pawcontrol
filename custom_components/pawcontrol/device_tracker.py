@@ -29,7 +29,6 @@ from homeassistant.util import dt as dt_util
 
 from .const import MODULE_GPS
 from .coordinator import PawControlCoordinator
-from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
@@ -57,17 +56,19 @@ from .types import (
   PawControlConfigEntry,
   ensure_dog_config_data,
   ensure_dog_modules_projection,
+  ensure_json_mapping,
   ensure_gps_payload,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime
+from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json_mapping
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _normalise_attributes(attrs: JSONMutableMapping) -> JSONMutableMapping:
+def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for device tracker entities."""
 
-  return cast(JSONMutableMapping, normalize_value(attrs))
+  payload = ensure_json_mapping(attrs)
+  return cast(JSONMutableMapping, normalise_json_mapping(payload))
 
 
 # Coordinator drives refreshes, so we can safely allow unlimited parallel
