@@ -45,6 +45,16 @@ from ..types import (
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
   DOG_OPTIONS_FIELD,
+  GEOFENCE_ALERTS_FIELD,
+  GEOFENCE_ENABLED_FIELD,
+  GEOFENCE_LAT_FIELD,
+  GEOFENCE_LON_FIELD,
+  GEOFENCE_RADIUS_FIELD,
+  GEOFENCE_RESTRICTED_ZONE_FIELD,
+  GEOFENCE_SAFE_ZONE_FIELD,
+  GEOFENCE_USE_HOME_FIELD,
+  GEOFENCE_ZONE_ENTRY_FIELD,
+  GEOFENCE_ZONE_EXIT_FIELD,
   GPS_ACCURACY_FILTER_FIELD,
   GPS_DISTANCE_FILTER_FIELD,
   GPS_ENABLED_FIELD,
@@ -67,16 +77,16 @@ from ..types import (
   ensure_dog_options_entry,
   freeze_placeholders,
 )
-from ..validation import (
-  validate_coordinate,
-  validate_float_range,
-  validate_gps_source,
-  validate_interval,
-  validate_radius,
-  validate_timer,
-)
+from ..validation import InputValidator, validate_float_range, validate_interval
+from ..validators import validate_gps_source, validate_radius, validate_timer
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _validation_error_key(error: ValidationError, fallback: str) -> str:
+  """Return a translation key for a validation error."""
+
+  return error.constraint or fallback
 
 
 class GPSDefaultsHost(Protocol):
@@ -263,25 +273,33 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
-        gps_accuracy = validate_radius(
+        gps_accuracy = InputValidator.validate_gps_accuracy(
           user_input.get("gps_accuracy_filter"),
+          required=True,
           field="gps_accuracy_filter",
-          min_value=5,
-          max_value=500,
+          min_value=5.0,
+          max_value=500.0,
         )
-      except ValidationError:
-        errors["gps_accuracy_filter"] = "invalid_accuracy"
+      except ValidationError as err:
+        errors["gps_accuracy_filter"] = _validation_error_key(
+          err,
+          "validation_error",
+        )
         gps_accuracy = DEFAULT_GPS_ACCURACY_FILTER
 
       try:
-        home_zone_radius = validate_radius(
+        home_zone_radius = InputValidator.validate_geofence_radius(
           user_input.get("home_zone_radius"),
+          required=True,
           field="home_zone_radius",
-          min_value=10,
-          max_value=500,
+          min_value=10.0,
+          max_value=500.0,
         )
-      except ValidationError:
-        errors["home_zone_radius"] = "radius_out_of_range"
+      except ValidationError as err:
+        errors["home_zone_radius"] = _validation_error_key(
+          err,
+          "validation_error",
+        )
         home_zone_radius = 50.0
 
       if errors:
@@ -603,14 +621,18 @@ class GPSOptionsMixin(GPSOptionsHost):
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
-        gps_accuracy = validate_radius(
+        gps_accuracy = InputValidator.validate_gps_accuracy(
           user_input.get(GPS_ACCURACY_FILTER_FIELD),
+          required=True,
           field=GPS_ACCURACY_FILTER_FIELD,
-          min_value=5,
-          max_value=500,
+          min_value=5.0,
+          max_value=500.0,
         )
-      except ValidationError:
-        errors[GPS_ACCURACY_FILTER_FIELD] = "invalid_accuracy"
+      except ValidationError as err:
+        errors[GPS_ACCURACY_FILTER_FIELD] = _validation_error_key(
+          err,
+          "invalid_configuration",
+        )
         gps_accuracy = DEFAULT_GPS_ACCURACY_FILTER
 
       try:
@@ -787,62 +809,34 @@ class GPSOptionsMixin(GPSOptionsHost):
       errors: dict[str, str] = {}
 
       try:
-        safe_radius = validate_radius(
-          user_input.get("safe_zone_radius"),
-          field="safe_zone_radius",
-          min_value=MIN_GEOFENCE_RADIUS,
-          max_value=MAX_GEOFENCE_RADIUS,
+        geofence_radius = InputValidator.validate_geofence_radius(
+          user_input.get(GEOFENCE_RADIUS_FIELD),
+          required=True,
+          field=GEOFENCE_RADIUS_FIELD,
+          min_value=float(MIN_GEOFENCE_RADIUS),
+          max_value=float(MAX_GEOFENCE_RADIUS),
         )
-      except ValidationError:
-        errors["safe_zone_radius"] = "radius_out_of_range"
-        safe_radius = current_options.get("safe_zone_radius", 100.0)
+      except ValidationError as err:
+        errors[GEOFENCE_RADIUS_FIELD] = _validation_error_key(
+          err,
+          "invalid_configuration",
+        )
+        geofence_radius = current_options.get(GEOFENCE_RADIUS_FIELD, 100.0)
 
       try:
-        restricted_radius = validate_radius(
-          user_input.get("restricted_zone_radius"),
-          field="restricted_zone_radius",
-          min_value=MIN_GEOFENCE_RADIUS,
-          max_value=MAX_GEOFENCE_RADIUS,
+        geofence_lat, geofence_lon = InputValidator.validate_gps_coordinates(
+          user_input.get(GEOFENCE_LAT_FIELD),
+          user_input.get(GEOFENCE_LON_FIELD),
+          latitude_field=GEOFENCE_LAT_FIELD,
+          longitude_field=GEOFENCE_LON_FIELD,
         )
-      except ValidationError:
-        errors["restricted_zone_radius"] = "radius_out_of_range"
-        restricted_radius = current_options.get("restricted_zone_radius", 50.0)
-
-      try:
-        safe_lat = validate_coordinate(
-          user_input.get("safe_zone_latitude"),
-          field="safe_zone_latitude",
+      except ValidationError as err:
+        errors[err.field] = _validation_error_key(
+          err,
+          "invalid_configuration",
         )
-      except ValidationError:
-        errors["safe_zone_latitude"] = "invalid_coordinate"
-        safe_lat = current_options.get("safe_zone_latitude")
-
-      try:
-        safe_lon = validate_coordinate(
-          user_input.get("safe_zone_longitude"),
-          field="safe_zone_longitude",
-        )
-      except ValidationError:
-        errors["safe_zone_longitude"] = "invalid_coordinate"
-        safe_lon = current_options.get("safe_zone_longitude")
-
-      try:
-        restricted_lat = validate_coordinate(
-          user_input.get("restricted_zone_latitude"),
-          field="restricted_zone_latitude",
-        )
-      except ValidationError:
-        errors["restricted_zone_latitude"] = "invalid_coordinate"
-        restricted_lat = current_options.get("restricted_zone_latitude")
-
-      try:
-        restricted_lon = validate_coordinate(
-          user_input.get("restricted_zone_longitude"),
-          field="restricted_zone_longitude",
-        )
-      except ValidationError:
-        errors["restricted_zone_longitude"] = "invalid_coordinate"
-        restricted_lon = current_options.get("restricted_zone_longitude")
+        geofence_lat = current_options.get(GEOFENCE_LAT_FIELD)
+        geofence_lon = current_options.get(GEOFENCE_LON_FIELD)
 
       if errors:
         return self.async_show_form(
@@ -852,22 +846,35 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
       geofence_options: GeofenceOptions = {
-        "use_home_location": coerce_bool(
-          user_input.get("use_home_location"),
+        GEOFENCE_ENABLED_FIELD: coerce_bool(
+          user_input.get(GEOFENCE_ENABLED_FIELD),
           default=True,
         ),
-        "safe_zone_radius": safe_radius,
-        "restricted_zone_radius": restricted_radius,
-        "safe_zone_latitude": safe_lat,
-        "safe_zone_longitude": safe_lon,
-        "restricted_zone_latitude": restricted_lat,
-        "restricted_zone_longitude": restricted_lon,
-        "alert_on_zone_entry": coerce_bool(
-          user_input.get("alert_on_zone_entry"),
+        GEOFENCE_USE_HOME_FIELD: coerce_bool(
+          user_input.get(GEOFENCE_USE_HOME_FIELD),
           default=True,
         ),
-        "alert_on_zone_exit": coerce_bool(
-          user_input.get("alert_on_zone_exit"),
+        GEOFENCE_RADIUS_FIELD: geofence_radius,
+        GEOFENCE_LAT_FIELD: geofence_lat,
+        GEOFENCE_LON_FIELD: geofence_lon,
+        GEOFENCE_ALERTS_FIELD: coerce_bool(
+          user_input.get(GEOFENCE_ALERTS_FIELD),
+          default=True,
+        ),
+        GEOFENCE_SAFE_ZONE_FIELD: coerce_bool(
+          user_input.get(GEOFENCE_SAFE_ZONE_FIELD),
+          default=True,
+        ),
+        GEOFENCE_RESTRICTED_ZONE_FIELD: coerce_bool(
+          user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),
+          default=True,
+        ),
+        GEOFENCE_ZONE_ENTRY_FIELD: coerce_bool(
+          user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),
+          default=True,
+        ),
+        GEOFENCE_ZONE_EXIT_FIELD: coerce_bool(
+          user_input.get(GEOFENCE_ZONE_EXIT_FIELD),
           default=True,
         ),
       }
@@ -912,24 +919,22 @@ class GPSOptionsMixin(GPSOptionsHost):
   ) -> vol.Schema:
     """Build schema for geofence settings."""
 
-    safe_zone_latitude = current_options.get("safe_zone_latitude") or "52.5200"
-    safe_zone_longitude = current_options.get("safe_zone_longitude") or "13.4050"
-    restricted_zone_latitude = (
-      current_options.get("restricted_zone_latitude") or "52.5200"
-    )
-    restricted_zone_longitude = (
-      current_options.get("restricted_zone_longitude") or "13.4050"
-    )
+    geofence_latitude = current_options.get(GEOFENCE_LAT_FIELD) or "52.5200"
+    geofence_longitude = current_options.get(GEOFENCE_LON_FIELD) or "13.4050"
 
     return vol.Schema(
       {
         vol.Optional(
-          "use_home_location",
-          default=current_options.get("use_home_location", True),
+          GEOFENCE_ENABLED_FIELD,
+          default=current_options.get(GEOFENCE_ENABLED_FIELD, True),
         ): selector({"boolean": {}}),
         vol.Optional(
-          "safe_zone_radius",
-          default=current_options.get("safe_zone_radius", 100.0),
+          GEOFENCE_USE_HOME_FIELD,
+          default=current_options.get(GEOFENCE_USE_HOME_FIELD, True),
+        ): selector({"boolean": {}}),
+        vol.Optional(
+          GEOFENCE_RADIUS_FIELD,
+          default=current_options.get(GEOFENCE_RADIUS_FIELD, 100.0),
         ): selector(
           {
             "number": {
@@ -942,37 +947,33 @@ class GPSOptionsMixin(GPSOptionsHost):
           },
         ),
         vol.Optional(
-          "restricted_zone_radius",
-          default=current_options.get("restricted_zone_radius", 50.0),
-        ): selector(
-          {
-            "number": {
-              "mode": "box",
-              "min": MIN_GEOFENCE_RADIUS,
-              "max": MAX_GEOFENCE_RADIUS,
-              "unit_of_measurement": "m",
-              "step": 1,
-            }
-          },
-        ),
-        vol.Optional(
-          "safe_zone_latitude",
-          default=safe_zone_latitude,
+          GEOFENCE_LAT_FIELD,
+          default=geofence_latitude,
         ): selector({"text": {}}),
         vol.Optional(
-          "safe_zone_longitude",
-          default=safe_zone_longitude,
+          GEOFENCE_LON_FIELD,
+          default=geofence_longitude,
         ): selector({"text": {}}),
         vol.Optional(
-          "restricted_zone_latitude",
-          default=restricted_zone_latitude,
-        ): selector({"text": {}}),
+          GEOFENCE_ALERTS_FIELD,
+          default=current_options.get(GEOFENCE_ALERTS_FIELD, True),
+        ): selector({"boolean": {}}),
         vol.Optional(
-          "restricted_zone_longitude",
-          default=restricted_zone_longitude,
-        ): selector({"text": {}}),
-        vol.Optional("alert_on_zone_entry", default=True): selector({"boolean": {}}),
-        vol.Optional("alert_on_zone_exit", default=True): selector({"boolean": {}}),
+          GEOFENCE_SAFE_ZONE_FIELD,
+          default=current_options.get(GEOFENCE_SAFE_ZONE_FIELD, True),
+        ): selector({"boolean": {}}),
+        vol.Optional(
+          GEOFENCE_RESTRICTED_ZONE_FIELD,
+          default=current_options.get(GEOFENCE_RESTRICTED_ZONE_FIELD, True),
+        ): selector({"boolean": {}}),
+        vol.Optional(
+          GEOFENCE_ZONE_ENTRY_FIELD,
+          default=current_options.get(GEOFENCE_ZONE_ENTRY_FIELD, True),
+        ): selector({"boolean": {}}),
+        vol.Optional(
+          GEOFENCE_ZONE_EXIT_FIELD,
+          default=current_options.get(GEOFENCE_ZONE_EXIT_FIELD, True),
+        ): selector({"boolean": {}}),
       },
     )
 
