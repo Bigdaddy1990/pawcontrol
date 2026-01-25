@@ -179,9 +179,10 @@ async def async_attach_trigger(
     from_state = validated.get(CONF_FROM)
     to_state = validated.get(CONF_TO)
 
-    if from_state is not None:
-      if old_state is None or old_state.state != from_state:
-        return
+    if from_state is not None and (
+      old_state is None or old_state.state != from_state
+    ):
+      return
     if to_state is not None and (new_state is None or new_state.state != to_state):
       return
 
