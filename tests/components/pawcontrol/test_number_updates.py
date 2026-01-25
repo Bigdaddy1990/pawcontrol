@@ -181,9 +181,7 @@ async def test_number_set_value_updates_feeding_config(
     entity_lookup={entity.entity_id: entity},
   )
 
-  assert (
-    data_manager.configs[dog_id][DOG_FEEDING_CONFIG_FIELD][CONF_MEALS_PER_DAY] == 3
-  )
+  assert data_manager.configs[dog_id][DOG_FEEDING_CONFIG_FIELD][CONF_MEALS_PER_DAY] == 3
   feeding_manager.async_update_config.assert_awaited_once()
   assert coordinator.refreshed == [dog_id]
   assert (
@@ -228,8 +226,7 @@ async def test_number_set_value_updates_gps_config(
   )
 
   assert (
-    data_manager.configs[dog_id][DOG_GPS_CONFIG_FIELD][CONF_GPS_UPDATE_INTERVAL]
-    == 120
+    data_manager.configs[dog_id][DOG_GPS_CONFIG_FIELD][CONF_GPS_UPDATE_INTERVAL] == 120
   )
   gps_manager.async_configure_dog_gps.assert_awaited_once()
   args, _kwargs = gps_manager.async_configure_dog_gps.await_args

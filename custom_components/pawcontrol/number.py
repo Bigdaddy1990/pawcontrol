@@ -114,9 +114,7 @@ def _merge_config_updates(
 ) -> JSONMutableMapping:
   """Return a merged mapping for configuration updates."""
 
-  merged: JSONMutableMapping = (
-    dict(current) if isinstance(current, Mapping) else {}
-  )
+  merged: JSONMutableMapping = dict(current) if isinstance(current, Mapping) else {}
   merged.update(dict(updates))
   return merged
 
@@ -682,10 +680,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
       return
 
     payload: Mapping[str, JSONValue | Mapping[str, JSONValue]]
-    if section is None:
-      payload = updates
-    else:
-      payload = {section: updates}
+    payload = updates if section is None else {section: updates}
 
     try:
       await data_manager.async_update_dog_data(self._dog_id, payload)
