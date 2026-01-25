@@ -11,14 +11,15 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import TypeVar
 import asyncio
 import json
 import logging
+import os
+import tempfile
 from collections.abc import Awaitable, Callable, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, TypeVar, cast
 
 import aiofiles
 from homeassistant.core import HomeAssistant
@@ -942,6 +943,7 @@ class DashboardRenderer:
     Raises:
         HomeAssistantError: If file write fails
     """
+    temp_path: Path | None = None
     try:
       # Prepare dashboard data
       metadata_payload: JSONMutableMapping
@@ -968,8 +970,17 @@ class DashboardRenderer:
         partial(file_path.parent.mkdir, parents=True, exist_ok=True),
       )
 
+      def _create_temp_path() -> Path:
+        with tempfile.NamedTemporaryFile(
+          delete=False,
+          dir=file_path.parent,
+        ) as temp_file:
+          return Path(temp_file.name)
+
+      temp_path = await self.hass.async_add_executor_job(_create_temp_path)
+
       # Write file asynchronously
-      async with aiofiles.open(file_path, "w", encoding="utf-8") as file:
+      async with aiofiles.open(temp_path, "w", encoding="utf-8") as file:
         content = json.dumps(
           dashboard_data,
           indent=2,
@@ -977,9 +988,16 @@ class DashboardRenderer:
         )
         await file.write(content)
 
+      await self.hass.async_add_executor_job(os.replace, temp_path, file_path)
+      temp_path = None
+
       _LOGGER.debug("Dashboard file written: %s", file_path)
 
     except Exception as err:
+      if temp_path is not None:
+        await self.hass.async_add_executor_job(
+          partial(temp_path.unlink, missing_ok=True),
+        )
       _LOGGER.error(
         "Failed to write dashboard file %s: %s",
         file_path,

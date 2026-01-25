@@ -98,3 +98,74 @@ def test_notification_rejection_metrics_summarises_services() -> None:
   assert payload["service_last_error_reasons"]["notify.mobile_app_pixel"] == (
     "missing_notify_service"
   )
+
+
+def test_configuration_url_redacted_in_diagnostics() -> None:
+  """Ensure configuration_url fields are redacted in diagnostics payloads."""
+
+  diagnostics = _load_diagnostics()
+  payload = {
+    "devices": [
+      {
+        "id": "device-1",
+        "configuration_url": (
+          "https://example.com/config?token=supersecrettoken&ip=192.168.1.12"
+        ),
+      }
+    ]
+  }
+
+  redacted = diagnostics._redact_sensitive_data(payload)
+
+  assert redacted["devices"][0]["configuration_url"] == "**REDACTED**"
+
+
+def test_redacts_mac_strings_and_serial_numbers_in_nested_payloads() -> None:
+  """MAC addresses and serial numbers must be redacted in nested structures."""
+
+  diagnostics = _load_diagnostics()
+  redaction = _load_redaction_helpers()
+  patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)
+  payload = {
+    "device": {
+      "name": "PawControl Hub",
+      "serial_number": "SN-12345",
+      "hardware_id": "HW-9999",
+      "nested": {
+        "unique_id": "hub-001",
+        "radio": {"macaddress": "aa:bb:cc:dd:ee:ff"},
+      },
+    },
+    "network": {
+      "gateway_mac": "11:22:33:44:55:66",
+      "connection": ["ethernet", "AA:BB:CC:DD:EE:FF"],
+    },
+  }
+
+  redacted = redaction.redact_sensitive_data(payload, patterns=patterns)
+
+  assert redacted["device"]["serial_number"] == "**REDACTED**"
+  assert redacted["device"]["hardware_id"] == "**REDACTED**"
+  assert redacted["device"]["nested"]["unique_id"] == "**REDACTED**"
+  assert redacted["device"]["nested"]["radio"]["macaddress"] == "**REDACTED**"
+  assert redacted["network"]["gateway_mac"] == "**REDACTED**"
+  assert redacted["network"]["connection"][1] == "**REDACTED**"
+
+
+def test_redacts_connections_and_identifiers_payloads() -> None:
+  """Connections and identifiers lists should redact MAC addresses."""
+
+  diagnostics = _load_diagnostics()
+  redaction = _load_redaction_helpers()
+  patterns = redaction.compile_redaction_patterns(diagnostics.REDACTED_KEYS)
+  payload = {
+    "connections": [["mac", "12:34:56:78:9A:BC"], ["ip", "192.168.1.100"]],
+    "identifiers": [["pawcontrol", "device-123"], ["mac", "AA:BB:CC:DD:EE:FF"]],
+  }
+
+  redacted = redaction.redact_sensitive_data(payload, patterns=patterns)
+
+  assert redacted["connections"][0][1] == "**REDACTED**"
+  assert redacted["connections"][1][1] == "**REDACTED**"
+  assert redacted["identifiers"][0][1] == "device-123"
+  assert redacted["identifiers"][1][1] == "**REDACTED**"

@@ -154,65 +154,53 @@ services:
 
 ### Schritt 2: Ersten Hund konfigurieren
 
-```yaml
-# Beispiel-Konfiguration für den ersten Hund
-dog_config:
-  dog_id: "buddy"
-  dog_name: "Buddy"
-  dog_breed: "Golden Retriever"
-  dog_age: 3
-  dog_weight: 30.0
-  dog_size: "medium"
-  modules:
-    walk: true
-    feeding: true
-    health: true
-    gps: true
-    garden: true           # NEW: Garden Tracking aktivieren
-    notifications: true
-    dashboard: true
-    grooming: true
-    medication: false      # Nur wenn benötigt
-    training: true
-```
+Die Konfiguration erfolgt **ausschließlich in der UI** (Einstellungen →
+Geräte & Dienste → Paw Control → Konfigurieren). Beispielwerte:
+
+| Feld (UI) | Beispiel |
+| --- | --- |
+| Hund-ID | `buddy` |
+| Name | `Buddy` |
+| Rasse | `Golden Retriever` |
+| Alter | `3` |
+| Gewicht | `30.0` |
+| Größe | `medium` |
+| Module | Walk, Feeding, Health, GPS, Garden, Notifications, Dashboard, Grooming, Training (Medication nur bei Bedarf) |
 
 ### Schritt 3: Grundlegende Einstellungen
 
 #### Geofencing konfigurieren
-```yaml
-geofence_settings:
-  geofencing_enabled: true
-  geofence_lat: 52.520008  # Ihre Heimkoordinaten
-  geofence_lon: 13.404954
-  geofence_radius_m: 150   # Radius in Metern
-  geofence_alerts_enabled: true
-  use_home_location: true  # HA-Koordinaten verwenden
-```
+Konfigurieren Sie die Felder im UI unter **Paw Control → Konfigurieren**:
+
+| Feld (UI) | Beispiel |
+| --- | --- |
+| Geofencing aktiviert | ✅ |
+| Geofence-Breite | `52.520008` |
+| Geofence-Länge | `13.404954` |
+| Radius (m) | `150` |
+| Geofence-Alarme | ✅ |
+| HA-Standort verwenden | ✅ |
 
 #### Benachrichtigungen einrichten
-```yaml
-notifications:
-  notifications_enabled: true
-  quiet_hours_enabled: true
-  quiet_start: "22:00"
-  quiet_end: "07:00"
-  reminder_repeat_min: 30
-  priority_notifications: true
-  notification_channels:
-    - mobile
-    - persistent
-```
+| Feld (UI) | Beispiel |
+| --- | --- |
+| Benachrichtigungen aktiviert | ✅ |
+| Ruhezeiten aktiviert | ✅ |
+| Ruhebeginn | `22:00` |
+| Ruheende | `07:00` |
+| Erinnerungsintervall (Min) | `30` |
+| Prioritätsbenachrichtigungen | ✅ |
+| Kanäle | Mobile, Persistent |
 
 #### Garden Tracking Basis-Konfiguration
-```yaml
-garden_settings:
-  garden_enabled: true
-  auto_poop_detection: true      # Automatische Poop-Erkennung
-  confirmation_required: true    # Push-Rückfragen aktivieren
-  session_timeout: 1800         # 30 Min Session-Timeout
-  weather_integration: true     # Wetter für Garden Sessions
-  door_sensor_entity: "binary_sensor.garden_door"  # Optional
-```
+| Feld (UI) | Beispiel |
+| --- | --- |
+| Garden Tracking aktiviert | ✅ |
+| Automatische Erkennung | ✅ |
+| Bestätigung erforderlich | ✅ |
+| Session-Timeout (Sek.) | `1800` |
+| Wetter-Integration | ✅ |
+| Türsensor (optional) | `binary_sensor.garden_door` |
 
 ## 🚀 Erweiterte Features
 
@@ -220,17 +208,16 @@ garden_settings:
 
 #### 1. GPS-Einstellungen optimieren
 
-```yaml
-gps_settings:
-  gps_enabled: true
-  gps_accuracy_filter: 50      # Mindestgenauigkeit in Metern
-  gps_distance_filter: 10      # Mindestabstand zwischen Punkten
-  gps_update_interval: 30      # Sekunden zwischen Updates
-  auto_start_walk: false       # Manuelle Walk-Starts
-  auto_end_walk: true          # Automatisches Ende bei Heimkehr
-  route_recording: true        # Routen aufzeichnen
-  route_history_days: 90       # Aufbewahrung der Routenhistorie
-```
+| Feld (UI) | Beispiel |
+| --- | --- |
+| GPS aktiviert | ✅ |
+| Mindestgenauigkeit (m) | `50` |
+| Mindestabstand (m) | `10` |
+| Update-Intervall (Sek.) | `30` |
+| Auto-Start Walk | ❌ |
+| Auto-Ende Walk | ✅ |
+| Routenaufzeichnung | ✅ |
+| Verlauf (Tage) | `90` |
 
 #### 2. Webhook für GPS-Tracking einrichten
 
