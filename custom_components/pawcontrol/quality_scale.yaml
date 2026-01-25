@@ -41,7 +41,7 @@ rules:
 
   test-before-update:
     status: done
-    comment: "Evidence: coordinator error handling in `custom_components/pawcontrol/coordinator.py`; diagnostics tests in `tests/test_diagnostics.py`."
+    comment: "Evidence: coordinator error handling in `custom_components/pawcontrol/coordinator.py`; diagnostics tests in `tests/test_diagnostics.py`, `tests/unit/test_coordinator_tasks.py`, and `tests/unit/test_services.py`."
 
   test-before-unload:
     status: done
@@ -61,7 +61,7 @@ rules:
 
   diagnostics:
     status: done
-    comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py`; tests in `tests/test_diagnostics.py`."
+    comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py`; tests in `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, and `tests/unit/test_services.py`."
 
   repairs:
     status: done
