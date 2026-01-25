@@ -41,7 +41,7 @@ from .types import (
   clone_placeholders,
   freeze_placeholders,
 )
-from .validators import validate_gps_source, validate_notify_service
+from .validation import validate_gps_source, validate_notify_service
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
   Literal["gps_source"],

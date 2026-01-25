@@ -180,6 +180,37 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
 
 
 @pytest.mark.asyncio
+async def test_async_step_configure_external_entities_rejects_invalid_notify_format() -> (
+  None
+):
+  """Notify service formatting errors surface a field validation key."""
+
+  hass = _FakeHomeAssistant(
+    states=_FakeStates(
+      {
+        "device_tracker.main_phone": SimpleNamespace(state="home"),
+      }
+    ),
+    services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
+  )
+  modules = cast(
+    DogModulesConfig,
+    {MODULE_GPS: False, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: True},
+  )
+  flow = _ExternalEntityFlow(hass, modules=modules)
+
+  result = await flow.async_step_configure_external_entities(
+    ExternalEntityConfig(notify_fallback="invalid-service")
+  )
+
+  assert result["type"] == "form"
+  assert (
+    flow.shown_forms[0]["errors"][CONF_NOTIFY_FALLBACK]
+    == "invalid_notification_service"
+  )
+
+
+@pytest.mark.asyncio
 async def test_async_step_configure_external_entities_exposes_placeholders() -> None:
   """The mixin should expose immutable placeholders for the configuration form."""
 
