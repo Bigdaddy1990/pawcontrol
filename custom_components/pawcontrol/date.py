@@ -27,7 +27,15 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
-from .const import ATTR_DOG_ID, DOMAIN, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK
+from .const import (
+  ATTR_DOG_ID,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_HEALTH,
+  MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .exceptions import PawControlError, ValidationError
@@ -320,9 +328,8 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     self._attr_icon = icon
 
     self.update_device_metadata(
-      model="Smart Dog Management",
-      sw_version="2025.8.2",
-      configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
       suggested_area=f"Pet Area - {dog_name}",
     )
 

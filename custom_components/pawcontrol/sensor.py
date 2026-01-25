@@ -25,7 +25,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .compat import MASS_GRAMS, MASS_KILOGRAMS
-from .const import MODULE_GARDEN
+from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, MODULE_GARDEN
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .entity_factory import EntityFactory, EntityProfileDefinition
@@ -857,7 +857,10 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     self._attr_entity_category = entity_category
 
     # Link entity to PawControl device entry for the dog
-    self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
+    self.update_device_metadata(
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
+    )
 
     self._set_cache_ttl(30.0)
 

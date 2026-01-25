@@ -33,6 +33,8 @@ from homeassistant.util import dt as dt_util
 from .compat import HomeAssistantError
 from .const import (
   CONF_DOGS,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
   DOMAIN,
   MODULE_FEEDING,
   MODULE_GPS,
@@ -430,9 +432,8 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
-      model="Smart Dog Monitoring",
-      sw_version="1.1.0",
-      configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
     )
 
   async def async_added_to_hass(self) -> None:

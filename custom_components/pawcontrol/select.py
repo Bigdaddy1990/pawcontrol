@@ -26,7 +26,9 @@ from homeassistant.util import dt as dt_util
 from .compat import HomeAssistantError
 from .const import (
   ACTIVITY_LEVELS,
+  DEFAULT_MODEL,
   DEFAULT_PERFORMANCE_MODE,
+  DEFAULT_SW_VERSION,
   DOG_SIZES,
   FOOD_TYPES,
   GPS_SOURCES,
@@ -737,9 +739,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
-      model="Smart Dog Monitoring",
-      sw_version="1.0.0",
-      configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
     )
 
   def _get_runtime_data(self) -> PawControlRuntimeData | None:
