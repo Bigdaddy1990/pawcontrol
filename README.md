@@ -67,9 +67,13 @@ action:
       message: "Meal is overdue for {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}"
 ```
 
+Blueprints included:
+- [Walk detection alerts](blueprints/automation/pawcontrol/walk_detection.yaml)
+- [Safe zone alerts](blueprints/automation/pawcontrol/safe_zone_alert.yaml)
+
 Device-based triggers, conditions, and actions are available for PawControl dog
-devices (see the device automation examples in
-[`docs/automation_examples.md`](docs/automation_examples.md)).
+devices (see the device automation examples in [`docs/automation_examples.md`](docs/automation_examples.md).
+
 
 ## 🛠️ Troubleshooting (Quick hits)
 

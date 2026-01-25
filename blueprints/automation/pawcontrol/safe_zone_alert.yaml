@@ -1,0 +1,108 @@
+blueprint:
+  name: PawControl Safe Zone Alert
+  description: >
+    Notify or run actions when a PawControl dog leaves or returns to a safe
+    zone using the in-safe-zone binary sensor.
+  domain: automation
+  source_url: https://github.com/BigDaddy1990/pawcontrol/blob/main/blueprints/automation/pawcontrol/safe_zone_alert.yaml
+  author: PawControl
+  input:
+    safe_zone_sensor:
+      name: Safe zone sensor
+      description: PawControl binary_sensor.<dog_id>_in_safe_zone entity.
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+            device_class: safety
+    leave_delay:
+      name: Outside safe zone delay
+      description: Time the dog must remain outside before triggering alerts.
+      default: "00:01:00"
+      selector:
+        duration: {}
+    return_delay:
+      name: Return safe zone delay
+      description: Time the dog must remain inside before triggering return actions.
+      default: "00:00:00"
+      selector:
+        duration: {}
+    left_actions:
+      name: Left safe zone actions
+      description: Actions to run when the dog leaves the safe zone.
+      default: []
+      selector:
+        action: {}
+    return_actions:
+      name: Returned safe zone actions
+      description: Actions to run when the dog returns to the safe zone.
+      default: []
+      selector:
+        action: {}
+    logbook_entry:
+      name: Add logbook entry
+      description: Record safe zone transitions in the Home Assistant logbook.
+      default: true
+      selector:
+        boolean: {}
+
+trigger:
+  - platform: state
+    entity_id: !input safe_zone_sensor
+    to: "off"
+    for: !input leave_delay
+    id: left_safe_zone
+  - platform: state
+    entity_id: !input safe_zone_sensor
+    to: "on"
+    for: !input return_delay
+    id: returned_safe_zone
+
+variables:
+  dog_name: >-
+    {{ state_attr(trigger.entity_id, 'dog_name')
+      or trigger.to_state.attributes.friendly_name }}
+  logbook_entry: !input logbook_entry
+  left_actions: !input left_actions
+  return_actions: !input return_actions
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: left_safe_zone
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ logbook_entry }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: PawControl
+                      message: "{{ dog_name }} left the safe zone."
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ left_actions | length > 0 }}"
+                sequence: !input left_actions
+      - conditions:
+          - condition: trigger
+            id: returned_safe_zone
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ logbook_entry }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: PawControl
+                      message: "{{ dog_name }} returned to the safe zone."
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ return_actions | length > 0 }}"
+                sequence: !input return_actions
+
+mode: single

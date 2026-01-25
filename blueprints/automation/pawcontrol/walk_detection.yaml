@@ -1,0 +1,95 @@
+blueprint:
+  name: PawControl Walk Detection Alerts
+  description: >
+    Run actions when a PawControl walk starts or ends using the walk in progress
+    binary sensor. Use this blueprint to notify caregivers or trigger routines
+    tied to walk activity.
+  domain: automation
+  source_url: https://github.com/BigDaddy1990/pawcontrol/blob/main/blueprints/automation/pawcontrol/walk_detection.yaml
+  author: PawControl
+  input:
+    walk_sensor:
+      name: Walk in progress sensor
+      description: PawControl binary_sensor.<dog_id>_walk_in_progress entity.
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+            device_class: running
+    walk_start_actions:
+      name: Walk started actions
+      description: Actions to run when the walk starts.
+      default: []
+      selector:
+        action: {}
+    walk_end_actions:
+      name: Walk ended actions
+      description: Actions to run when the walk ends.
+      default: []
+      selector:
+        action: {}
+    logbook_entry:
+      name: Add logbook entry
+      description: Record walk start/end transitions in the Home Assistant logbook.
+      default: true
+      selector:
+        boolean: {}
+
+trigger:
+  - platform: state
+    entity_id: !input walk_sensor
+    to: "on"
+    id: walk_started
+  - platform: state
+    entity_id: !input walk_sensor
+    to: "off"
+    id: walk_ended
+
+variables:
+  dog_name: >-
+    {{ state_attr(trigger.entity_id, 'dog_name')
+      or trigger.to_state.attributes.friendly_name }}
+  logbook_entry: !input logbook_entry
+  walk_start_actions: !input walk_start_actions
+  walk_end_actions: !input walk_end_actions
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: walk_started
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ logbook_entry }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: PawControl
+                      message: "{{ dog_name }} walk started."
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ walk_start_actions | length > 0 }}"
+                sequence: !input walk_start_actions
+      - conditions:
+          - condition: trigger
+            id: walk_ended
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ logbook_entry }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: PawControl
+                      message: "{{ dog_name }} walk ended."
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ walk_end_actions | length > 0 }}"
+                sequence: !input walk_end_actions
+
+mode: single

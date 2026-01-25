@@ -1,0 +1,54 @@
+{
+  "safe_zone_alert": {
+    "description": "Notify or run actions when a PawControl dog leaves or returns to a safe zone using the in-safe-zone binary sensor.",
+    "input": {
+      "leave_delay": {
+        "description": "Time the dog must remain outside before triggering alerts.",
+        "name": "Outside safe zone delay"
+      },
+      "left_actions": {
+        "description": "Actions to run when the dog leaves the safe zone.",
+        "name": "Left safe zone actions"
+      },
+      "logbook_entry": {
+        "description": "Record safe zone transitions in the Home Assistant logbook.",
+        "name": "Add logbook entry"
+      },
+      "return_actions": {
+        "description": "Actions to run when the dog returns to the safe zone.",
+        "name": "Returned safe zone actions"
+      },
+      "return_delay": {
+        "description": "Time the dog must remain inside before triggering return actions.",
+        "name": "Return safe zone delay"
+      },
+      "safe_zone_sensor": {
+        "description": "PawControl binary_sensor.<dog_id>_in_safe_zone entity.",
+        "name": "Safe zone sensor"
+      }
+    },
+    "name": "PawControl Safe Zone Alert"
+  },
+  "walk_detection": {
+    "description": "Run actions when a PawControl walk starts or ends using the walk in progress binary sensor.",
+    "input": {
+      "logbook_entry": {
+        "description": "Record walk start/end transitions in the Home Assistant logbook.",
+        "name": "Add logbook entry"
+      },
+      "walk_end_actions": {
+        "description": "Actions to run when the walk ends.",
+        "name": "Walk ended actions"
+      },
+      "walk_sensor": {
+        "description": "PawControl binary_sensor.<dog_id>_walk_in_progress entity.",
+        "name": "Walk in progress sensor"
+      },
+      "walk_start_actions": {
+        "description": "Actions to run when the walk starts.",
+        "name": "Walk started actions"
+      }
+    },
+    "name": "PawControl Walk Detection Alerts"
+  }
+}
