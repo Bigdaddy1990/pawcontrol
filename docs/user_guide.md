@@ -38,6 +38,15 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Services**: `pawcontrol.*` services appear in the Services UI.
 - **Dashboards**: use the generated cards in Lovelace or customize further.
 
+## Discovery & config flow overview
+
+When Home Assistant detects a PawControl device (DHCP, USB, Zeroconf, HomeKit,
+or Bluetooth), it automatically starts the **config flow** and adds a suggested
+integration card under *Settings → Devices & Services*. Open the suggestion to
+review the detected device and confirm the setup. If multiple devices are
+found, select the correct profile and proceed with the guided steps before the
+entry is created.
+
 ## Module setup details
 
 ### GPS

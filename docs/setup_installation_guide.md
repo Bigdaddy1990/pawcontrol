@@ -6,16 +6,17 @@ Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der 
 
 1. [Voraussetzungen](#voraussetzungen)
 2. [Discovery & Voraussetzungen](#discovery--voraussetzungen)
-3. [Installation](#installation)
-4. [Grundkonfiguration](#grundkonfiguration)
-5. [Erweiterte Features](#erweiterte-features)
-6. [Garden Tracking Setup](#garden-tracking-setup)
-7. [Dashboard-Setup](#dashboard-setup)
-8. [Automatisierungen](#automatisierungen)
-9. [Mobile App Integration](#mobile-app-integration)
-10. [Troubleshooting](#troubleshooting)
-11. [Performance-Optimierung](#performance-optimierung)
-12. [Deinstallation & Aufräumen](#deinstallation--aufräumen)
+3. [Automatische Erkennung](#automatische-erkennung)
+4. [Installation](#installation)
+5. [Grundkonfiguration](#grundkonfiguration)
+6. [Erweiterte Features](#erweiterte-features)
+7. [Garden Tracking Setup](#garden-tracking-setup)
+8. [Dashboard-Setup](#dashboard-setup)
+9. [Automatisierungen](#automatisierungen)
+10. [Mobile App Integration](#mobile-app-integration)
+11. [Troubleshooting](#troubleshooting)
+12. [Performance-Optimierung](#performance-optimierung)
+13. [Deinstallation & Aufräumen](#deinstallation--aufräumen)
 
 ## 🔧 Voraussetzungen
 
@@ -64,6 +65,28 @@ PawControl nutzt die in der Manifest-Datei hinterlegten Discovery-Mechanismen,
 um Geräte in Home Assistant vorzuschlagen. Sobald ein Gerät erkannt wird,
 folgen Sie den UI-Schritten unter [Grundkonfiguration](#grundkonfiguration) und
 starten Sie mit [Schritt 1: Integration hinzufügen](#schritt-1-integration-hinzufügen).
+
+## 🤖 Automatische Erkennung
+
+Die automatische Erkennung startet den Config-Flow, sobald Home Assistant ein
+passendes Gerät über **DHCP**, **USB**, **Zeroconf**, **HomeKit** oder
+**Bluetooth** findet. Damit Discovery zuverlässig auslöst, prüfen Sie die
+folgenden Voraussetzungen:
+
+- **Netzsegment (DHCP/Zeroconf/HomeKit):** Home Assistant und das Gerät müssen
+  im selben Layer‑2‑Netz liegen. Multicast (mDNS/Bonjour) darf nicht durch VLANs
+  oder Firewall-Regeln blockiert werden.
+- **USB-Passthrough (USB):** USB-Geräte müssen an den Host weitergereicht
+  werden (Docker/VM). Der Home Assistant Prozess benötigt Zugriff auf die
+  `/dev`-Geräte.
+- **HomeKit-Name-Matching (HomeKit):** Der von HomeKit gesendete Name sollte
+  dem erwarteten Gerätenamen/Profil entsprechen, damit die Zuordnung eindeutig
+  bleibt. Nutzen Sie in HomeKit eindeutige Namen pro Tracker.
+- **Bluetooth (BLE):** Ein kompatibler Adapter und aktive Bluetooth-Unterstützung
+  auf dem Host sind erforderlich. Container benötigen die passenden Rechte.
+
+Sobald der Vorschlag erscheint, öffnen Sie **Einstellungen → Geräte & Dienste**
+und folgen Sie dem Setup wie in [Schritt 1](#schritt-1-integration-hinzufügen).
 
 ### DHCP
 

@@ -66,6 +66,21 @@ This guide lists common issues, symptoms, and fixes.
 2. Reduce the GPS update interval temporarily to validate the pipeline.
 3. Reload the integration entry after changing the GPS source.
 
+## Discovery does not find devices
+
+**Symptoms**
+- Device never appears under **Settings → Devices & Services**
+- Discovery card disappears before setup completes
+- Wrong device is suggested
+
+**Fix**
+1. Verify Home Assistant and the device are in the same network segment/VLAN.
+2. Check that DHCP or Zeroconf/mDNS traffic is not blocked by the router.
+3. For USB devices, confirm USB passthrough and `/dev` access in Docker/VMs.
+4. Ensure HomeKit devices use a unique, matching name to avoid wrong suggestions.
+5. If the integration expects a hostname pattern, confirm the device advertises
+   the expected hostname (rename the device if needed).
+
 ## Missing entities or translations
 
 **Symptoms**
