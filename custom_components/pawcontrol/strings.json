@@ -39,14 +39,14 @@
       "coordinate_not_numeric": "Coordinate must be a number",
       "coordinate_out_of_range": "Coordinate is out of range",
       "coordinate_required": "Coordinate is required",
-      "diet_guidance_large_breed": "🦴 Large breeds: Joint_support recommended, watch for food allergies",
-      "diet_guidance_multiple_prescription": "⚠️ Multiple prescription diets need vet coordination",
+      "diet_guidance_large_breed": "\ud83e\uddb4 Large breeds: Joint_support recommended, watch for food allergies",
+      "diet_guidance_multiple_prescription": "\u26a0\ufe0f Multiple prescription diets need vet coordination",
       "diet_guidance_none": "No specific compatibility concerns detected",
-      "diet_guidance_prescription_overrides": "🏥 Prescription diets override lifestyle preferences",
-      "diet_guidance_puppies": "🐶 Puppies: Consider puppy_formula, avoid weight_control",
-      "diet_guidance_raw_diets": "🥩 Raw diets require careful handling with medical conditions",
-      "diet_guidance_seniors": "👴 Seniors: Consider senior_formula, joint_support may be beneficial",
-      "diet_guidance_toy_breed": "🐭 Toy breeds: Often benefit from sensitive_stomach, small kibble size",
+      "diet_guidance_prescription_overrides": "\ud83c\udfe5 Prescription diets override lifestyle preferences",
+      "diet_guidance_puppies": "\ud83d\udc36 Puppies: Consider puppy_formula, avoid weight_control",
+      "diet_guidance_raw_diets": "\ud83e\udd69 Raw diets require careful handling with medical conditions",
+      "diet_guidance_seniors": "\ud83d\udc74 Seniors: Consider senior_formula, joint_support may be beneficial",
+      "diet_guidance_toy_breed": "\ud83d\udc2d Toy breeds: Often benefit from sensitive_stomach, small kibble size",
       "dog_id_already_exists": "A dog with this ID already exists",
       "dog_id_too_long": "Dog ID cannot be longer than 30 characters",
       "dog_id_too_short": "Dog ID must be at least 2 characters long",
@@ -175,7 +175,7 @@
           "gps_source": "Choose which device tracker or person entity Paw Control should use for GPS.",
           "notify_fallback": "Optional notification service used when direct device notifications fail."
         },
-        "description": "🔗 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality alignment.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n**Optional for weather health:** Weather entity\n\n⚠️ If no entities are available, you can configure them manually later.",
+        "description": "\ud83d\udd17 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality alignment.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n**Optional for weather health:** Weather entity\n\n\u26a0\ufe0f If no entities are available, you can configure them manually later.",
         "title": "Configure External Entities"
       },
       "configure_modules": {
@@ -264,11 +264,11 @@
           "body_condition_score": "Body Condition Score (1-9)",
           "bordetella_next": "Next Bordetella Vaccination",
           "bordetella_vaccination": "Bordetella Vaccination Date",
-          "dental_care": "🦷 Dental Care Formula",
+          "dental_care": "\ud83e\uddb7 Dental Care Formula",
           "dhpp_next": "Next DHPP Vaccination",
           "dhpp_vaccination": "DHPP Vaccination Date",
-          "diabetic": "🩺 Diabetic Diet",
-          "grain_free": "🌾 Grain-Free Diet",
+          "diabetic": "\ud83e\ude7a Diabetic Diet",
+          "grain_free": "\ud83c\udf3e Grain-Free Diet",
           "has_allergies": "Has Allergies",
           "has_arthritis": "Has Arthritis",
           "has_diabetes": "Has Diabetes",
@@ -276,12 +276,12 @@
           "has_heart_disease": "Has Heart Disease",
           "has_kidney_disease": "Has Kidney Disease",
           "health_aware_portions": "Health-Aware Portion Calculation",
-          "hypoallergenic": "🛡️ Hypoallergenic Diet",
+          "hypoallergenic": "\ud83d\udee1\ufe0f Hypoallergenic Diet",
           "ideal_weight": "Ideal Weight (kg)",
-          "joint_support": "🦴 Joint Support Formula",
-          "kidney_support": "🫘 Kidney Support Diet",
+          "joint_support": "\ud83e\uddb4 Joint Support Formula",
+          "kidney_support": "\ud83e\uded8 Kidney Support Diet",
           "last_vet_visit": "Last Vet Visit",
-          "low_fat": "🥗 Low Fat Diet",
+          "low_fat": "\ud83e\udd57 Low Fat Diet",
           "medication_1_dosage": "Medication 1 Dosage",
           "medication_1_frequency": "Medication 1 Frequency",
           "medication_1_name": "Medication 1 Name",
@@ -295,19 +295,19 @@
           "medication_2_time": "Medication 2 Time",
           "medication_2_with_meals": "Medication 2 With Meals",
           "next_checkup": "Next Checkup",
-          "organic": "🌱 Organic Food",
+          "organic": "\ud83c\udf31 Organic Food",
           "other_health_conditions": "Other Health Conditions",
-          "prescription": "🏥 Prescription Diet",
-          "puppy_formula": "🐶 Puppy Formula",
+          "prescription": "\ud83c\udfe5 Prescription Diet",
+          "puppy_formula": "\ud83d\udc36 Puppy Formula",
           "rabies_next": "Next Rabies Vaccination",
           "rabies_vaccination": "Rabies Vaccination Date",
-          "raw_diet": "🥩 Raw Diet (BARF)",
-          "senior_formula": "👴 Senior Formula",
-          "sensitive_stomach": "🌿 Sensitive Stomach Diet",
+          "raw_diet": "\ud83e\udd69 Raw Diet (BARF)",
+          "senior_formula": "\ud83d\udc74 Senior Formula",
+          "sensitive_stomach": "\ud83c\udf3f Sensitive Stomach Diet",
           "spayed_neutered": "Spayed/Neutered",
           "vet_name": "Veterinarian Name",
           "vet_phone": "Veterinarian Phone",
-          "weight_control": "⚖️ Weight Control Diet",
+          "weight_control": "\u2696\ufe0f Weight Control Diet",
           "weight_goal": "Weight Goal",
           "weight_tracking": "Enable Weight Tracking"
         },
@@ -363,7 +363,7 @@
           "weight_goal": "Choose whether the dog should maintain, lose, or gain weight.",
           "weight_tracking": "Enable to log weight entries and show weight trend sensors."
         },
-        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\nMedication enabled: {medication_enabled}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\nSelect all special diet requirements that apply to optimize feeding calculations.\n\n⚠️ Compatibility Info:\n{health_diet_info}",
+        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\nMedication enabled: {medication_enabled}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\nSelect all special diet requirements that apply to optimize feeding calculations.\n\n\u26a0\ufe0f Compatibility Info:\n{health_diet_info}",
         "title": "Health & Diet Configuration for {dog_name}"
       },
       "dog_modules": {
@@ -447,546 +447,547 @@
   "entity": {
     "binary_sensor": {
       "activity_level_concern": {
-        "name": "Activity Level Concern",
-        "description": "State indicator for Activity Level Concern."
+        "description": "State indicator for Activity Level Concern.",
+        "name": "Activity Level Concern"
       },
       "attention_needed": {
-        "name": "Attention Needed",
-        "description": "State indicator for Attention Needed."
+        "description": "State indicator for Attention Needed.",
+        "name": "Attention Needed"
       },
       "daily_feeding_goal_met": {
-        "name": "Daily Feeding Goal Met",
-        "description": "State indicator for Daily Feeding Goal Met."
+        "description": "State indicator for Daily Feeding Goal Met.",
+        "name": "Daily Feeding Goal Met"
       },
       "extreme_cold_warning": {
-        "name": "Extreme Cold Warning",
-        "description": "State indicator for Extreme Cold Warning."
+        "description": "State indicator for Extreme Cold Warning.",
+        "name": "Extreme Cold Warning"
       },
       "extreme_heat_warning": {
-        "name": "Extreme Heat Warning",
-        "description": "State indicator for Extreme Heat Warning."
+        "description": "State indicator for Extreme Heat Warning.",
+        "name": "Extreme Heat Warning"
       },
       "feeding_due": {
-        "name": "Feeding Due",
-        "description": "State indicator for Feeding Due."
+        "description": "State indicator for Feeding Due.",
+        "name": "Feeding Due"
       },
       "feeding_overdue": {
-        "name": "Feeding Overdue",
-        "description": "State indicator for Feeding Overdue."
+        "description": "State indicator for Feeding Overdue.",
+        "name": "Feeding Overdue"
       },
       "feeding_schedule_on_track": {
-        "name": "Feeding Schedule On Track",
-        "description": "State indicator for Feeding Schedule On Track."
+        "description": "State indicator for Feeding Schedule On Track.",
+        "name": "Feeding Schedule On Track"
       },
       "garden_poop_pending": {
-        "name": "Garden Poop Confirmation Pending",
-        "description": "State indicator for Garden Poop Confirmation Pending."
+        "description": "State indicator for Garden Poop Confirmation Pending.",
+        "name": "Garden Poop Confirmation Pending"
       },
       "garden_session_active": {
-        "name": "Garden Session Active",
-        "description": "State indicator for Garden Session Active."
+        "description": "State indicator for Garden Session Active.",
+        "name": "Garden Session Active"
       },
       "geofence_alert": {
-        "name": "Geofence Alert",
-        "description": "State indicator for Geofence Alert."
+        "description": "State indicator for Geofence Alert.",
+        "name": "Geofence Alert"
       },
       "gps_accurately_tracked": {
-        "name": "GPS Accurately Tracked",
-        "description": "State indicator for GPS Accurately Tracked."
+        "description": "State indicator for GPS Accurately Tracked.",
+        "name": "GPS Accurately Tracked"
       },
       "gps_battery_low": {
-        "name": "GPS Battery Low",
-        "description": "State indicator for GPS Battery Low."
+        "description": "State indicator for GPS Battery Low.",
+        "name": "GPS Battery Low"
       },
       "gps_signal": {
-        "name": "GPS Signal",
-        "description": "State indicator for GPS Signal."
+        "description": "State indicator for GPS Signal.",
+        "name": "GPS Signal"
       },
       "health_alert": {
-        "name": "Health Alert",
-        "description": "State indicator for Health Alert."
+        "description": "State indicator for Health Alert.",
+        "name": "Health Alert"
       },
       "health_aware_feeding": {
-        "name": "Health-Aware Feeding",
-        "description": "State indicator for Health-Aware Feeding."
+        "description": "State indicator for Health-Aware Feeding.",
+        "name": "Health-Aware Feeding"
       },
       "health_emergency": {
-        "name": "Health Emergency",
-        "description": "State indicator for Health Emergency."
+        "description": "State indicator for Health Emergency.",
+        "name": "Health Emergency"
       },
       "high_uv_warning": {
-        "name": "High UV Warning",
-        "description": "State indicator for High UV Warning."
+        "description": "State indicator for High UV Warning.",
+        "name": "High UV Warning"
       },
       "in_garden": {
-        "name": "In Garden",
-        "description": "State indicator for In Garden."
+        "description": "State indicator for In Garden.",
+        "name": "In Garden"
       },
       "in_safe_zone": {
-        "name": "In Safe Zone",
-        "description": "State indicator for In Safe Zone."
+        "description": "State indicator for In Safe Zone.",
+        "name": "In Safe Zone"
       },
       "is_home": {
-        "name": "Is Home",
-        "description": "State indicator for Is Home."
+        "description": "State indicator for Is Home.",
+        "name": "Is Home"
       },
       "is_hungry": {
-        "name": "Is Hungry",
-        "description": "State indicator for Is Hungry."
+        "description": "State indicator for Is Hungry.",
+        "name": "Is Hungry"
       },
       "long_walk_overdue": {
-        "name": "Long Walk Overdue",
-        "description": "State indicator for Long Walk Overdue."
+        "description": "State indicator for Long Walk Overdue.",
+        "name": "Long Walk Overdue"
       },
       "medication_due": {
-        "name": "Medication Due",
-        "description": "State indicator for Medication Due."
+        "description": "State indicator for Medication Due.",
+        "name": "Medication Due"
       },
       "medication_with_meals": {
-        "name": "Medication With Meals",
-        "description": "State indicator for Medication With Meals."
+        "description": "State indicator for Medication With Meals.",
+        "name": "Medication With Meals"
       },
       "moving": {
-        "name": "Moving",
-        "description": "State indicator for Moving."
+        "description": "State indicator for Moving.",
+        "name": "Moving"
       },
       "needs_grooming": {
-        "name": "Needs Grooming",
-        "description": "State indicator for Needs Grooming."
+        "description": "State indicator for Needs Grooming.",
+        "name": "Needs Grooming"
       },
       "needs_walk": {
-        "name": "Needs Walk",
-        "description": "State indicator for Needs Walk."
+        "description": "State indicator for Needs Walk.",
+        "name": "Needs Walk"
       },
       "online": {
-        "name": "Online",
-        "description": "State indicator for Online."
+        "description": "State indicator for Online.",
+        "name": "Online"
       },
       "storm_warning": {
-        "name": "Storm Warning",
-        "description": "State indicator for Storm Warning."
+        "description": "State indicator for Storm Warning.",
+        "name": "Storm Warning"
       },
       "vet_checkup_due": {
-        "name": "Vet Checkup Due",
-        "description": "State indicator for Vet Checkup Due."
+        "description": "State indicator for Vet Checkup Due.",
+        "name": "Vet Checkup Due"
       },
       "visitor_mode": {
-        "name": "Visitor Mode",
-        "description": "State indicator for Visitor Mode."
+        "description": "State indicator for Visitor Mode.",
+        "name": "Visitor Mode"
       },
       "walk_goal_met": {
-        "name": "Walk Goal Met",
-        "description": "State indicator for Walk Goal Met."
+        "description": "State indicator for Walk Goal Met.",
+        "name": "Walk Goal Met"
       },
       "walk_in_progress": {
-        "name": "Walk In Progress",
-        "description": "State indicator for Walk In Progress."
+        "description": "State indicator for Walk In Progress.",
+        "name": "Walk In Progress"
       },
       "weather_alert_active": {
-        "name": "Weather Alert Active",
-        "description": "State indicator for Weather Alert Active."
+        "description": "State indicator for Weather Alert Active.",
+        "name": "Weather Alert Active"
       },
       "weight_alert": {
-        "name": "Weight Alert",
-        "description": "State indicator for Weight Alert."
+        "description": "State indicator for Weight Alert.",
+        "name": "Weight Alert"
       }
     },
     "button": {
       "call_dog": {
-        "name": "Call Dog",
-        "description": "Trigger the Call Dog action."
+        "description": "Trigger the Call Dog action.",
+        "name": "Call Dog"
       },
       "center_map": {
-        "name": "Center Map",
-        "description": "Trigger the Center Map action."
+        "description": "Trigger the Center Map action.",
+        "name": "Center Map"
       },
       "confirm_garden_poop": {
-        "name": "Confirm Garden Poop",
-        "description": "Trigger the Confirm Garden Poop action."
+        "description": "Trigger the Confirm Garden Poop action.",
+        "name": "Confirm Garden Poop"
       },
       "daily_reset": {
-        "name": "Daily Reset",
-        "description": "Trigger the Daily Reset action."
+        "description": "Trigger the Daily Reset action.",
+        "name": "Daily Reset"
       },
       "emergency": {
-        "name": "Emergency",
-        "description": "Trigger the Emergency action."
+        "description": "Trigger the Emergency action.",
+        "name": "Emergency"
       },
       "end_garden_session": {
-        "name": "End Garden Session",
-        "description": "Trigger the End Garden Session action."
+        "description": "Trigger the End Garden Session action.",
+        "name": "End Garden Session"
       },
       "end_walk": {
-        "name": "End Walk",
-        "description": "Trigger the End Walk action."
+        "description": "Trigger the End Walk action.",
+        "name": "End Walk"
       },
       "export_data": {
-        "name": "Export Data",
-        "description": "Trigger the Export Data action."
+        "description": "Trigger the Export Data action.",
+        "name": "Export Data"
       },
       "export_route": {
-        "name": "Export Route",
-        "description": "Trigger the Export Route action."
+        "description": "Trigger the Export Route action.",
+        "name": "Export Route"
       },
       "feed_now": {
-        "name": "Feed Now",
-        "description": "Trigger the Feed Now action."
+        "description": "Trigger the Feed Now action.",
+        "name": "Feed Now"
       },
       "get_weather_alerts": {
-        "name": "Get Weather Alerts",
-        "description": "Trigger the Get Weather Alerts action."
+        "description": "Trigger the Get Weather Alerts action.",
+        "name": "Get Weather Alerts"
       },
       "get_weather_recommendations": {
-        "name": "Get Weather Recommendations",
-        "description": "Trigger the Get Weather Recommendations action."
+        "description": "Trigger the Get Weather Recommendations action.",
+        "name": "Get Weather Recommendations"
       },
       "gps_end_walk": {
-        "name": "GPS End Walk",
-        "description": "Trigger the GPS End Walk action."
+        "description": "Trigger the GPS End Walk action.",
+        "name": "GPS End Walk"
       },
       "gps_start_walk": {
-        "name": "GPS Start Walk",
-        "description": "Trigger the GPS Start Walk action."
+        "description": "Trigger the GPS Start Walk action.",
+        "name": "GPS Start Walk"
       },
       "health_check": {
-        "name": "Health Check",
-        "description": "Trigger the Health Check action."
+        "description": "Trigger the Health Check action.",
+        "name": "Health Check"
       },
       "log_custom_feeding": {
-        "name": "Log Custom Feeding",
-        "description": "Trigger the Log Custom Feeding action."
+        "description": "Trigger the Log Custom Feeding action.",
+        "name": "Log Custom Feeding"
       },
       "log_garden_activity": {
-        "name": "Log Garden Activity",
-        "description": "Trigger the Log Garden Activity action."
+        "description": "Trigger the Log Garden Activity action.",
+        "name": "Log Garden Activity"
       },
       "log_health": {
-        "name": "Log Health",
-        "description": "Trigger the Log Health action."
+        "description": "Trigger the Log Health action.",
+        "name": "Log Health"
       },
       "log_medication": {
-        "name": "Log Medication",
-        "description": "Trigger the Log Medication action."
+        "description": "Trigger the Log Medication action.",
+        "name": "Log Medication"
       },
       "log_poop": {
-        "name": "Log Poop",
-        "description": "Trigger the Log Poop action."
+        "description": "Trigger the Log Poop action.",
+        "name": "Log Poop"
       },
       "log_walk_manually": {
-        "name": "Log Walk Manually",
-        "description": "Trigger the Log Walk Manually action."
+        "description": "Trigger the Log Walk Manually action.",
+        "name": "Log Walk Manually"
       },
       "log_weight": {
-        "name": "Log Weight",
-        "description": "Trigger the Log Weight action."
+        "description": "Trigger the Log Weight action.",
+        "name": "Log Weight"
       },
       "mark_fed": {
-        "name": "Mark Fed",
-        "description": "Trigger the Mark Fed action."
+        "description": "Trigger the Mark Fed action.",
+        "name": "Mark Fed"
       },
       "mark_fed_breakfast": {
-        "name": "Mark Fed (Breakfast)",
-        "description": "Trigger the Mark Fed (Breakfast) action."
+        "description": "Trigger the Mark Fed (Breakfast) action.",
+        "name": "Mark Fed (Breakfast)"
       },
       "mark_fed_dinner": {
-        "name": "Mark Fed (Dinner)",
-        "description": "Trigger the Mark Fed (Dinner) action."
+        "description": "Trigger the Mark Fed (Dinner) action.",
+        "name": "Mark Fed (Dinner)"
       },
       "mark_fed_lunch": {
-        "name": "Mark Fed (Lunch)",
-        "description": "Trigger the Mark Fed (Lunch) action."
+        "description": "Trigger the Mark Fed (Lunch) action.",
+        "name": "Mark Fed (Lunch)"
       },
       "mark_fed_snack": {
-        "name": "Mark Fed (Snack)",
-        "description": "Trigger the Mark Fed (Snack) action."
+        "description": "Trigger the Mark Fed (Snack) action.",
+        "name": "Mark Fed (Snack)"
       },
       "notify_test": {
-        "name": "Test Notification",
-        "description": "Trigger the Test Notification action."
+        "description": "Trigger the Test Notification action.",
+        "name": "Test Notification"
       },
       "quick_walk": {
-        "name": "Quick Walk",
-        "description": "Trigger the Quick Walk action."
+        "description": "Trigger the Quick Walk action.",
+        "name": "Quick Walk"
       },
       "refresh_data": {
-        "name": "Refresh Data",
-        "description": "Trigger the Refresh Data action."
+        "description": "Trigger the Refresh Data action.",
+        "name": "Refresh Data"
       },
       "refresh_location": {
-        "name": "Refresh Location",
-        "description": "Trigger the Refresh Location action."
+        "description": "Trigger the Refresh Location action.",
+        "name": "Refresh Location"
       },
       "reset_daily_stats": {
-        "name": "Reset Daily Stats",
-        "description": "Trigger the Reset Daily Stats action."
+        "description": "Trigger the Reset Daily Stats action.",
+        "name": "Reset Daily Stats"
       },
       "schedule_vet": {
-        "name": "Schedule Vet",
-        "description": "Trigger the Schedule Vet action."
+        "description": "Trigger the Schedule Vet action.",
+        "name": "Schedule Vet"
       },
       "start_garden_session": {
-        "name": "Start Garden Session",
-        "description": "Trigger the Start Garden Session action."
+        "description": "Trigger the Start Garden Session action.",
+        "name": "Start Garden Session"
       },
       "start_grooming": {
-        "name": "Start Grooming",
-        "description": "Trigger the Start Grooming action."
+        "description": "Trigger the Start Grooming action.",
+        "name": "Start Grooming"
       },
       "start_walk": {
-        "name": "Start Walk",
-        "description": "Trigger the Start Walk action."
+        "description": "Trigger the Start Walk action.",
+        "name": "Start Walk"
       },
       "sync_data": {
-        "name": "Sync Data",
-        "description": "Trigger the Sync Data action."
+        "description": "Trigger the Sync Data action.",
+        "name": "Sync Data"
       },
       "test_notification": {
-        "name": "Test Notification",
-        "description": "Trigger the Test Notification action."
+        "description": "Trigger the Test Notification action.",
+        "name": "Test Notification"
       },
       "toggle_visitor_mode": {
-        "name": "Toggle Visitor Mode",
-        "description": "Trigger the Toggle Visitor Mode action."
+        "description": "Trigger the Toggle Visitor Mode action.",
+        "name": "Toggle Visitor Mode"
       },
       "update_weather": {
-        "name": "Update Weather",
-        "description": "Trigger the Update Weather action."
+        "description": "Trigger the Update Weather action.",
+        "name": "Update Weather"
       }
     },
     "date": {
       "adoption_date": {
-        "name": "Adoption Date",
-        "description": "Set the Adoption Date date."
+        "description": "Set the Adoption Date date.",
+        "name": "Adoption Date"
       },
       "birthdate": {
-        "name": "Birthdate",
-        "description": "Set the Birthdate date."
+        "description": "Set the Birthdate date.",
+        "name": "Birthdate"
       },
       "deworming_date": {
-        "name": "Deworming Date",
-        "description": "Set the Deworming Date date."
+        "description": "Set the Deworming Date date.",
+        "name": "Deworming Date"
       },
       "diet_end_date": {
-        "name": "Diet End Date",
-        "description": "Set the Diet End Date date."
+        "description": "Set the Diet End Date date.",
+        "name": "Diet End Date"
       },
       "diet_start_date": {
-        "name": "Diet Start Date",
-        "description": "Set the Diet Start Date date."
+        "description": "Set the Diet Start Date date.",
+        "name": "Diet Start Date"
       },
       "last_grooming": {
-        "name": "Last Grooming",
-        "description": "Set the Last Grooming date."
+        "description": "Set the Last Grooming date.",
+        "name": "Last Grooming"
       },
       "last_vet_visit": {
-        "name": "Last Vet Visit",
-        "description": "Set the Last Vet Visit date."
+        "description": "Set the Last Vet Visit date.",
+        "name": "Last Vet Visit"
       },
       "next_deworming": {
-        "name": "Next Deworming",
-        "description": "Set the Next Deworming date."
+        "description": "Set the Next Deworming date.",
+        "name": "Next Deworming"
       },
       "next_grooming": {
-        "name": "Next Grooming",
-        "description": "Set the Next Grooming date."
+        "description": "Set the Next Grooming date.",
+        "name": "Next Grooming"
       },
       "next_training_date": {
-        "name": "Next Training Date",
-        "description": "Set the Next Training Date date."
+        "description": "Set the Next Training Date date.",
+        "name": "Next Training Date"
       },
       "next_vaccination": {
-        "name": "Next Vaccination",
-        "description": "Set the Next Vaccination date."
+        "description": "Set the Next Vaccination date.",
+        "name": "Next Vaccination"
       },
       "next_vet_appointment": {
-        "name": "Next Vet Appointment",
-        "description": "Set the Next Vet Appointment date."
+        "description": "Set the Next Vet Appointment date.",
+        "name": "Next Vet Appointment"
       },
       "training_start_date": {
-        "name": "Training Start Date",
-        "description": "Set the Training Start Date date."
+        "description": "Set the Training Start Date date.",
+        "name": "Training Start Date"
       },
       "vaccination_date": {
-        "name": "Vaccination Date",
-        "description": "Set the Vaccination Date date."
+        "description": "Set the Vaccination Date date.",
+        "name": "Vaccination Date"
       }
     },
     "datetime": {
       "adoption_date": {
-        "name": "Adoption Date (Date & Time)",
-        "description": "Set the Adoption Date (Date & Time) date and time."
+        "description": "Set the Adoption Date (Date & Time) date and time.",
+        "name": "Adoption Date (Date & Time)"
       },
       "birthdate": {
-        "name": "Birthdate (Date & Time)",
-        "description": "Set the Birthdate (Date & Time) date and time."
+        "description": "Set the Birthdate (Date & Time) date and time.",
+        "name": "Birthdate (Date & Time)"
       },
       "breakfast_time": {
-        "name": "Breakfast Time",
-        "description": "Set the Breakfast Time date and time."
+        "description": "Set the Breakfast Time date and time.",
+        "name": "Breakfast Time"
       },
       "dinner_time": {
-        "name": "Dinner Time",
-        "description": "Set the Dinner Time date and time."
+        "description": "Set the Dinner Time date and time.",
+        "name": "Dinner Time"
       },
       "emergency_date": {
-        "name": "Emergency Timestamp",
-        "description": "Set the Emergency Timestamp date and time."
+        "description": "Set the Emergency Timestamp date and time.",
+        "name": "Emergency Timestamp"
       },
       "last_feeding": {
-        "name": "Last Feeding",
-        "description": "Set the Last Feeding date and time."
+        "description": "Set the Last Feeding date and time.",
+        "name": "Last Feeding"
       },
       "last_grooming": {
-        "name": "Last Grooming (Date & Time)",
-        "description": "Set the Last Grooming (Date & Time) date and time."
+        "description": "Set the Last Grooming (Date & Time) date and time.",
+        "name": "Last Grooming (Date & Time)"
       },
       "last_medication": {
-        "name": "Last Medication",
-        "description": "Set the Last Medication date and time."
+        "description": "Set the Last Medication date and time.",
+        "name": "Last Medication"
       },
       "last_vet_visit": {
-        "name": "Last Vet Visit (Date & Time)",
-        "description": "Set the Last Vet Visit (Date & Time) date and time."
+        "description": "Set the Last Vet Visit (Date & Time) date and time.",
+        "name": "Last Vet Visit (Date & Time)"
       },
       "last_walk": {
-        "name": "Last Walk",
-        "description": "Set the Last Walk date and time."
+        "description": "Set the Last Walk date and time.",
+        "name": "Last Walk"
       },
       "lunch_time": {
-        "name": "Lunch Time",
-        "description": "Set the Lunch Time date and time."
+        "description": "Set the Lunch Time date and time.",
+        "name": "Lunch Time"
       },
       "next_feeding": {
-        "name": "Next Feeding",
-        "description": "Set the Next Feeding date and time."
+        "description": "Set the Next Feeding date and time.",
+        "name": "Next Feeding"
       },
       "next_grooming": {
-        "name": "Next Grooming (Date & Time)",
-        "description": "Set the Next Grooming (Date & Time) date and time."
+        "description": "Set the Next Grooming (Date & Time) date and time.",
+        "name": "Next Grooming (Date & Time)"
       },
       "next_medication": {
-        "name": "Next Medication",
-        "description": "Set the Next Medication date and time."
+        "description": "Set the Next Medication date and time.",
+        "name": "Next Medication"
       },
       "next_vet_appointment": {
-        "name": "Next Vet Appointment (Date & Time)",
-        "description": "Set the Next Vet Appointment (Date & Time) date and time."
+        "description": "Set the Next Vet Appointment (Date & Time) date and time.",
+        "name": "Next Vet Appointment (Date & Time)"
       },
       "next_walk_reminder": {
-        "name": "Next Walk Reminder",
-        "description": "Set the Next Walk Reminder date and time."
+        "description": "Set the Next Walk Reminder date and time.",
+        "name": "Next Walk Reminder"
       },
       "training_session": {
-        "name": "Training Session",
-        "description": "Set the Training Session date and time."
+        "description": "Set the Training Session date and time.",
+        "name": "Training Session"
       },
       "vaccination_date": {
-        "name": "Vaccination (Date & Time)",
-        "description": "Set the Vaccination (Date & Time) date and time."
+        "description": "Set the Vaccination (Date & Time) date and time.",
+        "name": "Vaccination (Date & Time)"
       }
     },
     "device_tracker": {
       "gps": {
-        "name": "GPS",
-        "description": "Location tracker for GPS."
+        "description": "Location tracker for GPS.",
+        "name": "GPS"
       }
     },
     "number": {
       "activity_goal": {
-        "name": "Activity Goal",
-        "description": "Set the Activity Goal value."
+        "description": "Set the Activity Goal value.",
+        "name": "Activity Goal"
       },
       "age": {
-        "name": "Age",
-        "description": "Set the Age value."
+        "description": "Set the Age value.",
+        "name": "Age"
       },
       "calorie_target": {
-        "name": "Calorie Target",
-        "description": "Set the Calorie Target value."
+        "description": "Set the Calorie Target value.",
+        "name": "Calorie Target"
       },
       "daily_food_amount": {
-        "name": "Daily Food Amount",
-        "description": "Set the Daily Food Amount value."
+        "description": "Set the Daily Food Amount value.",
+        "name": "Daily Food Amount"
       },
       "daily_walk_target": {
-        "name": "Daily Walk Target",
-        "description": "Set the Daily Walk Target value."
+        "description": "Set the Daily Walk Target value.",
+        "name": "Daily Walk Target"
       },
       "feeding_reminder_hours": {
-        "name": "Feeding Reminder Hours",
-        "description": "Set the Feeding Reminder Hours value."
+        "description": "Set the Feeding Reminder Hours value.",
+        "name": "Feeding Reminder Hours"
       },
       "geofence_radius": {
-        "name": "Geofence Radius",
-        "description": "Set the Geofence Radius value."
+        "description": "Set the Geofence Radius value.",
+        "name": "Geofence Radius"
       },
       "gps_accuracy_threshold": {
-        "name": "GPS Accuracy Threshold",
-        "description": "Set the GPS Accuracy Threshold value."
+        "description": "Set the GPS Accuracy Threshold value.",
+        "name": "GPS Accuracy Threshold"
       },
       "gps_battery_threshold": {
-        "name": "GPS Battery Threshold",
-        "description": "Set the GPS Battery Threshold value."
+        "description": "Set the GPS Battery Threshold value.",
+        "name": "GPS Battery Threshold"
       },
       "gps_update_interval": {
-        "name": "GPS Update Interval",
-        "description": "Set the GPS Update Interval value."
+        "description": "Set the GPS Update Interval value.",
+        "name": "GPS Update Interval"
       },
       "grooming_interval": {
-        "name": "Grooming Interval",
-        "description": "Set the Grooming Interval value."
+        "description": "Set the Grooming Interval value.",
+        "name": "Grooming Interval"
       },
       "health_score_threshold": {
-        "name": "Health Score Threshold",
-        "description": "Set the Health Score Threshold value."
+        "description": "Set the Health Score Threshold value.",
+        "name": "Health Score Threshold"
       },
       "location_update_distance": {
-        "name": "Location Update Distance",
-        "description": "Set the Location Update Distance value."
+        "description": "Set the Location Update Distance value.",
+        "name": "Location Update Distance"
       },
       "max_walk_speed": {
-        "name": "Max Walk Speed",
-        "description": "Set the Max Walk Speed value."
+        "description": "Set the Max Walk Speed value.",
+        "name": "Max Walk Speed"
       },
       "meals_per_day": {
-        "name": "Meals Per Day",
-        "description": "Set the Meals Per Day value."
+        "description": "Set the Meals Per Day value.",
+        "name": "Meals Per Day"
       },
       "portion_size": {
-        "name": "Portion Size",
-        "description": "Set the Portion Size value."
+        "description": "Set the Portion Size value.",
+        "name": "Portion Size"
       },
       "target_weight": {
-        "name": "Target Weight",
-        "description": "Set the Target Weight value."
+        "description": "Set the Target Weight value.",
+        "name": "Target Weight"
       },
       "vet_checkup_interval": {
-        "name": "Vet Checkup Interval",
-        "description": "Set the Vet Checkup Interval value."
+        "description": "Set the Vet Checkup Interval value.",
+        "name": "Vet Checkup Interval"
       },
       "walk_distance_target": {
-        "name": "Walk Distance Target",
-        "description": "Set the Walk Distance Target value."
+        "description": "Set the Walk Distance Target value.",
+        "name": "Walk Distance Target"
       },
       "walk_duration_target": {
-        "name": "Walk Duration Target",
-        "description": "Set the Walk Duration Target value."
+        "description": "Set the Walk Duration Target value.",
+        "name": "Walk Duration Target"
       },
       "walk_reminder_hours": {
-        "name": "Walk Reminder Hours",
-        "description": "Set the Walk Reminder Hours value."
+        "description": "Set the Walk Reminder Hours value.",
+        "name": "Walk Reminder Hours"
       },
       "weight": {
-        "name": "Weight",
-        "description": "Set the Weight value."
+        "description": "Set the Weight value.",
+        "name": "Weight"
       },
       "weight_change_threshold": {
-        "name": "Weight Change Threshold",
-        "description": "Set the Weight Change Threshold value."
+        "description": "Set the Weight Change Threshold value.",
+        "name": "Weight Change Threshold"
       }
     },
     "select": {
       "activity_level": {
+        "description": "Select the Activity Level option.",
         "name": "Activity Level",
         "state": {
           "high": "High",
@@ -994,22 +995,22 @@
           "normal": "Normal",
           "very_high": "Very High",
           "very_low": "Very Low"
-        },
-        "description": "Select the Activity Level option."
+        }
       },
       "default_meal_type": {
-        "name": "Default Meal Type",
-        "description": "Select the Default Meal Type option."
+        "description": "Select the Default Meal Type option.",
+        "name": "Default Meal Type"
       },
       "feeding_mode": {
-        "name": "Feeding Mode",
-        "description": "Select the Feeding Mode option."
+        "description": "Select the Feeding Mode option.",
+        "name": "Feeding Mode"
       },
       "feeding_schedule": {
-        "name": "Feeding Schedule",
-        "description": "Select the Feeding Schedule option."
+        "description": "Select the Feeding Schedule option.",
+        "name": "Feeding Schedule"
       },
       "food_type": {
+        "description": "Select the Food Type option.",
         "name": "Food Type",
         "state": {
           "barf": "BARF",
@@ -1017,26 +1018,26 @@
           "home_cooked": "Home Cooked",
           "mixed": "Mixed",
           "wet_food": "Wet Food"
-        },
-        "description": "Select the Food Type option."
+        }
       },
       "gps_source": {
-        "name": "GPS Source",
-        "description": "Select the GPS Source option."
+        "description": "Select the GPS Source option.",
+        "name": "GPS Source"
       },
       "grooming_type": {
-        "name": "Grooming Type",
-        "description": "Select the Grooming Type option."
+        "description": "Select the Grooming Type option.",
+        "name": "Grooming Type"
       },
       "health_status": {
-        "name": "Health Status",
-        "description": "Select the Health Status option."
+        "description": "Select the Health Status option.",
+        "name": "Health Status"
       },
       "location_accuracy": {
-        "name": "Location Accuracy",
-        "description": "Select the Location Accuracy option."
+        "description": "Select the Location Accuracy option.",
+        "name": "Location Accuracy"
       },
       "mood": {
+        "description": "Select the Mood option.",
         "name": "Mood",
         "state": {
           "angry": "Angry",
@@ -1045,18 +1046,18 @@
           "neutral": "Neutral",
           "sad": "Sad",
           "tired": "Tired"
-        },
-        "description": "Select the Mood option."
+        }
       },
       "notification_priority": {
-        "name": "Notification Priority",
-        "description": "Select the Notification Priority option."
+        "description": "Select the Notification Priority option.",
+        "name": "Notification Priority"
       },
       "performance_mode": {
-        "name": "Performance Mode",
-        "description": "Select the Performance Mode option."
+        "description": "Select the Performance Mode option.",
+        "name": "Performance Mode"
       },
       "size": {
+        "description": "Select the Size option.",
         "name": "Size",
         "state": {
           "giant": "Giant",
@@ -1064,42 +1065,42 @@
           "medium": "Medium",
           "small": "Small",
           "toy": "Toy"
-        },
-        "description": "Select the Size option."
+        }
       },
       "tracking_mode": {
-        "name": "Tracking Mode",
-        "description": "Select the Tracking Mode option."
+        "description": "Select the Tracking Mode option.",
+        "name": "Tracking Mode"
       },
       "walk_intensity": {
-        "name": "Walk Intensity",
-        "description": "Select the Walk Intensity option."
+        "description": "Select the Walk Intensity option.",
+        "name": "Walk Intensity"
       },
       "walk_mode": {
-        "name": "Walk Mode",
-        "description": "Select the Walk Mode option."
+        "description": "Select the Walk Mode option.",
+        "name": "Walk Mode"
       },
       "weather_preference": {
-        "name": "Weather Preference",
-        "description": "Select the Weather Preference option."
+        "description": "Select the Weather Preference option.",
+        "name": "Weather Preference"
       },
       "weather_severity": {
+        "description": "Select the Weather Severity option.",
         "name": "Weather Severity",
         "state": {
           "extreme": "Extreme",
           "high": "High",
           "low": "Low",
           "moderate": "Moderate"
-        },
-        "description": "Select the Weather Severity option."
+        }
       }
     },
     "sensor": {
       "active_weather_alerts": {
-        "name": "Active Weather Alerts",
-        "description": "Reports Active Weather Alerts."
+        "description": "Reports Active Weather Alerts.",
+        "name": "Active Weather Alerts"
       },
       "activity_level": {
+        "description": "Reports Activity Level.",
         "name": "Activity Level",
         "state": {
           "high": "High",
@@ -1107,86 +1108,86 @@
           "normal": "Normal",
           "very_high": "Very High",
           "very_low": "Very Low"
-        },
-        "description": "Reports Activity Level."
+        }
       },
       "activity_score": {
-        "name": "Activity Score",
-        "description": "Reports Activity Score."
+        "description": "Reports Activity Score.",
+        "name": "Activity Score"
       },
       "average_walk_duration": {
-        "name": "Average Walk Duration",
-        "description": "Reports Average Walk Duration."
+        "description": "Reports Average Walk Duration.",
+        "name": "Average Walk Duration"
       },
       "avg_garden_duration": {
-        "name": "Average Garden Duration",
-        "description": "Reports Average Garden Duration."
+        "description": "Reports Average Garden Duration.",
+        "name": "Average Garden Duration"
       },
       "body_condition_score": {
-        "name": "Body Condition Score",
-        "description": "Reports Body Condition Score."
+        "description": "Reports Body Condition Score.",
+        "name": "Body Condition Score"
       },
       "calorie_goal_progress": {
-        "name": "Calorie Goal Progress",
-        "description": "Reports Calorie Goal Progress."
+        "description": "Reports Calorie Goal Progress.",
+        "name": "Calorie Goal Progress"
       },
       "calories_burned_today": {
-        "name": "Calories Burned Today",
-        "description": "Reports Calories Burned Today."
+        "description": "Reports Calories Burned Today.",
+        "name": "Calories Burned Today"
       },
       "calories_consumed_today": {
-        "name": "Calories Consumed Today",
-        "description": "Reports Calories Consumed Today."
+        "description": "Reports Calories Consumed Today.",
+        "name": "Calories Consumed Today"
       },
       "current_location": {
-        "name": "Current Location",
-        "description": "Reports Current Location."
+        "description": "Reports Current Location.",
+        "name": "Current Location"
       },
       "current_speed": {
-        "name": "Current Speed",
-        "description": "Reports Current Speed."
+        "description": "Reports Current Speed.",
+        "name": "Current Speed"
       },
       "current_walk_duration": {
-        "name": "Current Walk Duration",
-        "description": "Reports Current Walk Duration."
+        "description": "Reports Current Walk Duration.",
+        "name": "Current Walk Duration"
       },
       "current_zone": {
-        "name": "Current Zone",
-        "description": "Reports Current Zone."
+        "description": "Reports Current Zone.",
+        "name": "Current Zone"
       },
       "daily_activity_level": {
-        "name": "Daily Activity Level",
-        "description": "Reports Daily Activity Level."
+        "description": "Reports Daily Activity Level.",
+        "name": "Daily Activity Level"
       },
       "daily_calorie_target": {
-        "name": "Daily Calorie Target",
-        "description": "Reports Daily Calorie Target."
+        "description": "Reports Daily Calorie Target.",
+        "name": "Daily Calorie Target"
       },
       "daily_calories": {
-        "name": "Daily Calories",
-        "description": "Reports Daily Calories."
+        "description": "Reports Daily Calories.",
+        "name": "Daily Calories"
       },
       "daily_portions": {
-        "name": "Daily Portions",
-        "description": "Reports Daily Portions."
+        "description": "Reports Daily Portions.",
+        "name": "Daily Portions"
       },
       "days_since_grooming": {
-        "name": "Days Since Grooming",
-        "description": "Reports Days Since Grooming."
+        "description": "Reports Days Since Grooming.",
+        "name": "Days Since Grooming"
       },
       "diet_compatibility_score": {
-        "name": "Diet Compatibility Score",
-        "description": "Reports Diet Compatibility Score."
+        "description": "Reports Diet Compatibility Score.",
+        "name": "Diet Compatibility Score"
       },
       "diet_conflict_count": {
-        "name": "Diet Conflict Count",
-        "description": "Reports Diet Conflict Count."
+        "description": "Reports Diet Conflict Count.",
+        "name": "Diet Conflict Count"
       },
       "diet_validation_adjustment": {
-        "name": "Diet Validation Adjustment",
-        "description": "Reports Diet Validation Adjustment."
+        "description": "Reports Diet Validation Adjustment.",
+        "name": "Diet Validation Adjustment"
       },
       "diet_validation_status": {
+        "description": "Reports Diet Validation Status.",
         "name": "Diet Validation Status",
         "state": {
           "conflicts_detected": "Conflicts Detected",
@@ -1194,106 +1195,106 @@
           "validated_safe": "Validated Safe",
           "validation_error": "Validation Error",
           "warnings_present": "Warnings Present"
-        },
-        "description": "Reports Diet Validation Status."
+        }
       },
       "diet_vet_consultation": {
+        "description": "Reports Diet Vet Consultation.",
         "name": "Diet Vet Consultation",
         "state": {
           "not_needed": "Not Needed",
           "recommended": "Recommended"
-        },
-        "description": "Reports Diet Vet Consultation."
+        }
       },
       "diet_warning_count": {
-        "name": "Diet Warning Count",
-        "description": "Reports Diet Warning Count."
+        "description": "Reports Diet Warning Count.",
+        "name": "Diet Warning Count"
       },
       "distance_from_home": {
-        "name": "Distance From Home",
-        "description": "Reports Distance From Home."
+        "description": "Reports Distance From Home.",
+        "name": "Distance From Home"
       },
       "favorite_garden_activities": {
-        "name": "Favorite Garden Activities",
-        "description": "Reports Favorite Garden Activities."
+        "description": "Reports Favorite Garden Activities.",
+        "name": "Favorite Garden Activities"
       },
       "feeding_count_today_breakfast": {
-        "name": "Breakfast Count Today",
-        "description": "Reports Breakfast Count Today."
+        "description": "Reports Breakfast Count Today.",
+        "name": "Breakfast Count Today"
       },
       "feeding_count_today_dinner": {
-        "name": "Dinner Count Today",
-        "description": "Reports Dinner Count Today."
+        "description": "Reports Dinner Count Today.",
+        "name": "Dinner Count Today"
       },
       "feeding_count_today_lunch": {
-        "name": "Lunch Count Today",
-        "description": "Reports Lunch Count Today."
+        "description": "Reports Lunch Count Today.",
+        "name": "Lunch Count Today"
       },
       "feeding_count_today_snack": {
-        "name": "Snack Count Today",
-        "description": "Reports Snack Count Today."
+        "description": "Reports Snack Count Today.",
+        "name": "Snack Count Today"
       },
       "feeding_recommendation": {
-        "name": "Feeding Recommendation",
-        "description": "Reports Feeding Recommendation."
+        "description": "Reports Feeding Recommendation.",
+        "name": "Feeding Recommendation"
       },
       "feeding_schedule_adherence": {
-        "name": "Feeding Schedule Adherence",
-        "description": "Reports Feeding Schedule Adherence."
+        "description": "Reports Feeding Schedule Adherence.",
+        "name": "Feeding Schedule Adherence"
       },
       "food_consumption": {
-        "name": "Food Consumption",
-        "description": "Reports Food Consumption."
+        "description": "Reports Food Consumption.",
+        "name": "Food Consumption"
       },
       "garden_activities_count": {
-        "name": "Garden Activities Count",
-        "description": "Reports Garden Activities Count."
+        "description": "Reports Garden Activities Count.",
+        "name": "Garden Activities Count"
       },
       "garden_activities_last_session": {
-        "name": "Garden Activities Last Session",
-        "description": "Reports Garden Activities Last Session."
+        "description": "Reports Garden Activities Last Session.",
+        "name": "Garden Activities Last Session"
       },
       "garden_activities_today": {
-        "name": "Garden Activities Today",
-        "description": "Reports Garden Activities Today."
+        "description": "Reports Garden Activities Today.",
+        "name": "Garden Activities Today"
       },
       "garden_poop_count_today": {
-        "name": "Garden Poops Today",
-        "description": "Reports Garden Poops Today."
+        "description": "Reports Garden Poops Today.",
+        "name": "Garden Poops Today"
       },
       "garden_sessions_today": {
-        "name": "Garden Sessions Today",
-        "description": "Reports Garden Sessions Today."
+        "description": "Reports Garden Sessions Today.",
+        "name": "Garden Sessions Today"
       },
       "garden_stats_weekly": {
-        "name": "Weekly Garden Summary",
-        "description": "Reports Weekly Garden Summary."
+        "description": "Reports Weekly Garden Summary.",
+        "name": "Weekly Garden Summary"
       },
       "garden_time_today": {
-        "name": "Garden Time Today",
-        "description": "Reports Garden Time Today."
+        "description": "Reports Garden Time Today.",
+        "name": "Garden Time Today"
       },
       "gps_accuracy": {
-        "name": "GPS Accuracy",
-        "description": "Reports GPS Accuracy."
+        "description": "Reports GPS Accuracy.",
+        "name": "GPS Accuracy"
       },
       "gps_battery_level": {
-        "name": "GPS Battery Level",
-        "description": "Reports GPS Battery Level."
+        "description": "Reports GPS Battery Level.",
+        "name": "GPS Battery Level"
       },
       "health_aware_portion": {
-        "name": "Health-Aware Portion",
-        "description": "Reports Health-Aware Portion."
+        "description": "Reports Health-Aware Portion.",
+        "name": "Health-Aware Portion"
       },
       "health_conditions": {
-        "name": "Health Conditions",
-        "description": "Reports Health Conditions."
+        "description": "Reports Health Conditions.",
+        "name": "Health Conditions"
       },
       "health_feeding_status": {
-        "name": "Health Feeding Status",
-        "description": "Reports Health Feeding Status."
+        "description": "Reports Health Feeding Status.",
+        "name": "Health Feeding Status"
       },
       "health_status": {
+        "description": "Reports Health Status.",
         "name": "Health Status",
         "state": {
           "excellent": "Excellent",
@@ -1302,62 +1303,62 @@
           "sick": "Sick",
           "unwell": "Unwell",
           "very_good": "Very Good"
-        },
-        "description": "Reports Health Status."
+        }
       },
       "last_action": {
-        "name": "Last Action",
-        "description": "Reports Last Action."
+        "description": "Reports Last Action.",
+        "name": "Last Action"
       },
       "last_feeding": {
-        "name": "Last Feeding",
-        "description": "Reports Last Feeding."
+        "description": "Reports Last Feeding.",
+        "name": "Last Feeding"
       },
       "last_feeding_hours": {
-        "name": "Hours Since Last Feeding",
-        "description": "Reports Hours Since Last Feeding."
+        "description": "Reports Hours Since Last Feeding.",
+        "name": "Hours Since Last Feeding"
       },
       "last_garden_duration": {
-        "name": "Last Garden Session Duration",
-        "description": "Reports Last Garden Session Duration."
+        "description": "Reports Last Garden Session Duration.",
+        "name": "Last Garden Session Duration"
       },
       "last_garden_session": {
-        "name": "Last Garden Session",
-        "description": "Reports Last Garden Session."
+        "description": "Reports Last Garden Session.",
+        "name": "Last Garden Session"
       },
       "last_garden_session_hours": {
-        "name": "Hours Since Last Garden Session",
-        "description": "Reports Hours Since Last Garden Session."
+        "description": "Reports Hours Since Last Garden Session.",
+        "name": "Hours Since Last Garden Session"
       },
       "last_vet_visit": {
-        "name": "Last Vet Visit",
-        "description": "Reports Last Vet Visit."
+        "description": "Reports Last Vet Visit.",
+        "name": "Last Vet Visit"
       },
       "last_walk": {
-        "name": "Last Walk",
-        "description": "Reports Last Walk."
+        "description": "Reports Last Walk.",
+        "name": "Last Walk"
       },
       "last_walk_distance": {
-        "name": "Last Walk Distance",
-        "description": "Reports Last Walk Distance."
+        "description": "Reports Last Walk Distance.",
+        "name": "Last Walk Distance"
       },
       "last_walk_duration": {
-        "name": "Last Walk Duration",
-        "description": "Reports Last Walk Duration."
+        "description": "Reports Last Walk Duration.",
+        "name": "Last Walk Duration"
       },
       "last_walk_hours": {
-        "name": "Hours Since Last Walk",
-        "description": "Reports Hours Since Last Walk."
+        "description": "Reports Hours Since Last Walk.",
+        "name": "Hours Since Last Walk"
       },
       "portion_adjustment_factor": {
-        "name": "Portion Adjustment Factor",
-        "description": "Reports Portion Adjustment Factor."
+        "description": "Reports Portion Adjustment Factor.",
+        "name": "Portion Adjustment Factor"
       },
       "portions_today": {
-        "name": "Portions Today",
-        "description": "Reports Portions Today."
+        "description": "Reports Portions Today.",
+        "name": "Portions Today"
       },
       "special_diet": {
+        "description": "Reports Special Diet Requirements.",
         "name": "Special Diet Requirements",
         "state": {
           "dental_care": "Dental Care",
@@ -1374,289 +1375,288 @@
           "senior_formula": "Senior Formula",
           "sensitive_stomach": "Sensitive Stomach",
           "weight_control": "Weight Control"
-        },
-        "description": "Reports Special Diet Requirements."
+        }
       },
       "speed": {
-        "name": "Speed",
-        "description": "Reports Speed."
+        "description": "Reports Speed.",
+        "name": "Speed"
       },
       "status": {
+        "description": "Reports Status.",
         "name": "Status",
         "state": {
           "offline": "Offline",
           "online": "Online",
           "unknown": "Unknown"
-        },
-        "description": "Reports Status."
+        }
       },
       "total_distance_today": {
-        "name": "Total Distance Today",
-        "description": "Reports Total Distance Today."
+        "description": "Reports Total Distance Today.",
+        "name": "Total Distance Today"
       },
       "total_feedings_today": {
-        "name": "Total Feedings Today",
-        "description": "Reports Total Feedings Today."
+        "description": "Reports Total Feedings Today.",
+        "name": "Total Feedings Today"
       },
       "total_walk_distance": {
-        "name": "Total Walk Distance",
-        "description": "Reports Total Walk Distance."
+        "description": "Reports Total Walk Distance.",
+        "name": "Total Walk Distance"
       },
       "total_walk_time_today": {
-        "name": "Total Walk Time Today",
-        "description": "Reports Total Walk Time Today."
+        "description": "Reports Total Walk Time Today.",
+        "name": "Total Walk Time Today"
       },
       "walk_count_today": {
-        "name": "Walk Count Today",
-        "description": "Reports Walk Count Today."
+        "description": "Reports Walk Count Today.",
+        "name": "Walk Count Today"
       },
       "walk_distance_today": {
-        "name": "Walk Distance Today",
-        "description": "Reports Walk Distance Today."
+        "description": "Reports Walk Distance Today.",
+        "name": "Walk Distance Today"
       },
       "walks_this_week": {
-        "name": "Walks This Week",
-        "description": "Reports Walks This Week."
+        "description": "Reports Walks This Week.",
+        "name": "Walks This Week"
       },
       "walks_today": {
-        "name": "Walks Today",
-        "description": "Reports Walks Today."
+        "description": "Reports Walks Today.",
+        "name": "Walks Today"
       },
       "weather_condition": {
-        "name": "Weather Condition",
-        "description": "Reports Weather Condition."
+        "description": "Reports Weather Condition.",
+        "name": "Weather Condition"
       },
       "weather_health_score": {
-        "name": "Weather Health Score",
-        "description": "Reports Weather Health Score."
+        "description": "Reports Weather Health Score.",
+        "name": "Weather Health Score"
       },
       "weather_humidity": {
-        "name": "Weather Humidity",
-        "description": "Reports Weather Humidity."
+        "description": "Reports Weather Humidity.",
+        "name": "Weather Humidity"
       },
       "weather_temperature": {
-        "name": "Weather Temperature",
-        "description": "Reports Weather Temperature."
+        "description": "Reports Weather Temperature.",
+        "name": "Weather Temperature"
       },
       "weather_uv_index": {
-        "name": "Weather UV Index",
-        "description": "Reports Weather UV Index."
+        "description": "Reports Weather UV Index.",
+        "name": "Weather UV Index"
       },
       "weight": {
-        "name": "Weight",
-        "description": "Reports Weight."
+        "description": "Reports Weight.",
+        "name": "Weight"
       },
       "weight_goal_progress": {
-        "name": "Weight Goal Progress",
-        "description": "Reports Weight Goal Progress."
+        "description": "Reports Weight Goal Progress.",
+        "name": "Weight Goal Progress"
       },
       "weight_trend": {
-        "name": "Weight Trend",
-        "description": "Reports Weight Trend."
+        "description": "Reports Weight Trend.",
+        "name": "Weight Trend"
       }
     },
     "switch": {
       "auto_backup": {
-        "name": "Auto Backup",
-        "description": "Enable or disable Auto Backup."
+        "description": "Enable or disable Auto Backup.",
+        "name": "Auto Backup"
       },
       "auto_walk_detection": {
-        "name": "Auto Walk Detection",
-        "description": "Enable or disable Auto Walk Detection."
+        "description": "Enable or disable Auto Walk Detection.",
+        "name": "Auto Walk Detection"
       },
       "breakfast_enabled": {
-        "name": "Breakfast Enabled",
-        "description": "Enable or disable Breakfast Enabled."
+        "description": "Enable or disable Breakfast Enabled.",
+        "name": "Breakfast Enabled"
       },
       "data_collection": {
-        "name": "Data Collection",
-        "description": "Enable or disable Data Collection."
+        "description": "Enable or disable Data Collection.",
+        "name": "Data Collection"
       },
       "dinner_enabled": {
-        "name": "Dinner Enabled",
-        "description": "Enable or disable Dinner Enabled."
+        "description": "Enable or disable Dinner Enabled.",
+        "name": "Dinner Enabled"
       },
       "feeding_reminders": {
-        "name": "Feeding Reminders",
-        "description": "Enable or disable Feeding Reminders."
+        "description": "Enable or disable Feeding Reminders.",
+        "name": "Feeding Reminders"
       },
       "geofence_alerts": {
-        "name": "Geofence Alerts",
-        "description": "Enable or disable Geofence Alerts."
+        "description": "Enable or disable Geofence Alerts.",
+        "name": "Geofence Alerts"
       },
       "gps_tracking": {
-        "name": "GPS Tracking",
-        "description": "Enable or disable GPS Tracking."
+        "description": "Enable or disable GPS Tracking.",
+        "name": "GPS Tracking"
       },
       "health_tracking": {
-        "name": "Health Tracking",
-        "description": "Enable or disable Health Tracking."
+        "description": "Enable or disable Health Tracking.",
+        "name": "Health Tracking"
       },
       "humidity_alerts": {
-        "name": "Humidity Alerts",
-        "description": "Enable or disable Humidity Alerts."
+        "description": "Enable or disable Humidity Alerts.",
+        "name": "Humidity Alerts"
       },
       "lunch_enabled": {
-        "name": "Lunch Enabled",
-        "description": "Enable or disable Lunch Enabled."
+        "description": "Enable or disable Lunch Enabled.",
+        "name": "Lunch Enabled"
       },
       "medication_reminders": {
-        "name": "Medication Reminders",
-        "description": "Enable or disable Medication Reminders."
+        "description": "Enable or disable Medication Reminders.",
+        "name": "Medication Reminders"
       },
       "module_feeding": {
-        "name": "Feeding Module",
-        "description": "Enable or disable Feeding Module."
+        "description": "Enable or disable Feeding Module.",
+        "name": "Feeding Module"
       },
       "module_garden": {
-        "name": "Garden Module",
-        "description": "Enable or disable Garden Module."
+        "description": "Enable or disable Garden Module.",
+        "name": "Garden Module"
       },
       "module_gps": {
-        "name": "GPS Module",
-        "description": "Enable or disable GPS Module."
+        "description": "Enable or disable GPS Module.",
+        "name": "GPS Module"
       },
       "module_health": {
-        "name": "Health Module",
-        "description": "Enable or disable Health Module."
+        "description": "Enable or disable Health Module.",
+        "name": "Health Module"
       },
       "module_notifications": {
-        "name": "Notification Module",
-        "description": "Enable or disable Notification Module."
+        "description": "Enable or disable Notification Module.",
+        "name": "Notification Module"
       },
       "module_visitor": {
-        "name": "Visitor Mode Module",
-        "description": "Enable or disable Visitor Mode Module."
+        "description": "Enable or disable Visitor Mode Module.",
+        "name": "Visitor Mode Module"
       },
       "module_walk": {
-        "name": "Walk Module",
-        "description": "Enable or disable Walk Module."
+        "description": "Enable or disable Walk Module.",
+        "name": "Walk Module"
       },
       "module_weather": {
-        "name": "Weather Health Module",
-        "description": "Enable or disable Weather Health Module."
+        "description": "Enable or disable Weather Health Module.",
+        "name": "Weather Health Module"
       },
       "notifications_enabled": {
-        "name": "Notifications Enabled",
-        "description": "Enable or disable Notifications Enabled."
+        "description": "Enable or disable Notifications Enabled.",
+        "name": "Notifications Enabled"
       },
       "quiet_hours": {
-        "name": "Quiet Hours",
-        "description": "Enable or disable Quiet Hours."
+        "description": "Enable or disable Quiet Hours.",
+        "name": "Quiet Hours"
       },
       "snacks_enabled": {
-        "name": "Snacks Enabled",
-        "description": "Enable or disable Snacks Enabled."
+        "description": "Enable or disable Snacks Enabled.",
+        "name": "Snacks Enabled"
       },
       "storm_alerts": {
-        "name": "Storm Alerts",
-        "description": "Enable or disable Storm Alerts."
+        "description": "Enable or disable Storm Alerts.",
+        "name": "Storm Alerts"
       },
       "system_enabled": {
-        "name": "System Enabled",
-        "description": "Enable or disable System Enabled."
+        "description": "Enable or disable System Enabled.",
+        "name": "System Enabled"
       },
       "temperature_alerts": {
-        "name": "Temperature Alerts",
-        "description": "Enable or disable Temperature Alerts."
+        "description": "Enable or disable Temperature Alerts.",
+        "name": "Temperature Alerts"
       },
       "uv_alerts": {
-        "name": "UV Alerts",
-        "description": "Enable or disable UV Alerts."
+        "description": "Enable or disable UV Alerts.",
+        "name": "UV Alerts"
       },
       "visitor_mode": {
-        "name": "Visitor Mode",
-        "description": "Enable or disable Visitor Mode."
+        "description": "Enable or disable Visitor Mode.",
+        "name": "Visitor Mode"
       },
       "walk_reminders": {
-        "name": "Walk Reminders",
-        "description": "Enable or disable Walk Reminders."
+        "description": "Enable or disable Walk Reminders.",
+        "name": "Walk Reminders"
       },
       "weather_alerts": {
-        "name": "Weather Alerts",
-        "description": "Enable or disable Weather Alerts."
+        "description": "Enable or disable Weather Alerts.",
+        "name": "Weather Alerts"
       },
       "weather_recommendations": {
-        "name": "Weather Recommendations",
-        "description": "Enable or disable Weather Recommendations."
+        "description": "Enable or disable Weather Recommendations.",
+        "name": "Weather Recommendations"
       },
       "weight_alerts": {
-        "name": "Weight Alerts",
-        "description": "Enable or disable Weight Alerts."
+        "description": "Enable or disable Weight Alerts.",
+        "name": "Weight Alerts"
       }
     },
     "text": {
       "allergies": {
-        "name": "Allergies & Restrictions",
-        "description": "Enter the Allergies & Restrictions details."
+        "description": "Enter the Allergies & Restrictions details.",
+        "name": "Allergies & Restrictions"
       },
       "behavior_notes": {
-        "name": "Behavior Notes",
-        "description": "Enter the Behavior Notes details."
+        "description": "Enter the Behavior Notes details.",
+        "name": "Behavior Notes"
       },
       "breeder_info": {
-        "name": "Breeder Information",
-        "description": "Enter the Breeder Information details."
+        "description": "Enter the Breeder Information details.",
+        "name": "Breeder Information"
       },
       "current_walk_label": {
-        "name": "Current Walk Label",
-        "description": "Enter the Current Walk Label details."
+        "description": "Enter the Current Walk Label details.",
+        "name": "Current Walk Label"
       },
       "custom_label": {
-        "name": "Custom Label",
-        "description": "Enter the Custom Label details."
+        "description": "Enter the Custom Label details.",
+        "name": "Custom Label"
       },
       "custom_message": {
-        "name": "Custom Notification Message",
-        "description": "Enter the Custom Notification Message details."
+        "description": "Enter the Custom Notification Message details.",
+        "name": "Custom Notification Message"
       },
       "emergency_contact": {
-        "name": "Emergency Contact",
-        "description": "Enter the Emergency Contact details."
+        "description": "Enter the Emergency Contact details.",
+        "name": "Emergency Contact"
       },
       "grooming_notes": {
-        "name": "Grooming Notes",
-        "description": "Enter the Grooming Notes details."
+        "description": "Enter the Grooming Notes details.",
+        "name": "Grooming Notes"
       },
       "health_notes": {
-        "name": "Health Notes",
-        "description": "Enter the Health Notes details."
+        "description": "Enter the Health Notes details.",
+        "name": "Health Notes"
       },
       "insurance_info": {
-        "name": "Insurance Information",
-        "description": "Enter the Insurance Information details."
+        "description": "Enter the Insurance Information details.",
+        "name": "Insurance Information"
       },
       "location_description": {
-        "name": "Location Description",
-        "description": "Enter the Location Description details."
+        "description": "Enter the Location Description details.",
+        "name": "Location Description"
       },
       "medication_notes": {
-        "name": "Medication Notes",
-        "description": "Enter the Medication Notes details."
+        "description": "Enter the Medication Notes details.",
+        "name": "Medication Notes"
       },
       "microchip": {
-        "name": "Microchip ID",
-        "description": "Enter the Microchip ID details."
+        "description": "Enter the Microchip ID details.",
+        "name": "Microchip ID"
       },
       "notes": {
-        "name": "General Notes",
-        "description": "Enter the General Notes details."
+        "description": "Enter the General Notes details.",
+        "name": "General Notes"
       },
       "registration": {
-        "name": "Registration Details",
-        "description": "Enter the Registration Details details."
+        "description": "Enter the Registration Details details.",
+        "name": "Registration Details"
       },
       "training_notes": {
-        "name": "Training Notes",
-        "description": "Enter the Training Notes details."
+        "description": "Enter the Training Notes details.",
+        "name": "Training Notes"
       },
       "vet_notes": {
-        "name": "Vet Notes",
-        "description": "Enter the Vet Notes details."
+        "description": "Enter the Vet Notes details.",
+        "name": "Vet Notes"
       },
       "walk_notes": {
-        "name": "Walk Notes",
-        "description": "Enter the Walk Notes details."
+        "description": "Enter the Walk Notes details.",
+        "name": "Walk Notes"
       }
     }
   },
@@ -1768,14 +1768,14 @@
           "dashboard_name": "Dashboard Name",
           "include_charts": "Include Charts"
         },
-        "description": "Configure dashboard appearance and layout.",
-        "title": "Dashboard Settings",
         "data_description": {
           "auto_create_dashboard": "Automatically create or refresh the Lovelace dashboard view.",
           "dashboard_mode": "Choose how detailed the generated dashboard should be.",
           "dashboard_name": "Name of the dashboard to create or update.",
           "include_charts": "Include summary charts on the dashboard."
-        }
+        },
+        "description": "Configure dashboard appearance and layout.",
+        "title": "Dashboard Settings"
       },
       "feeding_settings": {
         "data": {
@@ -1788,8 +1788,6 @@
           "lunch_time": "Lunch Time",
           "snacks_enabled": "Enable Snacks"
         },
-        "description": "Configure feeding schedules and reminders.",
-        "title": "Feeding Settings",
         "data_description": {
           "breakfast_enabled": "Enable a breakfast schedule for this dog.",
           "breakfast_time": "Time of day for breakfast when enabled.",
@@ -1799,7 +1797,9 @@
           "lunch_enabled": "Enable a lunch schedule for this dog.",
           "lunch_time": "Time of day for lunch when enabled.",
           "snacks_enabled": "Track snacks in addition to scheduled meals."
-        }
+        },
+        "description": "Configure feeding schedules and reminders.",
+        "title": "Feeding Settings"
       },
       "gps_settings": {
         "data": {
@@ -1809,15 +1809,15 @@
           "gps_distance_filter": "GPS Distance Filter (meters)",
           "gps_update_interval": "GPS Update Interval (seconds)"
         },
-        "description": "Configure GPS tracking parameters for optimal performance and battery life.",
-        "title": "GPS & Tracking Settings",
         "data_description": {
           "auto_walk_detection": "Automatically detect walks using motion and GPS data.",
           "geofencing_enabled": "Enable safe zone alerts for this dog.",
           "gps_accuracy_filter": "Discard GPS updates below this accuracy threshold.",
           "gps_distance_filter": "Minimum distance between GPS updates.",
           "gps_update_interval": "How often GPS updates should be requested."
-        }
+        },
+        "description": "Configure GPS tracking parameters for optimal performance and battery life.",
+        "title": "GPS & Tracking Settings"
       },
       "health_settings": {
         "data": {
@@ -1828,8 +1828,6 @@
           "weather_health_monitoring": "Weather Health Monitoring",
           "weight_tracking": "Weight Tracking"
         },
-        "description": "Configure health monitoring and vet reminders.",
-        "title": "Health Settings",
         "data_description": {
           "grooming_interval": "Days between grooming reminders.",
           "health_tracking": "Enable health tracking sensors and reminders.",
@@ -1837,7 +1835,9 @@
           "vet_reminders": "Send reminders for upcoming vet visits.",
           "weather_health_monitoring": "Enable weather-related health advisories.",
           "weight_tracking": "Enable weight tracking sensors and alerts."
-        }
+        },
+        "description": "Configure health monitoring and vet reminders.",
+        "title": "Health Settings"
       },
       "init": {
         "description": "Configure your Paw Control integration",
@@ -1857,11 +1857,11 @@
         "data": {
           "action": "Action"
         },
-        "description": "Add, edit, or remove dogs from your configuration.\n\nCurrently configured dogs:\n{dogs_list}\n\nTotal dogs: {current_dogs_count}",
-        "title": "Manage Dogs",
         "data_description": {
           "action": "Choose to add, edit, or remove a dog profile."
-        }
+        },
+        "description": "Add, edit, or remove dogs from your configuration.\n\nCurrently configured dogs:\n{dogs_list}\n\nTotal dogs: {current_dogs_count}",
+        "title": "Manage Dogs"
       },
       "notifications": {
         "data": {
@@ -1873,8 +1873,6 @@
           "summary_notifications": "Daily Summary Notifications",
           "weather_alerts": "Weather Health Alerts"
         },
-        "description": "Configure how and when you receive notifications about your dogs.",
-        "title": "Notification Settings",
         "data_description": {
           "priority_notifications": "Send high-priority alerts immediately.",
           "quiet_end": "Time when quiet hours end.",
@@ -1883,7 +1881,9 @@
           "reminder_repeat_min": "Minutes between repeated reminders.",
           "summary_notifications": "Send a daily summary notification.",
           "weather_alerts": "Notify about weather-related health alerts."
-        }
+        },
+        "description": "Configure how and when you receive notifications about your dogs.",
+        "title": "Notification Settings"
       },
       "system_settings": {
         "data": {
@@ -1927,8 +1927,6 @@
           "weather_update_interval": "Weather Update Interval (minutes)",
           "wind_alerts": "Wind Alerts"
         },
-        "description": "Configure weather-based health alerts and recommendations for your dogs.",
-        "title": "Weather Health Settings",
         "data_description": {
           "enable_weather_alerts": "Send alerts when weather thresholds are exceeded.",
           "enable_weather_recommendations": "Provide weather-based care recommendations.",
@@ -1939,51 +1937,53 @@
           "weather_entity": "Select the weather entity to use for forecasts.",
           "weather_update_interval": "Minutes between weather data refreshes.",
           "wind_alerts": "Enable wind-related safety alerts."
-        }
+        },
+        "description": "Configure weather-based health alerts and recommendations for your dogs.",
+        "title": "Weather Health Settings"
       }
     }
   },
   "selector": {
     "activity_level": {
       "options": {
-        "high": "🏋️ High - Very active, long walks/runs",
-        "low": "🚶 Low - Light exercise, mostly indoor",
-        "moderate": "🏃 Moderate - Regular walks and play",
-        "very_high": "🏆 Very high - Working or athletic dogs",
-        "very_low": "🛌 Very low - Inactive, elderly, or sick"
+        "high": "\ud83c\udfcb\ufe0f High - Very active, long walks/runs",
+        "low": "\ud83d\udeb6 Low - Light exercise, mostly indoor",
+        "moderate": "\ud83c\udfc3 Moderate - Regular walks and play",
+        "very_high": "\ud83c\udfc6 Very high - Working or athletic dogs",
+        "very_low": "\ud83d\udecc Very low - Inactive, elderly, or sick"
       }
     },
     "dog_size": {
       "options": {
-        "giant": "🐺 Giant (45-90kg)",
-        "large": "🐕‍🦺 Large (27-45kg)",
-        "medium": "🐶 Medium (12-27kg)",
-        "small": "🐕 Small (6-12kg)",
-        "toy": "🐭 Toy (1-6kg)"
+        "giant": "\ud83d\udc3a Giant (45-90kg)",
+        "large": "\ud83d\udc15\u200d\ud83e\uddba Large (27-45kg)",
+        "medium": "\ud83d\udc36 Medium (12-27kg)",
+        "small": "\ud83d\udc15 Small (6-12kg)",
+        "toy": "\ud83d\udc2d Toy (1-6kg)"
       }
     },
     "feeding_schedule": {
       "options": {
-        "custom": "⚙️ Custom schedule",
-        "flexible": "⏰ Flexible times",
-        "strict": "🎯 Strict schedule"
+        "custom": "\u2699\ufe0f Custom schedule",
+        "flexible": "\u23f0 Flexible times",
+        "strict": "\ud83c\udfaf Strict schedule"
       }
     },
     "food_type": {
       "options": {
-        "barf": "🥩 BARF",
-        "dry_food": "🥜 Dry food",
-        "home_cooked": "🍲 Home cooked",
-        "mixed": "🔄 Mixed",
-        "wet_food": "🥫 Wet food"
+        "barf": "\ud83e\udd69 BARF",
+        "dry_food": "\ud83e\udd5c Dry food",
+        "home_cooked": "\ud83c\udf72 Home cooked",
+        "mixed": "\ud83d\udd04 Mixed",
+        "wet_food": "\ud83e\udd6b Wet food"
       }
     },
     "gps_source": {
       "options": {
-        "manual": "📝 Manual GPS (configure later)",
-        "mqtt": "📡 MQTT topic",
-        "tractive": "🐕 Tractive GPS collar",
-        "webhook": "🌐 Webhook (REST API)"
+        "manual": "\ud83d\udcdd Manual GPS (configure later)",
+        "mqtt": "\ud83d\udce1 MQTT topic",
+        "tractive": "\ud83d\udc15 Tractive GPS collar",
+        "webhook": "\ud83c\udf10 Webhook (REST API)"
       }
     },
     "import_export_action": {
@@ -2002,9 +2002,9 @@
     },
     "performance_mode": {
       "options": {
-        "balanced": "⚖️ Balanced - Good performance and efficiency",
-        "full": "🚀 Full - Maximum features and responsiveness",
-        "minimal": "⚡ Minimal - Low resource usage"
+        "balanced": "\u2696\ufe0f Balanced - Good performance and efficiency",
+        "full": "\ud83d\ude80 Full - Maximum features and responsiveness",
+        "minimal": "\u26a1 Minimal - Low resource usage"
       }
     },
     "weather_entity": {
@@ -2021,9 +2021,9 @@
     },
     "weight_goal": {
       "options": {
-        "gain": "📈 Weight gain",
-        "lose": "📉 Weight loss",
-        "maintain": "⚖️ Maintain current weight"
+        "gain": "\ud83d\udcc8 Weight gain",
+        "lose": "\ud83d\udcc9 Weight loss",
+        "maintain": "\u2696\ufe0f Maintain current weight"
       }
     }
   },
