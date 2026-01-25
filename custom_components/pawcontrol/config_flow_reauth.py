@@ -522,7 +522,7 @@ class ReauthFlowMixin(ReauthFlowHost):
         if not is_dog_config_valid(dog):
           continue
         modules_mapping = ensure_dog_modules_mapping(dog)
-        estimated_entities += factory.estimate_entity_count(
+        estimated_entities += await factory.estimate_entity_count_async(
           profile,
           modules_mapping,
         )
