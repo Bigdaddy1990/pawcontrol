@@ -318,9 +318,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         )
 
       gps_accuracy = (
-        gps_accuracy
-        if gps_accuracy is not None
-        else float(DEFAULT_GPS_ACCURACY_FILTER)
+        gps_accuracy if gps_accuracy is not None else float(DEFAULT_GPS_ACCURACY_FILTER)
       )
       home_zone_radius = home_zone_radius if home_zone_radius is not None else 50.0
 
