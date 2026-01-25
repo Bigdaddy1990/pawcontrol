@@ -80,7 +80,9 @@ from ..types import (
 from ..validation import (
   InputValidator,
   validate_float_range,
+  validate_gps_accuracy_value,
   validate_gps_source,
+  validate_gps_update_interval,
   validate_interval,
 )
 
@@ -266,15 +268,18 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_source = "manual"
 
       try:
-        gps_update_interval = validate_interval(
+        gps_update_interval = validate_gps_update_interval(
           user_input.get("gps_update_interval"),
           field="gps_update_interval",
           minimum=5,
           maximum=600,
           required=True,
         )
-      except ValidationError:
-        errors["gps_update_interval"] = "invalid_interval"
+      except ValidationError as err:
+        errors["gps_update_interval"] = _validation_error_key(
+          err,
+          "validation_error",
+        )
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
@@ -627,15 +632,18 @@ class GPSOptionsMixin(GPSOptionsHost):
       errors: dict[str, str] = {}
 
       try:
-        gps_update_interval = validate_interval(
+        gps_update_interval = validate_gps_update_interval(
           user_input.get(GPS_UPDATE_INTERVAL_FIELD),
           field=GPS_UPDATE_INTERVAL_FIELD,
           minimum=5,
           maximum=600,
           required=True,
         )
-      except ValidationError:
-        errors[GPS_UPDATE_INTERVAL_FIELD] = "invalid_interval"
+      except ValidationError as err:
+        errors[GPS_UPDATE_INTERVAL_FIELD] = _validation_error_key(
+          err,
+          "invalid_configuration",
+        )
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
@@ -1058,18 +1066,64 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
       except ValidationError:
         return default
 
+    def _safe_gps_interval(
+      value: JSONValue | None,
+      *,
+      default: int,
+      minimum: int,
+      maximum: int,
+      field: str,
+    ) -> int:
+      try:
+        return cast(
+          int,
+          validate_gps_update_interval(
+            value,
+            default=default,
+            minimum=minimum,
+            maximum=maximum,
+            field=field,
+            clamp=True,
+          ),
+        )
+      except ValidationError:
+        return default
+
+    def _safe_gps_accuracy(
+      value: JSONValue | None,
+      *,
+      default: float,
+      minimum: float,
+      maximum: float,
+      field: str,
+    ) -> float:
+      try:
+        return cast(
+          float,
+          validate_gps_accuracy_value(
+            value,
+            field=field,
+            min_value=minimum,
+            max_value=maximum,
+            default=default,
+            clamp=True,
+          ),
+        )
+      except ValidationError:
+        return default
+
     payload = cast(
       GPSOptions,
       {
         GPS_ENABLED_FIELD: self._coerce_bool(raw.get(GPS_ENABLED_FIELD), True),
-        GPS_UPDATE_INTERVAL_FIELD: _safe_interval(
+        GPS_UPDATE_INTERVAL_FIELD: _safe_gps_interval(
           raw.get(GPS_UPDATE_INTERVAL_FIELD),
           default=DEFAULT_GPS_UPDATE_INTERVAL,
           minimum=5,
           maximum=600,
           field=GPS_UPDATE_INTERVAL_FIELD,
         ),
-        GPS_ACCURACY_FILTER_FIELD: _safe_float_range(
+        GPS_ACCURACY_FILTER_FIELD: _safe_gps_accuracy(
           raw.get(GPS_ACCURACY_FILTER_FIELD),
           default=float(DEFAULT_GPS_ACCURACY_FILTER),
           minimum=5.0,

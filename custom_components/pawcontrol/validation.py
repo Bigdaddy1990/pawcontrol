@@ -443,6 +443,107 @@ def validate_interval(
   return interval
 
 
+def validate_gps_update_interval(
+  value: Any,
+  *,
+  field: str = "gps_update_interval",
+  minimum: int,
+  maximum: int,
+  default: int | None = None,
+  clamp: bool = False,
+  required: bool = False,
+) -> int | None:
+  """Validate GPS update intervals in seconds."""
+
+  if _is_empty(value):
+    if default is not None:
+      return default
+    if required:
+      raise ValidationError(field, value, "gps_update_interval_required")
+    return None
+
+  try:
+    interval = coerce_int(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, "gps_update_interval_not_numeric") from err
+
+  if interval < minimum:
+    if clamp:
+      return minimum
+    raise ValidationError(
+      field,
+      interval,
+      "gps_update_interval_out_of_range",
+      min_value=minimum,
+      max_value=maximum,
+    )
+  if interval > maximum:
+    if clamp:
+      return maximum
+    raise ValidationError(
+      field,
+      interval,
+      "gps_update_interval_out_of_range",
+      min_value=minimum,
+      max_value=maximum,
+    )
+  return interval
+
+
+def validate_gps_accuracy_value(
+  accuracy: Any,
+  *,
+  required: bool = False,
+  field: str = "accuracy",
+  min_value: float = MIN_ACCURACY_METERS,
+  max_value: float = MAX_ACCURACY_METERS,
+  default: float | None = None,
+  clamp: bool = False,
+) -> float | None:
+  """Validate GPS accuracy values."""
+
+  if _is_empty(accuracy):
+    if default is not None:
+      return default
+    if required:
+      raise ValidationError(
+        field,
+        accuracy,
+        "gps_accuracy_required",
+      )
+    return None
+
+  accuracy = _coerce_float_with_constraint(
+    field,
+    accuracy,
+    "gps_accuracy_not_numeric",
+  )
+
+  if accuracy < min_value:
+    if clamp:
+      return min_value
+    raise ValidationError(
+      field,
+      accuracy,
+      "gps_accuracy_out_of_range",
+      min_value=min_value,
+      max_value=max_value,
+    )
+
+  if accuracy > max_value:
+    if clamp:
+      return max_value
+    raise ValidationError(
+      field,
+      accuracy,
+      "gps_accuracy_out_of_range",
+      min_value=min_value,
+      max_value=max_value,
+    )
+
+  return accuracy
+
+
 def validate_float_range(
   value: Any,
   *,
@@ -749,40 +850,13 @@ class InputValidator:
     Raises:
         ValidationError: If validation fails
     """
-    if _is_empty(accuracy):
-      if required:
-        raise ValidationError(
-          field,
-          accuracy,
-          "gps_accuracy_required",
-        )
-      return None
-
-    accuracy = _coerce_float_with_constraint(
-      field,
+    return validate_gps_accuracy_value(
       accuracy,
-      "gps_accuracy_not_numeric",
+      required=required,
+      field=field,
+      min_value=min_value,
+      max_value=max_value,
     )
-
-    if accuracy < min_value:
-      raise ValidationError(
-        field,
-        accuracy,
-        "gps_accuracy_out_of_range",
-        min_value=min_value,
-        max_value=max_value,
-      )
-
-    if accuracy > max_value:
-      raise ValidationError(
-        field,
-        accuracy,
-        "gps_accuracy_out_of_range",
-        min_value=min_value,
-        max_value=max_value,
-      )
-
-    return accuracy
 
   @staticmethod
   def validate_portion_size(

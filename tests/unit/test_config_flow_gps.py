@@ -125,6 +125,46 @@ async def test_dog_gps_rejects_invalid_accuracy_type() -> None:
 
 
 @pytest.mark.asyncio
+async def test_dog_gps_rejects_invalid_update_interval_type() -> None:
+  """GPS config should flag invalid update interval inputs."""
+
+  flow = _DogGPSFlow()
+
+  result = await flow.async_step_dog_gps(
+    {
+      "gps_source": "manual",
+      "gps_update_interval": "fast",
+      "gps_accuracy_filter": 20,
+      "enable_geofencing": True,
+      "home_zone_radius": 50,
+    }
+  )
+
+  assert result["type"] == "form"
+  assert result["errors"]["gps_update_interval"] == "gps_update_interval_not_numeric"
+
+
+@pytest.mark.asyncio
+async def test_dog_gps_rejects_update_interval_out_of_range() -> None:
+  """GPS config should flag update interval range violations."""
+
+  flow = _DogGPSFlow()
+
+  result = await flow.async_step_dog_gps(
+    {
+      "gps_source": "manual",
+      "gps_update_interval": 999,
+      "gps_accuracy_filter": 20,
+      "enable_geofencing": True,
+      "home_zone_radius": 50,
+    }
+  )
+
+  assert result["type"] == "form"
+  assert result["errors"]["gps_update_interval"] == "gps_update_interval_out_of_range"
+
+
+@pytest.mark.asyncio
 async def test_dog_gps_requires_home_zone_radius() -> None:
   """GPS config should require a geofence radius."""
 

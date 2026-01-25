@@ -16,7 +16,15 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
-from .const import ATTR_DOG_ID, DOMAIN, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK
+from .const import (
+  ATTR_DOG_ID,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_HEALTH,
+  MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_template
@@ -235,9 +243,8 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
-      model="Smart Dog",
-      sw_version="1.0.0",
-      configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
     )
 
   @property

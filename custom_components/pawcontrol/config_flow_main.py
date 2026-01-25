@@ -209,7 +209,7 @@ class PawControlConfigFlow(
         reload_on_update=False,
       )
 
-      return await self.async_step_add_dog()
+      return await self.async_step_add_dog(user_input)
 
   async def async_step_import(
     self,

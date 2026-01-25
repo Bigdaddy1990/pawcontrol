@@ -27,7 +27,15 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import MODULE_FEEDING, MODULE_GARDEN, MODULE_GPS, MODULE_HEALTH, MODULE_WALK
+from .const import (
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
+  MODULE_FEEDING,
+  MODULE_GARDEN,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
@@ -546,7 +554,10 @@ class PawControlBinarySensorBase(
     self._attr_translation_key = sensor_type
 
     # Link entity to PawControl device entry for the dog
-    self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
+    self.update_device_metadata(
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
+    )
 
     self._set_cache_ttl(30.0)
 

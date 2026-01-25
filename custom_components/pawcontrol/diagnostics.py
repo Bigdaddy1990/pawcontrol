@@ -142,7 +142,9 @@ SETUP_FLAG_SOURCE_LABELS = {
   "options": "Options flow",
   "system_settings": "System settings",
   "advanced_settings": "Advanced settings",
+  "blueprint": "Blueprint suggestion",
   "config_entry": "Config entry defaults",
+  "disabled": "Disable",
   "default": "Integration default",
 }
 
@@ -151,7 +153,9 @@ SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS = {
   "options": "component.pawcontrol.common.setup_flags_panel_source_options",
   "system_settings": "component.pawcontrol.common.setup_flags_panel_source_system_settings",
   "advanced_settings": "component.pawcontrol.common.setup_flags_panel_source_advanced_settings",
+  "blueprint": "component.pawcontrol.common.setup_flags_panel_source_blueprint",
   "config_entry": "component.pawcontrol.common.setup_flags_panel_source_config_entry",
+  "disabled": "component.pawcontrol.common.setup_flags_panel_source_disabled",
   "default": "component.pawcontrol.common.setup_flags_panel_source_default",
 }
 
@@ -358,8 +362,20 @@ async def _async_build_setup_flags_panel(
     SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS,
   )
 
+  def _resolve_source_labels(source: str) -> tuple[str, str, str]:
+    default_label = SETUP_FLAG_SOURCE_LABELS.get(source, source)
+    translation_key = SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS.get(
+      source,
+      SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS["default"],
+    )
+    label = source_labels.get(source, default_label)
+    return label, default_label, translation_key
+
   for key, snapshot in snapshots.items():
     source = snapshot["source"]
+    source_label, source_label_default, source_label_translation_key = (
+      _resolve_source_labels(source)
+    )
     flags.append(
       {
         "key": key,
@@ -368,12 +384,9 @@ async def _async_build_setup_flags_panel(
         "label_translation_key": SETUP_FLAG_LABEL_TRANSLATION_KEYS[key],
         "enabled": snapshot["value"],
         "source": source,
-        "source_label": source_labels.get(
-          source,
-          SETUP_FLAG_SOURCE_LABELS[source],
-        ),
-        "source_label_default": SETUP_FLAG_SOURCE_LABELS[source],
-        "source_label_translation_key": source_label_translation_keys[source],
+        "source_label": source_label,
+        "source_label_default": source_label_default,
+        "source_label_translation_key": source_label_translation_key,
       },
     )
 

@@ -28,6 +28,8 @@ from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
   ATTR_DOG_ID,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
   MODULE_FEEDING,
   MODULE_GARDEN,
   MODULE_GPS,
@@ -822,7 +824,10 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     self._attr_entity_category = entity_category
 
     # Link to virtual PawControl device for the dog
-    self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
+    self.update_device_metadata(
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
+    )
 
     self._set_cache_ttl(2.0)
 
