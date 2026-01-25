@@ -317,6 +317,11 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           ),
         )
 
+      gps_accuracy = (
+        gps_accuracy if gps_accuracy is not None else float(DEFAULT_GPS_ACCURACY_FILTER)
+      )
+      home_zone_radius = home_zone_radius if home_zone_radius is not None else 50.0
+
       gps_config: DogGPSConfig = {
         "gps_source": gps_source,
         "gps_update_interval": gps_update_interval,
@@ -403,9 +408,16 @@ if TYPE_CHECKING:
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
 
+    def _clone_options(self) -> dict[str, JSONValue]: ...
+
     def _current_dog_options(self) -> DogOptionsMap: ...
 
     def _current_options(self) -> Mapping[str, JSONValue]: ...
+
+    def _normalise_options_snapshot(
+      self,
+      options: Mapping[str, JSONValue],
+    ) -> Mapping[str, JSONValue]: ...
 
     def _select_dog_by_id(
       self,
@@ -664,24 +676,27 @@ class GPSOptionsMixin(GPSOptionsHost):
           errors=errors,
         )
 
-      current_options = {
-        GPS_ENABLED_FIELD: coerce_bool(
-          user_input.get(GPS_ENABLED_FIELD),
-          default=True,
-        ),
-        GPS_UPDATE_INTERVAL_FIELD: gps_update_interval,
-        GPS_ACCURACY_FILTER_FIELD: gps_accuracy,
-        GPS_DISTANCE_FILTER_FIELD: gps_distance,
-        ROUTE_RECORDING_FIELD: coerce_bool(
-          user_input.get(ROUTE_RECORDING_FIELD),
-          default=True,
-        ),
-        ROUTE_HISTORY_DAYS_FIELD: route_history,
-        AUTO_TRACK_WALKS_FIELD: coerce_bool(
-          user_input.get(AUTO_TRACK_WALKS_FIELD),
-          default=True,
-        ),
-      }
+      current_options = cast(
+        GPSOptions,
+        {
+          GPS_ENABLED_FIELD: coerce_bool(
+            user_input.get(GPS_ENABLED_FIELD),
+            default=True,
+          ),
+          GPS_UPDATE_INTERVAL_FIELD: gps_update_interval,
+          GPS_ACCURACY_FILTER_FIELD: gps_accuracy,
+          GPS_DISTANCE_FILTER_FIELD: gps_distance,
+          ROUTE_RECORDING_FIELD: coerce_bool(
+            user_input.get(ROUTE_RECORDING_FIELD),
+            default=True,
+          ),
+          ROUTE_HISTORY_DAYS_FIELD: route_history,
+          AUTO_TRACK_WALKS_FIELD: coerce_bool(
+            user_input.get(AUTO_TRACK_WALKS_FIELD),
+            default=True,
+          ),
+        },
+      )
 
       schema_issues = validate_json_schema_payload(
         current_options,
@@ -823,6 +838,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
         geofence_radius = current_options.get(GEOFENCE_RADIUS_FIELD, 100.0)
 
+      geofence_lat: float | None
+      geofence_lon: float | None
       try:
         geofence_lat, geofence_lon = InputValidator.validate_gps_coordinates(
           user_input.get(GEOFENCE_LAT_FIELD),
@@ -845,39 +862,42 @@ class GPSOptionsMixin(GPSOptionsHost):
           errors=errors,
         )
 
-      geofence_options: GeofenceOptions = {
-        GEOFENCE_ENABLED_FIELD: coerce_bool(
-          user_input.get(GEOFENCE_ENABLED_FIELD),
-          default=True,
-        ),
-        GEOFENCE_USE_HOME_FIELD: coerce_bool(
-          user_input.get(GEOFENCE_USE_HOME_FIELD),
-          default=True,
-        ),
-        GEOFENCE_RADIUS_FIELD: geofence_radius,
-        GEOFENCE_LAT_FIELD: geofence_lat,
-        GEOFENCE_LON_FIELD: geofence_lon,
-        GEOFENCE_ALERTS_FIELD: coerce_bool(
-          user_input.get(GEOFENCE_ALERTS_FIELD),
-          default=True,
-        ),
-        GEOFENCE_SAFE_ZONE_FIELD: coerce_bool(
-          user_input.get(GEOFENCE_SAFE_ZONE_FIELD),
-          default=True,
-        ),
-        GEOFENCE_RESTRICTED_ZONE_FIELD: coerce_bool(
-          user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),
-          default=True,
-        ),
-        GEOFENCE_ZONE_ENTRY_FIELD: coerce_bool(
-          user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),
-          default=True,
-        ),
-        GEOFENCE_ZONE_EXIT_FIELD: coerce_bool(
-          user_input.get(GEOFENCE_ZONE_EXIT_FIELD),
-          default=True,
-        ),
-      }
+      geofence_options = cast(
+        GeofenceOptions,
+        {
+          GEOFENCE_ENABLED_FIELD: coerce_bool(
+            user_input.get(GEOFENCE_ENABLED_FIELD),
+            default=True,
+          ),
+          GEOFENCE_USE_HOME_FIELD: coerce_bool(
+            user_input.get(GEOFENCE_USE_HOME_FIELD),
+            default=True,
+          ),
+          GEOFENCE_RADIUS_FIELD: geofence_radius,
+          GEOFENCE_LAT_FIELD: geofence_lat,
+          GEOFENCE_LON_FIELD: geofence_lon,
+          GEOFENCE_ALERTS_FIELD: coerce_bool(
+            user_input.get(GEOFENCE_ALERTS_FIELD),
+            default=True,
+          ),
+          GEOFENCE_SAFE_ZONE_FIELD: coerce_bool(
+            user_input.get(GEOFENCE_SAFE_ZONE_FIELD),
+            default=True,
+          ),
+          GEOFENCE_RESTRICTED_ZONE_FIELD: coerce_bool(
+            user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),
+            default=True,
+          ),
+          GEOFENCE_ZONE_ENTRY_FIELD: coerce_bool(
+            user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),
+            default=True,
+          ),
+          GEOFENCE_ZONE_EXIT_FIELD: coerce_bool(
+            user_input.get(GEOFENCE_ZONE_EXIT_FIELD),
+            default=True,
+          ),
+        },
+      )
 
       schema_issues = validate_json_schema_payload(
         geofence_options,
@@ -1030,45 +1050,48 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
       except ValidationError:
         return default
 
-    payload: GPSOptions = {
-      GPS_ENABLED_FIELD: self._coerce_bool(raw.get(GPS_ENABLED_FIELD), True),
-      GPS_UPDATE_INTERVAL_FIELD: _safe_interval(
-        raw.get(GPS_UPDATE_INTERVAL_FIELD),
-        default=DEFAULT_GPS_UPDATE_INTERVAL,
-        minimum=5,
-        maximum=600,
-        field=GPS_UPDATE_INTERVAL_FIELD,
-      ),
-      GPS_ACCURACY_FILTER_FIELD: _safe_float_range(
-        raw.get(GPS_ACCURACY_FILTER_FIELD),
-        default=float(DEFAULT_GPS_ACCURACY_FILTER),
-        minimum=5.0,
-        maximum=500.0,
-        field=GPS_ACCURACY_FILTER_FIELD,
-      ),
-      GPS_DISTANCE_FILTER_FIELD: _safe_float_range(
-        raw.get(GPS_DISTANCE_FILTER_FIELD),
-        default=float(DEFAULT_GPS_DISTANCE_FILTER),
-        minimum=1.0,
-        maximum=2000.0,
-        field=GPS_DISTANCE_FILTER_FIELD,
-      ),
-      ROUTE_RECORDING_FIELD: self._coerce_bool(
-        raw.get(ROUTE_RECORDING_FIELD),
-        True,
-      ),
-      ROUTE_HISTORY_DAYS_FIELD: _safe_interval(
-        raw.get(ROUTE_HISTORY_DAYS_FIELD),
-        default=30,
-        minimum=1,
-        maximum=365,
-        field=ROUTE_HISTORY_DAYS_FIELD,
-      ),
-      AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
-        raw.get(AUTO_TRACK_WALKS_FIELD),
-        True,
-      ),
-    }
+    payload = cast(
+      GPSOptions,
+      {
+        GPS_ENABLED_FIELD: self._coerce_bool(raw.get(GPS_ENABLED_FIELD), True),
+        GPS_UPDATE_INTERVAL_FIELD: _safe_interval(
+          raw.get(GPS_UPDATE_INTERVAL_FIELD),
+          default=DEFAULT_GPS_UPDATE_INTERVAL,
+          minimum=5,
+          maximum=600,
+          field=GPS_UPDATE_INTERVAL_FIELD,
+        ),
+        GPS_ACCURACY_FILTER_FIELD: _safe_float_range(
+          raw.get(GPS_ACCURACY_FILTER_FIELD),
+          default=float(DEFAULT_GPS_ACCURACY_FILTER),
+          minimum=5.0,
+          maximum=500.0,
+          field=GPS_ACCURACY_FILTER_FIELD,
+        ),
+        GPS_DISTANCE_FILTER_FIELD: _safe_float_range(
+          raw.get(GPS_DISTANCE_FILTER_FIELD),
+          default=float(DEFAULT_GPS_DISTANCE_FILTER),
+          minimum=1.0,
+          maximum=2000.0,
+          field=GPS_DISTANCE_FILTER_FIELD,
+        ),
+        ROUTE_RECORDING_FIELD: self._coerce_bool(
+          raw.get(ROUTE_RECORDING_FIELD),
+          True,
+        ),
+        ROUTE_HISTORY_DAYS_FIELD: _safe_interval(
+          raw.get(ROUTE_HISTORY_DAYS_FIELD),
+          default=30,
+          minimum=1,
+          maximum=365,
+          field=ROUTE_HISTORY_DAYS_FIELD,
+        ),
+        AUTO_TRACK_WALKS_FIELD: self._coerce_bool(
+          raw.get(AUTO_TRACK_WALKS_FIELD),
+          True,
+        ),
+      },
+    )
     schema_issues = validate_json_schema_payload(
       payload,
       GPS_OPTIONS_JSON_SCHEMA,
@@ -1078,15 +1101,18 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
         "GPS options payload failed JSON schema validation; using defaults: %s",
         [issue.constraint for issue in schema_issues],
       )
-      payload = {
-        GPS_ENABLED_FIELD: True,
-        GPS_UPDATE_INTERVAL_FIELD: DEFAULT_GPS_UPDATE_INTERVAL,
-        GPS_ACCURACY_FILTER_FIELD: float(DEFAULT_GPS_ACCURACY_FILTER),
-        GPS_DISTANCE_FILTER_FIELD: float(DEFAULT_GPS_DISTANCE_FILTER),
-        ROUTE_RECORDING_FIELD: True,
-        ROUTE_HISTORY_DAYS_FIELD: 30,
-        AUTO_TRACK_WALKS_FIELD: True,
-      }
+      payload = cast(
+        GPSOptions,
+        {
+          GPS_ENABLED_FIELD: True,
+          GPS_UPDATE_INTERVAL_FIELD: DEFAULT_GPS_UPDATE_INTERVAL,
+          GPS_ACCURACY_FILTER_FIELD: float(DEFAULT_GPS_ACCURACY_FILTER),
+          GPS_DISTANCE_FILTER_FIELD: float(DEFAULT_GPS_DISTANCE_FILTER),
+          ROUTE_RECORDING_FIELD: True,
+          ROUTE_HISTORY_DAYS_FIELD: 30,
+          AUTO_TRACK_WALKS_FIELD: True,
+        },
+      )
     return cast(GPSOptions, payload)
 
   def _normalise_gps_options_snapshot(
