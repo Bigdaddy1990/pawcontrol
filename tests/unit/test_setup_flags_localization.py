@@ -11,7 +11,7 @@ from scripts.sync_localization_flags import TABLE_END_MARKER, TABLE_START_MARKER
 ROOT = Path(__file__).resolve().parents[2]
 STRINGS_PATH = ROOT / "custom_components" / "pawcontrol" / "strings.json"
 TRANSLATIONS_DIR = ROOT / "custom_components" / "pawcontrol" / "translations"
-DOC_PATH = ROOT / "docs" / "diagnostik.md"
+DOC_PATH = ROOT / "docs" / "diagnostics.md"
 
 _FLAG_PREFIX = "setup_flags_panel_flag_"
 _SOURCE_PREFIX = "setup_flags_panel_source_"
@@ -43,7 +43,7 @@ def _parse_localization_table(
       break
 
   if start_index is None or end_index is None or end_index <= start_index:
-    raise AssertionError("Localization table markers missing from docs/diagnostik.md")
+    raise AssertionError("Localization table markers missing from docs/diagnostics.md")
 
   table_lines = [
     line for line in lines[start_index + 1 : end_index] if line.startswith("|")
@@ -63,7 +63,7 @@ def _parse_localization_table(
     rows.append(cells)
 
   if header is None:
-    raise AssertionError("Localization table missing from docs/diagnostik.md")
+    raise AssertionError("Localization table missing from docs/diagnostics.md")
 
   if header[0] != "Übersetzungsschlüssel":
     raise AssertionError("Unexpected localization table header")
