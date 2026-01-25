@@ -2,7 +2,9 @@
 
 This page provides **step-by-step automation examples** for common workflows.
 All examples assume your entities are named in the standard Home Assistant
-format (adjust names to match your instance).
+format (adjust names to match your instance). PawControl itself is configured
+via the UI (config entries); these YAML snippets are for automations/scripts,
+not `configuration.yaml` setup.
 
 ## 1) Feeding reminder when overdue
 
