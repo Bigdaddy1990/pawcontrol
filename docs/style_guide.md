@@ -46,6 +46,11 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 - YAML-Dokumentation folgt dem Home Assistant YAML Style Guide. (https://developers.home-assistant.io/docs/documenting/yaml-style-guide)
 - Neue Dokumentationsseiten und Beispiele orientieren sich an den offiziellen Templates. (https://developers.home-assistant.io/docs/documenting/create-page, https://developers.home-assistant.io/docs/documenting/integration-docs-examples)
 
+## Entity-Attribute & JSON-Normalisierung
+
+- `extra_state_attributes` **dürfen ausschließlich JSON-serialisierbare Werte** enthalten (keine `datetime`, `timedelta`, komplexe Klassenobjekte, Sets etc. ohne Normalisierung).
+- Neue Entities **müssen** Attribute über die zentrale Normalisierung führen, z. B. via `ensure_json_mapping` und die Normalisierungslogik in `diagnostics.py` bzw. `normalise_json_mapping`, damit Home Assistant zuverlässige JSON-Payloads erhält.
+
 ## Plattformverhalten & Automationen
 
 - Signifikante Änderungen, `reproduce_state` und Reparaturen müssen die Core-Plattformregeln erfüllen. (https://developers.home-assistant.io/docs/core/platform/significant_change, https://developers.home-assistant.io/docs/core/platform/reproduce_state, https://developers.home-assistant.io/docs/core/platform/repairs)
