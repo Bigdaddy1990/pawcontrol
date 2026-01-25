@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+from typing import cast
 
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
@@ -434,12 +436,59 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
     """Set next feeding reminder time."""
     await super().async_set_value(value)
 
-    # This could schedule a reminder automation
+    reminder_time = ensure_utc_datetime(value) or value
+    reminder_payload = {"next_feeding": reminder_time.isoformat()}
+
+    data_manager = self._get_data_manager()
+    if data_manager is not None:
+      try:
+        await data_manager.async_update_dog_data(
+          self._dog_id,
+          {"feeding": reminder_payload},
+        )
+      except HomeAssistantError:  # pragma: no cover - defensive log
+        _LOGGER.exception(
+          "Failed to persist next feeding reminder for %s",
+          self._dog_name,
+        )
+    await self._apply_next_feeding_update(reminder_payload)
+
+    feeding_manager = self._get_runtime_managers().feeding_manager
+    if feeding_manager is not None and hasattr(
+      feeding_manager,
+      "async_refresh_reminder",
+    ):
+      await feeding_manager.async_refresh_reminder(self._dog_id)
+
     _LOGGER.debug(
       "Next feeding reminder set for %s at %s",
       self._dog_name,
-      value,
+      reminder_time,
     )
+
+  async def _apply_next_feeding_update(self, payload: JSONMutableMapping) -> None:
+    """Apply next feeding updates to cached coordinator data."""
+    coordinator_payload = cast(
+      Mapping[str, JSONMutableMapping] | None,
+      self.coordinator.data,
+    )
+    coordinator_data: dict[str, JSONMutableMapping] = (
+      dict(coordinator_payload) if coordinator_payload else {}
+    )
+    existing_dog = coordinator_data.get(self._dog_id)
+    dog_data: JSONMutableMapping = (
+      dict(existing_dog) if isinstance(existing_dog, Mapping) else {}
+    )
+    existing_feeding = dog_data.get("feeding")
+    feeding_data: JSONMutableMapping = (
+      dict(existing_feeding) if isinstance(existing_feeding, Mapping) else {}
+    )
+    feeding_data.update(payload)
+    dog_data["feeding"] = feeding_data
+    coordinator_data[self._dog_id] = dog_data
+    update_result = self.coordinator.async_set_updated_data(coordinator_data)
+    if asyncio.iscoroutine(update_result):
+      await update_result
 
 
 class PawControlLastVetVisitDateTime(PawControlDateTimeBase):

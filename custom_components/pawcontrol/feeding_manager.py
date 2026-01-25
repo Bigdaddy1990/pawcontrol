@@ -2675,18 +2675,34 @@ class FeedingManager:
       # Invalidate caches
       self._invalidate_cache(dog_id)
 
-      # Update reminders
-      if config.schedule_type != FeedingScheduleType.FLEXIBLE:
-        await self._setup_reminder(dog_id)
-      elif dog_id in self._reminder_tasks:
-        self._reminder_tasks[dog_id].cancel()
-        del self._reminder_tasks[dog_id]
-        del self._reminder_events[dog_id]
-        self._next_reminders.pop(dog_id, None)
+      await self._refresh_reminder_schedule(dog_id, config)
 
-      # Signal reminder update
-      if dog_id in self._reminder_events:
-        self._reminder_events[dog_id].set()
+  async def async_refresh_reminder(self, dog_id: str) -> None:
+    """Refresh reminder scheduling for ``dog_id``."""
+    async with self._lock:
+      config = self._configs.get(dog_id)
+      if config is None:
+        return
+      await self._refresh_reminder_schedule(dog_id, config)
+
+  async def _refresh_reminder_schedule(
+    self,
+    dog_id: str,
+    config: FeedingConfig,
+  ) -> None:
+    """Update reminder tasks for ``dog_id`` based on ``config``."""
+    # Update reminders
+    if config.schedule_type != FeedingScheduleType.FLEXIBLE:
+      await self._setup_reminder(dog_id)
+    elif dog_id in self._reminder_tasks:
+      self._reminder_tasks[dog_id].cancel()
+      del self._reminder_tasks[dog_id]
+      del self._reminder_events[dog_id]
+      self._next_reminders.pop(dog_id, None)
+
+    # Signal reminder update
+    if dog_id in self._reminder_events:
+      self._reminder_events[dog_id].set()
 
   async def async_get_statistics(
     self,
