@@ -143,3 +143,55 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
       "advanced_settings"
     ],
   }
+
+
+@pytest.mark.asyncio
+async def test_async_build_setup_flags_panel_supports_blueprint_and_disabled(
+  hass: HomeAssistant,
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """Setup flag diagnostics should handle blueprint and disabled sources."""
+
+  entry = MockConfigEntry(
+    domain=DOMAIN,
+    data={},
+    options={},
+    title="Doggo",
+  )
+  entry.add_to_hass(hass)
+
+  snapshots = {
+    "enable_analytics": {"value": True, "source": "blueprint"},
+    "enable_cloud_backup": {"value": False, "source": "disabled"},
+    "debug_logging": {"value": False, "source": "default"},
+  }
+  monkeypatch.setattr(
+    diagnostics_mod,
+    "_collect_setup_flag_snapshots",
+    lambda _: snapshots,
+  )
+
+  translations = ("en", {}, {}, SETUP_FLAGS_PANEL_TITLE, SETUP_FLAGS_PANEL_DESCRIPTION)
+  with patch(
+    "custom_components.pawcontrol.diagnostics._async_resolve_setup_flag_translations",
+    AsyncMock(return_value=translations),
+  ):
+    panel = await diagnostics_mod._async_build_setup_flags_panel(hass, entry)
+
+  flags_by_source = {flag["source"]: flag for flag in panel["flags"]}
+  assert (
+    flags_by_source["blueprint"]["source_label_default"]
+    == (SETUP_FLAG_SOURCE_LABELS["blueprint"])
+  )
+  assert (
+    flags_by_source["blueprint"]["source_label_translation_key"]
+    == (SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS["blueprint"])
+  )
+  assert (
+    flags_by_source["disabled"]["source_label_default"]
+    == (SETUP_FLAG_SOURCE_LABELS["disabled"])
+  )
+  assert (
+    flags_by_source["disabled"]["source_label_translation_key"]
+    == (SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS["disabled"])
+  )

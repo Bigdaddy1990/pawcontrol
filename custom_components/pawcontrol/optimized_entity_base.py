@@ -45,7 +45,13 @@ from homeassistant.util import dt as dt_util
 
 from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
-from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
+from .const import (
+  ATTR_DOG_ID,
+  ATTR_DOG_NAME,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
+  MANUFACTURER,
+)
 from .coordinator import PawControlCoordinator
 from .coordinator_accessors import CoordinatorDataAccessMixin
 from .diagnostics import normalize_value
@@ -427,12 +433,12 @@ class OptimizedEntityBase(
 
     # Prepare default device link information for the dog
     self._set_device_link_info(
-      model="Smart Dog Monitoring System",
-      sw_version="2.1.0",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
       configuration_url=(
         f"https://github.com/BigDaddy1990/pawcontrol/wiki/dog-{dog_id}"
       ),
-      manufacturer=MANUFACTURER.replace(" ", ""),
+      manufacturer=MANUFACTURER,
     )
 
     # Register entity for cleanup tracking
@@ -701,7 +707,7 @@ class OptimizedEntityBase(
     return True
 
   @property
-  def extra_state_attributes(self) -> OptimizedEntityAttributesPayload:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Enhanced state attributes with caching and performance tracking.
 
     Returns:

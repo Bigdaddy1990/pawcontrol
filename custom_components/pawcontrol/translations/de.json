@@ -65,6 +65,9 @@
       "gps_accuracy_required": "GPS-Genauigkeit ist erforderlich",
       "gps_entity_not_found": "Die ausgew\u00e4hlte GPS-Quellenentit\u00e4t wurde nicht gefunden",
       "gps_entity_unavailable": "Die ausgew\u00e4hlte GPS-Quellenentit\u00e4t ist derzeit nicht verf\u00fcgbar",
+      "gps_update_interval_not_numeric": "GPS-Update-Intervall muss eine ganze Zahl sein",
+      "gps_update_interval_out_of_range": "GPS-Update-Intervall liegt au\u00dferhalb des g\u00fcltigen Bereichs",
+      "gps_update_interval_required": "GPS-Update-Intervall ist erforderlich",
       "integration_name_required": "Integrationsname ist erforderlich",
       "integration_name_too_long": "Integrationsname ist zu lang",
       "integration_name_too_short": "Integrationsname ist zu kurz",
@@ -447,414 +450,547 @@
   "entity": {
     "binary_sensor": {
       "activity_level_concern": {
+        "description": "Statusanzeige f\u00fcr Aktivit\u00e4tslevel-Bedenken.",
         "name": "Aktivit\u00e4tslevel-Bedenken"
       },
       "attention_needed": {
+        "description": "Statusanzeige f\u00fcr Aufmerksamkeit erforderlich.",
         "name": "Aufmerksamkeit erforderlich"
       },
       "daily_feeding_goal_met": {
+        "description": "Statusanzeige f\u00fcr T\u00e4gliches F\u00fctterungsziel erreicht.",
         "name": "T\u00e4gliches F\u00fctterungsziel erreicht"
       },
       "extreme_cold_warning": {
+        "description": "Statusanzeige f\u00fcr Extreme K\u00e4ltewarnung.",
         "name": "Extreme K\u00e4ltewarnung"
       },
       "extreme_heat_warning": {
+        "description": "Statusanzeige f\u00fcr Extreme Hitzewarnung.",
         "name": "Extreme Hitzewarnung"
       },
       "feeding_due": {
+        "description": "Statusanzeige f\u00fcr F\u00fctterung f\u00e4llig.",
         "name": "F\u00fctterung f\u00e4llig"
       },
       "feeding_overdue": {
+        "description": "Statusanzeige f\u00fcr F\u00fctterung \u00fcberf\u00e4llig.",
         "name": "F\u00fctterung \u00fcberf\u00e4llig"
       },
       "feeding_schedule_on_track": {
+        "description": "Statusanzeige f\u00fcr F\u00fctterungsplan im Zeitplan.",
         "name": "F\u00fctterungsplan im Zeitplan"
       },
       "garden_poop_pending": {
+        "description": "Statusanzeige f\u00fcr Offene Garten-Kotbest\u00e4tigung.",
         "name": "Offene Garten-Kotbest\u00e4tigung"
       },
       "garden_session_active": {
+        "description": "Statusanzeige f\u00fcr Gartensitzung aktiv.",
         "name": "Gartensitzung aktiv"
       },
       "geofence_alert": {
+        "description": "Statusanzeige f\u00fcr Geofence-Warnung.",
         "name": "Geofence-Warnung"
       },
       "gps_accurately_tracked": {
+        "description": "Statusanzeige f\u00fcr GPS genau verfolgt.",
         "name": "GPS genau verfolgt"
       },
       "gps_battery_low": {
+        "description": "Statusanzeige f\u00fcr GPS-Batterie schwach.",
         "name": "GPS-Batterie schwach"
       },
       "gps_signal": {
+        "description": "Statusanzeige f\u00fcr GPS-Signal.",
         "name": "GPS-Signal"
       },
       "health_alert": {
+        "description": "Statusanzeige f\u00fcr Gesundheitswarnung.",
         "name": "Gesundheitswarnung"
       },
       "health_aware_feeding": {
+        "description": "Statusanzeige f\u00fcr Gesundheitsbewusste F\u00fctterung.",
         "name": "Gesundheitsbewusste F\u00fctterung"
       },
       "health_emergency": {
+        "description": "Statusanzeige f\u00fcr Gesundheitsnotfall.",
         "name": "Gesundheitsnotfall"
       },
       "high_uv_warning": {
+        "description": "Statusanzeige f\u00fcr Hohe UV-Warnung.",
         "name": "Hohe UV-Warnung"
       },
       "in_garden": {
+        "description": "Statusanzeige f\u00fcr Im Garten.",
         "name": "Im Garten"
       },
       "in_safe_zone": {
+        "description": "Statusanzeige f\u00fcr In Sicherheitszone.",
         "name": "In Sicherheitszone"
       },
       "is_home": {
+        "description": "Statusanzeige f\u00fcr Ist zu Hause.",
         "name": "Ist zu Hause"
       },
       "is_hungry": {
+        "description": "Statusanzeige f\u00fcr Ist hungrig.",
         "name": "Ist hungrig"
       },
       "long_walk_overdue": {
+        "description": "Statusanzeige f\u00fcr Langer Spaziergang \u00fcberf\u00e4llig.",
         "name": "Langer Spaziergang \u00fcberf\u00e4llig"
       },
       "medication_due": {
+        "description": "Statusanzeige f\u00fcr Medikation f\u00e4llig.",
         "name": "Medikation f\u00e4llig"
       },
       "medication_with_meals": {
+        "description": "Statusanzeige f\u00fcr Medikamentengabe zu Mahlzeiten.",
         "name": "Medikamentengabe zu Mahlzeiten"
       },
       "moving": {
+        "description": "Statusanzeige f\u00fcr In Bewegung.",
         "name": "In Bewegung"
       },
       "needs_grooming": {
+        "description": "Statusanzeige f\u00fcr Braucht Pflege.",
         "name": "Braucht Pflege"
       },
       "needs_walk": {
+        "description": "Statusanzeige f\u00fcr Braucht Spaziergang.",
         "name": "Braucht Spaziergang"
       },
       "online": {
+        "description": "Statusanzeige f\u00fcr Online.",
         "name": "Online"
       },
       "storm_warning": {
+        "description": "Statusanzeige f\u00fcr Sturmwarnung.",
         "name": "Sturmwarnung"
       },
       "vet_checkup_due": {
+        "description": "Statusanzeige f\u00fcr Tierarzt-Untersuchung f\u00e4llig.",
         "name": "Tierarzt-Untersuchung f\u00e4llig"
       },
       "visitor_mode": {
+        "description": "Statusanzeige f\u00fcr Besuchermodus.",
         "name": "Besuchermodus"
       },
       "walk_goal_met": {
+        "description": "Statusanzeige f\u00fcr Spaziergangsziel erreicht.",
         "name": "Spaziergangsziel erreicht"
       },
       "walk_in_progress": {
+        "description": "Statusanzeige f\u00fcr Spaziergang l\u00e4uft.",
         "name": "Spaziergang l\u00e4uft"
       },
       "weather_alert_active": {
+        "description": "Statusanzeige f\u00fcr Wetter-Warnung aktiv.",
         "name": "Wetter-Warnung aktiv"
       },
       "weight_alert": {
+        "description": "Statusanzeige f\u00fcr Gewichts-Warnung.",
         "name": "Gewichts-Warnung"
       }
     },
     "button": {
       "call_dog": {
+        "description": "L\u00f6st die Aktion \u201eHund rufen\u201c aus.",
         "name": "Hund rufen"
       },
       "center_map": {
+        "description": "L\u00f6st die Aktion \u201eKarte zentrieren\u201c aus.",
         "name": "Karte zentrieren"
       },
       "confirm_garden_poop": {
+        "description": "L\u00f6st die Aktion \u201eGarten-Kot best\u00e4tigen\u201c aus.",
         "name": "Garten-Kot best\u00e4tigen"
       },
       "daily_reset": {
+        "description": "L\u00f6st die Aktion \u201eT\u00e4glicher Reset\u201c aus.",
         "name": "T\u00e4glicher Reset"
       },
       "emergency": {
+        "description": "L\u00f6st die Aktion \u201eNotfall\u201c aus.",
         "name": "Notfall"
       },
       "end_garden_session": {
+        "description": "L\u00f6st die Aktion \u201eGartensitzung beenden\u201c aus.",
         "name": "Gartensitzung beenden"
       },
       "end_walk": {
+        "description": "L\u00f6st die Aktion \u201eSpaziergang beenden\u201c aus.",
         "name": "Spaziergang beenden"
       },
       "export_data": {
+        "description": "L\u00f6st die Aktion \u201eDaten exportieren\u201c aus.",
         "name": "Daten exportieren"
       },
       "export_route": {
+        "description": "L\u00f6st die Aktion \u201eRoute exportieren\u201c aus.",
         "name": "Route exportieren"
       },
       "feed_now": {
+        "description": "L\u00f6st die Aktion \u201eJetzt f\u00fcttern\u201c aus.",
         "name": "Jetzt f\u00fcttern"
       },
       "get_weather_alerts": {
+        "description": "L\u00f6st die Aktion \u201eWetter-Warnungen abrufen\u201c aus.",
         "name": "Wetter-Warnungen abrufen"
       },
       "get_weather_recommendations": {
+        "description": "L\u00f6st die Aktion \u201eWetter-Empfehlungen abrufen\u201c aus.",
         "name": "Wetter-Empfehlungen abrufen"
       },
       "gps_end_walk": {
+        "description": "L\u00f6st die Aktion \u201eGPS-Spaziergang beenden\u201c aus.",
         "name": "GPS-Spaziergang beenden"
       },
       "gps_start_walk": {
+        "description": "L\u00f6st die Aktion \u201eGPS-Spaziergang starten\u201c aus.",
         "name": "GPS-Spaziergang starten"
       },
       "health_check": {
+        "description": "L\u00f6st die Aktion \u201eGesundheitscheck\u201c aus.",
         "name": "Gesundheitscheck"
       },
       "log_custom_feeding": {
+        "description": "L\u00f6st die Aktion \u201eIndividuelle F\u00fctterung protokollieren\u201c aus.",
         "name": "Individuelle F\u00fctterung protokollieren"
       },
       "log_garden_activity": {
+        "description": "L\u00f6st die Aktion \u201eGartenaktivit\u00e4t protokollieren\u201c aus.",
         "name": "Gartenaktivit\u00e4t protokollieren"
       },
       "log_health": {
+        "description": "L\u00f6st die Aktion \u201eGesundheit protokollieren\u201c aus.",
         "name": "Gesundheit protokollieren"
       },
       "log_medication": {
+        "description": "L\u00f6st die Aktion \u201eMedikation protokollieren\u201c aus.",
         "name": "Medikation protokollieren"
       },
       "log_poop": {
+        "description": "L\u00f6st die Aktion \u201eKot protokollieren\u201c aus.",
         "name": "Kot protokollieren"
       },
       "log_walk_manually": {
+        "description": "L\u00f6st die Aktion \u201eSpaziergang manuell protokollieren\u201c aus.",
         "name": "Spaziergang manuell protokollieren"
       },
       "log_weight": {
+        "description": "L\u00f6st die Aktion \u201eGewicht protokollieren\u201c aus.",
         "name": "Gewicht protokollieren"
       },
       "mark_fed": {
+        "description": "L\u00f6st die Aktion \u201eF\u00fctterung markieren\u201c aus.",
         "name": "F\u00fctterung markieren"
       },
       "mark_fed_breakfast": {
+        "description": "L\u00f6st die Aktion \u201eAls gef\u00fcttert markieren (Fr\u00fchst\u00fcck)\u201c aus.",
         "name": "Als gef\u00fcttert markieren (Fr\u00fchst\u00fcck)"
       },
       "mark_fed_dinner": {
+        "description": "L\u00f6st die Aktion \u201eAls gef\u00fcttert markieren (Abendessen)\u201c aus.",
         "name": "Als gef\u00fcttert markieren (Abendessen)"
       },
       "mark_fed_lunch": {
+        "description": "L\u00f6st die Aktion \u201eAls gef\u00fcttert markieren (Mittagessen)\u201c aus.",
         "name": "Als gef\u00fcttert markieren (Mittagessen)"
       },
       "mark_fed_snack": {
+        "description": "L\u00f6st die Aktion \u201eAls gef\u00fcttert markieren (Snack)\u201c aus.",
         "name": "Als gef\u00fcttert markieren (Snack)"
       },
       "notify_test": {
+        "description": "L\u00f6st die Aktion \u201eTest-Benachrichtigung\u201c aus.",
         "name": "Test-Benachrichtigung"
       },
       "quick_walk": {
+        "description": "L\u00f6st die Aktion \u201eKurzer Spaziergang\u201c aus.",
         "name": "Kurzer Spaziergang"
       },
       "refresh_data": {
+        "description": "L\u00f6st die Aktion \u201eDaten aktualisieren\u201c aus.",
         "name": "Daten aktualisieren"
       },
       "refresh_location": {
+        "description": "L\u00f6st die Aktion \u201eStandort aktualisieren\u201c aus.",
         "name": "Standort aktualisieren"
       },
       "reset_daily_stats": {
+        "description": "L\u00f6st die Aktion \u201eTagesstatistiken zur\u00fccksetzen\u201c aus.",
         "name": "Tagesstatistiken zur\u00fccksetzen"
       },
       "schedule_vet": {
+        "description": "L\u00f6st die Aktion \u201eTierarzttermin planen\u201c aus.",
         "name": "Tierarzttermin planen"
       },
       "start_garden_session": {
+        "description": "L\u00f6st die Aktion \u201eGartensitzung starten\u201c aus.",
         "name": "Gartensitzung starten"
       },
       "start_grooming": {
+        "description": "L\u00f6st die Aktion \u201ePflege starten\u201c aus.",
         "name": "Pflege starten"
       },
       "start_walk": {
+        "description": "L\u00f6st die Aktion \u201eSpaziergang starten\u201c aus.",
         "name": "Spaziergang starten"
       },
       "sync_data": {
+        "description": "L\u00f6st die Aktion \u201eDaten synchronisieren\u201c aus.",
         "name": "Daten synchronisieren"
       },
       "test_notification": {
+        "description": "L\u00f6st die Aktion \u201eTestbenachrichtigung\u201c aus.",
         "name": "Testbenachrichtigung"
       },
       "toggle_visitor_mode": {
+        "description": "L\u00f6st die Aktion \u201eBesuchermodus umschalten\u201c aus.",
         "name": "Besuchermodus umschalten"
       },
       "update_weather": {
+        "description": "L\u00f6st die Aktion \u201eWetter aktualisieren\u201c aus.",
         "name": "Wetter aktualisieren"
       }
     },
     "date": {
       "adoption_date": {
+        "description": "Datum f\u00fcr Adoptionsdatum festlegen.",
         "name": "Adoptionsdatum"
       },
       "birthdate": {
+        "description": "Datum f\u00fcr Geburtsdatum festlegen.",
         "name": "Geburtsdatum"
       },
       "deworming_date": {
+        "description": "Datum f\u00fcr Entwurmungsdatum festlegen.",
         "name": "Entwurmungsdatum"
       },
       "diet_end_date": {
+        "description": "Datum f\u00fcr Di\u00e4t-Enddatum festlegen.",
         "name": "Di\u00e4t-Enddatum"
       },
       "diet_start_date": {
+        "description": "Datum f\u00fcr Di\u00e4t-Startdatum festlegen.",
         "name": "Di\u00e4t-Startdatum"
       },
       "last_grooming": {
+        "description": "Datum f\u00fcr Letzte Pflege festlegen.",
         "name": "Letzte Pflege"
       },
       "last_vet_visit": {
+        "description": "Datum f\u00fcr Letzter Tierarztbesuch festlegen.",
         "name": "Letzter Tierarztbesuch"
       },
       "next_deworming": {
+        "description": "Datum f\u00fcr N\u00e4chste Entwurmung festlegen.",
         "name": "N\u00e4chste Entwurmung"
       },
       "next_grooming": {
+        "description": "Datum f\u00fcr N\u00e4chste Pflege festlegen.",
         "name": "N\u00e4chste Pflege"
       },
       "next_training_date": {
+        "description": "Datum f\u00fcr N\u00e4chster Trainingstermin festlegen.",
         "name": "N\u00e4chster Trainingstermin"
       },
       "next_vaccination": {
+        "description": "Datum f\u00fcr N\u00e4chste Impfung festlegen.",
         "name": "N\u00e4chste Impfung"
       },
       "next_vet_appointment": {
+        "description": "Datum f\u00fcr N\u00e4chster Tierarzttermin festlegen.",
         "name": "N\u00e4chster Tierarzttermin"
       },
       "training_start_date": {
+        "description": "Datum f\u00fcr Trainingsstartdatum festlegen.",
         "name": "Trainingsstartdatum"
       },
       "vaccination_date": {
+        "description": "Datum f\u00fcr Impfdatum festlegen.",
         "name": "Impfdatum"
       }
     },
     "datetime": {
       "adoption_date": {
+        "description": "Datum und Uhrzeit f\u00fcr Adoptionsdatum (Datum & Uhrzeit) festlegen.",
         "name": "Adoptionsdatum (Datum & Uhrzeit)"
       },
       "birthdate": {
+        "description": "Datum und Uhrzeit f\u00fcr Geburtsdatum (Datum & Uhrzeit) festlegen.",
         "name": "Geburtsdatum (Datum & Uhrzeit)"
       },
       "breakfast_time": {
+        "description": "Datum und Uhrzeit f\u00fcr Fr\u00fchst\u00fcckszeit festlegen.",
         "name": "Fr\u00fchst\u00fcckszeit"
       },
       "dinner_time": {
+        "description": "Datum und Uhrzeit f\u00fcr Abendessenszeit festlegen.",
         "name": "Abendessenszeit"
       },
       "emergency_date": {
+        "description": "Datum und Uhrzeit f\u00fcr Notfallzeitstempel festlegen.",
         "name": "Notfallzeitstempel"
       },
       "last_feeding": {
+        "description": "Datum und Uhrzeit f\u00fcr Letzte F\u00fctterung festlegen.",
         "name": "Letzte F\u00fctterung"
       },
       "last_grooming": {
+        "description": "Datum und Uhrzeit f\u00fcr Letzte Pflege (Datum & Uhrzeit) festlegen.",
         "name": "Letzte Pflege (Datum & Uhrzeit)"
       },
       "last_medication": {
+        "description": "Datum und Uhrzeit f\u00fcr Letzte Medikation festlegen.",
         "name": "Letzte Medikation"
       },
       "last_vet_visit": {
+        "description": "Datum und Uhrzeit f\u00fcr Letzter Tierarztbesuch (Datum & Uhrzeit) festlegen.",
         "name": "Letzter Tierarztbesuch (Datum & Uhrzeit)"
       },
       "last_walk": {
+        "description": "Datum und Uhrzeit f\u00fcr Letzter Spaziergang festlegen.",
         "name": "Letzter Spaziergang"
       },
       "lunch_time": {
+        "description": "Datum und Uhrzeit f\u00fcr Mittagszeit festlegen.",
         "name": "Mittagszeit"
       },
       "next_feeding": {
+        "description": "Datum und Uhrzeit f\u00fcr N\u00e4chste F\u00fctterung festlegen.",
         "name": "N\u00e4chste F\u00fctterung"
       },
       "next_grooming": {
+        "description": "Datum und Uhrzeit f\u00fcr N\u00e4chste Pflege (Datum & Uhrzeit) festlegen.",
         "name": "N\u00e4chste Pflege (Datum & Uhrzeit)"
       },
       "next_medication": {
+        "description": "Datum und Uhrzeit f\u00fcr N\u00e4chste Medikation festlegen.",
         "name": "N\u00e4chste Medikation"
       },
       "next_vet_appointment": {
+        "description": "Datum und Uhrzeit f\u00fcr N\u00e4chster Tierarzttermin (Datum & Uhrzeit) festlegen.",
         "name": "N\u00e4chster Tierarzttermin (Datum & Uhrzeit)"
       },
       "next_walk_reminder": {
+        "description": "Datum und Uhrzeit f\u00fcr N\u00e4chste Spaziergang-Erinnerung festlegen.",
         "name": "N\u00e4chste Spaziergang-Erinnerung"
       },
       "training_session": {
+        "description": "Datum und Uhrzeit f\u00fcr Trainingseinheit festlegen.",
         "name": "Trainingseinheit"
       },
       "vaccination_date": {
+        "description": "Datum und Uhrzeit f\u00fcr Impfung (Datum & Uhrzeit) festlegen.",
         "name": "Impfung (Datum & Uhrzeit)"
       }
     },
     "device_tracker": {
       "gps": {
+        "description": "Standort-Tracking f\u00fcr GPS.",
         "name": "GPS"
       }
     },
     "number": {
       "activity_goal": {
+        "description": "Wert f\u00fcr Aktivit\u00e4tsziel festlegen.",
         "name": "Aktivit\u00e4tsziel"
       },
       "age": {
+        "description": "Wert f\u00fcr Alter festlegen.",
         "name": "Alter"
       },
       "calorie_target": {
+        "description": "Wert f\u00fcr Kalorienziel festlegen.",
         "name": "Kalorienziel"
       },
       "daily_food_amount": {
+        "description": "Wert f\u00fcr T\u00e4gliche Futtermenge festlegen.",
         "name": "T\u00e4gliche Futtermenge"
       },
       "daily_walk_target": {
+        "description": "Wert f\u00fcr T\u00e4gliches Spaziergangsziel festlegen.",
         "name": "T\u00e4gliches Spaziergangsziel"
       },
       "feeding_reminder_hours": {
+        "description": "Wert f\u00fcr F\u00fctterungserinnerung (Stunden) festlegen.",
         "name": "F\u00fctterungserinnerung (Stunden)"
       },
       "geofence_radius": {
+        "description": "Wert f\u00fcr Geofence-Radius festlegen.",
         "name": "Geofence-Radius"
       },
       "gps_accuracy_threshold": {
+        "description": "Wert f\u00fcr GPS-Genauigkeitsschwelle festlegen.",
         "name": "GPS-Genauigkeitsschwelle"
       },
       "gps_battery_threshold": {
+        "description": "Wert f\u00fcr GPS-Batterieschwelle festlegen.",
         "name": "GPS-Batterieschwelle"
       },
       "gps_update_interval": {
+        "description": "Wert f\u00fcr GPS-Aktualisierungsintervall festlegen.",
         "name": "GPS-Aktualisierungsintervall"
       },
       "grooming_interval": {
+        "description": "Wert f\u00fcr Pflegeintervall festlegen.",
         "name": "Pflegeintervall"
       },
       "health_score_threshold": {
+        "description": "Wert f\u00fcr Gesundheits-Score-Schwelle festlegen.",
         "name": "Gesundheits-Score-Schwelle"
       },
       "location_update_distance": {
+        "description": "Wert f\u00fcr Abstand f\u00fcr Standortaktualisierung festlegen.",
         "name": "Abstand f\u00fcr Standortaktualisierung"
       },
       "max_walk_speed": {
+        "description": "Wert f\u00fcr Maximale Spaziergangsgeschwindigkeit festlegen.",
         "name": "Maximale Spaziergangsgeschwindigkeit"
       },
       "meals_per_day": {
+        "description": "Wert f\u00fcr Mahlzeiten pro Tag festlegen.",
         "name": "Mahlzeiten pro Tag"
       },
       "portion_size": {
+        "description": "Wert f\u00fcr Portionsgr\u00f6\u00dfe festlegen.",
         "name": "Portionsgr\u00f6\u00dfe"
       },
       "target_weight": {
+        "description": "Wert f\u00fcr Zielgewicht festlegen.",
         "name": "Zielgewicht"
       },
       "vet_checkup_interval": {
+        "description": "Wert f\u00fcr Tierarzt-Checkup-Intervall festlegen.",
         "name": "Tierarzt-Checkup-Intervall"
       },
       "walk_distance_target": {
+        "description": "Wert f\u00fcr Zielstrecke Spaziergang festlegen.",
         "name": "Zielstrecke Spaziergang"
       },
       "walk_duration_target": {
+        "description": "Wert f\u00fcr Ziel-Spaziergangsdauer festlegen.",
         "name": "Ziel-Spaziergangsdauer"
       },
       "walk_reminder_hours": {
+        "description": "Wert f\u00fcr Spaziergangserinnerung (Stunden) festlegen.",
         "name": "Spaziergangserinnerung (Stunden)"
       },
       "weight": {
+        "description": "Wert f\u00fcr Gewicht festlegen.",
         "name": "Gewicht"
       },
       "weight_change_threshold": {
+        "description": "Wert f\u00fcr Schwelle f\u00fcr Gewichts\u00e4nderung festlegen.",
         "name": "Schwelle f\u00fcr Gewichts\u00e4nderung"
       }
     },
     "select": {
       "activity_level": {
+        "description": "Option f\u00fcr Aktivit\u00e4tslevel ausw\u00e4hlen.",
         "name": "Aktivit\u00e4tslevel",
         "state": {
           "high": "Hoch",
@@ -865,15 +1001,19 @@
         }
       },
       "default_meal_type": {
+        "description": "Option f\u00fcr Standard-Mahlzeitentyp ausw\u00e4hlen.",
         "name": "Standard-Mahlzeitentyp"
       },
       "feeding_mode": {
+        "description": "Option f\u00fcr F\u00fctterungsmodus ausw\u00e4hlen.",
         "name": "F\u00fctterungsmodus"
       },
       "feeding_schedule": {
+        "description": "Option f\u00fcr F\u00fctterungszeitplan ausw\u00e4hlen.",
         "name": "F\u00fctterungszeitplan"
       },
       "food_type": {
+        "description": "Option f\u00fcr Futtertyp ausw\u00e4hlen.",
         "name": "Futtertyp",
         "state": {
           "barf": "BARF",
@@ -884,18 +1024,23 @@
         }
       },
       "gps_source": {
+        "description": "Option f\u00fcr GPS-Quelle ausw\u00e4hlen.",
         "name": "GPS-Quelle"
       },
       "grooming_type": {
+        "description": "Option f\u00fcr Pflegeart ausw\u00e4hlen.",
         "name": "Pflegeart"
       },
       "health_status": {
+        "description": "Option f\u00fcr Gesundheitsstatus ausw\u00e4hlen.",
         "name": "Gesundheitsstatus"
       },
       "location_accuracy": {
+        "description": "Option f\u00fcr Standortgenauigkeit ausw\u00e4hlen.",
         "name": "Standortgenauigkeit"
       },
       "mood": {
+        "description": "Option f\u00fcr Stimmung ausw\u00e4hlen.",
         "name": "Stimmung",
         "state": {
           "angry": "Ver\u00e4rgert",
@@ -907,12 +1052,15 @@
         }
       },
       "notification_priority": {
+        "description": "Option f\u00fcr Benachrichtigungspriorit\u00e4t ausw\u00e4hlen.",
         "name": "Benachrichtigungspriorit\u00e4t"
       },
       "performance_mode": {
+        "description": "Option f\u00fcr Leistungsmodus ausw\u00e4hlen.",
         "name": "Leistungsmodus"
       },
       "size": {
+        "description": "Option f\u00fcr Gr\u00f6\u00dfe ausw\u00e4hlen.",
         "name": "Gr\u00f6\u00dfe",
         "state": {
           "giant": "Riesig",
@@ -923,18 +1071,23 @@
         }
       },
       "tracking_mode": {
+        "description": "Option f\u00fcr Tracking-Modus ausw\u00e4hlen.",
         "name": "Tracking-Modus"
       },
       "walk_intensity": {
+        "description": "Option f\u00fcr Spaziergangsintensit\u00e4t ausw\u00e4hlen.",
         "name": "Spaziergangsintensit\u00e4t"
       },
       "walk_mode": {
+        "description": "Option f\u00fcr Spaziergangsmodus ausw\u00e4hlen.",
         "name": "Spaziergangsmodus"
       },
       "weather_preference": {
+        "description": "Option f\u00fcr Wetterpr\u00e4ferenz ausw\u00e4hlen.",
         "name": "Wetterpr\u00e4ferenz"
       },
       "weather_severity": {
+        "description": "Option f\u00fcr Wetter-Schweregrad ausw\u00e4hlen.",
         "name": "Wetter-Schweregrad",
         "state": {
           "extreme": "Extrem",
@@ -946,9 +1099,11 @@
     },
     "sensor": {
       "active_weather_alerts": {
+        "description": "Meldet Aktive Wetter-Warnungen.",
         "name": "Aktive Wetter-Warnungen"
       },
       "activity_level": {
+        "description": "Meldet Aktivit\u00e4tslevel.",
         "name": "Aktivit\u00e4tslevel",
         "state": {
           "high": "Hoch",
@@ -959,63 +1114,83 @@
         }
       },
       "activity_score": {
+        "description": "Meldet Aktivit\u00e4tspunktzahl.",
         "name": "Aktivit\u00e4tspunktzahl"
       },
       "average_walk_duration": {
+        "description": "Meldet Durchschnittliche Gassidauer.",
         "name": "Durchschnittliche Gassidauer"
       },
       "avg_garden_duration": {
+        "description": "Meldet Durchschnittliche Gartendauer.",
         "name": "Durchschnittliche Gartendauer"
       },
       "body_condition_score": {
+        "description": "Meldet K\u00f6rperkonditions-Score.",
         "name": "K\u00f6rperkonditions-Score"
       },
       "calorie_goal_progress": {
+        "description": "Meldet Kalorienziel-Fortschritt.",
         "name": "Kalorienziel-Fortschritt"
       },
       "calories_burned_today": {
+        "description": "Meldet Heute verbrannte Kalorien.",
         "name": "Heute verbrannte Kalorien"
       },
       "calories_consumed_today": {
+        "description": "Meldet Heute verzehrte Kalorien.",
         "name": "Heute verzehrte Kalorien"
       },
       "current_location": {
+        "description": "Meldet Aktueller Standort.",
         "name": "Aktueller Standort"
       },
       "current_speed": {
+        "description": "Meldet Aktuelle Geschwindigkeit.",
         "name": "Aktuelle Geschwindigkeit"
       },
       "current_walk_duration": {
+        "description": "Meldet Aktuelle Spaziergangsdauer.",
         "name": "Aktuelle Spaziergangsdauer"
       },
       "current_zone": {
+        "description": "Meldet Aktuelle Zone.",
         "name": "Aktuelle Zone"
       },
       "daily_activity_level": {
+        "description": "Meldet T\u00e4gliches Aktivit\u00e4tsniveau.",
         "name": "T\u00e4gliches Aktivit\u00e4tsniveau"
       },
       "daily_calorie_target": {
+        "description": "Meldet T\u00e4gliches Kalorienziel.",
         "name": "T\u00e4gliches Kalorienziel"
       },
       "daily_calories": {
+        "description": "Meldet T\u00e4gliche Kalorien.",
         "name": "T\u00e4gliche Kalorien"
       },
       "daily_portions": {
+        "description": "Meldet T\u00e4gliche Portionen.",
         "name": "T\u00e4gliche Portionen"
       },
       "days_since_grooming": {
+        "description": "Meldet Tage seit letzter Pflege.",
         "name": "Tage seit letzter Pflege"
       },
       "diet_compatibility_score": {
+        "description": "Meldet Di\u00e4tkompatibilit\u00e4tswert.",
         "name": "Di\u00e4tkompatibilit\u00e4tswert"
       },
       "diet_conflict_count": {
+        "description": "Meldet Anzahl Di\u00e4tkonflikte.",
         "name": "Anzahl Di\u00e4tkonflikte"
       },
       "diet_validation_adjustment": {
+        "description": "Meldet Di\u00e4tvalidierungsanpassung.",
         "name": "Di\u00e4tvalidierungsanpassung"
       },
       "diet_validation_status": {
+        "description": "Meldet Di\u00e4tvalidierungsstatus.",
         "name": "Di\u00e4tvalidierungsstatus",
         "state": {
           "conflicts_detected": "Konflikte erkannt",
@@ -1026,6 +1201,7 @@
         }
       },
       "diet_vet_consultation": {
+        "description": "Meldet Tierarztkonsultation (Di\u00e4t).",
         "name": "Tierarztkonsultation (Di\u00e4t)",
         "state": {
           "not_needed": "Nicht erforderlich",
@@ -1033,72 +1209,95 @@
         }
       },
       "diet_warning_count": {
+        "description": "Meldet Anzahl Di\u00e4twarnungen.",
         "name": "Anzahl Di\u00e4twarnungen"
       },
       "distance_from_home": {
+        "description": "Meldet Entfernung von Zuhause.",
         "name": "Entfernung von Zuhause"
       },
       "favorite_garden_activities": {
+        "description": "Meldet Beliebteste Gartenaktivit\u00e4ten.",
         "name": "Beliebteste Gartenaktivit\u00e4ten"
       },
       "feeding_count_today_breakfast": {
+        "description": "Meldet Fr\u00fchst\u00fcck Anzahl heute.",
         "name": "Fr\u00fchst\u00fcck Anzahl heute"
       },
       "feeding_count_today_dinner": {
+        "description": "Meldet Abendessen Anzahl heute.",
         "name": "Abendessen Anzahl heute"
       },
       "feeding_count_today_lunch": {
+        "description": "Meldet Mittagessen Anzahl heute.",
         "name": "Mittagessen Anzahl heute"
       },
       "feeding_count_today_snack": {
+        "description": "Meldet Snack Anzahl heute.",
         "name": "Snack Anzahl heute"
       },
       "feeding_recommendation": {
+        "description": "Meldet F\u00fctterungsempfehlung.",
         "name": "F\u00fctterungsempfehlung"
       },
       "feeding_schedule_adherence": {
+        "description": "Meldet Einhaltung des F\u00fctterungsplans.",
         "name": "Einhaltung des F\u00fctterungsplans"
       },
       "food_consumption": {
+        "description": "Meldet Futterverbrauch.",
         "name": "Futterverbrauch"
       },
       "garden_activities_count": {
+        "description": "Meldet Anzahl Gartenaktivit\u00e4ten.",
         "name": "Anzahl Gartenaktivit\u00e4ten"
       },
       "garden_activities_last_session": {
+        "description": "Meldet Gartenaktivit\u00e4ten letzte Sitzung.",
         "name": "Gartenaktivit\u00e4ten letzte Sitzung"
       },
       "garden_activities_today": {
+        "description": "Meldet Gartenaktivit\u00e4ten heute.",
         "name": "Gartenaktivit\u00e4ten heute"
       },
       "garden_poop_count_today": {
+        "description": "Meldet Garten-Kotereignisse heute.",
         "name": "Garten-Kotereignisse heute"
       },
       "garden_sessions_today": {
+        "description": "Meldet Gartensitzungen heute.",
         "name": "Gartensitzungen heute"
       },
       "garden_stats_weekly": {
+        "description": "Meldet W\u00f6chentliche Garten\u00fcbersicht.",
         "name": "W\u00f6chentliche Garten\u00fcbersicht"
       },
       "garden_time_today": {
+        "description": "Meldet Gartenzeit heute.",
         "name": "Gartenzeit heute"
       },
       "gps_accuracy": {
+        "description": "Meldet GPS-Genauigkeit.",
         "name": "GPS-Genauigkeit"
       },
       "gps_battery_level": {
+        "description": "Meldet GPS-Batteriestand.",
         "name": "GPS-Batteriestand"
       },
       "health_aware_portion": {
+        "description": "Meldet Gesundheitsbewusste Portion.",
         "name": "Gesundheitsbewusste Portion"
       },
       "health_conditions": {
+        "description": "Meldet Gesundheitszust\u00e4nde.",
         "name": "Gesundheitszust\u00e4nde"
       },
       "health_feeding_status": {
+        "description": "Meldet Gesundheitsf\u00fctterungsstatus.",
         "name": "Gesundheitsf\u00fctterungsstatus"
       },
       "health_status": {
+        "description": "Meldet Gesundheitsstatus.",
         "name": "Gesundheitsstatus",
         "state": {
           "excellent": "Ausgezeichnet",
@@ -1110,45 +1309,59 @@
         }
       },
       "last_action": {
+        "description": "Meldet Letzte Aktion.",
         "name": "Letzte Aktion"
       },
       "last_feeding": {
+        "description": "Meldet Letzte F\u00fctterung.",
         "name": "Letzte F\u00fctterung"
       },
       "last_feeding_hours": {
+        "description": "Meldet Stunden seit letzter F\u00fctterung.",
         "name": "Stunden seit letzter F\u00fctterung"
       },
       "last_garden_duration": {
+        "description": "Meldet Dauer der letzten Gartensitzung.",
         "name": "Dauer der letzten Gartensitzung"
       },
       "last_garden_session": {
+        "description": "Meldet Letzte Gartensitzung.",
         "name": "Letzte Gartensitzung"
       },
       "last_garden_session_hours": {
+        "description": "Meldet Stunden seit letzter Gartensitzung.",
         "name": "Stunden seit letzter Gartensitzung"
       },
       "last_vet_visit": {
+        "description": "Meldet Letzter Tierarztbesuch.",
         "name": "Letzter Tierarztbesuch"
       },
       "last_walk": {
+        "description": "Meldet Letzter Spaziergang.",
         "name": "Letzter Spaziergang"
       },
       "last_walk_distance": {
+        "description": "Meldet Letzte Spaziergang-Distanz.",
         "name": "Letzte Spaziergang-Distanz"
       },
       "last_walk_duration": {
+        "description": "Meldet Letzte Spaziergang-Dauer.",
         "name": "Letzte Spaziergang-Dauer"
       },
       "last_walk_hours": {
+        "description": "Meldet Stunden seit letztem Spaziergang.",
         "name": "Stunden seit letztem Spaziergang"
       },
       "portion_adjustment_factor": {
+        "description": "Meldet Portionsanpassungsfaktor.",
         "name": "Portionsanpassungsfaktor"
       },
       "portions_today": {
+        "description": "Meldet Portionen heute.",
         "name": "Portionen heute"
       },
       "special_diet": {
+        "description": "Meldet Spezielle Di\u00e4t-Anforderungen.",
         "name": "Spezielle Di\u00e4t-Anforderungen",
         "state": {
           "dental_care": "Zahnpflege",
@@ -1168,9 +1381,11 @@
         }
       },
       "speed": {
+        "description": "Meldet Geschwindigkeit.",
         "name": "Geschwindigkeit"
       },
       "status": {
+        "description": "Meldet Status.",
         "name": "Status",
         "state": {
           "offline": "Offline",
@@ -1179,205 +1394,271 @@
         }
       },
       "total_distance_today": {
+        "description": "Meldet Gesamte Distanz heute.",
         "name": "Gesamte Distanz heute"
       },
       "total_feedings_today": {
+        "description": "Meldet Gesamte F\u00fctterungen heute.",
         "name": "Gesamte F\u00fctterungen heute"
       },
       "total_walk_distance": {
+        "description": "Meldet Gesamte Spaziergangdistanz.",
         "name": "Gesamte Spaziergangdistanz"
       },
       "total_walk_time_today": {
+        "description": "Meldet Gesamte Spaziergang-Zeit heute.",
         "name": "Gesamte Spaziergang-Zeit heute"
       },
       "walk_count_today": {
+        "description": "Meldet Spaziergang Anzahl heute.",
         "name": "Spaziergang Anzahl heute"
       },
       "walk_distance_today": {
+        "description": "Meldet Heutige Gassistrecke.",
         "name": "Heutige Gassistrecke"
       },
       "walks_this_week": {
+        "description": "Meldet Spazierg\u00e4nge diese Woche.",
         "name": "Spazierg\u00e4nge diese Woche"
       },
       "walks_today": {
+        "description": "Meldet Spazierg\u00e4nge heute.",
         "name": "Spazierg\u00e4nge heute"
       },
       "weather_condition": {
+        "description": "Meldet Wetter-Bedingungen.",
         "name": "Wetter-Bedingungen"
       },
       "weather_health_score": {
+        "description": "Meldet Wetter-Gesundheitsbewertung.",
         "name": "Wetter-Gesundheitsbewertung"
       },
       "weather_humidity": {
+        "description": "Meldet Wetter-Luftfeuchtigkeit.",
         "name": "Wetter-Luftfeuchtigkeit"
       },
       "weather_temperature": {
+        "description": "Meldet Wetter-Temperatur.",
         "name": "Wetter-Temperatur"
       },
       "weather_uv_index": {
+        "description": "Meldet Wetter-UV-Index.",
         "name": "Wetter-UV-Index"
       },
       "weight": {
+        "description": "Meldet Gewicht.",
         "name": "Gewicht"
       },
       "weight_goal_progress": {
+        "description": "Meldet Fortschritt zum Gewichtsziel.",
         "name": "Fortschritt zum Gewichtsziel"
       },
       "weight_trend": {
+        "description": "Meldet Gewichtstrend.",
         "name": "Gewichtstrend"
       }
     },
     "switch": {
       "auto_backup": {
+        "description": "Automatisches Backup aktivieren oder deaktivieren.",
         "name": "Automatisches Backup"
       },
       "auto_walk_detection": {
+        "description": "Automatische Spaziergang-Erkennung aktivieren oder deaktivieren.",
         "name": "Automatische Spaziergang-Erkennung"
       },
       "breakfast_enabled": {
+        "description": "Fr\u00fchst\u00fcck aktiviert aktivieren oder deaktivieren.",
         "name": "Fr\u00fchst\u00fcck aktiviert"
       },
       "data_collection": {
+        "description": "Datensammlung aktivieren oder deaktivieren.",
         "name": "Datensammlung"
       },
       "dinner_enabled": {
+        "description": "Abendessen aktiviert aktivieren oder deaktivieren.",
         "name": "Abendessen aktiviert"
       },
       "feeding_reminders": {
+        "description": "F\u00fctterungserinnerungen aktivieren oder deaktivieren.",
         "name": "F\u00fctterungserinnerungen"
       },
       "geofence_alerts": {
+        "description": "Geofence-Warnungen aktivieren oder deaktivieren.",
         "name": "Geofence-Warnungen"
       },
       "gps_tracking": {
+        "description": "GPS-Tracking aktivieren oder deaktivieren.",
         "name": "GPS-Tracking"
       },
       "health_tracking": {
+        "description": "Gesundheits\u00fcberwachung aktivieren oder deaktivieren.",
         "name": "Gesundheits\u00fcberwachung"
       },
       "humidity_alerts": {
+        "description": "Luftfeuchtigkeits-Warnungen aktivieren oder deaktivieren.",
         "name": "Luftfeuchtigkeits-Warnungen"
       },
       "lunch_enabled": {
+        "description": "Mittagessen aktiviert aktivieren oder deaktivieren.",
         "name": "Mittagessen aktiviert"
       },
       "medication_reminders": {
+        "description": "Medikamenten-Erinnerungen aktivieren oder deaktivieren.",
         "name": "Medikamenten-Erinnerungen"
       },
       "module_feeding": {
+        "description": "F\u00fctterungsmodul aktivieren oder deaktivieren.",
         "name": "F\u00fctterungsmodul"
       },
       "module_garden": {
+        "description": "Gartenmodul aktivieren oder deaktivieren.",
         "name": "Gartenmodul"
       },
       "module_gps": {
+        "description": "GPS-Modul aktivieren oder deaktivieren.",
         "name": "GPS-Modul"
       },
       "module_health": {
+        "description": "Gesundheitsmodul aktivieren oder deaktivieren.",
         "name": "Gesundheitsmodul"
       },
       "module_notifications": {
+        "description": "Benachrichtigungsmodul aktivieren oder deaktivieren.",
         "name": "Benachrichtigungsmodul"
       },
       "module_visitor": {
+        "description": "Besuchermodus-Modul aktivieren oder deaktivieren.",
         "name": "Besuchermodus-Modul"
       },
       "module_walk": {
+        "description": "Spaziergang-Modul aktivieren oder deaktivieren.",
         "name": "Spaziergang-Modul"
       },
       "module_weather": {
+        "description": "Wetter-Gesundheitsmodul aktivieren oder deaktivieren.",
         "name": "Wetter-Gesundheitsmodul"
       },
       "notifications_enabled": {
+        "description": "Benachrichtigungen aktiviert aktivieren oder deaktivieren.",
         "name": "Benachrichtigungen aktiviert"
       },
       "quiet_hours": {
+        "description": "Ruhezeiten aktivieren oder deaktivieren.",
         "name": "Ruhezeiten"
       },
       "snacks_enabled": {
+        "description": "Snacks aktiviert aktivieren oder deaktivieren.",
         "name": "Snacks aktiviert"
       },
       "storm_alerts": {
+        "description": "Sturm-Warnungen aktivieren oder deaktivieren.",
         "name": "Sturm-Warnungen"
       },
       "system_enabled": {
+        "description": "System aktiviert aktivieren oder deaktivieren.",
         "name": "System aktiviert"
       },
       "temperature_alerts": {
+        "description": "Temperatur-Warnungen aktivieren oder deaktivieren.",
         "name": "Temperatur-Warnungen"
       },
       "uv_alerts": {
+        "description": "UV-Warnungen aktivieren oder deaktivieren.",
         "name": "UV-Warnungen"
       },
       "visitor_mode": {
+        "description": "Besuchermodus aktivieren oder deaktivieren.",
         "name": "Besuchermodus"
       },
       "walk_reminders": {
+        "description": "Spaziergang-Erinnerungen aktivieren oder deaktivieren.",
         "name": "Spaziergang-Erinnerungen"
       },
       "weather_alerts": {
+        "description": "Wetter-Warnungen aktivieren oder deaktivieren.",
         "name": "Wetter-Warnungen"
       },
       "weather_recommendations": {
+        "description": "Wetter-Empfehlungen aktivieren oder deaktivieren.",
         "name": "Wetter-Empfehlungen"
       },
       "weight_alerts": {
+        "description": "Gewichts-Warnungen aktivieren oder deaktivieren.",
         "name": "Gewichts-Warnungen"
       }
     },
     "text": {
       "allergies": {
+        "description": "Details f\u00fcr Allergien & Einschr\u00e4nkungen eingeben.",
         "name": "Allergien & Einschr\u00e4nkungen"
       },
       "behavior_notes": {
+        "description": "Details f\u00fcr Verhaltensnotizen eingeben.",
         "name": "Verhaltensnotizen"
       },
       "breeder_info": {
+        "description": "Details f\u00fcr Z\u00fcchterinformationen eingeben.",
         "name": "Z\u00fcchterinformationen"
       },
       "current_walk_label": {
+        "description": "Details f\u00fcr Aktuelles Spaziergang-Label eingeben.",
         "name": "Aktuelles Spaziergang-Label"
       },
       "custom_label": {
+        "description": "Details f\u00fcr Benutzerdefiniertes Label eingeben.",
         "name": "Benutzerdefiniertes Label"
       },
       "custom_message": {
+        "description": "Details f\u00fcr Benutzerdefinierte Benachrichtigungsnachricht eingeben.",
         "name": "Benutzerdefinierte Benachrichtigungsnachricht"
       },
       "emergency_contact": {
+        "description": "Details f\u00fcr Notfallkontakt eingeben.",
         "name": "Notfallkontakt"
       },
       "grooming_notes": {
+        "description": "Details f\u00fcr Pflege-Notizen eingeben.",
         "name": "Pflege-Notizen"
       },
       "health_notes": {
+        "description": "Details f\u00fcr Gesundheitsnotizen eingeben.",
         "name": "Gesundheitsnotizen"
       },
       "insurance_info": {
+        "description": "Details f\u00fcr Versicherungsinformationen eingeben.",
         "name": "Versicherungsinformationen"
       },
       "location_description": {
+        "description": "Details f\u00fcr Ortsbeschreibung eingeben.",
         "name": "Ortsbeschreibung"
       },
       "medication_notes": {
+        "description": "Details f\u00fcr Medikationsnotizen eingeben.",
         "name": "Medikationsnotizen"
       },
       "microchip": {
+        "description": "Details f\u00fcr Mikrochip-ID eingeben.",
         "name": "Mikrochip-ID"
       },
       "notes": {
+        "description": "Details f\u00fcr Allgemeine Notizen eingeben.",
         "name": "Allgemeine Notizen"
       },
       "registration": {
+        "description": "Details f\u00fcr Registrierungsdetails eingeben.",
         "name": "Registrierungsdetails"
       },
       "training_notes": {
+        "description": "Details f\u00fcr Trainingsnotizen eingeben.",
         "name": "Trainingsnotizen"
       },
       "vet_notes": {
+        "description": "Details f\u00fcr Tierarzt-Notizen eingeben.",
         "name": "Tierarzt-Notizen"
       },
       "walk_notes": {
+        "description": "Details f\u00fcr Spaziergang-Notizen eingeben.",
         "name": "Spaziergang-Notizen"
       }
     }
@@ -1470,6 +1751,9 @@
       "gps_accuracy_not_numeric": "GPS-Genauigkeit muss eine Zahl sein",
       "gps_accuracy_out_of_range": "GPS-Genauigkeit liegt au\u00dferhalb des g\u00fcltigen Bereichs",
       "gps_accuracy_required": "GPS-Genauigkeit ist erforderlich",
+      "gps_update_interval_not_numeric": "GPS-Update-Intervall muss eine ganze Zahl sein",
+      "gps_update_interval_out_of_range": "GPS-Update-Intervall liegt au\u00dferhalb des g\u00fcltigen Bereichs",
+      "gps_update_interval_required": "GPS-Update-Intervall ist erforderlich",
       "invalid_api_endpoint": "API-Endpunkt muss eine g\u00fcltige http- oder https-URL sein",
       "invalid_configuration": "Ung\u00fcltige Konfiguration",
       "invalid_dog_name_length": "Der Hundename muss zwischen 2 und 30 Zeichen lang sein",
@@ -1490,6 +1774,12 @@
           "dashboard_name": "Dashboard-Name",
           "include_charts": "Diagramme einbeziehen"
         },
+        "data_description": {
+          "auto_create_dashboard": "Lovelace-Dashboard automatisch erstellen oder aktualisieren.",
+          "dashboard_mode": "W\u00e4hle, wie detailliert das Dashboard sein soll.",
+          "dashboard_name": "Name des Dashboards, das erstellt oder aktualisiert wird.",
+          "include_charts": "Zusammenfassende Diagramme im Dashboard anzeigen."
+        },
         "description": "Konfiguriere Dashboard-Erscheinungsbild und Layout.",
         "title": "Dashboard-Einstellungen"
       },
@@ -1504,6 +1794,16 @@
           "lunch_time": "Mittagszeit",
           "snacks_enabled": "Snacks aktivieren"
         },
+        "data_description": {
+          "breakfast_enabled": "Fr\u00fchst\u00fccksplan f\u00fcr diesen Hund aktivieren.",
+          "breakfast_time": "Uhrzeit f\u00fcr das Fr\u00fchst\u00fcck, wenn aktiviert.",
+          "dinner_enabled": "Abendessenplan f\u00fcr diesen Hund aktivieren.",
+          "dinner_time": "Uhrzeit f\u00fcr das Abendessen, wenn aktiviert.",
+          "feeding_reminders": "Erinnerungen vor geplanten Mahlzeiten senden.",
+          "lunch_enabled": "Mittagessensplan f\u00fcr diesen Hund aktivieren.",
+          "lunch_time": "Uhrzeit f\u00fcr das Mittagessen, wenn aktiviert.",
+          "snacks_enabled": "Snacks zus\u00e4tzlich zu den Mahlzeiten erfassen."
+        },
         "description": "Konfiguriere F\u00fctterungspl\u00e4ne und Erinnerungen.",
         "title": "F\u00fctterungseinstellungen"
       },
@@ -1514,6 +1814,13 @@
           "gps_accuracy_filter": "GPS-Genauigkeitsfilter (Meter)",
           "gps_distance_filter": "GPS-Distanzfilter (Meter)",
           "gps_update_interval": "GPS-Update-Intervall (Sekunden)"
+        },
+        "data_description": {
+          "auto_walk_detection": "Spazierg\u00e4nge automatisch anhand von Bewegung und GPS erkennen.",
+          "geofencing_enabled": "Sicherheitszonen-Benachrichtigungen aktivieren.",
+          "gps_accuracy_filter": "GPS-Updates unterhalb dieser Genauigkeit verwerfen.",
+          "gps_distance_filter": "Mindestabstand zwischen GPS-Updates.",
+          "gps_update_interval": "Intervall f\u00fcr GPS-Updates."
         },
         "description": "Konfiguriere GPS-Tracking-Parameter f\u00fcr optimale Leistung und Akkulaufzeit.",
         "title": "GPS & Tracking-Einstellungen"
@@ -1526,6 +1833,14 @@
           "vet_reminders": "Tierarzt-Erinnerungen",
           "weather_health_monitoring": "Wetter-Gesundheits\u00fcberwachung",
           "weight_tracking": "Gewichtsverfolgung"
+        },
+        "data_description": {
+          "grooming_interval": "Tage zwischen Pflegeerinnerungen.",
+          "health_tracking": "Gesundheits-Sensoren und Erinnerungen aktivieren.",
+          "medication_reminders": "Erinnerungen f\u00fcr Medikamente senden.",
+          "vet_reminders": "Erinnerungen an Tierarzttermine senden.",
+          "weather_health_monitoring": "Wetterbezogene Gesundheitshinweise aktivieren.",
+          "weight_tracking": "Gewichtsverfolgung und Warnungen aktivieren."
         },
         "description": "Konfiguriere Gesundheits\u00fcberwachung und Tierarzt-Erinnerungen.",
         "title": "Gesundheitseinstellungen"
@@ -1548,6 +1863,9 @@
         "data": {
           "action": "Aktion"
         },
+        "data_description": {
+          "action": "Hund hinzuf\u00fcgen, bearbeiten oder entfernen."
+        },
         "description": "Hunde zu deiner Konfiguration hinzuf\u00fcgen, bearbeiten oder entfernen.\n\nAktuell konfigurierte Hunde:\n{dogs_list}\n\nGesamtanzahl Hunde: {current_dogs_count}",
         "title": "Hunde verwalten"
       },
@@ -1560,6 +1878,15 @@
           "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
           "summary_notifications": "T\u00e4gliche Zusammenfassungs-Benachrichtigungen",
           "weather_alerts": "Wetter-Gesundheitswarnungen"
+        },
+        "data_description": {
+          "priority_notifications": "Wichtige Alarme sofort senden.",
+          "quiet_end": "Uhrzeit, wann die Ruhezeit endet.",
+          "quiet_hours": "Nicht kritische Meldungen w\u00e4hrend der Ruhezeit unterdr\u00fccken.",
+          "quiet_start": "Uhrzeit, wann die Ruhezeit beginnt.",
+          "reminder_repeat_min": "Minuten zwischen wiederholten Erinnerungen.",
+          "summary_notifications": "T\u00e4gliche Zusammenfassung senden.",
+          "weather_alerts": "Wetterbezogene Gesundheitswarnungen senden."
         },
         "description": "Konfiguriere wie und wann du Benachrichtigungen \u00fcber deine Hunde erh\u00e4ltst.",
         "title": "Benachrichtigungseinstellungen"
@@ -1605,6 +1932,17 @@
           "weather_entity": "Wetter-Entit\u00e4t",
           "weather_update_interval": "Wetter-Update-Intervall (Minuten)",
           "wind_alerts": "Wind-Warnungen"
+        },
+        "data_description": {
+          "enable_weather_alerts": "Warnungen senden, wenn Wettergrenzwerte \u00fcberschritten werden.",
+          "enable_weather_recommendations": "Wetterbasierte Pflegeempfehlungen anzeigen.",
+          "humidity_alerts": "Luftfeuchtigkeitswarnungen aktivieren.",
+          "storm_alerts": "Sturmwarnungen und Hinweise aktivieren.",
+          "temperature_alerts": "Temperatur-Sicherheitswarnungen aktivieren.",
+          "uv_alerts": "UV-Index-Warnungen aktivieren.",
+          "weather_entity": "Wetter-Entity f\u00fcr Forecasts ausw\u00e4hlen.",
+          "weather_update_interval": "Minuten zwischen Wetterdaten-Updates.",
+          "wind_alerts": "Windbezogene Sicherheitswarnungen aktivieren."
         },
         "description": "Konfiguriere wetterbasierte Gesundheitswarnungen und -empfehlungen f\u00fcr deine Hunde.",
         "title": "Wetter-Gesundheitseinstellungen"

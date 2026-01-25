@@ -978,7 +978,7 @@ async def test_system_settings_normalisation(
   runtime.script_manager = script_manager
 
   with patch(
-    "custom_components.pawcontrol.options_flow.get_runtime_data",
+    "custom_components.pawcontrol.options_flow_support.get_runtime_data",
     return_value=runtime,
   ):
     result = await flow.async_step_system_settings(
@@ -1083,7 +1083,7 @@ async def test_system_settings_manual_event_placeholders(
   runtime.script_manager = script_manager
 
   with patch(
-    "custom_components.pawcontrol.options_flow.get_runtime_data",
+    "custom_components.pawcontrol.options_flow_support.get_runtime_data",
     return_value=runtime,
   ):
     placeholders = flow._manual_event_description_placeholders()
@@ -1132,7 +1132,7 @@ async def test_manual_event_choices_support_disable_and_translations(
   runtime.script_manager = script_manager
 
   with patch(
-    "custom_components.pawcontrol.options_flow.get_runtime_data",
+    "custom_components.pawcontrol.options_flow_support.get_runtime_data",
     return_value=runtime,
   ):
     current_system = flow._current_system_options()
@@ -1672,11 +1672,11 @@ async def test_configure_door_sensor_normalises_and_persists(
 
   with (
     patch(
-      "custom_components.pawcontrol.options_flow.get_runtime_data",
+      "custom_components.pawcontrol.options_flow_support.get_runtime_data",
       return_value=runtime,
     ),
     patch(
-      "custom_components.pawcontrol.options_flow.require_runtime_data",
+      "custom_components.pawcontrol.options_flow_support.require_runtime_data",
       return_value=runtime,
     ),
   ):
@@ -1749,11 +1749,11 @@ async def test_configure_door_sensor_removal_clears_persistence(
 
   with (
     patch(
-      "custom_components.pawcontrol.options_flow.get_runtime_data",
+      "custom_components.pawcontrol.options_flow_support.get_runtime_data",
       return_value=runtime,
     ),
     patch(
-      "custom_components.pawcontrol.options_flow.require_runtime_data",
+      "custom_components.pawcontrol.options_flow_support.require_runtime_data",
       return_value=runtime,
     ),
   ):
@@ -1821,15 +1821,15 @@ async def test_configure_door_sensor_persistence_failure_records_telemetry(
 
   with (
     patch(
-      "custom_components.pawcontrol.options_flow.get_runtime_data",
+      "custom_components.pawcontrol.options_flow_support.get_runtime_data",
       return_value=runtime,
     ),
     patch(
-      "custom_components.pawcontrol.options_flow.require_runtime_data",
+      "custom_components.pawcontrol.options_flow_support.require_runtime_data",
       return_value=runtime,
     ),
     patch(
-      "custom_components.pawcontrol.options_flow.async_create_issue",
+      "custom_components.pawcontrol.options_flow_support.async_create_issue",
       new_callable=AsyncMock,
     ) as create_issue,
     patch(
@@ -1895,11 +1895,11 @@ async def test_configure_door_sensor_runtime_cache_unavailable(
 
   with (
     patch(
-      "custom_components.pawcontrol.options_flow.require_runtime_data",
+      "custom_components.pawcontrol.options_flow_support.require_runtime_data",
       side_effect=RuntimeDataUnavailableError("store unavailable"),
     ),
     patch(
-      "custom_components.pawcontrol.options_flow.async_create_issue",
+      "custom_components.pawcontrol.options_flow_support.async_create_issue",
       new_callable=AsyncMock,
     ) as create_issue,
   ):

@@ -127,7 +127,13 @@ from .types import (
   ServiceExecutionResult,
 )
 from .utils import async_capture_service_guard_results, async_fire_event
-from .validation import InputCoercionError, normalize_dog_id
+from .validation import (
+  InputCoercionError,
+  InputValidator,
+  ValidationError,
+  normalize_dog_id,
+  validate_gps_update_interval,
+)
 from .walk_manager import WeatherCondition
 
 SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
@@ -241,6 +247,34 @@ def _ensure_service_validation_alias(
   )
   _SERVICE_VALIDATION_ALIAS_CACHE[cache_key] = alias
   return alias
+
+
+def _format_gps_validation_error(
+  error: ValidationError,
+  *,
+  unit: str | None = None,
+) -> str:
+  """Format GPS-related validation errors for service responses."""
+
+  field = error.field
+  constraint = error.constraint
+
+  if constraint in {"gps_update_interval_required", "gps_accuracy_required"}:
+    return f"{field} is required"
+
+  if constraint == "gps_update_interval_not_numeric":
+    return f"{field} must be a whole number"
+
+  if constraint == "gps_accuracy_not_numeric":
+    return f"{field} must be a number"
+
+  if constraint in {"gps_update_interval_out_of_range", "gps_accuracy_out_of_range"}:
+    suffix = unit or ""
+    if error.min_value is not None and error.max_value is not None:
+      return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
+    return f"{field} is out of range"
+
+  return f"{field} is invalid"
 
 
 # PLATINUM: Enhanced validation ranges for service inputs
@@ -2575,6 +2609,35 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
     try:
+      try:
+        gps_accuracy_threshold = InputValidator.validate_gps_accuracy(
+          gps_accuracy_threshold,
+          required=True,
+          field="gps_accuracy_threshold",
+          min_value=5.0,
+          max_value=500.0,
+        )
+      except ValidationError as err:
+        raise _service_validation_error(
+          _format_gps_validation_error(err, unit=" m")
+        ) from err
+
+      try:
+        update_interval_seconds = cast(
+          int,
+          validate_gps_update_interval(
+            update_interval_seconds,
+            field="update_interval_seconds",
+            minimum=30,
+            maximum=600,
+            required=True,
+          ),
+        )
+      except ValidationError as err:
+        raise _service_validation_error(
+          _format_gps_validation_error(err, unit=" seconds")
+        ) from err
+
       # Configure automatic GPS settings for the dog
       gps_config: GPSTrackingConfigInput = {
         "enabled": True,
