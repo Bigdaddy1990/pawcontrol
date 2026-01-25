@@ -30,9 +30,7 @@ class _FakeServices:
 class _FakeHomeAssistant:
   """Minimal Home Assistant stub for validation tests."""
 
-  def __init__(
-    self, *, states: _FakeStates, services: _FakeServices
-  ) -> None:
+  def __init__(self, *, states: _FakeStates, services: _FakeServices) -> None:
     self.states = states
     self.services = services
 
@@ -48,9 +46,7 @@ def test_validate_gps_source_rejects_non_string() -> None:
 
 def test_validate_gps_source_rejects_unavailable_state() -> None:
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {"device_tracker.gps": SimpleNamespace(state="unavailable")}
-    ),
+    states=_FakeStates({"device_tracker.gps": SimpleNamespace(state="unavailable")}),
     services=_FakeServices({}),
   )
 
