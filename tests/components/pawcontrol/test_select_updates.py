@@ -71,8 +71,7 @@ async def test_default_meal_type_select_persists_config(
   await select.async_select_option("breakfast")
 
   assert (
-    data_manager._dogs_config["test_dog"]["feeding"]["default_meal_type"]
-    == "breakfast"
+    data_manager._dogs_config["test_dog"]["feeding"]["default_meal_type"] == "breakfast"
   )
 
 
