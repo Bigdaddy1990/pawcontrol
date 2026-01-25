@@ -164,7 +164,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
 
     dt_util = _DateTimeModule()
 
-from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
+from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
 from .service_guard import ServiceGuardResult
 
 if TYPE_CHECKING:
@@ -822,7 +822,7 @@ class PawControlDeviceLinkMixin:
     self._device_link_defaults: DeviceLinkDetails = {
       "manufacturer": MANUFACTURER,
       "model": DEFAULT_MODEL,
-      "sw_version": "1.0.0",
+      "sw_version": DEFAULT_SW_VERSION,
       "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
     }
     self._linked_device_entry: DeviceEntry | None = None
