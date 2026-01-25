@@ -25,12 +25,12 @@ verify during reviews.
 | stale-devices | `custom_components/pawcontrol/__init__.py` | `tests/helpers/homeassistant_test_stubs.py` | @BigDaddy1990 |
 | dynamic-devices | `custom_components/pawcontrol/` entity setup | `tests/helpers/homeassistant_test_stubs.py` | @BigDaddy1990 |
 | test-before-setup | `custom_components/pawcontrol/validation.py` | `tests/test_validation_inputs.py` | @BigDaddy1990 |
-| test-before-update | `custom_components/pawcontrol/coordinator.py`, `custom_components/pawcontrol/diagnostics.py` | `tests/test_diagnostics.py` | @BigDaddy1990 |
+| test-before-update | `custom_components/pawcontrol/coordinator.py`, `custom_components/pawcontrol/diagnostics.py` | `tests/test_diagnostics.py`, `tests/unit/test_coordinator_tasks.py`, `tests/unit/test_services.py` | @BigDaddy1990 |
 | test-before-unload | `custom_components/pawcontrol/__init__.py`, `custom_components/pawcontrol/runtime_data.py` | `tests/test_runtime_data.py` | @BigDaddy1990 |
 | test-coverage | `pyproject.toml` coverage config | `tests/` (including `tests/test_geofence_zone.py`, `tests/test_validation_inputs.py`) | @BigDaddy1990 |
 | brands | `brands/pawcontrol/` | N/A | @BigDaddy1990 |
 | documentation | `README.md`, `docs/user_guide.md`, `docs/automation_examples.md`, `docs/troubleshooting.md`, `docs/setup_installation_guide.md` | N/A | @BigDaddy1990 |
-| diagnostics | `custom_components/pawcontrol/diagnostics.py`, `docs/diagnostik.md` | `tests/test_diagnostics.py` | @BigDaddy1990 |
+| diagnostics | `custom_components/pawcontrol/diagnostics.py`, `docs/diagnostik.md` | `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, `tests/unit/test_services.py` | @BigDaddy1990 |
 | repairs | `custom_components/pawcontrol/repairs.py` | `tests/test_repairs.py` | @BigDaddy1990 |
 | maintenance-playbook | `dev.md` | N/A | @BigDaddy1990 |
 | localization | `custom_components/pawcontrol/strings.json`, `custom_components/pawcontrol/translations/` | `tests/test_localization_strings.py` | @BigDaddy1990 |
