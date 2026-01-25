@@ -5,16 +5,17 @@ Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der 
 ## 📋 Inhaltsverzeichnis
 
 1. [Voraussetzungen](#voraussetzungen)
-2. [Installation](#installation)
-3. [Grundkonfiguration](#grundkonfiguration)
-4. [Erweiterte Features](#erweiterte-features)
-5. [Garden Tracking Setup](#garden-tracking-setup)
-6. [Dashboard-Setup](#dashboard-setup)
-7. [Automatisierungen](#automatisierungen)
-8. [Mobile App Integration](#mobile-app-integration)
-9. [Troubleshooting](#troubleshooting)
-10. [Performance-Optimierung](#performance-optimierung)
-11. [Deinstallation & Aufräumen](#deinstallation--aufräumen)
+2. [Discovery & Voraussetzungen](#discovery--voraussetzungen)
+3. [Installation](#installation)
+4. [Grundkonfiguration](#grundkonfiguration)
+5. [Erweiterte Features](#erweiterte-features)
+6. [Garden Tracking Setup](#garden-tracking-setup)
+7. [Dashboard-Setup](#dashboard-setup)
+8. [Automatisierungen](#automatisierungen)
+9. [Mobile App Integration](#mobile-app-integration)
+10. [Troubleshooting](#troubleshooting)
+11. [Performance-Optimierung](#performance-optimierung)
+12. [Deinstallation & Aufräumen](#deinstallation--aufräumen)
 
 ## 🔧 Voraussetzungen
 
@@ -56,6 +57,52 @@ Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der 
 | Bewegungsmelder | PIR, Zigbee | Gartenaktivität | ⭐⭐ Mittel |
 | Kamera | Frigate, Reolink | Visuelle Überwachung | ⭐⭐⭐ Komplex |
 | Wetterdaten | OpenWeatherMap, local | Wetter-Integration | ⭐ Einfach |
+
+## 🔍 Discovery & Voraussetzungen
+
+PawControl nutzt die in der Manifest-Datei hinterlegten Discovery-Mechanismen,
+um Geräte in Home Assistant vorzuschlagen. Sobald ein Gerät erkannt wird,
+folgen Sie den UI-Schritten unter [Grundkonfiguration](#grundkonfiguration) und
+starten Sie mit [Schritt 1: Integration hinzufügen](#schritt-1-integration-hinzufügen).
+
+### DHCP
+
+- **Voraussetzungen:** Home Assistant und das Gerät müssen im selben
+  Netzwerksegment laufen, DHCP muss aktiv sein, und das Gerät muss den
+  erwarteten Hostnamen oder MAC-Präfix senden.
+- **UI-Setup:** Nach dem Fund erscheint die Integration in **Einstellungen → Geräte
+  & Dienste**; schließen Sie die Einrichtung wie in
+  [Schritt 1](#schritt-1-integration-hinzufügen) ab.
+
+### Bluetooth
+
+- **Voraussetzungen:** Aktivierter Bluetooth-Stack auf dem Host, kompatibler
+  Bluetooth-Adapter, sowie Zugriff durch Home Assistant (z. B. passende
+  Berechtigungen im Container).
+- **UI-Setup:** Starten Sie die Einrichtung über
+  [Schritt 1](#schritt-1-integration-hinzufügen), sobald das Gerät in der
+  Bluetooth-Übersicht auftaucht.
+
+### USB
+
+- **Voraussetzungen:** USB-Gerät direkt am Host angeschlossen, USB-Passthrough
+  aktiviert (bei Docker/VM), sowie ausreichende Zugriffsrechte auf `/dev`.
+- **UI-Setup:** Wenn das Gerät erkannt wird, fahren Sie mit
+  [Schritt 1](#schritt-1-integration-hinzufügen) fort.
+
+### HomeKit
+
+- **Voraussetzungen:** HomeKit-Controller in Home Assistant aktiviert,
+  funktionierendes mDNS/Bonjour im Netzwerk, Gerät im Pairing-Modus.
+- **UI-Setup:** Öffnen Sie die vorgeschlagene Integration in **Geräte & Dienste**
+  und folgen Sie [Schritt 1](#schritt-1-integration-hinzufügen).
+
+### Zeroconf
+
+- **Voraussetzungen:** mDNS/Avahi im Netzwerk erreichbar, Multicast auf dem
+  lokalen Netz erlaubt, Gerät sendet den passenden `_pawcontrol`/Vendor-Dienst.
+- **UI-Setup:** Nach der Zeroconf-Erkennung starten Sie die Einrichtung wie in
+  [Schritt 1](#schritt-1-integration-hinzufügen) beschrieben.
 
 ## 📦 Installation
 
