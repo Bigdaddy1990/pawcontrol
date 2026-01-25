@@ -118,7 +118,31 @@ action:
       message: "Log Buddy's weight in PawControl."
 ```
 
-## 7) Blueprint: reusable walk reminder
+## 7) Device automations (trigger, condition, action)
+
+**Goal:** use the built-in PawControl device automations for hungry alerts and walk handling.
+
+```yaml
+alias: PawControl - device automation demo
+trigger:
+  - platform: device
+    domain: pawcontrol
+    device_id: YOUR_PAWCONTROL_DOG_DEVICE_ID
+    type: hungry
+condition:
+  - condition: device
+    domain: pawcontrol
+    device_id: YOUR_PAWCONTROL_DOG_DEVICE_ID
+    type: in_safe_zone
+action:
+  - domain: pawcontrol
+    device_id: YOUR_PAWCONTROL_DOG_DEVICE_ID
+    type: log_feeding
+    amount: 120
+    meal_type: dinner
+```
+
+## 8) Blueprint: reusable walk reminder
 
 **Goal:** create a reusable automation with inputs for different dogs.
 
