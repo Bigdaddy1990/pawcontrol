@@ -838,7 +838,7 @@ class PawControlConfigFlow(
 
     self._profile_estimates_cache.clear()
 
-  def _estimate_total_entities_cached(self) -> int:
+  async def _estimate_total_entities_cached(self) -> int:
     """Estimate total entities with improved caching."""
 
     dogs_signature = hash(
@@ -862,7 +862,7 @@ class PawControlConfigFlow(
     for dog in self._dogs:
       module_flags_mapping = ensure_dog_modules_mapping(dog)
       module_flags = {key: bool(value) for key, value in module_flags_mapping.items()}
-      total += self._entity_factory.estimate_entity_count(
+      total += await self._entity_factory.estimate_entity_count_async(
         self._entity_profile,
         module_flags,
       )
@@ -1182,7 +1182,7 @@ class PawControlConfigFlow(
             {
               "dogs_count": str(len(self._dogs)),
               "profiles_info": self._get_profiles_info_enhanced(),
-              "estimated_entities": str(self._estimate_total_entities()),
+              "estimated_entities": str(await self._estimate_total_entities()),
               "profiles_summary": build_profile_summary_text(),
               "recommendation": self._get_profile_recommendation(),
             },
@@ -1273,7 +1273,7 @@ class PawControlConfigFlow(
         if not is_dog_config_valid(dog)
       ]
 
-      estimated_entities = self._estimate_total_entities_cached()
+      estimated_entities = await self._estimate_total_entities_cached()
       if estimated_entities > 200:
         errors.append(
           f"Too many estimated entities: {estimated_entities}",
@@ -1404,13 +1404,13 @@ class PawControlConfigFlow(
     """
     return f"Paw Control ({profile_info['name']})"
 
-  def _estimate_total_entities(self) -> int:
+  async def _estimate_total_entities(self) -> int:
     """Estimate total entities with caching.
 
     Returns:
         Estimated total entity count
     """
-    return self._estimate_total_entities_cached()
+    return await self._estimate_total_entities_cached()
 
   def _format_dogs_list_enhanced(self) -> str:
     """Format enhanced list of configured dogs.
@@ -2359,7 +2359,7 @@ class PawControlConfigFlow(
       for dog in dogs:
         if not is_dog_config_valid(dog):
           continue
-        total += self._entity_factory.estimate_entity_count(
+        total += await self._entity_factory.estimate_entity_count_async(
           profile,
           ensure_dog_modules_mapping(dog),
         )
