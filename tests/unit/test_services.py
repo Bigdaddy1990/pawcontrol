@@ -832,6 +832,70 @@ async def _setup_service_environment(
 
 
 @pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_setup_services_registers_expected_services(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """Service setup should register the documented set and skip legacy entries."""
+
+  coordinator = _CoordinatorStub(SimpleNamespace())
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+
+  expected_services = {
+    services.SERVICE_ADD_FEEDING,
+    services.SERVICE_FEED_DOG,
+    services.SERVICE_START_WALK,
+    services.SERVICE_END_WALK,
+    services.SERVICE_ADD_GPS_POINT,
+    services.SERVICE_UPDATE_HEALTH,
+    services.SERVICE_LOG_HEALTH,
+    services.SERVICE_LOG_MEDICATION,
+    services.SERVICE_LOG_POOP,
+    services.SERVICE_START_GROOMING,
+    services.SERVICE_TOGGLE_VISITOR_MODE,
+    services.SERVICE_GPS_START_WALK,
+    services.SERVICE_GPS_END_WALK,
+    services.SERVICE_GPS_POST_LOCATION,
+    services.SERVICE_GPS_EXPORT_ROUTE,
+    services.SERVICE_SETUP_AUTOMATIC_GPS,
+    services.SERVICE_SEND_NOTIFICATION,
+    services.SERVICE_ACKNOWLEDGE_NOTIFICATION,
+    services.SERVICE_CALCULATE_PORTION,
+    services.SERVICE_EXPORT_DATA,
+    services.SERVICE_ANALYZE_PATTERNS,
+    services.SERVICE_GENERATE_REPORT,
+    services.SERVICE_DAILY_RESET,
+    services.SERVICE_RECALCULATE_HEALTH_PORTIONS,
+    services.SERVICE_ADJUST_CALORIES_FOR_ACTIVITY,
+    services.SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
+    services.SERVICE_FEED_WITH_MEDICATION,
+    services.SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
+    services.SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
+    services.SERVICE_START_DIET_TRANSITION,
+    services.SERVICE_CHECK_FEEDING_COMPLIANCE,
+    services.SERVICE_ADJUST_DAILY_PORTIONS,
+    services.SERVICE_ADD_HEALTH_SNACK,
+    services.SERVICE_START_GARDEN,
+    services.SERVICE_END_GARDEN,
+    services.SERVICE_ADD_GARDEN_ACTIVITY,
+    services.SERVICE_CONFIRM_POOP,
+    services.SERVICE_UPDATE_WEATHER,
+    services.SERVICE_GET_WEATHER_ALERTS,
+    services.SERVICE_GET_WEATHER_RECOMMENDATIONS,
+  }
+
+  assert set(hass.services.handlers) == expected_services
+
+  assert "gps_generate_diagnostics" not in hass.services.handlers
+  assert "garden_generate_diagnostics" not in hass.services.handlers
+  assert "garden_history_purge" not in hass.services.handlers
+  assert "recalculate_garden_stats" not in hass.services.handlers
+  assert "archive_old_garden_sessions" not in hass.services.handlers
+
+
+@pytest.mark.unit
 def test_capture_cache_diagnostics_returns_snapshot() -> None:
   """Helper should normalise diagnostics payloads provided by the data manager."""
 
