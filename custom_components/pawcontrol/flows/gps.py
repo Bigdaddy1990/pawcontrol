@@ -77,8 +77,12 @@ from ..types import (
   ensure_dog_options_entry,
   freeze_placeholders,
 )
-from ..validation import InputValidator, validate_float_range, validate_interval
-from ..validators import validate_gps_source, validate_radius, validate_timer
+from ..validation import (
+  InputValidator,
+  validate_float_range,
+  validate_gps_source,
+  validate_interval,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -262,11 +266,12 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_source = "manual"
 
       try:
-        gps_update_interval = validate_timer(
+        gps_update_interval = validate_interval(
           user_input.get("gps_update_interval"),
           field="gps_update_interval",
-          min_value=5,
-          max_value=600,
+          minimum=5,
+          maximum=600,
+          required=True,
         )
       except ValidationError:
         errors["gps_update_interval"] = "invalid_interval"
@@ -622,11 +627,12 @@ class GPSOptionsMixin(GPSOptionsHost):
       errors: dict[str, str] = {}
 
       try:
-        gps_update_interval = validate_timer(
+        gps_update_interval = validate_interval(
           user_input.get(GPS_UPDATE_INTERVAL_FIELD),
           field=GPS_UPDATE_INTERVAL_FIELD,
-          min_value=5,
-          max_value=600,
+          minimum=5,
+          maximum=600,
+          required=True,
         )
       except ValidationError:
         errors[GPS_UPDATE_INTERVAL_FIELD] = "invalid_interval"
@@ -648,22 +654,24 @@ class GPSOptionsMixin(GPSOptionsHost):
         gps_accuracy = DEFAULT_GPS_ACCURACY_FILTER
 
       try:
-        gps_distance = validate_radius(
+        gps_distance = validate_float_range(
           user_input.get(GPS_DISTANCE_FILTER_FIELD),
           field=GPS_DISTANCE_FILTER_FIELD,
-          min_value=1,
-          max_value=2000,
+          minimum=1.0,
+          maximum=2000.0,
+          required=True,
         )
       except ValidationError:
         errors[GPS_DISTANCE_FILTER_FIELD] = "invalid_distance"
         gps_distance = DEFAULT_GPS_DISTANCE_FILTER
 
       try:
-        route_history = validate_timer(
+        route_history = validate_interval(
           user_input.get(ROUTE_HISTORY_DAYS_FIELD),
           field=ROUTE_HISTORY_DAYS_FIELD,
-          min_value=1,
-          max_value=365,
+          minimum=1,
+          maximum=365,
+          required=True,
         )
       except ValidationError:
         errors[ROUTE_HISTORY_DAYS_FIELD] = "invalid_interval"

@@ -31,8 +31,13 @@ from .types import (
   FlowInputMapping,
   validate_dog_weight_for_size,
 )
-from .validators import validate_name
-from .validation import InputCoercionError, coerce_float, coerce_int, normalize_dog_id
+from .validation import (
+  InputCoercionError,
+  coerce_float,
+  coerce_int,
+  normalize_dog_id,
+  validate_name,
+)
 
 MAX_BREED_NAME_LENGTH = 100
 

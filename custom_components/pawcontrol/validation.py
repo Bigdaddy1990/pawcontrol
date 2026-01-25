@@ -12,11 +12,21 @@ from __future__ import annotations
 
 import re
 from numbers import Real
-from typing import Any, Final, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+from .const import (
+  CONF_DOG_NAME,
+  CONF_GPS_SOURCE,
+  CONF_NOTIFY_FALLBACK,
+  MAX_DOG_NAME_LENGTH,
+  MIN_DOG_NAME_LENGTH,
+)
 from .exceptions import ValidationError as PawControlValidationError
+
+if TYPE_CHECKING:
+  from homeassistant.core import HomeAssistant
 
 ensure_homeassistant_exception_symbols()
 ServiceValidationError: type[Exception] = cast(
@@ -266,6 +276,38 @@ def validate_dog_name(
   return trimmed
 
 
+def validate_name(
+  raw_name: Any,
+  *,
+  field: str = CONF_DOG_NAME,
+  min_length: int = MIN_DOG_NAME_LENGTH,
+  max_length: int = MAX_DOG_NAME_LENGTH,
+) -> str:
+  """Validate and normalize a name string."""
+
+  if not isinstance(raw_name, str):
+    raise ValidationError(field, raw_name, "name_invalid_type")
+
+  name = raw_name.strip()
+  if not name:
+    raise ValidationError(field, raw_name, "name_required")
+  if len(name) < min_length:
+    raise ValidationError(
+      field,
+      name,
+      "name_too_short",
+      min_value=min_length,
+    )
+  if len(name) > max_length:
+    raise ValidationError(
+      field,
+      name,
+      "name_too_long",
+      max_value=max_length,
+    )
+  return name
+
+
 def validate_coordinate(
   value: Any,
   *,
@@ -299,6 +341,59 @@ def validate_coordinate(
       max_value=maximum,
     )
   return coordinate
+
+
+def validate_gps_source(
+  hass: HomeAssistant,
+  gps_source: Any,
+  *,
+  field: str = CONF_GPS_SOURCE,
+  allow_manual: bool = True,
+) -> str:
+  """Validate a GPS source entity or manual selection."""
+
+  if not isinstance(gps_source, str):
+    raise ValidationError(field, gps_source, "gps_source_required")
+
+  candidate = gps_source.strip()
+  if not candidate:
+    raise ValidationError(field, gps_source, "gps_source_required")
+
+  if allow_manual and candidate == "manual":
+    return candidate
+
+  state = hass.states.get(candidate)
+  if state is None:
+    raise ValidationError(field, candidate, "gps_source_not_found")
+  if state.state in {"unknown", "unavailable"}:
+    raise ValidationError(field, candidate, "gps_source_unavailable")
+
+  return candidate
+
+
+def validate_notify_service(
+  hass: HomeAssistant,
+  notify_service: Any,
+  *,
+  field: str = CONF_NOTIFY_FALLBACK,
+) -> str:
+  """Validate notification service selection."""
+
+  if not isinstance(notify_service, str):
+    raise ValidationError(field, notify_service, "notify_service_invalid")
+  candidate = notify_service.strip()
+  if not candidate:
+    raise ValidationError(field, notify_service, "notify_service_invalid")
+
+  service_parts = candidate.split(".", 1)
+  if len(service_parts) != 2 or service_parts[0] != "notify":
+    raise ValidationError(field, candidate, "notify_service_invalid")
+
+  services = hass.services.async_services().get("notify", {})
+  if service_parts[1] not in services:
+    raise ValidationError(field, candidate, "notify_service_not_found")
+
+  return candidate
 
 
 def validate_interval(
