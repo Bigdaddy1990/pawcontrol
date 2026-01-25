@@ -22,6 +22,8 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
   ATTR_DOG_ID,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
   DOMAIN,
   MODULE_GPS,
   MODULE_HEALTH,
@@ -366,9 +368,8 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
-      model="Smart Dog",
-      sw_version="1.0.0",
-      configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
     )
 
   @property

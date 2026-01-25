@@ -194,13 +194,13 @@ class ReauthFlowMixin(ReauthFlowHost):
 
   async def async_step_reauth(
     self,
-    entry_data: Mapping[str, object],
+    _entry_data: Mapping[str, object],
   ) -> ConfigFlowResult:
     """Handle reauthentication flow with enhanced error handling."""
 
     _LOGGER.debug(
-      "Starting reauthentication flow for entry data: %s",
-      entry_data,
+      "Starting reauthentication flow (event=reauth_start entry_id=%s)",
+      self.context.get("entry_id"),
     )
 
     try:
@@ -284,8 +284,8 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     if invalid_dogs:
       _LOGGER.warning(
-        "Invalid dog configurations found during reauth: %s",
-        ", ".join(invalid_dogs),
+        "Invalid dog configurations found during reauth: %d invalid entries",
+        len(invalid_dogs),
       )
       if len(invalid_dogs) == len(dogs):
         raise ValidationError(
@@ -319,6 +319,10 @@ class ReauthFlowMixin(ReauthFlowHost):
     if user_input is not None:
       if user_input.get("confirm", False):
         try:
+          _LOGGER.debug(
+            "Reauthentication confirmation received (event=reauth_confirm entry_id=%s)",
+            self.reauth_entry.entry_id,
+          )
           async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
             await self.async_set_unique_id(self.reauth_entry.unique_id)
             self._abort_if_unique_id_mismatch(
@@ -383,12 +387,20 @@ class ReauthFlowMixin(ReauthFlowHost):
 
             if not summary.get("healthy", True):
               _LOGGER.warning(
-                "Configuration health issues detected: %s",
-                summary.get("issues", []),
+                "Configuration health issues detected: %d",
+                len(self._normalise_string_list(summary.get("issues", []))),
               )
 
             data_updates, options_updates = self._build_reauth_updates(
               summary,
+            )
+
+            _LOGGER.info(
+              "Reauthentication succeeded (event=reauth_success entry_id=%s dogs=%d issues=%d warnings=%d)",
+              self.reauth_entry.entry_id,
+              summary.get("total_dogs", 0),
+              len(self._normalise_string_list(summary.get("issues", []))),
+              len(self._normalise_string_list(summary.get("warnings", []))),
             )
 
             return await self.async_update_reload_and_abort(

@@ -41,6 +41,8 @@ from .const import (
   CONF_GROOMING_INTERVAL,
   CONF_HOME_ZONE_RADIUS,
   CONF_MEALS_PER_DAY,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
   MAX_DOG_AGE,
   MAX_DOG_WEIGHT,
   MIN_DOG_AGE,
@@ -532,9 +534,8 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
-      model="Smart Dog Monitoring",
-      sw_version="1.0.0",
-      configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
     )
 
   async def async_added_to_hass(self) -> None:
