@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import MappingProxyType
 
 import pytest
-from custom_components.pawcontrol.config_flow import (
+from custom_components.pawcontrol.config_flow_placeholders import (
   _build_add_another_placeholders,
   _build_add_dog_summary_placeholders,
   _build_dog_modules_form_placeholders,
