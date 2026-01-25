@@ -971,13 +971,11 @@ class DashboardRenderer:
       )
 
       def _create_temp_path() -> Path:
-        temp_file = tempfile.NamedTemporaryFile(
+        with tempfile.NamedTemporaryFile(
           delete=False,
           dir=file_path.parent,
-        )
-        temp_path = Path(temp_file.name)
-        temp_file.close()
-        return temp_path
+        ) as temp_file:
+          return Path(temp_file.name)
 
       temp_path = await self.hass.async_add_executor_job(_create_temp_path)
 
