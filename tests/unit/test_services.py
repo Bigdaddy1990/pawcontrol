@@ -1819,17 +1819,13 @@ async def test_setup_automatic_gps_service_rejects_invalid_interval(
     match="update_interval_seconds must be a whole number",
   ):
     await handler(
-      SimpleNamespace(
-        data={"dog_id": "fido", "update_interval_seconds": "fast"}
-      )
+      SimpleNamespace(data={"dog_id": "fido", "update_interval_seconds": "fast"})
     )
 
   result = runtime_data.performance_stats["last_service_result"]
   assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
   assert result["status"] == "error"
-  assert "update_interval_seconds must be a whole number" in result.get(
-    "message", ""
-  )
+  assert "update_interval_seconds must be a whole number" in result.get("message", "")
 
 
 @pytest.mark.unit
