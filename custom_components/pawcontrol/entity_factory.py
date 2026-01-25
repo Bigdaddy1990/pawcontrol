@@ -1081,6 +1081,33 @@ class EntityFactory:
     self._ensure_min_runtime(started_at)
     return result
 
+  async def estimate_entity_count_async(
+    self,
+    profile: str,
+    modules: Mapping[str, bool],
+  ) -> int:
+    """Estimate entity count without blocking the event loop."""
+
+    started_at = time.perf_counter()
+    estimate = self._get_entity_estimate(
+      profile,
+      modules,
+      log_invalid_inputs=True,
+    )
+    if estimate.raw_total > estimate.capacity:
+      _LOGGER.debug(
+        "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
+        estimate.raw_total,
+        estimate.capacity,
+        estimate.profile,
+      )
+
+    self._update_last_estimate_state(estimate)
+    self._stabilize_priority_workload(5, "estimate")
+    result = estimate.final_count
+    await self._ensure_min_runtime_async(started_at)
+    return result
+
   def should_create_entity(
     self,
     profile: str,
@@ -1169,6 +1196,85 @@ class EntityFactory:
     self._ensure_min_runtime(started_at)
     return result
 
+  async def should_create_entity_async(
+    self,
+    profile: str,
+    entity_type: str | Enum,
+    module: str,
+    priority: int = 5,
+  ) -> bool:
+    """Determine entity creation without blocking the event loop."""
+
+    started_at = time.perf_counter()
+    cache_key = (
+      profile,
+      str(
+        entity_type.value
+        if isinstance(
+          entity_type,
+          Enum,
+        )
+        else entity_type,
+      ),
+      module,
+      int(priority),
+    )
+
+    cached = self._should_create_cache.get(cache_key)
+    if cached is not None:
+      self._should_create_hits += 1
+      self._stabilize_priority_workload(priority, module)
+      await self._ensure_min_runtime_async(started_at)
+      return cached
+
+    if not self._validate_profile(profile):
+      profile = "standard"
+
+    platform = self._resolve_platform(entity_type)
+    if platform is None:
+      _LOGGER.warning("Invalid entity type: %s", entity_type)
+      await self._ensure_min_runtime_async(started_at)
+      return False
+
+    if module not in KNOWN_MODULES:
+      _LOGGER.warning(
+        "Unknown module '%s' requested platform '%s'",
+        module,
+        platform.value,
+      )
+      await self._ensure_min_runtime_async(started_at)
+      return False
+
+    profile_config = ENTITY_PROFILES[profile]
+    priority_threshold = profile_config.priority_threshold
+
+    # Critical entities always created (priority >= 9)
+    if priority >= 9:
+      await self._ensure_min_runtime_async(started_at)
+      return True
+
+    # Apply priority threshold
+    if priority < priority_threshold:
+      await self._ensure_min_runtime_async(started_at)
+      return False
+
+    # Profile-specific entity filtering
+    result = self._apply_profile_specific_rules(
+      profile,
+      platform,
+      module,
+      priority,
+    )
+
+    self._should_create_misses += 1
+    self._should_create_cache[cache_key] = result
+    if len(self._should_create_cache) > _ESTIMATE_CACHE_MAX_SIZE:
+      self._should_create_cache.popitem(last=False)
+
+    self._stabilize_priority_workload(priority, module)
+    await self._ensure_min_runtime_async(started_at)
+    return result
+
   def _ensure_min_runtime(self, started_at: float) -> None:
     """Sleep until ``_MIN_OPERATION_DURATION`` elapses when enabled."""
 
@@ -1216,6 +1322,49 @@ class EntityFactory:
       if current - spin_checkpoint > _SPIN_YIELD_THRESHOLD:
         time.sleep(0)
         spin_checkpoint = time.perf_counter()
+
+    self._recalibrate_runtime_floor(time.perf_counter() - started_at)
+
+  async def _ensure_min_runtime_async(self, started_at: float) -> None:
+    """Yield control until ``_MIN_OPERATION_DURATION`` elapses when enabled."""
+
+    if not self._enforce_min_runtime:
+      self._record_runtime_guard_calibration("disabled", 0.0)
+      return
+
+    runtime_floor = self._runtime_guard_floor
+    deadline = started_at + runtime_floor
+    remaining = deadline - time.perf_counter()
+    if remaining <= 0:
+      self._recalibrate_runtime_floor(time.perf_counter() - started_at)
+      return
+
+    while remaining > _COARSE_SLEEP_THRESHOLD:
+      coarse_sleep = max(
+        remaining - _COARSE_SLEEP_BUFFER,
+        _COARSE_SLEEP_BUFFER,
+      )
+      await asyncio.sleep(coarse_sleep)
+      remaining = deadline - time.perf_counter()
+      if remaining <= 0:
+        self._recalibrate_runtime_floor(
+          time.perf_counter() - started_at,
+        )
+        return
+
+    if remaining <= 0:
+      self._recalibrate_runtime_floor(time.perf_counter() - started_at)
+      return
+
+    spin_deadline = deadline
+    spin_checkpoint = time.perf_counter()
+
+    while (current := time.perf_counter()) < spin_deadline:
+      if current - spin_checkpoint > _SPIN_YIELD_THRESHOLD:
+        await asyncio.sleep(0)
+        spin_checkpoint = time.perf_counter()
+      else:
+        await asyncio.sleep(0)
 
     self._recalibrate_runtime_floor(time.perf_counter() - started_at)
 
