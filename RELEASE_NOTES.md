@@ -15,7 +15,7 @@
 - **Automated Tests:** A growing suite of unit and integration tests (many still require Home Assistant stubs to run outside a full core environment)
 - **Quality Scale:** Platinum declaration with evidence tracked in `custom_components/pawcontrol/quality_scale.yaml`
 - **HACS Path:** Repository layout aligns with expectations, but brand assets and review are still pending
-- **Documentation:** Installation and core service guides are published, and the dedicated [diagnostics playbook](docs/diagnostik.md) plus the [maintenance guide](docs/MAINTENANCE.md) keep support and sustainment teams aligned
+- **Documentation:** Installation and core service guides are published, and the dedicated [diagnostics playbook](docs/diagnostics.md) plus the [maintenance guide](docs/MAINTENANCE.md) keep support and sustainment teams aligned
 
 ### ✅ **Enterprise Architecture**
 - **10 Platforms:** Complete HA platform coverage
