@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import cast
 
-from custom_components.pawcontrol.config_flow_gps import GPSModuleDefaultsMixin
+from custom_components.pawcontrol.flows.gps import GPSModuleDefaultsMixin
 from custom_components.pawcontrol.const import MODULE_GPS
 from custom_components.pawcontrol.types import DogConfigData
 
