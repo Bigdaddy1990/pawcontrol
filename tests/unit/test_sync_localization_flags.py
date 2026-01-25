@@ -20,7 +20,7 @@ def _build_translations(
 def test_update_markdown_table_writes_expected_rows(tmp_path: Path) -> None:
   """The Markdown helper should replace the setup-flags table in-place."""
 
-  markdown = tmp_path / "diagnostik.md"
+  markdown = tmp_path / "diagnostics.md"
   markdown.write_text(
     "\n".join(
       [
@@ -56,7 +56,7 @@ def test_update_markdown_table_writes_expected_rows(tmp_path: Path) -> None:
 def test_update_markdown_table_check_mode_detects_drift(tmp_path: Path) -> None:
   """Check-only runs should fail when the Markdown table differs."""
 
-  markdown = tmp_path / "diagnostik.md"
+  markdown = tmp_path / "diagnostics.md"
   markdown.write_text(
     "\n".join(
       [

@@ -1212,7 +1212,7 @@ documentation stay in sync:
    `en.json` template. The script will create `custom_components/pawcontrol/translations/<lang>.json`
    if it does not exist and synchronise the setup-flag keys across all locales.
 3. Translate the new file as needed and update the localization table in
-   [`docs/diagnostik.md`](docs/diagnostik.md) so every key displays a column for the
+   [`docs/diagnostics.md`](docs/diagnostics.md) so every key displays a column for the
    new language.
 4. Re-run `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist --check`
    to verify nothing drifted, then execute `ruff check` and the unit tests before

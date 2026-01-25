@@ -1,9 +1,9 @@
-# Diagnostik
+# Diagnostics
 
-## Setup-Flags-Lokalisierung
+## Setup Flags Localization
 
-Die folgende Tabelle listet die Setup-Flag-Übersetzungen für jede unterstützte
-Sprache. Sie wird automatisch durch `scripts/sync_localization_flags` gepflegt.
+The following table lists the setup flag translations for each supported
+language. It is maintained automatically by `scripts/sync_localization_flags`.
 
 <!-- START_SETUP_FLAGS_TABLE -->
 | Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanisch (`es`) | Französisch (`fr`) |
@@ -20,25 +20,23 @@ Sprache. Sie wird automatisch durch `scripts/sync_localization_flags` gepflegt.
 | component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen | Configuración del sistema | Paramètres système |
 <!-- END_SETUP_FLAGS_TABLE -->
 
-## Benachrichtigungen
+## Notifications
 
-Die Diagnostik-Payload enthält unter `notifications.rejection_metrics` eine
-zusätzliche Zusammenfassung für Benachrichtigungs-Ablehnungen/Fehler. Die Werte
-werden aus dem `delivery_status` des Notification-Managers abgeleitet und
-erleichtern die Analyse von fehlerhaften oder abgelehnten Zustellungen pro
-Notify-Service.
+The diagnostics payload includes an additional summary for notification
+rejections or failures under `notifications.rejection_metrics`. The values are
+derived from the Notification Manager's `delivery_status` and make it easier to
+analyze failed or rejected deliveries per notify service.
 
-Felder:
+Fields:
 
-- `schema_version`: Version des Rejection-Schemas (aktuell `1`).
-- `total_services`: Anzahl der bekannten Notify-Services im Snapshot.
-- `total_failures`: Summe aller Fehlzustellungen über alle Services.
-- `services_with_failures`: Liste der Services mit mindestens einer
-  Fehlzustellung.
-- `service_failures`: Mapping `{service_name: total_failures}` je Service.
-- `service_consecutive_failures`: Mapping `{service_name: consecutive_failures}`
-  je Service.
-- `service_last_error_reasons`: Mapping `{service_name: last_error_reason}` je
-  Service (z. B. `missing_notify_service`, `service_not_executed`).
-- `service_last_errors`: Mapping `{service_name: last_error}` je Service (inkl.
-  Exception-Text, falls vorhanden).
+- `schema_version`: Version of the rejection schema (currently `1`).
+- `total_services`: Number of known notify services in the snapshot.
+- `total_failures`: Sum of failed deliveries across all services.
+- `services_with_failures`: List of services with at least one failed delivery.
+- `service_failures`: Mapping `{service_name: total_failures}` per service.
+- `service_consecutive_failures`: Mapping
+  `{service_name: consecutive_failures}` per service.
+- `service_last_error_reasons`: Mapping `{service_name: last_error_reason}` per
+  service (for example, `missing_notify_service`, `service_not_executed`).
+- `service_last_errors`: Mapping `{service_name: last_error}` per service
+  (including exception text, when available).
