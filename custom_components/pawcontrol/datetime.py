@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
-from typing import cast
 
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.core import HomeAssistant
@@ -468,24 +468,19 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
 
   async def _apply_next_feeding_update(self, payload: JSONMutableMapping) -> None:
     """Apply next feeding updates to cached coordinator data."""
-    coordinator_payload = cast(
-      Mapping[str, JSONMutableMapping] | None,
-      self.coordinator.data,
-    )
-    coordinator_data: dict[str, JSONMutableMapping] = (
-      dict(coordinator_payload) if coordinator_payload else {}
-    )
-    existing_dog = coordinator_data.get(self._dog_id)
-    dog_data: JSONMutableMapping = (
-      dict(existing_dog) if isinstance(existing_dog, Mapping) else {}
-    )
-    existing_feeding = dog_data.get("feeding")
-    feeding_data: JSONMutableMapping = (
-      dict(existing_feeding) if isinstance(existing_feeding, Mapping) else {}
-    )
+    coordinator_data = copy.deepcopy(self.coordinator.data) or {}
+
+    dog_data = coordinator_data.setdefault(self._dog_id, {})
+    if not isinstance(dog_data, dict):
+      dog_data = {}
+      coordinator_data[self._dog_id] = dog_data
+
+    feeding_data = dog_data.setdefault("feeding", {})
+    if not isinstance(feeding_data, dict):
+      feeding_data = {}
+      dog_data["feeding"] = feeding_data
+
     feeding_data.update(payload)
-    dog_data["feeding"] = feeding_data
-    coordinator_data[self._dog_id] = dog_data
     update_result = self.coordinator.async_set_updated_data(coordinator_data)
     if asyncio.iscoroutine(update_result):
       await update_result
