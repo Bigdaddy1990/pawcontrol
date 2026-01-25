@@ -92,8 +92,10 @@ def _resolve_get_runtime_data():
   """Return the patched runtime data helper when available."""
 
   try:
-    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
-    patched = getattr(options_flow_module, "get_runtime_data", None)
+    support_module = import_module(
+      "custom_components.pawcontrol.options_flow_support",
+    )
+    patched = getattr(support_module, "get_runtime_data", None)
     if callable(patched):
       return patched
   except Exception:
