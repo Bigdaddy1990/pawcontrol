@@ -231,7 +231,7 @@ def _disable_debug_logging(entry: PawControlConfigEntry) -> None:
 
 ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 
-# PawControl is configured exclusively via the UI/config entries
+# PawControl is configured exclusively via the UI/config entries (no YAML setup).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # OPTIMIZED: Enhanced platform determination cache with TTL and monitoring

@@ -49,7 +49,8 @@
 
 1. Install via HACS or manual copy.
 2. Restart Home Assistant.
-3. Add **Paw Control** in **Settings → Devices & Services**.
+3. Add **Paw Control** in **Settings → Devices & Services** (UI-only; no
+   `configuration.yaml` setup).
 4. Follow the guided setup to add your first dog and enable modules.
 5. Review the generated entities, services, and dashboard cards.
 
@@ -1061,9 +1062,9 @@ data:
 
 ### Debug Mode
 
-**Enable Detailed Logging**:
+**Enable Detailed Logging (optional)**:
 ```yaml
-# Add to configuration.yaml
+# Add to configuration.yaml (logging only; PawControl setup stays UI-only)
 logger:
   logs:
     custom_components.pawcontrol: debug
