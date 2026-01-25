@@ -1654,6 +1654,16 @@ class DogGPSConfig(TypedDict, total=False):
   home_zone_radius: int | float
 
 
+class DogWalkConfig(TypedDict, total=False):
+  """Walk configuration captured during the dog setup flow."""
+
+  daily_walk_target: int
+  walk_duration_target: int
+  walk_distance_target: int
+  reminder_hours: int
+  max_walk_speed: float | int
+
+
 class DogGPSStepInput(TypedDict, total=False):
   """Raw GPS form payload provided during per-dog configuration."""
 
@@ -6394,6 +6404,7 @@ class DogConfigData(TypedDict, total=False):
   dog_image: NotRequired[str | None]
   discovery_info: NotRequired[ConfigFlowDiscoveryData]
   gps_config: NotRequired[DogGPSConfig]
+  walk_config: NotRequired[DogWalkConfig]
   feeding_config: NotRequired[DogFeedingConfig]
   health_config: NotRequired[DogHealthConfig]
   door_sensor: NotRequired[str | None]
@@ -6419,6 +6430,7 @@ DOG_OPTIONS_FIELD: Final[Literal["dog_options"]] = "dog_options"
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
+DOG_WALK_CONFIG_FIELD: Final[Literal["walk_config"]] = "walk_config"
 DOG_IMAGE_FIELD: Final[Literal["dog_image"]] = "dog_image"
 DOG_TEXT_VALUES_FIELD: Final[Literal["text_values"]] = "text_values"
 DOG_TEXT_METADATA_FIELD: Final[Literal["text_metadata"]] = "text_metadata"
@@ -6630,6 +6642,10 @@ def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | Non
   gps_config = data.get(DOG_GPS_CONFIG_FIELD)
   if isinstance(gps_config, Mapping):
     config[DOG_GPS_CONFIG_FIELD] = cast(DogGPSConfig, dict(gps_config))
+
+  walk_config = data.get(DOG_WALK_CONFIG_FIELD)
+  if isinstance(walk_config, Mapping):
+    config[DOG_WALK_CONFIG_FIELD] = cast(DogWalkConfig, dict(walk_config))
 
   feeding_config = data.get(DOG_FEEDING_CONFIG_FIELD)
   if isinstance(feeding_config, Mapping):

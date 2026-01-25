@@ -34,6 +34,13 @@ from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry, HomeAssistantError, MASS_GRAMS, MASS_KILOGRAMS
 from .const import (
+  CONF_DAILY_FOOD_AMOUNT,
+  CONF_GPS_ACCURACY_FILTER,
+  CONF_GPS_DISTANCE_FILTER,
+  CONF_GPS_UPDATE_INTERVAL,
+  CONF_GROOMING_INTERVAL,
+  CONF_HOME_ZONE_RADIUS,
+  CONF_MEALS_PER_DAY,
   MAX_DOG_AGE,
   MAX_DOG_WEIGHT,
   MIN_DOG_AGE,
@@ -56,8 +63,14 @@ from .types import (
   CoordinatorModuleLookupResult,
   CoordinatorDogData,
   DogConfigData,
+  DOG_FEEDING_CONFIG_FIELD,
+  DOG_GPS_CONFIG_FIELD,
+  DOG_HEALTH_CONFIG_FIELD,
+  DOG_WALK_CONFIG_FIELD,
   DogModulesMapping,
-  DogProfileSnapshot,
+  GPSTrackingConfigInput,
+  JSONMutableMapping,
+  JSONValue,
   NumberExtraAttributes,
   ensure_dog_modules_mapping,
   ensure_json_mapping,
@@ -93,6 +106,50 @@ DEFAULT_WALK_DURATION_TARGET = 60  # minutes
 DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
 DEFAULT_GPS_ACCURACY_THRESHOLD = 50  # meters
 DEFAULT_ACTIVITY_GOAL = 100  # percentage
+
+
+def _merge_config_updates(
+  current: Mapping[str, JSONValue] | None,
+  updates: Mapping[str, JSONValue],
+) -> JSONMutableMapping:
+  """Return a merged mapping for configuration updates."""
+
+  merged: JSONMutableMapping = (
+    dict(current) if isinstance(current, Mapping) else {}
+  )
+  merged.update(dict(updates))
+  return merged
+
+
+def _build_gps_tracking_input(
+  config: Mapping[str, JSONValue],
+) -> GPSTrackingConfigInput:
+  """Build GPS manager input from stored GPS configuration."""
+
+  tracking_input: GPSTrackingConfigInput = {}
+
+  accuracy_value = config.get(CONF_GPS_ACCURACY_FILTER)
+  if isinstance(accuracy_value, int | float):
+    tracking_input["gps_accuracy_threshold"] = float(accuracy_value)
+  elif isinstance((legacy_accuracy := config.get("accuracy_threshold")), int | float):
+    tracking_input["gps_accuracy_threshold"] = float(legacy_accuracy)
+
+  update_interval_value = config.get(CONF_GPS_UPDATE_INTERVAL)
+  if isinstance(update_interval_value, int | float):
+    tracking_input["update_interval_seconds"] = int(update_interval_value)
+  elif isinstance((legacy_interval := config.get("update_interval")), int | float):
+    tracking_input["update_interval_seconds"] = int(legacy_interval)
+
+  distance_value = config.get(CONF_GPS_DISTANCE_FILTER)
+  if isinstance(distance_value, int | float):
+    tracking_input["min_distance_for_point"] = float(distance_value)
+  elif isinstance(
+    (legacy_distance := config.get("min_distance_for_point")),
+    int | float,
+  ):
+    tracking_input["min_distance_for_point"] = float(legacy_distance)
+
+  return tracking_input
 
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> NumberExtraAttributes:
@@ -596,6 +653,104 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     # Base implementation - subclasses should override
     pass
 
+  def _get_dog_config_section(self, section: str) -> JSONMutableMapping:
+    """Return a copy of the stored configuration section."""
+
+    config = (
+      self.coordinator.get_dog_config(self._dog_id)
+      if hasattr(self.coordinator, "get_dog_config")
+      else None
+    )
+    if not isinstance(config, Mapping):
+      return {}
+
+    section_data = config.get(section)
+    if isinstance(section_data, Mapping):
+      return dict(section_data)
+    return {}
+
+  async def _async_persist_config_update(
+    self,
+    updates: Mapping[str, JSONValue],
+    *,
+    section: str | None = None,
+  ) -> None:
+    """Persist configuration updates via the data manager when available."""
+
+    data_manager = self._get_data_manager()
+    if data_manager is None:
+      return
+
+    payload: Mapping[str, JSONValue | Mapping[str, JSONValue]]
+    if section is None:
+      payload = updates
+    else:
+      payload = {section: updates}
+
+    try:
+      await data_manager.async_update_dog_data(self._dog_id, payload)
+    except Exception as err:  # pragma: no cover - defensive log
+      _LOGGER.warning(
+        "Failed to persist %s update for %s: %s",
+        self._number_type,
+        self._dog_name,
+        err,
+      )
+
+  async def _async_update_feeding_manager(
+    self,
+    updates: Mapping[str, JSONValue],
+  ) -> None:
+    """Push feeding configuration updates into the feeding manager."""
+
+    feeding_manager = self._get_runtime_managers().feeding_manager
+    if feeding_manager is None:
+      return
+
+    current = self._get_dog_config_section(DOG_FEEDING_CONFIG_FIELD)
+    merged = _merge_config_updates(current, updates)
+    try:
+      await feeding_manager.async_update_config(self._dog_id, merged)
+    except Exception as err:  # pragma: no cover - defensive log
+      _LOGGER.warning(
+        "Failed to apply feeding updates for %s: %s",
+        self._dog_name,
+        err,
+      )
+
+  async def _async_update_gps_manager(
+    self,
+    updates: Mapping[str, JSONValue],
+  ) -> None:
+    """Push GPS configuration updates into the GPS manager."""
+
+    gps_manager = self._get_runtime_managers().gps_geofence_manager
+    if gps_manager is None:
+      return
+
+    current = self._get_dog_config_section(DOG_GPS_CONFIG_FIELD)
+    merged = _merge_config_updates(current, updates)
+    tracking_input = _build_gps_tracking_input(merged)
+    if not tracking_input:
+      return
+
+    try:
+      await gps_manager.async_configure_dog_gps(
+        self._dog_id,
+        tracking_input,
+      )
+    except Exception as err:  # pragma: no cover - defensive log
+      _LOGGER.warning(
+        "Failed to apply GPS updates for %s: %s",
+        self._dog_name,
+        err,
+      )
+
+  async def _async_refresh_after_update(self) -> None:
+    """Refresh coordinator data after a configuration update."""
+
+    await self.coordinator.async_refresh_dog(self._dog_id)
+
   def _get_dog_data(self) -> CoordinatorDogData | None:
     """Get data for this number's dog from the coordinator."""
 
@@ -660,11 +815,18 @@ class PawControlDogWeightNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the dog's weight."""
-    # This would update the dog's weight in the configuration
-    # and trigger health calculations
+    weight_value = float(value)
 
-    # Update the coordinator with the new weight
-    await self.coordinator.async_refresh_dog(self._dog_id)
+    dog_data = self._get_dog_data()
+    if isinstance(dog_data, Mapping):
+      dog_info = cast(
+        DogConfigData,
+        dog_data.setdefault("dog_info", cast(DogConfigData, {})),
+      )
+      dog_info[DOG_WEIGHT_FIELD] = weight_value
+
+    await self._async_persist_config_update({DOG_WEIGHT_FIELD: weight_value})
+    await self._async_refresh_after_update()
 
   @property
   def extra_state_attributes(self) -> NumberExtraAttributes:
@@ -727,29 +889,16 @@ class PawControlDogAgeNumber(PawControlNumberBase):
     """Set the dog's age."""
     int_value = int(value)
 
-    # Update coordinator cache so other entities see the new value immediately
     dog_data = self._get_dog_data()
-    if dog_data is not None:
-      profile_data = cast(
-        DogProfileSnapshot,
-        dog_data.setdefault("profile", cast(DogProfileSnapshot, {})),
+    if isinstance(dog_data, Mapping):
+      dog_info = cast(
+        DogConfigData,
+        dog_data.setdefault("dog_info", cast(DogConfigData, {})),
       )
-      profile_data[DOG_AGE_FIELD] = int_value
+      dog_info[DOG_AGE_FIELD] = int_value
 
-    # Persist the change if the data manager is available
-    data_manager = self._get_data_manager()
-    if data_manager is not None:
-      try:
-        await data_manager.async_update_dog_data(
-          self._dog_id,
-          {"profile": {DOG_AGE_FIELD: int_value}},
-        )
-      except Exception as err:  # pragma: no cover - best effort only
-        _LOGGER.debug(
-          "Could not persist dog age for %s: %s",
-          self._dog_name,
-          err,
-        )
+    await self._async_persist_config_update({DOG_AGE_FIELD: int_value})
+    await self._async_refresh_after_update()
 
     _LOGGER.info("Set age for %s to %s", self._dog_name, int_value)
 
@@ -780,8 +929,12 @@ class PawControlActivityGoalNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the activity goal."""
-    # This would update activity tracking goals
-    pass
+    int_value = int(value)
+    await self._async_persist_config_update(
+      {"activity_goal": int_value},
+      section=DOG_HEALTH_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 # Feeding numbers
@@ -812,8 +965,14 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the daily food amount."""
-    # This would update feeding calculations and portion sizes
-    pass
+    amount = float(value)
+    updates = {CONF_DAILY_FOOD_AMOUNT: amount}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_FEEDING_CONFIG_FIELD,
+    )
+    await self._async_update_feeding_manager(updates)
+    await self._async_refresh_after_update()
 
   @property
   def extra_state_attributes(self) -> NumberExtraAttributes:
@@ -875,8 +1034,14 @@ class PawControlFeedingReminderHoursNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the feeding reminder hours."""
-    # This would update feeding reminder automations
-    pass
+    int_value = int(value)
+    updates = {"reminder_hours": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_FEEDING_CONFIG_FIELD,
+    )
+    await self._async_update_feeding_manager(updates)
+    await self._async_refresh_after_update()
 
 
 class PawControlMealsPerDayNumber(PawControlNumberBase):
@@ -904,8 +1069,14 @@ class PawControlMealsPerDayNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the meals per day."""
-    # This would update feeding schedule calculations
-    pass
+    int_value = int(value)
+    updates = {CONF_MEALS_PER_DAY: int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_FEEDING_CONFIG_FIELD,
+    )
+    await self._async_update_feeding_manager(updates)
+    await self._async_refresh_after_update()
 
 
 class PawControlPortionSizeNumber(PawControlNumberBase):
@@ -935,8 +1106,14 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the portion size."""
-    # This would update default portion calculations
-    pass
+    portion_size = float(value)
+    updates = {"portion_size": portion_size}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_FEEDING_CONFIG_FIELD,
+    )
+    await self._async_update_feeding_manager(updates)
+    await self._async_refresh_after_update()
 
 
 class PawControlCalorieTargetNumber(PawControlNumberBase):
@@ -966,8 +1143,14 @@ class PawControlCalorieTargetNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the calorie target."""
-    # This would update calorie tracking and goals
-    pass
+    int_value = int(value)
+    updates = {"calorie_target": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_FEEDING_CONFIG_FIELD,
+    )
+    await self._async_update_feeding_manager(updates)
+    await self._async_refresh_after_update()
 
 
 # Walk numbers
@@ -996,8 +1179,13 @@ class PawControlDailyWalkTargetNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the daily walk target."""
-    # This would update walk goal tracking
-    pass
+    int_value = int(value)
+    updates = {"daily_walk_target": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_WALK_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlWalkDurationTargetNumber(PawControlNumberBase):
@@ -1026,8 +1214,13 @@ class PawControlWalkDurationTargetNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the walk duration target."""
-    # This would update walk duration goals
-    pass
+    int_value = int(value)
+    updates = {"walk_duration_target": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_WALK_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
@@ -1056,8 +1249,13 @@ class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the walk distance target."""
-    # This would update walk distance goals
-    pass
+    int_value = int(value)
+    updates = {"walk_distance_target": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_WALK_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlWalkReminderHoursNumber(PawControlNumberBase):
@@ -1086,8 +1284,13 @@ class PawControlWalkReminderHoursNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the walk reminder hours."""
-    # This would update walk reminder automations
-    pass
+    int_value = int(value)
+    updates = {"reminder_hours": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_WALK_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
@@ -1120,8 +1323,13 @@ class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the max walk speed."""
-    # This would update speed thresholds for walk detection
-    pass
+    int_value = int(value)
+    updates = {"max_walk_speed": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_WALK_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 # GPS numbers
@@ -1152,8 +1360,14 @@ class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the GPS accuracy threshold."""
-    # This would update GPS filtering settings
-    pass
+    accuracy_value = float(value)
+    updates = {CONF_GPS_ACCURACY_FILTER: accuracy_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_GPS_CONFIG_FIELD,
+    )
+    await self._async_update_gps_manager(updates)
+    await self._async_refresh_after_update()
 
 
 class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
@@ -1183,8 +1397,14 @@ class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the GPS update interval."""
-    # This would update GPS polling frequency
-    pass
+    interval = int(value)
+    updates = {CONF_GPS_UPDATE_INTERVAL: interval}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_GPS_CONFIG_FIELD,
+    )
+    await self._async_update_gps_manager(updates)
+    await self._async_refresh_after_update()
 
 
 class PawControlGeofenceRadiusNumber(PawControlNumberBase):
@@ -1213,8 +1433,13 @@ class PawControlGeofenceRadiusNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the geofence radius."""
-    # This would update geofencing calculations
-    pass
+    radius = float(value)
+    updates = {CONF_HOME_ZONE_RADIUS: radius}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_GPS_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
@@ -1244,8 +1469,14 @@ class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the location update distance."""
-    # This would update location filtering settings
-    pass
+    distance = float(value)
+    updates = {CONF_GPS_DISTANCE_FILTER: distance}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_GPS_CONFIG_FIELD,
+    )
+    await self._async_update_gps_manager(updates)
+    await self._async_refresh_after_update()
 
 
 class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
@@ -1274,8 +1505,13 @@ class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the GPS battery threshold."""
-    # This would update battery alert settings
-    pass
+    int_value = int(value)
+    updates = {"gps_battery_threshold": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_GPS_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 # Health numbers
@@ -1306,8 +1542,13 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the target weight."""
-    # This would update weight tracking goals
-    pass
+    weight_value = float(value)
+    updates = {"target_weight": weight_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_HEALTH_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
@@ -1336,8 +1577,13 @@ class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the weight change threshold."""
-    # This would update weight alert settings
-    pass
+    int_value = int(value)
+    updates = {"weight_change_threshold": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_HEALTH_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlGroomingIntervalNumber(PawControlNumberBase):
@@ -1366,8 +1612,13 @@ class PawControlGroomingIntervalNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the grooming interval."""
-    # This would update grooming reminder schedule
-    pass
+    int_value = int(value)
+    updates = {CONF_GROOMING_INTERVAL: int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_HEALTH_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
@@ -1397,8 +1648,13 @@ class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the vet checkup interval."""
-    # This would update vet appointment reminders
-    pass
+    int_value = int(value)
+    updates = {"vet_checkup_interval": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_HEALTH_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
 
 
 class PawControlHealthScoreThresholdNumber(PawControlNumberBase):
@@ -1427,5 +1683,10 @@ class PawControlHealthScoreThresholdNumber(PawControlNumberBase):
 
   async def _async_set_number_value(self, value: float) -> None:
     """Set the health score threshold."""
-    # This would update health alert settings
-    pass
+    int_value = int(value)
+    updates = {"health_score_threshold": int_value}
+    await self._async_persist_config_update(
+      updates,
+      section=DOG_HEALTH_CONFIG_FIELD,
+    )
+    await self._async_refresh_after_update()
