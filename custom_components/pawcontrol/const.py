@@ -52,6 +52,7 @@ DASHBOARD_STORAGE_VERSION: Final[int] = 1
 DOMAIN: Final[str] = "pawcontrol"
 MANUFACTURER: Final[str] = "Paw Control"
 DEFAULT_MODEL: Final[str] = "Smart Dog Monitoring"
+DEFAULT_SW_VERSION: Final[str] = "1.0.0"
 
 # OPTIMIZED: Platforms as tuple for immutability and better performance
 PLATFORMS: Final[tuple[Platform, ...]] = (
