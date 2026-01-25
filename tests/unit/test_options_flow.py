@@ -32,6 +32,8 @@ from custom_components.pawcontrol.const import (
   CONF_REMINDER_REPEAT_MIN,
   CONF_RESET_TIME,
   CONF_WEATHER_ENTITY,
+  MAX_GEOFENCE_RADIUS,
+  MIN_GEOFENCE_RADIUS,
   MODULE_FEEDING,
   MODULE_GPS,
   MODULE_GROOMING,
@@ -45,6 +47,16 @@ from custom_components.pawcontrol.types import (
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
   DOG_WEIGHT_FIELD,
+  GEOFENCE_ALERTS_FIELD,
+  GEOFENCE_ENABLED_FIELD,
+  GEOFENCE_LAT_FIELD,
+  GEOFENCE_LON_FIELD,
+  GEOFENCE_RADIUS_FIELD,
+  GEOFENCE_RESTRICTED_ZONE_FIELD,
+  GEOFENCE_SAFE_ZONE_FIELD,
+  GEOFENCE_USE_HOME_FIELD,
+  GEOFENCE_ZONE_ENTRY_FIELD,
+  GEOFENCE_ZONE_EXIT_FIELD,
   NOTIFICATION_MOBILE_FIELD,
   NOTIFICATION_PRIORITY_FIELD,
   NOTIFICATION_QUIET_END_FIELD,
@@ -368,6 +380,63 @@ async def test_geofence_settings_normalises_snapshot(
       },
     },
   )
+
+
+@pytest.mark.asyncio
+async def test_geofence_settings_rejects_invalid_coordinates(
+  hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+  """Geofence settings should reject invalid coordinate inputs."""
+
+  flow = PawControlOptionsFlow()
+  flow.hass = hass
+  flow.initialize_from_config_entry(mock_config_entry)
+
+  result = await flow.async_step_geofence_settings(
+    {
+      GEOFENCE_ENABLED_FIELD: True,
+      GEOFENCE_USE_HOME_FIELD: False,
+      GEOFENCE_RADIUS_FIELD: MIN_GEOFENCE_RADIUS,
+      GEOFENCE_LAT_FIELD: "north",
+      GEOFENCE_LON_FIELD: 12.4923,
+      GEOFENCE_ALERTS_FIELD: True,
+      GEOFENCE_SAFE_ZONE_FIELD: True,
+      GEOFENCE_RESTRICTED_ZONE_FIELD: True,
+      GEOFENCE_ZONE_ENTRY_FIELD: True,
+      GEOFENCE_ZONE_EXIT_FIELD: True,
+    }
+  )
+
+  assert result["type"] == FlowResultType.FORM
+  assert result["errors"][GEOFENCE_LAT_FIELD] == "coordinate_not_numeric"
+
+
+@pytest.mark.asyncio
+async def test_geofence_settings_accepts_radius_boundaries(
+  hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+  """Geofence settings should accept radius boundary values."""
+
+  flow = PawControlOptionsFlow()
+  flow.hass = hass
+  flow.initialize_from_config_entry(mock_config_entry)
+
+  result = await flow.async_step_geofence_settings(
+    {
+      GEOFENCE_ENABLED_FIELD: True,
+      GEOFENCE_USE_HOME_FIELD: False,
+      GEOFENCE_RADIUS_FIELD: MAX_GEOFENCE_RADIUS,
+      GEOFENCE_LAT_FIELD: 0,
+      GEOFENCE_LON_FIELD: 0,
+      GEOFENCE_ALERTS_FIELD: True,
+      GEOFENCE_SAFE_ZONE_FIELD: True,
+      GEOFENCE_RESTRICTED_ZONE_FIELD: True,
+      GEOFENCE_ZONE_ENTRY_FIELD: True,
+      GEOFENCE_ZONE_EXIT_FIELD: True,
+    }
+  )
+
+  assert result["type"] == FlowResultType.CREATE_ENTRY
 
 
 @pytest.mark.asyncio
@@ -1401,6 +1470,32 @@ async def test_gps_settings_structured(
   assert gps_options["route_recording"] is False
   assert gps_options["route_history_days"] == 14
   assert gps_options["auto_track_walks"] is True
+
+
+@pytest.mark.asyncio
+async def test_gps_settings_rejects_empty_accuracy(
+  hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+  """GPS settings should surface empty accuracy inputs."""
+
+  flow = PawControlOptionsFlow()
+  flow.hass = hass
+  flow.initialize_from_config_entry(mock_config_entry)
+
+  result = await flow.async_step_gps_settings(
+    {
+      CONF_GPS_UPDATE_INTERVAL: 45,
+      CONF_GPS_ACCURACY_FILTER: "",
+      CONF_GPS_DISTANCE_FILTER: 30,
+      "gps_enabled": True,
+      "route_recording": True,
+      "route_history_days": 14,
+      "auto_track_walks": True,
+    }
+  )
+
+  assert result["type"] == FlowResultType.FORM
+  assert result["errors"][CONF_GPS_ACCURACY_FILTER] == "gps_accuracy_required"
 
 
 @pytest.mark.asyncio

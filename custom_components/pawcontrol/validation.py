@@ -69,6 +69,25 @@ class InputCoercionError(ValueError):
     self.message = message
 
 
+def _is_empty(value: Any) -> bool:
+  """Return True when a value should be treated as missing."""
+
+  return value is None or (isinstance(value, str) and not value.strip())
+
+
+def _coerce_float_with_constraint(
+  field: str,
+  value: Any,
+  constraint: str,
+) -> float:
+  """Coerce a float while normalising validation constraints."""
+
+  try:
+    return coerce_float(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, constraint) from err
+
+
 def normalize_dog_id(raw_id: Any) -> str:
   """Normalize a dog identifier for flow and service validation."""
 
@@ -257,21 +276,25 @@ def validate_coordinate(
 ) -> float | None:
   """Validate a single coordinate within bounds."""
 
-  if value is None:
+  if _is_empty(value):
     if required:
       raise ValidationError(
         field,
         value,
-        "Coordinate is required",
+        "coordinate_required",
       )
     return None
 
-  coordinate = _coerce_float(field, value)
+  coordinate = _coerce_float_with_constraint(
+    field,
+    value,
+    "coordinate_not_numeric",
+  )
   if coordinate < minimum or coordinate > maximum:
     raise ValidationError(
       field,
       coordinate,
-      f"Must be between {minimum} and {maximum}",
+      "coordinate_out_of_range",
       min_value=minimum,
       max_value=maximum,
     )
@@ -576,12 +599,17 @@ class InputValidator:
   def validate_gps_coordinates(
     latitude: Any,
     longitude: Any,
+    *,
+    latitude_field: str = "latitude",
+    longitude_field: str = "longitude",
   ) -> tuple[float, float]:
     """Validate GPS coordinates.
 
     Args:
         latitude: Latitude value
         longitude: Longitude value
+        latitude_field: Field name for latitude validation
+        longitude_field: Field name for longitude validation
 
     Returns:
         Tuple of validated (latitude, longitude)
@@ -591,13 +619,13 @@ class InputValidator:
     """
     latitude = validate_coordinate(
       latitude,
-      field="latitude",
+      field=latitude_field,
       minimum=MIN_LATITUDE,
       maximum=MAX_LATITUDE,
     )
     longitude = validate_coordinate(
       longitude,
-      field="longitude",
+      field=longitude_field,
       minimum=MIN_LONGITUDE,
       maximum=MAX_LONGITUDE,
     )
@@ -607,12 +635,18 @@ class InputValidator:
   def validate_gps_accuracy(
     accuracy: Any,
     required: bool = False,
+    field: str = "accuracy",
+    min_value: float = MIN_ACCURACY_METERS,
+    max_value: float = MAX_ACCURACY_METERS,
   ) -> float | None:
     """Validate GPS accuracy in meters.
 
     Args:
         accuracy: Accuracy value
         required: Whether the field is required
+        field: Field name for validation errors
+        min_value: Minimum allowed accuracy
+        max_value: Maximum allowed accuracy
 
     Returns:
         Validated accuracy or None if not required
@@ -620,32 +654,37 @@ class InputValidator:
     Raises:
         ValidationError: If validation fails
     """
-    if accuracy is None:
+    if _is_empty(accuracy):
       if required:
         raise ValidationError(
-          "accuracy",
+          field,
           accuracy,
-          "GPS accuracy is required",
-          "Provide accuracy in meters",
+          "gps_accuracy_required",
         )
       return None
 
-    accuracy = _coerce_float("accuracy", accuracy)
+    accuracy = _coerce_float_with_constraint(
+      field,
+      accuracy,
+      "gps_accuracy_not_numeric",
+    )
 
-    if accuracy < MIN_ACCURACY_METERS:
+    if accuracy < min_value:
       raise ValidationError(
-        "accuracy",
+        field,
         accuracy,
-        f"Minimum accuracy is {MIN_ACCURACY_METERS} meters",
-        f"Provided: {accuracy}",
+        "gps_accuracy_out_of_range",
+        min_value=min_value,
+        max_value=max_value,
       )
 
-    if accuracy > MAX_ACCURACY_METERS:
+    if accuracy > max_value:
       raise ValidationError(
-        "accuracy",
+        field,
         accuracy,
-        f"Maximum accuracy is {MAX_ACCURACY_METERS} meters",
-        f"Provided: {accuracy} - unusually inaccurate",
+        "gps_accuracy_out_of_range",
+        min_value=min_value,
+        max_value=max_value,
       )
 
     return accuracy
@@ -856,12 +895,18 @@ class InputValidator:
   def validate_geofence_radius(
     radius: Any,
     required: bool = True,
+    field: str = "radius",
+    min_value: float = MIN_GEOFENCE_RADIUS,
+    max_value: float = MAX_GEOFENCE_RADIUS,
   ) -> float | None:
     """Validate geofence radius in meters.
 
     Args:
         radius: Radius value
         required: Whether the field is required
+        field: Field name for validation errors
+        min_value: Minimum allowed radius
+        max_value: Maximum allowed radius
 
     Returns:
         Validated radius or None if not required
@@ -869,40 +914,37 @@ class InputValidator:
     Raises:
         ValidationError: If validation fails
     """
-    if radius is None:
+    if _is_empty(radius):
       if required:
         raise ValidationError(
-          "radius",
+          field,
           radius,
-          "Geofence radius is required",
-          "Provide radius in meters",
+          "geofence_radius_required",
         )
       return None
 
-    radius = _coerce_float("radius", radius)
+    radius = _coerce_float_with_constraint(
+      field,
+      radius,
+      "geofence_radius_not_numeric",
+    )
 
-    if radius <= 0:
+    if radius < min_value:
       raise ValidationError(
-        "radius",
+        field,
         radius,
-        "Must be positive",
-        "Radius must be greater than 0",
+        "geofence_radius_out_of_range",
+        min_value=min_value,
+        max_value=max_value,
       )
 
-    if radius < MIN_GEOFENCE_RADIUS:
+    if radius > max_value:
       raise ValidationError(
-        "radius",
+        field,
         radius,
-        f"Minimum radius: {MIN_GEOFENCE_RADIUS} meters",
-        f"Provided: {radius} meters - too small for reliable detection",
-      )
-
-    if radius > MAX_GEOFENCE_RADIUS:
-      raise ValidationError(
-        "radius",
-        radius,
-        f"Maximum radius: {MAX_GEOFENCE_RADIUS} meters ({MAX_GEOFENCE_RADIUS / 1000} km)",
-        f"Provided: {radius} meters - unusually large",
+        "geofence_radius_out_of_range",
+        min_value=min_value,
+        max_value=max_value,
       )
 
     return radius
