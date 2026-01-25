@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 
@@ -79,6 +80,7 @@ def test_extra_state_attributes_coerce_runtime_payload() -> None:
   assert isinstance(attrs["last_seen"], str)
   assert attrs["route_start_time"] is not None
   assert isinstance(attrs["distance_from_home"], float)
+  json.dumps(attrs)
 
 
 @pytest.mark.asyncio
