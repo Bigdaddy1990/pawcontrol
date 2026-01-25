@@ -119,6 +119,9 @@ type JSONDateValue = JSONValue | datetime
 type JSONDateMapping = Mapping[str, JSONDateValue]
 """Mapping that tolerates ``datetime`` values during legacy hydration."""
 
+type JSONDateMutableMapping = dict[str, JSONDateValue]
+"""Mutable mapping that tolerates ``datetime`` values during legacy hydration."""
+
 type VisitorModeSettingsPayload = JSONMutableMapping
 """Mutable payload persisted for visitor-mode configuration."""
 
@@ -191,6 +194,12 @@ type EntityAttributePayload[T: JSONValue] = dict[str, T]
 
 type EntityAttributeMutableMapping = EntityAttributePayload[JSONValue]
 """Mutable attribute payload used when exporting Home Assistant entity state."""
+
+type EntityAttributeDateMapping = Mapping[str, JSONDateValue]
+"""Attribute mapping that allows ``datetime`` values before normalization."""
+
+type EntityAttributeDateMutableMapping = dict[str, JSONDateValue]
+"""Mutable attribute payload that allows ``datetime`` values before normalization."""
 
 type NumberExtraAttributes = EntityAttributeMutableMapping
 """Extra state attributes exposed by PawControl number entities."""

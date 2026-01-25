@@ -80,3 +80,47 @@ def test_notification_settings_payload_coercion() -> None:
   assert settings["reminder_repeat_min"] == 15
   assert settings["priority_notifications"] is True
   assert settings["mobile_notifications"] is True
+
+
+def test_gps_settings_payload_clamps_ranges() -> None:
+  """Ensure GPS options normalization clamps and defaults values."""
+
+  _install_options_flow_dependencies()
+  from custom_components.pawcontrol.flow_helpers import coerce_bool
+  from custom_components.pawcontrol.flows.gps import GPSOptionsNormalizerMixin
+  from custom_components.pawcontrol.types import (
+    AUTO_TRACK_WALKS_FIELD,
+    GPS_ACCURACY_FILTER_FIELD,
+    GPS_DISTANCE_FILTER_FIELD,
+    GPS_ENABLED_FIELD,
+    GPS_UPDATE_INTERVAL_FIELD,
+    ROUTE_HISTORY_DAYS_FIELD,
+    ROUTE_RECORDING_FIELD,
+  )
+  from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
+
+  class _GPSNormalizer(GPSOptionsNormalizerMixin):
+    @staticmethod
+    def _coerce_bool(value: object, default: bool) -> bool:
+      return coerce_bool(value, default=default)
+
+  normalizer = _GPSNormalizer()
+  payload = normalizer._normalise_gps_settings(
+    {
+      GPS_ENABLED_FIELD: "false",
+      GPS_UPDATE_INTERVAL_FIELD: "bad",
+      GPS_ACCURACY_FILTER_FIELD: "800",
+      GPS_DISTANCE_FILTER_FIELD: "-5",
+      ROUTE_RECORDING_FIELD: None,
+      ROUTE_HISTORY_DAYS_FIELD: "400",
+      AUTO_TRACK_WALKS_FIELD: "true",
+    },
+  )
+
+  assert payload[GPS_ENABLED_FIELD] is False
+  assert payload[GPS_UPDATE_INTERVAL_FIELD] == DEFAULT_GPS_UPDATE_INTERVAL
+  assert payload[GPS_ACCURACY_FILTER_FIELD] == 500.0
+  assert payload[GPS_DISTANCE_FILTER_FIELD] == 1.0
+  assert payload[ROUTE_RECORDING_FIELD] is True
+  assert payload[ROUTE_HISTORY_DAYS_FIELD] == 365
+  assert payload[AUTO_TRACK_WALKS_FIELD] is True

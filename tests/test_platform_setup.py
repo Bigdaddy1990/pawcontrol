@@ -103,16 +103,16 @@ def test_walk_and_garden_attributes_are_standardised(mock_coordinator) -> None:
     "status": "active",
     "active_session": {
       "session_id": "garden-1",
-      "start_time": started_at.isoformat(),
+      "start_time": started_at,
       "duration_minutes": 12,
     },
     "last_session": {
       "session_id": "garden-0",
-      "start_time": started_at.isoformat(),
-      "end_time": last_seen.isoformat(),
+      "start_time": started_at,
+      "end_time": last_seen,
       "duration_minutes": 10,
     },
-    "stats": {"last_garden_visit": last_seen.isoformat()},
+    "stats": {"last_garden_visit": last_seen},
   }
 
   walk_sensor = PawControlWalkInProgressBinarySensor(

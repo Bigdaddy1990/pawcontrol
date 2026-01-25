@@ -17,6 +17,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.condition import ConditionCheckerType
 import voluptuous as vol
 
 from .const import DOMAIN
@@ -119,7 +120,7 @@ async def async_get_condition_capabilities(
 async def async_condition_from_config(
   hass: HomeAssistant,
   config: dict[str, str],
-) -> callable:
+) -> ConditionCheckerType:
   """Create a condition checker for PawControl device automation."""
 
   validated = CONDITION_SCHEMA(config)

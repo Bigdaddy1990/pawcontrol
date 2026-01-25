@@ -86,8 +86,65 @@ if TYPE_CHECKING:
 
     async def async_step_init(self) -> ConfigFlowResult: ...
 
+  class NotificationOptionsNormalizerHost(Protocol):
+    """Protocol describing the options flow host requirements."""
+
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+
+    def _current_notification_options(
+      self,
+      dog_id: str | None = None,
+    ) -> NotificationOptions: ...
+
+    def _clone_options(self) -> dict[str, JSONValue]: ...
+
+    def _current_dog_options(self) -> DogOptionsMap: ...
+
+    def _normalise_options_snapshot(
+      self,
+      options: Mapping[str, JSONValue],
+    ) -> Mapping[str, JSONValue]: ...
+
+    def _build_dog_selector_schema(self) -> vol.Schema: ...
+
+    def _require_current_dog(self) -> DogConfigData | None: ...
+
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool: ...
+
+    @staticmethod
+    def _coerce_int(value: Any, default: int) -> int: ...
+
+    @staticmethod
+    def _coerce_time_string(value: Any, default: str) -> str: ...
+
+    def _select_dog_by_id(
+      self,
+      dog_id: str | None,
+    ) -> DogConfigData | None: ...
+
+    def async_show_form(
+      self,
+      *,
+      step_id: str,
+      data_schema: vol.Schema,
+      errors: dict[str, str] | None = None,
+      description_placeholders: Mapping[str, str] | None = None,
+    ) -> ConfigFlowResult: ...
+
+    def async_create_entry(
+      self,
+      *,
+      title: str,
+      data: Mapping[str, JSONValue],
+    ) -> ConfigFlowResult: ...
+
+    async def async_step_init(self) -> ConfigFlowResult: ...
+
 else:  # pragma: no cover
   NotificationOptionsHost = object
+  NotificationOptionsNormalizerHost = object
 
 
 class NotificationOptionsMixin(NotificationOptionsHost):
@@ -120,10 +177,6 @@ class NotificationOptionsMixin(NotificationOptionsHost):
         ),
       ),
     )
-
-
-class NotificationOptionsNormalizerHost(Protocol):
-  """Protocol describing the options flow host requirements."""
 
 
 class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
