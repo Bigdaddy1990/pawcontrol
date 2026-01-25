@@ -1796,6 +1796,44 @@ async def test_setup_automatic_gps_service_records_success(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_setup_automatic_gps_service_rejects_invalid_interval(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """GPS setup should reject invalid update intervals with clear errors."""
+
+  notification_manager = _NotificationManagerStub()
+  gps_manager = _GPSManagerStub()
+  coordinator = _CoordinatorStub(
+    SimpleNamespace(),
+    notification_manager=notification_manager,
+    gps_manager=gps_manager,
+  )
+  coordinator.register_dog("fido")
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+
+  with pytest.raises(
+    services.compat.ServiceValidationError,
+    match="update_interval_seconds must be a whole number",
+  ):
+    await handler(
+      SimpleNamespace(
+        data={"dog_id": "fido", "update_interval_seconds": "fast"}
+      )
+    )
+
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
+  assert result["status"] == "error"
+  assert "update_interval_seconds must be a whole number" in result.get(
+    "message", ""
+  )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_setup_automatic_gps_service_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
