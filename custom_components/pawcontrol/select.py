@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.components import select as select_component
 from homeassistant.components.select import ATTR_OPTION, ATTR_OPTIONS, SelectEntity
-from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback

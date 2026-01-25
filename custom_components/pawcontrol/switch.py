@@ -23,8 +23,6 @@ from homeassistant.const import (
   SERVICE_TURN_ON,
   STATE_OFF,
   STATE_ON,
-  STATE_UNAVAILABLE,
-  STATE_UNKNOWN,
 )
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
@@ -362,6 +360,7 @@ async def async_reproduce_state(
     _async_reproduce_switch_state,
     context=context,
   )
+
 
 def _preprocess_switch_state(state: State) -> str | None:
   if state.state not in (STATE_ON, STATE_OFF):

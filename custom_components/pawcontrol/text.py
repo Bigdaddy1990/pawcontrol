@@ -13,8 +13,6 @@ from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.const import (
   ATTR_ENTITY_ID,
   ATTR_VALUE,
-  STATE_UNAVAILABLE,
-  STATE_UNKNOWN,
 )
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
@@ -315,6 +313,7 @@ async def async_reproduce_state(
     _async_reproduce_text_state,
     context=context,
   )
+
 
 def _preprocess_text_state(state: State) -> str:
   return state.state

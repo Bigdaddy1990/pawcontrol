@@ -258,6 +258,7 @@ async def async_reproduce_state(
     context=context,
   )
 
+
 def _preprocess_number_state(state: State) -> float | None:
   try:
     return float(state.state)
