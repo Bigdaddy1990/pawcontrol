@@ -118,6 +118,8 @@ def test_configuration_url_redacted_in_diagnostics() -> None:
   redacted = diagnostics._redact_sensitive_data(payload)
 
   assert redacted["devices"][0]["configuration_url"] == "**REDACTED**"
+
+
 def test_redacts_mac_strings_and_serial_numbers_in_nested_payloads() -> None:
   """MAC addresses and serial numbers must be redacted in nested structures."""
 
