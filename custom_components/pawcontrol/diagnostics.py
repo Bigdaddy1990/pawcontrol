@@ -415,6 +415,7 @@ REDACTED_KEYS = {
   "client_secret",
   "cookie",
   "credentials",
+  "configuration_url",
   "id_token",
   "jwt",
   "passphrase",

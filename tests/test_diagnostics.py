@@ -98,3 +98,23 @@ def test_notification_rejection_metrics_summarises_services() -> None:
   assert payload["service_last_error_reasons"]["notify.mobile_app_pixel"] == (
     "missing_notify_service"
   )
+
+
+def test_configuration_url_redacted_in_diagnostics() -> None:
+  """Ensure configuration_url fields are redacted in diagnostics payloads."""
+
+  diagnostics = _load_diagnostics()
+  payload = {
+    "devices": [
+      {
+        "id": "device-1",
+        "configuration_url": (
+          "https://example.com/config?token=supersecrettoken&ip=192.168.1.12"
+        ),
+      }
+    ]
+  }
+
+  redacted = diagnostics._redact_sensitive_data(payload)
+
+  assert redacted["devices"][0]["configuration_url"] == "**REDACTED**"
