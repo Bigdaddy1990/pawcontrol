@@ -41,9 +41,12 @@
 ## 📚 User Documentation
 
 - **Setup & configuration (DE)**: [`docs/setup_installation_guide.md`](docs/setup_installation_guide.md)
+  - **Automatische Erkennung**: [`docs/setup_installation_guide.md#-automatische-erkennung`](docs/setup_installation_guide.md#-automatische-erkennung)
 - **User guide (EN)**: [`docs/user_guide.md`](docs/user_guide.md)
+  - **Discovery overview**: [`docs/user_guide.md#discovery--config-flow-overview`](docs/user_guide.md#discovery--config-flow-overview)
 - **Automation examples (EN)**: [`docs/automation_examples.md`](docs/automation_examples.md)
 - **Troubleshooting (EN)**: [`docs/troubleshooting.md`](docs/troubleshooting.md)
+  - **Discovery issues**: [`docs/troubleshooting.md#discovery-does-not-find-devices`](docs/troubleshooting.md#discovery-does-not-find-devices)
 
 ## ✅ Quick Start (UI-based)
 
