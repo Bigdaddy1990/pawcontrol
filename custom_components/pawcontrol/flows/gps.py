@@ -62,7 +62,6 @@ from ..types import (
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
-  OptionsGeofenceInput,
   clone_placeholders,
   ensure_dog_modules_config,
   ensure_dog_options_entry,
@@ -913,12 +912,8 @@ class GPSOptionsMixin(GPSOptionsHost):
   ) -> vol.Schema:
     """Build schema for geofence settings."""
 
-    safe_zone_latitude = (
-      current_options.get("safe_zone_latitude") or "52.5200"
-    )
-    safe_zone_longitude = (
-      current_options.get("safe_zone_longitude") or "13.4050"
-    )
+    safe_zone_latitude = current_options.get("safe_zone_latitude") or "52.5200"
+    safe_zone_longitude = current_options.get("safe_zone_longitude") or "13.4050"
     restricted_zone_latitude = (
       current_options.get("restricted_zone_latitude") or "52.5200"
     )
