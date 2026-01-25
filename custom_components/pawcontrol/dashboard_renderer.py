@@ -20,7 +20,7 @@ from functools import partial
 from pathlib import Path
 from typing import Literal, cast
 
-import aiofiles  # type: ignore[import-not-found, import-untyped]
+import aiofiles
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
