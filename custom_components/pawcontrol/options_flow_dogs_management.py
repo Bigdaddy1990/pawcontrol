@@ -292,7 +292,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
       step_id="configure_dog_modules",
       data_schema=self._get_dog_modules_schema(),
       description_placeholders=dict(
-        self._get_module_description_placeholders(),
+        await self._get_module_description_placeholders(),
       ),
     )
 
@@ -516,7 +516,9 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
       sensors[entity_id] = str(friendly_name)
     return sensors
 
-  def _get_module_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: F821
+  async def _get_module_description_placeholders(
+    self,
+  ) -> ConfigFlowPlaceholders:  # noqa: F821
     """Get description placeholders for module configuration."""
     if not self._current_dog:
       return freeze_placeholders({})
@@ -539,7 +541,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
         hass_language = getattr(hass_config, "language", None)
 
     # Calculate current entity count
-    current_estimate = self._entity_factory.estimate_entity_count(
+    current_estimate = await self._entity_factory.estimate_entity_count_async(
       current_profile,
       current_modules_dict,
     )

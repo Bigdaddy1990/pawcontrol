@@ -2517,6 +2517,18 @@ ManualEventField = Literal[
 ]
 
 
+class ManualEventOption(TypedDict, total=False):
+  """Select option payload for manual event configuration choices."""
+
+  value: Required[str]
+  label: Required[str]
+  description: NotRequired[str]
+  badge: NotRequired[str]
+  help_text: NotRequired[str]
+  metadata_sources: NotRequired[list[str]]
+  metadata_primary_source: NotRequired[str]
+
+
 type OptionsMainMenuAction = Literal[
   "entity_profiles",
   "manage_dogs",

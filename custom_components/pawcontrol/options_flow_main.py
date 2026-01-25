@@ -63,6 +63,7 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   ManualEventField,
+  ManualEventOption,
   ReconfigureTelemetry,
   SystemOptions,
   ensure_advanced_options,
@@ -685,7 +686,7 @@ class PawControlOptionsFlow(
     current: SystemOptions,
     *,
     manual_snapshot: Mapping[str, JSONValue] | None = None,
-  ) -> list[JSONMutableMapping]:
+  ) -> list[ManualEventOption]:
     """Return select options for manual event configuration."""
 
     language = self._determine_language()
@@ -732,7 +733,7 @@ class PawControlOptionsFlow(
     disabled_sources = ["disabled"]
     disabled_badge = _source_badge("disabled")
     disabled_help = _help_text(disabled_sources)
-    disabled_option: JSONMutableMapping = {
+    disabled_option: ManualEventOption = {
       "value": "",
       "label": disabled_label,
       "description": disabled_description,
@@ -744,7 +745,7 @@ class PawControlOptionsFlow(
     if disabled_help:
       disabled_option["help_text"] = disabled_help
 
-    options: list[JSONMutableMapping] = [disabled_option]
+    options: list[ManualEventOption] = [disabled_option]
 
     event_sources = self._collect_manual_event_sources(
       field,
@@ -782,7 +783,7 @@ class PawControlOptionsFlow(
             self._setup_flag_translation(key, language=language),
           )
 
-      option: JSONMutableMapping = {"value": value, "label": value}
+      option: ManualEventOption = {"value": value, "label": value}
       if description_parts:
         option["description"] = ", ".join(description_parts)
       primary_source = _primary_source(source_tags)

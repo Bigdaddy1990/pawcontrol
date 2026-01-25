@@ -122,7 +122,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
       step_id="entity_profiles",
       data_schema=self._get_entity_profiles_schema(),
       description_placeholders=dict(
-        self._get_profile_description_placeholders(),
+        await self._get_profile_description_placeholders(),
       ),
     )
 
@@ -164,7 +164,9 @@ class ProfileOptionsMixin(ProfileOptionsHost):
       },
     )
 
-  def _get_profile_description_placeholders_cached(self) -> ConfigFlowPlaceholders:
+  async def _get_profile_description_placeholders_cached(
+    self,
+  ) -> ConfigFlowPlaceholders:
     """Get description placeholders with caching for better performance."""
 
     dogs_raw = self._entry.data.get(CONF_DOGS, [])
@@ -236,7 +238,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
     for dog_config in dog_entries_local:
       modules_config = ensure_dog_modules_mapping(dog_config)
-      estimate = self._entity_factory.estimate_entity_count(
+      estimate = await self._entity_factory.estimate_entity_count_async(
         current_profile,
         modules_config,
       )
@@ -286,10 +288,10 @@ class ProfileOptionsMixin(ProfileOptionsHost):
     self._profile_cache[cache_key] = frozen_placeholders
     return frozen_placeholders
 
-  def _get_profile_description_placeholders(self) -> ConfigFlowPlaceholders:
+  async def _get_profile_description_placeholders(self) -> ConfigFlowPlaceholders:
     """Get description placeholders for profile selection."""
 
-    return self._get_profile_description_placeholders_cached()
+    return await self._get_profile_description_placeholders_cached()
 
   def _get_performance_impact_description(self, profile: str) -> str:
     """Get performance impact description for profile."""
@@ -349,7 +351,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
       dog_id = dog_config.get(CONF_DOG_ID, "unknown")
       modules_config = ensure_dog_modules_mapping(dog_config)
 
-      estimate = self._entity_factory.estimate_entity_count(
+      estimate = await self._entity_factory.estimate_entity_count_async(
         profile,
         modules_config,
       )
@@ -393,7 +395,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
       current_total = 0
       for dog_config in dog_entries:
         modules = ensure_dog_modules_mapping(dog_config)
-        current_total += self._entity_factory.estimate_entity_count(
+        current_total += await self._entity_factory.estimate_entity_count_async(
           current_profile,
           modules,
         )
