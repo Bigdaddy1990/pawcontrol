@@ -179,15 +179,19 @@ async def test_async_build_setup_flags_panel_supports_blueprint_and_disabled(
     panel = await diagnostics_mod._async_build_setup_flags_panel(hass, entry)
 
   flags_by_source = {flag["source"]: flag for flag in panel["flags"]}
-  assert flags_by_source["blueprint"]["source_label_default"] == (
-    SETUP_FLAG_SOURCE_LABELS["blueprint"]
+  assert (
+    flags_by_source["blueprint"]["source_label_default"]
+    == (SETUP_FLAG_SOURCE_LABELS["blueprint"])
   )
-  assert flags_by_source["blueprint"]["source_label_translation_key"] == (
-    SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS["blueprint"]
+  assert (
+    flags_by_source["blueprint"]["source_label_translation_key"]
+    == (SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS["blueprint"])
   )
-  assert flags_by_source["disabled"]["source_label_default"] == (
-    SETUP_FLAG_SOURCE_LABELS["disabled"]
+  assert (
+    flags_by_source["disabled"]["source_label_default"]
+    == (SETUP_FLAG_SOURCE_LABELS["disabled"])
   )
-  assert flags_by_source["disabled"]["source_label_translation_key"] == (
-    SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS["disabled"]
+  assert (
+    flags_by_source["disabled"]["source_label_translation_key"]
+    == (SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS["disabled"])
   )
