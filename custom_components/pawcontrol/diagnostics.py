@@ -42,6 +42,7 @@ from .coordinator_tasks import (
   resolve_entity_factory_guard_metrics,
 )
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
+from .error_classification import classify_error_reason
 from .runtime_data import describe_runtime_store_status, get_runtime_data
 from .service_guard import (
   ServiceGuardMetricsSnapshot,
@@ -698,6 +699,9 @@ async def async_get_config_entry_diagnostics(
     "setup_flags_panel": await _async_build_setup_flags_panel(hass, entry),
     "resilience": _get_resilience_diagnostics(runtime_data, coordinator),
     "resilience_escalation": _get_resilience_escalation_snapshot(runtime_data),
+    "guard_notification_error_metrics": _get_guard_notification_error_metrics(
+      runtime_data,
+    ),
     "runtime_store": describe_runtime_store_status(hass, entry),
     "notifications": await _get_notification_diagnostics(runtime_data),
   }
@@ -1195,6 +1199,130 @@ def _build_notification_rejection_metrics(
   payload["service_last_errors"] = last_errors
 
   return payload
+
+
+def _build_guard_notification_error_metrics(
+  guard_metrics: Mapping[str, object] | None,
+  delivery: Mapping[str, object] | None,
+) -> JSONMutableMapping:
+  """Return aggregated error counters for service guards and notifications."""
+
+  payload: JSONMutableMapping = {
+    "schema_version": 1,
+    "available": False,
+    "total_errors": 0,
+    "guard": {
+      "skipped": 0,
+      "reasons": {},
+    },
+    "notifications": {
+      "total_failures": 0,
+      "services_with_failures": [],
+      "reasons": {},
+    },
+    "classified_errors": {},
+  }
+
+  classified_errors: dict[str, int] = {}
+
+  guard_reasons: dict[str, int] = {}
+  guard_skipped = 0
+  if isinstance(guard_metrics, Mapping):
+    guard_skipped = _coerce_int(guard_metrics.get("skipped")) or 0
+    reasons_raw = guard_metrics.get("reasons")
+    if isinstance(reasons_raw, Mapping):
+      for reason_key, count in reasons_raw.items():
+        coerced = _coerce_int(count) or 0
+        if not coerced:
+          continue
+        reason_text = str(reason_key)
+        guard_reasons[reason_text] = guard_reasons.get(reason_text, 0) + coerced
+        classification = classify_error_reason(reason_text, error=None)
+        classified_errors[classification] = (
+          classified_errors.get(classification, 0) + coerced
+        )
+
+  notification_failures = 0
+  notification_reasons: dict[str, int] = {}
+  services_with_failures: list[str] = []
+  if isinstance(delivery, Mapping):
+    services = delivery.get("services")
+    if isinstance(services, Mapping):
+      for service_name, service_payload in services.items():
+        if not isinstance(service_name, str) or not isinstance(
+          service_payload,
+          Mapping,
+        ):
+          continue
+        failures = _coerce_int(service_payload.get("total_failures")) or 0
+        if not failures:
+          continue
+        notification_failures += failures
+        services_with_failures.append(service_name)
+        last_error_reason = service_payload.get("last_error_reason")
+        reason_text = (
+          last_error_reason
+          if isinstance(last_error_reason, str) and last_error_reason
+          else None
+        )
+        last_error = service_payload.get("last_error")
+        error_text = last_error if isinstance(last_error, str) else None
+        if reason_text is not None:
+          notification_reasons[reason_text] = (
+            notification_reasons.get(reason_text, 0) + failures
+          )
+        classification = classify_error_reason(reason_text, error=error_text)
+        classified_errors[classification] = (
+          classified_errors.get(classification, 0) + failures
+        )
+
+  total_errors = guard_skipped + notification_failures
+
+  payload["available"] = bool(
+    guard_skipped
+    or guard_reasons
+    or notification_failures
+    or notification_reasons
+    or services_with_failures
+  )
+  payload["total_errors"] = total_errors
+  payload["guard"] = {
+    "skipped": guard_skipped,
+    "reasons": guard_reasons,
+  }
+  payload["notifications"] = {
+    "total_failures": notification_failures,
+    "services_with_failures": sorted(services_with_failures),
+    "reasons": notification_reasons,
+  }
+  payload["classified_errors"] = classified_errors
+
+  return payload
+
+
+def _get_guard_notification_error_metrics(
+  runtime_data: PawControlRuntimeData | None,
+) -> JSONMutableMapping:
+  """Collect aggregated guard and notification error metrics."""
+
+  if runtime_data is None:
+    return _build_guard_notification_error_metrics(None, None)
+
+  performance_stats = get_runtime_performance_stats(runtime_data)
+  guard_metrics: Mapping[str, object] | None = None
+  if isinstance(performance_stats, Mapping):
+    guard_metrics_raw = performance_stats.get("service_guard_metrics")
+    if isinstance(guard_metrics_raw, Mapping):
+      guard_metrics = guard_metrics_raw
+
+  notification_manager = _resolve_notification_manager(runtime_data)
+  delivery_status: Mapping[str, object] | None = None
+  if notification_manager is not None:
+    delivery = notification_manager.get_delivery_status_snapshot()
+    if isinstance(delivery, Mapping):
+      delivery_status = delivery
+
+  return _build_guard_notification_error_metrics(guard_metrics, delivery_status)
 
 
 async def _get_coordinator_diagnostics(

@@ -56,10 +56,13 @@ def _load_module(name: str, path: Path) -> ModuleType:
 
 def _make_runtime_data(
   summary: CacheRepairAggregate | None = None,
+  *,
+  notification_manager: Any | None = None,
 ) -> SimpleNamespace:
   return SimpleNamespace(
     data_manager=SimpleNamespace(cache_repair_summary=lambda: summary),
     coordinator=SimpleNamespace(last_update_success=True),
+    notification_manager=notification_manager,
   )
 
 
@@ -913,6 +916,83 @@ def test_notification_check_accepts_mobile_app_service_prefix(
   asyncio.run(module._check_notification_configuration_issues(hass, entry))
 
   assert create_issue_mock.await_count == 0
+
+
+def test_notification_delivery_errors_create_issues(
+  repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+  """Recurring notification failures should surface repair issues."""
+
+  module, create_issue_mock, issue_severity_cls, _ = repairs_module
+  create_issue_mock.reset_mock()
+
+  hass = _build_hass(domain=module.DOMAIN)
+  entry = _build_entry(module)
+
+  notification_manager = SimpleNamespace(
+    get_delivery_status_snapshot=lambda: {
+      "services": {
+        "notify.mobile_app_phone": {
+          "total_failures": 4,
+          "consecutive_failures": 3,
+          "last_error_reason": "exception",
+          "last_error": "Unauthorized",
+        },
+        "notify.mobile_app_watch": {
+          "total_failures": 3,
+          "consecutive_failures": 3,
+          "last_error_reason": "exception",
+          "last_error": "Device unreachable",
+        },
+      }
+    }
+  )
+  runtime_data = _make_runtime_data(notification_manager=notification_manager)
+
+  _run_check_for_issues(module, hass, entry, runtime_data)
+
+  keys = {
+    invocation.kwargs["translation_key"]
+    for invocation in create_issue_mock.await_args_list
+  }
+  assert module.ISSUE_NOTIFICATION_AUTH_ERROR in keys
+  assert module.ISSUE_NOTIFICATION_DEVICE_UNREACHABLE in keys
+
+  for invocation in create_issue_mock.await_args_list:
+    if invocation.kwargs["translation_key"] == module.ISSUE_NOTIFICATION_AUTH_ERROR:
+      assert invocation.kwargs["severity"] == issue_severity_cls.ERROR
+
+
+def test_notification_delivery_errors_clears_issues_when_clean(
+  repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+  """Notification error issues should clear when delivery recovers."""
+
+  module, _, _, delete_issue_mock = repairs_module
+  delete_issue_mock.reset_mock()
+
+  hass = _build_hass(domain=module.DOMAIN)
+  entry = _build_entry(module)
+
+  notification_manager = SimpleNamespace(
+    get_delivery_status_snapshot=lambda: {
+      "services": {
+        "notify.mobile_app_phone": {
+          "total_failures": 1,
+          "consecutive_failures": 1,
+          "last_error_reason": "exception",
+          "last_error": "Temporary error",
+        },
+      }
+    }
+  )
+  runtime_data = _make_runtime_data(notification_manager=notification_manager)
+
+  _run_check_for_issues(module, hass, entry, runtime_data)
+
+  deleted = [call.args[-1] for call in delete_issue_mock.await_args_list]
+  assert any(str(name).endswith("notification_auth_error") for name in deleted)
+  assert any(str(name).endswith("notification_device_unreachable") for name in deleted)
 
 
 def test_async_publish_feeding_compliance_issue_creates_alert(

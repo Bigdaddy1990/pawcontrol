@@ -17,6 +17,7 @@ from custom_components.pawcontrol.const import (
   SERVICE_DAILY_RESET,
 )
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
+from custom_components.pawcontrol.error_classification import classify_error_reason
 from custom_components.pawcontrol.feeding_manager import (
   FeedingComplianceCompleted,
   FeedingComplianceNoData,
@@ -248,6 +249,20 @@ def test_record_service_result_defaults_rejection_metrics_without_breakers() -> 
 
   diagnostics_payload = last_result["diagnostics"]
   assert diagnostics_payload["rejection_metrics"] == defaults
+
+
+def test_classify_error_reason_detects_notification_failures() -> None:
+  """Error classification should bucket auth and reachability failures."""
+
+  assert classify_error_reason("missing_notify_service") == "missing_service"
+  assert (
+    classify_error_reason("exception", error="Unauthorized device")
+    == "auth_error"
+  )
+  assert (
+    classify_error_reason("exception", error="Device unreachable")
+    == "device_unreachable"
+  )
 
 
 class _DummyCoordinator:

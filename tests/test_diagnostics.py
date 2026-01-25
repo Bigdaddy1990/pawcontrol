@@ -100,6 +100,54 @@ def test_notification_rejection_metrics_summarises_services() -> None:
   )
 
 
+def test_guard_notification_error_metrics_aggregate_counts() -> None:
+  """Guard and notification errors should aggregate into a shared snapshot."""
+
+  diagnostics = _load_diagnostics()
+  guard_metrics = {
+    "executed": 4,
+    "skipped": 3,
+    "reasons": {
+      "missing_instance": 2,
+      "missing_services_api": 1,
+    },
+  }
+  delivery = {
+    "services": {
+      "notify.mobile_app_pixel": {
+        "total_failures": 4,
+        "consecutive_failures": 3,
+        "last_error_reason": "exception",
+        "last_error": "Unauthorized",
+      },
+      "notify.webhook": {
+        "total_failures": 2,
+        "consecutive_failures": 1,
+        "last_error_reason": "exception",
+        "last_error": "Device unreachable",
+      },
+    },
+  }
+
+  payload = diagnostics._build_guard_notification_error_metrics(
+    guard_metrics,
+    delivery,
+  )
+
+  assert payload["available"] is True
+  assert payload["total_errors"] == 9
+  assert payload["guard"]["skipped"] == 3
+  assert payload["guard"]["reasons"]["missing_instance"] == 2
+  assert payload["notifications"]["total_failures"] == 6
+  assert payload["notifications"]["services_with_failures"] == [
+    "notify.mobile_app_pixel",
+    "notify.webhook",
+  ]
+  assert payload["classified_errors"]["missing_service"] == 3
+  assert payload["classified_errors"]["auth_error"] == 4
+  assert payload["classified_errors"]["device_unreachable"] == 2
+
+
 def test_configuration_url_redacted_in_diagnostics() -> None:
   """Ensure configuration_url fields are redacted in diagnostics payloads."""
 

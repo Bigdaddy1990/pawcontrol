@@ -1423,6 +1423,14 @@
       "description": "The {missing_service} notification service is not available. {notification_enabled_dogs} dog(s) rely on this service.",
       "title": "Notification service unavailable"
     },
+    "notification_auth_error": {
+      "description": "Repeated authentication errors were detected for {service_count} notification service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}.",
+      "title": "Notification authentication failed"
+    },
+    "notification_device_unreachable": {
+      "description": "Notification deliveries repeatedly failed because devices were unreachable for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}.",
+      "title": "Notification devices unreachable"
+    },
     "module_configuration_conflict": {
       "description": "{intensive_dogs} dog(s) use all intensive modules out of {total_dogs} configured. Disable some modules or enable performance mode.",
       "title": "Too many intensive modules enabled"

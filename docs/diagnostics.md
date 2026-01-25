@@ -40,3 +40,25 @@ Fields:
   service (for example, `missing_notify_service`, `service_not_executed`).
 - `service_last_errors`: Mapping `{service_name: last_error}` per service
   (including exception text, when available).
+
+## Service Guard + Notification Errors
+
+The diagnostics payload also exports aggregated error metrics under
+`guard_notification_error_metrics`. This section combines service guard skip
+reasons with notification delivery failures to highlight recurring issues in a
+single place.
+
+Fields:
+
+- `schema_version`: Version of the aggregated error schema (currently `1`).
+- `available`: `true` when at least one guard skip or notification failure is
+  recorded.
+- `total_errors`: Combined count of guard skips and notification failures.
+- `guard.skipped`: Total service guard skips captured.
+- `guard.reasons`: Mapping `{reason: count}` for guard skips.
+- `notifications.total_failures`: Total failed notification deliveries.
+- `notifications.services_with_failures`: List of notify services with failures.
+- `notifications.reasons`: Mapping `{reason: count}` for notification failures.
+- `classified_errors`: Mapping `{classification: count}` that bucketizes guard
+  and notification errors into shared categories (for example, `auth_error`,
+  `device_unreachable`, `missing_service`).

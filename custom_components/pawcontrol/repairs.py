@@ -35,6 +35,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
+from .error_classification import classify_error_reason
 from .exceptions import RepairRequiredError
 from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import (
@@ -69,6 +70,8 @@ ISSUE_MISSING_DOG_CONFIG = "missing_dog_configuration"
 ISSUE_DUPLICATE_DOG_IDS = "duplicate_dog_ids"
 ISSUE_INVALID_GPS_CONFIG = "invalid_gps_configuration"
 ISSUE_MISSING_NOTIFICATIONS = "missing_notification_config"
+ISSUE_NOTIFICATION_AUTH_ERROR = "notification_auth_error"
+ISSUE_NOTIFICATION_DEVICE_UNREACHABLE = "notification_device_unreachable"
 ISSUE_OUTDATED_CONFIG = "outdated_configuration"
 ISSUE_PERFORMANCE_WARNING = "performance_warning"
 ISSUE_GPS_UPDATE_INTERVAL = "gps_update_interval_warning"
@@ -469,6 +472,7 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
     # Check notification configuration issues
     await _check_notification_configuration_issues(hass, entry)
+    await _check_notification_delivery_errors(hass, entry)
 
     # Check for outdated configuration
     await _check_outdated_configuration(hass, entry)
@@ -748,6 +752,149 @@ async def _check_notification_configuration_issues(
         },
         severity="warning",
       )
+
+
+def _coerce_int(value: object) -> int | None:
+  """Return ``value`` coerced into an integer when safe."""
+
+  if isinstance(value, bool):
+    return int(value)
+  if isinstance(value, int):
+    return value
+  if isinstance(value, float):
+    return int(value)
+  if isinstance(value, str):
+    try:
+      return int(value.strip())
+    except ValueError:
+      return None
+  return None
+
+
+async def _check_notification_delivery_errors(
+  hass: HomeAssistant,
+  entry: ConfigEntry,
+) -> None:
+  """Surface recurring notification delivery errors."""
+
+  issue_definitions = {
+    "auth_error": {
+      "issue_id": f"{entry.entry_id}_notification_auth_error",
+      "issue_type": ISSUE_NOTIFICATION_AUTH_ERROR,
+      "severity": ir.IssueSeverity.ERROR,
+    },
+    "device_unreachable": {
+      "issue_id": f"{entry.entry_id}_notification_device_unreachable",
+      "issue_type": ISSUE_NOTIFICATION_DEVICE_UNREACHABLE,
+      "severity": ir.IssueSeverity.WARNING,
+    },
+  }
+
+  try:
+    runtime_data = require_runtime_data(hass, entry)
+  except RuntimeDataUnavailableError:
+    delete_issue = getattr(ir, "async_delete_issue", None)
+    if callable(delete_issue):
+      for issue in issue_definitions.values():
+        await delete_issue(hass, DOMAIN, issue["issue_id"])
+    return
+
+  notification_manager = getattr(runtime_data, "notification_manager", None)
+  if notification_manager is None:
+    delete_issue = getattr(ir, "async_delete_issue", None)
+    if callable(delete_issue):
+      for issue in issue_definitions.values():
+        await delete_issue(hass, DOMAIN, issue["issue_id"])
+    return
+
+  delivery_status = notification_manager.get_delivery_status_snapshot()
+  if not isinstance(delivery_status, Mapping):
+    delete_issue = getattr(ir, "async_delete_issue", None)
+    if callable(delete_issue):
+      for issue in issue_definitions.values():
+        await delete_issue(hass, DOMAIN, issue["issue_id"])
+    return
+
+  services = delivery_status.get("services")
+  if not isinstance(services, Mapping):
+    delete_issue = getattr(ir, "async_delete_issue", None)
+    if callable(delete_issue):
+      for issue in issue_definitions.values():
+        await delete_issue(hass, DOMAIN, issue["issue_id"])
+    return
+
+  recurring_threshold = 3
+  classified_services: dict[str, dict[str, object]] = {
+    key: {"services": [], "total_failures": 0, "consecutive_failures": 0}
+    for key in issue_definitions
+  }
+  reasons_by_class: dict[str, set[str]] = {
+    key: set() for key in issue_definitions
+  }
+
+  for service_name, payload in services.items():
+    if not isinstance(service_name, str) or not isinstance(payload, Mapping):
+      continue
+
+    total_failures = _coerce_int(payload.get("total_failures")) or 0
+    consecutive_failures = _coerce_int(payload.get("consecutive_failures")) or 0
+    if consecutive_failures < recurring_threshold or total_failures <= 0:
+      continue
+
+    last_error_reason = payload.get("last_error_reason")
+    reason_text = (
+      last_error_reason
+      if isinstance(last_error_reason, str) and last_error_reason
+      else None
+    )
+    last_error = payload.get("last_error")
+    error_text = last_error if isinstance(last_error, str) else None
+    classification = classify_error_reason(reason_text, error=error_text)
+
+    if classification not in issue_definitions:
+      continue
+
+    classified_entry = classified_services[classification]
+    cast(list[str], classified_entry["services"]).append(service_name)
+    classified_entry["total_failures"] = (
+      cast(int, classified_entry["total_failures"]) + total_failures
+    )
+    classified_entry["consecutive_failures"] = (
+      cast(int, classified_entry["consecutive_failures"]) + consecutive_failures
+    )
+    if reason_text:
+      reasons_by_class[classification].add(reason_text)
+
+  delete_issue = getattr(ir, "async_delete_issue", None)
+  for classification, definition in issue_definitions.items():
+    services_list = cast(list[str], classified_services[classification]["services"])
+    if not services_list:
+      if callable(delete_issue):
+        await delete_issue(hass, DOMAIN, definition["issue_id"])
+      continue
+
+    issue_data: JSONMutableMapping = {
+      "services": ", ".join(sorted(services_list)),
+      "service_count": len(services_list),
+      "total_failures": classified_services[classification]["total_failures"],
+      "consecutive_failures": classified_services[classification][
+        "consecutive_failures"
+      ],
+      "last_error_reasons": (
+        ", ".join(sorted(reasons_by_class[classification]))
+        if reasons_by_class[classification]
+        else "n/a"
+      ),
+    }
+
+    await async_create_issue(
+      hass,
+      entry,
+      definition["issue_id"],
+      definition["issue_type"],
+      issue_data,
+      severity=definition["severity"],
+    )
 
 
 async def _check_outdated_configuration(
