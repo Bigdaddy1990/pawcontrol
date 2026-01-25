@@ -91,6 +91,31 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
    - Webhook-Ziele samt Secret konfigurieren, wenn externe Systeme angebunden
      werden sollen.
 
+### Einrichtung – klare Schrittfolge
+1. **Integration hinzufügen:** `Einstellungen → Geräte & Dienste → Integration`
+   öffnen und *Paw Control* auswählen.
+2. **Hund(e) anlegen:** Name, ID, Größe, Gewicht und optionale Gesundheitsdaten
+   erfassen.
+3. **Module wählen:** Feeding, GPS, Garten, Besuchsmodus und Wetter nach Bedarf
+   aktivieren.
+4. **Externe Entitäten zuordnen:** GPS-Quelle (Person/Gerätetracker),
+   optional Türsensoren und Wetter-Entity auswählen.
+5. **Optionen prüfen:** Dashboard-Generator, Benachrichtigungen, Performance-
+   Modus und Datenaufbewahrung festlegen.
+6. **Verifizieren:** Entitäten prüfen und eine Testbenachrichtigung senden.
+
+### Fehlerbehebung – Schnellcheck
+1. **Setup schlägt fehl:** Prüfe `Einstellungen → Geräte & Dienste → Logs` auf
+   fehlende API-Endpunkte oder ungültige Entitäten.
+2. **Keine Entitäten sichtbar:** Stelle sicher, dass mindestens ein Hund
+   vollständig konfiguriert ist und das Entity-Profil nicht deaktiviert wurde.
+3. **GPS ohne Daten:** GPS-Quelle muss ein aktiver Tracker oder eine Person mit
+   Standortupdates sein; Teste die Quelle in Home Assistant.
+4. **Benachrichtigungen fehlen:** Prüfe den gewählten Notification-Service und
+   sende die Testbenachrichtigung.
+5. **Leistungsprobleme:** Aktiviere den Performance-Modus oder reduziere die
+   aktivierten Module pro Hund.
+
 ## Qualitäts- und Supportstatus
 - Docstrings und Typannotationen werden projektweit erzwungen; ein Skript
   überwacht die Ruff-Baseline für fehlende Docstrings.
