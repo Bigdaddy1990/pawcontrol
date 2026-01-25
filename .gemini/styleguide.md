@@ -207,7 +207,7 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 
 - Update README, `info.md`, and `docs/` when workflows change. Each file must
   link to the relevant evidence (tests, modules, or scripts) so reviewers can
-  verify Platinum claims.【F:docs/markdown_compliance_review.md†L1-L60】
+  verify Platinum claims.
 - Keep `docs/compliance_gap_analysis.md` in sync with the manifest and
   quality_scale badge so Platinum evidence stays current.【F:docs/compliance_gap_analysis.md†L1-L80】
 - Log new work in `CHANGELOG.md`/`RELEASE_NOTES.md` and refresh brand assets

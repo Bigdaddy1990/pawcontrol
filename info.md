@@ -26,9 +26,6 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   Plattformen konsistent auf dieselbe Datenbasis zu.
 - Die Modul-Adapter cachen Ergebnisse, nutzen bei Bedarf den Geräte-API-Client
   und liefern strukturierte Payloads für die Sensorplattformen.
-- Laufzeitmetriken für Statistik- und Besuchsflows werden per `perf_counter`
-  erfasst; die aktuellen Benchmarks sind im Performance-Anhang dokumentiert.
-  So lässt sich die Platinum-Ausrichtung der Async-Disziplin transparent nachvollziehen.
 - Das Laufzeit-Cache (`custom_components/pawcontrol/runtime_data.py`) protokolliert jetzt die erzeugende Schema-Version, hebt Altversionen automatisch auf das kompatible Minimum an und entfernt Future-Snapshots sofort aus `hass.data`, damit Reloads lieber sauber neu initialisieren als inkompatible Payloads weiterzureichen.【F:custom_components/pawcontrol/runtime_data.py†L1-L312】【F:tests/test_runtime_data.py†L1-L640】
 
 ### Benachrichtigungen & Webhooks
@@ -81,11 +78,6 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   Kalorien-Neuberechnung im Notfallmodus werden mit `asyncio.to_thread`
   beziehungsweise `_offload_blocking` ausgelagert, sodass der Event Loop
   reaktionsfähig bleibt.
-- Laufzeitstatistiken und Besuchsmodus-Workflows werden mit `perf_counter`
-  profiliert; die gemessenen Werte landen sowohl in den Koordinator-Metriken als
-  auch im Async-Audit – aktuell mit ~1.66 ms für Statistikzyklen und ~0.67 ms für
-  Besucher-Updates –, wodurch CI-Tests Laufzeitregressionen <5 ms (Stats) bzw.
-  <3 ms (Besuchsmodus) sofort melden.【F:custom_components/pawcontrol/coordinator.py†L360-L420】【F:custom_components/pawcontrol/coordinator_support.py†L160-L213】【F:custom_components/pawcontrol/data_manager.py†L360-L450】【F:docs/async_dependency_audit.md†L1-L120】【F:generated/perf_samples/latest.json†L1-L17】【F:tests/unit/test_data_manager.py†L1-L118】
 
 ## Installation & Inbetriebnahme
 1. **Repository zu HACS hinzufügen** (Kategorie Integration) und Paw Control
@@ -105,16 +97,6 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 - Der Volltest-Workflow [`scheduled-pytest.yml`](.github/workflows/scheduled-pytest.yml) reserviert dienstags und freitags um
   03:00 UTC einen dedizierten Slot; manuelle Läufe erfordern `override_ci_window=true` und einen dokumentierten `run_reason`,
   damit abgestimmte Wartungsfenster priorisiert bleiben.
-- Der Vendor-Wächter [`vendor-pyyaml-monitor.yml`](.github/workflows/vendor-pyyaml-monitor.yml)
-  prüft mittwochs die PyPI- und OSV-Daten für PyYAML, meldet veröffentlichte
-  Sicherheitsmeldungen und signalisiert, sobald `cp313`-`manylinux`- oder
-  `cp313`-`musllinux`-Wheels (PEP 656) das Entfernen des Vendor-Verzeichnisses
-  ermöglichen. Der Lauf aktualisiert zusätzlich `generated/vendor_pyyaml_status.json`
-  mit den zugehörigen Download-Links.
-- `python -m scripts.sync_homeassistant_dependencies --home-assistant-root /pfad/zum/core`
-  synchronisiert `requirements*.txt`, Manifest-Anforderungen und das vendorte
-  PyYAML automatisiert mit den Home-Assistant-Constraints (derzeit PyYAML 6.0.3)
-  und regeneriert `generated/vendor_pyyaml_status.json` mitsamt Wheel-Links.
 - Der CI-Job „TypedDict audit“ aus [`ci.yml`](.github/workflows/ci.yml) führt bei
   jedem Push sowie in Pull Requests `python -m scripts.check_typed_dicts --path
   custom_components/pawcontrol --path tests --fail-on-findings` aus und blockiert
