@@ -100,6 +100,24 @@ def test_notification_rejection_metrics_summarises_services() -> None:
   )
 
 
+def test_configuration_url_redacted_in_diagnostics() -> None:
+  """Ensure configuration_url fields are redacted in diagnostics payloads."""
+
+  diagnostics = _load_diagnostics()
+  payload = {
+    "devices": [
+      {
+        "id": "device-1",
+        "configuration_url": (
+          "https://example.com/config?token=supersecrettoken&ip=192.168.1.12"
+        ),
+      }
+    ]
+  }
+
+  redacted = diagnostics._redact_sensitive_data(payload)
+
+  assert redacted["devices"][0]["configuration_url"] == "**REDACTED**"
 def test_redacts_mac_strings_and_serial_numbers_in_nested_payloads() -> None:
   """MAC addresses and serial numbers must be redacted in nested structures."""
 
