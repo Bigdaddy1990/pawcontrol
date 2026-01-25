@@ -14,8 +14,10 @@ from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
-from homeassistant.components.select import SelectEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.components import select as select_component
+from homeassistant.components.select import ATTR_OPTION, ATTR_OPTIONS, SelectEntity
+from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -41,6 +43,7 @@ from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, PawControlNotificationManager
+from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_ID_FIELD,
@@ -524,6 +527,55 @@ async def async_setup_entry(
     "Created %d select entities for %d dogs using batched approach",
     len(entities),
     len(dogs),
+  )
+
+
+async def async_reproduce_state(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Reproduce select states for PawControl entities."""
+  await async_reproduce_platform_states(
+    hass,
+    states,
+    "select",
+    _preprocess_select_state,
+    _async_reproduce_select_state,
+    context=context,
+  )
+
+
+def _preprocess_select_state(state: State) -> str:
+  return state.state
+
+
+async def _async_reproduce_select_state(
+  hass: HomeAssistant,
+  state: State,
+  current_state: State,
+  target_option: str,
+  context: Context | None,
+) -> None:
+  if current_state.state == target_option:
+    return
+
+  options = current_state.attributes.get(ATTR_OPTIONS, [])
+  if options and target_option not in options:
+    _LOGGER.warning(
+      "Invalid select option for %s: %s",
+      state.entity_id,
+      target_option,
+    )
+    return
+
+  await hass.services.async_call(
+    select_component.DOMAIN,
+    select_component.SERVICE_SELECT_OPTION,
+    {ATTR_ENTITY_ID: state.entity_id, ATTR_OPTION: target_option},
+    context=context,
+    blocking=True,
   )
 
 

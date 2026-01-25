@@ -25,6 +25,7 @@
 🔔 **Intelligent Notifications** - Context-aware alerts with emergency protocols and quiet hours
 🤖 **Advanced Automations** - Learning algorithms, predictive alerts, and emergency detection
 ⚡ **Enterprise Performance** - Multi-tier caching, batch processing, and real-time monitoring
+🎬 **Scene Support** - Switch, select, number, and text entities support scene state reproduction
 
 ## 🧪 Quality & Evidence
 

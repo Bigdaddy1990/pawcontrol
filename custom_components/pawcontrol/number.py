@@ -10,18 +10,23 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import cast
 
 from homeassistant import const as ha_const
+from homeassistant.components import number as number_component
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
+  ATTR_ENTITY_ID,
+  ATTR_VALUE,
   PERCENTAGE,
+  STATE_UNAVAILABLE,
+  STATE_UNKNOWN,
   UnitOfEnergy,
   UnitOfLength,
   UnitOfTime,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -41,6 +46,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
+from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_AGE_FIELD,
@@ -233,6 +239,60 @@ async def async_setup_entry(
     "Created %d number entities for %d dogs using batched approach",
     len(entities),
     len(dogs),
+  )
+
+
+async def async_reproduce_state(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Reproduce number states for PawControl entities."""
+  await async_reproduce_platform_states(
+    hass,
+    states,
+    "number",
+    _preprocess_number_state,
+    _async_reproduce_number_state,
+    context=context,
+  )
+
+
+def _preprocess_number_state(state: State) -> float | None:
+  try:
+    return float(state.state)
+  except (TypeError, ValueError):
+    _LOGGER.warning(
+      "Invalid number state for %s: %s",
+      state.entity_id,
+      state.state,
+    )
+    return None
+
+
+async def _async_reproduce_number_state(
+  hass: HomeAssistant,
+  state: State,
+  current_state: State,
+  target_value: float,
+  context: Context | None,
+) -> None:
+  if current_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+    try:
+      current_value = float(current_state.state)
+    except (TypeError, ValueError):
+      current_value = None
+    else:
+      if current_value == target_value:
+        return
+
+  await hass.services.async_call(
+    number_component.DOMAIN,
+    number_component.SERVICE_SET_VALUE,
+    {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
+    context=context,
+    blocking=True,
   )
 
 

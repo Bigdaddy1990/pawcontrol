@@ -8,8 +8,13 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
+from homeassistant.components import text as text_component
 from homeassistant.components.text import TextEntity, TextMode
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+  ATTR_ENTITY_ID,
+  ATTR_VALUE,
+)
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -26,6 +31,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, NotificationType
+from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_ID_FIELD,
@@ -289,6 +295,46 @@ async def async_setup_entry(
     "Created %d text entities for %d dogs using batched approach",
     len(entities),
     len(dogs),
+  )
+
+
+async def async_reproduce_state(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Reproduce text states for PawControl entities."""
+  await async_reproduce_platform_states(
+    hass,
+    states,
+    "text",
+    _preprocess_text_state,
+    _async_reproduce_text_state,
+    context=context,
+  )
+
+
+def _preprocess_text_state(state: State) -> str:
+  return state.state
+
+
+async def _async_reproduce_text_state(
+  hass: HomeAssistant,
+  state: State,
+  current_state: State,
+  target_value: str,
+  context: Context | None,
+) -> None:
+  if current_state.state == target_value:
+    return
+
+  await hass.services.async_call(
+    text_component.DOMAIN,
+    text_component.SERVICE_SET_VALUE,
+    {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
+    context=context,
+    blocking=True,
   )
 
 
