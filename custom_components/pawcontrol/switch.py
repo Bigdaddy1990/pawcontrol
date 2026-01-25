@@ -15,8 +15,18 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar, cast
 
+from homeassistant.components import switch as switch_component
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+  ATTR_ENTITY_ID,
+  SERVICE_TURN_OFF,
+  SERVICE_TURN_ON,
+  STATE_OFF,
+  STATE_ON,
+  STATE_UNAVAILABLE,
+  STATE_UNKNOWN,
+)
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -334,6 +344,52 @@ async def async_setup_entry(
     total_entities / len(dogs) if dogs else 0,
     total_modules_enabled,
   )
+
+
+async def async_reproduce_state(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Reproduce switch states for PawControl entities."""
+
+  for state in states:
+    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      _LOGGER.warning(
+        "Cannot reproduce switch state for %s: %s",
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    if state.state not in (STATE_ON, STATE_OFF):
+      _LOGGER.warning(
+        "Invalid switch state for %s: %s",
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    current_state = hass.states.get(state.entity_id)
+    if current_state is None:
+      _LOGGER.warning(
+        "Switch entity %s not found for state reproduction",
+        state.entity_id,
+      )
+      continue
+
+    if current_state.state == state.state:
+      continue
+
+    service = SERVICE_TURN_ON if state.state == STATE_ON else SERVICE_TURN_OFF
+    await hass.services.async_call(
+      switch_component.DOMAIN,
+      service,
+      {ATTR_ENTITY_ID: state.entity_id},
+      context=context,
+      blocking=True,
+    )
 
 
 class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):

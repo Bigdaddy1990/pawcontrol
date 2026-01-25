@@ -10,18 +10,23 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import cast
 
 from homeassistant import const as ha_const
+from homeassistant.components import number as number_component
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
+  ATTR_ENTITY_ID,
+  ATTR_VALUE,
   PERCENTAGE,
+  STATE_UNAVAILABLE,
+  STATE_UNKNOWN,
   UnitOfEnergy,
   UnitOfLength,
   UnitOfTime,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -234,6 +239,59 @@ async def async_setup_entry(
     len(entities),
     len(dogs),
   )
+
+
+async def async_reproduce_state(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Reproduce number states for PawControl entities."""
+
+  for state in states:
+    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      _LOGGER.warning(
+        "Cannot reproduce number state for %s: %s",
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    try:
+      target_value = float(state.state)
+    except (TypeError, ValueError):
+      _LOGGER.warning(
+        "Invalid number state for %s: %s",
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    current_state = hass.states.get(state.entity_id)
+    if current_state is None:
+      _LOGGER.warning(
+        "Number entity %s not found for state reproduction",
+        state.entity_id,
+      )
+      continue
+
+    if current_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      try:
+        current_value = float(current_state.state)
+      except (TypeError, ValueError):
+        current_value = None
+      else:
+        if current_value == target_value:
+          continue
+
+    await hass.services.async_call(
+      number_component.DOMAIN,
+      number_component.SERVICE_SET_VALUE,
+      {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
+      context=context,
+      blocking=True,
+    )
 
 
 def _create_base_numbers(

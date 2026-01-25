@@ -8,8 +8,15 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
+from homeassistant.components import text as text_component
 from homeassistant.components.text import TextEntity, TextMode
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+  ATTR_ENTITY_ID,
+  ATTR_VALUE,
+  STATE_UNAVAILABLE,
+  STATE_UNKNOWN,
+)
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -290,6 +297,43 @@ async def async_setup_entry(
     len(entities),
     len(dogs),
   )
+
+
+async def async_reproduce_state(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Reproduce text states for PawControl entities."""
+
+  for state in states:
+    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      _LOGGER.warning(
+        "Cannot reproduce text state for %s: %s",
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    current_state = hass.states.get(state.entity_id)
+    if current_state is None:
+      _LOGGER.warning(
+        "Text entity %s not found for state reproduction",
+        state.entity_id,
+      )
+      continue
+
+    if current_state.state == state.state:
+      continue
+
+    await hass.services.async_call(
+      text_component.DOMAIN,
+      text_component.SERVICE_SET_VALUE,
+      {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: state.state},
+      context=context,
+      blocking=True,
+    )
 
 
 class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):

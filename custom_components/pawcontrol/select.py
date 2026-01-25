@@ -14,8 +14,10 @@ from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
-from homeassistant.components.select import SelectEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.components import select as select_component
+from homeassistant.components.select import ATTR_OPTION, ATTR_OPTIONS, SelectEntity
+from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -525,6 +527,52 @@ async def async_setup_entry(
     len(entities),
     len(dogs),
   )
+
+
+async def async_reproduce_state(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Reproduce select states for PawControl entities."""
+
+  for state in states:
+    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      _LOGGER.warning(
+        "Cannot reproduce select state for %s: %s",
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    current_state = hass.states.get(state.entity_id)
+    if current_state is None:
+      _LOGGER.warning(
+        "Select entity %s not found for state reproduction",
+        state.entity_id,
+      )
+      continue
+
+    if current_state.state == state.state:
+      continue
+
+    options = current_state.attributes.get(ATTR_OPTIONS, [])
+    if options and state.state not in options:
+      _LOGGER.warning(
+        "Invalid select option for %s: %s",
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    await hass.services.async_call(
+      select_component.DOMAIN,
+      select_component.SERVICE_SELECT_OPTION,
+      {ATTR_ENTITY_ID: state.entity_id, ATTR_OPTION: state.state},
+      context=context,
+      blocking=True,
+    )
 
 
 def _create_base_selects(
