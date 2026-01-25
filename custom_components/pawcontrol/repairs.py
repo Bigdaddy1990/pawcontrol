@@ -828,9 +828,7 @@ async def _check_notification_delivery_errors(
     key: {"services": [], "total_failures": 0, "consecutive_failures": 0}
     for key in issue_definitions
   }
-  reasons_by_class: dict[str, set[str]] = {
-    key: set() for key in issue_definitions
-  }
+  reasons_by_class: dict[str, set[str]] = {key: set() for key in issue_definitions}
 
   for service_name, payload in services.items():
     if not isinstance(service_name, str) or not isinstance(payload, Mapping):

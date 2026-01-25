@@ -55,10 +55,7 @@ def _normalise_text(value: object | None) -> str:
 
   if value is None:
     return ""
-  if isinstance(value, Exception):
-    text = str(value)
-  else:
-    text = str(value)
+  text = str(value) if isinstance(value, Exception) else str(value)
   return text.strip().lower()
 
 

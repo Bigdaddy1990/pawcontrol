@@ -255,10 +255,7 @@ def test_classify_error_reason_detects_notification_failures() -> None:
   """Error classification should bucket auth and reachability failures."""
 
   assert classify_error_reason("missing_notify_service") == "missing_service"
-  assert (
-    classify_error_reason("exception", error="Unauthorized device")
-    == "auth_error"
-  )
+  assert classify_error_reason("exception", error="Unauthorized device") == "auth_error"
   assert (
     classify_error_reason("exception", error="Device unreachable")
     == "device_unreachable"
