@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+from custom_components.pawcontrol.options_flow_main import PawControlOptionsFlow
 from scripts.sync_localization_flags import TABLE_END_MARKER, TABLE_START_MARKER
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -110,6 +111,18 @@ def _expected_setup_flag_keys() -> dict[str, str]:
     if key.startswith(_FLAG_PREFIX) or key.startswith(_SOURCE_PREFIX)
   }
   return relevant_keys
+
+
+def test_setup_flag_supported_languages_match_translations() -> None:
+  expected_languages = {path.stem for path in TRANSLATIONS_DIR.glob("*.json")}
+  if STRINGS_PATH.exists():
+    expected_languages.add("en")
+  if not expected_languages:
+    expected_languages.add("en")
+  assert (
+    PawControlOptionsFlow._SETUP_FLAG_SUPPORTED_LANGUAGES
+    == frozenset(expected_languages)
+  )
 
 
 def test_translations_include_setup_flag_keys() -> None:
