@@ -17,6 +17,7 @@ from typing import Any, Generic, TypeVar
 from unittest.mock import AsyncMock
 
 import voluptuous as vol
+
 __all__ = [
   "ConfigEntry",
   "ConfigEntryAuthFailed",

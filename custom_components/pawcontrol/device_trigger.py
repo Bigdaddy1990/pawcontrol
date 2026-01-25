@@ -23,7 +23,11 @@ from homeassistant.helpers.event import async_track_state_change_event
 import voluptuous as vol
 
 from .const import DOMAIN
-from .device_automation_helpers import build_unique_id, resolve_device_context, resolve_entity_id
+from .device_automation_helpers import (
+  build_unique_id,
+  resolve_device_context,
+  resolve_entity_id,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,7 +83,9 @@ TRIGGER_DEFINITIONS: Final[tuple[TriggerDefinition, ...]] = (
 
 TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
   {
-    vol.Required(CONF_TYPE): vol.In({definition.type for definition in TRIGGER_DEFINITIONS}),
+    vol.Required(CONF_TYPE): vol.In(
+      {definition.type for definition in TRIGGER_DEFINITIONS}
+    ),
     vol.Optional(CONF_ENTITY_ID): _ENTITY_ID_VALIDATOR,
     vol.Optional(CONF_FROM): cv.string,
     vol.Optional(CONF_TO): cv.string,
@@ -176,9 +182,8 @@ async def async_attach_trigger(
     if from_state is not None:
       if old_state is None or old_state.state != from_state:
         return
-    if to_state is not None:
-      if new_state is None or new_state.state != to_state:
-        return
+    if to_state is not None and (new_state is None or new_state.state != to_state):
+      return
 
     payload = dict(trigger_data)
     payload.update(

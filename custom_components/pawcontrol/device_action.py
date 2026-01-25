@@ -42,7 +42,9 @@ ACTION_DEFINITIONS: Final[tuple[ActionDefinition, ...]] = (
 
 ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
   {
-    vol.Required(CONF_TYPE): vol.In({definition.type for definition in ACTION_DEFINITIONS}),
+    vol.Required(CONF_TYPE): vol.In(
+      {definition.type for definition in ACTION_DEFINITIONS}
+    ),
     vol.Optional(CONF_AMOUNT): vol.Coerce(float),
     vol.Optional(CONF_MEAL_TYPE): cv.string,
     vol.Optional(CONF_NOTES): cv.string,
