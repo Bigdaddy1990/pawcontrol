@@ -79,7 +79,6 @@ _TIMESTAMP_DEVICE_CLASS = cast(
 # Type aliases for better readability
 SensorValue = str | int | float | datetime | None
 type AttributeInputDict = EntityAttributeDateMutableMapping
-type AttributeDict = JSONMutableMapping
 _STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
 UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
 if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
@@ -112,11 +111,11 @@ except AttributeError:  # pragma: no cover - fallback for older constant sets
   _CALORIE_UNIT = "kcal"
 
 
-def _normalise_attributes(attrs: Mapping[str, object]) -> AttributeDict:
+def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for sensor entities."""
 
   payload = ensure_json_mapping(attrs)
-  return cast(AttributeDict, normalise_json_mapping(payload))
+  return cast(JSONMutableMapping, normalise_json_mapping(payload))
 
 
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
@@ -1054,7 +1053,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     return cast(GardenModulePayload, {})
 
-  def _garden_attributes(self) -> AttributeDict:
+  def _garden_attributes(self) -> JSONMutableMapping:
     """Build shared garden attributes for subclasses."""
 
     data = self._get_garden_data()
@@ -1139,7 +1138,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
     return _normalise_attributes(attrs)
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     attrs.update(self._garden_attributes())
@@ -1164,7 +1163,7 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
     return None
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
@@ -1635,7 +1634,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
       return _STATE_UNKNOWN
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for activity level sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -2177,7 +2176,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
       return None
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for hours since feeding sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -2539,7 +2538,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
       return 0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
@@ -2581,7 +2580,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
       return 0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
@@ -2620,7 +2619,7 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
     return str(summary.get("vet_consultation_state", "not_needed"))
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
@@ -2672,7 +2671,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
       return 1.0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
@@ -2722,7 +2721,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
       return 100.0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
@@ -2808,7 +2807,7 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
       return 0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for portions sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -2895,7 +2894,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
       return 0.0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for calorie progress sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -2980,7 +2979,7 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
     return str(status)
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return diagnostic attributes for the health feeding status."""
 
     attrs: AttributeInputDict = self._base_attributes()
@@ -3051,7 +3050,7 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
     return None
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     feeding_payload = self._get_feeding_module() or cast(FeedingModulePayload, {})
@@ -3113,7 +3112,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
     return None
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     feeding_payload = self._get_feeding_module() or cast(FeedingModulePayload, {})
@@ -3168,7 +3167,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
     return None
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     feeding_payload = self._get_feeding_module()
@@ -3235,7 +3234,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
     return round(total_consumption, 1)
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for food consumption sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -3500,7 +3499,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
     return round(self._coerce_float(distance_today), 1)
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for walk distance sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -3633,7 +3632,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
       return 0.0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for calories burned sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -3742,7 +3741,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
       return 0.0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for total walk distance sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -3864,7 +3863,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
       return 0
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for walks this week sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
@@ -4108,7 +4107,7 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
     return location
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     gps_data: GPSModulePayload = cast(
@@ -4508,7 +4507,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     return str(condition_list)
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     conditions: HealthModulePayload = cast(
@@ -4561,7 +4560,7 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
     return self._coerce_float(progress)
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     health_data: HealthModulePayload = cast(
@@ -4614,7 +4613,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
     return str(level)
 
   @property
-  def extra_state_attributes(self) -> AttributeDict:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     health_data: HealthModulePayload = cast(

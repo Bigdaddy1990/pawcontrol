@@ -701,7 +701,7 @@ class OptimizedEntityBase(
     return True
 
   @property
-  def extra_state_attributes(self) -> OptimizedEntityAttributesPayload:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Enhanced state attributes with caching and performance tracking.
 
     Returns:

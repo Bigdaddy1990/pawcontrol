@@ -65,7 +65,6 @@ from .types import (
   PawControlConfigEntry,
   PawControlRuntimeData,
   PerformanceModeInfo,
-  SelectExtraAttributes,
   TrackingModePreset,
   WalkModeInfo,
   coerce_dog_modules_config,
@@ -84,11 +83,11 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
-def _normalise_attributes(attrs: Mapping[str, object]) -> SelectExtraAttributes:
+def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for select entities."""
 
   payload = ensure_json_mapping(attrs)
-  return cast(SelectExtraAttributes, _normalise_diagnostics_json(payload))
+  return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
 
 
 # Additional option lists for selects
@@ -917,7 +916,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     return self._current_option
 
   @property
-  def extra_state_attributes(self) -> SelectExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for the select.
 
     Provides information about the select's function and available options.
@@ -925,15 +924,12 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     Returns:
         Dictionary of additional state attributes
     """
-    attrs = cast(
-      SelectExtraAttributes,
-      self._build_base_state_attributes(
-        {
-          "select_type": self._select_type,
-          "available_options": list(getattr(self, "_attr_options", [])),
-          "last_changed": dt_util.utcnow().isoformat(),
-        },
-      ),
+    attrs = self._build_base_state_attributes(
+      {
+        "select_type": self._select_type,
+        "available_options": list(getattr(self, "_attr_options", [])),
+        "last_changed": dt_util.utcnow().isoformat(),
+      },
     )
 
     return _normalise_attributes(attrs)
@@ -1050,7 +1046,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
     await self.coordinator.async_refresh_dog(self._dog_id)
 
   @property
-  def extra_state_attributes(self) -> SelectExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for the size select."""
     attrs = super().extra_state_attributes
 
@@ -1105,7 +1101,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
     pass
 
   @property
-  def extra_state_attributes(self) -> SelectExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for performance mode."""
     attrs = super().extra_state_attributes
 
@@ -1225,7 +1221,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
     pass
 
   @property
-  def extra_state_attributes(self) -> SelectExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for food type."""
     attrs = super().extra_state_attributes
 
@@ -1391,7 +1387,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
     )
 
   @property
-  def extra_state_attributes(self) -> SelectExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for walk mode."""
     attrs = super().extra_state_attributes
 
@@ -1505,7 +1501,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
     )
 
   @property
-  def extra_state_attributes(self) -> SelectExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for GPS source."""
     attrs = super().extra_state_attributes
 
@@ -1742,7 +1738,7 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
     pass
 
   @property
-  def extra_state_attributes(self) -> SelectExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for grooming type."""
     attrs = super().extra_state_attributes
 
