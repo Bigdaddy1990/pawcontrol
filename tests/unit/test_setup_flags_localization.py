@@ -120,8 +120,8 @@ def test_setup_flag_supported_languages_match_translations() -> None:
   if not expected_languages:
     expected_languages.add("en")
   assert (
-    PawControlOptionsFlow._SETUP_FLAG_SUPPORTED_LANGUAGES
-    == frozenset(expected_languages)
+    frozenset(expected_languages)
+    == PawControlOptionsFlow._SETUP_FLAG_SUPPORTED_LANGUAGES
   )
 
 
