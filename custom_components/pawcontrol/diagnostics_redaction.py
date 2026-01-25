@@ -71,6 +71,7 @@ def _looks_like_sensitive_string(value: str) -> bool:
     r"\b[A-Za-z0-9]{20,}\b",
     r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
     r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+    r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b",
   ]
 
   return any(re.search(pattern, value) for pattern in sensitive_patterns)
