@@ -154,3 +154,54 @@ action:
 
 After saving, create automations in **Settings → Automations & Scenes → Create
 Automation → From Blueprint** and select this blueprint.
+
+## 8) Blueprint: walk detection alerts (included)
+
+**Goal:** react to walk start/end based on the built-in walk sensor.
+
+Use the included blueprint at
+`blueprints/automation/pawcontrol/walk_detection.yaml`:
+
+```yaml
+alias: PawControl - walk detection alerts
+use_blueprint:
+  path: pawcontrol/walk_detection.yaml
+  input:
+    walk_sensor: binary_sensor.buddy_walk_in_progress
+    walk_start_actions:
+      - service: notify.mobile_app
+        data:
+          title: "Walk started"
+          message: "Buddy just started a walk."
+    walk_end_actions:
+      - service: notify.mobile_app
+        data:
+          title: "Walk ended"
+          message: "Buddy finished the walk."
+```
+
+## 9) Blueprint: safe zone alerts (included)
+
+**Goal:** alert when a dog leaves or returns to a safe zone.
+
+Use the included blueprint at
+`blueprints/automation/pawcontrol/safe_zone_alert.yaml`:
+
+```yaml
+alias: PawControl - safe zone alerts
+use_blueprint:
+  path: pawcontrol/safe_zone_alert.yaml
+  input:
+    safe_zone_sensor: binary_sensor.buddy_in_safe_zone
+    leave_delay: "00:02:00"
+    left_actions:
+      - service: notify.mobile_app
+        data:
+          title: "Safe zone alert"
+          message: "Buddy left the safe zone."
+    return_actions:
+      - service: notify.mobile_app
+        data:
+          title: "Safe zone return"
+          message: "Buddy is back in the safe zone."
+```

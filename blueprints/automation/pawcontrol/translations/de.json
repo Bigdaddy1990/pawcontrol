@@ -1,0 +1,54 @@
+{
+  "walk_detection": {
+    "name": "PawControl Spaziergang-Erkennung",
+    "description": "Führt Aktionen aus, wenn ein PawControl-Spaziergang startet oder endet, basierend auf dem Binary Sensor für laufende Spaziergänge.",
+    "input": {
+      "walk_sensor": {
+        "name": "Sensor für laufenden Spaziergang",
+        "description": "PawControl-Entity binary_sensor.<dog_id>_walk_in_progress."
+      },
+      "walk_start_actions": {
+        "name": "Aktionen bei Spaziergang-Start",
+        "description": "Aktionen, die beim Start des Spaziergangs ausgeführt werden."
+      },
+      "walk_end_actions": {
+        "name": "Aktionen bei Spaziergang-Ende",
+        "description": "Aktionen, die beim Ende des Spaziergangs ausgeführt werden."
+      },
+      "logbook_entry": {
+        "name": "Logbuch-Eintrag hinzufügen",
+        "description": "Protokolliert Start und Ende des Spaziergangs im Home-Assistant-Logbuch."
+      }
+    }
+  },
+  "safe_zone_alert": {
+    "name": "PawControl Sicherheitszonen-Alarm",
+    "description": "Benachrichtigt oder startet Aktionen, wenn ein PawControl-Hund die Sicherheitszone verlässt oder zurückkehrt, basierend auf dem In-Safe-Zone-Sensor.",
+    "input": {
+      "safe_zone_sensor": {
+        "name": "Sensor für Sicherheitszone",
+        "description": "PawControl-Entity binary_sensor.<dog_id>_in_safe_zone."
+      },
+      "leave_delay": {
+        "name": "Verzögerung außerhalb der Sicherheitszone",
+        "description": "Zeit, die der Hund außerhalb bleiben muss, bevor Aktionen ausgelöst werden."
+      },
+      "return_delay": {
+        "name": "Verzögerung bei Rückkehr",
+        "description": "Zeit, die der Hund innerhalb bleiben muss, bevor Rückkehr-Aktionen ausgelöst werden."
+      },
+      "left_actions": {
+        "name": "Aktionen beim Verlassen",
+        "description": "Aktionen, die ausgeführt werden, wenn der Hund die Sicherheitszone verlässt."
+      },
+      "return_actions": {
+        "name": "Aktionen bei Rückkehr",
+        "description": "Aktionen, die ausgeführt werden, wenn der Hund in die Sicherheitszone zurückkehrt."
+      },
+      "logbook_entry": {
+        "name": "Logbuch-Eintrag hinzufügen",
+        "description": "Protokolliert Sicherheitszonen-Wechsel im Home-Assistant-Logbuch."
+      }
+    }
+  }
+}
