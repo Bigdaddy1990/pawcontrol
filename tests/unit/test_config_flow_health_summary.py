@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from custom_components.pawcontrol.config_flow_health import HealthSummaryMixin
+from custom_components.pawcontrol.flows.health import HealthSummaryMixin
 
 
 class _HealthSummaryFlow(HealthSummaryMixin):
