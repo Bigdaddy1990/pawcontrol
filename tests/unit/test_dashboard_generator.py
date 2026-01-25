@@ -22,7 +22,10 @@ from custom_components.pawcontrol.dashboard_generator import (
   DashboardViewSummary,
   PawControlDashboardGenerator,
 )
-from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
+from custom_components.pawcontrol.dashboard_renderer import (
+  DashboardRenderer,
+  HomeAssistantError,
+)
 
 
 def test_copy_dashboard_options_returns_plain_dict() -> None:
@@ -467,6 +470,32 @@ async def test_renderer_forwards_statistics_context(
   assert captured["coordinator_statistics"] == sentinel_stats
   assert captured["service_execution_metrics"] == service_metrics
   assert captured["service_guard_metrics"] == guard_metrics
+
+
+@pytest.mark.asyncio
+async def test_write_dashboard_file_preserves_existing_file_on_error(
+  hass, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  """Failed writes should not corrupt the existing dashboard file."""
+
+  renderer = DashboardRenderer(hass)
+  file_path = tmp_path / "dashboard.json"
+  file_path.write_text("original", encoding="utf-8")
+
+  def _raise_open(*args: object, **kwargs: object) -> None:
+    raise OSError("disk full")
+
+  monkeypatch.setattr(
+    "custom_components.pawcontrol.dashboard_renderer.aiofiles.open",
+    _raise_open,
+  )
+
+  with pytest.raises(HomeAssistantError):
+    await renderer.write_dashboard_file({"views": []}, file_path)
+
+  assert file_path.read_text(encoding="utf-8") == "original"
+  remaining = {path for path in tmp_path.iterdir() if path != file_path}
+  assert remaining == set()
 
 
 @pytest.mark.asyncio
