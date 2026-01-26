@@ -14,7 +14,7 @@ repos:
   # ``--exit-non-zero-on-fix`` we allow Ruff to apply fixes and exit cleanly
   # once done.  ``--show-fixes`` still prints a summary of what was changed.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.13
+    rev: v0.14.14
     hooks:
       - id: ruff-check
         args:
