@@ -84,7 +84,6 @@ add_feeding:
 feed_dog:
   name: Feed Dog
   description: "Log a feeding for a specific dog (deprecated: prefer `add_feeding`)."
-  deprecated: true
   fields:
     dog_id:
       name: Dog ID
