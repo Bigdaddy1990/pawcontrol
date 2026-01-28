@@ -841,8 +841,12 @@ venv\Scripts\activate     # Windows
 
 pip install -r requirements_dev.txt
 
-# Pre-commit hooks installieren
-pre-commit install
+# Pre‑commit hooks installieren (via Prek)
+
+```bash
+pip install prek
+prek install
+```
 
 # Tests laufen lassen
 pytest
@@ -868,7 +872,7 @@ mypy custom_components/pawcontrol/
 1. **Issues erstellen** für Bugs oder Feature Requests
 2. **Fork & Branch** für Entwicklung
 3. **Tests schreiben** für neue Features
-4. **Code Quality** mit pre-commit hooks sicherstellen
+4. **Code Quality** mit Prek‑Hooks sicherstellen
 5. **Pull Request** mit detaillierter Beschreibung
 
 ## 📖 Dokumentation

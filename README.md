@@ -1165,7 +1165,16 @@ venv\\Scripts\\activate     # Windows
 pip install -r requirements-dev.txt
 
 # Install pre-commit hooks
-pre-commit install
+ 
+This project uses **Prek** instead of the Python-based `pre-commit` to run
+linting and formatting hooks.  Prek is a fast, Rust‑based drop‑in replacement
+that executes the same hooks defined in `.pre-commit-config.yaml` in
+parallel.  To install and set up the hooks locally, run:
+
+```bash
+pip install prek
+prek install
+```
 
 # Run tests
 pytest
@@ -1196,8 +1205,8 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
    so the Claude and Gemini assistants stay aligned. Follow up with
    `python -m scripts.sync_localization_flags --check` to confirm that the
    `setup_flags_panel_*` translations in every language mirror `strings.json`.
-   The contributor guide pre-commit hook also runs in `--check` mode so wrappers
-   never drift from the canonical text.
+   The contributor guide hook is executed via **Prek** in `--check`
+   mode so wrappers never drift from the canonical text.
 6. **Submit PR**: Detailed description with test results
 
 #### Adding new PawControl languages

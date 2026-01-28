@@ -77,6 +77,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
+from .error_classification import classify_error_reason
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
 from .grooming_translations import (
@@ -491,6 +492,30 @@ def _normalise_service_details(payload: Any) -> ServiceDetailsPayload | None:
     return {"items": _coerce_service_details_value(list(payload))}
 
   return {"value": _coerce_service_details_value(payload)}
+
+
+def _build_error_details(
+    *,
+    reason: str | None,
+    error: Exception | str | None,
+    notification_id: str | None = None,
+) -> ServiceDetailsPayload | None:
+    """Return error details payloads with a stable classification.
+
+    This helper enriches error details with a consistent ``error_classification`` field
+    derived from the provided ``reason`` and ``error`` via ``classify_error_reason``.
+    When a ``notification_id`` is supplied, it is also included in the payload.
+    The result is normalised via ``_normalise_service_details`` for safe JSON
+    serialisation.
+    """
+
+    classification = classify_error_reason(reason, error=error)
+    details_payload: dict[str, JSONValue] = {
+        "error_classification": classification,
+    }
+    if notification_id is not None:
+        details_payload["notification_id"] = notification_id
+    return _normalise_service_details(details_payload)
 
 
 def _record_service_result(
@@ -2916,6 +2941,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         status="error",
         dog_id=dog_id,
         message=str(err),
+        details=_build_error_details(
+            reason="exception",
+            error=err,
+        ),
         guard=guard_snapshot if guard_snapshot else None,
       )
       raise
@@ -2931,6 +2960,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         status="error",
         dog_id=dog_id,
         message=error_message,
+        details=_build_error_details(
+            reason="exception",
+            error=err,
+        ),
         guard=guard_snapshot if guard_snapshot else None,
       )
       raise HomeAssistantError(error_message) from err
@@ -2970,8 +3003,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
         status="error",
         message=str(err),
-        details=_normalise_service_details(
-          {"notification_id": notification_id},
+        details=_build_error_details(
+            reason="exception",
+            error=err,
+            notification_id=notification_id,
         ),
         guard=guard_snapshot if guard_snapshot else None,
       )
@@ -2991,8 +3026,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
         status="error",
         message=error_message,
-        details=_normalise_service_details(
-          {"notification_id": notification_id},
+        details=_build_error_details(
+            reason="exception",
+            error=err,
+            notification_id=notification_id,
         ),
         guard=guard_snapshot if guard_snapshot else None,
       )
@@ -3006,8 +3043,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
         status="error",
         message=error_message,
-        details=_normalise_service_details(
-          {"notification_id": notification_id},
+        details=_build_error_details(
+            reason="notification_not_found",
+            error=error_message,
+            notification_id=notification_id,
         ),
         guard=guard_snapshot if guard_snapshot else None,
       )
