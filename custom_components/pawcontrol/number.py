@@ -41,6 +41,8 @@ from .const import (
   CONF_GROOMING_INTERVAL,
   CONF_HOME_ZONE_RADIUS,
   CONF_MEALS_PER_DAY,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
   MAX_DOG_AGE,
   MAX_DOG_WEIGHT,
   MIN_DOG_AGE,
@@ -71,7 +73,6 @@ from .types import (
   GPSTrackingConfigInput,
   JSONMutableMapping,
   JSONValue,
-  NumberExtraAttributes,
   ensure_dog_modules_mapping,
   ensure_json_mapping,
 )
@@ -150,11 +151,11 @@ def _build_gps_tracking_input(
   return tracking_input
 
 
-def _normalise_attributes(attrs: Mapping[str, object]) -> NumberExtraAttributes:
+def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for number entities."""
 
   payload = ensure_json_mapping(attrs)
-  return cast(NumberExtraAttributes, _normalise_diagnostics_json(payload))
+  return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
 
 
 async def _async_add_entities_in_batches(
@@ -532,9 +533,8 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
-      model="Smart Dog Monitoring",
-      sw_version="1.0.0",
-      configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+      model=DEFAULT_MODEL,
+      sw_version=DEFAULT_SW_VERSION,
     )
 
   async def async_added_to_hass(self) -> None:
@@ -576,7 +576,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     return self._value
 
   @property
-  def extra_state_attributes(self) -> NumberExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional state attributes for the number.
 
     Provides information about the number's function and constraints.
@@ -584,17 +584,14 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     Returns:
         Dictionary of additional state attributes
     """
-    attrs = cast(
-      NumberExtraAttributes,
-      self._build_base_state_attributes(
-        {
-          "number_type": self._number_type,
-          "min_value": getattr(self, "_attr_native_min_value", None),
-          "max_value": getattr(self, "_attr_native_max_value", None),
-          "step": getattr(self, "_attr_native_step", None),
-          "last_changed": dt_util.utcnow().isoformat(),
-        },
-      ),
+    attrs = self._build_base_state_attributes(
+      {
+        "number_type": self._number_type,
+        "min_value": getattr(self, "_attr_native_min_value", None),
+        "max_value": getattr(self, "_attr_native_max_value", None),
+        "step": getattr(self, "_attr_native_step", None),
+        "last_changed": dt_util.utcnow().isoformat(),
+      },
     )
 
     return _normalise_attributes(attrs)
@@ -824,7 +821,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
     await self._async_refresh_after_update()
 
   @property
-  def extra_state_attributes(self) -> NumberExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for the weight number."""
     attrs = super().extra_state_attributes
     health_data = self._get_module_data("health")
@@ -970,7 +967,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
     await self._async_refresh_after_update()
 
   @property
-  def extra_state_attributes(self) -> NumberExtraAttributes:
+  def extra_state_attributes(self) -> JSONMutableMapping:
     """Return additional attributes for daily food amount."""
     attrs = super().extra_state_attributes
 

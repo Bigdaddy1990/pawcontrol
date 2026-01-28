@@ -74,12 +74,28 @@ from .types import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _resolve_setup_flag_supported_languages(
+  translations_dir: Path,
+  strings_path: Path,
+) -> frozenset[str]:
+  """Return the supported translation languages for setup flag localization."""
+
+  languages = {path.stem for path in translations_dir.glob("*.json")}
+  if strings_path.exists():
+    languages.add("en")
+  if not languages:
+    languages.add("en")
+  return frozenset(languages)
+
+
 def _resolve_get_runtime_data():
   """Return the patched runtime data helper when available."""
 
   try:
-    options_flow_module = import_module("custom_components.pawcontrol.options_flow")
-    patched = getattr(options_flow_module, "get_runtime_data", None)
+    support_module = import_module(
+      "custom_components.pawcontrol.options_flow_support",
+    )
+    patched = getattr(support_module, "get_runtime_data", None)
     if callable(patched):
       return patched
   except Exception:
@@ -168,16 +184,13 @@ class PawControlOptionsFlow(
     "blueprint",
     "default",
   )
-  _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = frozenset(
-    {
-      "en",
-      "de",
-    },
-  )
   _STRINGS_PATH: ClassVar[Path] = Path(__file__).with_name("strings.json")
   _TRANSLATIONS_DIR: ClassVar[Path] = Path(
     __file__,
   ).with_name("translations")
+  _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = (
+    _resolve_setup_flag_supported_languages(_TRANSLATIONS_DIR, _STRINGS_PATH)
+  )
 
   def __init__(self) -> None:
     """Initialize the options flow with enhanced state management."""
