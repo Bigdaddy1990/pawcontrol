@@ -27,11 +27,6 @@ jobs:
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
           python scripts/enforce_docstring_baseline.py --update
-
-      - name: Run Prek
-        run: |
-          prek run --hook-stage manual python-typing-update --all-files
-          prek run --all-files --show-diff-on-failure
           
       - uses: peter-evans/create-pull-request@v8
         with:
