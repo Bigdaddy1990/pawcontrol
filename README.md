@@ -1165,7 +1165,7 @@ venv\\Scripts\\activate     # Windows
 pip install -r requirements-dev.txt
 
 # Install pre-commit hooks
-
+ 
 This project uses **Prek** instead of the Python-based `pre-commit` to run
 linting and formatting hooks.  Prek is a fast, Rust‑based drop‑in replacement
 that executes the same hooks defined in `.pre-commit-config.yaml` in

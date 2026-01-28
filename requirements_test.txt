@@ -6,7 +6,6 @@ homeassistant>=2026.1.1
 jinja2>=3.1.6
 packaging>=26.0
 pip>=25.3
-prek>=0.2.8
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
 pytest-cov>=5.0.0
@@ -14,3 +13,9 @@ pytest-homeassistant-custom-component  # follows daily HA version
 pyyaml>=6.0.3
 types-aiofiles>=25.1.0.20251011
 voluptuous>=0.15.2
+
+# Use ``prek`` instead of ``pre-commit`` for running the pre‑commit hooks.  Prek
+# is a Rust‑based replacement that executes the same hooks defined in
+# ``.pre-commit-config.yaml`` but runs them in parallel and dramatically
+# reduces overhead.  See the Home Assistant developer blog for details.
+prek>=0.4.0
