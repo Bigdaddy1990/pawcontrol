@@ -129,6 +129,8 @@ class PawControlCoordinator(
     self._use_external_api = bool(
       entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False),
     )
+    # Initialise resilience handling before building the API client so the
+    # underlying device client can use shared retry/backoff logic.
     self.resilience_manager = ResilienceManager(hass)
     self._retry_config = RetryConfig(
       max_attempts=2,
@@ -196,6 +198,8 @@ class PawControlCoordinator(
     self.garden_manager: GardenManager | None = None
 
     self._runtime_managers = CoordinatorRuntimeManagers()
+
+    # resilience_manager and _retry_config are initialised earlier
 
     self._runtime = CoordinatorRuntime(
       registry=self.registry,
@@ -348,10 +352,13 @@ class PawControlCoordinator(
     try:
       data, _cycle = await self._execute_cycle(dog_ids)
     except ConfigEntryAuthFailed:
+      # Propagate configuration auth failures directly to Home Assistant
       raise
     except UpdateFailed:
+      # Propagate known update failures
       raise
     except Exception as err:
+      # Log and wrap unknown exceptions into CoordinatorUpdateFailed
       _LOGGER.error(
         "Unhandled error during coordinator update: %s (%s)",
         err,
@@ -361,6 +368,7 @@ class PawControlCoordinator(
         f"Coordinator update failed: {err}",
       ) from err
 
+    # Synchronize module states separately; log but do not raise on failure
     try:
       await self._synchronize_module_states(data)
     except Exception as err:  # pragma: no cover - defensive logging

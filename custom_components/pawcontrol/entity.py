@@ -156,6 +156,9 @@ class PawControlEntity(
     else:
       attributes["last_updated"] = None
 
+    # Expose last update success and error details for richer diagnostics. This
+    # surface aligns with the coordinator error classification logic and aids
+    # troubleshooting by providing direct context on the most recent update.
     attributes["last_update_success"] = bool(
       getattr(self.coordinator, "last_update_success", False),
     )

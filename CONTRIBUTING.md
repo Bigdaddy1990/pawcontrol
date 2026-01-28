@@ -17,8 +17,11 @@ Thank you for your interest in improving the PawControl integration. This guide 
    source .venv/bin/activate  # On Windows use `.venv\\Scripts\\activate`
    pip install -r requirements.txt -r requirements_test.txt
    pip install -U homeassistant pytest-homeassistant-custom-component
-   pip install -U ruff mypy pre-commit pytest pytest-asyncio pytest-cov
-   pre-commit install --install-hooks
+   pip install -U ruff mypy prek pytest pytest-asyncio pytest-cov
+   # Install the code quality hooks using Prek.  Prek is a drop‑in
+   # replacement for the Python-based `pre-commit` command that runs
+   # hooks defined in `.pre-commit-config.yaml` in parallel.
+   prek install
    ```
 
 4. Install any additional tooling you need for documentation or translation updates.
@@ -86,7 +89,7 @@ ruff check custom_components/pawcontrol tests
 python -m scripts.enforce_test_requirements
 mypy custom_components/pawcontrol
 pytest --cov=custom_components/pawcontrol tests
-pre-commit run --all-files
+prek run --all-files
 python -m hassfest  # Available via the Home Assistant hassfest tool or the hassfest PyPI package
 ```
 

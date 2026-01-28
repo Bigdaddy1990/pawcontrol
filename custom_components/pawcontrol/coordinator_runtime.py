@@ -500,6 +500,7 @@ class CoordinatorRuntime:
           "reason": str(result),
         }
       elif isinstance(result, RateLimitError):
+        # Surface rate limits with retry hints for UI
         self._logger.warning(
           "Rate limit fetching %s data for %s: %s",
           module_name,
