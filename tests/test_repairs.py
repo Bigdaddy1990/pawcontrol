@@ -56,10 +56,13 @@ def _load_module(name: str, path: Path) -> ModuleType:
 
 def _make_runtime_data(
   summary: CacheRepairAggregate | None = None,
+  *,
+  notification_manager: Any | None = None,
 ) -> SimpleNamespace:
   return SimpleNamespace(
     data_manager=SimpleNamespace(cache_repair_summary=lambda: summary),
     coordinator=SimpleNamespace(last_update_success=True),
+    notification_manager=notification_manager,
   )
 
 
