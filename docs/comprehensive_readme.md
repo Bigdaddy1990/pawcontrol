@@ -849,6 +849,7 @@ prek install
 ```
 
 # Tests laufen lassen
+```bash
 pytest
 ```
 
@@ -856,11 +857,13 @@ pytest
 
 ```bash
 # Code-Formatierung
-black custom_components/pawcontrol/
-isort custom_components/pawcontrol/
+ruff format custom_components/pawcontrol/
 
-# Linting
-ruff check custom_components/pawcontrol/
+# Linting (inkl. Import-Sortierung / Auto-Fixes)
+ruff check --fix custom_components/pawcontrol/
+
+
+# Typprüfung
 mypy custom_components/pawcontrol/
 
 # Vollständige QA-Pipeline

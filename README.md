@@ -1177,6 +1177,7 @@ prek install
 ```
 
 # Run tests
+```bash
 pytest
 ```
 
