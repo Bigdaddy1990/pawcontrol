@@ -16,6 +16,21 @@ the PawControl Home Assistant integration. User-facing documentation lives in
    pip install -r requirements_test.txt
    pip install -r requirements.txt
    ```
+   The integration uses [Prek](https://prek.j178.dev/) to run the
+   hooks defined in `.pre-commit-config.yaml` instead of Python’s
+   `pre-commit`.  Prek is a drop‑in, Rust‑based replacement that
+   executes hooks in parallel.  Install it alongside the test
+   requirements if you want to run the pre‑commit checks locally:
+
+   ```bash
+   pip install prek
+   ```
+
+   Then run all code quality hooks by executing:
+
+   ```bash
+   prek run --all-files
+   ```
 3. Optional: install the project in editable mode for packaging hooks:
    ```bash
    pip install -e .

@@ -156,6 +156,20 @@ class PawControlEntity(
     else:
       attributes["last_updated"] = None
 
+    # Expose last update success and error details for richer diagnostics. This
+    # surface aligns with the coordinator error classification logic and aids
+    # troubleshooting by providing direct context on the most recent update.
+    attributes["last_update_success"] = bool(
+      getattr(self.coordinator, "last_update_success", False),
+    )
+    last_exception = getattr(self.coordinator, "last_exception", None)
+    if last_exception is not None:
+      attributes["last_update_error"] = str(last_exception)
+      attributes["last_update_error_type"] = last_exception.__class__.__name__
+    else:
+      attributes["last_update_error"] = None
+      attributes["last_update_error_type"] = None
+
     # Normalise attributes to ensure all values are JSON-serialisable using the
     # shared helper so entity attributes stay consistent with diagnostics.
     return normalise_json_mapping(attributes)

@@ -499,6 +499,19 @@ class CoordinatorRuntime:
           "status": "unavailable",
           "reason": str(result),
         }
+      elif isinstance(result, RateLimitError):
+        # Surface rate limits with retry hints for UI
+        self._logger.warning(
+          "Rate limit fetching %s data for %s: %s",
+          module_name,
+          dog_id,
+          result.user_message,
+        )
+        payload[module_name] = {
+          "status": "rate_limited",
+          "error": result.user_message,
+          "retry_after": result.retry_after,
+        }
       elif isinstance(result, NetworkError):
         self._logger.warning(
           "Network error fetching %s data for %s: %s",
@@ -506,7 +519,10 @@ class CoordinatorRuntime:
           dog_id,
           result,
         )
-        payload[module_name] = {"status": "network_error"}
+        payload[module_name] = {
+          "status": "network_error",
+          "error": str(result),
+        }
       elif isinstance(result, Exception):
         self._logger.warning(
           "Failed to fetch %s data for %s: %s (%s)",
@@ -515,7 +531,11 @@ class CoordinatorRuntime:
           result,
           result.__class__.__name__,
         )
-        payload[module_name] = {"status": "error"}
+        payload[module_name] = {
+          "status": "error",
+          "error": str(result),
+          "error_type": result.__class__.__name__,
+        }
       else:
         payload[module_name] = cast(ModuleAdapterPayload, result)
 

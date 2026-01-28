@@ -1787,6 +1787,7 @@ class PawControlScriptManager:
       try:
         update_entry(entry, data=new_data)
       except Exception as err:  # pragma: no cover - defensive guard
+        # Classify the error for diagnostics/logging
         error_classification = classify_error_reason("exception", error=err)
         _LOGGER.warning(
           "Failed to update resilience blueprint %s: %s",
