@@ -9,7 +9,11 @@ import pytest
 pytest.importorskip("homeassistant")
 
 from homeassistant.components import number as number_component
-from homeassistant.const import ATTR_ENTITY_ID, ATTR_VALUE
+from homeassistant.const import ATTR_VALUE
+
+# ``ATTR_ENTITY_ID`` is not available in all Home Assistant test harness
+# versions used by this repo.
+ATTR_ENTITY_ID = "entity_id"
 
 from custom_components.pawcontrol.const import (
   CONF_GPS_UPDATE_INTERVAL,

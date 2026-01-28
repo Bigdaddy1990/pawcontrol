@@ -10,9 +10,7 @@ from homeassistant.components import number as number_component
 from homeassistant.components import select as select_component
 from homeassistant.components import switch as switch_component
 from homeassistant.components import text as text_component
-from homeassistant.components.select import ATTR_OPTION, ATTR_OPTIONS
 from homeassistant.const import (
-  ATTR_ENTITY_ID,
   ATTR_VALUE,
   STATE_OFF,
   STATE_ON,
@@ -24,6 +22,11 @@ from custom_components.pawcontrol import number as pawcontrol_number
 from custom_components.pawcontrol import select as pawcontrol_select
 from custom_components.pawcontrol import switch as pawcontrol_switch
 from custom_components.pawcontrol import text as pawcontrol_text
+
+# Compatibility constants for different Home Assistant test harness versions.
+ATTR_ENTITY_ID = "entity_id"
+ATTR_OPTION = "option"
+ATTR_OPTIONS = "options"
 
 
 def _capture_service_calls(
