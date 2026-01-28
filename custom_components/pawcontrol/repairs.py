@@ -470,10 +470,10 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
     # Check GPS configuration issues
     await _check_gps_configuration_issues(hass, entry)
 
-  # Check notification configuration issues
-  await _check_notification_configuration_issues(hass, entry)
-  # Check recurring notification delivery errors (auth/unreachable)
-  await _check_notification_delivery_errors(hass, entry)
+    # Check notification configuration issues
+    await _check_notification_configuration_issues(hass, entry)
+    # Check recurring notification delivery errors (auth/unreachable)
+    await _check_notification_delivery_errors(hass, entry)
 
     # Check for outdated configuration
     await _check_outdated_configuration(hass, entry)
