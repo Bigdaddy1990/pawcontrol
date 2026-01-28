@@ -60,7 +60,7 @@ from .coordinator_tasks import (
   shutdown as shutdown_tasks,
 )
 from .device_api import PawControlDeviceClient
-from .exceptions import UpdateFailed, ValidationError
+from .exceptions import ConfigEntryAuthFailed, UpdateFailed, ValidationError
 from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
@@ -129,11 +129,22 @@ class PawControlCoordinator(
     self._use_external_api = bool(
       entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False),
     )
+    # Initialise resilience handling before building the API client so the
+    # underlying device client can use shared retry/backoff logic.
+    self.resilience_manager = ResilienceManager(hass)
+    self._retry_config = RetryConfig(
+      max_attempts=2,
+      initial_delay=1.0,
+      max_delay=5.0,
+      exponential_base=2.0,
+      jitter=True,
+    )
     endpoint = entry.options.get(CONF_API_ENDPOINT)
     token = entry.options.get(CONF_API_TOKEN)
     self._api_client = self._build_api_client(
       endpoint=endpoint if isinstance(endpoint, str) else "",
       token=token if isinstance(token, str) else "",
+      resilience_manager=self.resilience_manager,
     )
 
     base_interval = self._initial_update_interval(entry)
@@ -188,14 +199,7 @@ class PawControlCoordinator(
 
     self._runtime_managers = CoordinatorRuntimeManagers()
 
-    self.resilience_manager = ResilienceManager(hass)
-    self._retry_config = RetryConfig(
-      max_attempts=2,
-      initial_delay=1.0,
-      max_delay=5.0,
-      exponential_base=2.0,
-      jitter=True,
-    )
+    # resilience_manager and _retry_config are initialised earlier
 
     self._runtime = CoordinatorRuntime(
       registry=self.registry,
@@ -227,6 +231,7 @@ class PawControlCoordinator(
     *,
     endpoint: str,
     token: str,
+    resilience_manager: ResilienceManager | None,
   ) -> PawControlDeviceClient | None:
     if not endpoint:
       return None
@@ -236,6 +241,7 @@ class PawControlCoordinator(
         session=self.session,
         endpoint=endpoint.strip(),
         api_key=token.strip() or None,
+        resilience_manager=resilience_manager,
       )
     except ValueError as err:
       _LOGGER.warning(
@@ -343,8 +349,34 @@ class PawControlCoordinator(
     if not dog_ids:
       raise CoordinatorUpdateFailed("No valid dogs configured")
 
-    data, _cycle = await self._execute_cycle(dog_ids)
-    await self._synchronize_module_states(data)
+    try:
+      data, _cycle = await self._execute_cycle(dog_ids)
+    except ConfigEntryAuthFailed:
+      # Propagate configuration auth failures directly to Home Assistant
+      raise
+    except UpdateFailed:
+      # Propagate known update failures
+      raise
+    except Exception as err:
+      # Log and wrap unknown exceptions into CoordinatorUpdateFailed
+      _LOGGER.error(
+        "Unhandled error during coordinator update: %s (%s)",
+        err,
+        err.__class__.__name__,
+      )
+      raise CoordinatorUpdateFailed(
+        f"Coordinator update failed: {err}",
+      ) from err
+
+    # Synchronize module states separately; log but do not raise on failure
+    try:
+      await self._synchronize_module_states(data)
+    except Exception as err:  # pragma: no cover - defensive logging
+      _LOGGER.warning(
+        "Failed to synchronize module states: %s (%s)",
+        err,
+        err.__class__.__name__,
+      )
 
     self._data = data
     # Keep the DataUpdateCoordinator state in sync when callers invoke the
