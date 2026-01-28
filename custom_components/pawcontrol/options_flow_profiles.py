@@ -452,12 +452,12 @@ class ProfileOptionsMixin(ProfileOptionsHost):
       )
       dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
 
-      if profile == "gps_focus" and not module_flags.get(MODULE_GPS, False):  # noqa: F821
+      if profile == "gps_focus" and not module_flags.get(MODULE_GPS, False):
         warnings.append(
           f"🛰️ {dog_name}: GPS focus profile but GPS module disabled",
         )
 
-      if profile == "health_focus" and not module_flags.get(MODULE_HEALTH, False):  # noqa: F821
+      if profile == "health_focus" and not module_flags.get(MODULE_HEALTH, False):
         warnings.append(
           f"🏥 {dog_name}: Health focus profile but health module disabled",
         )
@@ -624,7 +624,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         )
 
         new_options["entity_profile"] = profile
-        new_options["performance_mode"] = normalize_performance_mode(  # noqa: F821
+        new_options["performance_mode"] = normalize_performance_mode(
           user_input.get("performance_mode")
           if isinstance(user_input.get("performance_mode"), str)
           else None,
@@ -688,7 +688,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
     stored_mode_value = current_options.get("performance_mode")
     stored_mode_current = self._entry.options.get("performance_mode")
-    stored_mode = normalize_performance_mode(  # noqa: F821
+    stored_mode = normalize_performance_mode(
       stored_mode_value if isinstance(stored_mode_value, str) else None,
       current=(
         stored_mode_current

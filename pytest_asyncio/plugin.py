@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from . import (  # noqa: F401
+from . import (
   event_loop,
   fixture,
   pytest_addoption,

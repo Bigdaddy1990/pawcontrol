@@ -131,10 +131,10 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           user_input,
           current_weather,
         )
-        mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
-        mutable_options["weather_settings"] = cast(JSONValue, weather_settings)  # noqa: F821
+        mutable_options = cast(JSONMutableMapping, dict(new_options))
+        mutable_options["weather_settings"] = cast(JSONValue, weather_settings)
         mutable_options[CONF_WEATHER_ENTITY] = cast(
-          JSONValue,  # noqa: F821
+          JSONValue,
           weather_settings.get(CONF_WEATHER_ENTITY),
         )
         typed_options = self._normalise_options_snapshot(
@@ -206,7 +206,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             "weather_health_monitoring",
             current_weather.get(
               "weather_health_monitoring",
-              DEFAULT_WEATHER_HEALTH_MONITORING,  # noqa: F821
+              DEFAULT_WEATHER_HEALTH_MONITORING,
             ),
           ),
         ): selector.BooleanSelector(),
@@ -214,7 +214,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           "weather_alerts",
           default=current_values.get(
             "weather_alerts",
-            current_weather.get("weather_alerts", DEFAULT_WEATHER_ALERTS),  # noqa: F821
+            current_weather.get("weather_alerts", DEFAULT_WEATHER_ALERTS),
           ),
         ): selector.BooleanSelector(),
         vol.Optional(
@@ -316,16 +316,16 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
       },
     )
 
-  def _get_weather_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: F821
+  def _get_weather_description_placeholders(self) -> ConfigFlowPlaceholders:
     """Get description placeholders for weather configuration."""
     current_weather = self._current_weather_options()
-    current_dogs_raw = self._entry.data.get(CONF_DOGS, [])  # noqa: F821
-    current_dogs: list[DogConfigData] = []  # noqa: F821
-    if isinstance(current_dogs_raw, Sequence):  # noqa: F821
+    current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
+    current_dogs: list[DogConfigData] = []
+    if isinstance(current_dogs_raw, Sequence):
       for dog in current_dogs_raw:
-        if isinstance(dog, Mapping):  # noqa: F821
-          normalised = ensure_dog_config_data(  # noqa: F821
-            cast(Mapping[str, JSONValue], dog),  # noqa: F821
+        if isinstance(dog, Mapping):
+          normalised = ensure_dog_config_data(
+            cast(Mapping[str, JSONValue], dog),
           )
           if normalised is not None:
             current_dogs.append(normalised)
@@ -355,7 +355,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
     for dog_config in current_dogs:
       if dog_config.get("health_conditions"):
         dogs_with_health_conditions += 1
-      dog_breed = dog_config.get(CONF_DOG_BREED)  # noqa: F821
+      dog_breed = dog_config.get(CONF_DOG_BREED)
       if dog_breed and dog_breed != "Mixed Breed":
         dogs_with_breeds += 1
 
@@ -383,7 +383,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
     # Feature status
     weather_monitoring = current_weather.get(
       "weather_health_monitoring",
-      DEFAULT_WEATHER_HEALTH_MONITORING,  # noqa: F821
+      DEFAULT_WEATHER_HEALTH_MONITORING,
     )
     breed_recommendations = current_weather.get(
       "breed_specific_recommendations",
@@ -435,19 +435,19 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           DEFAULT_RESET_TIME,
         )
         new_options = self._clone_options()
-        mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
+        mutable_options = cast(JSONMutableMapping, dict(new_options))
         system_settings, reset_time = self._build_system_settings(
           user_input,
           current_system,
           reset_default=reset_default,
         )
-        mutable_options["system_settings"] = cast(JSONValue, system_settings)  # noqa: F821
+        mutable_options["system_settings"] = cast(JSONValue, system_settings)
         mutable_options[CONF_RESET_TIME] = reset_time
-        mutable_options[SYSTEM_ENABLE_ANALYTICS_FIELD] = system_settings[  # noqa: F821
-          SYSTEM_ENABLE_ANALYTICS_FIELD  # noqa: F821
+        mutable_options[SYSTEM_ENABLE_ANALYTICS_FIELD] = system_settings[
+          SYSTEM_ENABLE_ANALYTICS_FIELD
         ]
-        mutable_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[  # noqa: F821
-          SYSTEM_ENABLE_CLOUD_BACKUP_FIELD  # noqa: F821
+        mutable_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[
+          SYSTEM_ENABLE_CLOUD_BACKUP_FIELD
         ]
         guard_option = system_settings.get("manual_guard_event")
         if guard_option is None:
@@ -504,21 +504,21 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
       self._current_options().get(CONF_RESET_TIME),
       DEFAULT_RESET_TIME,
     )
-    mode_default = normalize_performance_mode(  # noqa: F821
+    mode_default = normalize_performance_mode(
       current_system.get("performance_mode"),
       current=self._current_options().get("performance_mode"),
     )
     analytics_default = self._coerce_bool(
       current_values.get(
         "enable_analytics",
-        current_system.get(SYSTEM_ENABLE_ANALYTICS_FIELD),  # noqa: F821
+        current_system.get(SYSTEM_ENABLE_ANALYTICS_FIELD),
       ),
       bool(self._current_options().get("enable_analytics", False)),
     )
     cloud_backup_default = self._coerce_bool(
       current_values.get(
         "enable_cloud_backup",
-        current_system.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD),  # noqa: F821
+        current_system.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD),
       ),
       bool(self._current_options().get("enable_cloud_backup", False)),
     )
@@ -527,20 +527,20 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
       current_values.get("resilience_skip_threshold"),
       current_system.get(
         "resilience_skip_threshold",
-        DEFAULT_RESILIENCE_SKIP_THRESHOLD,  # noqa: F821
+        DEFAULT_RESILIENCE_SKIP_THRESHOLD,
       ),
-      minimum=RESILIENCE_SKIP_THRESHOLD_MIN,  # noqa: F821
-      maximum=RESILIENCE_SKIP_THRESHOLD_MAX,  # noqa: F821
+      minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+      maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
     )
 
     breaker_threshold_default = self._coerce_clamped_int(
       current_values.get("resilience_breaker_threshold"),
       current_system.get(
         "resilience_breaker_threshold",
-        DEFAULT_RESILIENCE_BREAKER_THRESHOLD,  # noqa: F821
+        DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
       ),
-      minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,  # noqa: F821
-      maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,  # noqa: F821
+      minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+      maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
     )
 
     manual_defaults = self._manual_event_schema_defaults(current_system)
@@ -620,8 +620,8 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           default=skip_threshold_default,
         ): selector.NumberSelector(
           selector.NumberSelectorConfig(
-            min=RESILIENCE_SKIP_THRESHOLD_MIN,  # noqa: F821
-            max=RESILIENCE_SKIP_THRESHOLD_MAX,  # noqa: F821
+            min=RESILIENCE_SKIP_THRESHOLD_MIN,
+            max=RESILIENCE_SKIP_THRESHOLD_MAX,
             step=1,
             mode=selector.NumberSelectorMode.BOX,
           ),
@@ -631,8 +631,8 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           default=breaker_threshold_default,
         ): selector.NumberSelector(
           selector.NumberSelectorConfig(
-            min=RESILIENCE_BREAKER_THRESHOLD_MIN,  # noqa: F821
-            max=RESILIENCE_BREAKER_THRESHOLD_MAX,  # noqa: F821
+            min=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            max=RESILIENCE_BREAKER_THRESHOLD_MAX,
             step=1,
             mode=selector.NumberSelectorMode.BOX,
           ),
@@ -702,9 +702,9 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           current_dashboard,
           default_mode=default_mode,
         )
-        mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
+        mutable_options = cast(JSONMutableMapping, dict(new_options))
         mutable_options["dashboard_settings"] = cast(
-          JSONValue,  # noqa: F821
+          JSONValue,
           dashboard_settings,
         )
         mutable_options[CONF_DASHBOARD_MODE] = dashboard_mode
@@ -813,16 +813,16 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           user_input,
           current_advanced,
         )
-        mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
-        mutable_options[ADVANCED_SETTINGS_FIELD] = cast(  # noqa: F821
-          JSONValue,  # noqa: F821
+        mutable_options = cast(JSONMutableMapping, dict(new_options))
+        mutable_options[ADVANCED_SETTINGS_FIELD] = cast(
+          JSONValue,
           advanced_settings,
         )
         for key, value in advanced_settings.items():
           if isinstance(value, bool | int | float | str) or value is None:
             mutable_options[str(key)] = value
-          elif isinstance(value, Mapping):  # noqa: F821
-            mutable_options[str(key)] = cast(JSONValue, dict(value))  # noqa: F821
+          elif isinstance(value, Mapping):
+            mutable_options[str(key)] = cast(JSONValue, dict(value))
           else:
             mutable_options[str(key)] = repr(value)
         return self.async_create_entry(
@@ -849,7 +849,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
     """Get schema for advanced settings form."""
     current_advanced = self._current_advanced_options()
     current_values = user_input or {}
-    mode_default = normalize_performance_mode(  # noqa: F821
+    mode_default = normalize_performance_mode(
       current_advanced.get("performance_mode"),
       current=self._current_options().get("performance_mode"),
     )
@@ -870,7 +870,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
       False,
     )
     integrations_default = self._coerce_bool(
-      current_advanced.get(CONF_EXTERNAL_INTEGRATIONS),  # noqa: F821
+      current_advanced.get(CONF_EXTERNAL_INTEGRATIONS),
       False,
     )
     endpoint_default = (
@@ -930,9 +930,9 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           ),
         ): selector.BooleanSelector(),
         vol.Optional(
-          CONF_EXTERNAL_INTEGRATIONS,  # noqa: F821
+          CONF_EXTERNAL_INTEGRATIONS,
           default=current_values.get(
-            CONF_EXTERNAL_INTEGRATIONS,  # noqa: F821
+            CONF_EXTERNAL_INTEGRATIONS,
             integrations_default,
           ),
         ): selector.BooleanSelector(),

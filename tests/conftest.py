@@ -26,18 +26,18 @@ from tests.helpers.homeassistant_test_stubs import (
 
 install_homeassistant_stubs()
 
-from custom_components.pawcontrol import compat as pawcontrol_compat  # noqa: E402
+from custom_components.pawcontrol import compat as pawcontrol_compat
 
 pawcontrol_compat.ensure_homeassistant_config_entry_symbols()
 pawcontrol_compat.ensure_homeassistant_exception_symbols()
 
-from custom_components.pawcontrol.types import (  # noqa: E402
+from custom_components.pawcontrol.types import (
   CoordinatorDogData,
   FeedingManagerDogSetupPayload,
   JSONMutableMapping,
 )
 
-from tests.helpers import typed_deepcopy  # noqa: E402
+from tests.helpers import typed_deepcopy
 
 
 if TYPE_CHECKING:

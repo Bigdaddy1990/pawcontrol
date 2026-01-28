@@ -83,7 +83,7 @@ _STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
 UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
 if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
 
-  class _FallbackUnitOfSpeed:  # noqa: D101 - compatibility shim
+  class _FallbackUnitOfSpeed:
     KILOMETERS_PER_HOUR = "km/h"
     METERS_PER_SECOND = "m/s"
 
