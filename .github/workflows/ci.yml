@@ -5,7 +5,7 @@ on:
     branches:
       - main
   pull_request:
-  
+
   workflow_dispatch:
 
 permissions:
@@ -50,12 +50,12 @@ jobs:
           python -m pip install -r requirements_test.txt
           python -m pip install prek
           prek install
-          
+
       - name: Run Prek
         run: |
           prek run --hook-stage manual python-typing-update --all-files
           prek run --all-files --show-diff-on-failure
-          
+
       - name: Run pytest
         run: |
           pytest -q --disable-warnings --maxfail=20 \

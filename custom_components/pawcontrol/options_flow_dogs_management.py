@@ -211,11 +211,11 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
         )
 
       updated_modules = {
-        MODULE_FEEDING: bool(user_input.get("module_feeding", True)),  # noqa: F821
-        MODULE_WALK: bool(user_input.get("module_walk", True)),  # noqa: F821
-        MODULE_GPS: bool(user_input.get("module_gps", False)),  # noqa: F821
-        MODULE_GARDEN: bool(user_input.get("module_garden", False)),  # noqa: F821
-        MODULE_HEALTH: bool(user_input.get("module_health", True)),  # noqa: F821
+        MODULE_FEEDING: bool(user_input.get("module_feeding", True)),
+        MODULE_WALK: bool(user_input.get("module_walk", True)),
+        MODULE_GPS: bool(user_input.get("module_gps", False)),
+        MODULE_GARDEN: bool(user_input.get("module_garden", False)),
+        MODULE_HEALTH: bool(user_input.get("module_health", True)),
         "notifications": bool(user_input.get("module_notifications", True)),
         "dashboard": bool(user_input.get("module_dashboard", True)),
         "visitor": bool(user_input.get("module_visitor", False)),
@@ -225,7 +225,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
       }
 
       try:
-        modules_payload = ensure_dog_modules_config(updated_modules)  # noqa: F821
+        modules_payload = ensure_dog_modules_config(updated_modules)
         dog_index = next(
           (i for i, dog in enumerate(self._dogs) if dog.get(DOG_ID_FIELD) == dog_id),
           -1,
@@ -233,14 +233,14 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
 
         if dog_index >= 0:
           candidate = cast(
-            DogConfigData,  # noqa: F821
+            DogConfigData,
             {
               **self._dogs[dog_index],
-              DOG_MODULES_FIELD: modules_payload,  # noqa: F821
+              DOG_MODULES_FIELD: modules_payload,
             },
           )
-          normalised = ensure_dog_config_data(  # noqa: F821
-            cast(Mapping[str, JSONValue], candidate),  # noqa: F821
+          normalised = ensure_dog_config_data(
+            cast(Mapping[str, JSONValue], candidate),
           )
           if normalised is None:
             raise FlowValidationError(
@@ -274,16 +274,16 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
 
       dog_options = self._current_dog_options()
       existing = dog_options.get(dog_id, {})
-      entry = ensure_dog_options_entry(  # noqa: F821
-        cast(JSONLikeMapping, dict(existing)),  # noqa: F821
+      entry = ensure_dog_options_entry(
+        cast(JSONLikeMapping, dict(existing)),
         dog_id=dog_id,
       )
       entry[DOG_ID_FIELD] = dog_id
-      entry[DOG_MODULES_FIELD] = modules_payload  # noqa: F821
+      entry[DOG_MODULES_FIELD] = modules_payload
       dog_options[dog_id] = entry
 
       new_options = self._clone_options()
-      new_options[DOG_OPTIONS_FIELD] = dog_options  # noqa: F821
+      new_options[DOG_OPTIONS_FIELD] = dog_options
       self._invalidate_profile_caches()
 
       return self.async_create_entry(title="", data=new_options)
@@ -298,16 +298,16 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
 
   def _get_door_sensor_settings_schema(
     self,
-    available: Mapping[str, str],  # noqa: F821
+    available: Mapping[str, str],
     *,
     current_sensor: str | None,
-    defaults: DoorSensorSettingsConfig,  # noqa: F821
+    defaults: DoorSensorSettingsConfig,
     user_input: dict[str, Any] | None = None,
   ) -> vol.Schema:
     """Build schema for configuring per-dog door sensor overrides."""
 
     values = dict(user_input or {})
-    sensor_default = values.get(CONF_DOOR_SENSOR)  # noqa: F821
+    sensor_default = values.get(CONF_DOOR_SENSOR)
     if not isinstance(sensor_default, str):
       sensor_default = current_sensor or ""
 
@@ -322,7 +322,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
         }
         for entity_id, name in sorted(available.items())
       )
-      schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (  # noqa: F821
+      schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (
         selector.SelectSelector(
           selector.SelectSelectorConfig(
             options=options,
@@ -331,7 +331,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
         )
       )
     else:
-      schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (  # noqa: F821
+      schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (
         selector.TextSelector(
           selector.TextSelectorConfig(
             type=selector.TextSelectorType.TEXT,
@@ -450,29 +450,29 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
     if not self._current_dog:
       return vol.Schema({})
 
-    current_modules = ensure_dog_modules_mapping(self._current_dog)  # noqa: F821
+    current_modules = ensure_dog_modules_mapping(self._current_dog)
 
     return vol.Schema(
       {
         vol.Optional(
           "module_feeding",
-          default=current_modules.get(MODULE_FEEDING, True),  # noqa: F821
+          default=current_modules.get(MODULE_FEEDING, True),
         ): selector.BooleanSelector(),
         vol.Optional(
           "module_walk",
-          default=current_modules.get(MODULE_WALK, True),  # noqa: F821
+          default=current_modules.get(MODULE_WALK, True),
         ): selector.BooleanSelector(),
         vol.Optional(
           "module_gps",
-          default=current_modules.get(MODULE_GPS, False),  # noqa: F821
+          default=current_modules.get(MODULE_GPS, False),
         ): selector.BooleanSelector(),
         vol.Optional(
           "module_garden",
-          default=current_modules.get(MODULE_GARDEN, False),  # noqa: F821
+          default=current_modules.get(MODULE_GARDEN, False),
         ): selector.BooleanSelector(),
         vol.Optional(
           "module_health",
-          default=current_modules.get(MODULE_HEALTH, True),  # noqa: F821
+          default=current_modules.get(MODULE_HEALTH, True),
         ): selector.BooleanSelector(),
         vol.Optional(
           "module_notifications",
@@ -510,7 +510,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
       if state is None:
         continue
       device_class = state.attributes.get("device_class")
-      if device_class not in DOOR_SENSOR_DEVICE_CLASSES:  # noqa: F821
+      if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
         continue
       friendly_name = state.attributes.get("friendly_name", entity_id)
       sensors[entity_id] = str(friendly_name)
@@ -518,7 +518,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
 
   async def _get_module_description_placeholders(
     self,
-  ) -> ConfigFlowPlaceholders:  # noqa: F821
+  ) -> ConfigFlowPlaceholders:
     """Get description placeholders for module configuration."""
     if not self._current_dog:
       return freeze_placeholders({})
@@ -532,7 +532,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
       )
       else str(profile_value)
     )
-    current_modules_dict = ensure_dog_modules_config(self._current_dog)  # noqa: F821
+    current_modules_dict = ensure_dog_modules_config(self._current_dog)
 
     hass_language: str | None = None
     if self.hass is not None:
@@ -548,10 +548,10 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
 
     # Module descriptions
     module_descriptions = {
-      MODULE_FEEDING: "Food tracking, scheduling, portion control",  # noqa: F821
-      MODULE_WALK: "Walk tracking, duration, distance monitoring",  # noqa: F821
-      MODULE_GPS: "Location tracking, geofencing, route recording",  # noqa: F821
-      MODULE_HEALTH: "Weight tracking, vet reminders, medication",  # noqa: F821
+      MODULE_FEEDING: "Food tracking, scheduling, portion control",
+      MODULE_WALK: "Walk tracking, duration, distance monitoring",
+      MODULE_GPS: "Location tracking, geofencing, route recording",
+      MODULE_HEALTH: "Weight tracking, vet reminders, medication",
       "notifications": "Alerts, reminders, status notifications",
       "dashboard": "Custom dashboard generation",
       "visitor": "Visitor mode for reduced monitoring",
@@ -618,16 +618,16 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
             and str(dog.get(DOG_NAME_FIELD)).strip()
           },
           current_dog_count=len(self._dogs),
-          max_dogs=MAX_DOGS_PER_ENTRY,  # noqa: F821
+          max_dogs=MAX_DOGS_PER_ENTRY,
         )
 
-        modules_config = ensure_dog_modules_config(  # noqa: F821
+        modules_config = ensure_dog_modules_config(
           {
-            MODULE_FEEDING: True,  # noqa: F821
-            MODULE_WALK: True,  # noqa: F821
-            MODULE_HEALTH: True,  # noqa: F821
-            MODULE_GPS: False,  # noqa: F821
-            MODULE_GARDEN: False,  # noqa: F821
+            MODULE_FEEDING: True,
+            MODULE_WALK: True,
+            MODULE_HEALTH: True,
+            MODULE_GPS: False,
+            MODULE_GARDEN: False,
             "notifications": True,
             "dashboard": True,
             "visitor": False,
@@ -637,19 +637,19 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
           },
         )
 
-        candidate: JSONMutableMapping = {  # noqa: F821
+        candidate: JSONMutableMapping = {
           DOG_ID_FIELD: validated["dog_id"],
           DOG_NAME_FIELD: validated["dog_name"],
-          DOG_MODULES_FIELD: cast(JSONValue, modules_config),  # noqa: F821
-          DOG_AGE_FIELD: validated.get("dog_age", 3),  # noqa: F821
-          DOG_WEIGHT_FIELD: validated["dog_weight"],  # noqa: F821
-          DOG_SIZE_FIELD: validated["dog_size"],  # noqa: F821
+          DOG_MODULES_FIELD: cast(JSONValue, modules_config),
+          DOG_AGE_FIELD: validated.get("dog_age", 3),
+          DOG_WEIGHT_FIELD: validated["dog_weight"],
+          DOG_SIZE_FIELD: validated["dog_size"],
         }
-        candidate[DOG_BREED_FIELD] = validated.get("dog_breed", "Mixed Breed")  # noqa: F821
+        candidate[DOG_BREED_FIELD] = validated.get("dog_breed", "Mixed Breed")
 
         new_dogs_raw = [
           *self._dogs,
-          cast(DogConfigData, dict(candidate)),  # noqa: F821
+          cast(DogConfigData, dict(candidate)),
         ]
         typed_dogs = self._normalise_entry_dogs(new_dogs_raw)
         self._dogs = typed_dogs
@@ -692,8 +692,8 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
             autocomplete="name",
           ),
         ),
-        vol.Optional(CONF_DOG_BREED, default=""): selector.TextSelector(),  # noqa: F821
-        vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(  # noqa: F821
+        vol.Optional(CONF_DOG_BREED, default=""): selector.TextSelector(),
+        vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(
           selector.NumberSelectorConfig(
             min=0,
             max=30,
@@ -701,7 +701,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
             mode=selector.NumberSelectorMode.BOX,
           ),
         ),
-        vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(  # noqa: F821
+        vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(
           selector.NumberSelectorConfig(
             min=0.5,
             max=200.0,
@@ -710,7 +710,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
             unit_of_measurement="kg",
           ),
         ),
-        vol.Optional(CONF_DOG_SIZE, default="medium"): selector.SelectSelector(  # noqa: F821
+        vol.Optional(CONF_DOG_SIZE, default="medium"): selector.SelectSelector(
           selector.SelectSelectorConfig(
             options=["toy", "small", "medium", "large", "giant"],
             mode=selector.SelectSelectorMode.DROPDOWN,
@@ -722,7 +722,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
 
   def _get_remove_dog_schema(
     self,
-    dogs: Sequence[Mapping[str, JSONValue]],  # noqa: F821
+    dogs: Sequence[Mapping[str, JSONValue]],
   ) -> vol.Schema:
     """Build the removal confirmation schema for the provided dog list."""
 
@@ -769,17 +769,17 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
   ) -> ConfigFlowResult:
     """Select which dog to edit."""
     current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
-    current_dogs: list[DogConfigData] = []  # noqa: F821
-    if isinstance(current_dogs_raw, Sequence):  # noqa: F821
+    current_dogs: list[DogConfigData] = []
+    if isinstance(current_dogs_raw, Sequence):
       for dog in current_dogs_raw:
-        if isinstance(dog, Mapping):  # noqa: F821
-          normalised = ensure_dog_config_data(  # noqa: F821
-            cast(Mapping[str, JSONValue], dog),  # noqa: F821
+        if isinstance(dog, Mapping):
+          normalised = ensure_dog_config_data(
+            cast(Mapping[str, JSONValue], dog),
           )
           if normalised is not None:
             current_dogs.append(normalised)
-    current_dogs = cast(list[DogConfigData], current_dogs)  # noqa: F821
-    current_dogs = cast(list[DogConfigData], current_dogs)  # noqa: F821
+    current_dogs = cast(list[DogConfigData], current_dogs)
+    current_dogs = cast(list[DogConfigData], current_dogs)
 
     if not current_dogs:
       return await self.async_step_init()
@@ -842,11 +842,11 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
             and str(dog.get(DOG_NAME_FIELD)).strip()
           }
           candidate = validate_dog_update_input(
-            cast(DogConfigData, dict(self._dogs[dog_index])),  # noqa: F821
+            cast(DogConfigData, dict(self._dogs[dog_index])),
             user_input,
             existing_names=existing_names,
           )
-          normalised = ensure_dog_config_data(  # noqa: F821
+          normalised = ensure_dog_config_data(
             cast(Mapping[str, JSONValue], candidate),
           )
           if normalised is None:
@@ -902,12 +902,12 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
           ),
         ): selector.TextSelector(),
         vol.Optional(
-          CONF_DOG_BREED,  # noqa: F821
-          default=self._current_dog.get(CONF_DOG_BREED, ""),  # noqa: F821
+          CONF_DOG_BREED,
+          default=self._current_dog.get(CONF_DOG_BREED, ""),
         ): selector.TextSelector(),
         vol.Optional(
-          CONF_DOG_AGE,  # noqa: F821
-          default=self._current_dog.get(CONF_DOG_AGE, 3),  # noqa: F821
+          CONF_DOG_AGE,
+          default=self._current_dog.get(CONF_DOG_AGE, 3),
         ): selector.NumberSelector(
           selector.NumberSelectorConfig(
             min=0,
@@ -917,8 +917,8 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
           ),
         ),
         vol.Optional(
-          CONF_DOG_WEIGHT,  # noqa: F821
-          default=self._current_dog.get(CONF_DOG_WEIGHT, 20.0),  # noqa: F821
+          CONF_DOG_WEIGHT,
+          default=self._current_dog.get(CONF_DOG_WEIGHT, 20.0),
         ): selector.NumberSelector(
           selector.NumberSelectorConfig(
             min=0.5,
@@ -929,8 +929,8 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
           ),
         ),
         vol.Optional(
-          CONF_DOG_SIZE,  # noqa: F821
-          default=self._current_dog.get(CONF_DOG_SIZE, "medium"),  # noqa: F821
+          CONF_DOG_SIZE,
+          default=self._current_dog.get(CONF_DOG_SIZE, "medium"),
         ): selector.SelectSelector(
           selector.SelectSelectorConfig(
             options=["toy", "small", "medium", "large", "giant"],
@@ -991,7 +991,7 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
         dog_options = self._current_dog_options()
         if isinstance(selected_dog_id, str) and selected_dog_id in dog_options:
           dog_options.pop(selected_dog_id, None)
-          new_options[DOG_OPTIONS_FIELD] = dog_options  # noqa: F821
+          new_options[DOG_OPTIONS_FIELD] = dog_options
 
         self._invalidate_profile_caches()
 
