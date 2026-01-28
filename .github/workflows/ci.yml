@@ -53,6 +53,7 @@ jobs:
           
       - name: Run Prek
         run: |
+          prek run --hook-stage manual python-typing-update --all-files
           prek run --all-files --show-diff-on-failure
           
       - name: Run pytest
