@@ -254,8 +254,6 @@ def test_record_service_result_defaults_rejection_metrics_without_breakers() -> 
 def test_classify_error_reason_detects_notification_failures() -> None:
   """Error classification should bucket auth and reachability failures."""
 
-  from custom_components.pawcontrol.error_classification import classify_error_reason
-
   assert classify_error_reason("missing_notify_service") == "missing_service"
   assert classify_error_reason("exception", error="Unauthorized device") == "auth_error"
   assert (
