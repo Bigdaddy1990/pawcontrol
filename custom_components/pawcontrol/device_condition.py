@@ -17,6 +17,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+
 try:
   # Home Assistant moved some typing aliases between helper modules over time.
   from homeassistant.helpers.condition import ConditionCheckerType
