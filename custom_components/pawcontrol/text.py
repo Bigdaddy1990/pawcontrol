@@ -8,10 +8,10 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
+from homeassistant import const as ha_const
 from homeassistant.components import text as text_component
 from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.const import (
-  ATTR_ENTITY_ID,
   ATTR_VALUE,
 )
 from homeassistant.core import Context, HomeAssistant, State
@@ -62,6 +62,9 @@ from .types import (
   ensure_dog_text_snapshot,
 )
 from .utils import async_call_add_entities
+
+# ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
+ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
 
 _LOGGER = logging.getLogger(__name__)
 

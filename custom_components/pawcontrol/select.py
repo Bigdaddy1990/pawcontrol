@@ -15,13 +15,24 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.components import select as select_component
-from homeassistant.components.select import ATTR_OPTION, ATTR_OPTIONS, SelectEntity
-from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
+
+try:
+  # Constants were moved to ``homeassistant.components.select.const`` in newer
+  # Home Assistant versions.
+  from homeassistant.components.select import ATTR_OPTION, ATTR_OPTIONS, SelectEntity
+except ImportError:  # pragma: no cover
+  from homeassistant.components.select import SelectEntity
+  from homeassistant.components.select.const import ATTR_OPTION, ATTR_OPTIONS
+
+try:
+  from homeassistant.const import ATTR_ENTITY_ID
+except ImportError:  # pragma: no cover
+  ATTR_ENTITY_ID = "entity_id"
 
 from .compat import HomeAssistantError
 from .const import (

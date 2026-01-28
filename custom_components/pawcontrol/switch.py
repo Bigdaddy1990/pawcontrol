@@ -16,9 +16,9 @@ from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar, cast
 
 from homeassistant.components import switch as switch_component
+from homeassistant import const as ha_const
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.const import (
-  ATTR_ENTITY_ID,
   SERVICE_TURN_OFF,
   SERVICE_TURN_ON,
   STATE_OFF,
@@ -64,6 +64,9 @@ from .types import (
   ensure_json_mapping,
 )
 from .utils import async_call_add_entities, normalise_json_mapping
+
+# ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
+ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -17,7 +17,6 @@ from homeassistant import const as ha_const
 from homeassistant.components import number as number_component
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
-  ATTR_ENTITY_ID,
   ATTR_VALUE,
   PERCENTAGE,
   STATE_UNAVAILABLE,
@@ -78,6 +77,9 @@ from .types import (
 )
 from .utils import async_call_add_entities
 
+# ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
+ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
+
 _LOGGER = logging.getLogger(__name__)
 
 # Many number entities trigger write operations (service calls). The
@@ -88,7 +90,7 @@ PARALLEL_UPDATES = 0
 UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
 if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
 
-  class _FallbackUnitOfSpeed:
+  class _FallbackUnitOfSpeed:  # noqa: D101 - compatibility shim
     KILOMETERS_PER_HOUR = "km/h"
     METERS_PER_SECOND = "m/s"
 

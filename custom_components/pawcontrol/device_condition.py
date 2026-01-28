@@ -17,7 +17,11 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.condition import ConditionCheckerType
+try:
+  # Home Assistant moved some typing aliases between helper modules over time.
+  from homeassistant.helpers.condition import ConditionCheckerType
+except ImportError:  # pragma: no cover
+  from homeassistant.helpers.typing import ConditionCheckerType
 import voluptuous as vol
 
 from .const import DOMAIN
