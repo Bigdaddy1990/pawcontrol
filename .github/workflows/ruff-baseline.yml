@@ -19,13 +19,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - run: python -m pip install --upgrade pip ruff
+      - run: |
+          python -m pip install --upgrade pip ruff prek
+          prek install
+          
       - run: |
           ruff check . --fix all || true
           ruff check . --fix --unsafe-fixes || true
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
           python scripts/enforce_docstring_baseline.py --update
+
+      - name: Run Prek
+        run: |
+          prek run --hook-stage manual python-typing-update --all-files
+          prek run --all-files --show-diff-on-failure
+          
       - uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/ruff-baseline
