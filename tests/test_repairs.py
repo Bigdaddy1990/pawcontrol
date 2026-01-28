@@ -56,13 +56,10 @@ def _load_module(name: str, path: Path) -> ModuleType:
 
 def _make_runtime_data(
   summary: CacheRepairAggregate | None = None,
-  *,
-  notification_manager: Any | None = None,
 ) -> SimpleNamespace:
   return SimpleNamespace(
     data_manager=SimpleNamespace(cache_repair_summary=lambda: summary),
     coordinator=SimpleNamespace(last_update_success=True),
-    notification_manager=notification_manager,
   )
 
 
@@ -990,7 +987,8 @@ def test_notification_delivery_errors_clears_issues_when_clean(
 
   _run_check_for_issues(module, hass, entry, runtime_data)
 
-  deleted = [call.args[-1] for call in delete_issue_mock.await_args_list]
+  # Use a different variable name to avoid shadowing the imported ``call`` from ``unittest.mock``
+  deleted = [args.args[-1] for args in delete_issue_mock.await_args_list]
   assert any(str(name).endswith("notification_auth_error") for name in deleted)
   assert any(str(name).endswith("notification_device_unreachable") for name in deleted)
 
