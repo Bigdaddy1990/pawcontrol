@@ -213,5 +213,6 @@ async def test_extra_state_attributes_json_serialisable(
   attrs = cast(JSONMutableMapping, entity.extra_state_attributes)
 
   assert isinstance(attrs, dict)
+  attrs["mutation_check"] = "ok"
   json.dumps(attrs)
   assert isinstance(attrs[expected_key], expected_type)
