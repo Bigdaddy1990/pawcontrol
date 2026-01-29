@@ -18,6 +18,7 @@ from .const import (
   CONF_API_TOKEN,
   CONF_EXTERNAL_INTEGRATIONS,
   MODULE_GARDEN,
+  MODULE_GPS,
   MODULE_WALK,
   UPDATE_INTERVALS,
 )
@@ -461,6 +462,35 @@ class PawControlCoordinator(
       return
 
     await self._refresh_subset([dog_id])
+async def async_patch_gps_update(self, dog_id: str) -> None:
+  """Patch only GPS-related coordinator payload for ``dog_id``.
+
+  This is used by push-style GPS updates (webhooks/BLE/etc.) to avoid a full
+  coordinator refresh cycle. It updates the `gps` and derived `geofencing`
+  module payloads in-place and notifies subscribed entities.
+  """
+
+  if dog_id not in self.registry.ids():
+    _LOGGER.debug("Ignoring GPS patch for unknown dog_id: %s", dog_id)
+    return
+
+  await self.async_prepare_entry()
+
+  current = self._data.get(dog_id)
+  if not isinstance(current, Mapping):
+    current = self.registry.empty_payload()
+
+  gps_payload = await self._modules.gps.async_get_data(dog_id)
+  geofencing_payload = await self._modules.geofencing.async_get_data(dog_id)
+
+  patched: CoordinatorDogData = cast(CoordinatorDogData, dict(current))
+  patched[MODULE_GPS] = cast(CoordinatorModuleState, gps_payload)
+  # `geofencing` is a derived payload that is executed whenever GPS is enabled.
+  patched["geofencing"] = cast(CoordinatorModuleState, geofencing_payload)
+
+  self._data[dog_id] = patched
+  self.async_set_updated_data(dict(self._data))
+
 
   async def async_request_selective_refresh(
     self,

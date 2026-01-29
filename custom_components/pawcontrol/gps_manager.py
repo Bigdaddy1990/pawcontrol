@@ -94,6 +94,7 @@ class LocationSource(Enum):
   MANUAL_INPUT = "manual_input"
   COMPANION_APP = "companion_app"
   EXTERNAL_API = "external_api"
+  WEBHOOK = "webhook"
 
 
 @dataclass
