@@ -9,7 +9,11 @@ import pytest
 pytest.importorskip("homeassistant")
 
 from homeassistant.components import number as number_component
-from homeassistant.const import ATTR_VALUE
+
+# The lightweight Home Assistant test harness used in this repository does not
+# always export ``ATTR_VALUE`` from ``homeassistant.const``. Use the canonical
+# service call key instead.
+ATTR_VALUE = "value"
 
 # ``ATTR_ENTITY_ID`` is not available in all Home Assistant test harness
 # versions used by this repo.
