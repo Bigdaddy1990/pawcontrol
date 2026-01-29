@@ -960,7 +960,7 @@ If you need to uninstall PawControl—whether you're migrating hardware or just 
 **Integration won't load**:
 ```bash
 # Check Home Assistant version
-# Requirement: 2025.9.3 or later
+# Requirement: 2026.1.1 or later
 Settings → System → General → Check version
 
 # Verify installation
@@ -1256,7 +1256,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 ### Current Version: 1.0.0 (Production Ready)
 
 **✨ Major Features**:
-- Complete Home Assistant 2025.9.3+ integration
+- Complete Home Assistant 2026.1.1+ integration
 - 10 platform support with 150+ entities
 - Advanced GPS tracking with geofencing
 - Multi-dog management with independent configurations
