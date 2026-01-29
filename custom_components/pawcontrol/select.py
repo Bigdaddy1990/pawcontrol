@@ -30,8 +30,8 @@ try:
 except ImportError:  # pragma: no cover
   ATTR_ENTITY_ID = "entity_id"
 
-from .compat import HomeAssistantError
-from .const import (
+from .compat import HomeAssistantError  # noqa: E402
+from .const import (  # noqa: E402
   ACTIVITY_LEVELS,
   DEFAULT_MODEL,
   DEFAULT_PERFORMANCE_MODE,
@@ -48,13 +48,13 @@ from .const import (
   MOOD_OPTIONS,
   PERFORMANCE_MODES,
 )
-from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlDogEntityBase
-from .notifications import NotificationPriority, PawControlNotificationManager
-from .reproduce_state import async_reproduce_platform_states
-from .runtime_data import get_runtime_data
-from .types import (
+from .coordinator import PawControlCoordinator  # noqa: E402
+from .diagnostics import _normalise_json as _normalise_diagnostics_json  # noqa: E402
+from .entity import PawControlDogEntityBase  # noqa: E402
+from .notifications import NotificationPriority, PawControlNotificationManager  # noqa: E402
+from .reproduce_state import async_reproduce_platform_states  # noqa: E402
+from .runtime_data import get_runtime_data  # noqa: E402
+from .types import (  # noqa: E402
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
@@ -79,7 +79,7 @@ from .types import (
   coerce_dog_modules_config,
   ensure_json_mapping,
 )
-from .utils import async_call_add_entities, deep_merge_dicts
+from .utils import async_call_add_entities, deep_merge_dicts  # noqa: E402
 
 if TYPE_CHECKING:
   from .data_manager import PawControlDataManager
