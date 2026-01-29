@@ -18,12 +18,7 @@ from typing import Any, ClassVar, cast
 from homeassistant.components import switch as switch_component
 from homeassistant import const as ha_const
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
-from homeassistant.const import (
-  SERVICE_TURN_OFF,
-  SERVICE_TURN_ON,
-  STATE_OFF,
-  STATE_ON,
-)
+from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -67,6 +62,11 @@ from .utils import async_call_add_entities, normalise_json_mapping
 
 # ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
+
+# Service name constants have been consolidated in various HA versions. Use safe
+# fallbacks for test harnesses that do not export them.
+SERVICE_TURN_ON = getattr(ha_const, "SERVICE_TURN_ON", "turn_on")
+SERVICE_TURN_OFF = getattr(ha_const, "SERVICE_TURN_OFF", "turn_off")
 
 _LOGGER = logging.getLogger(__name__)
 

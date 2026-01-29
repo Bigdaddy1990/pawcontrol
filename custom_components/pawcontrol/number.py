@@ -17,7 +17,6 @@ from homeassistant import const as ha_const
 from homeassistant.components import number as number_component
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
-  ATTR_VALUE,
   PERCENTAGE,
   STATE_UNAVAILABLE,
   STATE_UNKNOWN,
@@ -77,8 +76,9 @@ from .types import (
 )
 from .utils import async_call_add_entities
 
-# ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
+# ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
+ATTR_VALUE = getattr(ha_const, "ATTR_VALUE", "value")
 
 _LOGGER = logging.getLogger(__name__)
 
