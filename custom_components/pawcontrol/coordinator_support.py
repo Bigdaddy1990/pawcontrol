@@ -13,7 +13,10 @@ from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 from .const import (
   ALL_MODULES,
   CONF_DOGS,
+  CONF_GPS_SOURCE,
   CONF_GPS_UPDATE_INTERVAL,
+  CONF_WEBHOOK_ENABLED,
+  DEFAULT_WEBHOOK_ENABLED,
   CONF_MODULES,
   MAX_IDLE_POLL_INTERVAL,
   MAX_POLLING_INTERVAL_SECONDS,
@@ -378,6 +381,16 @@ class DogConfigRegistry:
       return self._enforce_polling_limits(UPDATE_INTERVALS.get("minimal", 300))
 
     if self.has_module(MODULE_GPS):
+      gps_source = options.get(CONF_GPS_SOURCE)
+      webhook_enabled = bool(options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
+
+      # When GPS is driven by webhook push, keep periodic polling low and rely on push events.
+      if gps_source == "webhook" and webhook_enabled:
+        baseline = UPDATE_INTERVALS.get("minimal", 300)
+        if validated_interval is not None:
+          baseline = max(baseline, int(validated_interval))
+        return self._enforce_polling_limits(baseline)
+
       gps_interval = (
         validated_interval
         if validated_interval is not None

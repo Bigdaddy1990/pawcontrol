@@ -5,7 +5,7 @@ entry/exit detection, and safety alert system. Supports multiple zone types
 including safe zones, restricted areas, and points of interest.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 

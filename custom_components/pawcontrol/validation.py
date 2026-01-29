@@ -4,7 +4,7 @@ Provides validation utilities for all user inputs, service calls,
 and configuration data with detailed error reporting.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 

@@ -8,75 +8,20 @@
     "usb",
     "zone"
   ],
-  "bluetooth": [
-    {
-      "connectable": true,
-      "service_uuid": "0000180f-0000-1000-8000-00805f9b34fb"
-    }
-  ],
   "codeowners": [
     "@BigDaddy1990"
   ],
   "config_flow": true,
   "dependencies": [],
-  "dhcp": [
-    {
-      "hostname": "petnet-*",
-      "macaddress": "44:55:66:*"
-    },
-    {
-      "hostname": "tractive-*",
-      "macaddress": "00:11:22:*"
-    },
-    {
-      "hostname": "whistle-*",
-      "macaddress": "AA:BB:CC:*"
-    }
-  ],
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
-  "homekit": {
-    "models": [
-      "petnet smart feeder",
-      "tractive gps tracker",
-      "whistle health monitor"
-    ]
-  },
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/bigdaddy1990/pawcontrol/issues",
-  "loggers": [
-    "custom_components.pawcontrol"
-  ],
-  "quality_scale": "platinum",
+  "quality_scale": "custom",
   "requirements": [
     "aiofiles>=24.1.0",
     "aiohttp>=3.13.3"
   ],
-  "usb": [
-    {
-      "description": "tractive gps tracker",
-      "pid": "5678",
-      "vid": "1234"
-    },
-    {
-      "description": "whistle health monitor",
-      "pid": "6789",
-      "vid": "2345"
-    }
-  ],
   "version": "1.0.0",
-  "zeroconf": [
-    {
-      "name": "paw-control-*",
-      "type": "_pawcontrol._tcp.local."
-    },
-    {
-      "name": "petnet-*",
-      "type": "_petnet._tcp.local."
-    },
-    {
-      "name": "tractive-*",
-      "type": "_tractive._tcp.local."
-    }
-  ]
+  "single_config_entry": true
 }

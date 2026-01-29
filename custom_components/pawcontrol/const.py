@@ -1,13 +1,13 @@
 """Optimized constants for the Paw Control integration.
 
-OPTIMIZED for HA 2025.9.3+ with enhanced performance patterns:
+OPTIMIZED for HA 2026.1.1+ with enhanced performance patterns:
 - Frozen sets for O(1) lookups
 - Tuples for immutable sequences
 - Streamlined exports
 - Memory-efficient data structures
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 
@@ -160,6 +160,14 @@ CONF_GPS_SOURCE: Final[str] = "gps_source"
 CONF_GPS_UPDATE_INTERVAL: Final[str] = "gps_update_interval"
 CONF_GPS_ACCURACY_FILTER: Final[str] = "gps_accuracy_filter"
 CONF_GPS_DISTANCE_FILTER: Final[str] = "gps_distance_filter"
+
+# OPTIMIZED: Webhook push configuration
+CONF_WEBHOOK_ENABLED: Final[str] = "webhook_enabled"
+CONF_WEBHOOK_ID: Final[str] = "webhook_id"
+CONF_WEBHOOK_SECRET: Final[str] = "webhook_secret"
+CONF_WEBHOOK_REQUIRE_SIGNATURE: Final[str] = "webhook_require_signature"
+DEFAULT_WEBHOOK_ENABLED: Final[bool] = True
+DEFAULT_WEBHOOK_REQUIRE_SIGNATURE: Final[bool] = True
 CONF_GPS_SETTINGS: Final[str] = "gps_settings"
 CONF_GPS_ENABLED: Final[str] = "gps_enabled"
 CONF_ROUTE_RECORDING: Final[str] = "route_recording"

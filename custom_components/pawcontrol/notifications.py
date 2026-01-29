@@ -4,7 +4,7 @@ Comprehensive notification management with batch processing, advanced caching,
 person entity integration, and performance optimizations for Platinum quality compliance.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 

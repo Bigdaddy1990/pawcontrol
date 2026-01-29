@@ -4,7 +4,7 @@ Enhanced with performance optimizations, caching, and memory management
 for Platinum quality compliance.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 

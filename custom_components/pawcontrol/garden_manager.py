@@ -4,7 +4,7 @@ Monitors garden activities, tracks duration, manages poop logging, and provides
 contextual push confirmations for enhanced garden behavior monitoring.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 

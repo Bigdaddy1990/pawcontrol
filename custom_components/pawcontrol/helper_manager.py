@@ -8,7 +8,7 @@ This module implements the helper creation functionality promised in info.md
 but was previously missing from the integration.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 

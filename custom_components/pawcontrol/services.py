@@ -5,7 +5,7 @@ feeding management, walk tracking, health monitoring, GPS tracking, medication
 logging, visitor mode, and notifications.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.3+
+P26.1.1++
 Python: 3.13+
 """
 
