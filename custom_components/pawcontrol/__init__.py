@@ -63,6 +63,7 @@ from .notifications import (
 )
 from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
+from .webhooks import async_register_entry_webhook, async_unregister_entry_webhook
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .telemetry import update_runtime_reconfigure_summary
@@ -1137,6 +1138,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     store_runtime_data(hass, entry, runtime_data)
 
+    # PUSH: Register webhook endpoint when GPS source is set to webhook
+    await async_register_entry_webhook(hass, entry)
+
     if script_manager is not None:
       script_manager.sync_manual_event_history()
 
@@ -1604,6 +1608,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
       True if unload successful
   """
   unload_start_time = time.monotonic()
+
+  await async_unregister_entry_webhook(hass, entry)
   runtime_data = get_runtime_data(hass, entry)
   dogs: Sequence[DogConfigData] = ()
   manual_history: list[ManualResilienceEventRecord] | None = None
