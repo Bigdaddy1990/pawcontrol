@@ -444,6 +444,7 @@ _REJECTION_SCALAR_KEYS: Final[tuple[str, ...]] = (
   "last_rejection_time",
   "last_rejection_breaker_id",
   "last_rejection_breaker_name",
+  "last_failure_reason",
   "open_breaker_count",
   "half_open_breaker_count",
   "unknown_breaker_count",
@@ -460,18 +461,22 @@ _REJECTION_SEQUENCE_KEYS: Final[tuple[str, ...]] = (
   "rejection_breakers",
 )
 
+_REJECTION_MAPPING_KEYS: Final[tuple[str, ...]] = ("failure_reasons",)
+
 
 def default_rejection_metrics() -> CoordinatorRejectionMetrics:
   """Return a baseline rejection metric payload for diagnostics consumers."""
 
   return {
-    "schema_version": 3,
+    "schema_version": 4,
     "rejected_call_count": 0,
     "rejection_breaker_count": 0,
     "rejection_rate": 0.0,
     "last_rejection_time": None,
     "last_rejection_breaker_id": None,
     "last_rejection_breaker_name": None,
+    "last_failure_reason": None,
+    "failure_reasons": {},
     "open_breaker_count": 0,
     "half_open_breaker_count": 0,
     "unknown_breaker_count": 0,
@@ -519,6 +524,24 @@ def merge_rejection_metric_values(
     else:
       mutable_target[key] = []
 
+  for key in _REJECTION_MAPPING_KEYS:
+    for source in source_mappings:
+      if key in source:
+        value = source[key]
+        if isinstance(value, Mapping):
+          mapping: dict[str, int] = {}
+          for reason, count in value.items():
+            reason_text = str(reason).strip()
+            if not reason_text:
+              continue
+            mapping[reason_text] = max(_coerce_int(count), 0)
+          mutable_target[key] = mapping
+        else:
+          mutable_target[key] = {}
+        break
+    else:
+      mutable_target[key] = {}
+
 
 def derive_rejection_metrics(
   summary: JSONMapping | CoordinatorResilienceSummary | None,
@@ -553,6 +576,20 @@ def derive_rejection_metrics(
   breaker_name_raw = summary.get("last_rejection_breaker_name")
   if isinstance(breaker_name_raw, str):
     metrics["last_rejection_breaker_name"] = breaker_name_raw
+
+  last_failure_reason = summary.get("last_failure_reason")
+  if isinstance(last_failure_reason, str) and last_failure_reason:
+    metrics["last_failure_reason"] = last_failure_reason
+
+  failure_reasons = summary.get("failure_reasons")
+  if isinstance(failure_reasons, Mapping):
+    normalised: dict[str, int] = {}
+    for reason, count in failure_reasons.items():
+      reason_text = str(reason).strip()
+      if not reason_text:
+        continue
+      normalised[reason_text] = max(_coerce_int(count), 0)
+    metrics["failure_reasons"] = normalised
 
   open_breakers = summary.get("open_breaker_count")
   if open_breakers is not None:

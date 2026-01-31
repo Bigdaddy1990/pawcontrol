@@ -1593,6 +1593,10 @@ class PawControlRepairsFlow(RepairsFlow):
       return await self.async_step_invalid_gps_config()
     if self._repair_type == ISSUE_MISSING_NOTIFICATIONS:
       return await self.async_step_missing_notifications()
+    if self._repair_type == ISSUE_NOTIFICATION_AUTH_ERROR:
+      return await self.async_step_notification_auth_error()
+    if self._repair_type == ISSUE_NOTIFICATION_DEVICE_UNREACHABLE:
+      return await self.async_step_notification_device_unreachable()
     if self._repair_type == ISSUE_OUTDATED_CONFIG:
       return await self.async_step_outdated_config()
     if self._repair_type in {
@@ -2005,6 +2009,106 @@ class PawControlRepairsFlow(RepairsFlow):
           "notification_enabled_dogs",
           0,
         ),
+      },
+    )
+
+  async def async_step_notification_auth_error(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle repair flow for notification authentication errors."""
+
+    if user_input is not None:
+      action = user_input.get("action")
+
+      if action == "review_services":
+        return self.async_external_step(
+          step_id="review_notify_services",
+          url="/config/integrations",
+        )
+      if action == "view_logs":
+        return self.async_external_step(step_id="view_logs", url="/config/logs")
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="notification_auth_error",
+      data_schema=vol.Schema(
+        {
+          vol.Required("action"): selector(
+            {
+              "select": {
+                "options": [
+                  {
+                    "value": "review_services",
+                    "label": "Review notification service credentials",
+                  },
+                  {
+                    "value": "view_logs",
+                    "label": "Open system logs",
+                  },
+                  {"value": "ignore", "label": "Ignore for now"},
+                ],
+              },
+            },
+          ),
+        },
+      ),
+      description_placeholders={
+        "services": self._issue_data.get("services", "unknown"),
+        "service_count": self._issue_data.get("service_count", 0),
+        "total_failures": self._issue_data.get("total_failures", 0),
+        "consecutive_failures": self._issue_data.get("consecutive_failures", 0),
+        "last_error_reasons": self._issue_data.get("last_error_reasons", "n/a"),
+      },
+    )
+
+  async def async_step_notification_device_unreachable(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle repair flow for unreachable notification devices."""
+
+    if user_input is not None:
+      action = user_input.get("action")
+
+      if action == "review_devices":
+        return self.async_external_step(
+          step_id="review_notify_devices",
+          url="/config/integrations",
+        )
+      if action == "view_logs":
+        return self.async_external_step(step_id="view_logs", url="/config/logs")
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="notification_device_unreachable",
+      data_schema=vol.Schema(
+        {
+          vol.Required("action"): selector(
+            {
+              "select": {
+                "options": [
+                  {
+                    "value": "review_devices",
+                    "label": "Verify notification devices are online",
+                  },
+                  {
+                    "value": "view_logs",
+                    "label": "Open system logs",
+                  },
+                  {"value": "ignore", "label": "Ignore for now"},
+                ],
+              },
+            },
+          ),
+        },
+      ),
+      description_placeholders={
+        "services": self._issue_data.get("services", "unknown"),
+        "service_count": self._issue_data.get("service_count", 0),
+        "total_failures": self._issue_data.get("total_failures", 0),
+        "consecutive_failures": self._issue_data.get("consecutive_failures", 0),
+        "last_error_reasons": self._issue_data.get("last_error_reasons", "n/a"),
       },
     )
 

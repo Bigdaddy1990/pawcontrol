@@ -122,6 +122,19 @@ This guide lists common issues, symptoms, and fixes.
 2. Confirm notification services are configured and available.
 3. Check that the feeding sensors are not disabled in the entity registry.
 
+## Notification deliveries fail repeatedly
+
+**Symptoms**
+- Notification services show consecutive failures in diagnostics
+- Repairs surface authentication or unreachable-device warnings
+
+**Fix**
+1. Open **Settings → Repairs** and follow the suggested flow for
+   authentication or reachability errors.
+2. Review notification service credentials and device availability.
+3. Check diagnostics for `rejection_metrics.failure_reasons` to confirm the
+   failure class stabilizes after remediation.
+
 ## Collecting logs
 
 1. Enable debug logging for `custom_components.pawcontrol`.

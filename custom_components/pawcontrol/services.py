@@ -733,6 +733,39 @@ def _record_service_result(
   performance_stats["last_service_result"] = result
 
 
+def _record_delivery_failure_reason(
+  runtime_data: PawControlRuntimeData | None,
+  *,
+  reason: str | None,
+) -> None:
+  """Store delivery failure reasons in rejection metrics for diagnostics."""
+
+  if runtime_data is None:
+    return
+
+  performance_stats = ensure_runtime_performance_stats(runtime_data)
+  rejection_metrics_raw = performance_stats.get("rejection_metrics")
+  if isinstance(rejection_metrics_raw, MutableMapping):
+    rejection_metrics = cast(CoordinatorRejectionMetrics, rejection_metrics_raw)
+  else:
+    rejection_metrics = default_rejection_metrics()
+    performance_stats["rejection_metrics"] = rejection_metrics
+
+  reason_text = (reason or "unknown").strip()
+  if not reason_text:
+    reason_text = "unknown"
+
+  failure_reasons_raw = rejection_metrics.get("failure_reasons")
+  if isinstance(failure_reasons_raw, MutableMapping):
+    failure_reasons = cast(MutableMapping[str, int], failure_reasons_raw)
+  else:
+    failure_reasons = {}
+    rejection_metrics["failure_reasons"] = failure_reasons
+
+  failure_reasons[reason_text] = int(failure_reasons.get(reason_text, 0) or 0) + 1
+  rejection_metrics["last_failure_reason"] = reason_text
+
+
 def _normalise_context_identifier(value: Any) -> str | None:
   """Return a normalised context identifier string or ``None``."""
 
@@ -2988,6 +3021,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     except HomeAssistantError as err:
       guard_snapshot = tuple(guard_results)
+      _record_delivery_failure_reason(
+        runtime_data,
+        reason=classify_error_reason("exception", error=err),
+      )
       _record_service_result(
         runtime_data,
         service=SERVICE_SEND_NOTIFICATION,
@@ -3007,6 +3044,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         "Failed to send the PawControl notification. Check the logs for details."
       )
       guard_snapshot = tuple(guard_results)
+      _record_delivery_failure_reason(
+        runtime_data,
+        reason=classify_error_reason("exception", error=err),
+      )
       _record_service_result(
         runtime_data,
         service=SERVICE_SEND_NOTIFICATION,

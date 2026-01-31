@@ -41,6 +41,18 @@ Fields:
 - `service_last_errors`: Mapping `{service_name: last_error}` per service
   (including exception text, when available).
 
+## Rejection Metrics Failure Reasons
+
+Service delivery failures also populate the shared `rejection_metrics` payload
+within coordinator/performance diagnostics. These counters aggregate failure
+reasons across notification delivery attempts and service-triggered sends.
+
+Fields:
+
+- `last_failure_reason`: Most recent classified failure reason (for example,
+  `auth_error`, `device_unreachable`, `missing_service`).
+- `failure_reasons`: Mapping `{reason: count}` summarising failure reasons.
+
 ## Service Guard + Notification Errors
 
 The diagnostics payload also exports aggregated error metrics under
