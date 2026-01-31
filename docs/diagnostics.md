@@ -53,6 +53,21 @@ Fields:
   `auth_error`, `device_unreachable`, `missing_service`).
 - `failure_reasons`: Mapping `{reason: count}` summarising failure reasons.
 
+## Service Guard Metrics
+
+Guarded Home Assistant service calls are exported under
+`service_execution.guard_metrics`. The diagnostics payload always includes this
+section, even when no guarded calls have been recorded, in which case the
+metrics default to zeroed values.
+
+Fields:
+
+- `executed`: Count of guarded service calls that executed.
+- `skipped`: Count of guarded service calls that were skipped.
+- `reasons`: Mapping `{reason: count}` for skip reasons.
+- `last_results`: Ordered list of recent guard results with `domain`, `service`,
+  `executed`, and optional `reason`/`description`.
+
 ## Service Guard + Notification Errors
 
 The diagnostics payload also exports aggregated error metrics under

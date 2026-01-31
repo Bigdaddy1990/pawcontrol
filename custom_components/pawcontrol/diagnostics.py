@@ -47,6 +47,7 @@ from .runtime_data import describe_runtime_store_status, get_runtime_data
 from .service_guard import (
   ServiceGuardMetricsSnapshot,
   ServiceGuardResultHistory,
+  ServiceGuardSnapshot,
   normalise_guard_history,
 )
 from .push_router import get_entry_push_telemetry_snapshot
@@ -1863,9 +1864,8 @@ async def _get_service_execution_diagnostics(
   diagnostics: JSONMutableMapping = {"available": True}
 
   guard_metrics = performance_stats.get("service_guard_metrics")
-  guard_payload = _normalise_service_guard_metrics(guard_metrics)
-  if guard_payload is not None:
-    diagnostics["guard_metrics"] = cast(JSONValue, guard_payload)
+  guard_payload = _build_service_guard_metrics_export(guard_metrics)
+  diagnostics["guard_metrics"] = cast(JSONValue, guard_payload)
 
   entity_guard_payload: EntityFactoryGuardMetricsSnapshot | None = (
     resolve_entity_factory_guard_metrics(performance_stats)
@@ -1985,6 +1985,26 @@ def _normalise_service_guard_metrics(
     guard_metrics["last_results"] = last_results_payload
 
   return guard_metrics
+
+
+def _build_service_guard_metrics_export(
+  payload: Any,
+) -> ServiceGuardMetricsSnapshot:
+  """Return a complete service guard metrics export payload.
+
+  The export schema must always include the guard metrics keys so downstream
+  dashboards can rely on a consistent payload (mirroring the rejection metrics
+  defaults).
+  """
+
+  default_payload = ServiceGuardSnapshot.zero_metrics()
+  normalised = _normalise_service_guard_metrics(payload)
+  if normalised is None:
+    return default_payload
+
+  merged = ServiceGuardSnapshot.zero_metrics()
+  merged.update(normalised)
+  return merged
 
 
 def _normalise_service_call_telemetry(payload: Any) -> JSONMutableMapping | None:

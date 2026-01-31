@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from inspect import isawaitable
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
@@ -66,6 +66,15 @@ _LOGGER = logging.getLogger(__name__)
 type JSONPrimitive = str | int | float | bool | None
 type JSONType = JSONPrimitive | list["JSONType"] | dict[str, "JSONType"]
 
+
+class _NotificationDeliverySummary(TypedDict):
+  """Aggregated delivery error counters for a classification."""
+
+  services: list[str]
+  total_failures: int
+  consecutive_failures: int
+
+
 # Issue types
 ISSUE_MISSING_DOG_CONFIG = "missing_dog_configuration"
 ISSUE_DUPLICATE_DOG_IDS = "duplicate_dog_ids"
@@ -73,6 +82,11 @@ ISSUE_INVALID_GPS_CONFIG = "invalid_gps_configuration"
 ISSUE_MISSING_NOTIFICATIONS = "missing_notification_config"
 ISSUE_NOTIFICATION_AUTH_ERROR = "notification_auth_error"
 ISSUE_NOTIFICATION_DEVICE_UNREACHABLE = "notification_device_unreachable"
+ISSUE_NOTIFICATION_MISSING_SERVICE = "notification_missing_service"
+ISSUE_NOTIFICATION_TIMEOUT = "notification_timeout"
+ISSUE_NOTIFICATION_RATE_LIMITED = "notification_rate_limited"
+ISSUE_NOTIFICATION_GUARD_SKIPPED = "notification_guard_skipped"
+ISSUE_NOTIFICATION_DELIVERY_ERROR = "notification_delivery_error"
 ISSUE_OUTDATED_CONFIG = "outdated_configuration"
 ISSUE_PERFORMANCE_WARNING = "performance_warning"
 ISSUE_GPS_UPDATE_INTERVAL = "gps_update_interval_warning"
@@ -918,11 +932,81 @@ async def _check_notification_delivery_errors(
       "issue_id": f"{entry.entry_id}_notification_auth_error",
       "issue_type": ISSUE_NOTIFICATION_AUTH_ERROR,
       "severity": ir.IssueSeverity.ERROR,
+      "recommended_steps": [
+        "Verify credentials for the affected notification services",
+        "Reauthenticate the notify integration if prompted",
+        "Review system logs for authentication failures",
+      ],
     },
     "device_unreachable": {
       "issue_id": f"{entry.entry_id}_notification_device_unreachable",
       "issue_type": ISSUE_NOTIFICATION_DEVICE_UNREACHABLE,
       "severity": ir.IssueSeverity.WARNING,
+      "recommended_steps": [
+        "Confirm target devices are online and reachable",
+        "Check local network connectivity for the devices",
+        "Open logs to review recent delivery failures",
+      ],
+    },
+    "missing_service": {
+      "issue_id": f"{entry.entry_id}_notification_missing_service",
+      "issue_type": ISSUE_NOTIFICATION_MISSING_SERVICE,
+      "severity": ir.IssueSeverity.ERROR,
+      "recommended_steps": [
+        "Ensure the notify integration/service is installed and enabled",
+        "Update notification settings to match the active service name",
+        "Reload the notify integration after correcting configuration",
+      ],
+    },
+    "timeout": {
+      "issue_id": f"{entry.entry_id}_notification_timeout",
+      "issue_type": ISSUE_NOTIFICATION_TIMEOUT,
+      "severity": ir.IssueSeverity.WARNING,
+      "recommended_steps": [
+        "Check connectivity between Home Assistant and the notify target",
+        "Reduce payload size or notification frequency if needed",
+        "Review logs for timeout details and retry guidance",
+      ],
+    },
+    "rate_limited": {
+      "issue_id": f"{entry.entry_id}_notification_rate_limited",
+      "issue_type": ISSUE_NOTIFICATION_RATE_LIMITED,
+      "severity": ir.IssueSeverity.WARNING,
+      "recommended_steps": [
+        "Reduce notification frequency to stay within provider limits",
+        "Review provider rate limits or quotas for your notify service",
+        "Stagger notifications to avoid burst traffic",
+      ],
+    },
+    "guard_skipped": {
+      "issue_id": f"{entry.entry_id}_notification_guard_skipped",
+      "issue_type": ISSUE_NOTIFICATION_GUARD_SKIPPED,
+      "severity": ir.IssueSeverity.WARNING,
+      "recommended_steps": [
+        "Confirm guard conditions allow the notification to run",
+        "Verify required services are enabled before retrying",
+        "Review guard skip reasons in logs and diagnostics",
+      ],
+    },
+    "exception": {
+      "issue_id": f"{entry.entry_id}_notification_delivery_error_exception",
+      "issue_type": ISSUE_NOTIFICATION_DELIVERY_ERROR,
+      "severity": ir.IssueSeverity.WARNING,
+      "recommended_steps": [
+        "Open system logs to review exception details",
+        "Reload the notify integration after resolving errors",
+        "Retry the notification once issues are addressed",
+      ],
+    },
+    "unknown": {
+      "issue_id": f"{entry.entry_id}_notification_delivery_error_unknown",
+      "issue_type": ISSUE_NOTIFICATION_DELIVERY_ERROR,
+      "severity": ir.IssueSeverity.WARNING,
+      "recommended_steps": [
+        "Review system logs for additional error context",
+        "Validate notification service configuration",
+        "Retry delivery after adjustments",
+      ],
     },
   }
 
@@ -962,7 +1046,7 @@ async def _check_notification_delivery_errors(
 
   # We consider an error recurring if there are >=3 consecutive failures
   recurring_threshold = 3
-  classified_services: dict[str, dict[str, object]] = {
+  classified_services: dict[str, _NotificationDeliverySummary] = {
     key: {"services": [], "total_failures": 0, "consecutive_failures": 0}
     for key in issue_definitions
   }
@@ -1008,6 +1092,7 @@ async def _check_notification_delivery_errors(
         await delete_issue(hass, DOMAIN, definition["issue_id"])
       continue
     issue_data: JSONMutableMapping = {
+      "classification": classification,
       "services": ", ".join(sorted(services_list)),
       "service_count": len(services_list),
       "total_failures": classified_services[classification]["total_failures"],
@@ -1018,6 +1103,9 @@ async def _check_notification_delivery_errors(
         ", ".join(sorted(reasons_by_class[classification]))
         if reasons_by_class[classification]
         else "n/a"
+      ),
+      "recommended_steps": ", ".join(
+        cast(list[str], definition.get("recommended_steps", [])),
       ),
     }
     await async_create_issue(
@@ -1597,6 +1685,16 @@ class PawControlRepairsFlow(RepairsFlow):
       return await self.async_step_notification_auth_error()
     if self._repair_type == ISSUE_NOTIFICATION_DEVICE_UNREACHABLE:
       return await self.async_step_notification_device_unreachable()
+    if self._repair_type == ISSUE_NOTIFICATION_MISSING_SERVICE:
+      return await self.async_step_notification_missing_service()
+    if self._repair_type == ISSUE_NOTIFICATION_TIMEOUT:
+      return await self.async_step_notification_timeout()
+    if self._repair_type == ISSUE_NOTIFICATION_RATE_LIMITED:
+      return await self.async_step_notification_rate_limited()
+    if self._repair_type == ISSUE_NOTIFICATION_GUARD_SKIPPED:
+      return await self.async_step_notification_guard_skipped()
+    if self._repair_type == ISSUE_NOTIFICATION_DELIVERY_ERROR:
+      return await self.async_step_notification_delivery_error()
     if self._repair_type == ISSUE_OUTDATED_CONFIG:
       return await self.async_step_outdated_config()
     if self._repair_type in {
@@ -2032,34 +2130,17 @@ class PawControlRepairsFlow(RepairsFlow):
 
     return self.async_show_form(
       step_id="notification_auth_error",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "review_services",
-                    "label": "Review notification service credentials",
-                  },
-                  {
-                    "value": "view_logs",
-                    "label": "Open system logs",
-                  },
-                  {"value": "ignore", "label": "Ignore for now"},
-                ],
-              },
-            },
-          ),
-        },
+      data_schema=self._notification_delivery_action_schema(
+        [
+          {
+            "value": "review_services",
+            "label": "Review notification service credentials",
+          },
+          {"value": "view_logs", "label": "Open system logs"},
+          {"value": "ignore", "label": "Ignore for now"},
+        ],
       ),
-      description_placeholders={
-        "services": self._issue_data.get("services", "unknown"),
-        "service_count": self._issue_data.get("service_count", 0),
-        "total_failures": self._issue_data.get("total_failures", 0),
-        "consecutive_failures": self._issue_data.get("consecutive_failures", 0),
-        "last_error_reasons": self._issue_data.get("last_error_reasons", "n/a"),
-      },
+      description_placeholders=self._notification_delivery_placeholders(),
     )
 
   async def async_step_notification_device_unreachable(
@@ -2082,34 +2163,231 @@ class PawControlRepairsFlow(RepairsFlow):
 
     return self.async_show_form(
       step_id="notification_device_unreachable",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "review_devices",
-                    "label": "Verify notification devices are online",
-                  },
-                  {
-                    "value": "view_logs",
-                    "label": "Open system logs",
-                  },
-                  {"value": "ignore", "label": "Ignore for now"},
-                ],
-              },
-            },
-          ),
-        },
+      data_schema=self._notification_delivery_action_schema(
+        [
+          {
+            "value": "review_devices",
+            "label": "Verify notification devices are online",
+          },
+          {"value": "view_logs", "label": "Open system logs"},
+          {"value": "ignore", "label": "Ignore for now"},
+        ],
       ),
-      description_placeholders={
-        "services": self._issue_data.get("services", "unknown"),
-        "service_count": self._issue_data.get("service_count", 0),
-        "total_failures": self._issue_data.get("total_failures", 0),
-        "consecutive_failures": self._issue_data.get("consecutive_failures", 0),
-        "last_error_reasons": self._issue_data.get("last_error_reasons", "n/a"),
+      description_placeholders=self._notification_delivery_placeholders(),
+    )
+
+  def _notification_delivery_placeholders(self) -> dict[str, object]:
+    """Return shared description placeholders for delivery error repairs."""
+
+    return {
+      "services": self._issue_data.get("services", "unknown"),
+      "service_count": self._issue_data.get("service_count", 0),
+      "total_failures": self._issue_data.get("total_failures", 0),
+      "consecutive_failures": self._issue_data.get("consecutive_failures", 0),
+      "last_error_reasons": self._issue_data.get("last_error_reasons", "n/a"),
+      "classification": self._issue_data.get("classification", "unknown"),
+      "recommended_steps": self._issue_data.get("recommended_steps", ""),
+    }
+
+  def _notification_delivery_action_schema(
+    self,
+    options: list[dict[str, str]],
+  ) -> vol.Schema:
+    """Return a selector schema for notification delivery actions."""
+
+    return vol.Schema(
+      {
+        vol.Required("action"): selector(
+          {
+            "select": {
+              "options": options,
+            },
+          },
+        ),
       },
+    )
+
+  async def async_step_notification_missing_service(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle repair flow for missing notification services."""
+
+    if user_input is not None:
+      action = user_input.get("action")
+
+      if action == "review_services":
+        return self.async_external_step(
+          step_id="review_notify_services",
+          url="/config/integrations",
+        )
+      if action == "setup_mobile_app":
+        return self.async_external_step(
+          step_id="setup_mobile",
+          url="/config/mobile_app",
+        )
+      if action == "view_logs":
+        return self.async_external_step(step_id="view_logs", url="/config/logs")
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="notification_missing_service",
+      data_schema=self._notification_delivery_action_schema(
+        [
+          {
+            "value": "review_services",
+            "label": "Review notification integrations",
+          },
+          {
+            "value": "setup_mobile_app",
+            "label": "Set up Mobile App integration",
+          },
+          {"value": "view_logs", "label": "Open system logs"},
+          {"value": "ignore", "label": "Ignore for now"},
+        ],
+      ),
+      description_placeholders=self._notification_delivery_placeholders(),
+    )
+
+  async def async_step_notification_timeout(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle repair flow for notification timeout errors."""
+
+    if user_input is not None:
+      action = user_input.get("action")
+
+      if action == "review_services":
+        return self.async_external_step(
+          step_id="review_notify_services",
+          url="/config/integrations",
+        )
+      if action == "view_logs":
+        return self.async_external_step(step_id="view_logs", url="/config/logs")
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="notification_timeout",
+      data_schema=self._notification_delivery_action_schema(
+        [
+          {
+            "value": "review_services",
+            "label": "Review notification service status",
+          },
+          {"value": "view_logs", "label": "Open system logs"},
+          {"value": "ignore", "label": "Ignore for now"},
+        ],
+      ),
+      description_placeholders=self._notification_delivery_placeholders(),
+    )
+
+  async def async_step_notification_rate_limited(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle repair flow for rate-limited notification services."""
+
+    if user_input is not None:
+      action = user_input.get("action")
+
+      if action == "review_automations":
+        return self.async_external_step(
+          step_id="review_automations",
+          url="/config/automation",
+        )
+      if action == "review_services":
+        return self.async_external_step(
+          step_id="review_notify_services",
+          url="/config/integrations",
+        )
+      if action == "view_logs":
+        return self.async_external_step(step_id="view_logs", url="/config/logs")
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="notification_rate_limited",
+      data_schema=self._notification_delivery_action_schema(
+        [
+          {
+            "value": "review_automations",
+            "label": "Review automations for notification bursts",
+          },
+          {
+            "value": "review_services",
+            "label": "Review notification service limits",
+          },
+          {"value": "view_logs", "label": "Open system logs"},
+          {"value": "ignore", "label": "Ignore for now"},
+        ],
+      ),
+      description_placeholders=self._notification_delivery_placeholders(),
+    )
+
+  async def async_step_notification_guard_skipped(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle repair flow for guard-skipped notification deliveries."""
+
+    if user_input is not None:
+      action = user_input.get("action")
+
+      if action == "review_services":
+        return self.async_external_step(
+          step_id="review_notify_services",
+          url="/config/integrations",
+        )
+      if action == "view_logs":
+        return self.async_external_step(step_id="view_logs", url="/config/logs")
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="notification_guard_skipped",
+      data_schema=self._notification_delivery_action_schema(
+        [
+          {
+            "value": "review_services",
+            "label": "Review notification services and guards",
+          },
+          {"value": "view_logs", "label": "Open system logs"},
+          {"value": "ignore", "label": "Ignore for now"},
+        ],
+      ),
+      description_placeholders=self._notification_delivery_placeholders(),
+    )
+
+  async def async_step_notification_delivery_error(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle repair flow for generic notification delivery errors."""
+
+    if user_input is not None:
+      action = user_input.get("action")
+
+      if action == "review_services":
+        return self.async_external_step(
+          step_id="review_notify_services",
+          url="/config/integrations",
+        )
+      if action == "view_logs":
+        return self.async_external_step(step_id="view_logs", url="/config/logs")
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="notification_delivery_error",
+      data_schema=self._notification_delivery_action_schema(
+        [
+          {
+            "value": "review_services",
+            "label": "Review notification services",
+          },
+          {"value": "view_logs", "label": "Open system logs"},
+          {"value": "ignore", "label": "Ignore for now"},
+        ],
+      ),
+      description_placeholders=self._notification_delivery_placeholders(),
     )
 
   async def async_step_performance_warning(

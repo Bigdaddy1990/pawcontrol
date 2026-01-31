@@ -453,6 +453,37 @@ def test_notification_device_unreachable_flow_shows_guidance(
   assert result["description_placeholders"]["service_count"] == 1
 
 
+def test_notification_missing_service_flow_shows_guidance(
+  repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+  """Missing notification service repairs should guide users to setup."""
+
+  module, _, _, _ = repairs_module
+
+  issue_id = "entry_notification_missing_service"
+  issue_data = {
+    "config_entry_id": "entry",
+    "issue_type": module.ISSUE_NOTIFICATION_MISSING_SERVICE,
+    "services": "notify.mobile_app_phone",
+    "service_count": 1,
+    "total_failures": 3,
+    "consecutive_failures": 3,
+    "last_error_reasons": "missing_notify_service",
+    "recommended_steps": "Verify notify service configuration",
+  }
+
+  hass = SimpleNamespace(
+    data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+  )
+
+  flow = _create_flow(module, hass, issue_id)
+  result = asyncio.run(flow.async_step_init())
+
+  assert result["type"] == "form"
+  assert result["step_id"] == "notification_missing_service"
+  assert result["description_placeholders"]["service_count"] == 1
+
+
 def test_module_conflict_flow_disables_extra_gps_modules(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
@@ -1001,6 +1032,18 @@ def test_notification_delivery_errors_create_issues(
           "last_error_reason": "exception",
           "last_error": "Device unreachable",
         },
+        "notify.mobile_app_tablet": {
+          "total_failures": 3,
+          "consecutive_failures": 3,
+          "last_error_reason": "missing_notify_service",
+          "last_error": "missing_notify_service",
+        },
+        "notify.mobile_app_display": {
+          "total_failures": 3,
+          "consecutive_failures": 3,
+          "last_error_reason": "exception",
+          "last_error": "Request timeout",
+        },
       }
     }
   )
@@ -1014,6 +1057,8 @@ def test_notification_delivery_errors_create_issues(
   }
   assert module.ISSUE_NOTIFICATION_AUTH_ERROR in keys
   assert module.ISSUE_NOTIFICATION_DEVICE_UNREACHABLE in keys
+  assert module.ISSUE_NOTIFICATION_MISSING_SERVICE in keys
+  assert module.ISSUE_NOTIFICATION_TIMEOUT in keys
 
   for invocation in create_issue_mock.await_args_list:
     if invocation.kwargs["translation_key"] == module.ISSUE_NOTIFICATION_AUTH_ERROR:
@@ -1051,6 +1096,11 @@ def test_notification_delivery_errors_clears_issues_when_clean(
   deleted = [args.args[-1] for args in delete_issue_mock.await_args_list]
   assert any(str(name).endswith("notification_auth_error") for name in deleted)
   assert any(str(name).endswith("notification_device_unreachable") for name in deleted)
+  assert any(str(name).endswith("notification_missing_service") for name in deleted)
+  assert any(str(name).endswith("notification_timeout") for name in deleted)
+  assert any(
+    str(name).endswith("notification_delivery_error_exception") for name in deleted
+  )
 
 
 def test_async_publish_feeding_compliance_issue_creates_alert(

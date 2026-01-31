@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import importlib.util
 import sys
@@ -162,6 +163,22 @@ def test_guard_notification_error_metrics_aggregate_counts() -> None:
   assert payload["classified_errors"]["missing_service"] == 3
   assert payload["classified_errors"]["auth_error"] == 4
   assert payload["classified_errors"]["device_unreachable"] == 2
+
+
+def test_service_guard_metrics_defaults_to_zero_payload() -> None:
+  """Service guard metrics should always export default-zero payloads."""
+
+  diagnostics = _load_diagnostics()
+  runtime_data = type("RuntimeData", (), {"performance_stats": {}})()
+
+  payload = asyncio.run(diagnostics._get_service_execution_diagnostics(runtime_data))
+
+  assert payload["guard_metrics"] == {
+    "executed": 0,
+    "skipped": 0,
+    "reasons": {},
+    "last_results": [],
+  }
 
 
 def test_configuration_url_redacted_in_diagnostics() -> None:
