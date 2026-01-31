@@ -659,7 +659,7 @@ service: pawcontrol.log_health_data
 data:
   dog_id: \"buddy\"
   weight: 25.7
-  mood: \"happy\"           # happy, anxious, tired, excited
+  mood: "happy"           # happy, content, excited, calm, anxious, tired, playful, aggressive, sad
   activity_level: \"high\" # very_low, low, normal, high, very_high
   note: \"Very active today\"
 
