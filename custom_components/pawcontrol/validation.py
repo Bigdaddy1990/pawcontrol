@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import time as dt_time
 from enum import Enum
 from numbers import Real
-from typing import TYPE_CHECKING, Any, Final, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
@@ -94,7 +94,7 @@ def _is_empty(value: Any) -> bool:
 
 
 @dataclass(frozen=True, slots=True)
-class NotificationTargets(Generic[TNotificationTarget]):
+class NotificationTargets[TNotificationTarget: Enum]:
   """Typed result for notification target validation."""
 
   targets: list[TNotificationTarget]
@@ -266,7 +266,7 @@ def _coerce_int(field: str, value: Any) -> int:
     ) from err
 
 
-def validate_notification_targets(
+def validate_notification_targets[TNotificationTarget: Enum](
   raw_targets: Any,
   *,
   enum_type: type[TNotificationTarget],

@@ -17,7 +17,6 @@ import time
 from collections.abc import (
   Awaitable,
   Callable,
-  Iterable,
   Mapping,
   MutableMapping,
   Sequence,

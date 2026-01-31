@@ -51,7 +51,7 @@
       "dog_id_too_long": "Hunde-ID darf nicht l\u00e4nger als 30 Zeichen sein",
       "dog_id_too_short": "Hunde-ID muss mindestens 2 Zeichen lang sein",
       "dog_name_already_exists": "Ein Hund mit diesem Namen existiert bereits",
-      "dog_name_invalid": "Bitte gib einen gültigen Hundenamen ein",
+      "dog_name_invalid": "Bitte gib einen g\u00fcltigen Hundenamen ein",
       "dog_name_required": "Hundename ist erforderlich",
       "dog_name_too_long": "Hundename ist zu lang",
       "dog_name_too_short": "Hundename ist zu kurz",
