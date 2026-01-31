@@ -15,7 +15,7 @@ class GardenModuleSelectorMixin:
     *,
     field: str,
     default: bool,
-  ) -> dict[vol.Marker, selector.BooleanSelector]:
+  ) -> dict[vol.Marker, selector.Selector]:
     """Return a selector mapping for a garden module toggle."""
 
     return {
