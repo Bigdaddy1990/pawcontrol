@@ -38,6 +38,15 @@
   fixtures to validate setup/unload, runtime data, and repair flows.
 - 👩‍💻 Developer workflows, linting, and release procedures live in `dev.md`.
 
+### Validation & attribute normalization
+
+- **Flow validation** trims and normalizes dog IDs, validates names, and clamps
+  input ranges before config entries are saved.
+- **API validation** checks endpoint format, reachability, and authentication
+  before committing credentials.
+- **Attribute normalization** ensures entity attributes and diagnostics payloads
+  stay JSON-safe and consistent across platforms.
+
 ## 📚 User Documentation
 
 - **Setup & configuration (DE)**: [`docs/setup_installation_guide.md`](docs/setup_installation_guide.md)
@@ -633,13 +642,14 @@ data:
 **Feeding Services**:
 ```yaml
 # Log feeding
-service: pawcontrol.feed_dog
+service: pawcontrol.add_feeding
 data:
   dog_id: \"buddy\"
-  meal_type: \"breakfast\"  # breakfast, lunch, dinner, snack
-  portion_size: 200        # grams
-  food_type: \"dry_food\"   # dry_food, wet_food, barf, treat
+  meal_type: "breakfast"  # breakfast, lunch, dinner, snack, treat
+  amount: 200             # grams
+  feeder: \"Kitchen feeder\"
   notes: \"Ate eagerly\"
+  scheduled: false
 ```
 
 **Health Services**:
@@ -648,10 +658,10 @@ data:
 service: pawcontrol.log_health_data
 data:
   dog_id: \"buddy\"
-  weight_kg: 25.7
-  mood: \"happy\"           # happy, anxious, tired, excited
-  activity_level: 8        # 1-10 scale
-  notes: \"Very active today\"
+  weight: 25.7
+  mood: "happy"           # happy, content, excited, calm, anxious, tired, playful, aggressive, sad
+  activity_level: \"high\" # very_low, low, normal, high, very_high
+  note: \"Very active today\"
 
 # Log medication
 service: pawcontrol.log_medication
