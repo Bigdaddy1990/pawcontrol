@@ -39,6 +39,7 @@ from .types import (
   ensure_dog_config_data,
 )
 from .validation import ValidationError, validate_sensor_entity_id
+from .flows.walk_helpers import WALK_SETTINGS_FIELDS
 
 if TYPE_CHECKING:
   from .compat import ConfigEntry
@@ -201,12 +202,9 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
 
       settings_overrides: dict[str, bool | int | float | str | None] = {}
       for key in (
-        "walk_detection_timeout",
-        "minimum_walk_duration",
-        "maximum_walk_duration",
+        *WALK_SETTINGS_FIELDS,
         "door_closed_delay",
         "require_confirmation",
-        "auto_end_walks",
         "confidence_threshold",
       ):
         value = user_input.get(key)

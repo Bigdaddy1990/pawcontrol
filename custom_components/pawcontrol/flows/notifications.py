@@ -8,19 +8,12 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from ..const import CONF_NOTIFICATIONS, DEFAULT_REMINDER_REPEAT_MIN
-from ..exceptions import FlowValidationError, ValidationError
-from ..selector_shim import selector
+from ..const import CONF_NOTIFICATIONS
+from ..exceptions import FlowValidationError
 from ..types import (
   DEFAULT_NOTIFICATION_OPTIONS,
   DOG_ID_FIELD,
   DOG_OPTIONS_FIELD,
-  NOTIFICATION_MOBILE_FIELD,
-  NOTIFICATION_PRIORITY_FIELD,
-  NOTIFICATION_QUIET_END_FIELD,
-  NOTIFICATION_QUIET_HOURS_FIELD,
-  NOTIFICATION_QUIET_START_FIELD,
-  NOTIFICATION_REMINDER_REPEAT_FIELD,
   DogConfigData,
   DogOptionsMap,
   JSONLikeMapping,
@@ -32,7 +25,8 @@ from ..types import (
   ensure_dog_options_entry,
   ensure_notification_options,
 )
-from ..validation import validate_int_range
+from .notifications_helpers import build_notification_settings_payload
+from .notifications_schemas import build_notifications_schema
 
 if TYPE_CHECKING:
 
@@ -237,49 +231,12 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
   ) -> NotificationOptions:
     """Create a typed notification payload from submitted form data."""
 
-    try:
-      reminder_repeat = validate_int_range(
-        user_input.get(NOTIFICATION_REMINDER_REPEAT_FIELD),
-        field=NOTIFICATION_REMINDER_REPEAT_FIELD,
-        minimum=5,
-        maximum=240,
-        required=True,
-        required_constraint="invalid_configuration",
-        not_numeric_constraint="invalid_configuration",
-        out_of_range_constraint="invalid_configuration",
-      )
-    except ValidationError as err:
-      raise FlowValidationError(
-        field_errors={
-          NOTIFICATION_REMINDER_REPEAT_FIELD: err.constraint or "invalid_configuration"
-        }
-      ) from err
-
-    notifications = {
-      NOTIFICATION_QUIET_HOURS_FIELD: cls._coerce_bool(
-        user_input.get(NOTIFICATION_QUIET_HOURS_FIELD),
-        bool(current.get(NOTIFICATION_QUIET_HOURS_FIELD, True)),
-      ),
-      NOTIFICATION_QUIET_START_FIELD: cls._coerce_time_string(
-        user_input.get(NOTIFICATION_QUIET_START_FIELD),
-        str(current.get(NOTIFICATION_QUIET_START_FIELD, "22:00:00")),
-      ),
-      NOTIFICATION_QUIET_END_FIELD: cls._coerce_time_string(
-        user_input.get(NOTIFICATION_QUIET_END_FIELD),
-        str(current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00")),
-      ),
-      NOTIFICATION_REMINDER_REPEAT_FIELD: reminder_repeat,
-      NOTIFICATION_PRIORITY_FIELD: cls._coerce_bool(
-        user_input.get(NOTIFICATION_PRIORITY_FIELD),
-        bool(current.get(NOTIFICATION_PRIORITY_FIELD, True)),
-      ),
-      NOTIFICATION_MOBILE_FIELD: cls._coerce_bool(
-        user_input.get(NOTIFICATION_MOBILE_FIELD),
-        bool(current.get(NOTIFICATION_MOBILE_FIELD, True)),
-      ),
-    }
-
-    return cast(NotificationOptions, notifications)
+    return build_notification_settings_payload(
+      user_input,
+      current,
+      coerce_bool=cls._coerce_bool,
+      coerce_time_string=cls._coerce_time_string,
+    )
 
   def _build_notification_settings(
     self,
@@ -384,77 +341,4 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
     """Get notifications schema."""
 
     current_notifications = self._current_notification_options(dog_id)
-    current_values = user_input or {}
-
-    return vol.Schema(
-      {
-        vol.Optional(
-          NOTIFICATION_QUIET_HOURS_FIELD,
-          default=current_values.get(
-            NOTIFICATION_QUIET_HOURS_FIELD,
-            current_notifications.get(
-              NOTIFICATION_QUIET_HOURS_FIELD,
-              True,
-            ),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          NOTIFICATION_QUIET_START_FIELD,
-          default=current_values.get(
-            NOTIFICATION_QUIET_START_FIELD,
-            current_notifications.get(
-              NOTIFICATION_QUIET_START_FIELD,
-              "22:00:00",
-            ),
-          ),
-        ): selector.TimeSelector(),
-        vol.Optional(
-          NOTIFICATION_QUIET_END_FIELD,
-          default=current_values.get(
-            NOTIFICATION_QUIET_END_FIELD,
-            current_notifications.get(
-              NOTIFICATION_QUIET_END_FIELD,
-              "07:00:00",
-            ),
-          ),
-        ): selector.TimeSelector(),
-        vol.Optional(
-          NOTIFICATION_REMINDER_REPEAT_FIELD,
-          default=current_values.get(
-            NOTIFICATION_REMINDER_REPEAT_FIELD,
-            current_notifications.get(
-              NOTIFICATION_REMINDER_REPEAT_FIELD,
-              DEFAULT_REMINDER_REPEAT_MIN,
-            ),
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=5,
-            max=240,
-            step=5,
-            mode=selector.NumberSelectorMode.BOX,
-            unit_of_measurement="minutes",
-          ),
-        ),
-        vol.Optional(
-          NOTIFICATION_PRIORITY_FIELD,
-          default=current_values.get(
-            NOTIFICATION_PRIORITY_FIELD,
-            current_notifications.get(
-              NOTIFICATION_PRIORITY_FIELD,
-              True,
-            ),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          NOTIFICATION_MOBILE_FIELD,
-          default=current_values.get(
-            NOTIFICATION_MOBILE_FIELD,
-            current_notifications.get(
-              NOTIFICATION_MOBILE_FIELD,
-              True,
-            ),
-          ),
-        ): selector.BooleanSelector(),
-      },
-    )
+    return build_notifications_schema(current_notifications, user_input)

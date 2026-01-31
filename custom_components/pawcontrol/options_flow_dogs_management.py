@@ -28,6 +28,10 @@ from .const import (
 )
 from .exceptions import FlowValidationError
 from .flow_validation import validate_dog_setup_input, validate_dog_update_input
+from .flows.walk_schemas import (
+  build_auto_end_walks_field,
+  build_walk_timing_schema_fields,
+)
 from .grooming_translations import translated_grooming_label
 from .selector_shim import selector
 from .types import (
@@ -343,56 +347,8 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
     def _value(key: str, fallback: Any) -> Any:
       return values.get(key, fallback)
 
-    schema_dict[
-      vol.Optional(
-        "walk_detection_timeout",
-        default=_value(
-          "walk_detection_timeout",
-          defaults.walk_detection_timeout,
-        ),
-      )
-    ] = selector.NumberSelector(
-      selector.NumberSelectorConfig(
-        min=30,
-        max=21600,
-        step=30,
-        mode=selector.NumberSelectorMode.BOX,
-        unit_of_measurement="seconds",
-      ),
-    )
-    schema_dict[
-      vol.Optional(
-        "minimum_walk_duration",
-        default=_value(
-          "minimum_walk_duration",
-          defaults.minimum_walk_duration,
-        ),
-      )
-    ] = selector.NumberSelector(
-      selector.NumberSelectorConfig(
-        min=60,
-        max=21600,
-        step=30,
-        mode=selector.NumberSelectorMode.BOX,
-        unit_of_measurement="seconds",
-      ),
-    )
-    schema_dict[
-      vol.Optional(
-        "maximum_walk_duration",
-        default=_value(
-          "maximum_walk_duration",
-          defaults.maximum_walk_duration,
-        ),
-      )
-    ] = selector.NumberSelector(
-      selector.NumberSelectorConfig(
-        min=120,
-        max=43200,
-        step=60,
-        mode=selector.NumberSelectorMode.BOX,
-        unit_of_measurement="seconds",
-      ),
+    schema_dict.update(
+      build_walk_timing_schema_fields(values, defaults),
     )
     schema_dict[
       vol.Optional(
@@ -420,12 +376,9 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
         ),
       )
     ] = selector.BooleanSelector()
-    schema_dict[
-      vol.Optional(
-        "auto_end_walks",
-        default=_value("auto_end_walks", defaults.auto_end_walks),
-      )
-    ] = selector.BooleanSelector()
+    schema_dict.update(
+      build_auto_end_walks_field(values, defaults),
+    )
     schema_dict[
       vol.Optional(
         "confidence_threshold",
