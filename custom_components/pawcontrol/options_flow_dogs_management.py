@@ -28,6 +28,7 @@ from .const import (
 )
 from .exceptions import FlowValidationError
 from .flow_validation import validate_dog_setup_input, validate_dog_update_input
+from .flows.garden import GardenModuleSelectorMixin
 from .flows.walk_schemas import (
   build_auto_end_walks_field,
   build_walk_timing_schema_fields,
@@ -79,7 +80,7 @@ else:  # pragma: no cover
   DogManagementOptionsHost = object
 
 
-class DogManagementOptionsMixin(DogManagementOptionsHost):
+class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsHost):
   _current_dog: DogConfigData | None
   _dogs: list[DogConfigData]
 
@@ -405,54 +406,56 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
 
     current_modules = ensure_dog_modules_mapping(self._current_dog)
 
-    return vol.Schema(
-      {
-        vol.Optional(
-          "module_feeding",
-          default=current_modules.get(MODULE_FEEDING, True),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_walk",
-          default=current_modules.get(MODULE_WALK, True),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_gps",
-          default=current_modules.get(MODULE_GPS, False),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_garden",
-          default=current_modules.get(MODULE_GARDEN, False),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_health",
-          default=current_modules.get(MODULE_HEALTH, True),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_notifications",
-          default=current_modules.get("notifications", True),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_dashboard",
-          default=current_modules.get("dashboard", True),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_visitor",
-          default=current_modules.get("visitor", False),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_grooming",
-          default=current_modules.get("grooming", False),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_medication",
-          default=current_modules.get("medication", False),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "module_training",
-          default=current_modules.get("training", False),
-        ): selector.BooleanSelector(),
-      },
+    schema_fields: dict[vol.Optional, selector.BooleanSelector] = {
+      vol.Optional(
+        "module_feeding",
+        default=current_modules.get(MODULE_FEEDING, True),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_walk",
+        default=current_modules.get(MODULE_WALK, True),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_gps",
+        default=current_modules.get(MODULE_GPS, False),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_health",
+        default=current_modules.get(MODULE_HEALTH, True),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_notifications",
+        default=current_modules.get("notifications", True),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_dashboard",
+        default=current_modules.get("dashboard", True),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_visitor",
+        default=current_modules.get("visitor", False),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_grooming",
+        default=current_modules.get("grooming", False),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_medication",
+        default=current_modules.get("medication", False),
+      ): selector.BooleanSelector(),
+      vol.Optional(
+        "module_training",
+        default=current_modules.get("training", False),
+      ): selector.BooleanSelector(),
+    }
+    schema_fields.update(
+      self._build_garden_module_selector(
+        field="module_garden",
+        default=current_modules.get(MODULE_GARDEN, False),
+      ),
     )
+
+    return vol.Schema(schema_fields)
 
   def _get_available_door_sensors(self) -> dict[str, str]:
     """Return mapping of available door sensors by friendly name."""
