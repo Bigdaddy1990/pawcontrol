@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Callable
 from typing import Any, cast
 
 from homeassistant.core import HomeAssistant
@@ -61,7 +60,11 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
     return
 
   topic_raw = entry.options.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)
-  topic = topic_raw.strip() if isinstance(topic_raw, str) and topic_raw.strip() else DEFAULT_MQTT_TOPIC
+  topic = (
+    topic_raw.strip()
+    if isinstance(topic_raw, str) and topic_raw.strip()
+    else DEFAULT_MQTT_TOPIC
+  )
 
   try:
     from homeassistant.components import mqtt as ha_mqtt

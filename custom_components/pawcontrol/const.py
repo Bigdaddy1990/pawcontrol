@@ -178,7 +178,9 @@ DEFAULT_MQTT_TOPIC: Final[str] = "pawcontrol/gps"
 # OPTIMIZED: Unified push router settings
 CONF_PUSH_PAYLOAD_MAX_BYTES: Final[str] = "push_payload_max_bytes"
 CONF_PUSH_NONCE_TTL_SECONDS: Final[str] = "push_nonce_ttl_seconds"
-CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[str] = "push_rate_limit_webhook_per_minute"
+CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[str] = (
+  "push_rate_limit_webhook_per_minute"
+)
 CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: Final[str] = "push_rate_limit_mqtt_per_minute"
 CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[str] = "push_rate_limit_entity_per_minute"
 

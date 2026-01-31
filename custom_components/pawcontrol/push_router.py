@@ -139,7 +139,9 @@ def _bump_reason(dog_tel: dict[str, Any], reason: str) -> None:
       by_reason.pop(key, None)
 
 
-def get_entry_push_telemetry_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
+def get_entry_push_telemetry_snapshot(
+  hass: HomeAssistant, entry_id: str
+) -> dict[str, Any]:
   """Return a JSON-safe snapshot of push telemetry for diagnostics and sensors."""
   entry = _entry_store(hass, entry_id)
   telemetry = entry.get("telemetry")
@@ -192,11 +194,18 @@ def _nonce_ttl(entry: ConfigEntry) -> int:
 
 def _rate_limit(entry: ConfigEntry, source: PushSource) -> int:
   if source == "webhook":
-    raw = entry.options.get(CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE)
+    raw = entry.options.get(
+      CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+      DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+    )
   elif source == "mqtt":
-    raw = entry.options.get(CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE)
+    raw = entry.options.get(
+      CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE
+    )
   else:
-    raw = entry.options.get(CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE)
+    raw = entry.options.get(
+      CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE
+    )
   try:
     value = int(raw)
   except Exception:
@@ -204,7 +213,9 @@ def _rate_limit(entry: ConfigEntry, source: PushSource) -> int:
   return max(1, min(600, value))
 
 
-def _check_nonce(entry_store: dict[str, Any], entry: ConfigEntry, nonce: str, now: float) -> bool:
+def _check_nonce(
+  entry_store: dict[str, Any], entry: ConfigEntry, nonce: str, now: float
+) -> bool:
   nonces = entry_store.get("nonces")
   if not isinstance(nonces, dict):
     entry_store["nonces"] = {}
@@ -220,7 +231,9 @@ def _check_nonce(entry_store: dict[str, Any], entry: ConfigEntry, nonce: str, no
   return True
 
 
-def _limiter(entry_store: dict[str, Any], dog_id: str, source: PushSource, max_per_minute: int) -> _RateLimiter:
+def _limiter(
+  entry_store: dict[str, Any], dog_id: str, source: PushSource, max_per_minute: int
+) -> _RateLimiter:
   limiters = entry_store.get("limiters")
   if not isinstance(limiters, dict):
     entry_store["limiters"] = {}
@@ -234,7 +247,9 @@ def _limiter(entry_store: dict[str, Any], dog_id: str, source: PushSource, max_p
   return limiter
 
 
-def _accept(telemetry: dict[str, Any], dog_id: str, source: PushSource, now_iso: str) -> None:
+def _accept(
+  telemetry: dict[str, Any], dog_id: str, source: PushSource, now_iso: str
+) -> None:
   telemetry["accepted_total"] = int(telemetry.get("accepted_total", 0)) + 1
   dog_tel = _dog_telemetry(telemetry, dog_id)
   dog_tel["accepted_total"] = int(dog_tel.get("accepted_total", 0)) + 1
@@ -336,8 +351,10 @@ async def async_process_gps_push(
   try:
     from .gps_manager import LocationSource
 
-    src_enum = LocationSource.WEBHOOK if source == "webhook" else (
-      LocationSource.MQTT if source == "mqtt" else LocationSource.ENTITY
+    src_enum = (
+      LocationSource.WEBHOOK
+      if source == "webhook"
+      else (LocationSource.MQTT if source == "mqtt" else LocationSource.ENTITY)
     )
 
     ok = await gps_manager.async_add_gps_point(
