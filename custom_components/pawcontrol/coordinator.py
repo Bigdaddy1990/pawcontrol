@@ -75,6 +75,7 @@ from .types import (
   CoordinatorRuntimeStatisticsPayload,
   CoordinatorSecurityScorecard,
   CoordinatorStatisticsPayload,
+  ConfigEntryOptionsPayload,
   DogConfigData,
   JSONMapping,
   PawControlConfigEntry,
@@ -114,6 +115,8 @@ class PawControlCoordinator(
 ):
   """Central orchestrator that keeps runtime logic in dedicated helpers."""
 
+  _options: ConfigEntryOptionsPayload
+
   def __init__(
     self,
     hass: HomeAssistant,
@@ -122,13 +125,14 @@ class PawControlCoordinator(
   ) -> None:
     """Initialise the coordinator with Home Assistant runtime context."""
     self.config_entry = entry
+    self._options = cast(ConfigEntryOptionsPayload, entry.options)
     self.session = ensure_shared_client_session(
       session,
       owner="PawControlCoordinator",
     )
     self.registry = DogConfigRegistry.from_entry(entry)
     self._use_external_api = bool(
-      entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False),
+      self._options.get(CONF_EXTERNAL_INTEGRATIONS, False),
     )
     # Initialise resilience handling before building the API client so the
     # underlying device client can use shared retry/backoff logic.
@@ -140,8 +144,8 @@ class PawControlCoordinator(
       exponential_base=2.0,
       jitter=True,
     )
-    endpoint = entry.options.get(CONF_API_ENDPOINT)
-    token = entry.options.get(CONF_API_TOKEN)
+    endpoint = self._options.get(CONF_API_ENDPOINT)
+    token = self._options.get(CONF_API_TOKEN)
     self._api_client = self._build_api_client(
       endpoint=endpoint if isinstance(endpoint, str) else "",
       token=token if isinstance(token, str) else "",
@@ -464,34 +468,34 @@ class PawControlCoordinator(
     await self._refresh_subset([dog_id])
 
 
-async def async_patch_gps_update(self, dog_id: str) -> None:
-  """Patch only GPS-related coordinator payload for ``dog_id``.
+  async def async_patch_gps_update(self, dog_id: str) -> None:
+    """Patch only GPS-related coordinator payload for ``dog_id``.
 
-  This is used by push-style GPS updates (webhooks/BLE/etc.) to avoid a full
-  coordinator refresh cycle. It updates the `gps` and derived `geofencing`
-  module payloads in-place and notifies subscribed entities.
-  """
+    This is used by push-style GPS updates (webhooks/BLE/etc.) to avoid a full
+    coordinator refresh cycle. It updates the `gps` and derived `geofencing`
+    module payloads in-place and notifies subscribed entities.
+    """
 
-  if dog_id not in self.registry.ids():
-    _LOGGER.debug("Ignoring GPS patch for unknown dog_id: %s", dog_id)
-    return
+    if dog_id not in self.registry.ids():
+      _LOGGER.debug("Ignoring GPS patch for unknown dog_id: %s", dog_id)
+      return
 
-  await self.async_prepare_entry()
+    await self.async_prepare_entry()
 
-  current = self._data.get(dog_id)
-  if not isinstance(current, Mapping):
-    current = self.registry.empty_payload()
+    current = self._data.get(dog_id)
+    if not isinstance(current, Mapping):
+      current = self.registry.empty_payload()
 
-  gps_payload = await self._modules.gps.async_get_data(dog_id)
-  geofencing_payload = await self._modules.geofencing.async_get_data(dog_id)
+    gps_payload = await self._modules.gps.async_get_data(dog_id)
+    geofencing_payload = await self._modules.geofencing.async_get_data(dog_id)
 
-  patched: CoordinatorDogData = cast(CoordinatorDogData, dict(current))
-  patched[MODULE_GPS] = cast(CoordinatorModuleState, gps_payload)
-  # `geofencing` is a derived payload that is executed whenever GPS is enabled.
-  patched["geofencing"] = cast(CoordinatorModuleState, geofencing_payload)
+    patched: CoordinatorDogData = cast(CoordinatorDogData, dict(current))
+    patched["gps"] = cast(CoordinatorModuleState, gps_payload)
+    # `geofencing` is a derived payload that is executed whenever GPS is enabled.
+    patched["geofencing"] = cast(CoordinatorModuleState, geofencing_payload)
 
-  self._data[dog_id] = patched
-  self.async_set_updated_data(dict(self._data))
+    self._data[dog_id] = patched
+    self.async_set_updated_data(dict(self._data))
 
   async def async_request_selective_refresh(
     self,

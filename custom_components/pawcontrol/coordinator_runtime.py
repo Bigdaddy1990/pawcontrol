@@ -42,6 +42,7 @@ from .types import (
   AdaptivePollingDiagnostics,
   CoordinatorDataPayload,
   CoordinatorDogData,
+  CoordinatorModuleErrorPayload,
   CoordinatorModuleTask,
   CoordinatorRuntimeCycleSnapshot,
   CoordinatorTypedModuleName,
@@ -495,10 +496,13 @@ class CoordinatorRuntime:
           dog_id,
           result,
         )
-        payload[module_name] = {
-          "status": "unavailable",
-          "reason": str(result),
-        }
+        payload[module_name] = cast(
+          CoordinatorModuleErrorPayload,
+          {
+            "status": "unavailable",
+            "reason": str(result),
+          },
+        )
       elif isinstance(result, RateLimitError):
         # Surface rate limits with retry hints for UI
         self._logger.warning(
@@ -507,11 +511,14 @@ class CoordinatorRuntime:
           dog_id,
           result.user_message,
         )
-        payload[module_name] = {
-          "status": "rate_limited",
-          "error": result.user_message,
-          "retry_after": result.retry_after,
-        }
+        payload[module_name] = cast(
+          CoordinatorModuleErrorPayload,
+          {
+            "status": "rate_limited",
+            "error": result.user_message,
+            "retry_after": result.retry_after,
+          },
+        )
       elif isinstance(result, NetworkError):
         self._logger.warning(
           "Network error fetching %s data for %s: %s",
@@ -519,10 +526,13 @@ class CoordinatorRuntime:
           dog_id,
           result,
         )
-        payload[module_name] = {
-          "status": "network_error",
-          "error": str(result),
-        }
+        payload[module_name] = cast(
+          CoordinatorModuleErrorPayload,
+          {
+            "status": "network_error",
+            "error": str(result),
+          },
+        )
       elif isinstance(result, Exception):
         self._logger.warning(
           "Failed to fetch %s data for %s: %s (%s)",
@@ -531,11 +541,14 @@ class CoordinatorRuntime:
           result,
           result.__class__.__name__,
         )
-        payload[module_name] = {
-          "status": "error",
-          "error": str(result),
-          "error_type": result.__class__.__name__,
-        }
+        payload[module_name] = cast(
+          CoordinatorModuleErrorPayload,
+          {
+            "status": "error",
+            "error": str(result),
+            "error_type": result.__class__.__name__,
+          },
+        )
       else:
         payload[module_name] = cast(ModuleAdapterPayload, result)
 

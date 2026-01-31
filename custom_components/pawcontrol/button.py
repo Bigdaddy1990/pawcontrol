@@ -21,6 +21,7 @@ from typing import Any, ClassVar, Protocol, TypedDict, cast, runtime_checkable
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import Context, HomeAssistant, ServiceRegistry
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
@@ -798,6 +799,15 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
 
   _attr_should_poll = False
   _attr_has_entity_name = True
+  _attr_device_class: ButtonDeviceClass | None
+  _attr_icon: str | None
+  _attr_entity_category: EntityCategory | None
+  _attr_name: str | None
+  _attr_translation_key: str | None
+  _attr_unique_id: str
+  _action_description: str | None
+  _button_type: str
+  _last_pressed: str | None
 
   def __init__(
     self,
@@ -808,13 +818,14 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     *,
     device_class: ButtonDeviceClass | None = None,
     icon: str | None = None,
-    entity_category: str | None = None,
+    entity_category: EntityCategory | None = None,
     action_description: str | None = None,
   ) -> None:
     """Initialize optimized button entity with thread-safe caching."""
     super().__init__(coordinator, dog_id, dog_name)
     self._button_type = button_type
     self._action_description = action_description
+    self._last_pressed = None
 
     # Entity configuration
     self._attr_unique_id = f"pawcontrol_{dog_id}_{button_type}"
@@ -1316,6 +1327,8 @@ class PawControlFeedNowButton(PawControlButtonBase):
 
 class PawControlFeedMealButton(PawControlButtonBase):
   """Button for specific meal type."""
+
+  _meal_type: str
 
   def __init__(
     self,

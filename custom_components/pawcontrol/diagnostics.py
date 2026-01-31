@@ -1288,18 +1288,18 @@ def _build_guard_notification_error_metrics(
         notification_failures += failures
         services_with_failures.append(service_name)
         last_error_reason = service_payload.get("last_error_reason")
-        reason_text = (
+        service_reason: str | None = (
           last_error_reason
           if isinstance(last_error_reason, str) and last_error_reason
           else None
         )
         last_error = service_payload.get("last_error")
         error_text = last_error if isinstance(last_error, str) else None
-        if reason_text is not None:
-          notification_reasons[reason_text] = (
-            notification_reasons.get(reason_text, 0) + failures
+        if service_reason is not None:
+          notification_reasons[service_reason] = (
+            notification_reasons.get(service_reason, 0) + failures
           )
-        classification = classify_error_reason(reason_text, error=error_text)
+        classification = classify_error_reason(service_reason, error=error_text)
         classified_errors[classification] = (
           classified_errors.get(classification, 0) + failures
         )

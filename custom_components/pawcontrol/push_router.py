@@ -177,8 +177,12 @@ def _dog_expected_source(entry: ConfigEntry, dog_id: str) -> str | None:
 def _payload_limit(entry: ConfigEntry) -> int:
   raw = entry.options.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)
   try:
-    value = int(raw)
+    if isinstance(raw, bool):
+      raise TypeError
+    value = int(raw) if isinstance(raw, int | float | str) else None
   except Exception:
+    return DEFAULT_PUSH_PAYLOAD_MAX_BYTES
+  if value is None:
     return DEFAULT_PUSH_PAYLOAD_MAX_BYTES
   return max(1024, min(256 * 1024, value))
 
@@ -186,8 +190,12 @@ def _payload_limit(entry: ConfigEntry) -> int:
 def _nonce_ttl(entry: ConfigEntry) -> int:
   raw = entry.options.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)
   try:
-    value = int(raw)
+    if isinstance(raw, bool):
+      raise TypeError
+    value = int(raw) if isinstance(raw, int | float | str) else None
   except Exception:
+    return DEFAULT_PUSH_NONCE_TTL_SECONDS
+  if value is None:
     return DEFAULT_PUSH_NONCE_TTL_SECONDS
   return max(60, min(24 * 3600, value))
 
@@ -207,8 +215,12 @@ def _rate_limit(entry: ConfigEntry, source: PushSource) -> int:
       CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE
     )
   try:
-    value = int(raw)
+    if isinstance(raw, bool):
+      raise TypeError
+    value = int(raw) if isinstance(raw, int | float | str) else None
   except Exception:
+    value = 60
+  if value is None:
     value = 60
   return max(1, min(600, value))
 

@@ -21,7 +21,7 @@ from functools import partial
 from pathlib import Path
 from typing import Literal, TypeVar, cast
 
-import aiofiles
+import aiofiles  # type: ignore[import-untyped]
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 

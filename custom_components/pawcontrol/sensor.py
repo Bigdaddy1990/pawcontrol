@@ -49,7 +49,7 @@ from .types import (
   ModuleToggleKey,
   PawControlConfigEntry,
   WalkModuleTelemetry,
-  ensure_dog_modules_mapping,
+  coerce_dog_modules_config,
   ensure_gps_payload,
   ensure_json_mapping,
 )
@@ -88,7 +88,21 @@ type ModuleProfileKey = Literal[
   "gps_focus",
   "health_focus",
 ]
-type ModuleEntityRule = tuple[str, type[PawControlSensorBase], int]
+
+
+class SensorEntityFactory(Protocol):
+  """Factory signature for sensor entities in module rules."""
+
+  def __call__(
+    self,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
+  ) -> PawControlSensorBase:
+    """Create a sensor entity instance."""
+
+
+type ModuleEntityRule = tuple[str, SensorEntityFactory, int]
 type ModuleEntityRules = dict[
   ModuleToggleKey,
   dict[ModuleProfileKey, list[ModuleEntityRule]],
@@ -294,7 +308,10 @@ async def _create_profile_entities(
   for dog in dogs:
     dog_id = dog[DOG_ID_FIELD]
     dog_name = dog[DOG_NAME_FIELD]
-    modules = ensure_dog_modules_mapping(cast(Mapping[str, object], dog))
+    modules_config = coerce_dog_modules_config(
+      cast(Mapping[str, object], dog),
+    )
+    modules = cast(Mapping[ModuleToggleKey, bool], modules_config)
 
     # Create core entities (always included)
     core_entities = _create_core_entities(coordinator, dog_id, dog_name)
@@ -519,7 +536,7 @@ async def _create_module_entities(
         ),
       ],
     },
-    MODULE_GARDEN: {
+    "garden": {
       "basic": [
         (
           "garden_time_today",
@@ -844,6 +861,16 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
   _attr_should_poll = False
   _attr_has_entity_name = True
+  _attr_device_class: SensorDeviceClass | None
+  _attr_state_class: SensorStateClass | None
+  _attr_native_unit_of_measurement: str | None
+  _attr_unit_of_measurement_translation_key: str | None
+  _attr_icon: str | None
+  _attr_entity_category: EntityCategory | None
+  _attr_translation_key: str | None
+  _attr_unique_id: str
+  _pending_translation_key: str
+  _sensor_type: str
 
   def __init__(
     self,
@@ -1050,7 +1077,7 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 class PawControlGardenSensorBase(PawControlSensorBase):
   """Base class for garden tracking sensors."""
 
-  _module_name = "garden"
+  _module_name: Literal["garden"] = "garden"
 
   def _get_garden_data(self) -> GardenModulePayload:
     """Return garden snapshot data for the current dog."""
@@ -1167,7 +1194,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 class PawControlDietValidationSensorBase(PawControlSensorBase):
   """Base class for diet validation sensors."""
 
-  _module_name = "feeding"
+  _module_name: Literal["feeding"] = "feeding"
 
   def _get_validation_summary(self) -> FeedingDietValidationSummary | None:
     """Return diet validation summary for the current dog."""

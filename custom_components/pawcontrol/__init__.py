@@ -76,6 +76,8 @@ from .types import (
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
+  ConfigEntryDataPayload,
+  ConfigEntryOptionsPayload,
   DogConfigData,
   JSONLikeMapping,
   JSONValue,
@@ -1123,6 +1125,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       entity_factory=entity_factory,
       entity_profile=str(profile),
       dogs=dogs_config,
+      config_entry_data=cast(ConfigEntryDataPayload, entry.data),
+      config_entry_options=cast(ConfigEntryOptionsPayload, entry.options),
     )
 
     runtime_data.helper_manager = helper_manager

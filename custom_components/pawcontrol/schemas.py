@@ -24,7 +24,9 @@ from .const import (
   CONF_MQTT_TOPIC,
   CONF_PUSH_NONCE_TTL_SECONDS,
   CONF_PUSH_PAYLOAD_MAX_BYTES,
-  CONF_PUSH_RATE_LIMIT_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
 )
 from .types import (
   GEOFENCE_ALERTS_FIELD,
@@ -93,7 +95,21 @@ GPS_OPTIONS_JSON_SCHEMA: Final[dict[str, Any]] = {
     CONF_WEBHOOK_REQUIRE_SIGNATURE: {"type": "boolean"},
     CONF_WEBHOOK_ID: {"type": "string"},
     CONF_WEBHOOK_SECRET: {"type": "string"},
-    CONF_PUSH_RATE_LIMIT_PER_MINUTE: {"type": "integer", "minimum": 1, "maximum": 6000},
+    CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6000,
+    },
+    CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6000,
+    },
+    CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6000,
+    },
     CONF_PUSH_PAYLOAD_MAX_BYTES: {
       "type": "integer",
       "minimum": 1024,

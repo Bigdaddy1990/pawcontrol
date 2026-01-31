@@ -142,7 +142,7 @@ LOCATION_ACCURACY_OPTIONS: list[LocationAccuracyKey] = [
   "best",
 ]
 
-TRACKING_MODE_PRESETS: Final[Mapping[TrackingModeKey, TrackingModePreset]] = (
+TRACKING_MODE_PRESETS: Final[Mapping[str, TrackingModePreset]] = (
   MappingProxyType(
     {
       "continuous": {
@@ -169,9 +169,8 @@ TRACKING_MODE_PRESETS: Final[Mapping[TrackingModeKey, TrackingModePreset]] = (
   )
 )
 
-LOCATION_ACCURACY_CONFIGS: Final[
-  Mapping[LocationAccuracyKey, LocationAccuracyConfig]
-] = MappingProxyType(
+LOCATION_ACCURACY_CONFIGS: Final[Mapping[str, LocationAccuracyConfig]] = (
+  MappingProxyType(
   {
     "low": {
       "gps_accuracy_threshold": 150.0,
@@ -191,6 +190,7 @@ LOCATION_ACCURACY_CONFIGS: Final[
       "route_smoothing": False,
     },
   },
+  )
 )
 
 FEEDING_SCHEDULES: list[FeedingScheduleKey] = [
@@ -240,7 +240,7 @@ MEAL_TYPE_OPTIONS: list[MealTypeKey] = [
 MOOD_OPTIONS_KEYS: list[MoodKey] = [cast(MoodKey, value) for value in MOOD_OPTIONS]
 
 
-DOG_SIZE_DETAILS: Final[Mapping[DogSizeKey, DogSizeInfo]] = MappingProxyType(
+DOG_SIZE_DETAILS: Final[Mapping[str, DogSizeInfo]] = MappingProxyType(
   {
     "toy": {
       "weight_range": "1-6kg",
@@ -270,7 +270,7 @@ DOG_SIZE_DETAILS: Final[Mapping[DogSizeKey, DogSizeInfo]] = MappingProxyType(
   },
 )
 
-PERFORMANCE_MODE_DETAILS: Final[Mapping[PerformanceModeKey, PerformanceModeInfo]] = (
+PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = (
   MappingProxyType(
     {
       "minimal": {
@@ -292,7 +292,7 @@ PERFORMANCE_MODE_DETAILS: Final[Mapping[PerformanceModeKey, PerformanceModeInfo]
   )
 )
 
-WALK_MODE_DETAILS: Final[Mapping[WalkModeKey, WalkModeInfo]] = MappingProxyType(
+WALK_MODE_DETAILS: Final[Mapping[str, WalkModeInfo]] = MappingProxyType(
   {
     "automatic": {
       "description": "Automatically detect walk start/end",
@@ -312,7 +312,7 @@ WALK_MODE_DETAILS: Final[Mapping[WalkModeKey, WalkModeInfo]] = MappingProxyType(
   },
 )
 
-FOOD_TYPE_DETAILS: Final[Mapping[FoodTypeKey, FoodTypeInfo]] = MappingProxyType(
+FOOD_TYPE_DETAILS: Final[Mapping[str, FoodTypeInfo]] = MappingProxyType(
   {
     "dry_food": {
       "calories_per_gram": 3.5,
@@ -347,7 +347,7 @@ FOOD_TYPE_DETAILS: Final[Mapping[FoodTypeKey, FoodTypeInfo]] = MappingProxyType(
   },
 )
 
-GPS_SOURCE_DETAILS: Final[Mapping[GPSSourceKey, GPSSourceInfo]] = MappingProxyType(
+GPS_SOURCE_DETAILS: Final[Mapping[str, GPSSourceInfo]] = MappingProxyType(
   {
     "manual": {
       "accuracy": "user-dependent",
@@ -397,7 +397,7 @@ GPS_SOURCE_DETAILS: Final[Mapping[GPSSourceKey, GPSSourceInfo]] = MappingProxyTy
   },
 )
 
-GROOMING_TYPE_DETAILS: Final[Mapping[GroomingTypeKey, GroomingTypeInfo]] = (
+GROOMING_TYPE_DETAILS: Final[Mapping[str, GroomingTypeInfo]] = (
   MappingProxyType(
     {
       "bath": {
@@ -765,7 +765,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     dog_name: str,
     select_type: str,
     *,
-    options: list[str],
+    options: Sequence[str],
     icon: str | None = None,
     entity_category: EntityCategory | None = None,
     initial_option: str | None = None,
@@ -789,7 +789,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     # Entity configuration
     self._attr_unique_id = f"pawcontrol_{dog_id}_{select_type}"
     self._attr_translation_key = select_type
-    self._attr_options = options
+    self._attr_options = list(options)
     self._attr_icon = icon
     self._attr_entity_category = entity_category
 

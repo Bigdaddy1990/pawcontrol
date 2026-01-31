@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
-from typing import TypedDict, cast
+from typing import cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import number as number_component
@@ -111,31 +111,8 @@ DEFAULT_GPS_ACCURACY_THRESHOLD = 50  # meters
 DEFAULT_ACTIVITY_GOAL = 100  # percentage
 
 
-class DogConfigUpdatePayload(TypedDict, total=False):
-  """Partial dog configuration updates used by number entities."""
-
-  dog_weight: float
-  dog_age: int
-  activity_goal: int
-  daily_food_amount: float
-  reminder_hours: int
-  meals_per_day: int
-  portion_size: float
-  calorie_target: int
-  daily_walk_target: int
-  walk_duration_target: int
-  walk_distance_target: int
-  max_walk_speed: float
-  gps_accuracy_filter: float
-  gps_update_interval: int
-  home_zone_radius: int
-  gps_distance_filter: float
-  gps_battery_threshold: int
-  target_weight: float
-  weight_change_threshold: int
-  grooming_interval: int
-  vet_checkup_interval: int
-  health_score_threshold: int
+type DogConfigUpdatePayload = JSONMutableMapping
+"""Partial dog configuration updates used by number entities."""
 
 
 def _merge_config_updates(

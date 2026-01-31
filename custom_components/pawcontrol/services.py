@@ -2699,12 +2699,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     try:
       try:
-        gps_accuracy_threshold = InputValidator.validate_gps_accuracy(
-          gps_accuracy_threshold,
-          required=True,
-          field="gps_accuracy_threshold",
-          min_value=5.0,
-          max_value=500.0,
+        gps_accuracy_threshold = cast(
+          float,
+          InputValidator.validate_gps_accuracy(
+            gps_accuracy_threshold,
+            required=True,
+            field="gps_accuracy_threshold",
+            min_value=5.0,
+            max_value=500.0,
+          ),
         )
       except ValidationError as err:
         raise _service_validation_error(
