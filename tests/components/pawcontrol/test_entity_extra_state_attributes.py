@@ -68,6 +68,8 @@ class _DummyCoordinator:
 class _DummyPayload:
   token: str
   count: int
+  moment: datetime
+  duration: timedelta
 
 
 def _make_coordinator() -> _DummyCoordinator:
@@ -193,7 +195,14 @@ def _make_coordinator() -> _DummyCoordinator:
         "Buddy",
       ),
       lambda entity: entity._attr_extra_state_attributes.update(
-        {"payload": _DummyPayload(token="ok", count=3)},
+        {
+          "payload": _DummyPayload(
+            token="ok",
+            count=3,
+            moment=datetime(2024, 2, 6, tzinfo=UTC),
+            duration=timedelta(seconds=45),
+          ),
+        },
       ),
       "payload",
       dict,
@@ -263,3 +272,7 @@ async def test_extra_state_attributes_json_serialisable(
   attrs["mutation_check"] = "ok"
   json.dumps(attrs)
   assert isinstance(attrs[expected_key], expected_type)
+  if expected_key == "payload":
+    payload = cast(dict[str, object], attrs[expected_key])
+    assert isinstance(payload["moment"], str)
+    assert isinstance(payload["duration"], str)

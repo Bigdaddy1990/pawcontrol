@@ -22,6 +22,7 @@ from .const import (
   CONF_DOOR_SENSOR,
   CONF_GPS_SOURCE,
   CONF_NOTIFY_FALLBACK,
+  DOOR_SENSOR_DEVICE_CLASSES,
   MODULE_GPS,
   MODULE_NOTIFICATIONS,
   MODULE_VISITOR,
@@ -41,7 +42,11 @@ from .types import (
   clone_placeholders,
   freeze_placeholders,
 )
-from .validation import validate_gps_source, validate_notify_service
+from .validation import (
+  validate_gps_source,
+  validate_notify_service,
+  validate_sensor_entity_id,
+)
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
   Literal["gps_source"],
@@ -400,14 +405,17 @@ class ExternalEntityConfigurationMixin:
     """Validate door sensor selection."""
     if not door_sensor:
       return {}
-    state = self.hass.states.get(door_sensor)
-    if not state:
-      raise ValidationError(
-        CONF_DOOR_SENSOR,
-        door_sensor,
-        "door_sensor_not_found",
-      )
-    return {DOOR_SENSOR_FIELD: door_sensor}
+    validated = validate_sensor_entity_id(
+      self.hass,
+      door_sensor,
+      field=CONF_DOOR_SENSOR,
+      domain="binary_sensor",
+      device_classes=set(DOOR_SENSOR_DEVICE_CLASSES),
+      not_found_constraint="door_sensor_not_found",
+    )
+    if validated is None:
+      return {}
+    return {DOOR_SENSOR_FIELD: validated}
 
   def _validate_notify_service(
     self,

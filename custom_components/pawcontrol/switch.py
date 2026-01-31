@@ -59,7 +59,7 @@ from .types import (
   coerce_dog_modules_config,
   ensure_json_mapping,
 )
-from .utils import async_call_add_entities, normalise_json_mapping
+from .utils import async_call_add_entities, normalise_entity_attributes
 
 # ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
@@ -504,7 +504,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
       attrs["enabled_modules"] = enabled_modules
       attrs["total_modules"] = len(enabled_modules)
 
-    return cast(JSONMutableMapping, normalise_json_mapping(attrs))
+    return normalise_entity_attributes(attrs)
 
   async def async_turn_on(self, **kwargs: Any) -> None:
     """Turn switch on with enhanced error handling."""
@@ -890,7 +890,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
         "feature_name": self._feature_name,
       },
     )
-    return cast(JSONMutableMapping, normalise_json_mapping(feature_attrs))
+    return normalise_entity_attributes(feature_attrs)
 
   async def _async_set_state(self, state: bool) -> None:
     """Set feature state with module-specific handling."""

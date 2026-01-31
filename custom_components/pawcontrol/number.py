@@ -51,7 +51,6 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlDogEntityBase
 from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
@@ -72,9 +71,8 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   ensure_dog_modules_mapping,
-  ensure_json_mapping,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_entity_attributes
 
 # ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
@@ -160,8 +158,7 @@ def _build_gps_tracking_input(
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for number entities."""
 
-  payload = ensure_json_mapping(attrs)
-  return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+  return normalise_entity_attributes(attrs)
 
 
 async def _async_add_entities_in_batches(

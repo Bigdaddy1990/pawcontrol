@@ -42,6 +42,13 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - fallback for tests
   from .compat import ConfigEntryAuthFailed as _AuthFailedType
 
+try:
+  from homeassistant.exceptions import (
+    ServiceValidationError as _ServiceValidationErrorType,
+  )
+except ModuleNotFoundError:  # pragma: no cover - fallback for tests
+  from .compat import ServiceValidationError as _ServiceValidationErrorType
+
 try:  # Home Assistant 2025.10 renamed CoordinatorUpdateFailed to UpdateFailed
   from homeassistant.helpers.update_coordinator import UpdateFailed as _UpdateFailedType
 except ImportError:  # pragma: no cover - compatibility with older cores
@@ -69,6 +76,7 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 ConfigEntryAuthFailed = _AuthFailedType
+ServiceValidationError = _ServiceValidationErrorType
 UpdateFailed = _UpdateFailedType
 CoordinatorUpdateFailed = _UpdateFailedType
 

@@ -51,13 +51,12 @@ from .types import (
   WalkModuleTelemetry,
   coerce_dog_modules_config,
   ensure_gps_payload,
-  ensure_json_mapping,
 )
 from .utils import (
   async_call_add_entities,
   ensure_utc_datetime,
   is_number,
-  normalise_json_mapping,
+  normalise_entity_attributes,
 )
 
 if TYPE_CHECKING:
@@ -142,8 +141,7 @@ except AttributeError:  # pragma: no cover - fallback for older constant sets
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for sensor entities."""
 
-  payload = ensure_json_mapping(attrs)
-  return cast(JSONMutableMapping, normalise_json_mapping(payload))
+  return normalise_entity_attributes(attrs)
 
 
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
