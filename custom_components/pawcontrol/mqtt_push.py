@@ -106,13 +106,17 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
         nonce=nonce,
       )
       if not result.get("ok"):
-        _LOGGER.debug("MQTT push rejected for entry %s: %s", entry.entry_id, result.get("error"))
+        _LOGGER.debug(
+          "MQTT push rejected for entry %s: %s", entry.entry_id, result.get("error")
+        )
     except Exception as err:  # pragma: no cover
       _LOGGER.debug("MQTT push payload error: %s", err)
 
   unsub = await mqtt.async_subscribe(hass, topic, _message_received, qos=0)
   mqtt_store[entry.entry_id] = unsub
-  _LOGGER.info("MQTT GPS push subscribed for entry %s on topic %s", entry.entry_id, topic)
+  _LOGGER.info(
+    "MQTT GPS push subscribed for entry %s on topic %s", entry.entry_id, topic
+  )
 
 
 async def async_unregister_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> None:

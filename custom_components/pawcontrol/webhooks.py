@@ -64,9 +64,15 @@ async def async_ensure_webhook_config(
     return
 
   new_options = dict(entry.options)
-  new_options[CONF_WEBHOOK_ID] = webhook_id if isinstance(webhook_id, str) and webhook_id else _new_webhook_id()
-  new_options[CONF_WEBHOOK_SECRET] = secret if isinstance(secret, str) and secret else _new_webhook_secret()
-  new_options.setdefault(CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE)
+  new_options[CONF_WEBHOOK_ID] = (
+    webhook_id if isinstance(webhook_id, str) and webhook_id else _new_webhook_id()
+  )
+  new_options[CONF_WEBHOOK_SECRET] = (
+    secret if isinstance(secret, str) and secret else _new_webhook_secret()
+  )
+  new_options.setdefault(
+    CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE
+  )
 
   hass.config_entries.async_update_entry(entry, options=new_options)
   _LOGGER.info("Generated webhook credentials for PawControl entry %s", entry.entry_id)
@@ -99,7 +105,9 @@ async def async_register_entry_webhook(
   url = get_entry_webhook_url(hass, entry)
   if url:
     _LOGGER.info("PawControl webhook URL for entry %s: %s", entry.entry_id, url)
-  _LOGGER.debug("Registered PawControl webhook %s for entry %s", webhook_id, entry.entry_id)
+  _LOGGER.debug(
+    "Registered PawControl webhook %s for entry %s", webhook_id, entry.entry_id
+  )
 
 
 async def async_unregister_entry_webhook(
@@ -151,12 +159,16 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
   if entry is None:
     return _json_response({"ok": False, "error": "unknown_webhook"}, status=404)
 
-  require_sig = bool(entry.options.get(CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE))
+  require_sig = bool(
+    entry.options.get(CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE)
+  )
   secret = entry.options.get(CONF_WEBHOOK_SECRET)
 
   if require_sig:
     if not isinstance(secret, str) or not secret:
-      return _json_response({"ok": False, "error": "webhook_not_configured"}, status=400)
+      return _json_response(
+        {"ok": False, "error": "webhook_not_configured"}, status=400
+      )
 
     manager = WebhookSecurityManager(secret)
     signature = manager.extract_signature(headers)
@@ -213,8 +225,9 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
   )
 
 
-
-def _resolve_entry_for_webhook_id(hass: HomeAssistant, webhook_id: str) -> ConfigEntry | None:
+def _resolve_entry_for_webhook_id(
+  hass: HomeAssistant, webhook_id: str
+) -> ConfigEntry | None:
   """Resolve the config entry that owns a given webhook_id.
 
   Uses the config entries registry directly (no reliance on hass.data runtime stores).

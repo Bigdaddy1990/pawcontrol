@@ -462,6 +462,8 @@ class PawControlCoordinator(
       return
 
     await self._refresh_subset([dog_id])
+
+
 async def async_patch_gps_update(self, dog_id: str) -> None:
   """Patch only GPS-related coordinator payload for ``dog_id``.
 
@@ -490,7 +492,6 @@ async def async_patch_gps_update(self, dog_id: str) -> None:
 
   self._data[dog_id] = patched
   self.async_set_updated_data(dict(self._data))
-
 
   async def async_request_selective_refresh(
     self,
@@ -525,7 +526,6 @@ async def async_patch_gps_update(self, dog_id: str) -> None:
     """Return identifiers for all configured dogs."""
 
     return CoordinatorDataAccessMixin.get_dog_ids(self)
-
 
   def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
     """Return the coordinator data payload for the dog."""
