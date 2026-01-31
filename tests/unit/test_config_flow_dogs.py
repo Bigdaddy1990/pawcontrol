@@ -18,7 +18,9 @@ from custom_components.pawcontrol.config_flow_dogs import (
   _build_module_setup_placeholders,
 )
 from custom_components.pawcontrol.flows.gps_helpers import build_dog_gps_placeholders
-from custom_components.pawcontrol.flows.health_helpers import build_dog_health_placeholders
+from custom_components.pawcontrol.flows.health_helpers import (
+  build_dog_health_placeholders,
+)
 
 
 @pytest.mark.unit
