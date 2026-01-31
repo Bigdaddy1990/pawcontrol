@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, cast
 
@@ -23,7 +24,10 @@ from .const import (
   MAX_DOG_NAME_LENGTH,
   MIN_DOG_NAME_LENGTH,
 )
-from .exceptions import ValidationError as PawControlValidationError
+from .exceptions import (
+  ServiceValidationError as PawControlServiceValidationError,
+  ValidationError as PawControlValidationError,
+)
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
@@ -31,7 +35,7 @@ if TYPE_CHECKING:
 ensure_homeassistant_exception_symbols()
 ServiceValidationError: type[Exception] = cast(
   type[Exception],
-  compat.ServiceValidationError,
+  PawControlServiceValidationError,
 )
 bind_exception_alias("ServiceValidationError")
 
@@ -395,6 +399,53 @@ def validate_notify_service(
   services = hass.services.async_services().get("notify", {})
   if service_parts[1] not in services:
     raise ValidationError(field, candidate, "notify_service_not_found")
+
+  return candidate
+
+
+def validate_sensor_entity_id(
+  hass: HomeAssistant,
+  entity_id: Any,
+  *,
+  field: str,
+  required: bool = False,
+  domain: str | None = None,
+  device_classes: set[str] | None = None,
+  required_constraint: str = "sensor_required",
+  not_found_constraint: str = "sensor_not_found",
+) -> str | None:
+  """Validate a sensor entity ID selection."""
+
+  if _is_empty(entity_id):
+    if required:
+      raise ValidationError(field, entity_id, required_constraint)
+    return None
+
+  if not isinstance(entity_id, str):
+    raise ValidationError(field, entity_id, not_found_constraint)
+
+  candidate = entity_id.strip()
+  if not candidate:
+    if required:
+      raise ValidationError(field, entity_id, required_constraint)
+    return None
+
+  if domain:
+    domain_part = candidate.split(".", 1)[0]
+    if domain_part != domain:
+      raise ValidationError(field, candidate, not_found_constraint)
+
+  state = hass.states.get(candidate)
+  if state is None or state.state in {"unknown", "unavailable"}:
+    raise ValidationError(field, candidate, not_found_constraint)
+
+  if device_classes:
+    attributes = state.attributes if hasattr(state, "attributes") else {}
+    device_class = (
+      attributes.get("device_class") if isinstance(attributes, Mapping) else None
+    )
+    if device_class not in device_classes:
+      raise ValidationError(field, candidate, not_found_constraint)
 
   return candidate
 

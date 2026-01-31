@@ -119,7 +119,10 @@ async def test_async_step_configure_external_entities_accepts_valid_payload() ->
     states=_FakeStates(
       {
         "device_tracker.main_phone": SimpleNamespace(state="home"),
-        "binary_sensor.back_door": SimpleNamespace(state="on"),
+        "binary_sensor.back_door": SimpleNamespace(
+          state="on",
+          attributes={"device_class": "door"},
+        ),
       }
     ),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
@@ -148,6 +151,38 @@ async def test_async_step_configure_external_entities_accepts_valid_payload() ->
 
 
 @pytest.mark.asyncio
+async def test_async_step_configure_external_entities_rejects_invalid_door_sensor() -> (
+  None
+):
+  """Door sensor validation rejects entities with unsupported device classes."""
+
+  hass = _FakeHomeAssistant(
+    states=_FakeStates(
+      {
+        "binary_sensor.back_door": SimpleNamespace(
+          state="on",
+          attributes={"device_class": "motion"},
+        ),
+      }
+    ),
+    services=_FakeServices({"notify": {}}),
+  )
+  modules = cast(
+    DogModulesConfig,
+    {MODULE_GPS: False, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: False},
+  )
+  flow = _ExternalEntityFlow(hass, modules=modules)
+
+  result = await flow.async_step_configure_external_entities(
+    ExternalEntityConfig(door_sensor="binary_sensor.back_door")
+  )
+
+  assert result["type"] == "form"
+  assert flow.shown_forms[0]["errors"][CONF_DOOR_SENSOR] == "door_sensor_not_found"
+  assert flow._external_entities == {}
+
+
+@pytest.mark.asyncio
 async def test_async_step_configure_external_entities_rejects_unknown_notify_service() -> (
   None
 ):
@@ -157,7 +192,10 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
     states=_FakeStates(
       {
         "device_tracker.main_phone": SimpleNamespace(state="home"),
-        "binary_sensor.back_door": SimpleNamespace(state="on"),
+        "binary_sensor.back_door": SimpleNamespace(
+          state="on",
+          attributes={"device_class": "door"},
+        ),
       }
     ),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
