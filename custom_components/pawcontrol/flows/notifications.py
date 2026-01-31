@@ -268,16 +268,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         user_input.get(NOTIFICATION_QUIET_END_FIELD),
         str(current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00")),
       ),
-      NOTIFICATION_REMINDER_REPEAT_FIELD: (
-        reminder_repeat
-        if reminder_repeat is not None
-        else int(
-          current.get(
-            NOTIFICATION_REMINDER_REPEAT_FIELD,
-            DEFAULT_REMINDER_REPEAT_MIN,
-          ),
-        )
-      ),
+      NOTIFICATION_REMINDER_REPEAT_FIELD: reminder_repeat,
       NOTIFICATION_PRIORITY_FIELD: cls._coerce_bool(
         user_input.get(NOTIFICATION_PRIORITY_FIELD),
         bool(current.get(NOTIFICATION_PRIORITY_FIELD, True)),

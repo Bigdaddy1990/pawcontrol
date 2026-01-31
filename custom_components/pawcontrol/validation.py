@@ -675,7 +675,7 @@ def clamp_int_range(
   """Coerce and clamp integer input to the provided bounds."""
 
   try:
-    result = validate_int_range(
+    return validate_int_range(
       value,
       field=field,
       minimum=minimum,
@@ -685,8 +685,6 @@ def clamp_int_range(
     )
   except ValidationError:
     return default
-
-  return result
 
 
 def clamp_float_range(
