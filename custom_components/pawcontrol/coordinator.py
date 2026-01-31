@@ -18,7 +18,6 @@ from .const import (
   CONF_API_TOKEN,
   CONF_EXTERNAL_INTEGRATIONS,
   MODULE_GARDEN,
-  MODULE_GPS,
   MODULE_WALK,
   UPDATE_INTERVALS,
 )
@@ -466,7 +465,6 @@ class PawControlCoordinator(
       return
 
     await self._refresh_subset([dog_id])
-
 
   async def async_patch_gps_update(self, dog_id: str) -> None:
     """Patch only GPS-related coordinator payload for ``dog_id``.

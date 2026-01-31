@@ -144,54 +144,52 @@ LOCATION_ACCURACY_OPTIONS: list[LocationAccuracyKey] = [
   "best",
 ]
 
-TRACKING_MODE_PRESETS: Final[Mapping[str, TrackingModePreset]] = (
-  MappingProxyType(
-    {
-      "continuous": {
-        "update_interval_seconds": 15,
-        "auto_start_walk": True,
-        "track_route": True,
-      },
-      "interval": {
-        "update_interval_seconds": 60,
-        "auto_start_walk": True,
-        "track_route": True,
-      },
-      "on_demand": {
-        "update_interval_seconds": 300,
-        "auto_start_walk": False,
-        "track_route": False,
-      },
-      "battery_saver": {
-        "update_interval_seconds": 180,
-        "auto_start_walk": True,
-        "route_smoothing": True,
-      },
+TRACKING_MODE_PRESETS: Final[Mapping[str, TrackingModePreset]] = MappingProxyType(
+  {
+    "continuous": {
+      "update_interval_seconds": 15,
+      "auto_start_walk": True,
+      "track_route": True,
     },
-  )
+    "interval": {
+      "update_interval_seconds": 60,
+      "auto_start_walk": True,
+      "track_route": True,
+    },
+    "on_demand": {
+      "update_interval_seconds": 300,
+      "auto_start_walk": False,
+      "track_route": False,
+    },
+    "battery_saver": {
+      "update_interval_seconds": 180,
+      "auto_start_walk": True,
+      "route_smoothing": True,
+    },
+  },
 )
 
 LOCATION_ACCURACY_CONFIGS: Final[Mapping[str, LocationAccuracyConfig]] = (
   MappingProxyType(
-  {
-    "low": {
-      "gps_accuracy_threshold": 150.0,
-      "min_distance_for_point": 50.0,
+    {
+      "low": {
+        "gps_accuracy_threshold": 150.0,
+        "min_distance_for_point": 50.0,
+      },
+      "balanced": {
+        "gps_accuracy_threshold": 75.0,
+        "min_distance_for_point": 25.0,
+      },
+      "high": {
+        "gps_accuracy_threshold": 30.0,
+        "min_distance_for_point": 10.0,
+      },
+      "best": {
+        "gps_accuracy_threshold": 10.0,
+        "min_distance_for_point": 5.0,
+        "route_smoothing": False,
+      },
     },
-    "balanced": {
-      "gps_accuracy_threshold": 75.0,
-      "min_distance_for_point": 25.0,
-    },
-    "high": {
-      "gps_accuracy_threshold": 30.0,
-      "min_distance_for_point": 10.0,
-    },
-    "best": {
-      "gps_accuracy_threshold": 10.0,
-      "min_distance_for_point": 5.0,
-      "route_smoothing": False,
-    },
-  },
   )
 )
 
@@ -272,26 +270,24 @@ DOG_SIZE_DETAILS: Final[Mapping[str, DogSizeInfo]] = MappingProxyType(
   },
 )
 
-PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = (
-  MappingProxyType(
-    {
-      "minimal": {
-        "description": "Minimal resource usage, longer update intervals",
-        "update_interval": "5 minutes",
-        "battery_impact": "minimal",
-      },
-      "balanced": {
-        "description": "Balanced performance and resource usage",
-        "update_interval": "2 minutes",
-        "battery_impact": "moderate",
-      },
-      "full": {
-        "description": "Maximum performance, frequent updates",
-        "update_interval": "30 seconds",
-        "battery_impact": "high",
-      },
+PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = MappingProxyType(
+  {
+    "minimal": {
+      "description": "Minimal resource usage, longer update intervals",
+      "update_interval": "5 minutes",
+      "battery_impact": "minimal",
     },
-  )
+    "balanced": {
+      "description": "Balanced performance and resource usage",
+      "update_interval": "2 minutes",
+      "battery_impact": "moderate",
+    },
+    "full": {
+      "description": "Maximum performance, frequent updates",
+      "update_interval": "30 seconds",
+      "battery_impact": "high",
+    },
+  },
 )
 
 WALK_MODE_DETAILS: Final[Mapping[str, WalkModeInfo]] = MappingProxyType(
@@ -399,41 +395,39 @@ GPS_SOURCE_DETAILS: Final[Mapping[str, GPSSourceInfo]] = MappingProxyType(
   },
 )
 
-GROOMING_TYPE_DETAILS: Final[Mapping[str, GroomingTypeInfo]] = (
-  MappingProxyType(
-    {
-      "bath": {
-        "frequency": "4-6 weeks",
-        "duration": "30-60 minutes",
-        "difficulty": "medium",
-      },
-      "brush": {
-        "frequency": "daily",
-        "duration": "5-15 minutes",
-        "difficulty": "easy",
-      },
-      "nails": {
-        "frequency": "2-4 weeks",
-        "duration": "10-20 minutes",
-        "difficulty": "medium",
-      },
-      "teeth": {
-        "frequency": "daily",
-        "duration": "2-5 minutes",
-        "difficulty": "easy",
-      },
-      "trim": {
-        "frequency": "6-8 weeks",
-        "duration": "60-90 minutes",
-        "difficulty": "hard",
-      },
-      "full_grooming": {
-        "frequency": "6-8 weeks",
-        "duration": "120-180 minutes",
-        "difficulty": "hard",
-      },
+GROOMING_TYPE_DETAILS: Final[Mapping[str, GroomingTypeInfo]] = MappingProxyType(
+  {
+    "bath": {
+      "frequency": "4-6 weeks",
+      "duration": "30-60 minutes",
+      "difficulty": "medium",
     },
-  )
+    "brush": {
+      "frequency": "daily",
+      "duration": "5-15 minutes",
+      "difficulty": "easy",
+    },
+    "nails": {
+      "frequency": "2-4 weeks",
+      "duration": "10-20 minutes",
+      "difficulty": "medium",
+    },
+    "teeth": {
+      "frequency": "daily",
+      "duration": "2-5 minutes",
+      "difficulty": "easy",
+    },
+    "trim": {
+      "frequency": "6-8 weeks",
+      "duration": "60-90 minutes",
+      "difficulty": "hard",
+    },
+    "full_grooming": {
+      "frequency": "6-8 weeks",
+      "duration": "120-180 minutes",
+      "difficulty": "hard",
+    },
+  },
 )
 
 

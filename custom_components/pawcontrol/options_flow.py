@@ -10,6 +10,4 @@ from typing import Final, Literal
 
 from .options_flow_main import PawControlOptionsFlow
 
-__all__: Final[tuple[Literal["PawControlOptionsFlow"]]] = (
-  "PawControlOptionsFlow",
-)
+__all__: Final[tuple[Literal["PawControlOptionsFlow"]]] = ("PawControlOptionsFlow",)
