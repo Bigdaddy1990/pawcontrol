@@ -363,6 +363,7 @@ def mock_coordinator(
 @pytest.fixture
 def mock_feeding_manager(
   mock_dog_config: FeedingManagerDogSetupPayload,
+  mock_hass: object,
 ) -> FeedingManager:
   """Mock FeedingManager for testing.
 
@@ -374,7 +375,7 @@ def mock_feeding_manager(
   """
   from custom_components.pawcontrol.feeding_manager import FeedingManager
 
-  manager = FeedingManager()
+  manager = FeedingManager(mock_hass)
   _run_async(manager.async_initialize([mock_dog_config]))
 
   return manager

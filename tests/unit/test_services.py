@@ -1565,11 +1565,10 @@ async def test_send_notification_service_deduplicates_channels(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_send_notification_service_ignores_invalid_expiry(
+async def test_send_notification_service_rejects_invalid_expiry(
   monkeypatch: pytest.MonkeyPatch,
-  caplog: pytest.LogCaptureFixture,
 ) -> None:
-  """Invalid expiry overrides should be ignored with a warning."""
+  """Invalid expiry overrides should raise service validation errors."""
 
   notification_manager = _NotificationManagerStub()
   coordinator = _CoordinatorStub(
@@ -1580,33 +1579,32 @@ async def test_send_notification_service_ignores_invalid_expiry(
   hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
   handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
-  with caplog.at_level(logging.WARNING):
+  with pytest.raises(
+    services.compat.ServiceValidationError,
+    match="expires_in_hours must be a number",
+  ):
     await handler(
       SimpleNamespace(
         data={
           "title": "Invalid expiry",
-          "message": "Ignored override",
+          "message": "Rejected override",
           "expires_in_hours": "later",
         }
       )
     )
 
-  sent_payload = notification_manager.sent[-1]
-  assert sent_payload["expires_in"] is None
-  assert "Invalid expires_in_hours" in caplog.text
-
-  details = runtime_data.performance_stats["last_service_result"]["details"]
-  assert details is not None
-  assert details["expires_in_hours"] is None
+  assert notification_manager.sent == []
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["status"] == "error"
+  assert result["message"] == "expires_in_hours must be a number"
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_send_notification_service_rejects_non_positive_expiry(
   monkeypatch: pytest.MonkeyPatch,
-  caplog: pytest.LogCaptureFixture,
 ) -> None:
-  """Non-positive expiry overrides should be ignored."""
+  """Non-positive expiry overrides should raise service validation errors."""
 
   notification_manager = _NotificationManagerStub()
   coordinator = _CoordinatorStub(
@@ -1617,24 +1615,59 @@ async def test_send_notification_service_rejects_non_positive_expiry(
   hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
   handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
-  with caplog.at_level(logging.WARNING):
+  with pytest.raises(
+    services.compat.ServiceValidationError,
+    match="expires_in_hours must be greater than 0",
+  ):
     await handler(
       SimpleNamespace(
         data={
           "title": "Non-positive expiry",
-          "message": "Ignored override",
+          "message": "Rejected override",
           "expires_in_hours": -1,
         }
       )
     )
 
-  sent_payload = notification_manager.sent[-1]
-  assert sent_payload["expires_in"] is None
-  assert "Non-positive expires_in_hours" in caplog.text
+  assert notification_manager.sent == []
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["status"] == "error"
+  assert result["message"] == "expires_in_hours must be greater than 0"
 
-  details = runtime_data.performance_stats["last_service_result"]["details"]
-  assert details is not None
-  assert details["expires_in_hours"] is None
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_rejects_blank_title(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """Blank titles should raise service validation errors."""
+
+  notification_manager = _NotificationManagerStub()
+  coordinator = _CoordinatorStub(
+    SimpleNamespace(), notification_manager=notification_manager
+  )
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+  with pytest.raises(
+    services.compat.ServiceValidationError,
+    match="title must be a non-empty string",
+  ):
+    await handler(
+      SimpleNamespace(
+        data={
+          "title": "   ",
+          "message": "Rejected override",
+        }
+      )
+    )
+
+  assert notification_manager.sent == []
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["status"] == "error"
+  assert result["message"] == "title must be a non-empty string"
 
 
 @pytest.mark.unit
