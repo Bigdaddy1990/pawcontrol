@@ -32,7 +32,7 @@ verify during reviews.
 | documentation | `README.md`, `docs/user_guide.md`, `docs/automation_examples.md`, `docs/troubleshooting.md`, `docs/setup_installation_guide.md` | N/A | @BigDaddy1990 |
 | diagnostics | `custom_components/pawcontrol/diagnostics.py`, `docs/diagnostics.md` | `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, `tests/unit/test_services.py`, `tests/unit/test_system_health.py` | @BigDaddy1990 |
 | repairs | `custom_components/pawcontrol/repairs.py` | `tests/test_repairs.py` | @BigDaddy1990 |
-| maintenance-playbook | `dev.md` | N/A | @BigDaddy1990 |
+| maintenance-playbook | `docs/MAINTENANCE.md` | N/A | @BigDaddy1990 |
 | localization | `custom_components/pawcontrol/strings.json`, `custom_components/pawcontrol/translations/` | `tests/test_localization_strings.py` | @BigDaddy1990 |
 
 ## Review notes
