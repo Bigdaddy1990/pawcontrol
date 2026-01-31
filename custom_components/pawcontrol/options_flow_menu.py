@@ -6,7 +6,11 @@ from typing import TYPE_CHECKING, Protocol
 
 from homeassistant.config_entries import ConfigFlowResult
 
-from .types import OptionsMainMenuAction, OptionsMainMenuInput, PUSH_SETTINGS_MENU_ACTION
+from .types import (
+  OptionsMainMenuAction,
+  OptionsMainMenuInput,
+  PUSH_SETTINGS_MENU_ACTION,
+)
 
 
 if TYPE_CHECKING:
