@@ -1585,7 +1585,8 @@
           "manage_dogs": "Manage Dogs",
           "notifications": "Notifications",
           "system_settings": "System Settings",
-          "weather_settings": "Weather Health Settings"
+          "weather_settings": "Weather Health Settings",
+          "push_settings": "Paramètres Push"
         },
         "title": "Paw Control Settings"
       },
@@ -1676,6 +1677,28 @@
         },
         "description": "Configure weather-based health alerts and recommendations for your dogs.",
         "title": "Weather Health Settings"
+      },
+      "push_settings": {
+        "title": "Paramètres Push",
+        "description": "Configure le transport webhook et MQTT pour les mises à jour GPS en push. Les mises à jour sont appliquées strictement par chien selon la source GPS.",
+        "data": {
+          "webhook_enabled": "Activer le push webhook",
+          "webhook_require_signature": "Exiger une signature webhook",
+          "mqtt_enabled": "Activer le push MQTT",
+          "mqtt_topic": "Sujet MQTT",
+          "push_payload_max_bytes": "Taille maximale du payload",
+          "push_nonce_ttl_seconds": "TTL du nonce",
+          "push_rate_limit_per_minute": "Limite de débit"
+        },
+        "data_description": {
+          "webhook_enabled": "Active la réception de mises à jour GPS via des webhooks Home Assistant.",
+          "webhook_require_signature": "Rejette les payloads webhook non signés (recommandé).",
+          "mqtt_enabled": "Active la réception de mises à jour GPS via MQTT.",
+          "mqtt_topic": "Sujet auquel s’abonner pour les payloads JSON GPS entrants.",
+          "push_payload_max_bytes": "Rejette les payloads plus grands que cette taille.",
+          "push_nonce_ttl_seconds": "Durée de mémorisation des nonces pour éviter les relectures.",
+          "push_rate_limit_per_minute": "Nombre maximum de mises à jour acceptées par chien et par source par minute (0 désactive la limite)."
+        }
       }
     }
   },

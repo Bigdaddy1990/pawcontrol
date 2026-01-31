@@ -1585,7 +1585,8 @@
           "manage_dogs": "Hunde verwalten",
           "notifications": "Benachrichtigungen",
           "system_settings": "Systemeinstellungen",
-          "weather_settings": "Wetter-Gesundheitseinstellungen"
+          "weather_settings": "Wetter-Gesundheitseinstellungen",
+          "push_settings": "Push-Einstellungen"
         },
         "title": "Paw Control Einstellungen"
       },
@@ -1676,6 +1677,28 @@
         },
         "description": "Konfiguriere wetterbasierte Gesundheitswarnungen und -empfehlungen für deine Hunde.",
         "title": "Wetter-Gesundheitseinstellungen"
+      },
+      "push_settings": {
+        "title": "Push-Einstellungen",
+        "description": "Konfiguriere Webhook- und MQTT-Transportverhalten für GPS-Push-Updates. Updates werden weiterhin strikt pro Hund anhand der GPS-Quelle angewendet.",
+        "data": {
+          "webhook_enabled": "Webhook-Push aktivieren",
+          "webhook_require_signature": "Webhook-Signatur erzwingen",
+          "mqtt_enabled": "MQTT-Push aktivieren",
+          "mqtt_topic": "MQTT-Topic",
+          "push_payload_max_bytes": "Max. Payload-Größe",
+          "push_nonce_ttl_seconds": "Nonce-TTL",
+          "push_rate_limit_per_minute": "Rate-Limit"
+        },
+        "data_description": {
+          "webhook_enabled": "Empfang von GPS-Updates über Home-Assistant-Webhooks aktivieren.",
+          "webhook_require_signature": "Unsigned Webhook-Payloads ablehnen (empfohlen).",
+          "mqtt_enabled": "Empfang von GPS-Updates über MQTT aktivieren.",
+          "mqtt_topic": "Topic, das für eingehende GPS-JSON-Payloads abonniert wird.",
+          "push_payload_max_bytes": "Payloads, die größer sind, werden abgelehnt.",
+          "push_nonce_ttl_seconds": "Wie lange Nonces gespeichert werden, um Replays zu verhindern.",
+          "push_rate_limit_per_minute": "Maximal akzeptierte Updates pro Hund und Quelle pro Minute (0 deaktiviert Rate-Limit)."
+        }
       }
     }
   },
