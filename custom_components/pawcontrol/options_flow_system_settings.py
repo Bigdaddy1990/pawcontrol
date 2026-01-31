@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from importlib import import_module
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
@@ -63,18 +63,28 @@ from .types import (
   DogConfigData,
   JSONMutableMapping,
   JSONValue,
+  OptionsAdvancedSettingsInput,
+  OptionsDashboardSettingsInput,
+  OptionsSystemSettingsInput,
+  OptionsWeatherSettingsInput,
+  PushSettingsInput,
   ensure_dog_config_data,
   freeze_placeholders,
   normalize_performance_mode,
 )
 
 if TYPE_CHECKING:
+  from homeassistant.core import HomeAssistant
+
   from .compat import ConfigEntry
+  from .types import PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
+RuntimeDataGetter = Callable[[HomeAssistant, ConfigEntry], PawControlRuntimeData | None]
 
-def _resolve_get_runtime_data():
+
+def _resolve_get_runtime_data() -> RuntimeDataGetter:
   """Return the patched runtime data helper when available."""
 
   try:
@@ -108,7 +118,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   async def async_step_push_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: PushSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure push ingestion (webhook / MQTT) settings.
 
@@ -159,39 +169,45 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         mutable[CONF_MQTT_TOPIC] = current.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)
 
       # Router limits
-      mutable[CONF_PUSH_PAYLOAD_MAX_BYTES] = int(
-        user_input.get(
-          CONF_PUSH_PAYLOAD_MAX_BYTES,
-          current.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES),
+      mutable[CONF_PUSH_PAYLOAD_MAX_BYTES] = self._coerce_int(
+        user_input.get(CONF_PUSH_PAYLOAD_MAX_BYTES),
+        int(
+          current.get(
+            CONF_PUSH_PAYLOAD_MAX_BYTES,
+            DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
+          ),
         ),
       )
-      mutable[CONF_PUSH_NONCE_TTL_SECONDS] = int(
-        user_input.get(
-          CONF_PUSH_NONCE_TTL_SECONDS,
-          current.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS),
+      mutable[CONF_PUSH_NONCE_TTL_SECONDS] = self._coerce_int(
+        user_input.get(CONF_PUSH_NONCE_TTL_SECONDS),
+        int(
+          current.get(
+            CONF_PUSH_NONCE_TTL_SECONDS,
+            DEFAULT_PUSH_NONCE_TTL_SECONDS,
+          ),
         ),
       )
-      mutable[CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE] = int(
-        user_input.get(
-          CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+      mutable[CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE] = self._coerce_int(
+        user_input.get(CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE),
+        int(
           current.get(
             CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
             DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
           ),
         ),
       )
-      mutable[CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE] = int(
-        user_input.get(
-          CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+      mutable[CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE] = self._coerce_int(
+        user_input.get(CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE),
+        int(
           current.get(
             CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
             DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
           ),
         ),
       )
-      mutable[CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE] = int(
-        user_input.get(
-          CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+      mutable[CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE] = self._coerce_int(
+        user_input.get(CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE),
+        int(
           current.get(
             CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
             DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
@@ -302,7 +318,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   async def async_step_weather_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsWeatherSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure weather-based health monitoring settings.
 
@@ -373,7 +389,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   def _get_weather_settings_schema(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsWeatherSettingsInput | None = None,
   ) -> vol.Schema:
     """Get weather settings schema with current values and entity selection."""
     current_weather = self._current_weather_options()
@@ -635,7 +651,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   async def async_step_system_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsSystemSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure system and performance settings."""
     await self._async_prepare_setup_flag_translations()
@@ -708,7 +724,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   def _get_system_settings_schema(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsSystemSettingsInput | None = None,
   ) -> vol.Schema:
     """Get system settings schema."""
     current_system = self._current_system_options()
@@ -898,7 +914,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   async def async_step_dashboard_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDashboardSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure dashboard and display settings."""
     if user_input is not None:
@@ -941,7 +957,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   def _get_dashboard_settings_schema(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDashboardSettingsInput | None = None,
   ) -> vol.Schema:
     """Get dashboard settings schema."""
     current_dashboard = self._current_dashboard_options()
@@ -999,7 +1015,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   async def async_step_advanced_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsAdvancedSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Handle advanced settings configuration."""
     if user_input is not None:
@@ -1057,7 +1073,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
   def _get_advanced_settings_schema(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsAdvancedSettingsInput | None = None,
   ) -> vol.Schema:
     """Get schema for advanced settings form."""
     current_advanced = self._current_advanced_options()

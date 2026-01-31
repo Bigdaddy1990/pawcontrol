@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from homeassistant.config_entries import ConfigFlowResult
+
+from .types import (
+  OptionsMainMenuAction,
+  OptionsMainMenuInput,
+  PUSH_SETTINGS_MENU_ACTION,
+)
 
 
 if TYPE_CHECKING:
@@ -14,7 +20,7 @@ if TYPE_CHECKING:
       self,
       *,
       step_id: str,
-      menu_options: list[str],
+      menu_options: list[OptionsMainMenuAction],
     ) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
@@ -24,7 +30,7 @@ else:  # pragma: no cover
 class MenuOptionsMixin(MenuOptionsHost):
   async def async_step_init(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsMainMenuInput | None = None,
   ) -> ConfigFlowResult:
     """Show the main options menu with enhanced navigation.
 
@@ -44,7 +50,7 @@ class MenuOptionsMixin(MenuOptionsHost):
         "manage_dogs",
         "performance_settings",  # NEW: Performance & profiles
         "gps_settings",
-        "push_settings",  # NEW: Push ingestion settings (webhook/MQTT)
+        PUSH_SETTINGS_MENU_ACTION,  # NEW: Push ingestion settings (webhook/MQTT)
         "geofence_settings",  # NEW: Geofencing configuration
         "weather_settings",  # NEW: Weather configuration
         "notifications",

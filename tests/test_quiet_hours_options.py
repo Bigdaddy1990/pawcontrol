@@ -124,3 +124,74 @@ def test_gps_settings_payload_clamps_ranges() -> None:
   assert payload[ROUTE_RECORDING_FIELD] is True
   assert payload[ROUTE_HISTORY_DAYS_FIELD] == 365
   assert payload[AUTO_TRACK_WALKS_FIELD] is True
+
+
+def test_build_notifications_schema_defaults() -> None:
+  """Ensure notification schema defaults match current settings."""
+
+  _install_options_flow_dependencies()
+  from custom_components.pawcontrol.flows.notifications_schemas import (
+    build_notifications_schema,
+  )
+  from custom_components.pawcontrol.types import (
+    NOTIFICATION_MOBILE_FIELD,
+    NOTIFICATION_PRIORITY_FIELD,
+    NOTIFICATION_QUIET_END_FIELD,
+    NOTIFICATION_QUIET_HOURS_FIELD,
+    NOTIFICATION_QUIET_START_FIELD,
+    NOTIFICATION_REMINDER_REPEAT_FIELD,
+  )
+
+  current = {
+    NOTIFICATION_QUIET_HOURS_FIELD: False,
+    NOTIFICATION_QUIET_START_FIELD: "21:30:00",
+    NOTIFICATION_QUIET_END_FIELD: "06:15:00",
+    NOTIFICATION_REMINDER_REPEAT_FIELD: 25,
+    NOTIFICATION_PRIORITY_FIELD: True,
+    NOTIFICATION_MOBILE_FIELD: False,
+  }
+
+  schema = build_notifications_schema(current)
+  validated = schema({})
+
+  assert validated[NOTIFICATION_QUIET_HOURS_FIELD] is False
+  assert validated[NOTIFICATION_QUIET_START_FIELD] == "21:30:00"
+  assert validated[NOTIFICATION_QUIET_END_FIELD] == "06:15:00"
+  assert validated[NOTIFICATION_REMINDER_REPEAT_FIELD] == 25
+  assert validated[NOTIFICATION_PRIORITY_FIELD] is True
+  assert validated[NOTIFICATION_MOBILE_FIELD] is False
+
+
+def test_ensure_notification_options_coerces_payload() -> None:
+  """Ensure notification options parsing normalizes mixed payload values."""
+
+  from custom_components.pawcontrol.types import (
+    DEFAULT_NOTIFICATION_OPTIONS,
+    NOTIFICATION_MOBILE_FIELD,
+    NOTIFICATION_PRIORITY_FIELD,
+    NOTIFICATION_QUIET_END_FIELD,
+    NOTIFICATION_QUIET_HOURS_FIELD,
+    NOTIFICATION_QUIET_START_FIELD,
+    NOTIFICATION_REMINDER_REPEAT_FIELD,
+    ensure_notification_options,
+  )
+
+  payload = {
+    "quiet_hours": "true",
+    "quiet_start": "  ",
+    "quiet_end": "08:00:00",
+    "reminder_repeat_min": "45",
+    "priority_notifications": 0,
+  }
+
+  options = ensure_notification_options(
+    payload,
+    defaults=DEFAULT_NOTIFICATION_OPTIONS,
+  )
+
+  assert options[NOTIFICATION_QUIET_HOURS_FIELD] is True
+  assert options[NOTIFICATION_QUIET_START_FIELD] == "22:00:00"
+  assert options[NOTIFICATION_QUIET_END_FIELD] == "08:00:00"
+  assert options[NOTIFICATION_REMINDER_REPEAT_FIELD] == 45
+  assert options[NOTIFICATION_PRIORITY_FIELD] is False
+  assert options[NOTIFICATION_MOBILE_FIELD] is True

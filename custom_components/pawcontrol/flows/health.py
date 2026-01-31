@@ -30,6 +30,7 @@ from ..types import (
   DogConfigData,
   DogFeedingConfig,
   DogHealthConfig,
+  DogHealthStepInput,
   DogMedicationEntry,
   DogVaccinationRecord,
   DietValidationResult,
@@ -124,7 +125,7 @@ class DogHealthFlowMixin(DogHealthFlowHost):
 
   async def async_step_dog_health(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: DogHealthStepInput | None = None,
   ) -> ConfigFlowResult:
     """Configure comprehensive health settings including health-aware feeding."""
 

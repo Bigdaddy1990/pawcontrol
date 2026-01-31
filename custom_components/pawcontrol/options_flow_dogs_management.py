@@ -50,6 +50,12 @@ from .types import (
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
+  OptionsDoorSensorInput,
+  OptionsDogEditInput,
+  OptionsDogModulesInput,
+  OptionsDogRemovalInput,
+  OptionsDogSelectionInput,
+  OptionsMenuInput,
   ensure_dog_config_data,
   ensure_dog_modules_config,
   ensure_dog_modules_mapping,
@@ -86,7 +92,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
   async def async_step_manage_dogs(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsMenuInput | None = None,
   ) -> ConfigFlowResult:
     """Manage dogs - add, edit, or remove dogs."""
     if user_input is not None:
@@ -151,7 +157,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
   async def async_step_select_dog_for_modules(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select which dog to configure modules for.
 
@@ -197,7 +203,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
   async def async_step_configure_dog_modules(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogModulesInput | None = None,
   ) -> ConfigFlowResult:
     """Configure modules for the selected dog.
 
@@ -307,7 +313,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
     *,
     current_sensor: str | None,
     defaults: DoorSensorSettingsConfig,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDoorSensorInput | None = None,
   ) -> vol.Schema:
     """Build schema for configuring per-dog door sensor overrides."""
 
@@ -552,14 +558,14 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
   async def async_step_add_new_dog(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogEditInput | None = None,
   ) -> ConfigFlowResult:
     """Add a new dog to the configuration."""
     errors: dict[str, str] = {}
     if user_input is not None:
       try:
         validated = validate_dog_setup_input(
-          user_input,
+          cast(Mapping[str, JSONValue], user_input),
           existing_ids={
             str(dog.get(DOG_ID_FIELD)).strip().lower()
             for dog in self._dogs
@@ -719,7 +725,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
   async def async_step_select_dog_to_edit(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select which dog to edit."""
     current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
@@ -773,7 +779,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
   async def async_step_edit_dog(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogEditInput | None = None,
   ) -> ConfigFlowResult:
     """Edit the selected dog."""
     if not self._current_dog:
@@ -797,7 +803,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
           }
           candidate = validate_dog_update_input(
             cast(DogConfigData, dict(self._dogs[dog_index])),
-            user_input,
+            cast(Mapping[str, JSONValue], user_input),
             existing_names=existing_names,
           )
           normalised = ensure_dog_config_data(
@@ -897,7 +903,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
   async def async_step_select_dog_to_remove(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogRemovalInput | None = None,
   ) -> ConfigFlowResult:
     """Select which dog to remove."""
     current_dogs = list(self._dogs)

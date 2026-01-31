@@ -33,6 +33,7 @@ from .types import (
   JSONValue,
   MutableConfigFlowPlaceholders,
   OptionsProfilePreviewInput,
+  OptionsPerformanceSettingsInput,
   ProfileSelectionInput,
   clone_placeholders,
   ensure_dog_config_data,
@@ -493,10 +494,10 @@ class ProfileOptionsMixin(ProfileOptionsHost):
     preview_data = await self._calculate_profile_preview_optimized(profile)
     breakdown_lines = []
 
-    def as_float(value):
+    def as_float(value: object) -> float:
       return float(value) if isinstance(value, int | float) else 0.0
 
-    def as_int(value):
+    def as_int(value: object) -> int:
       return int(value) if isinstance(value, int | float) else 0
 
     entity_breakdown = cast(
@@ -584,7 +585,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
   async def async_step_performance_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsPerformanceSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure performance and optimization settings.
 
@@ -668,7 +669,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
   def _get_performance_settings_schema(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsPerformanceSettingsInput | None = None,
   ) -> vol.Schema:
     """Get performance settings schema."""
     current_options = self._entry.options
