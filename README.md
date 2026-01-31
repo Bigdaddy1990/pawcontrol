@@ -645,7 +645,7 @@ data:
 service: pawcontrol.add_feeding
 data:
   dog_id: \"buddy\"
-  meal_type: \"breakfast\"  # breakfast, lunch, dinner, snack
+  meal_type: "breakfast"  # breakfast, lunch, dinner, snack, treat
   amount: 200             # grams
   feeder: \"Kitchen feeder\"
   notes: \"Ate eagerly\"
