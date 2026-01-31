@@ -9,9 +9,11 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
+from functools import partial
 from time import perf_counter
 from typing import Any, Literal, NotRequired, Required, TypedDict, TypeVar, cast
 
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .types import (
@@ -1112,12 +1114,14 @@ class FeedingManager:
 
   _MAX_SINGLE_FEEDING_GRAMS = 5000.0
 
-  def __init__(self, max_history: int = 100) -> None:
+  def __init__(self, hass: HomeAssistant, max_history: int = 100) -> None:
     """Initialize with configurable history limit.
 
     Args:
+        hass: Home Assistant instance
         max_history: Maximum feeding events to keep per dog
     """
+    self.hass = hass
     self._feedings: dict[str, list[FeedingEvent]] = {}
     self._configs: dict[str, FeedingConfig] = {}
     # Historic FeedingManager implementations exposed ``_dogs`` as a cache
@@ -1164,7 +1168,9 @@ class FeedingManager:
     """Run *func* in a worker thread and emit async profiling logs."""
 
     start = perf_counter()
-    result = await asyncio.to_thread(func, *args, **kwargs)
+    if kwargs:
+      func = partial(func, **kwargs)
+    result = await self.hass.async_add_executor_job(func, *args)
     duration = perf_counter() - start
     if duration >= self._profile_threshold:
       _LOGGER.debug(

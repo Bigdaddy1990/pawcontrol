@@ -2654,7 +2654,7 @@ class PawControlDataManager:
             encoding="utf-8",
           )
 
-      await asyncio.to_thread(_write_route_export)
+      await self._async_add_executor_job(_write_route_export)
       return export_path
 
     async def _export_single(export_type: str) -> Path:
@@ -2745,7 +2745,7 @@ class PawControlDataManager:
               writer.writeheader()
             writer.writerows(entries)
 
-        await asyncio.to_thread(_write_csv)
+        await self._async_add_executor_job(_write_csv)
       elif normalized_format in {"markdown", "md", "txt"}:
 
         def _write_markdown() -> None:
@@ -2758,7 +2758,7 @@ class PawControlDataManager:
           )
           export_path.write_text("\n".join(lines), encoding="utf-8")
 
-        await asyncio.to_thread(_write_markdown)
+        await self._async_add_executor_job(_write_markdown)
       else:
 
         def _write_json() -> None:
@@ -2778,7 +2778,7 @@ class PawControlDataManager:
             encoding="utf-8",
           )
 
-        await asyncio.to_thread(_write_json)
+        await self._async_add_executor_job(_write_json)
 
       return export_path
 
@@ -2813,7 +2813,7 @@ class PawControlDataManager:
       for export_type in export_types:
         exports[export_type] = str(await _export_single(export_type))
 
-      await asyncio.to_thread(
+      await self._async_add_executor_job(
         export_path.write_text,
         json.dumps(export_manifest, ensure_ascii=False, indent=2),
         "utf-8",
@@ -3243,7 +3243,7 @@ class PawControlDataManager:
       if not Path.exists(path):
         self._namespace_state[namespace] = {}
         return {}
-      contents = await asyncio.to_thread(path.read_text, encoding="utf-8")
+      contents = await self._async_add_executor_job(path.read_text, "utf-8")
     except FileNotFoundError:
       self._namespace_state[namespace] = {}
       return {}
@@ -3286,7 +3286,7 @@ class PawControlDataManager:
     path = self._namespace_path(namespace)
     payload = json.dumps(data, ensure_ascii=False, indent=2)
     try:
-      await asyncio.to_thread(path.write_text, payload, encoding="utf-8")
+      await self._async_add_executor_job(path.write_text, payload, "utf-8")
     except OSError as err:
       error_cls = _resolve_homeassistant_error()
       raise error_cls(
@@ -3305,12 +3305,9 @@ class PawControlDataManager:
     func: Callable[..., ValueT],
     *args: Any,
   ) -> ValueT:
-    """Run a sync function in the executor, falling back to a thread."""
+    """Run a sync function in the Home Assistant executor."""
 
-    async_add_executor_job = getattr(self.hass, "async_add_executor_job", None)
-    if callable(async_add_executor_job):
-      return await async_add_executor_job(func, *args)
-    return await asyncio.to_thread(func, *args)
+    return await self.hass.async_add_executor_job(func, *args)
 
   async def _async_load_storage(self) -> JSONMutableMapping:
     """Load stored JSON data, falling back to the backup if required."""
