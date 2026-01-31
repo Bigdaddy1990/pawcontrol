@@ -690,6 +690,7 @@ async def _check_gps_configuration_issues(
       severity=ir.IssueSeverity.WARNING,
     )
 
+
 async def _check_push_transport_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
   """Check push transport telemetry for strict webhook/MQTT sources.
 
@@ -722,7 +723,9 @@ async def _check_push_transport_health(hass: HomeAssistant, entry: ConfigEntry) 
   grace_minutes = 5
   no_data_minutes = 10
 
-  webhook_enabled = bool(entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
+  webhook_enabled = bool(
+    entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)
+  )
   mqtt_enabled = bool(entry.options.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED))
 
   per_dog = snapshot.get("per_dog")
@@ -808,7 +811,11 @@ async def _check_push_transport_health(hass: HomeAssistant, entry: ConfigEntry) 
       continue
 
     # No accepted data observed after grace window
-    if created_at is not None and accepted == 0 and (now - created_at) >= timedelta(minutes=no_data_minutes):
+    if (
+      created_at is not None
+      and accepted == 0
+      and (now - created_at) >= timedelta(minutes=no_data_minutes)
+    ):
       await async_create_issue(
         hass,
         entry,
@@ -846,7 +853,6 @@ async def _check_push_transport_health(hass: HomeAssistant, entry: ConfigEntry) 
       )
     else:
       _delete(issue_reject_id)
-
 
 
 async def _check_notification_configuration_issues(
@@ -2092,7 +2098,6 @@ class PawControlRepairsFlow(RepairsFlow):
       ),
     )
 
-
   async def async_step_push_health(
     self,
     user_input: dict[str, Any] | None = None,
@@ -2128,7 +2133,6 @@ class PawControlRepairsFlow(RepairsFlow):
         },
       ),
     )
-
 
   async def async_step_performance_warning(
     self,

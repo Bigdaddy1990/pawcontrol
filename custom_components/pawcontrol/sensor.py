@@ -1695,7 +1695,6 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
 
 @register_sensor("garden_time_today")
-
 class PawControlPushLastAcceptedSensor(PawControlSensorBase):
   """Timestamp of the last accepted push update for this dog."""
 
@@ -1779,6 +1778,7 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
     if isinstance(value, float) and value.is_integer():
       return int(value)
     return None
+
 
 class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
   """Sensor for tracking garden time today."""
