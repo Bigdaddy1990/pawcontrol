@@ -30,7 +30,7 @@ from .utils import (
   JSONMappingLike,
   PawControlDeviceLinkMixin,
   async_call_hass_service_if_available,
-  normalise_json_mapping,
+  normalise_entity_attributes,
 )
 
 __all__ = ["PawControlDogEntityBase", "PawControlEntity"]
@@ -172,7 +172,7 @@ class PawControlEntity(
 
     # Normalise attributes to ensure all values are JSON-serialisable using the
     # shared helper so entity attributes stay consistent with diagnostics.
-    return normalise_json_mapping(attributes)
+    return normalise_entity_attributes(attributes)
 
   @callback
   def update_device_metadata(self, **details: Any) -> None:
@@ -346,7 +346,7 @@ class PawControlDogEntityBase(PawControlEntity):
   ) -> JSONMutableMapping:
     """Normalize entity attributes for Home Assistant."""
 
-    return normalise_json_mapping(attrs)
+    return normalise_entity_attributes(attrs)
 
   def _extra_state_attributes(self) -> Mapping[str, object] | None:
     """Return extra attributes for the base entity payload."""

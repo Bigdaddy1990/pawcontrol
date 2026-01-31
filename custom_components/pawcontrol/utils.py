@@ -283,6 +283,24 @@ def normalise_json_mapping(
   }
 
 
+def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
+  """Normalize values into JSON-serialisable primitives.
+
+  Converts dataclasses, datetimes, and timedeltas into JSON-safe payloads so
+  diagnostics and entity attributes stay serialisable.
+  """
+
+  return normalise_json_value(value, _seen)
+
+
+def normalise_entity_attributes(
+  data: Mapping[str, object] | None,
+) -> JSONMutableMapping:
+  """Return JSON-serialisable entity attributes."""
+
+  return normalise_json_mapping(data)
+
+
 class ServiceCallKeywordArgs(TypedDict, total=False):
   """Keyword arguments forwarded to Home Assistant service calls."""
 

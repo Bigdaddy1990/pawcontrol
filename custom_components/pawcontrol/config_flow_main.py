@@ -29,8 +29,6 @@ from .config_flow_dashboard_extension import DashboardFlowMixin
 from .config_flow_discovery import DiscoveryFlowMixin
 from .config_flow_dogs import DogManagementMixin
 from .config_flow_external import ExternalEntityConfigurationMixin
-from .config_flow_gps import GPSModuleDefaultsMixin
-from .config_flow_health import HealthSummaryMixin
 from .config_flow_modules import ModuleConfigurationMixin
 from .config_flow_monitor import config_flow_monitor, timed_operation
 from .config_flow_placeholders import (
@@ -45,8 +43,8 @@ from .config_flow_profile import (
   validate_profile_selection,
 )
 from .config_flow_reauth import ReauthFlowMixin
-from .flows.gps import DogGPSFlowMixin
-from .flows.health import DogHealthFlowMixin
+from .flows.gps import DogGPSFlowMixin, GPSModuleDefaultsMixin
+from .flows.health import DogHealthFlowMixin, HealthSummaryMixin
 from .config_flow_schemas import DOG_SCHEMA, MODULE_SELECTION_KEYS, MODULES_SCHEMA
 from .const import (
   CONF_DOG_OPTIONS,

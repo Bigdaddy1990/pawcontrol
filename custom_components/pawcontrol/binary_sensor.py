@@ -61,7 +61,11 @@ from .types import (
   ensure_dog_modules_mapping,
   ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json_mapping
+from .utils import (
+  async_call_add_entities,
+  ensure_utc_datetime,
+  normalise_entity_attributes,
+)
 
 if TYPE_CHECKING:
   from .garden_manager import GardenManager
@@ -115,8 +119,7 @@ def _normalise_attributes(
 ) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for entity state."""
 
-  payload = ensure_json_mapping(attrs)
-  return cast(JSONMutableMapping, normalise_json_mapping(payload))
+  return normalise_entity_attributes(attrs)
 
 
 def _coerce_timestamp(value: object | None) -> datetime | None:

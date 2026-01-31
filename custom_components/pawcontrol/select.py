@@ -49,7 +49,11 @@ from .const import (  # noqa: E402
   PERFORMANCE_MODES,
 )
 from .coordinator import PawControlCoordinator  # noqa: E402
-from .diagnostics import _normalise_json as _normalise_diagnostics_json  # noqa: E402
+from .utils import (  # noqa: E402
+  async_call_add_entities,
+  deep_merge_dicts,
+  normalise_entity_attributes,
+)
 from .entity import PawControlDogEntityBase  # noqa: E402
 from .notifications import NotificationPriority, PawControlNotificationManager  # noqa: E402
 from .reproduce_state import async_reproduce_platform_states  # noqa: E402
@@ -92,9 +96,8 @@ from .types import (  # noqa: E402
   WeatherConditionKey,
   HealthStatusKey,
   coerce_dog_modules_config,
-  ensure_json_mapping,
 )
-from .utils import async_call_add_entities, deep_merge_dicts  # noqa: E402
+
 
 if TYPE_CHECKING:
   from .data_manager import PawControlDataManager
@@ -110,8 +113,7 @@ PARALLEL_UPDATES = 0
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for select entities."""
 
-  payload = ensure_json_mapping(attrs)
-  return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+  return normalise_entity_attributes(attrs)
 
 
 # Additional option lists for selects
