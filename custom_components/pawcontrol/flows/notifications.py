@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
 from ..const import CONF_NOTIFICATIONS, DEFAULT_REMINDER_REPEAT_MIN
-from ..exceptions import FlowValidationError
+from ..exceptions import FlowValidationError, ValidationError
 from ..selector_shim import selector
 from ..types import (
   DEFAULT_NOTIFICATION_OPTIONS,
@@ -32,6 +32,7 @@ from ..types import (
   ensure_dog_options_entry,
   ensure_notification_options,
 )
+from ..validation import validate_int_range
 
 if TYPE_CHECKING:
 
@@ -236,6 +237,24 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
   ) -> NotificationOptions:
     """Create a typed notification payload from submitted form data."""
 
+    try:
+      reminder_repeat = validate_int_range(
+        user_input.get(NOTIFICATION_REMINDER_REPEAT_FIELD),
+        field=NOTIFICATION_REMINDER_REPEAT_FIELD,
+        minimum=5,
+        maximum=240,
+        required=True,
+        required_constraint="invalid_configuration",
+        not_numeric_constraint="invalid_configuration",
+        out_of_range_constraint="invalid_configuration",
+      )
+    except ValidationError as err:
+      raise FlowValidationError(
+        field_errors={
+          NOTIFICATION_REMINDER_REPEAT_FIELD: err.constraint or "invalid_configuration"
+        }
+      ) from err
+
     notifications = {
       NOTIFICATION_QUIET_HOURS_FIELD: cls._coerce_bool(
         user_input.get(NOTIFICATION_QUIET_HOURS_FIELD),
@@ -249,15 +268,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
         user_input.get(NOTIFICATION_QUIET_END_FIELD),
         str(current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00")),
       ),
-      NOTIFICATION_REMINDER_REPEAT_FIELD: cls._coerce_int(
-        user_input.get(NOTIFICATION_REMINDER_REPEAT_FIELD),
-        int(
-          current.get(
-            NOTIFICATION_REMINDER_REPEAT_FIELD,
-            DEFAULT_REMINDER_REPEAT_MIN,
-          ),
-        ),
-      ),
+      NOTIFICATION_REMINDER_REPEAT_FIELD: reminder_repeat,
       NOTIFICATION_PRIORITY_FIELD: cls._coerce_bool(
         user_input.get(NOTIFICATION_PRIORITY_FIELD),
         bool(current.get(NOTIFICATION_PRIORITY_FIELD, True)),

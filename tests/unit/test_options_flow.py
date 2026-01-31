@@ -474,6 +474,31 @@ async def test_notification_settings_structured(
   )
 
 
+@pytest.mark.asyncio
+async def test_notification_settings_rejects_invalid_repeat_interval(
+  hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+  """Notification settings should reject reminder repeat values out of range."""
+
+  flow = PawControlOptionsFlow()
+  flow.hass = hass
+  flow.initialize_from_config_entry(mock_config_entry)
+
+  result = await flow.async_step_notifications(
+    {
+      "quiet_hours": True,
+      "quiet_start": "22:00:00",
+      "quiet_end": "07:00:00",
+      "reminder_repeat_min": 1,
+      "priority_notifications": True,
+      "mobile_notifications": False,
+    }
+  )
+
+  assert result["type"] == FlowResultType.FORM
+  assert result["errors"]["reminder_repeat_min"] == "invalid_configuration"
+
+
 def test_notification_settings_normalise_existing_payload(
   mock_config_entry: ConfigEntry,
 ) -> None:

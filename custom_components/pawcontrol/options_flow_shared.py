@@ -71,6 +71,7 @@ from .types import (
   is_dog_config_valid,
   normalize_performance_mode,
 )
+from .validation import clamp_float_range, clamp_int_range
 
 if TYPE_CHECKING:
   from .compat import ConfigEntry
@@ -766,14 +767,13 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
   ) -> float:
     """Normalise numeric input and clamp it to an allowed range."""
 
-    candidate = self._coerce_optional_float(value, default)
-    if candidate is None:
-      return default
-    if candidate < minimum:
-      return minimum
-    if candidate > maximum:
-      return maximum
-    return candidate
+    return clamp_float_range(
+      value,
+      field="options_float_range",
+      minimum=minimum,
+      maximum=maximum,
+      default=default,
+    )
 
   def _coerce_clamped_int(
     self,
@@ -785,12 +785,13 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
   ) -> int:
     """Normalise numeric selector input and clamp to an allowed range."""
 
-    candidate = self._coerce_int(value, default)
-    if candidate < minimum:
-      return minimum
-    if candidate > maximum:
-      return maximum
-    return candidate
+    return clamp_int_range(
+      value,
+      field="options_int_range",
+      minimum=minimum,
+      maximum=maximum,
+      default=default,
+    )
 
   @staticmethod
   def _normalize_choice(value: Any, *, valid: set[str], default: str) -> str:

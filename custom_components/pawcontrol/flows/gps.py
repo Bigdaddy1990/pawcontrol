@@ -679,7 +679,7 @@ class GPSOptionsMixin(GPSOptionsHost):
           required=True,
         )
       except ValidationError:
-        errors[GPS_DISTANCE_FILTER_FIELD] = "invalid_distance"
+        errors[GPS_DISTANCE_FILTER_FIELD] = "invalid_configuration"
         gps_distance = DEFAULT_GPS_DISTANCE_FILTER
 
       try:
@@ -691,7 +691,7 @@ class GPSOptionsMixin(GPSOptionsHost):
           required=True,
         )
       except ValidationError:
-        errors[ROUTE_HISTORY_DAYS_FIELD] = "invalid_interval"
+        errors[ROUTE_HISTORY_DAYS_FIELD] = "invalid_configuration"
         route_history = 30
 
       if errors:
