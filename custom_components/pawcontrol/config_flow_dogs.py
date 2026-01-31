@@ -529,52 +529,51 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
     suggested_visitor = dog_age >= 2
     suggested_medication = dog_age >= 7
 
-    schema_fields: dict[vol.Optional, selector.BooleanSelector] = {
-      vol.Optional(
-        "enable_feeding",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional("enable_walk", default=False): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_health",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_gps",
-        default=suggested_gps,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_notifications",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_dashboard",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_visitor",
-        default=suggested_visitor,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_grooming",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_medication",
-        default=suggested_medication,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "enable_training",
-        default=False,
-      ): selector.BooleanSelector(),
-    }
-    schema_fields.update(
-      self._build_garden_module_selector(
-        field="enable_garden",
-        default=False,
-      ),
+    schema = vol.Schema(
+      {
+        vol.Optional(
+          "enable_feeding",
+          default=False,
+        ): selector.BooleanSelector(),
+        vol.Optional("enable_walk", default=False): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_health",
+          default=False,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_gps",
+          default=suggested_gps,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_notifications",
+          default=False,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_dashboard",
+          default=False,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_visitor",
+          default=suggested_visitor,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_grooming",
+          default=False,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_medication",
+          default=suggested_medication,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+          "enable_training",
+          default=False,
+        ): selector.BooleanSelector(),
+        **self._build_garden_module_selector(
+          field="enable_garden",
+          default=False,
+        ),
+      },
     )
-    schema = vol.Schema(schema_fields)
 
     return self.async_show_form(
       step_id="dog_modules",
