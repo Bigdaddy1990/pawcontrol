@@ -1440,29 +1440,29 @@
       "description": "Repeated authentication errors were detected for {service_count} notification service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}.",
       "title": "Notification authentication failed"
     },
+    "notification_delivery_error": {
+      "description": "Repeated notification delivery errors were detected for {service_count} service(s): {services}. Classification: {classification}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
+      "title": "Notification delivery errors"
+    },
     "notification_device_unreachable": {
       "description": "Notification deliveries repeatedly failed because devices were unreachable for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}.",
       "title": "Notification devices unreachable"
-    },
-    "notification_missing_service": {
-      "description": "Notification deliveries failed because services were missing for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
-      "title": "Notification service missing"
-    },
-    "notification_timeout": {
-      "description": "Notification deliveries repeatedly timed out for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
-      "title": "Notification delivery timeout"
-    },
-    "notification_rate_limited": {
-      "description": "Notification deliveries were rate limited for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
-      "title": "Notification rate limited"
     },
     "notification_guard_skipped": {
       "description": "Notification deliveries were skipped by service guards for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
       "title": "Notification blocked by service guard"
     },
-    "notification_delivery_error": {
-      "description": "Repeated notification delivery errors were detected for {service_count} service(s): {services}. Classification: {classification}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
-      "title": "Notification delivery errors"
+    "notification_missing_service": {
+      "description": "Notification deliveries failed because services were missing for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
+      "title": "Notification service missing"
+    },
+    "notification_rate_limited": {
+      "description": "Notification deliveries were rate limited for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
+      "title": "Notification rate limited"
+    },
+    "notification_timeout": {
+      "description": "Notification deliveries repeatedly timed out for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
+      "title": "Notification delivery timeout"
     },
     "outdated_configuration": {
       "description": "The configuration entry uses version {current_version}. Update it to version {required_version} through the options flow.",
