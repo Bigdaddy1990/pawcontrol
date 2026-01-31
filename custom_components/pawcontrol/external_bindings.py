@@ -123,9 +123,7 @@ async def async_setup_external_bindings(
       current
       and isinstance(current.latitude, (int, float))
       and isinstance(current.longitude, (int, float))
-      and _haversine_m(
-        float(current.latitude), float(current.longitude), lat, lon
-      )
+      and _haversine_m(float(current.latitude), float(current.longitude), lat, lon)
       < _MIN_METERS
     ):
       return
