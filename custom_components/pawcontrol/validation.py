@@ -458,39 +458,18 @@ def validate_gps_update_interval(
 ) -> int | None:
   """Validate GPS update intervals in seconds."""
 
-  if _is_empty(value):
-    if default is not None:
-      return default
-    if required:
-      raise ValidationError(field, value, "gps_update_interval_required")
-    return None
-
-  try:
-    interval = coerce_int(field, value)
-  except InputCoercionError as err:
-    raise ValidationError(field, value, "gps_update_interval_not_numeric") from err
-
-  if interval < minimum:
-    if clamp:
-      return minimum
-    raise ValidationError(
-      field,
-      interval,
-      "gps_update_interval_out_of_range",
-      min_value=minimum,
-      max_value=maximum,
-    )
-  if interval > maximum:
-    if clamp:
-      return maximum
-    raise ValidationError(
-      field,
-      interval,
-      "gps_update_interval_out_of_range",
-      min_value=minimum,
-      max_value=maximum,
-    )
-  return interval
+  return validate_int_range(
+    value,
+    field=field,
+    minimum=minimum,
+    maximum=maximum,
+    default=default,
+    clamp=clamp,
+    required=required,
+    required_constraint="gps_update_interval_required",
+    not_numeric_constraint="gps_update_interval_not_numeric",
+    out_of_range_constraint="gps_update_interval_out_of_range",
+  )
 
 
 def validate_expires_in_hours(
@@ -633,6 +612,104 @@ def validate_float_range(
       max_value=maximum,
     )
   return candidate
+
+
+def validate_int_range(
+  value: Any,
+  *,
+  field: str,
+  minimum: int,
+  maximum: int,
+  default: int | None = None,
+  clamp: bool = False,
+  required: bool = False,
+  required_constraint: str = "value_required",
+  not_numeric_constraint: str = "value_not_numeric",
+  out_of_range_constraint: str = "value_out_of_range",
+) -> int | None:
+  """Validate an integer range within bounds."""
+
+  if _is_empty(value):
+    if default is not None:
+      return default
+    if required:
+      raise ValidationError(field, value, required_constraint)
+    return None
+
+  try:
+    interval = coerce_int(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, not_numeric_constraint) from err
+
+  if interval < minimum:
+    if clamp:
+      return minimum
+    raise ValidationError(
+      field,
+      interval,
+      out_of_range_constraint,
+      min_value=minimum,
+      max_value=maximum,
+    )
+  if interval > maximum:
+    if clamp:
+      return maximum
+    raise ValidationError(
+      field,
+      interval,
+      out_of_range_constraint,
+      min_value=minimum,
+      max_value=maximum,
+    )
+  return interval
+
+
+def clamp_int_range(
+  value: Any,
+  *,
+  field: str,
+  minimum: int,
+  maximum: int,
+  default: int,
+) -> int:
+  """Coerce and clamp integer input to the provided bounds."""
+
+  try:
+    result = validate_int_range(
+      value,
+      field=field,
+      minimum=minimum,
+      maximum=maximum,
+      default=default,
+      clamp=True,
+    )
+  except ValidationError:
+    return default
+
+  return default if result is None else result
+
+
+def clamp_float_range(
+  value: Any,
+  *,
+  field: str,
+  minimum: float,
+  maximum: float,
+  default: float,
+) -> float:
+  """Coerce and clamp float input to the provided bounds."""
+
+  try:
+    return validate_float_range(
+      value,
+      field=field,
+      minimum=minimum,
+      maximum=maximum,
+      default=default,
+      clamp=True,
+    )
+  except ValidationError:
+    return default
 
 
 class InputValidator:

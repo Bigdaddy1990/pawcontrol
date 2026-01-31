@@ -185,6 +185,26 @@ async def test_dog_gps_requires_home_zone_radius() -> None:
 
 
 @pytest.mark.asyncio
+async def test_dog_gps_rejects_home_zone_radius_out_of_range() -> None:
+  """GPS config should flag geofence radius range violations."""
+
+  flow = _DogGPSFlow()
+
+  result = await flow.async_step_dog_gps(
+    {
+      "gps_source": "manual",
+      "gps_update_interval": 60,
+      "gps_accuracy_filter": 5,
+      "enable_geofencing": True,
+      "home_zone_radius": 2,
+    }
+  )
+
+  assert result["type"] == "form"
+  assert result["errors"]["home_zone_radius"] == "geofence_radius_out_of_range"
+
+
+@pytest.mark.asyncio
 async def test_dog_gps_accepts_boundary_values() -> None:
   """GPS config should accept min/max boundaries."""
 
