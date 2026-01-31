@@ -43,8 +43,7 @@ def build_notification_settings_payload(
   except ValidationError as err:
     raise FlowValidationError(
       field_errors={
-        NOTIFICATION_REMINDER_REPEAT_FIELD: err.constraint
-        or "invalid_configuration"
+        NOTIFICATION_REMINDER_REPEAT_FIELD: err.constraint or "invalid_configuration"
       }
     ) from err
 
