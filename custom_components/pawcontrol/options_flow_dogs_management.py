@@ -28,6 +28,7 @@ from .const import (
 )
 from .exceptions import FlowValidationError
 from .flow_validation import validate_dog_setup_input, validate_dog_update_input
+from .flows.garden import GardenModuleSelectorMixin
 from .flows.walk_schemas import (
   build_auto_end_walks_field,
   build_walk_timing_schema_fields,
@@ -79,7 +80,7 @@ else:  # pragma: no cover
   DogManagementOptionsHost = object
 
 
-class DogManagementOptionsMixin(DogManagementOptionsHost):
+class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsHost):
   _current_dog: DogConfigData | None
   _dogs: list[DogConfigData]
 
@@ -420,10 +421,6 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
           default=current_modules.get(MODULE_GPS, False),
         ): selector.BooleanSelector(),
         vol.Optional(
-          "module_garden",
-          default=current_modules.get(MODULE_GARDEN, False),
-        ): selector.BooleanSelector(),
-        vol.Optional(
           "module_health",
           default=current_modules.get(MODULE_HEALTH, True),
         ): selector.BooleanSelector(),
@@ -451,6 +448,10 @@ class DogManagementOptionsMixin(DogManagementOptionsHost):
           "module_training",
           default=current_modules.get("training", False),
         ): selector.BooleanSelector(),
+        **self._build_garden_module_selector(
+          field="module_garden",
+          default=current_modules.get(MODULE_GARDEN, False),
+        ),
       },
     )
 

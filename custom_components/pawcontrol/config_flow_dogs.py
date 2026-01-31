@@ -59,8 +59,6 @@ from custom_components.pawcontrol.types import (
   DOG_BREED_FIELD,
   DOG_FEEDING_CONFIG_FIELD,
   DOG_FEEDING_PLACEHOLDERS_TEMPLATE,
-  DOG_GPS_PLACEHOLDERS_TEMPLATE,
-  DOG_HEALTH_PLACEHOLDERS_TEMPLATE,
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
   DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE,
@@ -96,6 +94,7 @@ from custom_components.pawcontrol.types import (
   normalize_performance_mode,
 )
 
+from .flows.garden import GardenModuleSelectorMixin
 from .selector_shim import selector
 
 _LOGGER = logging.getLogger(__name__)
@@ -203,41 +202,6 @@ def _build_dog_feeding_placeholders(
   return freeze_placeholders(placeholders)
 
 
-def _build_dog_gps_placeholders(*, dog_name: str) -> ConfigFlowPlaceholders:
-  """Return immutable placeholders for the GPS configuration step."""
-
-  placeholders = clone_placeholders(DOG_GPS_PLACEHOLDERS_TEMPLATE)
-  placeholders["dog_name"] = dog_name
-  return freeze_placeholders(placeholders)
-
-
-def _build_dog_health_placeholders(
-  *,
-  dog_name: str,
-  dog_age: str,
-  dog_weight: str,
-  suggested_ideal_weight: str,
-  suggested_activity: str,
-  medication_enabled: str,
-  bcs_info: str,
-  special_diet_count: str,
-  health_diet_info: str,
-) -> ConfigFlowPlaceholders:
-  """Return immutable placeholders for the health configuration step."""
-
-  placeholders = clone_placeholders(DOG_HEALTH_PLACEHOLDERS_TEMPLATE)
-  placeholders["dog_name"] = dog_name
-  placeholders["dog_age"] = dog_age
-  placeholders["dog_weight"] = dog_weight
-  placeholders["suggested_ideal_weight"] = suggested_ideal_weight
-  placeholders["suggested_activity"] = suggested_activity
-  placeholders["medication_enabled"] = medication_enabled
-  placeholders["bcs_info"] = bcs_info
-  placeholders["special_diet_count"] = special_diet_count
-  placeholders["health_diet_info"] = health_diet_info
-  return freeze_placeholders(placeholders)
-
-
 def _build_add_another_summary_placeholders(
   *,
   dogs_list: str,
@@ -342,7 +306,7 @@ else:
     pass
 
 
-class DogManagementMixin(DogManagementMixinBase):
+class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
   """Mixin for dog management functionality in configuration flow.
 
   This mixin provides all the methods needed for adding, validating,
@@ -581,10 +545,6 @@ class DogManagementMixin(DogManagementMixinBase):
           default=suggested_gps,
         ): selector.BooleanSelector(),
         vol.Optional(
-          "enable_garden",
-          default=False,
-        ): selector.BooleanSelector(),
-        vol.Optional(
           "enable_notifications",
           default=False,
         ): selector.BooleanSelector(),
@@ -608,6 +568,10 @@ class DogManagementMixin(DogManagementMixinBase):
           "enable_training",
           default=False,
         ): selector.BooleanSelector(),
+        **self._build_garden_module_selector(
+          field="enable_garden",
+          default=False,
+        ),
       },
     )
 
