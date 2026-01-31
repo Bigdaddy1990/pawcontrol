@@ -686,7 +686,7 @@ def clamp_int_range(
   except ValidationError:
     return default
 
-  return default if result is None else result
+  return result
 
 
 def clamp_float_range(
