@@ -33,7 +33,7 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Dynamische Personenerkennung für `person.*`‑Entitäten gegen reale Home‑Assistant‑States testen und Fallback‑Kette (mobile_app) robust implementieren.
 - Interaktive Rückfragen vereinheitlichen: gleiche Texte, Emojis und Quittierungs‑Logik gemäß Info‑Dokument.
 - Push‑Test‑Service verbessern, damit Benutzer:innen Feedback zur Zustellung sehen (Erfolg/Fehler pro Gerät).
-- **Neue Aufgabe:** Fehlerbehandlung in der Benachrichtigungs‑Pipeline zentralisieren; Service‑Guard‑Metriken in die Diagnostik integrieren, um abgelehnte/fehlgeschlagene Nachrichten sichtbar zu machen.
+- **Neue Aufgabe:** Fehlerbehandlung in der Benachrichtigungs‑Pipeline zentralisieren, um abgelehnte/fehlgeschlagene Nachrichten sichtbar zu machen.
 - **Neue Aufgabe:** Reparatur‑Flows (Repairs) für wiederkehrende Zustellfehler definieren und dokumentieren.
 
 ## 4. Fütterung & Gesundheitsüberwachung
@@ -50,6 +50,11 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 - Responsive Varianten für Desktop/Mobile testen; bei Bedarf CSS/Template‑Anpassungen dokumentieren.
 - Besucherhund‑Modus visuell klar abgrenzen (Farbcode, Icon, eigener Abschnitt) und Aktivierungs‑Workflow beschreiben.
 - **Neue Aufgabe:** Dashboard‑Komponenten auf die neuen Metriken und Guard‑Telemetrie (Service‑Guard‑Ergebnisse) erweitern, sodass Qualitätsscale‑Berichte direkt im UI sichtbar sind.
+- **Neue Aufgabe:** Konkrete Lovelace‑Karten für `service_execution.guard_metrics`,
+  `notifications.rejection_metrics` und `guard_notification_error_metrics`
+  definieren (inklusive Beispiel‑Ansichten für Fehlertrends und letzte Guard‑Ergebnisse).
+- **Neue Aufgabe:** UI‑Visualisierung mit Dokumentation im `docs/diagnostics.md`‑Abschnitt
+  verlinken, damit Nutzer:innen die Metriken ohne Code‑Suche finden.
 - **Neue Aufgabe:** UI‑Texte mit HA‑String‑Guidelines abgleichen (Ton, Klarheit, konsistente Terminologie).
 
 ## 6. Automationen & Skripte
@@ -71,3 +76,8 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 ---
 
 **Hinweis:** Dieser Fahrplan soll regelmäßig aktualisiert werden. Nach Abschluss jedes Abschnitts sind die Belege im `quality_scale.yaml` zu aktualisieren und die Dokumentation entsprechend anzupassen.
+
+## Erledigt
+
+- **Service‑Guard‑Metriken in der Diagnostik integriert:** Dokumentiert im Abschnitt
+  „Service Guard Metrics“ in `docs/diagnostics.md` (siehe dortige Felderliste).【F:docs/diagnostics.md†L53-L76】
