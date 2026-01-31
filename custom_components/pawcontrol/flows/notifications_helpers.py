@@ -24,7 +24,6 @@ def build_notification_settings_payload(
   current: NotificationOptions,
   *,
   coerce_bool: Callable[[Any, bool], bool],
-  coerce_int: Callable[[Any, int], int],
   coerce_time_string: Callable[[Any, str], str],
 ) -> NotificationOptions:
   """Create a typed notification payload from submitted form data."""
@@ -62,10 +61,7 @@ def build_notification_settings_payload(
         user_input.get(NOTIFICATION_QUIET_END_FIELD),
         current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00"),
       ),
-      NOTIFICATION_REMINDER_REPEAT_FIELD: coerce_int(
-        reminder_repeat,
-        current.get(NOTIFICATION_REMINDER_REPEAT_FIELD, 30),
-      ),
+      NOTIFICATION_REMINDER_REPEAT_FIELD: reminder_repeat,
       NOTIFICATION_PRIORITY_FIELD: coerce_bool(
         user_input.get(NOTIFICATION_PRIORITY_FIELD),
         current.get(NOTIFICATION_PRIORITY_FIELD, True),

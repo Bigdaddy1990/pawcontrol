@@ -235,7 +235,6 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
       user_input,
       current,
       coerce_bool=cls._coerce_bool,
-      coerce_int=cls._coerce_int,
       coerce_time_string=cls._coerce_time_string,
     )
 

@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
 from collections.abc import Mapping
+from typing import Any
 
 import voluptuous as vol
 
 from ..selector_shim import selector
 from ..types import DoorSensorSettingsConfig
 from .walk_helpers import WALK_SETTINGS_FIELDS
+
+(
+  WALK_DETECTION_TIMEOUT_FIELD,
+  MINIMUM_WALK_DURATION_FIELD,
+  MAXIMUM_WALK_DURATION_FIELD,
+  AUTO_END_WALKS_FIELD,
+) = WALK_SETTINGS_FIELDS
 
 
 def build_walk_timing_schema_fields(
@@ -24,8 +31,11 @@ def build_walk_timing_schema_fields(
   fields: dict[vol.Optional, object] = {}
   fields[
     vol.Optional(
-      WALK_SETTINGS_FIELDS[0],
-      default=_value(WALK_SETTINGS_FIELDS[0], defaults.walk_detection_timeout),
+      WALK_DETECTION_TIMEOUT_FIELD,
+      default=_value(
+        WALK_DETECTION_TIMEOUT_FIELD,
+        defaults.walk_detection_timeout,
+      ),
     )
   ] = selector.NumberSelector(
     selector.NumberSelectorConfig(
@@ -38,8 +48,11 @@ def build_walk_timing_schema_fields(
   )
   fields[
     vol.Optional(
-      WALK_SETTINGS_FIELDS[1],
-      default=_value(WALK_SETTINGS_FIELDS[1], defaults.minimum_walk_duration),
+      MINIMUM_WALK_DURATION_FIELD,
+      default=_value(
+        MINIMUM_WALK_DURATION_FIELD,
+        defaults.minimum_walk_duration,
+      ),
     )
   ] = selector.NumberSelector(
     selector.NumberSelectorConfig(
@@ -52,8 +65,11 @@ def build_walk_timing_schema_fields(
   )
   fields[
     vol.Optional(
-      WALK_SETTINGS_FIELDS[2],
-      default=_value(WALK_SETTINGS_FIELDS[2], defaults.maximum_walk_duration),
+      MAXIMUM_WALK_DURATION_FIELD,
+      default=_value(
+        MAXIMUM_WALK_DURATION_FIELD,
+        defaults.maximum_walk_duration,
+      ),
     )
   ] = selector.NumberSelector(
     selector.NumberSelectorConfig(
@@ -78,7 +94,7 @@ def build_auto_end_walks_field(
 
   return {
     vol.Optional(
-      WALK_SETTINGS_FIELDS[3],
-      default=_value(WALK_SETTINGS_FIELDS[3], defaults.auto_end_walks),
+      AUTO_END_WALKS_FIELD,
+      default=_value(AUTO_END_WALKS_FIELD, defaults.auto_end_walks),
     ): selector.BooleanSelector(),
   }
