@@ -90,8 +90,10 @@ async def async_register_entry_webhook(
   entry: ConfigEntry,
 ) -> None:
   """Register the push webhook endpoint for a config entry when enabled."""
-  await async_ensure_webhook_config(hass, entry)  enabled = bool(entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
-  webhook_id = entry.options.get(CONF_WEBHOOK_ID)  if not enabled or not _any_dog_expects_webhook(entry):
+  await async_ensure_webhook_config(hass, entry)
+  enabled = bool(entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
+  webhook_id = entry.options.get(CONF_WEBHOOK_ID)
+  if not enabled or not _any_dog_expects_webhook(entry):
     return
   if not isinstance(webhook_id, str) or not webhook_id:
     return
