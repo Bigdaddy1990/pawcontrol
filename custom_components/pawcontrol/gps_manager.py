@@ -254,7 +254,6 @@ class WalkRoute:
       return None
     return self.avg_speed_mps * 3.6
 
-
 class GPSTrackingConfig(NamedTuple):
   """GPS tracking configuration for a dog."""
 

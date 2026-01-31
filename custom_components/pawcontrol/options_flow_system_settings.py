@@ -31,6 +31,7 @@ from .const import (
   RESILIENCE_SKIP_THRESHOLD_MIN,
   CONF_WEBHOOK_ENABLED,
   CONF_WEBHOOK_REQUIRE_SIGNATURE,
+  CONF_WEBHOOK_SECRET,
   DEFAULT_WEBHOOK_ENABLED,
   DEFAULT_WEBHOOK_REQUIRE_SIGNATURE,
   CONF_MQTT_ENABLED,
@@ -38,11 +39,15 @@ from .const import (
   DEFAULT_MQTT_ENABLED,
   DEFAULT_MQTT_TOPIC,
   CONF_PUSH_PAYLOAD_MAX_BYTES,
-  DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
   CONF_PUSH_NONCE_TTL_SECONDS,
+  CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+  DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
   DEFAULT_PUSH_NONCE_TTL_SECONDS,
-  CONF_PUSH_RATE_LIMIT_PER_MINUTE,
-  DEFAULT_PUSH_RATE_LIMIT_PER_MINUTE,
+  DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+  DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+  DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
 )
 from .device_api import validate_device_endpoint
 from .exceptions import FlowValidationError  # noqa: F401
@@ -101,6 +106,145 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
   _current_dog: DogConfigData | None
   _dogs: list[DogConfigData]
 
+  
+  async def async_step_push_settings(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> ConfigFlowResult:
+    """Configure push ingestion (webhook / MQTT) settings.
+
+    Exposes Home Assistant UI options for:
+    - enabling/disabling webhook and MQTT transports
+    - configuring MQTT topic
+    - payload size limits, nonce TTL and per-source rate limits
+    """
+    await self._async_prepare_setup_flag_translations()
+    current = self._current_options()
+
+    if user_input is not None:
+      new_options = self._clone_options()
+      mutable = cast(JSONMutableMapping, dict(new_options))
+
+      # Webhook
+      mutable[CONF_WEBHOOK_ENABLED] = bool(
+        user_input.get(CONF_WEBHOOK_ENABLED, current.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)),
+      )
+      mutable[CONF_WEBHOOK_REQUIRE_SIGNATURE] = bool(
+        user_input.get(
+          CONF_WEBHOOK_REQUIRE_SIGNATURE,
+          current.get(CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE),
+        ),
+      )
+      secret = user_input.get(CONF_WEBHOOK_SECRET)
+      if isinstance(secret, str) and secret.strip():
+        mutable[CONF_WEBHOOK_SECRET] = secret.strip()
+      elif CONF_WEBHOOK_SECRET in mutable:
+        # allow clearing secret from UI
+        mutable.pop(CONF_WEBHOOK_SECRET, None)
+
+      # MQTT
+      mutable[CONF_MQTT_ENABLED] = bool(
+        user_input.get(CONF_MQTT_ENABLED, current.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED)),
+      )
+      topic = user_input.get(CONF_MQTT_TOPIC)
+      if isinstance(topic, str) and topic.strip():
+        mutable[CONF_MQTT_TOPIC] = topic.strip()
+      else:
+        mutable[CONF_MQTT_TOPIC] = current.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)
+
+      # Router limits
+      mutable[CONF_PUSH_PAYLOAD_MAX_BYTES] = int(
+        user_input.get(
+          CONF_PUSH_PAYLOAD_MAX_BYTES,
+          current.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES),
+        ),
+      )
+      mutable[CONF_PUSH_NONCE_TTL_SECONDS] = int(
+        user_input.get(
+          CONF_PUSH_NONCE_TTL_SECONDS,
+          current.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS),
+        ),
+      )
+      mutable[CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE] = int(
+        user_input.get(
+          CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+          current.get(CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE),
+        ),
+      )
+      mutable[CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE] = int(
+        user_input.get(
+          CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+          current.get(CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE),
+        ),
+      )
+      mutable[CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE] = int(
+        user_input.get(
+          CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+          current.get(CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE),
+        ),
+      )
+
+      return self.async_create_entry(title="", data=cast(dict[str, Any], mutable))
+
+    schema = vol.Schema(
+      {
+        vol.Optional(
+          CONF_WEBHOOK_ENABLED,
+          default=bool(current.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)),
+        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+        vol.Optional(
+          CONF_WEBHOOK_REQUIRE_SIGNATURE,
+          default=bool(current.get(CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE)),
+        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+        vol.Optional(
+          CONF_WEBHOOK_SECRET,
+          default=str(current.get(CONF_WEBHOOK_SECRET, "")) if current.get(CONF_WEBHOOK_SECRET) else "",
+        ): selector.TextSelector(
+          selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD, multiline=False),
+        ),
+        vol.Optional(
+          CONF_MQTT_ENABLED,
+          default=bool(current.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED)),
+        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+        vol.Optional(
+          CONF_MQTT_TOPIC,
+          default=str(current.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)),
+        ): selector.TextSelector(
+          selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT, multiline=False),
+        ),
+        vol.Optional(
+          CONF_PUSH_PAYLOAD_MAX_BYTES,
+          default=int(current.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)),
+        ): selector.NumberSelector(
+          selector.NumberSelectorConfig(min=1024, max=262144, mode=selector.NumberSelectorMode.BOX, step=256),
+        ),
+        vol.Optional(
+          CONF_PUSH_NONCE_TTL_SECONDS,
+          default=int(current.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)),
+        ): selector.NumberSelector(
+          selector.NumberSelectorConfig(min=60, max=86400, mode=selector.NumberSelectorMode.BOX, step=30),
+        ),
+        vol.Optional(
+          CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+          default=int(current.get(CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE)),
+        ): selector.NumberSelector(
+          selector.NumberSelectorConfig(min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1),
+        ),
+        vol.Optional(
+          CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+          default=int(current.get(CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE)),
+        ): selector.NumberSelector(
+          selector.NumberSelectorConfig(min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1),
+        ),
+        vol.Optional(
+          CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+          default=int(current.get(CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE)),
+        ): selector.NumberSelector(
+          selector.NumberSelectorConfig(min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1),
+        ),
+      }
+    )
+    return self.async_show_form(step_id="push_settings", data_schema=schema)
   async def async_step_weather_settings(
     self,
     user_input: dict[str, Any] | None = None,
@@ -692,192 +836,6 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             options=["minimal", "balanced", "full"],
             mode=selector.SelectSelectorMode.DROPDOWN,
             translation_key="performance_mode",
-          ),
-        ),
-      },
-    )
-
-  async def async_step_push_settings(
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> ConfigFlowResult:
-    """Configure push transport settings (webhook/MQTT) for PawControl.
-
-    This step controls transport-level behaviour only. GPS data is still applied
-    strictly per dog based on each dog's configured gps_source.
-    """
-    if user_input is not None:
-      new_options = self._clone_options()
-      mutable_options = cast(JSONMutableMapping, dict(new_options))
-
-      # Normalise/validate simple values
-      mqtt_topic = user_input.get(CONF_MQTT_TOPIC)
-      if isinstance(mqtt_topic, str):
-        mqtt_topic = mqtt_topic.strip()
-      if mqtt_topic is not None and mqtt_topic == "":
-        mqtt_topic = DEFAULT_MQTT_TOPIC
-
-      payload_max = user_input.get(CONF_PUSH_PAYLOAD_MAX_BYTES)
-      nonce_ttl = user_input.get(CONF_PUSH_NONCE_TTL_SECONDS)
-      rate_limit = user_input.get(CONF_PUSH_RATE_LIMIT_PER_MINUTE)
-
-      try:
-        if payload_max is not None:
-          payload_max_int = int(payload_max)
-          if payload_max_int < 1024 or payload_max_int > 65536:
-            raise ValueError("payload_max_bytes_out_of_range")
-        if nonce_ttl is not None:
-          nonce_ttl_int = int(nonce_ttl)
-          if nonce_ttl_int < 0 or nonce_ttl_int > 86400:
-            raise ValueError("nonce_ttl_out_of_range")
-        if rate_limit is not None:
-          rate_limit_int = int(rate_limit)
-          if rate_limit_int < 0 or rate_limit_int > 600:
-            raise ValueError("rate_limit_out_of_range")
-      except Exception:
-        return self.async_show_form(
-          step_id="push_settings",
-          data_schema=self._get_push_settings_schema(user_input),
-          errors={"base": "invalid_push_settings"},
-        )
-
-      mutable_options[CONF_WEBHOOK_ENABLED] = cast(
-        JSONValue,
-        bool(user_input.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)),
-      )
-      mutable_options[CONF_WEBHOOK_REQUIRE_SIGNATURE] = cast(
-        JSONValue,
-        bool(
-          user_input.get(
-            CONF_WEBHOOK_REQUIRE_SIGNATURE,
-            DEFAULT_WEBHOOK_REQUIRE_SIGNATURE,
-          )
-        ),
-      )
-      mutable_options[CONF_MQTT_ENABLED] = cast(
-        JSONValue,
-        bool(user_input.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED)),
-      )
-      mutable_options[CONF_MQTT_TOPIC] = cast(
-        JSONValue,
-        mqtt_topic if isinstance(mqtt_topic, str) else DEFAULT_MQTT_TOPIC,
-      )
-      mutable_options[CONF_PUSH_PAYLOAD_MAX_BYTES] = cast(
-        JSONValue,
-        int(payload_max) if payload_max is not None else DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
-      )
-      mutable_options[CONF_PUSH_NONCE_TTL_SECONDS] = cast(
-        JSONValue,
-        int(nonce_ttl) if nonce_ttl is not None else DEFAULT_PUSH_NONCE_TTL_SECONDS,
-      )
-      mutable_options[CONF_PUSH_RATE_LIMIT_PER_MINUTE] = cast(
-        JSONValue,
-        int(rate_limit)
-        if rate_limit is not None
-        else DEFAULT_PUSH_RATE_LIMIT_PER_MINUTE,
-      )
-
-      typed_options = self._normalise_options_snapshot(mutable_options)
-      return self.async_create_entry(title="", data=typed_options)
-
-    return self.async_show_form(
-      step_id="push_settings",
-      data_schema=self._get_push_settings_schema(),
-    )
-
-  def _get_push_settings_schema(
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> vol.Schema:
-    """Return the push settings schema."""
-    current_values = user_input or {}
-    options = self._clone_options()
-
-    return vol.Schema(
-      {
-        vol.Optional(
-          CONF_WEBHOOK_ENABLED,
-          default=current_values.get(
-            CONF_WEBHOOK_ENABLED,
-            options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          CONF_WEBHOOK_REQUIRE_SIGNATURE,
-          default=current_values.get(
-            CONF_WEBHOOK_REQUIRE_SIGNATURE,
-            options.get(
-              CONF_WEBHOOK_REQUIRE_SIGNATURE,
-              DEFAULT_WEBHOOK_REQUIRE_SIGNATURE,
-            ),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          CONF_MQTT_ENABLED,
-          default=current_values.get(
-            CONF_MQTT_ENABLED,
-            options.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          CONF_MQTT_TOPIC,
-          default=current_values.get(
-            CONF_MQTT_TOPIC,
-            options.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC),
-          ),
-        ): selector.TextSelector(),
-        vol.Optional(
-          CONF_PUSH_PAYLOAD_MAX_BYTES,
-          default=current_values.get(
-            CONF_PUSH_PAYLOAD_MAX_BYTES,
-            options.get(
-              CONF_PUSH_PAYLOAD_MAX_BYTES,
-              DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
-            ),
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1024,
-            max=65536,
-            step=1024,
-            mode=selector.NumberSelectorMode.BOX,
-            unit_of_measurement="bytes",
-          ),
-        ),
-        vol.Optional(
-          CONF_PUSH_NONCE_TTL_SECONDS,
-          default=current_values.get(
-            CONF_PUSH_NONCE_TTL_SECONDS,
-            options.get(
-              CONF_PUSH_NONCE_TTL_SECONDS,
-              DEFAULT_PUSH_NONCE_TTL_SECONDS,
-            ),
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=0,
-            max=86400,
-            step=30,
-            mode=selector.NumberSelectorMode.BOX,
-            unit_of_measurement="seconds",
-          ),
-        ),
-        vol.Optional(
-          CONF_PUSH_RATE_LIMIT_PER_MINUTE,
-          default=current_values.get(
-            CONF_PUSH_RATE_LIMIT_PER_MINUTE,
-            options.get(
-              CONF_PUSH_RATE_LIMIT_PER_MINUTE,
-              DEFAULT_PUSH_RATE_LIMIT_PER_MINUTE,
-            ),
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=0,
-            max=600,
-            step=5,
-            mode=selector.NumberSelectorMode.BOX,
-            unit_of_measurement="updates/min",
           ),
         ),
       },

@@ -1,26 +1,22 @@
-"""MQTT push receiver for PawControl GPS updates.
+"""MQTT transport for PawControl GPS push updates.
 
-Expects JSON payload with at least:
-{
-  "dog_id": "...",
-  "latitude": 51.1,
-  "longitude": 6.9
-}
-
-Processing is routed through :mod:`pawcontrol.push_router`.
+This module subscribes to an MQTT topic and forwards JSON payloads to the
+unified push router. It is intentionally transport-only: validation and
+strict per-dog source matching happens in push_router.py.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .compat import ConfigEntry
 from .const import (
+  CONF_DOGS,
   CONF_GPS_SOURCE,
   CONF_MQTT_ENABLED,
   CONF_MQTT_TOPIC,
@@ -29,101 +25,111 @@ from .const import (
   DOMAIN,
 )
 from .push_router import async_process_gps_push
-import contextlib
 
 _LOGGER = logging.getLogger(__name__)
 
-_MQTT_STORE_KEY = "_mqtt"
+_MQTT_STORE_KEY = "_mqtt_push"
 
 
-def _store(hass: HomeAssistant) -> dict[str, Any]:
-  root = hass.data.setdefault(DOMAIN, {})
-  if not isinstance(root, dict):
-    root = {}
-    hass.data[DOMAIN] = root
-  mqtt_root = root.setdefault(_MQTT_STORE_KEY, {})
-  if not isinstance(mqtt_root, dict):
-    mqtt_root = {}
-    root[_MQTT_STORE_KEY] = mqtt_root
-  return mqtt_root
+def _domain_store(hass: HomeAssistant) -> dict[str, Any]:
+  store = hass.data.setdefault(DOMAIN, {})
+  if not isinstance(store, dict):
+    hass.data[DOMAIN] = {}
+    store = hass.data[DOMAIN]
+  return cast(dict[str, Any], store)
+
+
+def _any_dog_expects_mqtt(entry: ConfigEntry) -> bool:
+  dogs = entry.data.get(CONF_DOGS, [])
+  if not isinstance(dogs, list):
+    return False
+  for dog in dogs:
+    if not isinstance(dog, dict):
+      continue
+    gps_cfg = dog.get("gps_config")
+    if isinstance(gps_cfg, dict) and gps_cfg.get(CONF_GPS_SOURCE) == "mqtt":
+      return True
+  return False
 
 
 async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Register MQTT subscription for a config entry (idempotent)."""
-
-  gps_source = entry.options.get(CONF_GPS_SOURCE)
+  """Subscribe to MQTT topic for this entry when enabled and needed."""
   enabled = bool(entry.options.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED))
-  if gps_source != "mqtt" or not enabled:
-    await async_unregister_entry_mqtt(hass, entry)
+  if not enabled:
+    return
+  if not _any_dog_expects_mqtt(entry):
     return
 
-  topic = entry.options.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)
-  if not isinstance(topic, str) or not topic.strip():
-    _LOGGER.warning("MQTT topic invalid for entry %s", entry.entry_id)
-    return
+  topic_raw = entry.options.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)
+  topic = topic_raw.strip() if isinstance(topic_raw, str) and topic_raw.strip() else DEFAULT_MQTT_TOPIC
 
-  # Import mqtt lazily so the integration doesn't hard-require it.
   try:
-    from homeassistant.components import mqtt
-  except Exception:  # pragma: no cover
-    _LOGGER.debug("MQTT integration not available; skipping subscription")
+    from homeassistant.components import mqtt as ha_mqtt
+  except Exception:
+    _LOGGER.debug("MQTT integration not available; skipping MQTT push subscribe")
     return
 
-  mqtt_store = _store(hass)
+  store = _domain_store(hass)
+  mqtt_store = store.setdefault(_MQTT_STORE_KEY, {})
+  if not isinstance(mqtt_store, dict):
+    store[_MQTT_STORE_KEY] = {}
+    mqtt_store = store[_MQTT_STORE_KEY]
 
-  # Unsubscribe previous subscription if present.
-  prev = mqtt_store.get(entry.entry_id)
-  if callable(prev):
-    with contextlib.suppress(Exception):
-      prev()
-    mqtt_store.pop(entry.entry_id, None)
+  # Unsubscribe existing (idempotent)
+  await async_unregister_entry_mqtt(hass, entry)
 
-  async def _message_received(msg: Any) -> None:
+  async def _callback(msg: Any) -> None:
     try:
-      payload_raw = msg.payload
-      if isinstance(payload_raw, bytes):
-        raw_bytes = payload_raw
-        payload_str = payload_raw.decode("utf-8")
+      payload_bytes = msg.payload if hasattr(msg, "payload") else None
+      if isinstance(payload_bytes, (bytes, bytearray)):
+        raw = bytes(payload_bytes)
+      elif isinstance(msg.payload, str):
+        raw = msg.payload.encode("utf-8")
       else:
-        payload_str = str(payload_raw)
-        raw_bytes = payload_str.encode("utf-8", errors="replace")
+        raw = b""
 
-      data = json.loads(payload_str)
-      if not isinstance(data, Mapping):
+      payload_obj = json.loads(raw.decode("utf-8"))
+      if not isinstance(payload_obj, dict):
         return
-      nonce = None
-      if isinstance(data, dict):
-        maybe = data.get("nonce")
-        if isinstance(maybe, str) and maybe:
-          nonce = maybe
+    except Exception as err:
+      _LOGGER.debug("Invalid MQTT payload on %s: %s", topic, err)
+      return
 
-      result = await async_process_gps_push(
-        hass,
-        entry,
-        data,
-        source="mqtt",
-        raw_size=len(raw_bytes),
-        nonce=nonce,
-      )
-      if not result.get("ok"):
-        _LOGGER.debug(
-          "MQTT push rejected for entry %s: %s", entry.entry_id, result.get("error")
-        )
-    except Exception as err:  # pragma: no cover
-      _LOGGER.debug("MQTT push payload error: %s", err)
+    nonce = None
+    if isinstance(payload_obj.get("nonce"), str):
+      nonce = payload_obj["nonce"]
 
-  unsub = await mqtt.async_subscribe(hass, topic, _message_received, qos=0)
+    await async_process_gps_push(
+      hass,
+      entry,
+      cast(dict[str, Any], payload_obj),
+      source="mqtt",
+      raw_size=len(raw),
+      nonce=nonce,
+    )
+
+  try:
+    unsub = await ha_mqtt.async_subscribe(hass, topic, _callback, qos=0)
+  except Exception as err:
+    _LOGGER.warning("Failed to subscribe MQTT topic %s: %s", topic, err)
+    return
+
   mqtt_store[entry.entry_id] = unsub
-  _LOGGER.info(
-    "MQTT GPS push subscribed for entry %s on topic %s", entry.entry_id, topic
-  )
+  _LOGGER.debug("Subscribed MQTT push topic %s for entry %s", topic, entry.entry_id)
 
 
 async def async_unregister_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Unregister MQTT subscription for a config entry (idempotent)."""
-  mqtt_store = _store(hass)
-  prev = mqtt_store.get(entry.entry_id)
-  if callable(prev):
-    with contextlib.suppress(Exception):
-      prev()
-  mqtt_store.pop(entry.entry_id, None)
+  """Unsubscribe MQTT push topic for this entry."""
+  store = _domain_store(hass)
+  mqtt_store = store.get(_MQTT_STORE_KEY)
+  if not isinstance(mqtt_store, dict):
+    return
+  unsub = mqtt_store.pop(entry.entry_id, None)
+  if callable(unsub):
+    try:
+      result = unsub()
+      # Some HA versions return awaitable
+      if hasattr(result, "__await__"):
+        await result
+    except Exception:  # pragma: no cover
+      _LOGGER.debug("MQTT unsubscribe failed for entry %s", entry.entry_id)

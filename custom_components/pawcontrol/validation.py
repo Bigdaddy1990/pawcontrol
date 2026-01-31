@@ -362,6 +362,9 @@ def validate_gps_source(
   if allow_manual and candidate == "manual":
     return candidate
 
+  if candidate in {"webhook", "mqtt"}:
+    return candidate
+
   state = hass.states.get(candidate)
   if state is None:
     raise ValidationError(field, candidate, "gps_source_not_found")

@@ -8,8 +8,6 @@ Platinum quality ambitions.
 
 from __future__ import annotations
 
-from datetime import timedelta
-
 import logging
 from collections.abc import Mapping, Sequence
 from inspect import isawaitable
@@ -23,8 +21,6 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
-from .push_router import get_entry_push_telemetry_snapshot
-
 from .compat import ConfigEntry
 from .const import (
   CONF_DOG_ID,
@@ -37,10 +33,6 @@ from .const import (
   MODULE_HEALTH,
   MODULE_NOTIFICATIONS,
   MODULE_WALK,
-  CONF_WEBHOOK_ENABLED,
-  CONF_MQTT_ENABLED,
-  DEFAULT_WEBHOOK_ENABLED,
-  DEFAULT_MQTT_ENABLED,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
 from .error_classification import classify_error_reason
@@ -52,6 +44,7 @@ from .runtime_data import (
   require_runtime_data,
 )
 from .telemetry import get_runtime_store_health
+from .push_router import get_entry_push_telemetry_snapshot
 from .types import (
   DogConfigData,
   DogModulesConfig,
@@ -480,6 +473,9 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
     # Check GPS configuration issues
     await _check_gps_configuration_issues(hass, entry)
 
+    # Check push ingestion health (webhook/MQTT)
+    await _check_push_issues(hass, entry)
+
     # Check notification configuration issues
     await _check_notification_configuration_issues(hass, entry)
     # Check recurring notification delivery errors (auth/unreachable)
@@ -490,9 +486,6 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
     # Check telemetry gathered during reconfigure flows
     await _check_reconfigure_telemetry_issues(hass, entry)
-
-    # Check push transport health (webhook/MQTT strict mode)
-    await _check_push_transport_health(hass, entry)
 
     # Check performance issues
     await _check_performance_issues(hass, entry)
@@ -691,169 +684,108 @@ async def _check_gps_configuration_issues(
     )
 
 
-async def _check_push_transport_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Check push transport telemetry for strict webhook/MQTT sources.
 
-  Creates repair issues when:
-  - a dog is configured for webhook/MQTT but the source is disabled
-  - no accepted pushes have been observed after a grace period
-  - rejected pushes are unusually high (likely payload/signature/topic mismatch)
+async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+  """Check push ingestion telemetry and surface actionable issues.
+
+  Issues created:
+  - push_no_data: Push source selected but no accepted push seen after a grace period
+  - push_rejections_high: High rejection counts (likely wrong dog_id/source, replay, rate limit)
   """
+  telemetry = get_entry_push_telemetry_snapshot(hass, entry.entry_id)
+  dogs_tel = telemetry.get("dogs", {})
+  created_at = telemetry.get("created_at")
+  created_dt = dt_util.parse_datetime(created_at) if isinstance(created_at, str) else None
+  now = dt_util.utcnow()
+  grace_seconds = 15 * 60
+
   raw_dogs_obj = entry.data.get(CONF_DOGS, [])
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
     else []
   )
-  dogs: list[Mapping[str, JSONValue]] = [
-    cast(Mapping[str, JSONValue], dog) for dog in raw_dogs if isinstance(dog, Mapping)
-  ]
-  if not dogs:
-    return
-
-  snapshot = get_entry_push_telemetry_snapshot(hass, entry.entry_id)
-  created_at: datetime | None = None  # noqa: F821
-  created_raw = snapshot.get("created_at")
-  if isinstance(created_raw, str):
-    parsed = dt_util.parse_datetime(created_raw)
-    if parsed is not None:
-      created_at = dt_util.as_utc(parsed)
-
-  now = dt_util.utcnow()
-  grace_minutes = 5
-  no_data_minutes = 10
-
-  webhook_enabled = bool(
-    entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)
-  )
-  mqtt_enabled = bool(entry.options.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED))
-
-  per_dog = snapshot.get("per_dog")
-  per_dog_map: Mapping[str, Any] = per_dog if isinstance(per_dog, Mapping) else {}
 
   delete_issue = getattr(ir, "async_delete_issue", None)
 
-  def _delete(issue_id: str) -> None:
-    if callable(delete_issue):
-      try:
-        delete_issue(hass, DOMAIN, issue_id)
-      except Exception:
-        return
-
-  for dog in dogs:
+  for dog in raw_dogs:
+    if not isinstance(dog, Mapping):
+      continue
     dog_id = dog.get(CONF_DOG_ID)
     dog_name = dog.get(CONF_DOG_NAME)
     if not isinstance(dog_id, str) or not dog_id:
       continue
-    if not isinstance(dog_name, str) or not dog_name:
-      dog_name = dog_id
 
-    gps_config_raw = dog.get("gps_config", {})
-    gps_config = gps_config_raw if isinstance(gps_config_raw, Mapping) else {}
-    gps_source = gps_config.get("gps_source")
-
-    issue_no_data_id = f"{entry.entry_id}_push_no_data_{dog_id}"
-    issue_reject_id = f"{entry.entry_id}_push_rejections_high_{dog_id}"
-
+    gps_cfg = dog.get("gps_config")
+    gps_source = gps_cfg.get(CONF_GPS_SOURCE) if isinstance(gps_cfg, Mapping) else None
     if gps_source not in {"webhook", "mqtt"}:
-      _delete(issue_no_data_id)
-      _delete(issue_reject_id)
+      # Ensure stale push issues are removed if source changed
+      for issue_type in (ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH):
+        issue_id = f"{entry.entry_id}_{issue_type}_{dog_id}"
+        if callable(delete_issue):
+          delete_result = delete_issue(hass, DOMAIN, issue_id)
+          if isawaitable(delete_result):
+            await delete_result
       continue
 
-    # Source disabled → no data will arrive
-    if gps_source == "webhook" and not webhook_enabled:
+    dog_snapshot = dogs_tel.get(dog_id, {}) if isinstance(dogs_tel, Mapping) else {}
+    accepted = int(dog_snapshot.get("accepted_total", 0)) if isinstance(dog_snapshot, Mapping) else 0
+    rejected = int(dog_snapshot.get("rejected_total", 0)) if isinstance(dog_snapshot, Mapping) else 0
+    last_reason = (
+      dog_snapshot.get("last_rejection_reason")
+      if isinstance(dog_snapshot, Mapping)
+      else None
+    )
+
+    # push_no_data
+    issue_id_no_data = f"{entry.entry_id}_{ISSUE_PUSH_NO_DATA}_{dog_id}"
+    should_no_data = False
+    if accepted == 0 and created_dt is not None:
+      age = (now - created_dt).total_seconds()
+      should_no_data = age >= grace_seconds
+
+    if should_no_data:
       await async_create_issue(
         hass,
         entry,
-        issue_no_data_id,
+        issue_id_no_data,
         ISSUE_PUSH_NO_DATA,
         {
           "dog_id": dog_id,
           "dog_name": dog_name,
-          "source": "webhook",
-          "reason": "source_disabled",
-          "accepted_total": 0,
-          "rejected_total": 0,
+          "gps_source": gps_source,
         },
-        severity="warning",
+        severity=ir.IssueSeverity.WARNING,
       )
-      _delete(issue_reject_id)
-      continue
+    elif callable(delete_issue):
+      delete_result = delete_issue(hass, DOMAIN, issue_id_no_data)
+      if isawaitable(delete_result):
+        await delete_result
 
-    if gps_source == "mqtt" and not mqtt_enabled:
+    # push_rejections_high
+    issue_id_rej = f"{entry.entry_id}_{ISSUE_PUSH_REJECTIONS_HIGH}_{dog_id}"
+    should_rejections_high = rejected >= 20 and rejected > (accepted * 3 + 10)
+
+    if should_rejections_high:
       await async_create_issue(
         hass,
         entry,
-        issue_no_data_id,
-        ISSUE_PUSH_NO_DATA,
-        {
-          "dog_id": dog_id,
-          "dog_name": dog_name,
-          "source": "mqtt",
-          "reason": "source_disabled",
-          "accepted_total": 0,
-          "rejected_total": 0,
-        },
-        severity="warning",
-      )
-      _delete(issue_reject_id)
-      continue
-
-    dog_tel_raw = per_dog_map.get(dog_id, {})
-    dog_tel = dog_tel_raw if isinstance(dog_tel_raw, Mapping) else {}
-    accepted = _coerce_int(dog_tel.get("accepted_total")) or 0
-    rejected = _coerce_int(dog_tel.get("rejected_total")) or 0
-
-    # Avoid false positives right after reload/startup
-    if created_at is not None and (now - created_at) < timedelta(minutes=grace_minutes):
-      _delete(issue_no_data_id)
-      _delete(issue_reject_id)
-      continue
-
-    # No accepted data observed after grace window
-    if (
-      created_at is not None
-      and accepted == 0
-      and (now - created_at) >= timedelta(minutes=no_data_minutes)
-    ):
-      await async_create_issue(
-        hass,
-        entry,
-        issue_no_data_id,
-        ISSUE_PUSH_NO_DATA,
-        {
-          "dog_id": dog_id,
-          "dog_name": dog_name,
-          "source": str(gps_source),
-          "rejected_total": rejected,
-          "accepted_total": accepted,
-          "reason": "no_data",
-        },
-        severity="warning",
-      )
-    else:
-      _delete(issue_no_data_id)
-
-    # Rejections unusually high
-    too_many = rejected >= 20 and rejected > max(accepted * 5, 20)
-    if too_many:
-      await async_create_issue(
-        hass,
-        entry,
-        issue_reject_id,
+        issue_id_rej,
         ISSUE_PUSH_REJECTIONS_HIGH,
         {
           "dog_id": dog_id,
           "dog_name": dog_name,
-          "source": str(gps_source),
+          "gps_source": gps_source,
           "accepted_total": accepted,
           "rejected_total": rejected,
+          "last_rejection_reason": last_reason,
         },
-        severity="warning",
+        severity=ir.IssueSeverity.WARNING,
       )
-    else:
-      _delete(issue_reject_id)
-
+    elif callable(delete_issue):
+      delete_result = delete_issue(hass, DOMAIN, issue_id_rej)
+      if isawaitable(delete_result):
+        await delete_result
 
 async def _check_notification_configuration_issues(
   hass: HomeAssistant,
@@ -1653,8 +1585,6 @@ class PawControlRepairsFlow(RepairsFlow):
       return await self.async_step_missing_notifications()
     if self._repair_type == ISSUE_OUTDATED_CONFIG:
       return await self.async_step_outdated_config()
-    if self._repair_type in {ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH}:
-      return await self.async_step_push_health()
     if self._repair_type in {
       ISSUE_PERFORMANCE_WARNING,
       ISSUE_GPS_UPDATE_INTERVAL,
@@ -2066,72 +1996,6 @@ class PawControlRepairsFlow(RepairsFlow):
           0,
         ),
       },
-    )
-
-  async def async_step_outdated_config(
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle outdated configuration repair flow."""
-    if user_input is not None:
-      action = user_input.get("action")
-      if action == "reload":
-        await self._reload_config_entry()
-      return await self.async_step_complete_repair()
-
-    return self.async_show_form(
-      step_id="outdated_config",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action", default="reload"): selector(
-            {
-              "select": {
-                "options": [
-                  {"value": "reload", "label": "Reload integration"},
-                  {"value": "dismiss", "label": "Dismiss"},
-                ],
-                "mode": "dropdown",
-              }
-            },
-          )
-        },
-      ),
-    )
-
-  async def async_step_push_health(
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle push transport health repair flow."""
-    if user_input is not None:
-      action = user_input.get("action")
-      if action == "reload":
-        await self._reload_config_entry()
-      return await self.async_step_complete_repair()
-
-    dog_name = self._issue_data.get("dog_name", "dog")
-    source = self._issue_data.get("source", "push")
-    return self.async_show_form(
-      step_id="push_health",
-      description_placeholders={
-        "dog_name": str(dog_name),
-        "source": str(source),
-      },
-      data_schema=vol.Schema(
-        {
-          vol.Required("action", default="dismiss"): selector(
-            {
-              "select": {
-                "options": [
-                  {"value": "dismiss", "label": "Dismiss"},
-                  {"value": "reload", "label": "Reload integration"},
-                ],
-                "mode": "dropdown",
-              }
-            },
-          )
-        },
-      ),
     )
 
   async def async_step_performance_warning(

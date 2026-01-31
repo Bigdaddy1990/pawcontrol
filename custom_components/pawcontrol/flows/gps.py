@@ -375,11 +375,20 @@ class DogGPSFlowMixin(DogGPSFlowHost):
     """Build the schema for GPS configuration."""
 
     gps_sources = self._get_available_device_trackers()
+    base_push_sources = {
+      "webhook": "Webhook (Push)",
+      "mqtt": "MQTT (Push)",
+    }
+
     if not gps_sources:
-      gps_sources = {"manual": "Manual Location Entry"}
+      gps_sources = {
+        **base_push_sources,
+        "manual": "Manual Location Entry",
+      }
     else:
       gps_sources = {
         **gps_sources,
+        **base_push_sources,
         "manual": "Manual Location Entry",
       }
 

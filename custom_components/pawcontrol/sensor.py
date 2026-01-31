@@ -24,14 +24,13 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .push_router import get_entry_push_telemetry_snapshot
-
 from .compat import MASS_GRAMS, MASS_KILOGRAMS
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, MODULE_GARDEN
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .entity_factory import EntityFactory, EntityProfileDefinition
 from .runtime_data import get_runtime_data
+from .push_router import get_entry_push_telemetry_snapshot
 from .types import (
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
@@ -1695,91 +1694,6 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
 
 @register_sensor("garden_time_today")
-class PawControlPushLastAcceptedSensor(PawControlSensorBase):
-  """Timestamp of the last accepted push update for this dog."""
-
-  def __init__(
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "push_last_accepted",
-      device_class=SensorDeviceClass.TIMESTAMP,
-      icon="mdi:clock-check-outline",
-      entity_category=EntityCategory.DIAGNOSTIC,
-      translation_key="push_last_accepted",
-    )
-
-  @property
-  def native_value(self) -> datetime | None:
-    hass = getattr(self.coordinator, "hass", None) or self.hass
-    if hass is None:
-      return None
-    entry_id = self.coordinator.config_entry.entry_id
-    snapshot = get_entry_push_telemetry_snapshot(hass, entry_id)
-    per_dog = snapshot.get("per_dog")
-    if not isinstance(per_dog, dict):
-      return None
-    dog_tel = per_dog.get(self.dog_id)
-    if not isinstance(dog_tel, dict):
-      return None
-    last = dog_tel.get("last_accepted")
-    if not isinstance(last, str) or not last:
-      return None
-    parsed = dt_util.parse_datetime(last)
-    if parsed is None:
-      return None
-    return dt_util.as_utc(parsed)
-
-
-class PawControlPushRejectedTotalSensor(PawControlSensorBase):
-  """Total number of rejected push updates for this dog."""
-
-  def __init__(
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "push_rejected_total",
-      state_class=SensorStateClass.TOTAL_INCREASING,
-      icon="mdi:alert-circle-outline",
-      entity_category=EntityCategory.DIAGNOSTIC,
-      translation_key="push_rejected_total",
-    )
-
-  @property
-  def native_value(self) -> int | None:
-    hass = getattr(self.coordinator, "hass", None) or self.hass
-    if hass is None:
-      return None
-    entry_id = self.coordinator.config_entry.entry_id
-    snapshot = get_entry_push_telemetry_snapshot(hass, entry_id)
-    per_dog = snapshot.get("per_dog")
-    if not isinstance(per_dog, dict):
-      return None
-    dog_tel = per_dog.get(self.dog_id)
-    if not isinstance(dog_tel, dict):
-      return None
-    value = dog_tel.get("rejected_total")
-    if isinstance(value, bool):
-      return None
-    if isinstance(value, int):
-      return value
-    if isinstance(value, float) and value.is_integer():
-      return int(value)
-    return None
-
-
 class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
   """Sensor for tracking garden time today."""
 
@@ -4759,3 +4673,81 @@ def _is_budget_exhausted(budget: Any) -> bool:
 
   remaining = _coerce_budget_remaining(budget)
   return remaining is not None and remaining <= 0
+
+
+class PawControlPushLastAcceptedSensor(PawControlSensorBase):
+  """Timestamp of the last accepted push update for this dog."""
+
+  def __init__(
+    self,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
+  ) -> None:
+    super().__init__(
+      coordinator,
+      dog_id,
+      dog_name,
+      "push_last_accepted",
+      device_class=SensorDeviceClass.TIMESTAMP,
+      entity_category=EntityCategory.DIAGNOSTIC,
+      icon="mdi:upload",
+      translation_key="push_last_accepted",
+    )
+
+  @property
+  def native_value(self) -> datetime | None:
+    entry = getattr(self.coordinator, "config_entry", None)
+    entry_id = getattr(entry, "entry_id", None)
+    if not isinstance(entry_id, str) or not entry_id:
+      return None
+    snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hass, entry_id)
+    dogs = snapshot.get("dogs", {})
+    if not isinstance(dogs, Mapping):
+      return None
+    dog_tel = dogs.get(self._dog_id)
+    if not isinstance(dog_tel, Mapping):
+      return None
+    raw = dog_tel.get("last_accepted")
+    if isinstance(raw, str) and raw:
+      return dt_util.parse_datetime(raw)
+    return None
+
+
+class PawControlPushRejectedTotalSensor(PawControlSensorBase):
+  """Total rejected push updates for this dog (since HA restart)."""
+
+  def __init__(
+    self,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
+  ) -> None:
+    super().__init__(
+      coordinator,
+      dog_id,
+      dog_name,
+      "push_rejected_total",
+      state_class=SensorStateClass.TOTAL,
+      entity_category=EntityCategory.DIAGNOSTIC,
+      icon="mdi:alert-circle-outline",
+      translation_key="push_rejected_total",
+    )
+
+  @property
+  def native_value(self) -> int:
+    entry = getattr(self.coordinator, "config_entry", None)
+    entry_id = getattr(entry, "entry_id", None)
+    if not isinstance(entry_id, str) or not entry_id:
+      return 0
+    snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hass, entry_id)
+    dogs = snapshot.get("dogs", {})
+    if not isinstance(dogs, Mapping):
+      return 0
+    dog_tel = dogs.get(self._dog_id)
+    if not isinstance(dog_tel, Mapping):
+      return 0
+    try:
+      return int(dog_tel.get("rejected_total", 0))
+    except Exception:
+      return 0
