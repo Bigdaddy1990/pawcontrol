@@ -711,7 +711,7 @@ async def _check_push_transport_health(hass: HomeAssistant, entry: ConfigEntry) 
     return
 
   snapshot = get_entry_push_telemetry_snapshot(hass, entry.entry_id)
-  created_at: datetime | None = None
+  created_at: datetime | None = None  # noqa: F821
   created_raw = snapshot.get("created_at")
   if isinstance(created_raw, str):
     parsed = dt_util.parse_datetime(created_raw)
