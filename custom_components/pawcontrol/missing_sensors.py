@@ -418,7 +418,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     attrs = ensure_json_mapping(super().extra_state_attributes)
     feeding_data = _feeding_payload(self)
     if feeding_data is None:
-      return attrs
+      return _normalise_attributes(attrs)
 
     with contextlib.suppress(TypeError, ValueError):
       last_feeding = cast(
@@ -521,7 +521,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     attrs = ensure_json_mapping(super().extra_state_attributes)
     walk_data = _walk_payload(self)
     if walk_data is None:
-      return attrs
+      return _normalise_attributes(attrs)
 
     with contextlib.suppress(TypeError, ValueError):
       total_distance_value = cast(
@@ -630,7 +630,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     attrs = ensure_json_mapping(super().extra_state_attributes)
     walk_data = _walk_payload(self)
     if walk_data is None:
-      return attrs
+      return _normalise_attributes(attrs)
 
     with contextlib.suppress(TypeError, ValueError):
       walks_today = int(cast(int, walk_data.get("walks_today", 0)))
