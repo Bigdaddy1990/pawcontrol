@@ -326,9 +326,7 @@ def test_extra_state_attributes_use_normalisation_helpers() -> None:
     for node in ast.walk(module):
       if isinstance(node, ast.FunctionDef) and node.name == "extra_state_attributes":
         calls = {
-          call.func.attr
-          if isinstance(call.func, ast.Attribute)
-          else call.func.id
+          call.func.attr if isinstance(call.func, ast.Attribute) else call.func.id
           for call in ast.walk(node)
           if isinstance(call, ast.Call)
           and isinstance(call.func, (ast.Attribute, ast.Name))
