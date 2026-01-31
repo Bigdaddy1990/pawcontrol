@@ -18,6 +18,7 @@ from custom_components.pawcontrol.datetime import PawControlBirthdateDateTime
 from custom_components.pawcontrol.device_tracker import PawControlGPSTracker
 from custom_components.pawcontrol.missing_sensors import (
   PawControlActivityLevelSensor,
+  PawControlLastFeedingHoursSensor,
 )
 from custom_components.pawcontrol.number import PawControlDogWeightNumber
 from custom_components.pawcontrol.select import PawControlDogSizeSelect
@@ -219,6 +220,24 @@ def _make_coordinator() -> _DummyCoordinator:
         {"duration": timedelta(minutes=12)},
       ),
       "duration",
+      str,
+    ),
+    (
+      lambda coordinator: PawControlLastFeedingHoursSensor(
+        cast(PawControlCoordinator, coordinator),
+        "dog-1",
+        "Buddy",
+      ),
+      lambda entity: entity.coordinator.data["dog-1"].update(
+        {
+          "feeding": {
+            "last_feeding": datetime(2024, 2, 7, tzinfo=UTC),
+            "total_feedings_today": 2,
+            "config": {"meals_per_day": 2},
+          },
+        },
+      ),
+      "last_feeding_time",
       str,
     ),
   ],
