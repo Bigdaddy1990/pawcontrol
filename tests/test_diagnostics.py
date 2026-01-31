@@ -28,9 +28,7 @@ def _assert_json_serialisable(value: Any) -> None:
       _assert_json_serialisable(item)
     return
 
-  assert not isinstance(value, datetime)
-  assert not isinstance(value, timedelta)
-  assert not isinstance(value, set)
+  assert not isinstance(value, (datetime, date, time, timedelta, set))
   assert not is_dataclass(value)
 
 
