@@ -393,6 +393,66 @@ def test_storage_warning_flow_reduces_retention(
   assert delete_issue_mock.await_count == 1
 
 
+def test_notification_auth_error_flow_shows_guidance(
+  repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+  """Notification auth error repairs should guide users to credentials."""
+
+  module, _, _, _ = repairs_module
+
+  issue_id = "entry_notification_auth_error"
+  issue_data = {
+    "config_entry_id": "entry",
+    "issue_type": module.ISSUE_NOTIFICATION_AUTH_ERROR,
+    "services": "notify.mobile_app_phone",
+    "service_count": 1,
+    "total_failures": 4,
+    "consecutive_failures": 3,
+    "last_error_reasons": "unauthorized",
+  }
+
+  hass = SimpleNamespace(
+    data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+  )
+
+  flow = _create_flow(module, hass, issue_id)
+  result = asyncio.run(flow.async_step_init())
+
+  assert result["type"] == "form"
+  assert result["step_id"] == "notification_auth_error"
+  assert result["description_placeholders"]["service_count"] == 1
+
+
+def test_notification_device_unreachable_flow_shows_guidance(
+  repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+  """Notification unreachable repairs should guide users to device checks."""
+
+  module, _, _, _ = repairs_module
+
+  issue_id = "entry_notification_device_unreachable"
+  issue_data = {
+    "config_entry_id": "entry",
+    "issue_type": module.ISSUE_NOTIFICATION_DEVICE_UNREACHABLE,
+    "services": "notify.mobile_app_watch",
+    "service_count": 1,
+    "total_failures": 3,
+    "consecutive_failures": 3,
+    "last_error_reasons": "device offline",
+  }
+
+  hass = SimpleNamespace(
+    data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+  )
+
+  flow = _create_flow(module, hass, issue_id)
+  result = asyncio.run(flow.async_step_init())
+
+  assert result["type"] == "form"
+  assert result["step_id"] == "notification_device_unreachable"
+  assert result["description_placeholders"]["service_count"] == 1
+
+
 def test_module_conflict_flow_disables_extra_gps_modules(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:

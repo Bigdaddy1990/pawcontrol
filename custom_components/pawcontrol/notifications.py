@@ -29,13 +29,22 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from .coordinator_tasks import default_rejection_metrics
 from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
+from .error_classification import classify_error_reason
 from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
-from .types import JSONMutableMapping, PersonEntityStats, PersonNotificationContext
+from .runtime_data import get_runtime_data
+from .telemetry import ensure_runtime_performance_stats
+from .types import (
+  CoordinatorRejectionMetrics,
+  JSONMutableMapping,
+  PersonEntityStats,
+  PersonNotificationContext,
+)
 from .utils import async_call_hass_service_if_available
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
@@ -894,6 +903,39 @@ class PawControlNotificationManager:
     status.consecutive_failures += 1
     status.last_error_reason = reason
     status.last_error = str(error) if error else reason
+    self._record_delivery_failure_rejection_metrics(reason, error=error)
+
+  def _record_delivery_failure_rejection_metrics(
+    self,
+    reason: str,
+    *,
+    error: Exception | None = None,
+  ) -> None:
+    """Store delivery failure reasons in shared rejection metrics."""
+
+    runtime_data = get_runtime_data(self._hass, self._entry_id)
+    if runtime_data is None:
+      return
+
+    performance_stats = ensure_runtime_performance_stats(runtime_data)
+    rejection_metrics_raw = performance_stats.get("rejection_metrics")
+    if isinstance(rejection_metrics_raw, MutableMapping):
+      rejection_metrics = cast(CoordinatorRejectionMetrics, rejection_metrics_raw)
+    else:
+      rejection_metrics = default_rejection_metrics()
+      performance_stats["rejection_metrics"] = rejection_metrics
+
+    reason_text = classify_error_reason(reason, error=error).strip() or "unknown"
+
+    failure_reasons_raw = rejection_metrics.get("failure_reasons")
+    if isinstance(failure_reasons_raw, MutableMapping):
+      failure_reasons = cast(MutableMapping[str, int], failure_reasons_raw)
+    else:
+      failure_reasons = {}
+      rejection_metrics["failure_reasons"] = failure_reasons
+
+    failure_reasons[reason_text] = int(failure_reasons.get(reason_text, 0) or 0) + 1
+    rejection_metrics["last_failure_reason"] = reason_text
 
   def _notify_service_available(self, service_name: str) -> bool:
     """Return True when a notify service is registered."""

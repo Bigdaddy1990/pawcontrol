@@ -100,6 +100,22 @@ def test_notification_rejection_metrics_summarises_services() -> None:
   )
 
 
+def test_rejection_metrics_capture_failure_reasons() -> None:
+  """Rejection metrics should surface aggregated failure reasons."""
+
+  from custom_components.pawcontrol.coordinator_tasks import derive_rejection_metrics
+
+  summary = {
+    "failure_reasons": {"auth_error": 2, "device_unreachable": 1},
+    "last_failure_reason": "auth_error",
+  }
+
+  metrics = derive_rejection_metrics(summary)
+
+  assert metrics["failure_reasons"] == {"auth_error": 2, "device_unreachable": 1}
+  assert metrics["last_failure_reason"] == "auth_error"
+
+
 def test_guard_notification_error_metrics_aggregate_counts() -> None:
   """Guard and notification errors should aggregate into a shared snapshot."""
 
