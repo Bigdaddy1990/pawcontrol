@@ -123,12 +123,12 @@ async def async_setup_external_bindings(
       current
       and isinstance(current.latitude, (int, float))
       and isinstance(current.longitude, (int, float))
-    ):  # noqa: SIM102
-      if (
-        _haversine_m(float(current.latitude), float(current.longitude), lat, lon)
-        < _MIN_METERS
-      ):
-        return
+      and _haversine_m(
+        float(current.latitude), float(current.longitude), lat, lon
+      )
+      < _MIN_METERS
+    ):
+      return
 
     try:
       ok = await gps_manager.async_add_gps_point(
