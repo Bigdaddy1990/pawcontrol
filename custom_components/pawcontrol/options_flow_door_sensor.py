@@ -38,6 +38,7 @@ from .types import (
   JSONValue,
   ensure_dog_config_data,
 )
+from .validation import ValidationError, validate_sensor_entity_id
 
 if TYPE_CHECKING:
   from .compat import ConfigEntry
@@ -186,15 +187,16 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
         trimmed_sensor = None
 
       if trimmed_sensor:
-        state = self.hass.states.get(trimmed_sensor)
-        device_class = (
-          state.attributes.get(
-            "device_class",
+        try:
+          trimmed_sensor = validate_sensor_entity_id(
+            self.hass,
+            trimmed_sensor,
+            field=CONF_DOOR_SENSOR,
+            domain="binary_sensor",
+            device_classes=set(DOOR_SENSOR_DEVICE_CLASSES),
+            not_found_constraint="door_sensor_not_found",
           )
-          if state
-          else None
-        )
-        if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
+        except ValidationError:
           errors[CONF_DOOR_SENSOR] = "door_sensor_not_found"
 
       settings_overrides: dict[str, bool | int | float | str | None] = {}

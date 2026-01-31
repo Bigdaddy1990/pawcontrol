@@ -78,6 +78,7 @@ from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
 from .error_classification import classify_error_reason
+from .exceptions import ServiceValidationError as PawControlServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
 from .grooming_translations import (
@@ -152,7 +153,7 @@ HomeAssistantError: type[Exception] = cast(
 )
 ServiceValidationError: type[Exception] = cast(
   type[Exception],
-  compat.ServiceValidationError,
+  PawControlServiceValidationError,
 )
 bind_exception_alias("HomeAssistantError", combine_with_current=True)
 bind_exception_alias("ServiceValidationError")
@@ -275,6 +276,23 @@ def _format_gps_validation_error(
       return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
     return f"{field} is out of range"
 
+  return f"{field} is invalid"
+
+
+def _format_coordinate_validation_error(error: ValidationError) -> str:
+  """Format coordinate validation errors for service responses."""
+
+  field = error.field.replace("_", " ")
+  constraint = error.constraint
+
+  if constraint == "coordinate_required":
+    return f"{field} is required"
+  if constraint == "coordinate_not_numeric":
+    return f"{field} must be a number"
+  if constraint == "coordinate_out_of_range":
+    if error.min_value is not None and error.max_value is not None:
+      return f"{field} must be between {error.min_value} and {error.max_value}"
+    return f"{field} is out of range"
   return f"{field} is invalid"
 
 
@@ -1694,7 +1712,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     raw_dog_id = payload["dog_id"]
     if not isinstance(raw_dog_id, str):
-      raise ServiceValidationError("dog_id must be a string")
+      raise _service_validation_error("dog_id must be a string")
     dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
     amount = payload["amount"]
     meal_type = payload.get("meal_type")
@@ -1986,6 +2004,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     accuracy = call.data.get("accuracy")
 
     try:
+      try:
+        latitude, longitude = InputValidator.validate_gps_coordinates(
+          latitude,
+          longitude,
+        )
+      except ValidationError as err:
+        raise _service_validation_error(
+          _format_coordinate_validation_error(err),
+        ) from err
+
       success = await walk_manager.async_add_gps_point(
         dog_id=dog_id,
         latitude=latitude,
@@ -2505,6 +2533,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     timestamp = call.data.get("timestamp", dt_util.utcnow())
 
     try:
+      try:
+        latitude, longitude = InputValidator.validate_gps_coordinates(
+          latitude,
+          longitude,
+        )
+      except ValidationError as err:
+        raise _service_validation_error(
+          _format_coordinate_validation_error(err),
+        ) from err
+
       from .gps_manager import LocationSource
 
       success = await gps_manager.async_add_gps_point(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -36,6 +37,18 @@ normalize_dog_id = validation.normalize_dog_id
 validate_json_schema_payload = schemas.validate_json_schema_payload
 GPS_DOG_CONFIG_JSON_SCHEMA = schemas.GPS_DOG_CONFIG_JSON_SCHEMA
 GPS_OPTIONS_JSON_SCHEMA = schemas.GPS_OPTIONS_JSON_SCHEMA
+validate_sensor_entity_id = validation.validate_sensor_entity_id
+
+
+class _FakeStates(dict[str, SimpleNamespace]):
+  """Minimal state registry for validation tests."""
+
+
+class _FakeHomeAssistant:
+  """Minimal Home Assistant stub for validation tests."""
+
+  def __init__(self, states: _FakeStates) -> None:
+    self.states = states
 
 
 def test_validate_gps_coordinates_success() -> None:
@@ -123,3 +136,53 @@ def test_coerce_helpers_reject_invalid_types() -> None:
 
   with pytest.raises(InputCoercionError):
     coerce_float("weight", "")
+
+
+def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
+  hass = _FakeHomeAssistant(
+    _FakeStates(
+      {
+        "binary_sensor.front_door": SimpleNamespace(
+          state="on",
+          attributes={"device_class": "door"},
+        )
+      }
+    )
+  )
+
+  assert (
+    validate_sensor_entity_id(
+      hass,
+      " binary_sensor.front_door ",
+      field="door_sensor",
+      domain="binary_sensor",
+      device_classes={"door"},
+      not_found_constraint="door_sensor_not_found",
+    )
+    == "binary_sensor.front_door"
+  )
+
+
+def test_validate_sensor_entity_id_rejects_wrong_device_class() -> None:
+  hass = _FakeHomeAssistant(
+    _FakeStates(
+      {
+        "binary_sensor.front_door": SimpleNamespace(
+          state="on",
+          attributes={"device_class": "motion"},
+        )
+      }
+    )
+  )
+
+  with pytest.raises(ValidationError) as err:
+    validate_sensor_entity_id(
+      hass,
+      "binary_sensor.front_door",
+      field="door_sensor",
+      domain="binary_sensor",
+      device_classes={"door"},
+      not_found_constraint="door_sensor_not_found",
+    )
+
+  assert err.value.constraint == "door_sensor_not_found"
