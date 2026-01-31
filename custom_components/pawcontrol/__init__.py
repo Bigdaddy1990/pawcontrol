@@ -65,7 +65,10 @@ from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .webhooks import async_register_entry_webhook, async_unregister_entry_webhook
 from .mqtt_push import async_register_entry_mqtt, async_unregister_entry_mqtt
-from .external_bindings import async_setup_external_bindings, async_unload_external_bindings
+from .external_bindings import (
+  async_setup_external_bindings,
+  async_unload_external_bindings,
+)
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .telemetry import update_runtime_reconfigure_summary

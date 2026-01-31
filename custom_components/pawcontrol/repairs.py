@@ -684,7 +684,6 @@ async def _check_gps_configuration_issues(
     )
 
 
-
 async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
   """Check push ingestion telemetry and surface actionable issues.
 
@@ -695,7 +694,9 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
   telemetry = get_entry_push_telemetry_snapshot(hass, entry.entry_id)
   dogs_tel = telemetry.get("dogs", {})
   created_at = telemetry.get("created_at")
-  created_dt = dt_util.parse_datetime(created_at) if isinstance(created_at, str) else None
+  created_dt = (
+    dt_util.parse_datetime(created_at) if isinstance(created_at, str) else None
+  )
   now = dt_util.utcnow()
   grace_seconds = 15 * 60
 
@@ -729,8 +730,16 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
       continue
 
     dog_snapshot = dogs_tel.get(dog_id, {}) if isinstance(dogs_tel, Mapping) else {}
-    accepted = int(dog_snapshot.get("accepted_total", 0)) if isinstance(dog_snapshot, Mapping) else 0
-    rejected = int(dog_snapshot.get("rejected_total", 0)) if isinstance(dog_snapshot, Mapping) else 0
+    accepted = (
+      int(dog_snapshot.get("accepted_total", 0))
+      if isinstance(dog_snapshot, Mapping)
+      else 0
+    )
+    rejected = (
+      int(dog_snapshot.get("rejected_total", 0))
+      if isinstance(dog_snapshot, Mapping)
+      else 0
+    )
     last_reason = (
       dog_snapshot.get("last_rejection_reason")
       if isinstance(dog_snapshot, Mapping)
@@ -786,6 +795,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
       delete_result = delete_issue(hass, DOMAIN, issue_id_rej)
       if isawaitable(delete_result):
         await delete_result
+
 
 async def _check_notification_configuration_issues(
   hass: HomeAssistant,

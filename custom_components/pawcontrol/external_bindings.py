@@ -65,7 +65,9 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
   return 2 * r * math.asin(math.sqrt(a))
 
 
-def _extract_coords(state_obj: Any) -> tuple[float | None, float | None, float | None, float | None]:
+def _extract_coords(
+  state_obj: Any,
+) -> tuple[float | None, float | None, float | None, float | None]:
   attrs = getattr(state_obj, "attributes", None)
   if not isinstance(attrs, Mapping):
     return None, None, None, None
@@ -85,7 +87,9 @@ def _extract_coords(state_obj: Any) -> tuple[float | None, float | None, float |
   return None, None, None, None
 
 
-async def async_setup_external_bindings(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_setup_external_bindings(
+  hass: HomeAssistant, entry: ConfigEntry
+) -> None:
   """Set up external entity listeners for this config entry."""
   runtime_data = require_runtime_data(hass, entry)
   coordinator = runtime_data.coordinator
@@ -115,8 +119,15 @@ async def async_setup_external_bindings(hass: HomeAssistant, entry: ConfigEntry)
       current = gps_manager.get_current_location(dog_id)
     except Exception:
       current = None
-    if current and isinstance(current.latitude, (int, float)) and isinstance(current.longitude, (int, float)):  # noqa: SIM102
-      if _haversine_m(float(current.latitude), float(current.longitude), lat, lon) < _MIN_METERS:
+    if (
+      current
+      and isinstance(current.latitude, (int, float))
+      and isinstance(current.longitude, (int, float))
+    ):  # noqa: SIM102
+      if (
+        _haversine_m(float(current.latitude), float(current.longitude), lat, lon)
+        < _MIN_METERS
+      ):
         return
 
     try:
@@ -132,7 +143,9 @@ async def async_setup_external_bindings(hass: HomeAssistant, entry: ConfigEntry)
       if ok:
         await coordinator.async_patch_gps_update(dog_id)
     except Exception as err:  # pragma: no cover
-      _LOGGER.debug("External GPS binding update failed for %s from %s: %s", dog_id, entity_id, err)
+      _LOGGER.debug(
+        "External GPS binding update failed for %s from %s: %s", dog_id, entity_id, err
+      )
 
   dogs = entry.data.get(CONF_DOGS, [])
   if not isinstance(dogs, list):
@@ -174,7 +187,9 @@ async def async_setup_external_bindings(hass: HomeAssistant, entry: ConfigEntry)
   _LOGGER.debug("External GPS bindings ready for entry %s", entry.entry_id)
 
 
-async def async_unload_external_bindings(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_unload_external_bindings(
+  hass: HomeAssistant, entry: ConfigEntry
+) -> None:
   """Unload external entity listeners for this entry."""
   store = _domain_store(hass)
   entry_map = store.get(_STORE_KEY)

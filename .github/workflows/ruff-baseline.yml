@@ -19,8 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - run: python -m pip install pip ruff --upgrade 
-          
+      - run: python -m pip install pip ruff --upgrade
+
       - run: |
           ruff check . --fix all || true
           ruff check . --fix --unsafe-fixes || true
