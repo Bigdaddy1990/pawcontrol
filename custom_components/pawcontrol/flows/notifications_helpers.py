@@ -17,7 +17,7 @@ from ..types import (
   NotificationOptions,
   NotificationSettingsInput,
 )
-from ..validation import validate_int_range, validate_time_window
+from ..validation import validate_int_range
 
 
 def _bool_default(
@@ -47,6 +47,7 @@ def build_notification_settings_payload(
   current: NotificationOptions,
   *,
   coerce_bool: Callable[[Any, bool], bool],
+  coerce_time_string: Callable[[Any, str], str],
 ) -> NotificationOptions:
   """Create a typed notification payload from submitted form data."""
 
@@ -67,20 +68,6 @@ def build_notification_settings_payload(
         NOTIFICATION_REMINDER_REPEAT_FIELD: err.constraint or "invalid_configuration"
       }
     ) from err
-
-  try:
-    quiet_start, quiet_end = validate_time_window(
-      user_input.get(NOTIFICATION_QUIET_START_FIELD),
-      user_input.get(NOTIFICATION_QUIET_END_FIELD),
-      start_field=NOTIFICATION_QUIET_START_FIELD,
-      end_field=NOTIFICATION_QUIET_END_FIELD,
-      default_start=current.get(NOTIFICATION_QUIET_START_FIELD, "22:00:00"),
-      default_end=current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00"),
-      invalid_start_constraint="quiet_start_invalid",
-      invalid_end_constraint="quiet_end_invalid",
-    )
-  except ValidationError as err:
-    raise FlowValidationError(field_errors={err.field: err.constraint}) from err
 
   return cast(
     NotificationOptions,
