@@ -19,10 +19,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - run: python -m pip install --upgrade pip ruff perk
+      - run: |
+          python -m pip install pip ruff --upgrade
+          python -m pip install prek
+          prek install
 
       - run: |
-          prek run --all-files
+          prek run --hook-stage manual python-typing-update --all-files
+          prek run --all-files --show-diff-on-failure
+          
+      - run: |
           ruff check . --fix all || true
           ruff check . --fix --unsafe-fixes || true
           ruff check . --add-noqa || true
