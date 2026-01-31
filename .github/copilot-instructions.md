@@ -189,10 +189,10 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
   zeroed defaults and `schema_version` so Platinum dashboards and docs can ingest
   the counters without bespoke scraping; update coordinator observability tests,
   docs, and front-end schema references together and revalidate the diagnostics
-  panel once UI updates land.【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:docs/diagnostik.md†L24-L48】
+  panel once UI updates land.【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:docs/diagnostics.md†L24-L48】
 - Mark entities with `_attr_has_entity_name = True` and populate `device_info`
   using identifiers from `const.py`. Align diagnostic sections with
-  `docs/diagnostik.md` when telemetry changes.【F:custom_components/pawcontrol/const.py†L1-L347】
+  `docs/diagnostics.md` when telemetry changes.【F:custom_components/pawcontrol/const.py†L1-L347】
 
 ## Documentation and release hygiene
 
