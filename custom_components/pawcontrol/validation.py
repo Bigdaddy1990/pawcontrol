@@ -11,8 +11,12 @@ Python: 3.13+
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import time as dt_time
+from enum import Enum
 from numbers import Real
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Any, Final, Generic, TypeVar, cast
 
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
@@ -70,6 +74,8 @@ MAX_DURATION_MINUTES: Final[int] = 480
 MIN_GEOFENCE_RADIUS: Final[float] = 5.0
 MAX_GEOFENCE_RADIUS: Final[float] = 5000.0
 
+TNotificationTarget = TypeVar("TNotificationTarget", bound=Enum)
+
 
 class InputCoercionError(ValueError):
   """Raised when raw input cannot be coerced to the expected type."""
@@ -85,6 +91,14 @@ def _is_empty(value: Any) -> bool:
   """Return True when a value should be treated as missing."""
 
   return value is None or (isinstance(value, str) and not value.strip())
+
+
+@dataclass(frozen=True, slots=True)
+class NotificationTargets(Generic[TNotificationTarget]):
+  """Typed result for notification target validation."""
+
+  targets: list[TNotificationTarget]
+  invalid: list[str]
 
 
 def _coerce_float_with_constraint(
@@ -111,6 +125,34 @@ def normalize_dog_id(raw_id: Any) -> str:
 
   dog_id_raw = raw_id.strip().lower()
   return re.sub(r"\s+", "_", dog_id_raw)
+
+
+def _parse_time_string(
+  field: str,
+  value: Any,
+  invalid_constraint: str,
+) -> str | None:
+  """Parse and normalize time strings for validation."""
+
+  if value is None:
+    return None
+
+  if isinstance(value, dt_time):
+    return value.isoformat()
+
+  if not isinstance(value, str):
+    raise ValidationError(field, value, invalid_constraint)
+
+  trimmed = value.strip()
+  if not trimmed:
+    return None
+
+  try:
+    parsed = dt_time.fromisoformat(trimmed)
+  except ValueError as err:
+    raise ValidationError(field, value, invalid_constraint) from err
+
+  return parsed.isoformat()
 
 
 def coerce_float(field: str, value: Any) -> float:
@@ -224,54 +266,134 @@ def _coerce_int(field: str, value: Any) -> int:
     ) from err
 
 
+def validate_notification_targets(
+  raw_targets: Any,
+  *,
+  enum_type: type[TNotificationTarget],
+) -> NotificationTargets[TNotificationTarget]:
+  """Validate notification targets against the provided enum type."""
+
+  if raw_targets is None:
+    return NotificationTargets(targets=[], invalid=[])
+
+  candidate_targets: Iterable[Any]
+  if isinstance(raw_targets, enum_type | str):
+    candidate_targets = [raw_targets]
+  elif isinstance(raw_targets, Iterable) and not isinstance(
+    raw_targets,
+    str | bytes | bytearray,
+  ):
+    candidate_targets = raw_targets
+  else:
+    candidate_targets = [raw_targets]
+
+  targets: list[TNotificationTarget] = []
+  invalid: list[str] = []
+  seen: set[TNotificationTarget] = set()
+  for candidate in candidate_targets:
+    try:
+      target = enum_type(candidate)
+    except (TypeError, ValueError):
+      invalid.append(str(candidate))
+      continue
+
+    if target in seen:
+      continue
+
+    seen.add(target)
+    targets.append(target)
+
+  return NotificationTargets(targets=targets, invalid=invalid)
+
+
+def validate_time_window(
+  start: Any,
+  end: Any,
+  *,
+  start_field: str,
+  end_field: str,
+  default_start: str | None = None,
+  default_end: str | None = None,
+  invalid_start_constraint: str = "invalid_time_format",
+  invalid_end_constraint: str = "invalid_time_format",
+  required_start_constraint: str = "time_required",
+  required_end_constraint: str = "time_required",
+) -> tuple[str, str]:
+  """Validate a start/end time window."""
+
+  start_time = _parse_time_string(start_field, start, invalid_start_constraint)
+  end_time = _parse_time_string(end_field, end, invalid_end_constraint)
+
+  if start_time is None:
+    start_time = _parse_time_string(
+      start_field,
+      default_start,
+      invalid_start_constraint,
+    )
+  if end_time is None:
+    end_time = _parse_time_string(
+      end_field,
+      default_end,
+      invalid_end_constraint,
+    )
+
+  if start_time is None:
+    raise ValidationError(start_field, start, required_start_constraint)
+  if end_time is None:
+    raise ValidationError(end_field, end, required_end_constraint)
+
+  return start_time, end_time
+
+
 def validate_dog_name(
   name: Any,
   *,
+  field: str = CONF_DOG_NAME,
   required: bool = True,
-  min_length: int = 1,
-  max_length: int = 100,
+  min_length: int = MIN_DOG_NAME_LENGTH,
+  max_length: int = MAX_DOG_NAME_LENGTH,
 ) -> str | None:
   """Validate dog name input and return a trimmed value."""
 
   if name is None or name == "":
     if required:
       raise ValidationError(
-        "dog_name",
+        field,
         name,
-        "Dog name is required",
+        "dog_name_required",
       )
     return None
 
   if not isinstance(name, str):
     raise ValidationError(
-      "dog_name",
+      field,
       name,
-      "Must be a string",
+      "dog_name_invalid",
     )
 
   trimmed = name.strip()
   if not trimmed:
     if required:
       raise ValidationError(
-        "dog_name",
+        field,
         name,
-        "Cannot be empty",
+        "dog_name_required",
       )
     return None
 
   if len(trimmed) < min_length:
     raise ValidationError(
-      "dog_name",
+      field,
       trimmed,
-      f"Minimum length is {min_length} characters",
+      "dog_name_too_short",
       min_value=min_length,
     )
 
   if len(trimmed) > max_length:
     raise ValidationError(
-      "dog_name",
+      field,
       trimmed,
-      f"Maximum length is {max_length} characters",
+      "dog_name_too_long",
       max_value=max_length,
     )
 
@@ -493,6 +615,29 @@ def validate_interval(
 
 
 def validate_gps_update_interval(
+  value: Any,
+  *,
+  field: str = "gps_update_interval",
+  minimum: int,
+  maximum: int,
+  default: int | None = None,
+  clamp: bool = False,
+  required: bool = False,
+) -> int | None:
+  """Validate GPS update intervals in seconds."""
+
+  return validate_gps_interval(
+    value,
+    field=field,
+    minimum=minimum,
+    maximum=maximum,
+    default=default,
+    clamp=clamp,
+    required=required,
+  )
+
+
+def validate_gps_interval(
   value: Any,
   *,
   field: str = "gps_update_interval",
@@ -840,12 +985,7 @@ class InputValidator:
     Raises:
         ValidationError: If validation fails
     """
-    return validate_dog_name(
-      name,
-      required=required,
-      min_length=1,
-      max_length=100,
-    )
+    return validate_dog_name(name, required=required)
 
   @staticmethod
   def validate_weight(

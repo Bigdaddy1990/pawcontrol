@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -34,6 +35,10 @@ ValidationError = validation.ValidationError
 coerce_float = validation.coerce_float
 coerce_int = validation.coerce_int
 normalize_dog_id = validation.normalize_dog_id
+validate_dog_name = validation.validate_dog_name
+validate_gps_interval = validation.validate_gps_interval
+validate_notification_targets = validation.validate_notification_targets
+validate_time_window = validation.validate_time_window
 validate_json_schema_payload = schemas.validate_json_schema_payload
 GPS_DOG_CONFIG_JSON_SCHEMA = schemas.GPS_DOG_CONFIG_JSON_SCHEMA
 GPS_OPTIONS_JSON_SCHEMA = schemas.GPS_OPTIONS_JSON_SCHEMA
@@ -49,6 +54,11 @@ class _FakeHomeAssistant:
 
   def __init__(self, states: _FakeStates) -> None:
     self.states = states
+
+
+class _NotificationChannel(Enum):
+  MOBILE = "mobile"
+  EMAIL = "email"
 
 
 def test_validate_gps_coordinates_success() -> None:
@@ -186,3 +196,58 @@ def test_validate_sensor_entity_id_rejects_wrong_device_class() -> None:
     )
 
   assert err.value.constraint == "door_sensor_not_found"
+
+
+def test_validate_dog_name_rejects_invalid_types() -> None:
+  with pytest.raises(ValidationError) as err:
+    validate_dog_name(123)
+
+  assert err.value.constraint == "dog_name_invalid"
+
+
+def test_validate_dog_name_enforces_length() -> None:
+  with pytest.raises(ValidationError) as err:
+    validate_dog_name(" ")
+
+  assert err.value.constraint == "dog_name_required"
+
+
+def test_validate_gps_interval_rejects_non_numeric() -> None:
+  with pytest.raises(ValidationError) as err:
+    validate_gps_interval(
+      "fast",
+      minimum=5,
+      maximum=600,
+      required=True,
+    )
+
+  assert err.value.constraint == "gps_update_interval_not_numeric"
+
+
+def test_validate_notification_targets_normalises_values() -> None:
+  result = validate_notification_targets(
+    ["mobile", "pager", _NotificationChannel.EMAIL, "mobile"],
+    enum_type=_NotificationChannel,
+  )
+
+  assert result.targets == [
+    _NotificationChannel.MOBILE,
+    _NotificationChannel.EMAIL,
+  ]
+  assert result.invalid == ["pager"]
+
+
+def test_validate_time_window_rejects_invalid_time() -> None:
+  with pytest.raises(ValidationError) as err:
+    validate_time_window(
+      "25:61",
+      "07:00:00",
+      start_field="quiet_start",
+      end_field="quiet_end",
+      default_start="22:00:00",
+      default_end="07:00:00",
+      invalid_start_constraint="quiet_start_invalid",
+      invalid_end_constraint="quiet_end_invalid",
+    )
+
+  assert err.value.constraint == "quiet_start_invalid"

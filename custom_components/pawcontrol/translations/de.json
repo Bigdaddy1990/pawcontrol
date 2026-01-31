@@ -51,6 +51,7 @@
       "dog_id_too_long": "Hunde-ID darf nicht l\u00e4nger als 30 Zeichen sein",
       "dog_id_too_short": "Hunde-ID muss mindestens 2 Zeichen lang sein",
       "dog_name_already_exists": "Ein Hund mit diesem Namen existiert bereits",
+      "dog_name_invalid": "Bitte gib einen gültigen Hundenamen ein",
       "dog_name_required": "Hundename ist erforderlich",
       "dog_name_too_long": "Hundename ist zu lang",
       "dog_name_too_short": "Hundename ist zu kurz",
@@ -1506,6 +1507,8 @@
       "invalid_weather_entity": "Ung\u00fcltige Wetter-Entit\u00e4t ausgew\u00e4hlt",
       "options_missing": "Import-Payload enth\u00e4lt keine Konfigurationsoptionen",
       "payload_not_mapping": "Import-Payload muss ein JSON-Objekt sein",
+      "quiet_end_invalid": "Bitte gib eine g\u00fcltige Endzeit ein",
+      "quiet_start_invalid": "Bitte gib eine g\u00fcltige Startzeit ein",
       "runtime_cache_unavailable": "Laufzeitdaten sind vor\u00fcbergehend nicht verf\u00fcgbar. Bitte nach dem Neuladen der Integration erneut versuchen.",
       "unsupported_version": "Diese Exportdatei wurde mit einer nicht unterst\u00fctzten Version erstellt",
       "weather_entity_not_found": "Wetter-Entit\u00e4t nicht gefunden"

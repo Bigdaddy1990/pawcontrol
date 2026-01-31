@@ -134,7 +134,8 @@ from .validation import (
   ValidationError,
   normalize_dog_id,
   validate_expires_in_hours,
-  validate_gps_update_interval,
+  validate_gps_interval,
+  validate_notification_targets,
 )
 from .walk_manager import WeatherCondition
 
@@ -2755,7 +2756,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       try:
         update_interval_seconds = cast(
           int,
-          validate_gps_update_interval(
+          validate_gps_interval(
             update_interval_seconds,
             field="update_interval_seconds",
             minimum=30,
@@ -2971,42 +2972,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
       channel_enums = None
       invalid_channels: list[str] = []
-      normalised_channels: list[NotificationChannel] = []
       if channels is not None:
-        candidate_channels: Iterable[Any]
-        if isinstance(channels, NotificationChannel | str):
-          candidate_channels = [channels]
-        elif isinstance(channels, Iterable) and not isinstance(
+        target_result = validate_notification_targets(
           channels,
-          str | bytes | bytearray,
-        ):
-          candidate_channels = channels
-        else:
-          candidate_channels = [channels]
-
-        seen_channels: set[NotificationChannel] = set()
-        for channel in candidate_channels:
-          try:
-            channel_enum = NotificationChannel(channel)
-          except (TypeError, ValueError):
-            invalid_channels.append(str(channel))
-            continue
-
-          if channel_enum in seen_channels:
-            continue
-
-          seen_channels.add(channel_enum)
-          normalised_channels.append(channel_enum)
-
-      if invalid_channels:
-        invalid_channels = list(dict.fromkeys(invalid_channels))
-        _LOGGER.warning(
-          "Ignoring unsupported notification channel(s): %s",
-          ", ".join(invalid_channels),
+          enum_type=NotificationChannel,
         )
-
-      if normalised_channels:
-        channel_enums = normalised_channels
+        invalid_channels = list(dict.fromkeys(target_result.invalid))
+        if invalid_channels:
+          _LOGGER.warning(
+            "Ignoring unsupported notification channel(s): %s",
+            ", ".join(invalid_channels),
+          )
+        if target_result.targets:
+          channel_enums = target_result.targets
 
       try:
         expires_in_hours = validate_expires_in_hours(

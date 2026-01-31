@@ -499,6 +499,31 @@ async def test_notification_settings_rejects_invalid_repeat_interval(
   assert result["errors"]["reminder_repeat_min"] == "invalid_configuration"
 
 
+@pytest.mark.asyncio
+async def test_notification_settings_rejects_invalid_quiet_times(
+  hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+  """Notification settings should reject invalid quiet-hour times."""
+
+  flow = PawControlOptionsFlow()
+  flow.hass = hass
+  flow.initialize_from_config_entry(mock_config_entry)
+
+  result = await flow.async_step_notifications(
+    {
+      "quiet_hours": True,
+      "quiet_start": "25:61",
+      "quiet_end": "07:00:00",
+      "reminder_repeat_min": 30,
+      "priority_notifications": True,
+      "mobile_notifications": False,
+    }
+  )
+
+  assert result["type"] == FlowResultType.FORM
+  assert result["errors"]["quiet_start"] == "quiet_start_invalid"
+
+
 def test_notification_settings_normalise_existing_payload(
   mock_config_entry: ConfigEntry,
 ) -> None:
