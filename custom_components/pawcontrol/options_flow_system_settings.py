@@ -764,15 +764,11 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
       )
       mutable_options[CONF_PUSH_PAYLOAD_MAX_BYTES] = cast(
         JSONValue,
-        int(payload_max)
-        if payload_max is not None
-        else DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
+        int(payload_max) if payload_max is not None else DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
       )
       mutable_options[CONF_PUSH_NONCE_TTL_SECONDS] = cast(
         JSONValue,
-        int(nonce_ttl)
-        if nonce_ttl is not None
-        else DEFAULT_PUSH_NONCE_TTL_SECONDS,
+        int(nonce_ttl) if nonce_ttl is not None else DEFAULT_PUSH_NONCE_TTL_SECONDS,
       )
       mutable_options[CONF_PUSH_RATE_LIMIT_PER_MINUTE] = cast(
         JSONValue,
@@ -886,6 +882,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         ),
       },
     )
+
   async def async_step_dashboard_settings(
     self,
     user_input: dict[str, Any] | None = None,

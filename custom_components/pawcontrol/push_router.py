@@ -105,7 +105,9 @@ def _inc_map(counter_map: MutableMapping[str, Any], key: str, amount: int = 1) -
     counter_map[key] = amount
 
 
-def _record_reject(tel: MutableMapping[str, Any], dog_id: str | None, source: str, error: str) -> None:
+def _record_reject(
+  tel: MutableMapping[str, Any], dog_id: str | None, source: str, error: str
+) -> None:
   tel["rejected_total"] = int(tel.get("rejected_total", 0)) + 1
   by_source = tel.setdefault("by_source", {})
   by_error = tel.setdefault("by_error", {})
@@ -143,7 +145,9 @@ def _record_accept(tel: MutableMapping[str, Any], dog_id: str, source: str) -> N
       dog_tel["last_source"] = source
 
 
-def _get_rate_limiter(entry_store: MutableMapping[str, Any], limit: int) -> _RateLimiter:
+def _get_rate_limiter(
+  entry_store: MutableMapping[str, Any], limit: int
+) -> _RateLimiter:
   rl = entry_store.get("rate_limiter")
   if isinstance(rl, _RateLimiter) and rl.limit_per_minute == limit:
     return rl
@@ -152,7 +156,9 @@ def _get_rate_limiter(entry_store: MutableMapping[str, Any], limit: int) -> _Rat
   return rl
 
 
-def _nonce_seen(entry_store: MutableMapping[str, Any], nonce: str, ttl: int, now: float) -> bool:
+def _nonce_seen(
+  entry_store: MutableMapping[str, Any], nonce: str, ttl: int, now: float
+) -> bool:
   cache = entry_store.setdefault("nonce_cache", {})
   if not isinstance(cache, dict):
     cache = {}
@@ -208,7 +214,9 @@ async def async_process_gps_push(
   tel = _telemetry(entry_store)
 
   # payload size guard (only when raw_size known)
-  max_bytes = int(entry.options.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES))
+  max_bytes = int(
+    entry.options.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)
+  )
   if raw_size is not None and raw_size > max_bytes:
     _record_reject(tel, None, source, "payload_too_large")
     return {"ok": False, "error": "payload_too_large", "status": 413}
@@ -251,7 +259,9 @@ async def async_process_gps_push(
     return {"ok": False, "error": "gps_source_mismatch", "status": 409}
 
   # Nonce replay protection (optional)
-  ttl = int(entry.options.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS))
+  ttl = int(
+    entry.options.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)
+  )
   if nonce:
     now = time.monotonic()
     if _nonce_seen(entry_store, nonce, ttl, now):
@@ -259,7 +269,11 @@ async def async_process_gps_push(
       return {"ok": False, "error": "replay", "status": 409}
 
   # Rate limiting per dog/source
-  limit = int(entry.options.get(CONF_PUSH_RATE_LIMIT_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_PER_MINUTE))
+  limit = int(
+    entry.options.get(
+      CONF_PUSH_RATE_LIMIT_PER_MINUTE, DEFAULT_PUSH_RATE_LIMIT_PER_MINUTE
+    )
+  )
   now2 = time.monotonic()
   limiter = _get_rate_limiter(entry_store, limit)
   if not limiter.allow(dog_id, source, now2):
@@ -315,13 +329,22 @@ async def async_process_gps_push(
   return {"ok": True, "status": 200}
 
 
-def get_entry_push_telemetry_snapshot(hass: HomeAssistant, entry_id: str) -> Mapping[str, Any]:
+def get_entry_push_telemetry_snapshot(
+  hass: HomeAssistant, entry_id: str
+) -> Mapping[str, Any]:
   """Return a JSON-safe telemetry snapshot for diagnostics."""
   entry_store = _store_for_entry(hass, entry_id)
   tel = _telemetry(entry_store)
   # return a shallow copy without non-JSON objects
   snapshot: dict[str, Any] = {}
-  for key in ("accepted_total", "rejected_total", "last_accepted", "last_rejected", "last_error", "last_source"):
+  for key in (
+    "accepted_total",
+    "rejected_total",
+    "last_accepted",
+    "last_rejected",
+    "last_error",
+    "last_source",
+  ):
     if key in tel:
       snapshot[key] = tel.get(key)
   snapshot["by_source"] = dict(tel.get("by_source", {}) or {})

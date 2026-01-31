@@ -44,8 +44,8 @@ class MenuOptionsMixin(MenuOptionsHost):
         "manage_dogs",
         "performance_settings",  # NEW: Performance & profiles
         "gps_settings",
-                "push_settings",
-"geofence_settings",  # NEW: Geofencing configuration
+        "push_settings",
+        "geofence_settings",  # NEW: Geofencing configuration
         "weather_settings",  # NEW: Weather configuration
         "notifications",
         "feeding_settings",
