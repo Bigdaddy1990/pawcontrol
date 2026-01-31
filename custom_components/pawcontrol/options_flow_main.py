@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from datetime import UTC
 from importlib import import_module
@@ -63,14 +63,18 @@ from .types import (
   JSONValue,
   ManualEventField,
   ManualEventOption,
+  ManualEventSource,
   ReconfigureTelemetry,
   SystemOptions,
   ensure_advanced_options,
   ensure_dog_config_data,
   ensure_json_mapping,
+  PawControlRuntimeData,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+RuntimeDataGetter = Callable[[HomeAssistant, ConfigEntry], PawControlRuntimeData | None]
 
 
 def _resolve_setup_flag_supported_languages(
@@ -87,7 +91,7 @@ def _resolve_setup_flag_supported_languages(
   return frozenset(languages)
 
 
-def _resolve_get_runtime_data():
+def _resolve_get_runtime_data() -> RuntimeDataGetter:
   """Return the patched runtime data helper when available."""
 
   try:
@@ -152,7 +156,7 @@ class PawControlOptionsFlow(
     "manual_event_source_badge_",
     "manual_event_source_help_",
   )
-  _SETUP_FLAG_SOURCE_LABEL_KEYS: ClassVar[dict[str, str]] = {
+  _SETUP_FLAG_SOURCE_LABEL_KEYS: ClassVar[dict[ManualEventSource, str]] = {
     "default": "setup_flags_panel_source_default",
     "system_settings": "setup_flags_panel_source_system_settings",
     "options": "setup_flags_panel_source_options",
@@ -160,7 +164,7 @@ class PawControlOptionsFlow(
     "blueprint": "setup_flags_panel_source_blueprint",
     "disabled": "setup_flags_panel_source_disabled",
   }
-  _MANUAL_SOURCE_BADGE_KEYS: ClassVar[dict[str, str]] = {
+  _MANUAL_SOURCE_BADGE_KEYS: ClassVar[dict[ManualEventSource, str]] = {
     "default": "manual_event_source_badge_default",
     "system_settings": "manual_event_source_badge_system_settings",
     "options": "manual_event_source_badge_options",
@@ -168,7 +172,7 @@ class PawControlOptionsFlow(
     "blueprint": "manual_event_source_badge_blueprint",
     "disabled": "manual_event_source_badge_disabled",
   }
-  _MANUAL_SOURCE_HELP_KEYS: ClassVar[dict[str, str]] = {
+  _MANUAL_SOURCE_HELP_KEYS: ClassVar[dict[ManualEventSource, str]] = {
     "default": "manual_event_source_help_default",
     "system_settings": "manual_event_source_help_system_settings",
     "options": "manual_event_source_help_options",
@@ -176,7 +180,7 @@ class PawControlOptionsFlow(
     "blueprint": "manual_event_source_help_blueprint",
     "disabled": "manual_event_source_help_disabled",
   }
-  _MANUAL_SOURCE_PRIORITY: ClassVar[tuple[str, ...]] = (
+  _MANUAL_SOURCE_PRIORITY: ClassVar[tuple[ManualEventSource, ...]] = (
     "system_settings",
     "options",
     "config_entry",
@@ -582,16 +586,21 @@ class PawControlOptionsFlow(
     current: SystemOptions,
     *,
     manual_snapshot: Mapping[str, JSONValue] | None = None,
-  ) -> dict[str, set[str]]:
+  ) -> dict[str, set[ManualEventSource]]:
     """Return known manual events mapped to their source categories."""
 
-    sources: dict[str, set[str]] = {}
+    sources: dict[str, set[ManualEventSource]] = {}
 
-    def _register(value: Any, source: str) -> None:
+    def _register(value: Any, source: ManualEventSource) -> None:
       normalised = self._normalise_manual_event_value(value)
       if not normalised:
         return
       sources.setdefault(normalised, set()).add(source)
+
+    def _as_manual_event_source(source: object) -> ManualEventSource | None:
+      if isinstance(source, str) and source in self._MANUAL_SOURCE_BADGE_KEYS:
+        return cast(ManualEventSource, source)
+      return None
 
     default_map = {
       "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
@@ -657,8 +666,9 @@ class PawControlOptionsFlow(
               raw_source,
               raw_source,
             )
-            if mapped:
-              _register(event, mapped)
+            source = _as_manual_event_source(mapped)
+            if source:
+              _register(event, source)
 
       metadata = manual_snapshot.get("listener_metadata")
       if isinstance(metadata, Mapping):
@@ -667,10 +677,13 @@ class PawControlOptionsFlow(
             continue
           canonical_sources = info.get("sources")
           for canonical in self._string_sequence(canonical_sources):
-            _register(event, canonical)
+            source = _as_manual_event_source(canonical)
+            if source:
+              _register(event, source)
           primary_source = info.get("primary_source")
-          if isinstance(primary_source, str) and primary_source:
-            _register(event, primary_source)
+          source = _as_manual_event_source(primary_source)
+          if source:
+            _register(event, source)
 
     if default_value:
       existing_sources = sources.get(default_value)
@@ -708,7 +721,7 @@ class PawControlOptionsFlow(
       language=language,
     )
 
-    def _primary_source(source_set: set[str]) -> str | None:
+    def _primary_source(source_set: set[ManualEventSource]) -> ManualEventSource | None:
       for candidate in self._MANUAL_SOURCE_PRIORITY:
         if candidate in source_set:
           return candidate
@@ -718,7 +731,7 @@ class PawControlOptionsFlow(
         return sorted(source_set)[0]
       return None
 
-    def _source_badge(source: str | None) -> str | None:
+    def _source_badge(source: ManualEventSource | None) -> str | None:
       if not source:
         return None
       translation_key = self._MANUAL_SOURCE_BADGE_KEYS.get(source)
@@ -726,7 +739,7 @@ class PawControlOptionsFlow(
         return None
       return self._setup_flag_translation(translation_key, language=language)
 
-    def _help_text(source_list: Sequence[str]) -> str | None:
+    def _help_text(source_list: Sequence[ManualEventSource]) -> str | None:
       help_segments: list[str] = []
       for source_name in source_list:
         key = self._MANUAL_SOURCE_HELP_KEYS.get(source_name)
@@ -738,7 +751,7 @@ class PawControlOptionsFlow(
         return " ".join(help_segments)
       return None
 
-    disabled_sources = ["disabled"]
+    disabled_sources: list[ManualEventSource] = ["disabled"]
     disabled_badge = _source_badge("disabled")
     disabled_help = _help_text(disabled_sources)
     disabled_option: ManualEventOption = {
@@ -808,7 +821,7 @@ class PawControlOptionsFlow(
 
     return options
 
-  def _resolve_manual_event_choices(self) -> dict[str, list[str]]:
+  def _resolve_manual_event_choices(self) -> dict[ManualEventField, list[str]]:
     """Return configured manual event identifiers for blueprint helpers."""
 
     current_system = self._current_system_options()

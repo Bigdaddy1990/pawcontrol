@@ -15,7 +15,7 @@ import logging
 import os
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from homeassistant.components.binary_sensor import (
   BinarySensorDeviceClass,
@@ -75,6 +75,7 @@ _RUNNING_DEVICE_CLASS = cast(
 )
 
 type AttributeDict = EntityAttributeDateMutableMapping
+type SafeZoneName = Literal["home", "park", "vet", "friend_house"]
 
 
 def _coerce_bool_flag(value: object) -> bool | None:
@@ -1457,7 +1458,12 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
 
     # Check if in home zone or other defined safe zones
     current_zone = gps_data.get("zone")
-    safe_zones = {"home", "park", "vet", "friend_house"}  # Configurable
+    safe_zones: set[SafeZoneName] = {
+      "home",
+      "park",
+      "vet",
+      "friend_house",
+    }  # Configurable
 
     return isinstance(current_zone, str) and current_zone in safe_zones
 

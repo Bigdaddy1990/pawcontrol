@@ -8,7 +8,7 @@ import logging
 from collections.abc import Callable, Mapping
 from datetime import date, datetime, timedelta
 from numbers import Real
-from typing import TYPE_CHECKING, Any, Final, Protocol, cast
+from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 
 from homeassistant import const as ha_const
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
@@ -46,6 +46,7 @@ from .types import (
   HealthModulePayload,
   JSONMutableMapping,
   JSONValue,
+  ModuleToggleKey,
   PawControlConfigEntry,
   WalkModuleTelemetry,
   ensure_dog_modules_mapping,
@@ -80,6 +81,18 @@ _TIMESTAMP_DEVICE_CLASS = cast(
 # Type aliases for better readability
 SensorValue = str | int | float | datetime | None
 type AttributeInputDict = EntityAttributeDateMutableMapping
+type ModuleProfileKey = Literal[
+  "basic",
+  "standard",
+  "advanced",
+  "gps_focus",
+  "health_focus",
+]
+type ModuleEntityRule = tuple[str, type[PawControlSensorBase], int]
+type ModuleEntityRules = dict[
+  ModuleToggleKey,
+  dict[ModuleProfileKey, list[ModuleEntityRule]],
+]
 _STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
 UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
 if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
@@ -334,7 +347,7 @@ async def _create_module_entities(
   entity_factory: EntityFactory,
   dog_id: str,
   dog_name: str,
-  modules: Mapping[str, bool],
+  modules: Mapping[ModuleToggleKey, bool],
   profile: str,
 ) -> list[PawControlSensorBase]:
   """Create module-specific entities based on profile and enabled modules."""
@@ -342,7 +355,7 @@ async def _create_module_entities(
   budget = entity_factory.get_budget(dog_id, profile)
 
   # Define entity creation rules per module and profile
-  module_entity_rules = {
+  module_entity_rules: ModuleEntityRules = {
     "feeding": {
       "basic": [
         ("last_feeding", PawControlLastFeedingSensor, 9),
@@ -716,7 +729,7 @@ async def _create_module_entities(
 
     # Get rules for this profile (with fallback to standard)
     profile_rules = module_entity_rules[module].get(
-      profile,
+      cast(ModuleProfileKey, profile),
       module_entity_rules[module].get("standard", []),
     )
 
