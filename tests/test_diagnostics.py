@@ -2,14 +2,34 @@
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import importlib
 import importlib.util
+import json
 import sys
+from dataclasses import dataclass, is_dataclass
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
+from typing import Any
 from types import ModuleType
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PAWCONTROL_ROOT = PROJECT_ROOT / "custom_components" / "pawcontrol"
+
+
+def _assert_json_serialisable(value: Any) -> None:
+  if isinstance(value, dict):
+    for item in value.values():
+      _assert_json_serialisable(item)
+    return
+  if isinstance(value, list):
+    for item in value:
+      _assert_json_serialisable(item)
+    return
+
+  assert not isinstance(value, (datetime, date, time, timedelta, set))
+  assert not is_dataclass(value)
 
 
 def _load_module(name: str, path: Path) -> ModuleType:
@@ -250,3 +270,73 @@ def test_redacts_connections_and_identifiers_payloads() -> None:
   assert redacted["connections"][1][1] == "**REDACTED**"
   assert redacted["identifiers"][0][1] == "device-123"
   assert redacted["identifiers"][1][1] == "**REDACTED**"
+
+
+def test_entity_attribute_normalisation_is_json_serialisable() -> None:
+  """Entity attribute normalization must yield JSON-serialisable values."""
+
+  from custom_components.pawcontrol.utils import normalise_entity_attributes
+
+  @dataclass
+  class SamplePayload:
+    """Dataclass payload used to validate JSON normalization."""
+
+    label: str
+    created_at: datetime
+    window: timedelta
+
+  sample = SamplePayload(
+    label="demo",
+    created_at=datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
+    window=timedelta(minutes=15),
+  )
+
+  attributes = {
+    "timestamp": datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC),
+    "duration": timedelta(seconds=90),
+    "tags": {"alpha", "beta"},
+    "payload": sample,
+    "nested": {
+      "dates": [date(2024, 1, 2), time(3, 4, 5)],
+      "samples": [
+        SamplePayload(
+          "nested",
+          datetime(2024, 1, 2, tzinfo=UTC),
+          timedelta(minutes=2),
+        )
+      ],
+    },
+  }
+
+  normalised = normalise_entity_attributes(attributes)
+
+  _assert_json_serialisable(normalised)
+  json.dumps(normalised)
+
+
+def test_extra_state_attributes_use_normalisation_helpers() -> None:
+  """extra_state_attributes implementations must normalise payloads."""
+
+  missing = []
+  for path in PAWCONTROL_ROOT.rglob("*.py"):
+    source = path.read_text(encoding="utf-8")
+    module = ast.parse(source)
+    for node in ast.walk(module):
+      if isinstance(node, ast.FunctionDef) and node.name == "extra_state_attributes":
+        calls = {
+          call.func.attr if isinstance(call.func, ast.Attribute) else call.func.id
+          for call in ast.walk(node)
+          if isinstance(call, ast.Call)
+          and isinstance(call.func, (ast.Attribute, ast.Name))
+        }
+        if not {
+          "normalise_entity_attributes",
+          "ensure_json_mapping",
+          "_finalize_entity_attributes",
+          "_normalise_attributes",
+        }.intersection(calls):
+          missing.append(f"{path}:{node.lineno}")
+
+  assert not missing, "Missing attribute normalization helpers:\n" + "\n".join(
+    sorted(missing),
+  )
