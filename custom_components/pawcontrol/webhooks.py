@@ -24,7 +24,6 @@ from .const import (
   DEFAULT_WEBHOOK_REQUIRE_SIGNATURE,
   DOMAIN,
 )
-from .runtime_data import require_runtime_data
 from .webhook_security import WebhookSecurityManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -90,7 +89,7 @@ async def async_register_entry_webhook(
     return
 
   # Idempotency: unregister first if it exists (safe no-op if not registered).
-  try:
+  try:  # noqa: SIM105
     async_unregister(hass, webhook_id)
   except Exception:  # pragma: no cover
     # Older HA versions or differing behavior: ignore.

@@ -526,7 +526,6 @@ async def async_patch_gps_update(self, dog_id: str) -> None:
 
     return CoordinatorDataAccessMixin.get_dog_ids(self)
 
-  get_configured_dog_ids = get_dog_ids
 
   def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
     """Return the coordinator data payload for the dog."""

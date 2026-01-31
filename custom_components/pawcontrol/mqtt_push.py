@@ -29,6 +29,7 @@ from .const import (
   DOMAIN,
 )
 from .push_router import async_process_gps_push
+import contextlib
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,10 +74,8 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
   # Unsubscribe previous subscription if present.
   prev = mqtt_store.get(entry.entry_id)
   if callable(prev):
-    try:
+    with contextlib.suppress(Exception):
       prev()
-    except Exception:
-      pass
     mqtt_store.pop(entry.entry_id, None)
 
   async def _message_received(msg: Any) -> None:
@@ -121,8 +120,6 @@ async def async_unregister_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -
   mqtt_store = _store(hass)
   prev = mqtt_store.get(entry.entry_id)
   if callable(prev):
-    try:
+    with contextlib.suppress(Exception):
       prev()
-    except Exception:
-      pass
   mqtt_store.pop(entry.entry_id, None)
