@@ -36,20 +36,10 @@ from .validation import (
   coerce_float,
   coerce_int,
   normalize_dog_id,
-  validate_name,
+  validate_dog_name,
 )
 
 MAX_BREED_NAME_LENGTH = 100
-
-
-def _map_name_error(err: ValidationError) -> str:
-  if err.constraint == "name_required":
-    return "dog_name_required"
-  if err.constraint == "name_too_short":
-    return "dog_name_too_short"
-  if err.constraint == "name_too_long":
-    return "dog_name_too_long"
-  return "invalid_dog_name"
 
 
 def _coerce_int(field: str, value: object) -> int:
@@ -118,9 +108,9 @@ def validate_dog_setup_input(
 
   raw_name = user_input.get(CONF_DOG_NAME, "")
   try:
-    dog_name = validate_name(raw_name, field=CONF_DOG_NAME)
+    dog_name = validate_dog_name(raw_name, field=CONF_DOG_NAME)
   except ValidationError as err:
-    field_errors[CONF_DOG_NAME] = _map_name_error(err)
+    field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
     dog_name = ""
   else:
     normalized_names = {
@@ -205,9 +195,9 @@ def validate_dog_update_input(
 
   raw_name = user_input.get(CONF_DOG_NAME, candidate.get(CONF_DOG_NAME, ""))
   try:
-    dog_name = validate_name(raw_name, field=CONF_DOG_NAME)
+    dog_name = validate_dog_name(raw_name, field=CONF_DOG_NAME)
   except ValidationError as err:
-    field_errors[CONF_DOG_NAME] = _map_name_error(err)
+    field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
   else:
     normalized_names = {
       name.strip().lower()

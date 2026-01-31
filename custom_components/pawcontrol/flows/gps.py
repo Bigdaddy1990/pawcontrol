@@ -78,8 +78,8 @@ from ..validation import (
   InputValidator,
   validate_float_range,
   validate_gps_accuracy_value,
+  validate_gps_interval,
   validate_gps_source,
-  validate_gps_update_interval,
   validate_interval,
 )
 from .gps_helpers import build_dog_gps_placeholders, validation_error_key
@@ -257,7 +257,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_source = "manual"
 
       try:
-        gps_update_interval = validate_gps_update_interval(
+        gps_update_interval = validate_gps_interval(
           user_input.get("gps_update_interval"),
           field="gps_update_interval",
           minimum=5,
@@ -589,7 +589,7 @@ class GPSOptionsMixin(GPSOptionsHost):
       errors: dict[str, str] = {}
 
       try:
-        gps_update_interval = validate_gps_update_interval(
+        gps_update_interval = validate_gps_interval(
           user_input.get(GPS_UPDATE_INTERVAL_FIELD),
           field=GPS_UPDATE_INTERVAL_FIELD,
           minimum=5,
@@ -918,7 +918,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
       try:
         return cast(
           int,
-          validate_gps_update_interval(
+          validate_gps_interval(
             value,
             default=default,
             minimum=minimum,

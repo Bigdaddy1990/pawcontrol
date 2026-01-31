@@ -51,6 +51,7 @@
       "dog_id_too_long": "Dog ID cannot be longer than 30 characters",
       "dog_id_too_short": "Dog ID must be at least 2 characters long",
       "dog_name_already_exists": "A dog with this name already exists",
+      "dog_name_invalid": "Enter a valid dog name",
       "dog_name_required": "Dog name is required",
       "dog_name_too_long": "Dog name is too long",
       "dog_name_too_short": "Dog name is too short",
@@ -1526,6 +1527,8 @@
       "invalid_weather_entity": "Invalid weather entity selected",
       "options_missing": "Import payload is missing configuration options",
       "payload_not_mapping": "Import payload must be a JSON object",
+      "quiet_end_invalid": "Enter a valid end time",
+      "quiet_start_invalid": "Enter a valid start time",
       "runtime_cache_unavailable": "Runtime data is temporarily unavailable. Please retry after the integration reloads.",
       "unsupported_version": "This export file was created with an unsupported version",
       "weather_entity_not_found": "Weather entity not found"
