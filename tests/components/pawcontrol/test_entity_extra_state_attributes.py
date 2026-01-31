@@ -15,6 +15,10 @@ from custom_components.pawcontrol.button import PawControlTestNotificationButton
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.date import PawControlBirthdateDate
 from custom_components.pawcontrol.datetime import PawControlBirthdateDateTime
+from custom_components.pawcontrol.device_tracker import PawControlGPSTracker
+from custom_components.pawcontrol.missing_sensors import (
+  PawControlActivityLevelSensor,
+)
 from custom_components.pawcontrol.number import PawControlDogWeightNumber
 from custom_components.pawcontrol.select import PawControlDogSizeSelect
 from custom_components.pawcontrol.sensor import PawControlDogStatusSensor
@@ -192,6 +196,30 @@ def _make_coordinator() -> _DummyCoordinator:
       ),
       "payload",
       dict,
+    ),
+    (
+      lambda coordinator: PawControlGPSTracker(
+        cast(PawControlCoordinator, coordinator),
+        "dog-1",
+        "Buddy",
+      ),
+      lambda entity: entity._attr_extra_state_attributes.update(
+        {"last_route_update": datetime(2024, 2, 6, tzinfo=UTC)},
+      ),
+      "last_route_update",
+      str,
+    ),
+    (
+      lambda coordinator: PawControlActivityLevelSensor(
+        cast(PawControlCoordinator, coordinator),
+        "dog-1",
+        "Buddy",
+      ),
+      lambda entity: entity._attr_extra_state_attributes.update(
+        {"duration": timedelta(minutes=12)},
+      ),
+      "duration",
+      str,
     ),
   ],
 )
