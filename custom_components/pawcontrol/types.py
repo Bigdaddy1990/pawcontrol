@@ -2606,6 +2606,7 @@ type OptionsMainMenuAction = Literal[
   "manage_dogs",
   "performance_settings",
   "gps_settings",
+  "push_settings",
   "geofence_settings",
   "weather_settings",
   "notifications",
@@ -2617,6 +2618,9 @@ type OptionsMainMenuAction = Literal[
   "import_export",
 ]
 """Supported menu actions for the options flow root menu."""
+
+
+PUSH_SETTINGS_MENU_ACTION: Final[OptionsMainMenuAction] = "push_settings"
 
 
 class OptionsMainMenuInput(TypedDict):
@@ -2812,6 +2816,21 @@ class OptionsAdvancedSettingsInput(TypedDict, total=False):
   external_integrations: bool
   api_endpoint: str
   api_token: str
+
+
+class PushSettingsInput(TypedDict, total=False):
+  """Payload for push ingestion settings in the options flow."""
+
+  webhook_enabled: bool
+  webhook_require_signature: bool
+  webhook_secret: str | None
+  mqtt_enabled: bool
+  mqtt_topic: str | None
+  push_payload_max_bytes: int | float | str | None
+  push_nonce_ttl_seconds: int | float | str | None
+  push_rate_limit_webhook_per_minute: int | float | str | None
+  push_rate_limit_mqtt_per_minute: int | float | str | None
+  push_rate_limit_entity_per_minute: int | float | str | None
 
 
 class OptionsImportExportInput(TypedDict, total=False):

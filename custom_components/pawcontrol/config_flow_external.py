@@ -35,6 +35,7 @@ from .types import (
   GPS_SOURCE_FIELD,
   NOTIFY_FALLBACK_FIELD,
   ConfigFlowPlaceholders,
+  ConfigFlowUserInput,
   DogConfigData,
   DogModulesConfig,
   ExternalEntityConfig,
@@ -94,7 +95,7 @@ if TYPE_CHECKING:
 
     async def async_step_final_setup(
       self,
-      user_input: dict[str, Any] | None = None,
+      user_input: ConfigFlowUserInput | None = None,
     ) -> ConfigFlowResult:
       """Type-checking stub for the mixin's final step delegation."""
       ...
@@ -155,7 +156,7 @@ class ExternalEntityConfigurationMixin:
 
   async def async_step_configure_external_entities(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ExternalEntityConfig | None = None,
   ) -> ConfigFlowResult:
     """Configure external entities required for enabled modules.
 

@@ -17,6 +17,9 @@ from .selector_shim import selector
 from .types import (
   DogConfigData,
   JSONValue,
+  OptionsExportDisplayInput,
+  OptionsImportExportInput,
+  OptionsImportPayloadInput,
   ensure_dog_config_data,
   freeze_placeholders,
 )
@@ -50,7 +53,7 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
 
   async def async_step_import_export(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsImportExportInput | None = None,
   ) -> ConfigFlowResult:
     """Handle selection for the import/export utilities."""
 
@@ -85,7 +88,7 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
 
   async def async_step_import_export_export(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsExportDisplayInput | None = None,
   ) -> ConfigFlowResult:
     """Surface a JSON export of the current configuration."""
 
@@ -122,7 +125,7 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
 
   async def async_step_import_export_import(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsImportPayloadInput | None = None,
   ) -> ConfigFlowResult:
     """Import configuration from a JSON payload."""
 
