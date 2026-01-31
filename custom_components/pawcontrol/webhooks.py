@@ -99,7 +99,7 @@ async def async_register_entry_webhook(
     return
 
   # Idempotency: unregister first if it exists (safe no-op if not registered).
-  try:
+  try:  # noqa: SIM105
     async_unregister(hass, webhook_id)
   except Exception:  # pragma: no cover
     # Older HA versions or differing behavior: ignore.

@@ -717,7 +717,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
       continue
 
     gps_cfg = dog.get("gps_config")
-    gps_source = gps_cfg.get(CONF_GPS_SOURCE) if isinstance(gps_cfg, Mapping) else None
+    gps_source = gps_cfg.get(CONF_GPS_SOURCE) if isinstance(gps_cfg, Mapping) else None  # noqa: F821
     if gps_source not in {"webhook", "mqtt"}:
       # Ensure stale push issues are removed if source changed
       for issue_type in (ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH):

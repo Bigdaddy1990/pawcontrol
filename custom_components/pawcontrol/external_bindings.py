@@ -32,6 +32,7 @@ from .compat import ConfigEntry
 from .const import CONF_DOGS, CONF_GPS_SOURCE, DOMAIN
 from .gps_manager import LocationSource
 from .runtime_data import require_runtime_data
+import contextlib
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ async def async_setup_external_bindings(hass: HomeAssistant, entry: ConfigEntry)
       current = gps_manager.get_current_location(dog_id)
     except Exception:
       current = None
-    if current and isinstance(current.latitude, (int, float)) and isinstance(current.longitude, (int, float)):
+    if current and isinstance(current.latitude, (int, float)) and isinstance(current.longitude, (int, float)):  # noqa: SIM102
       if _haversine_m(float(current.latitude), float(current.longitude), lat, lon) < _MIN_METERS:
         return
 
@@ -184,9 +185,7 @@ async def async_unload_external_bindings(hass: HomeAssistant, entry: ConfigEntry
     return
   for binding in bindings.values():
     if isinstance(binding, _Binding):
-      try:
+      with contextlib.suppress(Exception):
         binding.unsub()
-      except Exception:
-        pass
       if binding.task and not binding.task.done():
         binding.task.cancel()
