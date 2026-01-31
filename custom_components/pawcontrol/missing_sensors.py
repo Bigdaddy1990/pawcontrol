@@ -13,7 +13,7 @@ from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
 from homeassistant.util import dt as dt_util
 
 from .coordinator import PawControlCoordinator
-from .utils import normalise_entity_attributes, normalize_value
+from .utils import normalise_entity_attributes
 from .sensor import PawControlSensorBase, register_sensor
 from .types import (
   DogConfigData,

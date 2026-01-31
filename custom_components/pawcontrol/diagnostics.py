@@ -1075,7 +1075,6 @@ def _serialise_cache_snapshot(snapshot: object) -> JSONMutableMapping:
   return cast(JSONMutableMapping, normalize_value(snapshot_payload))
 
 
-
 async def _get_integration_status(
   hass: HomeAssistant,
   entry: ConfigEntry,

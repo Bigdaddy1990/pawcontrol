@@ -51,7 +51,6 @@ from .types import (
   WalkModuleTelemetry,
   ensure_dog_modules_mapping,
   ensure_gps_payload,
-  ensure_json_mapping,
 )
 from .utils import (
   async_call_add_entities,

@@ -56,7 +56,6 @@ from .types import (
   PawControlConfigEntry,
   ensure_dog_config_data,
   ensure_dog_modules_projection,
-  ensure_json_mapping,
   ensure_gps_payload,
 )
 from .utils import (
