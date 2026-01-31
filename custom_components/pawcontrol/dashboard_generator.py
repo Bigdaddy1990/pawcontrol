@@ -971,7 +971,9 @@ class PawControlDashboardGenerator:
       )
       # OPTIMIZED: Cleanup partial file
       with contextlib.suppress(Exception):
-        await asyncio.to_thread(dashboard_file.unlink, missing_ok=True)
+        await self.hass.async_add_executor_job(
+          partial(dashboard_file.unlink, missing_ok=True),
+        )
       raise HomeAssistantError(
         f"Dashboard file creation failed: {err}",
       ) from err
@@ -1407,7 +1409,9 @@ class PawControlDashboardGenerator:
         dashboard_path = Path(dashboard_info["path"])
 
         # OPTIMIZED: Async file deletion
-        await asyncio.to_thread(dashboard_path.unlink, missing_ok=True)
+        await self.hass.async_add_executor_job(
+          partial(dashboard_path.unlink, missing_ok=True),
+        )
 
         # Remove from registry
         del self._dashboards[dashboard_url]
@@ -1538,7 +1542,9 @@ class PawControlDashboardGenerator:
       # Try to remove file
       storage_dir = Path(self.hass.config.path(".storage"))
       dashboard_file = storage_dir / f"lovelace.{dashboard_url}"
-      await asyncio.to_thread(dashboard_file.unlink, missing_ok=True)
+      await self.hass.async_add_executor_job(
+        partial(dashboard_file.unlink, missing_ok=True),
+      )
 
     except Exception as err:
       _LOGGER.debug("Error during dashboard cleanup: %s", err)
@@ -1579,9 +1585,8 @@ class PawControlDashboardGenerator:
           cleanup_jobs.append(
             (
               str(dashboard_path),
-              asyncio.to_thread(
-                dashboard_path.unlink,
-                missing_ok=True,
+              self.hass.async_add_executor_job(
+                partial(dashboard_path.unlink, missing_ok=True),
               ),
             ),
           )
@@ -1708,7 +1713,7 @@ class PawControlDashboardGenerator:
         return (False, metadata_updated)
 
       path_obj = Path(dashboard_path)
-      exists = await asyncio.to_thread(path_obj.exists)
+      exists = await self.hass.async_add_executor_job(path_obj.exists)
       if not exists:
         return (False, metadata_updated)
 

@@ -29,7 +29,7 @@ from contextlib import asynccontextmanager, suppress
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import UTC, date, datetime, time, timedelta
-from functools import wraps
+from functools import partial, wraps
 from numbers import Real
 from types import SimpleNamespace
 from typing import (
@@ -1509,6 +1509,7 @@ def retry_on_exception(
   delay: float = 1.0,
   backoff_factor: float = 2.0,
   exceptions: tuple[type[Exception], ...] = (Exception,),
+  hass: HomeAssistant | None = None,
 ) -> Callable[
   [Callable[P, Awaitable[R]] | Callable[P, R]],
   Callable[P, Awaitable[R]],
@@ -1517,14 +1518,15 @@ def retry_on_exception(
 
   The returned decorator always exposes an async callable. When applied to a
   synchronous function the wrapped callable is executed in an executor via
-  :func:`asyncio.to_thread`, ensuring the Home Assistant event loop stays
-  responsive and avoiding blocking sleeps.
+  ``HomeAssistant.async_add_executor_job`` when available, ensuring the Home
+  Assistant event loop stays responsive and avoiding blocking sleeps.
 
   Args:
       max_retries: Maximum number of retries
       delay: Initial delay between retries
       backoff_factor: Factor to multiply delay by each retry
       exceptions: Exception types to retry on
+      hass: Home Assistant instance used to offload sync work to the executor
 
   Returns:
       Decorator that provides retry behaviour for async and sync callables.
@@ -1550,7 +1552,17 @@ def retry_on_exception(
             coroutine = cast(Callable[P, Awaitable[R]], func)
             return await coroutine(*args, **kwargs)
           sync_func = cast(Callable[P, R], func)
-          return await asyncio.to_thread(sync_func, *args, **kwargs)
+          if hass is not None:
+            if kwargs:
+              sync_func = partial(sync_func, **kwargs)
+            return await hass.async_add_executor_job(sync_func, *args)
+          loop = asyncio.get_running_loop()
+          if kwargs:
+            return await loop.run_in_executor(
+              None,
+              partial(sync_func, *args, **kwargs),
+            )
+          return await loop.run_in_executor(None, partial(sync_func, *args))
         except exceptions as err:
           last_exception = err
           if attempt < max_retries:
