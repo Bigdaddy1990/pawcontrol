@@ -6,9 +6,11 @@ This shim exists to keep the Home Assistant entry module small and stable.
 
 from __future__ import annotations
 
+from typing import Final, Literal
+
 from .config_flow_main import ConfigFlow, PawControlConfigFlow
 
-__all__ = [
+__all__: Final[tuple[Literal["ConfigFlow"], Literal["PawControlConfigFlow"]]] = (
   "ConfigFlow",
   "PawControlConfigFlow",
-]
+)

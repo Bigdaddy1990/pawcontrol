@@ -444,7 +444,9 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     reminder_time = ensure_utc_datetime(value) or value
-    reminder_payload = {"next_feeding": reminder_time.isoformat()}
+    reminder_payload: JSONMutableMapping = {
+      "next_feeding": reminder_time.isoformat(),
+    }
 
     data_manager = self._get_data_manager()
     if data_manager is not None:

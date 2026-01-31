@@ -62,8 +62,10 @@ from .types import (
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
+  ManualEventDefaults,
   ManualEventField,
   ManualEventOption,
+  ManualEventSchemaDefaults,
   ManualEventSource,
   ReconfigureTelemetry,
   SystemOptions,
@@ -528,10 +530,10 @@ class PawControlOptionsFlow(
   def _manual_event_defaults(
     self,
     current: SystemOptions,
-  ) -> dict[ManualEventField, str | None]:
+  ) -> ManualEventDefaults:
     """Return preferred manual event defaults for the system settings form."""
 
-    defaults: dict[ManualEventField, str | None] = {
+    defaults: ManualEventDefaults = {
       "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
       "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
       "manual_breaker_event": DEFAULT_MANUAL_BREAKER_EVENT,
@@ -549,11 +551,15 @@ class PawControlOptionsFlow(
   def _manual_event_schema_defaults(
     self,
     current: SystemOptions,
-  ) -> dict[ManualEventField, str]:
+  ) -> ManualEventSchemaDefaults:
     """Return schema defaults for manual event inputs as strings."""
 
     defaults = self._manual_event_defaults(current)
-    return {key: value or "" for key, value in defaults.items()}
+    return {
+      "manual_check_event": defaults["manual_check_event"] or "",
+      "manual_guard_event": defaults["manual_guard_event"] or "",
+      "manual_breaker_event": defaults["manual_breaker_event"] or "",
+    }
 
   def _manual_events_snapshot(self) -> Mapping[str, JSONValue] | None:
     """Return the current manual events snapshot from the script manager."""
@@ -740,10 +746,12 @@ class PawControlOptionsFlow(
         return None
       return self._setup_flag_translation(translation_key, language=language)
 
-    def _help_text(source_list: Sequence[ManualEventSource]) -> str | None:
+    def _help_text(source_list: Sequence[str]) -> str | None:
       help_segments: list[str] = []
       for source_name in source_list:
-        key = self._MANUAL_SOURCE_HELP_KEYS.get(source_name)
+        key = self._MANUAL_SOURCE_HELP_KEYS.get(
+          cast(ManualEventSource, source_name),
+        )
         if key:
           help_segments.append(
             self._setup_flag_translation(key, language=language),
@@ -759,7 +767,7 @@ class PawControlOptionsFlow(
       "value": "",
       "label": disabled_label,
       "description": disabled_description,
-      "metadata_sources": disabled_sources,
+      "metadata_sources": [str(source) for source in disabled_sources],
       "metadata_primary_source": "disabled",
     }
     if disabled_badge:
@@ -777,7 +785,9 @@ class PawControlOptionsFlow(
 
     current_value = self._normalise_manual_event_value(current.get(field))
 
-    def _priority(item: tuple[str, set[str]]) -> tuple[int, str]:
+    def _priority(
+      item: tuple[str, set[ManualEventSource]],
+    ) -> tuple[int, str]:
       value, sources = item
       if current_value and value == current_value:
         return (0, value)
@@ -793,13 +803,16 @@ class PawControlOptionsFlow(
 
     for value, source_tags in sorted(event_sources.items(), key=_priority):
       description_parts: list[str] = []
-      sorted_sources = sorted(source_tags)
+      sorted_source_tags = sorted(source_tags)
+      sorted_sources = [str(source) for source in sorted_source_tags]
       for source in sorted_sources:
         if source == "default" and "blueprint" in source_tags:
           # Blueprint suggestions inherit the integration default but should not
           # surface that tag in the description list.
           continue
-        key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(source)
+        key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(
+          cast(ManualEventSource, source),
+        )
         if key:
           description_parts.append(
             self._setup_flag_translation(key, language=language),
@@ -817,7 +830,7 @@ class PawControlOptionsFlow(
         option["help_text"] = help_text
       option["metadata_sources"] = sorted_sources
       if primary_source:
-        option["metadata_primary_source"] = primary_source
+        option["metadata_primary_source"] = str(primary_source)
       options.append(option)
 
     return options
@@ -828,7 +841,7 @@ class PawControlOptionsFlow(
     current_system = self._current_system_options()
     manual_snapshot = self._manual_events_snapshot()
 
-    choices: dict[str, list[str]] = {}
+    choices: dict[ManualEventField, list[str]] = {}
     for field in self._MANUAL_EVENT_FIELDS:
       options = self._manual_event_choices(
         field,

@@ -281,6 +281,8 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           "validation_error",
         )
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
+      if gps_update_interval is None:
+        gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
         gps_accuracy = InputValidator.validate_gps_accuracy(

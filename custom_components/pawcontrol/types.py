@@ -110,6 +110,12 @@ type ConfigFlowUserInput = Mapping[str, JSONValue] | JSONMutableMapping
 type FlowInputMapping = Mapping[str, JSONValue]
 """Typed mapping used for config and options flow payloads."""
 
+type OptionsFlowUserInput = Mapping[str, JSONValue] | JSONMutableMapping
+"""Options flow user input payload accepted by setup and options steps."""
+
+type OptionsFlowInputMapping = Mapping[str, JSONValue]
+"""Typed mapping used for options flow payloads."""
+
 type JSONMutableSequence = list[JSONValue]
 """Mutable sequence containing JSON-compatible payload entries."""
 
@@ -2565,6 +2571,22 @@ ManualEventSource = Literal[
   "blueprint",
   "disabled",
 ]
+
+
+class ManualEventDefaults(TypedDict):
+  """Manual event defaults for system settings flows."""
+
+  manual_check_event: str | None
+  manual_guard_event: str | None
+  manual_breaker_event: str | None
+
+
+class ManualEventSchemaDefaults(TypedDict):
+  """Stringified manual event defaults used in form schemas."""
+
+  manual_check_event: str
+  manual_guard_event: str
+  manual_breaker_event: str
 
 
 class ManualEventOption(TypedDict, total=False):
@@ -6169,6 +6191,9 @@ class CoordinatorModuleErrorPayload(TypedDict, total=False):
   status: Required[str]
   reason: NotRequired[str]
   message: NotRequired[str]
+  error: NotRequired[str]
+  error_type: NotRequired[str]
+  retry_after: NotRequired[int | float | None]
 
 
 CoordinatorModuleState = ModuleAdapterPayload | CoordinatorModuleErrorPayload
@@ -7141,6 +7166,8 @@ class PawControlRuntimeData:
   entity_factory: EntityFactory
   entity_profile: str
   dogs: list[DogConfigData]
+  config_entry_data: ConfigEntryDataPayload | None = None
+  config_entry_options: ConfigEntryOptionsPayload | None = None
   background_monitor_task: Task[None] | None = None
   garden_manager: GardenManager | None = None
   geofencing_manager: PawControlGeofencing | None = None
@@ -7223,6 +7250,8 @@ class PawControlRuntimeData:
       "entity_factory": self.entity_factory,
       "entity_profile": self.entity_profile,
       "dogs": self.dogs,
+      "config_entry_data": self.config_entry_data,
+      "config_entry_options": self.config_entry_options,
       "garden_manager": self.garden_manager,
       "geofencing_manager": self.geofencing_manager,
       "script_manager": self.script_manager,
@@ -7582,6 +7611,8 @@ class PawControlRuntimeDataExport(TypedDict):
   entity_factory: EntityFactory
   entity_profile: str
   dogs: list[DogConfigData]
+  config_entry_data: ConfigEntryDataPayload | None
+  config_entry_options: ConfigEntryOptionsPayload | None
   garden_manager: GardenManager | None
   geofencing_manager: PawControlGeofencing | None
   script_manager: PawControlScriptManager | None

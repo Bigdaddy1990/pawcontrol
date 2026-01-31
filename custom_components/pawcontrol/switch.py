@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, ClassVar, cast
 
 from homeassistant.components import switch as switch_component
@@ -403,9 +404,18 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
 
   _attr_should_poll = False
   _attr_has_entity_name = True
+  _attr_device_class: SwitchDeviceClass | None
+  _attr_icon: str | None
+  _attr_entity_category: EntityCategory | None
+  _attr_name: str | None
+  _attr_translation_key: str | None
+  _attr_unique_id: str
 
   # OPTIMIZATION: Enhanced state cache with TTL
   _state_cache: ClassVar[dict[str, tuple[bool, float]]] = {}
+  _is_on: bool
+  _last_changed: datetime
+  _switch_type: str
 
   def __init__(
     self,
@@ -721,6 +731,9 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
 class PawControlModuleSwitch(OptimizedSwitchBase):
   """Switch to control individual modules."""
 
+  _module_id: str
+  _module_name: str
+
   def __init__(
     self,
     coordinator: PawControlCoordinator,
@@ -821,6 +834,10 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
 # Feature switch (only for enabled modules)
 class PawControlFeatureSwitch(OptimizedSwitchBase):
   """Feature switch for module-specific functionality."""
+
+  _feature_id: str
+  _feature_name: str
+  _module: str
 
   def __init__(
     self,
