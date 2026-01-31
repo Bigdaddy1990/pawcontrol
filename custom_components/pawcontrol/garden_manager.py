@@ -879,7 +879,7 @@ class GardenManager:
             writer.writeheader()
           writer.writerows(payload_entries)
 
-      await asyncio.to_thread(_write_csv)
+      await self.hass.async_add_executor_job(_write_csv)
     elif normalized_format in {"markdown", "md", "txt"}:
 
       def _write_markdown() -> None:
@@ -890,7 +890,7 @@ class GardenManager:
         )
         export_path.write_text("\n".join(lines), encoding="utf-8")
 
-      await asyncio.to_thread(_write_markdown)
+      await self.hass.async_add_executor_job(_write_markdown)
     else:
 
       def _write_json() -> None:
@@ -910,7 +910,7 @@ class GardenManager:
           encoding="utf-8",
         )
 
-      await asyncio.to_thread(_write_json)
+      await self.hass.async_add_executor_job(_write_json)
 
     return export_path
 

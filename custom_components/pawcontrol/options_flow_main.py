@@ -15,7 +15,6 @@ Python: 3.13+
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from collections.abc import Mapping, Sequence
@@ -378,15 +377,12 @@ class PawControlOptionsFlow(
   async def _load_setup_flag_translations_from_path(
     cls,
     path: Path,
-    hass: HomeAssistant | None = None,
+    hass: HomeAssistant,
   ) -> dict[str, str]:
     """Load setup flag translations from a JSON file if it exists."""
 
     try:
-      if hass is not None:
-        raw = await hass.async_add_executor_job(path.read_text, "utf-8")
-      else:
-        raw = await asyncio.to_thread(path.read_text, encoding="utf-8")
+      raw = await hass.async_add_executor_job(path.read_text, "utf-8")
       content = json.loads(raw)
     except FileNotFoundError:
       return {}
@@ -429,7 +425,7 @@ class PawControlOptionsFlow(
   async def _async_setup_flag_translations_for_language(
     cls,
     language: str,
-    hass: HomeAssistant | None = None,
+    hass: HomeAssistant,
   ) -> dict[str, str]:
     """Return setup flag translations for the provided language."""
 
@@ -511,10 +507,9 @@ class PawControlOptionsFlow(
 
     language = self._determine_language()
     hass = getattr(self, "hass", None)
-    await self._async_setup_flag_translations_for_language(
-      language,
-      hass if isinstance(hass, HomeAssistant) else None,
-    )
+    if not isinstance(hass, HomeAssistant):
+      return
+    await self._async_setup_flag_translations_for_language(language, hass)
 
   @staticmethod
   def _normalise_manual_event_value(value: Any) -> str | None:
