@@ -95,6 +95,8 @@ class LocationSource(Enum):
   COMPANION_APP = "companion_app"
   EXTERNAL_API = "external_api"
   WEBHOOK = "webhook"
+  MQTT = "mqtt"
+  ENTITY = "entity"
 
 
 @dataclass

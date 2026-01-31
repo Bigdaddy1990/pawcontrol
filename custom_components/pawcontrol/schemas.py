@@ -21,6 +21,12 @@ from .const import (
   CONF_HOME_ZONE_RADIUS,
   CONF_ROUTE_HISTORY_DAYS,
   CONF_ROUTE_RECORDING,
+
+  CONF_MQTT_ENABLED,
+  CONF_MQTT_TOPIC,
+  CONF_PUSH_NONCE_TTL_SECONDS,
+  CONF_PUSH_PAYLOAD_MAX_BYTES,
+  CONF_PUSH_RATE_LIMIT_PER_MINUTE,
 )
 from .types import (
   GEOFENCE_ALERTS_FIELD,
@@ -81,6 +87,12 @@ GPS_OPTIONS_JSON_SCHEMA: Final[dict[str, Any]] = {
     CONF_WEBHOOK_REQUIRE_SIGNATURE: {"type": "boolean"},
     CONF_WEBHOOK_ID: {"type": "string"},
     CONF_WEBHOOK_SECRET: {"type": "string"},
+
+    CONF_PUSH_RATE_LIMIT_PER_MINUTE: {"type": "integer", "minimum": 1, "maximum": 6000},
+    CONF_PUSH_PAYLOAD_MAX_BYTES: {"type": "integer", "minimum": 1024, "maximum": 262144},
+    CONF_PUSH_NONCE_TTL_SECONDS: {"type": "integer", "minimum": 0, "maximum": 86400},
+    CONF_MQTT_ENABLED: {"type": "boolean"},
+    CONF_MQTT_TOPIC: {"type": "string", "minLength": 1, "maxLength": 256},
     CONF_GPS_UPDATE_INTERVAL: {"type": "integer", "minimum": 5, "maximum": 600},
     CONF_GPS_ACCURACY_FILTER: {"type": "number", "minimum": 5, "maximum": 500},
     CONF_GPS_DISTANCE_FILTER: {"type": "number", "minimum": 1, "maximum": 2000},

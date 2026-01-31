@@ -13,7 +13,6 @@ from typing import Any
 from homeassistant.components.webhook import async_register, async_unregister
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
 
 from .const import (
   CONF_GPS_SOURCE,
@@ -186,61 +185,44 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
   if not isinstance(latitude, (int, float)) or not isinstance(longitude, (int, float)):
     return _json_response({"ok": False, "error": "missing_coordinates"}, status=400)
 
-  altitude = payload.get("altitude")
-  accuracy = payload.get("accuracy")
-  timestamp_raw = payload.get("timestamp")
+    # Route to unified push ingress (strict per-dog source matching is enforced there).
+  from .push_router import async_process_gps_push
 
-  timestamp = None
-  if isinstance(timestamp_raw, str) and timestamp_raw:
-    timestamp = dt_util.parse_datetime(timestamp_raw)
-  if timestamp is None:
-    timestamp = dt_util.utcnow()
+  nonce: str | None = None
+  header_nonce = headers.get("X-PawControl-Nonce") if hasattr(headers, "get") else None
+  if isinstance(header_nonce, str) and header_nonce:
+    nonce = header_nonce
+  else:
+    maybe_nonce = payload.get("nonce")
+    if isinstance(maybe_nonce, str) and maybe_nonce:
+      nonce = maybe_nonce
 
-  runtime_data = require_runtime_data(hass, entry)
-  coordinator = runtime_data.coordinator
-  gps_manager = runtime_data.gps_geofence_manager or coordinator.gps_geofence_manager
-  if gps_manager is None:
-    return _json_response({"ok": False, "error": "gps_manager_unavailable"}, status=503)
+  result = await async_process_gps_push(
+    hass,
+    entry,
+    payload,
+    source="webhook",
+    raw_size=len(raw),
+    nonce=nonce,
+  )
+  if result.get("ok"):
+    return _json_response({"ok": True}, status=int(result.get("status", 200)))
 
-  try:
-    from .gps_manager import LocationSource
+  return _json_response(
+    {"ok": False, "error": str(result.get("error", "rejected"))},
+    status=int(result.get("status", 400)),
+  )
 
-    ok = await gps_manager.async_add_gps_point(
-      dog_id=dog_id,
-      latitude=float(latitude),
-      longitude=float(longitude),
-      altitude=float(altitude) if isinstance(altitude, (int, float)) else None,
-      accuracy=float(accuracy) if isinstance(accuracy, (int, float)) else None,
-      timestamp=timestamp,
-      source=LocationSource.WEBHOOK,
-    )
-  except Exception as err:
-    _LOGGER.exception("Webhook GPS update failed: %s", err)
-    return _json_response({"ok": False, "error": "gps_update_failed"}, status=500)
-
-  if ok:
-    # Push event: refresh entities now, but keep periodic polling low.
-    try:
-      await coordinator.async_patch_gps_update(dog_id)
-    except Exception as err:  # pragma: no cover - defensive fallback
-      _LOGGER.debug("GPS patch update failed for %s: %s", dog_id, err)
-      await coordinator.async_refresh_dog(dog_id)
-    return _json_response({"ok": True})
-  return _json_response({"ok": False, "error": "gps_rejected"}, status=400)
 
 
 def _resolve_entry_for_webhook_id(hass: HomeAssistant, webhook_id: str) -> ConfigEntry | None:
-  store = hass.data.get(DOMAIN)
-  if not isinstance(store, dict):
-    return None
+  """Resolve the config entry that owns a given webhook_id.
 
-  for entry_id in list(store.keys()):
-    # store can include "service_manager" key
-    if entry_id == "service_manager":
-      continue
-    maybe = hass.config_entries.async_get_entry(entry_id)
-    if maybe and maybe.options.get(CONF_WEBHOOK_ID) == webhook_id:
-      return maybe
+  Uses the config entries registry directly (no reliance on hass.data runtime stores).
+  """
+  for entry in hass.config_entries.async_entries(DOMAIN):
+    if entry.options.get(CONF_WEBHOOK_ID) == webhook_id:
+      return entry
   return None
 
 

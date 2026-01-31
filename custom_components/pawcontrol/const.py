@@ -168,6 +168,23 @@ CONF_WEBHOOK_SECRET: Final[str] = "webhook_secret"
 CONF_WEBHOOK_REQUIRE_SIGNATURE: Final[str] = "webhook_require_signature"
 DEFAULT_WEBHOOK_ENABLED: Final[bool] = True
 DEFAULT_WEBHOOK_REQUIRE_SIGNATURE: Final[bool] = True
+
+# OPTIMIZED: Unified push router configuration
+CONF_PUSH_RATE_LIMIT_PER_MINUTE: Final[str] = "push_rate_limit_per_minute"
+DEFAULT_PUSH_RATE_LIMIT_PER_MINUTE: Final[int] = 60
+
+CONF_PUSH_PAYLOAD_MAX_BYTES: Final[str] = "push_payload_max_bytes"
+DEFAULT_PUSH_PAYLOAD_MAX_BYTES: Final[int] = 16 * 1024  # 16 KiB
+
+CONF_PUSH_NONCE_TTL_SECONDS: Final[str] = "push_nonce_ttl_seconds"
+DEFAULT_PUSH_NONCE_TTL_SECONDS: Final[int] = 600  # 10 minutes
+
+# OPTIMIZED: MQTT push configuration
+CONF_MQTT_ENABLED: Final[str] = "mqtt_enabled"
+DEFAULT_MQTT_ENABLED: Final[bool] = True
+CONF_MQTT_TOPIC: Final[str] = "mqtt_topic"
+DEFAULT_MQTT_TOPIC: Final[str] = "pawcontrol/gps"
+
 CONF_GPS_SETTINGS: Final[str] = "gps_settings"
 CONF_GPS_ENABLED: Final[str] = "gps_enabled"
 CONF_ROUTE_RECORDING: Final[str] = "route_recording"

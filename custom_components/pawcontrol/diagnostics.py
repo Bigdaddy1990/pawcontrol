@@ -43,6 +43,7 @@ from .coordinator_tasks import (
 )
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .error_classification import classify_error_reason
+from .push_router import get_entry_push_telemetry_snapshot
 from .runtime_data import describe_runtime_store_status, get_runtime_data
 from .service_guard import (
   ServiceGuardMetricsSnapshot,
@@ -698,6 +699,7 @@ async def async_get_config_entry_diagnostics(
     "system_info": await _get_system_diagnostics(hass),
     "integration_status": await _get_integration_status(hass, entry, runtime_data),
     "coordinator_info": await _get_coordinator_diagnostics(coordinator),
+    "push_telemetry": get_entry_push_telemetry_snapshot(hass, entry.entry_id),
     "entities": await _get_entities_diagnostics(hass, entry),
     "devices": await _get_devices_diagnostics(hass, entry),
     "dogs_summary": await _get_dogs_summary(entry, coordinator),
