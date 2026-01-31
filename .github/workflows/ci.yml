@@ -51,6 +51,9 @@ jobs:
           python -m pip install prek
           prek install
 
+      - name: Install development tools
+        uses: taiki-e/install-action@v2.67.16
+
       - name: Run Prek
         run: |
           prek run --hook-stage manual python-typing-update --all-files
