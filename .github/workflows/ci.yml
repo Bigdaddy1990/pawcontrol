@@ -50,6 +50,7 @@ jobs:
           python -m pip install -r requirements_test.txt
           python -m pip install prek
           prek install
+          python -m scripts.sync_contributor_guides
 
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.16

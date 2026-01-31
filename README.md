@@ -56,6 +56,7 @@
 - **Automation examples (EN)**: [`docs/automation_examples.md`](docs/automation_examples.md)
 - **Troubleshooting (EN)**: [`docs/troubleshooting.md`](docs/troubleshooting.md)
   - **Discovery issues**: [`docs/troubleshooting.md#discovery-does-not-find-devices`](docs/troubleshooting.md#discovery-does-not-find-devices)
+- **Maintenance & support (EN)**: [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md)
 
 ## ✅ Quick Start (UI-based)
 
