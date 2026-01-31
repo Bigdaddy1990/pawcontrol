@@ -50,7 +50,7 @@ Use this checklist for every new issue or discussion thread.
    - Component area (config flow, coordinator, services, diagnostics, UI).
 4. **Reproduce & confirm**
    - Reproduce locally or in a clean Home Assistant instance if possible.
-   - Confirm if the issue is already covered in `docs/troubleshooting.md`.
+   - Confirm if the issue is already covered in [`docs/troubleshooting.md`](troubleshooting.md).
 5. **Close the loop**
    - Update documentation if the resolution adds new guidance.
    - Add regression tests when behavior changes.
