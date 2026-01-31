@@ -493,6 +493,47 @@ def validate_gps_update_interval(
   return interval
 
 
+def validate_expires_in_hours(
+  value: Any,
+  *,
+  field: str = "expires_in_hours",
+  minimum: float = 0.0,
+  maximum: float | None = None,
+  required: bool = False,
+) -> float | None:
+  """Validate notification expiry overrides in hours."""
+
+  if _is_empty(value):
+    if required:
+      raise ValidationError(field, value, "expires_in_hours_required")
+    return None
+
+  try:
+    hours = coerce_float(field, value)
+  except InputCoercionError as err:
+    raise ValidationError(field, value, "expires_in_hours_not_numeric") from err
+
+  if hours <= minimum:
+    raise ValidationError(
+      field,
+      hours,
+      "expires_in_hours_out_of_range",
+      min_value=minimum,
+      max_value=maximum,
+    )
+
+  if maximum is not None and hours > maximum:
+    raise ValidationError(
+      field,
+      hours,
+      "expires_in_hours_out_of_range",
+      min_value=minimum,
+      max_value=maximum,
+    )
+
+  return hours
+
+
 def validate_gps_accuracy_value(
   accuracy: Any,
   *,

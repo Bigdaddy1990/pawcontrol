@@ -132,6 +132,7 @@ from .validation import (
   InputValidator,
   ValidationError,
   normalize_dog_id,
+  validate_expires_in_hours,
   validate_gps_update_interval,
 )
 from .walk_manager import WeatherCondition
@@ -272,6 +273,48 @@ def _format_gps_validation_error(
     suffix = unit or ""
     if error.min_value is not None and error.max_value is not None:
       return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
+    return f"{field} is out of range"
+
+  return f"{field} is invalid"
+
+
+def _format_text_validation_error(error: ValidationError) -> str:
+  """Format text validation errors for service responses."""
+
+  field = error.field
+  constraint = error.constraint
+
+  if constraint and "required" in constraint:
+    return f"{field} is required"
+
+  if constraint == "Must be text":
+    return f"{field} must be a string"
+
+  if constraint == "Cannot be empty or whitespace":
+    return f"{field} must be a non-empty string"
+
+  return f"{field} is invalid"
+
+
+def _format_expires_in_hours_error(error: ValidationError) -> str:
+  """Format expiry validation errors for service responses."""
+
+  field = error.field
+  constraint = error.constraint
+
+  if constraint == "expires_in_hours_required":
+    return f"{field} is required"
+
+  if constraint == "expires_in_hours_not_numeric":
+    return f"{field} must be a number"
+
+  if constraint == "expires_in_hours_out_of_range":
+    if error.min_value is not None and error.max_value is not None:
+      return f"{field} must be between {error.min_value} and {error.max_value}"
+    if error.min_value is not None:
+      return f"{field} must be greater than {error.min_value}"
+    if error.max_value is not None:
+      return f"{field} must be less than {error.max_value}"
     return f"{field} is out of range"
 
   return f"{field} is invalid"
@@ -2795,30 +2838,39 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
     try:
-      if not isinstance(title, str):
-        raise _service_validation_error("title must be a string")
-      title = title.strip()
-      if not title:
-        raise _service_validation_error(
-          "title must be a non-empty string",
+      try:
+        title = InputValidator.validate_text_input(
+          title,
+          field_name="title",
+          required=True,
+          min_length=1,
         )
+      except ValidationError as err:
+        raise _service_validation_error(_format_text_validation_error(err)) from err
+      title = cast(str, title)
 
-      if not isinstance(message, str):
-        raise _service_validation_error("message must be a string")
-      message = message.strip()
-      if not message:
-        raise _service_validation_error(
-          "message must be a non-empty string",
+      try:
+        message = InputValidator.validate_text_input(
+          message,
+          field_name="message",
+          required=True,
+          min_length=1,
         )
+      except ValidationError as err:
+        raise _service_validation_error(_format_text_validation_error(err)) from err
+      message = cast(str, message)
 
       if dog_id is not None:
-        if not isinstance(dog_id, str):
-          raise _service_validation_error("dog_id must be a string")
-        dog_id = dog_id.strip()
-        if not dog_id:
-          raise _service_validation_error(
-            "dog_id must be a non-empty string",
+        try:
+          dog_id = InputValidator.validate_text_input(
+            dog_id,
+            field_name="dog_id",
+            required=True,
+            min_length=1,
           )
+        except ValidationError as err:
+          raise _service_validation_error(_format_text_validation_error(err)) from err
+        dog_id = cast(str, dog_id)
         dog_id, _ = _resolve_dog(coordinator, dog_id)
 
       try:
@@ -2882,25 +2934,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       if normalised_channels:
         channel_enums = normalised_channels
 
-      expires_in = None
-      expires_in_hours: float | None = None
-      if expires_in_hours_raw is not None:
-        try:
-          expires_in_hours = float(expires_in_hours_raw)
-        except (TypeError, ValueError):
-          _LOGGER.warning(
-            "Invalid expires_in_hours value %r; ignoring override",
-            expires_in_hours_raw,
-          )
-          expires_in_hours = None
-        if expires_in_hours is not None and expires_in_hours <= 0:
-          _LOGGER.warning(
-            "Non-positive expires_in_hours value %s; ignoring override",
-            expires_in_hours,
-          )
-          expires_in_hours = None
-        if expires_in_hours is not None:
-          expires_in = timedelta(hours=expires_in_hours)
+      try:
+        expires_in_hours = validate_expires_in_hours(
+          expires_in_hours_raw,
+          field="expires_in_hours",
+          minimum=0.0,
+        )
+      except ValidationError as err:
+        raise _service_validation_error(
+          _format_expires_in_hours_error(err),
+        ) from err
+
+      expires_in = (
+        timedelta(hours=expires_in_hours) if expires_in_hours is not None else None
+      )
 
       async with async_capture_service_guard_results() as captured_guards:
         guard_results = captured_guards
