@@ -11,7 +11,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, cast
 
@@ -439,10 +438,7 @@ def validate_sensor_entity_id(
     raise ValidationError(field, candidate, not_found_constraint)
 
   if device_classes:
-    attributes = state.attributes if hasattr(state, "attributes") else {}
-    device_class = (
-      attributes.get("device_class") if isinstance(attributes, Mapping) else None
-    )
+    device_class = state.attributes.get("device_class")
     if device_class not in device_classes:
       raise ValidationError(field, candidate, not_found_constraint)
 
