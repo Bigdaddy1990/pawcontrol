@@ -15,7 +15,6 @@ from collections.abc import Mapping
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, cast
 
-from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
   CONF_DOG_NAME,
