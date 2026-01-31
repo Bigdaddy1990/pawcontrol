@@ -34,7 +34,7 @@ from .const import (
   RESILIENCE_SKIP_THRESHOLD_MAX,
   RESILIENCE_SKIP_THRESHOLD_MIN,
 )
-from .diagnostics import normalize_value
+from .utils import normalize_value
 from .exceptions import FlowValidationError
 from .script_manager import resolve_resilience_script_thresholds
 from .selector_shim import selector

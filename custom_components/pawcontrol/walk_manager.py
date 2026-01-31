@@ -26,7 +26,7 @@ from typing import Any, Final, cast
 
 from homeassistant.util import dt as dt_util
 
-from .diagnostics import normalize_value
+from .utils import normalize_value
 from .types import (
   GPSCacheDiagnosticsMetadata,
   GPSCacheSnapshot,

@@ -33,7 +33,7 @@ from .const import (
   EVENT_GEOFENCE_LEFT,
   EVENT_GEOFENCE_RETURN,
 )
-from .diagnostics import normalize_value
+from .utils import normalize_value
 from .notifications import (
   NotificationPriority,
   NotificationTemplateData,

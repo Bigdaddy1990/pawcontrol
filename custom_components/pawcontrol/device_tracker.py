@@ -59,7 +59,11 @@ from .types import (
   ensure_json_mapping,
   ensure_gps_payload,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json_mapping
+from .utils import (
+  async_call_add_entities,
+  ensure_utc_datetime,
+  normalise_entity_attributes,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,8 +71,7 @@ _LOGGER = logging.getLogger(__name__)
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for device tracker entities."""
 
-  payload = ensure_json_mapping(attrs)
-  return cast(JSONMutableMapping, normalise_json_mapping(payload))
+  return normalise_entity_attributes(attrs)
 
 
 # Coordinator drives refreshes, so we can safely allow unlimited parallel
