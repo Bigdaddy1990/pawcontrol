@@ -4,6 +4,7 @@
   "after_dependencies": [
     "bluetooth",
     "device_tracker",
+    "mqtt",
     "person",
     "usb",
     "zone"
@@ -17,11 +18,12 @@
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/bigdaddy1990/pawcontrol/issues",
-  "quality_scale": "custom",
+  "loggers": [],
+  "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=24.1.0",
     "aiohttp>=3.13.3"
   ],
-  "version": "1.0.0",
-  "single_config_entry": true
+  "single_config_entry": true,
+  "version": "1.0.0"
 }
