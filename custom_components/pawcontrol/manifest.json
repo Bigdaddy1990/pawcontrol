@@ -18,7 +18,9 @@
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/bigdaddy1990/pawcontrol/issues",
-  "loggers": "custom_components.pawcontrol",
+  "loggers": [
+    "custom_components.pawcontrol"
+  ],
   "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=24.1.0",
