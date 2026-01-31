@@ -8,6 +8,8 @@ Platinum quality ambitions.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import logging
 from collections.abc import Mapping, Sequence
 from inspect import isawaitable
@@ -21,6 +23,8 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
+from .push_router import get_entry_push_telemetry_snapshot
+
 from .compat import ConfigEntry
 from .const import (
   CONF_DOG_ID,
@@ -33,6 +37,10 @@ from .const import (
   MODULE_HEALTH,
   MODULE_NOTIFICATIONS,
   MODULE_WALK,
+  CONF_WEBHOOK_ENABLED,
+  CONF_MQTT_ENABLED,
+  DEFAULT_WEBHOOK_ENABLED,
+  DEFAULT_MQTT_ENABLED,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
 from .error_classification import classify_error_reason
@@ -75,6 +83,8 @@ ISSUE_NOTIFICATION_DEVICE_UNREACHABLE = "notification_device_unreachable"
 ISSUE_OUTDATED_CONFIG = "outdated_configuration"
 ISSUE_PERFORMANCE_WARNING = "performance_warning"
 ISSUE_GPS_UPDATE_INTERVAL = "gps_update_interval_warning"
+ISSUE_PUSH_NO_DATA = "push_no_data"
+ISSUE_PUSH_REJECTIONS_HIGH = "push_rejections_high"
 ISSUE_STORAGE_WARNING = "storage_warning"
 ISSUE_MODULE_CONFLICT = "module_configuration_conflict"
 ISSUE_INVALID_DOG_DATA = "invalid_dog_data"
@@ -481,6 +491,9 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
     # Check telemetry gathered during reconfigure flows
     await _check_reconfigure_telemetry_issues(hass, entry)
 
+    # Check push transport health (webhook/MQTT strict mode)
+    await _check_push_transport_health(hass, entry)
+
     # Check performance issues
     await _check_performance_issues(hass, entry)
 
@@ -676,6 +689,164 @@ async def _check_gps_configuration_issues(
       },
       severity=ir.IssueSeverity.WARNING,
     )
+
+async def _check_push_transport_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
+  """Check push transport telemetry for strict webhook/MQTT sources.
+
+  Creates repair issues when:
+  - a dog is configured for webhook/MQTT but the source is disabled
+  - no accepted pushes have been observed after a grace period
+  - rejected pushes are unusually high (likely payload/signature/topic mismatch)
+  """
+  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+  raw_dogs = (
+    raw_dogs_obj
+    if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
+    else []
+  )
+  dogs: list[Mapping[str, JSONValue]] = [
+    cast(Mapping[str, JSONValue], dog) for dog in raw_dogs if isinstance(dog, Mapping)
+  ]
+  if not dogs:
+    return
+
+  snapshot = get_entry_push_telemetry_snapshot(hass, entry.entry_id)
+  created_at: datetime | None = None
+  created_raw = snapshot.get("created_at")
+  if isinstance(created_raw, str):
+    parsed = dt_util.parse_datetime(created_raw)
+    if parsed is not None:
+      created_at = dt_util.as_utc(parsed)
+
+  now = dt_util.utcnow()
+  grace_minutes = 5
+  no_data_minutes = 10
+
+  webhook_enabled = bool(entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
+  mqtt_enabled = bool(entry.options.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED))
+
+  per_dog = snapshot.get("per_dog")
+  per_dog_map: Mapping[str, Any] = per_dog if isinstance(per_dog, Mapping) else {}
+
+  delete_issue = getattr(ir, "async_delete_issue", None)
+
+  def _delete(issue_id: str) -> None:
+    if callable(delete_issue):
+      try:
+        delete_issue(hass, DOMAIN, issue_id)
+      except Exception:
+        return
+
+  for dog in dogs:
+    dog_id = dog.get(CONF_DOG_ID)
+    dog_name = dog.get(CONF_DOG_NAME)
+    if not isinstance(dog_id, str) or not dog_id:
+      continue
+    if not isinstance(dog_name, str) or not dog_name:
+      dog_name = dog_id
+
+    gps_config_raw = dog.get("gps_config", {})
+    gps_config = gps_config_raw if isinstance(gps_config_raw, Mapping) else {}
+    gps_source = gps_config.get("gps_source")
+
+    issue_no_data_id = f"{entry.entry_id}_push_no_data_{dog_id}"
+    issue_reject_id = f"{entry.entry_id}_push_rejections_high_{dog_id}"
+
+    if gps_source not in {"webhook", "mqtt"}:
+      _delete(issue_no_data_id)
+      _delete(issue_reject_id)
+      continue
+
+    # Source disabled → no data will arrive
+    if gps_source == "webhook" and not webhook_enabled:
+      await async_create_issue(
+        hass,
+        entry,
+        issue_no_data_id,
+        ISSUE_PUSH_NO_DATA,
+        {
+          "dog_id": dog_id,
+          "dog_name": dog_name,
+          "source": "webhook",
+          "reason": "source_disabled",
+          "accepted_total": 0,
+          "rejected_total": 0,
+        },
+        severity="warning",
+      )
+      _delete(issue_reject_id)
+      continue
+
+    if gps_source == "mqtt" and not mqtt_enabled:
+      await async_create_issue(
+        hass,
+        entry,
+        issue_no_data_id,
+        ISSUE_PUSH_NO_DATA,
+        {
+          "dog_id": dog_id,
+          "dog_name": dog_name,
+          "source": "mqtt",
+          "reason": "source_disabled",
+          "accepted_total": 0,
+          "rejected_total": 0,
+        },
+        severity="warning",
+      )
+      _delete(issue_reject_id)
+      continue
+
+    dog_tel_raw = per_dog_map.get(dog_id, {})
+    dog_tel = dog_tel_raw if isinstance(dog_tel_raw, Mapping) else {}
+    accepted = _coerce_int(dog_tel.get("accepted_total")) or 0
+    rejected = _coerce_int(dog_tel.get("rejected_total")) or 0
+
+    # Avoid false positives right after reload/startup
+    if created_at is not None and (now - created_at) < timedelta(minutes=grace_minutes):
+      _delete(issue_no_data_id)
+      _delete(issue_reject_id)
+      continue
+
+    # No accepted data observed after grace window
+    if created_at is not None and accepted == 0 and (now - created_at) >= timedelta(minutes=no_data_minutes):
+      await async_create_issue(
+        hass,
+        entry,
+        issue_no_data_id,
+        ISSUE_PUSH_NO_DATA,
+        {
+          "dog_id": dog_id,
+          "dog_name": dog_name,
+          "source": str(gps_source),
+          "rejected_total": rejected,
+          "accepted_total": accepted,
+          "reason": "no_data",
+        },
+        severity="warning",
+      )
+    else:
+      _delete(issue_no_data_id)
+
+    # Rejections unusually high
+    too_many = rejected >= 20 and rejected > max(accepted * 5, 20)
+    if too_many:
+      await async_create_issue(
+        hass,
+        entry,
+        issue_reject_id,
+        ISSUE_PUSH_REJECTIONS_HIGH,
+        {
+          "dog_id": dog_id,
+          "dog_name": dog_name,
+          "source": str(gps_source),
+          "accepted_total": accepted,
+          "rejected_total": rejected,
+        },
+        severity="warning",
+      )
+    else:
+      _delete(issue_reject_id)
+
 
 
 async def _check_notification_configuration_issues(
@@ -1476,6 +1647,8 @@ class PawControlRepairsFlow(RepairsFlow):
       return await self.async_step_missing_notifications()
     if self._repair_type == ISSUE_OUTDATED_CONFIG:
       return await self.async_step_outdated_config()
+    if self._repair_type in {ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH}:
+      return await self.async_step_push_health()
     if self._repair_type in {
       ISSUE_PERFORMANCE_WARNING,
       ISSUE_GPS_UPDATE_INTERVAL,
@@ -1888,6 +2061,74 @@ class PawControlRepairsFlow(RepairsFlow):
         ),
       },
     )
+
+  async def async_step_outdated_config(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle outdated configuration repair flow."""
+    if user_input is not None:
+      action = user_input.get("action")
+      if action == "reload":
+        await self._reload_config_entry()
+      return await self.async_step_complete_repair()
+
+    return self.async_show_form(
+      step_id="outdated_config",
+      data_schema=vol.Schema(
+        {
+          vol.Required("action", default="reload"): selector(
+            {
+              "select": {
+                "options": [
+                  {"value": "reload", "label": "Reload integration"},
+                  {"value": "dismiss", "label": "Dismiss"},
+                ],
+                "mode": "dropdown",
+              }
+            },
+          )
+        },
+      ),
+    )
+
+
+  async def async_step_push_health(
+    self,
+    user_input: dict[str, Any] | None = None,
+  ) -> FlowResult:
+    """Handle push transport health repair flow."""
+    if user_input is not None:
+      action = user_input.get("action")
+      if action == "reload":
+        await self._reload_config_entry()
+      return await self.async_step_complete_repair()
+
+    dog_name = self._issue_data.get("dog_name", "dog")
+    source = self._issue_data.get("source", "push")
+    return self.async_show_form(
+      step_id="push_health",
+      description_placeholders={
+        "dog_name": str(dog_name),
+        "source": str(source),
+      },
+      data_schema=vol.Schema(
+        {
+          vol.Required("action", default="dismiss"): selector(
+            {
+              "select": {
+                "options": [
+                  {"value": "dismiss", "label": "Dismiss"},
+                  {"value": "reload", "label": "Reload integration"},
+                ],
+                "mode": "dropdown",
+              }
+            },
+          )
+        },
+      ),
+    )
+
 
   async def async_step_performance_warning(
     self,
