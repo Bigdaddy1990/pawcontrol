@@ -23,7 +23,7 @@ Use this workflow whenever an issue report is missing data or needs validation.
    - Recreate the issue on a minimal configuration.
    - Verify whether the problem is profile-, device-, or platform-specific.
 3. **Collect diagnostics**
-   - Follow the dedicated diagnostics playbook: [`docs/diagnostics.md`](diagnostics.md).
+   - Follow the dedicated diagnostics playbook: [`diagnostics.md`](diagnostics.md).
    - Request logs around the failure window.
    - Ask for a Home Assistant config check if core services are affected.
 4. **Capture supporting evidence**
