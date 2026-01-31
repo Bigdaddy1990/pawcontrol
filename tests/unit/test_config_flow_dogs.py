@@ -14,10 +14,12 @@ from custom_components.pawcontrol.config_flow_dogs import (
   _build_add_another_summary_placeholders,
   _build_add_dog_placeholders,
   _build_dog_feeding_placeholders,
-  _build_dog_gps_placeholders,
-  _build_dog_health_placeholders,
   _build_dog_modules_placeholders,
   _build_module_setup_placeholders,
+)
+from custom_components.pawcontrol.flows.gps_helpers import build_dog_gps_placeholders
+from custom_components.pawcontrol.flows.health_helpers import (
+  build_dog_health_placeholders,
 )
 
 
@@ -111,7 +113,7 @@ def test_build_add_another_placeholders_encodes_flags() -> None:
 def test_build_dog_gps_placeholders_returns_mapping_proxy() -> None:
   """GPS placeholders should expose the active dog name immutably."""
 
-  placeholders = _build_dog_gps_placeholders(dog_name="Buddy")
+  placeholders = build_dog_gps_placeholders(dog_name="Buddy")
 
   assert isinstance(placeholders, MappingProxyType)
   assert placeholders["dog_name"] == "Buddy"
@@ -139,7 +141,7 @@ def test_build_dog_feeding_placeholders_normalises_strings() -> None:
 def test_build_dog_health_placeholders_encodes_metadata() -> None:
   """Health placeholders should carry the computed guidance strings."""
 
-  placeholders = _build_dog_health_placeholders(
+  placeholders = build_dog_health_placeholders(
     dog_name="Buddy",
     dog_age="5",
     dog_weight="24.0",
