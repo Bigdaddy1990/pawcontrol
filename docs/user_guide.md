@@ -38,6 +38,18 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Services**: `pawcontrol.*` services appear in the Services UI.
 - **Dashboards**: use the generated cards in Lovelace or customize further.
 
+## Validation & attribute normalization
+
+PawControl validates and normalizes inputs to keep config flows, options, and
+service calls consistent:
+
+- **Flow validation** trims and normalizes dog IDs, checks name uniqueness,
+  and clamps age/weight/size ranges before entries are saved.
+- **Service validation** rejects malformed payloads and missing required data
+  (for example, feeding amounts and GPS intervals).
+- **Attribute normalization** ensures entity attributes and diagnostics payloads
+  stay JSON-safe and consistently shaped across platforms.
+
 ## Discovery & config flow overview
 
 When Home Assistant detects a PawControl device (DHCP, USB, Zeroconf, HomeKit,
@@ -93,7 +105,8 @@ to auto-start/stop sessions.
 
 1. Enable Feeding tracking in the dog profile.
 2. Define schedules and portion sizes in **Options → Feeding**.
-3. Use `pawcontrol.log_feeding` or the feeding buttons to log meals.
+3. Use `pawcontrol.add_feeding` (preferred) or `pawcontrol.feed_dog` (legacy)
+   to log meals.
 
 **Tip:** Combine feeding reminders with a mobile notification action to quickly
 log a meal from your phone.
@@ -102,8 +115,9 @@ log a meal from your phone.
 
 1. Enable Health tracking in the dog profile.
 2. Add weight and vet reminder sensors to your dashboard.
-3. Use `pawcontrol.log_weight`, `pawcontrol.log_medication`, and
-   `pawcontrol.log_grooming` services for manual logging.
+3. Use `pawcontrol.log_health_data`, `pawcontrol.log_medication`, and
+   `pawcontrol.start_grooming` / `pawcontrol.end_grooming` services for manual
+   logging.
 
 **Tip:** Create a weekly automation that reminds you to weigh your dog on the
 same day and time.

@@ -18,13 +18,13 @@ verify during reviews.
 | Rule | Code / docs evidence | Tests / checks | Owner |
 | --- | --- | --- | --- |
 | has-owner | `CODEOWNERS`, `custom_components/pawcontrol/manifest.json` | N/A | @BigDaddy1990 |
-| config-flow | `custom_components/pawcontrol/config_flow.py`, `custom_components/pawcontrol/strings.json`, `docs/user_guide.md`, `docs/setup_installation_guide.md` | `tests/unit/test_config_flow_dogs.py`, `tests/unit/test_config_flow_base.py`, `tests/unit/test_config_flow_modules.py` | @BigDaddy1990 |
+| config-flow | `custom_components/pawcontrol/config_flow.py`, `custom_components/pawcontrol/flow_validation.py`, `custom_components/pawcontrol/strings.json`, `docs/user_guide.md`, `docs/setup_installation_guide.md` | `tests/unit/test_config_flow_dogs.py`, `tests/unit/test_config_flow_base.py`, `tests/unit/test_config_flow_modules.py`, `tests/test_flow_validation.py` | @BigDaddy1990 |
 | docs-actions | `custom_components/pawcontrol/services.py`, `custom_components/pawcontrol/script_manager.py`, `custom_components/pawcontrol/services.yaml`, `README.md`, `docs/automation_examples.md` | `tests/unit/test_services.py` | @BigDaddy1990 |
 | docs-removal | `docs/setup_installation_guide.md`, `docs/troubleshooting.md` | N/A | @BigDaddy1990 |
 | runtime-data | `custom_components/pawcontrol/runtime_data.py`, `custom_components/pawcontrol/coordinator_runtime.py` | `tests/test_runtime_data.py` | @BigDaddy1990 |
 | stale-devices | `custom_components/pawcontrol/__init__.py` | `tests/helpers/homeassistant_test_stubs.py` | @BigDaddy1990 |
 | dynamic-devices | `custom_components/pawcontrol/` entity setup | `tests/helpers/homeassistant_test_stubs.py` | @BigDaddy1990 |
-| test-before-setup | `custom_components/pawcontrol/validation.py` | `tests/test_validation_inputs.py` | @BigDaddy1990 |
+| test-before-setup | `custom_components/pawcontrol/validation.py`, `custom_components/pawcontrol/flow_validation.py`, `custom_components/pawcontrol/api_validator.py` | `tests/test_validation_inputs.py`, `tests/test_flow_validation.py`, `tests/test_api_validator.py` | @BigDaddy1990 |
 | test-before-update | `custom_components/pawcontrol/coordinator.py`, `custom_components/pawcontrol/diagnostics.py` | `tests/test_diagnostics.py`, `tests/unit/test_coordinator_tasks.py`, `tests/unit/test_services.py` | @BigDaddy1990 |
 | test-before-unload | `custom_components/pawcontrol/__init__.py`, `custom_components/pawcontrol/runtime_data.py` | `tests/test_runtime_data.py` | @BigDaddy1990 |
 | test-coverage | `pyproject.toml` coverage config | `tests/` (including `tests/test_geofence_zone.py`, `tests/test_validation_inputs.py`) | @BigDaddy1990 |
