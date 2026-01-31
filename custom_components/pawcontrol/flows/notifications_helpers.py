@@ -13,10 +13,33 @@ from ..types import (
   NOTIFICATION_QUIET_HOURS_FIELD,
   NOTIFICATION_QUIET_START_FIELD,
   NOTIFICATION_REMINDER_REPEAT_FIELD,
+  NotificationOptionsField,
   NotificationOptions,
   NotificationSettingsInput,
 )
 from ..validation import validate_int_range, validate_time_window
+
+
+def _bool_default(
+  current: NotificationOptions,
+  field: NotificationOptionsField,
+  fallback: bool,
+) -> bool:
+  """Return a boolean default extracted from a notification payload."""
+
+  value = current.get(field, fallback)
+  return value if isinstance(value, bool) else fallback
+
+
+def _string_default(
+  current: NotificationOptions,
+  field: NotificationOptionsField,
+  fallback: str,
+) -> str:
+  """Return a string default extracted from a notification payload."""
+
+  value = current.get(field, fallback)
+  return value if isinstance(value, str) else fallback
 
 
 def build_notification_settings_payload(
@@ -64,18 +87,24 @@ def build_notification_settings_payload(
     {
       NOTIFICATION_QUIET_HOURS_FIELD: coerce_bool(
         user_input.get(NOTIFICATION_QUIET_HOURS_FIELD),
-        current.get(NOTIFICATION_QUIET_HOURS_FIELD, True),
+        _bool_default(current, NOTIFICATION_QUIET_HOURS_FIELD, True),
       ),
-      NOTIFICATION_QUIET_START_FIELD: quiet_start,
-      NOTIFICATION_QUIET_END_FIELD: quiet_end,
+      NOTIFICATION_QUIET_START_FIELD: coerce_time_string(
+        user_input.get(NOTIFICATION_QUIET_START_FIELD),
+        _string_default(current, NOTIFICATION_QUIET_START_FIELD, "22:00:00"),
+      ),
+      NOTIFICATION_QUIET_END_FIELD: coerce_time_string(
+        user_input.get(NOTIFICATION_QUIET_END_FIELD),
+        _string_default(current, NOTIFICATION_QUIET_END_FIELD, "07:00:00"),
+      ),
       NOTIFICATION_REMINDER_REPEAT_FIELD: reminder_repeat,
       NOTIFICATION_PRIORITY_FIELD: coerce_bool(
         user_input.get(NOTIFICATION_PRIORITY_FIELD),
-        current.get(NOTIFICATION_PRIORITY_FIELD, True),
+        _bool_default(current, NOTIFICATION_PRIORITY_FIELD, True),
       ),
       NOTIFICATION_MOBILE_FIELD: coerce_bool(
         user_input.get(NOTIFICATION_MOBILE_FIELD),
-        current.get(NOTIFICATION_MOBILE_FIELD, True),
+        _bool_default(current, NOTIFICATION_MOBILE_FIELD, True),
       ),
     },
   )

@@ -45,6 +45,7 @@ from .types import (
   DashboardSetupConfig,
   DogConfigData,
   DogModulesConfig,
+  ExternalEntityConfig,
   clone_placeholders,
   freeze_placeholders,
 )
@@ -124,7 +125,7 @@ class DashboardFlowMixin:
 
     async def async_step_configure_external_entities(
       self,
-      user_input: dict[str, Any] | None = None,
+      user_input: ExternalEntityConfig | None = None,
     ) -> ConfigFlowResult:
       """Type-checking stub for the GPS entity configuration step."""
       ...

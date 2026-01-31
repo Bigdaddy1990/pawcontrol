@@ -97,6 +97,7 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   ModuleToggleKey,
+  ModuleConfigurationStepInput,
   PerformanceMode,
   ProfileSelectionInput,
   ReconfigureCompatibilityResult,
@@ -207,7 +208,9 @@ class PawControlConfigFlow(
         reload_on_update=False,
       )
 
-      return await self.async_step_add_dog(user_input)
+      return await self.async_step_add_dog(
+        cast(DogSetupStepInput | None, user_input),
+      )
 
   async def async_step_import(
     self,
@@ -715,7 +718,7 @@ class PawControlConfigFlow(
 
   async def async_step_add_dog(
     self,
-    user_input: ConfigFlowUserInput | None = None,
+    user_input: DogSetupStepInput | None = None,
   ) -> ConfigFlowResult:
     """Add a dog configuration with optimized validation.
 
@@ -968,7 +971,7 @@ class PawControlConfigFlow(
 
   async def async_step_dog_modules(
     self,
-    user_input: ConfigFlowUserInput | None = None,
+    user_input: DogModuleSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Configure optional modules for the newly added dog.
 
@@ -1503,7 +1506,7 @@ class PawControlConfigFlow(
 
   async def async_step_configure_modules(
     self,
-    user_input: ConfigFlowUserInput | None = None,
+    user_input: ModuleConfigurationStepInput | None = None,
   ) -> ConfigFlowResult:
     """Update cached module summary before delegating to mixin."""
 

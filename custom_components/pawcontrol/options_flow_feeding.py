@@ -16,6 +16,7 @@ from .types import (
   FeedingOptions,
   JSONLikeMapping,
   JSONValue,
+  OptionsDogSelectionInput,
   OptionsFeedingSettingsInput,
   ensure_dog_options_entry,
 )
@@ -67,7 +68,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
 
   async def async_step_select_dog_for_feeding_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select which dog to configure feeding settings for."""
 
@@ -90,7 +91,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
 
   async def async_step_feeding_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsFeedingSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure feeding and nutrition settings."""
 
@@ -149,7 +150,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
   def _get_feeding_settings_schema(
     self,
     dog_id: str,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsFeedingSettingsInput | None = None,
   ) -> vol.Schema:
     """Get feeding settings schema."""
 

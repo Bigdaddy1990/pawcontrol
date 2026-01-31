@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import asdict
 from importlib import import_module
 from typing import TYPE_CHECKING, Any, Protocol, cast
@@ -36,18 +36,26 @@ from .types import (
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
+  OptionsDogSelectionInput,
+  OptionsDoorSensorInput,
+  PawControlRuntimeData,
   ensure_dog_config_data,
 )
 from .validation import ValidationError, validate_sensor_entity_id
 from .flows.walk_helpers import WALK_SETTINGS_FIELDS
 
 if TYPE_CHECKING:
+  from homeassistant.core import HomeAssistant
+
   from .compat import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
+RuntimeDataResolver = Callable[[HomeAssistant, ConfigEntry], PawControlRuntimeData]
+IssueCreator = Callable[..., Awaitable[None]]
 
-def _resolve_require_runtime_data():
+
+def _resolve_require_runtime_data() -> RuntimeDataResolver:
   """Return the patched runtime data helper when available."""
 
   try:
@@ -60,7 +68,7 @@ def _resolve_require_runtime_data():
   return require_runtime_data
 
 
-def _resolve_async_create_issue():
+def _resolve_async_create_issue() -> IssueCreator:
   """Return the patched repairs helper when available."""
 
   try:
@@ -96,7 +104,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
 
   async def async_step_select_dog_for_door_sensor(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select a dog for door sensor configuration."""
 
@@ -138,7 +146,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
 
   async def async_step_configure_door_sensor(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDoorSensorInput | None = None,
   ) -> ConfigFlowResult:
     """Configure door sensor entity and overrides for the current dog."""
 

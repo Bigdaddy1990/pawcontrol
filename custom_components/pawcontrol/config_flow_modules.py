@@ -43,7 +43,6 @@ from .selector_shim import selector
 from .types import (
   ConfigFlowGlobalSettings,
   ConfigFlowPlaceholders,
-  ConfigFlowUserInput,
   DashboardConfigurationPlaceholders,
   DashboardConfigurationStepInput,
   DashboardMode,
@@ -358,7 +357,7 @@ class ModuleConfigurationMixin:
 
   async def async_step_configure_modules(
     self,
-    user_input: ConfigFlowUserInput | None = None,
+    user_input: ModuleConfigurationStepInput | None = None,
   ) -> ConfigFlowResult:
     """Configure global settings after per-dog configuration.
 

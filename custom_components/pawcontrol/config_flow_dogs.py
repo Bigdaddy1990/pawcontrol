@@ -55,6 +55,7 @@ from custom_components.pawcontrol.flow_validation import validate_dog_setup_inpu
 from custom_components.pawcontrol.types import (
   ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
   ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
+  AddAnotherDogInput,
   DOG_AGE_FIELD,
   DOG_BREED_FIELD,
   DOG_FEEDING_CONFIG_FIELD,
@@ -85,6 +86,7 @@ from custom_components.pawcontrol.types import (
   JSONValue,
   JSONMapping,
   ModuleConfigurationSnapshot,
+  ModuleConfigurationStepInput,
   ModuleToggleKey,
   clone_placeholders,
   dog_feeding_config_from_flow,
@@ -364,7 +366,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
   async def async_step_add_dog(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: DogSetupStepInput | None = None,
   ) -> ConfigFlowResult:
     """Handle adding a dog with rate-limited validation.
 
@@ -456,7 +458,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
   async def async_step_dog_modules(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: DogModuleSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Configure modules for the specific dog being added.
 
@@ -589,7 +591,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
   async def async_step_dog_feeding(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: DogFeedingStepInput | None = None,
   ) -> ConfigFlowResult:
     """Configure feeding settings for the specific dog.
 
@@ -1025,7 +1027,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
   async def async_step_add_another_dog(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: AddAnotherDogInput | None = None,
   ) -> ConfigFlowResult:
     """Ask if the user wants to add another dog with enhanced UX.
 
@@ -1386,7 +1388,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
   async def async_step_configure_modules(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: ModuleConfigurationStepInput | None = None,
   ) -> ConfigFlowResult:
     """Configure global module settings after all dogs are added.
 

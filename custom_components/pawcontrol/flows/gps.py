@@ -58,10 +58,14 @@ from ..types import (
   GPS_UPDATE_INTERVAL_FIELD,
   ROUTE_HISTORY_DAYS_FIELD,
   ROUTE_RECORDING_FIELD,
+  AddAnotherDogInput,
   ConfigFlowDiscoveryData,
   DogConfigData,
+  DogFeedingStepInput,
   DogGPSConfig,
+  DogHealthStepInput,
   DogOptionsMap,
+  DogSetupStepInput,
   GeofenceOptions,
   GPSOptions,
   JSONLikeMapping,
@@ -185,22 +189,22 @@ if TYPE_CHECKING:
 
     async def async_step_add_dog(
       self,
-      user_input: dict[str, Any] | None = None,
+      user_input: DogSetupStepInput | None = None,
     ) -> Any: ...
 
     async def async_step_dog_feeding(
       self,
-      user_input: dict[str, Any] | None = None,
+      user_input: DogFeedingStepInput | None = None,
     ) -> Any: ...
 
     async def async_step_dog_health(
       self,
-      user_input: dict[str, Any] | None = None,
+      user_input: DogHealthStepInput | None = None,
     ) -> Any: ...
 
     async def async_step_add_another_dog(
       self,
-      user_input: dict[str, Any] | None = None,
+      user_input: AddAnotherDogInput | None = None,
     ) -> Any: ...
 
     def async_show_form(
