@@ -46,6 +46,7 @@ from .options_flow_door_sensor import DoorSensorOptionsMixin
 from .options_flow_feeding import FeedingOptionsMixin
 from .flows.gps import GPSOptionsMixin, GPSOptionsNormalizerMixin
 from .flows.health import HealthOptionsMixin
+from .flows.health_helpers import summarise_health_summary
 from .flows.notifications import (
   NotificationOptionsMixin,
   NotificationOptionsNormalizerMixin,
@@ -327,32 +328,7 @@ class PawControlOptionsFlow(
   def _summarise_health_summary(self, health: Any) -> str:
     """Convert a health summary mapping into a user-facing string."""
 
-    if not isinstance(health, Mapping):
-      return "No recent health summary"
-
-    healthy = bool(health.get("healthy", True))
-    issues = self._string_sequence(health.get("issues"))
-    warnings = self._string_sequence(health.get("warnings"))
-
-    if healthy and not issues and not warnings:
-      return "Healthy"
-
-    segments: list[str] = []
-    if not healthy:
-      segments.append("Issues detected")
-    if issues:
-      segments.append(f"Issues: {', '.join(issues)}")
-    if warnings:
-      segments.append(f"Warnings: {', '.join(warnings)}")
-
-    return " | ".join(segments)
-
-  def _string_sequence(self, value: Any) -> list[str]:
-    """Return a normalised list of strings for sequence-based metadata."""
-
-    if isinstance(value, Sequence) and not isinstance(value, str | bytes):
-      return [str(item) for item in value if item not in (None, "")]
-    return []
+    return summarise_health_summary(health)
 
   @classmethod
   def _load_setup_flag_translations_from_mapping(

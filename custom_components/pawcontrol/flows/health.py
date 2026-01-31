@@ -9,12 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from ..const import (
-  MAX_DOG_WEIGHT,
-  MIN_DOG_WEIGHT,
-  MODULE_MEDICATION,
-  SPECIAL_DIET_OPTIONS,
-)
+from ..const import MODULE_MEDICATION, SPECIAL_DIET_OPTIONS
 from ..exceptions import FlowValidationError
 from ..flow_helpers import (
   coerce_bool,
@@ -23,18 +18,15 @@ from ..flow_helpers import (
   coerce_optional_str,
   coerce_str,
 )
-from ..selector_shim import selector
 from ..types import (
   DOG_AGE_FIELD,
   DOG_FEEDING_CONFIG_FIELD,
   DOG_HEALTH_CONFIG_FIELD,
-  DOG_HEALTH_PLACEHOLDERS_TEMPLATE,
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
   DOG_OPTIONS_FIELD,
   DOG_SIZE_FIELD,
   DOG_WEIGHT_FIELD,
-  ConfigFlowPlaceholders,
   DogConfigData,
   DogFeedingConfig,
   DogHealthConfig,
@@ -45,19 +37,21 @@ from ..types import (
   JSONLikeMapping,
   JSONValue,
   OptionsHealthSettingsInput,
-  clone_placeholders,
   ensure_dog_modules_config,
   ensure_dog_options_entry,
-  freeze_placeholders,
 )
+from .health_helpers import (
+  build_dog_health_placeholders,
+  build_health_settings_payload,
+  summarise_health_summary,
+)
+from .health_schemas import build_dog_health_schema, build_health_settings_schema
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class HealthSummaryHost(Protocol):
   """Protocol describing the config flow host requirements."""
-
-  def _normalise_string_list(self, values: Any) -> list[str]: ...
 
 
 class HealthSummaryMixin(HealthSummaryHost):
@@ -66,52 +60,7 @@ class HealthSummaryMixin(HealthSummaryHost):
   def _summarise_health_summary(self, summary: Any) -> str:
     """Convert a health summary mapping into a user-facing string."""
 
-    if not isinstance(summary, Mapping):
-      return "No recent health summary"
-
-    healthy = bool(summary.get("healthy", True))
-    issues = self._normalise_string_list(summary.get("issues"))
-    warnings = self._normalise_string_list(summary.get("warnings"))
-
-    if healthy and not issues and not warnings:
-      return "Healthy"
-
-    segments: list[str] = []
-    if not healthy:
-      segments.append("Issues detected")
-    if issues:
-      segments.append(f"Issues: {', '.join(issues)}")
-    if warnings:
-      segments.append(f"Warnings: {', '.join(warnings)}")
-
-    return " | ".join(segments)
-
-
-def _build_dog_health_placeholders(
-  *,
-  dog_name: str,
-  dog_age: str,
-  dog_weight: str,
-  suggested_ideal_weight: str,
-  suggested_activity: str,
-  medication_enabled: str,
-  bcs_info: str,
-  special_diet_count: str,
-  health_diet_info: str,
-) -> ConfigFlowPlaceholders:
-  """Return immutable placeholders for the health configuration step."""
-
-  placeholders = clone_placeholders(DOG_HEALTH_PLACEHOLDERS_TEMPLATE)
-  placeholders["dog_name"] = dog_name
-  placeholders["dog_age"] = dog_age
-  placeholders["dog_weight"] = dog_weight
-  placeholders["suggested_ideal_weight"] = suggested_ideal_weight
-  placeholders["suggested_activity"] = suggested_activity
-  placeholders["medication_enabled"] = medication_enabled
-  placeholders["bcs_info"] = bcs_info
-  placeholders["special_diet_count"] = special_diet_count
-  placeholders["health_diet_info"] = health_diet_info
-  return freeze_placeholders(placeholders)
+    return summarise_health_summary(summary)
 
 
 if TYPE_CHECKING:
@@ -299,183 +248,13 @@ class DogHealthFlowMixin(DogHealthFlowHost):
     suggested_activity = self._suggest_activity_level(dog_age, dog_size)
 
     modules = ensure_dog_modules_config(current_dog)
-
-    schema_dict = {
-      vol.Optional("vet_name", default=""): selector.TextSelector(),
-      vol.Optional("vet_phone", default=""): selector.TextSelector(
-        selector.TextSelectorConfig(
-          type=selector.TextSelectorType.TEL,
-        ),
-      ),
-      vol.Optional("last_vet_visit"): selector.DateSelector(),
-      vol.Optional("next_checkup"): selector.DateSelector(),
-      vol.Optional("weight_tracking", default=True): selector.BooleanSelector(),
-      vol.Optional(
-        "health_aware_portions",
-        default=True,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "ideal_weight",
-        default=suggested_ideal_weight,
-      ): selector.NumberSelector(
-        selector.NumberSelectorConfig(
-          min=MIN_DOG_WEIGHT,
-          max=MAX_DOG_WEIGHT,
-          step=0.1,
-          mode=selector.NumberSelectorMode.BOX,
-          unit_of_measurement="kg",
-        ),
-      ),
-      vol.Optional("body_condition_score", default=5): selector.NumberSelector(
-        selector.NumberSelectorConfig(
-          min=1,
-          max=9,
-          step=1,
-          mode=selector.NumberSelectorMode.BOX,
-        ),
-      ),
-      vol.Optional(
-        "activity_level",
-        default=suggested_activity,
-      ): selector.SelectSelector(
-        selector.SelectSelectorConfig(
-          options=[
-            "very_low",
-            "low",
-            "moderate",
-            "high",
-            "very_high",
-          ],
-          mode=selector.SelectSelectorMode.DROPDOWN,
-          translation_key="activity_level",
-        ),
-      ),
-      vol.Optional("weight_goal", default="maintain"): selector.SelectSelector(
-        selector.SelectSelectorConfig(
-          options=["lose", "maintain", "gain"],
-          mode=selector.SelectSelectorMode.DROPDOWN,
-          translation_key="weight_goal",
-        ),
-      ),
-      vol.Optional("spayed_neutered", default=True): selector.BooleanSelector(),
-      vol.Optional("has_diabetes", default=False): selector.BooleanSelector(),
-      vol.Optional(
-        "has_kidney_disease",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "has_heart_disease",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional("has_arthritis", default=False): selector.BooleanSelector(),
-      vol.Optional("has_allergies", default=False): selector.BooleanSelector(),
-      vol.Optional(
-        "has_digestive_issues",
-        default=False,
-      ): selector.BooleanSelector(),
-      vol.Optional(
-        "other_health_conditions",
-        default="",
-      ): selector.TextSelector(),
-    }
-
-    medical_diets = [
-      "prescription",
-      "diabetic",
-      "kidney_support",
-      "low_fat",
-      "weight_control",
-      "sensitive_stomach",
-    ]
-    for diet in medical_diets:
-      if diet in SPECIAL_DIET_OPTIONS:
-        schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()
-
-    age_diets = ["senior_formula", "puppy_formula"]
-    for diet in age_diets:
-      if diet in SPECIAL_DIET_OPTIONS:
-        default_value = (diet == "senior_formula" and dog_age >= 7) or (
-          diet == "puppy_formula" and dog_age < 2
-        )
-        schema_dict[vol.Optional(diet, default=default_value)] = (
-          selector.BooleanSelector()
-        )
-
-    allergy_diets = ["grain_free", "hypoallergenic"]
-    for diet in allergy_diets:
-      if diet in SPECIAL_DIET_OPTIONS:
-        schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()
-
-    lifestyle_diets = ["organic", "raw_diet", "dental_care", "joint_support"]
-    for diet in lifestyle_diets:
-      if diet in SPECIAL_DIET_OPTIONS:
-        default_value = False
-        if diet == "joint_support" and (dog_age >= 7 or dog_size in ("large", "giant")):
-          default_value = True
-        schema_dict[vol.Optional(diet, default=default_value)] = (
-          selector.BooleanSelector()
-        )
-
-    schema_dict.update(
-      {
-        vol.Optional("rabies_vaccination"): selector.DateSelector(),
-        vol.Optional("rabies_next"): selector.DateSelector(),
-        vol.Optional("dhpp_vaccination"): selector.DateSelector(),
-        vol.Optional("dhpp_next"): selector.DateSelector(),
-        vol.Optional("bordetella_vaccination"): selector.DateSelector(),
-        vol.Optional("bordetella_next"): selector.DateSelector(),
-      },
+    schema = build_dog_health_schema(
+      dog_age=dog_age,
+      dog_size=dog_size,
+      suggested_ideal_weight=suggested_ideal_weight,
+      suggested_activity=suggested_activity,
+      modules=modules,
     )
-
-    if modules.get(MODULE_MEDICATION, False):
-      schema_dict.update(
-        {
-          vol.Optional("medication_1_name"): selector.TextSelector(),
-          vol.Optional("medication_1_dosage"): selector.TextSelector(),
-          vol.Optional(
-            "medication_1_frequency",
-            default="daily",
-          ): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-              options=["daily", "twice_daily", "weekly", "as_needed"],
-              mode=selector.SelectSelectorMode.DROPDOWN,
-              translation_key="medication_frequency",
-            ),
-          ),
-          vol.Optional(
-            "medication_1_time",
-            default="08:00:00",
-          ): selector.TimeSelector(),
-          vol.Optional(
-            "medication_1_with_meals",
-            default=False,
-          ): selector.BooleanSelector(),
-          vol.Optional("medication_1_notes"): selector.TextSelector(),
-          vol.Optional("medication_2_name"): selector.TextSelector(),
-          vol.Optional("medication_2_dosage"): selector.TextSelector(),
-          vol.Optional(
-            "medication_2_frequency",
-            default="daily",
-          ): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-              options=["daily", "twice_daily", "weekly", "as_needed"],
-              mode=selector.SelectSelectorMode.DROPDOWN,
-              translation_key="medication_frequency",
-            ),
-          ),
-          vol.Optional(
-            "medication_2_time",
-            default="20:00:00",
-          ): selector.TimeSelector(),
-          vol.Optional(
-            "medication_2_with_meals",
-            default=False,
-          ): selector.BooleanSelector(),
-          vol.Optional("medication_2_notes"): selector.TextSelector(),
-        },
-      )
-
-    schema = vol.Schema(schema_dict)
 
     translations, fallback = await self._async_get_translation_lookup()
     bcs_key = "config.step.dog_health.bcs_info"
@@ -493,7 +272,7 @@ class DogHealthFlowMixin(DogHealthFlowHost):
       description_placeholders=dict(
         cast(
           Mapping[str, str],
-          _build_dog_health_placeholders(
+          build_dog_health_placeholders(
             dog_name=current_dog[DOG_NAME_FIELD],
             dog_age=str(dog_age),
             dog_weight=str(dog_weight),
@@ -631,46 +410,9 @@ class HealthOptionsMixin(HealthOptionsHost):
     """Get health settings schema."""
 
     current_health = self._current_health_options(dog_id)
-    current_values = user_input or {}
-
-    return vol.Schema(
-      {
-        vol.Optional(
-          "weight_tracking",
-          default=current_values.get(
-            "weight_tracking",
-            current_health.get("weight_tracking", True),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "medication_reminders",
-          default=current_values.get(
-            "medication_reminders",
-            current_health.get("medication_reminders", True),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "vet_reminders",
-          default=current_values.get(
-            "vet_reminders",
-            current_health.get("vet_reminders", True),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "grooming_reminders",
-          default=current_values.get(
-            "grooming_reminders",
-            current_health.get("grooming_reminders", True),
-          ),
-        ): selector.BooleanSelector(),
-        vol.Optional(
-          "health_alerts",
-          default=current_values.get(
-            "health_alerts",
-            current_health.get("health_alerts", True),
-          ),
-        ): selector.BooleanSelector(),
-      },
+    return build_health_settings_schema(
+      current_health,
+      cast(dict[str, object], user_input) if user_input is not None else None,
     )
 
   def _build_health_settings(
@@ -680,28 +422,8 @@ class HealthOptionsMixin(HealthOptionsHost):
   ) -> HealthOptions:
     """Create a typed health payload from the submitted form data."""
 
-    return cast(
-      HealthOptions,
-      {
-        "weight_tracking": self._coerce_bool(
-          user_input.get("weight_tracking"),
-          current.get("weight_tracking", True),
-        ),
-        "medication_reminders": self._coerce_bool(
-          user_input.get("medication_reminders"),
-          current.get("medication_reminders", True),
-        ),
-        "vet_reminders": self._coerce_bool(
-          user_input.get("vet_reminders"),
-          current.get("vet_reminders", True),
-        ),
-        "grooming_reminders": self._coerce_bool(
-          user_input.get("grooming_reminders"),
-          current.get("grooming_reminders", True),
-        ),
-        "health_alerts": self._coerce_bool(
-          user_input.get("health_alerts"),
-          current.get("health_alerts", True),
-        ),
-      },
+    return build_health_settings_payload(
+      user_input,
+      current,
+      coerce_bool=self._coerce_bool,
     )

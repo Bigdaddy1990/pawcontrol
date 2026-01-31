@@ -19,10 +19,6 @@ from ..const import (
   DEFAULT_GPS_ACCURACY_FILTER,
   DEFAULT_GPS_DISTANCE_FILTER,
   DEFAULT_GPS_UPDATE_INTERVAL,
-  GPS_ACCURACY_FILTER_SELECTOR,
-  GPS_UPDATE_INTERVAL_SELECTOR,
-  MAX_GEOFENCE_RADIUS,
-  MIN_GEOFENCE_RADIUS,
   MODULE_FEEDING,
   MODULE_GPS,
   MODULE_HEALTH,
@@ -37,11 +33,9 @@ from ..schemas import (
   GPS_OPTIONS_JSON_SCHEMA,
   validate_json_schema_payload,
 )
-from ..selector_shim import selector
 from ..types import (
   AUTO_TRACK_WALKS_FIELD,
   DOG_GPS_CONFIG_FIELD,
-  DOG_GPS_PLACEHOLDERS_TEMPLATE,
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
   DOG_OPTIONS_FIELD,
@@ -63,7 +57,6 @@ from ..types import (
   ROUTE_HISTORY_DAYS_FIELD,
   ROUTE_RECORDING_FIELD,
   ConfigFlowDiscoveryData,
-  ConfigFlowPlaceholders,
   DogConfigData,
   DogGPSConfig,
   DogOptionsMap,
@@ -72,10 +65,8 @@ from ..types import (
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
-  clone_placeholders,
   ensure_dog_modules_config,
   ensure_dog_options_entry,
-  freeze_placeholders,
 )
 from ..validation import (
   InputValidator,
@@ -85,14 +76,14 @@ from ..validation import (
   validate_gps_update_interval,
   validate_interval,
 )
+from .gps_helpers import build_dog_gps_placeholders, validation_error_key
+from .gps_schemas import (
+  build_dog_gps_schema,
+  build_geofence_settings_schema,
+  build_gps_settings_schema,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _validation_error_key(error: ValidationError, fallback: str) -> str:
-  """Return a translation key for a validation error."""
-
-  return error.constraint or fallback
 
 
 class GPSDefaultsHost(Protocol):
@@ -176,14 +167,6 @@ class GPSModuleDefaultsMixin(GPSDefaultsHost):
       reasons.append("GPS recommended for larger dogs")
 
     return "; ".join(reasons) if reasons else "Standard defaults applied"
-
-
-def _build_dog_gps_placeholders(*, dog_name: str) -> ConfigFlowPlaceholders:
-  """Return immutable placeholders for the GPS configuration step."""
-
-  placeholders = clone_placeholders(DOG_GPS_PLACEHOLDERS_TEMPLATE)
-  placeholders["dog_name"] = dog_name
-  return freeze_placeholders(placeholders)
 
 
 if TYPE_CHECKING:
@@ -276,7 +259,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           required=True,
         )
       except ValidationError as err:
-        errors["gps_update_interval"] = _validation_error_key(
+        errors["gps_update_interval"] = validation_error_key(
           err,
           "validation_error",
         )
@@ -293,7 +276,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           max_value=500.0,
         )
       except ValidationError as err:
-        errors["gps_accuracy_filter"] = _validation_error_key(
+        errors["gps_accuracy_filter"] = validation_error_key(
           err,
           "validation_error",
         )
@@ -308,7 +291,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           max_value=500.0,
         )
       except ValidationError as err:
-        errors["home_zone_radius"] = _validation_error_key(
+        errors["home_zone_radius"] = validation_error_key(
           err,
           "validation_error",
         )
@@ -322,7 +305,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           description_placeholders=dict(
             cast(
               Mapping[str, str],
-              _build_dog_gps_placeholders(
+              build_dog_gps_placeholders(
                 dog_name=current_dog[DOG_NAME_FIELD],
               ),
             ),
@@ -366,7 +349,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
       description_placeholders=dict(
         cast(
           Mapping[str, str],
-          _build_dog_gps_placeholders(
+          build_dog_gps_placeholders(
             dog_name=current_dog[DOG_NAME_FIELD],
           ),
         ),
@@ -377,50 +360,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
     """Build the schema for GPS configuration."""
 
     gps_sources = self._get_available_device_trackers()
-    base_push_sources = {
-      "webhook": "Webhook (Push)",
-      "mqtt": "MQTT (Push)",
-    }
-
-    if not gps_sources:
-      gps_sources = {
-        **base_push_sources,
-        "manual": "Manual Location Entry",
-      }
-    else:
-      gps_sources = {
-        **gps_sources,
-        **base_push_sources,
-        "manual": "Manual Location Entry",
-      }
-
-    gps_source_schema = selector(
-      {
-        "select": {
-          "options": gps_sources,
-          "mode": "dropdown",
-        }
-      },
-    )
-
-    gps_update_interval_schema = selector(GPS_UPDATE_INTERVAL_SELECTOR)
-    gps_accuracy_schema = selector(GPS_ACCURACY_FILTER_SELECTOR)
-
-    return vol.Schema(
-      {
-        vol.Required(CONF_GPS_SOURCE): gps_source_schema,
-        vol.Required(
-          "gps_update_interval",
-          default=DEFAULT_GPS_UPDATE_INTERVAL,
-        ): gps_update_interval_schema,
-        vol.Required(
-          "gps_accuracy_filter",
-          default=DEFAULT_GPS_ACCURACY_FILTER,
-        ): gps_accuracy_schema,
-        vol.Optional("enable_geofencing", default=True): bool,
-        vol.Optional("home_zone_radius", default=50): vol.Coerce(float),
-      },
-    )
+    return build_dog_gps_schema(gps_sources)
 
 
 if TYPE_CHECKING:
@@ -651,7 +591,7 @@ class GPSOptionsMixin(GPSOptionsHost):
           required=True,
         )
       except ValidationError as err:
-        errors[GPS_UPDATE_INTERVAL_FIELD] = _validation_error_key(
+        errors[GPS_UPDATE_INTERVAL_FIELD] = validation_error_key(
           err,
           "invalid_configuration",
         )
@@ -666,7 +606,7 @@ class GPSOptionsMixin(GPSOptionsHost):
           max_value=500.0,
         )
       except ValidationError as err:
-        errors[GPS_ACCURACY_FILTER_FIELD] = _validation_error_key(
+        errors[GPS_ACCURACY_FILTER_FIELD] = validation_error_key(
           err,
           "invalid_configuration",
         )
@@ -769,67 +709,7 @@ class GPSOptionsMixin(GPSOptionsHost):
   ) -> vol.Schema:
     """Build schema for GPS settings."""
 
-    return vol.Schema(
-      {
-        vol.Optional(
-          GPS_ENABLED_FIELD,
-          default=current_options.get(GPS_ENABLED_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          GPS_UPDATE_INTERVAL_FIELD,
-          default=current_options.get(
-            GPS_UPDATE_INTERVAL_FIELD,
-            DEFAULT_GPS_UPDATE_INTERVAL,
-          ),
-        ): selector(GPS_UPDATE_INTERVAL_SELECTOR),
-        vol.Optional(
-          GPS_ACCURACY_FILTER_FIELD,
-          default=current_options.get(
-            GPS_ACCURACY_FILTER_FIELD,
-            DEFAULT_GPS_ACCURACY_FILTER,
-          ),
-        ): selector(GPS_ACCURACY_FILTER_SELECTOR),
-        vol.Optional(
-          GPS_DISTANCE_FILTER_FIELD,
-          default=current_options.get(
-            GPS_DISTANCE_FILTER_FIELD,
-            DEFAULT_GPS_DISTANCE_FILTER,
-          ),
-        ): selector(
-          {
-            "number": {
-              "mode": "box",
-              "min": 1,
-              "max": 2000,
-              "unit_of_measurement": "m",
-              "step": 1,
-            }
-          },
-        ),
-        vol.Optional(
-          ROUTE_RECORDING_FIELD,
-          default=current_options.get(ROUTE_RECORDING_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          ROUTE_HISTORY_DAYS_FIELD,
-          default=current_options.get(ROUTE_HISTORY_DAYS_FIELD, 30),
-        ): selector(
-          {
-            "number": {
-              "mode": "box",
-              "min": 1,
-              "max": 365,
-              "unit_of_measurement": "days",
-              "step": 1,
-            }
-          },
-        ),
-        vol.Optional(
-          AUTO_TRACK_WALKS_FIELD,
-          default=current_options.get(AUTO_TRACK_WALKS_FIELD, True),
-        ): selector({"boolean": {}}),
-      },
-    )
+    return build_gps_settings_schema(current_options)
 
   async def async_step_geofence_settings(
     self,
@@ -859,7 +739,7 @@ class GPSOptionsMixin(GPSOptionsHost):
           max_value=float(MAX_GEOFENCE_RADIUS),
         )
       except ValidationError as err:
-        errors[GEOFENCE_RADIUS_FIELD] = _validation_error_key(
+        errors[GEOFENCE_RADIUS_FIELD] = validation_error_key(
           err,
           "invalid_configuration",
         )
@@ -875,7 +755,7 @@ class GPSOptionsMixin(GPSOptionsHost):
           longitude_field=GEOFENCE_LON_FIELD,
         )
       except ValidationError as err:
-        errors[err.field] = _validation_error_key(
+        errors[err.field] = validation_error_key(
           err,
           "invalid_configuration",
         )
@@ -966,63 +846,7 @@ class GPSOptionsMixin(GPSOptionsHost):
   ) -> vol.Schema:
     """Build schema for geofence settings."""
 
-    geofence_latitude = current_options.get(GEOFENCE_LAT_FIELD) or "52.5200"
-    geofence_longitude = current_options.get(GEOFENCE_LON_FIELD) or "13.4050"
-
-    return vol.Schema(
-      {
-        vol.Optional(
-          GEOFENCE_ENABLED_FIELD,
-          default=current_options.get(GEOFENCE_ENABLED_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          GEOFENCE_USE_HOME_FIELD,
-          default=current_options.get(GEOFENCE_USE_HOME_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          GEOFENCE_RADIUS_FIELD,
-          default=current_options.get(GEOFENCE_RADIUS_FIELD, 100.0),
-        ): selector(
-          {
-            "number": {
-              "mode": "box",
-              "min": MIN_GEOFENCE_RADIUS,
-              "max": MAX_GEOFENCE_RADIUS,
-              "unit_of_measurement": "m",
-              "step": 1,
-            }
-          },
-        ),
-        vol.Optional(
-          GEOFENCE_LAT_FIELD,
-          default=geofence_latitude,
-        ): selector({"text": {}}),
-        vol.Optional(
-          GEOFENCE_LON_FIELD,
-          default=geofence_longitude,
-        ): selector({"text": {}}),
-        vol.Optional(
-          GEOFENCE_ALERTS_FIELD,
-          default=current_options.get(GEOFENCE_ALERTS_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          GEOFENCE_SAFE_ZONE_FIELD,
-          default=current_options.get(GEOFENCE_SAFE_ZONE_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          GEOFENCE_RESTRICTED_ZONE_FIELD,
-          default=current_options.get(GEOFENCE_RESTRICTED_ZONE_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          GEOFENCE_ZONE_ENTRY_FIELD,
-          default=current_options.get(GEOFENCE_ZONE_ENTRY_FIELD, True),
-        ): selector({"boolean": {}}),
-        vol.Optional(
-          GEOFENCE_ZONE_EXIT_FIELD,
-          default=current_options.get(GEOFENCE_ZONE_EXIT_FIELD, True),
-        ): selector({"boolean": {}}),
-      },
-    )
+    return build_geofence_settings_schema(current_options)
 
 
 class GPSOptionsNormalizerHost(Protocol):
