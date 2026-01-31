@@ -92,7 +92,7 @@ from .types import (
   SetupFlagSourceLabels,
   SetupFlagsPanelPayload,
 )
-from .utils import normalise_json_value
+from .utils import normalize_value
 
 if TYPE_CHECKING:
   from .data_manager import PawControlDataManager
@@ -757,7 +757,7 @@ async def async_get_config_entry_diagnostics(
 
   normalised_payload = cast(
     JSONMutableMapping,
-    _normalise_json(diagnostics_payload),
+    normalize_value(diagnostics_payload),
   )
 
   # Redact sensitive information
@@ -791,7 +791,7 @@ def _get_resilience_escalation_snapshot(
 
   return cast(
     ResilienceEscalationSnapshot,
-    _normalise_json(cast(JSONLikeMapping, snapshot)),
+    normalize_value(cast(JSONLikeMapping, snapshot)),
   )
 
 
@@ -840,7 +840,7 @@ def _get_resilience_diagnostics(
       if isinstance(values, Mapping)
     }
 
-  return cast(JSONMutableMapping, _normalise_json(payload))
+  return cast(JSONMutableMapping, normalize_value(payload))
 
 
 async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMapping:
@@ -992,7 +992,7 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
   else:
     return CacheDiagnosticsSnapshot(
       error=f"Unsupported diagnostics payload: {type(payload).__name__}",
-      snapshot={"value": _normalise_json(payload)},
+      snapshot={"value": normalize_value(payload)},
     )
 
   repair_summary = snapshot.repair_summary
@@ -1012,11 +1012,11 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
   if snapshot.stats is not None:
     snapshot.stats = cast(
       JSONMutableMapping,
-      _normalise_json(snapshot.stats),
+      normalize_value(snapshot.stats),
     )
 
   if snapshot.diagnostics is not None:
-    diagnostics_payload = _normalise_json(snapshot.diagnostics)
+    diagnostics_payload = normalize_value(snapshot.diagnostics)
     if isinstance(diagnostics_payload, Mapping):
       snapshot.diagnostics = cast(
         CacheDiagnosticsMetadata,
@@ -1028,11 +1028,11 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
   if snapshot.snapshot is not None:
     snapshot.snapshot = cast(
       JSONMutableMapping,
-      _normalise_json(snapshot.snapshot),
+      normalize_value(snapshot.snapshot),
     )
 
   if not snapshot.to_mapping():
-    snapshot.snapshot = {"value": _normalise_json(payload)}
+    snapshot.snapshot = {"value": normalize_value(payload)}
 
   return snapshot
 
@@ -1072,19 +1072,7 @@ def _serialise_cache_snapshot(snapshot: object) -> JSONMutableMapping:
   else:
     snapshot_payload.pop("repair_summary", None)
 
-  return cast(JSONMutableMapping, _normalise_json(snapshot_payload))
-
-
-def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
-  """Backwards-compatible wrapper for JSON normalisation."""
-
-  return normalise_json_value(value, _seen)
-
-
-def _normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
-  """Normalise diagnostics payloads into JSON-serialisable data."""
-
-  return normalise_json_value(value, _seen)
+  return cast(JSONMutableMapping, normalize_value(snapshot_payload))
 
 
 async def _get_integration_status(
@@ -1463,7 +1451,7 @@ async def _get_entities_diagnostics(
       )
 
     entities_by_platform[platform].append(
-      cast(JSONMutableMapping, _normalise_json(entity_info)),
+      cast(JSONMutableMapping, normalize_value(entity_info)),
     )
 
   return cast(
@@ -1589,7 +1577,7 @@ async def _get_dogs_summary(
         "module_count": sum(enabled_modules.values()),
       },
     )
-    dog_summary = cast(JSONMutableMapping, _normalise_json(dog_summary))
+    dog_summary = cast(JSONMutableMapping, normalize_value(dog_summary))
 
     # Add coordinator data if available
     if coordinator:
@@ -1687,7 +1675,7 @@ async def _get_performance_metrics(
   ) or statistics.get("rejection_metrics")
   if isinstance(rejection_payload, Mapping):
     rejection_metrics = derive_rejection_metrics(
-      cast(JSONMapping, _normalise_json(rejection_payload)),
+      cast(JSONMapping, normalize_value(rejection_payload)),
     )
   else:
     rejection_metrics = default_rejection_metrics()
@@ -1695,7 +1683,7 @@ async def _get_performance_metrics(
   statistics["rejection_metrics"] = rejection_metrics
   rejection_metrics_payload = cast(
     JSONMapping,
-    _normalise_json(dict(rejection_metrics)),
+    normalize_value(dict(rejection_metrics)),
   )
   stats_payload["rejection_metrics"] = rejection_metrics_payload
 
@@ -1711,39 +1699,39 @@ async def _get_performance_metrics(
 
   repairs = statistics.get("repairs")
   if repairs is not None:
-    stats_payload["repairs"] = cast(JSONValue, _normalise_json(repairs))
+    stats_payload["repairs"] = cast(JSONValue, normalize_value(repairs))
 
   reconfigure = statistics.get("reconfigure")
   if reconfigure is not None:
     stats_payload["reconfigure"] = cast(
       JSONValue,
-      _normalise_json(reconfigure),
+      normalize_value(reconfigure),
     )
 
   entity_budget = statistics.get("entity_budget")
   if entity_budget is not None:
     stats_payload["entity_budget"] = cast(
       JSONValue,
-      _normalise_json(entity_budget),
+      normalize_value(entity_budget),
     )
 
   adaptive_polling = statistics.get("adaptive_polling")
   if adaptive_polling is not None:
     stats_payload["adaptive_polling"] = cast(
       JSONValue,
-      _normalise_json(adaptive_polling),
+      normalize_value(adaptive_polling),
     )
 
   resilience = statistics.get("resilience")
   if resilience is not None:
     stats_payload["resilience"] = cast(
       JSONValue,
-      _normalise_json(resilience),
+      normalize_value(resilience),
     )
 
-  stats_payload = cast(JSONMutableMapping, _normalise_json(stats_payload))
+  stats_payload = cast(JSONMutableMapping, normalize_value(stats_payload))
   performance_payload = (
-    cast(JSONMutableMapping, _normalise_json(performance_metrics))
+    cast(JSONMutableMapping, normalize_value(performance_metrics))
     if isinstance(performance_metrics, Mapping)
     else cast(JSONMutableMapping, {})
   )
@@ -1772,7 +1760,7 @@ async def _get_performance_metrics(
       rejection_metrics_payload,
     )
 
-  return cast(JSONMutableMapping, _normalise_json(metrics_output))
+  return cast(JSONMutableMapping, normalize_value(metrics_output))
 
 
 async def _get_door_sensor_diagnostics(
@@ -1875,7 +1863,7 @@ async def _get_service_execution_diagnostics(
   if entity_guard_payload:
     diagnostics["entity_factory_guard"] = cast(
       JSONMutableMapping,
-      _normalise_json(dict(entity_guard_payload)),
+      normalize_value(dict(entity_guard_payload)),
     )
 
   metrics_payload = default_rejection_metrics()
@@ -1887,7 +1875,7 @@ async def _get_service_execution_diagnostics(
     )
   diagnostics["rejection_metrics"] = cast(
     JSONMutableMapping,
-    _normalise_json(metrics_payload),
+    normalize_value(metrics_payload),
   )
 
   service_results = performance_stats.get("service_results")
@@ -1896,7 +1884,7 @@ async def _get_service_execution_diagnostics(
     str | bytes | bytearray,
   ):
     normalised_results: list[JSONMutableMapping] = [
-      cast(JSONMutableMapping, _normalise_json(dict(result)))
+      cast(JSONMutableMapping, normalize_value(dict(result)))
       for result in service_results
       if isinstance(result, Mapping)
     ]
@@ -1907,7 +1895,7 @@ async def _get_service_execution_diagnostics(
   if isinstance(last_result, Mapping):
     diagnostics["last_service_result"] = cast(
       JSONMutableMapping,
-      _normalise_json(dict(last_result)),
+      normalize_value(dict(last_result)),
     )
 
   service_call_telemetry = performance_stats.get("service_call_telemetry")
@@ -1917,7 +1905,7 @@ async def _get_service_execution_diagnostics(
   if telemetry_payload is not None:
     diagnostics["service_call_telemetry"] = telemetry_payload
 
-  return cast(JSONMutableMapping, _normalise_json(diagnostics))
+  return cast(JSONMutableMapping, normalize_value(diagnostics))
 
 
 def _get_bool_coercion_diagnostics(
@@ -2015,13 +2003,13 @@ def _normalise_service_call_telemetry(payload: Any) -> JSONMutableMapping | None
 
   telemetry_payload = cast(
     JSONMutableMapping,
-    _normalise_json(dict(payload)),
+    normalize_value(dict(payload)),
   )
 
   per_service = payload.get("per_service")
   if isinstance(per_service, Mapping):
     telemetry_payload["per_service"] = {
-      str(service): cast(JSONMutableMapping, _normalise_json(dict(entry)))
+      str(service): cast(JSONMutableMapping, normalize_value(dict(entry)))
       for service, entry in per_service.items()
       if isinstance(entry, Mapping)
     }
@@ -2080,7 +2068,7 @@ async def _get_data_statistics(
   if isinstance(metrics_payload, Mapping):
     metrics: JSONMutableMapping = {}
     for key, value in metrics_payload.items():
-      metrics[str(key)] = cast(JSONValue, _normalise_json(value))
+      metrics[str(key)] = cast(JSONValue, normalize_value(value))
   else:
     metrics = cast(JSONMutableMapping, {})
 

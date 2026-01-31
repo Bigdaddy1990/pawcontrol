@@ -54,7 +54,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .coordinator_accessors import CoordinatorDataAccessMixin
-from .diagnostics import normalize_value
+from .utils import normalize_value
 from .types import (
   CoordinatorDataPayload,
   CoordinatorDogData,

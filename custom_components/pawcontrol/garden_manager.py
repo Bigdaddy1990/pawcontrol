@@ -26,7 +26,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, EVENT_GARDEN_ENTERED, EVENT_GARDEN_LEFT, STORAGE_VERSION
-from .diagnostics import normalize_value
+from .utils import normalize_value
 from .notifications import NotificationPriority, NotificationType
 from .types import (
   GardenActiveSessionSnapshot,

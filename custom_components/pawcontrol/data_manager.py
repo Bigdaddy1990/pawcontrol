@@ -46,7 +46,7 @@ from .coordinator_support import (
   CoordinatorMetrics,
   CoordinatorModuleAdapter,
 )
-from .diagnostics import normalize_value
+from .utils import normalize_value
 from .module_adapters import (
   ModuleAdapterCacheError,
   ModuleAdapterCacheSnapshot,
