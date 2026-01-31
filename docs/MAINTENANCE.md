@@ -90,7 +90,7 @@ Follow this routine for every release or hotfix.
 
 ## Related references
 
-- Diagnostics playbook: [`docs/diagnostics.md`](diagnostics.md)
-- Troubleshooting guide: [`docs/troubleshooting.md`](troubleshooting.md)
-- Setup & installation: [`docs/setup_installation_guide.md`](setup_installation_guide.md)
-- Quality scale evidence: [`docs/compliance_gap_analysis.md`](compliance_gap_analysis.md)
+- Diagnostics playbook: [`diagnostics.md`](diagnostics.md)
+- Troubleshooting guide: [`troubleshooting.md`](troubleshooting.md)
+- Setup & installation: [`setup_installation_guide.md`](setup_installation_guide.md)
+- Quality scale evidence: [`compliance_gap_analysis.md`](compliance_gap_analysis.md)
