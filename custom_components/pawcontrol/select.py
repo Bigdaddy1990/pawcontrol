@@ -61,21 +61,36 @@ from .types import (  # noqa: E402
   DOG_SIZE_FIELD,
   CoordinatorModuleLookupResult,
   CoordinatorDogData,
+  ActivityLevelKey,
   DogConfigData,
   DogSizeInfo,
+  DogSizeKey,
+  FeedingScheduleKey,
   FoodTypeInfo,
+  FoodTypeKey,
   GPSSourceInfo,
+  GPSSourceKey,
   GPSTrackingConfigInput,
+  GroomingTypeKey,
   GroomingTypeInfo,
   JSONMapping,
   JSONMutableMapping,
   JSONValue,
   LocationAccuracyConfig,
+  LocationAccuracyKey,
+  MealTypeKey,
+  MoodKey,
+  NotificationPriorityKey,
   PawControlConfigEntry,
   PawControlRuntimeData,
+  PerformanceModeKey,
   PerformanceModeInfo,
   TrackingModePreset,
+  TrackingModeKey,
+  WalkModeKey,
   WalkModeInfo,
+  WeatherConditionKey,
+  HealthStatusKey,
   coerce_dog_modules_config,
   ensure_json_mapping,
 )
@@ -100,82 +115,91 @@ def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
 
 
 # Additional option lists for selects
-WALK_MODES = [
+WALK_MODES: list[WalkModeKey] = [
   "automatic",
   "manual",
   "hybrid",
 ]
 
-NOTIFICATION_PRIORITIES = [
+NOTIFICATION_PRIORITIES: list[NotificationPriorityKey] = [
   "low",
   "normal",
   "high",
   "urgent",
 ]
 
-TRACKING_MODES = [
+TRACKING_MODES: list[TrackingModeKey] = [
   "continuous",
   "interval",
   "on_demand",
   "battery_saver",
 ]
 
-TRACKING_MODE_PRESETS: Final[Mapping[str, TrackingModePreset]] = MappingProxyType(
-  {
-    "continuous": {
-      "update_interval_seconds": 15,
-      "auto_start_walk": True,
-      "track_route": True,
-    },
-    "interval": {
-      "update_interval_seconds": 60,
-      "auto_start_walk": True,
-      "track_route": True,
-    },
-    "on_demand": {
-      "update_interval_seconds": 300,
-      "auto_start_walk": False,
-      "track_route": False,
-    },
-    "battery_saver": {
-      "update_interval_seconds": 180,
-      "auto_start_walk": True,
-      "route_smoothing": True,
-    },
-  },
-)
+LOCATION_ACCURACY_OPTIONS: list[LocationAccuracyKey] = [
+  "low",
+  "balanced",
+  "high",
+  "best",
+]
 
-LOCATION_ACCURACY_CONFIGS: Final[Mapping[str, LocationAccuracyConfig]] = (
+TRACKING_MODE_PRESETS: Final[Mapping[TrackingModeKey, TrackingModePreset]] = (
   MappingProxyType(
     {
-      "low": {
-        "gps_accuracy_threshold": 150.0,
-        "min_distance_for_point": 50.0,
+      "continuous": {
+        "update_interval_seconds": 15,
+        "auto_start_walk": True,
+        "track_route": True,
       },
-      "balanced": {
-        "gps_accuracy_threshold": 75.0,
-        "min_distance_for_point": 25.0,
+      "interval": {
+        "update_interval_seconds": 60,
+        "auto_start_walk": True,
+        "track_route": True,
       },
-      "high": {
-        "gps_accuracy_threshold": 30.0,
-        "min_distance_for_point": 10.0,
+      "on_demand": {
+        "update_interval_seconds": 300,
+        "auto_start_walk": False,
+        "track_route": False,
       },
-      "best": {
-        "gps_accuracy_threshold": 10.0,
-        "min_distance_for_point": 5.0,
-        "route_smoothing": False,
+      "battery_saver": {
+        "update_interval_seconds": 180,
+        "auto_start_walk": True,
+        "route_smoothing": True,
       },
     },
   )
 )
 
-FEEDING_SCHEDULES = [
+LOCATION_ACCURACY_CONFIGS: Final[
+  Mapping[LocationAccuracyKey, LocationAccuracyConfig]
+] = MappingProxyType(
+  {
+    "low": {
+      "gps_accuracy_threshold": 150.0,
+      "min_distance_for_point": 50.0,
+    },
+    "balanced": {
+      "gps_accuracy_threshold": 75.0,
+      "min_distance_for_point": 25.0,
+    },
+    "high": {
+      "gps_accuracy_threshold": 30.0,
+      "min_distance_for_point": 10.0,
+    },
+    "best": {
+      "gps_accuracy_threshold": 10.0,
+      "min_distance_for_point": 5.0,
+      "route_smoothing": False,
+    },
+  },
+)
+
+FEEDING_SCHEDULES: list[FeedingScheduleKey] = [
   "flexible",
   "strict",
   "custom",
 ]
 
-GROOMING_TYPES = [
+GROOMING_TYPES: list[GroomingTypeKey] = [
   "bath",
   "brush",
   "nails",
@@ -184,7 +208,7 @@ GROOMING_TYPES = [
   "full_grooming",
 ]
 
-WEATHER_CONDITIONS = [
+WEATHER_CONDITIONS: list[WeatherConditionKey] = [
   "any",
   "sunny",
   "cloudy",
@@ -194,8 +218,29 @@ WEATHER_CONDITIONS = [
   "cool",
 ]
 
+DOG_SIZE_OPTIONS: list[DogSizeKey] = [cast(DogSizeKey, value) for value in DOG_SIZES]
+PERFORMANCE_MODE_OPTIONS: list[PerformanceModeKey] = [
+  cast(PerformanceModeKey, value) for value in PERFORMANCE_MODES
+]
+FOOD_TYPE_OPTIONS: list[FoodTypeKey] = [
+  cast(FoodTypeKey, value) for value in FOOD_TYPES
+]
+GPS_SOURCE_OPTIONS: list[GPSSourceKey] = [
+  cast(GPSSourceKey, value) for value in GPS_SOURCES
+]
+HEALTH_STATUS_OPTION_KEYS: list[HealthStatusKey] = [
+  cast(HealthStatusKey, value) for value in HEALTH_STATUS_OPTIONS
+]
+ACTIVITY_LEVEL_OPTIONS: list[ActivityLevelKey] = [
+  cast(ActivityLevelKey, value) for value in ACTIVITY_LEVELS
+]
+MEAL_TYPE_OPTIONS: list[MealTypeKey] = [
+  cast(MealTypeKey, value) for value in MEAL_TYPES
+]
+MOOD_OPTIONS_KEYS: list[MoodKey] = [cast(MoodKey, value) for value in MOOD_OPTIONS]
 
-DOG_SIZE_DETAILS: Final[Mapping[str, DogSizeInfo]] = MappingProxyType(
+
+DOG_SIZE_DETAILS: Final[Mapping[DogSizeKey, DogSizeInfo]] = MappingProxyType(
   {
     "toy": {
       "weight_range": "1-6kg",
@@ -225,27 +270,29 @@ DOG_SIZE_DETAILS: Final[Mapping[str, DogSizeInfo]] = MappingProxyType(
   },
 )
 
-PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = MappingProxyType(
-  {
-    "minimal": {
-      "description": "Minimal resource usage, longer update intervals",
-      "update_interval": "5 minutes",
-      "battery_impact": "minimal",
+PERFORMANCE_MODE_DETAILS: Final[Mapping[PerformanceModeKey, PerformanceModeInfo]] = (
+  MappingProxyType(
+    {
+      "minimal": {
+        "description": "Minimal resource usage, longer update intervals",
+        "update_interval": "5 minutes",
+        "battery_impact": "minimal",
+      },
+      "balanced": {
+        "description": "Balanced performance and resource usage",
+        "update_interval": "2 minutes",
+        "battery_impact": "moderate",
+      },
+      "full": {
+        "description": "Maximum performance, frequent updates",
+        "update_interval": "30 seconds",
+        "battery_impact": "high",
+      },
     },
-    "balanced": {
-      "description": "Balanced performance and resource usage",
-      "update_interval": "2 minutes",
-      "battery_impact": "moderate",
-    },
-    "full": {
-      "description": "Maximum performance, frequent updates",
-      "update_interval": "30 seconds",
-      "battery_impact": "high",
-    },
-  },
+  )
 )
 
-WALK_MODE_DETAILS: Final[Mapping[str, WalkModeInfo]] = MappingProxyType(
+WALK_MODE_DETAILS: Final[Mapping[WalkModeKey, WalkModeInfo]] = MappingProxyType(
   {
     "automatic": {
       "description": "Automatically detect walk start/end",
@@ -265,7 +312,7 @@ WALK_MODE_DETAILS: Final[Mapping[str, WalkModeInfo]] = MappingProxyType(
   },
 )
 
-FOOD_TYPE_DETAILS: Final[Mapping[str, FoodTypeInfo]] = MappingProxyType(
+FOOD_TYPE_DETAILS: Final[Mapping[FoodTypeKey, FoodTypeInfo]] = MappingProxyType(
   {
     "dry_food": {
       "calories_per_gram": 3.5,
@@ -300,7 +347,7 @@ FOOD_TYPE_DETAILS: Final[Mapping[str, FoodTypeInfo]] = MappingProxyType(
   },
 )
 
-GPS_SOURCE_DETAILS: Final[Mapping[str, GPSSourceInfo]] = MappingProxyType(
+GPS_SOURCE_DETAILS: Final[Mapping[GPSSourceKey, GPSSourceInfo]] = MappingProxyType(
   {
     "manual": {
       "accuracy": "user-dependent",
@@ -350,39 +397,41 @@ GPS_SOURCE_DETAILS: Final[Mapping[str, GPSSourceInfo]] = MappingProxyType(
   },
 )
 
-GROOMING_TYPE_DETAILS: Final[Mapping[str, GroomingTypeInfo]] = MappingProxyType(
-  {
-    "bath": {
-      "frequency": "4-6 weeks",
-      "duration": "30-60 minutes",
-      "difficulty": "medium",
+GROOMING_TYPE_DETAILS: Final[Mapping[GroomingTypeKey, GroomingTypeInfo]] = (
+  MappingProxyType(
+    {
+      "bath": {
+        "frequency": "4-6 weeks",
+        "duration": "30-60 minutes",
+        "difficulty": "medium",
+      },
+      "brush": {
+        "frequency": "daily",
+        "duration": "5-15 minutes",
+        "difficulty": "easy",
+      },
+      "nails": {
+        "frequency": "2-4 weeks",
+        "duration": "10-20 minutes",
+        "difficulty": "medium",
+      },
+      "teeth": {
+        "frequency": "daily",
+        "duration": "2-5 minutes",
+        "difficulty": "easy",
+      },
+      "trim": {
+        "frequency": "6-8 weeks",
+        "duration": "60-90 minutes",
+        "difficulty": "hard",
+      },
+      "full_grooming": {
+        "frequency": "6-8 weeks",
+        "duration": "120-180 minutes",
+        "difficulty": "hard",
+      },
     },
-    "brush": {
-      "frequency": "daily",
-      "duration": "5-15 minutes",
-      "difficulty": "easy",
-    },
-    "nails": {
-      "frequency": "2-4 weeks",
-      "duration": "10-20 minutes",
-      "difficulty": "medium",
-    },
-    "teeth": {
-      "frequency": "daily",
-      "duration": "2-5 minutes",
-      "difficulty": "easy",
-    },
-    "trim": {
-      "frequency": "6-8 weeks",
-      "duration": "60-90 minutes",
-      "difficulty": "hard",
-    },
-    "full_grooming": {
-      "frequency": "6-8 weeks",
-      "duration": "120-180 minutes",
-      "difficulty": "hard",
-    },
-  },
+  )
 )
 
 
@@ -1041,7 +1090,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "size",
-      options=list(DOG_SIZES),
+      options=DOG_SIZE_OPTIONS,
       icon="mdi:dog",
       entity_category=EntityCategory.CONFIG,
       initial_option=current_size,
@@ -1097,7 +1146,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "performance_mode",
-      options=list(PERFORMANCE_MODES),
+      options=PERFORMANCE_MODE_OPTIONS,
       icon="mdi:speedometer",
       entity_category=EntityCategory.CONFIG,
       initial_option=DEFAULT_PERFORMANCE_MODE,
@@ -1218,7 +1267,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "food_type",
-      options=list(FOOD_TYPES),
+      options=FOOD_TYPE_OPTIONS,
       icon="mdi:food",
       initial_option="dry_food",
     )
@@ -1298,7 +1347,7 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "default_meal_type",
-      options=list(MEAL_TYPES),
+      options=MEAL_TYPE_OPTIONS,
       icon="mdi:food-drumstick",
       initial_option="dinner",
     )
@@ -1491,7 +1540,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "gps_source",
-      options=list(GPS_SOURCES),
+      options=GPS_SOURCE_OPTIONS,
       icon="mdi:crosshairs-gps",
       entity_category=EntityCategory.CONFIG,
       initial_option="device_tracker",
@@ -1552,7 +1601,7 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "tracking_mode",
-      options=list(TRACKING_MODES),
+      options=TRACKING_MODES,
       icon="mdi:map-marker",
       initial_option="interval",
     )
@@ -1594,7 +1643,7 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "location_accuracy",
-      options=["low", "balanced", "high", "best"],
+      options=LOCATION_ACCURACY_OPTIONS,
       icon="mdi:crosshairs",
       entity_category=EntityCategory.CONFIG,
       initial_option="balanced",
@@ -1635,7 +1684,7 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "health_status",
-      options=list(HEALTH_STATUS_OPTIONS),
+      options=HEALTH_STATUS_OPTION_KEYS,
       icon="mdi:heart-pulse",
       initial_option="good",
     )
@@ -1672,7 +1721,7 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "activity_level",
-      options=list(ACTIVITY_LEVELS),
+      options=ACTIVITY_LEVEL_OPTIONS,
       icon="mdi:run",
       initial_option="normal",
     )
@@ -1709,7 +1758,7 @@ class PawControlMoodSelect(PawControlSelectBase):
       dog_id,
       dog_name,
       "mood",
-      options=list(MOOD_OPTIONS),
+      options=MOOD_OPTIONS_KEYS,
       icon="mdi:emoticon",
       initial_option="happy",
     )

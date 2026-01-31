@@ -478,6 +478,47 @@ class GroomingTypeInfo(TypedDict, total=False):
   difficulty: str
 
 
+TrackingModeKey = Literal["continuous", "interval", "on_demand", "battery_saver"]
+LocationAccuracyKey = Literal["low", "balanced", "high", "best"]
+DogSizeKey = Literal["toy", "small", "medium", "large", "giant"]
+PerformanceModeKey = Literal["minimal", "balanced", "full"]
+FoodTypeKey = Literal["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
+WalkModeKey = Literal["automatic", "manual", "hybrid"]
+GPSSourceKey = Literal[
+  "manual",
+  "device_tracker",
+  "person_entity",
+  "gps_logger",
+  "ble_beacon",
+  "smartphone",
+  "tractive",
+  "webhook",
+  "mqtt",
+]
+GroomingTypeKey = Literal["bath", "brush", "nails", "teeth", "trim", "full_grooming"]
+FeedingScheduleKey = Literal["flexible", "strict", "custom"]
+NotificationPriorityKey = Literal["low", "normal", "high", "urgent"]
+WeatherConditionKey = Literal[
+  "any",
+  "sunny",
+  "cloudy",
+  "light_rain",
+  "no_rain",
+  "warm",
+  "cool",
+]
+ActivityLevelKey = Literal["very_low", "low", "normal", "high", "very_high"]
+HealthStatusKey = Literal[
+  "excellent",
+  "very_good",
+  "good",
+  "normal",
+  "unwell",
+  "sick",
+]
+MoodKey = Literal["happy", "neutral", "sad", "angry", "anxious", "tired"]
+MealTypeKey = Literal["breakfast", "lunch", "dinner", "snack"]
+
 type MetadataPayload[T: JSONValue] = dict[str, T]
 """Generic JSON-compatible mapping used for diagnostics metadata sections."""
 
@@ -2514,6 +2555,15 @@ ManualEventField = Literal[
   "manual_check_event",
   "manual_guard_event",
   "manual_breaker_event",
+]
+
+ManualEventSource = Literal[
+  "default",
+  "system_settings",
+  "options",
+  "config_entry",
+  "blueprint",
+  "disabled",
 ]
 
 
