@@ -79,13 +79,9 @@ extend-unsafe-fixes = ["E", "F401"]
 ###############################################################################
 # Mypy configuration
 #
-# The original refactor introduced thousands of type errors when run under
-# strict mypy settings.  To make the integration maintainable we relax some
-# settings so that missing type information doesn’t block development.  We
-# still enforce typed definitions by default, but allow untyped function
-# definitions and ignore missing imports from third‑party libraries such as
-# Home Assistant.  Developers can re‑enable stricter checks locally if
-# desired.
+# The integration targets Home Assistant's strict typing guidelines. We require
+# typed definitions and enforce strictness while tolerating missing imports from
+# third-party libraries that do not ship type hints.
 
 [tool.mypy]
 python_version = "3.13"
