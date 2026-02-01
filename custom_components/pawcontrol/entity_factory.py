@@ -12,14 +12,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import time
 from collections import OrderedDict
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from functools import lru_cache
 from itertools import combinations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, Literal, cast
@@ -43,41 +41,11 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _MIN_OPERATION_DURATION: Final[float] = 0.00045
-_COARSE_SLEEP_THRESHOLD: Final[float] = 0.0015  # 1.5ms
-_COARSE_SLEEP_BUFFER: Final[float] = 0.0005  # 0.5ms
-_SPIN_YIELD_THRESHOLD: Final[float] = 0.002  # 2ms
-_SPIN_BYTE_MASK: Final[int] = 0xFF
-_SPIN_INITIAL_SCRAMBLE: Final[int] = 0xA5A5
-_SPIN_ROUNDS: Final[int] = 128
-_SPIN_SHIFT_LEFT_PRIMARY: Final[int] = 7
-_SPIN_SHIFT_RIGHT: Final[int] = 9
-_SPIN_SHIFT_LEFT_SECONDARY: Final[int] = 8
-_SPIN_LOW_ENTROPY_MASK: Final[int] = 0x1F
-_SPIN_LOW_ENTROPY_SCRAMBLE: Final[int] = 0xC3C3C3C3
 _RUNTIME_EXPAND_THRESHOLD: Final[float] = 10.0
 _RUNTIME_TARGET_RATIO: Final[float] = 12.0
 _RUNTIME_MAX_FLOOR: Final[float] = 0.0045
 _RUNTIME_CONTRACT_THRESHOLD: Final[float] = 1.6
 _RUNTIME_CONTRACT_FACTOR: Final[float] = 0.92
-
-
-@lru_cache(maxsize=512)
-def _compute_priority_spin(priority: int, module: str) -> int:
-  """Return a deterministic workload token for a priority/module pair."""
-
-  baseline_spin = ((priority & _SPIN_BYTE_MASK) << 8) | (len(module) & _SPIN_BYTE_MASK)
-  accumulator = baseline_spin ^ _SPIN_INITIAL_SCRAMBLE
-
-  for _ in range(_SPIN_ROUNDS):
-    baseline_spin ^= (baseline_spin << _SPIN_SHIFT_LEFT_PRIMARY) & 0xFFFFFFFF
-    baseline_spin ^= baseline_spin >> _SPIN_SHIFT_RIGHT
-    baseline_spin ^= (baseline_spin << _SPIN_SHIFT_LEFT_SECONDARY) & 0xFFFFFFFF
-    accumulator = (accumulator + baseline_spin) & 0xFFFFFFFF
-
-  if (accumulator & _SPIN_LOW_ENTROPY_MASK) == 0:
-    accumulator ^= _SPIN_LOW_ENTROPY_SCRAMBLE
-
-  return accumulator
 
 
 # All available platforms for advanced profile - fixed enum conversion
@@ -659,10 +627,7 @@ class EntityFactory:
     Args:
         coordinator: PawControl coordinator instance (can be None for estimation)
         prewarm: Whether to pre-populate caches for faster first use
-        enforce_min_runtime: Enable deterministic runtime guards used during
-            benchmarking. When ``None`` the value is derived from the
-            ``PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS`` environment
-            variable.
+        enforce_min_runtime: Track runtime guard metrics for diagnostics.
     """
     self.coordinator = coordinator
     self._entity_cache: dict[str, Entity] = {}
@@ -688,18 +653,7 @@ class EntityFactory:
       | None
     ) = None
     self._last_module_weights: dict[str, int] = {}
-    if enforce_min_runtime is None:
-      env_value = os.getenv(
-        "PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS",
-        "",
-      )
-      enforce_min_runtime = env_value.lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-      }
-    self._enforce_min_runtime = enforce_min_runtime
+    self._enforce_min_runtime = bool(enforce_min_runtime)
     self._runtime_guard_floor = _MIN_OPERATION_DURATION
     self._last_synergy_score: int = 0
     self._last_triad_score: int = 0
@@ -1076,7 +1030,6 @@ class EntityFactory:
       )
 
     self._update_last_estimate_state(estimate)
-    self._stabilize_priority_workload(5, "estimate")
     result = estimate.final_count
     self._ensure_min_runtime(started_at)
     return result
@@ -1103,7 +1056,6 @@ class EntityFactory:
       )
 
     self._update_last_estimate_state(estimate)
-    self._stabilize_priority_workload(5, "estimate")
     result = estimate.final_count
     await self._ensure_min_runtime_async(started_at)
     return result
@@ -1144,7 +1096,6 @@ class EntityFactory:
     cached = self._should_create_cache.get(cache_key)
     if cached is not None:
       self._should_create_hits += 1
-      self._stabilize_priority_workload(priority, module)
       self._ensure_min_runtime(started_at)
       return cached
 
@@ -1192,7 +1143,6 @@ class EntityFactory:
     if len(self._should_create_cache) > _ESTIMATE_CACHE_MAX_SIZE:
       self._should_create_cache.popitem(last=False)
 
-    self._stabilize_priority_workload(priority, module)
     self._ensure_min_runtime(started_at)
     return result
 
@@ -1223,7 +1173,6 @@ class EntityFactory:
     cached = self._should_create_cache.get(cache_key)
     if cached is not None:
       self._should_create_hits += 1
-      self._stabilize_priority_workload(priority, module)
       await self._ensure_min_runtime_async(started_at)
       return cached
 
@@ -1271,102 +1220,20 @@ class EntityFactory:
     if len(self._should_create_cache) > _ESTIMATE_CACHE_MAX_SIZE:
       self._should_create_cache.popitem(last=False)
 
-    self._stabilize_priority_workload(priority, module)
     await self._ensure_min_runtime_async(started_at)
     return result
 
   def _ensure_min_runtime(self, started_at: float) -> None:
-    """Sleep until ``_MIN_OPERATION_DURATION`` elapses when enabled."""
+    """Record runtime guard metrics for the completed operation."""
 
-    if not self._enforce_min_runtime:
-      self._record_runtime_guard_calibration("disabled", 0.0)
-      return
-
-    runtime_floor = self._runtime_guard_floor
-    deadline = started_at + runtime_floor
-    remaining = deadline - time.perf_counter()
-    if remaining <= 0:
-      self._recalibrate_runtime_floor(time.perf_counter() - started_at)
-      return
-
-    # ``time.sleep`` on Linux/CI runners often overshoots sub-millisecond
-    # durations which inflates the runtime guards and makes the performance
-    # tests flaky. Sleep in coarse chunks first and then busy-wait for the
-    # remaining microseconds so the deterministic guard stays tight without
-    # stalling the scheduler. For sub-millisecond waits we avoid ``sleep``
-    # entirely because the kernel typically rounds the delay up to 1ms+ and
-    # breaks the runtime budget.
-    while remaining > _COARSE_SLEEP_THRESHOLD:
-      coarse_sleep = max(
-        remaining - _COARSE_SLEEP_BUFFER,
-        _COARSE_SLEEP_BUFFER,
-      )
-      time.sleep(coarse_sleep)
-      remaining = deadline - time.perf_counter()
-      if remaining <= 0:
-        self._recalibrate_runtime_floor(
-          time.perf_counter() - started_at,
-        )
-        return
-
-    if remaining <= 0:
-      self._recalibrate_runtime_floor(time.perf_counter() - started_at)
-      return
-
-    spin_deadline = deadline
-    spin_checkpoint = time.perf_counter()
-
-    while (current := time.perf_counter()) < spin_deadline:
-      # Yield very occasionally when the spin drifts to avoid starving the
-      # event loop on unexpectedly long waits.
-      if current - spin_checkpoint > _SPIN_YIELD_THRESHOLD:
-        time.sleep(0)
-        spin_checkpoint = time.perf_counter()
-
-    self._recalibrate_runtime_floor(time.perf_counter() - started_at)
+    actual_duration = max(time.perf_counter() - started_at, 0.0)
+    self._recalibrate_runtime_floor(actual_duration)
 
   async def _ensure_min_runtime_async(self, started_at: float) -> None:
-    """Yield control until ``_MIN_OPERATION_DURATION`` elapses when enabled."""
+    """Record runtime guard metrics without blocking the event loop."""
 
-    if not self._enforce_min_runtime:
-      self._record_runtime_guard_calibration("disabled", 0.0)
-      return
-
-    runtime_floor = self._runtime_guard_floor
-    deadline = started_at + runtime_floor
-    remaining = deadline - time.perf_counter()
-    if remaining <= 0:
-      self._recalibrate_runtime_floor(time.perf_counter() - started_at)
-      return
-
-    while remaining > _COARSE_SLEEP_THRESHOLD:
-      coarse_sleep = max(
-        remaining - _COARSE_SLEEP_BUFFER,
-        _COARSE_SLEEP_BUFFER,
-      )
-      await asyncio.sleep(coarse_sleep)
-      remaining = deadline - time.perf_counter()
-      if remaining <= 0:
-        self._recalibrate_runtime_floor(
-          time.perf_counter() - started_at,
-        )
-        return
-
-    if remaining <= 0:
-      self._recalibrate_runtime_floor(time.perf_counter() - started_at)
-      return
-
-    spin_deadline = deadline
-    spin_checkpoint = time.perf_counter()
-
-    while (current := time.perf_counter()) < spin_deadline:
-      if current - spin_checkpoint > _SPIN_YIELD_THRESHOLD:
-        await asyncio.sleep(0)
-        spin_checkpoint = time.perf_counter()
-      else:
-        await asyncio.sleep(0)
-
-    self._recalibrate_runtime_floor(time.perf_counter() - started_at)
+    actual_duration = max(time.perf_counter() - started_at, 0.0)
+    self._recalibrate_runtime_floor(actual_duration)
 
   def _record_runtime_guard_calibration(
     self,
@@ -1431,10 +1298,6 @@ class EntityFactory:
         event = "contract"
 
     self._record_runtime_guard_calibration(event, actual_duration)
-
-  @staticmethod
-  def _stabilize_priority_workload(priority: int, module: str) -> None:
-    _ = _compute_priority_spin(priority, module)
 
   @staticmethod
   def _resolve_platform(entity_type: str | Enum) -> Platform | None:

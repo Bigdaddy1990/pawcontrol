@@ -2148,7 +2148,7 @@ class PawControlScriptManager:
           ],
           "sequence": [
             {
-              "service": "script.turn_on",
+              "action": "script.turn_on",
               "target": {"entity_id": "{{ followup_script }}"},
               "data": {
                 "variables": {
@@ -2178,7 +2178,7 @@ class PawControlScriptManager:
           ],
           "sequence": [
             {
-              "service": "script.turn_on",
+              "action": "script.turn_on",
               "target": {"entity_id": "{{ followup_script }}"},
               "data": {
                 "variables": {
@@ -2214,7 +2214,7 @@ class PawControlScriptManager:
             ],
             "sequence": [
               {
-                "service": (
+                "action": (
                   "{{ escalation_service | default('persistent_notification.create') }}"
                 ),
                 "data": {
@@ -2245,7 +2245,7 @@ class PawControlScriptManager:
             ],
             "sequence": [
               {
-                "service": (
+                "action": (
                   "{{ escalation_service | default('persistent_notification.create') }}"
                 ),
                 "data": {
@@ -2649,7 +2649,7 @@ class PawControlScriptManager:
       ),
       CONF_SEQUENCE: [
         {
-          "service": "{{ notify_service | default('notify.notify') }}",
+          "action": "{{ notify_service | default('notify.notify') }}",
           "data": {
             "title": f"{{ title | default('{default_title}') }}",
             "message": f"{{ message | default('{default_message}') }}",
@@ -2679,7 +2679,7 @@ class PawControlScriptManager:
               ],
               "sequence": [
                 {
-                  "service": "pawcontrol.acknowledge_notification",
+                  "action": "pawcontrol.acknowledge_notification",
                   "data": {"notification_id": notification_id},
                 },
               ],
@@ -2738,7 +2738,7 @@ class PawControlScriptManager:
       ),
       CONF_SEQUENCE: [
         {
-          "service": "pawcontrol.reset_daily_stats",
+          "action": "pawcontrol.reset_daily_stats",
           "data": {
             "dog_id": dog_id,
             "confirm": "{{ confirm | default(true) }}",
@@ -2755,7 +2755,7 @@ class PawControlScriptManager:
               ],
               "sequence": [
                 {
-                  "service": "logbook.log",
+                  "action": "logbook.log",
                   "data": {
                     "name": "PawControl",
                     "message": "{{ summary }}",
@@ -2807,7 +2807,7 @@ class PawControlScriptManager:
       ),
       CONF_SEQUENCE: [
         {
-          "service": "pawcontrol.notify_test",
+          "action": "pawcontrol.notify_test",
           "data": {
             "dog_id": dog_id,
             "message": f"{{ message | default('{default_message}') }}",
@@ -2852,7 +2852,7 @@ class PawControlScriptManager:
 
     sequence: list[ConfigType] = [
       {
-        "service": "pawcontrol.reset_daily_stats",
+        "action": "pawcontrol.reset_daily_stats",
         "data": {"dog_id": dog_id, "confirm": False},
       },
     ]
@@ -2872,7 +2872,7 @@ class PawControlScriptManager:
               ],
               "sequence": [
                 {
-                  "service": "pawcontrol.notify_test",
+                  "action": "pawcontrol.notify_test",
                   "data": {
                     "dog_id": dog_id,
                     "message": f"{{ message | default('{default_message}') }}",
