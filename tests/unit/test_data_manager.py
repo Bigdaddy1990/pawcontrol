@@ -589,16 +589,16 @@ def test_script_manager_resilience_escalation_definition() -> None:
   assert "open_breakers_text" in variables
 
   guard_branch, breaker_branch = sequence[1]["choose"]
-  guard_service = guard_branch["sequence"][0]["service"]
+  guard_service = guard_branch["sequence"][0]["action"]
   assert (
     guard_service
     == "{{ escalation_service | default('persistent_notification.create') }}"
   )
   guard_followup = guard_branch["sequence"][1]["choose"][0]["sequence"][0]
-  assert guard_followup["service"] == "script.turn_on"
+  assert guard_followup["action"] == "script.turn_on"
   assert guard_followup["data"]["variables"]["trigger_reason"] == "guard"
 
-  breaker_service = breaker_branch["sequence"][0]["service"]
+  breaker_service = breaker_branch["sequence"][0]["action"]
   assert (
     breaker_service
     == "{{ escalation_service | default('persistent_notification.create') }}"
