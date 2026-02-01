@@ -88,26 +88,26 @@ extend-unsafe-fixes = ["E", "F401"]
 # desired.
 
 [tool.mypy]
-# Match the Python version used by the integration.  A `Type` statement in
-# ``custom_components/pawcontrol/__init__.py`` requires Python 3.12 or later,
-# so we target 3.12 to avoid mypy syntax errors while still supporting
-# Home Assistant’s minimum Python version.
 python_version = "3.13"
 warn_unused_configs = true
-# Do not require every function to have type annotations; this dramatically
-# reduces noise while refactoring.  The previous setting (`true`) resulted in
-# thousands of errors.
-disallow_untyped_defs = false
-# Allow implicit Optional return types for None default parameters.  Strictly
-# enforcing explicit Optionals on every parameter is not necessary here.
-no_implicit_optional = false
-# Only type‑check functions that have type hints.  When set to true mypy
-# attempted to infer types for unannotated functions, causing many errors.
-check_untyped_defs = false
-# Ignore imports that don’t have type hints available.  This is important for
-# Home Assistant and other third‑party packages which may not ship type stubs.
+# Jetzt wird es ernst:
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+local_partial_types = true
+strict_equality = true
+# Imports von HA und anderen libs ignorieren, da oft untyped
 ignore_missing_imports = true
 explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+# Tests dürfen etwas lockerer sein
+disallow_untyped_defs = false
 
 [tool.coverage.run]
 branch = true
@@ -168,11 +168,6 @@ dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.dynamic.optional-dependencies]
 tests = { file = ["requirements_test.txt"] }
-
-[[tool.mypy.overrides]]
-module = ["untyped_package.*", "homeassistant.*", "voluptuous"]
-follow_untyped_imports = true
-ignore_missing_imports = true
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
