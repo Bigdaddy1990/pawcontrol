@@ -478,11 +478,21 @@ class PawControlCoordinator(
       _LOGGER.debug("Ignoring GPS patch for unknown dog_id: %s", dog_id)
       return
 
-    await self.async_prepare_entry()
+    if not self._setup_complete or not self._data or not self.last_update_success:
+      _LOGGER.debug(
+        "Deferring GPS patch for %s because coordinator data is not ready",
+        dog_id,
+      )
+      await self.async_request_refresh()
+      return
 
     current = self._data.get(dog_id)
     if not isinstance(current, Mapping):
-      current = self.registry.empty_payload()
+      _LOGGER.warning(
+        "Cannot patch GPS data for %s because no payload is available",
+        dog_id,
+      )
+      return
 
     gps_payload = await self._modules.gps.async_get_data(dog_id)
     geofencing_payload = await self._modules.geofencing.async_get_data(dog_id)

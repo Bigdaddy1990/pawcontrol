@@ -674,36 +674,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       _LOGGER.disabled = True
       disable_logging = True
 
-      import gc
-
-      original_get_objects = gc.get_objects
-
-      if (
-        getattr(original_get_objects, "__name__", "")
-        != "_pawcontrol_filtered_get_objects"
-      ):
-
-        def _pawcontrol_filtered_get_objects(
-          *args: Any,
-          **kwargs: Any,
-        ) -> list[Any]:
-          objects = original_get_objects(*args, **kwargs)
-          gc.get_objects = original_get_objects
-          filtered: list[Any] = []
-          for obj in objects:
-            module = obj.__class__.__module__
-            name = obj.__class__.__name__
-            if module == "unittest.mock" and name in {
-              "MagicProxy",
-              "_CallList",
-              "_Call",
-            }:
-              continue
-            filtered.append(obj)
-          return filtered
-
-        gc.get_objects = _pawcontrol_filtered_get_objects
-
     services = getattr(hass, "services", None)
     service_module = (
       getattr(
