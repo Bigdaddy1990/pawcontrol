@@ -76,22 +76,14 @@ _TEMPLATE_LOGGER = logging.getLogger(
 )
 
 # OPTIMIZED: Performance constants for batch processing
-MAX_CONCURRENT_VALIDATIONS: Final[int] = 10
-ENTITY_VALIDATION_TIMEOUT: Final[float] = 5.0
 CARD_GENERATION_TIMEOUT: Final[float] = 15.0
-VALIDATION_CACHE_SIZE: Final[int] = 200
 
 # OPTIMIZED: Type definitions for better performance
 type CardConfigType = CardConfig
-type EntityListType = list[str]
 type ModulesConfigType = DogModulesConfig
 type DogConfigType = DogConfigData
 type ThemeConfigType = Mapping[str, str]
 type OptionsConfigType = DashboardCardOptions
-
-# OPTIMIZED: Entity validation cache for performance
-_entity_validation_cache: dict[str, tuple[float, bool]] = {}
-_cache_cleanup_threshold = 300  # 5 minutes
 
 
 _VISITOR_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
@@ -464,10 +456,6 @@ class BaseCardGenerator:
     self.hass = hass
     self.templates = templates
 
-    # OPTIMIZED: Performance tracking and validation semaphore
-    self._validation_semaphore = asyncio.Semaphore(
-      MAX_CONCURRENT_VALIDATIONS,
-    )
     self._performance_stats: DashboardCardPerformanceStats = {
       "validations_count": 0,
       "cache_hits": 0,
@@ -501,116 +489,26 @@ class BaseCardGenerator:
 
   async def _validate_entities_batch(
     self,
-    entities: EntityListType,
+    entities: list[str],
     use_cache: bool = True,
-  ) -> EntityListType:
-    """Validate entities in optimized batches with caching.
+  ) -> list[str]:
+    """Validate entities using direct Home Assistant state lookups."""
 
-    OPTIMIZED: Batch processing with cache, timeout protection, and memory management.
-
-    Args:
-        entities: List of entity IDs to validate
-        use_cache: Whether to use validation cache
-
-    Returns:
-        List of valid entity IDs
-    """
+    del use_cache
     if not entities:
       return []
 
     loop = asyncio.get_running_loop()
     start_time = loop.time()
-    valid_entities: list[str] = []
-
-    # OPTIMIZED: Clean cache if needed
-    await self._cleanup_validation_cache()
-
-    # OPTIMIZED: Separate cached and uncached entities
-    cached_results: dict[str, bool] = {}
-    uncached_entities: list[str] = []
-
-    if use_cache:
-      current_time = loop.time()
-      for entity_id in entities:
-        cache_entry = _entity_validation_cache.get(entity_id)
-        if cache_entry and (current_time - cache_entry[0]) < _cache_cleanup_threshold:
-          cached_results[entity_id] = cache_entry[1]
-          self._performance_stats["cache_hits"] += 1
-        else:
-          uncached_entities.append(entity_id)
-          self._performance_stats["cache_misses"] += 1
-    else:
-      uncached_entities = entities.copy()
-
-    # OPTIMIZED: Process uncached entities in controlled batches
-    batch_size = min(MAX_CONCURRENT_VALIDATIONS, len(uncached_entities))
-    for i in range(0, len(uncached_entities), batch_size):
-      batch = uncached_entities[i : i + batch_size]
-
-      async with self._validation_semaphore:
-        try:
-          # OPTIMIZED: Parallel validation with timeout
-          batch_tasks = [
-            asyncio.create_task(
-              self._validate_single_entity(entity_id),
-            )
-            for entity_id in batch
-          ]
-
-          batch_results = await asyncio.wait_for(
-            asyncio.gather(*batch_tasks, return_exceptions=True),
-            timeout=ENTITY_VALIDATION_TIMEOUT,
-          )
-
-          # Process batch results
-          for entity_id, result in zip(batch, batch_results, strict=False):
-            validation_result = _unwrap_async_result(
-              result,
-              context=f"Entity validation error for {entity_id}",
-              logger=_LOGGER,
-              level=logging.DEBUG,
-            )
-            cached_results[entity_id] = bool(validation_result)
-
-            # Update cache
-            if use_cache:
-              _entity_validation_cache[entity_id] = (
-                loop.time(),
-                cached_results[entity_id],
-              )
-
-        except TimeoutError:
-          _LOGGER.warning(
-            "Entity validation timeout for batch: %s",
-            batch,
-          )
-          for entity_id in batch:
-            cached_results[entity_id] = False
-
-        except Exception as err:
-          _LOGGER.error("Batch validation error: %s", err)
-          for entity_id in batch:
-            cached_results[entity_id] = False
-          self._performance_stats["errors_handled"] += 1
-
-    # OPTIMIZED: Collect all valid entities
     valid_entities = [
-      entity_id for entity_id in entities if cached_results.get(entity_id, False)
+      entity_id
+      for entity_id in entities
+      if await self._validate_single_entity(entity_id)
     ]
 
-    # Update performance stats
-    validation_time = loop.time() - start_time
     self._performance_stats["validations_count"] += len(entities)
-    self._performance_stats["generation_time_total"] += validation_time
-
-    if validation_time > 1.0:  # Log slow validations
-      _LOGGER.debug(
-        "Slow entity validation: %.2fs for %d entities (%d valid)",
-        validation_time,
-        len(entities),
-        len(valid_entities),
-      )
-
+    self._performance_stats["cache_misses"] += len(entities)
+    self._performance_stats["generation_time_total"] += loop.time() - start_time
     return valid_entities
 
   async def _validate_single_entity(self, entity_id: str) -> bool:
@@ -641,33 +539,7 @@ class BaseCardGenerator:
     Returns:
         True if entity exists and is available
     """
-    results = await self._validate_entities_batch([entity_id], use_cache=True)
-    return len(results) > 0
-
-  async def _cleanup_validation_cache(self) -> None:
-    """Cleanup old entries from validation cache."""
-    if len(_entity_validation_cache) <= VALIDATION_CACHE_SIZE:
-      return
-
-    current_time = asyncio.get_running_loop().time()
-    expired_keys = [
-      entity_id
-      for entity_id, (timestamp, _) in _entity_validation_cache.items()
-      if current_time - timestamp > _cache_cleanup_threshold
-    ]
-
-    for key in expired_keys:
-      _entity_validation_cache.pop(key, None)
-
-    # If still too large, remove oldest entries
-    if len(_entity_validation_cache) > VALIDATION_CACHE_SIZE:
-      sorted_items = sorted(
-        _entity_validation_cache.items(),
-        key=lambda x: x[1][0],  # Sort by timestamp
-      )
-      remove_count = len(_entity_validation_cache) - VALIDATION_CACHE_SIZE
-      for entity_id, _ in sorted_items[:remove_count]:
-        _entity_validation_cache.pop(entity_id, None)
+    return await self._validate_single_entity(entity_id)
 
   @property
   def performance_stats(self) -> DashboardCardPerformanceStats:
@@ -1926,7 +1798,7 @@ class ModuleCardGenerator(BaseCardGenerator):
       return_exceptions=True,
     )
 
-    valid_metrics: EntityListType = (
+    valid_metrics: list[str] = (
       _unwrap_async_result(
         metrics_result,
         context="Health metrics validation failed",
@@ -1936,7 +1808,7 @@ class ModuleCardGenerator(BaseCardGenerator):
       or []
     )
 
-    valid_dates: EntityListType = (
+    valid_dates: list[str] = (
       _unwrap_async_result(
         dates_result,
         context="Health schedule validation failed",
@@ -2245,7 +2117,7 @@ class ModuleCardGenerator(BaseCardGenerator):
       return_exceptions=True,
     )
 
-    valid_gps: EntityListType = (
+    valid_gps: list[str] = (
       _unwrap_async_result(
         gps_result,
         context="GPS status validation failed",
@@ -2255,7 +2127,7 @@ class ModuleCardGenerator(BaseCardGenerator):
       or []
     )
 
-    valid_geofence: EntityListType = (
+    valid_geofence: list[str] = (
       _unwrap_async_result(
         geofence_result,
         context="Geofence validation failed",
@@ -3259,33 +3131,13 @@ class StatisticsCardGenerator(BaseCardGenerator):
 
 # OPTIMIZED: Global cache cleanup function
 async def cleanup_validation_cache() -> None:
-  """Clean up global validation cache."""
-  global _entity_validation_cache
-  current_time = asyncio.get_running_loop().time()
-
-  expired_keys = [
-    entity_id
-    for entity_id, (timestamp, _) in _entity_validation_cache.items()
-    if current_time - timestamp > _cache_cleanup_threshold
-  ]
-
-  for key in expired_keys:
-    _entity_validation_cache.pop(key, None)
-
-  _LOGGER.debug(
-    "Cleaned %d expired entries from validation cache",
-    len(expired_keys),
-  )
+  """Backward-compatible no-op for validation cache cleanup."""
 
 
 # OPTIMIZED: Export performance monitoring function
 def get_global_performance_stats() -> DashboardCardGlobalPerformanceStats:
   """Get global performance statistics for all card generators."""
   stats: DashboardCardGlobalPerformanceStats = {
-    "validation_cache_size": len(_entity_validation_cache),
-    "cache_threshold": float(_cache_cleanup_threshold),
-    "max_concurrent_validations": MAX_CONCURRENT_VALIDATIONS,
-    "validation_timeout": ENTITY_VALIDATION_TIMEOUT,
     "card_generation_timeout": CARD_GENERATION_TIMEOUT,
   }
   return stats

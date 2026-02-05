@@ -404,16 +404,11 @@ def store_runtime_data(
   entry: PawControlConfigEntry,
   runtime_data: PawControlRuntimeData,
 ) -> None:
-  """Attach runtime data to the config entry and update compatibility caches."""
+  """Attach runtime data to the config entry and hass.data store."""
 
-  _stamp_runtime_schema(entry.entry_id, runtime_data)
-  store_entry = DomainRuntimeStoreEntry(
-    runtime_data=runtime_data,
-  ).ensure_current()
-  _apply_entry_metadata(entry, store_entry)
-
+  entry.runtime_data = runtime_data
   store = _get_domain_store(hass, create=True)
-  store[entry.entry_id] = store_entry
+  store[entry.entry_id] = DomainRuntimeStoreEntry(runtime_data=runtime_data)
 
 
 def get_runtime_data(
@@ -424,80 +419,28 @@ def get_runtime_data(
 ) -> PawControlRuntimeData | None:
   """Return the runtime data associated with a config entry."""
 
+  del raise_on_incompatible
   entry = _get_entry(hass, entry_or_id)
   entry_id = _resolve_entry_id(entry_or_id)
 
-  try:
-    entry_store_entry = _get_store_entry_from_entry(entry)
-  except RuntimeDataIncompatibleError as err:
-    _LOGGER.error(
-      "Runtime data incompatible for entry %s: %s",
-      entry_id,
-      err,
-    )
-    _detach_runtime_from_entry(entry)
-    if raise_on_incompatible:
-      raise
-    return None
-
-  if entry_store_entry is not None:
-    try:
-      current_entry = _normalise_store_entry(entry_id, entry_store_entry)
-    except RuntimeDataIncompatibleError as err:
-      _LOGGER.error(
-        "Runtime data incompatible for entry %s: %s",
-        entry_id,
-        err,
-      )
-      _detach_runtime_from_entry(entry)
-      if raise_on_incompatible:
-        raise
-      return None
-
-    if entry is not None:
-      _apply_entry_metadata(entry, current_entry)
-      store = _get_domain_store(hass, create=True)
-      if store is not None:
-        store_entry = _as_store_entry(store.get(entry_id))
-        if (
-          store_entry is None
-          or store_entry.unwrap() is not current_entry.unwrap()
-          or store_entry.version != current_entry.version
-          or store_entry.created_version != current_entry.created_version
-        ):
-          store[entry_id] = current_entry
-    return current_entry.unwrap()
-
-  existing_store = _get_domain_store(hass, create=False)
-  if existing_store is None:
-    return None
-
-  store_entry = _as_store_entry(existing_store.get(entry_id))
-  if store_entry is None:
-    if existing_store.pop(entry_id, None) is not None:
-      _cleanup_domain_store(hass, existing_store)
-    return None
-
-  try:
-    current_entry = _normalise_store_entry(entry_id, store_entry)
-  except RuntimeDataIncompatibleError as err:
-    _LOGGER.error(
-      "Runtime data incompatible for entry %s: %s",
-      entry_id,
-      err,
-    )
-    if existing_store.pop(entry_id, None) is not None:
-      _cleanup_domain_store(hass, existing_store)
-    _detach_runtime_from_entry(entry)
-    if raise_on_incompatible:
-      raise
-    return None
-
-  existing_store[entry_id] = current_entry
-
-  runtime_data = current_entry.unwrap()
   if entry is not None:
-    _apply_entry_metadata(entry, current_entry)
+    runtime_data = _as_runtime_data(getattr(entry, "runtime_data", None))
+    if runtime_data is not None:
+      store = _get_domain_store(hass, create=True)
+      store[entry.entry_id] = DomainRuntimeStoreEntry(runtime_data=runtime_data)
+      return runtime_data
+
+  store = _get_domain_store(hass, create=False)
+  if store is None:
+    return None
+
+  store_entry = _as_store_entry(store.get(entry_id))
+  if store_entry is None:
+    return None
+
+  runtime_data = store_entry.runtime_data
+  if entry is not None:
+    entry.runtime_data = runtime_data
   return runtime_data
 
 
@@ -611,44 +554,21 @@ def pop_runtime_data(
 
   entry = _get_entry(hass, entry_or_id)
   entry_id = _resolve_entry_id(entry_or_id)
-  try:
-    entry_store_entry = _get_store_entry_from_entry(entry)
-  except RuntimeDataIncompatibleError:
-    entry_store_entry = None
-  if entry_store_entry is not None:
-    try:
-      current_entry = _normalise_store_entry(entry_id, entry_store_entry)
-    except RuntimeDataIncompatibleError:
-      current_entry = None
-    else:
-      assert current_entry is not None
-      runtime_data = current_entry.unwrap()
-      _detach_runtime_from_entry(entry)
-      store = _get_domain_store(hass, create=False)
-      if (
-        store is not None
-        and entry is not None
-        and store.pop(entry.entry_id, None) is not None
-      ):
-        _cleanup_domain_store(hass, store)
-      return runtime_data
+
+  runtime_data = (
+    _as_runtime_data(getattr(entry, "runtime_data", None)) if entry else None
+  )
+  if entry is not None:
     _detach_runtime_from_entry(entry)
 
   store = _get_domain_store(hass, create=False)
-  store_runtime: PawControlRuntimeData | None = None
   if store is not None:
-    value = store.pop(entry_id, None)
-    store_entry = _as_store_entry(value)
-    if store_entry is not None:
-      try:
-        current_entry = _normalise_store_entry(entry_id, store_entry)
-      except RuntimeDataIncompatibleError:
-        current_entry = None
-      else:
-        store_runtime = current_entry.unwrap()
+    store_entry = _as_store_entry(store.pop(entry_id, None))
     _cleanup_domain_store(hass, store)
+    if runtime_data is None and store_entry is not None:
+      runtime_data = store_entry.runtime_data
 
-  return store_runtime
+  return runtime_data
 
 
 class RuntimeDataUnavailableError(HomeAssistantError):
