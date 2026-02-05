@@ -34,12 +34,10 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from . import compat
 from .compat import (
   ConfigEntry,
   ConfigEntryChange,
   ConfigEntryState,
-  bind_exception_alias,
 )
 from .const import (
   CONF_RESET_TIME,
@@ -77,7 +75,7 @@ from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
 from .error_classification import classify_error_reason
-from .exceptions import ServiceValidationError as PawControlServiceValidationError
+from .exceptions import HomeAssistantError, ServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
 from .grooming_translations import (
@@ -146,45 +144,9 @@ SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
 
 _LOGGER = logging.getLogger(__name__)
 
-compat.ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-  type[Exception],
-  compat.HomeAssistantError,
-)
-ServiceValidationError: type[Exception] = cast(
-  type[Exception],
-  PawControlServiceValidationError,
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
-bind_exception_alias("ServiceValidationError")
-
-_FALLBACK_EXCEPTION_MODULE = "custom_components.pawcontrol.compat"
-_CACHED_SERVICE_VALIDATION_ERROR: type[Exception] | None
-_SERVICE_VALIDATION_ALIAS_CACHE: dict[
-  tuple[type[Exception], type[Exception]],
-  type[Exception],
-] = {}
-if (
-  isinstance(ServiceValidationError, type)
-  and issubclass(ServiceValidationError, compat.HomeAssistantError)
-  and ServiceValidationError.__module__ != _FALLBACK_EXCEPTION_MODULE
-):
-  _CACHED_SERVICE_VALIDATION_ERROR = ServiceValidationError
-else:
-  _CACHED_SERVICE_VALIDATION_ERROR = None
-
-
-def __getattr__(name: str) -> object:
-  """Expose compat-managed exception aliases at module scope."""
-
-  if name == "HomeAssistantError":
-    compat.ensure_homeassistant_exception_symbols()
-    return HomeAssistantError
-  raise AttributeError(name)
-
 
 def _service_validation_error(message: str) -> Exception:
-  """Return a ``ServiceValidationError`` that mirrors Home Assistant's class."""
+  """Return a standard ServiceValidationError."""
 
   normalised_message = message.strip()
   if not normalised_message:
@@ -192,63 +154,7 @@ def _service_validation_error(message: str) -> Exception:
       "_service_validation_error requires a non-empty message",
     )
 
-  message = normalised_message
-
-  compat.ensure_homeassistant_exception_symbols()
-
-  global _CACHED_SERVICE_VALIDATION_ERROR
-  candidate: type[Exception] | None = None
-  if isinstance(ServiceValidationError, type) and issubclass(
-    ServiceValidationError,
-    compat.HomeAssistantError,
-  ):
-    if ServiceValidationError.__module__ != _FALLBACK_EXCEPTION_MODULE:
-      _CACHED_SERVICE_VALIDATION_ERROR = ServiceValidationError
-      candidate = ServiceValidationError
-    elif _CACHED_SERVICE_VALIDATION_ERROR is not None:
-      candidate = _CACHED_SERVICE_VALIDATION_ERROR
-
-  override = getattr(compat, "ServiceValidationError", None)
-  if (
-    isinstance(override, type)
-    and issubclass(override, Exception)
-    and (override.__module__ != _FALLBACK_EXCEPTION_MODULE or candidate is None)
-  ):
-    candidate = override
-    if override.__module__ != _FALLBACK_EXCEPTION_MODULE and issubclass(
-      override,
-      compat.HomeAssistantError,
-    ):
-      _CACHED_SERVICE_VALIDATION_ERROR = override
-
-  if candidate is None:
-    cached = _CACHED_SERVICE_VALIDATION_ERROR
-    candidate = cached if cached is not None else compat.ServiceValidationError
-
-  candidate = _ensure_service_validation_alias(candidate)
-  return candidate(message)
-
-
-def _ensure_service_validation_alias(
-  candidate: type[Exception],
-) -> type[Exception]:
-  """Ensure ``candidate`` inherits from :class:`HomeAssistantError`."""
-
-  if issubclass(candidate, HomeAssistantError):
-    return candidate
-
-  cache_key = (candidate, HomeAssistantError)
-  alias = _SERVICE_VALIDATION_ALIAS_CACHE.get(cache_key)
-  if alias is not None:
-    return alias
-
-  alias = type(
-    "PawControlServiceValidationErrorAlias",
-    (candidate, HomeAssistantError),
-    {"__module__": candidate.__module__},
-  )
-  _SERVICE_VALIDATION_ALIAS_CACHE[cache_key] = alias
-  return alias
+  return ServiceValidationError(normalised_message)
 
 
 def _format_gps_validation_error(
