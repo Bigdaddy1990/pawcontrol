@@ -1502,7 +1502,6 @@ class PawControlNotificationManager:
 
     return is_quiet
 
-
   def _check_rate_limit(
     self,
     config_key: str,
