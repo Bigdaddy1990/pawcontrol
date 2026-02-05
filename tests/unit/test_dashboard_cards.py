@@ -7,10 +7,7 @@ from custom_components.pawcontrol.dashboard_cards import (
   _resolve_dashboard_theme_option,
 )
 from custom_components.pawcontrol.dashboard_templates import DashboardTemplates
-from custom_components.pawcontrol.types import (
-  DashboardCardOptions,
-  DashboardCardPerformanceStats,
-)
+from custom_components.pawcontrol.types import DashboardCardOptions
 from homeassistant.core import HomeAssistant
 
 
@@ -21,18 +18,16 @@ async def test_performance_stats_returns_copy(hass: HomeAssistant) -> None:
   generator = BaseCardGenerator(hass, templates)
 
   initial_stats = generator.performance_stats
-  expected: DashboardCardPerformanceStats = {
+  expected = {
     "validations_count": 0,
-    "cache_hits": 0,
-    "cache_misses": 0,
     "generation_time_total": 0.0,
     "errors_handled": 0,
   }
   assert initial_stats == expected
 
   # Mutating the returned mapping must not affect the generator internals.
-  initial_stats["cache_hits"] = 5
-  assert generator.performance_stats["cache_hits"] == 0
+  initial_stats["validations_count"] = 5
+  assert generator.performance_stats["validations_count"] == 0
 
 
 def test_resolve_dashboard_theme_option_defaults() -> None:
