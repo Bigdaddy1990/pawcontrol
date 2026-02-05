@@ -1,11 +1,8 @@
 """Specialized card generators for Paw Control dashboards.
 
-This module provides high-performance, specialized card generators for different
-dashboard components. Each generator is optimized for its specific use case
-with lazy loading, validation, and async operations.
-
-OPTIMIZED: Enhanced with batch processing, parallel card generation,
-advanced caching, and comprehensive type safety for maximum performance.
+This module provides specialized card generators for different dashboard
+components. Each generator is optimized for its specific use case with lazy
+loading, validation, and async operations.
 
 Quality Scale: Platinum target
 P26.1.1++
@@ -440,11 +437,7 @@ def _resolve_dashboard_theme_option(options: OptionsConfigType) -> str:
 
 
 class BaseCardGenerator:
-  """Base class for card generators with enhanced performance optimization.
-
-  OPTIMIZED: Enhanced with batch processing, async caching, memory management,
-  and comprehensive error isolation for maximum performance.
-  """
+  """Base class for card generators with lightweight performance tracking."""
 
   def __init__(self, hass: HomeAssistant, templates: DashboardTemplates) -> None:
     """Initialize optimized card generator.
@@ -458,8 +451,6 @@ class BaseCardGenerator:
 
     self._performance_stats: DashboardCardPerformanceStats = {
       "validations_count": 0,
-      "cache_hits": 0,
-      "cache_misses": 0,
       "generation_time_total": 0.0,
       "errors_handled": 0,
     }
@@ -507,7 +498,6 @@ class BaseCardGenerator:
     ]
 
     self._performance_stats["validations_count"] += len(entities)
-    self._performance_stats["cache_misses"] += len(entities)
     self._performance_stats["generation_time_total"] += loop.time() - start_time
     return valid_entities
 
@@ -531,7 +521,7 @@ class BaseCardGenerator:
       return False
 
   async def _entity_exists_cached(self, entity_id: str) -> bool:
-    """Check if entity exists with caching for performance.
+    """Compatibility wrapper that validates entity availability.
 
     Args:
         entity_id: Entity ID to check

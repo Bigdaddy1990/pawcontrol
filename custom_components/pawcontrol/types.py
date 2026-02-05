@@ -2101,8 +2101,6 @@ class DashboardCardPerformanceStats(TypedDict):
   """Performance counters tracked while generating dashboard cards."""
 
   validations_count: int
-  cache_hits: int
-  cache_misses: int
   generation_time_total: float
   errors_handled: int
 
