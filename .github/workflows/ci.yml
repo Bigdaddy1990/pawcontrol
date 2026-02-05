@@ -53,7 +53,7 @@ jobs:
           python -m scripts.sync_contributor_guides
 
       - name: Install development tools
-        uses: taiki-e/install-action@v2.67.18
+        uses: taiki-e/install-action@v2.67.20
 
       - name: Run Prek
         run: |
