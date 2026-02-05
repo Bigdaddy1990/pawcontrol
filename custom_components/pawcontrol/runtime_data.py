@@ -417,7 +417,16 @@ def get_runtime_data(
   *,
   raise_on_incompatible: bool = False,
 ) -> PawControlRuntimeData | None:
-  """Return the runtime data associated with a config entry."""
+  """Return the runtime data associated with a config entry.
+
+  Args:
+      hass: Home Assistant instance.
+      entry_or_id: Config entry object or entry id.
+      raise_on_incompatible: Compatibility flag retained for existing callers.
+          Incompatible payloads are still filtered by schema checks before data
+          is returned, and ``require_runtime_data`` remains the strict API for
+          raising lookup failures.
+  """
 
   del raise_on_incompatible
   entry = _get_entry(hass, entry_or_id)

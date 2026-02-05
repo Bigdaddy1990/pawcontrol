@@ -437,7 +437,13 @@ def _resolve_dashboard_theme_option(options: OptionsConfigType) -> str:
 
 
 class BaseCardGenerator:
-  """Base class for card generators with lightweight performance tracking."""
+  """Base class for card generators with lightweight performance tracking.
+
+  The former validation cache and semaphore coordination were intentionally
+  removed to keep entity checks transparent and aligned with Home Assistant's
+  state access patterns. Compatibility parameters remain in selected method
+  signatures so older call sites and tests keep working.
+  """
 
   def __init__(self, hass: HomeAssistant, templates: DashboardTemplates) -> None:
     """Initialize optimized card generator.
@@ -483,7 +489,14 @@ class BaseCardGenerator:
     entities: list[str],
     use_cache: bool = True,
   ) -> list[str]:
-    """Validate entities using direct Home Assistant state lookups."""
+    """Validate entities using direct Home Assistant state lookups.
+
+    Args:
+        entities: Entity IDs to validate.
+        use_cache: Backward-compatible parameter kept for callers that still
+            pass ``use_cache=False``. The flag has no behavioral effect because
+            validation no longer uses an in-memory cache.
+    """
 
     del use_cache
     if not entities:
