@@ -1439,7 +1439,7 @@ class PawControlNotificationManager:
     """Get notification targets based on person entities.
 
     Args:
-        config_key: Configuration key for caching
+        config_key: Configuration key forwarded to person manager lookups
         config: Notification configuration
 
     Returns:
@@ -1448,7 +1448,6 @@ class PawControlNotificationManager:
     if not self._person_manager:
       return []
 
-    self._performance_metrics["cache_misses"] += 1
     return self._person_manager.get_notification_targets(
       include_away=config.include_away_persons,
       cache_key=f"person_targets_{config_key}_{config.include_away_persons}",
