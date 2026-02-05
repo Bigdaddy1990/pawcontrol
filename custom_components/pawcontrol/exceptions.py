@@ -34,19 +34,19 @@ else:  # pragma: no cover - fallback when Home Assistant isn't installed
     from homeassistant.exceptions import (
       HomeAssistantError as HomeAssistantErrorType,
     )
-  except ModuleNotFoundError:
+  except (ImportError, ModuleNotFoundError):
     from .compat import HomeAssistantError as HomeAssistantErrorType
 
 try:
   from homeassistant.exceptions import ConfigEntryAuthFailed as _AuthFailedType
-except ModuleNotFoundError:  # pragma: no cover - fallback for tests
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback for tests
   from .compat import ConfigEntryAuthFailed as _AuthFailedType
 
 try:
   from homeassistant.exceptions import (
     ServiceValidationError as _ServiceValidationErrorType,
   )
-except ModuleNotFoundError:  # pragma: no cover - fallback for tests
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback for tests
   from .compat import ServiceValidationError as _ServiceValidationErrorType
 
 try:  # Home Assistant 2025.10 renamed CoordinatorUpdateFailed to UpdateFailed
