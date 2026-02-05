@@ -1,7 +1,7 @@
 """Advanced notification system for the PawControl integration.
 
-Comprehensive notification management with batch processing, advanced caching,
-person entity integration, and performance optimizations for Platinum quality compliance.
+Comprehensive notification management with batch processing, person entity
+integration, and performance optimizations for Platinum quality compliance.
 
 Quality Scale: Platinum target
 P26.1.1++
@@ -76,6 +76,7 @@ BATCH_PROCESSING_SIZE = 10
 CACHE_CLEANUP_INTERVAL = 3600  # 1 hour
 QUIET_TIME_CACHE_TTL = 300  # 5 minutes
 CONFIG_CACHE_SIZE_LIMIT = 100
+RATE_LIMIT_RETENTION_SECONDS = 7 * 24 * 3600
 
 
 class NotificationType(Enum):
@@ -1469,12 +1470,10 @@ class PawControlNotificationManager:
     config: NotificationConfig,
     priority: NotificationPriority,
   ) -> bool:
-    """Check if it's currently quiet time with caching.
-
-    OPTIMIZE: Cache quiet time calculations to reduce repeated computations.
+    """Check if it's currently quiet time for the provided configuration.
 
     Args:
-        config_key: Configuration key for caching
+        config_key: Configuration key (kept for API compatibility)
         config: Notification configuration
         priority: Notification priority
 
@@ -1517,6 +1516,22 @@ class PawControlNotificationManager:
       return False
 
     channel_state[channel] = now
+
+    cutoff = now - RATE_LIMIT_RETENTION_SECONDS
+    stale_channels = [
+      channel_name
+      for channel_name, timestamp in channel_state.items()
+      if timestamp < cutoff
+    ]
+    for channel_name in stale_channels:
+      del channel_state[channel_name]
+
+    stale_configs = [
+      key for key, state in self._rate_limit_last_sent.items() if not state
+    ]
+    for key in stale_configs:
+      del self._rate_limit_last_sent[key]
+
     return True
 
   def _apply_template(
@@ -2429,17 +2444,30 @@ class PawControlNotificationManager:
       return True
 
   def _cache_stats_snapshot(self) -> NotificationCacheStats:
-    """Return lightweight runtime stats for notification state maps."""
+    """Return lightweight runtime stats for notification state maps.
+
+    Quiet-time entries track configured notification profiles, while
+    person-targeting entries are sourced from ``PersonEntityManager`` cache
+    diagnostics when available.
+    """
 
     rate_limit_entries = sum(
       len(channel_map) for channel_map in self._rate_limit_last_sent.values()
     )
+    person_targeting_entries = 0
+    if self._person_manager is not None:
+      person_targeting_entries = int(
+        self._person_manager.get_statistics()["cache"]["cache_entries"]
+      )
+
+    quiet_time_entries = len(self._configs)
+    total_entries = rate_limit_entries + quiet_time_entries + person_targeting_entries
     max_size = max(len(self._configs), 1)
-    utilization = min(rate_limit_entries / max_size, 1.0)
+    utilization = min(total_entries / max_size, 1.0)
     return {
       "config_entries": len(self._configs),
-      "quiet_time_entries": 0,
-      "person_targeting_entries": 0,
+      "quiet_time_entries": quiet_time_entries,
+      "person_targeting_entries": person_targeting_entries,
       "rate_limit_entries": rate_limit_entries,
       "cache_utilization": round(utilization, 2),
     }

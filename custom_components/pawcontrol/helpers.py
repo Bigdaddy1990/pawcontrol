@@ -386,6 +386,9 @@ class OptimizedDataCache[ValueT]:
 
     Returns a dictionary that includes size metrics, access frequency, and
     high-level effectiveness indicators (hits, misses, hit rate).
+
+    Memory accounting is intentionally disabled in the simplified cache.
+    ``memory_mb`` is retained as a compatibility field and is always ``0.0``.
     """
     total_requests = self._hits + self._misses
     hit_rate = (self._hits / total_requests * 100) if total_requests else 0.0
