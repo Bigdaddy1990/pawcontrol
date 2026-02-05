@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
 from collections.abc import Callable, Mapping
@@ -28,7 +27,7 @@ from .compat import MASS_GRAMS, MASS_KILOGRAMS
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
-from .entity_factory import EntityFactory, EntityProfileDefinition
+from .entity_factory import EntityFactory
 from .runtime_data import get_runtime_data
 from .push_router import get_entry_push_telemetry_snapshot
 from .types import (
@@ -53,7 +52,6 @@ from .types import (
   ensure_gps_payload,
 )
 from .utils import (
-  async_call_add_entities,
   ensure_utc_datetime,
   is_number,
   normalise_entity_attributes,
@@ -119,12 +117,6 @@ if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constant
 
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
-
-# OPTIMIZED: Performance constants for Platinum profiles
-ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
-MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
-PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
-
 
 # Gracefully handle Home Assistant constant backports in the test harness
 try:  # pragma: no cover - executed indirectly during import
@@ -257,9 +249,8 @@ async def async_setup_entry(
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up Paw Control sensor platform with profile optimization."""
+  """Set up Paw Control sensor platform."""
 
-  # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
   runtime_data = get_runtime_data(hass, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
@@ -270,38 +261,9 @@ async def async_setup_entry(
   profile = runtime_data.entity_profile
 
   if not dogs:
-    _LOGGER.warning("No dogs configured for sensor platform")
     return
 
-  _LOGGER.info(
-    "Setting up sensors with profile '%s' for %d dogs",
-    profile,
-    len(dogs),
-  )
-
-  # Create profile-optimized entities
-  all_entities = await _create_profile_entities(
-    coordinator,
-    entity_factory,
-    dogs,
-    profile,
-  )
-
-  # Performance-optimized entity addition
-  await _add_entities_optimized(async_add_entities, all_entities, profile)
-
-  # Log performance metrics
-  _log_setup_metrics(all_entities, dogs, profile, entity_factory)
-
-
-async def _create_profile_entities(
-  coordinator: PawControlCoordinator,
-  entity_factory: EntityFactory,
-  dogs: list[DogConfigData],
-  profile: str,
-) -> list[PawControlSensorBase]:
-  """Create entities based on profile requirements."""
-  all_entities = []
+  all_entities: list[PawControlSensorBase] = []
 
   for dog in dogs:
     dog_id = dog[DOG_ID_FIELD]
@@ -322,7 +284,7 @@ async def _create_profile_entities(
 
     # Create module-specific entities based on profile
     try:
-      module_entities = await _create_module_entities(
+      module_entities = _create_module_entities(
         coordinator,
         entity_factory,
         dog_id,
@@ -334,7 +296,8 @@ async def _create_profile_entities(
     finally:
       entity_factory.finalize_budget(dog_id, profile)
 
-  return all_entities
+  if all_entities:
+    async_add_entities(all_entities)
 
 
 def _create_core_entities(
@@ -357,7 +320,7 @@ def _create_core_entities(
   ]
 
 
-async def _create_module_entities(
+def _create_module_entities(
   coordinator: PawControlCoordinator,
   entity_factory: EntityFactory,
   dog_id: str,
@@ -772,86 +735,6 @@ async def _create_module_entities(
         entities.append(entity)
 
   return entities
-
-
-async def _add_entities_optimized(
-  async_add_entities: AddEntitiesCallback,
-  all_entities: list[PawControlSensorBase],
-  profile: str,
-) -> None:
-  """Add entities with profile-optimized batching."""
-  total_entities = len(all_entities)
-
-  if total_entities <= PARALLEL_THRESHOLD:
-    # Small setup: Create all at once
-    await async_call_add_entities(
-      async_add_entities,
-      all_entities,
-      update_before_add=False,
-    )
-  else:
-    # Large setup: Use optimized batching
-    for i in range(0, total_entities, MAX_ENTITIES_PER_BATCH):
-      batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
-      await async_call_add_entities(
-        async_add_entities,
-        batch,
-        update_before_add=False,
-      )
-
-      # Small delay between batches for system stability
-      if i + MAX_ENTITIES_PER_BATCH < total_entities:
-        await asyncio.sleep(ENTITY_CREATION_DELAY)
-
-
-def _log_setup_metrics(
-  all_entities: list[PawControlSensorBase],
-  dogs: list[DogConfigData],
-  profile: str,
-  entity_factory: EntityFactory,
-) -> None:
-  """Log setup performance metrics."""
-  total_entities = len(all_entities)
-  avg_entities_per_dog = total_entities / len(dogs) if dogs else 0
-
-  profile_info: EntityProfileDefinition | None = None
-  if hasattr(entity_factory, "get_profile_info"):
-    try:
-      profile_info = entity_factory.get_profile_info(profile)
-    except Exception:  # pragma: no cover - defensive for mock objects
-      profile_info = None
-
-  raw_max_entities: object = (
-    getattr(
-      profile_info,
-      "max_entities",
-      0,
-    )
-    if profile_info is not None
-    else 0
-  )
-  if isinstance(raw_max_entities, int | float | str):
-    try:
-      max_entities = int(raw_max_entities)
-    except (TypeError, ValueError):
-      max_entities = 0
-  else:
-    max_entities = 0
-
-  max_possible = max_entities * len(dogs)
-  efficiency = (
-    (max_possible - total_entities) / max_possible * 100 if max_possible > 0 else 0
-  )
-
-  _LOGGER.info(
-    "Sensor setup complete: %d entities for %d dogs (avg %.1f/dog) - "
-    "Profile: %s, Efficiency: %.1f%% resource savings",
-    total_entities,
-    len(dogs),
-    avg_entities_per_dog,
-    profile,
-    efficiency,
-  )
 
 
 class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):

@@ -10,7 +10,6 @@ OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code dupl
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from collections.abc import Mapping, Sequence
@@ -62,7 +61,6 @@ from .types import (
   ensure_json_mapping,
 )
 from .utils import (
-  async_call_add_entities,
   ensure_utc_datetime,
   normalise_entity_attributes,
 )
@@ -156,11 +154,6 @@ def _apply_standard_timing_attributes(
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
 
-# OPTIMIZATION: Performance constants for batched entity creation
-ENTITY_CREATION_BATCH_SIZE = 12  # Optimized for binary sensors
-ENTITY_CREATION_DELAY = 0.1  # 100ms between batches
-PARALLEL_THRESHOLD = 24  # Threshold for parallel vs batched creation
-
 FEEDING_MODULE = cast(CoordinatorTypedModuleName, MODULE_FEEDING)
 GARDEN_MODULE = cast(CoordinatorTypedModuleName, MODULE_GARDEN)
 GPS_MODULE = cast(CoordinatorTypedModuleName, MODULE_GPS)
@@ -235,62 +228,12 @@ class BinarySensorLogicMixin:
       return default_if_none
 
 
-async def _async_add_entities_in_batches(
-  async_add_entities_func: AddEntitiesCallback,
-  entities: Sequence[PawControlBinarySensorBase],
-  batch_size: int = ENTITY_CREATION_BATCH_SIZE,
-  delay_between_batches: float = ENTITY_CREATION_DELAY,
-) -> None:
-  """Add binary sensor entities in optimized batches.
-
-  The Entity Registry logs warnings when >200 messages occur rapidly.
-  By batching entities and adding delays, we prevent registry overload.
-
-  Args:
-      async_add_entities_func: The actual async_add_entities callback
-      entities: List of binary sensor entities to add
-      batch_size: Number of entities per batch
-      delay_between_batches: Seconds to wait between batches
-  """
-  total_entities = len(entities)
-
-  _LOGGER.debug(
-    "Adding %d binary sensor entities in batches of %d to prevent Registry overload",
-    total_entities,
-    batch_size,
-  )
-
-  # Process entities in batches
-  for i in range(0, total_entities, batch_size):
-    batch = entities[i : i + batch_size]
-    batch_num = (i // batch_size) + 1
-    total_batches = (total_entities + batch_size - 1) // batch_size
-
-    _LOGGER.debug(
-      "Processing binary sensor batch %d/%d with %d entities",
-      batch_num,
-      total_batches,
-      len(batch),
-    )
-
-    # Add batch without update_before_add to reduce Registry load
-    await async_call_add_entities(
-      async_add_entities_func,
-      batch,
-      update_before_add=False,
-    )
-
-    # Small delay between batches to prevent Registry flooding
-    if i + batch_size < total_entities:  # No delay after last batch
-      await asyncio.sleep(delay_between_batches)
-
-
 async def async_setup_entry(
   hass: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up Paw Control binary sensor platform with optimized performance."""
+  """Set up Paw Control binary sensor platform."""
 
   # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
   runtime_data = get_runtime_data(hass, entry)
@@ -311,7 +254,6 @@ async def async_setup_entry(
     dog_configs.append(normalised)
 
   if not dog_configs:
-    _LOGGER.warning("No dogs configured for binary sensor platform")
     return
 
   entities: list[PawControlBinarySensorBase] = []
@@ -321,12 +263,6 @@ async def async_setup_entry(
     dog_id: str = dog[DOG_ID_FIELD]
     dog_name: str = dog[DOG_NAME_FIELD]
     modules = ensure_dog_modules_mapping(dog)
-
-    _LOGGER.debug(
-      "Creating binary sensors for dog: %s (%s)",
-      dog_name,
-      dog_id,
-    )
 
     # Base binary sensors - always created for every dog
     entities.extend(
@@ -371,29 +307,8 @@ async def async_setup_entry(
         _create_garden_binary_sensors(coordinator, dog_id, dog_name),
       )
 
-  # OPTIMIZED: Smart batching based on entity count
-  if len(entities) <= PARALLEL_THRESHOLD:
-    # Small setup: Create all at once for better performance
-
-    await async_call_add_entities(
-      async_add_entities,
-      entities,
-      update_before_add=False,
-    )
-
-    _LOGGER.info(
-      "Created %d binary sensor entities for %d dogs (single batch)",
-      len(entities),
-      len(dog_configs),
-    )
-  else:
-    # Large setup: Use optimized batching to prevent registry overload
-    await _async_add_entities_in_batches(async_add_entities, entities)
-    _LOGGER.info(
-      "Created %d binary sensor entities for %d dogs (batched approach)",
-      len(entities),
-      len(dog_configs),
-    )
+  if entities:
+    async_add_entities(entities)
 
 
 def _create_base_binary_sensors(
