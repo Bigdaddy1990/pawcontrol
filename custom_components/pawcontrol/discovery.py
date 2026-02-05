@@ -13,15 +13,13 @@ import asyncio
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Final, Literal, TypedDict, cast
+from typing import Final, Literal, TypedDict, cast
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistryEvent
 from homeassistant.helpers.entity_registry import EntityRegistryEvent
-from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
 from . import compat
@@ -31,8 +29,6 @@ from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)
 
-# Discovery scan intervals
-DISCOVERY_SCAN_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 DISCOVERY_TIMEOUT: Final[float] = 10.0
 
 type DiscoveryCategory = Literal[
@@ -164,7 +160,6 @@ class PawControlDiscovery:
     """
     self.hass = hass
     self._discovered_devices: dict[str, DiscoveredDevice] = {}
-    self._discovery_tasks: set[asyncio.Task[Any]] = set()
     self._scan_active = False
     self._listeners: list[CALLBACK_TYPE] = []
     self._device_registry: dr.DeviceRegistry | None = None
@@ -178,8 +173,8 @@ class PawControlDiscovery:
       self._device_registry = dr.async_get(self.hass)
       self._entity_registry = er.async_get(self.hass)
 
-      # Start background discovery scanning
-      await self._start_background_scanning()
+      # Perform an initial scan so consumers have current state
+      await self.async_discover_devices(quick_scan=True)
 
       # Register discovery listeners for real-time detection
       await self._register_discovery_listeners()
@@ -483,34 +478,6 @@ class PawControlDiscovery:
 
     return connection_type, connection_info
 
-  async def _start_background_scanning(self) -> None:
-    """Start background device scanning."""
-
-    @callback
-    def _scheduled_scan(now: datetime) -> None:
-      """Callback for scheduled device scanning."""
-
-      if self._scan_active:
-        return
-
-      task = self.hass.async_create_task(
-        self.async_discover_devices(quick_scan=True),
-        name="paw_control_background_discovery",
-      )
-      self._discovery_tasks.add(task)
-      task.add_done_callback(self._discovery_tasks.discard)
-
-    # Schedule regular discovery scans
-    self._listeners.append(
-      async_track_time_interval(
-        self.hass,
-        _scheduled_scan,
-        DISCOVERY_SCAN_INTERVAL,
-      ),
-    )
-
-    _LOGGER.debug("Background discovery scanning started")
-
   async def _register_discovery_listeners(self) -> None:
     """Register real-time discovery listeners."""
 
@@ -577,16 +544,6 @@ class PawControlDiscovery:
     """Shutdown discovery and cleanup resources."""
 
     _LOGGER.debug("Shutting down Paw Control discovery")
-
-    # Cancel background tasks
-    for task in set(self._discovery_tasks):
-      if task.done():
-        continue
-      task.cancel()
-
-    if self._discovery_tasks:
-      await asyncio.gather(*self._discovery_tasks, return_exceptions=True)
-    self._discovery_tasks.clear()
 
     # Remove listeners
     for listener in self._listeners:

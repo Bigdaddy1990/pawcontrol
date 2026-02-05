@@ -82,7 +82,6 @@ R = TypeVar("R")
 STORAGE_VERSION = 1
 
 # OPTIMIZATION: Performance constants
-MAX_MEMORY_CACHE_MB = 50  # Memory limit for caching
 BATCH_SAVE_DELAY = 2.0  # Batch save delay in seconds
 MAX_NOTIFICATION_QUEUE = 100  # Max queued notifications
 DATA_CLEANUP_INTERVAL = 3600  # 1 hour cleanup interval
@@ -167,7 +166,6 @@ class OptimizedDataCache[ValueT]:
 
   def __init__(
     self,
-    max_memory_mb: int = MAX_MEMORY_CACHE_MB,
     default_ttl_seconds: int = 300,
   ) -> None:
     """Initialize cache with memory limits and TTL management."""
@@ -176,8 +174,6 @@ class OptimizedDataCache[ValueT]:
     self._access_count: dict[str, int] = {}
     self._ttls: dict[str, int] = {}
     self._default_ttl_seconds = max(default_ttl_seconds, 0)
-    self._max_memory_bytes = max_memory_mb * 1024 * 1024
-    self._current_memory = 0
     self._hits = 0
     self._misses = 0
     self._lock = asyncio.Lock()
@@ -214,25 +210,11 @@ class OptimizedDataCache[ValueT]:
   async def set(self, key: str, value: ValueT, ttl_seconds: int = 300) -> None:
     """Set cached value with TTL and memory management."""
     async with self._lock:
-      # Estimate memory usage
-      value_size = self._estimate_size(cast(Any, value))
-
-      # Clean up if needed
-      while self._current_memory + value_size > self._max_memory_bytes and self._cache:
-        await self._evict_lru()
-
-      # Store value
-      if key in self._cache:
-        # Update existing
-        old_size = self._estimate_size(cast(Any, self._cache[key]))
-        self._current_memory -= old_size
-
       now = dt_util.utcnow()
       self._cache[key] = value
       self._timestamps[key] = now
       self._access_count[key] = self._access_count.get(key, 0) + 1
       self._ttls[key] = self._normalize_ttl(ttl_seconds)
-      self._current_memory += value_size
 
   async def _evict_lru(self) -> None:
     """Evict least recently used item."""
@@ -324,8 +306,6 @@ class OptimizedDataCache[ValueT]:
   def _remove_locked(self, key: str, *, record_expiration: bool = True) -> None:
     """Remove a key from the cache while holding the lock."""
     if key in self._cache:
-      value_size = self._estimate_size(cast(Any, self._cache[key]))
-      self._current_memory -= value_size
       del self._cache[key]
 
     self._timestamps.pop(key, None)
@@ -398,33 +378,24 @@ class OptimizedDataCache[ValueT]:
     return int(ttl_seconds)
 
   def _estimate_size(self, value: Any) -> int:
-    """Estimate memory size of value."""
-    try:
-      import sys
-
-      return sys.getsizeof(value)
-    except Exception:
-      # Fallback estimate
-      if isinstance(value, str):
-        return len(value) * 2  # Unicode chars
-      if isinstance(value, list | tuple):
-        return len(value) * 100  # Rough estimate
-      if isinstance(value, dict):
-        return len(value) * 200  # Rough estimate
-      return 1024  # Default 1KB
+    """Compatibility shim retained for diagnostics interfaces."""
+    return 0
 
   def get_stats(self) -> OptimizedCacheStats:
     """Get cache performance statistics with hit/miss tracking.
 
     Returns a dictionary that includes size metrics, access frequency, and
     high-level effectiveness indicators (hits, misses, hit rate).
+
+    Memory accounting is intentionally disabled in the simplified cache.
+    ``memory_mb`` is retained as a compatibility field and is always ``0.0``.
     """
     total_requests = self._hits + self._misses
     hit_rate = (self._hits / total_requests * 100) if total_requests else 0.0
 
     stats: OptimizedCacheStats = {
       "entries": len(self._cache),
-      "memory_mb": round(self._current_memory / (1024 * 1024), 2),
+      "memory_mb": 0.0,
       "total_accesses": sum(self._access_count.values()),
       "avg_accesses": (
         sum(self._access_count.values()) / len(self._access_count)

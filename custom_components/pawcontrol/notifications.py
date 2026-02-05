@@ -1,7 +1,7 @@
 """Advanced notification system for the PawControl integration.
 
-Comprehensive notification management with batch processing, advanced caching,
-person entity integration, and performance optimizations for Platinum quality compliance.
+Comprehensive notification management with batch processing, person entity
+integration, and performance optimizations for Platinum quality compliance.
 
 Quality Scale: Platinum target
 P26.1.1++
@@ -76,6 +76,7 @@ BATCH_PROCESSING_SIZE = 10
 CACHE_CLEANUP_INTERVAL = 3600  # 1 hour
 QUIET_TIME_CACHE_TTL = 300  # 5 minutes
 CONFIG_CACHE_SIZE_LIMIT = 100
+RATE_LIMIT_RETENTION_SECONDS = 7 * 24 * 3600
 
 
 class NotificationType(Enum):
@@ -792,8 +793,8 @@ class PawControlNotificationManager:
     self._cleanup_task: asyncio.Task | None = None
     self._batch_task: asyncio.Task | None = None
 
-    # OPTIMIZE: Advanced caching and batching
-    self._cache: NotificationCache = NotificationCache()
+    # Lightweight runtime state
+    self._rate_limit_last_sent: dict[str, dict[str, float]] = {}
     self._batch_queue: deque[NotificationEvent] = deque()
     self._pending_batches: dict[str, list[NotificationEvent]] = {}
     self._delivery_status: dict[str, NotificationDeliveryStatus] = {}
@@ -1111,7 +1112,6 @@ class PawControlNotificationManager:
           )
 
           self._configs[config_id] = config
-          self._cache.set_config(config_id, config)
 
         except Exception as err:
           _LOGGER.error(
@@ -1204,12 +1204,10 @@ class PawControlNotificationManager:
 
       if config.priority_threshold == priority:
         # Ensure cache stays in sync even when value is unchanged
-        self._cache.set_config(config_key, config)
         return
 
       config.priority_threshold = priority
       self._configs[config_key] = config
-      self._cache.set_config(config_key, config)
       self._performance_metrics["config_updates"] += 1
 
     _LOGGER.info(
@@ -1333,7 +1331,7 @@ class PawControlNotificationManager:
           config.rate_limit.get(rate_limit_key, 0),
         )
 
-        if limit_minutes == 0 or self._cache.check_rate_limit(
+        if limit_minutes == 0 or self._check_rate_limit(
           config_key,
           channel.value,
           limit_minutes,
@@ -1442,7 +1440,7 @@ class PawControlNotificationManager:
     """Get notification targets based on person entities.
 
     Args:
-        config_key: Configuration key for caching
+        config_key: Configuration key forwarded to person manager lookups
         config: Notification configuration
 
     Returns:
@@ -1451,46 +1449,19 @@ class PawControlNotificationManager:
     if not self._person_manager:
       return []
 
-    # Check cache first
-    cache_key = f"person_targets_{config_key}_{config.include_away_persons}"
-    cached_targets = self._cache.get_person_targeting_cache(cache_key)
-    if cached_targets is not None:
-      self._performance_metrics["cache_hits"] += 1
-      return cached_targets
-
-    self._performance_metrics["cache_misses"] += 1
-
-    # Get targets from person manager
-    targets = self._person_manager.get_notification_targets(
+    return self._person_manager.get_notification_targets(
       include_away=config.include_away_persons,
-      cache_key=cache_key,
+      cache_key=f"person_targets_{config_key}_{config.include_away_persons}",
     )
 
-    # Cache the result
-    self._cache.set_person_targeting_cache(cache_key, targets)
-
-    return targets
-
   async def _get_config_cached(self, config_key: str) -> NotificationConfig:
-    """Get configuration with caching.
+    """Get configuration directly from in-memory config state."""
+    config = self._configs.get(config_key)
+    if config is None:
+      self._performance_metrics["cache_misses"] += 1
+      return NotificationConfig()
 
-    Args:
-        config_key: Configuration key
-
-    Returns:
-        Notification configuration
-    """
-    # Check cache first
-    cached_config = self._cache.get_config(config_key)
-    if cached_config is not None:
-      self._performance_metrics["cache_hits"] += 1
-      return cached_config
-
-    # Get from configs
-    config = self._configs.get(config_key, NotificationConfig())
-    self._cache.set_config(config_key, config)
-    self._performance_metrics["cache_misses"] += 1
-
+    self._performance_metrics["cache_hits"] += 1
     return config
 
   async def _is_quiet_time_cached(
@@ -1499,12 +1470,10 @@ class PawControlNotificationManager:
     config: NotificationConfig,
     priority: NotificationPriority,
   ) -> bool:
-    """Check if it's currently quiet time with caching.
-
-    OPTIMIZE: Cache quiet time calculations to reduce repeated computations.
+    """Check if it's currently quiet time for the provided configuration.
 
     Args:
-        config_key: Configuration key for caching
+        config_key: Configuration key (kept for API compatibility)
         config: Notification configuration
         priority: Notification priority
 
@@ -1518,11 +1487,6 @@ class PawControlNotificationManager:
     if not config.quiet_hours:
       return False
 
-    # Check cache first
-    is_cached, is_quiet = self._cache.is_quiet_time_cached(config_key)
-    if is_cached:
-      return is_quiet
-
     # Calculate quiet time status
     now = _dt_now()
     current_hour = now.hour
@@ -1534,10 +1498,41 @@ class PawControlNotificationManager:
     else:  # e.g., 01:00 to 06:00
       is_quiet = start_hour <= current_hour < end_hour
 
-    # Cache result
-    self._cache.set_quiet_time_cache(config_key, is_quiet)
-
     return is_quiet
+
+  def _check_rate_limit(
+    self,
+    config_key: str,
+    channel: str,
+    limit_minutes: int,
+  ) -> bool:
+    """Return True when the notification is allowed by rate limit."""
+
+    now = time.monotonic()
+    channel_state = self._rate_limit_last_sent.setdefault(config_key, {})
+    last_sent = channel_state.get(channel)
+    window = float(limit_minutes) * 60.0
+    if last_sent is not None and now - last_sent < window:
+      return False
+
+    channel_state[channel] = now
+
+    cutoff = now - RATE_LIMIT_RETENTION_SECONDS
+    stale_channels = [
+      channel_name
+      for channel_name, timestamp in channel_state.items()
+      if timestamp < cutoff
+    ]
+    for channel_name in stale_channels:
+      del channel_state[channel_name]
+
+    stale_configs = [
+      key for key, state in self._rate_limit_last_sent.items() if not state
+    ]
+    for key in stale_configs:
+      del self._rate_limit_last_sent[key]
+
+    return True
 
   def _apply_template(
     self,
@@ -2369,15 +2364,8 @@ class PawControlNotificationManager:
           # Clean expired notifications
           expired_count = await self.async_cleanup_expired_notifications()
 
-          # Clean cache
-          cache_cleaned = self._cache.cleanup_expired()
-
-          if expired_count > 0 or cache_cleaned > 0:
-            _LOGGER.debug(
-              "Cleanup: %d expired notifications, %d cache entries",
-              expired_count,
-              cache_cleaned,
-            )
+          if expired_count > 0:
+            _LOGGER.debug("Cleanup: %d expired notifications", expired_count)
 
       except asyncio.CancelledError:
         break
@@ -2455,6 +2443,35 @@ class PawControlNotificationManager:
       _LOGGER.info("Acknowledged notification %s", notification_id)
       return True
 
+  def _cache_stats_snapshot(self) -> NotificationCacheStats:
+    """Return lightweight runtime stats for notification state maps.
+
+    Quiet-time entries track configured notification profiles, while
+    person-targeting entries are sourced from ``PersonEntityManager`` cache
+    diagnostics when available.
+    """
+
+    rate_limit_entries = sum(
+      len(channel_map) for channel_map in self._rate_limit_last_sent.values()
+    )
+    person_targeting_entries = 0
+    if self._person_manager is not None:
+      person_targeting_entries = int(
+        self._person_manager.get_statistics()["cache"]["cache_entries"]
+      )
+
+    quiet_time_entries = len(self._configs)
+    total_entries = rate_limit_entries + quiet_time_entries + person_targeting_entries
+    max_size = max(len(self._configs), 1)
+    utilization = min(total_entries / max_size, 1.0)
+    return {
+      "config_entries": len(self._configs),
+      "quiet_time_entries": quiet_time_entries,
+      "person_targeting_entries": person_targeting_entries,
+      "rate_limit_entries": rate_limit_entries,
+      "cache_utilization": round(utilization, 2),
+    }
+
   async def async_get_performance_statistics(self) -> NotificationManagerStats:
     """Get comprehensive performance statistics.
 
@@ -2504,7 +2521,7 @@ class PawControlNotificationManager:
         "priority_distribution": priority_counts,
         # Performance metrics
         "performance_metrics": self.get_performance_metrics(),
-        "cache_stats": self._cache.get_stats(),
+        "cache_stats": self._cache_stats_snapshot(),
         "batch_queue_size": len(self._batch_queue),
         "pending_batches": len(self._pending_batches),
         # Handler stats
@@ -2519,7 +2536,6 @@ class PawControlNotificationManager:
     """Register notification-centric caches with the provided registrar."""
 
     self._cache_monitor_registrar = registrar
-    registrar.register_cache_monitor("notification_cache", self._cache)
     self._register_person_cache_monitor()
 
   def _register_person_cache_monitor(self) -> None:
