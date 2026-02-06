@@ -94,9 +94,7 @@ def _normalize_language(
   if not language:
     return default
 
-  normalized = (
-    str(language).replace("_", "-").split("-", 1)[0].strip().lower()
-  )
+  normalized = str(language).replace("_", "-").split("-", 1)[0].strip().lower()
   if not normalized:
     return default
 
