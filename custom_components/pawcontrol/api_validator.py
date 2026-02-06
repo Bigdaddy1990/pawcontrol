@@ -13,7 +13,12 @@ async def async_validate_api(
   endpoint: str,
   api_key: str | None,
 ) -> bool:
-  """Validate API connection credentials."""
+  """Validate API reachability and credentials.
+
+  The validator is intentionally strict: endpoint normalization and an
+  authenticated `/api/status` probe must both succeed. Failures are surfaced as
+  ``PawControlError`` so config flows can present clear setup errors.
+  """
 
   try:
     validate_device_endpoint(endpoint)

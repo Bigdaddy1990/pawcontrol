@@ -68,18 +68,18 @@ class PawControlDeviceClient:
     return self._endpoint.base_url
 
   async def async_get_json(self, path: str) -> JSONMutableMapping:
-    """Perform a JSON GET request."""
+    """Perform a JSON GET request with transient retry handling."""
 
     payload = await async_retry(self._async_request, "GET", path, attempts=3)
     return _coerce_json_mutable(payload)
 
   async def async_get_feeding_payload(self, dog_id: str) -> JSONMutableMapping:
-    """Fetch feeding data."""
+    """Fetch feeding payload for a specific dog from the device API."""
 
     return await self.async_get_json(f"/api/dogs/{dog_id}/feeding")
 
   async def _async_request(self, method: str, path: str) -> JSONMutableMapping:
-    """Execute HTTP request."""
+    """Execute a single HTTP request and normalize common API failures."""
 
     url = self._endpoint.base_url.join(URL(path))
     headers: dict[str, str] = {}
