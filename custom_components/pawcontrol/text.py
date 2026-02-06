@@ -31,7 +31,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, NotificationType
 from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
@@ -60,9 +60,8 @@ from .types import (
   ensure_dog_config_data,
   ensure_dog_text_metadata_snapshot,
   ensure_dog_text_snapshot,
-  ensure_json_mapping,
 )
-from .utils import async_call_add_entities, normalise_entity_attributes
+from .utils import async_call_add_entities
 
 # ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
@@ -344,7 +343,7 @@ async def _async_reproduce_text_state(
   )
 
 
-class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
+class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
   """Base class for Paw Control text entities."""
 
   def __init__(
@@ -396,23 +395,6 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
     )
 
     return self._finalize_entity_attributes(merged)
-
-  def _build_base_state_attributes(
-    self,
-    extra: Mapping[str, object] | None = None,
-  ) -> JSONMutableMapping:
-    """Return base attributes with optional additions."""
-    attrs = ensure_json_mapping(super().extra_state_attributes)
-    if extra:
-      attrs.update(ensure_json_mapping(extra))
-    return attrs
-
-  def _finalize_entity_attributes(
-    self,
-    attrs: JSONMutableMapping,
-  ) -> JSONMutableMapping:
-    """Normalize attributes for Home Assistant."""
-    return normalise_entity_attributes(attrs)
 
   def _clamp_value(self, value: str) -> str:
     """Clamp ``value`` to the configured maximum length when necessary."""

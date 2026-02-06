@@ -47,7 +47,7 @@ from typing import (
   cast,
 )
 
-from homeassistant.config_entries import ConfigEntry
+from .compat import ConfigEntry
 from .const import (
   CONF_API_ENDPOINT,
   CONF_API_TOKEN,
@@ -2101,6 +2101,8 @@ class DashboardCardPerformanceStats(TypedDict):
   """Performance counters tracked while generating dashboard cards."""
 
   validations_count: int
+  cache_hits: int
+  cache_misses: int
   generation_time_total: float
   errors_handled: int
 

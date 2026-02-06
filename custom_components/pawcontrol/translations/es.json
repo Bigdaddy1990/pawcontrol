@@ -11,14 +11,24 @@
     "manual_event_source_help_default": "Integration fallback when no manual override is configured.",
     "manual_event_source_help_disabled": "Removes the listener and stops monitoring this manual event.",
     "manual_event_source_help_options": "Configured via the options flow.",
-    "manual_event_source_help_system_settings": "Captured from the System Settings form."
+    "manual_event_source_help_system_settings": "Captured from the System Settings form.",
+    "setup_flags_panel_description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+    "setup_flags_panel_flag_debug_logging": "Registro de depuraci\u00f3n",
+    "setup_flags_panel_flag_enable_analytics": "Telemetr\u00eda de anal\u00edticas",
+    "setup_flags_panel_flag_enable_cloud_backup": "Copia de seguridad en la nube",
+    "setup_flags_panel_source_advanced_settings": "Configuraci\u00f3n avanzada",
+    "setup_flags_panel_source_blueprint": "Sugerencia de blueprint",
+    "setup_flags_panel_source_config_entry": "Valores predeterminados de la entrada de configuraci\u00f3n",
+    "setup_flags_panel_source_default": "Valor predeterminado de la integraci\u00f3n",
+    "setup_flags_panel_source_disabled": "Desactivar",
+    "setup_flags_panel_source_options": "Flujo de opciones",
+    "setup_flags_panel_source_system_settings": "Configuraci\u00f3n del sistema",
+    "setup_flags_panel_title": "Setup flags"
   },
   "config": {
     "abort": {
       "already_configured": "Device is already configured",
       "discovery_rejected": "Discovery ignored at user request",
-      "reauth_successful": "Reauthentication completed successfully",
-      "reconfigure_successful": "Reconfiguration completed successfully",
       "single_instance_allowed": "Only a single configuration of Paw Control is allowed"
     },
     "error": {
@@ -38,7 +48,6 @@
       "diet_guidance_seniors": "\ud83d\udc74 Seniors: Consider senior_formula, joint_support may be beneficial",
       "diet_guidance_toy_breed": "\ud83d\udc2d Toy breeds: Often benefit from sensitive_stomach, small kibble size",
       "dog_id_already_exists": "A dog with this ID already exists",
-      "dog_id_required": "Dog ID is required",
       "dog_id_too_long": "Dog ID cannot be longer than 30 characters",
       "dog_id_too_short": "Dog ID must be at least 2 characters long",
       "dog_name_already_exists": "A dog with this name already exists",
@@ -1470,9 +1479,6 @@
     }
   },
   "options": {
-    "abort": {
-      "no_dogs_configured": "At least one dog must be configured"
-    },
     "error": {
       "coordinate_not_numeric": "La coordenada debe ser un n\u00famero",
       "coordinate_out_of_range": "La coordenada est\u00e1 fuera de rango",
@@ -1508,103 +1514,21 @@
       "weather_entity_not_found": "Weather entity not found"
     },
     "step": {
-      "add_dog": {
-        "data": {
-          "dog_age": "Age in years",
-          "dog_breed": "Breed (optional)",
-          "dog_id": "Dog ID (unique identifier)",
-          "dog_name": "Dog name",
-          "dog_size": "Size category",
-          "dog_weight": "Weight in kg"
-        },
-        "data_description": {
-          "dog_age": "Provide the age in years so Paw Control can tailor activity and feeding guidance.",
-          "dog_breed": "Optional detail that improves nutrition and health recommendations.",
-          "dog_id": "Use a short lowercase identifier. It becomes part of the entity IDs created for this dog.",
-          "dog_name": "Friendly display name used in dashboards and notifications.",
-          "dog_size": "Select the size profile that best matches your dog for defaults and summaries.",
-          "dog_weight": "Used to calculate meal portions and health thresholds."
-        },
-        "description": "Add a new dog profile.\n\nDogs: {dog_count} configured",
-        "title": "Add Dog"
-      },
-      "configure_modules": {
-        "data": {
-          "enable_dashboard": "Dashboard Integration",
-          "enable_feeding": "Feeding Management",
-          "enable_garden": "Garden Tracking",
-          "enable_gps": "GPS Location Tracking",
-          "enable_grooming": "Grooming Reminders",
-          "enable_health": "Health Monitoring",
-          "enable_medication": "Medication Tracking",
-          "enable_notifications": "Smart Notifications",
-          "enable_training": "Training Progress",
-          "enable_visitor": "Visitor Mode",
-          "enable_walk": "Walk Tracking"
-        },
-        "data_description": {
-          "enable_dashboard": "Automatically build a Lovelace dashboard tab for this dog's data.",
-          "enable_feeding": "Creates feeding sensors, services, and reminders for this dog.",
-          "enable_garden": "Adds garden-tracking automations for outdoor areas.",
-          "enable_gps": "Enables GPS tracking entities and geofencing options.",
-          "enable_grooming": "Adds grooming reminders to the helper schedule.",
-          "enable_health": "Adds health metrics, medication reminders, and vet schedule tracking.",
-          "enable_medication": "Creates helpers to manage medication dosing routines.",
-          "enable_notifications": "Allows Paw Control to send Home Assistant notifications for this dog.",
-          "enable_training": "Tracks training goals and exposes reminder services.",
-          "enable_visitor": "Provides quick toggles to manage visitor/guest safety automations.",
-          "enable_walk": "Tracks walk history and exposes walk-completion helpers."
-        },
-        "description": "Choose which modules to enable for the selected dog.",
-        "title": "Configure Modules"
-      },
       "dashboard_settings": {
         "data": {
-          "auto_refresh": "Enable auto refresh",
-          "compact_mode": "Enable compact mode",
+          "auto_create_dashboard": "Auto-create Dashboard",
           "dashboard_mode": "Dashboard Mode",
-          "show_alerts": "Show alerts",
-          "show_maps": "Show maps",
-          "show_statistics": "Show statistics"
+          "dashboard_name": "Dashboard Name",
+          "include_charts": "Include Charts"
         },
         "data_description": {
-          "auto_refresh": "Refresh the dashboard automatically.",
-          "compact_mode": "Reduce spacing for smaller screens.",
+          "auto_create_dashboard": "Crear o actualizar autom\u00e1ticamente el panel de Lovelace.",
           "dashboard_mode": "Elige el nivel de detalle del panel generado.",
-          "show_alerts": "Include alert highlights on the dashboard.",
-          "show_maps": "Show map cards for GPS-enabled dogs.",
-          "show_statistics": "Include summary statistics cards."
+          "dashboard_name": "Nombre del panel que se crear\u00e1 o actualizar\u00e1.",
+          "include_charts": "Incluir gr\u00e1ficos de resumen en el panel."
         },
         "description": "Configure dashboard appearance and layout.",
         "title": "Dashboard Settings"
-      },
-      "edit_dog": {
-        "data": {
-          "dog_age": "Age in years",
-          "dog_breed": "Breed (optional)",
-          "dog_name": "Dog name",
-          "dog_size": "Size category",
-          "dog_weight": "Weight in kg"
-        },
-        "data_description": {
-          "dog_age": "Update the age in years.",
-          "dog_breed": "Update breed details if needed.",
-          "dog_name": "Update the display name.",
-          "dog_size": "Update the size profile.",
-          "dog_weight": "Update the weight in kg."
-        },
-        "description": "Update details for {dog_name}.",
-        "title": "Edit Dog"
-      },
-      "edit_dog_select": {
-        "data": {
-          "dog_id": "Dog"
-        },
-        "data_description": {
-          "dog_id": "Select the dog you want to edit."
-        },
-        "description": "Choose a dog to edit.",
-        "title": "Select Dog"
       },
       "feeding_settings": {
         "data": {
@@ -1632,25 +1556,21 @@
       },
       "gps_settings": {
         "data": {
-          "auto_track_walks": "Auto-track walks",
+          "auto_walk_detection": "Automatic Walk Detection",
+          "geofencing_enabled": "Enable Geofencing",
           "gps_accuracy_filter": "GPS Accuracy Filter (meters)",
           "gps_distance_filter": "GPS Distance Filter (meters)",
-          "gps_enabled": "Enable GPS tracking",
-          "gps_update_interval": "GPS Update Interval (seconds)",
-          "route_history_days": "Route history retention (days)",
-          "route_recording": "Record GPS routes"
+          "gps_update_interval": "GPS Update Interval (seconds)"
         },
         "data_description": {
-          "auto_track_walks": "Automatically create walk entries when GPS activity is detected.",
+          "auto_walk_detection": "Detecta paseos autom\u00e1ticamente con movimiento y GPS.",
+          "geofencing_enabled": "Habilita alertas de zonas seguras.",
           "gps_accuracy_filter": "Descarta actualizaciones de GPS con menor precisi\u00f3n.",
           "gps_distance_filter": "Distancia m\u00ednima entre actualizaciones de GPS.",
-          "gps_enabled": "Enable GPS tracking for eligible dogs.",
-          "gps_update_interval": "Frecuencia de las actualizaciones de GPS.",
-          "route_history_days": "How long to keep route history.",
-          "route_recording": "Store historical GPS routes for walks."
+          "gps_update_interval": "Frecuencia de las actualizaciones de GPS."
         },
         "description": "Configure GPS tracking parameters for optimal performance and battery life.",
-        "title": "GPS Settings"
+        "title": "GPS & Tracking Settings"
       },
       "health_settings": {
         "data": {
@@ -1689,20 +1609,12 @@
       },
       "manage_dogs": {
         "data": {
-          "action": "Action",
-          "dog_id": "Dog"
+          "action": "Action"
         },
         "data_description": {
-          "action": "Choose to edit details, remove a dog, or update module selections.",
-          "dog_id": "Select which dog to update."
+          "action": "Elige a\u00f1adir, editar o eliminar un perro."
         },
         "description": "Add, edit, or remove dogs from your configuration.\n\nCurrently configured dogs:\n{dogs_list}\n\nTotal dogs: {current_dogs_count}",
-        "menu_options": {
-          "add_dog": "Add dog",
-          "edit_dog_select": "Edit dog",
-          "init": "Back",
-          "remove_dog_select": "Remove dog"
-        },
         "title": "Manage Dogs"
       },
       "notifications": {
@@ -1742,36 +1654,6 @@
         },
         "description": "Configure webhook and MQTT push ingestion for GPS updates.",
         "title": "Push Settings"
-      },
-      "remove_dog": {
-        "data": {
-          "confirm_remove": "Remove this dog"
-        },
-        "data_description": {
-          "confirm_remove": "Confirm removal of this dog and its entities."
-        },
-        "description": "Remove {dog_name} from Paw Control.",
-        "title": "Remove Dog"
-      },
-      "remove_dog_confirm": {
-        "data": {
-          "confirm_remove": "Remove dog"
-        },
-        "data_description": {
-          "confirm_remove": "Confirm to remove this dog profile."
-        },
-        "description": "Remove {dog_name} from Paw Control?",
-        "title": "Remove Dog"
-      },
-      "remove_dog_select": {
-        "data": {
-          "dog_id": "Dog"
-        },
-        "data_description": {
-          "dog_id": "Select the dog you want to remove."
-        },
-        "description": "Choose a dog to remove.",
-        "title": "Select Dog"
       },
       "system_settings": {
         "data": {
