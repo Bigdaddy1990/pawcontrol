@@ -26,9 +26,11 @@ ATTR_OPTION = getattr(select_component, "ATTR_OPTION", "option")
 ATTR_OPTIONS = getattr(select_component, "ATTR_OPTIONS", "options")
 
 try:
-  from homeassistant.const import ATTR_ENTITY_ID
+  from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
 except ImportError:  # pragma: no cover
   ATTR_ENTITY_ID = "entity_id"
+  STATE_UNAVAILABLE = "unavailable"
+  STATE_UNKNOWN = "unknown"
 
 from homeassistant.exceptions import HomeAssistantError  # noqa: E402
 from .const import (  # noqa: E402
@@ -133,6 +135,8 @@ async def _async_reproduce_platform_states(
   """Iterate over states and call a handler for each valid one."""
 
   for state in states:
+    # Skip unavailable/unknown states to avoid replaying transient or invalid
+    # values back into the integration.
     if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
       _LOGGER.warning(
         "Cannot reproduce %s state for %s: %s",
