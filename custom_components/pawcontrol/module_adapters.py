@@ -1,25 +1,17 @@
-"""Helpers that translate runtime managers into coordinator-facing adapters."""
+"""Helpers that translate runtime managers into coordinator-facing adapters.
+
+Simplified to fetch data directly without redundant TTL caching.
+"""
 
 from __future__ import annotations
 
 from typing import TypeVar
 import logging
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 from aiohttp import ClientSession
-
-try:
-  from homeassistant.util import dt as dt_util
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-  class _DateTimeModule:
-    @staticmethod
-    def utcnow() -> datetime:
-      return datetime.now(UTC)
-
-  dt_util = _DateTimeModule()
 
 from .const import (
   CONF_DOG_AGE,
@@ -108,115 +100,6 @@ class ModuleAdapterCacheError(TypedDict):
 PayloadT = TypeVar("PayloadT")
 
 
-class _ExpiringCache[PayloadT]:
-  """Cache that evicts entries after a fixed TTL."""
-
-  __slots__ = (
-    "_data",
-    "_evicted_total",
-    "_hits",
-    "_last_cleanup",
-    "_last_expired",
-    "_misses",
-    "_ttl",
-  )
-
-  def __init__(self, ttl: timedelta) -> None:
-    self._data: dict[str, tuple[PayloadT, datetime]] = {}
-    self._evicted_total = 0
-    self._hits = 0
-    self._last_cleanup: datetime | None = None
-    self._last_expired = 0
-    self._misses = 0
-    self._ttl = ttl
-
-  def get(self, key: str) -> PayloadT | None:
-    """Return cached data if it has not expired."""
-
-    if key not in self._data:
-      self._misses += 1
-      return None
-
-    value, timestamp = self._data[key]
-    if dt_util.utcnow() - timestamp > self._ttl:
-      self._misses += 1
-      del self._data[key]
-      return None
-
-    self._hits += 1
-    return value
-
-  def set(self, key: str, value: PayloadT) -> None:
-    """Store a value in the cache."""
-
-    self._data[key] = (value, dt_util.utcnow())
-
-  def cleanup(self, now: datetime) -> int:
-    """Remove all expired entries and return count of evicted items."""
-
-    expired: list[str] = []
-    for key, (_, timestamp) in self._data.items():
-      if now - timestamp > self._ttl:
-        expired.append(key)
-
-    for key in expired:
-      del self._data[key]
-
-    expired_count = len(expired)
-    if expired_count:
-      self._evicted_total += expired_count
-    self._last_cleanup = now
-    self._last_expired = expired_count
-    return expired_count
-
-  def clear(self) -> None:
-    """Reset the cache entirely."""
-
-    self._data.clear()
-    self._evicted_total = 0
-    self._hits = 0
-    self._last_cleanup = None
-    self._last_expired = 0
-    self._misses = 0
-
-  def metrics(self) -> ModuleCacheMetrics:
-    """Return current metrics for this cache."""
-
-    return ModuleCacheMetrics(
-      entries=len(self._data),
-      hits=self._hits,
-      misses=self._misses,
-    )
-
-  def metadata(self) -> ModuleAdapterCacheMetadata:
-    """Return metadata describing cache state for diagnostics."""
-
-    metadata: ModuleAdapterCacheMetadata = {
-      "ttl_seconds": self._ttl.total_seconds(),
-    }
-    if self._last_cleanup is not None:
-      metadata["last_cleanup"] = self._last_cleanup
-      metadata["last_expired_count"] = self._last_expired
-    if self._evicted_total:
-      metadata["expired_total"] = self._evicted_total
-    return metadata
-
-  def snapshot(self) -> ModuleAdapterCacheSnapshot:
-    """Return a typed snapshot of cache statistics and metadata."""
-
-    metrics = self.metrics()
-    stats: ModuleAdapterCacheStats = {
-      "entries": metrics.entries,
-      "hits": metrics.hits,
-      "misses": metrics.misses,
-      "hit_rate": metrics.hit_rate,
-    }
-    return {
-      "stats": stats,
-      "metadata": self.metadata(),
-    }
-
-
 def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
   """Return a typed health alert entry with defaulted metadata."""
 
@@ -284,56 +167,40 @@ def _normalise_health_medication(
 
 
 class _BaseModuleAdapter[PayloadT]:
-  """Base helper for adapters that maintain a TTL cache."""
+  """Base helper for adapters without local caching."""
 
-  __slots__ = ("_cache", "_ttl")
+  __slots__ = ()
 
   def __init__(self, ttl: timedelta | None) -> None:
-    self._ttl = ttl
-    self._cache: _ExpiringCache[PayloadT] | None = _ExpiringCache(ttl) if ttl else None
+    del ttl
 
   def _cached(self, key: str) -> PayloadT | None:
-    if not self._cache:
-      return None
-    return self._cache.get(key)
+    del key
+    return None
 
   def _remember(self, key: str, value: PayloadT) -> None:
-    if not self._cache:
-      return
-    self._cache.set(key, value)
+    del key, value
 
   def cleanup(self, now: datetime) -> int:
-    if not self._cache:
-      return 0
-    return self._cache.cleanup(now)
+    del now
+    return 0
 
   def clear(self) -> None:
-    if self._cache:
-      self._cache.clear()
+    return None
 
   def cache_metrics(self) -> ModuleCacheMetrics:
-    if not self._cache:
-      return ModuleCacheMetrics()
-    return self._cache.metrics()
+    return ModuleCacheMetrics()
 
   def cache_snapshot(self) -> ModuleAdapterCacheSnapshot:
-    if not self._cache:
-      stats: ModuleAdapterCacheStats = {
+    return {
+      "stats": {
         "entries": 0,
         "hits": 0,
         "misses": 0,
         "hit_rate": 0.0,
-      }
-      metadata: ModuleAdapterCacheMetadata = {"ttl_seconds": None}
-      return {"stats": stats, "metadata": metadata}
-
-    snapshot = self._cache.snapshot()
-    metadata = snapshot["metadata"]
-    metadata.setdefault(
-      "ttl_seconds",
-      self._ttl.total_seconds() if self._ttl is not None else None,
-    )
-    return snapshot
+      },
+      "metadata": {"ttl_seconds": None},
+    }
 
 
 class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
