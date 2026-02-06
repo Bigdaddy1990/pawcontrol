@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, MutableMapping
 from dataclasses import dataclass
 import logging
-from collections.abc import Callable
 from typing import Final, cast
 
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
@@ -18,20 +18,22 @@ from homeassistant.const import (
   CONF_TYPE,
 )
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import (
+  config_validation as cv,
+  device_registry as dr,
+  entity_registry as er,
+)
 from homeassistant.helpers.event import async_track_state_change_event
 import voluptuous as vol
 
 from .const import DOMAIN
-from .device_automation_helpers import (
-  build_unique_id,
-  resolve_device_context,
-  resolve_entity_id,
-)
+from .types import DomainRuntimeStoreEntry, PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
 _ENTITY_ID_VALIDATOR = cast(vol.Any, getattr(cv, "entity_id", cv.string))
+
+_UNIQUE_ID_FORMAT: Final[str] = "pawcontrol_{dog_id}_{suffix}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +93,101 @@ TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
     vol.Optional(CONF_TO): cv.string,
   },
 )
+
+
+@dataclass(slots=True)
+class PawControlDeviceAutomationContext:
+  """Resolved context for device automation lookups."""
+
+  device_id: str
+  dog_id: str | None
+  runtime_data: PawControlRuntimeData | None
+
+
+def build_unique_id(dog_id: str, suffix: str) -> str:
+  """Build the stable unique_id used by PawControl entities."""
+
+  return _UNIQUE_ID_FORMAT.format(dog_id=dog_id, suffix=suffix)
+
+
+def _extract_dog_id(device_entry: dr.DeviceEntry | None) -> str | None:
+  """Extract the dog identifier from a device registry entry."""
+
+  if device_entry is None:
+    return None
+
+  for domain, identifier in device_entry.identifiers:
+    if domain == DOMAIN:
+      return identifier
+
+  return None
+
+
+def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
+  """Return runtime data extracted from ``value`` when possible."""
+
+  if isinstance(value, PawControlRuntimeData):
+    return value
+  if isinstance(value, DomainRuntimeStoreEntry):
+    return value.unwrap()
+  return None
+
+
+def _resolve_runtime_data_from_store(
+  hass: HomeAssistant,
+  entry_ids: Iterable[str],
+) -> PawControlRuntimeData | None:
+  """Resolve runtime data from ``hass.data`` using entry identifiers."""
+
+  domain_store = hass.data.get(DOMAIN)
+  if not isinstance(domain_store, MutableMapping):
+    return None
+
+  for entry_id in entry_ids:
+    runtime_data = _coerce_runtime_data(domain_store.get(entry_id))
+    if runtime_data is not None:
+      return runtime_data
+
+  return None
+
+
+def resolve_device_context(
+  hass: HomeAssistant,
+  device_id: str,
+) -> PawControlDeviceAutomationContext:
+  """Resolve the runtime data and dog identifier for a device."""
+
+  device_registry = dr.async_get(hass)
+  device_entry = device_registry.async_get(device_id)
+  dog_id = _extract_dog_id(device_entry)
+
+  entry_ids: Iterable[str] = ()
+  if device_entry is not None:
+    entry_ids = device_entry.config_entries
+
+  runtime_data = _resolve_runtime_data_from_store(hass, entry_ids)
+
+  return PawControlDeviceAutomationContext(
+    device_id=device_id,
+    dog_id=dog_id,
+    runtime_data=runtime_data,
+  )
+
+
+def resolve_entity_id(
+  hass: HomeAssistant,
+  device_id: str,
+  unique_id: str,
+  platform: str,
+) -> str | None:
+  """Resolve an entity id for a device-based automation."""
+
+  entity_registry = er.async_get(hass)
+  for entry in entity_registry.async_entries_for_device(device_id):
+    if entry.unique_id == unique_id and entry.platform == platform:
+      return entry.entity_id
+
+  return None
 
 
 async def async_get_triggers(

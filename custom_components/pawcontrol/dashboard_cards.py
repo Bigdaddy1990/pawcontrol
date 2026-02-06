@@ -15,7 +15,7 @@ from typing import TypeVar
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Collection, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
@@ -44,7 +44,6 @@ from .dashboard_templates import (
   MapCardOptions,
   MapOptionsInput,
 )
-from .language import normalize_language
 from .types import (
   DOG_ID_FIELD,
   DOG_IMAGE_FIELD,
@@ -81,6 +80,36 @@ type ModulesConfigType = DogModulesConfig
 type DogConfigType = DogConfigData
 type ThemeConfigType = Mapping[str, str]
 type OptionsConfigType = DashboardCardOptions
+
+
+def _normalize_language(
+  language: str | None,
+  *,
+  supported: Collection[str] | None = None,
+  default: str = "en",
+) -> str:
+  """Return a normalized language code constrained to ``supported`` values."""
+
+  if not default:
+    msg = "default language must be a non-empty string"
+    raise ValueError(msg)
+
+  if not language:
+    return default
+
+  normalized = (
+    str(language).replace("_", "-").split("-", 1)[0].strip().lower()
+  )
+  if not normalized:
+    return default
+
+  if supported is None:
+    return normalized
+
+  if normalized in supported:
+    return normalized
+
+  return default
 
 
 _VISITOR_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
@@ -243,7 +272,7 @@ def _translated_health_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -261,7 +290,7 @@ def _translated_health_template(
   if translations is None:
     return template.format(**values)
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   template_value = translations.get(normalized_language)
   if template_value is None:
     template_value = translations.get("en", template)
@@ -276,7 +305,7 @@ def _translated_visitor_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -294,7 +323,7 @@ def _translated_visitor_template(
   if translations is None:
     return template.format(**values)
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   template_value = translations.get(normalized_language)
   if template_value is None:
     template_value = translations.get("en", template)
@@ -309,7 +338,7 @@ def _translated_visitor_value(language: str | None, value: str) -> str:
   if translations is None:
     return value
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -323,7 +352,7 @@ def _translated_quick_action_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -337,7 +366,7 @@ def _translated_walk_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -355,7 +384,7 @@ def _translated_walk_template(
   if translations is None:
     return template.format(**values)
 
-  normalized_language = normalize_language(language)
+  normalized_language = _normalize_language(language)
   template_value = translations.get(normalized_language)
   if template_value is None:
     template_value = translations.get("en", template)

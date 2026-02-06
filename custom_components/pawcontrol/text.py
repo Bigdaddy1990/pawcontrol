@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import text as text_component
 from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.const import (
   ATTR_VALUE,
+  STATE_UNAVAILABLE,
+  STATE_UNKNOWN,
 )
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
@@ -33,7 +35,6 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .notifications import NotificationPriority, NotificationType
-from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_ID_FIELD,
@@ -77,6 +78,11 @@ MODULE_GPS_KEY = cast(ModuleToggleKey, MODULE_GPS)
 MODULE_WALK_KEY = cast(ModuleToggleKey, MODULE_WALK)
 MODULE_HEALTH_KEY = cast(ModuleToggleKey, MODULE_HEALTH)
 MODULE_NOTIFICATIONS_KEY = cast(ModuleToggleKey, MODULE_NOTIFICATIONS)
+
+T = TypeVar("T")
+
+Preprocessor = Callable[[State], T | None]
+Handler = Callable[[HomeAssistant, State, State, T, Context | None], Awaitable[None]]
 
 
 def _normalize_dog_configs(
@@ -132,6 +138,43 @@ def _normalize_dog_configs(
     normalized_configs.append(cast(DogConfigData, typed_config))
 
   return normalized_configs
+
+
+async def _async_reproduce_platform_states(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  platform_name: str,
+  preprocess: Preprocessor[T],
+  handler: Handler[T],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Iterate over states and call a handler for each valid one."""
+
+  for state in states:
+    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      _LOGGER.warning(
+        "Cannot reproduce %s state for %s: %s",
+        platform_name,
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    processed = preprocess(state)
+    if processed is None:
+      continue
+
+    current_state = hass.states.get(state.entity_id)
+    if current_state is None:
+      _LOGGER.warning(
+        "%s entity %s not found for state reproduction",
+        platform_name.capitalize(),
+        state.entity_id,
+      )
+      continue
+
+    await handler(hass, state, current_state, processed, context)
 
 
 async def _async_add_entities_in_batches(
@@ -311,7 +354,7 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce text states for PawControl entities."""
-  await async_reproduce_platform_states(
+  await _async_reproduce_platform_states(
     hass,
     states,
     "text",

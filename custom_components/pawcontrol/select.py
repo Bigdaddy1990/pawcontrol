@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final, TypeVar, cast
 
 from homeassistant.components import select as select_component
 from homeassistant.components.select import SelectEntity
@@ -56,7 +56,6 @@ from .utils import (  # noqa: E402
 )
 from .entity import PawControlEntity  # noqa: E402
 from .notifications import NotificationPriority, PawControlNotificationManager  # noqa: E402
-from .reproduce_state import async_reproduce_platform_states  # noqa: E402
 from .runtime_data import get_runtime_data  # noqa: E402
 from .types import (  # noqa: E402
   DOG_ID_FIELD,
@@ -110,11 +109,53 @@ _LOGGER = logging.getLogger(__name__)
 # the entity layer.
 PARALLEL_UPDATES = 0
 
+T = TypeVar("T")
+
+Preprocessor = Callable[[State], T | None]
+Handler = Callable[[HomeAssistant, State, State, T, Context | None], Awaitable[None]]
+
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for select entities."""
 
   return normalise_entity_attributes(attrs)
+
+
+async def _async_reproduce_platform_states(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  platform_name: str,
+  preprocess: Preprocessor[T],
+  handler: Handler[T],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Iterate over states and call a handler for each valid one."""
+
+  for state in states:
+    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      _LOGGER.warning(
+        "Cannot reproduce %s state for %s: %s",
+        platform_name,
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    processed = preprocess(state)
+    if processed is None:
+      continue
+
+    current_state = hass.states.get(state.entity_id)
+    if current_state is None:
+      _LOGGER.warning(
+        "%s entity %s not found for state reproduction",
+        platform_name.capitalize(),
+        state.entity_id,
+      )
+      continue
+
+    await handler(hass, state, current_state, processed, context)
 
 
 # Additional option lists for selects
@@ -591,7 +632,7 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce select states for PawControl entities."""
-  await async_reproduce_platform_states(
+  await _async_reproduce_platform_states(
     hass,
     states,
     "select",

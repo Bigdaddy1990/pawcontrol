@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
-from typing import cast
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from typing import TypeVar, cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import number as number_component
@@ -54,7 +54,6 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
-from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
   DOG_AGE_FIELD,
@@ -114,9 +113,51 @@ DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
 DEFAULT_GPS_ACCURACY_THRESHOLD = 50  # meters
 DEFAULT_ACTIVITY_GOAL = 100  # percentage
 
+T = TypeVar("T")
+
+Preprocessor = Callable[[State], T | None]
+Handler = Callable[[HomeAssistant, State, State, T, Context | None], Awaitable[None]]
+
 
 type DogConfigUpdatePayload = JSONMutableMapping
 """Partial dog configuration updates used by number entities."""
+
+
+async def _async_reproduce_platform_states(
+  hass: HomeAssistant,
+  states: Sequence[State],
+  platform_name: str,
+  preprocess: Preprocessor[T],
+  handler: Handler[T],
+  *,
+  context: Context | None = None,
+) -> None:
+  """Iterate over states and call a handler for each valid one."""
+
+  for state in states:
+    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+      _LOGGER.warning(
+        "Cannot reproduce %s state for %s: %s",
+        platform_name,
+        state.entity_id,
+        state.state,
+      )
+      continue
+
+    processed = preprocess(state)
+    if processed is None:
+      continue
+
+    current_state = hass.states.get(state.entity_id)
+    if current_state is None:
+      _LOGGER.warning(
+        "%s entity %s not found for state reproduction",
+        platform_name.capitalize(),
+        state.entity_id,
+      )
+      continue
+
+    await handler(hass, state, current_state, processed, context)
 
 
 def _merge_config_updates(
@@ -314,7 +355,7 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce number states for PawControl entities."""
-  await async_reproduce_platform_states(
+  await _async_reproduce_platform_states(
     hass,
     states,
     "number",
