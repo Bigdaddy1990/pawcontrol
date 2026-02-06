@@ -3321,7 +3321,7 @@ class PawControlDataManager:
 
     try:
       data = await self._store.async_load()
-    except Exception as err:
+    except (HomeAssistantError, OSError) as err:
       error_cls = _resolve_homeassistant_error()
       raise error_cls(f"Unable to read PawControl data: {err}") from err
 
