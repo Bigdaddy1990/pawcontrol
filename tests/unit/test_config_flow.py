@@ -29,6 +29,8 @@ async def test_duplicate_dog_id_is_rejected() -> None:
   flow = PawControlConfigFlow()
   await flow.async_step_dogs({CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"})
 
-  duplicate = await flow.async_step_dogs({CONF_DOG_NAME: "Buddy 2", CONF_DOG_ID: "buddy"})
+  duplicate = await flow.async_step_dogs(
+    {CONF_DOG_NAME: "Buddy 2", CONF_DOG_ID: "buddy"}
+  )
   assert duplicate["type"] == FlowResultType.FORM
   assert duplicate["errors"] == {"base": "duplicate_dog_id"}
