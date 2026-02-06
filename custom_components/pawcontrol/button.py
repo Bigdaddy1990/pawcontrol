@@ -52,7 +52,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .utils import normalize_value
-from .entity import PawControlDogEntityBase
+from .entity import PawControlEntity
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
   translated_grooming_label,
@@ -64,6 +64,8 @@ from .types import (
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
   WALK_IN_PROGRESS_FIELD,
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
   DogConfigData,
   GardenModulePayload,
   GPSModulePayload,
@@ -793,7 +795,7 @@ async def async_setup_entry(
   )
 
 
-class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
+class PawControlButtonBase(PawControlEntity, ButtonEntity):
   """Optimized base button class with thread-safe caching and improved performance."""
 
   _attr_should_poll = False
@@ -864,6 +866,31 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
       attrs["action_description"] = self._action_description
 
     return _normalise_attributes(attrs)
+
+  def _set_cache_ttl(self, _ttl: float) -> None:
+    """Compatibility no-op for cache TTL settings."""
+
+  def _get_dog_data(self) -> CoordinatorDogData | None:
+    """Return dog data from the coordinator."""
+    return self.coordinator.get_dog_data(self._dog_id)
+
+  def _get_dog_data_cached(self) -> CoordinatorDogData | None:
+    """Return dog data without caching."""
+    return self._get_dog_data()
+
+  def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
+    """Return module data from the coordinator."""
+    return self.coordinator.get_module_data(self._dog_id, module)
+
+  def _build_entity_attributes(
+    self,
+    extra: Mapping[str, object] | None = None,
+  ) -> JSONMutableMapping:
+    """Build entity attributes from the base payload."""
+    attrs = ensure_json_mapping(super().extra_state_attributes)
+    if extra:
+      attrs.update(ensure_json_mapping(extra))
+    return attrs
 
   def _get_walk_payload(self) -> WalkModulePayload | None:
     """Return the walk module payload if available."""

@@ -54,7 +54,7 @@ from .utils import (  # noqa: E402
   deep_merge_dicts,
   normalise_entity_attributes,
 )
-from .entity import PawControlDogEntityBase  # noqa: E402
+from .entity import PawControlEntity  # noqa: E402
 from .notifications import NotificationPriority, PawControlNotificationManager  # noqa: E402
 from .reproduce_state import async_reproduce_platform_states  # noqa: E402
 from .runtime_data import get_runtime_data  # noqa: E402
@@ -96,6 +96,7 @@ from .types import (  # noqa: E402
   WeatherConditionKey,
   HealthStatusKey,
   coerce_dog_modules_config,
+  ensure_json_mapping,
 )
 
 
@@ -746,7 +747,7 @@ def _create_health_selects(
   ]
 
 
-class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity):
+class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
   """Base class for all Paw Control select entities.
 
   Provides common functionality and ensures consistent behavior across
@@ -987,6 +988,16 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     return _normalise_attributes(attrs)
 
+  def _build_base_state_attributes(
+    self,
+    extra: Mapping[str, object] | None = None,
+  ) -> JSONMutableMapping:
+    """Return base attributes with optional additions."""
+    attrs = ensure_json_mapping(super().extra_state_attributes)
+    if extra:
+      attrs.update(ensure_json_mapping(extra))
+    return attrs
+
   async def async_select_option(self, option: str) -> None:
     """Select an option.
 
@@ -1040,7 +1051,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
   def _get_dog_data(self) -> CoordinatorDogData | None:
     """Get data for this select's dog from the coordinator."""
 
-    return self._get_dog_data_cached()
+    return self.coordinator.get_dog_data(self._dog_id)
 
   def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
     """Get specific module data for this dog.
@@ -1051,7 +1062,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     Returns:
         Module data dictionary or None if not available
     """
-    return super()._get_module_data(module)
+    return self.coordinator.get_module_data(self._dog_id, module)
 
   @property
   def available(self) -> bool:

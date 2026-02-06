@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity
@@ -26,7 +26,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .entity import PawControlDogEntityBase
+from .entity import PawControlEntity
 from .grooming_translations import translated_grooming_template
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
@@ -37,8 +37,9 @@ from .types import (
   DogModulesMapping,
   JSONMutableMapping,
   ensure_dog_modules_mapping,
+  ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime
+from .utils import async_call_add_entities, ensure_utc_datetime, normalise_entity_attributes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -223,7 +224,7 @@ async def async_setup_entry(
   )
 
 
-class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEntity):
+class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
   """Base class for Paw Control datetime entities."""
 
   def __init__(
@@ -259,6 +260,23 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
       {"datetime_type": self._datetime_type},
     )
     return self._finalize_entity_attributes(attributes)
+
+  def _build_base_state_attributes(
+    self,
+    extra: Mapping[str, object] | None = None,
+  ) -> JSONMutableMapping:
+    """Return base attributes with optional additions."""
+    attrs = ensure_json_mapping(super().extra_state_attributes)
+    if extra:
+      attrs.update(ensure_json_mapping(extra))
+    return attrs
+
+  def _finalize_entity_attributes(
+    self,
+    attrs: JSONMutableMapping,
+  ) -> JSONMutableMapping:
+    """Normalize attributes for Home Assistant."""
+    return normalise_entity_attributes(attrs)
 
   async def async_added_to_hass(self) -> None:
     """When entity is added to hass."""
