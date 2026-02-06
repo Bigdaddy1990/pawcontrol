@@ -22,6 +22,9 @@
     "custom_components.pawcontrol"
   ],
   "quality_scale": "platinum",
+  "requirements": [
+    "aiofiles>=24.1.0"
+  ],
   "single_config_entry": true,
   "version": "1.0.0"
 }
