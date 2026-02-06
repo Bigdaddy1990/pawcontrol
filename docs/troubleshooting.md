@@ -15,23 +15,11 @@ This guide lists common issues, symptoms, and fixes.
 
 ## Reauth/Reconfigure (Zugriff erneuern & Profil anpassen)
 
-**Wann Home Assistant eine Reauth auslöst**
-- Wenn die Integration eine fehlgeschlagene Authentifizierung meldet (z. B.
-  HTTP 401 vom PawControl API‑Endpunkt), löst Home Assistant eine Reauth aus.
-  In PawControl geschieht das über `ConfigEntryAuthFailed` bei geschützten
-  API‑Requests.【F:custom_components/pawcontrol/device_api.py†L120-L191】
-
-**Welche Schritte im UI folgen (Flow‑Namen)**
-1. Home Assistant startet den Reauth‑Flow **`reauth`**.
-2. Du siehst eine Bestätigungsmaske aus **`reauth_confirm`**; dort bestätigst
-   du die erneute Anmeldung und die Konfiguration wird aktualisiert.【F:custom_components/pawcontrol/config_flow_reauth.py†L152-L394】
-
-**Reconfigure manuell auslösen (Flow‑Name `reconfigure`)**
-1. Öffne *Einstellungen → Geräte & Dienste → Paw Control*.
-2. Wähle den Eintrag und öffne das Drei‑Punkte‑Menü (**⋮**), dann **Reconfigure**.
-3. Wähle das gewünschte Entity‑Profil und bestätige den Dialog; der
-   **`reconfigure`**‑Schritt aktualisiert die Optionen und lädt die
-   Integration neu.【F:custom_components/pawcontrol/config_flow_main.py†L1522-L1700】
+Die aktuelle, vereinfachte Flow-Implementierung unterstützt nur den
+Einrichtungsflow (`async_step_user`) und die Options-Navigation. Für Reauth- oder
+Reconfigure-Schritte existieren in dieser Version keine separaten Flow-Schritte.
+Bitte entferne und füge die Integration neu hinzu, falls Zugangsdaten oder
+Profile aktualisiert werden müssen.
 
 ## Walk or garden automations do not trigger
 

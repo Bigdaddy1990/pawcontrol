@@ -11,19 +11,7 @@
     "manual_event_source_help_default": "Integration fallback when no manual override is configured.",
     "manual_event_source_help_disabled": "Removes the listener and stops monitoring this manual event.",
     "manual_event_source_help_options": "Configured via the options flow.",
-    "manual_event_source_help_system_settings": "Captured from the System Settings form.",
-    "setup_flags_panel_description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
-    "setup_flags_panel_flag_debug_logging": "Debug logging",
-    "setup_flags_panel_flag_enable_analytics": "Analytics telemetry",
-    "setup_flags_panel_flag_enable_cloud_backup": "Cloud backup",
-    "setup_flags_panel_source_advanced_settings": "Advanced settings",
-    "setup_flags_panel_source_blueprint": "Blueprint suggestion",
-    "setup_flags_panel_source_config_entry": "Config entry defaults",
-    "setup_flags_panel_source_default": "Integration default",
-    "setup_flags_panel_source_disabled": "Disable",
-    "setup_flags_panel_source_options": "Options flow",
-    "setup_flags_panel_source_system_settings": "System settings",
-    "setup_flags_panel_title": "Setup flags"
+    "manual_event_source_help_system_settings": "Captured from the System Settings form."
   },
   "config": {
     "abort": {

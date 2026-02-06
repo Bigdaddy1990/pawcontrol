@@ -11,19 +11,7 @@
     "manual_event_source_help_default": "Integration fallback when no manual override is configured.",
     "manual_event_source_help_disabled": "Removes the listener and stops monitoring this manual event.",
     "manual_event_source_help_options": "Configured via the options flow.",
-    "manual_event_source_help_system_settings": "Captured from the System Settings form.",
-    "setup_flags_panel_description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
-    "setup_flags_panel_flag_debug_logging": "Registro de depuraci\u00f3n",
-    "setup_flags_panel_flag_enable_analytics": "Telemetr\u00eda de anal\u00edticas",
-    "setup_flags_panel_flag_enable_cloud_backup": "Copia de seguridad en la nube",
-    "setup_flags_panel_source_advanced_settings": "Configuraci\u00f3n avanzada",
-    "setup_flags_panel_source_blueprint": "Sugerencia de blueprint",
-    "setup_flags_panel_source_config_entry": "Valores predeterminados de la entrada de configuraci\u00f3n",
-    "setup_flags_panel_source_default": "Valor predeterminado de la integraci\u00f3n",
-    "setup_flags_panel_source_disabled": "Desactivar",
-    "setup_flags_panel_source_options": "Flujo de opciones",
-    "setup_flags_panel_source_system_settings": "Configuraci\u00f3n del sistema",
-    "setup_flags_panel_title": "Setup flags"
+    "manual_event_source_help_system_settings": "Captured from the System Settings form."
   },
   "config": {
     "abort": {

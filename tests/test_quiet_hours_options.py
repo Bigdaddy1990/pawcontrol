@@ -86,8 +86,7 @@ def test_gps_settings_payload_clamps_ranges() -> None:
   """Ensure GPS options normalization clamps and defaults values."""
 
   _install_options_flow_dependencies()
-  from custom_components.pawcontrol.flow_helpers import coerce_bool
-  from custom_components.pawcontrol.flows.gps import GPSOptionsNormalizerMixin
+  from custom_components.pawcontrol.options_flow import GPSOptionsNormalizerMixin
   from custom_components.pawcontrol.types import (
     AUTO_TRACK_WALKS_FIELD,
     GPS_ACCURACY_FILTER_FIELD,
@@ -99,12 +98,7 @@ def test_gps_settings_payload_clamps_ranges() -> None:
   )
   from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
 
-  class _GPSNormalizer(GPSOptionsNormalizerMixin):
-    @staticmethod
-    def _coerce_bool(value: object, default: bool) -> bool:
-      return coerce_bool(value, default=default)
-
-  normalizer = _GPSNormalizer()
+  normalizer = GPSOptionsNormalizerMixin()
   payload = normalizer._normalise_gps_settings(
     {
       GPS_ENABLED_FIELD: "false",
@@ -130,9 +124,7 @@ def test_build_notifications_schema_defaults() -> None:
   """Ensure notification schema defaults match current settings."""
 
   _install_options_flow_dependencies()
-  from custom_components.pawcontrol.flows.notifications_schemas import (
-    build_notifications_schema,
-  )
+  from custom_components.pawcontrol.options_flow import build_notifications_schema
   from custom_components.pawcontrol.types import (
     NOTIFICATION_MOBILE_FIELD,
     NOTIFICATION_PRIORITY_FIELD,

@@ -11,19 +11,7 @@
     "manual_event_source_help_default": "Integration fallback when no manual override is configured.",
     "manual_event_source_help_disabled": "Removes the listener and stops monitoring this manual event.",
     "manual_event_source_help_options": "Configured via the options flow.",
-    "manual_event_source_help_system_settings": "Captured from the System Settings form.",
-    "setup_flags_panel_description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
-    "setup_flags_panel_flag_debug_logging": "Journalisation de d\u00e9bogage",
-    "setup_flags_panel_flag_enable_analytics": "T\u00e9l\u00e9m\u00e9trie d'analyse",
-    "setup_flags_panel_flag_enable_cloud_backup": "Sauvegarde cloud",
-    "setup_flags_panel_source_advanced_settings": "Param\u00e8tres avanc\u00e9s",
-    "setup_flags_panel_source_blueprint": "Suggestion de blueprint",
-    "setup_flags_panel_source_config_entry": "Valeurs par d\u00e9faut de l'entr\u00e9e de configuration",
-    "setup_flags_panel_source_default": "Valeur par d\u00e9faut de l'int\u00e9gration",
-    "setup_flags_panel_source_disabled": "D\u00e9sactiver",
-    "setup_flags_panel_source_options": "Flux d'options",
-    "setup_flags_panel_source_system_settings": "Param\u00e8tres syst\u00e8me",
-    "setup_flags_panel_title": "Setup flags"
+    "manual_event_source_help_system_settings": "Captured from the System Settings form."
   },
   "config": {
     "abort": {

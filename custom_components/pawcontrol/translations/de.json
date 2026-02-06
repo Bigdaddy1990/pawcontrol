@@ -11,19 +11,7 @@
     "manual_event_source_help_default": "Integration verwendet diesen Wert, solange keine \u00dcberschreibungen aktiv sind.",
     "manual_event_source_help_disabled": "Entfernt den Listener und beendet die \u00dcberwachung dieses manuellen Ereignisses.",
     "manual_event_source_help_options": "\u00dcber den Options-Flow konfiguriert.",
-    "manual_event_source_help_system_settings": "\u00dcber das Formular \"Systemeinstellungen\" gespeichert.",
-    "setup_flags_panel_description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen.",
-    "setup_flags_panel_flag_debug_logging": "Debug-Logging",
-    "setup_flags_panel_flag_enable_analytics": "Analyse-Telemetrie",
-    "setup_flags_panel_flag_enable_cloud_backup": "Cloud-Backup",
-    "setup_flags_panel_source_advanced_settings": "Erweiterte Einstellungen",
-    "setup_flags_panel_source_blueprint": "Blueprint-Vorschlag",
-    "setup_flags_panel_source_config_entry": "Konfigurationseintrag",
-    "setup_flags_panel_source_default": "Integrationsstandard",
-    "setup_flags_panel_source_disabled": "Deaktivieren",
-    "setup_flags_panel_source_options": "Options-Flow",
-    "setup_flags_panel_source_system_settings": "Systemeinstellungen",
-    "setup_flags_panel_title": "Setup-Flags"
+    "manual_event_source_help_system_settings": "\u00dcber das Formular \"Systemeinstellungen\" gespeichert."
   },
   "config": {
     "abort": {
