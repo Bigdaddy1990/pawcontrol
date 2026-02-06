@@ -36,7 +36,6 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
-from .error_classification import classify_error_reason
 from .exceptions import RepairRequiredError
 from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import (
@@ -1069,7 +1068,7 @@ async def _check_notification_delivery_errors(
     )
     last_error = payload.get("last_error")
     error_text = last_error if isinstance(last_error, str) else None
-    classification = classify_error_reason(reason_text, error=error_text)
+    classification = reason_text or error_text or "unknown"
     if classification not in issue_definitions:
       continue
     classified_entry = classified_services[classification]

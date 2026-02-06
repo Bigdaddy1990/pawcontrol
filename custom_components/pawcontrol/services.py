@@ -74,7 +74,6 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
-from .error_classification import classify_error_reason
 from .exceptions import HomeAssistantError, ServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
@@ -476,7 +475,7 @@ def _build_error_details(
   serialisation.
   """
 
-  classification = classify_error_reason(reason, error=error)
+  classification = (reason or "unknown").strip()
   details_payload: dict[str, JSONValue] = {
     "error_classification": classification,
   }
@@ -2947,7 +2946,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason=classify_error_reason("exception", error=err),
+        reason="exception",
       )
       _record_service_result(
         runtime_data,
@@ -2970,7 +2969,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason=classify_error_reason("exception", error=err),
+        reason="exception",
       )
       _record_service_result(
         runtime_data,
