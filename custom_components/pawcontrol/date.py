@@ -37,7 +37,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .entity import PawControlDogEntityBase
+from .entity import PawControlEntity
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
 from .runtime_data import get_runtime_data
@@ -51,8 +51,9 @@ from .types import (
   HealthModulePayload,
   JSONMutableMapping,
   ensure_dog_modules_mapping,
+  ensure_json_mapping,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_entity_attributes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -285,7 +286,7 @@ async def async_setup_entry(
     ) from err
 
 
-class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
+class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
   """Base class for Paw Control date entities.
 
   Provides common functionality for all date entities including state
@@ -371,6 +372,23 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
         )
 
     return self._finalize_entity_attributes(attributes)
+
+  def _build_base_state_attributes(
+    self,
+    extra: Mapping[str, object] | None = None,
+  ) -> JSONMutableMapping:
+    """Return base attributes with optional additions."""
+    attrs = ensure_json_mapping(super().extra_state_attributes)
+    if extra:
+      attrs.update(ensure_json_mapping(extra))
+    return attrs
+
+  def _finalize_entity_attributes(
+    self,
+    attrs: JSONMutableMapping,
+  ) -> JSONMutableMapping:
+    """Normalize attributes for Home Assistant."""
+    return normalise_entity_attributes(attrs)
 
   async def async_added_to_hass(self) -> None:
     """Called when entity is added to Home Assistant.

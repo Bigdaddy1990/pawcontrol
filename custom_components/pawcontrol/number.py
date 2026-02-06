@@ -53,7 +53,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .entity import PawControlDogEntityBase
+from .entity import PawControlEntity
 from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
@@ -73,6 +73,7 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   ensure_dog_modules_mapping,
+  ensure_json_mapping,
 )
 from .utils import async_call_add_entities, normalise_entity_attributes
 
@@ -480,7 +481,7 @@ def _create_health_numbers(
   ]
 
 
-class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity):
+class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
   """Base class for all Paw Control number entities.
 
   Provides common functionality and ensures consistent behavior across
@@ -603,6 +604,16 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     )
 
     return _normalise_attributes(attrs)
+
+  def _build_base_state_attributes(
+    self,
+    extra: Mapping[str, object] | None = None,
+  ) -> JSONMutableMapping:
+    """Return base attributes with optional additions."""
+    attrs = ensure_json_mapping(super().extra_state_attributes)
+    if extra:
+      attrs.update(ensure_json_mapping(extra))
+    return attrs
 
   async def async_set_native_value(self, value: float) -> None:
     """Set the number value.
@@ -754,7 +765,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
   def _get_dog_data(self) -> CoordinatorDogData | None:
     """Get data for this number's dog from the coordinator."""
 
-    return self._get_dog_data_cached()
+    return self.coordinator.get_dog_data(self._dog_id)
 
   def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
     """Get specific module data for this dog.
@@ -765,7 +776,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     Returns:
         Module data dictionary or None if not available
     """
-    return super()._get_module_data(module)
+    return self.coordinator.get_module_data(self._dog_id, module)
 
   @property
   def available(self) -> bool:
