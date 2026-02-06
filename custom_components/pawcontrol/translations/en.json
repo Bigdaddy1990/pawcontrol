@@ -1525,6 +1525,36 @@
       "weather_entity_not_found": "Weather entity not found"
     },
     "step": {
+      "configure_modules": {
+        "data": {
+          "enable_dashboard": "Dashboard Integration",
+          "enable_feeding": "Feeding Management",
+          "enable_garden": "Garden Tracking",
+          "enable_gps": "GPS Location Tracking",
+          "enable_grooming": "Grooming Reminders",
+          "enable_health": "Health Monitoring",
+          "enable_medication": "Medication Tracking",
+          "enable_notifications": "Smart Notifications",
+          "enable_training": "Training Progress",
+          "enable_visitor": "Visitor Mode",
+          "enable_walk": "Walk Tracking"
+        },
+        "data_description": {
+          "enable_dashboard": "Automatically build a Lovelace dashboard tab for this dog's data.",
+          "enable_feeding": "Creates feeding sensors, services, and reminders for this dog.",
+          "enable_garden": "Adds garden-tracking automations for outdoor areas.",
+          "enable_gps": "Enables GPS tracking entities and geofencing options.",
+          "enable_grooming": "Adds grooming reminders to the helper schedule.",
+          "enable_health": "Adds health metrics, medication reminders, and vet schedule tracking.",
+          "enable_medication": "Creates helpers to manage medication dosing routines.",
+          "enable_notifications": "Allows Paw Control to send Home Assistant notifications for this dog.",
+          "enable_training": "Tracks training goals and exposes reminder services.",
+          "enable_visitor": "Provides quick toggles to manage visitor/guest safety automations.",
+          "enable_walk": "Tracks walk history and exposes walk-completion helpers."
+        },
+        "description": "Choose which modules to enable for the selected dog.",
+        "title": "Configure Modules"
+      },
       "dashboard_settings": {
         "data": {
           "auto_create_dashboard": "Auto-create Dashboard",
@@ -1540,6 +1570,24 @@
         },
         "description": "Configure dashboard appearance and layout.",
         "title": "Dashboard Settings"
+      },
+      "edit_dog": {
+        "data": {
+          "dog_age": "Age in years",
+          "dog_breed": "Breed (optional)",
+          "dog_name": "Dog name",
+          "dog_size": "Size category",
+          "dog_weight": "Weight in kg"
+        },
+        "data_description": {
+          "dog_age": "Update the age in years to keep health metrics accurate.",
+          "dog_breed": "Optional detail that improves nutrition and health recommendations.",
+          "dog_name": "Friendly display name used in dashboards and notifications.",
+          "dog_size": "Select the size profile that best matches your dog for defaults and summaries.",
+          "dog_weight": "Used to calculate meal portions and health thresholds."
+        },
+        "description": "Update the selected dog's profile information.",
+        "title": "Edit Dog"
       },
       "feeding_settings": {
         "data": {
@@ -1630,64 +1678,6 @@
         "description": "Add, edit, or remove dogs from your configuration.\n\nCurrently configured dogs:\n{dogs_list}\n\nTotal dogs: {current_dogs_count}",
         "title": "Manage Dogs"
       },
-      "edit_dog": {
-        "data": {
-          "dog_age": "Age in years",
-          "dog_breed": "Breed (optional)",
-          "dog_name": "Dog name",
-          "dog_size": "Size category",
-          "dog_weight": "Weight in kg"
-        },
-        "data_description": {
-          "dog_age": "Update the age in years to keep health metrics accurate.",
-          "dog_breed": "Optional detail that improves nutrition and health recommendations.",
-          "dog_name": "Friendly display name used in dashboards and notifications.",
-          "dog_size": "Select the size profile that best matches your dog for defaults and summaries.",
-          "dog_weight": "Used to calculate meal portions and health thresholds."
-        },
-        "description": "Update the selected dog's profile information.",
-        "title": "Edit Dog"
-      },
-      "remove_dog": {
-        "data": {
-          "confirm_remove": "Remove this dog"
-        },
-        "data_description": {
-          "confirm_remove": "Confirm removal of this dog and its entities."
-        },
-        "description": "Remove {dog_name} from Paw Control.",
-        "title": "Remove Dog"
-      },
-      "configure_modules": {
-        "data": {
-          "enable_dashboard": "Dashboard Integration",
-          "enable_feeding": "Feeding Management",
-          "enable_garden": "Garden Tracking",
-          "enable_gps": "GPS Location Tracking",
-          "enable_grooming": "Grooming Reminders",
-          "enable_health": "Health Monitoring",
-          "enable_medication": "Medication Tracking",
-          "enable_notifications": "Smart Notifications",
-          "enable_training": "Training Progress",
-          "enable_visitor": "Visitor Mode",
-          "enable_walk": "Walk Tracking"
-        },
-        "data_description": {
-          "enable_dashboard": "Automatically build a Lovelace dashboard tab for this dog's data.",
-          "enable_feeding": "Creates feeding sensors, services, and reminders for this dog.",
-          "enable_garden": "Adds garden-tracking automations for outdoor areas.",
-          "enable_gps": "Enables GPS tracking entities and geofencing options.",
-          "enable_grooming": "Adds grooming reminders to the helper schedule.",
-          "enable_health": "Adds health metrics, medication reminders, and vet schedule tracking.",
-          "enable_medication": "Creates helpers to manage medication dosing routines.",
-          "enable_notifications": "Allows Paw Control to send Home Assistant notifications for this dog.",
-          "enable_training": "Tracks training goals and exposes reminder services.",
-          "enable_visitor": "Provides quick toggles to manage visitor/guest safety automations.",
-          "enable_walk": "Tracks walk history and exposes walk-completion helpers."
-        },
-        "description": "Choose which modules to enable for the selected dog.",
-        "title": "Configure Modules"
-      },
       "notifications": {
         "data": {
           "priority_notifications": "Priority Notifications",
@@ -1725,6 +1715,16 @@
         },
         "description": "Configure webhook and MQTT push ingestion for GPS updates.",
         "title": "Push Settings"
+      },
+      "remove_dog": {
+        "data": {
+          "confirm_remove": "Remove this dog"
+        },
+        "data_description": {
+          "confirm_remove": "Confirm removal of this dog and its entities."
+        },
+        "description": "Remove {dog_name} from Paw Control.",
+        "title": "Remove Dog"
       },
       "system_settings": {
         "data": {

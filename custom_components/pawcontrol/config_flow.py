@@ -226,11 +226,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
   def _build_setup_summary(self) -> str:
     dogs = self._data[CONF_DOGS]
-    dog_names = [
-      dog.get(CONF_DOG_NAME, "?")
-      for dog in dogs
-      if isinstance(dog, dict)
-    ]
+    dog_names = [dog.get(CONF_DOG_NAME, "?") for dog in dogs if isinstance(dog, dict)]
     return f"Dogs: {', '.join(dog_names)}"
 
   async def async_step_user(

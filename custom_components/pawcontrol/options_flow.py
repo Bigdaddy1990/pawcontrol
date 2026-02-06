@@ -481,7 +481,9 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
   def _gps_settings_schema(self, current: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
       {
-        vol.Optional(GPS_ENABLED_FIELD, default=current.get(GPS_ENABLED_FIELD, True)): bool,
+        vol.Optional(
+          GPS_ENABLED_FIELD, default=current.get(GPS_ENABLED_FIELD, True)
+        ): bool,
         vol.Optional(
           GPS_UPDATE_INTERVAL_FIELD,
           default=current.get(GPS_UPDATE_INTERVAL_FIELD, DEFAULT_GPS_UPDATE_INTERVAL),
@@ -543,7 +545,9 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
           "enable_analytics": user_input.get("enable_analytics"),
           "enable_cloud_backup": user_input.get("enable_cloud_backup"),
           "resilience_skip_threshold": user_input.get("resilience_skip_threshold"),
-          "resilience_breaker_threshold": user_input.get("resilience_breaker_threshold"),
+          "resilience_breaker_threshold": user_input.get(
+            "resilience_breaker_threshold"
+          ),
           "manual_check_event": user_input.get("manual_check_event"),
           "manual_guard_event": user_input.get("manual_guard_event"),
           "manual_breaker_event": user_input.get("manual_breaker_event"),
@@ -629,8 +633,7 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
         )
       updated = {**dog, **(validated or {})}
       dogs = [
-        updated if d.get(CONF_DOG_ID) == dog.get(CONF_DOG_ID) else d
-        for d in self._dogs
+        updated if d.get(CONF_DOG_ID) == dog.get(CONF_DOG_ID) else d for d in self._dogs
       ]
       self._update_entry_data(dogs)
       return await self.async_step_manage_dogs()
@@ -700,11 +703,17 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
     )
     schema = vol.Schema(
       {
-        vol.Optional("enable_feeding", default=existing_modules.get("feeding", False)): bool,
+        vol.Optional(
+          "enable_feeding", default=existing_modules.get("feeding", False)
+        ): bool,
         vol.Optional("enable_walk", default=existing_modules.get("walk", False)): bool,
-        vol.Optional("enable_health", default=existing_modules.get("health", False)): bool,
+        vol.Optional(
+          "enable_health", default=existing_modules.get("health", False)
+        ): bool,
         vol.Optional("enable_gps", default=existing_modules.get("gps", False)): bool,
-        vol.Optional("enable_garden", default=existing_modules.get("garden", False)): bool,
+        vol.Optional(
+          "enable_garden", default=existing_modules.get("garden", False)
+        ): bool,
         vol.Optional(
           "enable_notifications",
           default=existing_modules.get("notifications", False),
@@ -713,13 +722,19 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
           "enable_dashboard",
           default=existing_modules.get("dashboard", False),
         ): bool,
-        vol.Optional("enable_visitor", default=existing_modules.get("visitor", False)): bool,
-        vol.Optional("enable_grooming", default=existing_modules.get("grooming", False)): bool,
+        vol.Optional(
+          "enable_visitor", default=existing_modules.get("visitor", False)
+        ): bool,
+        vol.Optional(
+          "enable_grooming", default=existing_modules.get("grooming", False)
+        ): bool,
         vol.Optional(
           "enable_medication",
           default=existing_modules.get("medication", False),
         ): bool,
-        vol.Optional("enable_training", default=existing_modules.get("training", False)): bool,
+        vol.Optional(
+          "enable_training", default=existing_modules.get("training", False)
+        ): bool,
       },
     )
 
@@ -727,8 +742,7 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
       modules = dog_modules_from_flow_input(user_input, existing=existing_modules)
       updated = {**dog, "modules": modules}
       dogs = [
-        updated if d.get(CONF_DOG_ID) == dog.get(CONF_DOG_ID) else d
-        for d in self._dogs
+        updated if d.get(CONF_DOG_ID) == dog.get(CONF_DOG_ID) else d for d in self._dogs
       ]
       self._update_entry_data(dogs)
       return await self.async_step_manage_dogs()
@@ -806,11 +820,15 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
         ): int,
         vol.Optional(
           CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-          default=self.config_entry.options.get(CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE, 120),
+          default=self.config_entry.options.get(
+            CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE, 120
+          ),
         ): int,
         vol.Optional(
           CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-          default=self.config_entry.options.get(CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE, 90),
+          default=self.config_entry.options.get(
+            CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE, 90
+          ),
         ): int,
       },
     )
@@ -873,7 +891,9 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
 
     schema = vol.Schema(
       {
-        vol.Optional("show_statistics", default=current.get("show_statistics", True)): bool,
+        vol.Optional(
+          "show_statistics", default=current.get("show_statistics", True)
+        ): bool,
         vol.Optional("show_alerts", default=current.get("show_alerts", True)): bool,
         vol.Optional("compact_mode", default=current.get("compact_mode", False)): bool,
         vol.Optional("show_maps", default=current.get("show_maps", True)): bool,
