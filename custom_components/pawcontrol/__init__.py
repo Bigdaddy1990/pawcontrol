@@ -159,7 +159,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     feeding_manager=feeding_manager,
     walk_manager=walk_manager,
     entity_factory=entity_factory,
-    entity_profile=entry.options.get("entity_profile", "standard"),
+    entity_profile=entry.options.get(
+      "entity_profile",
+      entry.data.get("entity_profile", "standard"),
+    ),
     dogs=dogs_config,
     config_entry_data=cast(ConfigEntryDataPayload, entry.data),
     config_entry_options=cast(ConfigEntryOptionsPayload, entry.options),

@@ -8,7 +8,7 @@ from homeassistant.data_entry_flow import FlowResultType
 
 
 async def test_init_menu() -> None:
-  entry = SimpleNamespace(data={CONF_DOGS: []})
+  entry = SimpleNamespace(data={CONF_DOGS: []}, options={})
   flow = PawControlOptionsFlow(entry)
 
   result = await flow.async_step_init()
@@ -16,18 +16,19 @@ async def test_init_menu() -> None:
   assert result["step_id"] == "init"
 
 
-async def test_global_settings_creates_entry() -> None:
-  entry = SimpleNamespace(data={CONF_DOGS: []})
+async def test_notifications_creates_entry() -> None:
+  entry = SimpleNamespace(data={CONF_DOGS: []}, options={})
   flow = PawControlOptionsFlow(entry)
 
-  result = await flow.async_step_global_settings({"enable_analytics": True})
+  result = await flow.async_step_notifications({"quiet_hours": True})
   assert result["type"] == FlowResultType.CREATE_ENTRY
-  assert result["data"] == {"enable_analytics": True}
+  assert "notifications" in result["data"]
 
 
 async def test_manage_dogs_form() -> None:
   entry = SimpleNamespace(
     data={CONF_DOGS: [{CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"}]},
+    options={},
   )
   flow = PawControlOptionsFlow(entry)
 
