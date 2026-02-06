@@ -18,20 +18,20 @@ verify during reviews.
 | Rule | Code / docs evidence | Tests / checks | Owner |
 | --- | --- | --- | --- |
 | has-owner | `CODEOWNERS`, `custom_components/pawcontrol/manifest.json` | N/A | @BigDaddy1990 |
-| config-flow | `custom_components/pawcontrol/config_flow.py`, `custom_components/pawcontrol/strings.json`, `docs/user_guide.md`, `docs/setup_installation_guide.md` | `tests/unit/test_config_flow.py` | @BigDaddy1990 |
-| docs-actions | `custom_components/pawcontrol/services.py`, `custom_components/pawcontrol/script_manager.py`, `custom_components/pawcontrol/services.yaml`, `README.md`, `docs/automation_examples.md` | N/A | @BigDaddy1990 |
+| config-flow | `custom_components/pawcontrol/config_flow.py`, `custom_components/pawcontrol/flow_validation.py`, `custom_components/pawcontrol/strings.json`, `docs/user_guide.md`, `docs/setup_installation_guide.md` | `tests/unit/test_config_flow_dogs.py`, `tests/unit/test_config_flow_base.py`, `tests/unit/test_config_flow_modules.py`, `tests/test_flow_validation.py` | @BigDaddy1990 |
+| docs-actions | `custom_components/pawcontrol/services.py`, `custom_components/pawcontrol/script_manager.py`, `custom_components/pawcontrol/services.yaml`, `README.md`, `docs/automation_examples.md` | `tests/unit/test_services.py` | @BigDaddy1990 |
 | docs-removal | `docs/setup_installation_guide.md`, `docs/troubleshooting.md` | N/A | @BigDaddy1990 |
 | runtime-data | `custom_components/pawcontrol/runtime_data.py`, `custom_components/pawcontrol/coordinator_runtime.py` | `tests/test_runtime_data.py` | @BigDaddy1990 |
 | stale-devices | `custom_components/pawcontrol/__init__.py` | `tests/helpers/homeassistant_test_stubs.py` | @BigDaddy1990 |
 | dynamic-devices | `custom_components/pawcontrol/` entity setup | `tests/helpers/homeassistant_test_stubs.py` | @BigDaddy1990 |
-| test-before-setup | `custom_components/pawcontrol/validation.py`, `custom_components/pawcontrol/api_validator.py` | `tests/test_validation_inputs.py`, `tests/test_api_validator.py` | @BigDaddy1990 |
-| test-before-update | `custom_components/pawcontrol/coordinator.py`, `custom_components/pawcontrol/diagnostics.py` | `tests/test_diagnostics.py` | @BigDaddy1990 |
+| test-before-setup | `custom_components/pawcontrol/validation.py`, `custom_components/pawcontrol/flow_validation.py`, `custom_components/pawcontrol/api_validator.py` | `tests/test_validation_inputs.py`, `tests/test_flow_validation.py`, `tests/test_api_validator.py` | @BigDaddy1990 |
+| test-before-update | `custom_components/pawcontrol/coordinator.py`, `custom_components/pawcontrol/diagnostics.py` | `tests/test_diagnostics.py`, `tests/unit/test_coordinator_tasks.py`, `tests/unit/test_services.py` | @BigDaddy1990 |
 | test-before-unload | `custom_components/pawcontrol/__init__.py`, `custom_components/pawcontrol/runtime_data.py` | `tests/test_runtime_data.py` | @BigDaddy1990 |
 | test-coverage | `pyproject.toml` coverage config | `tests/` (including `tests/test_geofence_zone.py`, `tests/test_validation_inputs.py`) | @BigDaddy1990 |
 | brands | `brands/pawcontrol/` | N/A | @BigDaddy1990 |
 | documentation | `README.md`, `docs/user_guide.md`, `docs/automation_examples.md`, `docs/troubleshooting.md`, `docs/setup_installation_guide.md` | N/A | @BigDaddy1990 |
-| diagnostics | `custom_components/pawcontrol/diagnostics.py`, `docs/diagnostics.md` | `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py` | @BigDaddy1990 |
-| repairs | `custom_components/pawcontrol/repairs.py` | N/A | @BigDaddy1990 |
+| diagnostics | `custom_components/pawcontrol/diagnostics.py`, `docs/diagnostics.md` | `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, `tests/unit/test_services.py`, `tests/unit/test_system_health.py` | @BigDaddy1990 |
+| repairs | `custom_components/pawcontrol/repairs.py` | `tests/test_repairs.py` | @BigDaddy1990 |
 | maintenance-playbook | `docs/MAINTENANCE.md` | N/A | @BigDaddy1990 |
 | localization | `custom_components/pawcontrol/strings.json`, `custom_components/pawcontrol/translations/` | `tests/test_localization_strings.py` | @BigDaddy1990 |
 
@@ -43,54 +43,3 @@ verify during reviews.
   and the regression coverage in `tests/test_diagnostics.py`.
 - When adding new tests or third-party requirements, update `requirements_test.txt`
   and run `python -m scripts.enforce_test_requirements`.
-
-## Integrations-Checkliste (abgeleitete To-dos)
-
-Die folgenden To-dos leiten sich aus dem Abgleich der Platinum-Regeln mit dem
-aktuellen Evidenz- und Teststand ab. Sie dienen als konkrete Prüfpunkte für
-neue Features, Refactorings und Review-Checks.
-
-### Tests & Qualitätssicherung
-
-- **Service-Regressionen absichern:** Prüfe, ob neue Service-Handler in
-  `custom_components/pawcontrol/services.py` oder `custom_components/pawcontrol/script_manager.py`
-  durch Tests in `tests/unit/test_services.py` bzw. `tests/test_diagnostics.py`
-  abgedeckt werden; fehlende Tests ergänzen.
-- **Diagnostik-Änderungen abtesten:** Bei Änderungen am Diagnostics-Payload
-  `tests/test_diagnostics.py` und `tests/unit/test_diagnostics_cache.py` anpassen,
-  insbesondere bei Schema- oder Payload-Feldern.
-- **Flow-Validierung erweitern:** Neue Config/Options-Flow-Felder mit Tests in
-  `tests/unit/test_config_flow.py` absichern und Eingabevalidierungen in
-  `tests/test_validation_inputs.py` bzw. `tests/test_api_validator.py` spiegeln.
-
-### Services, YAML & Dokumentation
-
-- **services.yaml vollständig halten:** Für jede Service-Funktion in
-  `custom_components/pawcontrol/services.py` und `custom_components/pawcontrol/script_manager.py`
-  einen passenden Eintrag in `custom_components/pawcontrol/services.yaml` pflegen
-  (inkl. Felder, Beispiele, Beschreibungen).
-- **Docs aktualisieren:** Service- oder Automationsänderungen in `README.md`,
-  `docs/automation_examples.md` und ggf. `docs/user_guide.md` dokumentieren.
-
-### Internationalisierung (I18n)
-
-- **Strings konsistent halten:** Neue Keys in `custom_components/pawcontrol/strings.json`
-  und `custom_components/pawcontrol/translations/` ergänzen; ungenutzte Keys entfernen.
-- **Lokalisierungsflags synchronisieren:** Nach Änderungen an Setup-Flags
-  `python -m scripts.sync_localization_flags` ausführen.
-
-### Diagnostics-Schema & Telemetrie
-
-- **Schema-Version & Pflichtfelder prüfen:** Sicherstellen, dass
-  `custom_components/pawcontrol/diagnostics.py` weiterhin `schema_version` und
-  `rejection_metrics` mit Defaultwerten liefert; bei Änderungen `docs/diagnostics.md`
-  sowie die Tests aktualisieren.
-
-### Manifest & Quality-Scale
-
-- **Manifest-Felder abgleichen:** `custom_components/pawcontrol/manifest.json`
-  gegen `custom_components/pawcontrol/quality_scale.yaml` und diesen Bericht
-  prüfen (Quality-Scale, Discovery-Mechanismen, Abhängigkeiten).
-- **Compliance-Dokumente synchron halten:** Bei Änderungen an Manifest oder
-  Quality-Scale `docs/compliance_gap_analysis.md` und `docs/QUALITY_CHECKLIST.md`
-  aktualisieren.
