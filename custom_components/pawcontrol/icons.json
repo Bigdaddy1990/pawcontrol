@@ -1,215 +1,215 @@
 {
   "entity": {
     "binary_sensor": {
-      "online": {
-        "default": "mdi:check-network",
+      "activity_level_concern": {
+        "default": "mdi:alert",
         "state": {
-          "on": "mdi:check-network",
-          "off": "mdi:close-network"
+          "off": "mdi:check-circle",
+          "on": "mdi:alert"
         }
       },
       "attention_needed": {
         "default": "mdi:alert-circle",
         "state": {
-          "on": "mdi:alert-circle",
-          "off": "mdi:check-circle"
-        }
-      },
-      "visitor_mode": {
-        "default": "mdi:account-group",
-        "state": {
-          "on": "mdi:account-group",
-          "off": "mdi:home"
-        }
-      },
-      "is_hungry": {
-        "default": "mdi:food-drumstick-off",
-        "state": {
-          "on": "mdi:food-drumstick-off",
-          "off": "mdi:food-drumstick"
-        }
-      },
-      "feeding_due": {
-        "default": "mdi:clock-alert",
-        "state": {
-          "on": "mdi:clock-alert",
-          "off": "mdi:clock-check"
-        }
-      },
-      "feeding_schedule_on_track": {
-        "default": "mdi:calendar-check",
-        "state": {
-          "on": "mdi:calendar-check",
-          "off": "mdi:calendar-alert"
+          "off": "mdi:check-circle",
+          "on": "mdi:alert-circle"
         }
       },
       "daily_feeding_goal_met": {
         "default": "mdi:target",
         "state": {
-          "on": "mdi:target",
-          "off": "mdi:target-variant"
+          "off": "mdi:target-variant",
+          "on": "mdi:target"
         }
       },
-      "walk_in_progress": {
-        "default": "mdi:walk",
+      "feeding_due": {
+        "default": "mdi:clock-alert",
         "state": {
-          "on": "mdi:walk",
-          "off": "mdi:home"
+          "off": "mdi:clock-check",
+          "on": "mdi:clock-alert"
         }
       },
-      "needs_walk": {
-        "default": "mdi:dog-side",
+      "feeding_schedule_on_track": {
+        "default": "mdi:calendar-check",
         "state": {
-          "on": "mdi:dog-side",
-          "off": "mdi:sleep"
-        }
-      },
-      "walk_goal_met": {
-        "default": "mdi:trophy",
-        "state": {
-          "on": "mdi:trophy",
-          "off": "mdi:trophy-outline"
-        }
-      },
-      "long_walk_overdue": {
-        "default": "mdi:timer-alert",
-        "state": {
-          "on": "mdi:timer-alert",
-          "off": "mdi:timer-check"
-        }
-      },
-      "is_home": {
-        "default": "mdi:home",
-        "state": {
-          "on": "mdi:home",
-          "off": "mdi:home-outline"
-        }
-      },
-      "in_safe_zone": {
-        "default": "mdi:shield-check",
-        "state": {
-          "on": "mdi:shield-check",
-          "off": "mdi:shield-alert"
-        }
-      },
-      "gps_accurately_tracked": {
-        "default": "mdi:crosshairs-gps",
-        "state": {
-          "on": "mdi:crosshairs-gps",
-          "off": "mdi:crosshairs-question"
-        }
-      },
-      "moving": {
-        "default": "mdi:run",
-        "state": {
-          "on": "mdi:run",
-          "off": "mdi:sleep"
-        }
-      },
-      "geofence_alert": {
-        "default": "mdi:map-marker-alert",
-        "state": {
-          "on": "mdi:map-marker-alert",
-          "off": "mdi:map-marker-check"
-        }
-      },
-      "gps_battery_low": {
-        "default": "mdi:battery-alert",
-        "state": {
-          "on": "mdi:battery-alert",
-          "off": "mdi:battery"
-        }
-      },
-      "health_alert": {
-        "default": "mdi:medical-bag",
-        "state": {
-          "on": "mdi:medical-bag",
-          "off": "mdi:heart"
-        }
-      },
-      "weight_alert": {
-        "default": "mdi:scale-unbalanced",
-        "state": {
-          "on": "mdi:scale-unbalanced",
-          "off": "mdi:scale-balanced"
-        }
-      },
-      "medication_due": {
-        "default": "mdi:pill",
-        "state": {
-          "on": "mdi:pill",
-          "off": "mdi:pill-off"
-        }
-      },
-      "vet_checkup_due": {
-        "default": "mdi:calendar-alert",
-        "state": {
-          "on": "mdi:calendar-alert",
-          "off": "mdi:calendar-check"
-        }
-      },
-      "needs_grooming": {
-        "default": "mdi:content-cut",
-        "state": {
-          "on": "mdi:content-cut",
-          "off": "mdi:check"
-        }
-      },
-      "activity_level_concern": {
-        "default": "mdi:alert",
-        "state": {
-          "on": "mdi:alert",
-          "off": "mdi:check-circle"
-        }
-      },
-      "health_aware_feeding": {
-        "default": "mdi:heart-cog",
-        "state": {
-          "on": "mdi:heart-cog",
-          "off": "mdi:heart-outline"
-        }
-      },
-      "medication_with_meals": {
-        "default": "mdi:pill-multiple",
-        "state": {
-          "on": "mdi:pill-multiple",
-          "off": "mdi:pill"
-        }
-      },
-      "health_emergency": {
-        "default": "mdi:alert-decagram",
-        "state": {
-          "on": "mdi:alert-decagram",
-          "off": "mdi:check-decagram"
-        }
-      },
-      "garden_session_active": {
-        "default": "mdi:flower",
-        "state": {
-          "on": "mdi:flower",
-          "off": "mdi:flower-outline"
-        }
-      },
-      "in_garden": {
-        "default": "mdi:pine-tree",
-        "state": {
-          "on": "mdi:pine-tree",
-          "off": "mdi:pine-tree-variant-outline"
+          "off": "mdi:calendar-alert",
+          "on": "mdi:calendar-check"
         }
       },
       "garden_poop_pending": {
         "default": "mdi:emoticon-poop",
         "state": {
-          "on": "mdi:emoticon-poop",
-          "off": "mdi:check-circle-outline"
+          "off": "mdi:check-circle-outline",
+          "on": "mdi:emoticon-poop"
+        }
+      },
+      "garden_session_active": {
+        "default": "mdi:flower",
+        "state": {
+          "off": "mdi:flower-outline",
+          "on": "mdi:flower"
+        }
+      },
+      "geofence_alert": {
+        "default": "mdi:map-marker-alert",
+        "state": {
+          "off": "mdi:map-marker-check",
+          "on": "mdi:map-marker-alert"
+        }
+      },
+      "gps_accurately_tracked": {
+        "default": "mdi:crosshairs-gps",
+        "state": {
+          "off": "mdi:crosshairs-question",
+          "on": "mdi:crosshairs-gps"
+        }
+      },
+      "gps_battery_low": {
+        "default": "mdi:battery-alert",
+        "state": {
+          "off": "mdi:battery",
+          "on": "mdi:battery-alert"
+        }
+      },
+      "health_alert": {
+        "default": "mdi:medical-bag",
+        "state": {
+          "off": "mdi:heart",
+          "on": "mdi:medical-bag"
+        }
+      },
+      "health_aware_feeding": {
+        "default": "mdi:heart-cog",
+        "state": {
+          "off": "mdi:heart-outline",
+          "on": "mdi:heart-cog"
+        }
+      },
+      "health_emergency": {
+        "default": "mdi:alert-decagram",
+        "state": {
+          "off": "mdi:check-decagram",
+          "on": "mdi:alert-decagram"
+        }
+      },
+      "in_garden": {
+        "default": "mdi:pine-tree",
+        "state": {
+          "off": "mdi:pine-tree-variant-outline",
+          "on": "mdi:pine-tree"
+        }
+      },
+      "in_safe_zone": {
+        "default": "mdi:shield-check",
+        "state": {
+          "off": "mdi:shield-alert",
+          "on": "mdi:shield-check"
+        }
+      },
+      "is_home": {
+        "default": "mdi:home",
+        "state": {
+          "off": "mdi:home-outline",
+          "on": "mdi:home"
+        }
+      },
+      "is_hungry": {
+        "default": "mdi:food-drumstick-off",
+        "state": {
+          "off": "mdi:food-drumstick",
+          "on": "mdi:food-drumstick-off"
+        }
+      },
+      "long_walk_overdue": {
+        "default": "mdi:timer-alert",
+        "state": {
+          "off": "mdi:timer-check",
+          "on": "mdi:timer-alert"
+        }
+      },
+      "medication_due": {
+        "default": "mdi:pill",
+        "state": {
+          "off": "mdi:pill-off",
+          "on": "mdi:pill"
+        }
+      },
+      "medication_with_meals": {
+        "default": "mdi:pill-multiple",
+        "state": {
+          "off": "mdi:pill",
+          "on": "mdi:pill-multiple"
+        }
+      },
+      "moving": {
+        "default": "mdi:run",
+        "state": {
+          "off": "mdi:sleep",
+          "on": "mdi:run"
+        }
+      },
+      "needs_grooming": {
+        "default": "mdi:content-cut",
+        "state": {
+          "off": "mdi:check",
+          "on": "mdi:content-cut"
+        }
+      },
+      "needs_walk": {
+        "default": "mdi:dog-side",
+        "state": {
+          "off": "mdi:sleep",
+          "on": "mdi:dog-side"
+        }
+      },
+      "online": {
+        "default": "mdi:check-network",
+        "state": {
+          "off": "mdi:close-network",
+          "on": "mdi:check-network"
+        }
+      },
+      "vet_checkup_due": {
+        "default": "mdi:calendar-alert",
+        "state": {
+          "off": "mdi:calendar-check",
+          "on": "mdi:calendar-alert"
+        }
+      },
+      "visitor_mode": {
+        "default": "mdi:account-group",
+        "state": {
+          "off": "mdi:home",
+          "on": "mdi:account-group"
+        }
+      },
+      "walk_goal_met": {
+        "default": "mdi:trophy",
+        "state": {
+          "off": "mdi:trophy-outline",
+          "on": "mdi:trophy"
+        }
+      },
+      "walk_in_progress": {
+        "default": "mdi:walk",
+        "state": {
+          "off": "mdi:home",
+          "on": "mdi:walk"
+        }
+      },
+      "weight_alert": {
+        "default": "mdi:scale-unbalanced",
+        "state": {
+          "off": "mdi:scale-balanced",
+          "on": "mdi:scale-unbalanced"
         }
       }
     }
   },
   "services": {
     "add_feeding": "mdi:food-drumstick",
+    "end_walk": "mdi:walk",
     "feed_dog": "mdi:food-drumstick",
-    "start_walk": "mdi:walk",
-    "end_walk": "mdi:walk"
+    "start_walk": "mdi:walk"
   }
 }
