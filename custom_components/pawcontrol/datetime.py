@@ -39,7 +39,11 @@ from .types import (
   ensure_dog_modules_mapping,
   ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime, normalise_entity_attributes
+from .utils import (
+  async_call_add_entities,
+  ensure_utc_datetime,
+  normalise_entity_attributes,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
