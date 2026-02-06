@@ -181,7 +181,6 @@ class PawControlBinarySensorEntity(PawControlEntity):
     dog_id: str,
     dog_name: str,
     sensor_type: str,
-    *,
     **kwargs: Any,
   ) -> None:
     super().__init__(
