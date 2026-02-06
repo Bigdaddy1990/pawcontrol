@@ -384,7 +384,6 @@ def mock_feeding_manager(
 @pytest.fixture
 def mock_walk_manager(
   mock_dog_config: FeedingManagerDogSetupPayload,
-  mock_hass: object,
 ) -> WalkManager:
   """Mock WalkManager for testing.
 
@@ -396,9 +395,7 @@ def mock_walk_manager(
   """
   from custom_components.pawcontrol.walk_manager import WalkManager
 
-  manager = WalkManager(mock_hass, "entry")
-  manager._store.async_load = AsyncMock(return_value={})
-  manager._store.async_save = AsyncMock()
+  manager = WalkManager()
   _run_async(manager.async_initialize([mock_dog_config["dog_id"]]))
 
   return manager
