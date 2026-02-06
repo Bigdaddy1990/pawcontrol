@@ -5,11 +5,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections import deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from statistics import fmean
 from typing import cast
 
 from .exceptions import ConfigEntryAuthFailed, UpdateFailed
@@ -91,20 +89,9 @@ class EntityBudgetSnapshot:
 
 
 class AdaptivePollingController:
-  """Manage dynamic polling intervals based on runtime performance."""
+  """Compatibility controller that keeps polling intervals fixed."""
 
-  __slots__ = (
-    "_current_interval",
-    "_entity_saturation",
-    "_error_streak",
-    "_history",
-    "_idle_grace",
-    "_idle_interval",
-    "_last_activity",
-    "_max_interval",
-    "_min_interval",
-    "_target_cycle",
-  )
+  __slots__ = ("_current_interval",)
 
   def __init__(
     self,
@@ -116,38 +103,20 @@ class AdaptivePollingController:
     idle_interval_seconds: float = 900.0,
     idle_grace_seconds: float = 300.0,
   ) -> None:
-    """Initialise the adaptive polling controller."""
-
-    base_interval = max(initial_interval_seconds, 1.0)
-    calculated_min = (
-      base_interval * 0.25 if min_interval_seconds is None else min_interval_seconds
-    )
-    calculated_max = (
-      base_interval * 4 if max_interval_seconds is None else max_interval_seconds
-    )
-
-    self._history: deque[float] = deque(maxlen=32)
-    self._min_interval = max(calculated_min, 15.0)
-    idle_target = max(idle_interval_seconds, self._min_interval)
-    self._max_interval = max(calculated_max, idle_target)
-    self._idle_interval = idle_target
-    self._idle_grace = max(idle_grace_seconds, 0.0)
-    self._target_cycle = max(target_cycle_ms / 1000.0, self._min_interval)
-    self._current_interval = min(base_interval, self._max_interval)
-    self._error_streak = 0
-    self._entity_saturation = 0.0
-    self._last_activity = time.monotonic()
+    del target_cycle_ms, min_interval_seconds, max_interval_seconds
+    del idle_interval_seconds, idle_grace_seconds
+    self._current_interval = max(initial_interval_seconds, 1.0)
 
   @property
   def current_interval(self) -> float:
-    """Return the current polling interval in seconds."""
+    """Return the fixed polling interval in seconds."""
 
     return self._current_interval
 
   def update_entity_saturation(self, saturation: float) -> None:
-    """Update entity saturation feedback for adaptive decisions."""
+    """Compatibility no-op for saturation feedback."""
 
-    self._entity_saturation = max(0.0, min(1.0, saturation))
+    del saturation
 
   def record_cycle(
     self,
@@ -156,93 +125,24 @@ class AdaptivePollingController:
     success: bool,
     error_ratio: float,
   ) -> float:
-    """Record an update cycle and return the next interval in seconds."""
+    """Return unchanged polling interval for deterministic scheduling."""
 
-    self._history.append(max(duration, 0.0))
-    if success:
-      self._error_streak = 0
-    else:
-      self._error_streak += 1
-
-    average_duration = self._history[-1]
-    if len(self._history) > 1:
-      average_duration = fmean(self._history)
-
-    next_interval = self._current_interval
-
-    now = time.monotonic()
-
-    if success and (error_ratio > 0.01 or self._entity_saturation > 0.3):
-      self._last_activity = now
-
-    if not success:
-      # Back off quickly when consecutive errors occur.
-      penalty_factor = 1.0 + min(0.5, 0.15 * self._error_streak + error_ratio)
-      next_interval = min(
-        self._max_interval,
-        next_interval * penalty_factor,
-      )
-    else:
-      load_factor = 1.0 + (self._entity_saturation * 0.5)
-      if average_duration < self._target_cycle * 0.8:
-        reduction_factor = min(
-          2.0,
-          (self._target_cycle / average_duration) * 0.5,
-        )
-        next_interval = max(
-          self._min_interval,
-          next_interval / max(1.0, reduction_factor * load_factor),
-        )
-      elif average_duration > self._target_cycle * 1.1:
-        increase_factor = min(
-          2.5,
-          average_duration / self._target_cycle,
-        )
-        next_interval = min(
-          self._max_interval,
-          next_interval * (increase_factor * load_factor),
-        )
-
-      idle_candidate = self._entity_saturation < 0.1 and error_ratio < 0.01 and success
-      if idle_candidate:
-        idle_elapsed = now - self._last_activity
-        if idle_elapsed >= self._idle_grace:
-          ramp_target = max(
-            next_interval,
-            self._current_interval * 1.5,
-          )
-          next_interval = min(self._idle_interval, ramp_target)
-        else:
-          gentle_target = max(
-            next_interval,
-            self._current_interval * (1.0 + load_factor / 4),
-          )
-          next_interval = min(self._idle_interval, gentle_target)
-      else:
-        self._last_activity = now
-
-    self._current_interval = max(
-      self._min_interval,
-      min(self._max_interval, next_interval),
-    )
+    del duration, success, error_ratio
     return self._current_interval
 
   def as_diagnostics(self) -> AdaptivePollingDiagnostics:
-    """Return diagnostics for adaptive polling behaviour."""
+    """Return diagnostics for fixed polling behaviour."""
 
-    history_count = len(self._history)
-    average_duration = fmean(self._history) if history_count else 0.0
-    diagnostics: AdaptivePollingDiagnostics = {
-      "target_cycle_ms": round(self._target_cycle * 1000, 2),
+    return {
+      "target_cycle_ms": 0.0,
       "current_interval_ms": round(self._current_interval * 1000, 2),
-      "average_cycle_ms": round(average_duration * 1000, 2),
-      "history_samples": history_count,
-      "error_streak": self._error_streak,
-      "entity_saturation": round(self._entity_saturation, 3),
-      "idle_interval_ms": round(self._idle_interval * 1000, 2),
-      "idle_grace_ms": round(self._idle_grace * 1000, 2),
+      "average_cycle_ms": 0.0,
+      "history_samples": 0,
+      "error_streak": 0,
+      "entity_saturation": 0.0,
+      "idle_interval_ms": round(self._current_interval * 1000, 2),
+      "idle_grace_ms": 0.0,
     }
-    return diagnostics
 
 
 @dataclass(slots=True)

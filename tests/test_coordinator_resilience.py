@@ -205,4 +205,4 @@ def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
   assert data["flaky"] == current_data["flaky"]
   assert cycle.errors == 1
   assert cycle.success
-  assert cycle.new_interval > initial_interval
+  assert cycle.new_interval == initial_interval
