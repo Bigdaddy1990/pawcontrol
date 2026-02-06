@@ -40,7 +40,7 @@ from typing import (
 )
 from weakref import WeakKeyDictionary
 
-from homeassistant.core import Context, EventOrigin, HomeAssistant
+from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
@@ -52,6 +52,8 @@ from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
 from .service_guard import ServiceGuardResult
 
 if TYPE_CHECKING:
+  from homeassistant.core import EventOrigin
+
   from .types import (
     DeviceLinkDetails,
     JSONLikeMapping,
