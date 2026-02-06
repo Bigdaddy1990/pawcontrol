@@ -7,15 +7,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfMass
-from homeassistant.exceptions import (
-  ConfigEntryAuthFailed,
-  ConfigEntryError,
-  ConfigEntryNotReady,
-  HomeAssistantError,
-  ServiceValidationError,
-)
 
 MASS_GRAMS = UnitOfMass.GRAMS
 MASS_KILOGRAMS = UnitOfMass.KILOGRAMS
