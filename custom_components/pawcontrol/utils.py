@@ -18,25 +18,21 @@ import logging
 import math
 import re
 from collections.abc import (
-  AsyncIterator,
   Awaitable,
   Callable,
   Iterable,
   Mapping,
   Sequence,
 )
-from contextlib import asynccontextmanager, suppress
-from contextvars import ContextVar
-from dataclasses import asdict, dataclass, is_dataclass
+from contextlib import suppress
+from dataclasses import asdict, is_dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial, wraps
 from numbers import Real
-from types import SimpleNamespace
 from typing import (
   TYPE_CHECKING,
   Any,
   ParamSpec,
-  Protocol,
   TypedDict,
   TypeGuard,
   cast,
@@ -44,130 +40,20 @@ from typing import (
 )
 from weakref import WeakKeyDictionary
 
-if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
-  from homeassistant.core import Context, EventOrigin, HomeAssistant
-  from homeassistant.helpers import device_registry as dr
-  from homeassistant.helpers import entity_registry as er
-  from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
-  from homeassistant.helpers.entity import Entity
-  from homeassistant.helpers.entity_platform import AddEntitiesCallback
-  from homeassistant.util import dt as dt_util
-else:  # pragma: no branch - executed under tests without Home Assistant installed
-  try:
-    from homeassistant.core import Context, HomeAssistant
-
-    try:
-      from homeassistant.core import EventOrigin
-    except ImportError:  # pragma: no cover - EventOrigin missing on older cores
-      EventOrigin = object  # type: ignore[assignment]
-    from homeassistant.helpers import device_registry as dr
-    from homeassistant.helpers import entity_registry as er
-    from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
-    from homeassistant.helpers.entity import Entity
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
-    from homeassistant.util import dt as dt_util
-  except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class Context:  # type: ignore[override]
-      """Placeholder for Home Assistant's request context."""
-
-    class EventOrigin:  # type: ignore[override]
-      """Enum stand-in representing the origin of a Home Assistant event."""
-
-    class HomeAssistant:  # type: ignore[override]
-      """Minimal stand-in mirroring :class:`homeassistant.core.HomeAssistant`."""
-
-    class Entity:  # type: ignore[override]
-      """Lightweight placeholder entity used for tests."""
-
-    @dataclass(slots=True)
-    class DeviceEntry:  # type: ignore[override]
-      """Fallback representation of Home Assistant's device registry entry."""
-
-      id: str = ""
-      manufacturer: str | None = None
-      model: str | None = None
-      sw_version: str | None = None
-      configuration_url: str | None = None
-      suggested_area: str | None = None
-      serial_number: str | None = None
-      hw_version: str | None = None
-
-    class DeviceInfo(TypedDict, total=False):  # type: ignore[override]
-      """Fallback device info payload matching Home Assistant expectations."""
-
-      identifiers: set[tuple[str, str]]
-      name: str
-      manufacturer: str
-      model: str
-      sw_version: str
-      configuration_url: str
-      serial_number: str
-      hw_version: str
-      suggested_area: str
-
-    class _AddEntitiesCallback(Protocol):
-      """Callable signature mirroring ``AddEntitiesCallback``."""
-
-      def __call__(
-        self,
-        entities: Iterable[Entity],
-        update_before_add: bool = ...,
-      ) -> Awaitable[Any] | None: ...
-
-    AddEntitiesCallback = _AddEntitiesCallback
-
-    def _missing_registry(*args: Any, **kwargs: Any) -> Any:
-      raise RuntimeError(
-        "Home Assistant registry helpers are unavailable in this environment",
-      )
-
-    dr = SimpleNamespace(async_get=_missing_registry)
-    er = SimpleNamespace(async_get=_missing_registry)
-
-    class _DateTimeModule:
-      @staticmethod
-      def utcnow() -> datetime:
-        return datetime.now(UTC)
-
-      @staticmethod
-      def now() -> datetime:
-        return datetime.now(UTC)
-
-      @staticmethod
-      def as_utc(value: datetime) -> datetime:
-        if value.tzinfo is None:
-          return value.replace(tzinfo=UTC)
-        return value.astimezone(UTC)
-
-      @staticmethod
-      def as_local(value: datetime) -> datetime:
-        if value.tzinfo is None:
-          return value.replace(tzinfo=UTC)
-        return value.astimezone(UTC)
-
-      @staticmethod
-      def parse_datetime(value: str) -> datetime | None:
-        with suppress(ValueError):
-          return datetime.fromisoformat(value)
-        return None
-
-      @staticmethod
-      def parse_date(value: str) -> date | None:
-        with suppress(ValueError):
-          return date.fromisoformat(value)
-        return None
-
-      @staticmethod
-      def utc_from_timestamp(timestamp: float) -> datetime:
-        return datetime.fromtimestamp(timestamp, UTC)
-
-    dt_util = _DateTimeModule()
+from homeassistant.core import Context, HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
+from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
 from .service_guard import ServiceGuardResult
 
 if TYPE_CHECKING:
+  from homeassistant.core import EventOrigin
+
   from .types import (
     DeviceLinkDetails,
     JSONLikeMapping,
@@ -450,9 +336,6 @@ async def async_call_hass_service_if_available(
       reason="missing_instance",
       description=description_hint,
     )
-    capture = _GUARD_CAPTURE.get(None)
-    if capture is not None:
-      capture.append(guard_result)
     return guard_result
 
   services = getattr(hass, "services", None)
@@ -472,9 +355,6 @@ async def async_call_hass_service_if_available(
       reason="missing_services_api",
       description=description_hint,
     )
-    capture = _GUARD_CAPTURE.get(None)
-    if capture is not None:
-      capture.append(guard_result)
     return guard_result
 
   payload = _coerce_json_mutable(service_data)
@@ -504,9 +384,6 @@ async def async_call_hass_service_if_available(
     executed=True,
     description=description_hint,
   )
-  capture = _GUARD_CAPTURE.get(None)
-  if capture is not None:
-    capture.append(guard_result)
   return guard_result
 
 
@@ -1901,26 +1778,3 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
     return all_conversions[conversion_key](value)
 
   raise ValueError(f"Conversion from {from_unit} to {to_unit} not supported")
-
-
-_GUARD_CAPTURE: ContextVar[list[ServiceGuardResult] | None] = ContextVar(
-  "pawcontrol_service_guard_capture",
-  default=None,
-)
-
-
-@asynccontextmanager
-async def async_capture_service_guard_results() -> AsyncIterator[
-  list[ServiceGuardResult]
-]:
-  """Capture guard outcomes for Home Assistant service invocations."""
-
-  previous = _GUARD_CAPTURE.get(None)
-  guard_results: list[ServiceGuardResult] = []
-  token = _GUARD_CAPTURE.set(guard_results)
-  try:
-    yield guard_results
-  finally:
-    _GUARD_CAPTURE.reset(token)
-    if previous is not None:
-      previous.extend(guard_results)
