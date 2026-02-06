@@ -125,4 +125,12 @@ class PawControlDeviceTracker(PawControlEntity, TrackerEntity):
       dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
       gps_data = dog_data.get("gps", {})
 
-    return gps_data if isinstance(gps_data, dict) else dict(gps_data)
+    if isinstance(gps_data, dict):
+      return gps_data
+
+    _LOGGER.warning(
+      "GPS data for dog %s is not a dictionary: %s",
+      self._dog_id,
+      type(gps_data),
+    )
+    return {}

@@ -8,12 +8,17 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .types import WalkModulePayload, WalkRoutePoint, WalkSessionSnapshot
 
 _LOGGER = logging.getLogger(__name__)
+
+_WALK_STORAGE_VERSION = 1
+_WALK_HISTORY_LIMIT = 100
 
 
 class WeatherCondition(StrEnum):
@@ -56,7 +61,8 @@ class _WalkSession:
 class WalkManager:
   """Manages walk sessions without background timers."""
 
-  def __init__(self) -> None:
+  def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+    self._store = Store(hass, _WALK_STORAGE_VERSION, f"pawcontrol_walk_{entry_id}")
     self._active_walks: dict[str, _WalkSession] = {}
     self._history: dict[str, list[WalkSessionSnapshot]] = {}
 
@@ -64,6 +70,33 @@ class WalkManager:
     """Initialize internal caches."""
     for dog_id in dog_ids:
       self._history.setdefault(dog_id, [])
+    await self._async_restore_history()
+
+  async def _async_restore_history(self) -> None:
+    """Restore history from storage."""
+    data = await self._store.async_load()
+    if not isinstance(data, dict):
+      return
+
+    raw_history = data.get("history")
+    if not isinstance(raw_history, dict):
+      return
+
+    for dog_id, sessions in raw_history.items():
+      if not isinstance(dog_id, str) or not isinstance(sessions, list):
+        continue
+      filtered = [session for session in sessions if isinstance(session, dict)]
+      self._history[dog_id] = filtered[-_WALK_HISTORY_LIMIT:]
+
+  async def _async_store_history(self) -> None:
+    """Persist walk history to storage."""
+    payload = {
+      "history": {
+        dog_id: sessions[-_WALK_HISTORY_LIMIT:]
+        for dog_id, sessions in self._history.items()
+      },
+    }
+    await self._store.async_save(payload)
 
   async def async_get_walk_data(self, dog_id: str) -> WalkModulePayload:
     """Return current walk data for ``dog_id``."""
@@ -171,7 +204,11 @@ class WalkManager:
 
     finished = active.finish(dt_util.utcnow())
     finished.update(kwargs)
-    self._history.setdefault(dog_id, []).append(finished)
+    history = self._history.setdefault(dog_id, [])
+    history.append(finished)
+    if len(history) > _WALK_HISTORY_LIMIT:
+      self._history[dog_id] = history[-_WALK_HISTORY_LIMIT:]
+    await self._async_store_history()
     _LOGGER.debug("Ended walk for %s", dog_id)
     return finished
 
