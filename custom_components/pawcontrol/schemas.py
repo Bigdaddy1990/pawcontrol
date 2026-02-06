@@ -13,10 +13,15 @@ from .const import (
 GPS_PUSH_PAYLOAD_SCHEMA = vol.Schema(
   {
     vol.Required("dog_id"): cv.string,
-    vol.Required("latitude"): vol.Coerce(float),
-    vol.Required("longitude"): vol.Coerce(float),
+    vol.Required("latitude"): vol.All(
+      vol.Coerce(float), vol.Range(min=-90.0, max=90.0)
+    ),
+    vol.Required("longitude"): vol.All(
+      vol.Coerce(float), vol.Range(min=-180.0, max=180.0)
+    ),
     vol.Optional("battery"): vol.Coerce(int),
     vol.Optional("accuracy"): vol.Coerce(int),
+    vol.Optional("nonce"): cv.string,
     vol.Optional("timestamp"): cv.positive_int,
     vol.Optional("speed"): vol.Coerce(float),
   },

@@ -10,11 +10,11 @@ from homeassistant.components.device_automation import DEVICE_ACTION_BASE_SCHEMA
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 
 from .const import DOMAIN
-from .types import DomainRuntimeStoreEntry, PawControlRuntimeData
+from .device_automation_helpers import resolve_device_context
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,79 +54,6 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
     vol.Optional(CONF_SAVE_ROUTE): cv.boolean,
   },
 )
-
-
-@dataclass(slots=True)
-class PawControlDeviceAutomationContext:
-  """Resolved context for device automation lookups."""
-
-  device_id: str
-  dog_id: str | None
-  runtime_data: PawControlRuntimeData | None
-
-
-def _extract_dog_id(device_entry: dr.DeviceEntry | None) -> str | None:
-  """Extract the dog identifier from a device registry entry."""
-
-  if device_entry is None:
-    return None
-
-  for domain, identifier in device_entry.identifiers:
-    if domain == DOMAIN:
-      return identifier
-
-  return None
-
-
-def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
-  """Return runtime data extracted from ``value`` when possible."""
-
-  if isinstance(value, PawControlRuntimeData):
-    return value
-  if isinstance(value, DomainRuntimeStoreEntry):
-    return value.unwrap()
-  return None
-
-
-def _resolve_runtime_data_from_store(
-  hass: HomeAssistant,
-  entry_ids: tuple[str, ...],
-) -> PawControlRuntimeData | None:
-  """Resolve runtime data from ``hass.data`` using entry identifiers."""
-
-  domain_store = hass.data.get(DOMAIN)
-  if not isinstance(domain_store, dict):
-    return None
-
-  for entry_id in entry_ids:
-    runtime_data = _coerce_runtime_data(domain_store.get(entry_id))
-    if runtime_data is not None:
-      return runtime_data
-
-  return None
-
-
-def resolve_device_context(
-  hass: HomeAssistant,
-  device_id: str,
-) -> PawControlDeviceAutomationContext:
-  """Resolve the runtime data and dog identifier for a device."""
-
-  device_registry = dr.async_get(hass)
-  device_entry = device_registry.async_get(device_id)
-  dog_id = _extract_dog_id(device_entry)
-
-  entry_ids: tuple[str, ...] = ()
-  if device_entry is not None:
-    entry_ids = tuple(device_entry.config_entries)
-
-  runtime_data = _resolve_runtime_data_from_store(hass, entry_ids)
-
-  return PawControlDeviceAutomationContext(
-    device_id=device_id,
-    dog_id=dog_id,
-    runtime_data=runtime_data,
-  )
 
 
 async def async_get_actions(

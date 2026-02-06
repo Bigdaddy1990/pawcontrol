@@ -15,7 +15,7 @@ from typing import TypeVar
 import asyncio
 import json
 import logging
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from functools import lru_cache
 from math import isfinite
@@ -40,6 +40,7 @@ from .coordinator_tasks import (
 )
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
 from .service_guard import ServiceGuardResultPayload, normalise_guard_history
+from .utils import normalize_language
 from .types import (
   CardModConfig,
   CoordinatorRejectionMetrics,
@@ -56,34 +57,6 @@ from .types import (
   TemplateCacheStats,
   coerce_dog_modules_config,
 )
-
-
-def _normalize_language(
-  language: str | None,
-  *,
-  supported: Collection[str] | None = None,
-  default: str = "en",
-) -> str:
-  """Return a normalized language code constrained to ``supported`` values."""
-
-  if not default:
-    msg = "default language must be a non-empty string"
-    raise ValueError(msg)
-
-  if not language:
-    return default
-
-  normalized = str(language).replace("_", "-").split("-", 1)[0].strip().lower()
-  if not normalized:
-    return default
-
-  if supported is None:
-    return normalized
-
-  if normalized in supported:
-    return normalized
-
-  return default
 
 
 _STATISTICS_EMPTY_LIST_TRANSLATIONS: Final[Mapping[str, str]] = {
@@ -245,7 +218,7 @@ def _format_breaker_list(entries: Sequence[str], language: str | None) -> str:
   if entries:
     return ", ".join(entries)
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   if normalized_language in _STATISTICS_EMPTY_LIST_TRANSLATIONS:
     return _STATISTICS_EMPTY_LIST_TRANSLATIONS[normalized_language]
 
@@ -535,7 +508,7 @@ def _translated_statistics_fallback(
   if translations is None:
     return default
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -549,7 +522,7 @@ def _translated_statistics_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -563,7 +536,7 @@ def _translated_notification_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -581,7 +554,7 @@ def _translated_notification_template(
   if translations is None:
     return template.format(**values)
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   template_value = translations.get(normalized_language)
   if template_value is None:
     template_value = translations.get("en", template)
@@ -600,7 +573,7 @@ def _translated_notification_fallback(
   if translations is None:
     return default
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -614,7 +587,7 @@ def _translated_feeding_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -628,7 +601,7 @@ def _translated_health_label(language: str | None, label: str) -> str:
   if translations is None:
     return label
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   if normalized_language in translations:
     return translations[normalized_language]
 
@@ -646,7 +619,7 @@ def _translated_health_template(
   if translations is None:
     return template.format(**values)
 
-  normalized_language = _normalize_language(language)
+  normalized_language = normalize_language(language)
   template_value = translations.get(normalized_language)
   if template_value is None:
     template_value = translations.get("en", template)

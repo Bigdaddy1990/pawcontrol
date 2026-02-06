@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Mapping
 from typing import Final
+
+from .utils import normalize_language
 
 DEFAULT_LANGUAGE: Final[str] = "en"
 SUPPORTED_LANGUAGES: Final[frozenset[str]] = frozenset({"en", "de"})
@@ -79,34 +81,6 @@ _GROOMING_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 }
 
 
-def _normalize_language(
-  language: str | None,
-  *,
-  supported: Collection[str] | None = None,
-  default: str = "en",
-) -> str:
-  """Return a normalized language code constrained to ``supported`` values."""
-
-  if not default:
-    msg = "default language must be a non-empty string"
-    raise ValueError(msg)
-
-  if not language:
-    return default
-
-  normalized = str(language).replace("_", "-").split("-", 1)[0].strip().lower()
-  if not normalized:
-    return default
-
-  if supported is None:
-    return normalized
-
-  if normalized in supported:
-    return normalized
-
-  return default
-
-
 def translated_grooming_label(language: str | None, key: str, **values: object) -> str:
   """Return a localized grooming label."""
 
@@ -114,7 +88,7 @@ def translated_grooming_label(language: str | None, key: str, **values: object) 
   if translations is None:
     return key.format(**values) if values else key
 
-  normalized = _normalize_language(
+  normalized = normalize_language(
     language,
     supported=SUPPORTED_LANGUAGES,
     default=DEFAULT_LANGUAGE,
@@ -139,7 +113,7 @@ def translated_grooming_template(
   if translations is None:
     return key.format(**values)
 
-  normalized = _normalize_language(
+  normalized = normalize_language(
     language,
     supported=SUPPORTED_LANGUAGES,
     default=DEFAULT_LANGUAGE,

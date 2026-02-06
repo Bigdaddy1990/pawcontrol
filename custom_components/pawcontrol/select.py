@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final, TypeVar, cast
+from typing import TYPE_CHECKING, Final, cast
 
+from homeassistant import const as ha_const
 from homeassistant.components import select as select_component
 from homeassistant.components.select import SelectEntity
 from homeassistant.core import Context, HomeAssistant, State
@@ -24,13 +25,6 @@ from homeassistant.util import dt as dt_util
 
 ATTR_OPTION = getattr(select_component, "ATTR_OPTION", "option")
 ATTR_OPTIONS = getattr(select_component, "ATTR_OPTIONS", "options")
-
-try:
-  from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
-except ImportError:  # pragma: no cover
-  ATTR_ENTITY_ID = "entity_id"
-  STATE_UNAVAILABLE = "unavailable"
-  STATE_UNKNOWN = "unknown"
 
 from homeassistant.exceptions import HomeAssistantError  # noqa: E402
 from .const import (  # noqa: E402
@@ -58,6 +52,7 @@ from .utils import (  # noqa: E402
 )
 from .entity import PawControlEntity  # noqa: E402
 from .notifications import NotificationPriority, PawControlNotificationManager  # noqa: E402
+from .reproduce_state import async_reproduce_platform_states  # noqa: E402
 from .runtime_data import get_runtime_data  # noqa: E402
 from .types import (  # noqa: E402
   DOG_ID_FIELD,
@@ -111,55 +106,15 @@ _LOGGER = logging.getLogger(__name__)
 # the entity layer.
 PARALLEL_UPDATES = 0
 
-T = TypeVar("T")
-
-Preprocessor = Callable[[State], T | None]
-Handler = Callable[[HomeAssistant, State, State, T, Context | None], Awaitable[None]]
+ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
+STATE_UNAVAILABLE = getattr(ha_const, "STATE_UNAVAILABLE", "unavailable")
+STATE_UNKNOWN = getattr(ha_const, "STATE_UNKNOWN", "unknown")
 
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
   """Return JSON-serialisable attributes for select entities."""
 
   return normalise_entity_attributes(attrs)
-
-
-async def _async_reproduce_platform_states(
-  hass: HomeAssistant,
-  states: Sequence[State],
-  platform_name: str,
-  preprocess: Preprocessor[T],
-  handler: Handler[T],
-  *,
-  context: Context | None = None,
-) -> None:
-  """Iterate over states and call a handler for each valid one."""
-
-  for state in states:
-    # Skip unavailable/unknown states to avoid replaying transient or invalid
-    # values back into the integration.
-    if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      _LOGGER.warning(
-        "Cannot reproduce %s state for %s: %s",
-        platform_name,
-        state.entity_id,
-        state.state,
-      )
-      continue
-
-    processed = preprocess(state)
-    if processed is None:
-      continue
-
-    current_state = hass.states.get(state.entity_id)
-    if current_state is None:
-      _LOGGER.warning(
-        "%s entity %s not found for state reproduction",
-        platform_name.capitalize(),
-        state.entity_id,
-      )
-      continue
-
-    await handler(hass, state, current_state, processed, context)
 
 
 # Additional option lists for selects
@@ -636,7 +591,7 @@ async def async_reproduce_state(
   context: Context | None = None,
 ) -> None:
   """Reproduce select states for PawControl entities."""
-  await _async_reproduce_platform_states(
+  await async_reproduce_platform_states(
     hass,
     states,
     "select",

@@ -164,13 +164,31 @@ CONF_GPS_DISTANCE_FILTER: Final[str] = "gps_distance_filter"
 # OPTIMIZED: Webhook push configuration
 CONF_WEBHOOK_ENABLED: Final[str] = "webhook_enabled"
 CONF_WEBHOOK_ID: Final[str] = "webhook_id"
+CONF_WEBHOOK_SECRET: Final[str] = "webhook_secret"
+CONF_WEBHOOK_REQUIRE_SIGNATURE: Final[str] = "webhook_require_signature"
 DEFAULT_WEBHOOK_ENABLED: Final[bool] = True
+
+CONF_PUSH_PAYLOAD_MAX_BYTES: Final[str] = "push_payload_max_bytes"
+CONF_PUSH_NONCE_TTL_SECONDS: Final[str] = "push_nonce_ttl_seconds"
+CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[str] = (
+  "push_rate_limit_webhook_per_minute"
+)
+CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: Final[str] = "push_rate_limit_mqtt_per_minute"
+CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[str] = (
+  "push_rate_limit_entity_per_minute"
+)
 
 # OPTIMIZED: MQTT push configuration
 CONF_MQTT_ENABLED: Final[str] = "mqtt_enabled"
 CONF_MQTT_TOPIC: Final[str] = "mqtt_topic"
 DEFAULT_MQTT_ENABLED: Final[bool] = False
 DEFAULT_MQTT_TOPIC: Final[str] = "pawcontrol/gps"
+
+DEFAULT_PUSH_PAYLOAD_MAX_BYTES: Final[int] = 8192
+DEFAULT_PUSH_NONCE_TTL_SECONDS: Final[int] = 300
+DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[int] = 60
+DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: Final[int] = 120
+DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[int] = 90
 
 CONF_GPS_SETTINGS: Final[str] = "gps_settings"
 CONF_GPS_ENABLED: Final[str] = "gps_enabled"
