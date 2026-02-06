@@ -33,11 +33,10 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError
-from .config_entry_helpers import get_entry_dogs
+from .compat import ConfigEntry, HomeAssistantError
 from .const import (
   CONF_DOG_ID,
+  CONF_DOGS,
   CONF_MODULES,
   DEFAULT_RESET_TIME,
   HEALTH_STATUS_OPTIONS,
@@ -429,7 +428,9 @@ class PawControlHelperManager:
     _LOGGER.debug("Setting up PawControl helper manager")
 
     try:
-      dogs_config = self._normalize_dogs_config(get_entry_dogs(self._entry))
+      dogs_config = self._normalize_dogs_config(
+        self._entry.data.get(CONF_DOGS, []),
+      )
       modules_option = (
         self._entry.options.get(CONF_MODULES)
         or self._entry.options.get("modules")
@@ -1076,7 +1077,7 @@ class PawControlHelperManager:
       dog_ids: list[str] = list(self._dog_helpers)
 
       if not dog_ids:
-        dogs_raw = get_entry_dogs(self._entry)
+        dogs_raw = self._entry.data.get(CONF_DOGS, [])
         if isinstance(dogs_raw, Mapping):
           dog_ids = [str(dog_id) for dog_id in dogs_raw]
         elif isinstance(dogs_raw, Sequence) and not isinstance(

@@ -30,9 +30,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfMass
-from homeassistant.exceptions import HomeAssistantError
+from .compat import ConfigEntry, HomeAssistantError, MASS_GRAMS, MASS_KILOGRAMS
 from .const import (
   CONF_DAILY_FOOD_AMOUNT,
   CONF_GPS_ACCURACY_FILTER,
@@ -53,7 +51,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
 from .types import (
@@ -73,16 +71,12 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   ensure_dog_modules_mapping,
-  ensure_json_mapping,
 )
 from .utils import async_call_add_entities, normalise_entity_attributes
 
 # ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
 ATTR_VALUE = getattr(ha_const, "ATTR_VALUE", "value")
-
-MASS_GRAMS = UnitOfMass.GRAMS
-MASS_KILOGRAMS = UnitOfMass.KILOGRAMS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,6 +107,7 @@ DEFAULT_WALK_DURATION_TARGET = 60  # minutes
 DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
 DEFAULT_GPS_ACCURACY_THRESHOLD = 50  # meters
 DEFAULT_ACTIVITY_GOAL = 100  # percentage
+
 
 type DogConfigUpdatePayload = JSONMutableMapping
 """Partial dog configuration updates used by number entities."""
@@ -480,7 +475,7 @@ def _create_health_numbers(
   ]
 
 
-class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
+class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity):
   """Base class for all Paw Control number entities.
 
   Provides common functionality and ensures consistent behavior across
@@ -603,16 +598,6 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
     )
 
     return _normalise_attributes(attrs)
-
-  def _build_base_state_attributes(
-    self,
-    extra: Mapping[str, object] | None = None,
-  ) -> JSONMutableMapping:
-    """Return base attributes with optional additions."""
-    attrs = ensure_json_mapping(super().extra_state_attributes)
-    if extra:
-      attrs.update(ensure_json_mapping(extra))
-    return attrs
 
   async def async_set_native_value(self, value: float) -> None:
     """Set the number value.
@@ -764,7 +749,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
   def _get_dog_data(self) -> CoordinatorDogData | None:
     """Get data for this number's dog from the coordinator."""
 
-    return self.coordinator.get_dog_data(self._dog_id)
+    return self._get_dog_data_cached()
 
   def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
     """Get specific module data for this dog.
@@ -775,7 +760,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
     Returns:
         Module data dictionary or None if not available
     """
-    return self.coordinator.get_module_data(self._dog_id, module)
+    return super()._get_module_data(module)
 
   @property
   def available(self) -> bool:

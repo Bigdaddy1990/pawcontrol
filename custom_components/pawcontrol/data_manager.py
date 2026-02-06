@@ -27,7 +27,6 @@ from typing import Any, Final, NotRequired, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import compat
@@ -1128,12 +1127,6 @@ class PawControlDataManager:
     self._storage_path = self._storage_dir / f"{self.entry_id}_{_STORAGE_FILENAME}"
     self._backup_path = self._storage_path.with_suffix(
       self._storage_path.suffix + ".backup",
-    )
-    self._store: Store[JSONMutableMapping] = Store(
-      hass,
-      1,
-      f"{DOMAIN}.{self.entry_id}",
-      private=True,
     )
 
     self._dog_profiles: dict[str, DogProfile] = {}
@@ -3317,32 +3310,72 @@ class PawControlDataManager:
     return await self.hass.async_add_executor_job(func, *args)
 
   async def _async_load_storage(self) -> JSONMutableMapping:
-    """Load stored JSON data from Home Assistant storage."""
+    """Load stored JSON data, falling back to the backup if required."""
 
     try:
-      data = await self._store.async_load()
-    except (HomeAssistantError, OSError) as err:
+      data = await self._async_add_executor_job(
+        self._read_storage_payload,
+        self._storage_path,
+      )
+      if data is None:
+        return {}
+      if isinstance(data, Mapping):
+        return _coerce_json_mutable(
+          cast(JSONMappingLike | JSONMutableMapping, data),
+        )
+      return {}
+    except FileNotFoundError:
+      return {}
+    except json.JSONDecodeError:
+      _LOGGER.warning(
+        "Corrupted PawControl data detected at %s",
+        self._storage_path,
+      )
+    except OSError as err:
       error_cls = _resolve_homeassistant_error()
       raise error_cls(f"Unable to read PawControl data: {err}") from err
 
-    if isinstance(data, Mapping):
-      return _coerce_json_mutable(
-        cast(JSONMappingLike | JSONMutableMapping, data),
+    try:
+      data = await self._async_add_executor_job(
+        self._read_storage_payload,
+        self._backup_path,
       )
+      if data is None:
+        return {}
+      if isinstance(data, Mapping):
+        return _coerce_json_mutable(
+          cast(JSONMappingLike | JSONMutableMapping, data),
+        )
+      return {}
+    except FileNotFoundError:
+      return {}
+    except json.JSONDecodeError:
+      _LOGGER.warning(
+        "Backup PawControl data is corrupted at %s",
+        self._backup_path,
+      )
+    except OSError as err:
+      error_cls = _resolve_homeassistant_error()
+      raise error_cls(
+        f"Unable to read PawControl backup: {err}",
+      ) from err
+
     return {}
 
   async def _async_save_dog_data(self, dog_id: str) -> None:
-    """Persist all dog data using Home Assistant storage."""
+    """Persist all dog data to disk."""
 
-    del dog_id
     async with self._save_lock:
       payload: JSONMutableMapping = {
         k: cast(JSONValue, profile.as_dict())
         for k, profile in self._dog_profiles.items()
       }
       try:
-        await self._store.async_save(payload)
-      except Exception as err:
+        await self._async_add_executor_job(
+          self._write_storage,
+          payload,
+        )
+      except OSError as err:
         error_cls = _resolve_homeassistant_error()
         raise error_cls(
           f"Failed to persist PawControl data: {err}",

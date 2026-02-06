@@ -6,7 +6,7 @@ from typing import TypeVar
 import contextlib
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import cast
+from typing import Protocol, cast
 
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
@@ -20,6 +20,7 @@ from .types import (
   FeedingModuleTelemetry,
   HealthModulePayload,
   JSONMutableMapping,
+  JSONValue,
   WalkModuleTelemetry,
   WalkSessionSnapshot,
   ensure_json_mapping,
@@ -46,8 +47,15 @@ type ModuleSnapshot[T] = T | None
 type WalkHistory = list[WalkSessionSnapshot]
 
 
+class _ModuleDataProvider(Protocol):
+  """Protocol describing objects that expose module data accessors."""
+
+  def _get_module_data(self, module: str) -> Mapping[str, JSONValue] | None:
+    """Return coordinator data for the requested module."""
+
+
 def _walk_payload(
-  provider: PawControlSensorBase,
+  provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[WalkModuleTelemetry]:
   module_data = provider._get_module_data("walk")
   if module_data is None or not isinstance(module_data, Mapping):
@@ -56,7 +64,7 @@ def _walk_payload(
 
 
 def _health_payload(
-  provider: PawControlSensorBase,
+  provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[HealthModulePayload]:
   module_data = provider._get_module_data("health")
   if module_data is None or not isinstance(module_data, Mapping):
@@ -65,7 +73,7 @@ def _health_payload(
 
 
 def _feeding_payload(
-  provider: PawControlSensorBase,
+  provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[FeedingModuleTelemetry]:
   module_data = provider._get_module_data("feeding")
   if module_data is None or not isinstance(module_data, Mapping):

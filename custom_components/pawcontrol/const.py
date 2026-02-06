@@ -42,7 +42,7 @@ else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
       DATETIME = "datetime"
 
 
-from homeassistant.helpers import selector
+from .selector_shim import selector
 
 # OPTIMIZED: Storage versions for data persistence
 STORAGE_VERSION: Final[int] = 1
@@ -167,7 +167,15 @@ CONF_WEBHOOK_ID: Final[str] = "webhook_id"
 CONF_WEBHOOK_SECRET: Final[str] = "webhook_secret"
 CONF_WEBHOOK_REQUIRE_SIGNATURE: Final[str] = "webhook_require_signature"
 DEFAULT_WEBHOOK_ENABLED: Final[bool] = True
+DEFAULT_WEBHOOK_REQUIRE_SIGNATURE: Final[bool] = True
 
+# OPTIMIZED: MQTT push configuration
+CONF_MQTT_ENABLED: Final[str] = "mqtt_enabled"
+CONF_MQTT_TOPIC: Final[str] = "mqtt_topic"
+DEFAULT_MQTT_ENABLED: Final[bool] = False
+DEFAULT_MQTT_TOPIC: Final[str] = "pawcontrol/gps"
+
+# OPTIMIZED: Unified push router settings
 CONF_PUSH_PAYLOAD_MAX_BYTES: Final[str] = "push_payload_max_bytes"
 CONF_PUSH_NONCE_TTL_SECONDS: Final[str] = "push_nonce_ttl_seconds"
 CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[str] = (
@@ -176,17 +184,11 @@ CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[str] = (
 CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: Final[str] = "push_rate_limit_mqtt_per_minute"
 CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[str] = "push_rate_limit_entity_per_minute"
 
-# OPTIMIZED: MQTT push configuration
-CONF_MQTT_ENABLED: Final[str] = "mqtt_enabled"
-CONF_MQTT_TOPIC: Final[str] = "mqtt_topic"
-DEFAULT_MQTT_ENABLED: Final[bool] = False
-DEFAULT_MQTT_TOPIC: Final[str] = "pawcontrol/gps"
-
-DEFAULT_PUSH_PAYLOAD_MAX_BYTES: Final[int] = 8192
-DEFAULT_PUSH_NONCE_TTL_SECONDS: Final[int] = 300
+DEFAULT_PUSH_PAYLOAD_MAX_BYTES: Final[int] = 16 * 1024
+DEFAULT_PUSH_NONCE_TTL_SECONDS: Final[int] = 600
 DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[int] = 60
-DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: Final[int] = 120
-DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[int] = 90
+DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: Final[int] = 60
+DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[int] = 120
 
 CONF_GPS_SETTINGS: Final[str] = "gps_settings"
 CONF_GPS_ENABLED: Final[str] = "gps_enabled"
@@ -566,14 +568,6 @@ DATA_FILE_ROUTES: Final[str] = "routes.json"
 DATA_FILE_STATS: Final[str] = "statistics.json"
 
 # OPTIMIZED: Validation limits as immutable constants
-MIN_INTEGRATION_NAME_LENGTH: Final[int] = 3
-MAX_INTEGRATION_NAME_LENGTH: Final[int] = 50
-RESERVED_INTEGRATION_NAMES: Final[frozenset[str]] = frozenset(
-  {
-    "pawcontrol",
-    "paw control",
-  }
-)
 MIN_DOG_NAME_LENGTH: Final[int] = 2
 MAX_DOG_NAME_LENGTH: Final[int] = 30
 MAX_DOGS_PER_ENTRY: Final[int] = 10

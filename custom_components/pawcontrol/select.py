@@ -14,7 +14,6 @@ from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
-from homeassistant import const as ha_const
 from homeassistant.components import select as select_component
 from homeassistant.components.select import SelectEntity
 from homeassistant.core import Context, HomeAssistant, State
@@ -26,7 +25,12 @@ from homeassistant.util import dt as dt_util
 ATTR_OPTION = getattr(select_component, "ATTR_OPTION", "option")
 ATTR_OPTIONS = getattr(select_component, "ATTR_OPTIONS", "options")
 
-from homeassistant.exceptions import HomeAssistantError  # noqa: E402
+try:
+  from homeassistant.const import ATTR_ENTITY_ID
+except ImportError:  # pragma: no cover
+  ATTR_ENTITY_ID = "entity_id"
+
+from .compat import HomeAssistantError  # noqa: E402
 from .const import (  # noqa: E402
   ACTIVITY_LEVELS,
   DEFAULT_MODEL,
@@ -50,7 +54,7 @@ from .utils import (  # noqa: E402
   deep_merge_dicts,
   normalise_entity_attributes,
 )
-from .entity import PawControlEntity  # noqa: E402
+from .entity import PawControlDogEntityBase  # noqa: E402
 from .notifications import NotificationPriority, PawControlNotificationManager  # noqa: E402
 from .reproduce_state import async_reproduce_platform_states  # noqa: E402
 from .runtime_data import get_runtime_data  # noqa: E402
@@ -92,7 +96,6 @@ from .types import (  # noqa: E402
   WeatherConditionKey,
   HealthStatusKey,
   coerce_dog_modules_config,
-  ensure_json_mapping,
 )
 
 
@@ -105,10 +108,6 @@ _LOGGER = logging.getLogger(__name__)
 # responsible for serialising writes, so we allow unlimited parallel updates at
 # the entity layer.
 PARALLEL_UPDATES = 0
-
-ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
-STATE_UNAVAILABLE = getattr(ha_const, "STATE_UNAVAILABLE", "unavailable")
-STATE_UNKNOWN = getattr(ha_const, "STATE_UNKNOWN", "unknown")
 
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
@@ -747,7 +746,7 @@ def _create_health_selects(
   ]
 
 
-class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
+class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity):
   """Base class for all Paw Control select entities.
 
   Provides common functionality and ensures consistent behavior across
@@ -988,16 +987,6 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
     return _normalise_attributes(attrs)
 
-  def _build_base_state_attributes(
-    self,
-    extra: Mapping[str, object] | None = None,
-  ) -> JSONMutableMapping:
-    """Return base attributes with optional additions."""
-    attrs = ensure_json_mapping(super().extra_state_attributes)
-    if extra:
-      attrs.update(ensure_json_mapping(extra))
-    return attrs
-
   async def async_select_option(self, option: str) -> None:
     """Select an option.
 
@@ -1051,7 +1040,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
   def _get_dog_data(self) -> CoordinatorDogData | None:
     """Get data for this select's dog from the coordinator."""
 
-    return self.coordinator.get_dog_data(self._dog_id)
+    return self._get_dog_data_cached()
 
   def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
     """Get specific module data for this dog.
@@ -1062,7 +1051,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
     Returns:
         Module data dictionary or None if not available
     """
-    return self.coordinator.get_module_data(self._dog_id, module)
+    return super()._get_module_data(module)
 
   @property
   def available(self) -> bool:

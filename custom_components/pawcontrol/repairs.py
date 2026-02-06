@@ -21,8 +21,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
-from homeassistant.config_entries import ConfigEntry
-from .config_entry_helpers import get_entry_dogs
+from .compat import ConfigEntry
 from .const import (
   CONF_DOG_ID,
   CONF_DOG_NAME,
@@ -37,6 +36,7 @@ from .const import (
   MODULE_WALK,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
+from .error_classification import classify_error_reason
 from .exceptions import RepairRequiredError
 from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import (
@@ -558,7 +558,7 @@ async def _check_dog_configuration_issues(
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = get_entry_dogs(entry)
+  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -641,7 +641,7 @@ async def _check_gps_configuration_issues(
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = get_entry_dogs(entry)
+  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -715,7 +715,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
   now = dt_util.utcnow()
   grace_seconds = 15 * 60
 
-  raw_dogs_obj = get_entry_dogs(entry)
+  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -822,7 +822,7 @@ async def _check_notification_configuration_issues(
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = get_entry_dogs(entry)
+  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -1069,7 +1069,7 @@ async def _check_notification_delivery_errors(
     )
     last_error = payload.get("last_error")
     error_text = last_error if isinstance(last_error, str) else None
-    classification = reason_text or error_text or "unknown"
+    classification = classify_error_reason(reason_text, error=error_text)
     if classification not in issue_definitions:
       continue
     classified_entry = classified_services[classification]
@@ -1234,7 +1234,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = get_entry_dogs(entry)
+  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -2709,7 +2709,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = get_entry_dogs(entry)
+    dogs = entry.data.get(CONF_DOGS, [])
     seen_ids = set()
     fixed_dogs = []
 
@@ -2744,7 +2744,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = get_entry_dogs(entry)
+    dogs = entry.data.get(CONF_DOGS, [])
     updated_dogs = []
 
     for dog in dogs:
@@ -2834,7 +2834,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = get_entry_dogs(entry)
+    dogs = entry.data.get(CONF_DOGS, [])
     updated_dogs: list[DogConfigData] = []
     high_resource_limit = 5
     high_resource_count = 0
@@ -2922,7 +2922,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = get_entry_dogs(entry)
+    dogs = entry.data.get(CONF_DOGS, [])
     valid_dogs = [
       dog for dog in dogs if dog.get(CONF_DOG_ID) and dog.get(CONF_DOG_NAME)
     ]

@@ -32,7 +32,9 @@ from homeassistant.util import dt as dt_util
 from .coordinator_tasks import default_rejection_metrics
 from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
+from .error_classification import classify_error_reason
 from .feeding_translations import build_feeding_compliance_notification
+from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
 from .runtime_data import get_runtime_data
@@ -44,6 +46,7 @@ from .types import (
   PersonNotificationContext,
 )
 from .utils import async_call_hass_service_if_available
+from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
 
 def _dt_now() -> datetime:
@@ -64,11 +67,6 @@ if TYPE_CHECKING:
   )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class WebhookDeliveryError(Exception):
-  """Raised when webhook delivery fails."""
-
 
 # OPTIMIZE: Enhanced notification constants
 MAX_RETRY_ATTEMPTS = 3
@@ -773,7 +771,10 @@ class PawControlNotificationManager:
     self._configs: dict[str, NotificationConfig] = {}
     self._handlers: dict[NotificationChannel, Callable] = {}
     self._lock = asyncio.Lock()
-    self._session = session
+    self._session = ensure_shared_client_session(
+      session,
+      owner="PawControlNotificationManager",
+    )
 
     # NEW: Person entity manager for dynamic targeting
     self._person_manager: PersonEntityManager | None = None
@@ -925,7 +926,7 @@ class PawControlNotificationManager:
       rejection_metrics = default_rejection_metrics()
       performance_stats["rejection_metrics"] = rejection_metrics
 
-    reason_text = (reason or str(error) if error else "unknown").strip() or "unknown"
+    reason_text = classify_error_reason(reason, error=error).strip() or "unknown"
 
     failure_reasons_raw = rejection_metrics.get("failure_reasons")
     if isinstance(failure_reasons_raw, MutableMapping):
@@ -1865,7 +1866,7 @@ class PawControlNotificationManager:
     config = await self._get_config_cached(config_key)
     webhook_url = config.custom_settings.get("webhook_url")
     if not webhook_url:
-      raise WebhookDeliveryError(
+      raise WebhookSecurityError(
         f"Webhook channel requested without webhook_url for {config_key}",
       )
 
@@ -1873,6 +1874,34 @@ class PawControlNotificationManager:
     payload_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
     headers = {"Content-Type": "application/json"}
+    secret = config.custom_settings.get("webhook_secret")
+    header_prefix = config.custom_settings.get(
+      "webhook_header_prefix",
+      "X-PawControl",
+    )
+
+    if secret:
+      algorithm = config.custom_settings.get(
+        "webhook_algorithm",
+        "sha256",
+      )
+      tolerance = int(
+        config.custom_settings.get(
+          "webhook_tolerance_seconds",
+          WebhookSecurityManager.DEFAULT_TOLERANCE_SECONDS,
+        ),
+      )
+      manager = WebhookSecurityManager(
+        secret,
+        algorithm=algorithm,
+        tolerance_seconds=tolerance,
+      )
+      headers.update(
+        manager.build_headers(
+          payload_bytes,
+          header_prefix=header_prefix,
+        ),
+      )
 
     timeout_seconds = float(
       config.custom_settings.get("webhook_timeout", 10),
@@ -1886,13 +1915,13 @@ class PawControlNotificationManager:
     async def _response_status(response: Any) -> int:
       raw_status = await _maybe_await(getattr(response, "status", None))
       if raw_status is None:
-        raise WebhookDeliveryError(
+        raise WebhookSecurityError(
           "Webhook delivery failed: missing status",
         )
       try:
         return int(raw_status)
       except (TypeError, ValueError) as err:  # pragma: no cover - defensive guard
-        raise WebhookDeliveryError(
+        raise WebhookSecurityError(
           f"Webhook delivery failed: invalid status {raw_status!r}",
         ) from err
 
@@ -1908,7 +1937,7 @@ class PawControlNotificationManager:
       status_code = await _response_status(response)
       if status_code >= 400:
         body = await _response_text(response)
-        raise WebhookDeliveryError(
+        raise WebhookSecurityError(
           f"Webhook delivery failed with status {status_code}: {body[:200]}",
         )
 
@@ -1976,7 +2005,7 @@ class PawControlNotificationManager:
       )
       await _deliver_webhook(post_call)
     except (TimeoutError, ClientError) as err:
-      raise WebhookDeliveryError(
+      raise WebhookSecurityError(
         f"Webhook delivery failed: {err}",
       ) from err
 

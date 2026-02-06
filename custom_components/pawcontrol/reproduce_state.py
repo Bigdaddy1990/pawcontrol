@@ -1,4 +1,4 @@
-"""Shared reproduce-state helpers for PawControl platforms."""
+"""Shared helpers for reproducing platform states."""
 
 from __future__ import annotations
 
@@ -27,7 +27,6 @@ async def async_reproduce_platform_states(
   context: Context | None = None,
 ) -> None:
   """Iterate over states and call a handler for each valid one."""
-
   for state in states:
     if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
       _LOGGER.warning(

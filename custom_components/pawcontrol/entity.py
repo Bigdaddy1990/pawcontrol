@@ -132,6 +132,12 @@ class PawControlEntity(
     return getattr(self, "_attr_device_class", None)
 
   @property
+  def icon(self) -> str | None:
+    """Return the configured Material Design icon for the entity."""
+
+    return getattr(self, "_attr_icon", None)
+
+  @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Expose the entity's extra state attributes payload."""
 

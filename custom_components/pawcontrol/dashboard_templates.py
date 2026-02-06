@@ -39,8 +39,8 @@ from .coordinator_tasks import (
   merge_rejection_metric_values,
 )
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
+from .language import normalize_language
 from .service_guard import ServiceGuardResultPayload, normalise_guard_history
-from .utils import normalize_language
 from .types import (
   CardModConfig,
   CoordinatorRejectionMetrics,
@@ -57,7 +57,6 @@ from .types import (
   TemplateCacheStats,
   coerce_dog_modules_config,
 )
-
 
 _STATISTICS_EMPTY_LIST_TRANSLATIONS: Final[Mapping[str, str]] = {
   "en": "none",

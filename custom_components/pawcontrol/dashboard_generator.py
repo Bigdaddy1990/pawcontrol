@@ -20,13 +20,13 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Final, Literal, NotRequired, TypedDict, TypeVar, cast
 
+import aiofiles  # type: ignore[import-untyped]
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError
+from .compat import ConfigEntry, HomeAssistantError
 from .const import DOMAIN, MODULE_NOTIFICATIONS, MODULE_WEATHER
 from .coordinator_tasks import (
   CoordinatorRejectionMetrics,
@@ -645,7 +645,8 @@ class PawControlDashboardGenerator:
     """Load the stored Lovelace config from ``path`` if the file exists."""
 
     try:
-      data = await self.hass.async_add_executor_job(self._read_json_file, path)
+      async with aiofiles.open(path, encoding="utf-8") as file_handle:
+        data = json.loads(await file_handle.read())
     except FileNotFoundError:
       return None
     except json.JSONDecodeError as err:
@@ -664,20 +665,6 @@ class PawControlDashboardGenerator:
       else None
     )
     return cast(JSONMutableMapping, config) if isinstance(config, Mapping) else None
-
-  @staticmethod
-  def _read_json_file(path: Path) -> JSONMutableMapping:
-    """Read JSON payload from ``path`` using standard file I/O."""
-
-    with path.open(encoding="utf-8") as file_handle:
-      return cast(JSONMutableMapping, json.load(file_handle))
-
-  @staticmethod
-  def _write_json_file(path: Path, payload: Mapping[str, Any]) -> None:
-    """Persist ``payload`` as JSON to ``path``."""
-
-    with path.open("w", encoding="utf-8") as file_handle:
-      json.dump(payload, file_handle, indent=2, ensure_ascii=False)
 
   @staticmethod
   def _has_notifications_view(
@@ -757,6 +744,11 @@ class PawControlDashboardGenerator:
         else:
           self._dashboards = {}
 
+        metrics_payload = stored_data.get("performance_metrics")
+        if isinstance(metrics_payload, Mapping):
+          self._performance_metrics = self._coerce_performance_metrics(
+            metrics_payload,
+          )
       else:
         self._dashboards = {}
 
@@ -960,11 +952,14 @@ class PawControlDashboardGenerator:
 
     # OPTIMIZED: Async file writing with proper encoding
     try:
-      await self.hass.async_add_executor_job(
-        self._write_json_file,
-        dashboard_file,
-        dashboard_data,
-      )
+      async with aiofiles.open(dashboard_file, "w", encoding="utf-8") as f:
+        json_str = json.dumps(
+          dashboard_data,
+          indent=2,
+          ensure_ascii=False,
+        )
+        await f.write(json_str)
+
       self._performance_metrics["file_operations"] += 1
       return dashboard_file
 
@@ -1384,11 +1379,14 @@ class PawControlDashboardGenerator:
     }
 
     try:
-      await self.hass.async_add_executor_job(
-        self._write_json_file,
-        dashboard_path,
-        dashboard_data,
-      )
+      async with aiofiles.open(dashboard_path, "w", encoding="utf-8") as f:
+        json_str = json.dumps(
+          dashboard_data,
+          indent=2,
+          ensure_ascii=False,
+        )
+        await f.write(json_str)
+
       self._performance_metrics["file_operations"] += 1
 
     except Exception as err:
@@ -1494,6 +1492,10 @@ class PawControlDashboardGenerator:
         "updated": dt_util.utcnow().isoformat(),
         "version": DASHBOARD_STORAGE_VERSION,
         "entry_id": self.entry.entry_id,
+        "performance_metrics": cast(
+          DashboardPerformanceMetrics,
+          dict(self._performance_metrics),
+        ),
       }
 
       await self._store.async_save(metadata)

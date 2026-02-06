@@ -74,6 +74,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
+from .error_classification import classify_error_reason
 from .exceptions import HomeAssistantError, ServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
@@ -123,7 +124,7 @@ from .types import (
   ServiceExecutionDiagnostics,
   ServiceExecutionResult,
 )
-from .utils import async_fire_event
+from .utils import async_capture_service_guard_results, async_fire_event
 from .validation import (
   InputCoercionError,
   InputValidator,
@@ -475,7 +476,7 @@ def _build_error_details(
   serialisation.
   """
 
-  classification = (reason or "unknown").strip()
+  classification = classify_error_reason(reason, error=error)
   details_payload: dict[str, JSONValue] = {
     "error_classification": classification,
   }
@@ -2556,14 +2557,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           "notification_manager",
         )
         if notification_manager:
-          await notification_manager.async_send_notification(
-            notification_type=NotificationType.SYSTEM_INFO,
-            title="Route Export Complete",
-            message=(
-              f"Exported {routes_count} route(s) for {dog_id} in {export_format} format"
-            ),
-            dog_id=dog_id,
-          )
+          async with async_capture_service_guard_results() as captured_guards:
+            await notification_manager.async_send_notification(
+              notification_type=NotificationType.SYSTEM_INFO,
+              title="Route Export Complete",
+              message=(
+                f"Exported {routes_count} route(s) for {dog_id} "
+                f"in {export_format} format"
+              ),
+              dog_id=dog_id,
+            )
+            guard_snapshot = tuple(captured_guards)
         details_result = "exported"
       else:
         _LOGGER.warning("No routes found for export for %s", dog_id)
@@ -2634,6 +2638,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     gps_accuracy_threshold = call.data.get("gps_accuracy_threshold", 50)
     update_interval_seconds = call.data.get("update_interval_seconds", 60)
 
+    guard_results: list[ServiceGuardResult] = []
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
     try:
@@ -2723,16 +2728,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         "notification_manager",
       )
       if notification_manager:
-        await notification_manager.async_send_notification(
-          notification_type=NotificationType.SYSTEM_INFO,
-          title=f"🛰️ GPS Setup Complete: {dog_id}",
-          message=(
-            f"Automatic GPS tracking configured for {dog_id}. "
-            f"Safe zone: {safe_zone_radius}m radius. "
-            f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."
-          ),
-          dog_id=dog_id,
-        )
+        async with async_capture_service_guard_results() as captured_guards:
+          guard_results = captured_guards
+          await notification_manager.async_send_notification(
+            notification_type=NotificationType.SYSTEM_INFO,
+            title=f"🛰️ GPS Setup Complete: {dog_id}",
+            message=(
+              f"Automatic GPS tracking configured for {dog_id}. "
+              f"Safe zone: {safe_zone_radius}m radius. "
+              f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."
+            ),
+            dog_id=dog_id,
+          )
+        guard_snapshot = tuple(guard_results)
 
       details = _normalise_service_details(
         {
@@ -2756,6 +2764,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
 
     except HomeAssistantError as err:
+      guard_snapshot = tuple(guard_results)
       _record_service_result(
         runtime_data,
         service=SERVICE_SETUP_AUTOMATIC_GPS,
@@ -2774,6 +2783,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       error_message = (
         f"Failed to setup automatic GPS for {dog_id}. Check the logs for details."
       )
+      guard_snapshot = tuple(guard_results)
       _record_service_result(
         runtime_data,
         service=SERVICE_SETUP_AUTOMATIC_GPS,
@@ -2804,6 +2814,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     channels = call.data.get("channels")
     expires_in_hours_raw = call.data.get("expires_in_hours")
 
+    guard_results: list[ServiceGuardResult] = []
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
     try:
@@ -2895,15 +2906,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         timedelta(hours=expires_in_hours) if expires_in_hours is not None else None
       )
 
-      notification_id = await notification_manager.async_send_notification(
-        notification_type=notification_type_enum,
-        title=title,
-        message=message,
-        dog_id=dog_id,
-        priority=priority_enum,
-        expires_in=expires_in,
-        force_channels=channel_enums,
-      )
+      async with async_capture_service_guard_results() as captured_guards:
+        guard_results = captured_guards
+        notification_id = await notification_manager.async_send_notification(
+          notification_type=notification_type_enum,
+          title=title,
+          message=message,
+          dog_id=dog_id,
+          priority=priority_enum,
+          expires_in=expires_in,
+          force_channels=channel_enums,
+        )
+      guard_snapshot = tuple(guard_results)
 
       _LOGGER.info("Sent notification %s: %s", notification_id, title)
 
@@ -2930,9 +2944,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
 
     except HomeAssistantError as err:
+      guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason="exception",
+        reason=classify_error_reason("exception", error=err),
       )
       _record_service_result(
         runtime_data,
@@ -2952,9 +2967,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       error_message = (
         "Failed to send the PawControl notification. Check the logs for details."
       )
+      guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason="exception",
+        reason=classify_error_reason("exception", error=err),
       )
       _record_service_result(
         runtime_data,
@@ -2992,10 +3008,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
     try:
-      acknowledged = await notification_manager.async_acknowledge_notification(
-        notification_id,
-      )
+      async with async_capture_service_guard_results() as captured_guards:
+        guard_results = captured_guards
+        acknowledged = await notification_manager.async_acknowledge_notification(
+          notification_id,
+        )
+      guard_snapshot = tuple(guard_results)
     except HomeAssistantError as err:
+      guard_snapshot = tuple(guard_results)
       _record_service_result(
         runtime_data,
         service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
@@ -3018,6 +3038,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       error_message = (
         "Failed to acknowledge the PawControl notification. Check the logs for details."
       )
+      guard_snapshot = tuple(guard_results)
       _record_service_result(
         runtime_data,
         service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
@@ -3034,6 +3055,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     if not acknowledged:
       error_message = f"No PawControl notification with ID {notification_id} exists."
+      guard_snapshot = tuple(guard_results)
       _record_service_result(
         runtime_data,
         service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
@@ -4216,6 +4238,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     if reminder_sent_at_iso is not None:
       reminder_metadata["reminder_sent_at"] = reminder_sent_at_iso
 
+    guard_results: list[ServiceGuardResult] = []
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
     language_config = getattr(hass, "config", None)
@@ -4257,41 +4280,44 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         "notification_manager",
       )
       if notification_manager:
-        title = translated_grooming_template(
-          hass_language,
-          "notification_title",
-          dog_label=dog_label,
-        )
-        message_parts = [
-          translated_grooming_template(
+        async with async_capture_service_guard_results() as captured_guards:
+          guard_results = captured_guards
+          title = translated_grooming_template(
             hass_language,
-            "notification_message",
-            grooming_type=grooming_type,
+            "notification_title",
             dog_label=dog_label,
-          ),
-        ]
-        if groomer:
-          message_parts.append(
+          )
+          message_parts = [
             translated_grooming_template(
               hass_language,
-              "notification_with_groomer",
-              groomer=groomer,
+              "notification_message",
+              grooming_type=grooming_type,
+              dog_label=dog_label,
             ),
+          ]
+          if groomer:
+            message_parts.append(
+              translated_grooming_template(
+                hass_language,
+                "notification_with_groomer",
+                groomer=groomer,
+              ),
+            )
+          if estimated_duration:
+            message_parts.append(
+              translated_grooming_template(
+                hass_language,
+                "notification_estimated_duration",
+                minutes=estimated_duration,
+              ),
+            )
+          await notification_manager.async_send_notification(
+            notification_type=NotificationType.SYSTEM_INFO,
+            title=title,
+            message=" ".join(part for part in message_parts if part),
+            dog_id=dog_id,
           )
-        if estimated_duration:
-          message_parts.append(
-            translated_grooming_template(
-              hass_language,
-              "notification_estimated_duration",
-              minutes=estimated_duration,
-            ),
-          )
-        await notification_manager.async_send_notification(
-          notification_type=NotificationType.SYSTEM_INFO,
-          title=title,
-          message=" ".join(part for part in message_parts if part),
-          dog_id=dog_id,
-        )
+        guard_snapshot = tuple(guard_results)
 
       details_payload: ServiceDetailsPayload = {
         "session_id": session_id,
@@ -4325,6 +4351,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
 
     except HomeAssistantError as err:
+      guard_snapshot = tuple(guard_results)
       _record_service_result(
         runtime_data,
         service=SERVICE_START_GROOMING,
@@ -4342,6 +4369,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         "start_failure",
         dog_label=dog_label,
       )
+      guard_snapshot = tuple(guard_results)
       _record_service_result(
         runtime_data,
         service=SERVICE_START_GROOMING,

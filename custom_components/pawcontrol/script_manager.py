@@ -35,8 +35,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError
+from .compat import ConfigEntry, HomeAssistantError
 from .const import (
   CACHE_TIMESTAMP_FUTURE_THRESHOLD,
   CACHE_TIMESTAMP_STALE_THRESHOLD,
@@ -56,6 +55,7 @@ from .const import (
   RESILIENCE_SKIP_THRESHOLD_MIN,
 )
 from .coordinator_support import CacheMonitorRegistrar
+from .error_classification import classify_error_reason
 from .types import (
   CacheDiagnosticsMetadata,
   CacheDiagnosticsSnapshot,
@@ -1788,7 +1788,7 @@ class PawControlScriptManager:
         update_entry(entry, data=new_data)
       except Exception as err:  # pragma: no cover - defensive guard
         # Classify the error for diagnostics/logging
-        error_classification = "exception"
+        error_classification = classify_error_reason("exception", error=err)
         _LOGGER.warning(
           "Failed to update resilience blueprint %s: %s",
           getattr(entry, "entry_id", "unknown"),

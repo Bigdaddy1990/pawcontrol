@@ -456,11 +456,15 @@ class PawControlBinarySensorBase(
     sensor_type: str,
     *,
     device_class: BinarySensorDeviceClass | None = None,
+    icon_on: str | None = None,
+    icon_off: str | None = None,
     entity_category: EntityCategory | None = None,
   ) -> None:
     """Initialize the binary sensor entity."""
     super().__init__(coordinator, dog_id, dog_name)
     self._sensor_type = sensor_type
+    self._icon_on = icon_on
+    self._icon_off = icon_off
 
     # Entity configuration
     self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
@@ -504,6 +508,15 @@ class PawControlBinarySensorBase(
     """Return a mutable copy of inherited attributes."""
 
     return cast(AttributeDict, ensure_json_mapping(super().extra_state_attributes))
+
+  @property
+  def icon(self) -> str | None:
+    """Return the icon to use in the frontend."""
+    if self.is_on and self._icon_on:
+      return self._icon_on
+    if not self.is_on and self._icon_off:
+      return self._icon_off
+    return "mdi:information-outline"
 
   @property
   def device_class(self) -> BinarySensorDeviceClass | None:
@@ -649,6 +662,8 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "online",
       device_class=BinarySensorDeviceClass.CONNECTIVITY,
+      icon_on="mdi:check-network",
+      icon_off="mdi:close-network",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -704,6 +719,8 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "attention_needed",
       device_class=BinarySensorDeviceClass.PROBLEM,
+      icon_on="mdi:alert-circle",
+      icon_off="mdi:check-circle",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -818,6 +835,8 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "visitor_mode",
+      icon_on="mdi:account-group",
+      icon_off="mdi:home",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -874,6 +893,8 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "is_hungry",
+      icon_on="mdi:food-drumstick-off",
+      icon_off="mdi:food-drumstick",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -948,6 +969,8 @@ class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "feeding_due",
+      icon_on="mdi:clock-alert",
+      icon_off="mdi:clock-check",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -982,6 +1005,8 @@ class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "feeding_schedule_on_track",
+      icon_on="mdi:calendar-check",
+      icon_off="mdi:calendar-alert",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1011,6 +1036,8 @@ class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "daily_feeding_goal_met",
+      icon_on="mdi:target",
+      icon_off="mdi:target-variant",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1039,6 +1066,8 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "walk_in_progress",
       device_class=_RUNNING_DEVICE_CLASS,
+      icon_on="mdi:walk",
+      icon_off="mdi:home",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1129,6 +1158,8 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "needs_walk",
+      icon_on="mdi:dog-side",
+      icon_off="mdi:sleep",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1199,6 +1230,8 @@ class PawControlWalkGoalMetBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "walk_goal_met",
+      icon_on="mdi:trophy",
+      icon_off="mdi:trophy-outline",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1225,6 +1258,8 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "long_walk_overdue",
+      icon_on="mdi:timer-alert",
+      icon_off="mdi:timer-check",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1262,6 +1297,8 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "is_home",
       device_class=BinarySensorDeviceClass.PRESENCE,
+      icon_on="mdi:home",
+      icon_off="mdi:home-outline",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1323,6 +1360,8 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "in_safe_zone",
       device_class=BinarySensorDeviceClass.SAFETY,
+      icon_on="mdi:shield-check",
+      icon_off="mdi:shield-alert",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1380,6 +1419,8 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "gps_accurately_tracked",
       device_class=BinarySensorDeviceClass.CONNECTIVITY,
+      icon_on="mdi:crosshairs-gps",
+      icon_off="mdi:crosshairs-question",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1435,6 +1476,8 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "moving",
       device_class=BinarySensorDeviceClass.MOTION,
+      icon_on="mdi:run",
+      icon_off="mdi:sleep",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1469,6 +1512,8 @@ class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "geofence_alert",
       device_class=BinarySensorDeviceClass.PROBLEM,
+      icon_on="mdi:map-marker-alert",
+      icon_off="mdi:map-marker-check",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1500,6 +1545,8 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "gps_battery_low",
       device_class=BinarySensorDeviceClass.BATTERY,
+      icon_on="mdi:battery-alert",
+      icon_off="mdi:battery",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1536,6 +1583,8 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "health_alert",
       device_class=BinarySensorDeviceClass.PROBLEM,
+      icon_on="mdi:medical-bag",
+      icon_off="mdi:heart",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1590,6 +1639,8 @@ class PawControlWeightAlertBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "weight_alert",
       device_class=BinarySensorDeviceClass.PROBLEM,
+      icon_on="mdi:scale-unbalanced",
+      icon_off="mdi:scale-balanced",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1619,6 +1670,8 @@ class PawControlMedicationDueBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "medication_due",
+      icon_on="mdi:pill",
+      icon_off="mdi:pill-off",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1649,6 +1702,8 @@ class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "vet_checkup_due",
+      icon_on="mdi:calendar-alert",
+      icon_off="mdi:calendar-check",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1683,6 +1738,8 @@ class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "needs_grooming",
+      icon_on="mdi:content-cut",
+      icon_off="mdi:check",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1710,6 +1767,8 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "activity_level_concern",
       device_class=BinarySensorDeviceClass.PROBLEM,
+      icon_on="mdi:alert",
+      icon_off="mdi:check-circle",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1774,6 +1833,8 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "health_aware_feeding",
+      icon_on="mdi:heart-cog",
+      icon_off="mdi:heart-outline",
       entity_category=EntityCategory.DIAGNOSTIC,
     )
 
@@ -1826,6 +1887,8 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
       dog_id,
       dog_name,
       "medication_with_meals",
+      icon_on="mdi:pill-multiple",
+      icon_off="mdi:pill",
       entity_category=EntityCategory.DIAGNOSTIC,
     )
 
@@ -1866,6 +1929,8 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
       dog_name,
       "health_emergency",
       device_class=BinarySensorDeviceClass.PROBLEM,
+      icon_on="mdi:alert-decagram",
+      icon_off="mdi:check-decagram",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1936,6 +2001,8 @@ class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase
       dog_id,
       dog_name,
       "garden_session_active",
+      icon_on="mdi:flower",
+      icon_off="mdi:flower-outline",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1966,6 +2033,8 @@ class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
       dog_id,
       dog_name,
       "in_garden",
+      icon_on="mdi:pine-tree",
+      icon_off="mdi:pine-tree-variant-outline",
     )
 
   def _get_is_on_state(self) -> bool:
@@ -1993,6 +2062,8 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
       dog_id,
       dog_name,
       "garden_poop_pending",
+      icon_on="mdi:emoticon-poop",
+      icon_off="mdi:check-circle-outline",
     )
 
   def _get_is_on_state(self) -> bool:
