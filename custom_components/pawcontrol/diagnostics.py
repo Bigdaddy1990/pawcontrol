@@ -14,6 +14,7 @@ import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -41,8 +42,6 @@ from .coordinator_tasks import (
   merge_rejection_metric_values,
   resolve_entity_factory_guard_metrics,
 )
-from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
-from .error_classification import classify_error_reason
 from .runtime_data import describe_runtime_store_status, get_runtime_data
 from .service_guard import (
   ServiceGuardMetricsSnapshot,
@@ -474,8 +473,6 @@ REDACTED_KEYS = {
   CONF_API_ENDPOINT,
   CONF_API_TOKEN,
 }
-
-_REDACTED_KEY_PATTERNS = compile_redaction_patterns(REDACTED_KEYS)
 
 
 def _fallback_coordinator_statistics() -> CoordinatorStatisticsPayload:
@@ -1253,7 +1250,7 @@ def _build_guard_notification_error_metrics(
           continue
         reason_text = str(reason_key)
         guard_reasons[reason_text] = guard_reasons.get(reason_text, 0) + coerced
-        classification = classify_error_reason(reason_text, error=None)
+        classification = reason_text or "unknown"
         classified_errors[classification] = (
           classified_errors.get(classification, 0) + coerced
         )
@@ -1287,7 +1284,7 @@ def _build_guard_notification_error_metrics(
           notification_reasons[service_reason] = (
             notification_reasons.get(service_reason, 0) + failures
           )
-        classification = classify_error_reason(service_reason, error=error_text)
+        classification = service_reason or error_text or "unknown"
         classified_errors[classification] = (
           classified_errors.get(classification, 0) + failures
         )
@@ -2260,4 +2257,4 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
 def _redact_sensitive_data(data: JSONValue) -> JSONValue:
   """Recursively redact sensitive data from diagnostic information."""
 
-  return redact_sensitive_data(data, patterns=_REDACTED_KEY_PATTERNS)
+  return cast(JSONValue, async_redact_data(data, REDACTED_KEYS))

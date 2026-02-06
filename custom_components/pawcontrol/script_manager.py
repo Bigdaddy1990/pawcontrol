@@ -55,7 +55,6 @@ from .const import (
   RESILIENCE_SKIP_THRESHOLD_MIN,
 )
 from .coordinator_support import CacheMonitorRegistrar
-from .error_classification import classify_error_reason
 from .types import (
   CacheDiagnosticsMetadata,
   CacheDiagnosticsSnapshot,
@@ -1788,7 +1787,7 @@ class PawControlScriptManager:
         update_entry(entry, data=new_data)
       except Exception as err:  # pragma: no cover - defensive guard
         # Classify the error for diagnostics/logging
-        error_classification = classify_error_reason("exception", error=err)
+        error_classification = "exception"
         _LOGGER.warning(
           "Failed to update resilience blueprint %s: %s",
           getattr(entry, "entry_id", "unknown"),
