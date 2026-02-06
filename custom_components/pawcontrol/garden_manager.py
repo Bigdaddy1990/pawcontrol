@@ -11,6 +11,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .types import (
@@ -22,6 +23,9 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_GARDEN_STORAGE_VERSION = 1
+_GARDEN_HISTORY_LIMIT = 100
 
 
 @dataclass(slots=True)
@@ -83,6 +87,11 @@ class GardenManager:
   def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
     self.hass = hass
     self.entry_id = entry_id
+    self._store = Store(
+      hass,
+      _GARDEN_STORAGE_VERSION,
+      f"pawcontrol_garden_{entry_id}",
+    )
     self._sessions: dict[str, GardenSession] = {}
     self._history: dict[str, list[GardenSession]] = {}
     self._pending_confirmations: dict[str, GardenConfirmationSnapshot] = {}
@@ -91,6 +100,97 @@ class GardenManager:
     """Initialize manager state."""
     for dog_id in dogs:
       self._history.setdefault(dog_id, [])
+    await self._async_restore_history()
+
+  async def _async_restore_history(self) -> None:
+    """Restore garden history from storage."""
+    data = await self._store.async_load()
+    if not isinstance(data, dict):
+      return
+
+    raw_history = data.get("history")
+    if not isinstance(raw_history, dict):
+      return
+
+    for dog_id, sessions in raw_history.items():
+      if not isinstance(dog_id, str) or not isinstance(sessions, list):
+        continue
+      restored: list[GardenSession] = []
+      for session_data in sessions:
+        if isinstance(session_data, dict):
+          restored.append(self._session_from_storage(dog_id, session_data))
+      self._history[dog_id] = restored[-_GARDEN_HISTORY_LIMIT:]
+
+  async def _async_store_history(self) -> None:
+    """Persist garden history to storage."""
+    payload = {
+      "history": {
+        dog_id: [
+          self._session_to_storage(session)
+          for session in sessions[-_GARDEN_HISTORY_LIMIT:]
+        ]
+        for dog_id, sessions in self._history.items()
+      },
+    }
+    await self._store.async_save(payload)
+
+  def _session_to_storage(self, session: GardenSession) -> dict[str, Any]:
+    """Serialize a session for storage."""
+    return {
+      "session_id": session.session_id,
+      "dog_name": session.dog_name,
+      "start_time": dt_util.as_utc(session.start_time).isoformat(),
+      "end_time": (
+        dt_util.as_utc(session.end_time).isoformat() if session.end_time else None
+      ),
+      "activities": list(session.activities),
+      "poop_count": session.poop_count,
+      "notes": session.notes,
+      "weather_conditions": session.weather_conditions,
+      "temperature": session.temperature,
+      "detection_method": session.detection_method,
+    }
+
+  def _session_from_storage(
+    self,
+    dog_id: str,
+    data: dict[str, Any],
+  ) -> GardenSession:
+    """Restore a session from storage."""
+    start_raw = data.get("start_time")
+    start_time = (
+      dt_util.parse_datetime(start_raw) if isinstance(start_raw, str) else None
+    )
+    end_raw = data.get("end_time")
+    end_time = dt_util.parse_datetime(end_raw) if isinstance(end_raw, str) else None
+    activities = data.get("activities")
+    if not isinstance(activities, list):
+      activities = []
+
+    poop_count = data.get("poop_count")
+    try:
+      poop_value = int(poop_count) if poop_count is not None else 0
+    except (TypeError, ValueError):
+      poop_value = 0
+
+    session_id = data.get("session_id")
+    if not isinstance(session_id, str) or not session_id:
+      timestamp = int((start_time or dt_util.utcnow()).timestamp())
+      session_id = f"garden_{dog_id}_{timestamp}"
+
+    return GardenSession(
+      dog_id=dog_id,
+      dog_name=str(data.get("dog_name", dog_id)),
+      session_id=session_id,
+      start_time=start_time or dt_util.utcnow(),
+      end_time=end_time,
+      activities=activities,
+      poop_count=poop_value,
+      notes=data.get("notes"),
+      weather_conditions=data.get("weather_conditions"),
+      temperature=data.get("temperature"),
+      detection_method=data.get("detection_method"),
+    )
 
   def get_active_session(self, dog_id: str) -> GardenSession | None:
     """Return active session if any."""
@@ -181,7 +281,11 @@ class GardenManager:
 
     session.end_time = dt_util.utcnow()
     session.notes = kwargs.get("notes", session.notes)
-    self._history.setdefault(dog_id, []).append(session)
+    history = self._history.setdefault(dog_id, [])
+    history.append(session)
+    if len(history) > _GARDEN_HISTORY_LIMIT:
+      self._history[dog_id] = history[-_GARDEN_HISTORY_LIMIT:]
+    await self._async_store_history()
     self._pending_confirmations.pop(dog_id, None)
     return session
 
@@ -264,7 +368,9 @@ class GardenManager:
 
     export_format = format.lower()
     filename = f"pawcontrol_garden_{dog_id}.{export_format}"
-    path = Path(self.hass.config.path(filename))
+    export_dir = Path(self.hass.config.path("www", "pawcontrol"))
+    export_dir.mkdir(parents=True, exist_ok=True)
+    path = export_dir / filename
 
     if export_format == "csv":
       header = (
