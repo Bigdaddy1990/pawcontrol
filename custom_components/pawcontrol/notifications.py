@@ -33,7 +33,6 @@ from .coordinator_tasks import default_rejection_metrics
 from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
 from .feeding_translations import build_feeding_compliance_notification
-from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
 from .runtime_data import get_runtime_data
@@ -774,10 +773,7 @@ class PawControlNotificationManager:
     self._configs: dict[str, NotificationConfig] = {}
     self._handlers: dict[NotificationChannel, Callable] = {}
     self._lock = asyncio.Lock()
-    self._session = ensure_shared_client_session(
-      session,
-      owner="PawControlNotificationManager",
-    )
+    self._session = session
 
     # NEW: Person entity manager for dynamic targeting
     self._person_manager: PersonEntityManager | None = None

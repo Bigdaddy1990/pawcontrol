@@ -8,7 +8,7 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_API_KEY, CONF_PASSWORD, CONF_TOKEN, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from .compat import ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from .const import CONF_API_ENDPOINT, CONF_API_TOKEN, CONF_DOGS
 from .runtime_data import get_runtime_data
 

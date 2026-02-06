@@ -26,7 +26,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from .const import (
   ATTR_DOG_ID,
   DEFAULT_MODEL,

@@ -23,7 +23,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import MASS_GRAMS, MASS_KILOGRAMS
+from homeassistant.const import UnitOfMass
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
@@ -67,6 +67,9 @@ if TYPE_CHECKING:
 
 else:
   from homeassistant.components.sensor import SensorEntity as SensorEntityProtocol
+
+MASS_GRAMS = UnitOfMass.GRAMS
+MASS_KILOGRAMS = UnitOfMass.KILOGRAMS
 
 _LOGGER = logging.getLogger(__name__)
 
