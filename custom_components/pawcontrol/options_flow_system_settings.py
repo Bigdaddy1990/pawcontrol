@@ -76,7 +76,7 @@ from .types import (
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
 
-  from .compat import ConfigEntry
+  from homeassistant.config_entries import ConfigEntry
   from .types import PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)

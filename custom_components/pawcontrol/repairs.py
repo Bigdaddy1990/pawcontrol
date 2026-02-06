@@ -21,7 +21,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from .const import (
   CONF_DOG_ID,
   CONF_DOG_NAME,

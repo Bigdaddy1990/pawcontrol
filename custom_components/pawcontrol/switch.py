@@ -26,7 +26,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError
 from .const import (
   CONF_DOGS,
   DEFAULT_MODEL,

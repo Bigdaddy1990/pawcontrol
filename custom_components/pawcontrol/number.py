@@ -30,7 +30,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError, MASS_GRAMS, MASS_KILOGRAMS
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfMass
+from homeassistant.exceptions import HomeAssistantError
 from .const import (
   CONF_DAILY_FOOD_AMOUNT,
   CONF_GPS_ACCURACY_FILTER,
@@ -77,6 +79,9 @@ from .utils import async_call_add_entities, normalise_entity_attributes
 # ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
 ATTR_VALUE = getattr(ha_const, "ATTR_VALUE", "value")
+
+MASS_GRAMS = UnitOfMass.GRAMS
+MASS_KILOGRAMS = UnitOfMass.KILOGRAMS
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -30,7 +30,7 @@ try:
 except ImportError:  # pragma: no cover
   ATTR_ENTITY_ID = "entity_id"
 
-from .compat import HomeAssistantError  # noqa: E402
+from homeassistant.exceptions import HomeAssistantError  # noqa: E402
 from .const import (  # noqa: E402
   ACTIVITY_LEVELS,
   DEFAULT_MODEL,

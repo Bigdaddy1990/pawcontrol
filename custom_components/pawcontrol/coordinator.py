@@ -35,7 +35,6 @@ from .coordinator_support import (
 )
 from .device_api import PawControlDeviceClient
 from .exceptions import ValidationError
-from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager
 from .types import (
@@ -84,7 +83,7 @@ class PawControlCoordinator(
     """Initialise the coordinator."""
     self.config_entry = entry
     self._options = cast(ConfigEntryOptionsPayload, entry.options)
-    self.session = ensure_shared_client_session(session, owner="PawControlCoordinator")
+    self.session = session
     self.registry = DogConfigRegistry.from_entry(entry)
     self._use_external_api = bool(self._options.get(CONF_EXTERNAL_INTEGRATIONS, False))
 
