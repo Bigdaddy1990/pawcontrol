@@ -7,8 +7,6 @@ from typing import Any
 
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.components.device_tracker.const import SourceType
-from homeassistant.components.zone import async_active_zone
-from homeassistant.const import STATE_HOME, STATE_NOT_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -119,21 +117,6 @@ class PawControlDeviceTracker(PawControlEntity, TrackerEntity):
 
     return attrs
 
-  @property
-  def state(self) -> str | None:
-    """Return the location state for the tracker."""
-    latitude = self.latitude
-    longitude = self.longitude
-    if latitude is None or longitude is None or self.hass is None:
-      return None
-
-    if zone := async_active_zone(self.hass, latitude, longitude):
-      if zone.entity_id == "zone.home":
-        return STATE_HOME
-      return zone.name
-
-    return STATE_NOT_HOME
-
   def _get_gps_data(self) -> dict[str, Any]:
     """Return GPS module data for the dog."""
     if hasattr(self.coordinator, "get_module_data"):
@@ -142,4 +125,12 @@ class PawControlDeviceTracker(PawControlEntity, TrackerEntity):
       dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
       gps_data = dog_data.get("gps", {})
 
-    return gps_data if isinstance(gps_data, dict) else {}
+    if isinstance(gps_data, dict):
+      return gps_data
+
+    _LOGGER.warning(
+      "GPS data for dog %s is not a dictionary: %s",
+      self._dog_id,
+      type(gps_data),
+    )
+    return {}
