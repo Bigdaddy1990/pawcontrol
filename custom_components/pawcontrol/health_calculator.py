@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from enum import Enum
@@ -97,7 +96,7 @@ class FeedingHistoryDaySummary(TypedDict):
   meals: int
 
 
-@dataclass(init=False)
+@dataclass
 class HealthMetrics:
   """Comprehensive health metrics for a dog.
 
@@ -145,50 +144,13 @@ class HealthMetrics:
 
   _BREED_ALLOWED_CHARACTERS = frozenset(" -'")
 
-  def __init__(
-    self,
-    current_weight: float,
-    ideal_weight: float | None = None,
-    height_cm: float | None = None,
-    age_months: int | None = None,
-    breed: str | None = None,
-    body_condition_score: BodyConditionScore | None = None,
-    activity_level: ActivityLevel | None = None,
-    life_stage: LifeStage | None = None,
-    health_conditions: Iterable[str] | None = None,
-    medications: Iterable[str] | None = None,
-    special_diet: Iterable[str] | None = None,
-    daily_calorie_requirement: float | None = None,
-    portion_adjustment_factor: float = 1.0,
-    weight_goal: str | None = None,
-    weather_conditions: WeatherConditionsPayload | None = None,
-    weather_health_score: int | None = None,
-  ) -> None:
-    """Create a calculator pre-populated with the dog's baseline metrics."""
-    self.current_weight = current_weight
-    self.ideal_weight = ideal_weight
-    self.height_cm = height_cm
-    self.age_months = age_months
-    self.breed = self._validate_breed(breed)
-    self.body_condition_score = body_condition_score
-    self.activity_level = activity_level
-    self.life_stage = life_stage
-    self.health_conditions = (
-      list(health_conditions) if health_conditions is not None else []
-    )
-    self.medications = list(medications) if medications is not None else []
-    self.special_diet = (
-      list(
-        special_diet,
-      )
-      if special_diet is not None
-      else []
-    )
-    self.daily_calorie_requirement = daily_calorie_requirement
-    self.portion_adjustment_factor = portion_adjustment_factor
-    self.weight_goal = weight_goal
-    self.weather_conditions = weather_conditions
-    self.weather_health_score = weather_health_score
+  def __post_init__(self) -> None:
+    """Normalise mutable fields and validate user-supplied values."""
+
+    self.breed = self._validate_breed(self.breed)
+    self.health_conditions = list(self.health_conditions)
+    self.medications = list(self.medications)
+    self.special_diet = list(self.special_diet)
 
   @classmethod
   def _validate_breed(cls, breed: str | None) -> str | None:
