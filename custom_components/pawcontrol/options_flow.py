@@ -450,7 +450,9 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
           ): bool,
           vol.Optional(
             GPS_UPDATE_INTERVAL_FIELD,
-            default=int(current.get(GPS_UPDATE_INTERVAL_FIELD, DEFAULT_GPS_UPDATE_INTERVAL)),
+            default=int(
+              current.get(GPS_UPDATE_INTERVAL_FIELD, DEFAULT_GPS_UPDATE_INTERVAL)
+            ),
           ): cv.positive_int,
           vol.Optional(
             GPS_ACCURACY_FILTER_FIELD,
@@ -582,7 +584,9 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
     if user_input is not None:
       payload = {
         DASHBOARD_MODE_FIELD: str(
-          user_input.get(DASHBOARD_MODE_FIELD, current.get(DASHBOARD_MODE_FIELD, "full"))
+          user_input.get(
+            DASHBOARD_MODE_FIELD, current.get(DASHBOARD_MODE_FIELD, "full")
+          )
         ),
         SHOW_STATISTICS_FIELD: bool(user_input.get(SHOW_STATISTICS_FIELD, True)),
         SHOW_ALERTS_FIELD: bool(user_input.get(SHOW_ALERTS_FIELD, True)),
@@ -661,24 +665,22 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
 
   def _summarize_dogs(self) -> str:
     summary = [
-      f"{dog.get(CONF_DOG_NAME)} ({dog.get(CONF_DOG_ID)})"
-      for dog in self._dogs
+      f"{dog.get(CONF_DOG_NAME)} ({dog.get(CONF_DOG_ID)})" for dog in self._dogs
     ]
     return "\n".join(summary) if summary else "-"
 
   def _build_dog_schema(self, current: dict[str, Any] | None = None) -> vol.Schema:
     current = current or {}
     size_options = [
-      selector.SelectOptionDict(value=size, label=size.title())
-      for size in DOG_SIZES
+      selector.SelectOptionDict(value=size, label=size.title()) for size in DOG_SIZES
     ]
     is_new = current == {}
     name_key = vol.Required if is_new else vol.Optional
     schema: dict[Any, Any] = {
       name_key(
-          CONF_DOG_NAME,
-          default=str(current.get(CONF_DOG_NAME, "")),
-        ): cv.string,
+        CONF_DOG_NAME,
+        default=str(current.get(CONF_DOG_NAME, "")),
+      ): cv.string,
     }
     if is_new:
       schema[vol.Required(CONF_DOG_ID)] = cv.string
@@ -720,9 +722,7 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
     except InputCoercionError:
       dog_id = ""
 
-    if not dog_id:
-      errors[CONF_DOG_ID] = "dog_id_too_short"
-    elif len(dog_id) < MIN_DOG_NAME_LENGTH:
+    if not dog_id or len(dog_id) < MIN_DOG_NAME_LENGTH:
       errors[CONF_DOG_ID] = "dog_id_too_short"
     elif len(dog_id) > MAX_DOG_NAME_LENGTH:
       errors[CONF_DOG_ID] = "dog_id_too_long"
@@ -749,10 +749,7 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
       errors[CONF_DOG_NAME] = "dog_name_already_exists"
 
     breed = user_input.get(CONF_DOG_BREED)
-    if isinstance(breed, str) and breed.strip():
-      breed = breed.strip()
-    else:
-      breed = None
+    breed = breed.strip() if isinstance(breed, str) and breed.strip() else None
 
     dog_age = self._coerce_dog_age(user_input.get(CONF_DOG_AGE), errors)
     dog_weight = self._coerce_dog_weight(user_input.get(CONF_DOG_WEIGHT), errors)

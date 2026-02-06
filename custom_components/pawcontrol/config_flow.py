@@ -296,7 +296,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             default=self._options.get("performance_mode", DEFAULT_PERFORMANCE_MODE),
           ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-              options=[selector.SelectOptionDict(value=mode, label=mode) for mode in PERFORMANCE_MODES],
+              options=[
+                selector.SelectOptionDict(value=mode, label=mode)
+                for mode in PERFORMANCE_MODES
+              ],
             ),
           ),
           vol.Optional(
@@ -309,7 +312,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
           ): bool,
           vol.Optional(
             CONF_DATA_RETENTION_DAYS,
-            default=int(self._options.get(CONF_DATA_RETENTION_DAYS, _DEFAULT_RETENTION_DAYS)),
+            default=int(
+              self._options.get(CONF_DATA_RETENTION_DAYS, _DEFAULT_RETENTION_DAYS)
+            ),
           ): cv.positive_int,
           vol.Optional(
             "debug_logging",
@@ -646,8 +651,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
   def _build_dog_schema(self) -> vol.Schema:
     size_options = [
-      selector.SelectOptionDict(value=size, label=size.title())
-      for size in DOG_SIZES
+      selector.SelectOptionDict(value=size, label=size.title()) for size in DOG_SIZES
     ]
     return vol.Schema(
       {
@@ -680,9 +684,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
       dog_id = normalize_dog_id(dog_id_raw)
     except InputCoercionError:
       dog_id = ""
-    if not dog_id:
-      errors[CONF_DOG_ID] = "dog_id_too_short"
-    elif len(dog_id) < MIN_DOG_NAME_LENGTH:
+    if not dog_id or len(dog_id) < MIN_DOG_NAME_LENGTH:
       errors[CONF_DOG_ID] = "dog_id_too_short"
     elif len(dog_id) > MAX_DOG_NAME_LENGTH:
       errors[CONF_DOG_ID] = "dog_id_too_long"
@@ -704,10 +706,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
       errors[CONF_DOG_NAME] = "dog_name_already_exists"
 
     breed = user_input.get(CONF_DOG_BREED)
-    if isinstance(breed, str) and breed.strip():
-      breed = breed.strip()
-    else:
-      breed = None
+    breed = breed.strip() if isinstance(breed, str) and breed.strip() else None
 
     dog_age = self._coerce_dog_age(user_input.get(CONF_DOG_AGE), errors)
     dog_weight = self._coerce_dog_weight(user_input.get(CONF_DOG_WEIGHT), errors)
@@ -813,14 +812,17 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
       "dog_count": str(len(dogs)),
       "module_summary": module_summary,
       "total_modules": str(total_modules),
-      "gps_dogs": str(sum(1 for dog in dogs if dog.get(DOG_MODULES_FIELD, {}).get("gps"))),
-      "health_dogs": str(sum(1 for dog in dogs if dog.get(DOG_MODULES_FIELD, {}).get("health"))),
+      "gps_dogs": str(
+        sum(1 for dog in dogs if dog.get(DOG_MODULES_FIELD, {}).get("gps"))
+      ),
+      "health_dogs": str(
+        sum(1 for dog in dogs if dog.get(DOG_MODULES_FIELD, {}).get("health"))
+      ),
     }
 
   def _build_profile_placeholders(self) -> dict[str, str]:
     profile_descriptions = [
-      f"{key}: {profile.description}"
-      for key, profile in ENTITY_PROFILES.items()
+      f"{key}: {profile.description}" for key, profile in ENTITY_PROFILES.items()
     ]
     return {
       "dogs_count": str(len(self._data[CONF_DOGS])),
