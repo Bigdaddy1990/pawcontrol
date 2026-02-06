@@ -174,9 +174,7 @@ CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE: Final[str] = (
   "push_rate_limit_webhook_per_minute"
 )
 CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE: Final[str] = "push_rate_limit_mqtt_per_minute"
-CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[str] = (
-  "push_rate_limit_entity_per_minute"
-)
+CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE: Final[str] = "push_rate_limit_entity_per_minute"
 
 # OPTIMIZED: MQTT push configuration
 CONF_MQTT_ENABLED: Final[str] = "mqtt_enabled"

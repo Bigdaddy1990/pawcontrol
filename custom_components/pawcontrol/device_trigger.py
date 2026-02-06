@@ -33,6 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 _ENTITY_ID_VALIDATOR = cast(vol.Any, getattr(cv, "entity_id", cv.string))
 
+
 @dataclass(frozen=True, slots=True)
 class TriggerDefinition:
   """Definition for a device trigger tied to an entity."""

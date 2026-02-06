@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 import logging
 from typing import Final, cast
@@ -42,6 +41,7 @@ _LOGGER = logging.getLogger(__name__)
 _ENTITY_ID_VALIDATOR = cast(vol.Any, getattr(cv, "entity_id", cv.string))
 
 CONF_STATUS = "status"
+
 
 @dataclass(frozen=True, slots=True)
 class ConditionDefinition:

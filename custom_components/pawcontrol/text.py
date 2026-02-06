@@ -13,8 +13,6 @@ from homeassistant.components import text as text_component
 from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.const import (
   ATTR_VALUE,
-  STATE_UNAVAILABLE,
-  STATE_UNKNOWN,
 )
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
@@ -79,6 +77,7 @@ MODULE_GPS_KEY = cast(ModuleToggleKey, MODULE_GPS)
 MODULE_WALK_KEY = cast(ModuleToggleKey, MODULE_WALK)
 MODULE_HEALTH_KEY = cast(ModuleToggleKey, MODULE_HEALTH)
 MODULE_NOTIFICATIONS_KEY = cast(ModuleToggleKey, MODULE_NOTIFICATIONS)
+
 
 def _normalize_dog_configs(
   raw_configs: Iterable[Any] | None,
