@@ -5,6 +5,10 @@
 
 ---
 
+## 🧹 Maintenance Updates (Unreleased)
+
+- Removed the deprecated `annotatedyaml` vendor library now that PawControl uses JSON storage for configuration persistence.
+
 ## 🎉 Production Release - Platinum Sustainment Achieved
 
 **PawControl v1.0.0** delivers the first public release of the smart dog management integration for Home Assistant. The milestone ships with complete runtime data adoption, documentation, branding, and automated test coverage to sustain the Platinum quality scale declaration.
