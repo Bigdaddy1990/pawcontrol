@@ -12,6 +12,9 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Literal
 
+from homeassistant.util import dt as dt_util
+
+from .telemetry import ensure_runtime_performance_stats
 from .types import CacheDiagnosticsCapture, PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,10 +59,11 @@ def performance_tracker(
 def capture_cache_diagnostics(
   runtime_data: PawControlRuntimeData | None,
 ) -> CacheDiagnosticsCapture | None:
-  """Cache diagnostics are disabled in minimal mode."""
+  """Return a minimal cache diagnostics payload for compatibility."""
 
-  del runtime_data
-  return None
+  if runtime_data is None:
+    return None
+  return {"snapshots": {}}
 
 
 def record_maintenance_result(
@@ -72,9 +76,27 @@ def record_maintenance_result(
   metadata: Mapping[str, Any] | None = None,
   details: Mapping[str, Any] | None = None,
 ) -> None:
-  """Log maintenance results instead of storing telemetry history."""
+  """Log maintenance results and retain a compact last-result snapshot."""
 
-  del runtime_data, diagnostics, metadata, details
+  if runtime_data is not None:
+    stats = ensure_runtime_performance_stats(runtime_data)
+    result: dict[str, Any] = {
+      "task": task,
+      "status": status,
+      "recorded_at": dt_util.utcnow().isoformat(),
+    }
+    if message is not None:
+      result["message"] = message
+    if diagnostics is not None or metadata is not None:
+      result["diagnostics"] = {
+        "cache": diagnostics,
+        "metadata": metadata,
+      }
+    if details is not None:
+      result["details"] = dict(details)
+    stats["last_maintenance_result"] = result
+
+  del diagnostics, metadata, details
   if status == "error":
     _LOGGER.warning("Maintenance task %s failed: %s", task, message or "unknown error")
   else:

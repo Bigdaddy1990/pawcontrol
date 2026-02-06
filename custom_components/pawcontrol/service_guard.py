@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import Any, NotRequired, Required, TypedDict, cast
+from typing import Any, NotRequired, Required, TypeVar, TypedDict, cast
 
 from .types import JSONLikeMapping, JSONValue
 
@@ -65,17 +65,23 @@ class ServiceGuardMetricsSnapshot(TypedDict, total=False):
   last_results: ServiceGuardResultHistory
 
 
+TGuardResult = TypeVar("TGuardResult", bound="ServiceGuardResult")
+
+
 @dataclass(slots=True, frozen=True)
 class ServiceGuardSnapshot:
   """Minimal aggregated telemetry derived from a guard result sequence."""
 
-  results: tuple[ServiceGuardResult, ...]
+  results: tuple[TGuardResult, ...]
   executed: int
   skipped: int
   reasons: dict[str, int]
 
   @classmethod
-  def from_sequence(cls, results: Sequence[ServiceGuardResult]) -> ServiceGuardSnapshot:
+  def from_sequence(
+    cls,
+    results: Sequence[TGuardResult],
+  ) -> ServiceGuardSnapshot:
     ordered = tuple(results)
     executed = sum(1 for entry in ordered if entry.executed)
     skipped = len(ordered) - executed

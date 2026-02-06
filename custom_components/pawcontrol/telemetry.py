@@ -5,7 +5,7 @@ Simplified to keep only lightweight state tracking.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
@@ -23,10 +23,9 @@ from .types import (
   EntityFactoryGuardMetrics,
   EntityFactoryGuardStabilityTrend,
   PawControlRuntimeData,
-  ReconfigureOptionsUpdates,
-  ReconfigureTelemetry,
   ReconfigureTelemetrySummary,
   RuntimeStoreHealthAssessment,
+  RuntimeStoreHealthHistory,
   RuntimePerformanceStats,
 )
 
@@ -100,20 +99,52 @@ def get_runtime_store_health(
   if stats is None:
     return None
   payload = stats.get("runtime_store_health")
+  if not isinstance(payload, Mapping):
+    return None
+  assessment = payload.get("assessment")
   return (
-    cast(RuntimeStoreHealthAssessment, payload) if isinstance(payload, dict) else None
+    cast(RuntimeStoreHealthAssessment, assessment)
+    if isinstance(assessment, dict)
+    else cast(RuntimeStoreHealthAssessment, payload)
   )
 
 
 def update_runtime_store_health(
-  runtime_data: PawControlRuntimeData,
+  runtime_data: PawControlRuntimeData | None,
   snapshot: RuntimeStoreHealthAssessment,
   *,
   record_event: bool = True,
-) -> RuntimeStoreHealthAssessment:
+) -> RuntimeStoreHealthHistory | None:
+  if runtime_data is None:
+    return None
+
+  del record_event
   stats = ensure_runtime_performance_stats(runtime_data)
-  stats["runtime_store_health"] = snapshot
-  return snapshot
+  previous = stats.get("runtime_store_health")
+  checks = 0
+  divergence_events = 0
+  if isinstance(previous, Mapping):
+    checks = _as_int(previous.get("checks"))
+    divergence_events = _as_int(previous.get("divergence_events"))
+
+  checks += 1
+  divergence_detected = bool(snapshot.get("divergence_detected"))
+  if divergence_detected:
+    divergence_events += 1
+
+  history: RuntimeStoreHealthHistory = {
+    "schema_version": 1,
+    "checks": checks,
+    "divergence_events": divergence_events,
+    "last_checked": str(snapshot.get("last_checked", "")) or None,
+    "last_status": cast(Any, snapshot.get("last_status")),
+    "last_entry_status": cast(Any, snapshot.get("last_entry_status")),
+    "last_store_status": cast(Any, snapshot.get("last_store_status")),
+    "divergence_detected": divergence_detected,
+    "assessment": snapshot,
+  }
+  stats["runtime_store_health"] = history
+  return history
 
 
 def update_runtime_entity_factory_guard_metrics(
@@ -270,27 +301,52 @@ def update_runtime_bool_coercion_summary(
 
 
 def _as_int(value: Any) -> int:
-  return int(value) if isinstance(value, int | float) else 0
+  try:
+    return int(float(value))
+  except (TypeError, ValueError):
+    return 0
 
 
 def _as_list(value: Any) -> list[str]:
-  if not isinstance(value, list):
+  if value is None:
     return []
-  return [entry for entry in value if isinstance(entry, str)]
+  if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
+    return [str(item) for item in value if item is not None]
+  return [str(value)]
 
 
 def summarise_reconfigure_options(
   options: Mapping[str, Any],
-) -> ReconfigureOptionsUpdates:
+) -> ReconfigureTelemetrySummary | None:
   telemetry = options.get("reconfigure_telemetry")
   if not isinstance(telemetry, Mapping):
-    return {}
+    return None
+  warnings = _as_list(telemetry.get("compatibility_warnings"))
+  merge_notes = _as_list(telemetry.get("merge_notes"))
+  health_summary = telemetry.get("health_summary")
+  health_issues = []
+  health_warnings = []
+  healthy = False
+  if isinstance(health_summary, Mapping):
+    health_issues = _as_list(health_summary.get("issues"))
+    health_warnings = _as_list(health_summary.get("warnings"))
+    healthy = bool(health_summary.get("healthy"))
   return {
-    "requested_profile": str(telemetry.get("requested_profile", "")),
-    "previous_profile": str(telemetry.get("previous_profile", "")),
+    "timestamp": str(telemetry.get("timestamp", "")) or None,
+    "requested_profile": str(telemetry.get("requested_profile", "")) or None,
+    "previous_profile": str(telemetry.get("previous_profile", "")) or None,
     "dogs_count": _as_int(telemetry.get("dogs_count")),
     "estimated_entities": _as_int(telemetry.get("estimated_entities")),
-    "compatibility_warnings": _as_list(telemetry.get("compatibility_warnings")),
+    "version": _as_int(telemetry.get("version")),
+    "warnings": warnings,
+    "warning_count": len(warnings),
+    "healthy": healthy,
+    "health_issues": health_issues,
+    "health_issue_count": len(health_issues),
+    "health_warnings": health_warnings,
+    "health_warning_count": len(health_warnings),
+    "merge_notes": merge_notes,
+    "merge_note_count": len(merge_notes),
   }
 
 
@@ -310,22 +366,9 @@ def update_runtime_reconfigure_summary(
   runtime_data: PawControlRuntimeData,
 ) -> ReconfigureTelemetrySummary | None:
   options = runtime_data.config_entry.options
-  telemetry = options.get("reconfigure_telemetry")
-  if not isinstance(telemetry, Mapping):
+  summary = summarise_reconfigure_options(options)
+  if summary is None:
     return None
-
-  summary: ReconfigureTelemetrySummary = {
-    "timestamp": str(telemetry.get("timestamp", "")) or None,
-    "requested_profile": str(telemetry.get("requested_profile", "")) or None,
-    "previous_profile": str(telemetry.get("previous_profile", "")) or None,
-    "dogs_count": _as_int(telemetry.get("dogs_count")),
-    "estimated_entities": _as_int(telemetry.get("estimated_entities")),
-    "compatibility_warnings": _as_list(telemetry.get("compatibility_warnings")),
-    "merge_notes": _as_list(telemetry.get("merge_notes")),
-    "health_summary": cast(ReconfigureTelemetry, telemetry.get("health_summary"))
-    if isinstance(telemetry.get("health_summary"), Mapping)
-    else None,
-  }
   ensure_runtime_performance_stats(runtime_data)["reconfigure_summary"] = summary
   return summary
 
@@ -381,33 +424,49 @@ def update_runtime_resilience_diagnostics(
 
 
 def record_door_sensor_persistence_failure(
-  runtime_data: PawControlRuntimeData,
+  runtime_data: PawControlRuntimeData | None,
   *,
   dog_id: str,
-  dog_name: str,
-  door_sensor: str,
-  settings: Mapping[str, Any],
-  error: Exception,
+  dog_name: str | None = None,
+  door_sensor: str | None = None,
+  settings: Mapping[str, Any] | None = None,
+  error: Exception | str | None = None,
   limit: int = 10,
-) -> DoorSensorFailureSummary:
+) -> DoorSensorPersistenceFailure | None:
+  if runtime_data is None:
+    return None
+
   stats = ensure_runtime_performance_stats(runtime_data)
   failures_raw = stats.setdefault("door_sensor_failures", [])
   failures = cast(list[DoorSensorPersistenceFailure], failures_raw)
   event: DoorSensorPersistenceFailure = {
-    "timestamp": dt_util.utcnow().isoformat(),
+    "recorded_at": dt_util.utcnow().isoformat(),
     "dog_id": dog_id,
-    "dog_name": dog_name,
-    "door_sensor": door_sensor,
-    "settings": dict(settings),
-    "error": f"{error.__class__.__name__}: {error}",
   }
+  if dog_name is not None:
+    event["dog_name"] = dog_name
+  if door_sensor is not None:
+    event["door_sensor"] = door_sensor
+  if settings is not None:
+    event["settings"] = cast(Any, dict(settings))
+  if error is not None:
+    event["error"] = (
+      f"{error.__class__.__name__}: {error}"
+      if isinstance(error, Exception)
+      else str(error)
+    )
+
   failures.append(event)
   if len(failures) > limit:
     del failures[:-limit]
 
   summary: DoorSensorFailureSummary = {
-    "count": len(failures),
+    "dog_id": dog_id,
+    "failure_count": len(failures),
     "last_failure": failures[-1] if failures else None,
   }
+  if dog_name is not None:
+    summary["dog_name"] = dog_name
   stats["door_sensor_failure_summary"] = summary
-  return summary
+  stats["last_door_sensor_failure"] = event
+  return event
