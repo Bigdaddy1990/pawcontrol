@@ -1743,6 +1743,16 @@
         "description": "Webhook- und MQTT-Push f\u00fcr GPS-Updates konfigurieren.",
         "title": "Push-Einstellungen"
       },
+      "remove_dog": {
+        "data": {
+          "confirm_remove": "Remove this dog"
+        },
+        "data_description": {
+          "confirm_remove": "Confirm removal of this dog and its entities."
+        },
+        "description": "Remove {dog_name} from Paw Control.",
+        "title": "Remove Dog"
+      },
       "remove_dog_confirm": {
         "data": {
           "confirm_remove": "Remove dog"
@@ -1762,16 +1772,6 @@
         },
         "description": "Choose a dog to remove.",
         "title": "Select Dog"
-      },
-      "remove_dog": {
-        "data": {
-          "confirm_remove": "Remove this dog"
-        },
-        "data_description": {
-          "confirm_remove": "Confirm removal of this dog and its entities."
-        },
-        "description": "Remove {dog_name} from Paw Control.",
-        "title": "Remove Dog"
       },
       "system_settings": {
         "data": {
