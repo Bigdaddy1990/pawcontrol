@@ -46,10 +46,7 @@ from .const import (
 )
 from .exceptions import ValidationError
 from .types import (
-  AUTO_REFRESH_FIELD,
   AUTO_TRACK_WALKS_FIELD,
-  COMPACT_MODE_FIELD,
-  DASHBOARD_MODE_FIELD,
   GPS_ACCURACY_FILTER_FIELD,
   GPS_DISTANCE_FILTER_FIELD,
   GPS_ENABLED_FIELD,
@@ -62,9 +59,6 @@ from .types import (
   NOTIFICATION_REMINDER_REPEAT_FIELD,
   ROUTE_HISTORY_DAYS_FIELD,
   ROUTE_RECORDING_FIELD,
-  SHOW_ALERTS_FIELD,
-  SHOW_MAPS_FIELD,
-  SHOW_STATISTICS_FIELD,
 )
 from .validation import (
   InputCoercionError,
@@ -608,9 +602,7 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
 
     if user_input is not None:
       dog_id = user_input.get(CONF_DOG_ID)
-      if isinstance(dog_id, str) and any(
-        opt["value"] == dog_id for opt in options
-      ):
+      if isinstance(dog_id, str) and any(opt["value"] == dog_id for opt in options):
         self._selected_dog_id = dog_id
         return await self.async_step_edit_dog()
       errors[CONF_DOG_ID] = "invalid_configuration"
@@ -673,9 +665,7 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
 
     if user_input is not None:
       dog_id = user_input.get(CONF_DOG_ID)
-      if isinstance(dog_id, str) and any(
-        opt["value"] == dog_id for opt in options
-      ):
+      if isinstance(dog_id, str) and any(opt["value"] == dog_id for opt in options):
         self._selected_dog_id = dog_id
         return await self.async_step_remove_dog_confirm()
       errors[CONF_DOG_ID] = "invalid_configuration"
