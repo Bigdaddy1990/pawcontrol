@@ -21,7 +21,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
 from .const import (
   CONF_DOG_OPTIONS,
   CONF_DOGS,

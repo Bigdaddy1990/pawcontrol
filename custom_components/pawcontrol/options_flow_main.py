@@ -28,7 +28,7 @@ from homeassistant.config_entries import OptionsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from .const import (
   CONF_DOGS,
   CONF_LAST_RECONFIGURE,

@@ -28,7 +28,6 @@ from .const import (
 )
 from .device_api import PawControlDeviceClient
 from .exceptions import GPSUnavailableError, NetworkError, RateLimitError
-from .http_client import ensure_shared_client_session
 from .types import (
   CoordinatorModuleTask,
   DogModulesMapping,
@@ -216,10 +215,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
   ) -> None:
     """Initialise the feeding adapter with HTTP and manager context."""
     super().__init__(ttl)
-    self._session = ensure_shared_client_session(
-      session,
-      owner="FeedingModuleAdapter",
-    )
+    self._session = session
     self._use_external_api = use_external_api
     self._manager: FeedingManager | None = None
     self._api_client = api_client

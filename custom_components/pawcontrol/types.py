@@ -47,7 +47,7 @@ from typing import (
   cast,
 )
 
-from .compat import ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from .const import (
   CONF_API_ENDPOINT,
   CONF_API_TOKEN,

@@ -35,7 +35,8 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .compat import ConfigEntry, HomeAssistantError
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
 from .const import (
   CACHE_TIMESTAMP_FUTURE_THRESHOLD,
   CACHE_TIMESTAMP_STALE_THRESHOLD,
