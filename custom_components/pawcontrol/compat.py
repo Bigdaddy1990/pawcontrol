@@ -7,10 +7,11 @@ from __future__ import annotations
 
 from enum import Enum
 
-from homeassistant.const import UnitOfMass
+from homeassistant import const as ha_const
 
-MASS_GRAMS = UnitOfMass.GRAMS
-MASS_KILOGRAMS = UnitOfMass.KILOGRAMS
+UnitOfMass = getattr(ha_const, "UnitOfMass", None)
+MASS_GRAMS = getattr(UnitOfMass, "GRAMS", "g")
+MASS_KILOGRAMS = getattr(UnitOfMass, "KILOGRAMS", "kg")
 
 
 class ConfigEntryState(Enum):

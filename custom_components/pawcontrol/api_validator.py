@@ -6,7 +6,6 @@ from aiohttp import ClientSession
 
 from .device_api import PawControlDeviceClient, validate_device_endpoint
 from .exceptions import PawControlError
-import contextlib
 
 
 async def async_validate_api(
@@ -25,8 +24,7 @@ async def async_validate_api(
       api_key=api_key,
     )
 
-    with contextlib.suppress(Exception):
-      await client.async_get_json("/api/status")
+    await client.async_get_json("/api/status")
 
     return True
 
