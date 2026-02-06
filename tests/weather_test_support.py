@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING
 
 import homeassistant.components.weather as weather_module
@@ -48,7 +48,7 @@ def ensure_weather_module_compat() -> UnitOfTemperatureType:
 
     if not hasattr(ha_const, "UnitOfTemperature"):
 
-      class UnitOfTemperature(str, Enum):
+      class UnitOfTemperature(StrEnum):
         CELSIUS = "°C"
         FAHRENHEIT = "°F"
         KELVIN = "K"

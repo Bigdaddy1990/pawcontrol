@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import timedelta
-from enum import Enum
+from enum import StrEnum
 import re
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
@@ -27,7 +27,7 @@ else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
     from homeassistant.const import Platform
   except ModuleNotFoundError:
 
-    class Platform(str, Enum):  # type: ignore[misc]
+    class Platform(StrEnum):  # type: ignore[misc]
       """Minimal Platform enum used when Home Assistant isn't installed."""
 
       SENSOR = "sensor"
