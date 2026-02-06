@@ -5,11 +5,6 @@ All notable changes to PawControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Removed
-- Dropped the deprecated `annotatedyaml` vendor library now that PawControl stores configuration in JSON storage.
-
 ## [1.0.0] - 2025-09-08 - Production Release 🎉
 
 ### Added
