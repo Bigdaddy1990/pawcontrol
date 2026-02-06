@@ -43,3 +43,54 @@ verify during reviews.
   and the regression coverage in `tests/test_diagnostics.py`.
 - When adding new tests or third-party requirements, update `requirements_test.txt`
   and run `python -m scripts.enforce_test_requirements`.
+
+## Integrations-Checkliste (abgeleitete To-dos)
+
+Die folgenden To-dos leiten sich aus dem Abgleich der Platinum-Regeln mit dem
+aktuellen Evidenz- und Teststand ab. Sie dienen als konkrete Prüfpunkte für
+neue Features, Refactorings und Review-Checks.
+
+### Tests & Qualitätssicherung
+
+- **Service-Regressionen absichern:** Prüfe, ob neue Service-Handler in
+  `custom_components/pawcontrol/services.py` oder `custom_components/pawcontrol/script_manager.py`
+  durch Tests in `tests/unit/test_services.py` bzw. `tests/test_diagnostics.py`
+  abgedeckt werden; fehlende Tests ergänzen.
+- **Diagnostik-Änderungen abtesten:** Bei Änderungen am Diagnostics-Payload
+  `tests/test_diagnostics.py` und `tests/unit/test_diagnostics_cache.py` anpassen,
+  insbesondere bei Schema- oder Payload-Feldern.
+- **Flow-Validierung erweitern:** Neue Config/Options-Flow-Felder mit Tests in
+  `tests/unit/test_config_flow.py` absichern und Eingabevalidierungen in
+  `tests/test_validation_inputs.py` bzw. `tests/test_api_validator.py` spiegeln.
+
+### Services, YAML & Dokumentation
+
+- **services.yaml vollständig halten:** Für jede Service-Funktion in
+  `custom_components/pawcontrol/services.py` und `custom_components/pawcontrol/script_manager.py`
+  einen passenden Eintrag in `custom_components/pawcontrol/services.yaml` pflegen
+  (inkl. Felder, Beispiele, Beschreibungen).
+- **Docs aktualisieren:** Service- oder Automationsänderungen in `README.md`,
+  `docs/automation_examples.md` und ggf. `docs/user_guide.md` dokumentieren.
+
+### Internationalisierung (I18n)
+
+- **Strings konsistent halten:** Neue Keys in `custom_components/pawcontrol/strings.json`
+  und `custom_components/pawcontrol/translations/` ergänzen; ungenutzte Keys entfernen.
+- **Lokalisierungsflags synchronisieren:** Nach Änderungen an Setup-Flags
+  `python -m scripts.sync_localization_flags` ausführen.
+
+### Diagnostics-Schema & Telemetrie
+
+- **Schema-Version & Pflichtfelder prüfen:** Sicherstellen, dass
+  `custom_components/pawcontrol/diagnostics.py` weiterhin `schema_version` und
+  `rejection_metrics` mit Defaultwerten liefert; bei Änderungen `docs/diagnostics.md`
+  sowie die Tests aktualisieren.
+
+### Manifest & Quality-Scale
+
+- **Manifest-Felder abgleichen:** `custom_components/pawcontrol/manifest.json`
+  gegen `custom_components/pawcontrol/quality_scale.yaml` und diesen Bericht
+  prüfen (Quality-Scale, Discovery-Mechanismen, Abhängigkeiten).
+- **Compliance-Dokumente synchron halten:** Bei Änderungen an Manifest oder
+  Quality-Scale `docs/compliance_gap_analysis.md` und `docs/QUALITY_CHECKLIST.md`
+  aktualisieren.
