@@ -44,7 +44,7 @@ from .dashboard_templates import (
   MapCardOptions,
   MapOptionsInput,
 )
-from .language import normalize_language
+from .utils import normalize_language
 from .types import (
   DOG_ID_FIELD,
   DOG_IMAGE_FIELD,

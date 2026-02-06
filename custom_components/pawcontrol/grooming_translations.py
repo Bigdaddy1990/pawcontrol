@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Final
 
-from .language import normalize_language
+from .utils import normalize_language
 
 DEFAULT_LANGUAGE: Final[str] = "en"
 SUPPORTED_LANGUAGES: Final[frozenset[str]] = frozenset({"en", "de"})

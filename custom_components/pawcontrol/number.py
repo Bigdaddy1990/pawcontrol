@@ -114,7 +114,6 @@ DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
 DEFAULT_GPS_ACCURACY_THRESHOLD = 50  # meters
 DEFAULT_ACTIVITY_GOAL = 100  # percentage
 
-
 type DogConfigUpdatePayload = JSONMutableMapping
 """Partial dog configuration updates used by number entities."""
 

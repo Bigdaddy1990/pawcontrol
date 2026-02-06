@@ -1,4 +1,4 @@
-"""Helpers for PawControl device automations."""
+"""Shared device automation helpers for PawControl."""
 
 from __future__ import annotations
 
@@ -8,8 +8,7 @@ import logging
 from typing import Final, cast
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .const import DOMAIN
 from .dog_status import build_dog_status_snapshot
@@ -91,7 +90,6 @@ def resolve_device_context(
   device_entry = device_registry.async_get(device_id)
   dog_id = _extract_dog_id(device_entry)
 
-  runtime_data: PawControlRuntimeData | None = None
   entry_ids: Iterable[str] = ()
   if device_entry is not None:
     entry_ids = device_entry.config_entries

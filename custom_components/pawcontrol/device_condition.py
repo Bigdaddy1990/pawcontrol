@@ -21,17 +21,8 @@ from homeassistant.helpers import config_validation as cv
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-# ``ConditionCheckerType`` is only used for typing. Some Home Assistant test harness
-# builds do not ship the helpers module that defines it, so we avoid importing it at
-# runtime and provide a safe fallback.
 if TYPE_CHECKING:  # pragma: no cover
-  try:
-    from homeassistant.helpers.condition import ConditionCheckerType
-  except ImportError:
-    try:
-      from homeassistant.helpers.typing import ConditionCheckerType  # type: ignore[attr-defined]
-    except ImportError:
-      ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]
+  from homeassistant.helpers.typing import ConditionCheckerType
 else:
   ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]
 
