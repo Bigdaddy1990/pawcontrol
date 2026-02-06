@@ -1527,6 +1527,7 @@
         },
         "description": "Add a new dog profile.\n\nDogs: {dog_count} configured",
         "title": "Add Dog"
+      },
       "configure_modules": {
         "data": {
           "enable_dashboard": "Dashboard Integration",
@@ -1604,15 +1605,6 @@
         },
         "description": "Choose a dog to edit.",
         "title": "Select Dog"
-      },
-          "dog_age": "Update the age in years to keep health metrics accurate.",
-          "dog_breed": "Optional detail that improves nutrition and health recommendations.",
-          "dog_name": "Friendly display name used in dashboards and notifications.",
-          "dog_size": "Select the size profile that best matches your dog for defaults and summaries.",
-          "dog_weight": "Used to calculate meal portions and health thresholds."
-        },
-        "description": "Update the selected dog's profile information.",
-        "title": "Edit Dog"
       },
       "feeding_settings": {
         "data": {
