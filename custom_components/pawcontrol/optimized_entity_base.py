@@ -181,9 +181,6 @@ class PawControlBinarySensorEntity(PawControlEntity):
     dog_id: str,
     dog_name: str,
     sensor_type: str,
-    *,
-    icon_on: str | None = None,
-    icon_off: str | None = None,
     **kwargs: Any,
   ) -> None:
     super().__init__(
@@ -195,22 +192,11 @@ class PawControlBinarySensorEntity(PawControlEntity):
       name_suffix=sensor_type.replace("_", " ").title(),
       **kwargs,
     )
-    self._icon_on = icon_on
-    self._icon_off = icon_off
 
   @property
   def is_on(self) -> bool:
     """Return true if the binary sensor is on."""
     return self._get_is_on()
-
-  @property
-  def icon(self) -> str | None:
-    """Return dynamic icon."""
-    if self.is_on and self._icon_on:
-      return self._icon_on
-    if not self.is_on and self._icon_off:
-      return self._icon_off
-    return super().icon
 
   def _get_is_on(self) -> bool:
     """To be implemented by subclasses."""
