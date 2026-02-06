@@ -5,13 +5,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 from functools import partial
-from time import perf_counter
-from typing import Any, Literal, NotRequired, Required, TypedDict, TypeVar, cast
+from typing import Any, Literal, NotRequired, Required, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -31,8 +30,6 @@ from .types import (
   FeedingManagerDogSetupPayload,
   FeedingMissedMeal,
   FeedingSnapshot,
-  FeedingSnapshotCache,
-  FeedingStatisticsCache,
   FeedingStatisticsSnapshot,
   HealthFeedingInsights,
   HealthMetricsOverride,
@@ -62,7 +59,6 @@ except ImportError:  # pragma: no cover
   )
 
 _LOGGER = logging.getLogger(__name__)
-T = TypeVar("T")
 
 
 # Portion safeguard constants
@@ -1110,7 +1106,7 @@ class FeedingConfig:
 
 
 class FeedingManager:
-  """Optimized feeding management with event-based reminders and caching."""
+  """Feeding management with event-based reminders."""
 
   _MAX_SINGLE_FEEDING_GRAMS = 5000.0
 
@@ -1124,7 +1120,7 @@ class FeedingManager:
     self.hass = hass
     self._feedings: dict[str, list[FeedingEvent]] = {}
     self._configs: dict[str, FeedingConfig] = {}
-    # Historic FeedingManager implementations exposed ``_dogs`` as a cache
+    # Historic FeedingManager implementations exposed ``_dogs`` as a store
     # of per-dog metadata.  Several diagnostics and tests rely on that
     # attribute, so we continue to populate it even though the refactored
     # manager primarily works with FeedingConfig instances.
@@ -1144,41 +1140,6 @@ class FeedingManager:
     # Track scheduled reversion tasks so we can cancel or clean them up
     self._activity_reversion_tasks: dict[str, asyncio.Task] = {}
     self._portion_reversion_tasks: dict[str, asyncio.Task] = {}
-
-    # Async dependency audit instrumentation
-    self._profile_threshold = 0.05
-
-    # OPTIMIZATION: Feeding data cache
-    self._data_cache: FeedingSnapshotCache = {}
-    self._cache_time: dict[str, datetime] = {}
-    self._cache_ttl = timedelta(seconds=10)
-
-    # OPTIMIZATION: Statistics cache
-    self._stats_cache: FeedingStatisticsCache = {}
-    self._stats_cache_time: dict[str, datetime] = {}
-    self._stats_cache_ttl = timedelta(minutes=5)
-
-  async def _offload_blocking(
-    self,
-    description: str,
-    func: Callable[..., T],
-    *args: Any,
-    **kwargs: Any,
-  ) -> T:
-    """Run *func* in a worker thread and emit async profiling logs."""
-
-    start = perf_counter()
-    if kwargs:
-      func = partial(func, **kwargs)
-    result = await self.hass.async_add_executor_job(func, *args)
-    duration = perf_counter() - start
-    if duration >= self._profile_threshold:
-      _LOGGER.debug(
-        "Async dependency audit: %s completed in %.3fs off the event loop",
-        description,
-        duration,
-      )
-    return result
 
   def _apply_emergency_restoration(
     self,
@@ -1206,7 +1167,7 @@ class FeedingManager:
             compatible with ``FeedingManagerDogSetupPayload``
     """
     async with self._lock:
-      # Reset caches so repeated initialisation (common in tests) does not
+      # Reset state so repeated initialisation (common in tests) does not
       # leak previous dog metadata or reminder tasks.
       for task in self._reminder_tasks.values():
         task.cancel()
@@ -1216,10 +1177,6 @@ class FeedingManager:
       self._feedings.clear()
       self._configs.clear()
       self._dogs.clear()
-      self._data_cache.clear()
-      self._cache_time.clear()
-      self._stats_cache.clear()
-      self._stats_cache_time.clear()
 
       batch_configs: dict[str, FeedingConfig] = {}
       batch_dogs: dict[str, FeedingDogMetadata] = {}
@@ -1650,7 +1607,7 @@ class FeedingManager:
     return config
 
   def _require_dog_record(self, dog_id: str) -> FeedingDogMetadata:
-    """Return the cached dog metadata for ``dog_id``."""
+    """Return stored dog metadata for ``dog_id``."""
 
     try:
       return self._dogs[dog_id]
@@ -1991,7 +1948,7 @@ class FeedingManager:
       if len(self._feedings[dog_id]) > self._max_history:
         self._feedings[dog_id] = self._feedings[dog_id][-self._max_history :]
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       # Signal reminder update if scheduled feeding
@@ -2138,62 +2095,21 @@ class FeedingManager:
       return list(feedings)
 
   async def async_get_feeding_data(self, dog_id: str) -> FeedingSnapshot:
-    """Get comprehensive feeding data with caching.
-
-    OPTIMIZATION: Caches feeding data for 10 seconds.
-
-    Args:
-        dog_id: Dog identifier
-
-    Returns:
-        Dictionary with feeding statistics
-    """
+    """Get comprehensive feeding data."""
     async with self._lock:
       if dog_id not in self._configs and dog_id not in self._feedings:
-        empty_snapshot = self._empty_feeding_data(None)
-        self._data_cache[dog_id] = empty_snapshot
-        self._cache_time[dog_id] = dt_util.now()
-        return empty_snapshot
+        return self._empty_feeding_data(None)
 
-      # Check cache
-      if dog_id in self._data_cache:
-        cache_time = self._cache_time.get(dog_id)
-        if cache_time and (dt_util.now() - cache_time) < self._cache_ttl:
-          return self._data_cache[dog_id]
-
-      # Calculate feeding data
-      data = self._build_feeding_snapshot(dog_id)
-
-      # Cache result
-      self._data_cache[dog_id] = data
-      self._cache_time[dog_id] = dt_util.now()
-
-      return data
+      return self._build_feeding_snapshot(dog_id)
 
   def get_feeding_data(self, dog_id: str) -> FeedingSnapshot:
     """Synchronously return the feeding snapshot for ``dog_id``.
-
-    Legacy tests and diagnostics relied on a synchronous accessor.  The
-    helper reuses the async cache but falls back to building the snapshot
-    inline when the cached value has expired.
     """
 
     if dog_id not in self._configs and dog_id not in self._feedings:
-      snapshot = self._empty_feeding_data(None)
-      self._data_cache[dog_id] = snapshot
-      self._cache_time[dog_id] = dt_util.now()
-      return snapshot
+      return self._empty_feeding_data(None)
 
-    cache_time = self._cache_time.get(dog_id)
-    if cache_time and (dt_util.now() - cache_time) < self._cache_ttl:
-      cached = self._data_cache.get(dog_id)
-      if cached is not None:
-        return cached
-
-    data = self._build_feeding_snapshot(dog_id)
-    self._data_cache[dog_id] = data
-    self._cache_time[dog_id] = dt_util.now()
-    return data
+    return self._build_feeding_snapshot(dog_id)
 
   def get_daily_stats(self, dog_id: str) -> FeedingDailyStats:
     """Return today's feeding statistics for the given dog."""
@@ -2245,7 +2161,7 @@ class FeedingManager:
     return FeedingEmergencyState(**emergency)
 
   def _build_feeding_snapshot(self, dog_id: str) -> FeedingSnapshot:
-    """Calculate feeding data without cache."""
+    """Calculate feeding data."""
 
     feedings = self._feedings.get(dog_id, [])
     config = self._configs.get(dog_id)
@@ -2630,19 +2546,8 @@ class FeedingManager:
     return snapshot
 
   def _invalidate_cache(self, dog_id: str) -> None:
-    """Invalidate caches for a dog.
-
-    Args:
-        dog_id: Dog identifier
-    """
-    self._data_cache.pop(dog_id, None)
-    self._cache_time.pop(dog_id, None)
-
-    # Clear stats cache entries
-    keys_to_remove = [key for key in self._stats_cache if key.startswith(f"{dog_id}_")]
-    for key in keys_to_remove:
-      self._stats_cache.pop(key, None)
-      self._stats_cache_time.pop(key, None)
+    """No-op retained for backwards compatibility."""
+    return
 
   async def async_update_config(
     self,
@@ -2678,7 +2583,7 @@ class FeedingManager:
           },
         )
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       await self._refresh_reminder_schedule(dog_id, config)
@@ -2715,43 +2620,16 @@ class FeedingManager:
     dog_id: str,
     days: int = 30,
   ) -> FeedingStatisticsSnapshot:
-    """Get feeding statistics with caching.
-
-    OPTIMIZATION: Caches statistics for 5 minutes.
-
-    Args:
-        dog_id: Dog identifier
-        days: Number of days to analyze
-
-    Returns:
-        Dictionary with feeding statistics
-    """
-    cache_key = f"{dog_id}_{days}"
-
+    """Get feeding statistics."""
     async with self._lock:
-      # Check cache
-      if cache_key in self._stats_cache:
-        cache_time = self._stats_cache_time.get(cache_key)
-        if cache_time and (dt_util.now() - cache_time) < self._stats_cache_ttl:
-          return self._stats_cache[cache_key]
-
-      # Calculate statistics
-      stats = await self._calculate_statistics(dog_id, days)
-
-      # Cache result
-      self._stats_cache[cache_key] = stats
-      self._stats_cache_time[cache_key] = dt_util.now()
-
-      return stats
+      return await self._calculate_statistics(dog_id, days)
 
   async def _calculate_statistics(
     self,
     dog_id: str,
     days: int,
   ) -> FeedingStatisticsSnapshot:
-    """Calculate statistics without cache.
-
-    OPTIMIZATION: Efficient data aggregation.
+    """Calculate statistics.
 
     Args:
         dog_id: Dog identifier
@@ -3158,7 +3036,7 @@ class FeedingManager:
         if "weight_goal" in health_data:
           config.weight_goal = health_data["weight_goal"]
 
-        # Invalidate caches to force recalculation
+        # Refresh derived state to force recalculation
         self._invalidate_cache(dog_id)
 
         _LOGGER.info("Updated health data for dog %s", dog_id)
@@ -3196,7 +3074,7 @@ class FeedingManager:
         # Update diet validation in config
         config.update_diet_validation(validation_data)
 
-        # Invalidate caches to force recalculation
+        # Refresh derived state to force recalculation
         self._invalidate_cache(dog_id)
 
         _LOGGER.info(
@@ -3378,8 +3256,7 @@ class FeedingManager:
         )
 
       # Build current health metrics
-      health_metrics = await self._offload_blocking(
-        f"build health metrics for {dog_id}",
+      health_metrics = await self.hass.async_add_executor_job(
         config._build_health_metrics,
       )
 
@@ -3422,7 +3299,7 @@ class FeedingManager:
             if abs(old_portion - schedule.portion_size) > 1.0:  # Significant change
               updated_schedules += 1
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       result = FeedingRecalculationResult(
@@ -3496,8 +3373,7 @@ class FeedingManager:
       config.activity_level = activity_level
 
       # Recalculate portions with new activity level
-      health_metrics = await self._offload_blocking(
-        f"build health metrics for {dog_id}",
+      health_metrics = await self.hass.async_add_executor_job(
         config._build_health_metrics,
       )
 
@@ -3522,22 +3398,22 @@ class FeedingManager:
       try:
         from .health_calculator import HealthCalculator, LifeStage
 
-        new_daily_calories = await self._offload_blocking(
-          f"calculate calories for {dog_id}",
-          HealthCalculator.calculate_daily_calories,
-          weight=health_metrics.current_weight,
-          life_stage=health_metrics.life_stage or LifeStage.ADULT,
-          activity_level=activity_enum,
-          body_condition_score=health_metrics.body_condition_score,
-          health_conditions=health_metrics.health_conditions,
-          spayed_neutered=config.spayed_neutered,
+        new_daily_calories = await self.hass.async_add_executor_job(
+          partial(
+            HealthCalculator.calculate_daily_calories,
+            weight=health_metrics.current_weight,
+            life_stage=health_metrics.life_stage or LifeStage.ADULT,
+            activity_level=activity_enum,
+            body_condition_score=health_metrics.body_condition_score,
+            health_conditions=health_metrics.health_conditions,
+            spayed_neutered=config.spayed_neutered,
+          ),
         )
       except ImportError as err:
         raise ValueError("Health calculator not available") from err
 
       # Convert calories to food amount
-      calories_per_gram = await self._offload_blocking(
-        f"estimate calories per gram for {dog_id}",
+      calories_per_gram = await self.hass.async_add_executor_job(
         config._estimate_calories_per_gram,
       )
       new_daily_amount = new_daily_calories / calories_per_gram
@@ -3546,7 +3422,7 @@ class FeedingManager:
       old_daily_amount = config.daily_food_amount
       config.daily_food_amount = round(new_daily_amount, 1)
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       result = FeedingActivityAdjustmentResult(
@@ -3670,7 +3546,7 @@ class FeedingManager:
       # Enable strict scheduling for diabetes management
       config.schedule_type = FeedingScheduleType.STRICT
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       # Setup reminders if needed
@@ -3836,7 +3712,7 @@ class FeedingManager:
         # Smaller, more frequent meals for post-surgery
         config.meals_per_day = min(config.meals_per_day + 2, 5)
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       activated_at_dt = dt_util.now()
@@ -3884,9 +3760,7 @@ class FeedingManager:
           duration_days * 24 * 3600,
         )  # Convert days to seconds
         try:
-          await self._offload_blocking(
-            f"restore emergency feeding plan for {dog_id}",
-            self._apply_emergency_restoration,
+          self._apply_emergency_restoration(
             config,
             original_config,
             dog_id,
@@ -3998,7 +3872,7 @@ class FeedingManager:
       # Store transition data (would normally be in a separate storage)
       config.transition_data = transition_data
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       started_at = dt_util.now()
@@ -4344,7 +4218,7 @@ class FeedingManager:
         )
         updated_schedules += 1
 
-      # Invalidate caches
+      # Refresh derived state
       self._invalidate_cache(dog_id)
 
       result = FeedingPortionAdjustmentResult(
@@ -4514,7 +4388,3 @@ class FeedingManager:
     self._next_reminders.clear()
     self._feedings.clear()
     self._configs.clear()
-    self._data_cache.clear()
-    self._cache_time.clear()
-    self._stats_cache.clear()
-    self._stats_cache_time.clear()
