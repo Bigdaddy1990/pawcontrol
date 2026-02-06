@@ -97,7 +97,9 @@ class PawControlSwitchBase(PawControlDogEntityBase, SwitchEntity):
 class PawControlMainPowerSwitch(PawControlSwitchBase):
   """Main power switch."""
 
-  def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+  def __init__(
+    self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+  ) -> None:
     super().__init__(
       coordinator,
       dog_id,
@@ -118,7 +120,9 @@ class PawControlMainPowerSwitch(PawControlSwitchBase):
 class PawControlDoNotDisturbSwitch(PawControlSwitchBase):
   """DND switch."""
 
-  def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+  def __init__(
+    self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+  ) -> None:
     super().__init__(
       coordinator,
       dog_id,
@@ -135,7 +139,9 @@ class PawControlDoNotDisturbSwitch(PawControlSwitchBase):
 class PawControlVisitorModeSwitch(PawControlSwitchBase):
   """Visitor mode switch."""
 
-  def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+  def __init__(
+    self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+  ) -> None:
     super().__init__(
       coordinator,
       dog_id,

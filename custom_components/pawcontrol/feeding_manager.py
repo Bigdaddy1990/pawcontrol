@@ -2103,8 +2103,7 @@ class FeedingManager:
       return self._build_feeding_snapshot(dog_id)
 
   def get_feeding_data(self, dog_id: str) -> FeedingSnapshot:
-    """Synchronously return the feeding snapshot for ``dog_id``.
-    """
+    """Synchronously return the feeding snapshot for ``dog_id``."""
 
     if dog_id not in self._configs and dog_id not in self._feedings:
       return self._empty_feeding_data(None)

@@ -122,8 +122,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     geofencing_manager = None
 
     has_gps = any(
-      bool(dog.get(DOG_MODULES_FIELD, {}).get(MODULE_GPS, False))
-      for dog in dogs_config
+      bool(dog.get(DOG_MODULES_FIELD, {}).get(MODULE_GPS, False)) for dog in dogs_config
     )
 
     if has_gps:
