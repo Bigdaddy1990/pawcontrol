@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -216,6 +217,38 @@ class PawControlBinarySensorEntity(PawControlEntity):
     return False
 
 
+class PawControlSwitchEntity(PawControlEntity, SwitchEntity):
+  """Base class for switch entities."""
+
+  def __init__(
+    self,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
+    switch_type: str,
+    **kwargs: Any,
+  ) -> None:
+    super().__init__(
+      coordinator,
+      dog_id,
+      dog_name,
+      f"switch_{switch_type}",
+      unique_id_suffix=switch_type,
+      name_suffix=switch_type.replace("_", " ").title(),
+      **kwargs,
+    )
+
+  @property
+  def is_on(self) -> bool:
+    """Return true if the switch is on."""
+    return self._get_is_on()
+
+  def _get_is_on(self) -> bool:
+    """To be implemented by subclasses."""
+    return False
+
+
 OptimizedEntityBase = PawControlEntity
 OptimizedSensorBase = PawControlSensorEntity
 OptimizedBinarySensorBase = PawControlBinarySensorEntity
+OptimizedSwitchBase = PawControlSwitchEntity

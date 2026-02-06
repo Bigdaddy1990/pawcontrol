@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Final, Literal, cast
@@ -15,6 +16,7 @@ from .const import (
   CONF_API_ENDPOINT,
   CONF_API_TOKEN,
   CONF_EXTERNAL_INTEGRATIONS,
+  CONF_MODULES,
   MODULE_GARDEN,
   MODULE_WALK,
   UPDATE_INTERVALS,
@@ -32,6 +34,7 @@ from .coordinator_support import (
   clear_runtime_managers as unbind_runtime_managers,
 )
 from .device_api import PawControlDeviceClient
+from .exceptions import ValidationError
 from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager
@@ -132,7 +135,11 @@ class PawControlCoordinator(
     """Return polling interval in seconds."""
     try:
       return self.registry.calculate_update_interval(entry.options)
-    except Exception:
+    except ValidationError as err:
+      _LOGGER.warning(
+        "Invalid update interval options; using balanced default: %s",
+        err,
+      )
       return UPDATE_INTERVALS.get("balanced", DEFAULT_UPDATE_INTERVAL)
 
   async def async_prepare_entry(self) -> None:
@@ -167,14 +174,55 @@ class PawControlCoordinator(
 
   async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:
     """Fetch all module data for a dog."""
-    return cast(
-      CoordinatorDogData,
+    payload = self.registry.empty_payload()
+
+    dog_config = self.registry.get(dog_id)
+    dog_name = self.registry.get_name(dog_id) or dog_id
+    payload["dog_info"] = cast(
+      dict[str, Any],
       {
-        "dog_info": {"dog_id": dog_id, "dog_name": dog_id},
-        "status": "online",
-        "last_update": None,
+        "dog_id": dog_id,
+        "dog_name": dog_name,
+        **(dog_config or {}),
       },
     )
+
+    if not dog_config:
+      payload["status"] = "missing"
+      return payload
+
+    enabled_modules = self._modules.build_tasks(
+      dog_id,
+      cast(Mapping[str, bool], dog_config.get(CONF_MODULES, {})),
+    )
+    payload["status"] = "online"
+
+    if enabled_modules:
+      results = await asyncio.gather(
+        *(task.coroutine for task in enabled_modules),
+        return_exceptions=True,
+      )
+
+      for task, result in zip(enabled_modules, results, strict=True):
+        if isinstance(result, Exception):
+          _LOGGER.warning(
+            "Failed loading %s data for dog %s: %s",
+            task.module,
+            dog_id,
+            result,
+          )
+          payload[task.module] = cast(
+            CoordinatorModuleState,
+            {
+              "status": "error",
+              "error": str(result),
+            },
+          )
+          continue
+
+        payload[task.module] = cast(CoordinatorModuleState, result)
+
+    return payload
 
   async def _fetch_dog_data_protected(self, dog_id: str) -> CoordinatorDogData:
     """Compatibility alias for older call sites."""
