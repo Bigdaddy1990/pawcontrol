@@ -44,6 +44,7 @@ from .const import (
   MIN_DOG_NAME_LENGTH,
   MIN_DOG_WEIGHT,
 )
+from .config_entry_helpers import get_entry_dogs
 from .exceptions import ValidationError
 from .types import (
   AUTO_TRACK_WALKS_FIELD,
@@ -189,7 +190,7 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
   def __init__(self, config_entry: ConfigEntry) -> None:
     """Initialize options flow."""
     self.config_entry = config_entry
-    self._dogs = list(config_entry.data.get(CONF_DOGS, []))
+    self._dogs = list(get_entry_dogs(config_entry))
     self._selected_dog_id: str | None = None
 
   @staticmethod
@@ -252,12 +253,13 @@ class PawControlOptionsFlow(GPSOptionsNormalizerMixin, OptionsFlow):
     }
 
   def _update_dogs(self) -> None:
+    """Persist dog updates in options to avoid mutating config data."""
     self._dogs = list(self._dogs)
     if self.hass is None:
       return
     self.hass.config_entries.async_update_entry(
       self.config_entry,
-      data={**self.config_entry.data, CONF_DOGS: self._dogs},
+      options={**self.config_entry.options, CONF_DOGS: self._dogs},
     )
 
   def _create_options_entry(self, updates: dict[str, Any]) -> ConfigFlowResult:

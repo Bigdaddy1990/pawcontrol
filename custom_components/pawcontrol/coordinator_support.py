@@ -7,7 +7,8 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Protocol, cast, runtime_checkable
 
-from .const import CONF_DOGS, CONF_MODULES, DOG_ID_FIELD, DOG_NAME_FIELD
+from .config_entry_helpers import get_entry_dogs
+from .const import CONF_MODULES, DOG_ID_FIELD, DOG_NAME_FIELD
 from .types import (
   CacheRepairAggregate,
   CoordinatorRuntimeManagers,
@@ -34,7 +35,7 @@ class DogConfigRegistry:
 
   @classmethod
   def from_entry(cls, entry: PawControlConfigEntry) -> DogConfigRegistry:
-    raw = entry.data.get(CONF_DOGS, [])
+    raw = get_entry_dogs(entry)
     return cls([cast(DogConfigData, d) for d in raw if isinstance(d, dict)])
 
   def __len__(self) -> int:

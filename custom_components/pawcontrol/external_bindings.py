@@ -29,7 +29,8 @@ from homeassistant.helpers import event as event_helper
 from homeassistant.util import dt as dt_util
 
 from homeassistant.config_entries import ConfigEntry
-from .const import CONF_DOGS, CONF_GPS_SOURCE, DOMAIN
+from .config_entry_helpers import get_entry_dogs
+from .const import CONF_GPS_SOURCE, DOMAIN
 from .gps_manager import LocationSource
 from .runtime_data import require_runtime_data
 import contextlib
@@ -145,7 +146,7 @@ async def async_setup_external_bindings(
         "External GPS binding update failed for %s from %s: %s", dog_id, entity_id, err
       )
 
-  dogs = entry.data.get(CONF_DOGS, [])
+  dogs = get_entry_dogs(entry)
   if not isinstance(dogs, list):
     return
 

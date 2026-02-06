@@ -13,8 +13,8 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
+from .config_entry_helpers import get_entry_dogs
 from .const import (
-  CONF_DOGS,
   CONF_GPS_SOURCE,
   CONF_MQTT_ENABLED,
   CONF_MQTT_TOPIC,
@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _any_dog_expects_mqtt(entry: ConfigEntry) -> bool:
-  dogs = entry.data.get(CONF_DOGS, [])
+  dogs = get_entry_dogs(entry)
   if not isinstance(dogs, list):
     return False
 

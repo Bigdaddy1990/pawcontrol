@@ -13,11 +13,11 @@ from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 from aiohttp import ClientSession
 
+from .config_entry_helpers import get_entry_dogs
 from .const import (
   CONF_DOG_AGE,
   CONF_DOG_BREED,
   CONF_DOG_ID,
-  CONF_DOGS,
   CONF_WEATHER_ENTITY,
   MODULE_FEEDING,
   MODULE_GARDEN,
@@ -701,7 +701,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
   def _resolve_dog_config(self, dog_id: str) -> JSONLikeMapping | None:
     """Return the config entry mapping for ``dog_id`` if available."""
 
-    raw_dogs = self._config_entry.data.get(CONF_DOGS)
+    raw_dogs = get_entry_dogs(self._config_entry)
     if not isinstance(raw_dogs, list):
       return None
 

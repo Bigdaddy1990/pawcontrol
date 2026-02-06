@@ -40,13 +40,16 @@ from .const import (
   DOG_SIZE_WEIGHT_RANGES,
   DOG_SIZES,
   DOMAIN,
+  MAX_INTEGRATION_NAME_LENGTH,
   MAX_DOG_AGE,
   MAX_DOG_NAME_LENGTH,
   MAX_DOGS_PER_ENTRY,
+  MIN_INTEGRATION_NAME_LENGTH,
   MIN_DOG_AGE,
   MIN_DOG_NAME_LENGTH,
   MIN_DOG_WEIGHT,
   PERFORMANCE_MODES,
+  RESERVED_INTEGRATION_NAMES,
 )
 from .entity_factory import ENTITY_PROFILES
 from .exceptions import ValidationError
@@ -155,11 +158,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     trimmed = value.strip()
     if not trimmed:
       return None, "integration_name_required"
-    if len(trimmed) < MIN_DOG_NAME_LENGTH:
+    if len(trimmed) < MIN_INTEGRATION_NAME_LENGTH:
       return None, "integration_name_too_short"
-    if len(trimmed) > MAX_DOG_NAME_LENGTH:
+    if len(trimmed) > MAX_INTEGRATION_NAME_LENGTH:
       return None, "integration_name_too_long"
-    if trimmed.lower() in {"pawcontrol", "paw control"}:
+    if trimmed.lower() in RESERVED_INTEGRATION_NAMES:
       return None, "reserved_integration_name"
     return trimmed, None
 

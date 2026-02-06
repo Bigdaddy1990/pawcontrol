@@ -566,6 +566,14 @@ DATA_FILE_ROUTES: Final[str] = "routes.json"
 DATA_FILE_STATS: Final[str] = "statistics.json"
 
 # OPTIMIZED: Validation limits as immutable constants
+MIN_INTEGRATION_NAME_LENGTH: Final[int] = 3
+MAX_INTEGRATION_NAME_LENGTH: Final[int] = 50
+RESERVED_INTEGRATION_NAMES: Final[frozenset[str]] = frozenset(
+  {
+    "pawcontrol",
+    "paw control",
+  }
+)
 MIN_DOG_NAME_LENGTH: Final[int] = 2
 MAX_DOG_NAME_LENGTH: Final[int] = 30
 MAX_DOGS_PER_ENTRY: Final[int] = 10
