@@ -13,8 +13,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from .config_entry_helpers import get_entry_dogs
 from .const import (
-  CONF_DOGS,
   CONF_DOG_ID,
   CONF_GPS_SOURCE,
   CONF_PUSH_NONCE_TTL_SECONDS,
@@ -119,7 +119,7 @@ def _payload_size(payload: Mapping[str, Any], raw_size: int) -> int:
 
 
 def _lookup_dog_source(entry: ConfigEntry, dog_id: str) -> str | None:
-  dogs = entry.data.get(CONF_DOGS, [])
+  dogs = get_entry_dogs(entry)
   if not isinstance(dogs, list):
     return None
   for dog in dogs:

@@ -23,9 +23,9 @@ from homeassistant.util import dt as dt_util
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import HomeAssistantError
+from .config_entry_helpers import get_entry_dogs
 from .const import (
   CONF_DOG_OPTIONS,
-  CONF_DOGS,
   CONF_NOTIFICATIONS,
   CONF_QUIET_END,
   CONF_QUIET_HOURS,
@@ -843,7 +843,7 @@ class PawControlData:
     self.storage = PawControlDataStorage(hass, config_entry)
     self._data: StorageNamespaceState = self._create_empty_data()
     self._dogs: list[DogConfigData] = self._coerce_dog_configs(
-      config_entry.data.get(CONF_DOGS, []),
+      get_entry_dogs(config_entry),
     )
 
     # OPTIMIZATION: Event queue for batch processing

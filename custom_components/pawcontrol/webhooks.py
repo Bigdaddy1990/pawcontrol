@@ -17,8 +17,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_entry_flow
 
+from .config_entry_helpers import get_entry_dogs
 from .const import (
-  CONF_DOGS,
   CONF_GPS_SOURCE,
   CONF_WEBHOOK_ENABLED,
   CONF_WEBHOOK_ID,
@@ -33,7 +33,7 @@ WEBHOOK_NAME = "PawControl Push Endpoint"
 
 
 def _any_dog_expects_webhook(entry: ConfigEntry) -> bool:
-  dogs = entry.data.get(CONF_DOGS, [])
+  dogs = get_entry_dogs(entry)
   if not isinstance(dogs, list):
     return False
 

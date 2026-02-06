@@ -12,7 +12,8 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_DOGS, DOMAIN, MODULE_GPS
+from .const import DOMAIN, MODULE_GPS
+from .config_entry_helpers import get_entry_dogs
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .door_sensor_manager import DoorSensorManager
@@ -72,7 +73,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
   """Set up PawControl from a config entry."""
   _LOGGER.debug("Setting up PawControl entry: %s", entry.entry_id)
 
-  dogs_config_raw = entry.data.get(CONF_DOGS, [])
+  dogs_config_raw = get_entry_dogs(entry)
   dogs_config: list[DogConfigData] = []
 
   if isinstance(dogs_config_raw, list):

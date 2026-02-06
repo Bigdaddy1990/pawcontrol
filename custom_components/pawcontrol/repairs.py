@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
 from homeassistant.config_entries import ConfigEntry
+from .config_entry_helpers import get_entry_dogs
 from .const import (
   CONF_DOG_ID,
   CONF_DOG_NAME,
@@ -557,7 +558,7 @@ async def _check_dog_configuration_issues(
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+  raw_dogs_obj = get_entry_dogs(entry)
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -640,7 +641,7 @@ async def _check_gps_configuration_issues(
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+  raw_dogs_obj = get_entry_dogs(entry)
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -714,7 +715,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
   now = dt_util.utcnow()
   grace_seconds = 15 * 60
 
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+  raw_dogs_obj = get_entry_dogs(entry)
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -821,7 +822,7 @@ async def _check_notification_configuration_issues(
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+  raw_dogs_obj = get_entry_dogs(entry)
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -1233,7 +1234,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
       hass: Home Assistant instance
       entry: Configuration entry
   """
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+  raw_dogs_obj = get_entry_dogs(entry)
   raw_dogs = (
     raw_dogs_obj
     if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
@@ -2708,7 +2709,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = entry.data.get(CONF_DOGS, [])
+    dogs = get_entry_dogs(entry)
     seen_ids = set()
     fixed_dogs = []
 
@@ -2743,7 +2744,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = entry.data.get(CONF_DOGS, [])
+    dogs = get_entry_dogs(entry)
     updated_dogs = []
 
     for dog in dogs:
@@ -2833,7 +2834,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = entry.data.get(CONF_DOGS, [])
+    dogs = get_entry_dogs(entry)
     updated_dogs: list[DogConfigData] = []
     high_resource_limit = 5
     high_resource_count = 0
@@ -2921,7 +2922,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not entry:
       return
 
-    dogs = entry.data.get(CONF_DOGS, [])
+    dogs = get_entry_dogs(entry)
     valid_dogs = [
       dog for dog in dogs if dog.get(CONF_DOG_ID) and dog.get(CONF_DOG_NAME)
     ]

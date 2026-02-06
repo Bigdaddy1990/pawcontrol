@@ -9,7 +9,8 @@ from homeassistant.const import CONF_API_KEY, CONF_PASSWORD, CONF_TOKEN, CONF_US
 from homeassistant.core import HomeAssistant
 
 from homeassistant.config_entries import ConfigEntry
-from .const import CONF_API_ENDPOINT, CONF_API_TOKEN, CONF_DOGS
+from .config_entry_helpers import get_entry_dogs
+from .const import CONF_API_ENDPOINT, CONF_API_TOKEN
 from .runtime_data import get_runtime_data
 
 TO_REDACT = {
@@ -68,7 +69,7 @@ async def async_get_config_entry_diagnostics(
 
 def _get_dogs_diagnostics(entry: ConfigEntry) -> list[dict[str, Any]]:
   """Extract dog configuration summary."""
-  dogs = entry.data.get(CONF_DOGS, [])
+  dogs = get_entry_dogs(entry)
   if not isinstance(dogs, list):
     return []
 
