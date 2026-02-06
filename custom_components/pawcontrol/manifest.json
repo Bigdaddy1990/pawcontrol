@@ -21,6 +21,7 @@
   "loggers": [
     "custom_components.pawcontrol"
   ],
+  "requirements": [],
   "quality_scale": "platinum",
   "single_config_entry": true,
   "version": "1.0.0"
