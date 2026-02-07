@@ -15,7 +15,12 @@ from typing import cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import number as number_component
-from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
+from homeassistant.components.number import (
+  NumberDeviceClass,
+  NumberEntity,
+  NumberEntityDescription,
+  NumberMode,
+)
 from homeassistant.const import (
   PERCENTAGE,
   STATE_UNAVAILABLE,
@@ -533,6 +538,15 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     self._attr_native_step = native_step
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    translation_key_value = translation_key or number_type
+    self.entity_description = NumberEntityDescription(
+      key=number_type,
+      translation_key=translation_key_value,
+      device_class=device_class,
+      entity_category=entity_category,
+      native_unit_of_measurement=native_unit_of_measurement,
+      icon=icon,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(

@@ -20,7 +20,7 @@ from contextlib import suppress
 from datetime import date
 from typing import cast
 
-from homeassistant.components.date import DateEntity
+from homeassistant.components.date import DateEntity, DateEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -326,6 +326,11 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     self._attr_unique_id = f"pawcontrol_{dog_id}_{date_type}"
     self._attr_translation_key = date_type
     self._attr_icon = icon
+    self.entity_description = DateEntityDescription(
+      key=date_type,
+      translation_key=date_type,
+      icon=icon,
+    )
 
     self.update_device_metadata(
       model=DEFAULT_MODEL,

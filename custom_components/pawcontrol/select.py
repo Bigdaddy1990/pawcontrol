@@ -15,7 +15,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.components import select as select_component
-from homeassistant.components.select import SelectEntity
+from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -788,6 +788,12 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     self._attr_options = list(options)
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    self.entity_description = SelectEntityDescription(
+      key=select_type,
+      translation_key=select_type,
+      entity_category=entity_category,
+      icon=icon,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(

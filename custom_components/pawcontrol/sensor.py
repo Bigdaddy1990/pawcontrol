@@ -10,7 +10,11 @@ from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 
 from homeassistant import const as ha_const
-from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import (
+  SensorDeviceClass,
+  SensorEntityDescription,
+  SensorStateClass,
+)
 from homeassistant.const import (
   PERCENTAGE,
   STATE_UNKNOWN,
@@ -23,7 +27,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import UnitOfMass
+from .compat import MASS_GRAMS, MASS_KILOGRAMS, UnitOfMass
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
@@ -128,6 +132,26 @@ try:  # pragma: no cover - executed indirectly during import
   _CALORIE_UNIT = UnitOfEnergy.KILO_CALORIE
 except AttributeError:  # pragma: no cover - fallback for older constant sets
   _CALORIE_UNIT = "kcal"
+
+
+def _suggested_precision_from_unit(unit: str | None) -> int | None:
+  """Return a suggested display precision for common PawControl units."""
+
+  if unit is None:
+    return None
+
+  precision_map: dict[str, int] = {
+    PERCENTAGE: 0,
+    UnitOfTime.MINUTES: 0,
+    UnitOfTime.HOURS: 1,
+    UnitOfLength.METERS: 1,
+    UnitOfLength.KILOMETERS: 2,
+    _SPEED_UNIT: 1,
+    MASS_KILOGRAMS: 1,
+    MASS_GRAMS: 0,
+    _CALORIE_UNIT: 0,
+  }
+  return precision_map.get(unit)
 
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
@@ -748,6 +772,7 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
   _attr_unit_of_measurement_translation_key: str | None
   _attr_icon: str | None
   _attr_entity_category: EntityCategory | None
+  _attr_suggested_display_precision: int | None
   _attr_translation_key: str | None
   _attr_unique_id: str
   _pending_translation_key: str
@@ -763,6 +788,7 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     device_class: SensorDeviceClass | None = None,
     state_class: SensorStateClass | None = None,
     unit_of_measurement: str | None = None,
+    suggested_display_precision: int | None = None,
     icon: str | None = None,
     entity_category: EntityCategory | None = None,
     translation_key: str | None = None,
@@ -779,6 +805,23 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     self._attr_unit_of_measurement_translation_key = None
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    computed_precision = (
+      suggested_display_precision
+      if suggested_display_precision is not None
+      else _suggested_precision_from_unit(unit_of_measurement)
+    )
+    self._attr_suggested_display_precision = computed_precision
+    translation_key_value = translation_key or sensor_type
+    self.entity_description = SensorEntityDescription(
+      key=sensor_type,
+      translation_key=translation_key_value,
+      device_class=device_class,
+      state_class=state_class,
+      entity_category=entity_category,
+      native_unit_of_measurement=unit_of_measurement,
+      suggested_display_precision=computed_precision,
+      icon=icon,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
