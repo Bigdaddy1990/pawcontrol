@@ -50,6 +50,13 @@ if TYPE_CHECKING:
       self, properties: ConfigFlowDiscoveryProperties
     ) -> str | None: ...
 
+    def _abort_if_unique_id_configured(
+      self,
+      *,
+      updates: Mapping[str, object] | None = None,
+      reload_on_update: bool = False,
+    ) -> ConfigFlowResult: ...
+
     async def _handle_existing_discovery_entry(
       self,
       *,
@@ -261,6 +268,14 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
 
     if user_input is not None:
       if user_input.get("confirm", False):
+        if getattr(self, "_unique_id", None) is not None:
+          updates: Mapping[str, object] | None = None
+          if self._discovery_info:
+            updates = {"discovery_info": dict(self._discovery_info)}
+          self._abort_if_unique_id_configured(
+            updates=updates,
+            reload_on_update=True,
+          )
         return await self.async_step_add_dog()
       return self.async_abort(reason="discovery_rejected")
 
