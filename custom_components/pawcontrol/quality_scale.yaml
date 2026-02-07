@@ -61,7 +61,7 @@ rules:
 
   diagnostics:
     status: done
-    comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py`; tests in `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, and `tests/unit/test_services.py`."
+    comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py` and `docs/diagnostics.md`; tests in `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, `tests/unit/test_services.py`, and `tests/unit/test_system_health.py`."
 
   repairs:
     status: done
@@ -69,7 +69,7 @@ rules:
 
   maintenance-playbook:
     status: done
-    comment: "Evidence: developer guidance in `dev.md`."
+    comment: "Evidence: developer guidance in `docs/MAINTENANCE.md`."
 
   localization:
     status: done

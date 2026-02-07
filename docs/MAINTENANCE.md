@@ -94,3 +94,5 @@ Follow this routine for every release or hotfix.
 - Troubleshooting guide: [`troubleshooting.md`](troubleshooting.md)
 - Setup & installation: [`setup_installation_guide.md`](setup_installation_guide.md)
 - Quality scale evidence: [`compliance_gap_analysis.md`](compliance_gap_analysis.md)
+- Home Assistant Developer Guidelines: https://developers.home-assistant.io/docs/development_guidelines
+- Home Assistant Developer Blog (policy updates): https://developers.home-assistant.io/blog
