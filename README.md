@@ -38,6 +38,28 @@
   fixtures to validate setup/unload, runtime data, and repair flows.
 - 👩‍💻 Developer workflows, linting, and release procedures live in `dev.md`.
 
+### Config & Options Flows (UI-only)
+
+- **Discovery-driven setup**: DHCP, Zeroconf, USB, Bluetooth, and HomeKit
+  suggestions launch the config flow, which guides dog creation, profile
+  selection, module toggles, and external entity bindings before creating the
+  entry.【F:custom_components/pawcontrol/config_flow_main.py†L62-L211】【F:custom_components/pawcontrol/config_flow_discovery.py†L1-L207】【F:custom_components/pawcontrol/config_flow_dogs.py†L1-L335】
+- **Modular flow steps**: Profile, GPS, health, and module configuration are
+  split into targeted mixins so validation and summaries stay consistent across
+  reconfigure/reauth flows.【F:custom_components/pawcontrol/config_flow_profile.py†L1-L211】【F:custom_components/pawcontrol/flows/gps.py†L1-L247】【F:custom_components/pawcontrol/flows/health.py†L1-L279】【F:custom_components/pawcontrol/config_flow_modules.py†L1-L326】
+- **Options flow menu**: Dog management, door sensors, feeding, GPS, and system
+  settings use menu-driven handlers with typed payloads and tests for the
+  expanded options schema.【F:custom_components/pawcontrol/options_flow_menu.py†L1-L284】【F:custom_components/pawcontrol/options_flow_dogs_management.py†L1-L457】【F:custom_components/pawcontrol/options_flow_system_settings.py†L1-L240】【F:tests/unit/test_options_flow.py†L1-L870】
+
+### Services & Diagnostics
+
+- **Service catalog**: Feeding, walking, garden sessions, health logging, and
+  notification helpers are registered in `services.yaml` and implemented in
+  `services.py` with dedicated service telemetry tests.【F:custom_components/pawcontrol/services.yaml†L1-L200】【F:custom_components/pawcontrol/services.py†L1-L420】【F:tests/unit/test_services.py†L1-L610】
+- **Diagnostics exports**: Diagnostics include setup flags, service guard
+  metrics, notification rejection metrics, and aggregated guard/notification
+  error summaries for support teams.【F:custom_components/pawcontrol/diagnostics.py†L338-L719】【F:custom_components/pawcontrol/diagnostics.py†L1214-L1350】【F:tests/test_diagnostics.py†L1-L252】
+
 ### Validation & attribute normalization
 
 - **Flow validation** trims and normalizes dog IDs, validates names, and clamps
@@ -71,6 +93,7 @@
 
 ```yaml
 alias: PawControl - feeding reminder when overdue
+mode: single
 trigger:
   - platform: state
     entity_id: binary_sensor.pawcontrol_is_hungry
@@ -79,7 +102,9 @@ action:
   - service: notify.mobile_app
     data:
       title: "Feeding reminder"
-      message: "Meal is overdue for {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}"
+      message: >
+        Meal is overdue for
+        {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}.
 ```
 
 Blueprints included:

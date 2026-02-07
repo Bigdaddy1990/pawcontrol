@@ -20,6 +20,35 @@ language. It is maintained automatically by `scripts/sync_localization_flags`.
 | component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen | Configuración del sistema | Paramètres système |
 <!-- END_SETUP_FLAGS_TABLE -->
 
+## Setup Flags Panel payload
+
+Diagnostics export a `setup_flags_panel` object that includes localized labels,
+sources, and counts for analytics, backup, and debug logging toggles. This
+payload is always included so support dashboards can consume it directly.
+
+Example (redacted):
+
+```json
+{
+  "title": "Setup flags",
+  "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+  "language": "en",
+  "flags": [
+    {
+      "key": "enable_analytics",
+      "label": "Analytics telemetry",
+      "enabled": true,
+      "source": "system_settings"
+    }
+  ],
+  "enabled_count": 2,
+  "disabled_count": 1
+}
+```
+
+Evidence: setup flag snapshots and the panel payload are built in
+`diagnostics.py` and validated in the diagnostics test suite.【F:custom_components/pawcontrol/diagnostics.py†L338-L460】【F:custom_components/pawcontrol/diagnostics.py†L695-L760】【F:tests/test_diagnostics.py†L1-L252】
+
 ## Notifications
 
 The diagnostics payload includes an additional summary for notification
@@ -67,6 +96,10 @@ Fields:
 - `reasons`: Mapping `{reason: count}` for skip reasons.
 - `last_results`: Ordered list of recent guard results with `domain`, `service`,
   `executed`, and optional `reason`/`description`.
+
+Diagnostics also export `entity_factory_guard` to highlight guard statistics
+for entity factory registration, plus `rejection_metrics` for service/notification
+failures in the same `service_execution` block.【F:custom_components/pawcontrol/diagnostics.py†L1827-L1912】
 
 ## Service Guard + Notification Errors
 
