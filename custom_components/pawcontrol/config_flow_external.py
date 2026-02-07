@@ -5,7 +5,7 @@ that the integration depends on, including GPS sources, door sensors,
 and notification services with comprehensive validation.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.2+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 

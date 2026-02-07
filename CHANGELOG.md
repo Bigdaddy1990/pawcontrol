@@ -5,6 +5,14 @@ All notable changes to PawControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Replaced deprecated mass unit constants with Home Assistant `UnitOfMass` fallbacks and tightened optimized entity base typing for device/state classes to match modern HA enums.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】
+
+### Added
+- Added compatibility tests covering `UnitOfMass` fallback handling when Home Assistant constants are absent or stubbed.【F:tests/unit/test_compat.py†L1-L124】
+
 ## [1.0.0] - 2025-09-08 - Production Release 🎉
 
 ### Added
@@ -18,7 +26,7 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 ### ✨ Major Features Added
 
 #### 🏗️ Core Integration
-- **Complete HA 2026.1.1+ Integration**: Full compatibility with latest Home Assistant
+- **Complete HA 2026.2.1+ Integration**: Full compatibility with latest Home Assistant
 - **10 Platform Support**: sensor, binary_sensor, switch, button, number, select, text, device_tracker, date, datetime
 - **150+ Entities**: Comprehensive entity coverage with 3 profile levels (minimal/standard/comprehensive)
 - **Multi-Dog Management**: Independent configurations for unlimited dogs
@@ -182,7 +190,7 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 ### 🛠️ Technical Requirements
 
 #### 🖥️ System Requirements
-- **Home Assistant**: 2026.1.1 or later
+- **Home Assistant**: 2026.2.1 or later
 - **Python**: 3.13+ with async/await support
 - **Memory**: 512MB minimum, 1GB+ recommended
 - **Storage**: 100MB minimum, 500MB+ recommended for historical data

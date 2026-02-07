@@ -7,7 +7,7 @@ scheduled activities that do not require time components.
 
 Metadata:
     Quality Scale: Platinum target
-    Home Assistant: 2025.8.2+
+    Home Assistant: 2025.9.0+
     Python: 3.13+
 """
 
@@ -20,13 +20,13 @@ from contextlib import suppress
 from datetime import date
 from typing import cast
 
-from homeassistant.components.date import DateEntity
+from homeassistant.components.date import DateEntity, DateEntityDescription
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
 from .const import (
   ATTR_DOG_ID,
   DEFAULT_MODEL,
@@ -326,6 +326,11 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     self._attr_unique_id = f"pawcontrol_{dog_id}_{date_type}"
     self._attr_translation_key = date_type
     self._attr_icon = icon
+    self.entity_description = DateEntityDescription(
+      key=date_type,
+      translation_key=date_type,
+      icon=icon,
+    )
 
     self.update_device_metadata(
       model=DEFAULT_MODEL,

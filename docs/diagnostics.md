@@ -20,12 +20,45 @@ language. It is maintained automatically by `scripts/sync_localization_flags`.
 | component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen | Configuración del sistema | Paramètres système |
 <!-- END_SETUP_FLAGS_TABLE -->
 
+## Setup Flags Panel payload
+
+Diagnostics export a `setup_flags_panel` object that includes localized labels,
+sources, and counts for analytics, backup, and debug logging toggles. This
+payload is always included so support dashboards can consume it directly.
+
+Example (redacted):
+
+```json
+{
+  "title": "Setup flags",
+  "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+  "language": "en",
+  "flags": [
+    {
+      "key": "enable_analytics",
+      "label": "Analytics telemetry",
+      "enabled": true,
+      "source": "system_settings"
+    }
+  ],
+  "enabled_count": 2,
+  "disabled_count": 1
+}
+```
+
+Evidence: setup flag snapshots and the panel payload are built in
+`diagnostics.py` and validated in the diagnostics test suite.【F:custom_components/pawcontrol/diagnostics.py†L338-L460】【F:custom_components/pawcontrol/diagnostics.py†L695-L760】【F:tests/test_diagnostics.py†L1-L252】
+
 ## Notifications
 
 The diagnostics payload includes an additional summary for notification
 rejections or failures under `notifications.rejection_metrics`. The values are
 derived from the Notification Manager's `delivery_status` and make it easier to
 analyze failed or rejected deliveries per notify service.
+
+`notifications.rejection_metrics` is always present. When the notification
+manager is unavailable, the diagnostics payload still returns the schema
+version and zeroed defaults so consumers can rely on a stable shape.
 
 Fields:
 
@@ -47,11 +80,45 @@ Service delivery failures also populate the shared `rejection_metrics` payload
 within coordinator/performance diagnostics. These counters aggregate failure
 reasons across notification delivery attempts and service-triggered sends.
 
+`performance_metrics.rejection_metrics` and
+`service_execution.rejection_metrics` are always included with default values
+and a `schema_version`, even when runtime telemetry is unavailable.
+
 Fields:
 
 - `last_failure_reason`: Most recent classified failure reason (for example,
   `auth_error`, `device_unreachable`, `missing_service`).
 - `failure_reasons`: Mapping `{reason: count}` summarising failure reasons.
+
+## Coordinator Rejection Metrics Schema
+
+The diagnostics payload always exports a full `rejection_metrics` snapshot (with
+defaults) under `coordinator_info.statistics.rejection_metrics`,
+`performance_metrics.rejection_metrics`, and `service_execution.rejection_metrics`.
+The schema version is currently `4`.
+
+Fields:
+
+- `schema_version`: Version of the rejection metrics payload (`4`).
+- `rejected_call_count`: Total rejected coordinator calls.
+- `rejection_breaker_count`: Total circuit breaker rejections.
+- `rejection_rate`: Rejection rate for the observed window.
+- `last_rejection_time`: Timestamp of the most recent rejection.
+- `last_rejection_breaker_id`: Circuit breaker identifier for the last rejection.
+- `last_rejection_breaker_name`: Circuit breaker name for the last rejection.
+- `last_failure_reason`: Most recent classified failure reason.
+- `failure_reasons`: Mapping `{reason: count}` for failure classifications.
+- `open_breaker_count`: Count of open circuit breakers.
+- `half_open_breaker_count`: Count of half-open circuit breakers.
+- `unknown_breaker_count`: Count of breakers without a known state.
+- `open_breakers`: List of open breaker names.
+- `open_breaker_ids`: List of open breaker identifiers.
+- `half_open_breakers`: List of half-open breaker names.
+- `half_open_breaker_ids`: List of half-open breaker identifiers.
+- `unknown_breakers`: List of breaker names without a known state.
+- `unknown_breaker_ids`: List of breaker identifiers without a known state.
+- `rejection_breaker_ids`: List of breakers responsible for rejections.
+- `rejection_breakers`: List of breaker names responsible for rejections.
 
 ## Service Guard Metrics
 
@@ -67,6 +134,10 @@ Fields:
 - `reasons`: Mapping `{reason: count}` for skip reasons.
 - `last_results`: Ordered list of recent guard results with `domain`, `service`,
   `executed`, and optional `reason`/`description`.
+
+Diagnostics also export `entity_factory_guard` to highlight guard statistics
+for entity factory registration, plus `rejection_metrics` for service/notification
+failures in the same `service_execution` block.【F:custom_components/pawcontrol/diagnostics.py†L1827-L1912】
 
 ## Service Guard + Notification Errors
 
