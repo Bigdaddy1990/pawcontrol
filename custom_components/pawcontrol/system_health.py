@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 from homeassistant.components import system_health
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
-from .compat import ConfigEntry
 from .const import DOMAIN
 from .coordinator_tasks import (
   derive_rejection_metrics,

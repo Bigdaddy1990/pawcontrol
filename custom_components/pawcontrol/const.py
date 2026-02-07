@@ -1,6 +1,6 @@
 """Optimized constants for the Paw Control integration.
 
-OPTIMIZED for HA 2026.1.1+ with enhanced performance patterns:
+OPTIMIZED for HA 2025.9.0+ with enhanced performance patterns:
 - Frozen sets for O(1) lookups
 - Tuples for immutable sequences
 - Streamlined exports
@@ -47,6 +47,7 @@ from .selector_shim import selector
 # OPTIMIZED: Storage versions for data persistence
 STORAGE_VERSION: Final[int] = 1
 DASHBOARD_STORAGE_VERSION: Final[int] = 1
+CONFIG_ENTRY_VERSION: Final[int] = 2
 
 # OPTIMIZED: Core integration identifiers
 DOMAIN: Final[str] = "pawcontrol"

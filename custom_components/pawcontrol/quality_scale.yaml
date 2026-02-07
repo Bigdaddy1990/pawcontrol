@@ -1,76 +1,217 @@
 # Home Assistant quality-scale tracker for PawControl
 #
-# PawControl now satisfies the Platinum tier. Each rule below references the
-# supporting implementation or regression coverage that keeps the manifest,
-# documentation, and diagnostics aligned with Home Assistant guidance.
+# This file mirrors the current Home Assistant quality-scale rule set. Each rule
+# maps to concrete implementation evidence and, where applicable, regression
+# coverage that keeps the Platinum claim synchronized across the manifest and
+# documentation.
 
 quality_scale: platinum
 
 rules:
-  has-owner:
+  action-setup:
     status: done
-    comment: "Evidence: `CODEOWNERS`, `custom_components/pawcontrol/manifest.json`."
+    comment: "Evidence: service registration in `custom_components/pawcontrol/__init__.py` and `custom_components/pawcontrol/services.py`."
 
-  config-flow:
+  appropriate-polling:
     status: done
-    comment: "Evidence: `custom_components/pawcontrol/config_flow.py` and `custom_components/pawcontrol/flow_validation.py`; UI walkthrough in `docs/user_guide.md` and `docs/setup_installation_guide.md`; flow strings in `custom_components/pawcontrol/strings.json`."
-
-  docs-actions:
-    status: done
-    comment: "Evidence: `custom_components/pawcontrol/services.yaml`; user docs in `README.md` and `docs/automation_examples.md`; handlers in `custom_components/pawcontrol/services.py`/`script_manager.py`."
-
-  docs-removal:
-    status: done
-    comment: "Evidence: removal and cleanup steps in `docs/setup_installation_guide.md` and troubleshooting in `docs/troubleshooting.md`."
-
-  runtime-data:
-    status: done
-    comment: "Evidence: runtime containers in `custom_components/pawcontrol/runtime_data.py` and `coordinator_runtime.py`; tests in `tests/test_runtime_data.py`."
-
-  stale-devices:
-    status: done
-    comment: "Evidence: device removal guard in `custom_components/pawcontrol/__init__.py`; device registry stubs in `tests/helpers/homeassistant_test_stubs.py`."
-
-  dynamic-devices:
-    status: done
-    comment: "Evidence: platform setup logic in `custom_components/pawcontrol/*` and entity registry stubs in `tests/helpers/homeassistant_test_stubs.py`."
-
-  test-before-setup:
-    status: done
-    comment: "Evidence: validation guards in `custom_components/pawcontrol/validation.py`, `custom_components/pawcontrol/flow_validation.py`, and `custom_components/pawcontrol/api_validator.py`; tests in `tests/test_validation_inputs.py`, `tests/test_flow_validation.py`, and `tests/test_api_validator.py`."
-
-  test-before-update:
-    status: done
-    comment: "Evidence: coordinator error handling in `custom_components/pawcontrol/coordinator.py`; diagnostics tests in `tests/test_diagnostics.py`, `tests/unit/test_coordinator_tasks.py`, and `tests/unit/test_services.py`."
-
-  test-before-unload:
-    status: done
-    comment: "Evidence: unload handling in `custom_components/pawcontrol/__init__.py`; runtime data teardown in `custom_components/pawcontrol/runtime_data.py`."
-
-  test-coverage:
-    status: done
-    comment: "Evidence: coverage config in `pyproject.toml`; unit suites in `tests/` (e.g., `tests/test_geofence_zone.py`, `tests/test_validation_inputs.py`)."
+    comment: "Evidence: coordinator update interval management in `custom_components/pawcontrol/coordinator.py` and `custom_components/pawcontrol/coordinator_support.py`; adaptive polling tests in `tests/unit/test_adaptive_polling.py`."
 
   brands:
     status: done
     comment: "Evidence: brand assets in `brands/pawcontrol/`."
 
-  documentation:
+  common-modules:
     status: done
-    comment: "Evidence: user docs in `README.md`, `docs/user_guide.md`, `docs/automation_examples.md`, `docs/troubleshooting.md`, and `docs/setup_installation_guide.md`."
+    comment: "Evidence: shared helpers in `custom_components/pawcontrol/utils.py`, `custom_components/pawcontrol/http_client.py`, and `custom_components/pawcontrol/types.py`."
+
+  config-flow-test-coverage:
+    status: done
+    comment: "Evidence: config flow tests in `tests/unit/test_config_flow_dogs.py`, `tests/unit/test_config_flow_base.py`, and `tests/unit/test_config_flow_modules.py`."
+
+  config-flow:
+    status: done
+    comment: "Evidence: `custom_components/pawcontrol/config_flow.py` and flow helpers in `custom_components/pawcontrol/config_flow_main.py`/`custom_components/pawcontrol/flow_validation.py`."
+
+  dependency-transparency:
+    status: done
+    comment: "Evidence: declared requirements in `custom_components/pawcontrol/manifest.json` and `requirements.txt`."
+
+  docs-actions:
+    status: done
+    comment: "Evidence: service docs in `custom_components/pawcontrol/services.yaml` and `docs/automation_examples.md`; handlers in `custom_components/pawcontrol/services.py`/`script_manager.py`."
+
+  docs-high-level-description:
+    status: done
+    comment: "Evidence: integration overview in `README.md` and `docs/user_guide.md`."
+
+  docs-installation-instructions:
+    status: done
+    comment: "Evidence: setup steps in `README.md` and `docs/setup_installation_guide.md`."
+
+  docs-removal-instructions:
+    status: done
+    comment: "Evidence: removal steps in `docs/setup_installation_guide.md` and troubleshooting notes in `docs/troubleshooting.md`."
+
+  entity-event-setup:
+    status: done
+    comment: "Evidence: lifecycle hooks in `custom_components/pawcontrol/optimized_entity_base.py` and platform entities that register/unregister listeners."
+
+  entity-unique-id:
+    status: done
+    comment: "Evidence: unique ID generation in `custom_components/pawcontrol/optimized_entity_base.py` and platform entities (e.g., `custom_components/pawcontrol/switch.py`)."
+
+  has-entity-name:
+    status: done
+    comment: "Evidence: `_attr_has_entity_name` usage across entities such as `custom_components/pawcontrol/sensor.py` and `custom_components/pawcontrol/device.py`."
+
+  runtime-data:
+    status: done
+    comment: "Evidence: runtime data stored on `ConfigEntry.runtime_data` via `custom_components/pawcontrol/runtime_data.py`."
+
+  test-before-configure:
+    status: done
+    comment: "Evidence: connection checks in `custom_components/pawcontrol/flow_validation.py` and `custom_components/pawcontrol/api_validator.py`; tests in `tests/test_flow_validation.py` and `tests/test_api_validator.py`."
+
+  test-before-setup:
+    status: done
+    comment: "Evidence: setup validation in `custom_components/pawcontrol/validation.py` and `custom_components/pawcontrol/api_validator.py`; tests in `tests/test_validation_inputs.py`."
+
+  unique-config-entry:
+    status: done
+    comment: "Evidence: unique ID guards in `custom_components/pawcontrol/config_flow_main.py` and `custom_components/pawcontrol/config_flow.py`."
+
+  action-exceptions:
+    status: done
+    comment: "Evidence: service handlers raise `HomeAssistantError` in `custom_components/pawcontrol/services.py`; coverage in `tests/unit/test_services.py`."
+
+  config-entry-unloading:
+    status: done
+    comment: "Evidence: unload flow in `custom_components/pawcontrol/__init__.py`; runtime teardown in `custom_components/pawcontrol/runtime_data.py`."
+
+  docs-configuration-parameters:
+    status: done
+    comment: "Evidence: configuration options documented in `README.md` and `docs/user_guide.md`."
+
+  docs-installation-parameters:
+    status: done
+    comment: "Evidence: installation prerequisites and parameters in `docs/setup_installation_guide.md`."
+
+  entity-unavailable:
+    status: done
+    comment: "Evidence: availability handling in `custom_components/pawcontrol/optimized_entity_base.py` and coordinator state in `custom_components/pawcontrol/coordinator.py`."
+
+  integration-owner:
+    status: done
+    comment: "Evidence: `CODEOWNERS` and `custom_components/pawcontrol/manifest.json`."
+
+  log-when-unavailable:
+    status: done
+    comment: "Evidence: availability logging in `custom_components/pawcontrol/coordinator.py` and `custom_components/pawcontrol/coordinator_observability.py`."
+
+  parallel-updates:
+    status: done
+    comment: "Evidence: `PARALLEL_UPDATES` declarations in platform modules such as `custom_components/pawcontrol/sensor.py` and `custom_components/pawcontrol/switch.py`."
+
+  reauthentication-flow:
+    status: done
+    comment: "Evidence: reauth flow in `custom_components/pawcontrol/config_flow_reauth.py`; tests in `tests/unit/test_config_flow_base.py`."
+
+  test-coverage:
+    status: done
+    comment: "Evidence: coverage targets in `pyproject.toml` with regression suites under `tests/`."
+
+  devices:
+    status: done
+    comment: "Evidence: device registration in `custom_components/pawcontrol/device.py`; tests in `tests/components/pawcontrol/test_device_registry.py`."
 
   diagnostics:
     status: done
     comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py` and `docs/diagnostics.md`; tests in `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, `tests/unit/test_services.py`, and `tests/unit/test_system_health.py`."
 
-  repairs:
+  discovery-update-info:
     status: done
-    comment: "Evidence: `custom_components/pawcontrol/repairs.py`; tests in `tests/test_repairs.py`."
+    comment: "Evidence: discovery update handling in `custom_components/pawcontrol/config_flow_main.py` and `custom_components/pawcontrol/config_flow_discovery.py`; tests in `tests/unit/test_discovery.py`."
 
-  maintenance-playbook:
+  discovery:
     status: done
-    comment: "Evidence: developer guidance in `docs/MAINTENANCE.md`."
+    comment: "Evidence: discovery helpers in `custom_components/pawcontrol/discovery.py` and config flow discovery steps in `custom_components/pawcontrol/config_flow_discovery.py`."
 
-  localization:
+  docs-data-update:
     status: done
-    comment: "Evidence: `custom_components/pawcontrol/strings.json` and `custom_components/pawcontrol/translations/` (validated by `tests/test_localization_strings.py`)."
+    comment: "Evidence: update cadence documented in `docs/user_guide.md` and coordinator update interval logic in `custom_components/pawcontrol/coordinator.py`."
+
+  docs-examples:
+    status: done
+    comment: "Evidence: automation examples in `docs/automation_examples.md`."
+
+  docs-known-limitations:
+    status: done
+    comment: "Evidence: known limitations documented in `docs/user_guide.md`."
+
+  docs-supported-devices:
+    status: done
+    comment: "Evidence: supported devices and data sources in `docs/user_guide.md`."
+
+  docs-supported-functions:
+    status: done
+    comment: "Evidence: feature overview in `docs/user_guide.md` and `README.md`."
+
+  docs-troubleshooting:
+    status: done
+    comment: "Evidence: troubleshooting guide in `docs/troubleshooting.md`."
+
+  docs-use-cases:
+    status: done
+    comment: "Evidence: use case examples in `docs/user_guide.md`."
+
+  dynamic-devices:
+    status: done
+    comment: "Evidence: platform setup logic across `custom_components/pawcontrol/` and entity registry adapters in `tests/helpers/homeassistant_test_stubs.py`."
+
+  entity-category:
+    status: done
+    comment: "Evidence: entity categories defined in platform modules such as `custom_components/pawcontrol/sensor.py` and `custom_components/pawcontrol/switch.py`."
+
+  entity-device-class:
+    status: done
+    comment: "Evidence: device classes set in entity platforms like `custom_components/pawcontrol/binary_sensor.py` and `custom_components/pawcontrol/sensor.py`."
+
+  entity-disabled-by-default:
+    status: done
+    comment: "Evidence: default-disabled entities in `custom_components/pawcontrol/sensor.py` and `custom_components/pawcontrol/button.py`."
+
+  entity-translations:
+    status: done
+    comment: "Evidence: entity name translations in `custom_components/pawcontrol/strings.json` and `custom_components/pawcontrol/translations/`."
+
+  exception-translations:
+    status: done
+    comment: "Evidence: translation keys for validation/errors in `custom_components/pawcontrol/strings.json`; raised via `custom_components/pawcontrol/exceptions.py`."
+
+  icon-translations:
+    status: done
+    comment: "Evidence: icon translation keys in `custom_components/pawcontrol/strings.json` and `custom_components/pawcontrol/icons.json`."
+
+  reconfiguration-flow:
+    status: done
+    comment: "Evidence: reconfigure flow in `custom_components/pawcontrol/config_flow_main.py`; documentation in `docs/troubleshooting.md`."
+
+  repair-issues:
+    status: done
+    comment: "Evidence: repair flows in `custom_components/pawcontrol/repairs.py`; tests in `tests/test_repairs.py`."
+
+  stale-devices:
+    status: done
+    comment: "Evidence: device removal guards in `custom_components/pawcontrol/__init__.py` and registry tests in `tests/components/pawcontrol/test_device_registry.py`."
+
+  async-dependency:
+    status: done
+    comment: "Evidence: async dependencies (`aiohttp`, `aiofiles`) declared in `custom_components/pawcontrol/manifest.json` and used in `custom_components/pawcontrol/device_api.py`."
+
+  inject-websession:
+    status: done
+    comment: "Evidence: shared websession injection via `async_get_clientsession` in `custom_components/pawcontrol/__init__.py` and `custom_components/pawcontrol/http_client.py`."
+
+  strict-typing:
+    status: done
+    comment: "Evidence: strict typing config in `pyproject.toml` and marker file `custom_components/pawcontrol/py.typed`."

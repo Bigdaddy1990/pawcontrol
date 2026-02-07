@@ -5,7 +5,7 @@ batch operations, lazy loading, and memory management. It processes dashboard
 generation requests asynchronously to prevent blocking the event loop.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.3+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
@@ -23,10 +23,9 @@ from typing import Literal, TypeVar, cast
 
 import aiofiles  # type: ignore[import-untyped]
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
   MODULE_FEEDING,
   MODULE_GPS,
@@ -1046,11 +1045,3 @@ class DashboardRenderer:
 
 
 _unwrap_async_result = partial(unwrap_async_result, logger=_LOGGER)
-
-
-ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-  type[Exception],
-  compat.HomeAssistantError,
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)

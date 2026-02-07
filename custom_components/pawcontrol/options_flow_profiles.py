@@ -45,7 +45,7 @@ from .types import (
 _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-  from .compat import ConfigEntry
+  from homeassistant.config_entries import ConfigEntry
   from .entity_factory import EntityFactory
 
   class ProfileOptionsHost(Protocol):
