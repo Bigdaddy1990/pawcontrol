@@ -41,6 +41,7 @@ from .flows.gps import DogGPSFlowMixin, GPSModuleDefaultsMixin
 from .flows.health import DogHealthFlowMixin, HealthSummaryMixin
 from .config_flow_schemas import DOG_SCHEMA, MODULE_SELECTION_KEYS, MODULES_SCHEMA
 from .const import (
+  CONFIG_ENTRY_VERSION,
   CONF_DOG_OPTIONS,
   CONF_DOG_SIZE,
   CONF_DOG_WEIGHT,
@@ -155,7 +156,7 @@ class PawControlConfigFlow(
   - Performance monitoring
   """
 
-  VERSION = 1
+  VERSION = CONFIG_ENTRY_VERSION
   MINOR_VERSION = 3
 
   def __init__(self) -> None:

@@ -23,6 +23,7 @@ from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
 from .const import (
+  CONFIG_ENTRY_VERSION,
   CONF_DOG_ID,
   CONF_DOG_NAME,
   CONF_DOGS,
@@ -1130,7 +1131,7 @@ async def _check_outdated_configuration(
       entry: Configuration entry
   """
   # Check config entry version
-  if entry.version < 1:  # Current version is 1
+  if entry.version < CONFIG_ENTRY_VERSION:
     await async_create_issue(
       hass,
       entry,
@@ -1138,7 +1139,7 @@ async def _check_outdated_configuration(
       ISSUE_OUTDATED_CONFIG,
       {
         "current_version": entry.version,
-        "required_version": 1,
+        "required_version": CONFIG_ENTRY_VERSION,
       },
       severity=ir.IssueSeverity.WARNING,
     )
