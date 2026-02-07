@@ -515,6 +515,15 @@ def _apply_rejection_metrics_to_performance(
   merge_rejection_metric_values(performance_metrics, rejection_metrics)
 
 
+def _build_default_rejection_metrics_payload() -> JSONMutableMapping:
+  """Return a JSON-safe default rejection metrics payload."""
+
+  return cast(
+    JSONMutableMapping,
+    normalize_value(dict(default_rejection_metrics())),
+  )
+
+
 def _build_statistics_payload(
   payload: JSONLikeMapping,
 ) -> CoordinatorStatisticsPayload:
@@ -1125,11 +1134,23 @@ async def _get_notification_diagnostics(
   """Return notification-specific diagnostics."""
 
   if runtime_data is None:
-    return cast(JSONMutableMapping, {"available": False})
+    return cast(
+      JSONMutableMapping,
+      {
+        "available": False,
+        "rejection_metrics": _build_notification_rejection_metrics(None),
+      },
+    )
 
   notification_manager = _resolve_notification_manager(runtime_data)
   if notification_manager is None:
-    return cast(JSONMutableMapping, {"available": False})
+    return cast(
+      JSONMutableMapping,
+      {
+        "available": False,
+        "rejection_metrics": _build_notification_rejection_metrics(None),
+      },
+    )
 
   stats = await notification_manager.async_get_performance_statistics()
   delivery = notification_manager.get_delivery_status_snapshot()
@@ -1632,13 +1653,26 @@ async def _get_performance_metrics(
       Performance metrics
   """
   if not coordinator:
-    return cast(JSONMutableMapping, {"available": False})
+    return cast(
+      JSONMutableMapping,
+      {
+        "available": False,
+        "rejection_metrics": _build_default_rejection_metrics_payload(),
+      },
+    )
 
   try:
     raw_stats = coordinator.get_update_statistics()
   except Exception as err:
     _LOGGER.debug("Could not get performance metrics: %s", err)
-    return cast(JSONMutableMapping, {"available": False, "error": str(err)})
+    return cast(
+      JSONMutableMapping,
+      {
+        "available": False,
+        "error": str(err),
+        "rejection_metrics": _build_default_rejection_metrics_payload(),
+      },
+    )
 
   stats_mapping: JSONLikeMapping = (
     cast(JSONLikeMapping, raw_stats)
@@ -1843,11 +1877,25 @@ async def _get_service_execution_diagnostics(
   """Summarise guarded Home Assistant service execution telemetry."""
 
   if runtime_data is None:
-    return cast(JSONMutableMapping, {"available": False})
+    return cast(
+      JSONMutableMapping,
+      {
+        "available": False,
+        "guard_metrics": _build_service_guard_metrics_export(None),
+        "rejection_metrics": _build_default_rejection_metrics_payload(),
+      },
+    )
 
   performance_stats = get_runtime_performance_stats(runtime_data)
   if not isinstance(performance_stats, Mapping):
-    return cast(JSONMutableMapping, {"available": False})
+    return cast(
+      JSONMutableMapping,
+      {
+        "available": False,
+        "guard_metrics": _build_service_guard_metrics_export(None),
+        "rejection_metrics": _build_default_rejection_metrics_payload(),
+      },
+    )
 
   diagnostics: JSONMutableMapping = {"available": True}
 
