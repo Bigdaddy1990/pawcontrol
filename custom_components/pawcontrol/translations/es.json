@@ -423,7 +423,7 @@
         "data_description": {
           "confirm": "Confirm to refresh credentials and run the health checks noted above."
         },
-        "description": "La integración Paw Control necesita reautenticarse.\n\nIntegración: {integration_name}\nPerros configurados: {dogs_count}\nPerfil actual: {current_profile}\nResumen de salud: {health_status}",
+        "description": "La integraci\u00f3n Paw Control necesita reautenticarse.\n\nIntegraci\u00f3n: {integration_name}\nPerros configurados: {dogs_count}\nPerfil actual: {current_profile}\nResumen de salud: {health_status}",
         "title": "Reauthenticate Paw Control"
       },
       "reconfigure": {
