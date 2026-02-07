@@ -873,30 +873,11 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
           self._dog_name,
           err,
         )
-
-    coordinator_payload = cast(
-      Mapping[str, JSONMutableMapping] | None,
-      self.coordinator.data,
+    await self.coordinator.async_apply_module_updates(
+      self._dog_id,
+      module,
+      updates,
     )
-    coordinator_data: dict[str, JSONMutableMapping] = (
-      dict(coordinator_payload) if coordinator_payload else {}
-    )
-    existing_dog = coordinator_data.get(self._dog_id)
-    dog_data: JSONMutableMapping = (
-      dict(existing_dog) if isinstance(existing_dog, Mapping) else {}
-    )
-    existing_module = cast(
-      Mapping[str, JSONValue] | None,
-      dog_data.get(module),
-    )
-    merged = _merge_json_mappings(existing_module, updates)
-    dog_data[module] = merged
-    coordinator_data[self._dog_id] = dog_data
-    update_result = self.coordinator.async_set_updated_data(
-      coordinator_data,
-    )
-    if asyncio.iscoroutine(update_result):
-      await update_result
 
   async def _async_update_gps_settings(
     self,
