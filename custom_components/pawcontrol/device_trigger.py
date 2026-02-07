@@ -30,6 +30,7 @@ from .device_automation_helpers import (
   resolve_device_context,
   resolve_entity_id,
 )
+from .types import DeviceTriggerPayload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,14 +99,14 @@ TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
 async def async_get_triggers(
   hass: HomeAssistant,
   device_id: str,
-) -> list[dict[str, object]]:
+) -> list[DeviceTriggerPayload]:
   """List device triggers for PawControl devices."""
 
   context = resolve_device_context(hass, device_id)
   if context.dog_id is None:
     return []
 
-  triggers: list[dict[str, object]] = []
+  triggers: list[DeviceTriggerPayload] = []
   for definition in TRIGGER_DEFINITIONS:
     unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
     entity_id = resolve_entity_id(
@@ -117,7 +118,7 @@ async def async_get_triggers(
     if entity_id is None:
       continue
 
-    trigger: dict[str, object] = {
+    trigger: DeviceTriggerPayload = {
       CONF_PLATFORM: "device",
       CONF_DEVICE_ID: device_id,
       CONF_DOMAIN: DOMAIN,

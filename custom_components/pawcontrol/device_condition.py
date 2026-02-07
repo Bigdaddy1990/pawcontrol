@@ -46,6 +46,7 @@ from .device_automation_helpers import (
   resolve_entity_id,
   resolve_status_snapshot,
 )
+from .types import DeviceConditionPayload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,14 +87,14 @@ CONDITION_SCHEMA = DEVICE_CONDITION_BASE_SCHEMA.extend(
 async def async_get_conditions(
   hass: HomeAssistant,
   device_id: str,
-) -> list[dict[str, object]]:
+) -> list[DeviceConditionPayload]:
   """List device conditions for PawControl devices."""
 
   context = resolve_device_context(hass, device_id)
   if context.dog_id is None:
     return []
 
-  conditions: list[dict[str, object]] = []
+  conditions: list[DeviceConditionPayload] = []
   for definition in CONDITION_DEFINITIONS:
     unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
     entity_id = resolve_entity_id(

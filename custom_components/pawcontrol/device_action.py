@@ -18,6 +18,7 @@ from .device_automation_helpers import (
   build_device_automation_metadata,
   resolve_device_context,
 )
+from .types import DeviceActionPayload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
 async def async_get_actions(
   hass: HomeAssistant,
   device_id: str,
-) -> list[dict[str, object]]:
+) -> list[DeviceActionPayload]:
   """List device actions for PawControl devices."""
 
   context = resolve_device_context(hass, device_id)

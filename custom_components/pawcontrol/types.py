@@ -137,6 +137,48 @@ type ErrorContext = JSONMutableMapping
 """Structured context payload attached to :class:`PawControlError` instances."""
 
 
+class DeviceAutomationMetadata(TypedDict):
+  """Metadata payload for device automation entries."""
+
+  secondary: bool
+
+
+class DeviceActionPayload(TypedDict):
+  """Payload returned for device action discovery."""
+
+  device_id: str
+  domain: str
+  metadata: DeviceAutomationMetadata
+  type: str
+
+
+class DeviceConditionPayload(TypedDict):
+  """Payload returned for device condition discovery."""
+
+  condition: str
+  device_id: str
+  domain: str
+  metadata: DeviceAutomationMetadata
+  type: str
+  entity_id: str
+
+
+DeviceTriggerPayload = TypedDict(
+  "DeviceTriggerPayload",
+  {
+    "platform": Required[str],
+    "device_id": Required[str],
+    "domain": Required[str],
+    "metadata": Required[DeviceAutomationMetadata],
+    "type": Required[str],
+    "entity_id": Required[str],
+    "from": NotRequired[str],
+    "to": NotRequired[str],
+  },
+)
+"""Payload returned for device trigger discovery."""
+
+
 def ensure_json_mapping(
   data: Mapping[str, object] | JSONMutableMapping | None,
 ) -> JSONMutableMapping:
