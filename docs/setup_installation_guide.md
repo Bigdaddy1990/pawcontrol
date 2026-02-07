@@ -69,19 +69,15 @@ starten Sie mit [Schritt 1: Integration hinzufügen](#schritt-1-integration-hin
 ## 🤖 Automatische Erkennung
 
 Die automatische Erkennung startet den Config-Flow, sobald Home Assistant ein
-passendes Gerät über **DHCP**, **USB**, **Zeroconf**, **HomeKit** oder
-**Bluetooth** findet. Damit Discovery zuverlässig auslöst, prüfen Sie die
-folgenden Voraussetzungen:
+passendes Gerät über **DHCP**, **USB**, **Zeroconf** oder **Bluetooth** findet.
+Damit Discovery zuverlässig auslöst, prüfen Sie die folgenden Voraussetzungen:
 
-- **Netzsegment (DHCP/Zeroconf/HomeKit):** Home Assistant und das Gerät müssen
+- **Netzsegment (DHCP/Zeroconf):** Home Assistant und das Gerät müssen
   im selben Layer‑2‑Netz liegen. Multicast (mDNS/Bonjour) darf nicht durch VLANs
   oder Firewall-Regeln blockiert werden.
 - **USB-Passthrough (USB):** USB-Geräte müssen an den Host weitergereicht
   werden (Docker/VM). Der Home Assistant Prozess benötigt Zugriff auf die
   `/dev`-Geräte.
-- **HomeKit-Name-Matching (HomeKit):** Der von HomeKit gesendete Name sollte
-  dem erwarteten Gerätenamen/Profil entsprechen, damit die Zuordnung eindeutig
-  bleibt. Nutzen Sie in HomeKit eindeutige Namen pro Tracker.
 - **Bluetooth (BLE):** Ein kompatibler Adapter und aktive Bluetooth-Unterstützung
   auf dem Host sind erforderlich. Container benötigen die passenden Rechte.
 
@@ -112,13 +108,6 @@ und folgen Sie dem Setup wie in [Schritt 1](#schritt-1-integration-hinzufügen)
   aktiviert (bei Docker/VM), sowie ausreichende Zugriffsrechte auf `/dev`.
 - **UI-Setup:** Wenn das Gerät erkannt wird, fahren Sie mit
   [Schritt 1](#schritt-1-integration-hinzufügen) fort.
-
-### HomeKit
-
-- **Voraussetzungen:** HomeKit-Controller in Home Assistant aktiviert,
-  funktionierendes mDNS/Bonjour im Netzwerk, Gerät im Pairing-Modus.
-- **UI-Setup:** Öffnen Sie die vorgeschlagene Integration in **Geräte & Dienste**
-  und folgen Sie [Schritt 1](#schritt-1-integration-hinzufügen).
 
 ### Zeroconf
 
