@@ -1,6 +1,6 @@
 # 🐾 Paw Control - Smart Dog Management for Home Assistant
 
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.1.1%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.2.1%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20aligned-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -38,6 +38,28 @@
   fixtures to validate setup/unload, runtime data, and repair flows.
 - 👩‍💻 Developer workflows, linting, and release procedures live in `dev.md`.
 
+### Config & Options Flows (UI-only)
+
+- **Discovery-driven setup**: DHCP, Zeroconf, USB, Bluetooth, and HomeKit
+  suggestions launch the config flow, which guides dog creation, profile
+  selection, module toggles, and external entity bindings before creating the
+  entry.【F:custom_components/pawcontrol/config_flow_main.py†L62-L211】【F:custom_components/pawcontrol/config_flow_discovery.py†L1-L207】【F:custom_components/pawcontrol/config_flow_dogs.py†L1-L335】
+- **Modular flow steps**: Profile, GPS, health, and module configuration are
+  split into targeted mixins so validation and summaries stay consistent across
+  reconfigure/reauth flows.【F:custom_components/pawcontrol/config_flow_profile.py†L1-L211】【F:custom_components/pawcontrol/flows/gps.py†L1-L247】【F:custom_components/pawcontrol/flows/health.py†L1-L279】【F:custom_components/pawcontrol/config_flow_modules.py†L1-L326】
+- **Options flow menu**: Dog management, door sensors, feeding, GPS, and system
+  settings use menu-driven handlers with typed payloads and tests for the
+  expanded options schema.【F:custom_components/pawcontrol/options_flow_menu.py†L1-L284】【F:custom_components/pawcontrol/options_flow_dogs_management.py†L1-L457】【F:custom_components/pawcontrol/options_flow_system_settings.py†L1-L240】【F:tests/unit/test_options_flow.py†L1-L870】
+
+### Services & Diagnostics
+
+- **Service catalog**: Feeding, walking, garden sessions, health logging, and
+  notification helpers are registered in `services.yaml` and implemented in
+  `services.py` with dedicated service telemetry tests.【F:custom_components/pawcontrol/services.yaml†L1-L200】【F:custom_components/pawcontrol/services.py†L1-L420】【F:tests/unit/test_services.py†L1-L610】
+- **Diagnostics exports**: Diagnostics include setup flags, service guard
+  metrics, notification rejection metrics, and aggregated guard/notification
+  error summaries for support teams.【F:custom_components/pawcontrol/diagnostics.py†L338-L719】【F:custom_components/pawcontrol/diagnostics.py†L1214-L1350】【F:tests/test_diagnostics.py†L1-L252】
+
 ### Validation & attribute normalization
 
 - **Flow validation** trims and normalizes dog IDs, validates names, and clamps
@@ -53,6 +75,10 @@
   - **Automatische Erkennung**: [`docs/setup_installation_guide.md#-automatische-erkennung`](docs/setup_installation_guide.md#-automatische-erkennung)
 - **User guide (EN)**: [`docs/user_guide.md`](docs/user_guide.md)
   - **Discovery overview**: [`docs/user_guide.md#discovery--config-flow-overview`](docs/user_guide.md#discovery--config-flow-overview)
+  - **Supported devices & data sources**: [`docs/user_guide.md#supported-devices--data-sources`](docs/user_guide.md#supported-devices--data-sources)
+  - **Use cases**: [`docs/user_guide.md#use-cases`](docs/user_guide.md#use-cases)
+  - **Known limitations**: [`docs/user_guide.md#known-limitations`](docs/user_guide.md#known-limitations)
+  - **Data update cadence**: [`docs/user_guide.md#data-update-cadence`](docs/user_guide.md#data-update-cadence)
 - **Automation examples (EN)**: [`docs/automation_examples.md`](docs/automation_examples.md)
 - **Troubleshooting (EN)**: [`docs/troubleshooting.md`](docs/troubleshooting.md)
   - **Discovery issues**: [`docs/troubleshooting.md#discovery-does-not-find-devices`](docs/troubleshooting.md#discovery-does-not-find-devices)
@@ -71,6 +97,7 @@
 
 ```yaml
 alias: PawControl - feeding reminder when overdue
+mode: single
 trigger:
   - platform: state
     entity_id: binary_sensor.pawcontrol_is_hungry
@@ -79,7 +106,9 @@ action:
   - service: notify.mobile_app
     data:
       title: "Feeding reminder"
-      message: "Meal is overdue for {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}"
+      message: >
+        Meal is overdue for
+        {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}.
 ```
 
 Blueprints included:
@@ -106,7 +135,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
 ### System Requirements
 
 **Minimum Requirements (target):**
-- Home Assistant Core 2025.1+
+- Home Assistant Core 2026.2.1+
 - Python 3.13+
 - 512MB available RAM
 - 100MB free storage
@@ -126,7 +155,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
    ls /config/custom_components/hacs/
 
    # Check Home Assistant version
-   # Settings → System → General → Version (tested with 2024.12.x builds)
+   # Settings → System → General → Version (tested with 2026.1.x builds)
    ```
 
 2. **Add PawControl Repository**:
@@ -238,6 +267,21 @@ Route Recording: ✅ Enabled
 - The options flow mirrors the config entry schema; all user-facing strings live in `custom_components/pawcontrol/strings.json` so translations stay aligned with Home Assistant requirements.
 - System Settings now includes manual escalation selectors for `manual_check_event`, `manual_guard_event`, and `manual_breaker_event`; the integration trims values, disables triggers when left blank, surfaces source badges and help text for every option, and synchronises each change with the Resilience blueprint while exporting canonical source metadata for diagnostics.【F:custom_components/pawcontrol/options_flow.py†L681-L742】【F:custom_components/pawcontrol/script_manager.py†L551-L671】【F:tests/unit/test_options_flow.py†L946-L1016】【F:tests/unit/test_data_manager.py†L608-L726】
 - Service parameters and automation helpers are described in `docs/production_integration_documentation.md` and `custom_components/pawcontrol/services.yaml`.
+
+#### Config Entry Migration (Version 2)
+
+PawControl migrates older config entries to the current schema on startup:
+
+- Legacy `dogs` payloads stored as a mapping are normalized into the canonical list
+  of per-dog dictionaries with required `dog_id`/`dog_name` fields.
+- Legacy top-level module selections are folded into each dog’s `modules` payload
+  when individual dog records do not already define module toggles.
+- Any legacy `dog_options` data stored in entry data is moved into entry options
+  and normalized per dog.
+
+These migrations keep the in-memory coordinator models consistent with the
+current config/option flow schema and ensure future reconfigurations work
+without requiring a full re-setup.【F:custom_components/pawcontrol/migrations.py†L1-L226】
 
 #### Step 4: Geofencing Setup (optional)
 
@@ -971,7 +1015,7 @@ If you need to uninstall PawControl—whether you're migrating hardware or just 
 **Integration won't load**:
 ```bash
 # Check Home Assistant version
-# Requirement: 2026.1.1 or later
+# Requirement: 2026.2.1 or later
 Settings → System → General → Check version
 
 # Verify installation
@@ -1267,7 +1311,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 ### Current Version: 1.0.0 (Production Ready)
 
 **✨ Major Features**:
-- Complete Home Assistant 2026.1.1+ integration
+- Complete Home Assistant 2026.2.1+ integration
 - 10 platform support with 150+ entities
 - Advanced GPS tracking with geofencing
 - Multi-dog management with independent configurations
@@ -1279,7 +1323,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - Production deployment documentation
 
 - **🏆 Quality Status**:
-- **Quality Scale Status**: Platinum alignment target with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
+- **Quality Scale Status**: Platinum alignment target mapped to the current Home Assistant quality-scale rule set (bronze→platinum) with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
 - **Automated Test Suite**: Unit and harness tests cover core flows, coordinator telemetry, and runtime helpers, with coverage tracking configured in `pyproject.toml`.
 - **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
 - **Production Hardening**: Installation, removal, diagnostics, and repairs are documented in README and the documentation portal.

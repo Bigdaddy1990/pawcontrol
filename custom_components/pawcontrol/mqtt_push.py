@@ -11,9 +11,9 @@ import json
 import logging
 from typing import Any, cast
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .compat import ConfigEntry
 from .const import (
   CONF_DOGS,
   CONF_GPS_SOURCE,

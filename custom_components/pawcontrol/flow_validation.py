@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import cast
 
 from .const import (
@@ -11,6 +12,7 @@ from .const import (
   CONF_DOG_NAME,
   CONF_DOG_SIZE,
   CONF_DOG_WEIGHT,
+  CONF_MODULES,
   DOG_ID_PATTERN,
   DOG_SIZES,
   MAX_DOG_AGE,
@@ -23,12 +25,16 @@ from .health_calculator import HealthMetrics
 from .types import (
   DOG_AGE_FIELD,
   DOG_BREED_FIELD,
+  DOG_ID_FIELD,
+  DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
   DOG_SIZE_FIELD,
   DOG_WEIGHT_FIELD,
   DogConfigData,
+  DogModulesConfig,
   DogSetupStepInput,
   FlowInputMapping,
+  ensure_dog_modules_config,
   validate_dog_weight_for_size,
 )
 from .validation import (
@@ -40,6 +46,17 @@ from .validation import (
 )
 
 MAX_BREED_NAME_LENGTH = 100
+DOG_IMPORT_FIELDS: frozenset[str] = frozenset(
+  {
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_BREED,
+    CONF_DOG_AGE,
+    CONF_DOG_WEIGHT,
+    CONF_DOG_SIZE,
+    CONF_MODULES,
+  },
+)
 
 
 def _coerce_int(field: str, value: object) -> int:
@@ -290,3 +307,55 @@ def validate_dog_update_input(
   if dog_weight is None and DOG_WEIGHT_FIELD in candidate:
     candidate.pop(DOG_WEIGHT_FIELD, None)
   return candidate
+
+
+def validate_dog_import_input(
+  user_input: FlowInputMapping,
+  *,
+  existing_ids: set[str],
+  existing_names: set[str] | None = None,
+  current_dog_count: int,
+  max_dogs: int,
+) -> DogConfigData:
+  """Validate and normalize dog configuration imported from YAML."""
+
+  extra_fields = set(user_input) - DOG_IMPORT_FIELDS
+  if extra_fields:
+    raise ValidationError(
+      "dog_config",
+      value=", ".join(sorted(extra_fields)),
+      constraint="Unexpected keys in dog configuration",
+    )
+
+  validated = validate_dog_setup_input(
+    user_input,
+    existing_ids=existing_ids,
+    existing_names=existing_names,
+    current_dog_count=current_dog_count,
+    max_dogs=max_dogs,
+  )
+
+  modules_raw = user_input.get(CONF_MODULES, {})
+  if modules_raw is None:
+    modules_raw = {}
+  if not isinstance(modules_raw, Mapping):
+    raise ValidationError(
+      CONF_MODULES,
+      value=modules_raw,
+      constraint="Modules must be a mapping",
+    )
+  modules = ensure_dog_modules_config(
+    cast(Mapping[str, object], modules_raw),
+  )
+
+  dog_config: DogConfigData = {
+    DOG_ID_FIELD: validated["dog_id"],
+    DOG_NAME_FIELD: validated["dog_name"],
+    DOG_WEIGHT_FIELD: validated["dog_weight"],
+    DOG_SIZE_FIELD: validated["dog_size"],
+    DOG_AGE_FIELD: validated["dog_age"],
+    DOG_MODULES_FIELD: cast(DogModulesConfig, dict(modules)),
+  }
+  if (breed := validated.get("dog_breed")) is not None:
+    dog_config[DOG_BREED_FIELD] = breed
+  return dog_config

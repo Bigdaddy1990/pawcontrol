@@ -18,7 +18,8 @@ from enum import Enum
 from numbers import Real
 from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+from homeassistant.exceptions import ServiceValidationError
+
 from .const import (
   CONF_DOG_NAME,
   CONF_GPS_SOURCE,
@@ -26,20 +27,10 @@ from .const import (
   MAX_DOG_NAME_LENGTH,
   MIN_DOG_NAME_LENGTH,
 )
-from .exceptions import (
-  ServiceValidationError as PawControlServiceValidationError,
-  ValidationError as PawControlValidationError,
-)
+from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
-
-ensure_homeassistant_exception_symbols()
-ServiceValidationError: type[Exception] = cast(
-  type[Exception],
-  PawControlServiceValidationError,
-)
-bind_exception_alias("ServiceValidationError")
 
 ValidationError = PawControlValidationError
 
