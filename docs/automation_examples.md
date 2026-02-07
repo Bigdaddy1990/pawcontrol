@@ -4,9 +4,12 @@ This page provides **step-by-step automation examples** for common workflows.
 All examples assume your entities are named in the standard Home Assistant
 format (adjust names to match your instance). PawControl itself is configured
 via the UI (config entries); these YAML snippets are for automations/scripts,
-not `configuration.yaml` setup.
+not `configuration.yaml` setup. Prefer the **Automation Editor** UI and
+device-based triggers/actions when available, then switch to YAML mode for
+fine-tuning. Home Assistant’s YAML style guide and device automation docs
+describe the recommended patterns for triggers, conditions, and actions.
 
-## 1) Feeding reminder when overdue
+## 1) Feeding reminder when overdue (state trigger + notify)
 
 **Goal:** notify you when a dog is overdue for a meal.
 
@@ -25,24 +28,24 @@ action:
         {{ state_attr('binary_sensor.pawcontrol_feeding_overdue', 'dog_name') }}.
 ```
 
-## 2) Start walk when leaving home zone
+## 2) Start walk when leaving the home zone (zone trigger)
 
 **Goal:** automatically start a walk when the dog leaves the home zone.
 
 ```yaml
 alias: PawControl - auto start walk on zone exit
 trigger:
-  - platform: state
+  - platform: zone
     entity_id: device_tracker.pawcontrol_gps
-    from: "home"
-    to: "not_home"
+    zone: zone.home
+    event: leave
 action:
   - service: pawcontrol.start_walk
     data:
       dog_id: "buddy"
 ```
 
-## 3) Alert when geofence is breached
+## 3) Alert when geofence is breached (event trigger)
 
 **Goal:** send a high-priority alert when the dog leaves a safe zone.
 
@@ -60,7 +63,7 @@ action:
         {{ trigger.event.data.zone_name }}.
 ```
 
-## 4) Weekly summary notification
+## 4) Weekly summary notification (time + template message)
 
 **Goal:** send a weekly summary using the available sensors.
 
@@ -84,7 +87,7 @@ action:
         {{ states('sensor.pawcontrol_calories_consumed_today') }}.
 ```
 
-## 5) Garden session auto-start on door sensor
+## 5) Garden session auto-start on door sensor (state + for)
 
 **Goal:** automatically start a garden session when the garden door opens.
 
@@ -94,13 +97,14 @@ trigger:
   - platform: state
     entity_id: binary_sensor.garden_door
     to: "on"
+    for: "00:00:15"
 action:
   - service: pawcontrol.start_garden_session
     data:
       dog_id: "buddy"
 ```
 
-## 6) Health reminder on weigh-in day
+## 6) Health reminder on weigh-in day (scheduled)
 
 **Goal:** remind yourself to log weight every week.
 
@@ -144,7 +148,7 @@ action:
     meal_type: dinner
 ```
 
-## 8) Blueprint: reusable walk reminder
+## 8) Blueprint: reusable walk reminder (UI inputs)
 
 **Goal:** create a reusable automation with inputs for different dogs.
 
@@ -181,7 +185,7 @@ action:
 After saving, create automations in **Settings → Automations & Scenes → Create
 Automation → From Blueprint** and select this blueprint.
 
-## 8) Blueprint: walk detection alerts (included)
+## 9) Blueprint: walk detection alerts (included)
 
 **Goal:** react to walk start/end based on the built-in walk sensor.
 
@@ -206,7 +210,7 @@ use_blueprint:
           message: "Buddy finished the walk."
 ```
 
-## 9) Blueprint: safe zone alerts (included)
+## 10) Blueprint: safe zone alerts (included)
 
 **Goal:** alert when a dog leaves or returns to a safe zone.
 
@@ -230,4 +234,47 @@ use_blueprint:
         data:
           title: "Safe zone return"
           message: "Buddy is back in the safe zone."
+
+## 11) Notification action handler (choose + trigger IDs)
+
+**Goal:** respond to actionable notification buttons using a single automation.
+
+```yaml
+alias: PawControl - handle notification actions
+mode: single
+trigger:
+  - platform: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: "PAWCONTROL_FEED_NOW"
+    id: feed_now
+  - platform: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: "PAWCONTROL_START_WALK"
+    id: start_walk
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: feed_now
+        sequence:
+          - service: pawcontrol.add_feeding
+            data:
+              dog_id: "buddy"
+              amount: 120
+              meal_type: dinner
+      - conditions:
+          - condition: trigger
+            id: start_walk
+        sequence:
+          - service: pawcontrol.start_walk
+            data:
+              dog_id: "buddy"
 ```
+
+## References (Home Assistant Developer Docs)
+
+- https://developers.home-assistant.io/docs/automations
+- https://developers.home-assistant.io/docs/device_automation_index
+- https://developers.home-assistant.io/docs/documenting/yaml-style-guide

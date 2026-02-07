@@ -16,6 +16,23 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Dashboards**: auto-generated UI cards and summaries.
 - **Notifications**: mobile, persistent, and optional external channels.
 
+## Home Assistant UI patterns (recommended)
+
+Follow the Home Assistant UI workflow to keep your setup aligned with current
+platform guidance:
+
+- **Automation Editor first**: build automations in the UI and switch to YAML
+  only when you need advanced templates or `choose` logic.
+- **Device automations**: use the PawControl device in **Settings → Devices &
+  Services** to access built-in triggers, conditions, and actions.
+- **Helpers**: create helpers (input helpers, schedules) via **Settings →
+  Devices & Services → Helpers** instead of hard-coded YAML.
+- **Dashboards**: start with Sections/Tile cards, then refine with YAML only
+  when necessary.
+
+These patterns mirror the Home Assistant developer guidance for automations,
+device automation, and YAML style.
+
 ## Step-by-step setup (UI)
 
 1. **Install the integration**
@@ -37,6 +54,8 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Entities**: available under *Settings → Devices & Services → Paw Control*.
 - **Services**: `pawcontrol.*` services appear in the Services UI.
 - **Dashboards**: use the generated cards in Lovelace or customize further.
+- **Device automations**: open the PawControl device to attach triggers,
+  conditions, and actions directly in the automation editor.
 
 ## Validation & attribute normalization
 
@@ -130,6 +149,8 @@ Use Home Assistant’s automation editor or YAML. Recommended workflow:
 2. Decide whether you need a **condition** (e.g., only during daytime).
 3. Pick an **action** (`notify`, `pawcontrol.*`, or a script).
 4. Test by manually triggering the service to verify entity IDs and data.
+5. Prefer **device automations** when available for PawControl devices; they
+   remain stable as entity IDs change.
 
 ### Example: blueprint-style automation
 
@@ -191,3 +212,9 @@ Screenshots make setup easier to follow. Helpful captures include:
 
 - Automation examples: [`docs/automation_examples.md`](automation_examples.md)
 - Troubleshooting: [`docs/troubleshooting.md`](troubleshooting.md)
+
+## References (Home Assistant Developer Docs)
+
+- https://developers.home-assistant.io/docs/automations
+- https://developers.home-assistant.io/docs/device_automation_index
+- https://developers.home-assistant.io/docs/documenting/yaml-style-guide
