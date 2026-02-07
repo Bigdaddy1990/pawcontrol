@@ -37,6 +37,9 @@ from datetime import datetime, timedelta
 from typing import Any, ClassVar, Final, Protocol, cast
 from unittest.mock import Mock
 
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.core import State, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
@@ -1181,8 +1184,8 @@ class OptimizedSensorBase(OptimizedEntityBase):
     dog_name: str,
     sensor_type: str,
     *,
-    device_class: str | None = None,
-    state_class: str | None = None,
+    device_class: SensorDeviceClass | None = None,
+    state_class: SensorStateClass | None = None,
     unit_of_measurement: str | None = None,
     **kwargs: Any,
   ) -> None:
@@ -1193,8 +1196,8 @@ class OptimizedSensorBase(OptimizedEntityBase):
         dog_id: Dog identifier
         dog_name: Dog name
         sensor_type: Type of sensor
-        device_class: Home Assistant device class
-        state_class: State class for statistics
+        device_class: Home Assistant sensor device class
+        state_class: Sensor state class for statistics
         unit_of_measurement: Unit of measurement
         **kwargs: Additional arguments passed to parent
     """
@@ -1239,7 +1242,7 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
     dog_name: str,
     sensor_type: str,
     *,
-    device_class: str | None = None,
+    device_class: BinarySensorDeviceClass | None = None,
     icon_on: str | None = None,
     icon_off: str | None = None,
     **kwargs: Any,
@@ -1251,7 +1254,7 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
         dog_id: Dog identifier
         dog_name: Dog name
         sensor_type: Type of binary sensor
-        device_class: Home Assistant device class
+        device_class: Home Assistant binary sensor device class
         icon_on: Icon when sensor is on
         icon_off: Icon when sensor is off
         **kwargs: Additional arguments passed to parent
@@ -1306,7 +1309,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
     dog_name: str,
     switch_type: str,
     *,
-    device_class: str | None = None,
+    device_class: SwitchDeviceClass | None = None,
     initial_state: bool = False,
     **kwargs: Any,
   ) -> None:
@@ -1317,7 +1320,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
         dog_id: Dog identifier
         dog_name: Dog name
         switch_type: Type of switch
-        device_class: Home Assistant device class
+        device_class: Home Assistant switch device class
         initial_state: Initial state for the switch
         **kwargs: Additional arguments passed to parent
     """

@@ -22,17 +22,15 @@ from homeassistant.const import (
   STATE_UNKNOWN,
   UnitOfEnergy,
   UnitOfLength,
-  UnitOfMass,
   UnitOfTime,
 )
 from homeassistant.core import Context, HomeAssistant, State
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from homeassistant.config_entries import ConfigEntry
+from .compat import ConfigEntry, HomeAssistantError, UnitOfMass
 from .const import (
   CONF_DAILY_FOOD_AMOUNT,
   CONF_GPS_ACCURACY_FILTER,

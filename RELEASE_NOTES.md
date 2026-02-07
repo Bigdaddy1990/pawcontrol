@@ -5,10 +5,13 @@
 
 ---
 
-## 🔧 Unreleased maintenance update
+## 🧭 Upcoming (Unreleased)
 
-- Raised the Home Assistant minimum version to 2025.9.0 and removed runtime compatibility shim usage in favour of core Home Assistant types.
-- Updated Home Assistant test stubs and documentation to align with the new baseline, including a compat usage audit record.
+### 🧩 Compatibility Refresh
+- Updated mass unit handling to rely on Home Assistant `UnitOfMass` with backwards-compatible fallbacks, and aligned optimized entity base typing with modern device/state class enums to match current HA APIs.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】
+
+### ✅ Test Coverage
+- Added compatibility tests to validate `UnitOfMass` fallbacks when Home Assistant constants are missing or stubbed in the test harness.【F:tests/unit/test_compat.py†L1-L124】
 
 ## 🎉 Production Release - Platinum Sustainment Achieved
 
