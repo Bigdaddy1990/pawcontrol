@@ -8,11 +8,12 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
+from .const import DOMAIN
+from .selector_shim import selector
 from .types import (
   ConfigFlowDiscoveryData,
   ConfigFlowDiscoveryProperties,
@@ -110,16 +111,14 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       source="zeroconf",
     )
 
-    device_id = self._extract_device_id(properties)
-    if device_id:
-      await self.async_set_unique_id(device_id)
-      result = await self._handle_existing_discovery_entry(
-        updates=updates,
-        comparison=comparison,
-        reload_on_update=True,
-      )
-      if result is not None:
-        return result
+    await self.async_set_unique_id(DOMAIN)
+    result = await self._handle_existing_discovery_entry(
+      updates=updates,
+      comparison=comparison,
+      reload_on_update=True,
+    )
+    if result is not None:
+      return result
 
     return await self.async_step_discovery_confirm()
 
@@ -150,7 +149,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       source="dhcp",
     )
 
-    await self.async_set_unique_id(macaddress)
+    await self.async_set_unique_id(DOMAIN)
     result = await self._handle_existing_discovery_entry(
       updates=updates,
       comparison=comparison,
@@ -196,16 +195,14 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       source="usb",
     )
 
-    unique_id = serial_number or f"{discovery_info.vid}:{discovery_info.pid}"
-    if unique_id:
-      await self.async_set_unique_id(unique_id)
-      result = await self._handle_existing_discovery_entry(
-        updates=updates,
-        comparison=comparison,
-        reload_on_update=True,
-      )
-      if result is not None:
-        return result
+    await self.async_set_unique_id(DOMAIN)
+    result = await self._handle_existing_discovery_entry(
+      updates=updates,
+      comparison=comparison,
+      reload_on_update=True,
+    )
+    if result is not None:
+      return result
 
     return await self.async_step_discovery_confirm()
 
@@ -245,15 +242,14 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       source="bluetooth",
     )
 
-    if address:
-      await self.async_set_unique_id(address)
-      result = await self._handle_existing_discovery_entry(
-        updates=updates,
-        comparison=comparison,
-        reload_on_update=True,
-      )
-      if result is not None:
-        return result
+    await self.async_set_unique_id(DOMAIN)
+    result = await self._handle_existing_discovery_entry(
+      updates=updates,
+      comparison=comparison,
+      reload_on_update=True,
+    )
+    if result is not None:
+      return result
 
     return await self.async_step_discovery_confirm()
 
@@ -274,7 +270,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
     return self.async_show_form(
       step_id="discovery_confirm",
       data_schema=vol.Schema(
-        {vol.Required("confirm", default=True): cv.boolean},
+        {vol.Required("confirm", default=True): selector.BooleanSelector()},
       ),
       description_placeholders=dict(
         cast(

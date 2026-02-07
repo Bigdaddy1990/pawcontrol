@@ -9,13 +9,13 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
 from .const import (
   ATTR_DOG_ID,
   DEFAULT_MODEL,

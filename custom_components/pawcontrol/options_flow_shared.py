@@ -74,7 +74,7 @@ from .types import (
 from .validation import clamp_float_range, clamp_int_range
 
 if TYPE_CHECKING:
-  from .compat import ConfigEntry
+  from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 

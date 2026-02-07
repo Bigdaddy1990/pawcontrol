@@ -1,6 +1,6 @@
 """Optimized constants for the Paw Control integration.
 
-OPTIMIZED for HA 2026.1.1+ with enhanced performance patterns:
+OPTIMIZED for HA 2025.9.0+ with enhanced performance patterns:
 - Frozen sets for O(1) lookups
 - Tuples for immutable sequences
 - Streamlined exports
