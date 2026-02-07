@@ -21,12 +21,11 @@ from typing import Any, ClassVar, Protocol, TypedDict, cast, runtime_checkable
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import Context, HomeAssistant, ServiceRegistry
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
   ATTR_DOG_ID,
   DEFAULT_MODEL,
@@ -95,20 +94,6 @@ def _normalise_attributes(
   return normalise_entity_attributes(attrs)
 
 
-ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-  type[Exception],
-  compat.HomeAssistantError,
-)
-ServiceValidationError: type[Exception] = cast(
-  type[Exception],
-  compat.ServiceValidationError,
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
-bind_exception_alias("ServiceValidationError")
-
-if not hasattr(HomeAssistant, "services"):
-  HomeAssistant.services = None  # type: ignore[attr-defined]
 
 
 @runtime_checkable

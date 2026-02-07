@@ -1,9 +1,14 @@
 # PawControl v1.0.0 - Production Release Notes
 
 **Release Date:** September 8, 2025
-**Environment:** Home Assistant 2026.1.1+ | Python 3.13+ | Quality Scale Platinum
+**Environment:** Home Assistant 2025.9.0+ | Python 3.13+ | Quality Scale Platinum
 
 ---
+
+## 🔧 Unreleased maintenance update
+
+- Raised the Home Assistant minimum version to 2025.9.0 and removed runtime compatibility shim usage in favour of core Home Assistant types.
+- Updated Home Assistant test stubs and documentation to align with the new baseline, including a compat usage audit record.
 
 ## 🎉 Production Release - Platinum Sustainment Achieved
 
@@ -181,7 +186,7 @@ Code Quality:
 ### 🔧 **System Requirements**
 ```yaml
 Minimum:
-  - Home Assistant: 2026.1.1+
+  - Home Assistant: 2025.9.0+
   - Python: 3.13+
   - Memory: 512MB available
   - Storage: 100MB free space

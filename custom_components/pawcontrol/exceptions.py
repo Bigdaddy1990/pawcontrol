@@ -6,8 +6,8 @@ clear error messaging, structured error information, and proper error handling
 throughout the integration.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.2+
-Python: 3.12+
+Home Assistant: 2025.9.0+
+Python: 3.13+
 """
 
 from __future__ import annotations
@@ -16,59 +16,15 @@ import traceback
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import Enum
-from typing import (
-  TYPE_CHECKING,
-  Any,
-  Final,
-  ParamSpec,
-  TypedDict,
-  TypeVar,
-  Unpack,
-  cast,
+from typing import Any, Final, ParamSpec, TypedDict, TypeVar, Unpack, cast
+
+from homeassistant.exceptions import (
+  ConfigEntryAuthFailed as _AuthFailedType,
+  HomeAssistantError as HomeAssistantErrorType,
+  ServiceValidationError as _ServiceValidationErrorType,
 )
-
-if TYPE_CHECKING:
-  from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
-else:  # pragma: no cover - fallback when Home Assistant isn't installed
-  try:
-    from homeassistant.exceptions import (
-      HomeAssistantError as HomeAssistantErrorType,
-    )
-  except (ImportError, ModuleNotFoundError):
-    from .compat import HomeAssistantError as HomeAssistantErrorType
-
-try:
-  from homeassistant.exceptions import ConfigEntryAuthFailed as _AuthFailedType
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback for tests
-  from .compat import ConfigEntryAuthFailed as _AuthFailedType
-
-try:
-  from homeassistant.exceptions import (
-    ServiceValidationError as _ServiceValidationErrorType,
-  )
-except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback for tests
-  from .compat import ServiceValidationError as _ServiceValidationErrorType
-
-try:  # Home Assistant 2025.10 renamed CoordinatorUpdateFailed to UpdateFailed
-  from homeassistant.helpers.update_coordinator import UpdateFailed as _UpdateFailedType
-except ImportError:  # pragma: no cover - compatibility with older cores
-  try:
-    from homeassistant.helpers.update_coordinator import (
-      CoordinatorUpdateFailed as _UpdateFailedType,
-    )
-  except (ImportError, ModuleNotFoundError):  # pragma: no cover - fallback
-    _UpdateFailedType = cast(type[Exception], RuntimeError)
-
-try:
-  from homeassistant.util import dt as dt_util
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-  class _DateTimeModule:
-    @staticmethod
-    def utcnow() -> datetime:
-      return datetime.now(UTC)
-
-  dt_util = _DateTimeModule()
+from homeassistant.helpers.update_coordinator import UpdateFailed as _UpdateFailedType
+from homeassistant.util import dt as dt_util
 
 from .types import ErrorContext, ErrorPayload, GPSLocation, JSONValue
 

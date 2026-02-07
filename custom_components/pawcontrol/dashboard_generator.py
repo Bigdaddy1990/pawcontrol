@@ -21,12 +21,13 @@ from pathlib import Path
 from typing import Any, Final, Literal, NotRequired, TypedDict, TypeVar, cast
 
 import aiofiles  # type: ignore[import-untyped]
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .compat import ConfigEntry, HomeAssistantError
 from .const import DOMAIN, MODULE_NOTIFICATIONS, MODULE_WEATHER
 from .coordinator_tasks import (
   CoordinatorRejectionMetrics,

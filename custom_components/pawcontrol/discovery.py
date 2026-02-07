@@ -16,14 +16,13 @@ from dataclasses import dataclass
 from typing import Final, Literal, TypedDict, cast
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistryEvent
 from homeassistant.helpers.entity_registry import EntityRegistryEvent
 from homeassistant.util.dt import utcnow
 
-from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import DEVICE_CATEGORIES, DOMAIN
 from .exceptions import PawControlError
 
@@ -698,10 +697,3 @@ async def async_shutdown_discovery_manager() -> None:
     await _discovery_manager.async_shutdown()
     _discovery_manager = None
 
-
-ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-  type[Exception],
-  compat.HomeAssistantError,
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
