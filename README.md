@@ -243,6 +243,21 @@ Route Recording: ✅ Enabled
 - System Settings now includes manual escalation selectors for `manual_check_event`, `manual_guard_event`, and `manual_breaker_event`; the integration trims values, disables triggers when left blank, surfaces source badges and help text for every option, and synchronises each change with the Resilience blueprint while exporting canonical source metadata for diagnostics.【F:custom_components/pawcontrol/options_flow.py†L681-L742】【F:custom_components/pawcontrol/script_manager.py†L551-L671】【F:tests/unit/test_options_flow.py†L946-L1016】【F:tests/unit/test_data_manager.py†L608-L726】
 - Service parameters and automation helpers are described in `docs/production_integration_documentation.md` and `custom_components/pawcontrol/services.yaml`.
 
+#### Config Entry Migration (Version 2)
+
+PawControl migrates older config entries to the current schema on startup:
+
+- Legacy `dogs` payloads stored as a mapping are normalized into the canonical list
+  of per-dog dictionaries with required `dog_id`/`dog_name` fields.
+- Legacy top-level module selections are folded into each dog’s `modules` payload
+  when individual dog records do not already define module toggles.
+- Any legacy `dog_options` data stored in entry data is moved into entry options
+  and normalized per dog.
+
+These migrations keep the in-memory coordinator models consistent with the
+current config/option flow schema and ensure future reconfigurations work
+without requiring a full re-setup.【F:custom_components/pawcontrol/migrations.py†L1-L226】
+
 #### Step 4: Geofencing Setup (optional)
 
 Add custom zones for enhanced monitoring:
