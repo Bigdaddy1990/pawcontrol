@@ -110,6 +110,9 @@ This guide lists common issues, symptoms, and fixes.
 **Fix**
 1. Ensure the integration is loaded and has runtime data.
 2. Retry after at least one successful coordinator update.
+3. Verify the `setup_flags_panel` and `service_execution` sections exist in the
+   diagnostics export; their absence usually indicates the entry did not finish
+   setup or was unloaded prematurely.【F:custom_components/pawcontrol/diagnostics.py†L695-L760】【F:custom_components/pawcontrol/diagnostics.py†L1827-L1912】
 
 ## Feeding reminders not firing
 
@@ -134,6 +137,9 @@ This guide lists common issues, symptoms, and fixes.
 2. Review notification service credentials and device availability.
 3. Check diagnostics for `rejection_metrics.failure_reasons` to confirm the
    failure class stabilizes after remediation.
+4. Use `guard_notification_error_metrics.classified_errors` to see whether the
+   failures are caused by missing services, auth errors, or device reachability
+   issues before opening a support ticket.【F:custom_components/pawcontrol/diagnostics.py†L1214-L1350】
 
 ## Collecting logs
 
