@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TypeAlias
 import asyncio
+import importlib
 import inspect
 import logging
 import time
@@ -708,13 +709,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         )
     except TimeoutError as err:
       coordinator_setup_duration = time.monotonic() - coordinator_setup_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Coordinator pre-setup timeout after {coordinator_setup_duration:.2f}s",
       ) from err
     except ConfigEntryAuthFailed:
       raise
     except (OSError, ConnectionError) as err:
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Network connectivity issue during coordinator pre-setup: {err}",
       ) from err
 
@@ -745,13 +746,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         )
     except TimeoutError as err:
       coordinator_refresh_duration = time.monotonic() - coordinator_refresh_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Coordinator initialization timeout after {coordinator_refresh_duration:.2f}s",
       ) from err
     except ConfigEntryAuthFailed:
       raise  # Re-raise auth failures directly
     except (OSError, ConnectionError) as err:
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Network connectivity issue during coordinator setup: {err}",
       ) from err
 
@@ -932,18 +933,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     except TimeoutError as err:
       managers_init_duration = time.monotonic() - managers_init_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Manager initialization timeout after {managers_init_duration:.2f}s: {err}",
       ) from err
     except ValidationError as err:
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Manager validation failed: {err.field} - {err.constraint}",
       ) from err
     except Exception as err:
       # PLATINUM: More specific error categorization
       error_type = err.__class__.__name__
       managers_init_duration = time.monotonic() - managers_init_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Manager initialization failed after {managers_init_duration:.2f}s ({error_type}): {err}",
       ) from err
 
@@ -1048,7 +1049,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         except TimeoutError as err:
           if attempt == max_retries:
             platform_setup_duration = time.monotonic() - platform_setup_start
-            raise not_ready_cls(
+            raise ConfigEntryNotReady(
               f"Platform setup timeout after {platform_setup_duration:.2f}s",
             ) from err
           _LOGGER.warning(
@@ -1057,13 +1058,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
           )
           await asyncio.sleep(1)  # Brief delay before retry
         except ImportError as err:
-          raise not_ready_cls(
+          raise ConfigEntryNotReady(
             f"Platform import failed - missing dependency: {err}",
           ) from err
         except Exception as err:
           if attempt == max_retries:
             _LOGGER.exception("Platform setup failed")
-            raise not_ready_cls(
+            raise ConfigEntryNotReady(
               f"Platform setup failed ({err.__class__.__name__}): {err}",
             ) from err
           _LOGGER.warning(

@@ -348,7 +348,7 @@ class RetryConfig:
   random_source: Callable[[], float] | None = None
 
 
-class RetryExhaustedError(HomeAssistantErrorType):
+class RetryExhaustedError(HomeAssistantError):
   """Raised when all retry attempts are exhausted."""
 
   def __init__(self, attempts: int, last_error: Exception) -> None:

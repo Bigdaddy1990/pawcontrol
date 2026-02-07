@@ -28,6 +28,7 @@
     }
   ],
   "config_flow": true,
+  "domain": "pawcontrol",
   "dependencies": [],
   "dhcp": [
     {
