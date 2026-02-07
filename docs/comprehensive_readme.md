@@ -821,8 +821,10 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
 |------------|--------|----------|---------|
 | 2025.8.x | ✅ Vollständig | ✅ | Empfohlen |
 | 2025.7.x | ✅ Vollständig | ✅ | Stabil |
-| 2025.6.x | ⚠️ Eingeschränkt | ✅ | Basis-Features |
-| 2025.5.x | ❌ Nicht unterstützt | - | Zu alt |
+| 2025.6.x | ✅ Vollständig | ✅ | Stabil |
+| 2025.5.x | ⚠️ Eingeschränkt | ✅ | Basis-Features |
+| 2024.10.x | ✅ Mindestversion | ✅ | Config Flow, Repairs, Diagnostics, Device Automation |
+| 2024.9.x | ❌ Nicht unterstützt | - | Zu alt |
 
 ## 🤝 Contributing
 

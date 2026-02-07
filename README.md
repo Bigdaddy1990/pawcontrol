@@ -126,7 +126,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
    ls /config/custom_components/hacs/
 
    # Check Home Assistant version
-   # Settings → System → General → Version (tested with 2024.12.x builds)
+   # Settings → System → General → Version (tested with 2025.8.x builds; minimum 2024.10.0)
    ```
 
 2. **Add PawControl Repository**:
