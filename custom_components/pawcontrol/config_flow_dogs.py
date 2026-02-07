@@ -51,6 +51,7 @@ from custom_components.pawcontrol.const import (
   SPECIAL_DIET_OPTIONS,
 )
 from custom_components.pawcontrol.exceptions import FlowValidationError
+from custom_components.pawcontrol.flow_helpers import coerce_optional_str
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
 from custom_components.pawcontrol.types import (
   ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
@@ -242,60 +243,6 @@ def _build_module_setup_placeholders(
   placeholders["complexity_info"] = complexity_info
   placeholders["next_step_info"] = next_step_info
   return freeze_placeholders(placeholders)
-
-
-def _coerce_optional_float(value: Any) -> float | None:
-  """Return a float when conversion is possible, otherwise ``None``."""
-
-  if value is None:
-    return None
-  if isinstance(value, bool):
-    return None
-  if isinstance(value, float):
-    return value
-  if isinstance(value, int):
-    return float(value)
-  if isinstance(value, str):
-    try:
-      return float(value.strip())
-    except ValueError:
-      return None
-  return None
-
-
-def _coerce_optional_int(value: Any) -> int | None:
-  """Return an integer when conversion is possible, otherwise ``None``."""
-
-  if value is None or isinstance(value, bool):
-    return None
-  if isinstance(value, int):
-    return value
-  if isinstance(value, float):
-    return int(value)
-  if isinstance(value, str):
-    try:
-      return int(value.strip())
-    except ValueError:
-      return None
-  return None
-
-
-def _coerce_str(value: Any, *, default: str = "") -> str:
-  """Coerce arbitrary user input into a trimmed string."""
-
-  if isinstance(value, str):
-    trimmed = value.strip()
-    return trimmed or default
-  return default
-
-
-def _coerce_optional_str(value: Any) -> str | None:
-  """Return a trimmed string when available, otherwise ``None``."""
-
-  if isinstance(value, str):
-    trimmed = value.strip()
-    return trimmed or None
-  return None
 
 
 if TYPE_CHECKING:
@@ -1080,8 +1027,8 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
     """Build vaccination records from user form input."""
 
     def _build_record(date_key: str, next_key: str) -> DogVaccinationRecord | None:
-      date_value = _coerce_optional_str(user_input.get(date_key))
-      next_value = _coerce_optional_str(user_input.get(next_key))
+      date_value = coerce_optional_str(user_input.get(date_key))
+      next_value = coerce_optional_str(user_input.get(next_key))
       if date_value is None and next_value is None:
         return None
 
@@ -1111,27 +1058,27 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
     medications: list[DogMedicationEntry] = []
     for slot in ("1", "2"):
-      name = _coerce_optional_str(user_input.get(f"medication_{slot}_name"))
+      name = coerce_optional_str(user_input.get(f"medication_{slot}_name"))
       if name is None:
         continue
 
       entry: DogMedicationEntry = {"name": name}
 
-      if dosage := _coerce_optional_str(
+      if dosage := coerce_optional_str(
         user_input.get(f"medication_{slot}_dosage"),
       ):
         entry["dosage"] = dosage
 
-      frequency = _coerce_optional_str(
+      frequency = coerce_optional_str(
         user_input.get(f"medication_{slot}_frequency"),
       )
       if frequency is not None:
         entry["frequency"] = frequency or "daily"
 
-      time_value = _coerce_optional_str(user_input.get(f"medication_{slot}_time"))
+      time_value = coerce_optional_str(user_input.get(f"medication_{slot}_time"))
       entry["time"] = time_value or ("08:00:00" if slot == "1" else "20:00:00")
 
-      if notes := _coerce_optional_str(
+      if notes := coerce_optional_str(
         user_input.get(f"medication_{slot}_notes"),
       ):
         entry["notes"] = notes
@@ -1163,7 +1110,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
       if _coerce_bool(user_input.get(field), default=False):
         conditions.append(condition)
 
-    other_conditions_raw = _coerce_optional_str(
+    other_conditions_raw = coerce_optional_str(
       user_input.get("other_health_conditions"),
     )
     if other_conditions_raw:
