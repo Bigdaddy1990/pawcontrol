@@ -1,6 +1,6 @@
 # 🐾 Paw Control - Smart Dog Management for Home Assistant
 
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.1.1%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.0%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20aligned-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -53,6 +53,10 @@
   - **Automatische Erkennung**: [`docs/setup_installation_guide.md#-automatische-erkennung`](docs/setup_installation_guide.md#-automatische-erkennung)
 - **User guide (EN)**: [`docs/user_guide.md`](docs/user_guide.md)
   - **Discovery overview**: [`docs/user_guide.md#discovery--config-flow-overview`](docs/user_guide.md#discovery--config-flow-overview)
+  - **Supported devices & data sources**: [`docs/user_guide.md#supported-devices--data-sources`](docs/user_guide.md#supported-devices--data-sources)
+  - **Use cases**: [`docs/user_guide.md#use-cases`](docs/user_guide.md#use-cases)
+  - **Known limitations**: [`docs/user_guide.md#known-limitations`](docs/user_guide.md#known-limitations)
+  - **Data update cadence**: [`docs/user_guide.md#data-update-cadence`](docs/user_guide.md#data-update-cadence)
 - **Automation examples (EN)**: [`docs/automation_examples.md`](docs/automation_examples.md)
 - **Troubleshooting (EN)**: [`docs/troubleshooting.md`](docs/troubleshooting.md)
   - **Discovery issues**: [`docs/troubleshooting.md#discovery-does-not-find-devices`](docs/troubleshooting.md#discovery-does-not-find-devices)
@@ -106,7 +110,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
 ### System Requirements
 
 **Minimum Requirements (target):**
-- Home Assistant Core 2025.1+
+- Home Assistant Core 2025.9.0+
 - Python 3.13+
 - 512MB available RAM
 - 100MB free storage
@@ -126,7 +130,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
    ls /config/custom_components/hacs/
 
    # Check Home Assistant version
-   # Settings → System → General → Version (tested with 2024.12.x builds)
+   # Settings → System → General → Version (tested with 2026.1.x builds)
    ```
 
 2. **Add PawControl Repository**:
@@ -986,7 +990,7 @@ If you need to uninstall PawControl—whether you're migrating hardware or just 
 **Integration won't load**:
 ```bash
 # Check Home Assistant version
-# Requirement: 2026.1.1 or later
+# Requirement: 2025.9.0 or later
 Settings → System → General → Check version
 
 # Verify installation
@@ -1282,7 +1286,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 ### Current Version: 1.0.0 (Production Ready)
 
 **✨ Major Features**:
-- Complete Home Assistant 2026.1.1+ integration
+- Complete Home Assistant 2025.9.0+ integration
 - 10 platform support with 150+ entities
 - Advanced GPS tracking with geofencing
 - Multi-dog management with independent configurations
@@ -1294,7 +1298,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - Production deployment documentation
 
 - **🏆 Quality Status**:
-- **Quality Scale Status**: Platinum alignment target with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
+- **Quality Scale Status**: Platinum alignment target mapped to the current Home Assistant quality-scale rule set (bronze→platinum) with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
 - **Automated Test Suite**: Unit and harness tests cover core flows, coordinator telemetry, and runtime helpers, with coverage tracking configured in `pyproject.toml`.
 - **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
 - **Production Hardening**: Installation, removal, diagnostics, and repairs are documented in README and the documentation portal.

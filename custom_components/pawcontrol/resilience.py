@@ -15,80 +15,13 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC
 from enum import Enum
-from importlib import import_module
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import Any, TypeVar
 
-if TYPE_CHECKING:
-  from homeassistant.core import HomeAssistant
-  from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
-else:  # pragma: no cover - runtime fallback when Home Assistant is absent
-  try:
-    from homeassistant.core import HomeAssistant
-  except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class HomeAssistant:  # type: ignore[override]
-      """Minimal stand-in used during unit tests."""
-
-  try:
-    from homeassistant.exceptions import (
-      HomeAssistantError as HomeAssistantErrorType,
-    )
-  except ModuleNotFoundError:  # pragma: no cover - fallback to compat shim
-    from .compat import HomeAssistantError as HomeAssistantErrorType
-
-
-try:
-  from homeassistant.util import dt as dt_util
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-  class _DateTimeModule:
-    @staticmethod
-    def utcnow() -> datetime:
-      return datetime.now(UTC)
-
-    @staticmethod
-    def as_timestamp(value: datetime) -> float:
-      if value.tzinfo is None:
-        value = value.replace(tzinfo=UTC)
-      return value.timestamp()
-
-    @staticmethod
-    def as_utc(value: datetime) -> datetime:
-      if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-      return value.astimezone(UTC)
-
-  dt_util = _DateTimeModule()
-
-from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
-
-ensure_homeassistant_exception_symbols()
-HOME_ASSISTANT_ERROR_CLS: type[Exception] = cast(
-  type[Exception],
-  compat.HomeAssistantError,
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
-
-
-def _resolve_homeassistant_error() -> type[Exception]:
-  """Return the active Home Assistant error type."""
-
-  try:
-    module = import_module("custom_components.pawcontrol.data_manager")
-  except Exception:  # pragma: no cover - fallback when data manager unavailable
-    return HOME_ASSISTANT_ERROR_CLS
-
-  resolver = getattr(module, "_resolve_homeassistant_error", None)
-  if callable(resolver):
-    try:
-      return resolver()
-    except Exception:  # pragma: no cover - defensive fallback
-      return HOME_ASSISTANT_ERROR_CLS
-
-  return HOME_ASSISTANT_ERROR_CLS
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.util import dt as dt_util
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,7 +32,7 @@ T = TypeVar("T")
 AsyncCallable = Callable[..., Awaitable[T]]
 
 
-class CircuitBreakerStateError(HomeAssistantErrorType):
+class CircuitBreakerStateError(HomeAssistantError):
   """Raised when a circuit breaker rejects a call due to its state."""
 
 
@@ -415,7 +348,7 @@ class RetryConfig:
   random_source: Callable[[], float] | None = None
 
 
-class RetryExhaustedError(HomeAssistantErrorType):
+class RetryExhaustedError(HomeAssistantError):
   """Raised when all retry attempts are exhausted."""
 
   def __init__(self, attempts: int, last_error: Exception) -> None:
@@ -457,7 +390,7 @@ async def retry_with_backoff[T](
   ) or kwargs.pop("retry_config", None)
   retry_config = retry_config or RetryConfig()
   if retry_config.max_attempts < 1:
-    raise _resolve_homeassistant_error()("Retry requires at least one attempt")
+    raise HomeAssistantError("Retry requires at least one attempt")
   last_exception: Exception | None = None
 
   for attempt in range(1, retry_config.max_attempts + 1):
@@ -518,7 +451,7 @@ async def retry_with_backoff[T](
   # Should never reach here due to raise in loop, but satisfy type checker
   if last_exception:  # pragma: no cover - defensive safeguard
     raise RetryExhaustedError(retry_config.max_attempts, last_exception)
-  raise _resolve_homeassistant_error()("Retry failed with no exception recorded")
+  raise HomeAssistantError("Retry failed with no exception recorded")
 
 
 class ResilienceManager:

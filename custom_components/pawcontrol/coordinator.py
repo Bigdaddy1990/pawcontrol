@@ -77,10 +77,13 @@ from .types import (
   ConfigEntryOptionsPayload,
   DogConfigData,
   JSONMapping,
+  JSONMutableMapping,
+  JSONValue,
   PawControlConfigEntry,
   PawControlRuntimeData,
   WebhookSecurityStatus,
 )
+from .utils import deep_merge_dicts
 
 # Maintain the legacy name to avoid touching the rest of the module logic
 CoordinatorUpdateFailed = UpdateFailed
@@ -543,6 +546,53 @@ class PawControlCoordinator(
     """Return the coordinator data payload for the dog."""
 
     return CoordinatorDataAccessMixin.get_dog_data(self, dog_id)
+
+  async def async_apply_module_updates(
+    self,
+    dog_id: str,
+    module: str,
+    updates: Mapping[str, JSONValue],
+  ) -> None:
+    """Apply module updates to the coordinator data cache."""
+
+    if dog_id not in self.registry.ids():
+      _LOGGER.debug(
+        "Ignoring module update for unknown dog_id: %s",
+        dog_id,
+      )
+      return
+
+    if not isinstance(module, str) or not module:
+      _LOGGER.debug(
+        "Ignoring module update for %s because module is invalid",
+        dog_id,
+      )
+      return
+
+    current = self._data.get(dog_id)
+    if isinstance(current, Mapping):
+      dog_payload: JSONMutableMapping = cast(JSONMutableMapping, dict(current))
+    else:
+      dog_payload = cast(JSONMutableMapping, self.registry.empty_payload())
+
+    existing_module = dog_payload.get(module)
+    base_payload: JSONMutableMapping = (
+      dict(cast(Mapping[str, JSONValue], existing_module))
+      if isinstance(existing_module, Mapping)
+      else {}
+    )
+    merged = deep_merge_dicts(base_payload, updates)
+    dog_payload[module] = merged
+    self._data[dog_id] = cast(CoordinatorDogData, dog_payload)
+
+    updated_payload = dict(self._data)
+    setter = getattr(self, "async_set_updated_data", None)
+    if callable(setter):
+      result = setter(updated_payload)
+      if isawaitable(result):
+        await result
+    else:  # pragma: no cover - exercised via lightweight test stubs
+      self.data = updated_payload
 
   async def _synchronize_module_states(self, data: CoordinatorDataPayload) -> None:
     """Synchronize conflicting module states across managers."""
