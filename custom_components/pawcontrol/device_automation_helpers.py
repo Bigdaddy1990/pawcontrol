@@ -23,6 +23,7 @@ from .types import (
 _LOGGER = logging.getLogger(__name__)
 
 _UNIQUE_ID_FORMAT: Final[str] = "pawcontrol_{dog_id}_{suffix}"
+_DEFAULT_METADATA: Final[dict[str, bool]] = {"secondary": False}
 
 
 @dataclass(slots=True)
@@ -38,6 +39,12 @@ def build_unique_id(dog_id: str, suffix: str) -> str:
   """Build the stable unique_id used by PawControl entities."""
 
   return _UNIQUE_ID_FORMAT.format(dog_id=dog_id, suffix=suffix)
+
+
+def build_device_automation_metadata() -> dict[str, bool]:
+  """Return metadata for device automations."""
+
+  return dict(_DEFAULT_METADATA)
 
 
 def _extract_dog_id(device_entry: dr.DeviceEntry | None) -> str | None:
