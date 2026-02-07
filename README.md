@@ -106,7 +106,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
 ### System Requirements
 
 **Minimum Requirements (target):**
-- Home Assistant Core 2025.1+
+- Home Assistant Core 2026.1.1+
 - Python 3.13+
 - 512MB available RAM
 - 100MB free storage
@@ -126,7 +126,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
    ls /config/custom_components/hacs/
 
    # Check Home Assistant version
-   # Settings → System → General → Version (tested with 2024.12.x builds)
+   # Settings → System → General → Version (tested with 2026.1.x builds)
    ```
 
 2. **Add PawControl Repository**:
