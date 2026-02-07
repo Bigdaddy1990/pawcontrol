@@ -53,6 +53,10 @@
   - **Automatische Erkennung**: [`docs/setup_installation_guide.md#-automatische-erkennung`](docs/setup_installation_guide.md#-automatische-erkennung)
 - **User guide (EN)**: [`docs/user_guide.md`](docs/user_guide.md)
   - **Discovery overview**: [`docs/user_guide.md#discovery--config-flow-overview`](docs/user_guide.md#discovery--config-flow-overview)
+  - **Supported devices & data sources**: [`docs/user_guide.md#supported-devices--data-sources`](docs/user_guide.md#supported-devices--data-sources)
+  - **Use cases**: [`docs/user_guide.md#use-cases`](docs/user_guide.md#use-cases)
+  - **Known limitations**: [`docs/user_guide.md#known-limitations`](docs/user_guide.md#known-limitations)
+  - **Data update cadence**: [`docs/user_guide.md#data-update-cadence`](docs/user_guide.md#data-update-cadence)
 - **Automation examples (EN)**: [`docs/automation_examples.md`](docs/automation_examples.md)
 - **Troubleshooting (EN)**: [`docs/troubleshooting.md`](docs/troubleshooting.md)
   - **Discovery issues**: [`docs/troubleshooting.md#discovery-does-not-find-devices`](docs/troubleshooting.md#discovery-does-not-find-devices)
@@ -1279,7 +1283,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - Production deployment documentation
 
 - **🏆 Quality Status**:
-- **Quality Scale Status**: Platinum alignment target with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
+- **Quality Scale Status**: Platinum alignment target mapped to the current Home Assistant quality-scale rule set (bronze→platinum) with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
 - **Automated Test Suite**: Unit and harness tests cover core flows, coordinator telemetry, and runtime helpers, with coverage tracking configured in `pyproject.toml`.
 - **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
 - **Production Hardening**: Installation, removal, diagnostics, and repairs are documented in README and the documentation portal.
