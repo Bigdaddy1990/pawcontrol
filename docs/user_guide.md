@@ -16,6 +16,39 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Dashboards**: auto-generated UI cards and summaries.
 - **Notifications**: mobile, persistent, and optional external channels.
 
+## Supported devices & data sources
+
+PawControl works with Home Assistant entities and integrations that provide dog
+tracking signals:
+
+- **Location sources**: `device_tracker`, `person`, or GPS integrations that
+  expose latitude/longitude updates.
+- **Door/contact sensors**: binary sensors with door/contact device classes for
+  walk and garden automations.
+- **Weather entities**: optional `weather` entities for weather-aware
+  notifications and activity recommendations.
+- **Mobile notifications**: the Home Assistant companion app or other
+  notification channels configured in Home Assistant.
+
+## Use cases
+
+- **Daily walk automation**: start a walk when the door sensor opens and GPS
+  confirms movement, then end it when the dog returns.
+- **Feeding compliance tracking**: log meals via service calls and track on-time
+  adherence.
+- **Backyard safety**: monitor garden sessions with door sensors and GPS
+  geofences to detect escapes.
+
+## Known limitations
+
+- PawControl requires Home Assistant **2026.1.1+** (as listed in the README
+  compatibility notes).
+- Discovery depends on Home Assistant discovery protocols (DHCP, Zeroconf,
+  Bluetooth, USB). Devices that do not advertise compatible identifiers must be
+  added manually.
+- GPS accuracy and update cadence depend on the upstream tracker or integration;
+  PawControl cannot infer movement without new location updates.
+
 ## Step-by-step setup (UI)
 
 1. **Install the integration**
@@ -37,6 +70,14 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Entities**: available under *Settings → Devices & Services → Paw Control*.
 - **Services**: `pawcontrol.*` services appear in the Services UI.
 - **Dashboards**: use the generated cards in Lovelace or customize further.
+
+## Data update cadence
+
+- **Coordinator refresh**: core data updates follow the integration's
+  coordinator interval and adapt to options changes.
+- **GPS interval**: GPS updates follow the per-dog interval configured in the
+  options flow; shorter intervals improve responsiveness but may increase device
+  battery usage.
 
 ## Validation & attribute normalization
 
