@@ -16,38 +16,22 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Dashboards**: auto-generated UI cards and summaries.
 - **Notifications**: mobile, persistent, and optional external channels.
 
-## Supported devices & data sources
+## Home Assistant UI patterns (recommended)
 
-PawControl works with Home Assistant entities and integrations that provide dog
-tracking signals:
+Follow the Home Assistant UI workflow to keep your setup aligned with current
+platform guidance:
 
-- **Location sources**: `device_tracker`, `person`, or GPS integrations that
-  expose latitude/longitude updates.
-- **Door/contact sensors**: binary sensors with door/contact device classes for
-  walk and garden automations.
-- **Weather entities**: optional `weather` entities for weather-aware
-  notifications and activity recommendations.
-- **Mobile notifications**: the Home Assistant companion app or other
-  notification channels configured in Home Assistant.
+- **Automation Editor first**: build automations in the UI and switch to YAML
+  only when you need advanced templates or `choose` logic.
+- **Device automations**: use the PawControl device in **Settings → Devices &
+  Services** to access built-in triggers, conditions, and actions.
+- **Helpers**: create helpers (input helpers, schedules) via **Settings →
+  Devices & Services → Helpers** instead of hard-coded YAML.
+- **Dashboards**: start with Sections/Tile cards, then refine with YAML only
+  when necessary.
 
-## Use cases
-
-- **Daily walk automation**: start a walk when the door sensor opens and GPS
-  confirms movement, then end it when the dog returns.
-- **Feeding compliance tracking**: log meals via service calls and track on-time
-  adherence.
-- **Backyard safety**: monitor garden sessions with door sensors and GPS
-  geofences to detect escapes.
-
-## Known limitations
-
-- PawControl requires Home Assistant **2026.1.1+** (as listed in the README
-  compatibility notes).
-- Discovery depends on Home Assistant discovery protocols (DHCP, Zeroconf,
-  Bluetooth, USB). Devices that do not advertise compatible identifiers must be
-  added manually.
-- GPS accuracy and update cadence depend on the upstream tracker or integration;
-  PawControl cannot infer movement without new location updates.
+These patterns mirror the Home Assistant developer guidance for automations,
+device automation, and YAML style.
 
 ## Step-by-step setup (UI)
 
@@ -70,6 +54,8 @@ tracking signals:
 - **Entities**: available under *Settings → Devices & Services → Paw Control*.
 - **Services**: `pawcontrol.*` services appear in the Services UI.
 - **Dashboards**: use the generated cards in Lovelace or customize further.
+- **Device automations**: open the PawControl device to attach triggers,
+  conditions, and actions directly in the automation editor.
 
 ## Data update cadence
 
@@ -199,6 +185,8 @@ Use Home Assistant’s automation editor or YAML. Recommended workflow:
 2. Decide whether you need a **condition** (e.g., only during daytime).
 3. Pick an **action** (`notify`, `pawcontrol.*`, or a script).
 4. Test by manually triggering the service to verify entity IDs and data.
+5. Prefer **device automations** when available for PawControl devices; they
+   remain stable as entity IDs change.
 
 ### Example: blueprint-style automation
 
@@ -280,3 +268,9 @@ Screenshots make setup easier to follow. Helpful captures include:
 
 - Automation examples: [`docs/automation_examples.md`](automation_examples.md)
 - Troubleshooting: [`docs/troubleshooting.md`](troubleshooting.md)
+
+## References (Home Assistant Developer Docs)
+
+- https://developers.home-assistant.io/docs/automations
+- https://developers.home-assistant.io/docs/device_automation_index
+- https://developers.home-assistant.io/docs/documenting/yaml-style-guide

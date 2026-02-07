@@ -92,6 +92,8 @@
    `configuration.yaml` setup).
 4. Follow the guided setup to add your first dog and enable modules.
 5. Review the generated entities, services, and dashboard cards.
+6. Build automations in the **Automation Editor** and prefer device-based
+   triggers/actions for the PawControl device.
 
 ## 🤖 Automation Examples
 
@@ -100,15 +102,15 @@ alias: PawControl - feeding reminder when overdue
 mode: single
 trigger:
   - platform: state
-    entity_id: binary_sensor.pawcontrol_is_hungry
+    entity_id: binary_sensor.pawcontrol_feeding_overdue
     to: "on"
 action:
   - service: notify.mobile_app
     data:
       title: "Feeding reminder"
       message: >
-        Meal is overdue for
-        {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}.
+        Meal overdue for
+        {{ state_attr('binary_sensor.pawcontrol_feeding_overdue', 'dog_name') }}.
 ```
 
 Blueprints included:
@@ -116,7 +118,8 @@ Blueprints included:
 - [Safe zone alerts](blueprints/automation/pawcontrol/safe_zone_alert.yaml)
 
 Device-based triggers, conditions, and actions are available for PawControl dog
-devices (see the device automation examples in [`docs/automation_examples.md`](docs/automation_examples.md).
+devices (see the device automation examples in
+[`docs/automation_examples.md`](docs/automation_examples.md)).
 
 
 ## 🛠️ Troubleshooting (Quick hits)

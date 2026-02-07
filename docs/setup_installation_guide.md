@@ -164,6 +164,10 @@ services:
 3. Nach **"Paw Control"** suchen
 4. Integration auswählen und einrichten
 
+> **Hinweis (Home Assistant Guidelines):** Paw Control wird ausschließlich über
+> den UI-Config-Flow eingerichtet. `configuration.yaml` wird nur für optionale
+> Helfer oder fortgeschrittene Automationen genutzt.
+
 ### Schritt 2: Ersten Hund konfigurieren
 
 Die Konfiguration erfolgt **ausschließlich in der UI** (Einstellungen →
@@ -213,6 +217,23 @@ Konfigurieren Sie die Felder im UI unter **Paw Control → Konfigurieren**:
 | Session-Timeout (Sek.) | `1800` |
 | Wetter-Integration | ✅ |
 | Türsensor (optional) | `binary_sensor.garden_door` |
+
+## 🧭 UI-first Workflow (empfohlen)
+
+Nutzen Sie die aktuellen Home Assistant UI-Patterns für eine wartbare
+Konfiguration:
+
+- **Automation Editor** statt YAML, dann auf YAML wechseln für `choose`,
+  Templates oder Variablen.
+- **Device Automations** über das Paw-Control-Gerät (Stabilität bei
+  Entity-ID-Änderungen).
+- **Helper** (Input-Helper, Schedules) via *Einstellungen → Geräte & Dienste →
+  Helfer*.
+- **Dashboards** zuerst mit Sections/Tile Cards aufbauen, dann optional
+  YAML-Feinschliff.
+
+Diese Empfehlungen folgen den aktuellen Home Assistant Developer Guidelines für
+Automations, Device Automations und YAML-Style.
 
 ## 🚀 Erweiterte Features
 
@@ -944,7 +965,11 @@ mobile_optimized_cards:
 
 ### 1. Basis-Automatisierungen einrichten
 
-Kopieren Sie die Automatisierungs-Templates in Ihre `automations.yaml`:
+Erstellen Sie Automatisierungen bevorzugt im UI-Editor und nutzen Sie YAML nur
+für fortgeschrittene Logik. Wenn Sie YAML einsetzen, halten Sie sich an den
+Home Assistant YAML-Style-Guide.
+
+Optional können Sie Templates in Ihre `automations.yaml` übernehmen:
 
 ```yaml
 # automations.yaml - Fügen Sie die Automatisierungen aus den Templates hinzu
@@ -1531,3 +1556,9 @@ Mit dem Garden Tracking System haben Sie jetzt:
 ✅ **Session-Management** mit Start/End-Automatik
 
 **🚀 Ihr Smart Home ist jetzt auch Smart Garden ready!**
+
+## 📚 Referenzen (Home Assistant Developer Docs)
+
+- https://developers.home-assistant.io/docs/automations
+- https://developers.home-assistant.io/docs/device_automation_index
+- https://developers.home-assistant.io/docs/documenting/yaml-style-guide
