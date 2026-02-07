@@ -1135,8 +1135,7 @@ class PawControlDataManager:
       cast(Mapping[str, JSONValue], profile.config),
     )
     if typed_config is None:
-      error_cls = HomeAssistantError
-      raise error_cls(f"Invalid PawControl profile for {dog_id}")
+      raise HomeAssistantError(f"Invalid PawControl profile for {dog_id}")
 
     profile.config = typed_config
     self._dogs_config[dog_id] = typed_config
@@ -1172,8 +1171,7 @@ class PawControlDataManager:
     try:
       self._storage_dir.mkdir(parents=True, exist_ok=True)
     except OSError as err:
-      error_cls = HomeAssistantError
-      raise error_cls(
+      raise HomeAssistantError(
         f"Unable to prepare PawControl storage at {self._storage_dir}: {err}",
       ) from err
 
@@ -1321,8 +1319,7 @@ class PawControlDataManager:
       raise
     except Exception as err:  # pragma: no cover - defensive guard
       self._increment_metric("errors")
-      error_cls = HomeAssistantError
-      raise error_cls(
+      raise HomeAssistantError(
         f"Failed to update visitor mode for {dog_id}: {err}",
       ) from err
     else:
@@ -2497,8 +2494,7 @@ class PawControlDataManager:
       runtime_data = self._get_runtime_data()
       garden_manager = getattr(runtime_data, "garden_manager", None)
       if garden_manager is None:
-        error_cls = HomeAssistantError
-        raise error_cls("Garden manager not available for export")
+        raise HomeAssistantError("Garden manager not available for export")
       return await garden_manager.async_export_sessions(
         dog_id,
         format=format,
@@ -2511,8 +2507,7 @@ class PawControlDataManager:
       runtime_data = self._get_runtime_data()
       gps_manager = getattr(runtime_data, "gps_geofence_manager", None)
       if gps_manager is None:
-        error_cls = HomeAssistantError
-        raise error_cls("GPS manager not available for route export")
+        raise HomeAssistantError("GPS manager not available for route export")
 
       start = _deserialize_datetime(date_from) if date_from else None
       end = _deserialize_datetime(date_to) if date_to else None
@@ -2534,8 +2529,7 @@ class PawControlDataManager:
       )
 
       if export_payload is None:
-        error_cls = HomeAssistantError
-        raise error_cls("No GPS routes available for export")
+        raise HomeAssistantError("No GPS routes available for export")
 
       export_dir = self._storage_dir / "exports"
       export_dir.mkdir(parents=True, exist_ok=True)
@@ -2593,8 +2587,7 @@ class PawControlDataManager:
 
       module_info = module_map.get(export_type)
       if module_info is None:
-        error_cls = HomeAssistantError
-        raise error_cls(f"Unsupported export data type: {data_type}")
+        raise HomeAssistantError(f"Unsupported export data type: {data_type}")
 
       module_name, timestamp_key = module_info
 
@@ -2992,8 +2985,7 @@ class PawControlDataManager:
         cast(JSONMappingLike | JSONMutableMapping, config),
       )
       if typed_config is None:
-        error_cls = HomeAssistantError
-        raise error_cls(f"Invalid PawControl update for {dog_id}")
+        raise HomeAssistantError(f"Invalid PawControl update for {dog_id}")
 
       profile.config = typed_config
 
@@ -3168,8 +3160,7 @@ class PawControlDataManager:
       self._namespace_state[namespace] = {}
       return {}
     except OSError as err:
-      error_cls = HomeAssistantError
-      raise error_cls(
+      raise HomeAssistantError(
         f"Unable to read PawControl {namespace} data: {err}",
       ) from err
 
@@ -3208,8 +3199,7 @@ class PawControlDataManager:
     try:
       await self._async_add_executor_job(path.write_text, payload, "utf-8")
     except OSError as err:
-      error_cls = HomeAssistantError
-      raise error_cls(
+      raise HomeAssistantError(
         f"Unable to persist PawControl {namespace} data: {err}",
       ) from err
 
@@ -3252,8 +3242,7 @@ class PawControlDataManager:
         self._storage_path,
       )
     except OSError as err:
-      error_cls = HomeAssistantError
-      raise error_cls(f"Unable to read PawControl data: {err}") from err
+      raise HomeAssistantError(f"Unable to read PawControl data: {err}") from err
 
     try:
       data = await self._async_add_executor_job(
@@ -3275,8 +3264,7 @@ class PawControlDataManager:
         self._backup_path,
       )
     except OSError as err:
-      error_cls = HomeAssistantError
-      raise error_cls(
+      raise HomeAssistantError(
         f"Unable to read PawControl backup: {err}",
       ) from err
 
@@ -3296,8 +3284,7 @@ class PawControlDataManager:
           payload,
         )
       except OSError as err:
-        error_cls = HomeAssistantError
-        raise error_cls(
+        raise HomeAssistantError(
           f"Failed to persist PawControl data: {err}",
         ) from err
 
