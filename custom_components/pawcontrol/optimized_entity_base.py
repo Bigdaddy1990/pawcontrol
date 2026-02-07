@@ -38,13 +38,12 @@ from typing import Any, ClassVar, Final, Protocol, cast
 from unittest.mock import Mock
 
 from homeassistant.core import State, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
   ATTR_DOG_ID,
   ATTR_DOG_NAME,
@@ -1799,13 +1798,4 @@ def get_global_performance_stats() -> OptimizedEntityGlobalPerformanceStats:
   }
 
 
-ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-  type[Exception],
-  compat.HomeAssistantError,
-)
-bind_exception_alias(
-  "HomeAssistantError",
-  combine_with_current=True,
-)
 type CoordinatorLike = PawControlCoordinator | "_RegistrySentinelCoordinator"
