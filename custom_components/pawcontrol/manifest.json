@@ -1,6 +1,4 @@
 {
-  "domain": "pawcontrol",
-  "name": "PawControl",
   "after_dependencies": [
     "bluetooth",
     "device_tracker",
@@ -49,13 +47,15 @@
     }
   ],
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
+  "domain": "pawcontrol",
+  "homeassistant": "2024.10.0",
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/bigdaddy1990/pawcontrol/issues",
   "loggers": [
     "custom_components.pawcontrol"
   ],
-  "homeassistant": "2024.10.0",
+  "name": "PawControl",
   "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=24.1.0"
@@ -75,6 +75,7 @@
       "manufacturer": "Petnet"
     }
   ],
+  "version": "1.0.0",
   "zeroconf": [
     {
       "type": "_pawcontrol._tcp.local."
@@ -94,6 +95,5 @@
     {
       "name": "Petnet*"
     }
-  ],
-  "version": "1.0.0"
+  ]
 }
