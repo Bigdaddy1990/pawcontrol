@@ -5,12 +5,16 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
   CONF_CONDITION,
   CONF_DEVICE_ID,
   CONF_DOMAIN,
   CONF_ENTITY_ID,
+  CONF_FROM,
+  CONF_METADATA,
+  CONF_TO,
   CONF_TYPE,
   STATE_ON,
 )
@@ -20,10 +24,20 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.device_action import async_call_action
+from custom_components.pawcontrol.device_action import (
+  async_call_action,
+  async_get_action_capabilities,
+  async_get_actions,
+)
 from custom_components.pawcontrol.device_automation_helpers import build_unique_id
-from custom_components.pawcontrol.device_condition import async_condition_from_config
-from custom_components.pawcontrol.device_trigger import async_get_triggers
+from custom_components.pawcontrol.device_condition import (
+  async_condition_from_config,
+  async_get_conditions,
+)
+from custom_components.pawcontrol.device_trigger import (
+  async_get_trigger_capabilities,
+  async_get_triggers,
+)
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
 
@@ -91,6 +105,7 @@ async def test_async_get_triggers_returns_available(hass: HomeAssistant) -> None
   assert "walk_started" in trigger_types
   assert "walk_ended" in trigger_types
   assert "status_changed" in trigger_types
+  assert all(CONF_METADATA in trigger for trigger in triggers)
 
 
 @pytest.mark.asyncio
@@ -100,6 +115,42 @@ async def test_async_get_triggers_missing_device(hass: HomeAssistant) -> None:
   triggers = await async_get_triggers(hass, "missing-device")
 
   assert triggers == []
+
+
+@pytest.mark.asyncio
+async def test_async_get_actions_returns_metadata(
+  hass: HomeAssistant,
+) -> None:
+  """Verify action metadata is provided for devices."""
+
+  device_entry = _register_device(hass)
+
+  actions = await async_get_actions(hass, device_entry.id)
+
+  assert actions
+  assert all(CONF_METADATA in action for action in actions)
+
+
+@pytest.mark.asyncio
+async def test_async_get_conditions_returns_metadata(
+  hass: HomeAssistant,
+) -> None:
+  """Verify condition metadata is provided for devices."""
+
+  device_entry = _register_device(hass)
+  entity_id = "binary_sensor.pawcontrol_buddy_is_hungry"
+  _register_entity(
+    hass,
+    device_entry,
+    entity_id=entity_id,
+    platform="binary_sensor",
+    suffix="is_hungry",
+  )
+
+  conditions = await async_get_conditions(hass, device_entry.id)
+
+  assert conditions
+  assert all(CONF_METADATA in condition for condition in conditions)
 
 
 @pytest.mark.asyncio
@@ -195,6 +246,40 @@ async def test_action_calls_feeding_manager(hass: HomeAssistant) -> None:
   call_args = feeding_manager.async_add_feeding.call_args
   assert call_args.args[0] == DOG_ID
   assert call_args.args[1] == 120.0
+
+
+@pytest.mark.asyncio
+async def test_action_capabilities_require_amount(
+  hass: HomeAssistant,
+) -> None:
+  """Ensure feeding action capabilities require amount."""
+
+  capabilities = await async_get_action_capabilities(
+    hass,
+    {CONF_TYPE: "log_feeding"},
+  )
+
+  fields = capabilities["fields"]
+  fields({"amount": 1.0})
+  with pytest.raises(vol.Invalid):
+    fields({})
+
+
+@pytest.mark.asyncio
+async def test_trigger_capabilities_status_changed(
+  hass: HomeAssistant,
+) -> None:
+  """Ensure status trigger capabilities expose from/to fields."""
+
+  capabilities = await async_get_trigger_capabilities(
+    hass,
+    {CONF_TYPE: "status_changed"},
+  )
+
+  fields = capabilities["extra_fields"]
+  fields({CONF_FROM: "sleeping", CONF_TO: "playing"})
+
+  assert (await async_get_trigger_capabilities(hass, {CONF_TYPE: "hungry"})) == {}
 
 
 @pytest.mark.asyncio
