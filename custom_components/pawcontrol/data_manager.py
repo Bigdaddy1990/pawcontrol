@@ -1124,8 +1124,7 @@ class PawControlDataManager:
 
     profile = self._dog_profiles.get(dog_id)
     if profile is None:
-      error_cls = HomeAssistantError
-      raise error_cls(f"Unknown PawControl dog: {dog_id}")
+      raise HomeAssistantError(f"Unknown PawControl dog: {dog_id}")
     return profile
 
   async def _async_save_profile(self, dog_id: str, profile: DogProfile) -> None:
