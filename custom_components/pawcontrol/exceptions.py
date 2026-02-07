@@ -23,12 +23,9 @@ from homeassistant.exceptions import (
   HomeAssistantError as HomeAssistantErrorType,
   ServiceValidationError as _ServiceValidationErrorType,
 )
-try:
-  from homeassistant.helpers.update_coordinator import UpdateFailed as _UpdateFailedType
-except ImportError:  # pragma: no cover - HA 2025.9.x fallback.
-  from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed as _UpdateFailedType,
-  )
+from homeassistant.helpers.update_coordinator import (
+  CoordinatorUpdateFailed as _UpdateFailedType,
+)
 from homeassistant.util import dt as dt_util
 
 from .types import ErrorContext, ErrorPayload, GPSLocation, JSONValue
