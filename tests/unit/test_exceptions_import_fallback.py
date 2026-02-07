@@ -26,6 +26,7 @@ def test_exceptions_module_uses_homeassistant_service_validation_error() -> None
     integration_root / "exceptions.py",
   )
 
-  assert module.ServiceValidationError is importlib.import_module(
-    "homeassistant.exceptions"
-  ).ServiceValidationError
+  assert (
+    module.ServiceValidationError
+    is importlib.import_module("homeassistant.exceptions").ServiceValidationError
+  )

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import traceback
 from collections.abc import Callable, Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any, Final, ParamSpec, TypedDict, TypeVar, Unpack, cast
 

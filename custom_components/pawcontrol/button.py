@@ -94,8 +94,6 @@ def _normalise_attributes(
   return normalise_entity_attributes(attrs)
 
 
-
-
 @runtime_checkable
 class ServiceRegistryLike(Protocol):
   """Protocol describing the Home Assistant service registry surface."""

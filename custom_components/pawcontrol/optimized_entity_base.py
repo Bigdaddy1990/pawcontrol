@@ -1797,4 +1797,5 @@ def get_global_performance_stats() -> OptimizedEntityGlobalPerformanceStats:
     "entities_with_performance_data": len(performance_summaries),
   }
 
+
 type CoordinatorLike = PawControlCoordinator | "_RegistrySentinelCoordinator"

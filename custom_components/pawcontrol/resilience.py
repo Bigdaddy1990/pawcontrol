@@ -15,7 +15,7 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC
 from enum import Enum
 from typing import Any, TypeVar
 

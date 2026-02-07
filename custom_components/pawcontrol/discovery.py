@@ -696,4 +696,3 @@ async def async_shutdown_discovery_manager() -> None:
   if _discovery_manager:
     await _discovery_manager.async_shutdown()
     _discovery_manager = None
-
