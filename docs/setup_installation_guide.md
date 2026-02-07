@@ -22,7 +22,7 @@ Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der 
 
 ### Mindestanforderungen
 
-- **Home Assistant:** Version 2024.10.0 oder höher
+- **Home Assistant:** Version 2026.1.1 oder höher
 - **Python:** Version 3.12 oder höher
 - **Speicherplatz:** Mindestens 100 MB freier Speicher
 - **RAM:** Mindestens 2 GB verfügbarer Arbeitsspeicher
