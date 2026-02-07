@@ -423,7 +423,7 @@
         "data_description": {
           "confirm": "Best\u00e4tige, um Zugangsdaten zu aktualisieren und die aufgef\u00fchrten Pr\u00fcfungen erneut auszuf\u00fchren."
         },
-        "description": "Die Paw-Control-Integration ben\u00f6tigt eine erneute Anmeldung.\n\nIntegration: {integration_name}\nFestgestellte Hinweise: {issues_detected}",
+        "description": "Die Paw-Control-Integration muss erneut authentifiziert werden.\n\nIntegration: {integration_name}\nKonfigurierte Hunde: {dogs_count}\nAktuelles Profil: {current_profile}\nGesundheits\u00fcbersicht: {health_status}",
         "title": "Paw Control erneut authentifizieren"
       },
       "reconfigure": {
