@@ -16,6 +16,7 @@ from homeassistant.const import (
   STATE_UNKNOWN,
   UnitOfEnergy,
   UnitOfLength,
+  UnitOfMass,
   UnitOfTime,
 )
 from homeassistant.core import HomeAssistant

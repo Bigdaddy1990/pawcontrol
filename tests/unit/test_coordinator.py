@@ -119,6 +119,33 @@ async def test_async_update_data_awaits_set_updated_data(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_async_apply_module_updates_merges_data(
+  mock_hass, mock_config_entry, mock_session
+) -> None:
+  """Module updates should merge into the coordinator cache."""
+
+  coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+  coordinator._data = {
+    "test_dog": {
+      "feeding": {"mode": "manual", "config": {"portion": 1}},
+    }
+  }
+
+  await coordinator.async_apply_module_updates(
+    "test_dog",
+    "feeding",
+    {"mode": "scheduled", "config": {"portion": 2, "note": "evening"}},
+  )
+
+  assert coordinator.data["test_dog"]["feeding"]["mode"] == "scheduled"
+  assert coordinator.data["test_dog"]["feeding"]["config"] == {
+    "portion": 2,
+    "note": "evening",
+  }
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_async_update_data_without_dogs(
   mock_hass, mock_config_entry, mock_session
 ):

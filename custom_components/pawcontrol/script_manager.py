@@ -28,14 +28,15 @@ from homeassistant.components.script import ScriptEntity
 from homeassistant.components.script.config import SCRIPT_ENTITY_SCHEMA
 from homeassistant.components.script.const import CONF_FIELDS, CONF_TRACE
 from homeassistant import const as ha_const
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .compat import ConfigEntry, HomeAssistantError
 from .const import (
   CACHE_TIMESTAMP_FUTURE_THRESHOLD,
   CACHE_TIMESTAMP_STALE_THRESHOLD,

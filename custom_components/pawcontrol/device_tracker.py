@@ -35,8 +35,6 @@ from .types import (
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
-  CoordinatorDogData,
-  CoordinatorModuleState,
   DogConfigData,
   GPSLocationSample,
   GPSModulePayload,
@@ -632,44 +630,26 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
   ) -> None:
     """Update coordinator with new GPS data."""
     try:
-      # Get current dog data
-      dog_data = self.coordinator.get_dog_data(self._dog_id)
-      if not dog_data:
-        return
-
-      # Update GPS section
-      gps_state = dog_data.get(MODULE_GPS)
-      if isinstance(gps_state, dict):
-        mutable_gps_state = cast(GPSModulePayload, gps_state)
-      elif isinstance(gps_state, Mapping):
-        mutable_gps_state = cast(GPSModulePayload, dict(gps_state))
-      else:
-        mutable_gps_state = cast(GPSModulePayload, {})
-        runtime_payload = cast(CoordinatorDogData, dog_data)
-        runtime_payload["gps"] = cast(
-          CoordinatorModuleState,
-          mutable_gps_state,
-        )
-
       timestamp_iso = (
         self._serialize_timestamp(location_data["timestamp"])
         or dt_util.utcnow().isoformat()
       )
-      mutable_gps_state.update(
-        {
-          "latitude": location_data["latitude"],
-          "longitude": location_data["longitude"],
-          "accuracy": location_data["accuracy"],
-          "altitude": location_data.get("altitude"),
-          "speed": location_data.get("speed"),
-          "heading": location_data.get("heading"),
-          "last_seen": timestamp_iso,
-          "source": location_data["source"],
-        },
-      )
+      gps_updates: JSONMutableMapping = {
+        "latitude": location_data["latitude"],
+        "longitude": location_data["longitude"],
+        "accuracy": location_data["accuracy"],
+        "altitude": location_data.get("altitude"),
+        "speed": location_data.get("speed"),
+        "heading": location_data.get("heading"),
+        "last_seen": timestamp_iso,
+        "source": location_data["source"],
+      }
 
       # Update route points if tracking
-      current_route = mutable_gps_state.get("current_route")
+      gps_data = self._get_gps_data()
+      current_route = (
+        gps_data.get("current_route") if isinstance(gps_data, Mapping) else None
+      )
       if isinstance(current_route, Mapping) and current_route.get(
         "active",
         False,
@@ -705,10 +685,13 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
         if isinstance(route_duration, int | float):
           route_snapshot["duration"] = route_duration
 
-        mutable_gps_state["current_route"] = route_snapshot
+        gps_updates["current_route"] = route_snapshot
 
-      # This would normally update the coordinator data
-      # The actual implementation would depend on the coordinator's update mechanism
+      await self.coordinator.async_apply_module_updates(
+        self._dog_id,
+        MODULE_GPS,
+        gps_updates,
+      )
 
       _LOGGER.debug(
         "Updated coordinator GPS data for %s",
