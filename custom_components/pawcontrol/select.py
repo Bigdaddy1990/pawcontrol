@@ -15,7 +15,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.components import select as select_component
-from homeassistant.components.select import SelectEntity
+from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -30,7 +30,7 @@ try:
 except ImportError:  # pragma: no cover
   ATTR_ENTITY_ID = "entity_id"
 
-from .compat import HomeAssistantError  # noqa: E402
+from homeassistant.exceptions import HomeAssistantError  # noqa: E402
 from .const import (  # noqa: E402
   ACTIVITY_LEVELS,
   DEFAULT_MODEL,
@@ -788,6 +788,12 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
     self._attr_options = list(options)
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    self.entity_description = SelectEntityDescription(
+      key=select_type,
+      translation_key=select_type,
+      entity_category=entity_category,
+      icon=icon,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
@@ -873,30 +879,11 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
           self._dog_name,
           err,
         )
-
-    coordinator_payload = cast(
-      Mapping[str, JSONMutableMapping] | None,
-      self.coordinator.data,
+    await self.coordinator.async_apply_module_updates(
+      self._dog_id,
+      module,
+      updates,
     )
-    coordinator_data: dict[str, JSONMutableMapping] = (
-      dict(coordinator_payload) if coordinator_payload else {}
-    )
-    existing_dog = coordinator_data.get(self._dog_id)
-    dog_data: JSONMutableMapping = (
-      dict(existing_dog) if isinstance(existing_dog, Mapping) else {}
-    )
-    existing_module = cast(
-      Mapping[str, JSONValue] | None,
-      dog_data.get(module),
-    )
-    merged = _merge_json_mappings(existing_module, updates)
-    dog_data[module] = merged
-    coordinator_data[self._dog_id] = dog_data
-    update_result = self.coordinator.async_set_updated_data(
-      coordinator_data,
-    )
-    if asyncio.iscoroutine(update_result):
-      await update_result
 
   async def _async_update_gps_settings(
     self,

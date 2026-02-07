@@ -71,10 +71,16 @@ from .types import (
   is_dog_config_valid,
   normalize_performance_mode,
 )
-from .validation import clamp_float_range, clamp_int_range
+from .validation import (
+  InputCoercionError,
+  clamp_float_range,
+  clamp_int_range,
+  coerce_float,
+  coerce_int,
+)
 
 if TYPE_CHECKING:
-  from .compat import ConfigEntry
+  from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -718,16 +724,10 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     if value is None:
       return default
-    if isinstance(value, int):
-      return value
-    if isinstance(value, float):
-      return int(value)
-    if isinstance(value, str):
-      try:
-        return int(value)
-      except ValueError:
-        return default
-    return default
+    try:
+      return coerce_int("options_flow", value)
+    except InputCoercionError:
+      return default
 
   @staticmethod
   def _coerce_time_string(value: Any, default: str) -> str:
@@ -748,14 +748,10 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     if value is None:
       return default
-    if isinstance(value, float | int):
-      return float(value)
-    if isinstance(value, str):
-      try:
-        return float(value)
-      except ValueError:
-        return default
-    return default
+    try:
+      return coerce_float("options_flow", value)
+    except InputCoercionError:
+      return default
 
   def _coerce_clamped_float(
     self,

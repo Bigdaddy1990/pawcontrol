@@ -307,6 +307,32 @@ def test_async_create_issue_accepts_issue_severity_instances(
   assert kwargs["translation_placeholders"]["severity"] == severity_enum.ERROR.value
 
 
+def test_async_create_issue_passes_learn_more_url(
+  repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+  """Learn-more URLs should be forwarded to the issue registry when supported."""
+
+  module, create_issue_mock, _, _ = repairs_module
+  hass = SimpleNamespace()
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+
+  asyncio.run(
+    module.async_create_issue(
+      hass,
+      entry,
+      "entry_warning",
+      "test_issue",
+      learn_more_url="https://example.com/learn-more",
+    ),
+  )
+
+  assert create_issue_mock.await_count == 1
+  await_args = create_issue_mock.await_args
+  assert await_args is not None
+  kwargs = await_args.kwargs
+  assert kwargs["learn_more_url"] == "https://example.com/learn-more"
+
+
 def _build_config_entries(
   entry: Any,
 ) -> tuple[Any, list[tuple[Any | None, Any | None]], AsyncMock]:

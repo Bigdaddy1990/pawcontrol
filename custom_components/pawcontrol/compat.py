@@ -67,16 +67,29 @@ _ha_core = _import_optional("homeassistant.core")
 _ha_const = _import_optional("homeassistant.const")
 
 if _ha_const is not None and hasattr(_ha_const, "UnitOfMass"):
-  _mass_grams = _ha_const.UnitOfMass.GRAMS
-  _mass_kilograms = _ha_const.UnitOfMass.KILOGRAMS
+  UnitOfMass = _ha_const.UnitOfMass
+  _mass_grams = UnitOfMass.GRAMS
+  _mass_kilograms = UnitOfMass.KILOGRAMS
 else:
-  _mass_grams = getattr(_ha_const, "MASS_GRAMS", "g") if _ha_const is not None else "g"
+
+  class _FallbackUnitOfMass:
+    GRAMS = "g"
+    KILOGRAMS = "kg"
+
+  UnitOfMass = _FallbackUnitOfMass
+  _mass_grams = (
+    getattr(_ha_const, "MASS_GRAMS", UnitOfMass.GRAMS)
+    if _ha_const
+    else UnitOfMass.GRAMS
+  )
   _mass_kilograms = (
-    getattr(_ha_const, "MASS_KILOGRAMS", "kg") if _ha_const is not None else "kg"
+    getattr(_ha_const, "MASS_KILOGRAMS", UnitOfMass.KILOGRAMS)
+    if _ha_const
+    else UnitOfMass.KILOGRAMS
   )
 
-MASS_GRAMS: Final[str] = _mass_grams
-MASS_KILOGRAMS: Final[str] = _mass_kilograms
+MASS_GRAMS: Final[str] = str(_mass_grams)
+MASS_KILOGRAMS: Final[str] = str(_mass_kilograms)
 
 type _ExceptionRebindCallback = Callable[[dict[str, type[Exception]]], None]
 
@@ -910,6 +923,7 @@ __all__ = [
   "HomeAssistantError",
   "ServiceRegistry",
   "ServiceValidationError",
+  "UnitOfMass",
   "bind_exception_alias",
   "ensure_homeassistant_config_entry_symbols",
   "ensure_homeassistant_exception_symbols",

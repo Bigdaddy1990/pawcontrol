@@ -73,6 +73,9 @@ async def test_default_meal_type_select_persists_config(
   assert (
     data_manager._dogs_config["test_dog"]["feeding"]["default_meal_type"] == "breakfast"
   )
+  assert (
+    mock_coordinator.data["test_dog"]["feeding"]["default_meal_type"] == "breakfast"
+  )
 
 
 @pytest.mark.asyncio
@@ -99,6 +102,7 @@ async def test_feeding_mode_select_persists_config_and_refreshes(
   await select.async_select_option("scheduled")
 
   assert data_manager._dogs_config["test_dog"]["feeding"]["mode"] == "scheduled"
+  assert mock_coordinator.data["test_dog"]["feeding"]["mode"] == "scheduled"
   mock_coordinator.async_refresh_dog.assert_awaited_once_with("test_dog")
 
 
@@ -125,3 +129,4 @@ async def test_walk_mode_select_persists_config(
   await select.async_select_option("manual")
 
   assert data_manager._dogs_config["test_dog"]["walk"]["mode"] == "manual"
+  assert mock_coordinator.data["test_dog"]["walk"]["mode"] == "manual"

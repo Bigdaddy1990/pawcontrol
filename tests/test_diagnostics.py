@@ -137,6 +137,19 @@ def test_rejection_metrics_capture_failure_reasons() -> None:
   assert metrics["last_failure_reason"] == "auth_error"
 
 
+def test_fallback_coordinator_statistics_include_rejection_metrics() -> None:
+  """Fallback coordinator stats should export rejection metrics defaults."""
+
+  diagnostics = _load_diagnostics()
+  stats = diagnostics._fallback_coordinator_statistics()
+
+  assert "rejection_metrics" in stats
+  metrics = stats["rejection_metrics"]
+  assert metrics["schema_version"] == 4
+  assert metrics["rejected_call_count"] == 0
+  assert metrics["open_breakers"] == []
+
+
 def test_guard_notification_error_metrics_aggregate_counts() -> None:
   """Guard and notification errors should aggregate into a shared snapshot."""
 

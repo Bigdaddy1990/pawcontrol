@@ -10,7 +10,7 @@ from typing import Any, cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import text as text_component
-from homeassistant.components.text import TextEntity, TextMode
+from homeassistant.components.text import TextEntity, TextEntityDescription, TextMode
 from homeassistant.const import (
   ATTR_VALUE,
 )
@@ -368,6 +368,10 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
     self._attr_translation_key = text_type
     self._attr_native_max = max_length
     self._attr_mode = mode
+    self.entity_description = TextEntityDescription(
+      key=text_type,
+      translation_key=text_type,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
