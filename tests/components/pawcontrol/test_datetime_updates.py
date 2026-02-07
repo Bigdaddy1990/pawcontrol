@@ -74,4 +74,8 @@ async def test_next_feeding_datetime_persists_and_refreshes(
     data_manager._dogs_config["test_dog"]["feeding"]["next_feeding"]
     == reminder_time.isoformat()
   )
+  assert (
+    mock_coordinator.data["test_dog"]["feeding"]["next_feeding"]
+    == reminder_time.isoformat()
+  )
   feeding_manager.async_refresh_reminder.assert_awaited_once_with("test_dog")

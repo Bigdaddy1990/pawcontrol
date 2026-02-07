@@ -24,11 +24,11 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Final, cast
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import event as event_helper
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
 from .const import CONF_DOGS, CONF_GPS_SOURCE, DOMAIN
 from .gps_manager import LocationSource
 from .runtime_data import require_runtime_data

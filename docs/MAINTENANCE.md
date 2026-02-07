@@ -79,6 +79,39 @@ Follow this routine for every release or hotfix.
 5. **Tag & publish**
    - Tag the release and verify that documentation links resolve correctly.
 
+## HA-Release-Review
+
+Nutze diese wiederkehrende Routine nach jedem Home-Assistant-Release, um
+PawControl stabil und guideline-konform zu halten.
+
+1. **Release-Notes & Developer-Blog prüfen**
+   - Lies die offiziellen Release-Notes und Developer-Blog-Posts, um neue
+     Funktionen, Integrationsänderungen und deprecations früh zu erkennen.
+   - Relevante Quellen:
+     - https://developers.home-assistant.io/blog
+     - https://developers.home-assistant.io/
+2. **Breaking Changes & Deprecations bewerten**
+   - Prüfe die Änderungen gegen die Developer-Guidelines und den Review-Stack,
+     um betroffene APIs, Manifeste oder Plattformen zu identifizieren.
+   - Referenzen:
+     - https://developers.home-assistant.io/docs/development_guidelines
+     - https://developers.home-assistant.io/docs/development_validation
+     - https://developers.home-assistant.io/docs/development_checklist
+3. **Mindest-HA-Version & Metadaten aktualisieren**
+   - Aktualisiere die minimale Home-Assistant-Version in Manifest/Metadata.
+   - Passe `hacs.json`, den README-Badge und relevante Doku (z. B.
+     `docs/setup_installation_guide.md`) an.
+   - Referenzen:
+     - https://developers.home-assistant.io/docs/creating_integration_manifest
+     - https://developers.home-assistant.io/docs/creating_integration_file_structure
+4. **Validierung gegen aktuelle Developer-Guidelines**
+   - Verifiziere die Integration gegen die aktuellen Guidelines und Quality
+     Scale Regeln, inklusive der zugehörigen Code-Review-Checklisten.
+   - Referenzen:
+     - https://developers.home-assistant.io/docs/core/integration-quality-scale/rules
+     - https://developers.home-assistant.io/docs/creating_component_code_review
+     - https://developers.home-assistant.io/docs/creating_platform_code_review
+
 ## Support escalation & follow-up
 
 - Escalate blocking issues (setup failures, data loss) immediately and track
@@ -94,3 +127,5 @@ Follow this routine for every release or hotfix.
 - Troubleshooting guide: [`troubleshooting.md`](troubleshooting.md)
 - Setup & installation: [`setup_installation_guide.md`](setup_installation_guide.md)
 - Quality scale evidence: [`compliance_gap_analysis.md`](compliance_gap_analysis.md)
+- Home Assistant Developer Guidelines: https://developers.home-assistant.io/docs/development_guidelines
+- Home Assistant Developer Blog (policy updates): https://developers.home-assistant.io/blog

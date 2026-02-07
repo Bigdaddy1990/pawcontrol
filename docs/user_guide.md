@@ -16,6 +16,39 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Dashboards**: auto-generated UI cards and summaries.
 - **Notifications**: mobile, persistent, and optional external channels.
 
+## Supported devices & data sources
+
+PawControl works with Home Assistant entities and integrations that provide dog
+tracking signals:
+
+- **Location sources**: `device_tracker`, `person`, or GPS integrations that
+  expose latitude/longitude updates.
+- **Door/contact sensors**: binary sensors with door/contact device classes for
+  walk and garden automations.
+- **Weather entities**: optional `weather` entities for weather-aware
+  notifications and activity recommendations.
+- **Mobile notifications**: the Home Assistant companion app or other
+  notification channels configured in Home Assistant.
+
+## Use cases
+
+- **Daily walk automation**: start a walk when the door sensor opens and GPS
+  confirms movement, then end it when the dog returns.
+- **Feeding compliance tracking**: log meals via service calls and track on-time
+  adherence.
+- **Backyard safety**: monitor garden sessions with door sensors and GPS
+  geofences to detect escapes.
+
+## Known limitations
+
+- PawControl requires Home Assistant **2026.1.1+** (as listed in the README
+  compatibility notes).
+- Discovery depends on Home Assistant discovery protocols (DHCP, Zeroconf,
+  Bluetooth, USB). Devices that do not advertise compatible identifiers must be
+  added manually.
+- GPS accuracy and update cadence depend on the upstream tracker or integration;
+  PawControl cannot infer movement without new location updates.
+
 ## Step-by-step setup (UI)
 
 1. **Install the integration**
@@ -38,6 +71,14 @@ PawControl bundles focused modules that can be enabled per dog profile:
 - **Services**: `pawcontrol.*` services appear in the Services UI.
 - **Dashboards**: use the generated cards in Lovelace or customize further.
 
+## Data update cadence
+
+- **Coordinator refresh**: core data updates follow the integration's
+  coordinator interval and adapt to options changes.
+- **GPS interval**: GPS updates follow the per-dog interval configured in the
+  options flow; shorter intervals improve responsiveness but may increase device
+  battery usage.
+
 ## Validation & attribute normalization
 
 PawControl validates and normalizes inputs to keep config flows, options, and
@@ -52,12 +93,40 @@ service calls consistent:
 
 ## Discovery & config flow overview
 
-When Home Assistant detects a PawControl device (DHCP, USB, Zeroconf, HomeKit,
-or Bluetooth), it automatically starts the **config flow** and adds a suggested
+When Home Assistant detects a PawControl device (DHCP, USB, Zeroconf, or
+Bluetooth), it automatically starts the **config flow** and adds a suggested
 integration card under *Settings → Devices & Services*. Open the suggestion to
 review the detected device and confirm the setup. If multiple devices are
 found, select the correct profile and proceed with the guided steps before the
 entry is created.
+
+**Config flow steps you will see in the UI:**
+
+1. **Dog profile & identity** – enter the dog ID, name, breed, and baseline
+   details (validated and normalized before save).【F:custom_components/pawcontrol/config_flow_dogs.py†L1-L335】【F:custom_components/pawcontrol/flow_validation.py†L1-L260】
+2. **Module selection** – enable Feeding, Walk, Garden, Health, GPS, and other
+   modules for that profile.【F:custom_components/pawcontrol/config_flow_modules.py†L1-L326】
+3. **External entity bindings** – map device trackers, door sensors, weather
+   entities, and external endpoints to the dog profile when required.【F:custom_components/pawcontrol/config_flow_external.py†L1-L286】
+4. **Dashboard & summary** – optional dashboard generation plus a summary
+   step before the entry is created.【F:custom_components/pawcontrol/config_flow_dashboard_extension.py†L1-L230】【F:custom_components/pawcontrol/config_flow_main.py†L760-L1000】
+
+**Reauth + reconfigure** flows re-use the same validation and module summaries
+so updating credentials or profile settings mirrors the initial setup
+experience.【F:custom_components/pawcontrol/config_flow_reauth.py†L1-L394】【F:custom_components/pawcontrol/config_flow_main.py†L1460-L1700】
+
+## Options flow overview
+
+The options flow uses a menu-based UX to group settings:
+
+- **Dog management**: edit profile details and module toggles.
+- **GPS & geofencing**: update intervals, accuracy filters, and zones.
+- **Door sensors**: auto-start/auto-end walk settings and safety thresholds.
+- **Feeding & health**: schedules, portion defaults, and reminders.
+- **System settings**: diagnostics, analytics, and resilience flags.
+
+These sections are implemented as dedicated handlers, so validation and defaults
+stay consistent across entry reloads and tests.【F:custom_components/pawcontrol/options_flow_menu.py†L1-L284】【F:custom_components/pawcontrol/options_flow_dogs_management.py†L1-L457】【F:custom_components/pawcontrol/options_flow_feeding.py†L1-L310】【F:custom_components/pawcontrol/options_flow_door_sensor.py†L1-L260】【F:custom_components/pawcontrol/options_flow_system_settings.py†L1-L240】【F:tests/unit/test_options_flow.py†L1-L870】
 
 ## Module setup details
 
@@ -168,6 +237,7 @@ action:
 
 ```yaml
 alias: PawControl - auto garden session
+mode: single
 trigger:
   - platform: state
     entity_id: binary_sensor.garden_door
@@ -177,6 +247,25 @@ action:
     data:
       dog_id: "buddy"
 ```
+
+## Service catalog (quick reference)
+
+PawControl exposes a full service catalog in Home Assistant’s Services UI. Key
+service groups:
+
+- **Feeding**: `pawcontrol.add_feeding`, `pawcontrol.feed_dog`,
+  `pawcontrol.calculate_portion`.
+- **Walks & garden**: `pawcontrol.start_walk`, `pawcontrol.end_walk`,
+  `pawcontrol.start_garden_session`, `pawcontrol.end_garden_session`,
+  `pawcontrol.add_garden_activity`.
+- **Health & grooming**: `pawcontrol.log_health_data`,
+  `pawcontrol.log_medication`, `pawcontrol.start_grooming`,
+  `pawcontrol.end_grooming`.
+- **Notifications & diagnostics helpers**: test notification and validation
+  services surfaced by the integration.
+
+Service schemas live in `services.yaml`, and the handlers are implemented in
+`services.py` with service telemetry coverage in the unit tests.【F:custom_components/pawcontrol/services.yaml†L1-L200】【F:custom_components/pawcontrol/services.py†L1-L420】【F:tests/unit/test_services.py†L1-L610】
 
 ## Recommended screenshots
 

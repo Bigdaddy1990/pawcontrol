@@ -17,10 +17,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Final, Literal, TypedDict, cast
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
 from .const import (
   CONF_DOGS,
   CONF_GPS_SOURCE,

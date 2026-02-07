@@ -8,15 +8,22 @@ from types import ModuleType
 
 
 @contextmanager
-def _reload_compat_with_stub(stub: ModuleType | None) -> Iterator[ModuleType]:
+def _reload_compat_with_stub(
+  stub: ModuleType | None,
+  *,
+  const_stub: ModuleType | None = None,
+) -> Iterator[ModuleType]:
   """Reload the compat module with an optional Home Assistant stub."""
 
   module_name = "custom_components.pawcontrol.compat"
   original_compat = sys.modules.pop(module_name, None)
   original_exceptions = sys.modules.pop("homeassistant.exceptions", None)
+  original_const = sys.modules.pop("homeassistant.const", None)
 
   if stub is not None:
     sys.modules["homeassistant.exceptions"] = stub
+  if const_stub is not None:
+    sys.modules["homeassistant.const"] = const_stub
 
   try:
     yield importlib.import_module(module_name)
@@ -28,6 +35,10 @@ def _reload_compat_with_stub(stub: ModuleType | None) -> Iterator[ModuleType]:
       sys.modules["homeassistant.exceptions"] = original_exceptions
     else:
       sys.modules.pop("homeassistant.exceptions", None)
+    if original_const is not None:
+      sys.modules["homeassistant.const"] = original_const
+    else:
+      sys.modules.pop("homeassistant.const", None)
 
 
 def test_config_entry_auth_failed_fallback_accepts_auth_migration():
@@ -82,3 +93,32 @@ def test_config_entry_auth_failed_fallback_without_home_assistant_error():
 
   with _reload_compat_with_stub(stub) as compat:
     assert issubclass(compat.ConfigEntryAuthFailed, RuntimeError)
+
+
+def test_unit_of_mass_fallback_uses_default_units() -> None:
+  """Compat should supply a UnitOfMass fallback when HA consts are missing."""
+
+  const_stub = ModuleType("homeassistant.const")
+
+  with _reload_compat_with_stub(None, const_stub=const_stub) as compat:
+    assert compat.UnitOfMass.GRAMS == "g"
+    assert compat.UnitOfMass.KILOGRAMS == "kg"
+    assert compat.MASS_GRAMS == "g"
+    assert compat.MASS_KILOGRAMS == "kg"
+
+
+def test_unit_of_mass_prefers_homeassistant_enum() -> None:
+  """Compat should prefer UnitOfMass from Home Assistant when available."""
+
+  const_stub = ModuleType("homeassistant.const")
+
+  class UnitOfMass:
+    GRAMS = "g"
+    KILOGRAMS = "kg"
+
+  const_stub.UnitOfMass = UnitOfMass
+
+  with _reload_compat_with_stub(None, const_stub=const_stub) as compat:
+    assert compat.UnitOfMass is UnitOfMass
+    assert compat.MASS_GRAMS == UnitOfMass.GRAMS
+    assert compat.MASS_KILOGRAMS == UnitOfMass.KILOGRAMS

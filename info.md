@@ -13,12 +13,18 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 - Der mehrstufige Config Flow legt je Hund Stammdaten an, aktiviert Module wie
   Fütterung, GPS, Garten oder Besuchsmodus und verzweigt bei Bedarf direkt in
   die passenden Detaildialoge (z. B. GPS- oder Fütterungsparameter).
+- Automatische Vorschläge aus Zeroconf, DHCP, USB oder HomeKit starten den
+  Discovery-Flow, der Profilwahl, Modulzuordnung und externe Entitäten
+  zusammenführt, bevor der Config Entry angelegt wird.【F:custom_components/pawcontrol/config_flow_discovery.py†L1-L207】【F:custom_components/pawcontrol/config_flow_main.py†L62-L211】
 - Im Anschluss ordnet die Modulkonfiguration vorhandene Entitäten zu
   (Personen, Geräte-Tracker, Türsensoren, Wetter-Entity) und erlaubt den
   Import externer API-Endpunkte, falls ein Begleitgerät angebunden werden
   soll.
 - Helfer wie `input_boolean`, `input_datetime` und Counter werden automatisch
   erzeugt; fehlende Assets lassen sich im Options-Flow nachpflegen.
+  Menübasierte Options-Flows bündeln Hunde-Management, Türsensor-Einstellungen,
+  Feeding- und GPS-Parameter sowie System-Flags in typisierten Teilflüssen und
+  halten Tests für die erweiterten Options-Payloads bereit.【F:custom_components/pawcontrol/options_flow_menu.py†L1-L284】【F:custom_components/pawcontrol/options_flow_dogs_management.py†L1-L457】【F:custom_components/pawcontrol/options_flow_system_settings.py†L1-L240】【F:tests/unit/test_options_flow.py†L1-L870】
 
 ### Laufzeitmodule & Koordinator
 - Der `PawControlCoordinator` bündelt alle Hundedaten und startet pro Modul
@@ -78,6 +84,14 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   Kalorien-Neuberechnung im Notfallmodus werden mit `asyncio.to_thread`
   beziehungsweise `_offload_blocking` ausgelagert, sodass der Event Loop
   reaktionsfähig bleibt.
+
+### Services & Diagnostik
+- Service-Aufrufe für Feeding, Walks, Garden-Sessions, Health-Logging sowie
+  Benachrichtigungen sind in `services.yaml` dokumentiert, implementiert in
+  `services.py` und durch Service-Telemetrie-Tests abgesichert.【F:custom_components/pawcontrol/services.yaml†L1-L200】【F:custom_components/pawcontrol/services.py†L1-L420】【F:tests/unit/test_services.py†L1-L610】
+- Diagnostics liefern Setup-Flags, Service-Guard-Metriken, Notification
+  Rejection Metrics und eine aggregierte Fehlerübersicht für Guard/Notifications,
+  damit Support-Teams Ursachen schneller klassifizieren können.【F:custom_components/pawcontrol/diagnostics.py†L338-L719】【F:custom_components/pawcontrol/diagnostics.py†L1214-L1350】【F:tests/test_diagnostics.py†L1-L252】
 
 ## Installation & Inbetriebnahme
 1. **Repository zu HACS hinzufügen** (Kategorie Integration) und Paw Control
