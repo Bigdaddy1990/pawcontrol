@@ -53,6 +53,36 @@ Fields:
   `auth_error`, `device_unreachable`, `missing_service`).
 - `failure_reasons`: Mapping `{reason: count}` summarising failure reasons.
 
+## Coordinator Rejection Metrics Schema
+
+The diagnostics payload always exports a full `rejection_metrics` snapshot (with
+defaults) under `coordinator_info.statistics.rejection_metrics`,
+`performance_metrics.rejection_metrics`, and `service_execution.rejection_metrics`.
+The schema version is currently `4`.
+
+Fields:
+
+- `schema_version`: Version of the rejection metrics payload (`4`).
+- `rejected_call_count`: Total rejected coordinator calls.
+- `rejection_breaker_count`: Total circuit breaker rejections.
+- `rejection_rate`: Rejection rate for the observed window.
+- `last_rejection_time`: Timestamp of the most recent rejection.
+- `last_rejection_breaker_id`: Circuit breaker identifier for the last rejection.
+- `last_rejection_breaker_name`: Circuit breaker name for the last rejection.
+- `last_failure_reason`: Most recent classified failure reason.
+- `failure_reasons`: Mapping `{reason: count}` for failure classifications.
+- `open_breaker_count`: Count of open circuit breakers.
+- `half_open_breaker_count`: Count of half-open circuit breakers.
+- `unknown_breaker_count`: Count of breakers without a known state.
+- `open_breakers`: List of open breaker names.
+- `open_breaker_ids`: List of open breaker identifiers.
+- `half_open_breakers`: List of half-open breaker names.
+- `half_open_breaker_ids`: List of half-open breaker identifiers.
+- `unknown_breakers`: List of breaker names without a known state.
+- `unknown_breaker_ids`: List of breaker identifiers without a known state.
+- `rejection_breaker_ids`: List of breakers responsible for rejections.
+- `rejection_breakers`: List of breaker names responsible for rejections.
+
 ## Service Guard Metrics
 
 Guarded Home Assistant service calls are exported under
