@@ -42,7 +42,7 @@ trigger:
 action:
   - service: pawcontrol.start_walk
     data:
-      dog_id: "buddy"
+      dog_id: "your_dog_id"
 ```
 
 ## 3) Alert when geofence is breached (event trigger)
