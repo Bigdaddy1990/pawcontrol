@@ -5,6 +5,14 @@
 
 ---
 
+## 🧭 Upcoming (Unreleased)
+
+### 🧩 Compatibility Refresh
+- Updated mass unit handling to rely on Home Assistant `UnitOfMass` with backwards-compatible fallbacks, and aligned optimized entity base typing with modern device/state class enums to match current HA APIs.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】
+
+### ✅ Test Coverage
+- Added compatibility tests to validate `UnitOfMass` fallbacks when Home Assistant constants are missing or stubbed in the test harness.【F:tests/unit/test_compat.py†L1-L124】
+
 ## 🎉 Production Release - Platinum Sustainment Achieved
 
 **PawControl v1.0.0** delivers the first public release of the smart dog management integration for Home Assistant. The milestone ships with complete runtime data adoption, documentation, branding, and automated test coverage to sustain the Platinum quality scale declaration.

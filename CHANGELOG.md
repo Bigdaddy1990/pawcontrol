@@ -5,6 +5,14 @@ All notable changes to PawControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Replaced deprecated mass unit constants with Home Assistant `UnitOfMass` fallbacks and tightened optimized entity base typing for device/state classes to match modern HA enums.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】
+
+### Added
+- Added compatibility tests covering `UnitOfMass` fallback handling when Home Assistant constants are absent or stubbed.【F:tests/unit/test_compat.py†L1-L124】
+
 ## [1.0.0] - 2025-09-08 - Production Release 🎉
 
 ### Added
