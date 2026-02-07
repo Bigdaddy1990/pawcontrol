@@ -56,6 +56,10 @@ rejections or failures under `notifications.rejection_metrics`. The values are
 derived from the Notification Manager's `delivery_status` and make it easier to
 analyze failed or rejected deliveries per notify service.
 
+`notifications.rejection_metrics` is always present. When the notification
+manager is unavailable, the diagnostics payload still returns the schema
+version and zeroed defaults so consumers can rely on a stable shape.
+
 Fields:
 
 - `schema_version`: Version of the rejection schema (currently `1`).
@@ -75,6 +79,10 @@ Fields:
 Service delivery failures also populate the shared `rejection_metrics` payload
 within coordinator/performance diagnostics. These counters aggregate failure
 reasons across notification delivery attempts and service-triggered sends.
+
+`performance_metrics.rejection_metrics` and
+`service_execution.rejection_metrics` are always included with default values
+and a `schema_version`, even when runtime telemetry is unavailable.
 
 Fields:
 

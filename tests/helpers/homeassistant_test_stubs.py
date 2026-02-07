@@ -21,6 +21,8 @@ import voluptuous as vol
 __all__ = [
   "ConfigEntry",
   "ConfigEntryAuthFailed",
+  "ConfigEntryError",
+  "ConfigEntryChange",
   "ConfigEntryNotReady",
   "ConfigEntryState",
   "ConfigSubentry",
@@ -29,6 +31,7 @@ __all__ = [
   "MutableFlowResultDict",
   "Platform",
   "RestoreEntity",
+  "ServiceValidationError",
   "install_homeassistant_stubs",
   "support_entry_unload",
   "support_remove_from_device",
@@ -41,7 +44,7 @@ PAWCONTROL_ROOT = COMPONENT_ROOT / "pawcontrol"
 _DEVICE_REGISTRY: DeviceRegistry | None = None
 _ENTITY_REGISTRY: EntityRegistry | None = None
 _ISSUE_REGISTRY: IssueRegistry | None = None
-HOME_ASSISTANT_VERSION = "2025.1.0"
+HOME_ASSISTANT_VERSION = "2025.9.0"
 
 
 def _utcnow() -> datetime:
@@ -155,6 +158,14 @@ class ConfigEntryState(Enum):
     raise ValueError(value)
 
 
+class ConfigEntryChange(StrEnum):
+  """Enum mirroring Home Assistant config entry change reasons."""
+
+  ADDED = "added"
+  REMOVED = "removed"
+  UPDATED = "updated"
+
+
 class IssueSeverity(StrEnum):
   """Home Assistant issue severity mirror."""
 
@@ -189,6 +200,13 @@ class UnitOfLength(StrEnum):
   KILOMETERS = "km"
 
 
+class UnitOfMass(StrEnum):
+  """Subset of Home Assistant mass units."""
+
+  GRAMS = "g"
+  KILOGRAMS = "kg"
+
+
 class UnitOfTime(StrEnum):
   """Subset of Home Assistant time units."""
 
@@ -208,20 +226,24 @@ class UnitOfTemperature(StrEnum):
   KELVIN = "K"
 
 
-class _ConfigEntryError(Exception):
-  """Base class for stub config entry exceptions."""
+class HomeAssistantError(Exception):
+  """Replacement for :class:`homeassistant.exceptions.HomeAssistantError`."""
 
 
-class ConfigEntryAuthFailed(_ConfigEntryError):
+class ConfigEntryError(HomeAssistantError):
+  """Replacement for :class:`homeassistant.exceptions.ConfigEntryError`."""
+
+
+class ConfigEntryAuthFailed(ConfigEntryError):
   """Replacement for :class:`homeassistant.exceptions.ConfigEntryAuthFailed`."""
 
 
-class ConfigEntryNotReady(_ConfigEntryError):
+class ConfigEntryNotReady(ConfigEntryError):
   """Replacement for :class:`homeassistant.exceptions.ConfigEntryNotReady`."""
 
 
-class HomeAssistantError(Exception):
-  """Replacement for :class:`homeassistant.exceptions.HomeAssistantError`."""
+class ServiceValidationError(HomeAssistantError):
+  """Replacement for :class:`homeassistant.exceptions.ServiceValidationError`."""
 
 
 class HomeAssistant:
@@ -1934,6 +1956,7 @@ def install_homeassistant_stubs() -> None:
   const_module.STATE_NOT_HOME = "not_home"
   const_module.UnitOfEnergy = UnitOfEnergy
   const_module.UnitOfLength = UnitOfLength
+  const_module.UnitOfMass = UnitOfMass
   const_module.UnitOfTime = UnitOfTime
   const_module.UnitOfTemperature = UnitOfTemperature
   const_module.PERCENTAGE = "%"
@@ -1970,13 +1993,16 @@ def install_homeassistant_stubs() -> None:
   core_module.ServiceRegistry = ServiceRegistry
 
   exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
+  exceptions_module.ConfigEntryError = ConfigEntryError
   exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
   exceptions_module.HomeAssistantError = HomeAssistantError
+  exceptions_module.ServiceValidationError = ServiceValidationError
 
   config_entries_module.HANDLERS = HANDLERS
   config_entries_module.support_entry_unload = support_entry_unload
   config_entries_module.support_remove_from_device = support_remove_from_device
   config_entries_module.ConfigEntry = ConfigEntry
+  config_entries_module.ConfigEntryChange = ConfigEntryChange
   config_entries_module.ConfigEntryState = ConfigEntryState
   config_entries_module.OptionsFlow = OptionsFlow
   config_entries_module.ConfigFlowResult = ConfigFlowResult
@@ -2043,6 +2069,7 @@ def install_homeassistant_stubs() -> None:
   update_coordinator_module.DataUpdateCoordinator = DataUpdateCoordinator
   update_coordinator_module.CoordinatorEntity = CoordinatorEntity
   update_coordinator_module.CoordinatorUpdateFailed = CoordinatorUpdateFailed
+  update_coordinator_module.UpdateFailed = CoordinatorUpdateFailed
 
   dt_util_module.utcnow = _utcnow
   dt_util_module.now = _now

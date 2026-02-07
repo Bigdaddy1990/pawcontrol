@@ -578,14 +578,6 @@ _CLASS_MATCH: dict[str, list[ClassTypeHintMatch]] = {
           mandatory=True,
         ),
         TypeHintMatch(
-          function_name="async_step_homekit",
-          arg_types={
-            1: "ZeroconfServiceInfo",
-          },
-          return_type="ConfigFlowResult",
-          mandatory=True,
-        ),
-        TypeHintMatch(
           function_name="async_step_mqtt",
           arg_types={
             1: "MqttServiceInfo",

@@ -1,9 +1,17 @@
 # PawControl v1.0.0 - Production Release Notes
 
 **Release Date:** September 8, 2025
-**Environment:** Home Assistant 2026.1.1+ | Python 3.13+ | Quality Scale Platinum
+**Environment:** Home Assistant 2025.9.0+ | Python 3.13+ | Quality Scale Platinum
 
 ---
+
+## 🧭 Upcoming (Unreleased)
+
+### 🧩 Compatibility Refresh
+- Updated mass unit handling to rely on Home Assistant `UnitOfMass` with backwards-compatible fallbacks, and aligned optimized entity base typing with modern device/state class enums to match current HA APIs.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】
+
+### ✅ Test Coverage
+- Added compatibility tests to validate `UnitOfMass` fallbacks when Home Assistant constants are missing or stubbed in the test harness.【F:tests/unit/test_compat.py†L1-L124】
 
 ## 🎉 Production Release - Platinum Sustainment Achieved
 
@@ -181,7 +189,7 @@ Code Quality:
 ### 🔧 **System Requirements**
 ```yaml
 Minimum:
-  - Home Assistant: 2026.1.1+
+  - Home Assistant: 2025.9.0+
   - Python: 3.13+
   - Memory: 512MB available
   - Storage: 100MB free space
