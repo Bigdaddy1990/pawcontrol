@@ -14,12 +14,12 @@ import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, ConfigEntryState
 from .const import (
   CONF_API_ENDPOINT,
   CONF_API_TOKEN,

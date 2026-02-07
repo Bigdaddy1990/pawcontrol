@@ -5,7 +5,7 @@ dashboard during the integration setup. It can be mixed into the main
 ``PawControlConfigFlow`` class to keep the core config flow file concise.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.2+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 

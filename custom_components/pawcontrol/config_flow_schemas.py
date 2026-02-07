@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Final
 
 import voluptuous as vol
-from homeassistant.helpers import config_validation as cv
 
 from .const import (
   CONF_DOG_AGE,
@@ -14,7 +13,6 @@ from .const import (
   CONF_DOG_NAME,
   CONF_DOG_SIZE,
   CONF_DOG_WEIGHT,
-  CONF_MODULES,
   DOG_SIZES,
   MAX_DOG_AGE,
   MAX_DOG_WEIGHT,
@@ -26,29 +24,54 @@ from .const import (
   MODULE_NOTIFICATIONS,
   MODULE_WALK,
 )
-
-# Pre-compiled validation sets for O(1) lookups
-VALID_DOG_SIZES: frozenset[str] = frozenset(DOG_SIZES)
+from .selector_shim import selector
 
 # Optimized schema definitions using constants from const.py
 DOG_SCHEMA = vol.Schema(
   {
-    vol.Required(CONF_DOG_ID): cv.string,
-    vol.Required(CONF_DOG_NAME): cv.string,
-    vol.Optional(CONF_DOG_BREED, default=""): cv.string,
-    vol.Optional(CONF_DOG_AGE, default=3): vol.All(
-      vol.Coerce(int),
-      vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
-    ),
-    vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(
-      vol.Coerce(float),
-      vol.Range(
-        min=MIN_DOG_WEIGHT,
-        max=MAX_DOG_WEIGHT,
+    vol.Required(CONF_DOG_ID): selector.TextSelector(
+      selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="off",
       ),
     ),
-    vol.Optional(CONF_DOG_SIZE, default="medium"): vol.In(VALID_DOG_SIZES),
-    vol.Optional(CONF_MODULES, default={}): dict,
+    vol.Required(CONF_DOG_NAME): selector.TextSelector(
+      selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="name",
+      ),
+    ),
+    vol.Optional(CONF_DOG_BREED, default=""): selector.TextSelector(
+      selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="off",
+      ),
+    ),
+    vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(
+      selector.NumberSelectorConfig(
+        min=MIN_DOG_AGE,
+        max=MAX_DOG_AGE,
+        step=1,
+        mode=selector.NumberSelectorMode.BOX,
+        unit_of_measurement="years",
+      ),
+    ),
+    vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(
+      selector.NumberSelectorConfig(
+        min=MIN_DOG_WEIGHT,
+        max=MAX_DOG_WEIGHT,
+        step=0.1,
+        mode=selector.NumberSelectorMode.BOX,
+        unit_of_measurement="kg",
+      ),
+    ),
+    vol.Optional(CONF_DOG_SIZE, default="medium"): selector.SelectSelector(
+      selector.SelectSelectorConfig(
+        options=list(DOG_SIZES),
+        mode=selector.SelectSelectorMode.DROPDOWN,
+        translation_key="dog_size",
+      ),
+    ),
   },
 )
 
@@ -62,10 +85,10 @@ MODULE_SELECTION_KEYS: Final[tuple[str, ...]] = (
 
 MODULES_SCHEMA = vol.Schema(
   {
-    vol.Optional(MODULE_FEEDING, default=True): cv.boolean,
-    vol.Optional(MODULE_WALK, default=True): cv.boolean,
-    vol.Optional(MODULE_HEALTH, default=True): cv.boolean,
-    vol.Optional(MODULE_GPS, default=False): cv.boolean,
-    vol.Optional(MODULE_NOTIFICATIONS, default=True): cv.boolean,
+    vol.Optional(MODULE_FEEDING, default=True): selector.BooleanSelector(),
+    vol.Optional(MODULE_WALK, default=True): selector.BooleanSelector(),
+    vol.Optional(MODULE_HEALTH, default=True): selector.BooleanSelector(),
+    vol.Optional(MODULE_GPS, default=False): selector.BooleanSelector(),
+    vol.Optional(MODULE_NOTIFICATIONS, default=True): selector.BooleanSelector(),
   },
 )

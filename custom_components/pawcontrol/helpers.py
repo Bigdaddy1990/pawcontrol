@@ -17,11 +17,12 @@ from functools import wraps
 from time import perf_counter
 from typing import Any, Final, ParamSpec, TypedDict, TypeVar, cast
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import storage
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
 from .const import (
   CONF_DOG_OPTIONS,
   CONF_DOGS,

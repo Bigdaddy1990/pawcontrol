@@ -1,6 +1,6 @@
 # 🐕 Paw Control - Smart Dog Management for Home Assistant
 
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.8%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.0%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20aligned-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -819,10 +819,10 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
 
 | HA Version | Status | Getestet | Notizen |
 |------------|--------|----------|---------|
-| 2025.8.x | ✅ Vollständig | ✅ | Empfohlen |
-| 2025.7.x | ✅ Vollständig | ✅ | Stabil |
-| 2025.6.x | ⚠️ Eingeschränkt | ✅ | Basis-Features |
-| 2025.5.x | ❌ Nicht unterstützt | - | Zu alt |
+| 2025.9.x | ✅ Vollständig | ✅ | Empfohlen |
+| 2025.8.x | ❌ Nicht unterstützt | - | Zu alt |
+| 2025.7.x | ❌ Nicht unterstützt | - | Zu alt |
+| 2025.6.x | ❌ Nicht unterstützt | - | Zu alt |
 
 ## 🤝 Contributing
 
