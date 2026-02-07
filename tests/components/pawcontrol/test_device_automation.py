@@ -279,9 +279,7 @@ async def test_trigger_capabilities_status_changed(
   fields = capabilities["extra_fields"]
   fields({CONF_FROM: "sleeping", CONF_TO: "playing"})
 
-  assert (
-    await async_get_trigger_capabilities(hass, {CONF_TYPE: "hungry"})
-  ) == {}
+  assert (await async_get_trigger_capabilities(hass, {CONF_TYPE: "hungry"})) == {}
 
 
 @pytest.mark.asyncio
