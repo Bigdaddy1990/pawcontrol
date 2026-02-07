@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import copy
 import logging
 from collections.abc import Sequence
 from datetime import datetime

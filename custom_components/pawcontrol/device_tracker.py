@@ -648,9 +648,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
       # Update route points if tracking
       gps_data = self._get_gps_data()
       current_route = (
-        gps_data.get("current_route")
-        if isinstance(gps_data, Mapping)
-        else None
+        gps_data.get("current_route") if isinstance(gps_data, Mapping) else None
       )
       if isinstance(current_route, Mapping) and current_route.get(
         "active",
