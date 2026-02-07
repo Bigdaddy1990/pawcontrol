@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import copy
 import logging
 from collections.abc import Sequence
 from datetime import datetime
@@ -477,22 +476,11 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
 
   async def _apply_next_feeding_update(self, payload: JSONMutableMapping) -> None:
     """Apply next feeding updates to cached coordinator data."""
-    coordinator_data = copy.deepcopy(self.coordinator.data) or {}
-
-    dog_data = coordinator_data.setdefault(self._dog_id, {})
-    if not isinstance(dog_data, dict):
-      dog_data = {}
-      coordinator_data[self._dog_id] = dog_data
-
-    feeding_data = dog_data.setdefault("feeding", {})
-    if not isinstance(feeding_data, dict):
-      feeding_data = {}
-      dog_data["feeding"] = feeding_data
-
-    feeding_data.update(payload)
-    update_result = self.coordinator.async_set_updated_data(coordinator_data)
-    if asyncio.iscoroutine(update_result):
-      await update_result
+    await self.coordinator.async_apply_module_updates(
+      self._dog_id,
+      "feeding",
+      payload,
+    )
 
 
 class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
