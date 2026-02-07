@@ -5,7 +5,7 @@ card generation with multiple visual themes and layouts. It implements LRU
 caching, template validation, and async template loading with various styles.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.3+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 

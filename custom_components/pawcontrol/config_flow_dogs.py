@@ -6,7 +6,7 @@ and enhanced user experience. Now includes per-dog GPS, feeding schedules,
 health data, and individual module configuration.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.2+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 

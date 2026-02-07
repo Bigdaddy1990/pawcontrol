@@ -13,16 +13,11 @@ from datetime import datetime
 from typing import Any, cast
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 
-from . import compat as compat_module
-from .compat import (
-  ConfigEntry,
-  bind_exception_alias,
-  ensure_homeassistant_exception_symbols,
-)
 from .config_flow_base import PawControlBaseConfigFlow
 from .config_flow_dashboard_extension import DashboardFlowMixin
 from .config_flow_discovery import DiscoveryFlowMixin
@@ -117,16 +112,6 @@ from .types import (
   normalize_performance_mode,
 )
 from .validation import InputCoercionError, normalize_dog_id, validate_dog_name
-
-ensure_homeassistant_exception_symbols()
-
-
-ConfigEntryNotReady: type[Exception] = cast(
-  type[Exception],
-  compat_module.ConfigEntryNotReady,
-)
-bind_exception_alias("ConfigEntryNotReady")
-
 
 _LOGGER = logging.getLogger(__name__)
 

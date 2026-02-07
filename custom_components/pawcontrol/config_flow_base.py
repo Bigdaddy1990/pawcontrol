@@ -5,7 +5,7 @@ different configuration flow components. It includes validation schemas,
 common constants, and utility methods for enhanced user experience.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.2+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 

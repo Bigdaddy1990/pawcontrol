@@ -205,7 +205,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 
 ## Kompatibilität
 
-- ✅ **Home Assistant 2025.9+**: Vollständig kompatibel
+- ✅ **Home Assistant 2026.1.1+**: Vollständig kompatibel
 - ✅ **Python 3.13+**: Type Hints und moderne Features
 - ✅ **Bestehende Konfigurationen**: Migration automatisch
 - ✅ **HACS**: Installation über HACS möglich

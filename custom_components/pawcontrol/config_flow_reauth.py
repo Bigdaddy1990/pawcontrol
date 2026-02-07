@@ -8,10 +8,10 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, cast
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
+from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
 from .const import CONF_DOGS, CONF_MODULES
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ConfigEntryAuthFailed, ReauthRequiredError, ValidationError
