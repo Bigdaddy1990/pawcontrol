@@ -56,6 +56,7 @@ from .garden_manager import GardenManager
 from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
+from .migrations import async_migrate_entry  # noqa: F401
 from .notifications import (
   NotificationPriority,
   NotificationType,

@@ -47,6 +47,7 @@ from .selector_shim import selector
 # OPTIMIZED: Storage versions for data persistence
 STORAGE_VERSION: Final[int] = 1
 DASHBOARD_STORAGE_VERSION: Final[int] = 1
+CONFIG_ENTRY_VERSION: Final[int] = 2
 
 # OPTIMIZED: Core integration identifiers
 DOMAIN: Final[str] = "pawcontrol"
