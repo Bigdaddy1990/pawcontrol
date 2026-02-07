@@ -126,7 +126,7 @@ rules:
 
   diagnostics:
     status: done
-    comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py`; tests in `tests/test_diagnostics.py` and `tests/unit/test_diagnostics_cache.py`."
+    comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py` and `docs/diagnostics.md`; tests in `tests/test_diagnostics.py`, `tests/unit/test_diagnostics_cache.py`, `tests/unit/test_services.py`, and `tests/unit/test_system_health.py`."
 
   discovery-update-info:
     status: done

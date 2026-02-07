@@ -26,7 +26,7 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 ### ✨ Major Features Added
 
 #### 🏗️ Core Integration
-- **Complete HA 2025.9.0+ Integration**: Full compatibility with latest Home Assistant
+- **Complete HA 2026.2.1+ Integration**: Full compatibility with latest Home Assistant
 - **10 Platform Support**: sensor, binary_sensor, switch, button, number, select, text, device_tracker, date, datetime
 - **150+ Entities**: Comprehensive entity coverage with 3 profile levels (minimal/standard/comprehensive)
 - **Multi-Dog Management**: Independent configurations for unlimited dogs
@@ -190,7 +190,7 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 ### 🛠️ Technical Requirements
 
 #### 🖥️ System Requirements
-- **Home Assistant**: 2025.9.0 or later
+- **Home Assistant**: 2026.2.1 or later
 - **Python**: 3.13+ with async/await support
 - **Memory**: 512MB minimum, 1GB+ recommended
 - **Storage**: 100MB minimum, 500MB+ recommended for historical data
