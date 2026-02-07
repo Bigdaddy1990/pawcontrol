@@ -15,7 +15,12 @@ from typing import cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import number as number_component
-from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
+from homeassistant.components.number import (
+  NumberDeviceClass,
+  NumberEntity,
+  NumberEntityDescription,
+  NumberMode,
+)
 from homeassistant.const import (
   PERCENTAGE,
   STATE_UNAVAILABLE,
@@ -30,7 +35,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError, MASS_GRAMS, MASS_KILOGRAMS
+from .compat import ConfigEntry, HomeAssistantError, UnitOfMass
 from .const import (
   CONF_DAILY_FOOD_AMOUNT,
   CONF_GPS_ACCURACY_FILTER,
@@ -533,6 +538,15 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     self._attr_native_step = native_step
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    translation_key_value = translation_key or number_type
+    self.entity_description = NumberEntityDescription(
+      key=number_type,
+      translation_key=translation_key_value,
+      device_class=device_class,
+      entity_category=entity_category,
+      native_unit_of_measurement=native_unit_of_measurement,
+      icon=icon,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(
@@ -799,7 +813,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
       "weight",
       device_class=_WEIGHT_DEVICE_CLASS,
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_KILOGRAMS,
+      native_unit_of_measurement=UnitOfMass.KILOGRAMS,
       native_min_value=MIN_DOG_WEIGHT,
       native_max_value=MAX_DOG_WEIGHT,
       native_step=0.1,
@@ -951,7 +965,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
       dog_name,
       "daily_food_amount",
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_GRAMS,
+      native_unit_of_measurement=UnitOfMass.GRAMS,
       native_min_value=50,
       native_max_value=2000,
       native_step=10,
@@ -1092,7 +1106,7 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
       dog_name,
       "portion_size",
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_GRAMS,
+      native_unit_of_measurement=UnitOfMass.GRAMS,
       native_min_value=10,
       native_max_value=500,
       native_step=5,
@@ -1529,7 +1543,7 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
       "target_weight",
       device_class=_WEIGHT_DEVICE_CLASS,
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_KILOGRAMS,
+      native_unit_of_measurement=UnitOfMass.KILOGRAMS,
       native_min_value=MIN_DOG_WEIGHT,
       native_max_value=MAX_DOG_WEIGHT,
       native_step=0.1,

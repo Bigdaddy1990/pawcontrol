@@ -18,15 +18,19 @@ from typing import Any, ClassVar, cast
 
 from homeassistant.components import switch as switch_component
 from homeassistant import const as ha_const
-from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.components.switch import (
+  SwitchDeviceClass,
+  SwitchEntity,
+  SwitchEntityDescription,
+)
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Context, HomeAssistant, State
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import HomeAssistantError
 from .const import (
   CONF_DOGS,
   DEFAULT_MODEL,
@@ -442,6 +446,13 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
     self._attr_device_class = device_class
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    self.entity_description = SwitchEntityDescription(
+      key=switch_type,
+      translation_key=switch_type,
+      device_class=device_class,
+      entity_category=entity_category,
+      icon=icon,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(

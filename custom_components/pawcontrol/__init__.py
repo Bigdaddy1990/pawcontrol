@@ -7,7 +7,6 @@ import asyncio
 import importlib
 import inspect
 import logging
-import sys
 import time
 from collections.abc import (
   Awaitable,
@@ -21,12 +20,12 @@ from typing import Any, Final, cast
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
-from . import compat
 from .const import (
   ALL_MODULES,
   CONF_DOG_ID,
@@ -56,6 +55,7 @@ from .garden_manager import GardenManager
 from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
+from .migrations import async_migrate_entry  # noqa: F401
 from .notifications import (
   NotificationPriority,
   NotificationType,
@@ -88,99 +88,6 @@ from .types import (
 )
 from .utils import sanitize_dog_id
 from .walk_manager import WalkManager
-
-_CANONICAL_CONFIG_ENTRY_NOT_READY: type[Exception] | None = getattr(
-  compat,
-  "ConfigEntryNotReady",
-  None,
-)
-_CONFIG_ENTRY_NOT_READY_CACHE: dict[tuple[type[Exception], ...], type[Exception]] = {}
-
-
-def _resolve_config_entry_not_ready() -> type[Exception]:
-  """Return the active ``ConfigEntryNotReady`` class from Home Assistant."""
-
-  global _CANONICAL_CONFIG_ENTRY_NOT_READY
-
-  compat_cls = getattr(compat, "ConfigEntryNotReady", None)
-  compat_is_fallback = False
-  if isinstance(compat_cls, type) and issubclass(compat_cls, Exception):
-    compat_is_fallback = getattr(compat_cls, "__module__", "").startswith(
-      "custom_components.pawcontrol",
-    )
-    if not compat_is_fallback and compat_cls is not _CANONICAL_CONFIG_ENTRY_NOT_READY:
-      _CANONICAL_CONFIG_ENTRY_NOT_READY = cast(
-        type[Exception],
-        compat_cls,
-      )
-
-  module = sys.modules.get("homeassistant.exceptions")
-  if module is None:
-    try:
-      module = importlib.import_module("homeassistant.exceptions")
-    except Exception:  # pragma: no cover - defensive import path
-      module = None
-
-  candidates: list[type[Exception]] = []
-
-  if module is not None:
-    candidate = getattr(module, "ConfigEntryNotReady", None)
-    if isinstance(candidate, type) and issubclass(candidate, Exception):
-      _CANONICAL_CONFIG_ENTRY_NOT_READY = cast(
-        type[Exception],
-        candidate,
-      )
-    elif _CANONICAL_CONFIG_ENTRY_NOT_READY is not None and candidate is None:
-      # type: ignore[attr-defined]
-      cast(Any, module).ConfigEntryNotReady = _CANONICAL_CONFIG_ENTRY_NOT_READY
-    if isinstance(candidate, type) and issubclass(candidate, Exception):
-      candidates.append(cast(type[Exception], candidate))
-
-  stub_module = sys.modules.get("tests.helpers.homeassistant_test_stubs")
-  if stub_module is not None:
-    stub_candidate = getattr(stub_module, "ConfigEntryNotReady", None)
-    if isinstance(stub_candidate, type) and issubclass(stub_candidate, Exception):
-      candidates.append(cast(type[Exception], stub_candidate))
-
-  for module_name, module_obj in list(sys.modules.items()):
-    if not module_name.startswith("tests."):
-      continue
-    alias_candidate = getattr(module_obj, "ConfigEntryNotReady", None)
-    if isinstance(alias_candidate, type) and issubclass(alias_candidate, Exception):
-      candidates.append(cast(type[Exception], alias_candidate))
-
-  if _CANONICAL_CONFIG_ENTRY_NOT_READY is not None:
-    candidates.append(_CANONICAL_CONFIG_ENTRY_NOT_READY)
-
-  if isinstance(compat_cls, type) and issubclass(compat_cls, Exception):
-    candidates.append(cast(type[Exception], compat_cls))
-  else:
-    candidates.append(compat.ConfigEntryNotReady)
-
-  bases: list[type[Exception]] = []
-  seen: set[type[Exception]] = set()
-  for candidate in candidates:
-    if candidate in seen:
-      continue
-    seen.add(candidate)
-    bases.append(candidate)
-
-  if not bases:
-    return compat.ConfigEntryNotReady
-
-  if len(bases) == 1:
-    resolved = bases[0]
-    _CANONICAL_CONFIG_ENTRY_NOT_READY = resolved
-    return resolved
-
-  key = tuple(bases)
-  proxy = _CONFIG_ENTRY_NOT_READY_CACHE.get(key)
-  if proxy is None:
-    proxy = type("PawControlConfigEntryNotReadyProxy", key, {})
-    _CONFIG_ENTRY_NOT_READY_CACHE[key] = proxy
-  _CANONICAL_CONFIG_ENTRY_NOT_READY = proxy
-  return proxy
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -551,7 +458,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       True if setup successful
 
   Raises:
-      compat.ConfigEntryNotReady: If setup prerequisites not met
+      ConfigEntryNotReady: If setup prerequisites not met
       ConfigEntryAuthFailed: If authentication fails
       PawControlSetupError: If setup validation fails
   """
@@ -564,30 +471,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
   logger_disabled_prev = _LOGGER.disabled
   disable_logging = False
 
-  not_ready_cls = _resolve_config_entry_not_ready()
-  not_ready_hierarchy: list[type[BaseException]] = []
-  if isinstance(not_ready_cls, type) and issubclass(not_ready_cls, BaseException):
-    if not_ready_cls not in not_ready_hierarchy:
-      not_ready_hierarchy.append(not_ready_cls)
-    for cls in not_ready_cls.__mro__[1:]:
-      if not isinstance(cls, type) or not issubclass(cls, BaseException):
-        continue
-      if cls in (BaseException, Exception):
-        continue
-      if getattr(cls, "__name__", "") != "ConfigEntryNotReady":
-        continue
-      if cls not in not_ready_hierarchy:
-        not_ready_hierarchy.append(cls)
-  compat_not_ready = getattr(compat, "ConfigEntryNotReady", None)
-  if (
-    isinstance(compat_not_ready, type)
-    and issubclass(compat_not_ready, BaseException)
-    and compat_not_ready not in not_ready_hierarchy
-  ):
-    not_ready_hierarchy.append(compat_not_ready)
-
   known_setup_errors: tuple[type[BaseException], ...] = (
-    *not_ready_hierarchy,
+    ConfigEntryNotReady,
     ConfigEntryAuthFailed,
     PawControlSetupError,
   )
@@ -629,7 +514,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
           )
         dogs_config.append(normalised)
     except ConfigurationError as err:
-      raise not_ready_cls(str(err)) from err
+      raise ConfigEntryNotReady(str(err)) from err
 
     if not dogs_config:
       _LOGGER.debug(
@@ -825,13 +710,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         )
     except TimeoutError as err:
       coordinator_setup_duration = time.monotonic() - coordinator_setup_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Coordinator pre-setup timeout after {coordinator_setup_duration:.2f}s",
       ) from err
     except ConfigEntryAuthFailed:
       raise
     except (OSError, ConnectionError) as err:
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Network connectivity issue during coordinator pre-setup: {err}",
       ) from err
 
@@ -862,13 +747,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         )
     except TimeoutError as err:
       coordinator_refresh_duration = time.monotonic() - coordinator_refresh_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Coordinator initialization timeout after {coordinator_refresh_duration:.2f}s",
       ) from err
     except ConfigEntryAuthFailed:
       raise  # Re-raise auth failures directly
     except (OSError, ConnectionError) as err:
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Network connectivity issue during coordinator setup: {err}",
       ) from err
 
@@ -1049,18 +934,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     except TimeoutError as err:
       managers_init_duration = time.monotonic() - managers_init_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Manager initialization timeout after {managers_init_duration:.2f}s: {err}",
       ) from err
     except ValidationError as err:
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Manager validation failed: {err.field} - {err.constraint}",
       ) from err
     except Exception as err:
       # PLATINUM: More specific error categorization
       error_type = err.__class__.__name__
       managers_init_duration = time.monotonic() - managers_init_start
-      raise not_ready_cls(
+      raise ConfigEntryNotReady(
         f"Manager initialization failed after {managers_init_duration:.2f}s ({error_type}): {err}",
       ) from err
 
@@ -1165,7 +1050,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         except TimeoutError as err:
           if attempt == max_retries:
             platform_setup_duration = time.monotonic() - platform_setup_start
-            raise not_ready_cls(
+            raise ConfigEntryNotReady(
               f"Platform setup timeout after {platform_setup_duration:.2f}s",
             ) from err
           _LOGGER.warning(
@@ -1174,13 +1059,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
           )
           await asyncio.sleep(1)  # Brief delay before retry
         except ImportError as err:
-          raise not_ready_cls(
+          raise ConfigEntryNotReady(
             f"Platform import failed - missing dependency: {err}",
           ) from err
         except Exception as err:
           if attempt == max_retries:
             _LOGGER.exception("Platform setup failed")
-            raise not_ready_cls(
+            raise ConfigEntryNotReady(
               f"Platform setup failed ({err.__class__.__name__}): {err}",
             ) from err
           _LOGGER.warning(
@@ -1315,10 +1200,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             "You can create the scripts manually from Home Assistant's script editor.",
             scripts_duration,
           )
-        except (compat.HomeAssistantError, Exception) as script_err:
+        except (HomeAssistantError, Exception) as script_err:
           scripts_duration = time.monotonic() - scripts_start
           error_type = (
-            "skipped" if isinstance(script_err, compat.HomeAssistantError) else "failed"
+            "skipped" if isinstance(script_err, HomeAssistantError) else "failed"
           )
           _LOGGER.warning(
             "Script creation %s after %.2f seconds (non-critical): %s",

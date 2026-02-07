@@ -10,7 +10,8 @@ from types import MappingProxyType, SimpleNamespace
 from typing import TypedDict, cast
 
 import pytest
-from custom_components.pawcontrol import compat, services
+from homeassistant.exceptions import ServiceValidationError
+from custom_components.pawcontrol import services
 from custom_components.pawcontrol.const import (
   EVENT_FEEDING_COMPLIANCE_CHECKED,
   SERVICE_CHECK_FEEDING_COMPLIANCE,
@@ -48,52 +49,28 @@ except ImportError:  # pragma: no cover - ensure stubs are available for tests
   from homeassistant.core import Context
 
 
-def test_service_validation_error_uses_compat_alias(
-  monkeypatch: pytest.MonkeyPatch,
-) -> None:
-  """``_service_validation_error`` should emit the compat-managed alias."""
-
-  class SentinelServiceValidationError(Exception):
-    pass
-
-  monkeypatch.setattr(compat, "ServiceValidationError", SentinelServiceValidationError)
-  monkeypatch.setattr(compat, "ensure_homeassistant_exception_symbols", lambda: None)
+def test_service_validation_error_uses_homeassistant_class() -> None:
+  """``_service_validation_error`` should emit ServiceValidationError."""
 
   error = services._service_validation_error("boom")
 
-  assert isinstance(error, SentinelServiceValidationError)
+  assert isinstance(error, ServiceValidationError)
   assert str(error) == "boom"
 
 
-def test_service_validation_error_rejects_blank_message(
-  monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_service_validation_error_rejects_blank_message() -> None:
   """Blank messages should be rejected to preserve telemetry detail."""
-
-  class SentinelServiceValidationError(Exception):
-    pass
-
-  monkeypatch.setattr(compat, "ServiceValidationError", SentinelServiceValidationError)
-  monkeypatch.setattr(compat, "ensure_homeassistant_exception_symbols", lambda: None)
 
   with pytest.raises(AssertionError):
     services._service_validation_error("   ")
 
 
-def test_service_validation_error_trims_whitespace(
-  monkeypatch: pytest.MonkeyPatch,
-) -> None:
-  """Messages should be trimmed before instantiating the compat alias."""
-
-  class SentinelServiceValidationError(Exception):
-    pass
-
-  monkeypatch.setattr(compat, "ServiceValidationError", SentinelServiceValidationError)
-  monkeypatch.setattr(compat, "ensure_homeassistant_exception_symbols", lambda: None)
+def test_service_validation_error_trims_whitespace() -> None:
+  """Messages should be trimmed before instantiating the service error."""
 
   error = services._service_validation_error("  trimmed  ")
 
-  assert isinstance(error, SentinelServiceValidationError)
+  assert isinstance(error, ServiceValidationError)
   assert str(error) == "trimmed"
 
 
@@ -1580,7 +1557,7 @@ async def test_send_notification_service_rejects_invalid_expiry(
   handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with pytest.raises(
-    services.compat.ServiceValidationError,
+    ServiceValidationError,
     match="expires_in_hours must be a number",
   ):
     await handler(
@@ -1616,7 +1593,7 @@ async def test_send_notification_service_rejects_non_positive_expiry(
   handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with pytest.raises(
-    services.compat.ServiceValidationError,
+    ServiceValidationError,
     match="expires_in_hours must be greater than 0",
   ):
     await handler(
@@ -1652,7 +1629,7 @@ async def test_send_notification_service_rejects_blank_title(
   handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with pytest.raises(
-    services.compat.ServiceValidationError,
+    ServiceValidationError,
     match="title must be a non-empty string",
   ):
     await handler(
@@ -1861,7 +1838,7 @@ async def test_setup_automatic_gps_service_rejects_invalid_interval(
   handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
 
   with pytest.raises(
-    services.compat.ServiceValidationError,
+    ServiceValidationError,
     match="update_interval_seconds must be a whole number",
   ):
     await handler(

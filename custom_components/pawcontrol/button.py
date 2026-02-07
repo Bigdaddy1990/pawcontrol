@@ -18,15 +18,18 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, ClassVar, Protocol, TypedDict, cast, runtime_checkable
 
-from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
+from homeassistant.components.button import (
+  ButtonDeviceClass,
+  ButtonEntity,
+  ButtonEntityDescription,
+)
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import Context, HomeAssistant, ServiceRegistry
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from . import compat
-from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
   ATTR_DOG_ID,
   DEFAULT_MODEL,
@@ -93,22 +96,6 @@ def _normalise_attributes(
   """Return JSON-serialisable attributes for button entities."""
 
   return normalise_entity_attributes(attrs)
-
-
-ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-  type[Exception],
-  compat.HomeAssistantError,
-)
-ServiceValidationError: type[Exception] = cast(
-  type[Exception],
-  compat.ServiceValidationError,
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
-bind_exception_alias("ServiceValidationError")
-
-if not hasattr(HomeAssistant, "services"):
-  HomeAssistant.services = None  # type: ignore[attr-defined]
 
 
 @runtime_checkable
@@ -832,6 +819,13 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     self._attr_device_class = device_class
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    self.entity_description = ButtonEntityDescription(
+      key=button_type,
+      translation_key=button_type,
+      device_class=device_class,
+      entity_category=entity_category,
+      icon=icon,
+    )
 
     # Link to virtual PawControl device for the dog
     self.update_device_metadata(
@@ -1301,11 +1295,11 @@ class PawControlFeedNowButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "feed_now",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:food-turkey",
       action_description="Feed dog immediately",
     )
     self._attr_name = f"{dog_name} Feed Now"
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Trigger an immediate feeding service call."""
@@ -1416,10 +1410,10 @@ class PawControlStartWalkButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "start_walk",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:walk",
       action_description="Start tracking a walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Start walk with validation."""
@@ -1491,10 +1485,10 @@ class PawControlEndWalkButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "end_walk",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:stop",
       action_description="End current walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """End walk with validation."""
@@ -1558,10 +1552,10 @@ class PawControlQuickWalkButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "quick_walk",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:run-fast",
       action_description="Log quick 10-minute walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Log quick walk as atomic operation."""
@@ -1606,10 +1600,10 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "log_walk_manually",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:pencil",
       action_description="Manually log a walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Log manual walk."""

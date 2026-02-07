@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Literal, cast
 from homeassistant.components.binary_sensor import (
   BinarySensorDeviceClass,
   BinarySensorEntity,
+  BinarySensorEntityDescription,
 )
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -471,6 +472,12 @@ class PawControlBinarySensorBase(
     self._attr_device_class = device_class
     self._attr_entity_category = entity_category
     self._attr_translation_key = sensor_type
+    self.entity_description = BinarySensorEntityDescription(
+      key=sensor_type,
+      translation_key=sensor_type,
+      device_class=device_class,
+      entity_category=entity_category,
+    )
 
     # Link entity to PawControl device entry for the dog
     self.update_device_metadata(

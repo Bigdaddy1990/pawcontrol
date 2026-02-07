@@ -6,8 +6,11 @@ from custom_components.pawcontrol.const import (
   CONF_DOG_NAME,
   CONF_DOGS,
   CONF_NAME,
+  DOMAIN,
 )
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 async def test_user_step_shows_form() -> None:
@@ -59,3 +62,57 @@ async def test_duplicate_dog_id_is_rejected() -> None:
   )
   assert duplicate["type"] == FlowResultType.FORM
   assert duplicate["errors"] == {CONF_DOG_ID: "dog_id_already_exists"}
+
+
+async def test_reauth_step_shows_confirmation_form(
+  hass: HomeAssistant,
+) -> None:
+  entry = MockConfigEntry(
+    domain=DOMAIN,
+    data={
+      CONF_DOGS: [
+        {
+          CONF_DOG_ID: "buddy",
+          CONF_DOG_NAME: "Buddy",
+        }
+      ]
+    },
+    options={},
+  )
+  entry.add_to_hass(hass)
+
+  flow = PawControlConfigFlow()
+  flow.hass = hass
+  flow.context = {"entry_id": entry.entry_id}
+
+  result = await flow.async_step_reauth({})
+
+  assert result["type"] == FlowResultType.FORM
+  assert result["step_id"] == "reauth_confirm"
+
+
+async def test_reconfigure_step_shows_form(
+  hass: HomeAssistant,
+) -> None:
+  entry = MockConfigEntry(
+    domain=DOMAIN,
+    data={
+      CONF_DOGS: [
+        {
+          CONF_DOG_ID: "buddy",
+          CONF_DOG_NAME: "Buddy",
+        }
+      ]
+    },
+    options={"entity_profile": "standard"},
+  )
+  entry.add_to_hass(hass)
+
+  flow = PawControlConfigFlow()
+  flow.hass = hass
+  flow.context = {"entry_id": entry.entry_id}
+
+  result = await flow.async_step_reconfigure()
+
+  assert result["type"] == FlowResultType.FORM
+  assert result["step_id"] == "reconfigure"

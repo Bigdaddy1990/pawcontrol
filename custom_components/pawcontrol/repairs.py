@@ -15,14 +15,15 @@ from typing import Any, TypedDict, cast
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
 from .const import (
+  CONFIG_ENTRY_VERSION,
   CONF_DOG_ID,
   CONF_DOG_NAME,
   CONF_DOGS,
@@ -1157,7 +1158,7 @@ async def _check_outdated_configuration(
       entry: Configuration entry
   """
   # Check config entry version
-  if entry.version < 1:  # Current version is 1
+  if entry.version < CONFIG_ENTRY_VERSION:
     await async_create_issue(
       hass,
       entry,
@@ -1165,7 +1166,7 @@ async def _check_outdated_configuration(
       ISSUE_OUTDATED_CONFIG,
       {
         "current_version": entry.version,
-        "required_version": 1,
+        "required_version": CONFIG_ENTRY_VERSION,
       },
       severity=ir.IssueSeverity.WARNING,
     )
