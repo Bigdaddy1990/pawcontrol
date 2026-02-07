@@ -12,8 +12,42 @@
   "codeowners": [
     "@BigDaddy1990"
   ],
+  "bluetooth": [
+    {
+      "local_name": "PawControl*"
+    },
+    {
+      "local_name": "Paw Control*"
+    },
+    {
+      "local_name": "Tractive*"
+    },
+    {
+      "local_name": "Whistle*"
+    },
+    {
+      "local_name": "Petnet*"
+    }
+  ],
   "config_flow": true,
   "dependencies": [],
+  "dhcp": [
+    {
+      "hostname": "tractive-*"
+    },
+    {
+      "hostname": "whistle-*"
+    },
+    {
+      "hostname": "petnet-*"
+    },
+    {
+      "hostname": "paw-control-*"
+    },
+    {
+      "hostname": "pawcontrol-*"
+    }
+  ],
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
   "integration_type": "hub",
   "iot_class": "local_push",
@@ -26,5 +60,39 @@
     "aiofiles>=24.1.0"
   ],
   "single_config_entry": true,
+  "usb": [
+    {
+      "manufacturer": "PawControl"
+    },
+    {
+      "manufacturer": "Tractive"
+    },
+    {
+      "manufacturer": "Whistle"
+    },
+    {
+      "manufacturer": "Petnet"
+    }
+  ],
+  "zeroconf": [
+    {
+      "type": "_pawcontrol._tcp.local."
+    },
+    {
+      "name": "PawControl*"
+    },
+    {
+      "name": "Paw Control*"
+    },
+    {
+      "name": "Tractive*"
+    },
+    {
+      "name": "Whistle*"
+    },
+    {
+      "name": "Petnet*"
+    }
+  ],
   "version": "1.0.0"
 }
