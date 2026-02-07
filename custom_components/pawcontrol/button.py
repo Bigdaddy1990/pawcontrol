@@ -18,7 +18,11 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, ClassVar, Protocol, TypedDict, cast, runtime_checkable
 
-from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
+from homeassistant.components.button import (
+  ButtonDeviceClass,
+  ButtonEntity,
+  ButtonEntityDescription,
+)
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import Context, HomeAssistant, ServiceRegistry
 from homeassistant.helpers.entity import EntityCategory
@@ -832,6 +836,13 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     self._attr_device_class = device_class
     self._attr_icon = icon
     self._attr_entity_category = entity_category
+    self.entity_description = ButtonEntityDescription(
+      key=button_type,
+      translation_key=button_type,
+      device_class=device_class,
+      entity_category=entity_category,
+      icon=icon,
+    )
 
     # Link to virtual PawControl device for the dog
     self.update_device_metadata(
@@ -1301,11 +1312,11 @@ class PawControlFeedNowButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "feed_now",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:food-turkey",
       action_description="Feed dog immediately",
     )
     self._attr_name = f"{dog_name} Feed Now"
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Trigger an immediate feeding service call."""
@@ -1416,10 +1427,10 @@ class PawControlStartWalkButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "start_walk",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:walk",
       action_description="Start tracking a walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Start walk with validation."""
@@ -1491,10 +1502,10 @@ class PawControlEndWalkButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "end_walk",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:stop",
       action_description="End current walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """End walk with validation."""
@@ -1558,10 +1569,10 @@ class PawControlQuickWalkButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "quick_walk",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:run-fast",
       action_description="Log quick 10-minute walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Log quick walk as atomic operation."""
@@ -1606,10 +1617,10 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
       dog_id,
       dog_name,
       "log_walk_manually",
+      device_class=ButtonDeviceClass.IDENTIFY,
       icon="mdi:pencil",
       action_description="Manually log a walk",
     )
-    self._attr_device_class = ButtonDeviceClass.IDENTIFY
 
   async def async_press(self) -> None:
     """Log manual walk."""
