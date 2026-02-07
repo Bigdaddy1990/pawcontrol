@@ -503,6 +503,7 @@ def _fallback_coordinator_statistics() -> CoordinatorStatisticsPayload:
     "update_counts": update_counts,
     "performance_metrics": performance_metrics,
     "health_indicators": health_indicators,
+    "rejection_metrics": default_rejection_metrics(),
   }
 
 

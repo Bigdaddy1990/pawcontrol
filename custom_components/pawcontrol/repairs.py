@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from inspect import isawaitable
+from inspect import isawaitable, signature
 from typing import Any, TypedDict, cast
 
 import voluptuous as vol
@@ -140,6 +140,22 @@ def _normalise_issue_severity(
   return ir.IssueSeverity.WARNING
 
 
+def _issue_registry_supports_kwarg(
+  create_issue: object,
+  key: str,
+) -> bool:
+  """Return True when the issue registry supports a keyword argument."""
+
+  try:
+    params = signature(create_issue).parameters.values()
+  except (TypeError, ValueError):
+    return False
+
+  return any(param.kind is param.VAR_KEYWORD for param in params) or any(
+    param.name == key for param in params
+  )
+
+
 _RUNTIME_STORE_STATUS_SEVERITY: dict[str, ir.IssueSeverity] = {
   "future_incompatible": ir.IssueSeverity.ERROR,
   "needs_migration": ir.IssueSeverity.ERROR,
@@ -156,6 +172,8 @@ async def async_create_issue(
   issue_type: str,
   data: JSONLikeMapping | None = None,
   severity: str | ir.IssueSeverity = ir.IssueSeverity.WARNING,
+  *,
+  learn_more_url: str | None = None,
 ) -> None:
   """Create a repair issue for the integration.
 
@@ -230,18 +248,27 @@ async def async_create_issue(
     if value is not None
   }
 
+  issue_kwargs: dict[str, object] = {
+    "breaks_in_ha_version": None,
+    "is_fixable": True,
+    "issue_domain": DOMAIN,
+    "severity": issue_severity,
+    "translation_key": issue_type,
+    "translation_placeholders": translation_placeholders,
+    "data": serialised_issue_data,
+  }
+  if learn_more_url and _issue_registry_supports_kwarg(
+    create_issue,
+    "learn_more_url",
+  ):
+    issue_kwargs["learn_more_url"] = learn_more_url
+
   try:
     result = create_issue(
       hass,
       DOMAIN,
       issue_id,
-      breaks_in_ha_version=None,
-      is_fixable=True,
-      issue_domain=DOMAIN,
-      severity=issue_severity,
-      translation_key=issue_type,
-      translation_placeholders=translation_placeholders,
-      data=serialised_issue_data,
+      **issue_kwargs,
     )
   except Exception as err:  # pragma: no cover - depends on HA internals
     repair_error = RepairRequiredError(
