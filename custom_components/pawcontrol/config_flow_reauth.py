@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
-from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_DOGS, CONF_MODULES
