@@ -27,7 +27,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import UnitOfMass
+from .compat import MASS_GRAMS, MASS_KILOGRAMS, UnitOfMass
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
