@@ -15,7 +15,7 @@ understand the control flow. The runtime behaviour is unchanged, but type
 analysis is now sound and deterministic.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.8.2+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 

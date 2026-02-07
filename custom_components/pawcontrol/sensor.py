@@ -16,6 +16,7 @@ from homeassistant.const import (
   STATE_UNKNOWN,
   UnitOfEnergy,
   UnitOfLength,
+  UnitOfMass,
   UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
@@ -23,7 +24,6 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import MASS_GRAMS, MASS_KILOGRAMS
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
@@ -2295,7 +2295,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
       dog_name,
       "health_aware_portion",
       state_class=SensorStateClass.MEASUREMENT,
-      unit_of_measurement=MASS_GRAMS,
+      unit_of_measurement=UnitOfMass.GRAMS,
       icon="mdi:scale",
       translation_key="health_aware_portion",
     )
@@ -3133,7 +3133,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
       dog_name,
       "food_consumption",
       state_class=SensorStateClass.TOTAL_INCREASING,
-      unit_of_measurement=MASS_GRAMS,
+      unit_of_measurement=UnitOfMass.GRAMS,
       icon="mdi:food-drumstick",
       translation_key="food_consumption",
     )
@@ -4273,7 +4273,7 @@ class PawControlWeightSensor(PawControlSensorBase):
       "weight",
       state_class=SensorStateClass.MEASUREMENT,
       device_class=SensorDeviceClass.WEIGHT,
-      unit_of_measurement=MASS_KILOGRAMS,
+      unit_of_measurement=UnitOfMass.KILOGRAMS,
       icon="mdi:scale-bathroom",
       translation_key="weight",
     )

@@ -28,17 +28,17 @@ from typing import Any, Literal, TypeVar, cast
 
 import voluptuous as vol
 from homeassistant import config_entries as ha_config_entries
+from homeassistant.config_entries import (
+  ConfigEntry,
+  ConfigEntryChange,
+  ConfigEntryState,
+)
 from homeassistant.core import Context, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from .compat import (
-  ConfigEntry,
-  ConfigEntryChange,
-  ConfigEntryState,
-)
 from .const import (
   CONF_RESET_TIME,
   DEFAULT_RESET_TIME,

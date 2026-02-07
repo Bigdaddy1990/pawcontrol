@@ -22,15 +22,17 @@ from homeassistant.const import (
   STATE_UNKNOWN,
   UnitOfEnergy,
   UnitOfLength,
+  UnitOfMass,
   UnitOfTime,
 )
 from homeassistant.core import Context, HomeAssistant, State
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError, MASS_GRAMS, MASS_KILOGRAMS
+from homeassistant.config_entries import ConfigEntry
 from .const import (
   CONF_DAILY_FOOD_AMOUNT,
   CONF_GPS_ACCURACY_FILTER,
@@ -799,7 +801,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
       "weight",
       device_class=_WEIGHT_DEVICE_CLASS,
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_KILOGRAMS,
+      native_unit_of_measurement=UnitOfMass.KILOGRAMS,
       native_min_value=MIN_DOG_WEIGHT,
       native_max_value=MAX_DOG_WEIGHT,
       native_step=0.1,
@@ -951,7 +953,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
       dog_name,
       "daily_food_amount",
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_GRAMS,
+      native_unit_of_measurement=UnitOfMass.GRAMS,
       native_min_value=50,
       native_max_value=2000,
       native_step=10,
@@ -1092,7 +1094,7 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
       dog_name,
       "portion_size",
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_GRAMS,
+      native_unit_of_measurement=UnitOfMass.GRAMS,
       native_min_value=10,
       native_max_value=500,
       native_step=5,
@@ -1529,7 +1531,7 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
       "target_weight",
       device_class=_WEIGHT_DEVICE_CLASS,
       mode=NumberMode.BOX,
-      native_unit_of_measurement=MASS_KILOGRAMS,
+      native_unit_of_measurement=UnitOfMass.KILOGRAMS,
       native_min_value=MIN_DOG_WEIGHT,
       native_max_value=MAX_DOG_WEIGHT,
       native_step=0.1,
