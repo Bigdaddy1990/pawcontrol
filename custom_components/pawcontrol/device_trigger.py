@@ -13,6 +13,7 @@ from homeassistant.const import (
   CONF_DOMAIN,
   CONF_ENTITY_ID,
   CONF_FROM,
+  CONF_METADATA,
   CONF_PLATFORM,
   CONF_TO,
   CONF_TYPE,
@@ -25,6 +26,7 @@ import voluptuous as vol
 from .const import DOMAIN
 from .device_automation_helpers import (
   build_unique_id,
+  build_device_automation_metadata,
   resolve_device_context,
   resolve_entity_id,
 )
@@ -96,14 +98,14 @@ TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
 async def async_get_triggers(
   hass: HomeAssistant,
   device_id: str,
-) -> list[dict[str, str]]:
+) -> list[dict[str, object]]:
   """List device triggers for PawControl devices."""
 
   context = resolve_device_context(hass, device_id)
   if context.dog_id is None:
     return []
 
-  triggers: list[dict[str, str]] = []
+  triggers: list[dict[str, object]] = []
   for definition in TRIGGER_DEFINITIONS:
     unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
     entity_id = resolve_entity_id(
@@ -115,10 +117,11 @@ async def async_get_triggers(
     if entity_id is None:
       continue
 
-    trigger: dict[str, str] = {
+    trigger: dict[str, object] = {
       CONF_PLATFORM: "device",
       CONF_DEVICE_ID: device_id,
       CONF_DOMAIN: DOMAIN,
+      CONF_METADATA: build_device_automation_metadata(),
       CONF_TYPE: definition.type,
       CONF_ENTITY_ID: entity_id,
     }

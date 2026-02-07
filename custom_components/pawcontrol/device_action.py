@@ -7,14 +7,17 @@ import logging
 from typing import Final, cast
 
 from homeassistant.components.device_automation import DEVICE_ACTION_BASE_SCHEMA
-from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
+from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_METADATA, CONF_TYPE
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 
 from .const import DOMAIN
-from .device_automation_helpers import resolve_device_context
+from .device_automation_helpers import (
+  build_device_automation_metadata,
+  resolve_device_context,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +62,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
 async def async_get_actions(
   hass: HomeAssistant,
   device_id: str,
-) -> list[dict[str, str]]:
+) -> list[dict[str, object]]:
   """List device actions for PawControl devices."""
 
   context = resolve_device_context(hass, device_id)
@@ -70,6 +73,7 @@ async def async_get_actions(
     {
       CONF_DEVICE_ID: device_id,
       CONF_DOMAIN: DOMAIN,
+      CONF_METADATA: build_device_automation_metadata(),
       CONF_TYPE: definition.type,
     }
     for definition in ACTION_DEFINITIONS

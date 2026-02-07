@@ -12,6 +12,7 @@ from homeassistant.const import (
   CONF_DEVICE_ID,
   CONF_DOMAIN,
   CONF_ENTITY_ID,
+  CONF_METADATA,
   CONF_TYPE,
   STATE_ON,
 )
@@ -40,6 +41,7 @@ import voluptuous as vol
 from .const import DOMAIN
 from .device_automation_helpers import (
   build_unique_id,
+  build_device_automation_metadata,
   resolve_device_context,
   resolve_entity_id,
   resolve_status_snapshot,
@@ -84,14 +86,14 @@ CONDITION_SCHEMA = DEVICE_CONDITION_BASE_SCHEMA.extend(
 async def async_get_conditions(
   hass: HomeAssistant,
   device_id: str,
-) -> list[dict[str, str]]:
+) -> list[dict[str, object]]:
   """List device conditions for PawControl devices."""
 
   context = resolve_device_context(hass, device_id)
   if context.dog_id is None:
     return []
 
-  conditions: list[dict[str, str]] = []
+  conditions: list[dict[str, object]] = []
   for definition in CONDITION_DEFINITIONS:
     unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
     entity_id = resolve_entity_id(
@@ -108,6 +110,7 @@ async def async_get_conditions(
         CONF_CONDITION: "device",
         CONF_DEVICE_ID: device_id,
         CONF_DOMAIN: DOMAIN,
+        CONF_METADATA: build_device_automation_metadata(),
         CONF_TYPE: definition.type,
         CONF_ENTITY_ID: entity_id,
       },
