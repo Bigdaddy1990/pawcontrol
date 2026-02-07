@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, ClassVar, Final
 import voluptuous as vol
 from homeassistant import config_entries as ha_config_entries
 from homeassistant.const import CONF_NAME
-from homeassistant.helpers import config_validation as cv
 
 from .const import (
   CONF_DOG_AGE,
@@ -29,14 +28,11 @@ from .const import (
   CONF_DOG_NAME,
   CONF_DOG_SIZE,
   CONF_DOG_WEIGHT,
-  DOG_ID_PATTERN,
   DOG_SIZES,
   DOMAIN,
   MAX_DOG_AGE,
-  MAX_DOG_NAME_LENGTH,
   MAX_DOG_WEIGHT,
   MIN_DOG_AGE,
-  MIN_DOG_NAME_LENGTH,
   MIN_DOG_WEIGHT,
   MODULE_FEEDING,
   MODULE_GPS,
@@ -63,6 +59,7 @@ from .types import (
   IntegrationNameValidationResult,
   ensure_dog_modules_mapping,
 )
+from .selector_shim import selector
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,46 +77,60 @@ DEFAULT_GPS_UPDATE_INTERVAL: Final = 60
 # Configuration schemas for validation
 INTEGRATION_SCHEMA: Final = vol.Schema(
   {
-    vol.Required(CONF_NAME, default="Paw Control"): vol.All(
-      cv.string,
-      vol.Length(min=1, max=50),
+    vol.Required(CONF_NAME, default="Paw Control"): selector.TextSelector(
+      selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="organization",
+      ),
     ),
   },
 )
 
 DOG_BASE_SCHEMA: Final = vol.Schema(
   {
-    vol.Required(CONF_DOG_ID): vol.All(
-      cv.string,
-      vol.Length(min=2, max=30),
-      vol.Match(
-        DOG_ID_PATTERN,
-        msg="Must start with letter, contain only lowercase letters, numbers, and underscores",
+    vol.Required(CONF_DOG_ID): selector.TextSelector(
+      selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="off",
       ),
     ),
-    vol.Required(CONF_DOG_NAME): vol.All(
-      cv.string,
-      vol.Length(
-        min=MIN_DOG_NAME_LENGTH,
-        max=MAX_DOG_NAME_LENGTH,
+    vol.Required(CONF_DOG_NAME): selector.TextSelector(
+      selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="name",
       ),
     ),
-    vol.Optional(CONF_DOG_BREED, default=""): vol.All(
-      cv.string,
-      vol.Length(max=50),
+    vol.Optional(CONF_DOG_BREED, default=""): selector.TextSelector(
+      selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="off",
+      ),
     ),
-    vol.Optional(CONF_DOG_AGE, default=3): vol.All(
-      vol.Coerce(int),
-      vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
+    vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(
+      selector.NumberSelectorConfig(
+        min=MIN_DOG_AGE,
+        max=MAX_DOG_AGE,
+        step=1,
+        mode=selector.NumberSelectorMode.BOX,
+        unit_of_measurement="years",
+      ),
     ),
-    vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(
-      vol.Coerce(float),
-      vol.Range(
+    vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(
+      selector.NumberSelectorConfig(
         min=MIN_DOG_WEIGHT,
         max=MAX_DOG_WEIGHT,
+        step=0.1,
+        mode=selector.NumberSelectorMode.BOX,
+        unit_of_measurement="kg",
       ),
     ),
-    vol.Optional(CONF_DOG_SIZE, default="medium"): vol.In(DOG_SIZES),
+    vol.Optional(CONF_DOG_SIZE, default="medium"): selector.SelectSelector(
+      selector.SelectSelectorConfig(
+        options=list(DOG_SIZES),
+        mode=selector.SelectSelectorMode.DROPDOWN,
+        translation_key="dog_size",
+      ),
+    ),
   },
 )
 

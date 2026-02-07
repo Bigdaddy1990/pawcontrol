@@ -15,7 +15,6 @@ from typing import Any, cast
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import callback
-from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
 from . import compat as compat_module
@@ -65,8 +64,9 @@ from .exceptions import (
   ReconfigureRequiredError,
   ValidationError,
 )
-from .flow_validation import validate_dog_setup_input
+from .flow_validation import validate_dog_import_input, validate_dog_setup_input
 from .options_flow import PawControlOptionsFlow
+from .selector_shim import selector
 from .types import (
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
@@ -299,44 +299,40 @@ class PawControlConfigFlow(
         seen_names: set[str] = set()
 
         for index, dog_config in enumerate(dogs_config):
-          try:
-            validated_dog = DOG_SCHEMA(dog_config)
-
-            dog_id = validated_dog.get(DOG_ID_FIELD)
-            dog_name = validated_dog.get(DOG_NAME_FIELD)
-
-            if dog_id in seen_ids:
-              validation_errors.append(
-                f"Duplicate dog ID '{dog_id}' at position {index + 1}",
-              )
-              continue
-
-            if dog_name in seen_names:
-              validation_errors.append(
-                f"Duplicate dog name '{dog_name}' at position {index + 1}",
-              )
-              continue
-
-            if not is_dog_config_valid(validated_dog):
-              validation_errors.append(
-                f"Invalid dog configuration at position {index + 1}: {dog_config}",
-              )
-              continue
-
-            seen_ids.add(dog_id)
-            seen_names.add(dog_name)
-            validated_dogs.append(validated_dog)
-            config_flow_monitor.record_validation(
-              "import_dog_valid",
+          if not isinstance(dog_config, Mapping):
+            validation_errors.append(
+              f"Dog entry at position {index + 1} must be a mapping",
             )
+            config_flow_monitor.record_validation(
+              "import_dog_invalid",
+            )
+            continue
 
-          except vol.Invalid as err:
+          try:
+            validated_dog = validate_dog_import_input(
+              cast(ConfigFlowInputMapping, dog_config),
+              existing_ids=seen_ids,
+              existing_names=seen_names,
+              current_dog_count=len(validated_dogs),
+              max_dogs=MAX_DOGS_PER_INTEGRATION,
+            )
+          except (FlowValidationError, ValidationError) as err:
             validation_errors.append(
               f"Dog validation failed at position {index + 1}: {err}",
             )
             config_flow_monitor.record_validation(
               "import_dog_invalid",
             )
+            continue
+
+          dog_id = validated_dog.get(DOG_ID_FIELD)
+          dog_name = validated_dog.get(DOG_NAME_FIELD)
+          seen_ids.add(dog_id)
+          seen_names.add(dog_name)
+          validated_dogs.append(validated_dog)
+          config_flow_monitor.record_validation(
+            "import_dog_valid",
+          )
 
         if not validated_dogs:
           if validation_errors:
@@ -1092,7 +1088,7 @@ class PawControlConfigFlow(
     schema = (
       vol.Schema(
         {
-          vol.Optional("add_another", default=False): cv.boolean,
+          vol.Optional("add_another", default=False): selector.BooleanSelector(),
         },
       )
       if can_add_more

@@ -18,8 +18,13 @@ from .const import (
   CONF_DOG_WEIGHT,
   CONF_DOGS,
   CONF_DOOR_SENSOR,
+  DOG_SIZES,
   DOOR_SENSOR_DEVICE_CLASSES,
+  MAX_DOG_AGE,
   MAX_DOGS_PER_ENTRY,
+  MAX_DOG_WEIGHT,
+  MIN_DOG_AGE,
+  MIN_DOG_WEIGHT,
   MODULE_FEEDING,
   MODULE_GARDEN,
   MODULE_GPS,
@@ -655,16 +660,17 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         vol.Optional(CONF_DOG_BREED, default=""): selector.TextSelector(),
         vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(
           selector.NumberSelectorConfig(
-            min=0,
-            max=30,
+            min=MIN_DOG_AGE,
+            max=MAX_DOG_AGE,
             step=1,
             mode=selector.NumberSelectorMode.BOX,
+            unit_of_measurement="years",
           ),
         ),
         vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(
           selector.NumberSelectorConfig(
-            min=0.5,
-            max=200.0,
+            min=MIN_DOG_WEIGHT,
+            max=MAX_DOG_WEIGHT,
             step=0.1,
             mode=selector.NumberSelectorMode.BOX,
             unit_of_measurement="kg",
@@ -672,7 +678,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         ),
         vol.Optional(CONF_DOG_SIZE, default="medium"): selector.SelectSelector(
           selector.SelectSelectorConfig(
-            options=["toy", "small", "medium", "large", "giant"],
+            options=list(DOG_SIZES),
             mode=selector.SelectSelectorMode.DROPDOWN,
             translation_key="dog_size",
           ),
@@ -870,10 +876,11 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
           default=self._current_dog.get(CONF_DOG_AGE, 3),
         ): selector.NumberSelector(
           selector.NumberSelectorConfig(
-            min=0,
-            max=30,
+            min=MIN_DOG_AGE,
+            max=MAX_DOG_AGE,
             step=1,
             mode=selector.NumberSelectorMode.BOX,
+            unit_of_measurement="years",
           ),
         ),
         vol.Optional(
@@ -881,8 +888,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
           default=self._current_dog.get(CONF_DOG_WEIGHT, 20.0),
         ): selector.NumberSelector(
           selector.NumberSelectorConfig(
-            min=0.5,
-            max=200.0,
+            min=MIN_DOG_WEIGHT,
+            max=MAX_DOG_WEIGHT,
             step=0.1,
             mode=selector.NumberSelectorMode.BOX,
             unit_of_measurement="kg",
@@ -893,7 +900,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
           default=self._current_dog.get(CONF_DOG_SIZE, "medium"),
         ): selector.SelectSelector(
           selector.SelectSelectorConfig(
-            options=["toy", "small", "medium", "large", "giant"],
+            options=list(DOG_SIZES),
             mode=selector.SelectSelectorMode.DROPDOWN,
             translation_key="dog_size",
           ),
