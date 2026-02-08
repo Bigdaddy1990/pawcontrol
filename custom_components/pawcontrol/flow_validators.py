@@ -90,6 +90,6 @@ __all__ = [
   "ValidationError",
   "validate_flow_dog_name",
   "validate_flow_gps_coordinates",
-  "validate_flow_time_window",
   "validate_flow_timer_interval",
+  "validate_flow_time_window",
 ]
