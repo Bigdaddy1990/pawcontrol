@@ -5,8 +5,10 @@ from __future__ import annotations
 import pytest
 
 from custom_components.pawcontrol.exceptions import FlowValidationError
-from custom_components.pawcontrol.flows.health_helpers import summarise_health_summary
-from custom_components.pawcontrol.flows.notifications_helpers import (
+from custom_components.pawcontrol.flow_steps.health_helpers import (
+  summarise_health_summary,
+)
+from custom_components.pawcontrol.flow_steps.notifications_helpers import (
   build_notification_settings_payload,
 )
 from custom_components.pawcontrol.flows.walk_schemas import (

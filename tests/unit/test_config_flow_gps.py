@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.flows.gps import (
+from custom_components.pawcontrol.flow_steps.gps import (
   DogGPSFlowMixin,
   GPSModuleDefaultsMixin,
 )

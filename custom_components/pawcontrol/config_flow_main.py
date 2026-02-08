@@ -37,8 +37,8 @@ from .config_flow_profile import (
   validate_profile_selection,
 )
 from .config_flow_reauth import ReauthFlowMixin
-from .flows.gps import DogGPSFlowMixin, GPSModuleDefaultsMixin
-from .flows.health import DogHealthFlowMixin, HealthSummaryMixin
+from .flow_steps.gps import DogGPSFlowMixin, GPSModuleDefaultsMixin
+from .flow_steps.health import DogHealthFlowMixin, HealthSummaryMixin
 from .config_flow_schemas import DOG_SCHEMA, MODULE_SELECTION_KEYS, MODULES_SCHEMA
 from .const import (
   CONFIG_ENTRY_VERSION,
@@ -112,7 +112,8 @@ from .types import (
   is_dog_config_valid,
   normalize_performance_mode,
 )
-from .validation import InputCoercionError, normalize_dog_id, validate_dog_name
+from .flow_validators import validate_flow_dog_name
+from .validation import InputCoercionError, normalize_dog_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -2214,7 +2215,7 @@ class PawControlConfigFlow(
       resolved_name: str | None = None
       for raw_name in (dog_name, legacy_name):
         try:
-          resolved_name = validate_dog_name(raw_name, required=False)
+          resolved_name = validate_flow_dog_name(raw_name, required=False)
         except ValidationError:
           continue
         if resolved_name:

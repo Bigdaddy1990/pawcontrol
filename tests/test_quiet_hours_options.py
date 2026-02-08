@@ -87,7 +87,7 @@ def test_gps_settings_payload_clamps_ranges() -> None:
 
   _install_options_flow_dependencies()
   from custom_components.pawcontrol.flow_helpers import coerce_bool
-  from custom_components.pawcontrol.flows.gps import GPSOptionsNormalizerMixin
+  from custom_components.pawcontrol.flow_steps.gps import GPSOptionsNormalizerMixin
   from custom_components.pawcontrol.types import (
     AUTO_TRACK_WALKS_FIELD,
     GPS_ACCURACY_FILTER_FIELD,
@@ -130,7 +130,7 @@ def test_build_notifications_schema_defaults() -> None:
   """Ensure notification schema defaults match current settings."""
 
   _install_options_flow_dependencies()
-  from custom_components.pawcontrol.flows.notifications_schemas import (
+  from custom_components.pawcontrol.flow_steps.notifications_schemas import (
     build_notifications_schema,
   )
   from custom_components.pawcontrol.types import (
