@@ -7,7 +7,7 @@ import logging
 from collections.abc import Callable, Mapping
 from datetime import date, datetime, timedelta
 from numbers import Real
-from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
+from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, TypedDict, cast
 
 from homeassistant import const as ha_const
 from homeassistant.components.sensor import (
@@ -47,6 +47,7 @@ from .types import (
   GardenModulePayload,
   GPSModulePayload,
   HealthModulePayload,
+  JSONDateValue,
   JSONMutableMapping,
   JSONValue,
   ModuleToggleKey,
@@ -89,6 +90,34 @@ type ModuleProfileKey = Literal[
   "gps_focus",
   "health_focus",
 ]
+
+
+class GardenAttributes(TypedDict, total=False):
+  """Typed attributes exposed by garden sensors."""
+
+  garden_status: str | None
+  sessions_today: int | None
+  time_today_minutes: float | int | None
+  poop_today: int | None
+  activities_today: int | None
+  activities_total: int | None
+  last_session_id: str | None
+  last_session_start: JSONDateValue | None
+  last_session_end: JSONDateValue | None
+  last_session_duration: float | int | None
+  last_session_activities: int | None
+  last_session_poop: int | None
+  last_session_status: str | None
+  last_session_weather: str | None
+  last_garden_visit: JSONDateValue | None
+  favorite_garden_activities: JSONValue
+  weekly_summary: JSONValue
+  weather_summary: JSONValue
+  pending_confirmations: JSONValue
+  hours_since_last_session: float | int | None
+  started_at: JSONDateValue | None
+  duration_minutes: float | None
+  last_seen: JSONDateValue | None
 
 
 class SensorEntityFactory(Protocol):
@@ -1027,7 +1056,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
     """Build shared garden attributes for subclasses."""
 
     data = self._get_garden_data()
-    attrs: AttributeInputDict = {
+    attrs: GardenAttributes = {
       "garden_status": data.get("status"),
       "sessions_today": data.get("sessions_today"),
       "time_today_minutes": data.get("time_today_minutes"),
