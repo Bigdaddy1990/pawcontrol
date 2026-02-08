@@ -37,8 +37,16 @@ from .types import (
   ensure_dog_modules_config,
   validate_dog_weight_for_size,
 )
-from .validation import InputCoercionError, coerce_float, coerce_int, normalize_dog_id
+
+from .flow_validators import validate_flow_dog_name
+from .validation import (
+  InputCoercionError,
+  coerce_float,
+  coerce_int,
+  normalize_dog_id,
+)
 from .validation_helpers import validate_unique_dog_name
+
 
 MAX_BREED_NAME_LENGTH = 100
 DOG_IMPORT_FIELDS: frozenset[str] = frozenset(
@@ -125,6 +133,7 @@ def validate_dog_setup_input(
       existing_names=existing_names,
       field=CONF_DOG_NAME,
     )
+
   except ValidationError as err:
     field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
     dog_name = ""
@@ -208,6 +217,7 @@ def validate_dog_update_input(
       existing_names=existing_names,
       field=CONF_DOG_NAME,
     )
+    
   except ValidationError as err:
     field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
   else:

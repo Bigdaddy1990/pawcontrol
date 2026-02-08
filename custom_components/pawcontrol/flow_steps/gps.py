@@ -79,13 +79,16 @@ from ..types import (
   ensure_dog_modules_config,
   ensure_dog_options_entry,
 )
+from ..flow_validators import (
+  validate_flow_gps_coordinates,
+  validate_flow_timer_interval,
+)
 from ..validation import (
   InputValidator,
   validate_float_range,
   validate_gps_accuracy_value,
   validate_gps_interval,
   validate_gps_source,
-  validate_interval,
 )
 from ..validation_helpers import safe_validate_interval
 from .gps_helpers import build_dog_gps_placeholders, validation_error_key
@@ -637,7 +640,7 @@ class GPSOptionsMixin(GPSOptionsHost):
         gps_distance = DEFAULT_GPS_DISTANCE_FILTER
 
       try:
-        route_history = validate_interval(
+        route_history = validate_flow_timer_interval(
           user_input.get(ROUTE_HISTORY_DAYS_FIELD),
           field=ROUTE_HISTORY_DAYS_FIELD,
           minimum=1,
@@ -760,7 +763,7 @@ class GPSOptionsMixin(GPSOptionsHost):
       geofence_lat: float | None
       geofence_lon: float | None
       try:
-        geofence_lat, geofence_lon = InputValidator.validate_gps_coordinates(
+        geofence_lat, geofence_lon = validate_flow_gps_coordinates(
           user_input.get(GEOFENCE_LAT_FIELD),
           user_input.get(GEOFENCE_LON_FIELD),
           latitude_field=GEOFENCE_LAT_FIELD,
