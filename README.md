@@ -573,6 +573,13 @@ Overview Markdown: sensor.pawcontrol_notifications → per-dog delivery stats
 Action Buttons: [Send Test Notification] [Reset Quiet Hours]
 ```
 
+**Diagnostics & Resilience**:
+- Lovelace card snippets for service guard metrics, notification rejection
+  metrics, and combined guard/notification error summaries live in the
+  diagnostics guide: [docs/diagnostics.md#lovelace-examples](docs/diagnostics.md#lovelace-examples).
+- Additional dashboard-focused snippets are available in the automations guide:
+  [docs/automations.md#diagnostics-dashboards-lovelace](docs/automations.md#diagnostics-dashboards-lovelace).
+
 **Visitor Mode Insights**:
 ```yaml
 Localized Controls Card: switch.{dog_id}_visitor_mode, binary_sensor.{dog_id}_visitor_mode → Entities title and field labels follow the active Home Assistant language.
