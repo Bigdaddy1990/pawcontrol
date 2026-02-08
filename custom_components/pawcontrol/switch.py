@@ -59,6 +59,7 @@ from .types import (
   DogConfigData,
   DogModulesConfig,
   JSONMutableMapping,
+  ModuleToggleKey,
   PawControlConfigEntry,
   coerce_dog_modules_config,
   ensure_json_mapping,
@@ -90,7 +91,9 @@ class ProfileOptimizedSwitchFactory:
   """Factory for efficient profile-based switch creation with minimal entity count."""
 
   # Module configurations - only for modules that support switches
-  MODULE_CONFIGS: ClassVar[list[tuple[str, str, str]]] = [
+  type SwitchDefinition = tuple[str, str, str]
+
+  MODULE_CONFIGS: ClassVar[list[tuple[ModuleToggleKey, str, str]]] = [
     (MODULE_FEEDING, "Feeding Tracking", "mdi:food-drumstick"),
     (MODULE_WALK, "Walk Tracking", "mdi:walk"),
     (MODULE_GPS, "GPS Tracking", "mdi:map-marker"),
@@ -102,7 +105,7 @@ class ProfileOptimizedSwitchFactory:
   ]
 
   # Feature switches grouped by module - only created if module is enabled
-  FEATURE_SWITCHES: ClassVar[dict[str, list[tuple[str, str, str]]]] = {
+  FEATURE_SWITCHES: ClassVar[dict[ModuleToggleKey, list[SwitchDefinition]]] = {
     MODULE_FEEDING: [
       ("auto_feeding_reminders", "Auto Feeding Reminders", "mdi:clock-alert"),
       ("feeding_schedule", "Feeding Schedule", "mdi:calendar-check"),

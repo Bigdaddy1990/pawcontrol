@@ -1620,6 +1620,10 @@
       "description": "Repeated authentication errors were detected for {service_count} notification service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}.",
       "title": "Notification authentication failed"
     },
+    "notification_delivery_repeated": {
+      "description": "Repeated notification delivery failures were detected for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
+      "title": "Repeated notification delivery failures"
+    },
     "notification_device_unreachable": {
       "description": "Notification deliveries repeatedly failed because devices were unreachable for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}.",
       "title": "Notification devices unreachable"
@@ -2012,10 +2016,6 @@
     "end_walk": {
       "description": "End the current walk for a dog",
       "name": "End Walk"
-    },
-    "feed_dog": {
-      "description": "Log a feeding event for a dog (deprecated: use add_feeding)",
-      "name": "Feed Dog"
     },
     "feed_with_medication": {
       "description": "Logs a feeding along with medication administration",

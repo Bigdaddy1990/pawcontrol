@@ -89,6 +89,7 @@ ISSUE_NOTIFICATION_TIMEOUT = "notification_timeout"
 ISSUE_NOTIFICATION_RATE_LIMITED = "notification_rate_limited"
 ISSUE_NOTIFICATION_GUARD_SKIPPED = "notification_guard_skipped"
 ISSUE_NOTIFICATION_DELIVERY_ERROR = "notification_delivery_error"
+ISSUE_NOTIFICATION_DELIVERY_REPEATED = "notification_delivery_repeated"
 ISSUE_OUTDATED_CONFIG = "outdated_configuration"
 ISSUE_PERFORMANCE_WARNING = "performance_warning"
 ISSUE_GPS_UPDATE_INTERVAL = "gps_update_interval_warning"
@@ -1039,6 +1040,18 @@ async def _check_notification_delivery_errors(
       ],
     },
   }
+  summary_issue = {
+    "issue_id": f"{entry.entry_id}_notification_delivery_repeated",
+    "issue_type": ISSUE_NOTIFICATION_DELIVERY_REPEATED,
+    "severity": ir.IssueSeverity.WARNING,
+    "recommended_steps": [
+      "Review notification configuration and service availability",
+      "Check logs for recurring delivery errors",
+      "Retry sending after addressing the root cause",
+    ],
+  }
+  issue_ids = [definition["issue_id"] for definition in issue_definitions.values()]
+  issue_ids.append(summary_issue["issue_id"])
 
   try:
     runtime_data = require_runtime_data(hass, entry)
@@ -1046,32 +1059,32 @@ async def _check_notification_delivery_errors(
     # If runtime data is unavailable, remove any lingering issues
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      for issue in issue_definitions.values():
-        await delete_issue(hass, DOMAIN, issue["issue_id"])
+      for issue_id in issue_ids:
+        await delete_issue(hass, DOMAIN, issue_id)
     return
 
   notification_manager = getattr(runtime_data, "notification_manager", None)
   if notification_manager is None:
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      for issue in issue_definitions.values():
-        await delete_issue(hass, DOMAIN, issue["issue_id"])
+      for issue_id in issue_ids:
+        await delete_issue(hass, DOMAIN, issue_id)
     return
 
   delivery_status = notification_manager.get_delivery_status_snapshot()
   if not isinstance(delivery_status, Mapping):
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      for issue in issue_definitions.values():
-        await delete_issue(hass, DOMAIN, issue["issue_id"])
+      for issue_id in issue_ids:
+        await delete_issue(hass, DOMAIN, issue_id)
     return
 
   services = delivery_status.get("services")
   if not isinstance(services, Mapping):
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      for issue in issue_definitions.values():
-        await delete_issue(hass, DOMAIN, issue["issue_id"])
+      for issue_id in issue_ids:
+        await delete_issue(hass, DOMAIN, issue_id)
     return
 
   # We consider an error recurring if there are >=3 consecutive failures
@@ -1081,6 +1094,10 @@ async def _check_notification_delivery_errors(
     for key in issue_definitions
   }
   reasons_by_class: dict[str, set[str]] = {key: set() for key in issue_definitions}
+  summary_services: list[str] = []
+  summary_total_failures = 0
+  summary_consecutive_failures = 0
+  summary_reasons: set[str] = set()
 
   for service_name, payload in services.items():
     if not isinstance(service_name, str) or not isinstance(payload, Mapping):
@@ -1101,6 +1118,11 @@ async def _check_notification_delivery_errors(
     classification = classify_error_reason(reason_text, error=error_text)
     if classification not in issue_definitions:
       continue
+    summary_services.append(service_name)
+    summary_total_failures += total_failures
+    summary_consecutive_failures += consecutive_failures
+    if reason_text:
+      summary_reasons.add(reason_text)
     classified_entry = classified_services[classification]
     # Append service name and accumulate counts
     classified_entry["services"].append(service_name)
@@ -1115,6 +1137,30 @@ async def _check_notification_delivery_errors(
 
   # Create or clear issues based on classification results
   delete_issue = getattr(ir, "async_delete_issue", None)
+  if summary_services:
+    issue_data: JSONMutableMapping = {
+      "services": ", ".join(sorted(summary_services)),
+      "service_count": len(summary_services),
+      "total_failures": summary_total_failures,
+      "consecutive_failures": summary_consecutive_failures,
+      "last_error_reasons": (
+        ", ".join(sorted(summary_reasons)) if summary_reasons else "n/a"
+      ),
+      "recommended_steps": ", ".join(
+        cast(list[str], summary_issue.get("recommended_steps", [])),
+      ),
+    }
+    await async_create_issue(
+      hass,
+      entry,
+      summary_issue["issue_id"],
+      summary_issue["issue_type"],
+      issue_data,
+      severity=summary_issue["severity"],
+    )
+  elif callable(delete_issue):
+    await delete_issue(hass, DOMAIN, summary_issue["issue_id"])
+
   for classification, definition in issue_definitions.items():
     services_list = classified_services[classification]["services"]
     if not services_list:
@@ -1724,6 +1770,8 @@ class PawControlRepairsFlow(RepairsFlow):
     if self._repair_type == ISSUE_NOTIFICATION_GUARD_SKIPPED:
       return await self.async_step_notification_guard_skipped()
     if self._repair_type == ISSUE_NOTIFICATION_DELIVERY_ERROR:
+      return await self.async_step_notification_delivery_error()
+    if self._repair_type == ISSUE_NOTIFICATION_DELIVERY_REPEATED:
       return await self.async_step_notification_delivery_error()
     if self._repair_type == ISSUE_OUTDATED_CONFIG:
       return await self.async_step_outdated_config()
