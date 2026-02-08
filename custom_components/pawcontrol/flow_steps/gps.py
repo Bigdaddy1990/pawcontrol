@@ -590,8 +590,8 @@ class GPSOptionsMixin(GPSOptionsHost):
       return await self.async_step_select_dog_for_gps_settings()
 
     current_options = self._current_gps_options(dog_id)
-      if user_input is not None:
-        errors: dict[str, str] = {}
+    if user_input is not None:
+      errors: dict[str, str] = {}
 
       try:
         gps_update_interval = validate_flow_gps_interval(
