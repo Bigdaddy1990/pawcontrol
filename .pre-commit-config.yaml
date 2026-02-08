@@ -14,7 +14,7 @@ repos:
   # ``--exit-non-zero-on-fix`` we allow Ruff to apply fixes and exit cleanly
   # once done.  ``--show-fixes`` still prints a summary of what was changed.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.14
+    rev: v0.15.0
     hooks:
       - id: ruff-check
         args:
@@ -39,9 +39,14 @@ repos:
         args:
           - --unsafe
           - --allow-multiple-documents
+          - --autofix
         exclude: ^(tests/|docs/|examples?/)
       - id: check-json
+        args:
+          - --autofix
       - id: check-toml
+        args:
+          - --autofix
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
@@ -51,6 +56,8 @@ repos:
       - id: requirements-txt-fixer
       - id: check-added-large-files
       - id: check-case-conflict
+        args:
+          - --autofix
       - id: check-builtin-literals
       - id: check-merge-conflict
         args:
@@ -63,6 +70,8 @@ repos:
           - --autofix
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
       - id: fix-byte-order-marker
+        args:
+          - --autofix
       - id: destroyed-symlinks
 
   - repo: https://github.com/asottile/pyupgrade
