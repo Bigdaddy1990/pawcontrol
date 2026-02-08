@@ -74,6 +74,7 @@ from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
 from .exceptions import HomeAssistantError, ServiceValidationError
+from .feeding_translations import async_build_feeding_compliance_summary
 from .feeding_manager import FeedingComplianceCompleted
 from .grooming_translations import (
   translated_grooming_template,

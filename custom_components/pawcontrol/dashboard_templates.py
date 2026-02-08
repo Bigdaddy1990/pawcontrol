@@ -2728,7 +2728,11 @@ class DashboardTemplates:
         Health charts template
     """
     theme_styles = self._get_theme_styles(theme)
-    getattr(self.hass.config, "language", None)
+    hass_language: str | None = getattr(self.hass.config, "language", None)
+    translation_lookup = await async_get_component_translation_lookup(
+      self.hass,
+      hass_language,
+    )
 
     template: CardConfig
     if theme in ["modern", "dark"]:

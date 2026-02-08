@@ -32,6 +32,7 @@ from homeassistant.util import dt as dt_util
 from .coordinator_tasks import default_rejection_metrics
 from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
+from .feeding_translations import async_build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
