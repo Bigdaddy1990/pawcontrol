@@ -152,6 +152,11 @@ jobs:
           python scripts/enforce_docstring_baseline.py --update
           python scripts/sync_contributor_guides.py --update
 
+      - name: Enforce test requirements and localization flags
+        run: |
+          python -m scripts.enforce_test_requirements
+          python -m scripts.sync_localization_flags
+
       - run: |
           ruff check . --fix all || true
           ruff check . --fix --unsafe-fixes || true
