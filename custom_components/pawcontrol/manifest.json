@@ -76,29 +76,4 @@
     }
   ],
   "version": "1.0.0",
-  "zeroconf": [
-    {
-      "type": "_pawcontrol._tcp.local."
-    },
-    {
-      "name": "PawControl*",
-      "type": "_pawcontrol._tcp.local."
-    },
-    {
-      "name": "Paw Control*",
-      "type": "_pawcontrol._tcp.local."
-    },
-    {
-      "name": "Tractive*",
-      "type": "_pawcontrol._tcp.local."
-    },
-    {
-      "name": "Whistle*",
-      "type": "_pawcontrol._tcp.local."
-    },
-    {
-      "name": "Petnet*",
-      "type": "_pawcontrol._tcp.local."
-    }
-  ]
 }
