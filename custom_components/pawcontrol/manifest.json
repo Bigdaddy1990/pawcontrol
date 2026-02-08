@@ -75,25 +75,5 @@
       "manufacturer": "Petnet"
     }
   ],
-  "version": "1.0.0",
-  "zeroconf": [
-    {
-      "type": "_pawcontrol._tcp.local."
-    },
-    {
-      "name": "PawControl*"
-    },
-    {
-      "name": "Paw Control*"
-    },
-    {
-      "name": "Tractive*"
-    },
-    {
-      "name": "Whistle*"
-    },
-    {
-      "name": "Petnet*"
-    }
-  ]
+  "version": "1.0.0"
 }
