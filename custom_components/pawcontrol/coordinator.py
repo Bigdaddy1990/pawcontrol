@@ -343,6 +343,7 @@ class PawControlCoordinator(
     if len(self.registry) == 0:
       return {}
 
+    # async_prepare_entry is idempotent; setup logic runs only once per entry.
     await self.async_prepare_entry()
     dog_ids = self.registry.ids()
     if not dog_ids:
