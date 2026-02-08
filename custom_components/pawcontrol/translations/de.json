@@ -17,7 +17,7 @@
     "dashboard_health_label_walk_safety": "Spaziersicherheit",
     "dashboard_health_label_weather_health_score": "Gesundheitswert",
     "dashboard_health_label_weight": "Gewicht",
-    "dashboard_health_template_statistics_health_section": "### \u2764\ufe0f Gesundheit\n- **Gewicht**: {{{{ states('sensor.{dog_id}_weight') }}}} kg\n- **Gesundheitswert**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100\n- **Aktivit\u00e4tsniveau**: {{{{ states('sensor.{dog_id}_activity_level') }}}}\n",
+    "dashboard_health_template_statistics_health_section": "### \u2764\ufe0f Gesundheit\n- **Gewicht**: {{{{ states('sensor.{dog_id}_weight') }}}} kg\n- **Gesundheitswert**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100\n- **Aktivit\u00e4tsniveau**: {{{{ states('sensor.{dog_id}_activity_level') }}}}",
     "dashboard_health_template_weather_health_card_title": "{icon} {dog_name} Wettergesundheit",
     "dashboard_health_template_weather_health_chart_title": "Wettergesundheitswirkung",
     "dashboard_health_template_weather_health_compact_name": "{icon} Wettergesundheit",
