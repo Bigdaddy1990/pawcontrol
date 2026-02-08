@@ -1128,9 +1128,7 @@ def test_notification_delivery_errors_clears_issues_when_clean(
   assert any(
     str(name).endswith("notification_delivery_error_exception") for name in deleted
   )
-  assert any(
-    str(name).endswith("notification_delivery_repeated") for name in deleted
-  )
+  assert any(str(name).endswith("notification_delivery_repeated") for name in deleted)
 
 
 def test_async_publish_feeding_compliance_issue_creates_alert(
