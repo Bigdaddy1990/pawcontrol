@@ -1,10 +1,10 @@
 """Validation helpers shared across config and options flows.
 
-This module provides a stable API for input validation within config and options
-flows. It wraps core validation logic from the `validation` module, offering
-a clear and consistent interface for flow steps to use. By centralizing these
-wrappers, it decouples the flows from the direct implementation of the
-validators, improving maintainability.
+This module defines the stable API for input validation inside config and
+options flows. It wraps the core routines in `validation` so flow steps can rely
+on a consistent interface without coupling to the underlying implementation.
+Centralizing these wrappers keeps flow modules lean and improves maintainability
+as validation behavior evolves.
 """
 
 from __future__ import annotations
