@@ -46,12 +46,14 @@ from weakref import WeakKeyDictionary
 
 if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
   from homeassistant.core import Context, EventOrigin, HomeAssistant
+  from homeassistant.exceptions import HomeAssistantError
   from homeassistant.helpers import device_registry as dr
   from homeassistant.helpers import entity_registry as er
   from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
   from homeassistant.helpers.entity import Entity
   from homeassistant.helpers.entity_platform import AddEntitiesCallback
   from homeassistant.util import dt as dt_util
+  from .coordinator import PawControlCoordinator
 else:  # pragma: no branch - executed under tests without Home Assistant installed
   try:
     from homeassistant.core import Context, HomeAssistant
@@ -60,6 +62,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
       from homeassistant.core import EventOrigin
     except ImportError:  # pragma: no cover - EventOrigin missing on older cores
       EventOrigin = object  # type: ignore[assignment]
+    from homeassistant.exceptions import HomeAssistantError
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
     from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
@@ -79,6 +82,9 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
 
     class Entity:  # type: ignore[override]
       """Lightweight placeholder entity used for tests."""
+
+    class HomeAssistantError(Exception):  # type: ignore[override]
+      """Fallback Home Assistant error type for test environments."""
 
     @dataclass(slots=True)
     class DeviceEntry:  # type: ignore[override]
@@ -166,6 +172,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
 
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
 from .service_guard import ServiceGuardResult
+from .runtime_data import get_runtime_data
 
 if TYPE_CHECKING:
   from .types import (
@@ -302,6 +309,54 @@ def normalise_entity_attributes(
     return {}
 
   return cast(JSONMutableMapping, normalize_value(data))
+
+
+def resolve_default_feeding_amount(
+  coordinator: PawControlCoordinator,
+  dog_id: str,
+  meal_type: str | None,
+) -> float:
+  """Resolve a default feeding amount for the specified dog."""
+
+  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  if runtime_data is None:
+    raise HomeAssistantError("Runtime data not available")
+
+  managers = runtime_data.runtime_managers
+  feeding_manager = managers.feeding_manager or getattr(
+    runtime_data,
+    "feeding_manager",
+    None,
+  )
+  if feeding_manager is None:
+    raise HomeAssistantError("Feeding manager not available")
+
+  config = feeding_manager.get_feeding_config(dog_id)
+  if not config:
+    raise HomeAssistantError(
+      "Feeding configuration not available; configure feeding settings first.",
+    )
+
+  meal_enum = None
+  if isinstance(meal_type, str):
+    from .feeding_manager import MealType
+
+    try:
+      meal_enum = MealType(meal_type)
+    except ValueError:
+      _LOGGER.warning(
+        "Unknown meal type '%s' for %s; using default portion size",
+        meal_type,
+        dog_id,
+      )
+
+  amount = config.calculate_portion_size(meal_enum)
+  if amount <= 0:
+    raise HomeAssistantError(
+      "Feeding amount could not be resolved; check feeding settings.",
+    )
+
+  return amount
 
 
 class ServiceCallKeywordArgs(TypedDict, total=False):

@@ -506,6 +506,7 @@ ATTR_TIMESTAMP: Final[str] = "timestamp"
 # Feeding attributes
 ATTR_MEAL_TYPE: Final[str] = "meal_type"
 ATTR_PORTION_SIZE: Final[str] = "portion_size"
+DEFAULT_REGULAR_FEEDING_AMOUNT: Final[int] = 200
 
 # Walk/GPS attributes
 ATTR_WALK_DURATION: Final[str] = "walk_duration"
@@ -605,6 +606,7 @@ __all__ = (
   "DEFAULT_DASHBOARD_ENABLED",
   "DEFAULT_GPS_UPDATE_INTERVAL",
   "DEFAULT_PERFORMANCE_MODE",
+  "DEFAULT_REGULAR_FEEDING_AMOUNT",
   "DOG_SIZES",
   "DOG_SIZE_WEIGHT_RANGES",
   "DOMAIN",

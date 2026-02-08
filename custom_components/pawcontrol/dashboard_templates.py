@@ -26,6 +26,7 @@ from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.util import dt as dt_util
 
 from .const import (
+  DEFAULT_REGULAR_FEEDING_AMOUNT,
   DOMAIN,
   MODULE_FEEDING,
   MODULE_GPS,
@@ -1466,7 +1467,7 @@ class DashboardTemplates:
         "service_data": {
           "dog_id": dog_id,
           "meal_type": "regular",
-          "amount": 200,
+          "amount": DEFAULT_REGULAR_FEEDING_AMOUNT,
         },
       },
     }
@@ -2696,7 +2697,7 @@ class DashboardTemplates:
             "service_data": {
               "dog_id": dog_id,
               "meal_type": meal_type,
-              "amount": 200,
+              "amount": DEFAULT_REGULAR_FEEDING_AMOUNT,
             },
           },
         },

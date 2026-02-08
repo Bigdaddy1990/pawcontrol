@@ -54,8 +54,7 @@ from .const import (
   SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .feeding_manager import MealType
-from .utils import normalize_value
+from .utils import normalize_value, resolve_default_feeding_amount
 from .entity import PawControlDogEntityBase
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
@@ -97,52 +96,6 @@ def _normalise_attributes(
   """Return JSON-serialisable attributes for button entities."""
 
   return normalise_entity_attributes(attrs)
-
-
-def _resolve_default_feeding_amount(
-  coordinator: PawControlCoordinator,
-  dog_id: str,
-  meal_type: str | None,
-) -> float:
-  """Resolve a default feeding amount for the specified dog."""
-
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
-  if runtime_data is None:
-    raise HomeAssistantError("Runtime data not available")
-
-  managers = runtime_data.runtime_managers
-  feeding_manager = managers.feeding_manager or getattr(
-    runtime_data,
-    "feeding_manager",
-    None,
-  )
-  if feeding_manager is None:
-    raise HomeAssistantError("Feeding manager not available")
-
-  config = feeding_manager.get_feeding_config(dog_id)
-  if not config:
-    raise HomeAssistantError(
-      "Feeding configuration not available; configure feeding settings first.",
-    )
-
-  meal_enum: MealType | None = None
-  if isinstance(meal_type, str):
-    try:
-      meal_enum = MealType(meal_type)
-    except ValueError:
-      _LOGGER.warning(
-        "Unknown meal type '%s' for %s; using default portion size",
-        meal_type,
-        dog_id,
-      )
-
-  amount = config.calculate_portion_size(meal_enum)
-  if amount <= 0:
-    raise HomeAssistantError(
-      "Feeding amount could not be resolved; check feeding settings.",
-    )
-
-  return amount
 
 
 @runtime_checkable
@@ -1314,7 +1267,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
         meal_type = meal
         break
 
-    amount = _resolve_default_feeding_amount(
+    amount = resolve_default_feeding_amount(
       self.coordinator,
       self._dog_id,
       meal_type,
@@ -1357,7 +1310,7 @@ class PawControlFeedNowButton(PawControlButtonBase):
     """Trigger an immediate feeding service call."""
 
     await super().async_press()
-    amount = _resolve_default_feeding_amount(
+    amount = resolve_default_feeding_amount(
       self.coordinator,
       self._dog_id,
       "immediate",
@@ -1402,7 +1355,7 @@ class PawControlFeedMealButton(PawControlButtonBase):
   async def async_press(self) -> None:
     """Feed specific meal."""
     await super().async_press()
-    amount = _resolve_default_feeding_amount(
+    amount = resolve_default_feeding_amount(
       self.coordinator,
       self._dog_id,
       self._meal_type,
