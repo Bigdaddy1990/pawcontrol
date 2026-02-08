@@ -148,6 +148,18 @@ SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
 _LOGGER = logging.getLogger(__name__)
 
 
+def _log_deprecated_service(service: str, replacement: str) -> None:
+  """Log a deprecation warning for legacy services."""
+
+  _LOGGER.warning(
+    "The %s service is deprecated and will be removed in v%s (%s). Use %s instead.",
+    f"{DOMAIN}.{service}",
+    DEPRECATION_REMOVAL_VERSION,
+    DEPRECATION_REMOVAL_DATE,
+    f"{DOMAIN}.{replacement}",
+  )
+
+
 def _service_validation_error(message: str) -> Exception:
   """Return a standard ServiceValidationError."""
 
@@ -259,6 +271,9 @@ SERVICE_START_GARDEN = "start_garden_session"
 SERVICE_END_GARDEN = "end_garden_session"
 SERVICE_ADD_GARDEN_ACTIVITY = "add_garden_activity"
 SERVICE_CONFIRM_POOP = "confirm_garden_poop"
+
+DEPRECATION_REMOVAL_VERSION = "1.2.0"
+DEPRECATION_REMOVAL_DATE = "2026-03-01"
 
 _ManagerT = TypeVar("_ManagerT")
 
@@ -1685,6 +1700,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
   async def start_walk_service(call: ServiceCall) -> None:
     """Handle start walk service call."""
+    _log_deprecated_service(SERVICE_START_WALK, SERVICE_GPS_START_WALK)
     coordinator = _get_coordinator()
     walk_manager = _require_manager(
       _get_runtime_manager(coordinator, "walk_manager"),
@@ -1768,6 +1784,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
   async def end_walk_service(call: ServiceCall) -> None:
     """Handle end walk service call."""
+    _log_deprecated_service(SERVICE_END_WALK, SERVICE_GPS_END_WALK)
     coordinator = _get_coordinator()
     walk_manager = _require_manager(
       _get_runtime_manager(coordinator, "walk_manager"),

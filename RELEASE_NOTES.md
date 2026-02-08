@@ -10,6 +10,10 @@
 ### ⚠️ Breaking Changes
 - Removed the deprecated `pawcontrol.feed_dog` service. Automations and dashboards must now call `pawcontrol.add_feeding` and include an explicit `amount` value.【F:custom_components/pawcontrol/services.yaml†L1-L75】【F:custom_components/pawcontrol/services.py†L1-L1100】
 
+### 🕒 Deprecations
+- Deprecated `pawcontrol.start_walk` and `pawcontrol.end_walk` in favor of `pawcontrol.gps_start_walk` and `pawcontrol.gps_end_walk`. Removal is scheduled for v1.2.0 on 2026-03-01.【F:custom_components/pawcontrol/services.py†L1681-L1866】【F:custom_components/pawcontrol/services.yaml†L146-L210】
+- Deprecated the legacy `PawControlCoordinator._fetch_dog_data_protected` helper. Removal is scheduled for v1.2.0 on 2026-03-01.【F:custom_components/pawcontrol/coordinator.py†L398-L408】
+
 ### 🧩 Compatibility Refresh
 - Updated mass unit handling to rely on Home Assistant `UnitOfMass` with backwards-compatible fallbacks, and aligned optimized entity base typing with modern device/state class enums to match current HA APIs.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】
 

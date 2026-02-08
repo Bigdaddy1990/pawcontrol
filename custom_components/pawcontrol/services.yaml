@@ -144,7 +144,7 @@ calculate_portion:
 
 start_walk:
   name: Start Walk
-  description: Begin tracking a walk for a specific dog
+  description: Deprecated; use the gps_start_walk service (removal scheduled for v1.2.0 on 2026-03-01)
   fields:
     dog_id:
       name: Dog ID
@@ -152,22 +152,37 @@ start_walk:
       required: true
       selector:
         text:
-    label:
-      name: Walk Label
-      description: Optional label for the walk
+    walker:
+      name: Walker
+      description: Optional name of the person walking the dog
       required: false
       selector:
         text:
-    location:
-      name: Starting Location
-      description: Optional starting location name
+    weather:
+      name: Weather
+      description: Optional weather condition at the start of the walk
       required: false
       selector:
-        text:
+        select:
+          options:
+            - "sunny"
+            - "cloudy"
+            - "rainy"
+            - "snowy"
+            - "windy"
+            - "hot"
+            - "cold"
+    leash_used:
+      name: Leash Used
+      description: Whether a leash was used for the walk
+      required: false
+      default: true
+      selector:
+        boolean:
 
 end_walk:
   name: End Walk
-  description: End the current walk for a specific dog
+  description: Deprecated; use the gps_end_walk service (removal scheduled for v1.2.0 on 2026-03-01)
   fields:
     dog_id:
       name: Dog ID
@@ -175,28 +190,6 @@ end_walk:
       required: true
       selector:
         text:
-    distance:
-      name: Total Distance
-      description: Total walk distance in meters (0 for auto-calculate)
-      required: false
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 50000
-          step: 100
-          unit_of_measurement: "m"
-    duration:
-      name: Duration
-      description: Walk duration in minutes (0 for auto-calculate)
-      required: false
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 480
-          step: 5
-          unit_of_measurement: "min"
     notes:
       name: Notes
       description: Optional notes about the walk
@@ -204,6 +197,16 @@ end_walk:
       selector:
         text:
           multiline: true
+    dog_weight_kg:
+      name: Dog Weight (kg)
+      description: Optional weight reading at the end of the walk
+      required: false
+      selector:
+        number:
+          min: 0.5
+          max: 100
+          step: 0.1
+          unit_of_measurement: "kg"
 
 update_health:
   name: Update Health Profile
@@ -1597,7 +1600,7 @@ add_gps_point:
 
 gps_start_walk:
   name: GPS Start Walk
-  description: Start a GPS-tracked walk session using raw location data
+  description: Start a GPS-tracked walk session
   fields:
     dog_id:
       name: Dog ID
@@ -1605,21 +1608,26 @@ gps_start_walk:
       required: true
       selector:
         text:
-    source:
-      name: Source
-      description: Identifier of the GPS source (device tracker, person, etc.)
-      required: true
-      selector:
-        text:
-    accuracy:
-      name: Accuracy (m)
-      description: Accuracy of the initial position in meters
+    walker:
+      name: Walker
+      description: Optional name of the person walking the dog
       required: false
       selector:
-        number:
-          min: 1
-          max: 1000
-          step: 1
+        text:
+    track_route:
+      name: Track Route
+      description: Whether route recording is enabled during the walk
+      required: false
+      default: true
+      selector:
+        boolean:
+    safety_alerts:
+      name: Safety Alerts
+      description: Enable safety alerts during the walk
+      required: false
+      default: true
+      selector:
+        boolean:
 
 gps_end_walk:
   name: GPS End Walk
@@ -1631,24 +1639,20 @@ gps_end_walk:
       required: true
       selector:
         text:
-    distance_m:
-      name: Distance (m)
-      description: Optional total distance covered in meters
+    save_route:
+      name: Save Route
+      description: Store the GPS route data for later export
+      required: false
+      default: true
+      selector:
+        boolean:
+    notes:
+      name: Notes
+      description: Optional notes about the walk
       required: false
       selector:
-        number:
-          min: 0
-          max: 100000
-          step: 10
-    duration_s:
-      name: Duration (s)
-      description: Optional total walk duration in seconds
-      required: false
-      selector:
-        number:
-          min: 0
-          max: 86400
-          step: 5
+        text:
+          multiline: true
 
 gps_post_location:
   name: GPS Post Location
