@@ -38,6 +38,7 @@ from .notifications import (
   NotificationTemplateData,
   NotificationType,
 )
+from .exceptions import ValidationError
 from .types import (
   GeofenceNotificationPayload,
   GeofenceStoragePayload,
@@ -46,6 +47,7 @@ from .types import (
   GPSLocation,
 )
 from .utils import async_fire_event
+from .validation_helpers import validate_coordinate_pair
 
 if TYPE_CHECKING:
   from .notifications import PawControlNotificationManager
@@ -165,10 +167,12 @@ class GeofenceZone:
 
   def __post_init__(self) -> None:
     """Validate zone parameters after initialization."""
-    if not (-90 <= self.latitude <= 90):
-      raise ValueError(f"Invalid latitude: {self.latitude}")
-    if not (-180 <= self.longitude <= 180):
-      raise ValueError(f"Invalid longitude: {self.longitude}")
+    try:
+      validate_coordinate_pair(self.latitude, self.longitude)
+    except ValidationError as err:
+      if err.field == "latitude":
+        raise ValueError(f"Invalid latitude: {self.latitude}") from err
+      raise ValueError(f"Invalid longitude: {self.longitude}") from err
     if not (MIN_GEOFENCE_RADIUS <= self.radius <= MAX_GEOFENCE_RADIUS):
       raise ValueError(
         f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters",
@@ -1020,7 +1024,11 @@ def validate_coordinates(latitude: float, longitude: float) -> bool:
   Returns:
       True if coordinates are valid
   """
-  return -90 <= latitude <= 90 and -180 <= longitude <= 180
+  try:
+    validate_coordinate_pair(latitude, longitude)
+  except ValidationError:
+    return False
+  return True
 
 
 def validate_radius(radius: float) -> bool:

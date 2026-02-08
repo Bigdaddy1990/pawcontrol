@@ -82,6 +82,7 @@ from ..validation import (
   validate_gps_source,
   validate_interval,
 )
+from ..validation_helpers import safe_validate_interval
 from .gps_helpers import build_dog_gps_placeholders, validation_error_key
 from .gps_schemas import (
   build_dog_gps_schema,
@@ -875,17 +876,14 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
       maximum: int,
       field: str,
     ) -> int:
-      try:
-        return validate_interval(
-          value,
-          field=field,
-          minimum=minimum,
-          maximum=maximum,
-          default=default,
-          clamp=True,
-        )
-      except ValidationError:
-        return default
+      return safe_validate_interval(
+        value,
+        default=default,
+        minimum=minimum,
+        maximum=maximum,
+        field=field,
+        clamp=True,
+      )
 
     def _safe_float_range(
       value: JSONValue | None,
