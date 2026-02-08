@@ -87,6 +87,11 @@ from ..flow_validators import (
   validate_flow_timer_interval,
 )
 from ..validation import (
+  validate_flow_gps_coordinates,
+  validate_flow_timer_interval,
+)
+from ..validation import (
+  InputValidator,
   validate_float_range,
   validate_gps_accuracy_value,
   validate_gps_interval,
@@ -268,7 +273,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_source = "manual"
 
       try:
-        gps_update_interval = validate_flow_gps_interval(
+        gps_update_interval = validate_gps_interval(
           user_input.get("gps_update_interval"),
           field="gps_update_interval",
           minimum=5,
@@ -285,7 +290,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
-        gps_accuracy = validate_flow_gps_accuracy(
+        gps_accuracy = InputValidator.validate_gps_accuracy(
           user_input.get("gps_accuracy_filter"),
           required=True,
           field="gps_accuracy_filter",
@@ -300,7 +305,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_accuracy = DEFAULT_GPS_ACCURACY_FILTER
 
       try:
-        home_zone_radius = validate_flow_geofence_radius(
+        home_zone_radius = InputValidator.validate_geofence_radius(
           user_input.get("home_zone_radius"),
           required=True,
           field="home_zone_radius",
@@ -600,7 +605,7 @@ class GPSOptionsMixin(GPSOptionsHost):
       errors: dict[str, str] = {}
 
       try:
-        gps_update_interval = validate_flow_gps_interval(
+        gps_update_interval = validate_gps_interval(
           user_input.get(GPS_UPDATE_INTERVAL_FIELD),
           field=GPS_UPDATE_INTERVAL_FIELD,
           minimum=5,
@@ -615,7 +620,7 @@ class GPSOptionsMixin(GPSOptionsHost):
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
-        gps_accuracy = validate_flow_gps_accuracy(
+        gps_accuracy = InputValidator.validate_gps_accuracy(
           user_input.get(GPS_ACCURACY_FILTER_FIELD),
           required=True,
           field=GPS_ACCURACY_FILTER_FIELD,
@@ -748,7 +753,7 @@ class GPSOptionsMixin(GPSOptionsHost):
       errors: dict[str, str] = {}
 
       try:
-        geofence_radius = validate_flow_geofence_radius(
+        geofence_radius = InputValidator.validate_geofence_radius(
           user_input.get(GEOFENCE_RADIUS_FIELD),
           required=True,
           field=GEOFENCE_RADIUS_FIELD,

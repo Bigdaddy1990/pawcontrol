@@ -217,7 +217,7 @@ def validate_dog_update_input(
       existing_names=existing_names,
       field=CONF_DOG_NAME,
     )
-
+    
   except ValidationError as err:
     field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
   else:
