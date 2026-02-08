@@ -160,8 +160,8 @@ to auto-start/stop sessions.
 
 1. Enable Feeding tracking in the dog profile.
 2. Define schedules and portion sizes in **Options → Feeding**.
-3. Use `pawcontrol.add_feeding` (preferred) or `pawcontrol.feed_dog` (legacy)
-   to log meals.
+3. Use `pawcontrol.add_feeding` to log meals (the legacy `pawcontrol.feed_dog`
+   alias remains available but is deprecated).
 
 **Tip:** Combine feeding reminders with a mobile notification action to quickly
 log a meal from your phone.
@@ -241,7 +241,7 @@ action:
 PawControl exposes a full service catalog in Home Assistant’s Services UI. Key
 service groups:
 
-- **Feeding**: `pawcontrol.add_feeding`, `pawcontrol.feed_dog`,
+- **Feeding**: `pawcontrol.add_feeding` (deprecated alias: `pawcontrol.feed_dog`),
   `pawcontrol.calculate_portion`.
 - **Walks & garden**: `pawcontrol.start_walk`, `pawcontrol.end_walk`,
   `pawcontrol.start_garden_session`, `pawcontrol.end_garden_session`,

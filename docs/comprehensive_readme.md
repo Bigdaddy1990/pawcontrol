@@ -231,13 +231,12 @@ pawcontrol.gps_export_last_route:
 
 ### Fütterungs-Services
 ```yaml
-pawcontrol.feed_dog:
-  description: "Fütterung protokollieren"
+pawcontrol.add_feeding:
+  description: "Fütterung protokollieren (empfohlen; feed_dog ist deprecated)"
   fields:
     dog_id: "Hund-ID"
     meal_type: "breakfast, lunch, dinner, snack"
-    portion_g: "Portionsgröße in Gramm"
-    food_type: "dry, wet, barf, treat"
+    amount: "Portionsgröße in Gramm"
 ```
 
 ### Gesundheits-Services
@@ -708,10 +707,11 @@ cards:
         entity: button.buddy_mark_fed
         tap_action:
           action: call-service
-          service: pawcontrol.feed_dog
+          service: pawcontrol.add_feeding
           service_data:
             dog_id: "buddy"
             meal_type: "snack"
+            amount: 150
 
   # Current Walk Info (conditional)
   - type: conditional

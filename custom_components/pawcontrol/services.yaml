@@ -83,7 +83,7 @@ add_feeding:
 
 feed_dog:
   name: Feed Dog
-  description: "Log a feeding for a specific dog (deprecated: prefer `add_feeding`)."
+  description: "Log a feeding for a specific dog (deprecated: use `add_feeding`; legacy field `portion_size` is still accepted)."
   fields:
     dog_id:
       name: Dog ID
@@ -91,6 +91,16 @@ feed_dog:
       required: true
       selector:
         text:
+    amount:
+      name: Amount (grams)
+      description: Quantity of food dispensed in grams
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 2000
+          step: 1
+          unit_of_measurement: "g"
     meal_type:
       name: Meal Type
       description: Type of meal being logged
@@ -105,8 +115,8 @@ feed_dog:
             - "snack"
             - "treat"
     portion_size:
-      name: Amount (grams)
-      description: "Legacy field matching `add_feeding.amount`; 0 uses the configured default."
+      name: Amount (grams) (Legacy)
+      description: "Legacy field matching `add_feeding.amount`; if omitted or 0, the configured default is used."
       required: false
       default: 0
       selector:
@@ -115,19 +125,6 @@ feed_dog:
           max: 1000
           step: 10
           unit_of_measurement: "g"
-    food_type:
-      name: Food Type
-      description: Type of food being given
-      required: false
-      selector:
-        select:
-          options:
-            - "dry_food"
-            - "wet_food"
-            - "barf"
-            - "home_cooked"
-            - "treat"
-            - "mixed"
     notes:
       name: Notes
       description: Optional notes about the feeding
@@ -2178,4 +2175,4 @@ service_unavailable:
       description: Additional context collected from the failing subsystem.
       example:
         dog_id: scout
-        service: feed_dog
+        service: add_feeding
