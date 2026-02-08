@@ -39,7 +39,6 @@ repos:
         args:
           - --unsafe
           - --allow-multiple-documents
-          - --autofix
         exclude: ^(tests/|docs/|examples?/)
       - id: check-json
         args:
