@@ -75,7 +75,6 @@ from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
 from .exceptions import HomeAssistantError, ServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted
-from .feeding_translations import build_feeding_compliance_summary
 from .grooming_translations import (
   translated_grooming_template,
 )

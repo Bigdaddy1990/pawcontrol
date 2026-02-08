@@ -233,7 +233,7 @@ def test_common_translation_keys_are_defined() -> None:
   assert expected_keys.issubset(set(common.keys()))
 
   for locale in ("en", "de", "es", "fr"):
-    locale_common = _load_strings(
-      COMPONENT_ROOT / "translations" / f"{locale}.json"
-    )["common"]
+    locale_common = _load_strings(COMPONENT_ROOT / "translations" / f"{locale}.json")[
+      "common"
+    ]
     assert expected_keys.issubset(set(locale_common.keys())), locale
