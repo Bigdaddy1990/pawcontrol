@@ -126,7 +126,6 @@ from .types import (
 from .utils import (
   async_capture_service_guard_results,
   async_fire_event,
-  is_number,
 )
 from .validation import (
   InputCoercionError,
