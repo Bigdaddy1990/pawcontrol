@@ -1714,10 +1714,6 @@ class DashboardTemplates:
       self.hass,
       hass_language,
     )
-    translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
-    )
 
     # Build statistics based on enabled modules
     stats_content = f"## 📊 {dog_name} Statistics\n\n"
