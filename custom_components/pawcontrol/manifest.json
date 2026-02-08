@@ -9,13 +9,13 @@
     "usb",
     "zone"
   ],
-  "codeowners": [
-    "@BigDaddy1990"
-  ],
   "bluetooth": [
     {
       "local_name": "PawControl*"
     }
+  ],
+  "codeowners": [
+    "@BigDaddy1990"
   ],
   "config_flow": true,
   "dependencies": [],

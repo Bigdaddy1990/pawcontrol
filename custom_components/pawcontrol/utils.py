@@ -172,7 +172,6 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
 
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
 from .service_guard import ServiceGuardResult
-from .runtime_data import get_runtime_data
 
 if TYPE_CHECKING:
   from .types import (
@@ -317,6 +316,8 @@ def resolve_default_feeding_amount(
   meal_type: str | None,
 ) -> float:
   """Resolve a default feeding amount for the specified dog."""
+
+  from .runtime_data import get_runtime_data
 
   runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
   if runtime_data is None:

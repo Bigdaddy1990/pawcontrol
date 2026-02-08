@@ -438,6 +438,7 @@ SERVICE_GET_WEATHER_ALERTS: Final[str] = "get_weather_alerts"
 SERVICE_GET_WEATHER_RECOMMENDATIONS: Final[str] = "get_weather_recommendations"
 
 # OPTIMIZED: Service names - grouped by functionality
+SERVICE_ADD_FEEDING: Final[str] = "add_feeding"
 SERVICE_START_WALK: Final[str] = "start_walk"
 SERVICE_END_WALK: Final[str] = "end_walk"
 SERVICE_LOG_POOP: Final[str] = "log_poop"
@@ -473,6 +474,7 @@ SERVICE_ADD_HEALTH_SNACK: Final[str] = "add_health_snack"
 # OPTIMIZED: Core services as frozenset for fast lookup
 CORE_SERVICES: Final[frozenset[str]] = frozenset(
   [
+    SERVICE_ADD_FEEDING,
     SERVICE_START_WALK,
     SERVICE_END_WALK,
     SERVICE_LOG_HEALTH,
@@ -631,6 +633,7 @@ __all__ = (
   "PERFORMANCE_THRESHOLDS",
   "PLATFORMS",
   "SERVICE_ADD_GARDEN_ACTIVITY",
+  "SERVICE_ADD_FEEDING",
   "SERVICE_CONFIRM_GARDEN_POOP",
   "SERVICE_END_GARDEN_SESSION",
   "SERVICE_LOG_HEALTH",
