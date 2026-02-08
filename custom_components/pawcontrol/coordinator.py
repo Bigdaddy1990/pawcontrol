@@ -339,14 +339,6 @@ class PawControlCoordinator(
     self._modules.clear_caches()
     self._setup_complete = True
 
-  async def _async_setup(self) -> None:
-    """Deprecated private alias retained for backward compatibility."""
-
-    _LOGGER.warning(
-      "PawControlCoordinator._async_setup is deprecated; use async_prepare_entry instead.",
-    )
-    await self.async_prepare_entry()
-
   async def _async_update_data(self) -> CoordinatorDataPayload:
     if len(self.registry) == 0:
       return {}
