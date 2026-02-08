@@ -158,13 +158,16 @@ def test_translation_files_cover_new_entity_keys() -> None:
   strings = _load_strings(COMPONENT_ROOT / "strings.json")
   entity = strings["entity"]
 
-  en = _load_strings(COMPONENT_ROOT / "translations" / "en.json")["entity"]
-  de = _load_strings(COMPONENT_ROOT / "translations" / "de.json")["entity"]
+  locales = {}
+  for locale in ("en", "de", "es", "fr"):
+    locales[locale] = _load_strings(COMPONENT_ROOT / "translations" / f"{locale}.json")[
+      "entity"
+    ]
 
   for section in ("text", "date", "datetime"):
     keys = set(entity[section].keys())
-    assert keys.issubset(set(en[section].keys()))
-    assert keys.issubset(set(de[section].keys()))
+    for locale, data in locales.items():
+      assert keys.issubset(set(data[section].keys())), locale
 
   sensor_keys = {
     "activity_score",
@@ -190,5 +193,5 @@ def test_translation_files_cover_new_entity_keys() -> None:
     "walks_today",
     "weight_trend",
   }
-  assert sensor_keys.issubset(set(en["sensor"].keys()))
-  assert sensor_keys.issubset(set(de["sensor"].keys()))
+  for locale, data in locales.items():
+    assert sensor_keys.issubset(set(data["sensor"].keys())), locale
