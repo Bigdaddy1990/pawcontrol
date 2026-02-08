@@ -41,11 +41,7 @@ repos:
           - --allow-multiple-documents
         exclude: ^(tests/|docs/|examples?/)
       - id: check-json
-        args:
-          - --autofix
       - id: check-toml
-        args:
-          - --autofix
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
@@ -55,8 +51,6 @@ repos:
       - id: requirements-txt-fixer
       - id: check-added-large-files
       - id: check-case-conflict
-        args:
-          - --autofix
       - id: check-builtin-literals
       - id: check-merge-conflict
         args:
@@ -69,8 +63,6 @@ repos:
           - --autofix
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
       - id: fix-byte-order-marker
-        args:
-          - --autofix
       - id: destroyed-symlinks
 
   - repo: https://github.com/asottile/pyupgrade
