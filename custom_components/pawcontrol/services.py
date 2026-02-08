@@ -73,7 +73,6 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
-from .error_classification import classify_error_reason
 from .exceptions import HomeAssistantError, ServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
@@ -126,6 +125,7 @@ from .types import (
 from .utils import (
   async_capture_service_guard_results,
   async_fire_event,
+  build_error_context,
 )
 from .validation import (
   InputCoercionError,
@@ -456,16 +456,18 @@ def _build_error_details(
   """Return error details payloads with a stable classification.
 
   This helper enriches error details with a consistent ``error_classification`` field
-  derived from the provided ``reason`` and ``error`` via ``classify_error_reason``.
+  derived from the provided ``reason`` and ``error`` via ``build_error_context``.
   When a ``notification_id`` is supplied, it is also included in the payload.
   The result is normalised via ``_normalise_service_details`` for safe JSON
   serialisation.
   """
 
-  classification = classify_error_reason(reason, error=error)
+  error_context = build_error_context(reason, error)
   details_payload: dict[str, JSONValue] = {
-    "error_classification": classification,
+    "error_classification": error_context.classification,
   }
+  if error_context.message:
+    details_payload["error_message"] = error_context.message
   if notification_id is not None:
     details_payload["notification_id"] = notification_id
   return _normalise_service_details(details_payload)
@@ -647,6 +649,7 @@ def _record_delivery_failure_reason(
   runtime_data: PawControlRuntimeData | None,
   *,
   reason: str | None,
+  error: Exception | str | None = None,
 ) -> None:
   """Store delivery failure reasons in rejection metrics for diagnostics."""
 
@@ -661,7 +664,8 @@ def _record_delivery_failure_reason(
     rejection_metrics = default_rejection_metrics()
     performance_stats["rejection_metrics"] = rejection_metrics
 
-  reason_text = (reason or "unknown").strip()
+  error_context = build_error_context(reason, error)
+  reason_text = error_context.classification.strip()
   if not reason_text:
     reason_text = "unknown"
 
@@ -2898,7 +2902,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason=classify_error_reason("exception", error=err),
+        reason="exception",
+        error=err,
       )
       _record_service_result(
         runtime_data,
@@ -2921,7 +2926,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason=classify_error_reason("exception", error=err),
+        reason="exception",
+        error=err,
       )
       _record_service_result(
         runtime_data,
