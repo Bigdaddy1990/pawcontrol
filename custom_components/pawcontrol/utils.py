@@ -165,6 +165,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
     dt_util = _DateTimeModule()
 
 from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
+from .error_classification import classify_error_reason
 from .service_guard import ServiceGuardResult
 
 if TYPE_CHECKING:
@@ -192,6 +193,38 @@ Number = Real
 
 type DateTimeConvertible = datetime | date | str | float | int | Number
 type JSONMappingLike = Mapping[str, "JSONValue"]
+
+
+@dataclass(frozen=True, slots=True)
+class ErrorContext:
+  """Normalised error details for consistent classification."""
+
+  classification: str
+  reason: str | None
+  message: str
+  error: Exception | str | None
+
+
+def build_error_context(
+  reason: str | None,
+  error: Exception | str | None,
+) -> ErrorContext:
+  """Build a stable error context for telemetry and diagnostics."""
+
+  classification = classify_error_reason(reason, error=error)
+  if error is not None:
+    message = str(error)
+  elif reason:
+    message = str(reason)
+  else:
+    message = classification or "unknown"
+
+  return ErrorContext(
+    classification=classification,
+    reason=reason,
+    message=message,
+    error=error,
+  )
 
 
 def normalise_json_value(

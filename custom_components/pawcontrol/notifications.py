@@ -32,7 +32,6 @@ from homeassistant.util import dt as dt_util
 from .coordinator_tasks import default_rejection_metrics
 from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
-from .error_classification import classify_error_reason
 from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
@@ -45,7 +44,11 @@ from .types import (
   PersonEntityStats,
   PersonNotificationContext,
 )
-from .utils import async_call_hass_service_if_available
+from .utils import (
+  ErrorContext,
+  async_call_hass_service_if_available,
+  build_error_context,
+)
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
 
@@ -895,6 +898,7 @@ class PawControlNotificationManager:
   ) -> None:
     """Persist a failed delivery outcome for diagnostics."""
 
+    error_context = build_error_context(reason, error)
     status = self._delivery_status.setdefault(
       service_name,
       NotificationDeliveryStatus(),
@@ -902,15 +906,13 @@ class PawControlNotificationManager:
     status.last_failure_at = dt_util.now()
     status.total_failures += 1
     status.consecutive_failures += 1
-    status.last_error_reason = reason
-    status.last_error = str(error) if error else reason
-    self._record_delivery_failure_rejection_metrics(reason, error=error)
+    status.last_error_reason = error_context.classification
+    status.last_error = error_context.message
+    self._record_delivery_failure_rejection_metrics(error_context)
 
   def _record_delivery_failure_rejection_metrics(
     self,
-    reason: str,
-    *,
-    error: Exception | None = None,
+    error_context: ErrorContext,
   ) -> None:
     """Store delivery failure reasons in shared rejection metrics."""
 
@@ -926,7 +928,7 @@ class PawControlNotificationManager:
       rejection_metrics = default_rejection_metrics()
       performance_stats["rejection_metrics"] = rejection_metrics
 
-    reason_text = classify_error_reason(reason, error=error).strip() or "unknown"
+    reason_text = error_context.classification.strip() or "unknown"
 
     failure_reasons_raw = rejection_metrics.get("failure_reasons")
     if isinstance(failure_reasons_raw, MutableMapping):

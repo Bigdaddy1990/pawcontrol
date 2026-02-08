@@ -70,9 +70,15 @@ Fields:
 - `service_consecutive_failures`: Mapping
   `{service_name: consecutive_failures}` per service.
 - `service_last_error_reasons`: Mapping `{service_name: last_error_reason}` per
-  service (for example, `missing_notify_service`, `service_not_executed`).
+  service (normalized classifications such as `auth_error`, `missing_service`,
+  or `device_unreachable`).
 - `service_last_errors`: Mapping `{service_name: last_error}` per service
   (including exception text, when available).
+
+Repeated delivery failures (3+ consecutive failures per notify service) also
+raise a repair issue (`notification_delivery_repeated`) that summarizes the
+affected services, error reasons, and recommended next steps. This issue is
+cleared automatically once delivery succeeds again.
 
 ## Rejection Metrics Failure Reasons
 

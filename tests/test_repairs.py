@@ -1084,6 +1084,7 @@ def test_notification_delivery_errors_create_issues(
   assert module.ISSUE_NOTIFICATION_AUTH_ERROR in keys
   assert module.ISSUE_NOTIFICATION_DEVICE_UNREACHABLE in keys
   assert module.ISSUE_NOTIFICATION_MISSING_SERVICE in keys
+  assert module.ISSUE_NOTIFICATION_DELIVERY_REPEATED in keys
   assert module.ISSUE_NOTIFICATION_TIMEOUT in keys
 
   for invocation in create_issue_mock.await_args_list:
@@ -1126,6 +1127,9 @@ def test_notification_delivery_errors_clears_issues_when_clean(
   assert any(str(name).endswith("notification_timeout") for name in deleted)
   assert any(
     str(name).endswith("notification_delivery_error_exception") for name in deleted
+  )
+  assert any(
+    str(name).endswith("notification_delivery_repeated") for name in deleted
   )
 
 

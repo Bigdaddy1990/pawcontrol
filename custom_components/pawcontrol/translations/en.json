@@ -1445,6 +1445,10 @@
       "description": "Repeated notification delivery errors were detected for {service_count} service(s): {services}. Classification: {classification}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
       "title": "Notification delivery errors"
     },
+    "notification_delivery_repeated": {
+      "description": "Repeated notification delivery failures were detected for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}. Recommended steps: {recommended_steps}.",
+      "title": "Repeated notification delivery failures"
+    },
     "notification_device_unreachable": {
       "description": "Notification deliveries repeatedly failed because devices were unreachable for {service_count} service(s): {services}. Total failures: {total_failures}. Consecutive failures: {consecutive_failures}. Last error reasons: {last_error_reasons}.",
       "title": "Notification devices unreachable"
