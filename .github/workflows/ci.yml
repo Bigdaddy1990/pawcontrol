@@ -50,6 +50,12 @@ jobs:
           python -m pip install -r requirements_test.txt
           python -m scripts.sync_contributor_guides
 
+      - name: Validate localization flags
+        run: |
+          python -m scripts.sync_localization_flags \
+            --allowlist scripts/sync_localization_flags.allowlist \
+            --check
+
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.22
 
@@ -67,6 +73,11 @@ jobs:
           pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing
+
+      - name: Run test requirements and localization checks
+        run: |
+          python -m scripts.enforce_test_requirements
+          python -m scripts.sync_localization_flags
 
       - name: Codecov
         uses: codecov/codecov-action@v5.5.2

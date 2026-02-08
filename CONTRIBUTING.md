@@ -87,6 +87,7 @@ Run the same checks that continuous integration executes before you open a pull 
 ruff format custom_components/pawcontrol tests
 ruff check custom_components/pawcontrol tests
 python -m scripts.enforce_test_requirements
+python -m scripts.sync_localization_flags
 mypy custom_components/pawcontrol
 pytest --cov=custom_components/pawcontrol tests
 prek run --all-files

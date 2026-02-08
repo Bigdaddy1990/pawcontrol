@@ -1281,7 +1281,8 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
    `python -m scripts.sync_localization_flags --check` to confirm that the
    `setup_flags_panel_*` translations in every language mirror `strings.json`.
    The contributor guide hook is executed via **Prek** in `--check`
-   mode so wrappers never drift from the canonical text.
+   mode so wrappers never drift from the canonical text. CI also enforces the
+   localization flag sync check to block outdated translations before review.
 6. **Submit PR**: Detailed description with test results
 
 #### Adding new PawControl languages
