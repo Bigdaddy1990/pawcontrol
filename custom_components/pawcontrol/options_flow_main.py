@@ -43,10 +43,10 @@ from .language import normalize_language
 from .options_flow_dogs_management import DogManagementOptionsMixin
 from .options_flow_door_sensor import DoorSensorOptionsMixin
 from .options_flow_feeding import FeedingOptionsMixin
-from .flows.gps import GPSOptionsMixin, GPSOptionsNormalizerMixin
-from .flows.health import HealthOptionsMixin
-from .flows.health_helpers import summarise_health_summary
-from .flows.notifications import (
+from .flow_steps.gps import GPSOptionsMixin, GPSOptionsNormalizerMixin
+from .flow_steps.health import HealthOptionsMixin
+from .flow_steps.health_helpers import summarise_health_summary
+from .flow_steps.notifications import (
   NotificationOptionsMixin,
   NotificationOptionsNormalizerMixin,
 )
@@ -54,7 +54,7 @@ from .options_flow_import_export import ImportExportOptionsMixin
 from .options_flow_menu import MenuOptionsMixin
 from .options_flow_profiles import ProfileOptionsMixin
 from .options_flow_shared import ADVANCED_SETTINGS_FIELD
-from .options_flow_system_settings import SystemSettingsOptionsMixin
+from .flow_steps.system_settings import SystemSettingsOptionsMixin
 from .runtime_data import get_runtime_data as _get_runtime_data
 from .types import (
   ConfigFlowPlaceholders,
