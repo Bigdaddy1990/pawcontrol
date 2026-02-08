@@ -160,9 +160,9 @@ def test_translation_files_cover_new_entity_keys() -> None:
 
   locales = {}
   for locale in ("en", "de", "es", "fr"):
-    locales[locale] = _load_strings(
-      COMPONENT_ROOT / "translations" / f"{locale}.json"
-    )["entity"]
+    locales[locale] = _load_strings(COMPONENT_ROOT / "translations" / f"{locale}.json")[
+      "entity"
+    ]
 
   for section in ("text", "date", "datetime"):
     keys = set(entity[section].keys())
