@@ -1,4 +1,6 @@
 {
+  "domain": "pawcontrol",
+  "name": "PawControl",
   "after_dependencies": [
     "bluetooth",
     "device_tracker",
@@ -16,7 +18,6 @@
     }
   ],
   "config_flow": true,
-  "domain": "pawcontrol",
   "dependencies": [],
   "dhcp": [
     {
@@ -30,7 +31,6 @@
   "loggers": [
     "custom_components.pawcontrol"
   ],
-  "name": "PawControl",
   "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=24.1.0"
