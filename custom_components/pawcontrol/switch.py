@@ -765,6 +765,7 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
 
     if module_id == MODULE_GROOMING:
       display_name = translated_grooming_label(
+        hass_obj,
         hass_language,
         "module_switch",
       )
@@ -872,6 +873,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
     if module == MODULE_GROOMING:
       display_name = translated_grooming_label(
+        hass_obj,
         hass_language,
         f"feature_{feature_id}",
       )

@@ -77,7 +77,7 @@ from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric
 from .error_classification import classify_error_reason
 from .exceptions import HomeAssistantError, ServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted, FeedingManager, MealType
-from .feeding_translations import build_feeding_compliance_summary
+from .feeding_translations import async_build_feeding_compliance_summary
 from .grooming_translations import (
   translated_grooming_template,
 )
@@ -3929,7 +3929,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       display_name = dog_name or dog_id
       language = getattr(getattr(hass, "config", None), "language", None)
       localized_summary: FeedingComplianceLocalizedSummary = (
-        build_feeding_compliance_summary(
+        await async_build_feeding_compliance_summary(
+          hass,
           language,
           display_name=display_name,
           compliance=compliance_payload,
@@ -4347,12 +4348,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async with async_capture_service_guard_results() as captured_guards:
           guard_results = captured_guards
           title = translated_grooming_template(
+            hass,
             hass_language,
             "notification_title",
             dog_label=dog_label,
           )
           message_parts = [
             translated_grooming_template(
+              hass,
               hass_language,
               "notification_message",
               grooming_type=grooming_type,
@@ -4362,6 +4365,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           if groomer:
             message_parts.append(
               translated_grooming_template(
+                hass,
                 hass_language,
                 "notification_with_groomer",
                 groomer=groomer,
@@ -4370,6 +4374,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           if estimated_duration:
             message_parts.append(
               translated_grooming_template(
+                hass,
                 hass_language,
                 "notification_estimated_duration",
                 minutes=estimated_duration,
@@ -4429,6 +4434,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     except Exception as err:
       _LOGGER.error("Failed to start grooming for %s: %s", dog_id, err)
       error_message = translated_grooming_template(
+        hass,
         hass_language,
         "start_failure",
         dog_label=dog_label,

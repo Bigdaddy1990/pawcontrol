@@ -597,6 +597,7 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
         ATTR_DOG_ID: self._dog_id,
         "type": "full_grooming",
         "notes": translated_grooming_template(
+          self.hass,
           hass_language,
           "manual_session_notes",
           date=value.strftime("%Y-%m-%d"),

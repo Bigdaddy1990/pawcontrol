@@ -6,6 +6,19 @@ import ast
 import json
 from pathlib import Path
 
+from custom_components.pawcontrol.dashboard_templates import DASHBOARD_TRANSLATION_KEYS
+from custom_components.pawcontrol.feeding_translations import (
+  FEEDING_COMPLIANCE_TRANSLATION_KEYS,
+)
+from custom_components.pawcontrol.grooming_translations import (
+  GROOMING_LABEL_TRANSLATION_KEYS,
+  GROOMING_TEMPLATE_TRANSLATION_KEYS,
+)
+from custom_components.pawcontrol.weather_translations import (
+  WEATHER_ALERT_KEYS,
+  WEATHER_RECOMMENDATION_KEYS,
+)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 COMPONENT_ROOT = PROJECT_ROOT / "custom_components" / "pawcontrol"
 
@@ -195,3 +208,32 @@ def test_translation_files_cover_new_entity_keys() -> None:
   }
   for locale, data in locales.items():
     assert sensor_keys.issubset(set(data["sensor"].keys())), locale
+
+
+def test_common_translation_keys_are_defined() -> None:
+  strings = _load_strings(COMPONENT_ROOT / "strings.json")
+  common = strings["common"]
+
+  weather_keys = {
+    f"weather_alert_{alert_key}_title" for alert_key in WEATHER_ALERT_KEYS
+  } | {f"weather_alert_{alert_key}_message" for alert_key in WEATHER_ALERT_KEYS}
+  weather_keys |= {
+    f"weather_recommendation_{recommendation}"
+    for recommendation in WEATHER_RECOMMENDATION_KEYS
+  }
+
+  expected_keys = (
+    set(FEEDING_COMPLIANCE_TRANSLATION_KEYS.values())
+    | set(GROOMING_LABEL_TRANSLATION_KEYS.values())
+    | set(GROOMING_TEMPLATE_TRANSLATION_KEYS.values())
+    | set(DASHBOARD_TRANSLATION_KEYS)
+    | weather_keys
+  )
+
+  assert expected_keys.issubset(set(common.keys()))
+
+  for locale in ("en", "de", "es", "fr"):
+    locale_common = _load_strings(
+      COMPONENT_ROOT / "translations" / f"{locale}.json"
+    )["common"]
+    assert expected_keys.issubset(set(locale_common.keys())), locale
