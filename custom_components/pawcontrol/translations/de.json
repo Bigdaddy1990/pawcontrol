@@ -1835,7 +1835,7 @@
       "name": "Spaziergang beenden"
     },
     "feed_dog": {
-      "description": "Eine F\u00fctterung f\u00fcr einen Hund protokollieren",
+      "description": "Eine F\u00fctterung f\u00fcr einen Hund protokollieren (veraltet: add_feeding verwenden)",
       "name": "Hund f\u00fcttern"
     },
     "feed_with_medication": {
