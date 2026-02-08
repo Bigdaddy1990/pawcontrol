@@ -28,7 +28,7 @@ action:
         {{ state_attr('binary_sensor.pawcontrol_feeding_overdue', 'dog_name') }}.
 ```
 
-## 2) Start walk when leaving the home zone (zone trigger)
+## 2) Start GPS walk when leaving the home zone (zone trigger)
 
 **Goal:** automatically start a walk when the dog leaves the home zone.
 
@@ -40,7 +40,7 @@ trigger:
     zone: zone.home
     event: leave
 action:
-  - service: pawcontrol.start_walk
+  - service: pawcontrol.gps_start_walk
     data:
       dog_id: "your_dog_id"
 ```
@@ -268,7 +268,7 @@ action:
           - condition: trigger
             id: start_walk
         sequence:
-          - service: pawcontrol.start_walk
+      - service: pawcontrol.gps_start_walk
             data:
               dog_id: "buddy"
 ```

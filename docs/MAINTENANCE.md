@@ -112,6 +112,14 @@ PawControl stabil und guideline-konform zu halten.
      - https://developers.home-assistant.io/docs/creating_component_code_review
      - https://developers.home-assistant.io/docs/creating_platform_code_review
 
+## Integration deprecations (aktiv)
+
+- **`pawcontrol.start_walk` / `pawcontrol.end_walk`** → verwende
+  `pawcontrol.gps_start_walk` und `pawcontrol.gps_end_walk` (Entfernung geplant
+  in v1.2.0 am 2026-03-01).
+- **`PawControlCoordinator._fetch_dog_data_protected`** → interne Legacy-API,
+  Entfernung geplant in v1.2.0 am 2026-03-01; `_fetch_dog_data` verwenden.
+
 ## Support escalation & follow-up
 
 - Escalate blocking issues (setup failures, data loss) immediately and track
