@@ -80,10 +80,7 @@ from ..types import (
   ensure_dog_options_entry,
 )
 from ..flow_validators import (
-  validate_flow_geofence_radius,
-  validate_flow_gps_accuracy,
   validate_flow_gps_coordinates,
-  validate_flow_gps_interval,
   validate_flow_timer_interval,
 )
 from ..validation import (

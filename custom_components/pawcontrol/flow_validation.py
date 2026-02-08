@@ -38,7 +38,6 @@ from .types import (
   validate_dog_weight_for_size,
 )
 
-from .flow_validators import validate_flow_dog_name
 from .validation import (
   InputCoercionError,
   coerce_float,
@@ -217,7 +216,7 @@ def validate_dog_update_input(
       existing_names=existing_names,
       field=CONF_DOG_NAME,
     )
-    
+
   except ValidationError as err:
     field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
   else:
