@@ -24,7 +24,7 @@ verify during reviews.
 | config-flow-test-coverage | `custom_components/pawcontrol/config_flow.py`, `custom_components/pawcontrol/flow_validation.py` | `tests/unit/test_config_flow_dogs.py`, `tests/unit/test_config_flow_base.py`, `tests/unit/test_config_flow_modules.py`, `tests/test_flow_validation.py` | @BigDaddy1990 |
 | config-flow | `custom_components/pawcontrol/config_flow.py`, `custom_components/pawcontrol/config_flow_main.py`, `docs/user_guide.md`, `docs/setup_installation_guide.md` | `tests/unit/test_config_flow_dogs.py`, `tests/unit/test_config_flow_base.py`, `tests/unit/test_config_flow_modules.py` | @BigDaddy1990 |
 | dependency-transparency | `custom_components/pawcontrol/manifest.json`, `requirements.txt` | `python -m scripts.hassfest --integration-path custom_components/pawcontrol` | @BigDaddy1990 |
-| docs-actions | `custom_components/pawcontrol/services.yaml`, `custom_components/pawcontrol/services.py`, `docs/automation_examples.md`, `README.md` | `tests/unit/test_services.py` | @BigDaddy1990 |
+| docs-actions | `custom_components/pawcontrol/services.yaml`, `custom_components/pawcontrol/services.py`, `docs/automation_examples.md`, `docs/comprehensive_readme.md`, `README.md` | `tests/unit/test_services.py`, `python -m scripts.hassfest --integration-path custom_components/pawcontrol` | @BigDaddy1990 |
 | docs-high-level-description | `README.md`, `docs/user_guide.md` | N/A | @BigDaddy1990 |
 | docs-installation-instructions | `README.md`, `docs/setup_installation_guide.md` | N/A | @BigDaddy1990 |
 | docs-removal-instructions | `docs/setup_installation_guide.md`, `docs/troubleshooting.md` | N/A | @BigDaddy1990 |

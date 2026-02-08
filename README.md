@@ -686,8 +686,8 @@ data:
   notes: \"Good behavior, met 3 other dogs\"
   rating: 5
 
-# Export route data
-service: pawcontrol.gps_export_route
+# Export last route data
+service: pawcontrol.gps_export_last_route
 data:
   dog_id: \"buddy\"
   format: \"gpx\"  # gpx, geojson, kml, csv
