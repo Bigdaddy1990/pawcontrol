@@ -514,7 +514,7 @@ class PawControlBinarySensorBase(
   def _inherit_extra_attributes(self) -> AttributeDict:
     """Return a mutable copy of inherited attributes."""
 
-    return cast(AttributeDict, ensure_json_mapping(super().extra_state_attributes))
+    return cast(AttributeDict, normalise_entity_attributes(super().extra_state_attributes))
 
   @property
   def icon(self) -> str | None:
