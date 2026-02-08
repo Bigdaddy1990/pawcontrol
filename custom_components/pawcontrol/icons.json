@@ -209,7 +209,6 @@
   "services": {
     "add_feeding": "mdi:food-drumstick",
     "end_walk": "mdi:walk",
-    "feed_dog": "mdi:food-drumstick",
     "start_walk": "mdi:walk"
   }
 }

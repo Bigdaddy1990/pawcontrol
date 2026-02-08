@@ -18,6 +18,7 @@ from .types import (
   ConfigFlowDiscoveryData,
   ConfigFlowDiscoveryProperties,
   ConfigFlowDiscoverySource,
+  DiscoveryConfirmInput,
   DiscoveryUpdatePayload,
   freeze_placeholders,
 )
@@ -262,7 +263,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
 
   async def async_step_discovery_confirm(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: DiscoveryConfirmInput | None = None,
   ) -> ConfigFlowResult:
     """Confirm discovered device setup."""
 

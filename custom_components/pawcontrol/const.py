@@ -438,7 +438,7 @@ SERVICE_GET_WEATHER_ALERTS: Final[str] = "get_weather_alerts"
 SERVICE_GET_WEATHER_RECOMMENDATIONS: Final[str] = "get_weather_recommendations"
 
 # OPTIMIZED: Service names - grouped by functionality
-SERVICE_FEED_DOG: Final[str] = "feed_dog"
+SERVICE_ADD_FEEDING: Final[str] = "add_feeding"
 SERVICE_START_WALK: Final[str] = "start_walk"
 SERVICE_END_WALK: Final[str] = "end_walk"
 SERVICE_LOG_POOP: Final[str] = "log_poop"
@@ -474,7 +474,7 @@ SERVICE_ADD_HEALTH_SNACK: Final[str] = "add_health_snack"
 # OPTIMIZED: Core services as frozenset for fast lookup
 CORE_SERVICES: Final[frozenset[str]] = frozenset(
   [
-    SERVICE_FEED_DOG,
+    SERVICE_ADD_FEEDING,
     SERVICE_START_WALK,
     SERVICE_END_WALK,
     SERVICE_LOG_HEALTH,
@@ -508,6 +508,7 @@ ATTR_TIMESTAMP: Final[str] = "timestamp"
 # Feeding attributes
 ATTR_MEAL_TYPE: Final[str] = "meal_type"
 ATTR_PORTION_SIZE: Final[str] = "portion_size"
+DEFAULT_REGULAR_FEEDING_AMOUNT: Final[int] = 200
 
 # Walk/GPS attributes
 ATTR_WALK_DURATION: Final[str] = "walk_duration"
@@ -607,6 +608,7 @@ __all__ = (
   "DEFAULT_DASHBOARD_ENABLED",
   "DEFAULT_GPS_UPDATE_INTERVAL",
   "DEFAULT_PERFORMANCE_MODE",
+  "DEFAULT_REGULAR_FEEDING_AMOUNT",
   "DOG_SIZES",
   "DOG_SIZE_WEIGHT_RANGES",
   "DOMAIN",
@@ -631,9 +633,9 @@ __all__ = (
   "PERFORMANCE_THRESHOLDS",
   "PLATFORMS",
   "SERVICE_ADD_GARDEN_ACTIVITY",
+  "SERVICE_ADD_FEEDING",
   "SERVICE_CONFIRM_GARDEN_POOP",
   "SERVICE_END_GARDEN_SESSION",
-  "SERVICE_FEED_DOG",
   "SERVICE_LOG_HEALTH",
   "SERVICE_START_GARDEN_SESSION",
   "SERVICE_START_WALK",

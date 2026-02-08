@@ -1838,10 +1838,6 @@
       "description": "Den aktuellen Spaziergang f\u00fcr einen Hund beenden",
       "name": "Spaziergang beenden"
     },
-    "feed_dog": {
-      "description": "Eine F\u00fctterung f\u00fcr einen Hund protokollieren (veraltet: add_feeding verwenden)",
-      "name": "Hund f\u00fcttern"
-    },
     "feed_with_medication": {
       "description": "Protokolliert eine F\u00fctterung zusammen mit Medikamentengabe",
       "name": "Mit Medikation f\u00fcttern"

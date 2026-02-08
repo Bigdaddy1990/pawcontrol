@@ -53,7 +53,6 @@ from .const import (
   SERVICE_ADJUST_DAILY_PORTIONS,
   SERVICE_CHECK_FEEDING_COMPLIANCE,
   SERVICE_DAILY_RESET,
-  SERVICE_FEED_DOG,
   SERVICE_FEED_WITH_MEDICATION,
   SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
   SERVICE_GET_WEATHER_ALERTS,
@@ -75,7 +74,7 @@ from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
 from .exceptions import HomeAssistantError, ServiceValidationError
-from .feeding_manager import FeedingComplianceCompleted, FeedingManager, MealType
+from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
 from .grooming_translations import (
   translated_grooming_template,
@@ -138,6 +137,7 @@ from .validation import (
   validate_gps_interval,
   validate_notification_targets,
 )
+from .validation_helpers import validate_service_coordinates
 from .walk_manager import WeatherCondition
 
 SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
@@ -186,23 +186,6 @@ def _format_gps_validation_error(
       return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
     return f"{field} is out of range"
 
-  return f"{field} is invalid"
-
-
-def _format_coordinate_validation_error(error: ValidationError) -> str:
-  """Format coordinate validation errors for service responses."""
-
-  field = error.field.replace("_", " ")
-  constraint = error.constraint
-
-  if constraint == "coordinate_required":
-    return f"{field} is required"
-  if constraint == "coordinate_not_numeric":
-    return f"{field} must be a number"
-  if constraint == "coordinate_out_of_range":
-    if error.min_value is not None and error.max_value is not None:
-      return f"{field} must be between {error.min_value} and {error.max_value}"
-    return f"{field} is out of range"
   return f"{field} is invalid"
 
 
@@ -842,19 +825,6 @@ SERVICE_ADD_FEEDING_SCHEMA = vol.Schema(
       },
     ),
   },
-)
-
-# Alternative feed_dog schema for backward compatibility
-SERVICE_FEED_DOG_SCHEMA = vol.Schema(
-  {
-    vol.Required("dog_id"): cv.string,
-    vol.Optional("amount"): vol.Coerce(float),
-    vol.Optional("portion_size"): vol.Coerce(float),
-    vol.Optional("meal_type"): cv.string,
-    vol.Optional("notes"): cv.string,
-    vol.Optional("feeder"): cv.string,
-  },
-  extra=vol.ALLOW_EXTRA,
 )
 
 SERVICE_START_WALK_SCHEMA = vol.Schema(
@@ -1709,82 +1679,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
       raise HomeAssistantError(error_message) from err
 
-  def _resolve_feed_dog_amount(
-    coordinator: PawControlCoordinator,
-    feeding_manager: FeedingManager,
-    payload: MutableMapping[str, Any],
-  ) -> float:
-    """Resolve the feeding amount for the deprecated feed_dog service."""
-
-    raw_amount = payload.get("amount")
-    if raw_amount is None:
-      raw_amount = payload.get("portion_size")
-
-    if is_number(raw_amount) and float(raw_amount) > 0:
-      return float(raw_amount)
-
-    raw_dog_id = payload.get("dog_id")
-    if not isinstance(raw_dog_id, str):
-      raise _service_validation_error("dog_id must be a string")
-
-    dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
-    config = feeding_manager.get_feeding_config(dog_id)
-    if not config:
-      raise _service_validation_error(
-        "Unable to infer feeding amount; configure feeding settings or "
-        "provide amount/portion_size.",
-      )
-
-    meal_type_value = payload.get("meal_type")
-    meal_type: MealType | None = None
-    if isinstance(meal_type_value, str):
-      try:
-        meal_type = MealType(meal_type_value.lower())
-      except ValueError:
-        _LOGGER.warning(
-          "Unknown meal type '%s' for %s; using default portion size",
-          meal_type_value,
-          dog_id,
-        )
-
-    amount = config.calculate_portion_size(meal_type)
-    if amount <= 0:
-      raise _service_validation_error(
-        "Unable to infer feeding amount; configure feeding settings or "
-        "provide amount/portion_size.",
-      )
-
-    return amount
-
   async def add_feeding_service(call: ServiceCall) -> None:
     """Handle add feeding service call."""
 
     await _async_handle_feeding_request(call.data, service_name=SERVICE_ADD_FEEDING)
-
-  async def feed_dog_service(call: ServiceCall) -> None:
-    """Handle feed_dog service call (alias for add_feeding)."""
-
-    _LOGGER.warning(
-      "Service '%s' is deprecated; please migrate to '%s'.",
-      f"{DOMAIN}.{SERVICE_FEED_DOG}",
-      f"{DOMAIN}.{SERVICE_ADD_FEEDING}",
-    )
-
-    payload = dict(call.data)
-    coordinator = _get_coordinator()
-    feeding_manager = _require_manager(
-      _get_runtime_manager(coordinator, "feeding_manager"),
-      "feeding manager",
-    )
-    payload["amount"] = _resolve_feed_dog_amount(
-      coordinator,
-      feeding_manager,
-      payload,
-    )
-    payload.pop("portion_size", None)
-    payload.setdefault("scheduled", False)
-    payload.setdefault("with_medication", False)
-    await _async_handle_feeding_request(payload, service_name=SERVICE_ADD_FEEDING)
 
   async def start_walk_service(call: ServiceCall) -> None:
     """Handle start walk service call."""
@@ -1978,15 +1876,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     accuracy = call.data.get("accuracy")
 
     try:
-      try:
-        latitude, longitude = InputValidator.validate_gps_coordinates(
-          latitude,
-          longitude,
-        )
-      except ValidationError as err:
-        raise _service_validation_error(
-          _format_coordinate_validation_error(err),
-        ) from err
+      latitude, longitude = validate_service_coordinates(
+        latitude,
+        longitude,
+      )
 
       success = await walk_manager.async_add_gps_point(
         dog_id=dog_id,
@@ -2507,15 +2400,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     timestamp = call.data.get("timestamp", dt_util.utcnow())
 
     try:
-      try:
-        latitude, longitude = InputValidator.validate_gps_coordinates(
-          latitude,
-          longitude,
-        )
-      except ValidationError as err:
-        raise _service_validation_error(
-          _format_coordinate_validation_error(err),
-        ) from err
+      latitude, longitude = validate_service_coordinates(
+        latitude,
+        longitude,
+      )
 
       from .gps_manager import LocationSource
 
@@ -5059,13 +4947,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     schema=SERVICE_ADD_FEEDING_SCHEMA,
   )
 
-  # Register feed_dog as alias for backward compatibility
-  _register_service(
-    SERVICE_FEED_DOG,
-    feed_dog_service,
-    schema=SERVICE_FEED_DOG_SCHEMA,
-  )
-
   _register_service(
     SERVICE_START_WALK,
     start_walk_service,
@@ -5314,7 +5195,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
   """
   services_to_remove = [
     SERVICE_ADD_FEEDING,
-    SERVICE_FEED_DOG,
     SERVICE_START_WALK,
     SERVICE_END_WALK,
     SERVICE_ADD_GPS_POINT,

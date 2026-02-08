@@ -1838,10 +1838,6 @@
       "description": "End the current walk for a dog",
       "name": "End Walk"
     },
-    "feed_dog": {
-      "description": "Log a feeding event for a dog (deprecated: use add_feeding)",
-      "name": "Feed Dog"
-    },
     "feed_with_medication": {
       "description": "Logs a feeding along with medication administration",
       "name": "Feed with Medication"

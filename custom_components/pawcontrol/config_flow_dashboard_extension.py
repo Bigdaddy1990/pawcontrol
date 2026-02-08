@@ -12,7 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Final, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -42,6 +42,7 @@ from .types import (
   ConfigFlowPlaceholders,
   ConfigFlowUserInput,
   DashboardMode,
+  DashboardConfigurationStepInput,
   DashboardSetupConfig,
   DogConfigData,
   DogModulesConfig,
@@ -132,7 +133,7 @@ class DashboardFlowMixin:
 
     async def async_step_final_setup(
       self,
-      user_input: dict[str, Any] | None = None,
+      user_input: ConfigFlowUserInput | None = None,
     ) -> ConfigFlowResult:
       """Type-checking stub for the concluding config flow step."""
       ...
@@ -150,7 +151,7 @@ class DashboardFlowMixin:
 
   async def async_step_configure_dashboard(
     self,
-    user_input: ConfigFlowUserInput | None = None,
+    user_input: DashboardConfigurationStepInput | None = None,
   ) -> ConfigFlowResult:
     """Configure dashboard settings.
 
