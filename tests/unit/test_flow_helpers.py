@@ -46,9 +46,9 @@ def test_build_notification_settings_payload_rejects_invalid_repeat() -> None:
       {},
       coerce_bool=lambda value, default: default if value is None else bool(value),
       coerce_int=lambda value, default: default if value is None else int(value),
-      coerce_time_string=lambda value, default: default
-      if value is None
-      else str(value),
+      coerce_time_string=lambda value, default: (
+        default if value is None else str(value)
+      ),
     )
 
 

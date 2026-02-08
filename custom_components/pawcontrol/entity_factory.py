@@ -1685,11 +1685,13 @@ class EntityFactory:
     ]
     return sorted(
       profiles,
-      key=lambda p: sort_order.index(
-        p,
-      )
-      if p in sort_order
-      else 99,
+      key=lambda p: (
+        sort_order.index(
+          p,
+        )
+        if p in sort_order
+        else 99
+      ),
     )
 
   def validate_profile_for_modules(

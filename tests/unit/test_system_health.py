@@ -57,8 +57,8 @@ def _make_runtime_data(
 def _install_entry(hass: Any, entry: ConfigEntry) -> None:
   """Install a config entry into the Home Assistant stub."""
 
-  hass.config_entries.async_entries = (
-    lambda domain=None: [entry] if domain == DOMAIN else []
+  hass.config_entries.async_entries = lambda domain=None: (
+    [entry] if domain == DOMAIN else []
   )
 
 
