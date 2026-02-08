@@ -48,15 +48,23 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements_test.txt
-          python -m pip install prek
-          prek install
           python -m scripts.sync_contributor_guides
+
+      - name: Validate localization flags
+        run: |
+          python -m scripts.sync_localization_flags \
+            --allowlist scripts/sync_localization_flags.allowlist \
+            --check
 
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.22
 
       - name: Run Prek
         run: |
+          prek install
+          prek auto-update
+          prek run --hook-stage pre-merge-commit
+          prek run --hook-stage pre-commit
           prek run --hook-stage manual python-typing-update --all-files
           prek run --all-files --show-diff-on-failure
 
@@ -66,6 +74,10 @@ jobs:
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing
 
+      - name: Run test requirements and localization checks
+        run: |
+          python -m scripts.enforce_test_requirements
+          python -m scripts.sync_localization_flags
 
       - name: Codecov
         uses: codecov/codecov-action@v5.5.2

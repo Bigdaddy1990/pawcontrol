@@ -138,8 +138,9 @@ noise, but keep a shorter interval for walk detection.
 ### Walks
 
 1. Enable Walk tracking in the dog profile.
-2. Use the **Walk controls** buttons or `pawcontrol.start_walk` /
-   `pawcontrol.end_walk`.
+2. Use the **Walk controls** buttons or `pawcontrol.gps_start_walk` /
+   `pawcontrol.gps_end_walk`. (`pawcontrol.start_walk` and
+   `pawcontrol.end_walk` are deprecated.)
 3. Add reminders by enabling walk notifications in the options flow.
 
 **Best practice:** Pair a door sensor to auto-start walks and let GPS confirm
@@ -160,8 +161,7 @@ to auto-start/stop sessions.
 
 1. Enable Feeding tracking in the dog profile.
 2. Define schedules and portion sizes in **Options → Feeding**.
-3. Use `pawcontrol.add_feeding` to log meals (the legacy `pawcontrol.feed_dog`
-   alias remains available but is deprecated).
+3. Use `pawcontrol.add_feeding` to log meals.
 
 **Tip:** Combine feeding reminders with a mobile notification action to quickly
 log a meal from your phone.
@@ -241,9 +241,8 @@ action:
 PawControl exposes a full service catalog in Home Assistant’s Services UI. Key
 service groups:
 
-- **Feeding**: `pawcontrol.add_feeding` (deprecated alias: `pawcontrol.feed_dog`),
-  `pawcontrol.calculate_portion`.
-- **Walks & garden**: `pawcontrol.start_walk`, `pawcontrol.end_walk`,
+- **Feeding**: `pawcontrol.add_feeding`, `pawcontrol.calculate_portion`.
+- **Walks & garden**: `pawcontrol.gps_start_walk`, `pawcontrol.gps_end_walk`,
   `pawcontrol.start_garden_session`, `pawcontrol.end_garden_session`,
   `pawcontrol.add_garden_activity`.
 - **Health & grooming**: `pawcontrol.log_health_data`,

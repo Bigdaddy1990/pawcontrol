@@ -39,6 +39,7 @@ from .flows.walk_schemas import (
   build_walk_timing_schema_fields,
 )
 from .grooming_translations import translated_grooming_label
+from .translation_helpers import async_preload_component_translations
 from .selector_shim import selector
 from .types import (
   DOG_AGE_FIELD,
@@ -504,6 +505,10 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
       hass_config = getattr(self.hass, "config", None)
       if hass_config is not None:
         hass_language = getattr(hass_config, "language", None)
+      await async_preload_component_translations(
+        self.hass,
+        {hass_language, "en"},
+      )
 
     # Calculate current entity count
     current_estimate = await self._entity_factory.estimate_entity_count_async(
@@ -521,6 +526,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
       "dashboard": "Custom dashboard generation",
       "visitor": "Visitor mode for reduced monitoring",
       "grooming": translated_grooming_label(
+        self.hass,
         hass_language,
         "module_summary_description",
       ),
@@ -530,6 +536,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
     module_labels = {
       "grooming": translated_grooming_label(
+        self.hass,
         hass_language,
         "module_summary_label",
       ),

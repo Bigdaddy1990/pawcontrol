@@ -37,7 +37,11 @@ from .types import (
   JSONMutableMapping,
   ensure_dog_modules_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime
+from .utils import (
+  async_call_add_entities,
+  ensure_utc_datetime,
+  resolve_default_feeding_amount,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -414,12 +418,18 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log feeding event
+    amount = resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      "snack",
+    )
     if not await self._async_call_hass_service(
       DOMAIN,
-      "feed_dog",
+      "add_feeding",
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": "snack",  # Default to snack for manual entries
+        "amount": amount,
       },
     ):
       return
@@ -597,6 +607,7 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
         ATTR_DOG_ID: self._dog_id,
         "type": "full_grooming",
         "notes": translated_grooming_template(
+          self.hass,
           hass_language,
           "manual_session_notes",
           date=value.strftime("%Y-%m-%d"),

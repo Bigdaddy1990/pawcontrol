@@ -55,7 +55,8 @@ from .weather_translations import (
   WeatherRecommendationKey,
   WeatherRecommendationTranslations,
   WeatherTranslations,
-  get_weather_translations,
+  async_get_weather_translations,
+  empty_weather_translations,
 )
 
 
@@ -404,9 +405,7 @@ class WeatherHealthManager:
     self.hass = hass
     self._current_conditions: WeatherConditions | None = None
     self._active_alerts: list[WeatherAlert] = []
-    self._translations: WeatherTranslations = get_weather_translations(
-      DEFAULT_LANGUAGE,
-    )
+    self._translations: WeatherTranslations = empty_weather_translations()
     self._english_translations: WeatherTranslations = self._translations
     self._current_forecast: WeatherForecast | None = None
 
@@ -460,11 +459,15 @@ class WeatherHealthManager:
           "Weather translations for %s not available, using English fallback",
           language,
         )
-      self._translations = get_weather_translations(language)
+      self._translations = await async_get_weather_translations(
+        self.hass,
+        language,
+      )
       if language == DEFAULT_LANGUAGE:
         self._english_translations = self._translations
       else:
-        self._english_translations = get_weather_translations(
+        self._english_translations = await async_get_weather_translations(
+          self.hass,
           DEFAULT_LANGUAGE,
         )
       _LOGGER.debug(
@@ -473,7 +476,7 @@ class WeatherHealthManager:
       )
     except Exception as err:  # pragma: no cover - defensive fallback
       _LOGGER.warning("Failed to load weather translations: %s", err)
-      self._translations = get_weather_translations(DEFAULT_LANGUAGE)
+      self._translations = empty_weather_translations()
       self._english_translations = self._translations
 
   @staticmethod
@@ -2368,6 +2371,6 @@ class WeatherHealthManager:
     self._active_alerts.clear()
     self._current_conditions = None
     self._current_forecast = None
-    self._translations = get_weather_translations(DEFAULT_LANGUAGE)
+    self._translations = empty_weather_translations()
     self._english_translations = self._translations
     _LOGGER.debug("Weather health manager cleaned up")

@@ -232,7 +232,7 @@ pawcontrol.gps_export_last_route:
 ### Fütterungs-Services
 ```yaml
 pawcontrol.add_feeding:
-  description: "Fütterung protokollieren (empfohlen; feed_dog ist deprecated)"
+  description: "Fütterung protokollieren"
   fields:
     dog_id: "Hund-ID"
     meal_type: "breakfast, lunch, dinner, snack"

@@ -16,7 +16,16 @@ import asyncio
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar, Protocol, TypedDict, cast, runtime_checkable
+from typing import (
+  Any,
+  ClassVar,
+  Final,
+  Literal,
+  Protocol,
+  TypedDict,
+  cast,
+  runtime_checkable,
+)
 
 from homeassistant.components.button import (
   ButtonDeviceClass,
@@ -40,10 +49,10 @@ from .const import (
   MODULE_HEALTH,
   MODULE_WALK,
   SERVICE_ADD_GARDEN_ACTIVITY,
+  SERVICE_ADD_FEEDING,
   SERVICE_CONFIRM_GARDEN_POOP,
   SERVICE_END_GARDEN_SESSION,
   SERVICE_END_WALK,
-  SERVICE_FEED_DOG,
   SERVICE_GPS_EXPORT_ROUTE,
   SERVICE_LOG_HEALTH,
   SERVICE_LOG_MEDICATION,
@@ -54,7 +63,7 @@ from .const import (
   SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .utils import normalize_value
+from .utils import normalize_value, resolve_default_feeding_amount
 from .entity import PawControlDogEntityBase
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
@@ -209,7 +218,16 @@ _FALSY_FLAG_VALUES: set[str] = {
 }
 
 # OPTIMIZATION: Profile-based entity reduction
-PROFILE_BUTTON_LIMITS = {
+type ProfileButtonKey = Literal[
+  "basic",
+  "standard",
+  "advanced",
+  "gps_focus",
+  "health_focus",
+]
+
+
+PROFILE_BUTTON_LIMITS: Final[dict[ProfileButtonKey, int]] = {
   "basic": 3,  # Essential buttons only: test_notification, reset_stats, mark_fed
   "standard": 8,  # Include walk controls alongside feed/data management buttons
   "advanced": 12,  # Full button set
@@ -1267,13 +1285,18 @@ class PawControlMarkFedButton(PawControlButtonBase):
         meal_type = meal
         break
 
+    amount = resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      meal_type,
+    )
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": meal_type,
-        "portion_size": 0,
+        "amount": amount,
       },
       error_message="Failed to mark as fed",
       blocking=False,
@@ -1305,13 +1328,18 @@ class PawControlFeedNowButton(PawControlButtonBase):
     """Trigger an immediate feeding service call."""
 
     await super().async_press()
+    amount = resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      "immediate",
+    )
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": "immediate",
-        "portion_size": 1,
+        "amount": amount,
       },
       error_message="Failed to feed now",
       blocking=False,
@@ -1345,13 +1373,18 @@ class PawControlFeedMealButton(PawControlButtonBase):
   async def async_press(self) -> None:
     """Feed specific meal."""
     await super().async_press()
+    amount = resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      self._meal_type,
+    )
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": self._meal_type,
-        "portion_size": 0,
+        "amount": amount,
       },
       error_message=f"Failed to feed {self._meal_type}",
       blocking=False,
@@ -1382,12 +1415,11 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
     await super().async_press()
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": "snack",
-        "portion_size": 75,
-        "food_type": "dry_food",
+        "amount": 75,
         "notes": "Custom feeding via button",
       },
       error_message="Failed to log custom feeding",
@@ -1934,6 +1966,7 @@ class PawControlStartGroomingButton(PawControlButtonBase):
       "start_grooming",
       icon="mdi:content-cut",
       action_description=translated_grooming_label(
+        hass_obj,
         hass_language,
         "button_action",
       ),
@@ -1955,13 +1988,18 @@ class PawControlStartGroomingButton(PawControlButtonBase):
         {
           ATTR_DOG_ID: self._dog_id,
           "type": "general",
-          "notes": translated_grooming_label(hass_language, "button_notes"),
+          "notes": translated_grooming_label(
+            self.hass,
+            hass_language,
+            "button_notes",
+          ),
         },
         blocking=False,
       )
     except Exception as err:
       _LOGGER.error("Failed to start grooming: %s", err)
       error_message = translated_grooming_template(
+        self.hass,
         hass_language,
         "button_error",
         error=str(err),

@@ -53,7 +53,6 @@ from .const import (
   SERVICE_ADJUST_DAILY_PORTIONS,
   SERVICE_CHECK_FEEDING_COMPLIANCE,
   SERVICE_DAILY_RESET,
-  SERVICE_FEED_DOG,
   SERVICE_FEED_WITH_MEDICATION,
   SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
   SERVICE_GET_WEATHER_ALERTS,
@@ -74,10 +73,9 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
-from .error_classification import classify_error_reason
 from .exceptions import HomeAssistantError, ServiceValidationError
-from .feeding_manager import FeedingComplianceCompleted, FeedingManager, MealType
-from .feeding_translations import build_feeding_compliance_summary
+from .feeding_translations import async_build_feeding_compliance_summary
+from .feeding_manager import FeedingComplianceCompleted
 from .grooming_translations import (
   translated_grooming_template,
 )
@@ -127,7 +125,7 @@ from .types import (
 from .utils import (
   async_capture_service_guard_results,
   async_fire_event,
-  is_number,
+  build_error_context,
 )
 from .validation import (
   InputCoercionError,
@@ -138,6 +136,7 @@ from .validation import (
   validate_gps_interval,
   validate_notification_targets,
 )
+from .validation_helpers import validate_service_coordinates
 from .walk_manager import WeatherCondition
 
 SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
@@ -147,6 +146,18 @@ SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _log_deprecated_service(service: str, replacement: str) -> None:
+  """Log a deprecation warning for legacy services."""
+
+  _LOGGER.warning(
+    "The %s service is deprecated and will be removed in v%s (%s). Use %s instead.",
+    f"{DOMAIN}.{service}",
+    DEPRECATION_REMOVAL_VERSION,
+    DEPRECATION_REMOVAL_DATE,
+    f"{DOMAIN}.{replacement}",
+  )
 
 
 def _service_validation_error(message: str) -> Exception:
@@ -186,23 +197,6 @@ def _format_gps_validation_error(
       return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
     return f"{field} is out of range"
 
-  return f"{field} is invalid"
-
-
-def _format_coordinate_validation_error(error: ValidationError) -> str:
-  """Format coordinate validation errors for service responses."""
-
-  field = error.field.replace("_", " ")
-  constraint = error.constraint
-
-  if constraint == "coordinate_required":
-    return f"{field} is required"
-  if constraint == "coordinate_not_numeric":
-    return f"{field} must be a number"
-  if constraint == "coordinate_out_of_range":
-    if error.min_value is not None and error.max_value is not None:
-      return f"{field} must be between {error.min_value} and {error.max_value}"
-    return f"{field} is out of range"
   return f"{field} is invalid"
 
 
@@ -277,6 +271,9 @@ SERVICE_START_GARDEN = "start_garden_session"
 SERVICE_END_GARDEN = "end_garden_session"
 SERVICE_ADD_GARDEN_ACTIVITY = "add_garden_activity"
 SERVICE_CONFIRM_POOP = "confirm_garden_poop"
+
+DEPRECATION_REMOVAL_VERSION = "1.2.0"
+DEPRECATION_REMOVAL_DATE = "2026-03-01"
 
 _ManagerT = TypeVar("_ManagerT")
 
@@ -474,16 +471,18 @@ def _build_error_details(
   """Return error details payloads with a stable classification.
 
   This helper enriches error details with a consistent ``error_classification`` field
-  derived from the provided ``reason`` and ``error`` via ``classify_error_reason``.
+  derived from the provided ``reason`` and ``error`` via ``build_error_context``.
   When a ``notification_id`` is supplied, it is also included in the payload.
   The result is normalised via ``_normalise_service_details`` for safe JSON
   serialisation.
   """
 
-  classification = classify_error_reason(reason, error=error)
+  error_context = build_error_context(reason, error)
   details_payload: dict[str, JSONValue] = {
-    "error_classification": classification,
+    "error_classification": error_context.classification,
   }
+  if error_context.message:
+    details_payload["error_message"] = error_context.message
   if notification_id is not None:
     details_payload["notification_id"] = notification_id
   return _normalise_service_details(details_payload)
@@ -665,6 +664,7 @@ def _record_delivery_failure_reason(
   runtime_data: PawControlRuntimeData | None,
   *,
   reason: str | None,
+  error: Exception | str | None = None,
 ) -> None:
   """Store delivery failure reasons in rejection metrics for diagnostics."""
 
@@ -679,7 +679,8 @@ def _record_delivery_failure_reason(
     rejection_metrics = default_rejection_metrics()
     performance_stats["rejection_metrics"] = rejection_metrics
 
-  reason_text = (reason or "unknown").strip()
+  error_context = build_error_context(reason, error)
+  reason_text = error_context.classification.strip()
   if not reason_text:
     reason_text = "unknown"
 
@@ -838,19 +839,6 @@ SERVICE_ADD_FEEDING_SCHEMA = vol.Schema(
       },
     ),
   },
-)
-
-# Alternative feed_dog schema for backward compatibility
-SERVICE_FEED_DOG_SCHEMA = vol.Schema(
-  {
-    vol.Required("dog_id"): cv.string,
-    vol.Optional("amount"): vol.Coerce(float),
-    vol.Optional("portion_size"): vol.Coerce(float),
-    vol.Optional("meal_type"): cv.string,
-    vol.Optional("notes"): cv.string,
-    vol.Optional("feeder"): cv.string,
-  },
-  extra=vol.ALLOW_EXTRA,
 )
 
 SERVICE_START_WALK_SCHEMA = vol.Schema(
@@ -1705,85 +1693,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
       raise HomeAssistantError(error_message) from err
 
-  def _resolve_feed_dog_amount(
-    coordinator: PawControlCoordinator,
-    feeding_manager: FeedingManager,
-    payload: MutableMapping[str, Any],
-  ) -> float:
-    """Resolve the feeding amount for the deprecated feed_dog service."""
-
-    raw_amount = payload.get("amount")
-    if raw_amount is None:
-      raw_amount = payload.get("portion_size")
-
-    if is_number(raw_amount) and float(raw_amount) > 0:
-      return float(raw_amount)
-
-    raw_dog_id = payload.get("dog_id")
-    if not isinstance(raw_dog_id, str):
-      raise _service_validation_error("dog_id must be a string")
-
-    dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
-    config = feeding_manager.get_feeding_config(dog_id)
-    if not config:
-      raise _service_validation_error(
-        "Unable to infer feeding amount; configure feeding settings or "
-        "provide amount/portion_size.",
-      )
-
-    meal_type_value = payload.get("meal_type")
-    meal_type: MealType | None = None
-    if isinstance(meal_type_value, str):
-      try:
-        meal_type = MealType(meal_type_value.lower())
-      except ValueError:
-        _LOGGER.warning(
-          "Unknown meal type '%s' for %s; using default portion size",
-          meal_type_value,
-          dog_id,
-        )
-
-    amount = config.calculate_portion_size(meal_type)
-    if amount <= 0:
-      raise _service_validation_error(
-        "Unable to infer feeding amount; configure feeding settings or "
-        "provide amount/portion_size.",
-      )
-
-    return amount
-
   async def add_feeding_service(call: ServiceCall) -> None:
     """Handle add feeding service call."""
 
     await _async_handle_feeding_request(call.data, service_name=SERVICE_ADD_FEEDING)
 
-  async def feed_dog_service(call: ServiceCall) -> None:
-    """Handle feed_dog service call (alias for add_feeding)."""
-
-    _LOGGER.warning(
-      "Service '%s' is deprecated; please migrate to '%s'.",
-      f"{DOMAIN}.{SERVICE_FEED_DOG}",
-      f"{DOMAIN}.{SERVICE_ADD_FEEDING}",
-    )
-
-    payload = dict(call.data)
-    coordinator = _get_coordinator()
-    feeding_manager = _require_manager(
-      _get_runtime_manager(coordinator, "feeding_manager"),
-      "feeding manager",
-    )
-    payload["amount"] = _resolve_feed_dog_amount(
-      coordinator,
-      feeding_manager,
-      payload,
-    )
-    payload.pop("portion_size", None)
-    payload.setdefault("scheduled", False)
-    payload.setdefault("with_medication", False)
-    await _async_handle_feeding_request(payload, service_name=SERVICE_ADD_FEEDING)
-
   async def start_walk_service(call: ServiceCall) -> None:
     """Handle start walk service call."""
+    _log_deprecated_service(SERVICE_START_WALK, SERVICE_GPS_START_WALK)
     coordinator = _get_coordinator()
     walk_manager = _require_manager(
       _get_runtime_manager(coordinator, "walk_manager"),
@@ -1867,6 +1784,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
   async def end_walk_service(call: ServiceCall) -> None:
     """Handle end walk service call."""
+    _log_deprecated_service(SERVICE_END_WALK, SERVICE_GPS_END_WALK)
     coordinator = _get_coordinator()
     walk_manager = _require_manager(
       _get_runtime_manager(coordinator, "walk_manager"),
@@ -1974,15 +1892,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     accuracy = call.data.get("accuracy")
 
     try:
-      try:
-        latitude, longitude = InputValidator.validate_gps_coordinates(
-          latitude,
-          longitude,
-        )
-      except ValidationError as err:
-        raise _service_validation_error(
-          _format_coordinate_validation_error(err),
-        ) from err
+      latitude, longitude = validate_service_coordinates(
+        latitude,
+        longitude,
+      )
 
       success = await walk_manager.async_add_gps_point(
         dog_id=dog_id,
@@ -2503,15 +2416,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     timestamp = call.data.get("timestamp", dt_util.utcnow())
 
     try:
-      try:
-        latitude, longitude = InputValidator.validate_gps_coordinates(
-          latitude,
-          longitude,
-        )
-      except ValidationError as err:
-        raise _service_validation_error(
-          _format_coordinate_validation_error(err),
-        ) from err
+      latitude, longitude = validate_service_coordinates(
+        latitude,
+        longitude,
+      )
 
       from .gps_manager import LocationSource
 
@@ -3011,7 +2919,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason=classify_error_reason("exception", error=err),
+        reason="exception",
+        error=err,
       )
       _record_service_result(
         runtime_data,
@@ -3034,7 +2943,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       guard_snapshot = tuple(guard_results)
       _record_delivery_failure_reason(
         runtime_data,
-        reason=classify_error_reason("exception", error=err),
+        reason="exception",
+        error=err,
       )
       _record_service_result(
         runtime_data,
@@ -3929,7 +3839,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       display_name = dog_name or dog_id
       language = getattr(getattr(hass, "config", None), "language", None)
       localized_summary: FeedingComplianceLocalizedSummary = (
-        build_feeding_compliance_summary(
+        await async_build_feeding_compliance_summary(
+          hass,
           language,
           display_name=display_name,
           compliance=compliance_payload,
@@ -4347,12 +4258,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async with async_capture_service_guard_results() as captured_guards:
           guard_results = captured_guards
           title = translated_grooming_template(
+            hass,
             hass_language,
             "notification_title",
             dog_label=dog_label,
           )
           message_parts = [
             translated_grooming_template(
+              hass,
               hass_language,
               "notification_message",
               grooming_type=grooming_type,
@@ -4362,6 +4275,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           if groomer:
             message_parts.append(
               translated_grooming_template(
+                hass,
                 hass_language,
                 "notification_with_groomer",
                 groomer=groomer,
@@ -4370,6 +4284,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           if estimated_duration:
             message_parts.append(
               translated_grooming_template(
+                hass,
                 hass_language,
                 "notification_estimated_duration",
                 minutes=estimated_duration,
@@ -4429,6 +4344,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     except Exception as err:
       _LOGGER.error("Failed to start grooming for %s: %s", dog_id, err)
       error_message = translated_grooming_template(
+        hass,
         hass_language,
         "start_failure",
         dog_label=dog_label,
@@ -5053,13 +4969,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     schema=SERVICE_ADD_FEEDING_SCHEMA,
   )
 
-  # Register feed_dog as alias for backward compatibility
-  _register_service(
-    SERVICE_FEED_DOG,
-    feed_dog_service,
-    schema=SERVICE_FEED_DOG_SCHEMA,
-  )
-
   _register_service(
     SERVICE_START_WALK,
     start_walk_service,
@@ -5308,7 +5217,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
   """
   services_to_remove = [
     SERVICE_ADD_FEEDING,
-    SERVICE_FEED_DOG,
     SERVICE_START_WALK,
     SERVICE_END_WALK,
     SERVICE_ADD_GPS_POINT,

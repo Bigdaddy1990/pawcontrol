@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigFlowResult
 from ..const import CONF_NOTIFICATIONS
 from ..exceptions import FlowValidationError
 from ..types import (
+  ConfigFlowPlaceholders,
   DEFAULT_NOTIFICATION_OPTIONS,
   DOG_ID_FIELD,
   DOG_OPTIONS_FIELD,
@@ -22,6 +23,7 @@ from ..types import (
   NotificationOptions,
   NotificationOptionsInput,
   NotificationSettingsInput,
+  OptionsDogSelectionInput,
   ensure_dog_options_entry,
   ensure_notification_options,
 )
@@ -69,7 +71,7 @@ if TYPE_CHECKING:
       step_id: str,
       data_schema: vol.Schema,
       errors: dict[str, str] | None = None,
-      description_placeholders: Mapping[str, str] | None = None,
+      description_placeholders: ConfigFlowPlaceholders | None = None,
     ) -> ConfigFlowResult: ...
 
     def async_create_entry(
@@ -125,7 +127,7 @@ if TYPE_CHECKING:
       step_id: str,
       data_schema: vol.Schema,
       errors: dict[str, str] | None = None,
-      description_placeholders: Mapping[str, str] | None = None,
+      description_placeholders: ConfigFlowPlaceholders | None = None,
     ) -> ConfigFlowResult: ...
 
     def async_create_entry(
@@ -249,7 +251,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
 
   async def async_step_select_dog_for_notifications(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select which dog to configure notifications for."""
 
@@ -272,7 +274,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
 
   async def async_step_notifications(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: NotificationSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure notification settings."""
 
@@ -336,7 +338,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
   def _get_notifications_schema(
     self,
     dog_id: str,
-    user_input: dict[str, Any] | None = None,
+    user_input: NotificationSettingsInput | None = None,
   ) -> vol.Schema:
     """Get notifications schema."""
 

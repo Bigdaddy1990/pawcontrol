@@ -5,20 +5,19 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 ## 0. Qualität, Typisierung & Architektur
 
 - **JSON‑Kompatibilität & Entitätsattribute**: Alle Entitätsklassen sollen ihre `extra_state_attributes` als `JSONMutableMapping` zurückgeben. Nicht serialisierbare Typen (z. B. `datetime`, `timedelta`, Dataclasses) werden mit der in `diagnostics.py` beschriebenen Normalisierungslogik in JSON‑kompatible Werte umgewandelt【938345194430286†L964-L983】.
-- **myPy‑Säuberung & Typisierung**: Bestehende mypy‑Fehler (derzeit ~280 gemeldete Fälle【793654332192246†L19-L23】) in den Config‑Flows, Options‑Flows und Platform‑Dateien beheben. Dazu gehören konsequente Verwendung von `TypedDict`, `Literal` und klaren Rückgabetypen.
-- **Modularisierung der Flows**: Die voluminösen Dateien `config_flow.py` und `options_flow.py` in logisch getrennte Module (z. B. GPS‑Konfiguration, Notifications, Health‑Settings) aufteilen, um Wartbarkeit und Testbarkeit zu verbessern.
-- **Zentralisierte Validierung & Fehlerbehandlung**: Validierungsfunktionen (für Eingabewerte wie Hundename, Koordinaten, Timer) in ein gemeinsames Modul auslagern. Exceptions aus `exceptions.py` konsistent einsetzen, damit Reauth‑ und Reparatur‑Flows korrekt ausgelöst werden.
+- **myPy‑Säuberung & Typisierung**: Bestehende mypy‑Fehler in den Config‑Flows, Options‑Flows und Platform‑Dateien beheben. Dazu gehören konsequente Verwendung von `TypedDict`, `Literal` und klaren Rückgabetypen.
+- **Flow‑Konsolidierung**: Die vorhandenen `config_flow_*`‑ und `options_flow_*`‑Module weiter vereinheitlichen, um doppelte Logik zu reduzieren und Tests übersichtlich zu halten.
+- **Zentralisierte Validierung & Fehlerbehandlung**: Gemeinsame Validierung in `validation.py`/`flow_validation.py` konsequent nutzen und Exceptions aus `exceptions.py` im Flow‑Pfad einheitlich einsetzen, damit Reauth‑ und Reparatur‑Flows korrekt ausgelöst werden.
 - **Dokumentationspflege**: Nach jeder Code‑Änderung `README`, `docs/` und `strings.json` aktualisieren, damit Übersetzungen und Hinweise zum Qualitätslevel synchron bleiben.
 - **Home‑Assistant‑Konformität**: Neue Features strikt entlang der HA‑Guidelines implementieren (Config Entry Pattern, Coordinator, async‑only I/O). Abweichungen als Tech‑Debt erfassen und zeitnah bereinigen.
 - **Qualitätsnachweise bündeln**: Tests, Diagnostik und Dokumentation pro Feature gemeinsam aktualisieren, damit der Platinum‑Nachweis konsistent bleibt (Qualitätsskala, Diagnostics, Tests).
 
 ## 1. Basis‑Setup & GPS‑Kernfunktionen
 
-- Config‑Flow überprüfen und vereinfachen, sodass die im Info‑Dokument genannten Parameter (Hundename, GPS‑Quelle, Auto‑Tracking, Sicherheitsradius) vollständig unterstützt und validiert werden.
+- Config‑Flows (`config_flow_*`) überprüfen und vereinfachen, sodass die im Info‑Dokument genannten Parameter (Hundename, GPS‑Quelle, Auto‑Tracking, Sicherheitsradius) vollständig unterstützt und validiert werden.
 - Den automatischen Service `pawcontrol.setup_automatic_gps` absichern: Pflichtfelder prüfen, Fehlerfeedback verbessern und eine Erfolgsmeldung für das UI ergänzen.
 - Sicherstellen, dass das GPS‑Tracking nahtlos für Tractive, Companion‑App‑Tracker und DIY‑Integrationen funktioniert; ggf. Beispiel‑Blueprints ergänzen.
-- **Neue Aufgabe:** JSON‑Schema‑Validierung für GPS‑Parameter (Update‑Intervalle, Genauigkeit) einbauen, um Null‑ oder ungültige Werte frühzeitig abzufangen.
-- **Neue Aufgabe:** Validierung an HA‑Standards koppeln (z. B. min/max‑Werte, Eindeutigkeit, klare Fehlermeldungen im Flow).
+- **Neue Aufgabe:** GPS‑Validierung in allen Flows ausschließlich über `validation.py`/`flow_validation.py` nutzen, damit min/max‑Werte und Fehlermeldungen konsistent bleiben.
 
 ## 2. Spaziergangs‑ & Gartenlogik
 
@@ -76,8 +75,3 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 ---
 
 **Hinweis:** Dieser Fahrplan soll regelmäßig aktualisiert werden. Nach Abschluss jedes Abschnitts sind die Belege im `quality_scale.yaml` zu aktualisieren und die Dokumentation entsprechend anzupassen.
-
-## Erledigt
-
-- **Service‑Guard‑Metriken in der Diagnostik integriert:** Dokumentiert im Abschnitt
-  „Service Guard Metrics“ in `docs/diagnostics.md` (siehe dortige Felderliste).【F:docs/diagnostics.md†L53-L76】
