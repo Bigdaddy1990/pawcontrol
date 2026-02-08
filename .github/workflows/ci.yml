@@ -50,6 +50,12 @@ jobs:
           python -m pip install -r requirements_test.txt
           python -m scripts.sync_contributor_guides
 
+      - name: Validate localization flags
+        run: |
+          python -m scripts.sync_localization_flags \
+            --allowlist scripts/sync_localization_flags.allowlist \
+            --check
+
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.22
 

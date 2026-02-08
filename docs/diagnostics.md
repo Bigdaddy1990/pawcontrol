@@ -3,7 +3,8 @@
 ## Setup Flags Localization
 
 The following table lists the setup flag translations for each supported
-language. It is maintained automatically by `scripts/sync_localization_flags`.
+language. It is maintained automatically by `scripts/sync_localization_flags`,
+and the CI workflow validates the sync in check mode to catch drift early.
 
 <!-- START_SETUP_FLAGS_TABLE -->
 | Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanisch (`es`) | Französisch (`fr`) |
