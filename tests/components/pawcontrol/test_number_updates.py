@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 
@@ -23,10 +23,13 @@ from custom_components.pawcontrol.const import (
   CONF_GPS_UPDATE_INTERVAL,
   CONF_MEALS_PER_DAY,
 )
+from custom_components.pawcontrol.data_manager import PawControlDataManager
+from custom_components.pawcontrol.entity_factory import EntityFactory
 from custom_components.pawcontrol.number import (
   PawControlGPSUpdateIntervalNumber,
   PawControlMealsPerDayNumber,
 )
+from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import (
   CoordinatorRuntimeManagers,
   DOG_FEEDING_CONFIG_FIELD,
@@ -36,6 +39,7 @@ from custom_components.pawcontrol.types import (
   DogConfigData,
   JSONMutableMapping,
   JSONValue,
+  PawControlRuntimeData,
 )
 
 
@@ -245,3 +249,56 @@ async def test_number_set_value_updates_gps_config(
     coordinator.data[dog_id]["config"][DOG_GPS_CONFIG_FIELD][CONF_GPS_UPDATE_INTERVAL]
     == 120
   )
+
+
+@pytest.mark.asyncio
+async def test_number_update_flows_through_runtime_managers(
+  mock_hass,
+  mock_config_entry,
+  mock_coordinator,
+  tmp_path,
+) -> None:
+  mock_hass.config.config_dir = str(tmp_path)
+  mock_coordinator.async_refresh_dog = AsyncMock()
+  mock_client = Mock()
+  mock_coordinator.client = mock_client
+
+  data_manager = PawControlDataManager(
+    mock_hass,
+    coordinator=mock_coordinator,
+    dogs_config=mock_config_entry.data["dogs"],
+  )
+  await data_manager.async_initialize()
+
+  feeding_manager = MagicMock()
+  feeding_manager.async_update_config = AsyncMock()
+
+  runtime_data = PawControlRuntimeData(
+    coordinator=mock_coordinator,
+    data_manager=data_manager,
+    notification_manager=MagicMock(),
+    feeding_manager=feeding_manager,
+    walk_manager=MagicMock(),
+    entity_factory=EntityFactory(mock_coordinator),
+    entity_profile="standard",
+    dogs=mock_config_entry.data["dogs"],
+  )
+  store_runtime_data(mock_hass, mock_config_entry, runtime_data)
+
+  entity = PawControlMealsPerDayNumber(mock_coordinator, "test_dog", "Buddy")
+  _configure_number_entity(entity, mock_hass, "number.pawcontrol_meals_per_day")
+
+  await _async_call_number_service(
+    mock_hass,
+    entity.entity_id,
+    4,
+    entity_lookup={entity.entity_id: entity},
+  )
+
+  assert (
+    data_manager._dogs_config["test_dog"][DOG_FEEDING_CONFIG_FIELD][CONF_MEALS_PER_DAY]
+    == 4
+  )
+  feeding_manager.async_update_config.assert_awaited_once()
+  mock_coordinator.async_refresh_dog.assert_awaited_once_with("test_dog")
+  assert mock_client.mock_calls == []
