@@ -1966,6 +1966,7 @@ class PawControlStartGroomingButton(PawControlButtonBase):
       "start_grooming",
       icon="mdi:content-cut",
       action_description=translated_grooming_label(
+        hass_obj,
         hass_language,
         "button_action",
       ),
@@ -1987,13 +1988,18 @@ class PawControlStartGroomingButton(PawControlButtonBase):
         {
           ATTR_DOG_ID: self._dog_id,
           "type": "general",
-          "notes": translated_grooming_label(hass_language, "button_notes"),
+          "notes": translated_grooming_label(
+            self.hass,
+            hass_language,
+            "button_notes",
+          ),
         },
         blocking=False,
       )
     except Exception as err:
       _LOGGER.error("Failed to start grooming: %s", err)
       error_message = translated_grooming_template(
+        self.hass,
         hass_language,
         "button_error",
         error=str(err),

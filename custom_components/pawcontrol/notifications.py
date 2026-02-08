@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
 from .coordinator_tasks import default_rejection_metrics
 from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
-from .feeding_translations import build_feeding_compliance_notification
+from .feeding_translations import async_build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
@@ -2693,7 +2693,8 @@ class PawControlNotificationManager:
     if compliance["status"] != "completed":
       no_data = cast("FeedingComplianceNoData", compliance)
       no_data_payload = cast(JSONMutableMapping, dict(no_data))
-      title, message = build_feeding_compliance_notification(
+      title, message = await async_build_feeding_compliance_notification(
+        self._hass,
         language,
         display_name=display_name,
         compliance=no_data_payload,
@@ -2734,7 +2735,8 @@ class PawControlNotificationManager:
     issues = completed.get("compliance_issues") or []
     missed_meals = completed.get("missed_meals") or []
 
-    title, message = build_feeding_compliance_notification(
+    title, message = await async_build_feeding_compliance_notification(
+      self._hass,
       language,
       display_name=display_name,
       compliance=completed_payload,

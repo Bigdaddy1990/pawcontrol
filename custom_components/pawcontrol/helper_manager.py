@@ -659,6 +659,7 @@ class PawControlHelperManager:
       else dog_id
     )
     grooming_helper_name = translated_grooming_template(
+      self._hass,
       language,
       "helper_due",
       dog_name=helper_dog_name,

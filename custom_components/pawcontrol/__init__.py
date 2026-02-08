@@ -63,6 +63,7 @@ from .notifications import (
 )
 from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
+from .translation_helpers import async_preload_component_translations
 from .webhooks import async_register_entry_webhook, async_unregister_entry_webhook
 from .mqtt_push import async_register_entry_mqtt, async_unregister_entry_mqtt
 from .external_bindings import (
@@ -480,6 +481,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
   debug_logging_tracked = _enable_debug_logging(entry)
 
   try:
+    await async_preload_component_translations(
+      hass,
+      {
+        getattr(getattr(hass, "config", None), "language", None),
+        "en",
+      },
+    )
+
     # Validate dogs configuration with specific error handling
     dogs_config_raw = entry.data.get(CONF_DOGS, [])
     if dogs_config_raw is None:

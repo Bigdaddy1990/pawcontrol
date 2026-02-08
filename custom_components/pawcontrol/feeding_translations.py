@@ -11,54 +11,61 @@ from os import PathLike, fspath
 from typing import TYPE_CHECKING, Any, Final, TypeVar, cast, overload
 
 if TYPE_CHECKING:
+  from homeassistant.core import HomeAssistant
+
   from .types import (
     FeedingComplianceDisplayMapping,
     FeedingComplianceLocalizedSummary,
   )
 
-DEFAULT_LANGUAGE: Final[str] = "en"
+from .translation_helpers import (
+  async_get_component_translation_lookup,
+  resolve_component_translation,
+)
 
-_FEEDING_COMPLIANCE_TRANSLATIONS: dict[str, dict[str, str]] = {
-  "en": {
-    "no_data_title": "🍽️ Feeding telemetry missing for {display_name}",
-    "no_data_fallback": "Feeding telemetry is unavailable.",
-    "alert_title": "🍽️ Feeding compliance alert for {display_name}",
-    "score_line": "Score: {score}% over {days_analyzed} days.",
-    "missed_meals_header": "Missed meals:",
-    "missed_meal_item": "{date}: {actual}/{expected} meals",
-    "issues_header": "Key issues:",
-    "issue_item": "{date}: {description}",
-    "recommendations_header": "Next steps:",
-    "recommendation_item": "{recommendation}",
-    "no_recommendations": "No recommendations provided.",
-  },
-  "de": {
-    "no_data_title": "🍽️ Fütterungstelemetrie fehlt für {display_name}",
-    "no_data_fallback": "Fütterungstelemetrie ist nicht verfügbar.",
-    "alert_title": "🍽️ Fütterungs-Compliance-Warnung für {display_name}",
-    "score_line": "Punktzahl: {score}% über {days_analyzed} Tage.",
-    "missed_meals_header": "Verpasste Mahlzeiten:",
-    "missed_meal_item": "{date}: {actual}/{expected} Mahlzeiten",
-    "issues_header": "Wichtige Probleme:",
-    "issue_item": "{date}: {description}",
-    "recommendations_header": "Nächste Schritte:",
-    "recommendation_item": "{recommendation}",
-    "no_recommendations": "Keine Empfehlungen verfügbar.",
-  },
+FEEDING_COMPLIANCE_TRANSLATION_KEYS: Final[dict[str, str]] = {
+  "no_data_title": "feeding_compliance_no_data_title",
+  "no_data_fallback": "feeding_compliance_no_data_fallback",
+  "alert_title": "feeding_compliance_alert_title",
+  "score_line": "feeding_compliance_score_line",
+  "missed_meals_header": "feeding_compliance_missed_meals_header",
+  "missed_meal_item": "feeding_compliance_missed_meal_item",
+  "issues_header": "feeding_compliance_issues_header",
+  "issue_item": "feeding_compliance_issue_item",
+  "recommendations_header": "feeding_compliance_recommendations_header",
+  "recommendation_item": "feeding_compliance_recommendation_item",
+  "no_recommendations": "feeding_compliance_no_recommendations",
 }
 
 
-def get_feeding_compliance_translations(language: str | None) -> dict[str, str]:
+def _resolve_feeding_compliance_translations(
+  translations: Mapping[str, str],
+  fallback: Mapping[str, str],
+) -> dict[str, str]:
+  """Build a localized translation mapping for feeding compliance strings."""
+
+  return {
+    key: resolve_component_translation(
+      translations,
+      fallback,
+      translation_key,
+      default=key,
+    )
+    for key, translation_key in FEEDING_COMPLIANCE_TRANSLATION_KEYS.items()
+  }
+
+
+async def async_get_feeding_compliance_translations(
+  hass: HomeAssistant,
+  language: str | None,
+) -> dict[str, str]:
   """Return translations for the requested language with fallback."""
 
-  if not language:
-    return _FEEDING_COMPLIANCE_TRANSLATIONS[DEFAULT_LANGUAGE]
-
-  normalised = language.lower().split("-")[0]
-  translations = _FEEDING_COMPLIANCE_TRANSLATIONS.get(normalised)
-  if translations is None:
-    return _FEEDING_COMPLIANCE_TRANSLATIONS[DEFAULT_LANGUAGE]
-  return translations
+  translations, fallback = await async_get_component_translation_lookup(
+    hass,
+    language,
+  )
+  return _resolve_feeding_compliance_translations(translations, fallback)
 
 
 _MAX_MISSED_MEALS: Final[int] = 3
@@ -499,7 +506,8 @@ def _build_localised_sections(
   return missed_summary, issue_summary, recommendation_summary
 
 
-def build_feeding_compliance_summary(
+async def async_build_feeding_compliance_summary(
+  hass: HomeAssistant,
   language: str | None,
   *,
   display_name: str,
@@ -507,7 +515,7 @@ def build_feeding_compliance_summary(
 ) -> FeedingComplianceLocalizedSummary:
   """Return a localised summary for a feeding compliance result."""
 
-  translations = get_feeding_compliance_translations(language)
+  translations = await async_get_feeding_compliance_translations(hass, language)
   status = compliance.get("status")
 
   if status != "completed":
@@ -567,7 +575,8 @@ def build_feeding_compliance_summary(
   }
 
 
-def build_feeding_compliance_notification(
+async def async_build_feeding_compliance_notification(
+  hass: HomeAssistant,
   language: str | None,
   *,
   display_name: str,
@@ -575,7 +584,8 @@ def build_feeding_compliance_notification(
 ) -> tuple[str, str | None]:
   """Return localised title and body for a feeding compliance result."""
 
-  summary = build_feeding_compliance_summary(
+  summary = await async_build_feeding_compliance_summary(
+    hass,
     language,
     display_name=display_name,
     compliance=compliance,

@@ -39,7 +39,7 @@ from .const import (
 from .coordinator_support import ensure_cache_repair_aggregate
 from .error_classification import classify_error_reason
 from .exceptions import RepairRequiredError
-from .feeding_translations import build_feeding_compliance_summary
+from .feeding_translations import async_build_feeding_compliance_summary
 from .runtime_data import (
   RuntimeDataUnavailableError,
   describe_runtime_store_status,
@@ -318,7 +318,8 @@ async def async_publish_feeding_compliance_issue(
   language = getattr(getattr(hass, "config", None), "language", None)
   localized_summary = payload.get("localized_summary")
   if localized_summary is None:
-    localized_summary = build_feeding_compliance_summary(
+    localized_summary = await async_build_feeding_compliance_summary(
+      hass,
       language,
       display_name=dog_name,
       compliance=cast(FeedingComplianceDisplayMapping, result),

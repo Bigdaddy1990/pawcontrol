@@ -5,123 +5,92 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Final
 
-from .language import normalize_language
+from homeassistant.core import HomeAssistant
 
-DEFAULT_LANGUAGE: Final[str] = "en"
-SUPPORTED_LANGUAGES: Final[frozenset[str]] = frozenset({"en", "de"})
+from .translation_helpers import (
+  get_cached_component_translation_lookup,
+  resolve_component_translation,
+)
 
-_GROOMING_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-  "button_action": {
-    "en": "Start grooming session",
-    "de": "Pflegesitzung starten",
-  },
-  "button_notes": {
-    "en": "Started via button",
-    "de": "Über Schaltfläche gestartet",
-  },
-  "button_error": {
-    "en": "Failed to start grooming: {error}",
-    "de": "Pflege konnte nicht gestartet werden: {error}",
-  },
-  "module_switch": {
-    "en": "Grooming Tracking",
-    "de": "Pflege-Tracking",
-  },
-  "module_summary_label": {
-    "en": "Grooming",
-    "de": "Pflege",
-  },
-  "module_summary_description": {
-    "en": "Grooming schedule and tracking",
-    "de": "Pflegeplan und Tracking",
-  },
-  "feature_grooming_reminders": {
-    "en": "Grooming Reminders",
-    "de": "Pflege-Erinnerungen",
-  },
-  "feature_grooming_schedule": {
-    "en": "Grooming Schedule",
-    "de": "Pflegeplan",
-  },
-  "feature_grooming_tracking": {
-    "en": "Grooming Tracking",
-    "de": "Pflege-Tracking",
-  },
+GROOMING_LABEL_TRANSLATION_KEYS: Final[Mapping[str, str]] = {
+  "button_action": "grooming_label_button_action",
+  "button_notes": "grooming_label_button_notes",
+  "button_error": "grooming_label_button_error",
+  "module_switch": "grooming_label_module_switch",
+  "module_summary_label": "grooming_label_module_summary_label",
+  "module_summary_description": "grooming_label_module_summary_description",
+  "feature_grooming_reminders": "grooming_label_feature_grooming_reminders",
+  "feature_grooming_schedule": "grooming_label_feature_grooming_schedule",
+  "feature_grooming_tracking": "grooming_label_feature_grooming_tracking",
 }
 
-_GROOMING_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-  "helper_due": {
-    "en": "{dog_name} Grooming Due",
-    "de": "{dog_name} Pflege fällig",
-  },
-  "notification_title": {
-    "en": "🛁 Grooming started: {dog_label}",
-    "de": "🛁 Pflege gestartet: {dog_label}",
-  },
-  "notification_message": {
-    "en": "Started {grooming_type} for {dog_label}",
-    "de": "Gestartet {grooming_type} für {dog_label}",
-  },
-  "notification_with_groomer": {
-    "en": "with {groomer}",
-    "de": "mit {groomer}",
-  },
-  "notification_estimated_duration": {
-    "en": "(est. {minutes} min)",
-    "de": "(ca. {minutes} Min.)",
-  },
-  "start_failure": {
-    "en": "Failed to start grooming for {dog_label}. Check the logs for details.",
-    "de": "Pflege für {dog_label} konnte nicht gestartet werden. Details im Log prüfen.",
-  },
-  "manual_session_notes": {
-    "en": "Grooming session on {date}",
-    "de": "Pflegesitzung am {date}",
-  },
+GROOMING_TEMPLATE_TRANSLATION_KEYS: Final[Mapping[str, str]] = {
+  "helper_due": "grooming_template_helper_due",
+  "notification_title": "grooming_template_notification_title",
+  "notification_message": "grooming_template_notification_message",
+  "notification_with_groomer": "grooming_template_notification_with_groomer",
+  "notification_estimated_duration": "grooming_template_notification_estimated_duration",
+  "start_failure": "grooming_template_start_failure",
+  "manual_session_notes": "grooming_template_manual_session_notes",
 }
 
 
-def translated_grooming_label(language: str | None, key: str, **values: object) -> str:
+def translated_grooming_label(
+  hass: HomeAssistant | None,
+  language: str | None,
+  key: str,
+  **values: object,
+) -> str:
   """Return a localized grooming label."""
 
-  translations = _GROOMING_LABEL_TRANSLATIONS.get(key)
-  if translations is None:
+  translation_key = GROOMING_LABEL_TRANSLATION_KEYS.get(key)
+  if translation_key is None:
     return key.format(**values) if values else key
 
-  normalized = normalize_language(
-    language,
-    supported=SUPPORTED_LANGUAGES,
-    default=DEFAULT_LANGUAGE,
-  )
-  template = translations.get(
-    normalized,
-    translations.get(DEFAULT_LANGUAGE, key),
-  )
+  if hass is None:
+    template = translation_key
+  else:
+    translations, fallback = get_cached_component_translation_lookup(
+      hass,
+      language,
+    )
+    template = resolve_component_translation(
+      translations,
+      fallback,
+      translation_key,
+      default=key,
+    )
+
   if values:
     return template.format(**values)
   return template
 
 
 def translated_grooming_template(
+  hass: HomeAssistant | None,
   language: str | None,
   key: str,
   **values: object,
 ) -> str:
   """Return a localized grooming template string."""
 
-  translations = _GROOMING_TEMPLATE_TRANSLATIONS.get(key)
-  if translations is None:
+  translation_key = GROOMING_TEMPLATE_TRANSLATION_KEYS.get(key)
+  if translation_key is None:
     return key.format(**values)
 
-  normalized = normalize_language(
-    language,
-    supported=SUPPORTED_LANGUAGES,
-    default=DEFAULT_LANGUAGE,
-  )
-  template = translations.get(
-    normalized,
-    translations.get(DEFAULT_LANGUAGE, key),
-  )
+  if hass is None:
+    template = translation_key
+  else:
+    translations, fallback = get_cached_component_translation_lookup(
+      hass,
+      language,
+    )
+    template = resolve_component_translation(
+      translations,
+      fallback,
+      translation_key,
+      default=key,
+    )
   return template.format(**values)
 
 

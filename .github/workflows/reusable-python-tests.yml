@@ -175,7 +175,7 @@ jobs:
             --maxfail="${{ env.PYTEST_MAXFAIL }}" \
             --tb="${{ env.PYTEST_TRACEBACK }}" \
             ${{ env.PYTEST_ARGS }}
-            
+
       - name: Prepare coverage directories
         run: |
           mkdir -p "$(dirname '${{ env.COVERAGE_XML }}')"
@@ -184,7 +184,7 @@ jobs:
           if [ "${{ inputs.publish-pages }}" = 'true' ]; then
             mkdir -p "${{ env.PAGES_ARTIFACT_DIR }}"
           fi
-          
+
       - name: Extract coverage summary
         id: coverage_summary
         run: |
