@@ -2305,6 +2305,98 @@ class DashboardTemplates:
 
     return template
 
+  def get_diagnostics_guard_metrics_card_template(
+    self,
+    theme: str = "modern",
+  ) -> CardConfig:
+    """Return a Lovelace markdown card for service guard metrics."""
+
+    theme_styles = self._get_theme_styles(theme)
+    card_mod = self._card_mod(theme_styles)
+
+    content = (
+      "{% set service = state_attr('sensor.pawcontrol_statistics',"
+      " 'service_execution') or {} %}\n"
+      "{% set guard = service.get('guard_metrics', {}) %}\n"
+      "## 🛡️ Guard metrics\n"
+      "- **Executed:** {{ guard.get('executed', 0) }}\n"
+      "- **Skipped:** {{ guard.get('skipped', 0) }}\n"
+      "- **Reasons:** {{ guard.get('reasons', {}) | tojson }}\n"
+      "- **Last results:** {{ guard.get('last_results', []) | tojson }}\n"
+    )
+
+    template: CardConfig = {
+      "type": "markdown",
+      "title": "Service guard metrics",
+      "content": content,
+      "card_mod": card_mod,
+    }
+
+    return template
+
+  def get_notification_rejection_metrics_card_template(
+    self,
+    theme: str = "modern",
+  ) -> CardConfig:
+    """Return a Lovelace markdown card for notification rejection metrics."""
+
+    theme_styles = self._get_theme_styles(theme)
+    card_mod = self._card_mod(theme_styles)
+
+    content = (
+      "{% set notifications = state_attr('sensor.pawcontrol_diagnostics',"
+      " 'notifications') or {} %}\n"
+      "{% set rejection = notifications.get('rejection_metrics', {}) %}\n"
+      "## 🔔 Notification failures\n"
+      "- **Total services:** {{ rejection.get('total_services', 0) }}\n"
+      "- **Total failures:** {{ rejection.get('total_failures', 0) }}\n"
+      "- **Services with failures:**"
+      " {{ rejection.get('services_with_failures', []) | tojson }}\n"
+      "- **Last error reasons:**"
+      " {{ rejection.get('service_last_error_reasons', {}) | tojson }}\n"
+    )
+
+    template: CardConfig = {
+      "type": "markdown",
+      "title": "Notification rejection metrics",
+      "content": content,
+      "card_mod": card_mod,
+    }
+
+    return template
+
+  def get_guard_notification_error_metrics_card_template(
+    self,
+    theme: str = "modern",
+  ) -> CardConfig:
+    """Return a Lovelace markdown card for combined guard error metrics."""
+
+    theme_styles = self._get_theme_styles(theme)
+    card_mod = self._card_mod(theme_styles)
+
+    content = (
+      "{% set metrics = state_attr('sensor.pawcontrol_diagnostics',"
+      " 'guard_notification_error_metrics') or {} %}\n"
+      "{% set guard = metrics.get('guard', {}) %}\n"
+      "{% set notifications = metrics.get('notifications', {}) %}\n"
+      "## 🚨 Combined error metrics\n"
+      "- **Available:** {{ metrics.get('available', false) }}\n"
+      "- **Total errors:** {{ metrics.get('total_errors', 0) }}\n"
+      "- **Guard skipped:** {{ guard.get('skipped', 0) }}\n"
+      "- **Guard reasons:** {{ guard.get('reasons', {}) | tojson }}\n"
+      "- **Notification failures:** {{ notifications.get('total_failures', 0) }}\n"
+      "- **Classified errors:** {{ metrics.get('classified_errors', {}) | tojson }}\n"
+    )
+
+    template: CardConfig = {
+      "type": "markdown",
+      "title": "Guard + notification errors",
+      "content": content,
+      "card_mod": card_mod,
+    }
+
+    return template
+
   async def get_notification_settings_card_template(
     self,
     dog_id: str,
