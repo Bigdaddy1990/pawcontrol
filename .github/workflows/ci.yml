@@ -48,8 +48,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements_test.txt
-          python -m pip install prek
-          prek install
+          python -m pip install --upgrade prek
           python -m scripts.sync_contributor_guides
 
       - name: Install development tools
@@ -57,6 +56,12 @@ jobs:
 
       - name: Run Prek
         run: |
+          prek install
+          prek self update
+          prek auto-update
+          prek validate-config
+          prek run --hook-stage pre-merge-commit
+          prek run --hook-stage pre-commit
           prek run --hook-stage manual python-typing-update --all-files
           prek run --all-files --show-diff-on-failure
 
@@ -65,7 +70,6 @@ jobs:
           pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing
-
 
       - name: Codecov
         uses: codecov/codecov-action@v5.5.2

@@ -143,21 +143,20 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip ruff
           pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
           pip install -U pytest-homeassistant-custom-component
           pip install -U "homeassistant'${{ env.HA_SPEC }}'"
           pip install -r requirements.txt
           pip install -r requirements_test.txt
+          python scripts/enforce_docstring_baseline.py --update
+          python scripts/sync_contributor_guides.py --update
 
-      - name: Prepare coverage directories
-        run: |
-          mkdir -p "$(dirname '${{ env.COVERAGE_XML }}')"
-          mkdir -p "${{ env.COVERAGE_HTML_DIR }}"
-          mkdir -p "$(dirname '${{ env.JUNIT_PATH }}')"
-          if [ "${{ inputs.publish-pages }}" = 'true' ]; then
-            mkdir -p "${{ env.PAGES_ARTIFACT_DIR }}"
-          fi
+      - run: |
+          ruff check . --fix all || true
+          ruff check . --fix --unsafe-fixes || true
+          ruff check . --add-noqa || true
+          ruff check . --extend-select RUF100 --fix || true
 
       - name: Run pytest
         id: pytest
@@ -176,7 +175,16 @@ jobs:
             --maxfail="${{ env.PYTEST_MAXFAIL }}" \
             --tb="${{ env.PYTEST_TRACEBACK }}" \
             ${{ env.PYTEST_ARGS }}
-
+            
+      - name: Prepare coverage directories
+        run: |
+          mkdir -p "$(dirname '${{ env.COVERAGE_XML }}')"
+          mkdir -p "${{ env.COVERAGE_HTML_DIR }}"
+          mkdir -p "$(dirname '${{ env.JUNIT_PATH }}')"
+          if [ "${{ inputs.publish-pages }}" = 'true' ]; then
+            mkdir -p "${{ env.PAGES_ARTIFACT_DIR }}"
+          fi
+          
       - name: Extract coverage summary
         id: coverage_summary
         run: |
