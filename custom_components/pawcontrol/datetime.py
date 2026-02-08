@@ -26,6 +26,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
+from .feeding_manager import MealType
 from .grooming_translations import translated_grooming_template
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
@@ -46,6 +47,52 @@ def _dt_now() -> datetime:
   """Return the current datetime using available Home Assistant helpers."""
 
   return dt_util.now() if hasattr(dt_util, "now") else dt_util.utcnow()
+
+
+def _resolve_default_feeding_amount(
+  coordinator: PawControlCoordinator,
+  dog_id: str,
+  meal_type: str | None,
+) -> float:
+  """Resolve a default feeding amount for datetime-driven feed logs."""
+
+  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  if runtime_data is None:
+    raise HomeAssistantError("Runtime data not available")
+
+  managers = runtime_data.runtime_managers
+  feeding_manager = managers.feeding_manager or getattr(
+    runtime_data,
+    "feeding_manager",
+    None,
+  )
+  if feeding_manager is None:
+    raise HomeAssistantError("Feeding manager not available")
+
+  config = feeding_manager.get_feeding_config(dog_id)
+  if not config:
+    raise HomeAssistantError(
+      "Feeding configuration not available; configure feeding settings first.",
+    )
+
+  meal_enum: MealType | None = None
+  if isinstance(meal_type, str):
+    try:
+      meal_enum = MealType(meal_type)
+    except ValueError:
+      _LOGGER.warning(
+        "Unknown meal type '%s' for %s; using default portion size",
+        meal_type,
+        dog_id,
+      )
+
+  amount = config.calculate_portion_size(meal_enum)
+  if amount <= 0:
+    raise HomeAssistantError(
+      "Feeding amount could not be resolved; check feeding settings.",
+    )
+
+  return amount
 
 
 # Date/time helpers write settings back to Paw Control. The coordinator
@@ -414,12 +461,18 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log feeding event
+    amount = _resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      "snack",
+    )
     if not await self._async_call_hass_service(
       DOMAIN,
-      "feed_dog",
+      "add_feeding",
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": "snack",  # Default to snack for manual entries
+        "amount": amount,
       },
     ):
       return

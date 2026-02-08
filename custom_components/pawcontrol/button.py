@@ -40,10 +40,10 @@ from .const import (
   MODULE_HEALTH,
   MODULE_WALK,
   SERVICE_ADD_GARDEN_ACTIVITY,
+  SERVICE_ADD_FEEDING,
   SERVICE_CONFIRM_GARDEN_POOP,
   SERVICE_END_GARDEN_SESSION,
   SERVICE_END_WALK,
-  SERVICE_FEED_DOG,
   SERVICE_GPS_EXPORT_ROUTE,
   SERVICE_LOG_HEALTH,
   SERVICE_LOG_MEDICATION,
@@ -54,6 +54,7 @@ from .const import (
   SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .feeding_manager import MealType
 from .utils import normalize_value
 from .entity import PawControlDogEntityBase
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
@@ -96,6 +97,52 @@ def _normalise_attributes(
   """Return JSON-serialisable attributes for button entities."""
 
   return normalise_entity_attributes(attrs)
+
+
+def _resolve_default_feeding_amount(
+  coordinator: PawControlCoordinator,
+  dog_id: str,
+  meal_type: str | None,
+) -> float:
+  """Resolve a default feeding amount for the specified dog."""
+
+  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  if runtime_data is None:
+    raise HomeAssistantError("Runtime data not available")
+
+  managers = runtime_data.runtime_managers
+  feeding_manager = managers.feeding_manager or getattr(
+    runtime_data,
+    "feeding_manager",
+    None,
+  )
+  if feeding_manager is None:
+    raise HomeAssistantError("Feeding manager not available")
+
+  config = feeding_manager.get_feeding_config(dog_id)
+  if not config:
+    raise HomeAssistantError(
+      "Feeding configuration not available; configure feeding settings first.",
+    )
+
+  meal_enum: MealType | None = None
+  if isinstance(meal_type, str):
+    try:
+      meal_enum = MealType(meal_type)
+    except ValueError:
+      _LOGGER.warning(
+        "Unknown meal type '%s' for %s; using default portion size",
+        meal_type,
+        dog_id,
+      )
+
+  amount = config.calculate_portion_size(meal_enum)
+  if amount <= 0:
+    raise HomeAssistantError(
+      "Feeding amount could not be resolved; check feeding settings.",
+    )
+
+  return amount
 
 
 @runtime_checkable
@@ -1267,13 +1314,18 @@ class PawControlMarkFedButton(PawControlButtonBase):
         meal_type = meal
         break
 
+    amount = _resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      meal_type,
+    )
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": meal_type,
-        "portion_size": 0,
+        "amount": amount,
       },
       error_message="Failed to mark as fed",
       blocking=False,
@@ -1305,13 +1357,18 @@ class PawControlFeedNowButton(PawControlButtonBase):
     """Trigger an immediate feeding service call."""
 
     await super().async_press()
+    amount = _resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      "immediate",
+    )
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": "immediate",
-        "portion_size": 1,
+        "amount": amount,
       },
       error_message="Failed to feed now",
       blocking=False,
@@ -1345,13 +1402,18 @@ class PawControlFeedMealButton(PawControlButtonBase):
   async def async_press(self) -> None:
     """Feed specific meal."""
     await super().async_press()
+    amount = _resolve_default_feeding_amount(
+      self.coordinator,
+      self._dog_id,
+      self._meal_type,
+    )
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": self._meal_type,
-        "portion_size": 0,
+        "amount": amount,
       },
       error_message=f"Failed to feed {self._meal_type}",
       blocking=False,
@@ -1382,12 +1444,11 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
     await super().async_press()
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_FEED_DOG,
+      SERVICE_ADD_FEEDING,
       {
         ATTR_DOG_ID: self._dog_id,
         "meal_type": "snack",
-        "portion_size": 75,
-        "food_type": "dry_food",
+        "amount": 75,
         "notes": "Custom feeding via button",
       },
       error_message="Failed to log custom feeding",

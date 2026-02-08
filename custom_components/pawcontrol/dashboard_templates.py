@@ -1462,8 +1462,12 @@ class DashboardTemplates:
       "icon_color": theme_styles["colors"]["accent"],
       "tap_action": {
         "action": "call-service",
-        "service": f"{DOMAIN}.feed_dog",
-        "service_data": {"dog_id": dog_id, "meal_type": "regular"},
+        "service": f"{DOMAIN}.add_feeding",
+        "service_data": {
+          "dog_id": dog_id,
+          "meal_type": "regular",
+          "amount": 200,
+        },
       },
     }
 
@@ -2688,10 +2692,11 @@ class DashboardTemplates:
           "icon": icon,
           "tap_action": {
             "action": "call-service",
-            "service": f"{DOMAIN}.feed_dog",
+            "service": f"{DOMAIN}.add_feeding",
             "service_data": {
               "dog_id": dog_id,
               "meal_type": meal_type,
+              "amount": 200,
             },
           },
         },
