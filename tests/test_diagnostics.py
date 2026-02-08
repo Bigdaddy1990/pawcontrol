@@ -288,7 +288,10 @@ def test_redacts_connections_and_identifiers_payloads() -> None:
 def test_entity_attribute_normalisation_is_json_serialisable() -> None:
   """Entity attribute normalization must yield JSON-serialisable values."""
 
-  from custom_components.pawcontrol.utils import normalise_entity_attributes
+  from custom_components.pawcontrol.utils import (
+    normalise_entity_attributes,
+    normalize_value,
+  )
 
   @dataclass
   class SamplePayload:
@@ -322,9 +325,11 @@ def test_entity_attribute_normalisation_is_json_serialisable() -> None:
   }
 
   normalised = normalise_entity_attributes(attributes)
+  expected = normalize_value(attributes)
 
   _assert_json_serialisable(normalised)
   json.dumps(normalised)
+  assert normalised == expected
 
 
 def test_extra_state_attributes_use_normalisation_helpers() -> None:
