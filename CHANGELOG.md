@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+- Removed the deprecated `pawcontrol.feed_dog` service; use `pawcontrol.add_feeding` with an explicit `amount` instead.【F:custom_components/pawcontrol/services.yaml†L1-L75】【F:custom_components/pawcontrol/services.py†L1-L1100】
+
 ### Changed
 - Replaced deprecated mass unit constants with Home Assistant `UnitOfMass` fallbacks and tightened optimized entity base typing for device/state classes to match modern HA enums.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】
 

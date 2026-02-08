@@ -165,6 +165,25 @@ def _make_coordinator() -> _DummyCoordinator:
       list,
     ),
     (
+      lambda coordinator: PawControlOnlineBinarySensor(
+        cast(PawControlCoordinator, coordinator),
+        "dog-1",
+        "Buddy",
+      ),
+      lambda entity: entity._attr_extra_state_attributes.update(
+        {
+          "payload": _DummyPayload(
+            token="ok",
+            count=5,
+            moment=datetime(2024, 2, 6, tzinfo=UTC),
+            duration=timedelta(seconds=90),
+          ),
+        },
+      ),
+      "payload",
+      dict,
+    ),
+    (
       lambda coordinator: PawControlBirthdateDate(
         cast(PawControlCoordinator, coordinator),
         "dog-1",

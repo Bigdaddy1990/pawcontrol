@@ -573,6 +573,13 @@ Overview Markdown: sensor.pawcontrol_notifications → per-dog delivery stats
 Action Buttons: [Send Test Notification] [Reset Quiet Hours]
 ```
 
+**Diagnostics & Resilience**:
+- Lovelace card snippets for service guard metrics, notification rejection
+  metrics, and combined guard/notification error summaries live in the
+  diagnostics guide: [docs/diagnostics.md#lovelace-examples](docs/diagnostics.md#lovelace-examples).
+- Additional dashboard-focused snippets are available in the automations guide:
+  [docs/automations.md#diagnostics-dashboards-lovelace](docs/automations.md#diagnostics-dashboards-lovelace).
+
 **Visitor Mode Insights**:
 ```yaml
 Localized Controls Card: switch.{dog_id}_visitor_mode, binary_sensor.{dog_id}_visitor_mode → Entities title and field labels follow the active Home Assistant language.
@@ -719,6 +726,15 @@ data:
   dose: \"25mg\"
   next_dose_time: \"2025-09-09T08:00:00\"
 ```
+
+### Deprecations & Removal Schedule
+
+- **`pawcontrol.start_walk` / `pawcontrol.end_walk`**: Deprecated in favor of
+  `pawcontrol.gps_start_walk` and `pawcontrol.gps_end_walk`. Removal is scheduled
+  for v1.2.0 on 2026-03-01.
+- **`PawControlCoordinator._fetch_dog_data_protected`**: Legacy internal helper
+  scheduled for removal in v1.2.0 on 2026-03-01. New integrations and tests
+  should call `_fetch_dog_data` instead.
 
 ### Event-Driven Automations
 
@@ -1265,7 +1281,8 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
    `python -m scripts.sync_localization_flags --check` to confirm that the
    `setup_flags_panel_*` translations in every language mirror `strings.json`.
    The contributor guide hook is executed via **Prek** in `--check`
-   mode so wrappers never drift from the canonical text.
+   mode so wrappers never drift from the canonical text. CI also enforces the
+   localization flag sync check to block outdated translations before review.
 6. **Submit PR**: Detailed description with test results
 
 #### Adding new PawControl languages

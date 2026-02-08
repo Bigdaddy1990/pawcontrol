@@ -140,6 +140,9 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   jedem Push sowie in Pull Requests `python -m scripts.check_typed_dicts --path
   custom_components/pawcontrol --path tests --fail-on-findings` aus und blockiert
   Releases sofort, falls neue untypisierte Dictionaries auftauchen.
+- Der CI-Workflow prüft zusätzlich per
+  `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist --check`,
+  ob alle Setup-Flag-Übersetzungen konsistent mit `strings.json` bleiben.
 - Der Async-Dependency-Audit dokumentiert alle synchronen Bibliotheken, die
   `_offload_blocking`-Messwerte und die gewählten Mitigationsstrategien.
 - Koordinator-Statistiken protokollieren jede Laufzeit-Store-Kompatibilitätsprüfung samt Statuszählern, Divergenzmarkern, Zeitstempeln und jetzt auch Laufzeit-Bilanzen pro Schweregrad. Diagnostics und System Health zeigen neben dem aktuellen Snapshot die kumulierten Sekunden je Level sowie die aktuelle Verweildauer an, damit Platinum-Ausrichtungs-Audits die Stabilität ohne Log-Replay nachvollziehen können. Zusätzlich hält eine begrenzte Assessment-Timeline die jüngsten Levelwechsel inklusive Divergenzrate und empfohlenen Aktionen fest und fasst das Fenster, die Event-Dichte, die häufigsten Gründe/Status sowie Spitzen- und Letztwerte der Level-Dauern zusammen, sodass Support-Teams Verlauf und Eskalationen ohne manuelles Historien-Scraping prüfen können.【F:custom_components/pawcontrol/telemetry.py†L320-L460】【F:custom_components/pawcontrol/coordinator_tasks.py†L1080-L1230】【F:custom_components/pawcontrol/diagnostics.py†L600-L690】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/unit/test_runtime_store_telemetry.py†L1-L360】【F:tests/unit/test_coordinator_tasks.py†L160-L1340】【F:tests/test_diagnostics.py†L1-L252】【F:tests/unit/test_system_health.py†L1-L189】

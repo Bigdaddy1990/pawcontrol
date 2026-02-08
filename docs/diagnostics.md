@@ -3,7 +3,8 @@
 ## Setup Flags Localization
 
 The following table lists the setup flag translations for each supported
-language. It is maintained automatically by `scripts/sync_localization_flags`.
+language. It is maintained automatically by `scripts/sync_localization_flags`,
+and the CI workflow validates the sync in check mode to catch drift early.
 
 <!-- START_SETUP_FLAGS_TABLE -->
 | Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanisch (`es`) | Französisch (`fr`) |
@@ -70,9 +71,15 @@ Fields:
 - `service_consecutive_failures`: Mapping
   `{service_name: consecutive_failures}` per service.
 - `service_last_error_reasons`: Mapping `{service_name: last_error_reason}` per
-  service (for example, `missing_notify_service`, `service_not_executed`).
+  service (normalized classifications such as `auth_error`, `missing_service`,
+  or `device_unreachable`).
 - `service_last_errors`: Mapping `{service_name: last_error}` per service
   (including exception text, when available).
+
+Repeated delivery failures (3+ consecutive failures per notify service) also
+raise a repair issue (`notification_delivery_repeated`) that summarizes the
+affected services, error reasons, and recommended next steps. This issue is
+cleared automatically once delivery succeeds again.
 
 ## Rejection Metrics Failure Reasons
 
@@ -160,3 +167,58 @@ Fields:
 - `classified_errors`: Mapping `{classification: count}` that bucketizes guard
   and notification errors into shared categories (for example, `auth_error`,
   `device_unreachable`, `missing_service`).
+
+## Lovelace Examples
+
+The following Lovelace snippets pull guard and notification telemetry into
+dashboards. The guard metrics example reads from
+`sensor.pawcontrol_statistics`, while the notification examples assume you have
+exposed diagnostics as a helper/REST sensor named `sensor.pawcontrol_diagnostics`.
+
+### Service guard metrics (`service_execution.guard_metrics`)
+
+```yaml
+type: markdown
+title: Service guard metrics
+content: |-
+  {% set service = state_attr('sensor.pawcontrol_statistics', 'service_execution') or {} %}
+  {% set guard = service.get('guard_metrics', {}) %}
+  ## 🛡️ Guard metrics
+  - **Executed:** {{ guard.get('executed', 0) }}
+  - **Skipped:** {{ guard.get('skipped', 0) }}
+  - **Reasons:** {{ guard.get('reasons', {}) | tojson }}
+  - **Last results:** {{ guard.get('last_results', []) | tojson }}
+```
+
+### Notification rejection metrics (`notifications.rejection_metrics`)
+
+```yaml
+type: markdown
+title: Notification rejection metrics
+content: |-
+  {% set notifications = state_attr('sensor.pawcontrol_diagnostics', 'notifications') or {} %}
+  {% set rejection = notifications.get('rejection_metrics', {}) %}
+  ## 🔔 Notification failures
+  - **Total services:** {{ rejection.get('total_services', 0) }}
+  - **Total failures:** {{ rejection.get('total_failures', 0) }}
+  - **Services with failures:** {{ rejection.get('services_with_failures', []) | tojson }}
+  - **Last error reasons:** {{ rejection.get('service_last_error_reasons', {}) | tojson }}
+```
+
+### Guard + notification error metrics (`guard_notification_error_metrics`)
+
+```yaml
+type: markdown
+title: Guard + notification errors
+content: |-
+  {% set metrics = state_attr('sensor.pawcontrol_diagnostics', 'guard_notification_error_metrics') or {} %}
+  {% set guard = metrics.get('guard', {}) %}
+  {% set notifications = metrics.get('notifications', {}) %}
+  ## 🚨 Combined error metrics
+  - **Available:** {{ metrics.get('available', false) }}
+  - **Total errors:** {{ metrics.get('total_errors', 0) }}
+  - **Guard skipped:** {{ guard.get('skipped', 0) }}
+  - **Guard reasons:** {{ guard.get('reasons', {}) | tojson }}
+  - **Notification failures:** {{ notifications.get('total_failures', 0) }}
+  - **Classified errors:** {{ metrics.get('classified_errors', {}) | tojson }}
+```
