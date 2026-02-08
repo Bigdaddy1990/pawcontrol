@@ -37,13 +37,8 @@ from .types import (
   ensure_dog_modules_config,
   validate_dog_weight_for_size,
 )
-from .validation import (
-  InputCoercionError,
-  coerce_float,
-  coerce_int,
-  normalize_dog_id,
-  validate_dog_name,
-)
+from .validation import InputCoercionError, coerce_float, coerce_int, normalize_dog_id
+from .validation_helpers import validate_unique_dog_name
 
 MAX_BREED_NAME_LENGTH = 100
 DOG_IMPORT_FIELDS: frozenset[str] = frozenset(
@@ -125,18 +120,14 @@ def validate_dog_setup_input(
 
   raw_name = user_input.get(CONF_DOG_NAME, "")
   try:
-    dog_name = validate_dog_name(raw_name, field=CONF_DOG_NAME)
+    dog_name = validate_unique_dog_name(
+      raw_name,
+      existing_names=existing_names,
+      field=CONF_DOG_NAME,
+    )
   except ValidationError as err:
     field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
     dog_name = ""
-  else:
-    normalized_names = {
-      name.strip().lower()
-      for name in (existing_names or set())
-      if isinstance(name, str) and name.strip()
-    }
-    if dog_name.lower() in normalized_names:
-      field_errors[CONF_DOG_NAME] = "dog_name_already_exists"
 
   if current_dog_count >= max_dogs:
     base_errors.append("max_dogs_reached")
@@ -212,17 +203,14 @@ def validate_dog_update_input(
 
   raw_name = user_input.get(CONF_DOG_NAME, candidate.get(CONF_DOG_NAME, ""))
   try:
-    dog_name = validate_dog_name(raw_name, field=CONF_DOG_NAME)
+    dog_name = validate_unique_dog_name(
+      raw_name,
+      existing_names=existing_names,
+      field=CONF_DOG_NAME,
+    )
   except ValidationError as err:
     field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
   else:
-    normalized_names = {
-      name.strip().lower()
-      for name in (existing_names or set())
-      if isinstance(name, str) and name.strip()
-    }
-    if dog_name.lower() in normalized_names:
-      field_errors[CONF_DOG_NAME] = "dog_name_already_exists"
     candidate[DOG_NAME_FIELD] = dog_name
 
   raw_breed = user_input.get(CONF_DOG_BREED, candidate.get(CONF_DOG_BREED))

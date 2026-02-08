@@ -136,6 +136,7 @@ from .validation import (
   validate_gps_interval,
   validate_notification_targets,
 )
+from .validation_helpers import validate_service_coordinates
 from .walk_manager import WeatherCondition
 
 SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
@@ -184,23 +185,6 @@ def _format_gps_validation_error(
       return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
     return f"{field} is out of range"
 
-  return f"{field} is invalid"
-
-
-def _format_coordinate_validation_error(error: ValidationError) -> str:
-  """Format coordinate validation errors for service responses."""
-
-  field = error.field.replace("_", " ")
-  constraint = error.constraint
-
-  if constraint == "coordinate_required":
-    return f"{field} is required"
-  if constraint == "coordinate_not_numeric":
-    return f"{field} must be a number"
-  if constraint == "coordinate_out_of_range":
-    if error.min_value is not None and error.max_value is not None:
-      return f"{field} must be between {error.min_value} and {error.max_value}"
-    return f"{field} is out of range"
   return f"{field} is invalid"
 
 
@@ -1887,15 +1871,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     accuracy = call.data.get("accuracy")
 
     try:
-      try:
-        latitude, longitude = InputValidator.validate_gps_coordinates(
-          latitude,
-          longitude,
-        )
-      except ValidationError as err:
-        raise _service_validation_error(
-          _format_coordinate_validation_error(err),
-        ) from err
+      latitude, longitude = validate_service_coordinates(
+        latitude,
+        longitude,
+      )
 
       success = await walk_manager.async_add_gps_point(
         dog_id=dog_id,
@@ -2416,15 +2395,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     timestamp = call.data.get("timestamp", dt_util.utcnow())
 
     try:
-      try:
-        latitude, longitude = InputValidator.validate_gps_coordinates(
-          latitude,
-          longitude,
-        )
-      except ValidationError as err:
-        raise _service_validation_error(
-          _format_coordinate_validation_error(err),
-        ) from err
+      latitude, longitude = validate_service_coordinates(
+        latitude,
+        longitude,
+      )
 
       from .gps_manager import LocationSource
 
