@@ -298,7 +298,10 @@ def normalise_entity_attributes(
 ) -> JSONMutableMapping:
   """Return JSON-serialisable entity attributes."""
 
-  return normalise_json_mapping(data)
+  if data is None:
+    return {}
+
+  return cast(JSONMutableMapping, normalize_value(data))
 
 
 class ServiceCallKeywordArgs(TypedDict, total=False):
