@@ -175,15 +175,15 @@ sys.modules.setdefault("homeassistant.helpers.selector", ha_helpers_selector)
 ha_util_dt = types.ModuleType("homeassistant.util.dt")
 ha_util_dt.utcnow = lambda: datetime.now(datetime.UTC)
 ha_util_dt.now = lambda: datetime.now(datetime.UTC)
-ha_util_dt.as_utc = (
-  lambda value: value if value.tzinfo else value.replace(tzinfo=datetime.UTC)
+ha_util_dt.as_utc = lambda value: (
+  value if value.tzinfo else value.replace(tzinfo=datetime.UTC)
 )
 ha_util_dt.as_local = lambda value: value
-ha_util_dt.parse_datetime = (
-  lambda value: datetime.fromisoformat(value) if isinstance(value, str) else None
+ha_util_dt.parse_datetime = lambda value: (
+  datetime.fromisoformat(value) if isinstance(value, str) else None
 )
-ha_util_dt.parse_date = (
-  lambda value: datetime.fromisoformat(value).date() if isinstance(value, str) else None
+ha_util_dt.parse_date = lambda value: (
+  datetime.fromisoformat(value).date() if isinstance(value, str) else None
 )
 sys.modules.setdefault("homeassistant.util.dt", ha_util_dt)
 ha_util.dt = ha_util_dt

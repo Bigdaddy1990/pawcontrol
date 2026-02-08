@@ -676,24 +676,26 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
     data={},
     states=SimpleNamespace(get=lambda entity_id: None),
     config_entries=SimpleNamespace(
-      async_entries=lambda domain: [
-        SimpleNamespace(
-          entry_id="automation-id",
-          title="Resilience follow-up",
-          data={
-            "use_blueprint": {
-              "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
-              "input": {
-                "manual_guard_event": "pawcontrol_manual_guard",
-                "manual_breaker_event": "pawcontrol_manual_breaker",
-                "manual_check_event": "pawcontrol_resilience_check",
-              },
-            }
-          },
-        )
-      ]
-      if domain == "automation"
-      else []
+      async_entries=lambda domain: (
+        [
+          SimpleNamespace(
+            entry_id="automation-id",
+            title="Resilience follow-up",
+            data={
+              "use_blueprint": {
+                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
+                "input": {
+                  "manual_guard_event": "pawcontrol_manual_guard",
+                  "manual_breaker_event": "pawcontrol_manual_breaker",
+                  "manual_check_event": "pawcontrol_resilience_check",
+                },
+              }
+            },
+          )
+        ]
+        if domain == "automation"
+        else []
+      )
     ),
   )
   entry = SimpleNamespace(entry_id="entry-id", data={}, options={}, title="Ops")
@@ -771,22 +773,24 @@ def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() 
     data={},
     states=SimpleNamespace(get=lambda entity_id: None),
     config_entries=SimpleNamespace(
-      async_entries=lambda domain: [
-        SimpleNamespace(
-          entry_id="automation-id",
-          title="Resilience follow-up",
-          data={
-            "use_blueprint": {
-              "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
-              "input": {
-                "manual_guard_event": "pawcontrol_manual_guard",
-              },
-            }
-          },
-        )
-      ]
-      if domain == "automation"
-      else []
+      async_entries=lambda domain: (
+        [
+          SimpleNamespace(
+            entry_id="automation-id",
+            title="Resilience follow-up",
+            data={
+              "use_blueprint": {
+                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
+                "input": {
+                  "manual_guard_event": "pawcontrol_manual_guard",
+                },
+              }
+            },
+          )
+        ]
+        if domain == "automation"
+        else []
+      )
     ),
   )
 
@@ -944,19 +948,21 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
   hass = SimpleNamespace(
     data={},
     config_entries=SimpleNamespace(
-      async_entries=lambda domain: [
-        SimpleNamespace(
-          entry_id="automation-id",
-          data={
-            "use_blueprint": {
-              "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
-              "input": dict(blueprint_inputs),
-            }
-          },
-        )
-      ]
-      if domain == "automation"
-      else [],
+      async_entries=lambda domain: (
+        [
+          SimpleNamespace(
+            entry_id="automation-id",
+            data={
+              "use_blueprint": {
+                "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
+                "input": dict(blueprint_inputs),
+              }
+            },
+          )
+        ]
+        if domain == "automation"
+        else []
+      ),
       async_update_entry=_async_update_entry,
     ),
   )
