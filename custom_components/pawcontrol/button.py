@@ -16,7 +16,16 @@ import asyncio
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar, Protocol, TypedDict, cast, runtime_checkable
+from typing import (
+  Any,
+  ClassVar,
+  Final,
+  Literal,
+  Protocol,
+  TypedDict,
+  cast,
+  runtime_checkable,
+)
 
 from homeassistant.components.button import (
   ButtonDeviceClass,
@@ -209,7 +218,16 @@ _FALSY_FLAG_VALUES: set[str] = {
 }
 
 # OPTIMIZATION: Profile-based entity reduction
-PROFILE_BUTTON_LIMITS = {
+type ProfileButtonKey = Literal[
+  "basic",
+  "standard",
+  "advanced",
+  "gps_focus",
+  "health_focus",
+]
+
+
+PROFILE_BUTTON_LIMITS: Final[dict[ProfileButtonKey, int]] = {
   "basic": 3,  # Essential buttons only: test_notification, reset_stats, mark_fed
   "standard": 8,  # Include walk controls alongside feed/data management buttons
   "advanced": 12,  # Full button set
