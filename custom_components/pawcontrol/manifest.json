@@ -81,19 +81,24 @@
       "type": "_pawcontrol._tcp.local."
     },
     {
-      "name": "PawControl*"
+      "name": "PawControl*",
+      "type": "_pawcontrol._tcp.local."
     },
     {
-      "name": "Paw Control*"
+      "name": "Paw Control*",
+      "type": "_pawcontrol._tcp.local."
     },
     {
-      "name": "Tractive*"
+      "name": "Tractive*",
+      "type": "_pawcontrol._tcp.local."
     },
     {
-      "name": "Whistle*"
+      "name": "Whistle*",
+      "type": "_pawcontrol._tcp.local."
     },
     {
-      "name": "Petnet*"
+      "name": "Petnet*",
+      "type": "_pawcontrol._tcp.local."
     }
   ]
 }
