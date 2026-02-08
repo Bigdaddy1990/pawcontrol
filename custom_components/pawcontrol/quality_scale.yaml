@@ -38,7 +38,7 @@ rules:
 
   docs-actions:
     status: done
-    comment: "Evidence: service docs in `custom_components/pawcontrol/services.yaml` and `docs/automation_examples.md`; handlers in `custom_components/pawcontrol/services.py`/`script_manager.py`."
+    comment: "Evidence: service docs in `custom_components/pawcontrol/services.yaml`, `docs/automation_examples.md`, and `docs/comprehensive_readme.md`; handlers in `custom_components/pawcontrol/services.py`/`script_manager.py`, validated via `python -m scripts.hassfest --integration-path custom_components/pawcontrol`."
 
   docs-high-level-description:
     status: done
