@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import voluptuous as vol
 
 from ..const import DEFAULT_REMINDER_REPEAT_MIN
@@ -16,12 +14,13 @@ from ..types import (
   NOTIFICATION_QUIET_START_FIELD,
   NOTIFICATION_REMINDER_REPEAT_FIELD,
   NotificationOptions,
+  NotificationSettingsInput,
 )
 
 
 def build_notifications_schema(
   current_notifications: NotificationOptions,
-  user_input: dict[str, Any] | None = None,
+  user_input: NotificationSettingsInput | None = None,
 ) -> vol.Schema:
   """Build notifications schema."""
 

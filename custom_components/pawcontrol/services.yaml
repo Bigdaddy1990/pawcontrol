@@ -81,58 +81,6 @@ add_feeding:
       selector:
         datetime:
 
-feed_dog:
-  name: Feed Dog
-  description: "Log a feeding for a specific dog (deprecated: use `add_feeding`; legacy field `portion_size` is still accepted)."
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Unique identifier of the dog to feed
-      required: true
-      selector:
-        text:
-    amount:
-      name: Amount (grams)
-      description: Quantity of food dispensed in grams
-      required: false
-      selector:
-        number:
-          min: 1
-          max: 2000
-          step: 1
-          unit_of_measurement: "g"
-    meal_type:
-      name: Meal Type
-      description: Type of meal being logged
-      required: false
-      default: "dinner"
-      selector:
-        select:
-          options:
-            - "breakfast"
-            - "lunch"
-            - "dinner"
-            - "snack"
-            - "treat"
-    portion_size:
-      name: Amount (grams) (Legacy)
-      description: "Legacy field matching `add_feeding.amount`; if omitted or 0, the configured default is used."
-      required: false
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 1000
-          step: 10
-          unit_of_measurement: "g"
-    notes:
-      name: Notes
-      description: Optional notes about the feeding
-      required: false
-      selector:
-        text:
-          multiline: true
-
 calculate_portion:
   name: Calculate Portion
   description: Calculate a recommended meal portion based on configuration and optional override data

@@ -11,7 +11,7 @@ from ..const import (
   SPECIAL_DIET_OPTIONS,
 )
 from ..selector_shim import selector
-from ..types import DogModulesConfig, HealthOptions
+from ..types import DogModulesConfig, HealthOptions, OptionsHealthSettingsInput
 
 
 def build_dog_health_schema(
@@ -204,7 +204,7 @@ def build_dog_health_schema(
 
 def build_health_settings_schema(
   current_health: HealthOptions,
-  user_input: dict[str, object] | None = None,
+  user_input: OptionsHealthSettingsInput | None = None,
 ) -> vol.Schema:
   """Get health settings schema."""
 

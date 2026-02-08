@@ -835,7 +835,6 @@ async def test_async_setup_services_registers_expected_services(
 
   expected_services = {
     services.SERVICE_ADD_FEEDING,
-    services.SERVICE_FEED_DOG,
     services.SERVICE_START_WALK,
     services.SERVICE_END_WALK,
     services.SERVICE_ADD_GPS_POINT,

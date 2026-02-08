@@ -37,6 +37,7 @@ from ..schemas import (
 )
 from ..types import (
   AUTO_TRACK_WALKS_FIELD,
+  ConfigFlowPlaceholders,
   DOG_GPS_CONFIG_FIELD,
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
@@ -63,6 +64,7 @@ from ..types import (
   DogConfigData,
   DogFeedingStepInput,
   DogGPSConfig,
+  DogGPSStepInput,
   DogHealthStepInput,
   DogOptionsMap,
   DogSetupStepInput,
@@ -71,6 +73,9 @@ from ..types import (
   JSONLikeMapping,
   JSONMutableMapping,
   JSONValue,
+  OptionsDogSelectionInput,
+  OptionsGeofenceInput,
+  OptionsGPSSettingsInput,
   ensure_dog_modules_config,
   ensure_dog_options_entry,
 )
@@ -191,22 +196,22 @@ if TYPE_CHECKING:
     async def async_step_add_dog(
       self,
       user_input: DogSetupStepInput | None = None,
-    ) -> Any: ...
+    ) -> ConfigFlowResult: ...
 
     async def async_step_dog_feeding(
       self,
       user_input: DogFeedingStepInput | None = None,
-    ) -> Any: ...
+    ) -> ConfigFlowResult: ...
 
     async def async_step_dog_health(
       self,
       user_input: DogHealthStepInput | None = None,
-    ) -> Any: ...
+    ) -> ConfigFlowResult: ...
 
     async def async_step_add_another_dog(
       self,
       user_input: AddAnotherDogInput | None = None,
-    ) -> Any: ...
+    ) -> ConfigFlowResult: ...
 
     def async_show_form(
       self,
@@ -214,7 +219,7 @@ if TYPE_CHECKING:
       step_id: str,
       data_schema: vol.Schema,
       errors: dict[str, str] | None = None,
-      description_placeholders: Mapping[str, str] | None = None,
+      description_placeholders: ConfigFlowPlaceholders | None = None,
     ) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
@@ -228,7 +233,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
 
   async def async_step_dog_gps(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: DogGPSStepInput | None = None,
   ) -> ConfigFlowResult:
     """Configure GPS settings for the specific dog."""
 
@@ -527,7 +532,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
   async def async_step_select_dog_for_gps_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select which dog to configure GPS settings for."""
 
@@ -550,7 +555,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
   async def async_step_select_dog_for_geofence_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsDogSelectionInput | None = None,
   ) -> ConfigFlowResult:
     """Select which dog to configure geofencing for."""
 
@@ -573,7 +578,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
   async def async_step_gps_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsGPSSettingsInput | None = None,
   ) -> ConfigFlowResult:
     """Configure GPS settings."""
 
@@ -720,7 +725,7 @@ class GPSOptionsMixin(GPSOptionsHost):
 
   async def async_step_geofence_settings(
     self,
-    user_input: dict[str, Any] | None = None,
+    user_input: OptionsGeofenceInput | None = None,
   ) -> ConfigFlowResult:
     """Configure geofencing settings."""
 
