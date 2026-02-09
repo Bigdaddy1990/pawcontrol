@@ -103,6 +103,8 @@ PawControl stabil und guideline-konform zu halten.
    - Aktualisiere die minimale Home-Assistant-Version in Manifest/Metadata.
    - Passe `hacs.json`, den README-Badge und relevante Doku (z. B.
      `docs/setup_installation_guide.md`) an.
+   - Stelle sicher, dass `custom_components/pawcontrol/manifest.json` und
+     `hacs.json` dieselbe Mindestversion ausweisen.
    - Referenzen:
      - https://developers.home-assistant.io/docs/creating_integration_manifest
      - https://developers.home-assistant.io/docs/creating_integration_file_structure
