@@ -5,6 +5,7 @@ coverage[toml]>=7.5.4
 defusedxml>=0.7.1
 homeassistant>=2025.9.0
 jinja2>=3.1.6
+mypy>=1.18.2
 packaging>=26.0
 pip>=25.3
 prek>=0.2.11

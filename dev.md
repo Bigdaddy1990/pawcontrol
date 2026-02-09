@@ -162,16 +162,41 @@ guidelines while you iterate on new features or refactors:
   messages, including explicit min/max checks and unique‑ID guards.
 - Ensure `extra_state_attributes` are JSON‑serializable and follow the
   normalization logic used for diagnostics.
+- Treat `custom_components/pawcontrol/manifest.json` as the
+  hassfest-quality-standard baseline for this integration; avoid changing its
+  quality scale or metadata without coordinating docs/tests, because hassfest
+  validation and Platinum evidence depend on those fields staying aligned.
 
 ## Localization workflow
 
 Missing translation keys are a common cause of `hassfest` failures.
 
+### Translation Tooling Decision
+
+PawControl uses **no external translation platforms** (e.g., Lokalise or
+Crowdin). The workflow is based on Git-tracked JSON files and the internal
+`scripts/sync_translations.py` script, which uses `strings.json` as the source
+of truth and keeps the `translations/*.json` export/import process consistent.
+
+### Workflow (Export/Import)
+
 1. Add new user-facing strings to `custom_components/pawcontrol/strings.json`.
-2. Propagate them to all locale files under
-   `custom_components/pawcontrol/translations/`.
-3. Re-run `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
+2. Sync translation files from the canonical strings file:
+   ```bash
+   python -m scripts.sync_translations
+   ```
+   - For new locales, seed a file with English defaults:
+     ```bash
+     python -m scripts.sync_translations --languages <lang>
+     ```
+3. Update the locale files under `custom_components/pawcontrol/translations/`
+   with the actual translations.
+4. Re-run `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
    to validate schema and localization.
+
+> **CI check:** The `tests` job in `.github/workflows/ci.yml` runs
+> `python -m scripts.sync_translations --check` to ensure translation files stay
+> in sync.
 
 ## Testing strategy
 
