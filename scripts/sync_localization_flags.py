@@ -14,6 +14,9 @@ from typing import Any
 TABLE_START_MARKER = "<!-- START_SETUP_FLAGS_TABLE -->"
 TABLE_END_MARKER = "<!-- END_SETUP_FLAGS_TABLE -->"
 
+_FLAG_PREFIX = "setup_flags_panel_flag_"
+_SOURCE_PREFIX = "setup_flags_panel_source_"
+
 _LANGUAGE_LABELS = {
   "en": "Englisch",
   "de": "Deutsch",
@@ -35,6 +38,23 @@ def _read_allowlist(path: Path) -> set[str]:
 
 def _load_json(path: Path) -> Any:
   return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _translation_languages(translations_dir: Path) -> list[str]:
+  languages = sorted(path.stem for path in translations_dir.glob("*.json"))
+  if "en" in languages:
+    languages.remove("en")
+  return ["en", *languages]
+
+
+def _setup_flag_keys(strings_path: Path) -> list[str]:
+  strings = _load_json(strings_path)
+  common = strings.get("common", {})
+  return [
+    key
+    for key in common
+    if key.startswith(_FLAG_PREFIX) or key.startswith(_SOURCE_PREFIX)
+  ]
 
 
 def _update_markdown_table(
@@ -121,6 +141,34 @@ def main() -> int:
         if allowlist:
           # noop usage to avoid unused variable warnings in strict linters
           _ = data
+
+  pawcontrol_dir = custom_components_dir / "pawcontrol"
+  strings_path = pawcontrol_dir / "strings.json"
+  translations_dir = pawcontrol_dir / "translations"
+  docs_path = repo_root / "docs" / "diagnostics.md"
+  if strings_path.exists() and translations_dir.exists() and docs_path.exists():
+    keys = _setup_flag_keys(strings_path)
+    if keys:
+      languages = _translation_languages(translations_dir)
+      strings_common = _load_json(strings_path).get("common", {})
+      translations: dict[str, dict[str, dict[str, str]]] = {
+        "en": {"common": {key: strings_common[key] for key in keys}}
+      }
+      for language in languages:
+        if language == "en":
+          continue
+        translation_path = translations_dir / f"{language}.json"
+        translation_common = _load_json(translation_path).get("common", {})
+        translations[language] = {
+          "common": {key: translation_common[key] for key in keys}
+        }
+      _update_markdown_table(
+        docs_path,
+        keys,
+        translations,
+        languages,
+        check_only=args.check,
+      )
 
   return 0
 
