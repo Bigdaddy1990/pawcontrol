@@ -68,7 +68,8 @@ Follow this routine for every release or hotfix.
    - `ruff check`
    - `pytest -q`
    - `python -m scripts.enforce_test_requirements`
-   - `python -m scripts.sync_localization_flags`
+   - `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist`
+   - `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist --check`
    - `mypy custom_components/pawcontrol`
    - `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
 3. **Confirm diagnostics & repairs**
@@ -113,9 +114,12 @@ PawControl stabil und guideline-konform zu halten.
      - https://developers.home-assistant.io/docs/creating_component_code_review
      - https://developers.home-assistant.io/docs/creating_platform_code_review
 
-## Integration deprecations (aktiv)
+## Integration deprecations (abgeschlossen)
 
-- Aktuell keine aktiven Deprecations.
+- **`pawcontrol.start_walk` / `pawcontrol.end_walk`** wurden entfernt. Verwende
+  `pawcontrol.gps_start_walk` und `pawcontrol.gps_end_walk`.
+- **`PawControlCoordinator._fetch_dog_data_protected`** wurde entfernt. Nutze
+  `_fetch_dog_data`, wenn interne Aufrufe erforderlich sind.
 
 ## Support escalation & follow-up
 

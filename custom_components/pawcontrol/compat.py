@@ -77,16 +77,8 @@ else:
     KILOGRAMS = "kg"
 
   UnitOfMass = _FallbackUnitOfMass
-  _mass_grams = (
-    getattr(_ha_const, "MASS_GRAMS", UnitOfMass.GRAMS)
-    if _ha_const
-    else UnitOfMass.GRAMS
-  )
-  _mass_kilograms = (
-    getattr(_ha_const, "MASS_KILOGRAMS", UnitOfMass.KILOGRAMS)
-    if _ha_const
-    else UnitOfMass.KILOGRAMS
-  )
+  _mass_grams = UnitOfMass.GRAMS
+  _mass_kilograms = UnitOfMass.KILOGRAMS
 
 MASS_GRAMS: Final[str] = str(_mass_grams)
 MASS_KILOGRAMS: Final[str] = str(_mass_kilograms)

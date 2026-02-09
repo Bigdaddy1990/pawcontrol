@@ -9,11 +9,11 @@
 
 ### ⚠️ Breaking Changes
 - Removed the deprecated `pawcontrol.feed_dog` service. Automations and dashboards must now call `pawcontrol.add_feeding` and include an explicit `amount` value.【F:custom_components/pawcontrol/services.yaml†L1-L75】【F:custom_components/pawcontrol/services.py†L1-L1100】
-- Removed the legacy `pawcontrol.start_walk` and `pawcontrol.end_walk` services. Use `pawcontrol.gps_start_walk` and `pawcontrol.gps_end_walk` instead.【F:custom_components/pawcontrol/services.yaml†L1-L200】【F:custom_components/pawcontrol/services.py†L2160-L2360】
-- Removed the legacy `PawControlCoordinator._fetch_dog_data_protected` helper. Call `_fetch_dog_data` directly instead.【F:custom_components/pawcontrol/coordinator.py†L370-L420】【F:custom_components/pawcontrol/coordinator_runtime.py†L440-L570】
+- Removed the deprecated `pawcontrol.start_walk`/`pawcontrol.end_walk` services; use `pawcontrol.gps_start_walk` and `pawcontrol.gps_end_walk` instead.【F:custom_components/pawcontrol/services.yaml†L1-L155】【F:custom_components/pawcontrol/services.py†L1-L5060】
 
-### 🕒 Deprecations
-No active deprecations.
+### 🕒 Deprecations (Completed)
+- Finished removing the deprecated `pawcontrol.start_walk` and `pawcontrol.end_walk` services; migrate automations to `pawcontrol.gps_start_walk` and `pawcontrol.gps_end_walk`.【F:custom_components/pawcontrol/services.yaml†L1-L155】【F:custom_components/pawcontrol/services.py†L1-L5060】
+- Removed the legacy `PawControlCoordinator._fetch_dog_data_protected` helper; internal callers must use `_fetch_dog_data`.【F:custom_components/pawcontrol/coordinator.py†L350-L430】【F:custom_components/pawcontrol/coordinator_runtime.py†L430-L700】
 
 ### 🧩 Compatibility Refresh
 - Updated mass unit handling to rely on Home Assistant `UnitOfMass` with backwards-compatible fallbacks, and aligned optimized entity base typing with modern device/state class enums to match current HA APIs.【F:custom_components/pawcontrol/compat.py†L60-L92】【F:custom_components/pawcontrol/optimized_entity_base.py†L35-L1354】【F:custom_components/pawcontrol/number.py†L1-L1538】【F:custom_components/pawcontrol/sensor.py†L1-L4276】

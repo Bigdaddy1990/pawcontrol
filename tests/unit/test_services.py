@@ -737,55 +737,6 @@ class _GPSManagerStub:
     return self.export_result
 
 
-class _WalkManagerStub:
-  """Emulate walk tracking for deprecated service tests."""
-
-  def __init__(self) -> None:
-    self.start_calls: list[dict[str, object]] = []
-    self.end_calls: list[dict[str, object]] = []
-    self.next_session_id = "walk-1"
-    self.next_end_result: dict[str, object] | None = {
-      "distance": 1200.0,
-      "duration": 1800.0,
-    }
-
-  async def async_start_walk(
-    self,
-    *,
-    dog_id: str,
-    walk_type: str,
-    walker: str | None,
-    weather: object | None,
-    leash_used: bool,
-  ) -> str:
-    self.start_calls.append(
-      {
-        "dog_id": dog_id,
-        "walk_type": walk_type,
-        "walker": walker,
-        "weather": weather,
-        "leash_used": leash_used,
-      }
-    )
-    return self.next_session_id
-
-  async def async_end_walk(
-    self,
-    *,
-    dog_id: str,
-    notes: str | None,
-    dog_weight_kg: float | None,
-  ) -> dict[str, object] | None:
-    self.end_calls.append(
-      {
-        "dog_id": dog_id,
-        "notes": notes,
-        "dog_weight_kg": dog_weight_kg,
-      }
-    )
-    return self.next_end_result
-
-
 class _CoordinatorStub:
   """Coordinator providing managers required for service telemetry tests."""
 
@@ -795,7 +746,7 @@ class _CoordinatorStub:
     *,
     notification_manager: _NotificationManagerStub | None = None,
     gps_manager: _GPSManagerStub | None = None,
-    walk_manager: _WalkManagerStub | None = None,
+    walk_manager: object | None = None,
     feeding_manager: _FeedingManagerStub | None = None,
     data_manager: _DataManagerStub | None = None,
     garden_manager: _GardenManagerStub | None = None,
@@ -927,6 +878,8 @@ async def test_async_setup_services_registers_expected_services(
 
   assert set(hass.services.handlers) == expected_services
 
+  assert "start_walk" not in hass.services.handlers
+  assert "end_walk" not in hass.services.handlers
   assert "gps_generate_diagnostics" not in hass.services.handlers
   assert "garden_generate_diagnostics" not in hass.services.handlers
   assert "garden_history_purge" not in hass.services.handlers
