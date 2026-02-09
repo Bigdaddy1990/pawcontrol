@@ -167,12 +167,12 @@ guidelines while you iterate on new features or refactors:
 
 Missing translation keys are a common cause of `hassfest` failures.
 
-### Übersetzungs-Tool-Entscheidung
+### Translation Tooling Decision
 
-PawControl nutzt **keine externen Übersetzungsplattformen** (z. B. Lokalise oder
-Crowdin). Der Workflow basiert auf den Git-tracked JSON-Dateien und dem internen
-Script `scripts/sync_translations.py`, das `strings.json` als Quelle der Wahrheit
-nutzt und Export/Import der `translations/*.json` konsistent hält.
+PawControl uses **no external translation platforms** (e.g., Lokalise or
+Crowdin). The workflow is based on Git-tracked JSON files and the internal
+`scripts/sync_translations.py` script, which uses `strings.json` as the source
+of truth and keeps the `translations/*.json` export/import process consistent.
 
 ### Workflow (Export/Import)
 
