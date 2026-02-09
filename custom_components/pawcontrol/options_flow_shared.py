@@ -348,9 +348,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         raise FlowValidationError(
           field_errors={"payload": self._map_import_payload_error(err)},
         ) from err
-      dog_id = validated.get(CONF_DOG_ID)
-      if not isinstance(dog_id, str) or not dog_id.strip():
-        raise FlowValidationError(field_errors={"payload": "dog_missing_id"})
+      dog_id = validated[CONF_DOG_ID]
       seen_ids.add(dog_id)
       dogs_payload.append(validated)
 
