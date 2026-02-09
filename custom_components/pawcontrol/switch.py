@@ -62,7 +62,6 @@ from .types import (
   ModuleToggleKey,
   PawControlConfigEntry,
   coerce_dog_modules_config,
-  ensure_json_mapping,
 )
 from .utils import async_call_add_entities, normalise_entity_attributes
 
@@ -499,7 +498,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
   @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Return enhanced attributes with profile information."""
-    attrs = ensure_json_mapping(super().extra_state_attributes)
+    attrs = normalise_entity_attributes(super().extra_state_attributes)
     attrs.update(
       {
         "dog_id": self._dog_id,
@@ -898,7 +897,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
   @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Return feature-specific attributes."""
-    feature_attrs = ensure_json_mapping(super().extra_state_attributes)
+    feature_attrs = normalise_entity_attributes(super().extra_state_attributes)
     feature_attrs.update(
       {
         "feature_id": self._feature_id,

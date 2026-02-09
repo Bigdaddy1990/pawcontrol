@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from custom_components.pawcontrol import diagnostics
@@ -44,3 +46,17 @@ async def test_service_execution_defaults_include_rejection_metrics() -> None:
   guard_metrics = payload["guard_metrics"]
   assert guard_metrics["executed"] == 0
   assert guard_metrics["skipped"] == 0
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_payloads_json_serialisable() -> None:
+  """Ensure diagnostics payloads remain JSON serialisable."""
+
+  payloads = [
+    await diagnostics._get_performance_metrics(None),
+    await diagnostics._get_notification_diagnostics(None),
+    await diagnostics._get_service_execution_diagnostics(None),
+  ]
+
+  for payload in payloads:
+    json.dumps(payload)
