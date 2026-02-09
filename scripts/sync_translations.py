@@ -104,6 +104,9 @@ def main() -> int:
   if not strings_path.exists():
     raise SystemExit(f"Missing strings.json at {strings_path}")
 
+  if args.check and not translations_dir.exists():
+    raise SystemExit(f"Missing translations directory at {translations_dir}")
+
   # Ensure translations directory exists, especially for seeding new languages.
   translations_dir.mkdir(parents=True, exist_ok=True)
 
