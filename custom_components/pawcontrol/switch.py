@@ -894,7 +894,18 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     )
     self._attr_name = f"{dog_name} {display_name}"
 
-  @property
+@property
+  def extra_state_attributes(self) -> JSONMutableMapping:
+    """Return feature-specific attributes."""
+    feature_attrs = normalise_entity_attributes(super().extra_state_attributes)
+    feature_attrs.update(
+      {
+        "feature_id": self._feature_id,
+        "parent_module": self._module,
+        "feature_name": self._feature_name,
+      },
+    )
+    return feature_attrs  # Already normalized
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Return feature-specific attributes."""
     feature_attrs = normalise_entity_attributes(super().extra_state_attributes)
