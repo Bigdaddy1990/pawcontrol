@@ -887,8 +887,6 @@ async def test_async_setup_services_registers_expected_services(
 
   expected_services = {
     services.SERVICE_ADD_FEEDING,
-    services.SERVICE_START_WALK,
-    services.SERVICE_END_WALK,
     services.SERVICE_ADD_GPS_POINT,
     services.SERVICE_UPDATE_HEALTH,
     services.SERVICE_LOG_HEALTH,
@@ -934,56 +932,6 @@ async def test_async_setup_services_registers_expected_services(
   assert "garden_history_purge" not in hass.services.handlers
   assert "recalculate_garden_stats" not in hass.services.handlers
   assert "archive_old_garden_sessions" not in hass.services.handlers
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_start_walk_service_logs_deprecation(
-  monkeypatch: pytest.MonkeyPatch,
-  caplog: pytest.LogCaptureFixture,
-) -> None:
-  """Deprecated walk services should warn and still execute."""
-
-  walk_manager = _WalkManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), walk_manager=walk_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
-
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_WALK]
-
-  with caplog.at_level(logging.WARNING):
-    await handler(SimpleNamespace(data={"dog_id": "buddy"}))
-
-  assert "pawcontrol.start_walk" in caplog.text
-  assert "deprecated" in caplog.text
-  assert "pawcontrol.gps_start_walk" in caplog.text
-  assert walk_manager.start_calls
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_end_walk_service_logs_deprecation(
-  monkeypatch: pytest.MonkeyPatch,
-  caplog: pytest.LogCaptureFixture,
-) -> None:
-  """Deprecated walk services should warn and still execute."""
-
-  walk_manager = _WalkManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), walk_manager=walk_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
-
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_END_WALK]
-
-  with caplog.at_level(logging.WARNING):
-    await handler(SimpleNamespace(data={"dog_id": "buddy"}))
-
-  assert "pawcontrol.end_walk" in caplog.text
-  assert "deprecated" in caplog.text
-  assert "pawcontrol.gps_end_walk" in caplog.text
-  assert walk_manager.end_calls
 
 
 @pytest.mark.unit
