@@ -2013,10 +2013,6 @@
       "description": "Perform daily reset of counters for all dogs",
       "name": "Daily Reset"
     },
-    "end_walk": {
-      "description": "End the current walk for a dog",
-      "name": "End Walk"
-    },
     "feed_with_medication": {
       "description": "Logs a feeding along with medication administration",
       "name": "Feed with Medication"
@@ -2072,10 +2068,6 @@
     "start_grooming": {
       "description": "Start a grooming session for a dog",
       "name": "Start Grooming"
-    },
-    "start_walk": {
-      "description": "Start a walk for a dog",
-      "name": "Start Walk"
     },
     "update_weather_data": {
       "description": "Updates weather data for health monitoring",

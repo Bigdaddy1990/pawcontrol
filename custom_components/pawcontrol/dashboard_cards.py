@@ -1827,7 +1827,7 @@ class ModuleCardGenerator(BaseCardGenerator):
           "icon_height": "60px",
           "tap_action": {
             "action": "call-service",
-            "service": f"{DOMAIN}.start_walk",
+            "service": f"{DOMAIN}.gps_start_walk",
             "service_data": {"dog_id": dog_id},
           },
         },
@@ -1847,7 +1847,7 @@ class ModuleCardGenerator(BaseCardGenerator):
           "icon_height": "60px",
           "tap_action": {
             "action": "call-service",
-            "service": f"{DOMAIN}.end_walk",
+            "service": f"{DOMAIN}.gps_end_walk",
             "service_data": {"dog_id": dog_id},
           },
         },

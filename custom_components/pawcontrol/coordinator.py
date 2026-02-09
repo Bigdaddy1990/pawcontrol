@@ -395,15 +395,6 @@ class PawControlCoordinator(
       self.data = updated_payload
     return self._data
 
-  async def _fetch_dog_data_protected(self, dog_id: str) -> CoordinatorDogData:
-    """Delegate to the runtime's protected fetch for legacy callers.
-
-    Deprecated in favor of ``_fetch_dog_data`` and scheduled for removal in
-    v1.2.0 (2026-03-01).
-    """
-
-    return await self._runtime._fetch_dog_data_protected(dog_id)
-
   async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:
     """Delegate to the runtime fetch implementation."""
 
