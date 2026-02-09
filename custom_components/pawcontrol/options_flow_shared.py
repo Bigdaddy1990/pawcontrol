@@ -36,6 +36,7 @@ from .const import (
 )
 from .utils import normalize_value
 from .exceptions import FlowValidationError
+from .flow_validation import validate_dog_config_payload
 from .script_manager import resolve_resilience_script_thresholds
 from .selector_shim import selector
 from .types import (
@@ -64,11 +65,9 @@ from .types import (
   WeatherOptions,
   clone_placeholders,
   ensure_advanced_options,
-  ensure_dog_modules_config,
   ensure_dog_modules_mapping,
   ensure_dog_options_entry,
   freeze_placeholders,
-  is_dog_config_valid,
   normalize_performance_mode,
 )
 from .validation import (
@@ -242,25 +241,22 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     return cast(JSONValue, normalize_value(value))
 
-  def _sanitise_imported_dog(self, raw: Mapping[str, JSONValue]) -> DogConfigData:
-    """Normalise and validate a dog payload from an import file."""
+  def _map_import_payload_error(self, error: FlowValidationError) -> str:
+    """Map dog validation errors to import payload error codes."""
 
-    normalised = cast(
-      DogConfigData,
-      self._normalise_export_value(dict(raw)),
-    )
+    if error.base_errors:
+      return "dog_invalid"
 
-    modules_raw = normalised.get(CONF_MODULES)
-    if modules_raw is not None and not isinstance(modules_raw, Mapping):
-      raise FlowValidationError(field_errors={"payload": "dog_invalid_modules"})
-
-    modules = ensure_dog_modules_config(normalised)
-    normalised[DOG_MODULES_FIELD] = modules
-
-    if not is_dog_config_valid(normalised):
-      raise FlowValidationError(field_errors={"payload": "dog_invalid_config"})
-
-    return normalised
+    field_errors = error.field_errors
+    if field_errors.get(CONF_MODULES) == "dog_invalid_modules":
+      return "dog_invalid_modules"
+    if CONF_DOG_ID in field_errors:
+      if field_errors[CONF_DOG_ID] == "dog_id_already_exists":
+        return "dog_duplicate"
+      return "dog_missing_id"
+    if CONF_DOG_NAME in field_errors:
+      return "dog_invalid"
+    return "dog_invalid"
 
   def _build_export_payload(self) -> OptionsExportPayload:
     """Serialise the current configuration into an export payload."""
@@ -338,14 +334,25 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     for raw in dogs_raw:
       if not isinstance(raw, Mapping):
         raise FlowValidationError(field_errors={"payload": "dog_invalid"})
-      normalised = self._sanitise_imported_dog(raw)
-      dog_id = normalised.get(CONF_DOG_ID)
+      normalised = cast(
+        DogConfigData,
+        self._normalise_export_value(dict(raw)),
+      )
+      try:
+        validated = validate_dog_config_payload(
+          cast(Mapping[str, object], normalised),
+          existing_ids=seen_ids,
+          existing_names=None,
+        )
+      except FlowValidationError as err:
+        raise FlowValidationError(
+          field_errors={"payload": self._map_import_payload_error(err)},
+        ) from err
+      dog_id = validated.get(CONF_DOG_ID)
       if not isinstance(dog_id, str) or not dog_id.strip():
         raise FlowValidationError(field_errors={"payload": "dog_missing_id"})
-      if dog_id in seen_ids:
-        raise FlowValidationError(field_errors={"payload": "dog_duplicate"})
       seen_ids.add(dog_id)
-      dogs_payload.append(normalised)
+      dogs_payload.append(validated)
 
     created_at = payload.get("created_at")
     if not isinstance(created_at, str) or not created_at:

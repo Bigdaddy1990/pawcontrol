@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
 from custom_components.pawcontrol.const import (
   CONF_DOG_ID,
@@ -8,6 +10,7 @@ from custom_components.pawcontrol.const import (
   CONF_NAME,
   DOMAIN,
 )
+from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -89,6 +92,31 @@ async def test_reauth_step_shows_confirmation_form(
 
   assert result["type"] == FlowResultType.FORM
   assert result["step_id"] == "reauth_confirm"
+
+
+async def test_reauth_rejects_invalid_dog_payload(
+  hass: HomeAssistant,
+) -> None:
+  entry = MockConfigEntry(
+    domain=DOMAIN,
+    data={
+      CONF_DOGS: [
+        {
+          CONF_DOG_ID: "",
+          CONF_DOG_NAME: "",
+        }
+      ]
+    },
+    options={},
+  )
+  entry.add_to_hass(hass)
+
+  flow = PawControlConfigFlow()
+  flow.hass = hass
+  flow.context = {"entry_id": entry.entry_id}
+
+  with pytest.raises(ConfigEntryAuthFailed):
+    await flow.async_step_reauth({})
 
 
 async def test_reconfigure_step_shows_form(

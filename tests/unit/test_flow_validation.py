@@ -10,9 +10,13 @@ from custom_components.pawcontrol.const import (
   CONF_DOG_NAME,
   CONF_DOG_SIZE,
   CONF_DOG_WEIGHT,
+  CONF_MODULES,
 )
 from custom_components.pawcontrol.exceptions import FlowValidationError
-from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
+from custom_components.pawcontrol.flow_validation import (
+  validate_dog_config_payload,
+  validate_dog_setup_input,
+)
 
 
 def _valid_dog_input() -> dict[str, object]:
@@ -86,3 +90,37 @@ def test_validate_dog_setup_rejects_duplicate_name() -> None:
     )
 
   assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
+
+
+def test_validate_dog_config_payload_coerces_optional_fields() -> None:
+  payload = {
+    CONF_DOG_ID: "Buddy",
+    CONF_DOG_NAME: " Buddy ",
+    CONF_DOG_WEIGHT: "22.5",
+    CONF_DOG_SIZE: "large",
+    CONF_DOG_AGE: "5",
+    CONF_MODULES: {"gps": "yes", "health": 0},
+  }
+
+  result = validate_dog_config_payload(payload, existing_ids=set())
+
+  assert result[CONF_DOG_ID] == "buddy"
+  assert result[CONF_DOG_NAME] == "Buddy"
+  assert result[CONF_DOG_WEIGHT] == 22.5
+  assert result[CONF_DOG_AGE] == 5
+  modules = result[CONF_MODULES]
+  assert modules["gps"] is True
+  assert modules["health"] is False
+
+
+def test_validate_dog_config_payload_rejects_invalid_modules() -> None:
+  payload = {
+    CONF_DOG_ID: "buddy",
+    CONF_DOG_NAME: "Buddy",
+    CONF_MODULES: ["invalid"],
+  }
+
+  with pytest.raises(FlowValidationError) as err:
+    validate_dog_config_payload(payload, existing_ids=set())
+
+  assert err.value.field_errors[CONF_MODULES] == "dog_invalid_modules"
