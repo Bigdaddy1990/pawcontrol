@@ -21,16 +21,7 @@ from .types import (
   CoordinatorModuleLookupResult,
   CoordinatorRuntimeManagers,
   CoordinatorUntypedModuleState,
-from .types import (
-  CoordinatorDogData,
-  CoordinatorModuleLookupResult,
-  CoordinatorRuntimeManagers,
-  CoordinatorUntypedModuleState,
   DogConfigData,
-  DogStatusSnapshot,
-  JSONMutableMapping,
-  ensure_json_mapping,  # Keep import to maintain API for other modules
-)
   DogStatusSnapshot,
   JSONMutableMapping,
 )
@@ -329,28 +320,15 @@ class PawControlDogEntityBase(PawControlEntity):
   def _build_base_state_attributes(
     self,
     extra: Mapping[str, object] | None = None,
-def _build_base_state_attributes(
-    self,
-    extra: Mapping[str, object] | None = None,
   ) -> JSONMutableMapping:
     """Return base attributes enriched with dog info."""
 
-    # Get already normalized attributes from parent
-    attrs = super().extra_state_attributes  # Already normalized by parent property
+    attrs = dict(super().extra_state_attributes)
     attrs.setdefault(ATTR_DOG_ID, self._dog_id)
     attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
-    if extra:
-      # Normalize only the external 'extra' parameter before merging
-      attrs.update(normalise_entity_attributes(extra))
-    return attrs
-    """Return base attributes enriched with dog info."""
-
-    attrs = normalise_entity_attributes(super().extra_state_attributes)
-    attrs.setdefault(ATTR_DOG_ID, self._dog_id)
-    attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
-    if extra:
-      attrs.update(normalise_entity_attributes(extra))
     self._append_dog_info_attributes(attrs)
+    if extra:
+      attrs.update(normalise_entity_attributes(extra))
     return attrs
 
   def _build_entity_attributes(

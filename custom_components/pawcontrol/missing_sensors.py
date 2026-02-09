@@ -259,7 +259,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
   @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Return supplemental activity telemetry for diagnostics."""
-    attrs = normalise_entity_attributes(super().extra_state_attributes)
+    attrs = dict(super().extra_state_attributes)
     walk_data = _walk_payload(self)
     health_data = _health_payload(self)
 
@@ -348,7 +348,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
   @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Provide supporting data for the calories burned calculation."""
-    attrs = normalise_entity_attributes(super().extra_state_attributes)
+    attrs = dict(super().extra_state_attributes)
     walk_data = _walk_payload(self)
     health_data = _health_payload(self)
     dog_weight = self._resolve_dog_weight(health_data)
@@ -414,7 +414,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
   @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Return contextual feeding metadata for diagnostics."""
-    attrs = normalise_entity_attributes(super().extra_state_attributes)
+    attrs = dict(super().extra_state_attributes)
     feeding_data = _feeding_payload(self)
     if feeding_data is None:
       return _normalise_attributes(attrs)
@@ -517,7 +517,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
   @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Return aggregated walk distance metrics for the dog."""
-    attrs = normalise_entity_attributes(super().extra_state_attributes)
+    attrs = dict(super().extra_state_attributes)
     walk_data = _walk_payload(self)
     if walk_data is None:
       return _normalise_attributes(attrs)
@@ -626,7 +626,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
   @property
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Expose weekly walk statistics derived from coordinator payloads."""
-    attrs = normalise_entity_attributes(super().extra_state_attributes)
+    attrs = dict(super().extra_state_attributes)
     walk_data = _walk_payload(self)
     if walk_data is None:
       return _normalise_attributes(attrs)

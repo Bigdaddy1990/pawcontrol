@@ -1155,13 +1155,15 @@ async def _get_notification_diagnostics(
 
   stats = await notification_manager.async_get_performance_statistics()
   delivery = notification_manager.get_delivery_status_snapshot()
+  stats_payload = cast(JSONValue, normalize_value(stats))
+  delivery_payload = cast(JSONValue, normalize_value(delivery))
 
   return cast(
     JSONMutableMapping,
     {
       "available": True,
-      "manager_stats": stats,
-      "delivery_status": delivery,
+      "manager_stats": stats_payload,
+      "delivery_status": delivery_payload,
       "rejection_metrics": _build_notification_rejection_metrics(delivery),
     },
   )
