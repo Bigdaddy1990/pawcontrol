@@ -1,6 +1,6 @@
 # 🐾 Paw Control - Smart Dog Management for Home Assistant
 
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.2.1%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.0%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20aligned-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -138,7 +138,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
 ### System Requirements
 
 **Minimum Requirements (target):**
-- Home Assistant Core 2026.2.1+
+- Home Assistant Core 2025.9.0+
 - Python 3.13+
 - 512MB available RAM
 - 100MB free storage
@@ -1029,7 +1029,7 @@ If you need to uninstall PawControl—whether you're migrating hardware or just 
 **Integration won't load**:
 ```bash
 # Check Home Assistant version
-# Requirement: 2026.2.1 or later
+# Requirement: 2025.9.0 or later
 Settings → System → General → Check version
 
 # Verify installation
@@ -1326,7 +1326,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 ### Current Version: 1.0.0 (Production Ready)
 
 **✨ Major Features**:
-- Complete Home Assistant 2026.2.1+ integration
+- Complete Home Assistant 2025.9.0+ integration
 - 10 platform support with 150+ entities
 - Advanced GPS tracking with geofencing
 - Multi-dog management with independent configurations
