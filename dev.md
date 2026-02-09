@@ -162,6 +162,10 @@ guidelines while you iterate on new features or refactors:
   messages, including explicit min/max checks and unique‑ID guards.
 - Ensure `extra_state_attributes` are JSON‑serializable and follow the
   normalization logic used for diagnostics.
+- Treat `custom_components/pawcontrol/manifest.json` as the
+  hassfest-quality-standard baseline for this integration; avoid changing its
+  quality scale or metadata without coordinating docs/tests, because hassfest
+  validation and Platinum evidence depend on those fields staying aligned.
 
 ## Localization workflow
 

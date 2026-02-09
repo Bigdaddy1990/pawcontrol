@@ -23,10 +23,9 @@ def _sync_tree(source: Any, existing: Any) -> Any:
       key: _sync_tree(value, existing_map.get(key)) for key, value in source.items()
     }
 
-  if isinstance(existing, str):
-    return existing
-
   if isinstance(source, str):
+    if isinstance(existing, str):
+      return existing
     return source
 
   return source
@@ -44,8 +43,10 @@ def _sync_translation(
   else:
     if check_only:
       raise SystemExit(f"Missing translation file: {language_file}")
-    existing_data = {}
-    original_content = ""
+    synced = strings_data
+    new_content = _dump_json(synced)
+    language_file.write_text(new_content, encoding="utf-8")
+    return True
 
   synced = _sync_tree(strings_data, existing_data)
   new_content = _dump_json(synced)
@@ -95,8 +96,7 @@ def main() -> int:
 
   if not strings_path.exists():
     raise SystemExit(f"Missing strings.json at {strings_path}")
-  if not translations_dir.exists():
-    raise SystemExit(f"Missing translations directory at {translations_dir}")
+  translations_dir.mkdir(parents=True, exist_ok=True)
 
   strings_data = _load_json(strings_path)
   language_files = _resolve_language_files(translations_dir, args.languages)

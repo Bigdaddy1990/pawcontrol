@@ -57,20 +57,12 @@ jobs:
         run: |
           python -m scripts.enforce_test_requirements
           python -m scripts.sync_localization_flags \
-            --allowlist scripts/sync_localization_flags.allowlist
-          python -m scripts.sync_localization_flags \
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
 
       - name: Check translation sync
         run: |
           python -m scripts.sync_translations --check
-
-      - name: Validate localization flags
-        run: |
-          python -m scripts.sync_localization_flags \
-            --allowlist scripts/sync_localization_flags.allowlist \
-            --check
 
       - name: Run Prek
         run: |
