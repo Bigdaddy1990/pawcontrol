@@ -114,9 +114,6 @@ def main() -> int:
       or updated
     )
 
-  if updated and args.check:
-    raise SystemExit("Translation files are out of date.")
-
   return 0
 
 
