@@ -729,12 +729,7 @@ data:
 
 ### Deprecations & Removal Schedule
 
-- **`pawcontrol.start_walk` / `pawcontrol.end_walk`**: Deprecated in favor of
-  `pawcontrol.gps_start_walk` and `pawcontrol.gps_end_walk`. Removal is scheduled
-  for v1.2.0 on 2026-03-01.
-- **`PawControlCoordinator._fetch_dog_data_protected`**: Legacy internal helper
-  scheduled for removal in v1.2.0 on 2026-03-01. New integrations and tests
-  should call `_fetch_dog_data` instead.
+No active deprecations at this time.
 
 ### Event-Driven Automations
 

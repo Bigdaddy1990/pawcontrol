@@ -1355,7 +1355,7 @@ class DashboardTemplates:
         "icon_color": theme_styles["colors"]["primary"],
         "tap_action": {
           "action": "call-service",
-          "service": f"{DOMAIN}.start_walk",
+          "service": f"{DOMAIN}.gps_start_walk",
           "service_data": {"dog_id": dog_id},
         },
       },
@@ -1378,7 +1378,7 @@ class DashboardTemplates:
         "icon_color": "red",
         "tap_action": {
           "action": "call-service",
-          "service": f"{DOMAIN}.end_walk",
+          "service": f"{DOMAIN}.gps_end_walk",
           "service_data": {"dog_id": dog_id},
         },
       },

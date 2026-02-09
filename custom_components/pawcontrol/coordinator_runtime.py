@@ -356,7 +356,7 @@ class CoordinatorRuntime:
 
       try:
         result = await self._resilience.execute_with_resilience(
-          self._fetch_dog_data_protected,
+          self._fetch_dog_data,
           dog_id,
           circuit_breaker_name=f"dog_data_{dog_id}",
           retry_config=self._retry,
@@ -456,102 +456,99 @@ class CoordinatorRuntime:
       success=success,
     )
 
-  async def _fetch_dog_data_protected(self, dog_id: str) -> CoordinatorDogData:
-    async with asyncio.timeout(API_TIMEOUT):
-      return await self._fetch_dog_data(dog_id)
-
   async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:
-    dog_config = self._registry.get(dog_id)
-    if not dog_config:
-      raise ValidationError(
-        "dog_id",
+    async with asyncio.timeout(API_TIMEOUT):
+      dog_config = self._registry.get(dog_id)
+      if not dog_config:
+        raise ValidationError(
+          "dog_id",
+          dog_id,
+          "Dog configuration not found",
+        )
+
+      payload: CoordinatorDogData = {
+        "dog_info": dog_config,
+        "status": "online",
+        "last_update": dt_util.utcnow().isoformat(),
+      }
+
+      modules = ensure_dog_modules_mapping(dog_config)
+      module_tasks: list[CoordinatorModuleTask] = self._modules.build_tasks(
         dog_id,
-        "Dog configuration not found",
+        modules,
+      )
+      if not module_tasks:
+        return payload
+
+      results = await asyncio.gather(
+        *(task.coroutine for task in module_tasks),
+        return_exceptions=True,
       )
 
-    payload: CoordinatorDogData = {
-      "dog_info": dog_config,
-      "status": "online",
-      "last_update": dt_util.utcnow().isoformat(),
-    }
+      for task, result in zip(module_tasks, results, strict=True):
+        module_name: CoordinatorTypedModuleName = task.module
+        if isinstance(result, GPSUnavailableError):
+          self._logger.debug(
+            "GPS unavailable for %s: %s",
+            dog_id,
+            result,
+          )
+          payload[module_name] = cast(
+            CoordinatorModuleErrorPayload,
+            {
+              "status": "unavailable",
+              "reason": str(result),
+            },
+          )
+        elif isinstance(result, RateLimitError):
+          # Surface rate limits with retry hints for UI
+          self._logger.warning(
+            "Rate limit fetching %s data for %s: %s",
+            module_name,
+            dog_id,
+            result.user_message,
+          )
+          payload[module_name] = cast(
+            CoordinatorModuleErrorPayload,
+            {
+              "status": "rate_limited",
+              "error": result.user_message,
+              "retry_after": result.retry_after,
+            },
+          )
+        elif isinstance(result, NetworkError):
+          self._logger.warning(
+            "Network error fetching %s data for %s: %s",
+            module_name,
+            dog_id,
+            result,
+          )
+          payload[module_name] = cast(
+            CoordinatorModuleErrorPayload,
+            {
+              "status": "network_error",
+              "error": str(result),
+            },
+          )
+        elif isinstance(result, Exception):
+          self._logger.warning(
+            "Failed to fetch %s data for %s: %s (%s)",
+            module_name,
+            dog_id,
+            result,
+            result.__class__.__name__,
+          )
+          payload[module_name] = cast(
+            CoordinatorModuleErrorPayload,
+            {
+              "status": "error",
+              "error": str(result),
+              "error_type": result.__class__.__name__,
+            },
+          )
+        else:
+          payload[module_name] = cast(ModuleAdapterPayload, result)
 
-    modules = ensure_dog_modules_mapping(dog_config)
-    module_tasks: list[CoordinatorModuleTask] = self._modules.build_tasks(
-      dog_id,
-      modules,
-    )
-    if not module_tasks:
+      payload["status_snapshot"] = build_dog_status_snapshot(dog_id, payload)
+
       return payload
-
-    results = await asyncio.gather(
-      *(task.coroutine for task in module_tasks),
-      return_exceptions=True,
-    )
-
-    for task, result in zip(module_tasks, results, strict=True):
-      module_name: CoordinatorTypedModuleName = task.module
-      if isinstance(result, GPSUnavailableError):
-        self._logger.debug(
-          "GPS unavailable for %s: %s",
-          dog_id,
-          result,
-        )
-        payload[module_name] = cast(
-          CoordinatorModuleErrorPayload,
-          {
-            "status": "unavailable",
-            "reason": str(result),
-          },
-        )
-      elif isinstance(result, RateLimitError):
-        # Surface rate limits with retry hints for UI
-        self._logger.warning(
-          "Rate limit fetching %s data for %s: %s",
-          module_name,
-          dog_id,
-          result.user_message,
-        )
-        payload[module_name] = cast(
-          CoordinatorModuleErrorPayload,
-          {
-            "status": "rate_limited",
-            "error": result.user_message,
-            "retry_after": result.retry_after,
-          },
-        )
-      elif isinstance(result, NetworkError):
-        self._logger.warning(
-          "Network error fetching %s data for %s: %s",
-          module_name,
-          dog_id,
-          result,
-        )
-        payload[module_name] = cast(
-          CoordinatorModuleErrorPayload,
-          {
-            "status": "network_error",
-            "error": str(result),
-          },
-        )
-      elif isinstance(result, Exception):
-        self._logger.warning(
-          "Failed to fetch %s data for %s: %s (%s)",
-          module_name,
-          dog_id,
-          result,
-          result.__class__.__name__,
-        )
-        payload[module_name] = cast(
-          CoordinatorModuleErrorPayload,
-          {
-            "status": "error",
-            "error": str(result),
-            "error_type": result.__class__.__name__,
-          },
-        )
-      else:
-        payload[module_name] = cast(ModuleAdapterPayload, result)
-
-    payload["status_snapshot"] = build_dog_status_snapshot(dog_id, payload)
-
-    return payload

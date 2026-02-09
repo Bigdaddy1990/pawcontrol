@@ -137,7 +137,6 @@ from .validation import (
   validate_notification_targets,
 )
 from .validation_helpers import validate_service_coordinates
-from .walk_manager import WeatherCondition
 
 SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
   ha_config_entries,
@@ -146,18 +145,6 @@ SIGNAL_CONFIG_ENTRY_CHANGED = getattr(
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _log_deprecated_service(service: str, replacement: str) -> None:
-  """Log a deprecation warning for legacy services."""
-
-  _LOGGER.warning(
-    "The %s service is deprecated and will be removed in v%s (%s). Use %s instead.",
-    f"{DOMAIN}.{service}",
-    DEPRECATION_REMOVAL_VERSION,
-    DEPRECATION_REMOVAL_DATE,
-    f"{DOMAIN}.{replacement}",
-  )
 
 
 def _service_validation_error(message: str) -> Exception:
@@ -251,10 +238,8 @@ VALID_ACCURACY_RANGE = (1.0, 1000.0)  # meters
 VALID_LATITUDE_RANGE = (-90.0, 90.0)  # degrees
 VALID_LONGITUDE_RANGE = (-180.0, 180.0)  # degrees
 
-# Service names - maintain backward compatibility
+# Service names
 SERVICE_ADD_FEEDING = "add_feeding"
-SERVICE_START_WALK = "start_walk"
-SERVICE_END_WALK = "end_walk"
 SERVICE_ADD_GPS_POINT = "add_gps_point"
 SERVICE_UPDATE_HEALTH = "update_health"
 SERVICE_SEND_NOTIFICATION = "send_notification"
@@ -271,9 +256,6 @@ SERVICE_START_GARDEN = "start_garden_session"
 SERVICE_END_GARDEN = "end_garden_session"
 SERVICE_ADD_GARDEN_ACTIVITY = "add_garden_activity"
 SERVICE_CONFIRM_POOP = "confirm_garden_poop"
-
-DEPRECATION_REMOVAL_VERSION = "1.2.0"
-DEPRECATION_REMOVAL_DATE = "2026-03-01"
 
 _ManagerT = TypeVar("_ManagerT")
 
@@ -838,25 +820,6 @@ SERVICE_ADD_FEEDING_SCHEMA = vol.Schema(
         vol.Optional("time"): cv.string,
       },
     ),
-  },
-)
-
-SERVICE_START_WALK_SCHEMA = vol.Schema(
-  {
-    vol.Required("dog_id"): cv.string,
-    vol.Optional("walker"): cv.string,
-    vol.Optional("weather"): vol.In(
-      ["sunny", "cloudy", "rainy", "snowy", "windy", "hot", "cold"],
-    ),
-    vol.Optional("leash_used", default=True): cv.boolean,
-  },
-)
-
-SERVICE_END_WALK_SCHEMA = vol.Schema(
-  {
-    vol.Required("dog_id"): cv.string,
-    vol.Optional("notes"): cv.string,
-    vol.Optional("dog_weight_kg"): vol.Coerce(float),
   },
 )
 
@@ -1697,183 +1660,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     """Handle add feeding service call."""
 
     await _async_handle_feeding_request(call.data, service_name=SERVICE_ADD_FEEDING)
-
-  async def start_walk_service(call: ServiceCall) -> None:
-    """Handle start walk service call."""
-    _log_deprecated_service(SERVICE_START_WALK, SERVICE_GPS_START_WALK)
-    coordinator = _get_coordinator()
-    walk_manager = _require_manager(
-      _get_runtime_manager(coordinator, "walk_manager"),
-      "walk manager",
-    )
-    runtime_data = _get_runtime_data_for_coordinator(coordinator)
-
-    raw_dog_id = call.data["dog_id"]
-    dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
-    walker = call.data.get("walker")
-    weather = call.data.get("weather")
-    leash_used = call.data.get("leash_used", True)
-
-    try:
-      weather_enum: WeatherCondition | None = None
-      if weather:
-        try:
-          weather_enum = WeatherCondition(weather)
-        except ValueError:
-          _LOGGER.warning(
-            "Ignoring unknown weather condition '%s' for %s",
-            weather,
-            dog_id,
-          )
-
-      session_id = await walk_manager.async_start_walk(
-        dog_id=dog_id,
-        walk_type="manual",
-        walker=walker,
-        weather=weather_enum,
-        leash_used=leash_used,
-      )
-
-      _LOGGER.info(
-        "Started walk for %s (session: %s, walker: %s, weather: %s, leash_used: %s)",
-        dog_id,
-        session_id,
-        walker or "unknown",
-        weather_enum.value if weather_enum else "unspecified",
-        "yes" if leash_used else "no",
-      )
-
-      details = _normalise_service_details(
-        {
-          "session_id": session_id,
-          "walker": walker,
-          "weather": weather_enum.value if weather_enum else weather,
-          "leash_used": leash_used,
-        },
-      )
-      _record_service_result(
-        runtime_data,
-        service=SERVICE_START_WALK,
-        status="success",
-        dog_id=dog_id,
-        details=details,
-      )
-
-    except HomeAssistantError as err:
-      _record_service_result(
-        runtime_data,
-        service=SERVICE_START_WALK,
-        status="error",
-        dog_id=dog_id,
-        message=str(err),
-      )
-      raise
-    except Exception as err:
-      _LOGGER.error("Failed to start walk for %s: %s", dog_id, err)
-      error_message = (
-        f"Failed to start the walk for {dog_id}. Check the logs for details."
-      )
-      _record_service_result(
-        runtime_data,
-        service=SERVICE_START_WALK,
-        status="error",
-        dog_id=dog_id,
-        message=error_message,
-      )
-      raise HomeAssistantError(error_message) from err
-
-  async def end_walk_service(call: ServiceCall) -> None:
-    """Handle end walk service call."""
-    _log_deprecated_service(SERVICE_END_WALK, SERVICE_GPS_END_WALK)
-    coordinator = _get_coordinator()
-    walk_manager = _require_manager(
-      _get_runtime_manager(coordinator, "walk_manager"),
-      "walk manager",
-    )
-    runtime_data = _get_runtime_data_for_coordinator(coordinator)
-
-    raw_dog_id = call.data["dog_id"]
-    dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
-    notes = call.data.get("notes")
-    dog_weight_kg = call.data.get("dog_weight_kg")
-
-    try:
-      walk_event = await walk_manager.async_end_walk(
-        dog_id=dog_id,
-        notes=notes,
-        dog_weight_kg=dog_weight_kg,
-      )
-
-      if walk_event:
-        await coordinator.async_request_refresh()
-
-        distance_km = float(walk_event.get("distance") or 0.0) / 1000
-        duration_minutes = (
-          float(
-            walk_event.get("duration") or 0.0,
-          )
-          / 60
-        )
-
-        _LOGGER.info(
-          "Ended walk for %s: %.2f km in %.0f minutes",
-          dog_id,
-          distance_km,
-          duration_minutes,
-        )
-        details = _normalise_service_details(
-          {
-            "distance_km": distance_km,
-            "duration_minutes": duration_minutes,
-            "notes": notes,
-            "dog_weight_kg": dog_weight_kg,
-          },
-        )
-        _record_service_result(
-          runtime_data,
-          service=SERVICE_END_WALK,
-          status="success",
-          dog_id=dog_id,
-          details=details,
-        )
-      else:
-        _LOGGER.warning("No active walk found for %s", dog_id)
-        _record_service_result(
-          runtime_data,
-          service=SERVICE_END_WALK,
-          status="success",
-          dog_id=dog_id,
-          details=_normalise_service_details(
-            {
-              "notes": notes,
-              "dog_weight_kg": dog_weight_kg,
-              "result": "no_active_walk",
-            },
-          ),
-        )
-
-    except HomeAssistantError as err:
-      _record_service_result(
-        runtime_data,
-        service=SERVICE_END_WALK,
-        status="error",
-        dog_id=dog_id,
-        message=str(err),
-      )
-      raise
-    except Exception as err:
-      _LOGGER.error("Failed to end walk for %s: %s", dog_id, err)
-      error_message = (
-        f"Failed to end the walk for {dog_id}. Check the logs for details."
-      )
-      _record_service_result(
-        runtime_data,
-        service=SERVICE_END_WALK,
-        status="error",
-        dog_id=dog_id,
-        message=error_message,
-      )
-      raise HomeAssistantError(error_message) from err
 
   async def add_gps_point_service(call: ServiceCall) -> None:
     """Handle add GPS point service call."""
@@ -4970,18 +4756,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
   )
 
   _register_service(
-    SERVICE_START_WALK,
-    start_walk_service,
-    schema=SERVICE_START_WALK_SCHEMA,
-  )
-
-  _register_service(
-    SERVICE_END_WALK,
-    end_walk_service,
-    schema=SERVICE_END_WALK_SCHEMA,
-  )
-
-  _register_service(
     SERVICE_ADD_GPS_POINT,
     add_gps_point_service,
     schema=SERVICE_ADD_GPS_POINT_SCHEMA,
@@ -5217,8 +4991,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
   """
   services_to_remove = [
     SERVICE_ADD_FEEDING,
-    SERVICE_START_WALK,
-    SERVICE_END_WALK,
     SERVICE_ADD_GPS_POINT,
     SERVICE_UPDATE_HEALTH,
     SERVICE_LOG_HEALTH,

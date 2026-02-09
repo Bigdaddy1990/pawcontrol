@@ -52,15 +52,15 @@ from .const import (
   SERVICE_ADD_FEEDING,
   SERVICE_CONFIRM_GARDEN_POOP,
   SERVICE_END_GARDEN_SESSION,
-  SERVICE_END_WALK,
   SERVICE_GPS_EXPORT_ROUTE,
+  SERVICE_GPS_END_WALK,
+  SERVICE_GPS_START_WALK,
   SERVICE_LOG_HEALTH,
   SERVICE_LOG_MEDICATION,
   SERVICE_NOTIFY_TEST,
   SERVICE_SEND_NOTIFICATION,
   SERVICE_START_GARDEN_SESSION,
   SERVICE_START_GROOMING,
-  SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
 from .utils import normalize_value, resolve_default_feeding_amount
@@ -1471,7 +1471,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
 
       await self._async_service_call(
         "pawcontrol",
-        SERVICE_START_WALK,
+        SERVICE_GPS_START_WALK,
         {
           ATTR_DOG_ID: self._dog_id,
           "walker": "Manual walk",
@@ -1542,7 +1542,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
 
       await self._async_service_call(
         "pawcontrol",
-        SERVICE_END_WALK,
+        SERVICE_GPS_END_WALK,
         {ATTR_DOG_ID: self._dog_id},
         blocking=False,
       )
@@ -1595,7 +1595,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
     # Start and immediately end walk atomically
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_START_WALK,
+      SERVICE_GPS_START_WALK,
       data={
         ATTR_DOG_ID: self._dog_id,
         "walker": "Quick walk",
@@ -1607,7 +1607,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
 
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_END_WALK,
+      SERVICE_GPS_END_WALK,
       data={
         ATTR_DOG_ID: self._dog_id,
         "notes": "Quick walk",
@@ -1642,7 +1642,7 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
     await super().async_press()
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_START_WALK,
+      SERVICE_GPS_START_WALK,
       {
         ATTR_DOG_ID: self._dog_id,
         "walker": "Manual entry",
@@ -1654,7 +1654,7 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
 
     await self._async_press_service(
       "pawcontrol",
-      SERVICE_END_WALK,
+      SERVICE_GPS_END_WALK,
       {
         ATTR_DOG_ID: self._dog_id,
         "notes": "Manually logged walk",
