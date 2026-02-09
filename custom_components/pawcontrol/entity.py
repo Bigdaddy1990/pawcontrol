@@ -320,7 +320,20 @@ class PawControlDogEntityBase(PawControlEntity):
   def _build_base_state_attributes(
     self,
     extra: Mapping[str, object] | None = None,
+def _build_base_state_attributes(
+    self,
+    extra: Mapping[str, object] | None = None,
   ) -> JSONMutableMapping:
+    """Return base attributes enriched with dog info."""
+
+    # Get already normalized attributes from parent
+    attrs = super().extra_state_attributes  # Already normalized by parent property
+    attrs.setdefault(ATTR_DOG_ID, self._dog_id)
+    attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
+    if extra:
+      # Normalize only the external 'extra' parameter before merging
+      attrs.update(normalise_entity_attributes(extra))
+    return attrs
     """Return base attributes enriched with dog info."""
 
     attrs = normalise_entity_attributes(super().extra_state_attributes)
