@@ -17,7 +17,7 @@
     "dashboard_health_label_walk_safety": "Walk Safety",
     "dashboard_health_label_weather_health_score": "Health Score",
     "dashboard_health_label_weight": "Weight",
-    "dashboard_health_template_statistics_health_section": "### \u2764\ufe0f Health\n- **Weight**: {{{{ states('sensor.{dog_id}_weight') }}}} kg\n- **Health Score**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100\n- **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}",
+    "dashboard_health_template_statistics_health_section": "### ❤️ Health\n- **Weight**: {{{{ states('sensor.{dog_id}_weight') }}}} kg\n- **Health Score**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100\n- **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}",
     "dashboard_health_template_weather_health_card_title": "{icon} {dog_name} Weather Health",
     "dashboard_health_template_weather_health_chart_title": "Weather Health Impact",
     "dashboard_health_template_weather_health_compact_name": "{icon} Weather Health",
@@ -78,13 +78,13 @@
     "dashboard_statistics_label_summary_card_title": "Summary",
     "dashboard_statistics_label_unknown_breaker_ids": "Unknown breaker IDs",
     "dashboard_statistics_label_unknown_breaker_names": "Unknown breaker names",
-    "feeding_compliance_alert_title": "\ud83c\udf7d\ufe0f Feeding compliance alert for {display_name}",
+    "feeding_compliance_alert_title": "🍽️ Feeding compliance alert for {display_name}",
     "feeding_compliance_issue_item": "{date}: {description}",
     "feeding_compliance_issues_header": "Key issues:",
     "feeding_compliance_missed_meal_item": "{date}: {actual}/{expected} meals",
     "feeding_compliance_missed_meals_header": "Missed meals:",
     "feeding_compliance_no_data_fallback": "Feeding telemetry is unavailable.",
-    "feeding_compliance_no_data_title": "\ud83c\udf7d\ufe0f Feeding telemetry missing for {display_name}",
+    "feeding_compliance_no_data_title": "🍽️ Feeding telemetry missing for {display_name}",
     "feeding_compliance_no_recommendations": "No recommendations provided.",
     "feeding_compliance_recommendation_item": "{recommendation}",
     "feeding_compliance_recommendations_header": "Next steps:",
@@ -102,7 +102,7 @@
     "grooming_template_manual_session_notes": "Grooming session on {date}",
     "grooming_template_notification_estimated_duration": "(est. {minutes} min)",
     "grooming_template_notification_message": "Started {grooming_type} for {dog_label}",
-    "grooming_template_notification_title": "\ud83d\udec1 Grooming started: {dog_label}",
+    "grooming_template_notification_title": "🛁 Grooming started: {dog_label}",
     "grooming_template_notification_with_groomer": "with {groomer}",
     "grooming_template_start_failure": "Failed to start grooming for {dog_label}. Check the logs for details.",
     "manual_event_source_badge_blueprint": "Blueprint",
@@ -118,39 +118,39 @@
     "manual_event_source_help_options": "Configured via the options flow.",
     "manual_event_source_help_system_settings": "Captured from the System Settings form.",
     "setup_flags_panel_description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
-    "setup_flags_panel_flag_debug_logging": "Registro de depuraci\u00f3n",
-    "setup_flags_panel_flag_enable_analytics": "Telemetr\u00eda de anal\u00edticas",
+    "setup_flags_panel_flag_debug_logging": "Registro de depuración",
+    "setup_flags_panel_flag_enable_analytics": "Telemetría de analíticas",
     "setup_flags_panel_flag_enable_cloud_backup": "Copia de seguridad en la nube",
-    "setup_flags_panel_source_advanced_settings": "Configuraci\u00f3n avanzada",
+    "setup_flags_panel_source_advanced_settings": "Configuración avanzada",
     "setup_flags_panel_source_blueprint": "Sugerencia de blueprint",
-    "setup_flags_panel_source_config_entry": "Valores predeterminados de la entrada de configuraci\u00f3n",
-    "setup_flags_panel_source_default": "Valor predeterminado de la integraci\u00f3n",
+    "setup_flags_panel_source_config_entry": "Valores predeterminados de la entrada de configuración",
+    "setup_flags_panel_source_default": "Valor predeterminado de la integración",
     "setup_flags_panel_source_disabled": "Desactivar",
     "setup_flags_panel_source_options": "Flujo de opciones",
-    "setup_flags_panel_source_system_settings": "Configuraci\u00f3n del sistema",
+    "setup_flags_panel_source_system_settings": "Configuración del sistema",
     "setup_flags_panel_title": "Setup flags",
-    "weather_alert_extreme_cold_warning_message": "Temperature {temperature}\u00b0C (feels like {feels_like}\u00b0C) poses extreme cold risk",
-    "weather_alert_extreme_cold_warning_title": "\ud83e\udd76 Extreme Cold Warning",
-    "weather_alert_extreme_heat_warning_message": "Temperature {temperature}\u00b0C (feels like {feels_like}\u00b0C) poses extreme heat risk to dogs",
-    "weather_alert_extreme_heat_warning_title": "\ud83d\udd25 Extreme Heat Warning",
+    "weather_alert_extreme_cold_warning_message": "Temperature {temperature}°C (feels like {feels_like}°C) poses extreme cold risk",
+    "weather_alert_extreme_cold_warning_title": "🥶 Extreme Cold Warning",
+    "weather_alert_extreme_heat_warning_message": "Temperature {temperature}°C (feels like {feels_like}°C) poses extreme heat risk to dogs",
+    "weather_alert_extreme_heat_warning_title": "🔥 Extreme Heat Warning",
     "weather_alert_extreme_uv_warning_message": "UV Index {uv_index} poses extreme UV risk to dogs",
-    "weather_alert_extreme_uv_warning_title": "\u2622\ufe0f Extreme UV Warning",
-    "weather_alert_high_cold_advisory_message": "Temperature {temperature}\u00b0C requires cold weather precautions",
-    "weather_alert_high_cold_advisory_title": "\u2744\ufe0f High Cold Advisory",
-    "weather_alert_high_heat_advisory_message": "Temperature {temperature}\u00b0C requires heat precautions for dogs",
-    "weather_alert_high_heat_advisory_title": "\ud83c\udf21\ufe0f High Heat Advisory",
+    "weather_alert_extreme_uv_warning_title": "☢️ Extreme UV Warning",
+    "weather_alert_high_cold_advisory_message": "Temperature {temperature}°C requires cold weather precautions",
+    "weather_alert_high_cold_advisory_title": "❄️ High Cold Advisory",
+    "weather_alert_high_heat_advisory_message": "Temperature {temperature}°C requires heat precautions for dogs",
+    "weather_alert_high_heat_advisory_title": "🌡️ High Heat Advisory",
     "weather_alert_high_humidity_alert_message": "Humidity {humidity}% may cause breathing difficulties",
-    "weather_alert_high_humidity_alert_title": "\ud83d\udca8 High Humidity Alert",
+    "weather_alert_high_humidity_alert_title": "💨 High Humidity Alert",
     "weather_alert_high_uv_advisory_message": "UV Index {uv_index} requires UV protection for dogs",
-    "weather_alert_high_uv_advisory_title": "\ud83c\udf1e High UV Advisory",
+    "weather_alert_high_uv_advisory_title": "🌞 High UV Advisory",
     "weather_alert_snow_ice_alert_message": "Icy conditions require paw protection",
-    "weather_alert_snow_ice_alert_title": "\ud83c\udf28\ufe0f Snow/Ice Alert",
+    "weather_alert_snow_ice_alert_title": "🌨️ Snow/Ice Alert",
     "weather_alert_storm_warning_message": "Storms can cause anxiety and safety risks for dogs",
-    "weather_alert_storm_warning_title": "\u26c8\ufe0f Storm Warning",
-    "weather_alert_warm_weather_caution_message": "Temperature {temperature}\u00b0C requires basic heat precautions",
-    "weather_alert_warm_weather_caution_title": "\u2600\ufe0f Warm Weather Caution",
+    "weather_alert_storm_warning_title": "⛈️ Storm Warning",
+    "weather_alert_warm_weather_caution_message": "Temperature {temperature}°C requires basic heat precautions",
+    "weather_alert_warm_weather_caution_title": "☀️ Warm Weather Caution",
     "weather_alert_wet_weather_advisory_message": "Rainy conditions require paw care precautions",
-    "weather_alert_wet_weather_advisory_title": "\ud83c\udf27\ufe0f Wet Weather Advisory",
+    "weather_alert_wet_weather_advisory_title": "🌧️ Wet Weather Advisory",
     "weather_recommendation_avoid_peak_hours": "Avoid outdoor activities during peak hours",
     "weather_recommendation_avoid_peak_uv": "Avoid outdoor activities during peak UV hours (10am-4pm)",
     "weather_recommendation_avoid_until_passes": "Avoid outdoor activities until storm passes",
@@ -215,17 +215,17 @@
       "age_out_of_range": "Age must be between 0 and 30 years",
       "breed_name_too_long": "Breed name is too long",
       "cannot_connect": "Failed to connect",
-      "coordinate_not_numeric": "La coordenada debe ser un n\u00famero",
-      "coordinate_out_of_range": "La coordenada est\u00e1 fuera de rango",
+      "coordinate_not_numeric": "La coordenada debe ser un número",
+      "coordinate_out_of_range": "La coordenada está fuera de rango",
       "coordinate_required": "Se requiere la coordenada",
-      "diet_guidance_large_breed": "\ud83e\uddb4 Large breeds: Joint_support recommended, watch for food allergies",
-      "diet_guidance_multiple_prescription": "\u26a0\ufe0f Multiple prescription diets need vet coordination",
+      "diet_guidance_large_breed": "🦴 Large breeds: Joint_support recommended, watch for food allergies",
+      "diet_guidance_multiple_prescription": "⚠️ Multiple prescription diets need vet coordination",
       "diet_guidance_none": "No specific compatibility concerns detected",
-      "diet_guidance_prescription_overrides": "\ud83c\udfe5 Prescription diets override lifestyle preferences",
-      "diet_guidance_puppies": "\ud83d\udc36 Puppies: Consider puppy_formula, avoid weight_control",
-      "diet_guidance_raw_diets": "\ud83e\udd69 Raw diets require careful handling with medical conditions",
-      "diet_guidance_seniors": "\ud83d\udc74 Seniors: Consider senior_formula, joint_support may be beneficial",
-      "diet_guidance_toy_breed": "\ud83d\udc2d Toy breeds: Often benefit from sensitive_stomach, small kibble size",
+      "diet_guidance_prescription_overrides": "🏥 Prescription diets override lifestyle preferences",
+      "diet_guidance_puppies": "🐶 Puppies: Consider puppy_formula, avoid weight_control",
+      "diet_guidance_raw_diets": "🥩 Raw diets require careful handling with medical conditions",
+      "diet_guidance_seniors": "👴 Seniors: Consider senior_formula, joint_support may be beneficial",
+      "diet_guidance_toy_breed": "🐭 Toy breeds: Often benefit from sensitive_stomach, small kibble size",
       "dog_id_already_exists": "A dog with this ID already exists",
       "dog_id_too_long": "Dog ID cannot be longer than 30 characters",
       "dog_id_too_short": "Dog ID must be at least 2 characters long",
@@ -237,17 +237,17 @@
       "door_sensor_not_found": "The selected door sensor entity was not found",
       "door_sensor_update_failed": "Unable to save the door sensor configuration",
       "external_entity_validation_failed": "External entity validation failed",
-      "geofence_radius_not_numeric": "El radio de la geovalla debe ser un n\u00famero",
-      "geofence_radius_out_of_range": "El radio de la geovalla est\u00e1 fuera de rango",
+      "geofence_radius_not_numeric": "El radio de la geovalla debe ser un número",
+      "geofence_radius_out_of_range": "El radio de la geovalla está fuera de rango",
       "geofence_radius_required": "Se requiere el radio de la geovalla",
-      "gps_accuracy_not_numeric": "La precisi\u00f3n de GPS debe ser un n\u00famero",
-      "gps_accuracy_out_of_range": "La precisi\u00f3n de GPS est\u00e1 fuera de rango",
-      "gps_accuracy_required": "Se requiere la precisi\u00f3n de GPS",
+      "gps_accuracy_not_numeric": "La precisión de GPS debe ser un número",
+      "gps_accuracy_out_of_range": "La precisión de GPS está fuera de rango",
+      "gps_accuracy_required": "Se requiere la precisión de GPS",
       "gps_entity_not_found": "The selected GPS source entity was not found",
       "gps_entity_unavailable": "The selected GPS source entity is currently unavailable",
-      "gps_update_interval_not_numeric": "El intervalo de actualizaci\u00f3n de GPS debe ser un n\u00famero entero",
-      "gps_update_interval_out_of_range": "El intervalo de actualizaci\u00f3n de GPS est\u00e1 fuera de rango",
-      "gps_update_interval_required": "El intervalo de actualizaci\u00f3n de GPS es obligatorio",
+      "gps_update_interval_not_numeric": "El intervalo de actualización de GPS debe ser un número entero",
+      "gps_update_interval_out_of_range": "El intervalo de actualización de GPS está fuera de rango",
+      "gps_update_interval_required": "El intervalo de actualización de GPS es obligatorio",
       "integration_name_required": "Integration name is required",
       "integration_name_too_long": "Integration name is too long",
       "integration_name_too_short": "Integration name is too short",
@@ -358,7 +358,7 @@
           "gps_source": "Choose which device tracker or person entity Paw Control should use for GPS.",
           "notify_fallback": "Optional notification service used when direct device notifications fail."
         },
-        "description": "\ud83d\udd17 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality alignment.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n**Optional for weather health:** Weather entity\n\n\u26a0\ufe0f If no entities are available, you can configure them manually later.",
+        "description": "🔗 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality alignment.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n**Optional for weather health:** Weather entity\n\n⚠️ If no entities are available, you can configure them manually later.",
         "title": "Configure External Entities"
       },
       "configure_modules": {
@@ -447,11 +447,11 @@
           "body_condition_score": "Body Condition Score (1-9)",
           "bordetella_next": "Next Bordetella Vaccination",
           "bordetella_vaccination": "Bordetella Vaccination Date",
-          "dental_care": "\ud83e\uddb7 Dental Care Formula",
+          "dental_care": "🦷 Dental Care Formula",
           "dhpp_next": "Next DHPP Vaccination",
           "dhpp_vaccination": "DHPP Vaccination Date",
-          "diabetic": "\ud83e\ude7a Diabetic Diet",
-          "grain_free": "\ud83c\udf3e Grain-Free Diet",
+          "diabetic": "🩺 Diabetic Diet",
+          "grain_free": "🌾 Grain-Free Diet",
           "has_allergies": "Has Allergies",
           "has_arthritis": "Has Arthritis",
           "has_diabetes": "Has Diabetes",
@@ -459,12 +459,12 @@
           "has_heart_disease": "Has Heart Disease",
           "has_kidney_disease": "Has Kidney Disease",
           "health_aware_portions": "Health-Aware Portion Calculation",
-          "hypoallergenic": "\ud83d\udee1\ufe0f Hypoallergenic Diet",
+          "hypoallergenic": "🛡️ Hypoallergenic Diet",
           "ideal_weight": "Ideal Weight (kg)",
-          "joint_support": "\ud83e\uddb4 Joint Support Formula",
-          "kidney_support": "\ud83e\uded8 Kidney Support Diet",
+          "joint_support": "🦴 Joint Support Formula",
+          "kidney_support": "🫘 Kidney Support Diet",
           "last_vet_visit": "Last Vet Visit",
-          "low_fat": "\ud83e\udd57 Low Fat Diet",
+          "low_fat": "🥗 Low Fat Diet",
           "medication_1_dosage": "Medication 1 Dosage",
           "medication_1_frequency": "Medication 1 Frequency",
           "medication_1_name": "Medication 1 Name",
@@ -478,19 +478,19 @@
           "medication_2_time": "Medication 2 Time",
           "medication_2_with_meals": "Medication 2 With Meals",
           "next_checkup": "Next Checkup",
-          "organic": "\ud83c\udf31 Organic Food",
+          "organic": "🌱 Organic Food",
           "other_health_conditions": "Other Health Conditions",
-          "prescription": "\ud83c\udfe5 Prescription Diet",
-          "puppy_formula": "\ud83d\udc36 Puppy Formula",
+          "prescription": "🏥 Prescription Diet",
+          "puppy_formula": "🐶 Puppy Formula",
           "rabies_next": "Next Rabies Vaccination",
           "rabies_vaccination": "Rabies Vaccination Date",
-          "raw_diet": "\ud83e\udd69 Raw Diet (BARF)",
-          "senior_formula": "\ud83d\udc74 Senior Formula",
-          "sensitive_stomach": "\ud83c\udf3f Sensitive Stomach Diet",
+          "raw_diet": "🥩 Raw Diet (BARF)",
+          "senior_formula": "👴 Senior Formula",
+          "sensitive_stomach": "🌿 Sensitive Stomach Diet",
           "spayed_neutered": "Spayed/Neutered",
           "vet_name": "Veterinarian Name",
           "vet_phone": "Veterinarian Phone",
-          "weight_control": "\u2696\ufe0f Weight Control Diet",
+          "weight_control": "⚖️ Weight Control Diet",
           "weight_goal": "Weight Goal",
           "weight_tracking": "Enable Weight Tracking"
         },
@@ -602,7 +602,7 @@
         "data_description": {
           "confirm": "Confirm to refresh credentials and run the health checks noted above."
         },
-        "description": "La integraci\u00f3n Paw Control necesita reautenticarse.\n\nIntegraci\u00f3n: {integration_name}\nPerros configurados: {dogs_count}\nPerfil actual: {current_profile}\nResumen de salud: {health_status}",
+        "description": "La integración Paw Control necesita reautenticarse.\n\nIntegración: {integration_name}\nPerros configurados: {dogs_count}\nPerfil actual: {current_profile}\nResumen de salud: {health_status}",
         "title": "Reauthenticate Paw Control"
       },
       "reconfigure": {
@@ -1204,7 +1204,7 @@
           "conflicts_detected": "Conflicts Detected",
           "no_data": "No Data",
           "validated_safe": "Validated Safe",
-          "validation_error": "Error de validaci\u00f3n",
+          "validation_error": "Error de validación",
           "warnings_present": "Warnings Present"
         }
       },
@@ -1577,7 +1577,7 @@
       "title": "Coordinator is unavailable"
     },
     "door_sensor_persistence_failure": {
-      "description": "Paw Control no pudo guardar la configuraci\u00f3n del sensor de puerta para {dog_name} ({dog_id}). Sensor: {door_sensor}. Error: {error}. \u00daltimo intento: {timestamp}.",
+      "description": "Paw Control no pudo guardar la configuración del sensor de puerta para {dog_name} ({dog_id}). Sensor: {door_sensor}. Error: {error}. Último intento: {timestamp}.",
       "title": "Door sensor settings could not be saved"
     },
     "duplicate_dog_ids": {
@@ -1673,8 +1673,8 @@
       "title": "Profile change produced warnings"
     },
     "runtime_store_compatibility": {
-      "description": "Paw Control detect\u00f3 metadatos del almac\u00e9n en tiempo de ejecuci\u00f3n en estado {status} para {config_entry_id}. Instant\u00e1nea de la entrada: estado {entry_status}, versi\u00f3n {entry_version}, creada {entry_created_version}. Instant\u00e1nea del almac\u00e9n del dominio: estado {store_status}, versi\u00f3n {store_version}, creada {store_created_version}. Esquema actual {current_version}, compatibilidad m\u00ednima {minimum_compatible_version}. Divergencia detectada: {divergence_detected}.",
-      "title": "El cach\u00e9 en tiempo de ejecuci\u00f3n requiere atenci\u00f3n"
+      "description": "Paw Control detectó metadatos del almacén en tiempo de ejecución en estado {status} para {config_entry_id}. Instantánea de la entrada: estado {entry_status}, versión {entry_version}, creada {entry_created_version}. Instantánea del almacén del dominio: estado {store_status}, versión {store_version}, creada {store_created_version}. Esquema actual {current_version}, compatibilidad mínima {minimum_compatible_version}. Divergencia detectada: {divergence_detected}.",
+      "title": "El caché en tiempo de ejecución requiere atención"
     },
     "storage_warning": {
       "description": "Data retention is set to {current_retention} days. Reduce it to {recommended_max} days to keep the database lean.",
@@ -1683,8 +1683,8 @@
   },
   "options": {
     "error": {
-      "coordinate_not_numeric": "La coordenada debe ser un n\u00famero",
-      "coordinate_out_of_range": "La coordenada est\u00e1 fuera de rango",
+      "coordinate_not_numeric": "La coordenada debe ser un número",
+      "coordinate_out_of_range": "La coordenada está fuera de rango",
       "coordinate_required": "Se requiere la coordenada",
       "dog_duplicate": "Duplicate dog IDs detected in the import file",
       "dog_id_already_exists": "A dog with this ID already exists",
@@ -1693,15 +1693,15 @@
       "dog_invalid_modules": "Dog module settings could not be interpreted",
       "dog_missing_id": "Each imported dog must include a unique ID",
       "dogs_invalid": "Import payload must include a list of dogs",
-      "geofence_radius_not_numeric": "El radio de la geovalla debe ser un n\u00famero",
-      "geofence_radius_out_of_range": "El radio de la geovalla est\u00e1 fuera de rango",
+      "geofence_radius_not_numeric": "El radio de la geovalla debe ser un número",
+      "geofence_radius_out_of_range": "El radio de la geovalla está fuera de rango",
       "geofence_radius_required": "Se requiere el radio de la geovalla",
-      "gps_accuracy_not_numeric": "La precisi\u00f3n de GPS debe ser un n\u00famero",
-      "gps_accuracy_out_of_range": "La precisi\u00f3n de GPS est\u00e1 fuera de rango",
-      "gps_accuracy_required": "Se requiere la precisi\u00f3n de GPS",
-      "gps_update_interval_not_numeric": "El intervalo de actualizaci\u00f3n de GPS debe ser un n\u00famero entero",
-      "gps_update_interval_out_of_range": "El intervalo de actualizaci\u00f3n de GPS est\u00e1 fuera de rango",
-      "gps_update_interval_required": "El intervalo de actualizaci\u00f3n de GPS es obligatorio",
+      "gps_accuracy_not_numeric": "La precisión de GPS debe ser un número",
+      "gps_accuracy_out_of_range": "La precisión de GPS está fuera de rango",
+      "gps_accuracy_required": "Se requiere la precisión de GPS",
+      "gps_update_interval_not_numeric": "El intervalo de actualización de GPS debe ser un número entero",
+      "gps_update_interval_out_of_range": "El intervalo de actualización de GPS está fuera de rango",
+      "gps_update_interval_required": "El intervalo de actualización de GPS es obligatorio",
       "invalid_api_endpoint": "API endpoint must be a valid http or https URL",
       "invalid_configuration": "Invalid configuration",
       "invalid_dog_name_length": "Dog name must be between 2 and 30 characters",
@@ -1725,10 +1725,10 @@
           "include_charts": "Include Charts"
         },
         "data_description": {
-          "auto_create_dashboard": "Crear o actualizar autom\u00e1ticamente el panel de Lovelace.",
+          "auto_create_dashboard": "Crear o actualizar automáticamente el panel de Lovelace.",
           "dashboard_mode": "Elige el nivel de detalle del panel generado.",
-          "dashboard_name": "Nombre del panel que se crear\u00e1 o actualizar\u00e1.",
-          "include_charts": "Incluir gr\u00e1ficos de resumen en el panel."
+          "dashboard_name": "Nombre del panel que se creará o actualizará.",
+          "include_charts": "Incluir gráficos de resumen en el panel."
         },
         "description": "Configure dashboard appearance and layout.",
         "title": "Dashboard Settings"
@@ -1746,13 +1746,13 @@
         },
         "data_description": {
           "breakfast_enabled": "Habilita el desayuno para este perro.",
-          "breakfast_time": "Hora del desayuno cuando est\u00e1 habilitado.",
+          "breakfast_time": "Hora del desayuno cuando está habilitado.",
           "dinner_enabled": "Habilita la cena para este perro.",
-          "dinner_time": "Hora de la cena cuando est\u00e1 habilitada.",
+          "dinner_time": "Hora de la cena cuando está habilitada.",
           "feeding_reminders": "Enviar recordatorios antes de las comidas programadas.",
           "lunch_enabled": "Habilita el almuerzo para este perro.",
-          "lunch_time": "Hora del almuerzo cuando est\u00e1 habilitado.",
-          "snacks_enabled": "Registrar snacks adem\u00e1s de las comidas programadas."
+          "lunch_time": "Hora del almuerzo cuando está habilitado.",
+          "snacks_enabled": "Registrar snacks además de las comidas programadas."
         },
         "description": "Configure feeding schedules and reminders.",
         "title": "Feeding Settings"
@@ -1766,10 +1766,10 @@
           "gps_update_interval": "GPS Update Interval (seconds)"
         },
         "data_description": {
-          "auto_walk_detection": "Detecta paseos autom\u00e1ticamente con movimiento y GPS.",
+          "auto_walk_detection": "Detecta paseos automáticamente con movimiento y GPS.",
           "geofencing_enabled": "Habilita alertas de zonas seguras.",
-          "gps_accuracy_filter": "Descarta actualizaciones de GPS con menor precisi\u00f3n.",
-          "gps_distance_filter": "Distancia m\u00ednima entre actualizaciones de GPS.",
+          "gps_accuracy_filter": "Descarta actualizaciones de GPS con menor precisión.",
+          "gps_distance_filter": "Distancia mínima entre actualizaciones de GPS.",
           "gps_update_interval": "Frecuencia de las actualizaciones de GPS."
         },
         "description": "Configure GPS tracking parameters for optimal performance and battery life.",
@@ -1785,9 +1785,9 @@
           "weight_tracking": "Weight Tracking"
         },
         "data_description": {
-          "grooming_interval": "D\u00edas entre recordatorios de aseo.",
+          "grooming_interval": "Días entre recordatorios de aseo.",
           "health_tracking": "Habilita sensores y recordatorios de salud.",
-          "medication_reminders": "Enviar recordatorios de medicaci\u00f3n.",
+          "medication_reminders": "Enviar recordatorios de medicación.",
           "vet_reminders": "Enviar recordatorios de veterinario.",
           "weather_health_monitoring": "Habilita avisos de salud relacionados con el clima.",
           "weight_tracking": "Habilita el seguimiento de peso y alertas."
@@ -1815,7 +1815,7 @@
           "action": "Action"
         },
         "data_description": {
-          "action": "Elige a\u00f1adir, editar o eliminar un perro."
+          "action": "Elige añadir, editar o eliminar un perro."
         },
         "description": "Add, edit, or remove dogs from your configuration.\n\nCurrently configured dogs:\n{dogs_list}\n\nTotal dogs: {current_dogs_count}",
         "title": "Manage Dogs"
@@ -1833,7 +1833,7 @@
         "data_description": {
           "priority_notifications": "Enviar alertas de alta prioridad de inmediato.",
           "quiet_end": "Hora en la que terminan las horas silenciosas.",
-          "quiet_hours": "Silenciar notificaciones no cr\u00edticas durante las horas silenciosas.",
+          "quiet_hours": "Silenciar notificaciones no críticas durante las horas silenciosas.",
           "quiet_start": "Hora en la que comienzan las horas silenciosas.",
           "reminder_repeat_min": "Minutos entre recordatorios repetidos.",
           "summary_notifications": "Enviar un resumen diario.",
@@ -1901,13 +1901,13 @@
           "wind_alerts": "Wind Alerts"
         },
         "data_description": {
-          "enable_weather_alerts": "Enviar alertas cuando se superen los umbrales meteorol\u00f3gicos.",
+          "enable_weather_alerts": "Enviar alertas cuando se superen los umbrales meteorológicos.",
           "enable_weather_recommendations": "Mostrar recomendaciones basadas en el clima.",
           "humidity_alerts": "Habilita alertas de humedad.",
           "storm_alerts": "Habilita alertas y avisos de tormenta.",
           "temperature_alerts": "Habilita alertas de seguridad por temperatura.",
-          "uv_alerts": "Habilita alertas del \u00edndice UV.",
-          "weather_entity": "Selecciona la entidad meteorol\u00f3gica para los pron\u00f3sticos.",
+          "uv_alerts": "Habilita alertas del índice UV.",
+          "weather_entity": "Selecciona la entidad meteorológica para los pronósticos.",
           "weather_update_interval": "Minutos entre actualizaciones del clima.",
           "wind_alerts": "Habilita alertas de viento."
         },
@@ -1919,44 +1919,44 @@
   "selector": {
     "activity_level": {
       "options": {
-        "high": "\ud83c\udfcb\ufe0f High - Very active, long walks/runs",
-        "low": "\ud83d\udeb6 Low - Light exercise, mostly indoor",
-        "moderate": "\ud83c\udfc3 Moderate - Regular walks and play",
-        "very_high": "\ud83c\udfc6 Very high - Working or athletic dogs",
-        "very_low": "\ud83d\udecc Very low - Inactive, elderly, or sick"
+        "high": "🏋️ High - Very active, long walks/runs",
+        "low": "🚶 Low - Light exercise, mostly indoor",
+        "moderate": "🏃 Moderate - Regular walks and play",
+        "very_high": "🏆 Very high - Working or athletic dogs",
+        "very_low": "🛌 Very low - Inactive, elderly, or sick"
       }
     },
     "dog_size": {
       "options": {
-        "giant": "\ud83d\udc3a Giant (45-90kg)",
-        "large": "\ud83d\udc15\u200d\ud83e\uddba Large (27-45kg)",
-        "medium": "\ud83d\udc36 Medium (12-27kg)",
-        "small": "\ud83d\udc15 Small (6-12kg)",
-        "toy": "\ud83d\udc2d Toy (1-6kg)"
+        "giant": "🐺 Giant (45-90kg)",
+        "large": "🐕‍🦺 Large (27-45kg)",
+        "medium": "🐶 Medium (12-27kg)",
+        "small": "🐕 Small (6-12kg)",
+        "toy": "🐭 Toy (1-6kg)"
       }
     },
     "feeding_schedule": {
       "options": {
-        "custom": "\u2699\ufe0f Custom schedule",
-        "flexible": "\u23f0 Flexible times",
-        "strict": "\ud83c\udfaf Strict schedule"
+        "custom": "⚙️ Custom schedule",
+        "flexible": "⏰ Flexible times",
+        "strict": "🎯 Strict schedule"
       }
     },
     "food_type": {
       "options": {
-        "barf": "\ud83e\udd69 BARF",
-        "dry_food": "\ud83e\udd5c Dry food",
-        "home_cooked": "\ud83c\udf72 Home cooked",
-        "mixed": "\ud83d\udd04 Mixed",
-        "wet_food": "\ud83e\udd6b Wet food"
+        "barf": "🥩 BARF",
+        "dry_food": "🥜 Dry food",
+        "home_cooked": "🍲 Home cooked",
+        "mixed": "🔄 Mixed",
+        "wet_food": "🥫 Wet food"
       }
     },
     "gps_source": {
       "options": {
-        "manual": "\ud83d\udcdd Manual GPS (configure later)",
-        "mqtt": "\ud83d\udce1 MQTT topic",
-        "tractive": "\ud83d\udc15 Tractive GPS collar",
-        "webhook": "\ud83c\udf10 Webhook (REST API)"
+        "manual": "📝 Manual GPS (configure later)",
+        "mqtt": "📡 MQTT topic",
+        "tractive": "🐕 Tractive GPS collar",
+        "webhook": "🌐 Webhook (REST API)"
       }
     },
     "import_export_action": {
@@ -1975,9 +1975,9 @@
     },
     "performance_mode": {
       "options": {
-        "balanced": "\u2696\ufe0f Balanced - Good performance and efficiency",
-        "full": "\ud83d\ude80 Full - Maximum features and responsiveness",
-        "minimal": "\u26a1 Minimal - Low resource usage"
+        "balanced": "⚖️ Balanced - Good performance and efficiency",
+        "full": "🚀 Full - Maximum features and responsiveness",
+        "minimal": "⚡ Minimal - Low resource usage"
       }
     },
     "weather_entity": {
@@ -1994,9 +1994,9 @@
     },
     "weight_goal": {
       "options": {
-        "gain": "\ud83d\udcc8 Weight gain",
-        "lose": "\ud83d\udcc9 Weight loss",
-        "maintain": "\u2696\ufe0f Maintain current weight"
+        "gain": "📈 Weight gain",
+        "lose": "📉 Weight loss",
+        "maintain": "⚖️ Maintain current weight"
       }
     }
   },
