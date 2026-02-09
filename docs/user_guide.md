@@ -139,8 +139,7 @@ noise, but keep a shorter interval for walk detection.
 
 1. Enable Walk tracking in the dog profile.
 2. Use the **Walk controls** buttons or `pawcontrol.gps_start_walk` /
-   `pawcontrol.gps_end_walk`. (The legacy `pawcontrol.start_walk` and
-   `pawcontrol.end_walk` services have been removed.)
+   `pawcontrol.gps_end_walk`.
 3. Add reminders by enabling walk notifications in the options flow.
 
 **Best practice:** Pair a door sensor to auto-start walks and let GPS confirm
