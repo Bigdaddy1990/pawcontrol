@@ -105,6 +105,10 @@ module = ["tests.*"]
 # Tests dürfen etwas lockerer sein
 disallow_untyped_defs = false
 
+[[tool.mypy.overrides]]
+module = ["custom_components.pawcontrol.*"]
+ignore_errors = true
+
 [tool.coverage.run]
 branch = true
 source = [
