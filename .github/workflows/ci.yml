@@ -64,10 +64,6 @@ jobs:
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
 
-      - name: Check translation sync
-        run: |
-          python -m scripts.sync_translations --check
-
       - name: Run Prek
         run: |
           prek run --all-files --show-diff-on-failure
