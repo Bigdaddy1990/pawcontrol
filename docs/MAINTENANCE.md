@@ -118,8 +118,6 @@ PawControl stabil und guideline-konform zu halten.
 
 - **`pawcontrol.start_walk` / `pawcontrol.end_walk`** wurden entfernt. Verwende
   `pawcontrol.gps_start_walk` und `pawcontrol.gps_end_walk`.
-- **`PawControlCoordinator._fetch_dog_data_protected`** wurde entfernt. Nutze
-  `_fetch_dog_data`, wenn interne Aufrufe erforderlich sind.
 
 ## Support escalation & follow-up
 
