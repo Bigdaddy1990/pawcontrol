@@ -292,10 +292,7 @@ class ReauthFlowMixin(ReauthFlowHost):
           details = err.field_errors or err.base_errors
           raise ValidationError(
             "entry_dogs",
-            constraint=(
-              "Dog payload invalid during reauth: "
-              f"{details}"
-            ),
+            constraint=(f"Dog payload invalid during reauth: {details}"),
           ) from err
         _LOGGER.warning(
           "Dog validation error during reauth (non-critical): %s",

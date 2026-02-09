@@ -62,7 +62,6 @@ from .exceptions import (
 )
 from .flow_validation import (
   is_dog_config_payload_valid,
-  validate_dog_config_payload,
   validate_dog_import_input,
   validate_dog_setup_input,
 )
