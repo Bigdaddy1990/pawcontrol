@@ -238,7 +238,7 @@ VALID_ACCURACY_RANGE = (1.0, 1000.0)  # meters
 VALID_LATITUDE_RANGE = (-90.0, 90.0)  # degrees
 VALID_LONGITUDE_RANGE = (-180.0, 180.0)  # degrees
 
-# Service names - maintain backward compatibility
+# Service names
 SERVICE_ADD_FEEDING = "add_feeding"
 SERVICE_ADD_GPS_POINT = "add_gps_point"
 SERVICE_UPDATE_HEALTH = "update_health"
