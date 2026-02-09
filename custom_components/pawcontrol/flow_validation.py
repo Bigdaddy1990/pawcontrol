@@ -209,6 +209,20 @@ def validate_dog_setup_input(
   return validated
 
 
+def is_dog_config_payload_valid(dog: Mapping[str, object]) -> bool:
+  """Return whether a dog configuration payload is structurally valid."""
+
+  try:
+    validate_dog_config_payload(
+      dog,
+      existing_ids=None,
+      existing_names=None,
+    )
+  except FlowValidationError:
+    return False
+  return True
+
+
 def validate_dog_config_payload(
   user_input: FlowInputMapping,
   *,
@@ -229,12 +243,11 @@ def validate_dog_config_payload(
   if dog_id_error:
     field_errors[CONF_DOG_ID] = dog_id_error
 
-  if (
-    current_dog_count is not None
-    and max_dogs is not None
-    and current_dog_count >= max_dogs
-  ):
-    base_errors.append("max_dogs_reached")
+  if max_dogs is not None:
+    if current_dog_count is None:
+      current_dog_count = 0
+    if current_dog_count >= max_dogs:
+      base_errors.append("max_dogs_reached")
 
   raw_name = user_input.get(CONF_DOG_NAME)
   candidate_name = raw_name if isinstance(raw_name, str) else ""

@@ -61,6 +61,7 @@ from .exceptions import (
   ValidationError,
 )
 from .flow_validation import (
+  is_dog_config_payload_valid,
   validate_dog_config_payload,
   validate_dog_import_input,
   validate_dog_setup_input,
@@ -704,15 +705,9 @@ class PawControlConfigFlow(
 
   @staticmethod
   def _is_dog_config_valid_for_flow(dog: Mapping[str, object]) -> bool:
-    try:
-      validate_dog_config_payload(
-        cast(Mapping[str, object], dog),
-        existing_ids=None,
-        existing_names=None,
-      )
-    except FlowValidationError:
-      return False
-    return True
+    return is_dog_config_payload_valid(
+      cast(Mapping[str, object], dog),
+    )
 
   async def async_step_add_dog(
     self,

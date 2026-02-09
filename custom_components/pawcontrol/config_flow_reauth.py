@@ -11,7 +11,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOGS, CONF_MODULES
+from .const import CONF_DOG_ID, CONF_DOGS, CONF_MODULES
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import (
   ConfigEntryAuthFailed,
@@ -19,7 +19,7 @@ from .exceptions import (
   ReauthRequiredError,
   ValidationError,
 )
-from .flow_validation import validate_dog_config_payload
+from .flow_validation import is_dog_config_payload_valid, validate_dog_config_payload
 from .selector_shim import selector
 from .types import (
   DOG_ID_FIELD,
@@ -133,15 +133,9 @@ class ReauthFlowMixin(ReauthFlowHost):
 
   @staticmethod
   def _is_dog_config_valid_for_reauth(dog: Mapping[str, object]) -> bool:
-    try:
-      validate_dog_config_payload(
-        cast(Mapping[str, object], dog),
-        existing_ids=None,
-        existing_names=None,
-      )
-    except FlowValidationError:
-      return False
-    return True
+    return is_dog_config_payload_valid(
+      cast(Mapping[str, object], dog),
+    )
 
   def _build_reauth_updates(
     self,
@@ -294,6 +288,15 @@ class ReauthFlowMixin(ReauthFlowHost):
           existing_names=None,
         )
       except FlowValidationError as err:
+        if CONF_DOG_ID in err.field_errors or err.base_errors:
+          details = err.field_errors or err.base_errors
+          raise ValidationError(
+            "entry_dogs",
+            constraint=(
+              "Dog payload invalid during reauth: "
+              f"{details}"
+            ),
+          ) from err
         _LOGGER.warning(
           "Dog validation error during reauth (non-critical): %s",
           err,

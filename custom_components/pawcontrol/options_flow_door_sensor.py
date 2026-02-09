@@ -261,12 +261,12 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
               settings_store,
             )
 
-try:
-    normalised_dog = ensure_dog_config_data(updated_dog)
-    if normalised_dog is None:
-        errors["base"] = "door_sensor_not_found"
-except ValueError:
-    errors["base"] = "door_sensor_not_found"
+        try:
+          normalised_dog = ensure_dog_config_data(updated_dog)
+          if normalised_dog is None:
+            errors["base"] = "door_sensor_not_found"
+        except ValueError:
+          errors["base"] = "door_sensor_not_found"
         else:
           persist_updates: JSONMutableMapping = {}
           if existing_sensor_trimmed != sensor_store:

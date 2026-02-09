@@ -8484,43 +8484,19 @@ def is_dog_config_valid(config: Any) -> bool:
       integrity and should be called whenever dog configuration data
       is received from external sources or user input.
   """
-  if not isinstance(config, dict):
+  if not isinstance(config, Mapping):
     return False
+  try:
+    from .exceptions import FlowValidationError
+    from .flow_validation import validate_dog_config_payload
 
-  # Validate required fields with type and content checking
-  required_fields = ["dog_id", "dog_name"]
-  for required_field in required_fields:
-    if (
-      required_field not in config
-      or not isinstance(config[required_field], str)
-      or not config[required_field].strip()
-    ):
-      return False
-
-  # Validate optional fields with proper type and range checking
-  if "dog_age" in config and (
-    not isinstance(config["dog_age"], int)
-    or config["dog_age"] < 0
-    or config["dog_age"] > 30
-  ):
+    validate_dog_config_payload(
+      cast(Mapping[str, object], config),
+      existing_ids=None,
+      existing_names=None,
+    )
+  except FlowValidationError:
     return False
-
-  if "dog_weight" in config and (
-    not is_number(config["dog_weight"]) or float(config["dog_weight"]) <= 0
-  ):
-    return False
-
-  if "dog_size" in config and config["dog_size"] not in VALID_DOG_SIZES:
-    return False
-
-  # Validate modules configuration if present
-  if "modules" in config:
-    modules = config["modules"]
-    if not isinstance(modules, dict):
-      return False
-    if any(not isinstance(enabled, bool) for enabled in modules.values()):
-      return False
-
   return True
 
 
