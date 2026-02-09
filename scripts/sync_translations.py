@@ -20,8 +20,7 @@ def _sync_tree(source: Any, existing: Any) -> Any:
   if isinstance(source, dict):
     existing_map = existing if isinstance(existing, dict) else {}
     return {
-      key: _sync_tree(value, existing_map.get(key))
-      for key, value in source.items()
+      key: _sync_tree(value, existing_map.get(key)) for key, value in source.items()
     }
 
   if isinstance(existing, str):
@@ -75,9 +74,7 @@ def main() -> int:
   parser.add_argument(
     "--integration-path",
     type=Path,
-    default=Path(__file__).resolve().parents[1]
-    / "custom_components"
-    / "pawcontrol",
+    default=Path(__file__).resolve().parents[1] / "custom_components" / "pawcontrol",
     help="Path to the PawControl integration.",
   )
   parser.add_argument(
@@ -108,11 +105,14 @@ def main() -> int:
 
   updated = False
   for language_file in language_files:
-    updated = _sync_translation(
-      language_file,
-      strings_data,
-      check_only=args.check,
-    ) or updated
+    updated = (
+      _sync_translation(
+        language_file,
+        strings_data,
+        check_only=args.check,
+      )
+      or updated
+    )
 
   if updated and args.check:
     raise SystemExit("Translation files are out of date.")

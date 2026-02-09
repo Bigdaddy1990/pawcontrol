@@ -52,7 +52,7 @@ jobs:
 
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.22
-         
+
       - name: Run test requirements and localization sync
         run: |
           python -m scripts.enforce_test_requirements
