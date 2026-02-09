@@ -50,14 +50,23 @@ jobs:
           python -m pip install -r requirements_test.txt
           python -m scripts.sync_contributor_guides
 
+      - name: Install development tools
+        uses: taiki-e/install-action@v2.67.22
+         
+      - name: Run test requirements and localization sync
+        run: |
+          python -m scripts.enforce_test_requirements
+          python -m scripts.sync_localization_flags \
+            --allowlist scripts/sync_localization_flags.allowlist
+          python -m scripts.sync_localization_flags \
+            --allowlist scripts/sync_localization_flags.allowlist \
+            --check
+
       - name: Validate localization flags
         run: |
           python -m scripts.sync_localization_flags \
             --allowlist scripts/sync_localization_flags.allowlist \
             --check
-
-      - name: Install development tools
-        uses: taiki-e/install-action@v2.67.22
 
       - name: Run Prek
         run: |
@@ -68,17 +77,19 @@ jobs:
           prek run --hook-stage manual python-typing-update --all-files
           prek run --all-files --show-diff-on-failure
 
+      - name: Run mypy
+        run: |
+          mypy custom_components/pawcontrol
+
+      - name: Run hassfest
+        run: |
+          python -m scripts.hassfest --integration-path custom_components/pawcontrol
+
       - name: Run pytest
         run: |
           pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing
-
-      - name: Run test requirements and localization checks
-        run: |
-          python -m scripts.enforce_test_requirements
-          python -m scripts.sync_localization_flags
-          python -m scripts.sync_translations --check
 
       - name: Codecov
         uses: codecov/codecov-action@v5.5.2
