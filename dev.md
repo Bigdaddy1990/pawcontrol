@@ -194,8 +194,9 @@ of truth and keeps the `translations/*.json` export/import process consistent.
 4. Re-run `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
    to validate schema and localization.
 
-> **CI check:** `python -m scripts.sync_translations --check` runs in the CI
-> workflow to ensure translation files stay in sync.
+> **CI check:** The `tests` job in `.github/workflows/ci.yml` runs
+> `python -m scripts.sync_translations --check` to ensure translation files stay
+> in sync.
 
 ## Testing strategy
 
