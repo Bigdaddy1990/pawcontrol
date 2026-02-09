@@ -27,12 +27,12 @@ def _sync_tree(source: Any, existing: Any) -> Any:
   if not isinstance(source, str):
     # For non-string leaf types (numbers, booleans, null), treat as immutable.
     return source
-  
+
   # Source is a string leaf (translatable text).
   # Only return existing if it's also a string (a translation).
   if isinstance(existing, str):
     return existing
-  
+
   # No valid translation exists; return the source (English) string.
   return source
 
@@ -103,7 +103,7 @@ def main() -> int:
 
   if not strings_path.exists():
     raise SystemExit(f"Missing strings.json at {strings_path}")
-  
+
   # Ensure translations directory exists, especially for seeding new languages.
   translations_dir.mkdir(parents=True, exist_ok=True)
 
