@@ -34,7 +34,7 @@ from .types import (
   clone_placeholders,
   ensure_dog_modules_mapping,
   freeze_placeholders,
-  )
+)
 
 _LOGGER = logging.getLogger(__name__)
 
