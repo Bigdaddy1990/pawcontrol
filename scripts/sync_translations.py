@@ -44,8 +44,8 @@ def _sync_translation(
   check_only: bool,
 ) -> bool:
   if language_file.exists():
-    existing_data = _load_json(language_file)
     original_content = language_file.read_text(encoding="utf-8")
+    existing_data = json.loads(original_content)
   else:
     if check_only:
       raise SystemExit(f"Missing translation file: {language_file}")
