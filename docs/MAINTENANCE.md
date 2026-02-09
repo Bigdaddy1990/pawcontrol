@@ -116,10 +116,10 @@ PawControl stabil und guideline-konform zu halten.
      - https://developers.home-assistant.io/docs/creating_component_code_review
      - https://developers.home-assistant.io/docs/creating_platform_code_review
 
-## Integration deprecations (abgeschlossen)
+## Walk services
 
-- **`pawcontrol.start_walk` / `pawcontrol.end_walk`** wurden entfernt. Verwende
-  `pawcontrol.gps_start_walk` und `pawcontrol.gps_end_walk`.
+- Verwende `pawcontrol.gps_start_walk` und `pawcontrol.gps_end_walk` für das
+  Walk-Tracking.
 
 ## Support escalation & follow-up
 
