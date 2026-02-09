@@ -122,6 +122,7 @@ disable_error_code = [
     "dict-item",
     "func-returns-value",
     "index",
+    "list-item",
     "literal-required",
     "misc",
     "no-any-return",
@@ -135,6 +136,13 @@ disable_error_code = [
     "unused-ignore",
     "valid-type",
     "var-annotated",
+]
+
+[[tool.mypy.overrides]]
+module = ["annotatedyaml.*"]
+disable_error_code = [
+    "no-any-return",
+    "unused-ignore",
 ]
 
 [tool.coverage.run]
