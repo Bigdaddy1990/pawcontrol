@@ -57,7 +57,7 @@ jobs:
             --check
 
       - name: Install development tools
-        uses: taiki-e/install-action@v2.67.22
+        uses: taiki-e/install-action@v2.67.26
 
       - name: Run Prek
         run: |
