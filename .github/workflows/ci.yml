@@ -78,6 +78,7 @@ jobs:
         run: |
           python -m scripts.enforce_test_requirements
           python -m scripts.sync_localization_flags
+          python -m scripts.sync_translations --check
 
       - name: Codecov
         uses: codecov/codecov-action@v5.5.2

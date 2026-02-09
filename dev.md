@@ -167,11 +167,31 @@ guidelines while you iterate on new features or refactors:
 
 Missing translation keys are a common cause of `hassfest` failures.
 
+### Übersetzungs-Tool-Entscheidung
+
+PawControl nutzt **keine externen Übersetzungsplattformen** (z. B. Lokalise oder
+Crowdin). Der Workflow basiert auf den Git-tracked JSON-Dateien und dem internen
+Script `scripts/sync_translations.py`, das `strings.json` als Quelle der Wahrheit
+nutzt und Export/Import der `translations/*.json` konsistent hält.
+
+### Workflow (Export/Import)
+
 1. Add new user-facing strings to `custom_components/pawcontrol/strings.json`.
-2. Propagate them to all locale files under
-   `custom_components/pawcontrol/translations/`.
-3. Re-run `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
+2. Sync translation files from the canonical strings file:
+   ```bash
+   python -m scripts.sync_translations
+   ```
+   - For new locales, seed a file with English defaults:
+     ```bash
+     python -m scripts.sync_translations --languages <lang>
+     ```
+3. Update the locale files under `custom_components/pawcontrol/translations/`
+   with the actual translations.
+4. Re-run `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
    to validate schema and localization.
+
+> **CI check:** `python -m scripts.sync_translations --check` runs in the CI
+> workflow to ensure translation files stay in sync.
 
 ## Testing strategy
 
