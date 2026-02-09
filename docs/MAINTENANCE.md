@@ -103,6 +103,8 @@ PawControl stabil und guideline-konform zu halten.
    - Aktualisiere die minimale Home-Assistant-Version in Manifest/Metadata.
    - Passe `hacs.json`, den README-Badge und relevante Doku (z. B.
      `docs/setup_installation_guide.md`) an.
+   - Stelle sicher, dass `custom_components/pawcontrol/manifest.json` und
+     `hacs.json` dieselbe Mindestversion ausweisen.
    - Referenzen:
      - https://developers.home-assistant.io/docs/creating_integration_manifest
      - https://developers.home-assistant.io/docs/creating_integration_file_structure
@@ -118,8 +120,6 @@ PawControl stabil und guideline-konform zu halten.
 
 - **`pawcontrol.start_walk` / `pawcontrol.end_walk`** wurden entfernt. Verwende
   `pawcontrol.gps_start_walk` und `pawcontrol.gps_end_walk`.
-- **`PawControlCoordinator._fetch_dog_data_protected`** wurde entfernt. Nutze
-  `_fetch_dog_data`, wenn interne Aufrufe erforderlich sind.
 
 ## Support escalation & follow-up
 
