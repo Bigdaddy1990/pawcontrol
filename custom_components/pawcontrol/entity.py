@@ -21,7 +21,16 @@ from .types import (
   CoordinatorModuleLookupResult,
   CoordinatorRuntimeManagers,
   CoordinatorUntypedModuleState,
+from .types import (
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  CoordinatorRuntimeManagers,
+  CoordinatorUntypedModuleState,
   DogConfigData,
+  DogStatusSnapshot,
+  JSONMutableMapping,
+  ensure_json_mapping,  # Keep import to maintain API for other modules
+)
   DogStatusSnapshot,
   JSONMutableMapping,
 )
