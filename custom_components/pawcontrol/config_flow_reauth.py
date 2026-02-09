@@ -11,9 +11,15 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOGS, CONF_MODULES
+from .const import CONF_DOG_ID, CONF_DOGS, CONF_MODULES
 from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import ConfigEntryAuthFailed, ReauthRequiredError, ValidationError
+from .exceptions import (
+  ConfigEntryAuthFailed,
+  FlowValidationError,
+  ReauthRequiredError,
+  ValidationError,
+)
+from .flow_validation import is_dog_config_payload_valid, validate_dog_config_payload
 from .selector_shim import selector
 from .types import (
   DOG_ID_FIELD,
@@ -28,7 +34,6 @@ from .types import (
   clone_placeholders,
   ensure_dog_modules_mapping,
   freeze_placeholders,
-  is_dog_config_valid,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -125,6 +130,12 @@ class ReauthFlowMixin(ReauthFlowHost):
       parts.append(f"Modules needing review: {invalid_modules}")
 
     return "; ".join(parts)
+
+  @staticmethod
+  def _is_dog_config_valid_for_reauth(dog: Mapping[str, object]) -> bool:
+    return is_dog_config_payload_valid(
+      cast(Mapping[str, object], dog),
+    )
 
   def _build_reauth_updates(
     self,
@@ -271,15 +282,23 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     for dog in dogs:
       try:
-        if not is_dog_config_valid(dog):
-          dog_id = dog.get(DOG_ID_FIELD, "unknown")
-          invalid_dogs.append(str(dog_id))
-      except Exception as err:
+        validate_dog_config_payload(
+          cast(Mapping[str, object], dog),
+          existing_ids=None,
+          existing_names=None,
+        )
+      except FlowValidationError as err:
+        if CONF_DOG_ID in err.field_errors or err.base_errors:
+          details = err.field_errors or err.base_errors
+          raise ValidationError(
+            "entry_dogs",
+            constraint=(f"Dog payload invalid during reauth: {details}"),
+          ) from err
         _LOGGER.warning(
           "Dog validation error during reauth (non-critical): %s",
           err,
         )
-        dog_id = dog.get(DOG_ID_FIELD, "corrupted")
+        dog_id = dog.get(DOG_ID_FIELD, "unknown")
         invalid_dogs.append(str(dog_id))
 
     if invalid_dogs:
@@ -477,7 +496,9 @@ class ReauthFlowMixin(ReauthFlowHost):
         else f"dog_{index}"
       )
       try:
-        if is_dog_config_valid(dog):
+        if self._is_dog_config_valid_for_reauth(
+          cast(Mapping[str, object], dog),
+        ):
           valid_dogs += 1
         else:
           issues.append(f"Invalid dog config: {dog_id}")
@@ -531,7 +552,9 @@ class ReauthFlowMixin(ReauthFlowHost):
       factory = EntityFactory(None)
       estimated_entities = 0
       for dog in dogs:
-        if not is_dog_config_valid(dog):
+        if not self._is_dog_config_valid_for_reauth(
+          cast(Mapping[str, object], dog),
+        ):
           continue
         modules_mapping = ensure_dog_modules_mapping(dog)
         estimated_entities += await factory.estimate_entity_count_async(

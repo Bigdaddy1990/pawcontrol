@@ -60,7 +60,11 @@ from .exceptions import (
   ReconfigureRequiredError,
   ValidationError,
 )
-from .flow_validation import validate_dog_import_input, validate_dog_setup_input
+from .flow_validation import (
+  is_dog_config_payload_valid,
+  validate_dog_import_input,
+  validate_dog_setup_input,
+)
 from .options_flow import PawControlOptionsFlow
 from .selector_shim import selector
 from .types import (
@@ -109,7 +113,6 @@ from .types import (
   ensure_dog_modules_config,
   ensure_dog_modules_mapping,
   freeze_placeholders,
-  is_dog_config_valid,
   normalize_performance_mode,
 )
 from .flow_validators import validate_flow_dog_name
@@ -699,6 +702,12 @@ class PawControlConfigFlow(
       )
     return "Unknown device"
 
+  @staticmethod
+  def _is_dog_config_valid_for_flow(dog: Mapping[str, object]) -> bool:
+    return is_dog_config_payload_valid(
+      cast(Mapping[str, object], dog),
+    )
+
   async def async_step_add_dog(
     self,
     user_input: DogSetupStepInput | None = None,
@@ -1254,7 +1263,9 @@ class PawControlConfigFlow(
       errors: list[str] = [
         f"Invalid dog configuration: {dog.get(DOG_ID_FIELD, 'unknown')}"
         for dog in self._dogs
-        if not is_dog_config_valid(dog)
+        if not self._is_dog_config_valid_for_flow(
+          cast(Mapping[str, object], dog),
+        )
       ]
 
       estimated_entities = await self._estimate_total_entities_cached()
@@ -1614,7 +1625,13 @@ class PawControlConfigFlow(
         new_profile,
       )
       previous_profile = current_profile
-      valid_dogs = sum(1 for dog in dogs if is_dog_config_valid(dog))
+      valid_dogs = sum(
+        1
+        for dog in dogs
+        if self._is_dog_config_valid_for_flow(
+          cast(Mapping[str, object], dog),
+        )
+      )
 
       telemetry: ReconfigureTelemetry = {
         "requested_profile": new_profile,
@@ -1729,7 +1746,13 @@ class PawControlConfigFlow(
       dogs,
       profile,
     )
-    valid_dogs = sum(1 for dog in dogs if is_dog_config_valid(dog))
+    valid_dogs = sum(
+      1
+      for dog in dogs
+      if self._is_dog_config_valid_for_flow(
+        cast(Mapping[str, object], dog),
+      )
+    )
     invalid_dogs = max(len(dogs) - valid_dogs, 0)
     merge_lines = self._normalise_string_list(list(merge_notes))
     placeholders: ReconfigureFormPlaceholders = cast(
@@ -2341,7 +2364,9 @@ class PawControlConfigFlow(
     try:
       total = 0
       for dog in dogs:
-        if not is_dog_config_valid(dog):
+        if not self._is_dog_config_valid_for_flow(
+          cast(Mapping[str, object], dog),
+        ):
           continue
         total += await self._entity_factory.estimate_entity_count_async(
           profile,

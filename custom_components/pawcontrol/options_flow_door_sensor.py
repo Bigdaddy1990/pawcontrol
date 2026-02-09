@@ -264,7 +264,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
         try:
           normalised_dog = ensure_dog_config_data(updated_dog)
           if normalised_dog is None:
-            raise ValueError
+            errors["base"] = "door_sensor_not_found"
         except ValueError:
           errors["base"] = "door_sensor_not_found"
         else:

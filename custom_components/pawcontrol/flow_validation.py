@@ -61,6 +61,28 @@ DOG_IMPORT_FIELDS: frozenset[str] = frozenset(
 )
 
 
+def _validate_dog_id(
+  raw_id: object,
+  *,
+  existing_ids: set[str] | None = None,
+) -> tuple[str, str | None]:
+  try:
+    dog_id = normalize_dog_id(raw_id)
+  except InputCoercionError:
+    return "", "invalid_dog_id_format"
+  if not dog_id:
+    return "", "invalid_dog_id_format"
+  if len(dog_id) < 2:
+    return dog_id, "dog_id_too_short"
+  if len(dog_id) > 30:
+    return dog_id, "dog_id_too_long"
+  if not DOG_ID_PATTERN.match(dog_id):
+    return dog_id, "invalid_dog_id_format"
+  if existing_ids and dog_id in existing_ids:
+    return dog_id, "dog_id_already_exists"
+  return dog_id, None
+
+
 def _coerce_int(field: str, value: object) -> int:
   try:
     return coerce_int(field, value)
@@ -108,22 +130,12 @@ def validate_dog_setup_input(
   field_errors: dict[str, str] = {}
   base_errors: list[str] = []
 
-  raw_id = user_input.get(CONF_DOG_ID, "")
-  try:
-    dog_id = normalize_dog_id(raw_id)
-  except InputCoercionError:
-    dog_id = ""
-    field_errors[CONF_DOG_ID] = "invalid_dog_id_format"
-  if not dog_id:
-    field_errors[CONF_DOG_ID] = "invalid_dog_id_format"
-  elif len(dog_id) < 2:
-    field_errors[CONF_DOG_ID] = "dog_id_too_short"
-  elif len(dog_id) > 30:
-    field_errors[CONF_DOG_ID] = "dog_id_too_long"
-  elif not DOG_ID_PATTERN.match(dog_id):
-    field_errors[CONF_DOG_ID] = "invalid_dog_id_format"
-  elif dog_id in existing_ids:
-    field_errors[CONF_DOG_ID] = "dog_id_already_exists"
+  dog_id, dog_id_error = _validate_dog_id(
+    user_input.get(CONF_DOG_ID, ""),
+    existing_ids=existing_ids,
+  )
+  if dog_id_error:
+    field_errors[CONF_DOG_ID] = dog_id_error
 
   raw_name = user_input.get(CONF_DOG_NAME, "")
   try:
@@ -195,6 +207,102 @@ def validate_dog_setup_input(
   if dog_breed is not None:
     validated["dog_breed"] = dog_breed
   return validated
+
+
+def is_dog_config_payload_valid(dog: Mapping[str, object]) -> bool:
+  """Return whether a dog configuration payload is structurally valid."""
+
+  try:
+    validate_dog_config_payload(
+      dog,
+      existing_ids=None,
+      existing_names=None,
+    )
+  except FlowValidationError:
+    return False
+  return True
+
+
+def validate_dog_config_payload(
+  user_input: FlowInputMapping,
+  *,
+  existing_ids: set[str] | None = None,
+  existing_names: set[str] | None = None,
+  current_dog_count: int | None = None,
+  max_dogs: int | None = None,
+) -> DogConfigData:
+  """Validate and normalize dog payloads from imports or stored entry data."""
+
+  field_errors: dict[str, str] = {}
+  base_errors: list[str] = []
+
+  dog_id, dog_id_error = _validate_dog_id(
+    user_input.get(CONF_DOG_ID, ""),
+    existing_ids=existing_ids,
+  )
+  if dog_id_error:
+    field_errors[CONF_DOG_ID] = dog_id_error
+
+  if max_dogs is not None:
+    if current_dog_count is None:
+      current_dog_count = 0
+    if current_dog_count >= max_dogs:
+      base_errors.append("max_dogs_reached")
+
+  raw_name = user_input.get(CONF_DOG_NAME)
+  candidate_name = raw_name if isinstance(raw_name, str) else ""
+  current_dog: DogConfigData = {
+    DOG_ID_FIELD: dog_id,
+    DOG_NAME_FIELD: candidate_name,
+  }
+
+  validated_candidate: DogConfigData = current_dog
+  if not field_errors:
+    try:
+      validated_candidate = validate_dog_update_input(
+        current_dog,
+        user_input,
+        existing_names=existing_names,
+      )
+    except FlowValidationError as err:
+      field_errors.update(err.field_errors)
+
+  modules_raw = user_input.get(CONF_MODULES)
+  if modules_raw is not None and not isinstance(modules_raw, Mapping):
+    field_errors[CONF_MODULES] = "dog_invalid_modules"
+
+  if field_errors or base_errors:
+    raise FlowValidationError(
+      field_errors=field_errors,
+      base_errors=base_errors,
+    )
+
+  modules = ensure_dog_modules_config(
+    cast(Mapping[str, object], user_input),
+  )
+
+  normalized_payload = dict(user_input)
+  normalized_payload[DOG_ID_FIELD] = dog_id
+  normalized_payload[DOG_NAME_FIELD] = validated_candidate.get(
+    DOG_NAME_FIELD,
+    candidate_name,
+  )
+
+  for field in (DOG_BREED_FIELD, DOG_AGE_FIELD, DOG_WEIGHT_FIELD, DOG_SIZE_FIELD):
+    if field in validated_candidate:
+      normalized_payload[field] = validated_candidate[field]
+    else:
+      normalized_payload.pop(field, None)
+
+  if modules or CONF_MODULES in user_input:
+    normalized_payload[DOG_MODULES_FIELD] = cast(
+      DogModulesConfig,
+      dict(modules),
+    )
+  else:
+    normalized_payload.pop(DOG_MODULES_FIELD, None)
+
+  return cast(DogConfigData, normalized_payload)
 
 
 def validate_dog_update_input(
