@@ -878,8 +878,6 @@ async def test_async_setup_services_registers_expected_services(
 
   assert set(hass.services.handlers) == expected_services
 
-  assert "start_walk" not in hass.services.handlers
-  assert "end_walk" not in hass.services.handlers
   assert "gps_generate_diagnostics" not in hass.services.handlers
   assert "garden_generate_diagnostics" not in hass.services.handlers
   assert "garden_history_purge" not in hass.services.handlers

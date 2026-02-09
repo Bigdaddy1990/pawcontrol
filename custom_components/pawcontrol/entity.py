@@ -24,7 +24,6 @@ from .types import (
   DogConfigData,
   DogStatusSnapshot,
   JSONMutableMapping,
-  ensure_json_mapping,
 )
 from .utils import (
   JSONMappingLike,
@@ -142,7 +141,7 @@ class PawControlEntity(
     """Expose the entity's extra state attributes payload."""
 
     attrs = getattr(self, "_attr_extra_state_attributes", None)
-    attributes = ensure_json_mapping(attrs)
+    attributes = normalise_entity_attributes(attrs)
 
     last_update = getattr(
       self.coordinator,
@@ -324,12 +323,12 @@ class PawControlDogEntityBase(PawControlEntity):
   ) -> JSONMutableMapping:
     """Return base attributes enriched with dog info."""
 
-    attrs = ensure_json_mapping(super().extra_state_attributes)
+    attrs = dict(super().extra_state_attributes)
     attrs.setdefault(ATTR_DOG_ID, self._dog_id)
     attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
-    if extra:
-      attrs.update(ensure_json_mapping(extra))
     self._append_dog_info_attributes(attrs)
+    if extra:
+      attrs.update(normalise_entity_attributes(extra))
     return attrs
 
   def _build_entity_attributes(
