@@ -78,9 +78,13 @@ if TYPE_CHECKING:
   from homeassistant.config_entries import ConfigEntry
   from ..types import PawControlRuntimeData
 
-_LOGGER = logging.getLogger(__name__)
+  RuntimeDataGetter = Callable[
+    [HomeAssistant, ConfigEntry], PawControlRuntimeData | None
+  ]
+else:  # pragma: no cover - runtime typing support only
+  RuntimeDataGetter = Callable[[object, object], object]
 
-RuntimeDataGetter = Callable[[HomeAssistant, ConfigEntry], PawControlRuntimeData | None]
+_LOGGER = logging.getLogger(__name__)
 
 
 def _resolve_get_runtime_data() -> RuntimeDataGetter:
