@@ -68,7 +68,8 @@ Follow this routine for every release or hotfix.
    - `ruff check`
    - `pytest -q`
    - `python -m scripts.enforce_test_requirements`
-   - `python -m scripts.sync_localization_flags`
+   - `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist`
+   - `python -m scripts.sync_localization_flags --allowlist scripts/sync_localization_flags.allowlist --check`
    - `mypy custom_components/pawcontrol`
    - `python -m scripts.hassfest --integration-path custom_components/pawcontrol`
 3. **Confirm diagnostics & repairs**
