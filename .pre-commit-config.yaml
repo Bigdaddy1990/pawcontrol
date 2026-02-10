@@ -6,7 +6,13 @@ ci:
   autoupdate_commit_msg: "[pre-commit.ci] autoupdate"
   skip: []
 default_language_version:
-  python: python3.13
+  # Use the default `python3` shim so hooks resolve automatically on machines
+  # where only patch-version binaries (for example `python3.13`) are available
+  # through pyenv shims.
+  python: python3
+default_install_hook_types:
+  - pre-commit
+  - pre-push
 repos:
   # Use Ruff for linting and formatting Python files.  The ``ruff-check`` hook
   # previously used ``--exit-non-zero-on-fix`` which caused pre‑commit to
