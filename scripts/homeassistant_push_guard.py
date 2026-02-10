@@ -4,18 +4,27 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
+import os
 import re
+import shutil
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 DEFAULT_RULES_PATH = Path("scripts/homeassistant_upgrade_rules.json")
 DEFAULT_SOURCE_ROOT = Path("custom_components/pawcontrol")
 PYPI_HOMEASSISTANT_URL = "https://pypi.org/pypi/homeassistant/json"
+FALLBACK_HOMEASSISTANT_VERSION = Version("2024.1.0")
+REQUEST_TIMEOUT_SECONDS = 30
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -80,35 +89,135 @@ def parse_args() -> argparse.Namespace:
   return parser.parse_args()
 
 
-def load_rules(path: Path) -> RuleSet:
-  payload = json.loads(path.read_text(encoding="utf-8"))
-  rules: list[UpgradeRule] = []
-  for entry in payload["rules"]:
-    rules.append(
-      UpgradeRule(
-        id=entry["id"],
-        description=entry["description"],
-        pattern=entry["pattern"],
-        replacement=entry["replacement"],
-        introduced_in=Version(entry["introduced_in"]),
-        file_globs=tuple(entry.get("file_globs", ["**/*.py"])),
+def _parse_rule(index: int, entry: dict[str, Any]) -> UpgradeRule:
+  required_fields = (
+    "id",
+    "description",
+    "pattern",
+    "replacement",
+    "introduced_in",
+  )
+  for field_name in required_fields:
+    if field_name not in entry:
+      raise ValueError(
+        f"Rule at index {index} is missing required field '{field_name}'."
       )
-    )
+
+  pattern = entry["pattern"]
+  if not isinstance(pattern, str):
+    raise ValueError(f"Rule at index {index} has non-string pattern.")
+
+  try:
+    re.compile(pattern)
+  except re.error as err:
+    raise ValueError(
+      f"Rule '{entry.get('id', index)}' has invalid regex pattern: {err}"
+    ) from err
+
+  raw_globs = entry.get("file_globs", ["**/*.py"])
+  if not isinstance(raw_globs, list) or not all(
+    isinstance(glob, str) for glob in raw_globs
+  ):
+    raise ValueError(f"Rule '{entry.get('id', index)}' has invalid file_globs value.")
+
+  try:
+    introduced_in = Version(entry["introduced_in"])
+  except InvalidVersion as err:
+    raise ValueError(
+      f"Rule '{entry.get('id', index)}' has invalid introduced_in version."
+    ) from err
+
+  return UpgradeRule(
+    id=entry["id"],
+    description=entry["description"],
+    pattern=pattern,
+    replacement=entry["replacement"],
+    introduced_in=introduced_in,
+    file_globs=tuple(raw_globs),
+  )
+
+
+def load_rules(path: Path) -> RuleSet:
+  try:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+  except OSError as err:
+    raise ValueError(f"Failed to read rule file '{path}': {err}") from err
+  except json.JSONDecodeError as err:
+    raise ValueError(f"Invalid JSON in rules file '{path}': {err}") from err
+
+  if not isinstance(payload, dict):
+    raise ValueError("Rules file must contain a JSON object.")
+
+  for field_name in ("min_covered_version", "max_covered_version", "rules"):
+    if field_name not in payload:
+      raise ValueError(f"Rules file is missing required field '{field_name}'.")
+
+  try:
+    min_covered_version = Version(payload["min_covered_version"])
+    max_covered_version = Version(payload["max_covered_version"])
+  except InvalidVersion as err:
+    raise ValueError(
+      "min_covered_version/max_covered_version must be valid versions."
+    ) from err
+
+  if min_covered_version > max_covered_version:
+    raise ValueError("min_covered_version cannot be newer than max_covered_version.")
+
+  raw_rules = payload["rules"]
+  if not isinstance(raw_rules, list):
+    raise ValueError("rules must be a list.")
+
+  rules: list[UpgradeRule] = []
+  for index, entry in enumerate(raw_rules):
+    if not isinstance(entry, dict):
+      raise ValueError(f"Rule at index {index} must be a JSON object.")
+    rules.append(_parse_rule(index, entry))
 
   return RuleSet(
-    min_covered_version=Version(payload["min_covered_version"]),
-    max_covered_version=Version(payload["max_covered_version"]),
+    min_covered_version=min_covered_version,
+    max_covered_version=max_covered_version,
     rules=tuple(rules),
   )
 
 
 def fetch_latest_homeassistant_version() -> Version:
   request = Request(
-    PYPI_HOMEASSISTANT_URL, headers={"User-Agent": "pawcontrol-bot/1.0"}
+    PYPI_HOMEASSISTANT_URL,
+    headers={
+      "User-Agent": "pawcontrol-bot/1.0",
+      "Accept": "application/json",
+    },
   )
-  with urlopen(request, timeout=20) as response:
-    payload = json.loads(response.read().decode("utf-8"))
-  return Version(payload["info"]["version"])
+
+  try:
+    with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+      status = getattr(response, "status", 200)
+      if status != 200:
+        raise ValueError(f"PyPI API returned unexpected status {status}")
+      payload = json.loads(response.read().decode("utf-8"))
+    return Version(payload["info"]["version"])
+  except (
+    HTTPError,
+    URLError,
+    TimeoutError,
+    OSError,
+    json.JSONDecodeError,
+    KeyError,
+  ) as err:
+    _LOGGER.warning(
+      "Failed to fetch latest Home Assistant version from PyPI (%s). "
+      "Falling back to %s.",
+      err,
+      FALLBACK_HOMEASSISTANT_VERSION,
+    )
+    return FALLBACK_HOMEASSISTANT_VERSION
+  except InvalidVersion as err:
+    _LOGGER.warning(
+      "PyPI returned an invalid Home Assistant version (%s). Falling back to %s.",
+      err,
+      FALLBACK_HOMEASSISTANT_VERSION,
+    )
+    return FALLBACK_HOMEASSISTANT_VERSION
 
 
 def applicable_rules(
@@ -124,11 +233,50 @@ def collect_python_files(root: Path, globs: tuple[str, ...]) -> list[Path]:
   return sorted(path for path in files if path.is_file())
 
 
+def _write_file_atomically(path: Path, content: str) -> None:
+  with tempfile.NamedTemporaryFile(
+    mode="w",
+    encoding="utf-8",
+    dir=path.parent,
+    delete=False,
+  ) as tmp_file:
+    tmp_file.write(content)
+    tmp_path = Path(tmp_file.name)
+
+  try:
+    os.replace(tmp_path, path)
+  finally:
+    if tmp_path.exists():
+      tmp_path.unlink()
+
+
 def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:
-  content = path.read_text(encoding="utf-8")
+  try:
+    content = path.read_text(encoding="utf-8")
+  except OSError as err:
+    _LOGGER.warning("Unable to read %s: %s", path, err)
+    return 0
+
   updated, count = re.subn(rule.pattern, rule.replacement, content, flags=re.MULTILINE)
-  if fix and count:
-    path.write_text(updated, encoding="utf-8")
+
+  if not (fix and count):
+    return count
+
+  backup_path = path.with_suffix(f"{path.suffix}.bak")
+  backup_created = False
+  try:
+    shutil.copy2(path, backup_path)
+    backup_created = True
+    _write_file_atomically(path, updated)
+  except OSError as err:
+    _LOGGER.warning("Failed to update %s safely: %s", path, err)
+    if backup_created:
+      shutil.copy2(backup_path, path)
+    return 0
+  finally:
+    if backup_created and backup_path.exists():
+      backup_path.unlink()
+
   return count
 
 
@@ -154,21 +302,21 @@ def print_findings(findings: list[MatchResult]) -> None:
     grouped.setdefault(finding.rule_id, []).append(finding)
 
   for rule_id, results in grouped.items():
-    print(f"- Regel {rule_id}:")
+    print(f"- Rule {rule_id}:")
     for result in results:
-      print(f"  * {result.path}: {result.count} Treffer")
+      print(f"  * {result.path}: {result.count} matches")
 
 
 def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
   if latest_version <= rule_set.max_covered_version:
     return True
   print(
-    "WARNUNG: Die Rule-Definition deckt Home Assistant bis "
-    f"{rule_set.max_covered_version} ab, gefunden wurde {latest_version}."
+    "WARNING: The rule definition covers Home Assistant versions only up to "
+    f"{rule_set.max_covered_version}, but found {latest_version}."
   )
   print(
-    "Bitte scripts/homeassistant_upgrade_rules.json erweitern, damit neue "
-    "Breaking-Changes automatisch gefixt werden können."
+    "Please extend scripts/homeassistant_upgrade_rules.json so new breaking "
+    "changes can be fixed automatically."
   )
   return False
 
@@ -176,7 +324,7 @@ def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
 def main() -> int:
   args = parse_args()
   if args.fix and args.check:
-    print("Bitte entweder --fix oder --check nutzen.")
+    print("Please use either --fix or --check.")
     return 2
 
   mode_fix = args.fix and not args.check
@@ -185,26 +333,24 @@ def main() -> int:
 
   coverage_ok = validate_coverage(rule_set, latest_version)
 
-  print(f"Neueste Home-Assistant-Version laut PyPI: {latest_version}")
+  print(f"Latest Home Assistant version from PyPI: {latest_version}")
   if findings:
     print_findings(findings)
 
   if args.check:
     if findings:
-      print(
-        "Fehler: Veraltete Muster gefunden. Nutze --fix für automatische Reparatur."
-      )
+      print("Error: Deprecated patterns found. Use --fix for automatic repairs.")
       return 1
     if not coverage_ok:
       return 1
-    print("OK: Keine bekannten veralteten Home-Assistant-Muster gefunden.")
+    print("OK: No known deprecated Home Assistant patterns found.")
     return 0
 
   if mode_fix:
     if findings:
-      print("Automatische Migrationen wurden angewendet.")
+      print("Automatic migrations were applied.")
     else:
-      print("Keine automatischen Migrationen notwendig.")
+      print("No automatic migrations were needed.")
     return 0 if coverage_ok else 1
 
   # Default mode behaves like check in CI-safe mode.
