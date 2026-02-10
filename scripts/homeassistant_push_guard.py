@@ -154,21 +154,21 @@ def print_findings(findings: list[MatchResult]) -> None:
     grouped.setdefault(finding.rule_id, []).append(finding)
 
   for rule_id, results in grouped.items():
-    print(f"- Regel {rule_id}:")
+    print(f"- Rule {rule_id}:")
     for result in results:
-      print(f"  * {result.path}: {result.count} Treffer")
+      print(f"  * {result.path}: {result.count} matches")
 
 
 def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
   if latest_version <= rule_set.max_covered_version:
     return True
   print(
-    "WARNUNG: Die Rule-Definition deckt Home Assistant bis "
-    f"{rule_set.max_covered_version} ab, gefunden wurde {latest_version}."
+    "WARNING: The rule definition covers Home Assistant versions only up to "
+    f"{rule_set.max_covered_version}, but found {latest_version}."
   )
   print(
-    "Bitte scripts/homeassistant_upgrade_rules.json erweitern, damit neue "
-    "Breaking-Changes automatisch gefixt werden können."
+    "Please extend scripts/homeassistant_upgrade_rules.json so new breaking "
+    "changes can be fixed automatically."
   )
   return False
 
@@ -176,7 +176,7 @@ def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
 def main() -> int:
   args = parse_args()
   if args.fix and args.check:
-    print("Bitte entweder --fix oder --check nutzen.")
+    print("Please use either --fix or --check.")
     return 2
 
   mode_fix = args.fix and not args.check
@@ -185,26 +185,24 @@ def main() -> int:
 
   coverage_ok = validate_coverage(rule_set, latest_version)
 
-  print(f"Neueste Home-Assistant-Version laut PyPI: {latest_version}")
+  print(f"Latest Home Assistant version from PyPI: {latest_version}")
   if findings:
     print_findings(findings)
 
   if args.check:
     if findings:
-      print(
-        "Fehler: Veraltete Muster gefunden. Nutze --fix für automatische Reparatur."
-      )
+      print("Error: Deprecated patterns found. Use --fix for automatic repairs.")
       return 1
     if not coverage_ok:
       return 1
-    print("OK: Keine bekannten veralteten Home-Assistant-Muster gefunden.")
+    print("OK: No known deprecated Home Assistant patterns found.")
     return 0
 
   if mode_fix:
     if findings:
-      print("Automatische Migrationen wurden angewendet.")
+      print("Automatic migrations were applied.")
     else:
-      print("Keine automatischen Migrationen notwendig.")
+      print("No automatic migrations were needed.")
     return 0 if coverage_ok else 1
 
   # Default mode behaves like check in CI-safe mode.
