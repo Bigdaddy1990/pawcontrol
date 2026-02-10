@@ -10,6 +10,7 @@ import sys
 import types
 from collections.abc import Callable, Iterable
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
 from pathlib import Path
@@ -652,6 +653,17 @@ class OptionsFlow(_FlowBase):
 
 class ConfigFlowResult(dict):
   """Dictionary wrapper to mimic Home Assistant flow results."""
+
+
+class ConfigFlow(_FlowBase):
+  """Config flow stub used by integration tests."""
+
+  domain: str | None = None
+  VERSION = 1
+  MINOR_VERSION = 0
+
+  async def async_step_user(self, user_input: dict[str, object] | None = None):
+    return self.async_show_form(step_id="user")
 
 
 class DeviceInfo(dict):
@@ -1432,6 +1444,56 @@ class ScriptEntity(Entity):
   """Script entity stub."""
 
 
+@dataclass
+class EntityDescription:
+  """Minimal entity description container."""
+
+  key: str
+  translation_key: str | None = None
+  device_class: object | None = None
+  entity_category: EntityCategory | None = None
+  native_unit_of_measurement: str | None = None
+  icon: str | None = None
+  state_class: object | None = None
+  suggested_display_precision: int | None = None
+
+
+class SensorEntityDescription(EntityDescription):
+  """Sensor entity description stub."""
+
+
+class BinarySensorEntityDescription(EntityDescription):
+  """Binary sensor entity description stub."""
+
+
+class ButtonEntityDescription(EntityDescription):
+  """Button entity description stub."""
+
+
+class SwitchEntityDescription(EntityDescription):
+  """Switch entity description stub."""
+
+
+class NumberEntityDescription(EntityDescription):
+  """Number entity description stub."""
+
+
+class SelectEntityDescription(EntityDescription):
+  """Select entity description stub."""
+
+
+class TextEntityDescription(EntityDescription):
+  """Text entity description stub."""
+
+
+class DateEntityDescription(EntityDescription):
+  """Date entity description stub."""
+
+
+class DateTimeEntityDescription(EntityDescription):
+  """Datetime entity description stub."""
+
+
 class SensorDeviceClass(StrEnum):
   TEMPERATURE = "temperature"
   HUMIDITY = "humidity"
@@ -1797,6 +1859,7 @@ def install_homeassistant_stubs() -> None:
     "homeassistant.helpers.typing",
     "homeassistant.helpers.update_coordinator",
     "homeassistant.helpers.selector",
+    "homeassistant.helpers.translation",
     "homeassistant.helpers.device_registry",
     "homeassistant.helpers.entity_registry",
     "homeassistant.helpers.storage",
@@ -1830,6 +1893,7 @@ def install_homeassistant_stubs() -> None:
     "homeassistant.components.system_health",
     "homeassistant.components.text",
     "homeassistant.components.weather",
+    "homeassistant.components.webhook",
     "homeassistant.components.repairs",
     "homeassistant.data_entry_flow",
   ]:
@@ -1884,6 +1948,7 @@ def install_homeassistant_stubs() -> None:
   dt_util_module = types.ModuleType("homeassistant.util.dt")
   logging_util_module = types.ModuleType("homeassistant.util.logging")
   selector_module = types.ModuleType("homeassistant.helpers.selector")
+  translation_module = types.ModuleType("homeassistant.helpers.translation")
   service_info_module = types.ModuleType("homeassistant.helpers.service_info")
   service_info_module.__path__ = []
   dhcp_module = types.ModuleType("homeassistant.helpers.service_info.dhcp")
@@ -1927,11 +1992,22 @@ def install_homeassistant_stubs() -> None:
   )
   text_component_module = types.ModuleType("homeassistant.components.text")
   weather_component_module = types.ModuleType("homeassistant.components.weather")
+  webhook_component_module = types.ModuleType("homeassistant.components.webhook")
   repairs_component_module = types.ModuleType(
     "homeassistant.components.repairs",
   )
   data_entry_flow_module = types.ModuleType("homeassistant.data_entry_flow")
   aiofiles_module = types.ModuleType("aiofiles")
+
+  async def _async_get_translations(
+    hass: HomeAssistant,
+    language: str | None,
+    category: str,
+    domains: set[str],
+  ) -> dict[str, str]:
+    return {}
+
+  translation_module.async_get_translations = _async_get_translations
 
   const_module.Platform = Platform
   const_module.__version__ = HOME_ASSISTANT_VERSION
@@ -1947,6 +2023,8 @@ def install_homeassistant_stubs() -> None:
   const_module.CONF_TYPE = "type"
   const_module.CONF_FROM = "from"
   const_module.CONF_TO = "to"
+  const_module.CONF_METADATA = "metadata"
+  const_module.ATTR_VALUE = "value"
   const_module.CONF_CONDITION = "condition"
   const_module.STATE_ON = "on"
   const_module.STATE_OFF = "off"
@@ -2102,6 +2180,8 @@ def install_homeassistant_stubs() -> None:
   data_entry_flow_module.FlowResult = FlowResult
   data_entry_flow_module.FlowResultType = FlowResultType
   config_entries_module.FlowResult = FlowResult
+  config_entries_module.ConfigFlow = ConfigFlow
+  config_entries_module.OptionsFlow = OptionsFlow
 
   selector_module.SelectSelectorMode = SelectSelectorMode
   selector_module.SelectSelectorConfig = SelectSelectorConfig
@@ -2129,22 +2209,33 @@ def install_homeassistant_stubs() -> None:
   aiofiles_module.open = _aiofiles_open
 
   sensor_component_module.SensorEntity = SensorEntity
+  sensor_component_module.SensorEntityDescription = SensorEntityDescription
   sensor_component_module.SensorDeviceClass = SensorDeviceClass
   sensor_component_module.SensorStateClass = SensorStateClass
   binary_sensor_component_module.BinarySensorEntity = BinarySensorEntity
+  binary_sensor_component_module.BinarySensorEntityDescription = (
+    BinarySensorEntityDescription
+  )
   binary_sensor_component_module.BinarySensorDeviceClass = BinarySensorDeviceClass
   button_component_module.ButtonEntity = ButtonEntity
+  button_component_module.ButtonEntityDescription = ButtonEntityDescription
   button_component_module.ButtonDeviceClass = ButtonDeviceClass
   switch_component_module.SwitchEntity = SwitchEntity
+  switch_component_module.SwitchEntityDescription = SwitchEntityDescription
   switch_component_module.SwitchDeviceClass = SwitchDeviceClass
   number_component_module.NumberEntity = NumberEntity
+  number_component_module.NumberEntityDescription = NumberEntityDescription
   number_component_module.NumberDeviceClass = NumberDeviceClass
   number_component_module.NumberMode = NumberMode
   select_component_module.SelectEntity = SelectEntity
+  select_component_module.SelectEntityDescription = SelectEntityDescription
   text_component_module.TextEntity = TextEntity
+  text_component_module.TextEntityDescription = TextEntityDescription
   text_component_module.TextMode = TextMode
   date_component_module.DateEntity = DateEntity
+  date_component_module.DateEntityDescription = DateEntityDescription
   datetime_component_module.DateTimeEntity = DateTimeEntity
+  datetime_component_module.DateTimeEntityDescription = DateTimeEntityDescription
   device_tracker_component_module.TrackerEntity = TrackerEntity
   device_tracker_component_module.SourceType = SourceType
   weather_component_module.WeatherEntity = WeatherEntity
@@ -2168,6 +2259,15 @@ def install_homeassistant_stubs() -> None:
   weather_component_module.ATTR_WEATHER_UV_INDEX = "uv_index"
   weather_component_module.ATTR_WEATHER_VISIBILITY = "visibility"
   weather_component_module.ATTR_WEATHER_WIND_SPEED = "wind_speed"
+
+  def _webhook_async_register(*args: object, **kwargs: object) -> None:
+    return None
+
+  def _webhook_async_unregister(*args: object, **kwargs: object) -> None:
+    return None
+
+  webhook_component_module.async_register = _webhook_async_register
+  webhook_component_module.async_unregister = _webhook_async_unregister
   input_boolean_component_module.DOMAIN = "input_boolean"
   input_datetime_component_module.DOMAIN = "input_datetime"
   input_number_component_module.DOMAIN = "input_number"
@@ -2197,6 +2297,7 @@ def install_homeassistant_stubs() -> None:
   helpers_module.typing = typing_module
   helpers_module.update_coordinator = update_coordinator_module
   helpers_module.selector = selector_module
+  helpers_module.translation = translation_module
   helpers_module.device_registry = device_registry_module
   helpers_module.entity_registry = entity_registry_module
   helpers_module.issue_registry = issue_registry_module
@@ -2224,6 +2325,7 @@ def install_homeassistant_stubs() -> None:
   components_module.system_health = system_health_component_module
   components_module.text = text_component_module
   components_module.weather = weather_component_module
+  components_module.webhook = webhook_component_module
   components_module.repairs = repairs_component_module
 
   sys.modules["homeassistant"] = homeassistant
@@ -2242,6 +2344,7 @@ def install_homeassistant_stubs() -> None:
   sys.modules["homeassistant.helpers.typing"] = typing_module
   sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator_module
   sys.modules["homeassistant.helpers.selector"] = selector_module
+  sys.modules["homeassistant.helpers.translation"] = translation_module
   sys.modules["homeassistant.helpers.device_registry"] = device_registry_module
   sys.modules["homeassistant.helpers.entity_registry"] = entity_registry_module
   sys.modules["homeassistant.helpers.issue_registry"] = issue_registry_module
@@ -2281,6 +2384,7 @@ def install_homeassistant_stubs() -> None:
   sys.modules["homeassistant.components.system_health"] = system_health_component_module
   sys.modules["homeassistant.components.text"] = text_component_module
   sys.modules["homeassistant.components.weather"] = weather_component_module
+  sys.modules["homeassistant.components.webhook"] = webhook_component_module
   sys.modules["homeassistant.components.repairs"] = repairs_component_module
   sys.modules["homeassistant.data_entry_flow"] = data_entry_flow_module
   sys.modules["aiofiles"] = aiofiles_module

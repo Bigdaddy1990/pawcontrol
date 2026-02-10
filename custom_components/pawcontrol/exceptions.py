@@ -34,6 +34,7 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 ConfigEntryAuthFailed = _AuthFailedType
+HomeAssistantError = HomeAssistantErrorType
 ServiceValidationError = _ServiceValidationErrorType
 UpdateFailed = _UpdateFailedType
 CoordinatorUpdateFailed = _UpdateFailedType

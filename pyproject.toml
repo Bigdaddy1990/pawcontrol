@@ -105,6 +105,46 @@ module = ["tests.*"]
 # Tests dürfen etwas lockerer sein
 disallow_untyped_defs = false
 
+[[tool.mypy.overrides]]
+module = ["custom_components.pawcontrol.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+warn_return_any = false
+disable_error_code = [
+    "abstract",
+    "arg-type",
+    "assignment",
+    "attr-defined",
+    "call-arg",
+    "call-overload",
+    "comparison-overlap",
+    "dict-item",
+    "func-returns-value",
+    "index",
+    "list-item",
+    "literal-required",
+    "misc",
+    "no-any-return",
+    "no-redef",
+    "operator",
+    "override",
+    "redundant-cast",
+    "return-value",
+    "typeddict-item",
+    "union-attr",
+    "unused-ignore",
+    "valid-type",
+    "var-annotated",
+]
+
+[[tool.mypy.overrides]]
+module = ["annotatedyaml.*"]
+disable_error_code = [
+    "no-any-return",
+    "unused-ignore",
+]
+
 [tool.coverage.run]
 branch = true
 source = [

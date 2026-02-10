@@ -45,12 +45,11 @@ from .validation import ValidationError, validate_sensor_entity_id
 from .flows.walk_helpers import WALK_SETTINGS_FIELDS
 
 if TYPE_CHECKING:
-  from homeassistant.core import HomeAssistant
   from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
-RuntimeDataResolver = Callable[[HomeAssistant, ConfigEntry], PawControlRuntimeData]
+RuntimeDataResolver = Callable[[Any, Any], PawControlRuntimeData]
 IssueCreator = Callable[..., Awaitable[None]]
 
 
