@@ -1243,7 +1243,12 @@ parallel.  To install and set up the hooks locally, run:
 ```bash
 pip install prek
 prek install
+
+# optional: trigger push-stage checks immediately
+prek run --hook-stage push homeassistant-push-guard
 ```
+
+The push stage includes the `homeassistant-push-guard` hook. This hook automatically checks for known Home Assistant migration patterns before each push, fetches the latest Home Assistant version from PyPI, and applies known auto-fixes directly to the code (`python -m scripts.homeassistant_push_guard --fix`).
 
 # Run tests
 ```bash
