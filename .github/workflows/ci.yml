@@ -51,7 +51,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Install development tools
-        uses: taiki-e/install-action@v2.67.26
+        uses: taiki-e/install-action@v2.67.27
 
       - name: Verify contributor guides
         run: |
