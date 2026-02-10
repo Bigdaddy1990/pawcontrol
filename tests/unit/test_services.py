@@ -1789,7 +1789,7 @@ async def test_gps_start_walk_service_rejects_invalid_boolean_toggle(
 
   with pytest.raises(
     ServiceValidationError,
-    match="track_route must be a boolean \(got str\)",
+    match=r"track_route must be a boolean \(got str\)",
   ):
     await handler(SimpleNamespace(data={"dog_id": "fido", "track_route": "maybe"}))
 
@@ -1997,7 +1997,7 @@ async def test_setup_automatic_gps_service_rejects_invalid_boolean_toggle(
 
   with pytest.raises(
     ServiceValidationError,
-    match="auto_start_walk must be a boolean \(got str\)",
+    match=r"auto_start_walk must be a boolean \(got str\)",
   ):
     await handler(
       SimpleNamespace(data={"dog_id": "fido", "auto_start_walk": "perhaps"})
