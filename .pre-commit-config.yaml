@@ -9,7 +9,7 @@ default_language_version:
       # Use the default `python3` shim for better compatibility across environments
       # while maintaining compatibility with ruff v0.15.0+ requirements
       python: python3
-    default_install_hook_types:
+default_install_hook_types:
       - pre-commit
       - pre-push
 repos:
