@@ -126,6 +126,12 @@ repos:
         entry: python -m scripts.hassfest --integration-path custom_components/pawcontrol
         language: python
         pass_filenames: false
+      - id: homeassistant-push-guard
+        name: Home Assistant push guard (auto-fix migration patterns)
+        entry: python -m scripts.homeassistant_push_guard --fix
+        language: python
+        pass_filenames: false
+        stages: [push]
       - id: manifest-validate
         name: Manifest Validation
         entry: python -m scripts.validate_manifest
