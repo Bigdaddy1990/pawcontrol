@@ -10,7 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -186,10 +186,10 @@ def create_form_result(
 
   Examples:
       >>> result = create_form_result(
-      ...     flow=self,
-      ...     step_id="user",
-      ...     data_schema=USER_SCHEMA,
-      ...     errors={"base": "invalid_input"}
+      ...   flow=self,
+      ...   step_id="user",
+      ...   data_schema=USER_SCHEMA,
+      ...   errors={"base": "invalid_input"},
       ... )
   """
   return flow.async_show_form(
@@ -220,9 +220,7 @@ def create_menu_result(
 
   Examples:
       >>> result = create_menu_result(
-      ...     flow=self,
-      ...     step_id="init",
-      ...     menu_options=["dogs", "modules", "settings"]
+      ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
       ... )
   """
   return flow.async_show_menu(
@@ -248,10 +246,7 @@ def create_abort_result(
       Abort result
 
   Examples:
-      >>> result = create_abort_result(
-      ...     flow=self,
-      ...     reason="already_configured"
-      ... )
+      >>> result = create_abort_result(flow=self, reason="already_configured")
   """
   return flow.async_abort(
     reason=reason,
@@ -278,9 +273,7 @@ def create_progress_result(
 
   Examples:
       >>> result = create_progress_result(
-      ...     flow=self,
-      ...     step_id="validate",
-      ...     progress_action="validating"
+      ...   flow=self, step_id="validate", progress_action="validating"
       ... )
   """
   return flow.async_show_progress(
@@ -427,7 +420,9 @@ def build_select_schema(
     else:
       vol_key = vol.Required(key)
   else:
-    vol_key = vol.Optional(key, default=default) if default is not None else vol.Optional(key)
+    vol_key = (
+      vol.Optional(key, default=default) if default is not None else vol.Optional(key)
+    )
 
   config = selector.SelectSelectorConfig(
     options=options,
@@ -468,7 +463,9 @@ def build_number_schema(
       Schema dictionary fragment
 
   Examples:
-      >>> schema = build_number_schema("weight", min_value=0.5, max_value=100, unit="kg")
+      >>> schema = build_number_schema(
+      ...   "weight", min_value=0.5, max_value=100, unit="kg"
+      ... )
   """
   from .selector_shim import selector
 
@@ -479,7 +476,9 @@ def build_number_schema(
     else:
       vol_key = vol.Required(key)
   else:
-    vol_key = vol.Optional(key, default=default) if default is not None else vol.Optional(key)
+    vol_key = (
+      vol.Optional(key, default=default) if default is not None else vol.Optional(key)
+    )
 
   config = selector.NumberSelectorConfig(
     min=min_value,
@@ -531,7 +530,9 @@ def build_text_schema(
     else:
       vol_key = vol.Required(key)
   else:
-    vol_key = vol.Optional(key, default=default) if default is not None else vol.Optional(key)
+    vol_key = (
+      vol.Optional(key, default=default) if default is not None else vol.Optional(key)
+    )
 
   config = selector.TextSelectorConfig(
     type=selector.TextSelectorType.TEXT,
