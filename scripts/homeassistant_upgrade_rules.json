@@ -4,7 +4,7 @@
   "rules": [
     {
       "id": "ha-timeout-migration",
-      "description": "async_timeout ist deprecated; nutze asyncio.timeout.",
+      "description": "async_timeout is deprecated; use asyncio.timeout.",
       "introduced_in": "2024.2.0",
       "pattern": "\\bimport async_timeout\\b",
       "replacement": "import asyncio",
@@ -14,7 +14,7 @@
     },
     {
       "id": "ha-zoneinfo-migration",
-      "description": "pytz soll durch zoneinfo ersetzt werden.",
+      "description": "pytz should be replaced with zoneinfo.",
       "introduced_in": "2024.1.0",
       "pattern": "\\bimport pytz\\b",
       "replacement": "from zoneinfo import ZoneInfo",
@@ -24,7 +24,7 @@
     },
     {
       "id": "ha-datetime-utcnow-migration",
-      "description": "datetime.utcnow ist veraltet; Home Assistant empfiehlt dt_util.utcnow.",
+      "description": "datetime.utcnow is deprecated; Home Assistant recommends dt_util.utcnow.",
       "introduced_in": "2024.8.0",
       "pattern": "datetime\\.utcnow\\(\\)",
       "replacement": "dt_util.utcnow()",
