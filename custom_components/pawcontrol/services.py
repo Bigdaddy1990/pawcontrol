@@ -190,9 +190,7 @@ def _format_gps_validation_error(
     "geofence_radius_out_of_range",
   }:
     suffix = unit or ""
-    if error.min_value is not None and error.max_value is not None:
-      return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
-    return f"{field} is out of range"
+    return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
 
   return f"{field} is invalid"
 
@@ -216,12 +214,31 @@ def _format_text_validation_error(error: ValidationError) -> str:
 
 
 def _coerce_service_bool(value: object, *, field: str) -> bool:
-  """Validate boolean service inputs for direct handler calls."""
+  """Validate and coerce Home Assistant service booleans.
+
+  Service data may arrive as native booleans, strings, or integer toggles
+  depending on the caller (automations, scripts, dashboards, voice intents).
+  """
 
   if isinstance(value, bool):
     return value
 
-  raise _service_validation_error(f"{field} must be a boolean")
+  if isinstance(value, str):
+    lowered = value.strip().lower()
+    if lowered in {"1", "true", "yes", "on", "enable", "enabled"}:
+      return True
+    if lowered in {"0", "false", "no", "off", "disable", "disabled"}:
+      return False
+
+  if isinstance(value, int):
+    if value == 1:
+      return True
+    if value == 0:
+      return False
+
+  raise _service_validation_error(
+    f"{field} must be a boolean (got {type(value).__name__})"
+  )
 
 
 def _format_expires_in_hours_error(error: ValidationError) -> str:
@@ -2447,10 +2464,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           float,
           InputValidator.validate_geofence_radius(
             safe_zone_radius,
-            required=True,
             field="safe_zone_radius",
-            min_value=float(MIN_GEOFENCE_RADIUS),
-            max_value=float(MAX_GEOFENCE_RADIUS),
           ),
         )
       except ValidationError as err:
@@ -2521,11 +2535,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         )
 
         _LOGGER.info(
-          "Setup geofencing safe zone for %s: center=%.6f,%.6f radius=%.1fm",
+          "Setup geofencing safe zone for %s: center=%.6f,%.6f radius=%dm",
           dog_id,
           home_lat,
           home_lon,
-          safe_zone_radius,
+          round(safe_zone_radius),
         )
 
       await coordinator.async_request_refresh()
