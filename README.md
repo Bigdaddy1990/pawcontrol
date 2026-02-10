@@ -1248,10 +1248,7 @@ prek install
 prek run --hook-stage push homeassistant-push-guard
 ```
 
-Der Push-Stage enthält den Hook `homeassistant-push-guard`. Dieser prüft vor
-jedem Push automatisch auf bekannte Home-Assistant-Migrationsmuster, holt die
-aktuellste Home-Assistant-Version von PyPI und führt bekannte Auto-Fixes direkt
-im Code aus (`python -m scripts.homeassistant_push_guard --fix`).
+The push stage includes the `homeassistant-push-guard` hook. This hook automatically checks for known Home Assistant migration patterns before each push, fetches the latest Home Assistant version from PyPI, and applies known auto-fixes directly to the code (`python -m scripts.homeassistant_push_guard --fix`).
 
 # Run tests
 ```bash
