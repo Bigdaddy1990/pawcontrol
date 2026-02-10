@@ -2988,6 +2988,7 @@ class PawControlDataManager:
         raise HomeAssistantError(f"Invalid PawControl update for {dog_id}")
 
       profile.config = typed_config
+      self._dogs_config[dog_id] = typed_config
 
     if persist:
       try:
