@@ -1893,6 +1893,7 @@ def install_homeassistant_stubs() -> None:
     "homeassistant.components.system_health",
     "homeassistant.components.text",
     "homeassistant.components.weather",
+    "homeassistant.components.webhook",
     "homeassistant.components.repairs",
     "homeassistant.data_entry_flow",
   ]:
@@ -1991,6 +1992,7 @@ def install_homeassistant_stubs() -> None:
   )
   text_component_module = types.ModuleType("homeassistant.components.text")
   weather_component_module = types.ModuleType("homeassistant.components.weather")
+  webhook_component_module = types.ModuleType("homeassistant.components.webhook")
   repairs_component_module = types.ModuleType(
     "homeassistant.components.repairs",
   )
@@ -2257,6 +2259,15 @@ def install_homeassistant_stubs() -> None:
   weather_component_module.ATTR_WEATHER_UV_INDEX = "uv_index"
   weather_component_module.ATTR_WEATHER_VISIBILITY = "visibility"
   weather_component_module.ATTR_WEATHER_WIND_SPEED = "wind_speed"
+
+  def _webhook_async_register(*args: object, **kwargs: object) -> None:
+    return None
+
+  def _webhook_async_unregister(*args: object, **kwargs: object) -> None:
+    return None
+
+  webhook_component_module.async_register = _webhook_async_register
+  webhook_component_module.async_unregister = _webhook_async_unregister
   input_boolean_component_module.DOMAIN = "input_boolean"
   input_datetime_component_module.DOMAIN = "input_datetime"
   input_number_component_module.DOMAIN = "input_number"
@@ -2314,6 +2325,7 @@ def install_homeassistant_stubs() -> None:
   components_module.system_health = system_health_component_module
   components_module.text = text_component_module
   components_module.weather = weather_component_module
+  components_module.webhook = webhook_component_module
   components_module.repairs = repairs_component_module
 
   sys.modules["homeassistant"] = homeassistant
@@ -2372,6 +2384,7 @@ def install_homeassistant_stubs() -> None:
   sys.modules["homeassistant.components.system_health"] = system_health_component_module
   sys.modules["homeassistant.components.text"] = text_component_module
   sys.modules["homeassistant.components.weather"] = weather_component_module
+  sys.modules["homeassistant.components.webhook"] = webhook_component_module
   sys.modules["homeassistant.components.repairs"] = repairs_component_module
   sys.modules["homeassistant.data_entry_flow"] = data_entry_flow_module
   sys.modules["aiofiles"] = aiofiles_module

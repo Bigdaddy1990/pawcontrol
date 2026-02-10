@@ -21,7 +21,25 @@ try:  # pragma: no cover - exercised when Home Assistant is installed
 except ImportError:  # pragma: no cover - used in tests
   ha_selector = None
 
-if ha_selector is not None:  # pragma: no cover - passthrough when available
+
+def _supports_selector_callables(module: object) -> bool:
+  """Return ``True`` when selector instances behave like validators."""
+
+  text_selector = getattr(module, "TextSelector", None)
+  text_selector_config = getattr(module, "TextSelectorConfig", None)
+  if not callable(text_selector) or text_selector_config is None:
+    return False
+
+  try:
+    selector_instance = text_selector(text_selector_config())
+  except Exception:
+    return False
+
+  return callable(selector_instance)
+
+
+if ha_selector is not None and _supports_selector_callables(ha_selector):
+  # pragma: no cover - passthrough when available
   selector = ha_selector
 else:
   from typing import Literal, Required, TypedDict

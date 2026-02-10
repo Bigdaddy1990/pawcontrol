@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections import UserString
+import json
 from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from itertools import islice
 from math import isfinite
 from numbers import Real
 from os import PathLike, fspath
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, TypeVar, cast, overload
 
 if TYPE_CHECKING:
@@ -506,16 +508,14 @@ def _build_localised_sections(
   return missed_summary, issue_summary, recommendation_summary
 
 
-async def async_build_feeding_compliance_summary(
-  hass: HomeAssistant,
-  language: str | None,
+def _build_feeding_compliance_summary_from_translations(
+  translations: Mapping[str, str],
   *,
   display_name: str,
   compliance: FeedingComplianceDisplayMapping,
 ) -> FeedingComplianceLocalizedSummary:
-  """Return a localised summary for a feeding compliance result."""
+  """Build a localised feeding summary from an already-resolved catalog."""
 
-  translations = await async_get_feeding_compliance_translations(hass, language)
   status = compliance.get("status")
 
   if status != "completed":
@@ -573,6 +573,86 @@ async def async_build_feeding_compliance_summary(
     "issues": issue_summary,
     "recommendations": recommendation_summary,
   }
+
+
+async def async_build_feeding_compliance_summary(
+  hass: HomeAssistant,
+  language: str | None,
+  *,
+  display_name: str,
+  compliance: FeedingComplianceDisplayMapping,
+) -> FeedingComplianceLocalizedSummary:
+  """Return a localised summary for a feeding compliance result."""
+
+  translations = await async_get_feeding_compliance_translations(hass, language)
+  return _build_feeding_compliance_summary_from_translations(
+    translations,
+    display_name=display_name,
+    compliance=compliance,
+  )
+
+
+def _load_static_common_translations(language: str | None) -> Mapping[str, str]:
+  """Load translation ``common`` entries from packaged JSON files."""
+
+  normalized_language = (language or "en").lower()
+  translations_path = Path(__file__).resolve().parent / "translations"
+
+  def _read_common(lang: str) -> dict[str, str]:
+    file_path = translations_path / f"{lang}.json"
+    if not file_path.exists():
+      return {}
+    try:
+      data = json.loads(file_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+      return {}
+    common = data.get("common", {})
+    return common if isinstance(common, dict) else {}
+
+  localized = _read_common(normalized_language)
+  fallback = _read_common("en")
+  return {**fallback, **localized}
+
+
+def get_feeding_compliance_translations(language: str | None) -> dict[str, str]:
+  """Return static feeding compliance translations for non-HA unit tests."""
+
+  common = _load_static_common_translations(language)
+  return {
+    key: str(common.get(translation_key, key))
+    for key, translation_key in FEEDING_COMPLIANCE_TRANSLATION_KEYS.items()
+  }
+
+
+def build_feeding_compliance_summary(
+  language: str | None,
+  *,
+  display_name: str,
+  compliance: FeedingComplianceDisplayMapping,
+) -> FeedingComplianceLocalizedSummary:
+  """Return a localized summary without requiring a Home Assistant instance."""
+
+  return _build_feeding_compliance_summary_from_translations(
+    get_feeding_compliance_translations(language),
+    display_name=display_name,
+    compliance=compliance,
+  )
+
+
+def build_feeding_compliance_notification(
+  language: str | None,
+  *,
+  display_name: str,
+  compliance: FeedingComplianceDisplayMapping,
+) -> tuple[str, str | None]:
+  """Return localised title and body for non-HA unit tests."""
+
+  summary = build_feeding_compliance_summary(
+    language,
+    display_name=display_name,
+    compliance=compliance,
+  )
+  return summary["title"], summary["message"]
 
 
 async def async_build_feeding_compliance_notification(
