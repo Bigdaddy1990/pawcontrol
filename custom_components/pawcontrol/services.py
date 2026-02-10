@@ -172,13 +172,23 @@ def _format_gps_validation_error(
   if constraint in {"gps_update_interval_required", "gps_accuracy_required"}:
     return f"{field} is required"
 
+  if constraint == "geofence_radius_required":
+    return f"{field} is required"
+
   if constraint == "gps_update_interval_not_numeric":
     return f"{field} must be a whole number"
 
   if constraint == "gps_accuracy_not_numeric":
     return f"{field} must be a number"
 
-  if constraint in {"gps_update_interval_out_of_range", "gps_accuracy_out_of_range"}:
+  if constraint == "geofence_radius_not_numeric":
+    return f"{field} must be a number"
+
+  if constraint in {
+    "gps_update_interval_out_of_range",
+    "gps_accuracy_out_of_range",
+    "geofence_radius_out_of_range",
+  }:
     suffix = unit or ""
     if error.min_value is not None and error.max_value is not None:
       return f"{field} must be between {error.min_value} and {error.max_value}{suffix}"
@@ -203,6 +213,15 @@ def _format_text_validation_error(error: ValidationError) -> str:
     return f"{field} must be a non-empty string"
 
   return f"{field} is invalid"
+
+
+def _coerce_service_bool(value: object, *, field: str) -> bool:
+  """Validate boolean service inputs for direct handler calls."""
+
+  if isinstance(value, bool):
+    return value
+
+  raise _service_validation_error(f"{field} must be a boolean")
 
 
 def _format_expires_in_hours_error(error: ValidationError) -> str:
@@ -2036,13 +2055,21 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     )
     runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
-    raw_dog_id = call.data["dog_id"]
-    dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
-    walker = call.data.get("walker")
-    track_route = call.data.get("track_route", True)
-    safety_alerts = call.data.get("safety_alerts", True)
+    dog_id: str | None = None
 
     try:
+      raw_dog_id = call.data["dog_id"]
+      dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
+      walker = call.data.get("walker")
+      track_route = _coerce_service_bool(
+        call.data.get("track_route", True),
+        field="track_route",
+      )
+      safety_alerts = _coerce_service_bool(
+        call.data.get("safety_alerts", True),
+        field="safety_alerts",
+      )
+
       session_id = await gps_manager.async_start_gps_tracking(
         dog_id=dog_id,
         walker=walker,
@@ -2371,12 +2398,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
       raise HomeAssistantError(error_message) from err
 
-  # NEW: Setup automatic GPS service - mentioned in info.md but was missing
   async def setup_automatic_gps_service(call: ServiceCall) -> None:
     """Handle setup automatic GPS service call.
 
-    NEW: Implements the setup_automatic_gps service mentioned in info.md
-    with parameters like auto_start_walk, safe_zone_radius, and track_route.
+    Implements `setup_automatic_gps` with validated GPS automation parameters.
     """
     coordinator = _get_coordinator()
     gps_manager = _require_manager(
@@ -2385,21 +2410,54 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     )
     runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
-    raw_dog_id = call.data["dog_id"]
-    dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
-    auto_start_walk = call.data.get("auto_start_walk", True)
-    safe_zone_radius = call.data.get("safe_zone_radius", 50)
-    track_route = call.data.get("track_route", True)
-    safety_alerts = call.data.get("safety_alerts", True)
-    geofence_notifications = call.data.get("geofence_notifications", True)
-    auto_detect_home = call.data.get("auto_detect_home", True)
-    gps_accuracy_threshold = call.data.get("gps_accuracy_threshold", 50)
-    update_interval_seconds = call.data.get("update_interval_seconds", 60)
+    dog_id: str | None = None
 
     guard_results: list[ServiceGuardResult] = []
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
     try:
+      raw_dog_id = call.data["dog_id"]
+      dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
+      auto_start_walk = _coerce_service_bool(
+        call.data.get("auto_start_walk", True),
+        field="auto_start_walk",
+      )
+      safe_zone_radius = call.data.get("safe_zone_radius", 50)
+      track_route = _coerce_service_bool(
+        call.data.get("track_route", True),
+        field="track_route",
+      )
+      safety_alerts = _coerce_service_bool(
+        call.data.get("safety_alerts", True),
+        field="safety_alerts",
+      )
+      geofence_notifications = _coerce_service_bool(
+        call.data.get("geofence_notifications", True),
+        field="geofence_notifications",
+      )
+      auto_detect_home = _coerce_service_bool(
+        call.data.get("auto_detect_home", True),
+        field="auto_detect_home",
+      )
+      gps_accuracy_threshold = call.data.get("gps_accuracy_threshold", 50)
+      update_interval_seconds = call.data.get("update_interval_seconds", 60)
+
+      try:
+        safe_zone_radius = cast(
+          float,
+          InputValidator.validate_geofence_radius(
+            safe_zone_radius,
+            required=True,
+            field="safe_zone_radius",
+            min_value=float(MIN_GEOFENCE_RADIUS),
+            max_value=float(MAX_GEOFENCE_RADIUS),
+          ),
+        )
+      except ValidationError as err:
+        raise _service_validation_error(
+          _format_gps_validation_error(err, unit=" m")
+        ) from err
+
       try:
         gps_accuracy_threshold = cast(
           float,
@@ -2463,7 +2521,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         )
 
         _LOGGER.info(
-          "Setup geofencing safe zone for %s: center=%.6f,%.6f radius=%dm",
+          "Setup geofencing safe zone for %s: center=%.6f,%.6f radius=%.1fm",
           dog_id,
           home_lat,
           home_lon,
@@ -2473,7 +2531,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       await coordinator.async_request_refresh()
 
       _LOGGER.info(
-        "Setup automatic GPS for %s: auto_walk=%s, safe_zone=%dm, tracking=%s",
+        "Setup automatic GPS for %s: auto_walk=%s, safe_zone=%.1fm, tracking=%s",
         dog_id,
         auto_start_walk,
         safe_zone_radius,
@@ -2493,7 +2551,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             title=f"🛰️ GPS Setup Complete: {dog_id}",
             message=(
               f"Automatic GPS tracking configured for {dog_id}. "
-              f"Safe zone: {safe_zone_radius}m radius. "
+              f"Safe zone: {safe_zone_radius:.1f}m radius. "
               f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."
             ),
             dog_id=dog_id,
