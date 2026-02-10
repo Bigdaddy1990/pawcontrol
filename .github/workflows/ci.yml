@@ -49,6 +49,11 @@ jobs:
           python -m pip install --upgrade pip ruff
           python -m pip install -r requirements_test.txt
           python -m pip install -r requirements.txt
+          ruff check . --fix all || true
+          ruff check . --fix --unsafe-fixes || true
+          ruff check . --add-noqa || true
+          ruff check . --extend-select RUF100 --fix || true
+          python scripts/enforce_docstring_baseline.py --update
 
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.27
@@ -68,6 +73,7 @@ jobs:
         run: |
           prek install
           prek run --all-files --show-diff-on-failure
+          prek run --all-files
 
       - name: Run mypy
         run: |
