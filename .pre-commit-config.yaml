@@ -21,6 +21,9 @@ repos:
         args:
           - --fix
           - --show-fixes
+          - --unsafe-fixes
+          - --extend-fixable
+          - --exit-non-zero-on-fix
           # Avoid non-zero exit codes after fixing issues.  This prevents
           # pre-commit from running Ruff endlessly.
         types_or:
