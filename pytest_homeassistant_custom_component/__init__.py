@@ -30,6 +30,9 @@ class MockConfigEntry:
     if self.title is None:
       self.title = self.domain
     hass.data.setdefault("config_entries", {})[self.entry_id] = self
+    config_entries = getattr(hass, "config_entries", None)
+    if config_entries is not None and hasattr(config_entries, "_entries"):
+      config_entries._entries[self.entry_id] = self
 
 
 def pytest_configure(config: pytest.Config) -> None:

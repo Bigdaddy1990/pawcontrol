@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
-from inspect import unwrap
+from inspect import iscoroutinefunction, unwrap
 from typing import Any, cast
 
 from aiohttp import ClientSession
@@ -43,7 +42,7 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
 
     candidate = unwrap(getattr(func, "__func__", func))
 
-    return asyncio.iscoroutinefunction(candidate)
+    return iscoroutinefunction(candidate)
 
   request_attr = getattr(type(session), "request", None)
 

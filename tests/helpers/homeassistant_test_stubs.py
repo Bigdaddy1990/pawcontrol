@@ -17,7 +17,7 @@ from datetime import UTC, date, datetime
 from enum import Enum, StrEnum
 from pathlib import Path
 from typing import Any, Generic, TypeVar
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import voluptuous as vol
 
@@ -255,7 +255,22 @@ class HomeAssistant:
   def __init__(self) -> None:
     self.data: dict[str, object] = {}
     self.config = types.SimpleNamespace(language=None)
-    self.config_entries = _ConfigEntriesManager(self)
+
+    def _update_entry(entry: object, **changes: object) -> object:
+      for key, value in changes.items():
+        setattr(entry, key, value)
+      return entry
+
+    self.config_entries = types.SimpleNamespace(
+      async_update_entry=Mock(side_effect=_update_entry),
+      _entries={},
+    )
+    self.config_entries.async_entries = lambda domain=None: [
+      entry
+      for entry in self.config_entries._entries.values()
+      if domain is None or getattr(entry, "domain", None) == domain
+    ]
+    self.config_entries.flow = _FlowManager(self)
     self.services = ServiceRegistry()
     self.states = StateMachine()
 
@@ -365,21 +380,15 @@ class ServiceRegistry:
   """Minimal stand-in for Home Assistant's ServiceRegistry."""
 
   def __init__(self) -> None:
-    self._handlers: dict[tuple[str, str], _ServiceHandler] = {}
-    self._lock = threading.Lock()
+    self._handlers: dict[tuple[str, str], Callable[..., Any]] = {}
 
   def async_register(
     self,
     domain: str,
     service: str,
     handler: Callable[..., Any],
-    schema: vol.Schema | None = None,
   ) -> None:
-    with self._lock:
-      self._handlers[(domain, service)] = _ServiceHandler(
-        handler=handler,
-        schema=schema,
-      )
+    self._handlers[(domain, service)] = handler
 
   async def async_call(
     self,
@@ -389,99 +398,15 @@ class ServiceRegistry:
     *,
     blocking: bool = False,
     context: Context | None = None,
-  ) -> object | None:
-    with self._lock:
-      handler_info = self._handlers.get((domain, service))
-
-    if handler_info is None:
-      raise HomeAssistantError(f"Service {domain}.{service} not found")
-
-    normalized_data: dict[str, object] = dict(service_data or {})
-    if handler_info.schema is not None:
-      normalized_data = handler_info.schema(normalized_data)
-
-    call = ServiceCall(domain, service, normalized_data, context)
-    result = handler_info.handler(call)
-    if inspect.isawaitable(result):
-      result = await result
-    return result
-
-
-@dataclass
-class _ServiceHandler:
-  """Container for service handlers and optional schema validation."""
-
-  handler: Callable[..., Any]
-  schema: vol.Schema | None = None
-
-
-class _FlowManager:
-  """Config flow manager stub that loads handlers dynamically."""
-
-  def __init__(self, hass: HomeAssistant) -> None:
-    self._hass = hass
-    self._flow_handlers: dict[str, type[ConfigFlow]] = {}
-
-  async def async_init(
-    self,
-    domain: str,
-    *,
-    context: dict[str, object] | None = None,
-    data: dict[str, object] | None = None,
-  ) -> FlowResult:
-    handler_cls = self._flow_handlers.get(domain)
-    if handler_cls is None:
-      cached_handler = HANDLERS.get(domain)
-      if isinstance(cached_handler, type) and issubclass(cached_handler, ConfigFlow):
-        handler_cls = cached_handler
-      else:
-        try:
-          module = importlib.import_module(f"custom_components.{domain}.config_flow")
-        except ImportError as err:
-          raise ValueError(
-            f"Could not import config_flow module for domain '{domain}': {err}"
-          ) from err
-
-        for candidate in module.__dict__.values():
-          if (
-            isinstance(candidate, type)
-            and issubclass(candidate, ConfigFlow)
-            and candidate is not ConfigFlow
-            and getattr(candidate, "domain", None) == domain
-          ):
-            HANDLERS[domain] = candidate
-            handler_cls = candidate
-            break
-
-      if handler_cls is not None:
-        self._flow_handlers[domain] = handler_cls
-
-    if handler_cls is None:
-      return {"type": "abort", "reason": "no_config_flow_handler"}
-
-    handler = handler_cls()
-    handler.hass = self._hass
-    handler.context = dict(context or {})
-
-    source = str(handler.context.get("source", "user"))
-    method_name = f"async_step_{source}"
-    step = getattr(handler, method_name, None)
-    if step is None:
-      return handler.async_abort(reason=f"unknown_step_{source}")
-
-    payload = data if source == "user" else (data or {})
-    result = step(payload)
-    if inspect.isawaitable(result):
-      return await result
-    return result
-
-
-class _ConfigEntriesManager:
-  """Tiny config entry manager surface used by tests."""
-
-  def __init__(self, hass: HomeAssistant) -> None:
-    self.async_update_entry = AsyncMock()
-    self.flow = _FlowManager(hass)
+  ) -> None:
+    _ = blocking
+    handler = self._handlers.get((domain, service))
+    if handler is None:
+      return None
+    call = ServiceCall(domain, service, service_data or {}, context)
+    result = handler(call)
+    if asyncio.iscoroutine(result):
+      await result
 
 
 # Minimal registry matching Home Assistant's ConfigEntry handler mapping.
@@ -680,6 +605,11 @@ class ConfigEntry:
 
     return self._supported_subentry_types or {}
 
+  def add_to_hass(self, hass: HomeAssistant) -> None:
+    """Attach this config entry to the Home Assistant test instance."""
+
+    hass.config_entries._entries[self.entry_id] = self
+
 
 class _FlowBase:
   """Common helpers shared by flow handler stubs."""
@@ -708,11 +638,13 @@ class _FlowBase:
     *,
     title: str | None = None,
     data: dict[str, object] | None = None,
+    options: dict[str, object] | None = None,
   ) -> FlowResult:
     return {
       "type": "create_entry",
       **({"title": title} if title is not None else {}),
       "data": dict(data or {}),
+      "options": dict(options or {}),
     }
 
   def async_abort(self, *, reason: str) -> FlowResult:
@@ -773,6 +705,13 @@ class ConfigFlowResult(dict):
   """Dictionary wrapper to mimic Home Assistant flow results."""
 
 
+class _AbortFlow(Exception):
+  """Internal exception used to abort config flows from stubs."""
+
+  def __init__(self, reason: str) -> None:
+    self.reason = reason
+
+
 class ConfigFlow(_FlowBase):
   """Config flow stub used by integration tests."""
 
@@ -780,26 +719,94 @@ class ConfigFlow(_FlowBase):
   VERSION = 1
   MINOR_VERSION = 0
 
+  def __init_subclass__(
+    cls,
+    *,
+    domain: str | None = None,
+    **kwargs: Any,
+  ) -> None:
+    """Register handlers using Home Assistant's ``domain=`` class keyword."""
+
+    super().__init_subclass__(**kwargs)
+    if domain is not None:
+      cls.domain = domain
+      HANDLERS[domain] = cls
+
+  def __init__(self) -> None:
+    self.hass: HomeAssistant | None = None
+    self.context: dict[str, object] = {}
+    self._unique_id: str | None = None
+
   async def async_step_user(self, user_input: dict[str, object] | None = None):
     return self.async_show_form(step_id="user")
+
+  async def async_set_unique_id(self, unique_id: str | None) -> None:
+    """Store the active flow unique id."""
+
+    self._unique_id = unique_id
 
   def _abort_if_unique_id_configured(
     self,
     updates: dict[str, object] | None = None,
-    reload_on_update: bool = False,
+    reload_on_update: bool = True,
   ) -> None:
-    """Mirror Home Assistant's helper and apply update side effects."""
+    """Abort when another entry already uses this unique id."""
 
-    del reload_on_update
-    if updates is None:
+    _ = updates, reload_on_update
+    if self.hass is None or self._unique_id is None:
       return
 
-    entry = getattr(self, "_async_current_entry", None)
-    if entry is None:
-      return
+    for entry in self.hass.config_entries.async_entries(self.domain):
+      if getattr(entry, "unique_id", None) == self._unique_id:
+        raise _AbortFlow("already_configured")
 
-    for key, value in updates.items():
-      setattr(entry, key, value)
+
+class _FlowManager:
+  """Minimal flow manager implementing ``hass.config_entries.flow``."""
+
+  def __init__(self, hass: HomeAssistant) -> None:
+    self._hass = hass
+
+  async def async_init(
+    self,
+    domain: str,
+    *,
+    context: dict[str, object] | None = None,
+    data: dict[str, object] | None = None,
+  ) -> FlowResult:
+    handler_cls = HANDLERS.get(domain)
+    if handler_cls is None:
+      module = importlib.import_module(f"custom_components.{domain}.config_flow")
+      handler_cls = HANDLERS.get(domain)
+      if handler_cls is None:
+        for candidate in module.__dict__.values():
+          if (
+            isinstance(candidate, type)
+            and issubclass(candidate, ConfigFlow)
+            and getattr(candidate, "domain", None) == domain
+          ):
+            HANDLERS[domain] = candidate
+            handler_cls = candidate
+            break
+    if handler_cls is None:
+      raise ValueError(f"No config flow handler registered for domain '{domain}'")
+
+    handler = handler_cls()
+    handler.hass = self._hass
+    handler.context = dict(context or {})
+
+    source = str(handler.context.get("source", "user"))
+    method_name = f"async_step_{source}"
+    step = getattr(handler, method_name, None)
+    if step is None:
+      return handler.async_abort(reason="unknown_step")
+
+    try:
+      if source == "user":
+        return await step(data)
+      return await step(data or {})
+    except _AbortFlow as abort:
+      return handler.async_abort(reason=abort.reason)
 
 
 class DeviceInfo(dict):
@@ -1501,7 +1508,22 @@ def async_dispatcher_connect(
 class Entity:
   """Base entity stub."""
 
-  pass
+  hass: HomeAssistant | None = None
+
+  def __init__(self) -> None:
+    self._attr_available = True
+    self._attr_extra_state_attributes: dict[str, object] = {}
+
+  @property
+  def extra_state_attributes(self) -> dict[str, object]:
+    return dict(getattr(self, "_attr_extra_state_attributes", {}))
+
+  @property
+  def available(self) -> bool:
+    return bool(getattr(self, "_attr_available", True))
+
+  def async_write_ha_state(self) -> None:
+    return None
 
 
 class RestoreEntity(Entity):
@@ -1558,6 +1580,10 @@ class NumberEntity(Entity):
 
 class SelectEntity(Entity):
   """Select entity stub."""
+
+  @property
+  def options(self) -> list[str]:
+    return list(getattr(self, "_attr_options", []))
 
 
 class TextEntity(Entity):
@@ -2359,15 +2385,24 @@ def install_homeassistant_stubs() -> None:
   switch_component_module.SwitchEntity = SwitchEntity
   switch_component_module.SwitchEntityDescription = SwitchEntityDescription
   switch_component_module.SwitchDeviceClass = SwitchDeviceClass
+  switch_component_module.DOMAIN = "switch"
+  switch_component_module.SERVICE_TURN_ON = "turn_on"
+  switch_component_module.SERVICE_TURN_OFF = "turn_off"
   number_component_module.NumberEntity = NumberEntity
   number_component_module.NumberEntityDescription = NumberEntityDescription
   number_component_module.NumberDeviceClass = NumberDeviceClass
   number_component_module.NumberMode = NumberMode
+  number_component_module.DOMAIN = "number"
+  number_component_module.SERVICE_SET_VALUE = "set_value"
   select_component_module.SelectEntity = SelectEntity
   select_component_module.SelectEntityDescription = SelectEntityDescription
+  select_component_module.DOMAIN = "select"
+  select_component_module.SERVICE_SELECT_OPTION = "select_option"
   text_component_module.TextEntity = TextEntity
   text_component_module.TextEntityDescription = TextEntityDescription
   text_component_module.TextMode = TextMode
+  text_component_module.DOMAIN = "text"
+  text_component_module.SERVICE_SET_VALUE = "set_value"
   date_component_module.DateEntity = DateEntity
   date_component_module.DateEntityDescription = DateEntityDescription
   datetime_component_module.DateTimeEntity = DateTimeEntity

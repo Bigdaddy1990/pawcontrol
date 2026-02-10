@@ -185,7 +185,11 @@ class PawControlEntity(
     if self.hass is None:
       return None
 
-    return get_runtime_data(self.hass, self.coordinator.config_entry)
+    config_entry = getattr(self.coordinator, "config_entry", None)
+    if config_entry is None:
+      return None
+
+    return get_runtime_data(self.hass, config_entry)
 
   def _get_runtime_managers(self) -> CoordinatorRuntimeManagers:
     """Return the runtime manager container for this entity."""
