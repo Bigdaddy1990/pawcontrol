@@ -21,7 +21,6 @@ from packaging.version import InvalidVersion, Version
 DEFAULT_RULES_PATH = Path("scripts/homeassistant_upgrade_rules.json")
 DEFAULT_SOURCE_ROOT = Path("custom_components/pawcontrol")
 PYPI_HOMEASSISTANT_URL = "https://pypi.org/pypi/homeassistant/json"
-FALLBACK_HOMEASSISTANT_VERSION = Version("2024.1.0")
 REQUEST_TIMEOUT_SECONDS = 30
 
 _LOGGER = logging.getLogger(__name__)
@@ -196,28 +195,12 @@ def fetch_latest_homeassistant_version() -> Version:
         raise ValueError(f"PyPI API returned unexpected status {status}")
       payload = json.loads(response.read().decode("utf-8"))
     return Version(payload["info"]["version"])
-  except (
-    HTTPError,
-    URLError,
-    TimeoutError,
-    OSError,
-    json.JSONDecodeError,
-    KeyError,
-  ) as err:
-    _LOGGER.warning(
-      "Failed to fetch latest Home Assistant version from PyPI (%s). "
-      "Falling back to %s.",
-      err,
-      FALLBACK_HOMEASSISTANT_VERSION,
-    )
-    return FALLBACK_HOMEASSISTANT_VERSION
-  except InvalidVersion as err:
-    _LOGGER.warning(
-      "PyPI returned an invalid Home Assistant version (%s). Falling back to %s.",
-      err,
-      FALLBACK_HOMEASSISTANT_VERSION,
-    )
-    return FALLBACK_HOMEASSISTANT_VERSION
+  except (HTTPError, URLError, TimeoutError, OSError) as err:
+    raise RuntimeError(
+      "Failed to fetch latest Home Assistant version from PyPI."
+    ) from err
+  except (json.JSONDecodeError, KeyError, ValueError, InvalidVersion) as err:
+    raise RuntimeError("PyPI returned malformed Home Assistant version data.") from err
 
 
 def applicable_rules(
@@ -257,7 +240,7 @@ def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:
     _LOGGER.warning("Unable to read %s: %s", path, err)
     return 0
 
-  updated, count = re.subn(rule.pattern, rule.replacement, content, flags=re.MULTILINE)
+  updated, count = re.subn(rule.pattern, rule.replacement, content)
 
   if not (fix and count):
     return count
@@ -271,11 +254,22 @@ def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:
   except OSError as err:
     _LOGGER.warning("Failed to update %s safely: %s", path, err)
     if backup_created:
-      shutil.copy2(backup_path, path)
+      try:
+        shutil.copy2(backup_path, path)
+      except OSError as restore_err:
+        _LOGGER.critical(
+          "Failed to restore %s from backup %s: %s",
+          path,
+          backup_path,
+          restore_err,
+        )
     return 0
   finally:
     if backup_created and backup_path.exists():
-      backup_path.unlink()
+      try:
+        backup_path.unlink()
+      except OSError as err:
+        _LOGGER.warning("Failed to remove backup file %s: %s", backup_path, err)
 
   return count
 
@@ -322,6 +316,10 @@ def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
 
 
 def main() -> int:
+  logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+  )
   args = parse_args()
   if args.fix and args.check:
     print("Please use either --fix or --check.")
@@ -329,7 +327,11 @@ def main() -> int:
 
   mode_fix = args.fix and not args.check
   rule_set = load_rules(args.rules)
-  findings, latest_version = run(args.root, rule_set, fix=mode_fix)
+  try:
+    findings, latest_version = run(args.root, rule_set, fix=mode_fix)
+  except RuntimeError as err:
+    _LOGGER.error("Failed to run push guard: %s", err, exc_info=True)
+    return 1
 
   coverage_ok = validate_coverage(rule_set, latest_version)
 
