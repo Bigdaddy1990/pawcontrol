@@ -57,7 +57,7 @@ def validate_flow_gps_accuracy(
   min_value: float,
   max_value: float,
   required: bool = True,
-) -> float:
+) -> float | None:
   """Validate GPS accuracy settings submitted via flows."""
 
   return InputValidator.validate_gps_accuracy(
@@ -76,7 +76,7 @@ def validate_flow_geofence_radius(
   min_value: float,
   max_value: float,
   required: bool = True,
-) -> float:
+) -> float | None:
   """Validate geofence radius settings submitted via flows."""
 
   return InputValidator.validate_geofence_radius(

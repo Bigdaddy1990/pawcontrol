@@ -947,7 +947,7 @@ class PawControlCurrentWalkLabelText(PawControlTextBase):
       return False
 
     # Only available when walk is in progress
-    return dog_data.get("walk", {}).get("walk_in_progress", False)
+    return bool(dog_data.get("walk", {}).get("walk_in_progress", False))
 
 
 class PawControlHealthNotesText(PawControlTextBase):

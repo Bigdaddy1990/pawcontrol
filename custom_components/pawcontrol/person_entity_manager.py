@@ -46,7 +46,7 @@ from .types import (
 from .utils import ensure_utc_datetime
 
 
-def _resolve_cache_snapshot_class():
+def _resolve_cache_snapshot_class() -> type[CacheDiagnosticsSnapshot]:
   """Return the cache snapshot class from the active types module."""
 
   try:

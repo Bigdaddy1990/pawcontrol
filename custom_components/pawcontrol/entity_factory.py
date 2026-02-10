@@ -146,7 +146,7 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
   def as_dict(self) -> dict[str, EntityCreationValue]:
     """Return a standard mutable mapping copy."""
 
-    payload = {
+    payload: dict[str, EntityCreationValue] = {
       "dog_id": self.dog_id,
       "entity_type": self.entity_type,
       "module": self.module,
