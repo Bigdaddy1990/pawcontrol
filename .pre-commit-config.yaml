@@ -13,11 +13,7 @@ default_install_hook_types:
       - pre-commit
       - pre-push
 repos:
-  # Use Ruff for linting and formatting Python files.  The ``ruff-check`` hook
-  # previously used ``--exit-non-zero-on-fix`` which caused pre‑commit to
-  # repeatedly re-run fixes without ever reporting success.  By removing
-  # ``--exit-non-zero-on-fix`` we allow Ruff to apply fixes and exit cleanly
-  # once done.  ``--show-fixes`` still prints a summary of what was changed.
+  # Use Ruff for linting and formatting Python files.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:
@@ -84,7 +80,7 @@ repos:
       # Will require manual work, before submitting changes!
       # prek run --hook-stage manual python-typing-update --all-files
       - id: python-typing-update
-        stages: [manual]
+        stages: [push]
         args:
           - --py311-plus
           - --force
