@@ -1774,6 +1774,64 @@ async def test_acknowledge_notification_records_not_found(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_gps_start_walk_service_rejects_invalid_boolean_toggle(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """GPS walk start should reject non-boolean toggle values."""
+
+  gps_manager = _GPSManagerStub()
+  coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)
+  coordinator.register_dog("fido")
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]
+
+  with pytest.raises(
+    ServiceValidationError,
+    match=r"track_route must be a boolean \(got str\)",
+  ):
+    await handler(SimpleNamespace(data={"dog_id": "fido", "track_route": "maybe"}))
+
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["service"] == services.SERVICE_GPS_START_WALK
+  assert result["status"] == "error"
+  assert "track_route must be a boolean (got str)" in result.get("message", "")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+  ("service_value", "expected"),
+  [
+    pytest.param("true", True, id="str-true"),
+    pytest.param("false", False, id="str-false"),
+    pytest.param(1, True, id="int-1"),
+    pytest.param(0, False, id="int-0"),
+  ],
+)
+async def test_gps_start_walk_service_coerces_common_boolean_inputs(
+  monkeypatch: pytest.MonkeyPatch,
+  service_value: object,
+  expected: bool,
+) -> None:
+  """GPS walk start should accept common Home Assistant boolean shapes."""
+
+  gps_manager = _GPSManagerStub()
+  coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)
+  coordinator.register_dog("fido")
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]
+
+  await handler(SimpleNamespace(data={"dog_id": "fido", "track_route": service_value}))
+
+  assert gps_manager.last_start_tracking["track_route"] is expected
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_setup_automatic_gps_service_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1853,6 +1911,104 @@ async def test_setup_automatic_gps_service_rejects_invalid_interval(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_setup_automatic_gps_service_rejects_invalid_safe_zone_radius(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """GPS setup should route safe-zone validation through shared validators."""
+
+  notification_manager = _NotificationManagerStub()
+  gps_manager = _GPSManagerStub()
+  coordinator = _CoordinatorStub(
+    SimpleNamespace(),
+    notification_manager=notification_manager,
+    gps_manager=gps_manager,
+  )
+  coordinator.register_dog("fido")
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+
+  with pytest.raises(
+    ServiceValidationError,
+    match="safe_zone_radius must be a number",
+  ):
+    await handler(SimpleNamespace(data={"dog_id": "fido", "safe_zone_radius": "wide"}))
+
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
+  assert result["status"] == "error"
+  assert "safe_zone_radius must be a number" in result.get("message", "")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_setup_automatic_gps_service_rejects_out_of_range_safe_zone_radius(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """GPS setup should reject safe-zone radius values outside allowed bounds."""
+
+  notification_manager = _NotificationManagerStub()
+  gps_manager = _GPSManagerStub()
+  coordinator = _CoordinatorStub(
+    SimpleNamespace(),
+    notification_manager=notification_manager,
+    gps_manager=gps_manager,
+  )
+  coordinator.register_dog("fido")
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+
+  with pytest.raises(
+    ServiceValidationError,
+    match="safe_zone_radius must be between 10.0 and 10000.0 m",
+  ):
+    await handler(SimpleNamespace(data={"dog_id": "fido", "safe_zone_radius": 1}))
+
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
+  assert result["status"] == "error"
+  assert "safe_zone_radius must be between 10.0 and 10000.0 m" in result.get(
+    "message", ""
+  )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_setup_automatic_gps_service_rejects_invalid_boolean_toggle(
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  """GPS setup should reject non-boolean toggle values."""
+
+  notification_manager = _NotificationManagerStub()
+  gps_manager = _GPSManagerStub()
+  coordinator = _CoordinatorStub(
+    SimpleNamespace(),
+    notification_manager=notification_manager,
+    gps_manager=gps_manager,
+  )
+  coordinator.register_dog("fido")
+  runtime_data = SimpleNamespace(performance_stats={})
+
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+
+  with pytest.raises(
+    ServiceValidationError,
+    match=r"auto_start_walk must be a boolean \(got str\)",
+  ):
+    await handler(
+      SimpleNamespace(data={"dog_id": "fido", "auto_start_walk": "perhaps"})
+    )
+
+  result = runtime_data.performance_stats["last_service_result"]
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
+  assert result["status"] == "error"
+  assert "auto_start_walk must be a boolean (got str)" in result.get("message", "")
+
+
 async def test_setup_automatic_gps_service_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
