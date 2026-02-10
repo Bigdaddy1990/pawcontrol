@@ -905,7 +905,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
         "feature_name": self._feature_name,
       },
     )
-    return feature_attrs
+    return normalise_entity_attributes(feature_attrs)
 
   async def _async_set_state(self, state: bool) -> None:
     """Set feature state with module-specific handling."""

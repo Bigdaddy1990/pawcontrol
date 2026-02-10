@@ -68,7 +68,7 @@ def _assert_json_safe(value: object) -> None:
   raise AssertionError(f"Non-JSON value found: {type(value)!r} {value!r}")
 
 
-@dataclass
+@dataclass(frozen=True)
 class _DiagnosticsDataclass:
   label: str
   recorded_at: datetime
