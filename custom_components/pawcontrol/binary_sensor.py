@@ -588,6 +588,44 @@ class PawControlBinarySensorBase(
 class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
   """Base class for garden binary sensors."""
 
+  def _apply_garden_common_attributes(self, attrs: AttributeDict) -> None:
+    """Populate common garden telemetry attributes for garden sensors."""
+
+    data = self._get_garden_data()
+    garden_status = data.get("status")
+    if garden_status is not None:
+      attrs["garden_status"] = garden_status
+
+    sessions_today = data.get("sessions_today")
+    if sessions_today is not None:
+      attrs["sessions_today"] = sessions_today
+
+    pending_confirmations = data.get("pending_confirmations")
+    if pending_confirmations is not None:
+      attrs["pending_confirmations"] = cast(JSONValue, pending_confirmations)
+
+    active_session = data.get("active_session")
+    last_session = data.get("last_session")
+    started_at = None
+    duration_minutes = None
+    last_seen = None
+    if isinstance(active_session, Mapping):
+      started_at = active_session.get("start_time")
+      duration_minutes = active_session.get("duration_minutes")
+    if started_at is None and isinstance(last_session, Mapping):
+      started_at = last_session.get("start_time")
+    if duration_minutes is None and isinstance(last_session, Mapping):
+      duration_minutes = last_session.get("duration_minutes")
+    if isinstance(last_session, Mapping):
+      last_seen = last_session.get("end_time")
+
+    _apply_standard_timing_attributes(
+      attrs,
+      started_at=started_at,
+      duration_minutes=duration_minutes,
+      last_seen=last_seen,
+    )
+
   def _get_garden_manager(self) -> GardenManager | None:
     """Return the configured garden manager when available."""
 
@@ -617,39 +655,7 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Expose the latest garden telemetry for diagnostics dashboards."""
     attrs: AttributeDict = self._inherit_extra_attributes()
-    data = self._get_garden_data()
-    garden_status = data.get("status")
-    if garden_status is not None:
-      attrs["garden_status"] = garden_status
-    sessions_today = data.get("sessions_today")
-    if sessions_today is not None:
-      attrs["sessions_today"] = sessions_today
-    pending_confirmations = data.get("pending_confirmations")
-    if pending_confirmations is not None:
-      attrs["pending_confirmations"] = cast(
-        JSONValue,
-        pending_confirmations,
-      )
-    active_session = data.get("active_session")
-    last_session = data.get("last_session")
-    started_at = None
-    duration_minutes = None
-    last_seen = None
-    if isinstance(active_session, Mapping):
-      started_at = active_session.get("start_time")
-      duration_minutes = active_session.get("duration_minutes")
-    if started_at is None and isinstance(last_session, Mapping):
-      started_at = last_session.get("start_time")
-    if duration_minutes is None and isinstance(last_session, Mapping):
-      duration_minutes = last_session.get("duration_minutes")
-    if isinstance(last_session, Mapping):
-      last_seen = last_session.get("end_time")
-    _apply_standard_timing_attributes(
-      attrs,
-      started_at=started_at,
-      duration_minutes=duration_minutes,
-      last_seen=last_seen,
-    )
+    self._apply_garden_common_attributes(attrs)
     return _normalise_attributes(attrs)
 
 
@@ -2087,6 +2093,7 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
   def extra_state_attributes(self) -> JSONMutableMapping:
     """Expose how many confirmation prompts are outstanding."""
     attrs: AttributeDict = self._inherit_extra_attributes()
+    self._apply_garden_common_attributes(attrs)
     pending = self._get_garden_data().get("pending_confirmations")
     if isinstance(pending, list):
       attrs["pending_confirmations"] = cast(JSONValue, pending)

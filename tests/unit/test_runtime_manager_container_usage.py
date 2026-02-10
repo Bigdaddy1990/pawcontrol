@@ -58,6 +58,16 @@ class _GardenManagerStub:
     return {
       "status": "active",
       "pending_confirmations": [confirmation],
+      "sessions_today": 2,
+      "active_session": {
+        "start_time": datetime(2024, 1, 1, 10, 0, tzinfo=UTC),
+        "duration_minutes": 12,
+      },
+      "last_session": {
+        "start_time": datetime(2024, 1, 1, 9, 30, tzinfo=UTC),
+        "end_time": datetime(2024, 1, 1, 9, 42, tzinfo=UTC),
+        "duration_minutes": 12,
+      },
     }
 
   def is_dog_in_garden(self, dog_id: str) -> bool:
@@ -144,6 +154,14 @@ def test_garden_binary_sensors_use_runtime_manager_container(
   assert active_sensor.is_on is True
   assert in_garden_sensor.is_on is True
   assert pending_sensor.is_on is True
+
+  pending_attrs = pending_sensor.extra_state_attributes
+  assert pending_attrs["garden_status"] == "active"
+  assert pending_attrs["sessions_today"] == 2
+  assert pending_attrs["pending_confirmation_count"] == 1
+  assert pending_attrs["started_at"] == "2024-01-01T10:00:00+00:00"
+  assert pending_attrs["duration_minutes"] == 12.0
+  assert pending_attrs["last_seen"] == "2024-01-01T09:42:00+00:00"
 
   assert garden_manager.build_calls >= 1
   assert garden_manager.is_in_calls >= 1
