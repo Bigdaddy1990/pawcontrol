@@ -101,6 +101,50 @@ from .gps_schemas import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _validate_gps_update_interval(
+  value: JSONValue | None,
+  *,
+  field: str,
+  minimum: int,
+  maximum: int,
+) -> int:
+  """Validate a required GPS update interval for flow steps."""
+
+  validated = validate_gps_interval(
+    value,
+    field=field,
+    minimum=minimum,
+    maximum=maximum,
+    required=True,
+  )
+  if validated is None:
+    # Defensive guard: required=True should return an int or raise.
+    raise ValidationError(field, value, "gps_update_interval_required")
+  return validated
+
+
+def _validate_gps_accuracy(
+  value: JSONValue | None,
+  *,
+  field: str,
+  minimum: float,
+  maximum: float,
+) -> float:
+  """Validate a required GPS accuracy filter for flow steps."""
+
+  validated = InputValidator.validate_gps_accuracy(
+    value,
+    required=True,
+    field=field,
+    min_value=minimum,
+    max_value=maximum,
+  )
+  if validated is None:
+    # Defensive guard: required=True should return a float or raise.
+    raise ValidationError(field, value, "gps_accuracy_required")
+  return validated
+
+
 class GPSDefaultsHost(Protocol):
   """Protocol describing the config flow host requirements."""
 
@@ -266,12 +310,11 @@ class DogGPSFlowMixin(DogGPSFlowHost):
         gps_source = "manual"
 
       try:
-        gps_update_interval = validate_gps_interval(
+        gps_update_interval = _validate_gps_update_interval(
           user_input.get("gps_update_interval"),
           field="gps_update_interval",
           minimum=5,
           maximum=600,
-          required=True,
         )
       except ValidationError as err:
         errors["gps_update_interval"] = validation_error_key(
@@ -279,16 +322,13 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           "validation_error",
         )
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
-      if gps_update_interval is None:
-        gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
-        gps_accuracy = InputValidator.validate_gps_accuracy(
+        gps_accuracy = _validate_gps_accuracy(
           user_input.get("gps_accuracy_filter"),
-          required=True,
           field="gps_accuracy_filter",
-          min_value=5.0,
-          max_value=500.0,
+          minimum=5.0,
+          maximum=500.0,
         )
       except ValidationError as err:
         errors["gps_accuracy_filter"] = validation_error_key(
@@ -327,9 +367,6 @@ class DogGPSFlowMixin(DogGPSFlowHost):
           ),
         )
 
-      gps_accuracy = (
-        gps_accuracy if gps_accuracy is not None else float(DEFAULT_GPS_ACCURACY_FILTER)
-      )
       home_zone_radius = home_zone_radius if home_zone_radius is not None else 50.0
 
       gps_config: DogGPSConfig = {
@@ -598,12 +635,11 @@ class GPSOptionsMixin(GPSOptionsHost):
       errors: dict[str, str] = {}
 
       try:
-        gps_update_interval = validate_gps_interval(
+        gps_update_interval = _validate_gps_update_interval(
           user_input.get(GPS_UPDATE_INTERVAL_FIELD),
           field=GPS_UPDATE_INTERVAL_FIELD,
           minimum=5,
           maximum=600,
-          required=True,
         )
       except ValidationError as err:
         errors[GPS_UPDATE_INTERVAL_FIELD] = validation_error_key(
@@ -613,12 +649,11 @@ class GPSOptionsMixin(GPSOptionsHost):
         gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
 
       try:
-        gps_accuracy = InputValidator.validate_gps_accuracy(
+        gps_accuracy = _validate_gps_accuracy(
           user_input.get(GPS_ACCURACY_FILTER_FIELD),
-          required=True,
           field=GPS_ACCURACY_FILTER_FIELD,
-          min_value=5.0,
-          max_value=500.0,
+          minimum=5.0,
+          maximum=500.0,
         )
       except ValidationError as err:
         errors[GPS_ACCURACY_FILTER_FIELD] = validation_error_key(
