@@ -1,9 +1,4 @@
 {
-  "content_in_root": false,
-  "domains": [
-    "pawcontrol"
-  ],
-  "homeassistant": "2025.9.0",
   "name": "PawControl",
-  "render_readme": true
+  "content_in_root": false
 }
