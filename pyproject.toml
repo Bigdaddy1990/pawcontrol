@@ -105,13 +105,20 @@ module = ["tests.*"]
 # Tests dürfen etwas lockerer sein
 disallow_untyped_defs = false
 
+# Phase 1.1: Gradual Type Safety Activation
+# Step 1: Enable basic type checking (most critical)
 [[tool.mypy.overrides]]
 module = ["custom_components.pawcontrol.*"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-check_untyped_defs = false
+# ACTIVATED: Require function signatures
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+# ACTIVATED: No implicit Optional types
+no_implicit_optional = true
+# Still allow some flexibility during transition
 warn_return_any = false
 disable_error_code = [
+    # Still disabled during Phase 1.1 (will be enabled in Phase 1.2)
     "abstract",
     "arg-type",
     "assignment",
@@ -130,7 +137,7 @@ disable_error_code = [
     "operator",
     "override",
     "redundant-cast",
-    "return-value",
+    # "return-value",  # ENABLED: Must return correct type
     "typeddict-item",
     "union-attr",
     "unused-ignore",
