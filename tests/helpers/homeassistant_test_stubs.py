@@ -253,6 +253,7 @@ class HomeAssistant:
   def __init__(self) -> None:
     self.data: dict[str, object] = {}
     self.config = types.SimpleNamespace(language=None)
+
     def _update_entry(entry: object, **changes: object) -> object:
       for key, value in changes.items():
         setattr(entry, key, value)
