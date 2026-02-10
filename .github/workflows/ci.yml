@@ -72,8 +72,9 @@ jobs:
       - name: Run Prek
         run: |
           prek install
-          prek run --all-files --show-diff-on-failure
+          prek run --hook-stage python-typing-update --all-files
           prek run --all-files
+          prek run --all-files --show-diff-on-failure
 
       - name: Run mypy
         run: |
