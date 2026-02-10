@@ -330,7 +330,7 @@ def main() -> int:
   try:
     findings, latest_version = run(args.root, rule_set, fix=mode_fix)
   except RuntimeError as err:
-    _LOGGER.error("%s", err)
+    _LOGGER.error("Failed to run push guard: %s", err, exc_info=True)
     return 1
 
   coverage_ok = validate_coverage(rule_set, latest_version)
