@@ -117,7 +117,8 @@ def _validate_gps_update_interval(
     maximum=maximum,
     required=True,
   )
-  return validated if validated is not None else DEFAULT_GPS_UPDATE_INTERVAL
+  assert validated is not None
+  return validated
 
 
 def _validate_gps_accuracy(
@@ -136,7 +137,8 @@ def _validate_gps_accuracy(
     min_value=minimum,
     max_value=maximum,
   )
-  return validated if validated is not None else float(DEFAULT_GPS_ACCURACY_FILTER)
+  assert validated is not None
+  return validated
 
 
 class GPSDefaultsHost(Protocol):
