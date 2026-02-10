@@ -23,6 +23,7 @@ repos:
           - --show-fixes
           - --unsafe-fixes
           - --extend-fixable
+          - ALL
           - --exit-non-zero-on-fix
           # Avoid non-zero exit codes after fixing issues.  This prevents
           # pre-commit from running Ruff endlessly.
@@ -83,7 +84,7 @@ repos:
       # Will require manual work, before submitting changes!
       # prek run --hook-stage manual python-typing-update --all-files
       - id: python-typing-update
-        stages: [push]
+        stages: [pre-push]
         args:
           - --py311-plus
           - --force
@@ -135,7 +136,7 @@ repos:
         entry: python -m scripts.homeassistant_push_guard --fix
         language: python
         pass_filenames: false
-        stages: [push]
+        stages: [pre-push]
       - id: manifest-validate
         name: Manifest Validation
         entry: python -m scripts.validate_manifest
