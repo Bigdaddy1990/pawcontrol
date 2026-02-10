@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import builtins
 import importlib
+import inspect
 import re
 import sys
+import threading
 import types
 from collections.abc import Callable, Iterable
 from contextlib import asynccontextmanager
