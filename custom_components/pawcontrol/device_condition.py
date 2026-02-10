@@ -19,8 +19,8 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 # ``ConditionCheckerType`` is only used for typing. Some Home Assistant test harness
 # builds do not ship the helpers module that defines it, so we avoid importing it at
@@ -166,7 +166,10 @@ async def async_condition_from_config(
       return False
     return state.state == expected_status
 
-  def _condition(_hass: HomeAssistant, _variables: dict[str, object]) -> bool:
+  def _condition(
+    _hass: HomeAssistant,
+    _variables: Mapping[str, Any] | None,
+  ) -> bool:
     match condition_type:
       case "is_hungry":
         snapshot = resolve_status_snapshot(context.runtime_data, context.dog_id)
