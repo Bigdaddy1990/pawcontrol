@@ -108,7 +108,7 @@ def _validate_gps_update_interval(
   minimum: int,
   maximum: int,
 ) -> int:
-  """Validate a GPS update interval using shared flow defaults."""
+  """Validate a required GPS update interval for flow steps."""
 
   validated = validate_gps_interval(
     value,
@@ -117,7 +117,9 @@ def _validate_gps_update_interval(
     maximum=maximum,
     required=True,
   )
-  assert validated is not None
+  if validated is None:
+    # Defensive guard: required=True should return an int or raise.
+    raise ValidationError(field, value, "gps_update_interval_required")
   return validated
 
 
@@ -128,7 +130,7 @@ def _validate_gps_accuracy(
   minimum: float,
   maximum: float,
 ) -> float:
-  """Validate a GPS accuracy filter using shared flow defaults."""
+  """Validate a required GPS accuracy filter for flow steps."""
 
   validated = InputValidator.validate_gps_accuracy(
     value,
@@ -137,7 +139,9 @@ def _validate_gps_accuracy(
     min_value=minimum,
     max_value=maximum,
   )
-  assert validated is not None
+  if validated is None:
+    # Defensive guard: required=True should return a float or raise.
+    raise ValidationError(field, value, "gps_accuracy_required")
   return validated
 
 
