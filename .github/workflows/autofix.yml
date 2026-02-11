@@ -2,9 +2,6 @@ name: Autofix (pre-commit)
 
 on:
   push:
-    branches-ignore:
-      - main
-      - "autofix/**"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +20,7 @@ jobs:
       UV_SYSTEM_PYTHON: "1"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
