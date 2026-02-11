@@ -2,94 +2,33 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-
   workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  hassfest:
-    name: Hassfest
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: home-assistant/actions/hassfest@master
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
-  hacs:
-    name: HACS Validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hacs/action@main
-        with:
-          category: integration
-          ignore: brands
+jobs:
+  marketplace:
+    name: Hassfest & HACS
+    uses: ./.github/workflows/reusable-marketplace-validation.yml
+    with:
+      category: integration
+      ignore: brands
 
   tests:
-    name: Tests
-    runs-on: ubuntu-latest
+    name: Tests (py${{ matrix.python }})
+    uses: ./.github/workflows/reusable-python-tests.yml
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13"]
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - uses: astral-sh/ruff-action@v3
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip ruff
-          python -m pip install -r requirements_test.txt
-          python -m pip install -r requirements.txt
-          ruff check . --fix all || true
-          ruff check . --fix --unsafe-fixes || true
-          ruff check . --add-noqa || true
-          ruff check . --extend-select RUF100 --fix || true
-          python scripts/enforce_docstring_baseline.py --update
-
-      - name: Install development tools
-        uses: taiki-e/install-action@v2.67.28
-
-      - name: Verify contributor guides
-        run: |
-          python -m scripts.sync_contributor_guides --check
-
-      - name: Run test requirements and localization sync
-        run: |
-          python -m scripts.enforce_test_requirements
-          python -m scripts.sync_localization_flags \
-            --allowlist scripts/sync_localization_flags.allowlist \
-            --check
-
-      - name: Run Prek
-        run: |
-          prek install
-          prek run python-typing-update --hook-stage manual --all-files
-          prek run --all-files
-          prek run --all-files --show-diff-on-failure
-
-      - name: Run mypy
-        run: |
-          mypy custom_components/pawcontrol
-
-      - name: Run hassfest
-        run: |
-          python -m scripts.hassfest --integration-path custom_components/pawcontrol
-
-      - name: Run pytest
-        run: |
-          pytest -q --disable-warnings --maxfail=20 \
-            --cov=custom_components/pawcontrol \
-            --cov-report=term-missing
-
-      - name: Codecov
-        uses: codecov/codecov-action@v5.5.2
+        python: ["3.13", "3.14"]
+    with:
+      python-version: ${{ matrix.python }}
+      home-assistant-spec: ">=2025.9.0"
+      run-codecov: true
