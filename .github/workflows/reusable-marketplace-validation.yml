@@ -27,11 +27,6 @@ jobs:
     name: Hassfest & HACS validation
     runs-on: ubuntu-latest
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
-        with:
-          egress-policy: audit
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -39,12 +34,10 @@ jobs:
           ref: ${{ inputs.checkout-ref != '' && inputs.checkout-ref || github.ref }}
 
       - name: Run Hassfest
-        # Pin the hassfest action to a released version for determinism and supply-chain security.
-        uses: home-assistant/actions/hassfest@1.0.0
+        uses: home-assistant/actions/hassfest@master
 
       - name: Run HACS validation
-        # Pin the HACS validation action to a stable release instead of main.
-        uses: hacs/action@22.5.0
+        uses: hacs/action@main
         with:
           category: ${{ inputs.category }}
           ignore: ${{ inputs.ignore }}
