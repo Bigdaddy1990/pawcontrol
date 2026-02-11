@@ -43,7 +43,7 @@ jobs:
     name: Weekly pytest quality gate
     uses: ./.github/workflows/reusable-python-tests.yml
     with:
-      python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14' }}
+      python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
       home-assistant-spec: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2026.1.1') }}
       coverage-min: ${{ vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95' }}
       coverage-xml-path: generated/coverage/coverage.xml
@@ -55,41 +55,3 @@ jobs:
       coverage-artifact-name: scheduled-coverage-report
       pytest-extra-args: "-q tests/"
     secrets: inherit
-
-  inputs:
-     python-version:
-         description: Python version to install
-         required: false
-         type: string
-     coverage-xml-path:
-        description: Destination for the XML coverage report
-        required: false
-        type: string
-     coverage-html-dir:
-        description: Destination directory for the HTML coverage report
-        required: false
-        type: string
-      pytest-extra-args:
-        description: Extra arguments forwarded to pytest
-        required: false
-        type: string
-      upload-coverage-artifact:
-        description: Upload coverage results as an artifact
-        required: false
-        default: true
-        type: boolean
-      coverage-artifact-name:
-        description: Name for the coverage artifact upload
-        required: false
-        default: coverage-report
-        type: string
-      upload-junit-artifact:
-        description: Upload junit results as an artifact
-        required: false
-        default: false
-        type: boolean
-      junit-artifact-name:
-        description: Name for the junit artifact upload
-        required: false
-        default: junit-results
-        type: string
