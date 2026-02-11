@@ -62,11 +62,8 @@ jobs:
 
       - name: Run prek once (apply fixes)
         run: |
-          # Important: do NOT loop. Run once, then decide based on git diff.
           prek install
           prek run python-typing-update --hook-stage manual --all-files
-          prek run --all-files || true
-          prek run --all-files --show-diff-on-failure
 
       - name: Detect changes
         id: diff
