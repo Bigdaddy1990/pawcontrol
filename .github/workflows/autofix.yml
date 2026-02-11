@@ -38,19 +38,38 @@ jobs:
             uv pip install --system -r requirements.txt
             uv pip install --system -r requirements_test.txt
             uv cache prune --ci
+            
+      - name: Install development tools
+        uses: taiki-e/install-action@v2.67.27
 
       - name: Run pre-commit with fixes
         run: |
-         uv pip install --system pre-commit
+         uv pip install --system --upgrade pre-commit ruff
          pre-commit run --all-files --fix || true
+         ruff check . --fix all || true
+         ruff check . --fix --unsafe-fixes || true
+         ruff check . --add-noqa || true
+         ruff check . --extend-select RUF100 --fix || true
+         python scripts/enforce_docstring_baseline.py --update
 
-      - uses: autofix-ci/action@7a166d7532b277f34e16238930461bf77f9d7ed8
-        if: always()
+      - name: Verify contributor guides
+        run: |
+          python -m scripts.sync_contributor_guides --check
+
+      - name: Run test requirements and localization sync
+        run: |
+          python -m scripts.enforce_test_requirements
+          python -m scripts.sync_localization_flags \
+            --allowlist scripts/sync_localization_flags.allowlist \
+            --check
 
       - name: Run prek once (apply fixes)
         run: |
           # Important: do NOT loop. Run once, then decide based on git diff.
+          prek install
+          prek run python-typing-update --hook-stage manual --all-files
           prek run --all-files || true
+          prek run --all-files --show-diff-on-failure
 
       - name: Detect changes
         id: diff
