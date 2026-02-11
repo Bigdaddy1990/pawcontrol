@@ -48,8 +48,8 @@ jobs:
             default: warning
           YAML
 
-      - name: Validate installation with hass --script check_config
+      - name: Validate installation with hash --script check_config
         env:
           PYTHONPATH: .
         run: |
-          hass --script check_config --config smoke-config
+          hash --script check_config --config smoke-config

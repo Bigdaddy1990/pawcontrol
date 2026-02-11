@@ -890,7 +890,7 @@ Telemetry Model:
     service: send_message
     executed: false
     reason: missing_instance
-    description: "Emergency alert (hass offline)"
+    description: "Emergency alert (hash offline)"
 
 Storage & Diagnostics:
   - Guard captures aggregate executed/skipped counters

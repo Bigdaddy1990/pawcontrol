@@ -7,7 +7,7 @@ language. It is maintained automatically by `scripts/sync_localization_flags`,
 and the CI workflow validates the sync in check mode to catch drift early.
 
 <!-- START_SETUP_FLAGS_TABLE -->
-| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanisch (`es`) | Französisch (`fr`) |
+| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanish (`es`) | Französisch (`fr`) |
 | --- | --- | --- | --- | --- |
 | component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging | Registro de depuración | Journalisation de débogage |
 | component.pawcontrol.common.setup_flags_panel_flag_enable_analytics | Analytics telemetry | Analyse-Telemetrie | Telemetría de analíticas | Télémétrie d'analyse |

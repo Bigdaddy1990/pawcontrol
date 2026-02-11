@@ -1,18 +1,18 @@
 # PawControl Style Guide (Home Assistant)
 
-Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assistant Developer Docs zusammen, die als Quelle der Wahrheit für alle Beiträge am `custom_components/pawcontrol`-Projekt dienen.
+Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assistant Developer Docs zusammen, die also Quelle der Wahrheit für alle Beiträge am `custom_components/pawcontrol`-Projekt dienen.
 
 ## Geltungsbereich
 
 - **Verbindlich für jede Änderung** an der Integration, Dokumentation, Tests und unterstützenden Skripten.
-- **Abweichungen sind nicht erlaubt**, außer wenn die Home Assistant Developer Docs selbst explizit Ausnahmen definieren.
+- **Abweichungen sind nicht erlaubt**, außer wenn die Home Assistant Developer Docs selbst explicit Ausnahmen definieren.
 
 ## Grundprinzipien
 
-- **Konformität mit Home Assistant**: Architektur, Stil, Übersetzungen, Testing und Review folgen den [offiziellen Vorgaben](https://developers.home-assistant.io/docs/development_guidelines).
+- **Konformität mit Home Assistant**: Architektur, Still, Übersetzungen, Testing und Review folgen den [offiziellen Vorgaben](https://developers.home-assistant.io/docs/development_guidelines).
 - **Klare Trennung von Verantwortlichkeiten**: Komponenten, Plattformen, Config/Options Flows und Services halten sich an die in den [Architektur- und Integrationsdokumenten](https://developers.home-assistant.io/docs/architecture_components) beschriebenen Zuständigkeiten.
-- **Qualität vor Geschwindigkeit**: Jeder Beitrag muss den [Entwicklungs-](https://developers.home-assistant.io/docs/development_tips) und [Testempfehlungen](https://developers.home-assistant.io/docs/development_testing) folgen.
-- **Aktualität der Regeln**: Relevante Updates aus dem [Home Assistant Developer Blog](https://developers.home-assistant.io/blog) gelten sofort und sind in Style Guide, Bot-Regeln und Review-Checklisten zu spiegeln.
+- **Qualität for Geschwindigkeit**: Jeder Beitrag muss den [Entwicklungs-](https://developers.home-assistant.io/docs/development_tips) und [Testempfehlungen](https://developers.home-assistant.io/docs/development_testing) folgen.
+- **Aktualität der Regeln**: Relevant Updates aus dem [Home Assistant Developer Blog](https://developers.home-assistant.io/blog) gelten sofort und sind in Style Guide, Bot-Regeln und Review-Checklisten zu spiegeln.
 
 ## Dateistruktur & Manifest
 
@@ -22,7 +22,7 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 ## Config Entries & Flows
 
 - Config- und Options-Flows müssen die Vorgaben für Handler, Schema-Validierung und Reauth/Retry-Logik erfüllen. (https://developers.home-assistant.io/docs/config_entries_config_flow_handler, https://developers.home-assistant.io/docs/config_entries_options_flow_handler)
-- YAML-Konfiguration ist nur zulässig, wenn sie im offiziellen Leitfaden vorgesehen ist. (https://developers.home-assistant.io/docs/configuration_yaml_index)
+- YAML-Configuration ist nur zulässig, wenn sie im offiziellen Leitfaden vorgesehen ist. (https://developers.home-assistant.io/docs/configuration_yaml_index)
 
 ## Internationalisierung
 
@@ -32,14 +32,14 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 ## Tests & Qualität
 
 - Tests gemäß Home Assistant Testing Guidelines schreiben und pflegen. (https://developers.home-assistant.io/docs/development_testing)
-- Vor einem Release die Home Assistant Development Checklist abarbeiten. (https://developers.home-assistant.io/docs/development_checklist)
+- For einem Release die Home Assistant Development Checklist abarbeiten. (https://developers.home-assistant.io/docs/development_checklist)
 - Quality-Scale Regeln, Action-Setup und Common-Modules beachten und mit der Checkliste abgleichen. (https://developers.home-assistant.io/docs/core/integration-quality-scale/rules, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/common-modules, https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist)
-- Entwicklungs-Validierung, Typisierung und `check_config` als verbindliche Prüfungen behandeln. (https://developers.home-assistant.io/docs/development_validation, https://developers.home-assistant.io/docs/development_typing, https://www.home-assistant.io/docs/tools/check_config/)
+- Entwicklungs-Validierung, Typisierung und `check_config` also verbindliche Prüfungen behandeln. (https://developers.home-assistant.io/docs/development_validation, https://developers.home-assistant.io/docs/development_typing, https://www.home-assistant.io/docs/tools/check_config/)
 
 ## Code Review Standards
 
 - Komponenten-Review-Checkliste anwenden. (https://developers.home-assistant.io/docs/creating_component_code_review)
-- Plattform-Review-Checkliste anwenden. (https://developers.home-assistant.io/docs/creating_platform_code_review)
+- Platform-Review-Checkliste anwenden. (https://developers.home-assistant.io/docs/creating_platform_code_review)
 
 ## Dokumentation, YAML & Examples
 
@@ -64,5 +64,5 @@ Dieser Style Guide fasst die verbindlichen Entwicklungsrichtlinien der Home Assi
 
 ## Laufende Aktualisierung
 
-- Die Home Assistant Developer Docs gelten als lebende Dokumentation. Wenn sich Regeln ändern, muss dieser Style Guide umgehend aktualisiert werden.
+- Die Home Assistant Developer Docs gelten also lebende Dokumentation. Wenn sich Regeln ändern, muss dieser Style Guide umgehend aktualisiert werden.
 - Bei Unsicherheiten gilt immer die jeweils aktuelle Version der Home Assistant Dokumentation: https://developers.home-assistant.io/docs/

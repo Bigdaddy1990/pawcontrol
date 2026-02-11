@@ -1,7 +1,7 @@
 # Phase 1.4: Validation & Error Handling Centralization
 
-**Status:** ✓ COMPLETED  
-**Date:** 2026-02-11  
+**Status:** ✓ COMPLETED
+**Date:** 2026-02-11
 **Quality Level:** Platinum-Ready
 
 ## Objectives
@@ -85,13 +85,13 @@ Existing validation utilities in `validation.py`:
 async def update_location(self, dog_id, latitude, longitude):
     if dog_id not in self.coordinator.data:
         raise Exception(f"Dog {dog_id} not found")
-    
+
     if not -90 <= latitude <= 90:
         raise Exception("Invalid latitude")
-    
+
     if not -180 <= longitude <= 180:
         raise Exception("Invalid longitude")
-    
+
     # Business logic...
 ```
 
@@ -293,7 +293,7 @@ async def test_validate_dog_exists_success():
     @validate_dog_exists()
     async def get_dog(self, dog_id):
         return f"Dog {dog_id}"
-    
+
     instance = MockInstance(coordinator_with_dogs=["buddy"])
     result = await get_dog(instance, dog_id="buddy")
     assert result == "Dog buddy"
@@ -303,7 +303,7 @@ async def test_validate_dog_exists_failure():
     @validate_dog_exists()
     async def get_dog(self, dog_id):
         return f"Dog {dog_id}"
-    
+
     instance = MockInstance(coordinator_with_dogs=[])
     with pytest.raises(DogNotFoundError):
         await get_dog(instance, dog_id="buddy")
@@ -313,10 +313,10 @@ async def test_validate_gps_coordinates():
     @validate_gps_coordinates()
     def set_location(self, latitude, longitude):
         return (latitude, longitude)
-    
+
     # Valid coordinates
     assert set_location(None, 45.0, -122.0) == (45.0, -122.0)
-    
+
     # Invalid latitude
     with pytest.raises(InvalidCoordinatesError):
         set_location(None, 95.0, -122.0)
@@ -324,7 +324,7 @@ async def test_validate_gps_coordinates():
 async def test_retry_on_error():
     """Test retry decorator with network errors."""
     call_count = 0
-    
+
     @retry_on_error(max_attempts=3, delay=0.01)
     async def flaky_call():
         nonlocal call_count
@@ -332,7 +332,7 @@ async def test_retry_on_error():
         if call_count < 3:
             raise NetworkError("Network failed")
         return "success"
-    
+
     result = await flaky_call()
     assert result == "success"
     assert call_count == 3
@@ -341,24 +341,24 @@ async def test_retry_on_error():
 ### Integration Tests
 ```python
 # tests/components/pawcontrol/test_decorators_integration.py
-async def test_decorator_chain(hass):
+async def test_decorator_chain(hash):
     """Test multiple decorators work together."""
-    coordinator = await setup_test_coordinator(hass, dogs=["buddy"])
-    
+    coordinator = await setup_test_coordinator(hash, dogs=["buddy"])
+
     @validate_and_handle(dog_id_param="dog_id", gps_coords=True)
     async def update_location(self, dog_id, latitude, longitude):
         return f"{dog_id} at ({latitude}, {longitude})"
-    
+
     instance = create_test_instance(coordinator)
-    
+
     # Should succeed with valid data
     result = await update_location(instance, "buddy", 45.0, -122.0)
     assert result == "buddy at (45.0, -122.0)"
-    
+
     # Should raise on invalid dog
     with pytest.raises(DogNotFoundError):
         await update_location(instance, "unknown", 45.0, -122.0)
-    
+
     # Should raise on invalid coordinates
     with pytest.raises(InvalidCoordinatesError):
         await update_location(instance, "buddy", 95.0, -122.0)
@@ -494,6 +494,6 @@ async def api_call(self):
 
 ---
 
-**Status:** ✓ Phase 1.4 COMPLETE  
-**Quality:** Platinum-Ready  
+**Status:** ✓ Phase 1.4 COMPLETE
+**Quality:** Platinum-Ready
 **Next Phase:** 1.5 Coordinator Architecture Optimization

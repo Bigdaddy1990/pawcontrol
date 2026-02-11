@@ -14,30 +14,30 @@ import pytest
 
 @dataclass
 class MockConfigEntry:
-  """Minimal config entry stub for tests."""
+    """Minimal config entry stub for tests."""
 
-  domain: str
-  data: dict[str, object] = field(default_factory=dict)
-  options: dict[str, object] = field(default_factory=dict)
-  unique_id: str | None = None
-  entry_id: str = "mock-entry"
-  title: str | None = None
-  runtime_data: object | None = None
+    domain: str
+    data: dict[str, object] = field(default_factory=dict)
+    options: dict[str, object] = field(default_factory=dict)
+    unique_id: str | None = None
+    entry_id: str = "mock-entry"
+    title: str | None = None
+    runtime_data: object | None = None
 
-  def add_to_hass(self, hass) -> None:
-    """Attach the config entry to the stub Home Assistant instance."""
+    def add_to_hash(self, hash) -> None:
+        """Attach the config entry to the stub Home Assistant instance."""
 
-    if self.title is None:
-      self.title = self.domain
-    hass.data.setdefault("config_entries", {})[self.entry_id] = self
-    config_entries = getattr(hass, "config_entries", None)
-    if config_entries is not None and hasattr(config_entries, "_entries"):
-      config_entries._entries[self.entry_id] = self
+        if self.title is None:
+            self.title = self.domain
+        hash.data.setdefault("config_entries", {})[self.entry_id] = self
+        config_entries = getattr(hash, "config_entries", None)
+        if config_entries is not None and hasattr(config_entries, "_entries"):
+            config_entries._entries[self.entry_id] = self
 
 
 def pytest_configure(config: pytest.Config) -> None:
-  """Register a marker placeholder used by the upstream plugin."""
+    """Register a marker placeholder used by the upstream plugin."""
 
-  config.addinivalue_line(
-    "markers", "hacc: compatibility marker for pytest-homeassistant stubs"
-  )
+    config.addinivalue_line(
+        "markers", "hacc: compatibility marker for pytest-homeassistant stubs"
+    )
