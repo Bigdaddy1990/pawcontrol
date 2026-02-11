@@ -1504,10 +1504,10 @@ async def test_current_gps_options_normalises_legacy_snapshot(
   assert gps_options[CONF_GPS_UPDATE_INTERVAL] == 600
   assert gps_options[CONF_GPS_ACCURACY_FILTER] == 5.0
   assert gps_options[CONF_GPS_DISTANCE_FILTER] == 30.0
-  assert gps_options["gps_enabled"] is True
-  assert gps_options["route_recording"] is True
-  assert gps_options["route_history_days"] == 30
-  assert gps_options["auto_track_walks"] is True
+  assert gps_options[GPS_ENABLED_FIELD] is True
+  assert gps_options[ROUTE_RECORDING_FIELD] is True
+  assert gps_options[ROUTE_HISTORY_DAYS_FIELD] == 30
+  assert gps_options[AUTO_TRACK_WALKS_FIELD] is True
 
 
 @pytest.mark.asyncio
