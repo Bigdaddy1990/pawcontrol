@@ -43,6 +43,7 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 from custom_components.pawcontrol.runtime_data import RuntimeDataUnavailableError
 from custom_components.pawcontrol.types import (
+  AUTO_TRACK_WALKS_FIELD,
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
@@ -57,12 +58,15 @@ from custom_components.pawcontrol.types import (
   GEOFENCE_USE_HOME_FIELD,
   GEOFENCE_ZONE_ENTRY_FIELD,
   GEOFENCE_ZONE_EXIT_FIELD,
+  GPS_ENABLED_FIELD,
   NOTIFICATION_MOBILE_FIELD,
   NOTIFICATION_PRIORITY_FIELD,
   NOTIFICATION_QUIET_END_FIELD,
   NOTIFICATION_QUIET_HOURS_FIELD,
   NOTIFICATION_QUIET_START_FIELD,
   NOTIFICATION_REMINDER_REPEAT_FIELD,
+  ROUTE_HISTORY_DAYS_FIELD,
+  ROUTE_RECORDING_FIELD,
   AdvancedOptions,
   ConfigEntryDataPayload,
   DashboardOptions,
@@ -1481,6 +1485,33 @@ async def test_advanced_settings_normalises_existing_payloads(
   assert advanced[CONF_EXTERNAL_INTEGRATIONS] is False
   assert advanced[CONF_API_ENDPOINT] == "https://api.demo"
   assert advanced[CONF_API_TOKEN] == "token"
+
+
+@pytest.mark.asyncio
+async def test_current_gps_options_normalises_legacy_snapshot(
+  hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+  """Legacy GPS options should be normalized through shared validators."""
+
+  legacy_options = dict(mock_config_entry.options)
+  legacy_options[CONF_GPS_UPDATE_INTERVAL] = "9999"
+  legacy_options[CONF_GPS_ACCURACY_FILTER] = "0"
+  legacy_options[CONF_GPS_DISTANCE_FILTER] = "bad-value"
+  mock_config_entry.options = legacy_options
+
+  flow = PawControlOptionsFlow()
+  flow.hass = hass
+  flow.initialize_from_config_entry(mock_config_entry)
+
+  gps_options = flow._current_gps_options("test_dog")
+
+  assert gps_options[CONF_GPS_UPDATE_INTERVAL] == 600
+  assert gps_options[CONF_GPS_ACCURACY_FILTER] == 5.0
+  assert gps_options[CONF_GPS_DISTANCE_FILTER] == 30.0
+  assert gps_options[GPS_ENABLED_FIELD] is True
+  assert gps_options[ROUTE_RECORDING_FIELD] is True
+  assert gps_options[ROUTE_HISTORY_DAYS_FIELD] == 30
+  assert gps_options[AUTO_TRACK_WALKS_FIELD] is True
 
 
 @pytest.mark.asyncio
