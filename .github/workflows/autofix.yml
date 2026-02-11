@@ -42,7 +42,7 @@ jobs:
       - name: Run pre-commit with fixes
         run: |
          uv pip install --system pre-commit
-         pre-commit run --all-files || true
+         pre-commit run --all-files --fix || true
 
       - uses: autofix-ci/action@7a166d7532b277f34e16238930461bf77f9d7ed8
         if: always()
