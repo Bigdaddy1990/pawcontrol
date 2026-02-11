@@ -31,14 +31,14 @@ line-length = 88
 src = ["custom_components"]
 indent-width = 4
 show-fixes = true
-fix = false
-unsafe-fixes = false
+fix = true
+unsafe-fixes = true
 
 [tool.ruff.analyze]
 detect-string-imports = true
 direction = "dependencies"
 string-imports-min-dots = 2
-type-checking-imports = false
+type-checking-imports = true
 
 [tool.ruff.format]
 quote-style = "double"
@@ -83,7 +83,7 @@ extend-unsafe-fixes = ["E", "F401"]
 # third-party libraries that do not ship type hints.
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 warn_unused_configs = true
 # Jetzt wird es ernst:
 disallow_untyped_defs = true
