@@ -44,6 +44,9 @@ jobs:
            uv pip install --system pre-commit
            pre-commit run --all-files --show-diff-on-failure --fix-all
 
+      - uses: pre-commit-ci/lite@v1.1.0
+        if: always()
+
       - name: Run prek once (apply fixes)
         run: |
           # Important: do NOT loop. Run once, then decide based on git diff.
