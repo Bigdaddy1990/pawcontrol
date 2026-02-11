@@ -56,7 +56,7 @@ jobs:
           python scripts/enforce_docstring_baseline.py --update
 
       - name: Install development tools
-        uses: taiki-e/install-action@v2.67.27
+        uses: taiki-e/install-action@v2.67.28
 
       - name: Verify contributor guides
         run: |
