@@ -56,7 +56,7 @@ jobs:
       pytest-extra-args: "-q tests/"
     secrets: inherit
 
-inputs:
+  inputs:
      python-version:
          description: Python version to install
          required: false
