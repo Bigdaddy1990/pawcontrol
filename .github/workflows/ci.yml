@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.13", "3.14"]
+        python: ["3.14"]
     with:
       python-version: ${{ matrix.python }}
       home-assistant-spec: ">=2025.9.0"
