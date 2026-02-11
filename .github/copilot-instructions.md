@@ -94,7 +94,7 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 - https://developers.home-assistant.io/docs/config_entries_index
 - https://developers.home-assistant.io/docs/
 
-* `pyproject.toml` pins Python 3.13, enforces branch coverage and strict lint
+* `pyproject.toml` pins Python 3.14, enforces branch coverage and strict lint
   gates, and enables `pytest` warnings-as-errors, strict markers, and HTML/XML
   coverage reports.【F:pyproject.toml†L7-L72】
 * `scripts/enforce_docstring_baseline.py` and
@@ -122,7 +122,7 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 
 ### Python quality bar
 
-- Target Python 3.13 syntax and typing everywhere; no untyped defs or implicit
+- Target Python 3.14 syntax and typing everywhere; no untyped defs or implicit
   optionals are allowed because MyPy is configured to fail otherwise.【F:pyproject.toml†L37-L72】
 - Keep modules fully typed (`py.typed` is shipped) and add type aliases in
   `types.py` when expanding runtime models.
