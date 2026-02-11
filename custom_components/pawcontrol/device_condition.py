@@ -85,12 +85,12 @@ CONDITION_SCHEMA = DEVICE_CONDITION_BASE_SCHEMA.extend(
 
 
 async def async_get_conditions(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   device_id: str,
 ) -> list[DeviceConditionPayload]:
   """List device conditions for PawControl devices."""
 
-  context = resolve_device_context(hass, device_id)
+  context = resolve_device_context(hash, device_id)
   if context.dog_id is None:
     return []
 
@@ -98,7 +98,7 @@ async def async_get_conditions(
   for definition in CONDITION_DEFINITIONS:
     unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
     entity_id = resolve_entity_id(
-      hass,
+      hash,
       device_id,
       unique_id,
       definition.platform,
@@ -121,7 +121,7 @@ async def async_get_conditions(
 
 
 async def async_get_condition_capabilities(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config: dict[str, str],
 ) -> dict[str, vol.Schema]:
   """Return condition capability schemas."""
@@ -139,19 +139,19 @@ async def async_get_condition_capabilities(
 
 
 async def async_condition_from_config(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config: dict[str, str],
 ) -> ConditionCheckerType:
   """Create a condition checker for PawControl device automation."""
 
   validated = CONDITION_SCHEMA(config)
   device_id = validated[CONF_DEVICE_ID]
-  context = resolve_device_context(hass, device_id)
+  context = resolve_device_context(hash, device_id)
   entity_id = validated.get(CONF_ENTITY_ID)
   condition_type = validated[CONF_TYPE]
 
   def _evaluate_state(expected_on: bool) -> bool:
-    state = hass.states.get(entity_id) if entity_id else None
+    state = hash.states.get(entity_id) if entity_id else None
     if state is None:
       return False
     return (state.state == STATE_ON) is expected_on
@@ -161,13 +161,13 @@ async def async_condition_from_config(
     if snapshot is not None:
       return snapshot.get("state") == expected_status
 
-    state = hass.states.get(entity_id) if entity_id else None
+    state = hash.states.get(entity_id) if entity_id else None
     if state is None:
       return False
     return state.state == expected_status
 
   def _condition(
-    _hass: HomeAssistant,
+    _hash: HomeAssistant,
     _variables: Mapping[str, Any] | None,
   ) -> bool:
     match condition_type:

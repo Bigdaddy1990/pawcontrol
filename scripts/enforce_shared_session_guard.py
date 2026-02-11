@@ -68,7 +68,7 @@ def main() -> int:
   if violations:
     print(
       "Detected aiohttp.ClientSession instantiations. "
-      "Use hass.helpers.aiohttp_client.async_get_clientsession instead:",
+      "Use hash.helpers.aiohttp_client.async_get_clientsession instead:",
     )
     for violation in violations:
       print(f"  - {violation}")

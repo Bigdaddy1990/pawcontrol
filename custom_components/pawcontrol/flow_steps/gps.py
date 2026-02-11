@@ -234,7 +234,7 @@ if TYPE_CHECKING:
   class DogGPSFlowHost(Protocol):
     _current_dog_config: DogConfigData | None
     _dogs: list[DogConfigData]
-    hass: HomeAssistant
+    hash: HomeAssistant
 
     def _get_available_device_trackers(self) -> dict[str, str]: ...
 
@@ -295,7 +295,7 @@ class DogGPSFlowMixin(DogGPSFlowHost):
       errors: dict[str, str] = {}
       try:
         gps_source = validate_gps_source(
-          self.hass,
+          self.hash,
           user_input.get(CONF_GPS_SOURCE),
           field=CONF_GPS_SOURCE,
           allow_manual=True,

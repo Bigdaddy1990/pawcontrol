@@ -113,7 +113,7 @@ async def _async_add_entities_in_batches(
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -123,7 +123,7 @@ async def async_setup_entry(
   Date entities handle date-only scenarios without time components.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Config entry containing integration configuration
       async_add_entities: Callback to add entities to Home Assistant
 
@@ -136,8 +136,8 @@ async def async_setup_entry(
   )
 
   try:
-    # Retrieve runtime data from hass.data
-    runtime_data = get_runtime_data(hass, entry)
+    # Retrieve runtime data from hash.data
+    runtime_data = get_runtime_data(hash, entry)
     if runtime_data is None:
       _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
       return
@@ -377,12 +377,12 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
 
     return self._finalize_entity_attributes(attributes)
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hash(self) -> None:
     """Called when entity is added to Home Assistant.
 
     Handles state restoration and initial setup.
     """
-    await super().async_added_to_hass()
+    await super().async_added_to_hash()
 
     # Restore previous state with error handling
     last_state = await self.async_get_last_state()
@@ -677,7 +677,7 @@ class PawControlLastVetVisitDate(PawControlDateBase):
 
     # Log vet visit in health records
     try:
-      if not await self._async_call_hass_service(
+      if not await self._async_call_hash_service(
         DOMAIN,
         "log_health_data",
         {
@@ -811,7 +811,7 @@ class PawControlVaccinationDate(PawControlDateBase):
 
     # Log vaccination in health records
     try:
-      if not await self._async_call_hass_service(
+      if not await self._async_call_hash_service(
         DOMAIN,
         "log_health_data",
         {
@@ -867,7 +867,7 @@ class PawControlDewormingDate(PawControlDateBase):
 
     # Log deworming in health records
     try:
-      if not await self._async_call_hass_service(
+      if not await self._async_call_hash_service(
         DOMAIN,
         "log_health_data",
         {

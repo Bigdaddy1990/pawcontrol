@@ -12,7 +12,7 @@ from custom_components.pawcontrol import repairs
 
 @pytest.mark.asyncio
 async def test_repairs_flow_routes_notification_auth_error(
-  hass,
+  hash,
 ) -> None:
   """Ensure notification auth error routes to the correct flow step."""
 
@@ -27,10 +27,10 @@ async def test_repairs_flow_routes_notification_auth_error(
     "last_error_reasons": "unauthorized",
   }
 
-  hass.data[ir.DOMAIN] = {issue_id: SimpleNamespace(data=issue_data)}
+  hash.data[ir.DOMAIN] = {issue_id: SimpleNamespace(data=issue_data)}
 
   flow = repairs.PawControlRepairsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.issue_id = issue_id
 
   result = await flow.async_step_init()

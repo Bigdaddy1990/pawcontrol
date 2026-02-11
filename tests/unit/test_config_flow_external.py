@@ -55,12 +55,12 @@ class _ExternalEntityFlow(ExternalEntityConfigurationMixin):
 
   def __init__(
     self,
-    hass: _FakeHomeAssistant,
+    hash: _FakeHomeAssistant,
     *,
     modules: DogModulesConfig,
     external_entities: ExternalEntityConfig | None = None,
   ) -> None:
-    self.hass = hass
+    self.hash = hash
     self._enabled_modules = modules
     self._external_entities = external_entities or ExternalEntityConfig()
     self._dogs: list[DogConfigData] = []
@@ -115,7 +115,7 @@ class _ExternalEntityFlow(ExternalEntityConfigurationMixin):
 async def test_async_step_configure_external_entities_accepts_valid_payload() -> None:
   """The mixin persists validated entity selections into the shared mapping."""
 
-  hass = _FakeHomeAssistant(
+  hash = _FakeHomeAssistant(
     states=_FakeStates(
       {
         "device_tracker.main_phone": SimpleNamespace(state="home"),
@@ -131,7 +131,7 @@ async def test_async_step_configure_external_entities_accepts_valid_payload() ->
     DogModulesConfig,
     {MODULE_GPS: True, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
   )
-  flow = _ExternalEntityFlow(hass, modules=modules)
+  flow = _ExternalEntityFlow(hash, modules=modules)
 
   result = await flow.async_step_configure_external_entities(
     ExternalEntityConfig(
@@ -156,7 +156,7 @@ async def test_async_step_configure_external_entities_rejects_invalid_door_senso
 ):
   """Door sensor validation rejects entities with unsupported device classes."""
 
-  hass = _FakeHomeAssistant(
+  hash = _FakeHomeAssistant(
     states=_FakeStates(
       {
         "binary_sensor.back_door": SimpleNamespace(
@@ -171,7 +171,7 @@ async def test_async_step_configure_external_entities_rejects_invalid_door_senso
     DogModulesConfig,
     {MODULE_GPS: False, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: False},
   )
-  flow = _ExternalEntityFlow(hass, modules=modules)
+  flow = _ExternalEntityFlow(hash, modules=modules)
 
   result = await flow.async_step_configure_external_entities(
     ExternalEntityConfig(door_sensor="binary_sensor.back_door")
@@ -188,7 +188,7 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
 ):
   """Invalid notify service selections surface the validation error in the form."""
 
-  hass = _FakeHomeAssistant(
+  hash = _FakeHomeAssistant(
     states=_FakeStates(
       {
         "device_tracker.main_phone": SimpleNamespace(state="home"),
@@ -204,7 +204,7 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
     DogModulesConfig,
     {MODULE_GPS: True, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
   )
-  flow = _ExternalEntityFlow(hass, modules=modules)
+  flow = _ExternalEntityFlow(hash, modules=modules)
 
   result = await flow.async_step_configure_external_entities(
     ExternalEntityConfig(notify_fallback="notify.unknown_service")
@@ -223,7 +223,7 @@ async def test_async_step_configure_external_entities_rejects_invalid_notify_for
 ):
   """Notify service formatting errors surface a field validation key."""
 
-  hass = _FakeHomeAssistant(
+  hash = _FakeHomeAssistant(
     states=_FakeStates(
       {
         "device_tracker.main_phone": SimpleNamespace(state="home"),
@@ -235,7 +235,7 @@ async def test_async_step_configure_external_entities_rejects_invalid_notify_for
     DogModulesConfig,
     {MODULE_GPS: False, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: True},
   )
-  flow = _ExternalEntityFlow(hass, modules=modules)
+  flow = _ExternalEntityFlow(hash, modules=modules)
 
   result = await flow.async_step_configure_external_entities(
     ExternalEntityConfig(notify_fallback="invalid-service")
@@ -252,7 +252,7 @@ async def test_async_step_configure_external_entities_rejects_invalid_notify_for
 async def test_async_step_configure_external_entities_exposes_placeholders() -> None:
   """The mixin should expose immutable placeholders for the configuration form."""
 
-  hass = _FakeHomeAssistant(
+  hash = _FakeHomeAssistant(
     states=_FakeStates({}),
     services=_FakeServices({"notify": {}}),
   )
@@ -260,7 +260,7 @@ async def test_async_step_configure_external_entities_exposes_placeholders() -> 
     DogModulesConfig,
     {MODULE_GPS: True, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: False},
   )
-  flow = _ExternalEntityFlow(hass, modules=modules)
+  flow = _ExternalEntityFlow(hash, modules=modules)
 
   result = await flow.async_step_configure_external_entities()
 

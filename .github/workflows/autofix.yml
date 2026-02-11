@@ -35,7 +35,7 @@ jobs:
             uv pip install --system -r requirements.txt
             uv pip install --system -r requirements_test.txt
             uv cache prune --ci
-            
+
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.27
 

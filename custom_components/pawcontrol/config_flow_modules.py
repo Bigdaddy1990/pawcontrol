@@ -306,7 +306,7 @@ if TYPE_CHECKING:
     _feeding_config: FeedingSetupConfig
     _enabled_modules: DogModulesConfig
     _external_entities: ExternalEntityConfig
-    hass: HomeAssistant
+    hash: HomeAssistant
 
     async def async_step_configure_external_entities(
       self,
@@ -796,39 +796,39 @@ class ModuleConfigurationMixin:
     """
     module_summary = self._analyze_configured_modules()
     flow = cast("ModuleFlowHost", self)
-    hass_language: str | None = getattr(flow.hass.config, "language", None)
+    hash_language: str | None = getattr(flow.hash.config, "language", None)
 
     if module_summary["total"] == 0:
-      return translated_dashboard_setup(hass_language, "basic")
+      return translated_dashboard_setup(hash_language, "basic")
 
     features: list[str] = []
     if module_summary["gps_dogs"] > 0:
       features.append(
         translated_dashboard_feature(
-          hass_language,
+          hash_language,
           "live_location_tracking",
         ),
       )
     if module_summary["health_dogs"] > 0:
       features.append(
-        translated_dashboard_feature(hass_language, "health_charts"),
+        translated_dashboard_feature(hash_language, "health_charts"),
       )
     if module_summary["feeding_dogs"] > 0:
       features.append(
         translated_dashboard_feature(
-          hass_language,
+          hash_language,
           "feeding_schedules",
         ),
       )
 
     if features:
       return translated_dashboard_setup(
-        hass_language,
+        hash_language,
         "include_prefix",
         features=", ".join(features),
       )
 
-    return translated_dashboard_setup(hass_language, "standard")
+    return translated_dashboard_setup(hash_language, "standard")
 
   def _get_dashboard_features_string(self, has_gps: bool) -> str:
     """Get dashboard features string.
@@ -840,7 +840,7 @@ class ModuleConfigurationMixin:
         Features description
     """
     flow = cast("ModuleFlowHost", self)
-    hass_language: str | None = getattr(flow.hass.config, "language", None)
+    hash_language: str | None = getattr(flow.hash.config, "language", None)
 
     feature_keys: list[str] = [
       "status_cards",
@@ -855,7 +855,7 @@ class ModuleConfigurationMixin:
       feature_keys.append("multi_dog_overview")
 
     return ", ".join(
-      translated_dashboard_feature(hass_language, key) for key in feature_keys
+      translated_dashboard_feature(hash_language, key) for key in feature_keys
     )
 
   async def async_step_configure_feeding_details(

@@ -51,8 +51,8 @@ def test_get_translation_returns_localized_text(
     feels_like=35,
   )
 
-  assert title == "🔥 Warnung vor extremer Hitze"
-  assert "Temperatur 32°C" in message
+  assert title == "🔥 Warnung for extremer Hitze"
+  assert "Temperature 32°C" in message
   assert "gefühlte 35°C" in message
 
 

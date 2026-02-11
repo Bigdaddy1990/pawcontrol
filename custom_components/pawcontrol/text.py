@@ -188,13 +188,13 @@ async def _async_add_entities_in_batches(
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
   """Set up the PawControl text platform for a config entry."""
 
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
@@ -304,14 +304,14 @@ async def async_setup_entry(
 
 
 async def async_reproduce_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   states: Sequence[State],
   *,
   context: Context | None = None,
 ) -> None:
   """Reproduce text states for PawControl entities."""
   await async_reproduce_platform_states(
-    hass,
+    hash,
     states,
     "text",
     _preprocess_text_state,
@@ -325,7 +325,7 @@ def _preprocess_text_state(state: State) -> str:
 
 
 async def _async_reproduce_text_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   state: State,
   current_state: State,
   target_value: str,
@@ -334,7 +334,7 @@ async def _async_reproduce_text_state(
   if current_state.state == target_value:
     return
 
-  await hass.services.async_call(
+  await hash.services.async_call(
     text_component.DOMAIN,
     text_component.SERVICE_SET_VALUE,
     {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
@@ -705,9 +705,9 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
       metadata.get("user_id") if metadata is not None else None
     )
 
-  async def async_added_to_hass(self) -> None:
-    """When entity is added to hass."""
-    await super().async_added_to_hass()
+  async def async_added_to_hash(self) -> None:
+    """When entity is added to hash."""
+    await super().async_added_to_hash()
 
     stored_value, stored_metadata, from_runtime = self._get_stored_text_value()
     needs_persist = not from_runtime
@@ -865,7 +865,7 @@ class PawControlDogNotesText(PawControlTextBase):
 
     # Log notes update as health data if meaningful content
     trimmed_value = value.strip()
-    if len(trimmed_value) > 10 and not await self._async_call_hass_service(
+    if len(trimmed_value) > 10 and not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {
@@ -976,7 +976,7 @@ class PawControlHealthNotesText(PawControlTextBase):
 
     # Log health notes
     trimmed_value = value.strip()
-    if trimmed_value and not await self._async_call_hass_service(
+    if trimmed_value and not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {
@@ -1016,7 +1016,7 @@ class PawControlMedicationNotesText(PawControlTextBase):
     if (
       trimmed_value
       and len(trimmed_value) > 5
-      and not await self._async_call_hass_service(
+      and not await self._async_call_hash_service(
         DOMAIN,
         "log_medication",
         {
@@ -1055,7 +1055,7 @@ class PawControlVetNotesText(PawControlTextBase):
 
     # Log as health data with vet context
     trimmed_value = value.strip()
-    if trimmed_value and not await self._async_call_hass_service(
+    if trimmed_value and not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {
@@ -1095,7 +1095,7 @@ class PawControlGroomingNotesText(PawControlTextBase):
     if (
       trimmed_value
       and len(trimmed_value) > 10
-      and not await self._async_call_hass_service(
+      and not await self._async_call_hash_service(
         DOMAIN,
         "start_grooming",
         {
@@ -1149,7 +1149,7 @@ class PawControlCustomMessageText(PawControlTextBase):
         )
         return
 
-      if not await self._async_call_hass_service(
+      if not await self._async_call_hash_service(
         DOMAIN,
         "notify_test",
         {
@@ -1278,7 +1278,7 @@ class PawControlAllergiesText(PawControlTextBase):
 
     # Log allergies as important health data
     trimmed_value = value.strip()
-    if trimmed_value and not await self._async_call_hass_service(
+    if trimmed_value and not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {
@@ -1339,7 +1339,7 @@ class PawControlBehaviorNotesText(PawControlTextBase):
     if (
       trimmed_value
       and len(trimmed_value) > 10
-      and not await self._async_call_hass_service(
+      and not await self._async_call_hash_service(
         DOMAIN,
         "log_health_data",
         {

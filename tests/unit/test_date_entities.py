@@ -57,7 +57,7 @@ class _DummyCoordinator:
 
 @pytest.mark.asyncio
 async def test_birthdate_extra_attributes_typed(
-  hass, monkeypatch: pytest.MonkeyPatch
+  hash, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Ensure birthdate entities expose structured, typed attributes."""
 
@@ -75,7 +75,7 @@ async def test_birthdate_extra_attributes_typed(
   entity = PawControlBirthdateDate(
     cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
   )
-  entity.hass = hass
+  entity.hash = hash
 
   # Freeze time so the derived counters remain deterministic.
   monkeypatch.setattr(
@@ -108,7 +108,7 @@ async def test_birthdate_extra_attributes_typed(
 
 @pytest.mark.asyncio
 async def test_last_vet_visit_extracts_datetime(
-  hass, monkeypatch: pytest.MonkeyPatch
+  hash, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Ensure health snapshots provide typed dates for vet visits."""
 
@@ -129,7 +129,7 @@ async def test_last_vet_visit_extracts_datetime(
   entity = PawControlLastVetVisitDate(
     cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
   )
-  entity.hass = hass
+  entity.hash = hash
 
   monkeypatch.setattr(
     "custom_components.pawcontrol.date.dt_util.now",

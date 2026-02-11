@@ -22,7 +22,7 @@ class _GPSDefaultsFlow(GPSModuleDefaultsMixin):
 
 class _DogGPSFlow(DogGPSFlowMixin):
   def __init__(self) -> None:
-    self.hass = MagicMock()
+    self.hash = MagicMock()
     self._current_dog_config = {DOG_NAME_FIELD: "Buddy"}
     self._dogs = []
     self.shown_forms: list[MutableFlowResultDict] = []

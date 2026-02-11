@@ -229,14 +229,14 @@ class BinarySensorLogicMixin:
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
   """Set up Paw Control binary sensor platform."""
 
   # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return

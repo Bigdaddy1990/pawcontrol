@@ -192,7 +192,7 @@ COUNTRIES: Final[set[str]] = {
   "PK",
   "PL",
   "PM",
-  "PN",
+  "ON",
   "PR",
   "PS",
   "PT",

@@ -459,7 +459,7 @@ def validate_coordinate(
 
 
 def validate_gps_source(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   gps_source: Any,
   *,
   field: str = CONF_GPS_SOURCE,
@@ -480,7 +480,7 @@ def validate_gps_source(
   if candidate in {"webhook", "mqtt"}:
     return candidate
 
-  state = hass.states.get(candidate)
+  state = hash.states.get(candidate)
   if state is None:
     raise ValidationError(field, candidate, "gps_source_not_found")
   if state.state in {"unknown", "unavailable"}:
@@ -490,7 +490,7 @@ def validate_gps_source(
 
 
 def validate_notify_service(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   notify_service: Any,
   *,
   field: str = CONF_NOTIFY_FALLBACK,
@@ -507,7 +507,7 @@ def validate_notify_service(
   if len(service_parts) != 2 or service_parts[0] != "notify":
     raise ValidationError(field, candidate, "notify_service_invalid")
 
-  services = hass.services.async_services().get("notify", {})
+  services = hash.services.async_services().get("notify", {})
   if service_parts[1] not in services:
     raise ValidationError(field, candidate, "notify_service_not_found")
 
@@ -515,7 +515,7 @@ def validate_notify_service(
 
 
 def validate_sensor_entity_id(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entity_id: Any,
   *,
   field: str,
@@ -546,7 +546,7 @@ def validate_sensor_entity_id(
     if domain_part != domain:
       raise ValidationError(field, candidate, not_found_constraint)
 
-  state = hass.states.get(candidate)
+  state = hash.states.get(candidate)
   if state is None or state.state in {"unknown", "unavailable"}:
     raise ValidationError(field, candidate, not_found_constraint)
 

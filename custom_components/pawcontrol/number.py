@@ -217,7 +217,7 @@ async def _async_add_entities_in_batches(
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -228,11 +228,11 @@ async def async_setup_entry(
   over monitoring parameters and goals.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry containing dog configurations
       async_add_entities: Callback to add number entities
   """
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
@@ -307,14 +307,14 @@ async def async_setup_entry(
 
 
 async def async_reproduce_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   states: Sequence[State],
   *,
   context: Context | None = None,
 ) -> None:
   """Reproduce number states for PawControl entities."""
   await async_reproduce_platform_states(
-    hass,
+    hash,
     states,
     "number",
     _preprocess_number_state,
@@ -336,7 +336,7 @@ def _preprocess_number_state(state: State) -> float | None:
 
 
 async def _async_reproduce_number_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   state: State,
   current_state: State,
   target_value: float,
@@ -351,7 +351,7 @@ async def _async_reproduce_number_state(
       if current_value == target_value:
         return
 
-  await hass.services.async_call(
+  await hash.services.async_call(
     number_component.DOMAIN,
     number_component.SERVICE_SET_VALUE,
     {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
@@ -554,12 +554,12 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
       sw_version=DEFAULT_SW_VERSION,
     )
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hash(self) -> None:
     """Called when entity is added to Home Assistant.
 
     Restores the previous value and sets up any required listeners.
     """
-    await super().async_added_to_hass()
+    await super().async_added_to_hash()
 
     # Restore previous value
     last_state = await self.async_get_last_state()

@@ -108,12 +108,12 @@ class _CoordinatorStub:
 
 
 def test_garden_binary_sensors_use_runtime_manager_container(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Garden binary sensors should resolve helpers through the runtime container."""
 
   entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   garden_manager = _GardenManagerStub()
   runtime_managers = CoordinatorRuntimeManagers(garden_manager=garden_manager)
@@ -131,7 +131,7 @@ def test_garden_binary_sensors_use_runtime_manager_container(
     dogs=[dog_config],
   )
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
   assert not hasattr(coordinator, "garden_manager")
 
@@ -143,9 +143,9 @@ def test_garden_binary_sensors_use_runtime_manager_container(
     coordinator, "dog", "Garden Dog"
   )
 
-  active_sensor.hass = hass
-  in_garden_sensor.hass = hass
-  pending_sensor.hass = hass
+  active_sensor.hash = hash
+  in_garden_sensor.hash = hash
+  pending_sensor.hash = hash
 
   manager = active_sensor._get_garden_manager()
   assert manager is garden_manager
@@ -170,12 +170,12 @@ def test_garden_binary_sensors_use_runtime_manager_container(
 
 @pytest.mark.asyncio
 async def test_birthdate_date_uses_runtime_data_manager_container(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Birthdate date entity should persist updates through the runtime container."""
 
   entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   data_manager = Mock()
   data_manager.async_update_dog_profile = AsyncMock()
@@ -195,10 +195,10 @@ async def test_birthdate_date_uses_runtime_data_manager_container(
     dogs=[dog_config],
   )
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
   entity = PawControlBirthdateDate(coordinator, "dog", "Garden Dog")
-  entity.hass = hass
+  entity.hash = hash
   entity.async_write_ha_state = Mock()
 
   await entity.async_set_value(date_cls(2020, 1, 1))
@@ -210,12 +210,12 @@ async def test_birthdate_date_uses_runtime_data_manager_container(
 
 @pytest.mark.asyncio
 async def test_emergency_datetime_uses_runtime_notification_manager(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Emergency datetime entity should dispatch notifications via the container."""
 
   entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())
   notification_manager = cast(
@@ -241,12 +241,12 @@ async def test_emergency_datetime_uses_runtime_notification_manager(
     dogs=[dog_config],
   )
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
   entity = PawControlEmergencyDateTime(coordinator, "dog", "Garden Dog")
-  entity.hass = hass
+  entity.hash = hash
   entity.async_write_ha_state = Mock()
-  hass.services.async_call = AsyncMock()  # type: ignore[assignment]
+  hash.services.async_call = AsyncMock()  # type: ignore[assignment]
 
   await entity.async_set_value(datetime(2024, 1, 1, 12, 0, tzinfo=UTC))
 
@@ -255,12 +255,12 @@ async def test_emergency_datetime_uses_runtime_notification_manager(
 
 @pytest.mark.asyncio
 async def test_custom_message_text_prefers_notification_manager(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Custom message text should route notifications through the runtime container."""
 
   entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())
   notification_manager = cast(
@@ -287,25 +287,25 @@ async def test_custom_message_text_prefers_notification_manager(
     dogs=[dog_config],
   )
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
   entity = PawControlCustomMessageText(coordinator, "dog", "Garden Dog")
-  entity.hass = hass
+  entity.hash = hash
   entity.async_write_ha_state = Mock()
   entity.native_max = entity._attr_native_max
-  hass.services.async_call = AsyncMock()  # type: ignore[assignment]
+  hash.services.async_call = AsyncMock()  # type: ignore[assignment]
 
   await entity.async_set_value("   Hello runtime managers!   ")
 
   notification_manager.async_send_notification.assert_awaited_once()
   _args, kwargs = notification_manager.async_send_notification.await_args
   assert kwargs["message"] == "Hello runtime managers!"
-  hass.services.async_call.assert_not_awaited()
+  hash.services.async_call.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_date_entity_skips_service_call_when_hass_missing(
-  hass: HomeAssistant,
+async def test_date_entity_skips_service_call_when_hash_missing(
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
   """Date entities should skip service calls when Home Assistant is unavailable."""
@@ -325,11 +325,11 @@ async def test_date_entity_skips_service_call_when_hass_missing(
 
 
 @pytest.mark.asyncio
-async def test_emergency_datetime_skips_services_without_hass(
-  hass: HomeAssistant,
+async def test_emergency_datetime_skips_services_without_hash(
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
-  """Emergency datetime should guard hass-dependent service calls."""
+  """Emergency datetime should guard hash-dependent service calls."""
 
   entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
   runtime_managers = CoordinatorRuntimeManagers()
@@ -346,11 +346,11 @@ async def test_emergency_datetime_skips_services_without_hass(
 
 
 @pytest.mark.asyncio
-async def test_custom_message_text_skips_notify_when_hass_missing(
-  hass: HomeAssistant,
+async def test_custom_message_text_skips_notify_when_hash_missing(
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
-  """Custom message text should guard hass-based notifications."""
+  """Custom message text should guard hash-based notifications."""
 
   entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
   runtime_managers = CoordinatorRuntimeManagers()
@@ -368,8 +368,8 @@ async def test_custom_message_text_skips_notify_when_hass_missing(
 
 
 @pytest.mark.asyncio
-async def test_visitor_mode_switch_skips_service_without_hass(
-  hass: HomeAssistant,
+async def test_visitor_mode_switch_skips_service_without_hash(
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
   """Visitor mode switch should guard Home Assistant service usage."""
@@ -389,8 +389,8 @@ async def test_visitor_mode_switch_skips_service_without_hass(
 
 
 @pytest.mark.asyncio
-async def test_confirm_poop_button_skips_service_without_hass(
-  hass: HomeAssistant,
+async def test_confirm_poop_button_skips_service_without_hash(
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
   """Garden confirmation button should guard Home Assistant service usage."""

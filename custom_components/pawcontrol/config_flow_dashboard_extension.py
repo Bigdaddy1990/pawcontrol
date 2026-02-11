@@ -62,7 +62,7 @@ _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
   },
   "maps": {
     "en": "🗺️ GPS maps will be shown if GPS module is enabled",
-    "de": "🗺️ GPS-Karten werden angezeigt, wenn das GPS-Modul aktiviert ist",
+    "de": "🗺️ GPS-Karten werden angezeigt, wenn das GPS-Module aktiviert ist",
   },
   "responsive": {
     "en": "📱 Dashboards are mobile-friendly and responsive",
@@ -216,11 +216,11 @@ class DashboardFlowMixin:
       ),
     )
 
-    hass_language: str | None = None
-    hass = getattr(self, "hass", None)
-    if hass is not None:
-      hass_language = getattr(
-        getattr(hass, "config", None),
+    hash_language: str | None = None
+    hash = getattr(self, "hash", None)
+    if hash is not None:
+      hash_language = getattr(
+        getattr(hash, "config", None),
         "language",
         None,
       )
@@ -279,9 +279,9 @@ class DashboardFlowMixin:
 
     placeholders = _build_dashboard_configure_placeholders(
       dog_count=len(self._dogs),
-      dashboard_info=self._get_dashboard_info(hass_language),
+      dashboard_info=self._get_dashboard_info(hash_language),
       features=self._build_dashboard_features_string(
-        hass_language,
+        hash_language,
         has_gps_enabled,
       ),
     )

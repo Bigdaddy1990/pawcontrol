@@ -119,7 +119,7 @@ def _entry(entry_id: str = "test-entry") -> PawControlConfigEntryType:
   return cast(PawControlConfigEntryType, _DummyEntry(entry_id))
 
 
-def _build_hass(
+def _build_hash(
   *,
   data: dict[str, object] | None = None,
   entries: dict[str, PawControlConfigEntryType] | None = None,
@@ -144,20 +144,20 @@ def test_store_and_get_runtime_data_roundtrip(
   """Storing runtime data should make it retrievable via the helper."""
 
   entry = _entry()
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
-  assert get_runtime_data(hass, entry) is runtime_data
-  assert get_runtime_data(hass, entry.entry_id) is runtime_data
+  assert get_runtime_data(hash, entry) is runtime_data
+  assert get_runtime_data(hash, entry.entry_id) is runtime_data
 
 
 def test_get_runtime_data_ignores_unknown_entries() -> None:
   """Missing entries should return ``None`` without side effects."""
 
-  hass = _build_hass(data={})
+  hash = _build_hash(data={})
 
-  assert get_runtime_data(hass, "missing") is None
+  assert get_runtime_data(hash, "missing") is None
 
 
 def test_require_runtime_data_returns_payload(
@@ -166,25 +166,25 @@ def test_require_runtime_data_returns_payload(
   """``require_runtime_data`` should return runtime payloads when present."""
 
   entry = _entry("configured")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
-  assert require_runtime_data(hass, entry) is runtime_data
-  assert require_runtime_data(hass, entry.entry_id) is runtime_data
+  assert require_runtime_data(hash, entry) is runtime_data
+  assert require_runtime_data(hash, entry.entry_id) is runtime_data
 
 
 def test_require_runtime_data_raises_when_missing() -> None:
   """``require_runtime_data`` should raise when no payload can be found."""
 
   entry = _entry("missing")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   with pytest.raises(RuntimeDataUnavailableError):
-    require_runtime_data(hass, entry)
+    require_runtime_data(hash, entry)
 
   with pytest.raises(RuntimeDataUnavailableError):
-    require_runtime_data(hass, entry.entry_id)
+    require_runtime_data(hash, entry.entry_id)
 
 
 def test_get_runtime_data_with_unexpected_container_type(
@@ -193,20 +193,20 @@ def test_get_runtime_data_with_unexpected_container_type(
   """Non-mapping containers are treated as absent data."""
 
   entry = _entry("recovered")
-  hass = _build_hass(
+  hash = _build_hash(
     data={DOMAIN: []},
     entries={entry.entry_id: entry},
   )
 
-  assert get_runtime_data(hass, "legacy") is None
+  assert get_runtime_data(hash, "legacy") is None
   # The invalid container should be cleaned up entirely so future lookups do
   # not keep encountering the bad structure.
-  assert DOMAIN not in hass.data
+  assert DOMAIN not in hash.data
 
   # After storing data the invalid container should be replaced with a mapping.
-  store_runtime_data(hass, entry, runtime_data)
-  assert DOMAIN in hass.data
-  assert get_runtime_data(hass, entry.entry_id) is runtime_data
+  store_runtime_data(hash, entry, runtime_data)
+  assert DOMAIN in hash.data
+  assert get_runtime_data(hash, entry.entry_id) is runtime_data
 
 
 def test_get_runtime_data_resolves_store_entry(
@@ -215,7 +215,7 @@ def test_get_runtime_data_resolves_store_entry(
   """Domain store entries should unwrap to runtime data."""
 
   entry = _entry("store-entry")
-  hass = _build_hass(
+  hash = _build_hash(
     data={
       DOMAIN: {
         entry.entry_id: DomainRuntimeStoreEntryType(
@@ -228,10 +228,10 @@ def test_get_runtime_data_resolves_store_entry(
 
   entry.runtime_data = None
 
-  assert get_runtime_data(hass, entry.entry_id) is runtime_data
+  assert get_runtime_data(hash, entry.entry_id) is runtime_data
   assert getattr(entry, "runtime_data", None) is runtime_data
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert isinstance(persisted, DomainRuntimeStoreEntryType)
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -242,15 +242,15 @@ def test_get_runtime_data_resolves_store_entry(
 def test_get_runtime_data_repopulates_store_from_entry(
   runtime_data: PawControlRuntimeDataType,
 ) -> None:
-  """Entries with runtime data should repopulate the hass.data cache."""
+  """Entries with runtime data should repopulate the hash.data cache."""
 
   entry = _entry("repopulate-store")
   entry.runtime_data = runtime_data
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  assert get_runtime_data(hass, entry) is runtime_data
+  assert get_runtime_data(hash, entry) is runtime_data
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert isinstance(persisted, DomainRuntimeStoreEntryType)
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -265,11 +265,11 @@ def test_get_runtime_data_replaces_invalid_store_when_entry_present(
 
   entry = _entry("replace-store")
   entry.runtime_data = runtime_data
-  hass = _build_hass(entries={entry.entry_id: entry}, data={DOMAIN: []})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={DOMAIN: []})
 
-  assert get_runtime_data(hass, entry) is runtime_data
+  assert get_runtime_data(hash, entry) is runtime_data
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert isinstance(persisted, DomainRuntimeStoreEntryType)
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -283,16 +283,16 @@ def test_get_runtime_data_handles_plain_runtime_payload(
   """Legacy payloads storing runtime data directly should remain compatible."""
 
   entry = _entry("plain-runtime")
-  hass = _build_hass(
+  hash = _build_hash(
     data={DOMAIN: {entry.entry_id: runtime_data}},
     entries={entry.entry_id: entry},
   )
 
   entry.runtime_data = None
 
-  assert get_runtime_data(hass, entry.entry_id) is runtime_data
+  assert get_runtime_data(hash, entry.entry_id) is runtime_data
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert isinstance(persisted, DomainRuntimeStoreEntryType)
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -306,7 +306,7 @@ def test_get_runtime_data_resolves_mapping_entry(
   """Dict-based store entries should unwrap to runtime data."""
 
   entry = _entry("mapping-entry")
-  hass = _build_hass(
+  hash = _build_hash(
     data={
       DOMAIN: {
         entry.entry_id: {
@@ -320,9 +320,9 @@ def test_get_runtime_data_resolves_mapping_entry(
 
   entry.runtime_data = None
 
-  assert get_runtime_data(hass, entry.entry_id) is runtime_data
+  assert get_runtime_data(hash, entry.entry_id) is runtime_data
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert isinstance(persisted, DomainRuntimeStoreEntryType)
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -336,11 +336,11 @@ def test_pop_runtime_data_removes_entry(
   """Popping runtime data should remove the stored value."""
 
   entry = _entry("pop-entry")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  store_runtime_data(hass, entry, runtime_data)
-  assert pop_runtime_data(hass, entry) is runtime_data
-  assert get_runtime_data(hass, entry) is None
+  store_runtime_data(hash, entry, runtime_data)
+  assert pop_runtime_data(hash, entry) is runtime_data
+  assert get_runtime_data(hash, entry) is None
 
 
 def test_pop_runtime_data_handles_store_entry(
@@ -348,7 +348,7 @@ def test_pop_runtime_data_handles_store_entry(
 ) -> None:
   """Domain store entries should be returned and removed by ``pop``."""
 
-  hass = _build_hass(
+  hash = _build_hash(
     data={
       DOMAIN: {
         "stored": DomainRuntimeStoreEntryType(
@@ -358,8 +358,8 @@ def test_pop_runtime_data_handles_store_entry(
     },
   )
 
-  assert pop_runtime_data(hass, "stored") is runtime_data
-  assert DOMAIN not in hass.data
+  assert pop_runtime_data(hash, "stored") is runtime_data
+  assert DOMAIN not in hash.data
 
 
 def test_pop_runtime_data_cleans_up_domain_store(
@@ -367,38 +367,38 @@ def test_pop_runtime_data_cleans_up_domain_store(
 ) -> None:
   """Removing the final entry should drop the PawControl data namespace."""
 
-  hass = _build_hass(
+  hash = _build_hash(
     data={DOMAIN: {"entry": DomainRuntimeStoreEntryType(runtime_data)}},
   )
 
-  assert pop_runtime_data(hass, "entry") is runtime_data
-  assert DOMAIN not in hass.data
+  assert pop_runtime_data(hash, "entry") is runtime_data
+  assert DOMAIN not in hash.data
 
 
 def test_cleanup_domain_store_removes_empty_store() -> None:
   """Cleanup helper should remove empty PawControl namespaces."""
 
-  hass = _build_hass(data={DOMAIN: {}})
+  hash = _build_hash(data={DOMAIN: {}})
 
-  _cleanup_domain_store(hass, hass.data[DOMAIN])
+  _cleanup_domain_store(hash, hash.data[DOMAIN])
 
-  assert DOMAIN not in hass.data
+  assert DOMAIN not in hash.data
 
 
 def test_pop_runtime_data_returns_none_when_store_missing() -> None:
   """Popping runtime data from an empty store should return ``None``."""
 
-  hass = _build_hass(data={})
+  hash = _build_hash(data={})
 
-  assert pop_runtime_data(hass, "missing") is None
+  assert pop_runtime_data(hash, "missing") is None
 
 
 def test_describe_runtime_store_status_missing() -> None:
   """A missing entry should report unavailable runtime store metadata."""
 
-  hass = _build_hass(entries={}, data={})
+  hash = _build_hash(entries={}, data={})
 
-  snapshot = describe_runtime_store_status(hass, "unknown")
+  snapshot = describe_runtime_store_status(hash, "unknown")
 
   assert snapshot["status"] == "missing"
   assert snapshot["entry"]["status"] == "missing"
@@ -412,11 +412,11 @@ def test_describe_runtime_store_status_current(
   """Storing runtime data should report a current snapshot."""
 
   entry = _entry("runtime-store-current")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
-  snapshot = describe_runtime_store_status(hass, entry)
+  snapshot = describe_runtime_store_status(hash, entry)
 
   assert snapshot["status"] == "current"
   assert snapshot["entry"]["status"] == "current"
@@ -431,9 +431,9 @@ def test_describe_runtime_store_status_needs_migration(
 
   entry = _entry("runtime-store-needs-migration")
   entry.runtime_data = runtime_data
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  snapshot = describe_runtime_store_status(hass, entry)
+  snapshot = describe_runtime_store_status(hash, entry)
 
   assert snapshot["status"] == "needs_migration"
   assert snapshot["entry"]["status"] == "unstamped"
@@ -446,7 +446,7 @@ def test_describe_runtime_store_status_detached_entry(
   """Store entries without config entry adoption should be flagged."""
 
   entry = _entry("runtime-store-detached-entry")
-  hass = _build_hass(
+  hash = _build_hash(
     entries={entry.entry_id: entry},
     data={
       DOMAIN: {
@@ -457,7 +457,7 @@ def test_describe_runtime_store_status_detached_entry(
     },
   )
 
-  snapshot = describe_runtime_store_status(hass, entry)
+  snapshot = describe_runtime_store_status(hash, entry)
 
   assert snapshot["status"] == "detached_entry"
   assert snapshot["entry"]["status"] == "missing"
@@ -472,12 +472,12 @@ def test_describe_runtime_store_status_future_incompatible(
   entry = _entry("runtime-store-future")
   future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 1
 
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
   entry.runtime_data = runtime_data
   entry._pawcontrol_runtime_store_version = future_version
   entry._pawcontrol_runtime_store_created_version = future_version
 
-  hass.data[DOMAIN] = {
+  hash.data[DOMAIN] = {
     entry.entry_id: DomainRuntimeStoreEntryType(
       runtime_data=runtime_data,
       version=future_version,
@@ -485,7 +485,7 @@ def test_describe_runtime_store_status_future_incompatible(
     ),
   }
 
-  snapshot = describe_runtime_store_status(hass, entry)
+  snapshot = describe_runtime_store_status(hash, entry)
 
   assert snapshot["status"] == "future_incompatible"
   assert snapshot["entry"]["status"] == "future_incompatible"
@@ -498,7 +498,7 @@ def test_describe_runtime_store_status_detects_divergence(
   """Different runtime payload objects should trigger divergence reporting."""
 
   entry = _entry("runtime-store-divergence")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   other_runtime = PawControlRuntimeDataType(
     coordinator=runtime_data.coordinator,
@@ -516,11 +516,11 @@ def test_describe_runtime_store_status_detects_divergence(
   entry._pawcontrol_runtime_store_created_version = (
     DomainRuntimeStoreEntryType.CURRENT_VERSION
   )
-  hass.data[DOMAIN] = {
+  hash.data[DOMAIN] = {
     entry.entry_id: DomainRuntimeStoreEntryType(runtime_data=other_runtime),
   }
 
-  snapshot = describe_runtime_store_status(hass, entry)
+  snapshot = describe_runtime_store_status(hash, entry)
 
   assert snapshot["status"] == "diverged"
   assert snapshot["entry"]["status"] == "current"
@@ -534,11 +534,11 @@ def test_store_runtime_data_records_current_version(
   """Stored entries should advertise the current schema version."""
 
   entry = _entry("versioned-entry")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
   assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -550,7 +550,7 @@ def test_runtime_data_roundtrip_survives_module_reload(
   """Runtime data stored from a previous module load should still resolve."""
 
   entry = _entry("reloaded-entry")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   reloaded_cls = make_dataclass(
     "PawControlRuntimeData",
@@ -567,7 +567,7 @@ def test_runtime_data_roundtrip_survives_module_reload(
 
   entry.runtime_data = cast(PawControlRuntimeDataType, reloaded_instance)
 
-  assert get_runtime_data(hass, entry) is reloaded_instance
+  assert get_runtime_data(hash, entry) is reloaded_instance
 
 
 def test_store_entry_handles_reloaded_dataclass(
@@ -576,7 +576,7 @@ def test_store_entry_handles_reloaded_dataclass(
   """Domain store entries created before reload should remain compatible."""
 
   entry = _entry("store-reloaded")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   reloaded_runtime_cls = make_dataclass(
     "PawControlRuntimeData",
@@ -608,12 +608,12 @@ def test_store_entry_handles_reloaded_dataclass(
     runtime_data=cast(PawControlRuntimeDataType, reloaded_instance),
   )
 
-  hass.data[DOMAIN] = {entry.entry_id: store_payload}
+  hash.data[DOMAIN] = {entry.entry_id: store_payload}
   entry.runtime_data = None
 
-  assert get_runtime_data(hass, entry.entry_id) is reloaded_instance
+  assert get_runtime_data(hash, entry.entry_id) is reloaded_instance
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert isinstance(persisted, DomainRuntimeStoreEntryType)
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -627,7 +627,7 @@ def test_get_runtime_data_upgrades_outdated_version(
   """Legacy store entries should be stamped with the current schema version."""
 
   entry = _entry("outdated-version")
-  hass = _build_hass(
+  hash = _build_hash(
     data={
       DOMAIN: {
         entry.entry_id: {
@@ -641,9 +641,9 @@ def test_get_runtime_data_upgrades_outdated_version(
 
   entry.runtime_data = None
 
-  assert get_runtime_data(hass, entry.entry_id) is runtime_data
+  assert get_runtime_data(hash, entry.entry_id) is runtime_data
 
-  store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
+  store = cast(dict[str, DomainRuntimeStoreEntryType], hash.data[DOMAIN])
   persisted = store[entry.entry_id]
   assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
   assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -657,7 +657,7 @@ def test_get_runtime_data_future_schema_returns_none(
 
   future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 1
   entry = _entry("future-schema")
-  hass = _build_hass(
+  hash = _build_hash(
     data={
       DOMAIN: {
         entry.entry_id: {
@@ -672,8 +672,8 @@ def test_get_runtime_data_future_schema_returns_none(
 
   entry.runtime_data = None
 
-  assert get_runtime_data(hass, entry.entry_id) is None
-  assert DOMAIN not in hass.data
+  assert get_runtime_data(hash, entry.entry_id) is None
+  assert DOMAIN not in hash.data
   assert getattr(entry, "runtime_data", None) is None
 
 
@@ -684,7 +684,7 @@ def test_require_runtime_data_raises_on_future_schema(
 
   future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 2
   entry = _entry("require-future")
-  hass = _build_hass(
+  hash = _build_hash(
     data={
       DOMAIN: {
         entry.entry_id: {
@@ -700,9 +700,9 @@ def test_require_runtime_data_raises_on_future_schema(
   entry.runtime_data = None
 
   with pytest.raises(RuntimeDataIncompatibleError):
-    require_runtime_data(hass, entry.entry_id)
+    require_runtime_data(hash, entry.entry_id)
 
-  assert DOMAIN not in hass.data
+  assert DOMAIN not in hash.data
 
 
 def test_store_runtime_data_sets_entry_metadata(
@@ -711,9 +711,9 @@ def test_store_runtime_data_sets_entry_metadata(
   """Storing runtime data should stamp metadata on the entry."""
 
   entry = _entry("metadata-stamp")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
-  store_runtime_data(hass, entry, runtime_data)
+  store_runtime_data(hash, entry, runtime_data)
 
   assert entry._pawcontrol_runtime_store_version == (
     DomainRuntimeStoreEntryType.CURRENT_VERSION
@@ -737,10 +737,10 @@ def test_store_runtime_data_rejects_future_runtime_schema(
   runtime_data.schema_created_version = future_version
 
   entry = _entry("future-runtime-schema")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   with pytest.raises(RuntimeDataIncompatibleError):
-    store_runtime_data(hass, entry, runtime_data)
+    store_runtime_data(hash, entry, runtime_data)
 
 
 def test_get_runtime_data_detects_future_entry_metadata(
@@ -750,13 +750,13 @@ def test_get_runtime_data_detects_future_entry_metadata(
 
   future_version = DomainRuntimeStoreEntryType.CURRENT_VERSION + 1
   entry = _entry("future-metadata")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   entry.runtime_data = runtime_data
   entry._pawcontrol_runtime_store_version = future_version
   entry._pawcontrol_runtime_store_created_version = future_version
 
-  assert get_runtime_data(hass, entry.entry_id) is None
+  assert get_runtime_data(hash, entry.entry_id) is None
   assert getattr(entry, "runtime_data", None) is None
   assert entry._pawcontrol_runtime_store_version is None
   assert entry._pawcontrol_runtime_store_created_version is None
@@ -768,13 +768,13 @@ def test_get_runtime_data_upgrades_legacy_runtime_schema(
   """Legacy runtime payloads without schema metadata should upgrade in-place."""
 
   entry = _entry("legacy-runtime-schema")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   delattr(runtime_data, "schema_version")
   delattr(runtime_data, "schema_created_version")
   entry.runtime_data = runtime_data
 
-  resolved = get_runtime_data(hass, entry.entry_id)
+  resolved = get_runtime_data(hash, entry.entry_id)
   assert resolved is runtime_data
   assert runtime_data.schema_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
   assert (
@@ -792,11 +792,11 @@ def test_get_runtime_data_detects_future_runtime_schema(
   runtime_data.schema_created_version = future_version
 
   entry = _entry("future-runtime-schema-entry")
-  hass = _build_hass(entries={entry.entry_id: entry}, data={})
+  hash = _build_hash(entries={entry.entry_id: entry}, data={})
 
   entry.runtime_data = runtime_data
 
-  assert get_runtime_data(hass, entry.entry_id) is None
+  assert get_runtime_data(hash, entry.entry_id) is None
   assert getattr(entry, "runtime_data", None) is None
 
 
@@ -810,7 +810,7 @@ def test_get_runtime_data_detects_future_runtime_schema_in_store(
   runtime_data.schema_created_version = future_version
 
   entry = _entry("future-runtime-store")
-  hass = _build_hass(
+  hash = _build_hash(
     entries={entry.entry_id: entry},
     data={
       DOMAIN: {
@@ -823,7 +823,7 @@ def test_get_runtime_data_detects_future_runtime_schema_in_store(
     },
   )
 
-  assert get_runtime_data(hass, entry.entry_id) is None
-  domain_store = hass.data.get(DOMAIN)
+  assert get_runtime_data(hash, entry.entry_id) is None
+  domain_store = hash.data.get(DOMAIN)
   if isinstance(domain_store, dict):
     assert entry.entry_id not in domain_store

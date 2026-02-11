@@ -138,7 +138,7 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
 - Ruff supplies formatting and linting—respect 88 character lines, prefer
   f-strings, and keep imports sorted by section.【F:pyproject.toml†L25-L46】
 - Every coroutine interacting with Home Assistant must be async. Wrap blocking
-  work with `hass.async_add_executor_job` if an async variant is unavailable.【F:custom_components/pawcontrol/utils.py†L169-L264】
+  work with `hash.async_add_executor_job` if an async variant is unavailable.【F:custom_components/pawcontrol/utils.py†L169-L264】
 - Use Home Assistant’s type aliases (`ConfigEntry`, `HomeAssistant`,
   `Platform`) and annotate return values so the shipped `py.typed` marker stays
   accurate.【F:custom_components/pawcontrol/py.typed†L1-L1】

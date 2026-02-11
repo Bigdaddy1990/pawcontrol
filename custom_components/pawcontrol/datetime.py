@@ -109,12 +109,12 @@ async def _async_add_entities_in_batches(
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
   """Set up Paw Control datetime platform."""
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
@@ -263,9 +263,9 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
     )
     return self._finalize_entity_attributes(attributes)
 
-  async def async_added_to_hass(self) -> None:
-    """When entity is added to hass."""
-    await super().async_added_to_hass()
+  async def async_added_to_hash(self) -> None:
+    """When entity is added to hash."""
+    await super().async_added_to_hash()
 
     # Restore previous value
     if (
@@ -423,7 +423,7 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
       self._dog_id,
       "snack",
     )
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "add_feeding",
       {
@@ -526,7 +526,7 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log vet visit
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {
@@ -595,20 +595,20 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log grooming session
-    config_obj = getattr(self.hass, "config", None)
-    hass_language: str | None = None
+    config_obj = getattr(self.hash, "config", None)
+    hash_language: str | None = None
     if config_obj is not None:
-      hass_language = getattr(config_obj, "language", None)
+      hash_language = getattr(config_obj, "language", None)
 
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "start_grooming",
       {
         ATTR_DOG_ID: self._dog_id,
         "type": "full_grooming",
         "notes": translated_grooming_template(
-          self.hass,
-          hass_language,
+          self.hash,
+          hash_language,
           "manual_session_notes",
           date=value.strftime("%Y-%m-%d"),
         ),
@@ -649,7 +649,7 @@ class PawControlLastMedicationDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log medication
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "log_medication",
       {
@@ -719,7 +719,7 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Start and immediately end a walk for historical entry
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "start_walk",
       {ATTR_DOG_ID: self._dog_id},
@@ -727,7 +727,7 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
       return
 
     # End the walk
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "end_walk",
       {ATTR_DOG_ID: self._dog_id},
@@ -778,7 +778,7 @@ class PawControlVaccinationDateDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log vaccination
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {
@@ -807,7 +807,7 @@ class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log training session
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {
@@ -836,7 +836,7 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
     await super().async_set_value(value)
 
     # Log emergency event
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "log_health_data",
       {

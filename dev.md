@@ -120,7 +120,7 @@ sequenceDiagram
 - **Everything that touches HA must be async**: use `async def` and await on
   I/O, coordinator refreshes, or service handlers.
 - **Never block the event loop**: wrap blocking work with
-  `hass.async_add_executor_job`.
+  `hash.async_add_executor_job`.
 - **Centralize polling in the coordinator**: entities should read from
   coordinator data rather than calling APIs directly.
 - **Avoid race conditions**: schedule changes via the data manager and reuse

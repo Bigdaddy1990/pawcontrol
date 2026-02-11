@@ -51,10 +51,10 @@ def test_geofence_zone_storage_roundtrip() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_save_data_persists_typed_metadata(mock_hass) -> None:
+async def test_save_data_persists_typed_metadata(mock_hash) -> None:
   """Persisted data should include the typed zone metadata."""
 
-  geofencing = PawControlGeofencing(mock_hass, "entry")
+  geofencing = PawControlGeofencing(mock_hash, "entry")
   store = MagicMock()
   store.async_save = AsyncMock()
   store.async_load = AsyncMock(return_value=None)
@@ -79,10 +79,10 @@ async def test_save_data_persists_typed_metadata(mock_hass) -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_notify_zone_event_uses_typed_payload(mock_hass) -> None:
+async def test_notify_zone_event_uses_typed_payload(mock_hash) -> None:
   """Notification payloads should expose the typed geofence structure."""
 
-  geofencing = PawControlGeofencing(mock_hass, "entry")
+  geofencing = PawControlGeofencing(mock_hash, "entry")
   notify = AsyncMock()
   manager = SimpleNamespace(async_send_notification=notify)
   geofencing.set_notification_manager(manager)
@@ -173,10 +173,10 @@ def test_from_storage_payload_sanitizes_metadata() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_initialize_accepts_legacy_list_storage(mock_hass) -> None:
+async def test_initialize_accepts_legacy_list_storage(mock_hash) -> None:
   """Legacy list-based storage payloads should load successfully."""
 
-  geofencing = PawControlGeofencing(mock_hass, "entry")
+  geofencing = PawControlGeofencing(mock_hash, "entry")
   store = MagicMock()
   legacy_zone: GeofenceZoneStoragePayload = cast(
     GeofenceZoneStoragePayload,

@@ -494,7 +494,7 @@ async def _async_add_entities_in_batches(
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -505,11 +505,11 @@ async def async_setup_entry(
   and operational settings.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry containing dog configurations
       async_add_entities: Callback to add select entities
   """
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
@@ -584,14 +584,14 @@ async def async_setup_entry(
 
 
 async def async_reproduce_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   states: Sequence[State],
   *,
   context: Context | None = None,
 ) -> None:
   """Reproduce select states for PawControl entities."""
   await async_reproduce_platform_states(
-    hass,
+    hash,
     states,
     "select",
     _preprocess_select_state,
@@ -605,7 +605,7 @@ def _preprocess_select_state(state: State) -> str:
 
 
 async def _async_reproduce_select_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   state: State,
   current_state: State,
   target_option: str,
@@ -623,7 +623,7 @@ async def _async_reproduce_select_state(
     )
     return
 
-  await hass.services.async_call(
+  await hash.services.async_call(
     select_component.DOMAIN,
     select_component.SERVICE_SELECT_OPTION,
     {ATTR_ENTITY_ID: state.entity_id, ATTR_OPTION: target_option},
@@ -804,13 +804,13 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
   def _get_runtime_data(self) -> PawControlRuntimeData | None:
     """Return runtime data associated with the config entry."""
 
-    if self.hass is None:
+    if self.hash is None:
       return None
 
-    return get_runtime_data(self.hass, self.coordinator.config_entry)
+    return get_runtime_data(self.hash, self.coordinator.config_entry)
 
   def _get_domain_entry_data(self) -> JSONMutableMapping:
-    """Return the hass.data payload for this config entry."""
+    """Return the hash.data payload for this config entry."""
 
     runtime_data = self._get_runtime_data()
     if runtime_data is not None:
@@ -928,12 +928,12 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
             err,
           )
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hash(self) -> None:
     """Called when entity is added to Home Assistant.
 
     Restores the previous option and sets up any required listeners.
     """
-    await super().async_added_to_hass()
+    await super().async_added_to_hash()
 
     # Restore previous option
     last_state = await self.async_get_last_state()

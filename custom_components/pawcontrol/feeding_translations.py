@@ -58,13 +58,13 @@ def _resolve_feeding_compliance_translations(
 
 
 async def async_get_feeding_compliance_translations(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str | None,
 ) -> dict[str, str]:
   """Return translations for the requested language with fallback."""
 
   translations, fallback = await async_get_component_translation_lookup(
-    hass,
+    hash,
     language,
   )
   return _resolve_feeding_compliance_translations(translations, fallback)
@@ -576,7 +576,7 @@ def _build_feeding_compliance_summary_from_translations(
 
 
 async def async_build_feeding_compliance_summary(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str | None,
   *,
   display_name: str,
@@ -584,7 +584,7 @@ async def async_build_feeding_compliance_summary(
 ) -> FeedingComplianceLocalizedSummary:
   """Return a localised summary for a feeding compliance result."""
 
-  translations = await async_get_feeding_compliance_translations(hass, language)
+  translations = await async_get_feeding_compliance_translations(hash, language)
   return _build_feeding_compliance_summary_from_translations(
     translations,
     display_name=display_name,
@@ -656,7 +656,7 @@ def build_feeding_compliance_notification(
 
 
 async def async_build_feeding_compliance_notification(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str | None,
   *,
   display_name: str,
@@ -665,7 +665,7 @@ async def async_build_feeding_compliance_notification(
   """Return localised title and body for a feeding compliance result."""
 
   summary = await async_build_feeding_compliance_summary(
-    hass,
+    hash,
     language,
     display_name=display_name,
     compliance=compliance,

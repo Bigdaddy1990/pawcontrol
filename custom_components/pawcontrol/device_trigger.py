@@ -97,12 +97,12 @@ TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
 
 
 async def async_get_triggers(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   device_id: str,
 ) -> list[DeviceTriggerPayload]:
   """List device triggers for PawControl devices."""
 
-  context = resolve_device_context(hass, device_id)
+  context = resolve_device_context(hash, device_id)
   if context.dog_id is None:
     return []
 
@@ -110,7 +110,7 @@ async def async_get_triggers(
   for definition in TRIGGER_DEFINITIONS:
     unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
     entity_id = resolve_entity_id(
-      hass,
+      hash,
       device_id,
       unique_id,
       definition.platform,
@@ -136,7 +136,7 @@ async def async_get_triggers(
 
 
 async def async_get_trigger_capabilities(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config: dict[str, str],
 ) -> dict[str, vol.Schema]:
   """Return trigger capability schemas."""
@@ -155,7 +155,7 @@ async def async_get_trigger_capabilities(
 
 
 async def async_attach_trigger(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config: dict[str, str],
   action: Callable[[dict[str, object]], object],
   trigger_info: dict[str, str],
@@ -196,10 +196,10 @@ async def async_attach_trigger(
         "description": trigger_info.get("description"),
       },
     )
-    hass.async_create_task(action(payload))
+    hash.async_create_task(action(payload))
 
   return async_track_state_change_event(
-    hass,
+    hash,
     [entity_id],
     _handle_event,
   )

@@ -175,12 +175,12 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
   return async_create_issue, IssueSeverity, async_delete_issue
 
 
-def _build_hass(*, domain: str | None = None) -> SimpleNamespace:
-  hass = SimpleNamespace()
+def _build_hash(*, domain: str | None = None) -> SimpleNamespace:
+  hash = SimpleNamespace()
   if domain is not None:
-    hass.data = {domain: {}}
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
-  return hass
+    hash.data = {domain: {}}
+  hash.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  return hash
 
 
 def _build_entry(
@@ -206,15 +206,15 @@ def _build_entry(
 
 def _run_check_for_issues(
   module: Any,
-  hass: SimpleNamespace,
+  hash: SimpleNamespace,
   entry: SimpleNamespace,
   runtime_data: SimpleNamespace,
 ) -> None:
   original_require_runtime_data = module.require_runtime_data
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
+  module.require_runtime_data = lambda _hash, _entry: runtime_data
 
   try:
-    asyncio.run(module.async_check_for_issues(hass, entry))
+    asyncio.run(module.async_check_for_issues(hash, entry))
   finally:
     module.require_runtime_data = original_require_runtime_data
 
@@ -253,14 +253,14 @@ def test_async_create_issue_normalises_unknown_severity(
   """Severity values outside the registry should fall back to warnings."""
 
   module, create_issue_mock, issue_severity_cls, _ = repairs_module
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   caplog.set_level("WARNING")
 
   asyncio.run(
     module.async_create_issue(
-      hass,
+      hash,
       entry,
       "entry_unknown",
       "test_issue",
@@ -285,12 +285,12 @@ def test_async_create_issue_accepts_issue_severity_instances(
   """Passing an IssueSeverity instance should be preserved."""
 
   module, create_issue_mock, issue_severity_cls, _ = repairs_module
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   asyncio.run(
     module.async_create_issue(
-      hass,
+      hash,
       entry,
       "entry_error",
       "test_issue",
@@ -313,12 +313,12 @@ def test_async_create_issue_passes_learn_more_url(
   """Learn-more URLs should be forwarded to the issue registry when supported."""
 
   module, create_issue_mock, _, _ = repairs_module
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   asyncio.run(
     module.async_create_issue(
-      hass,
+      hash,
       entry,
       "entry_warning",
       "test_issue",
@@ -364,11 +364,11 @@ def _build_config_entries(
   return config_entries, updates, reload_mock
 
 
-def _create_flow(module: ModuleType, hass: Any, issue_id: str) -> Any:
+def _create_flow(module: ModuleType, hash: Any, issue_id: str) -> Any:
   """Instantiate the repairs flow with the provided Home Assistant stub."""
 
   flow = module.PawControlRepairsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.issue_id = issue_id
   return flow
 
@@ -393,12 +393,12 @@ def test_storage_warning_flow_reduces_retention(
     "suggestion": "Consider reducing data retention period",
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
 
   result = asyncio.run(flow.async_step_init())
   assert result["type"] == "form"
@@ -437,11 +437,11 @@ def test_notification_auth_error_flow_shows_guidance(
     "last_error_reasons": "unauthorized",
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
   result = asyncio.run(flow.async_step_init())
 
   assert result["type"] == "form"
@@ -467,11 +467,11 @@ def test_notification_device_unreachable_flow_shows_guidance(
     "last_error_reasons": "device offline",
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
   result = asyncio.run(flow.async_step_init())
 
   assert result["type"] == "form"
@@ -498,11 +498,11 @@ def test_notification_missing_service_flow_shows_guidance(
     "recommended_steps": "Verify notify service configuration",
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
   result = asyncio.run(flow.async_step_init())
 
   assert result["type"] == "form"
@@ -539,12 +539,12 @@ def test_module_conflict_flow_disables_extra_gps_modules(
     "suggestion": "Consider selective module enabling",
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
   asyncio.run(flow.async_step_init())
 
   delete_issue_mock.reset_mock()
@@ -586,12 +586,12 @@ def test_invalid_dog_data_flow_removes_entries(
     "total_dogs": 2,
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
   asyncio.run(flow.async_step_init())
 
   delete_issue_mock.reset_mock()
@@ -621,12 +621,12 @@ def test_coordinator_error_flow_triggers_reload(
     "suggestion": "Try reloading the integration",
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
   asyncio.run(flow.async_step_init())
 
   delete_issue_mock.reset_mock()
@@ -661,12 +661,12 @@ def test_coordinator_error_flow_handles_failed_reload(
     "suggestion": "Try reloading the integration",
   }
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hash, issue_id)
   asyncio.run(flow.async_step_init())
 
   delete_issue_mock.reset_mock()
@@ -693,9 +693,9 @@ def test_async_check_for_issues_checks_coordinator_health(
 
   module, create_issue_mock, _, delete_issue_mock = repairs_module
 
-  hass = SimpleNamespace()
-  hass.data = {module.DOMAIN: {}}
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  hash = SimpleNamespace()
+  hash.data = {module.DOMAIN: {}}
+  hash.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
   entry = SimpleNamespace(
     entry_id="entry",
@@ -720,7 +720,7 @@ def test_async_check_for_issues_checks_coordinator_health(
   module.require_runtime_data = _raise_runtime_error
 
   try:
-    asyncio.run(module.async_check_for_issues(hass, entry))
+    asyncio.run(module.async_check_for_issues(hash, entry))
   finally:
     module.require_runtime_data = original_require_runtime_data
 
@@ -748,7 +748,7 @@ def test_async_check_for_issues_publishes_cache_health_issue(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = _build_hass(domain=module.DOMAIN)
+  hash = _build_hash(domain=module.DOMAIN)
 
   summary = CacheRepairAggregate(
     total_caches=1,
@@ -771,9 +771,9 @@ def test_async_check_for_issues_publishes_cache_health_issue(
   runtime_data = _make_runtime_data(summary)
   entry = _make_basic_entry(module)
 
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
+  module.require_runtime_data = lambda _hash, _entry: runtime_data
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hash, entry, runtime_data)
 
   assert create_issue_mock.await_count == 1
   await_args = create_issue_mock.await_args
@@ -798,7 +798,7 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = _build_hass(domain=module.DOMAIN)
+  hash = _build_hash(domain=module.DOMAIN)
 
   summary = CacheRepairAggregate(
     total_caches=1,
@@ -810,7 +810,7 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
   runtime_data = _make_runtime_data(summary)
   entry = _make_basic_entry(module)
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hash, entry, runtime_data)
 
   assert create_issue_mock.await_count == 0
   cache_delete_calls = [
@@ -830,7 +830,7 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = _build_hass()
+  hash = _build_hash()
 
   runtime_data = _make_runtime_data()
   entry = _make_reconfigure_entry(
@@ -839,7 +839,7 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
     health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hash, entry, runtime_data)
 
   assert any(
     invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_WARNINGS
@@ -856,7 +856,7 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = _build_hass()
+  hash = _build_hash()
 
   runtime_data = _make_runtime_data()
   entry = _make_reconfigure_entry(
@@ -869,7 +869,7 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
     },
   )
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hash, entry, runtime_data)
 
   assert any(
     invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_HEALTH
@@ -886,13 +886,13 @@ def test_check_runtime_store_duration_alerts_creates_issue(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
   runtime_data = SimpleNamespace()
 
   original_require_runtime_data = module.require_runtime_data
   original_get_runtime_store_health = module.get_runtime_store_health
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
+  module.require_runtime_data = lambda _hash, _entry: runtime_data
   module.get_runtime_store_health = lambda _runtime: {
     "assessment_timeline_summary": {
       "level_duration_guard_alerts": [
@@ -912,7 +912,7 @@ def test_check_runtime_store_duration_alerts_creates_issue(
   }
 
   try:
-    asyncio.run(module._check_runtime_store_duration_alerts(hass, entry))
+    asyncio.run(module._check_runtime_store_duration_alerts(hash, entry))
   finally:
     module.require_runtime_data = original_require_runtime_data
     module.get_runtime_store_health = original_get_runtime_store_health
@@ -936,19 +936,19 @@ def test_check_runtime_store_duration_alerts_clears_issue_without_alerts(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
   runtime_data = SimpleNamespace()
 
   original_require_runtime_data = module.require_runtime_data
   original_get_runtime_store_health = module.get_runtime_store_health
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
+  module.require_runtime_data = lambda _hash, _entry: runtime_data
   module.get_runtime_store_health = lambda _runtime: {
     "assessment_timeline_summary": {"level_duration_guard_alerts": []},
   }
 
   try:
-    asyncio.run(module._check_runtime_store_duration_alerts(hass, entry))
+    asyncio.run(module._check_runtime_store_duration_alerts(hash, entry))
   finally:
     module.require_runtime_data = original_require_runtime_data
     module.get_runtime_store_health = original_get_runtime_store_health
@@ -966,7 +966,7 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = _build_hass()
+  hash = _build_hash()
 
   runtime_data = _make_runtime_data()
   entry = _make_reconfigure_entry(
@@ -975,7 +975,7 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
     health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hash, entry, runtime_data)
 
   assert not any(
     invocation.kwargs["translation_key"]
@@ -1005,9 +1005,9 @@ def test_notification_check_accepts_mobile_app_service_prefix(
 
   module, create_issue_mock, _, _ = repairs_module
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
 
-  hass.services = SimpleNamespace(
+  hash.services = SimpleNamespace(
     has_service=lambda domain, service: False,
     async_services=lambda: {"notify": {"mobile_app_jane": object()}},
   )
@@ -1027,7 +1027,7 @@ def test_notification_check_accepts_mobile_app_service_prefix(
     version=1,
   )
 
-  asyncio.run(module._check_notification_configuration_issues(hass, entry))
+  asyncio.run(module._check_notification_configuration_issues(hash, entry))
 
   assert create_issue_mock.await_count == 0
 
@@ -1040,7 +1040,7 @@ def test_notification_delivery_errors_create_issues(
   module, create_issue_mock, issue_severity_cls, _ = repairs_module
   create_issue_mock.reset_mock()
 
-  hass = _build_hass(domain=module.DOMAIN)
+  hash = _build_hash(domain=module.DOMAIN)
   entry = _build_entry(module)
 
   notification_manager = SimpleNamespace(
@@ -1075,7 +1075,7 @@ def test_notification_delivery_errors_create_issues(
   )
   runtime_data = _make_runtime_data(notification_manager=notification_manager)
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hash, entry, runtime_data)
 
   keys = {
     invocation.kwargs["translation_key"]
@@ -1100,7 +1100,7 @@ def test_notification_delivery_errors_clears_issues_when_clean(
   module, _, _, delete_issue_mock = repairs_module
   delete_issue_mock.reset_mock()
 
-  hass = _build_hass(domain=module.DOMAIN)
+  hash = _build_hash(domain=module.DOMAIN)
   entry = _build_entry(module)
 
   notification_manager = SimpleNamespace(
@@ -1117,7 +1117,7 @@ def test_notification_delivery_errors_clears_issues_when_clean(
   )
   runtime_data = _make_runtime_data(notification_manager=notification_manager)
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hash, entry, runtime_data)
 
   # Use a different variable name to avoid shadowing the imported ``call`` from ``unittest.mock``
   deleted = [args.args[-1] for args in delete_issue_mock.await_args_list]
@@ -1140,7 +1140,7 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   payload = cast(
@@ -1174,7 +1174,7 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
 
   asyncio.run(
     module.async_publish_feeding_compliance_issue(
-      hass,
+      hash,
       entry,
       payload,
       context_metadata={"context_id": "ctx-1"},
@@ -1231,7 +1231,7 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     raising=False,
   )
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   payload = cast(
@@ -1265,7 +1265,7 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
 
   asyncio.run(
     module.async_publish_feeding_compliance_issue(
-      hass,
+      hash,
       entry,
       payload,
       context_metadata=None,
@@ -1288,7 +1288,7 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   payload = cast(
@@ -1314,7 +1314,7 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
 
   asyncio.run(
     module.async_publish_feeding_compliance_issue(
-      hass,
+      hash,
       entry,
       payload,
       context_metadata=None,
@@ -1327,7 +1327,7 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
   assert delete_args is not None
   args = delete_args.args
   assert len(args) >= 2
-  assert args[0] == hass
+  assert args[0] == hash
   assert args[1] == module.DOMAIN
 
 
@@ -1340,7 +1340,7 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   payload = cast(
@@ -1360,7 +1360,7 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
 
   asyncio.run(
     module.async_publish_feeding_compliance_issue(
-      hass,
+      hash,
       entry,
       payload,
       context_metadata={"context_id": None},
@@ -1393,7 +1393,7 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
   create_issue_mock.reset_mock()
   delete_issue_mock.reset_mock()
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
   payload = cast(
@@ -1421,7 +1421,7 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
 
   asyncio.run(
     module.async_publish_feeding_compliance_issue(
-      hass,
+      hash,
       entry,
       payload,
       context_metadata=None,

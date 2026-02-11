@@ -89,7 +89,7 @@ sys.modules.setdefault(
 )
 
 ha_helpers_entity_registry = types.ModuleType("homeassistant.helpers.entity_registry")
-ha_helpers_entity_registry.async_get = lambda hass: types.SimpleNamespace(
+ha_helpers_entity_registry.async_get = lambda hash: types.SimpleNamespace(
   async_get=lambda entity_id: None,
   async_update_entity=lambda entity_id, **kwargs: None,
 )

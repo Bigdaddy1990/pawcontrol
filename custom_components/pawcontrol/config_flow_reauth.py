@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 
   class ReauthFlowHost:
     reauth_entry: ConfigEntry | None
-    hass: Any
+    hash: Any
     context: dict[str, object]
 
     def _normalise_string_list(self, values: Any) -> list[str]: ...
@@ -216,7 +216,7 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     try:
       async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
-        self.reauth_entry = self.hass.config_entries.async_get_entry(
+        self.reauth_entry = self.hash.config_entries.async_get_entry(
           self.context["entry_id"],
         )
 

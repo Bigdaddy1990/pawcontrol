@@ -71,12 +71,12 @@ def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
 
 
 def _resolve_runtime_data_from_store(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry_ids: Iterable[str],
 ) -> PawControlRuntimeData | None:
-  """Resolve runtime data from ``hass.data`` using entry identifiers."""
+  """Resolve runtime data from ``hash.data`` using entry identifiers."""
 
-  domain_store = hass.data.get(DOMAIN)
+  domain_store = hash.data.get(DOMAIN)
   if not isinstance(domain_store, MutableMapping):
     return None
 
@@ -89,12 +89,12 @@ def _resolve_runtime_data_from_store(
 
 
 def resolve_device_context(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   device_id: str,
 ) -> PawControlDeviceAutomationContext:
   """Resolve the runtime data and dog identifier for a device."""
 
-  device_registry = dr.async_get(hass)
+  device_registry = dr.async_get(hash)
   device_entry = device_registry.async_get(device_id)
   dog_id = _extract_dog_id(device_entry)
 
@@ -103,7 +103,7 @@ def resolve_device_context(
   if device_entry is not None:
     entry_ids = device_entry.config_entries
 
-  runtime_data = _resolve_runtime_data_from_store(hass, entry_ids)
+  runtime_data = _resolve_runtime_data_from_store(hash, entry_ids)
 
   return PawControlDeviceAutomationContext(
     device_id=device_id,
@@ -113,14 +113,14 @@ def resolve_device_context(
 
 
 def resolve_entity_id(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   device_id: str,
   unique_id: str,
   platform: str,
 ) -> str | None:
   """Resolve an entity id for a device-based automation."""
 
-  entity_registry = er.async_get(hass)
+  entity_registry = er.async_get(hash)
   for entry in entity_registry.async_entries_for_device(device_id):
     if entry.unique_id == unique_id and entry.platform == platform:
       return entry.entity_id

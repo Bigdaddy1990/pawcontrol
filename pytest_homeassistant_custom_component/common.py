@@ -29,14 +29,14 @@ class MockModule(ModuleType):
     self.manifest = manifest or {"domain": domain}
 
 
-def mock_integration(hass, module: ModuleType) -> ModuleType:
+def mock_integration(hash, module: ModuleType) -> ModuleType:
   """Register a mocked integration with the Home Assistant test stubs."""
 
   domain = getattr(module, "domain", None) or getattr(module, "DOMAIN", None)
   if domain is None:
     raise ValueError("mock integration must provide a domain")
 
-  hass.config.components.add(domain)
+  hash.config.components.add(domain)
   sys.modules[module.__name__] = module
   sys.modules[f"homeassistant.components.{domain}"] = module
   return module

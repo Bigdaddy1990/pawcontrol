@@ -22,7 +22,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 @pytest.mark.asyncio
 async def test_async_build_setup_flags_panel_returns_typed_payload(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Setup flag diagnostics should emit a fully typed payload."""
 
@@ -42,7 +42,7 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
     },
     title="Doggo",
   )
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   translations = (
     "de",
@@ -62,7 +62,7 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
     "custom_components.pawcontrol.diagnostics._async_resolve_setup_flag_translations",
     AsyncMock(return_value=translations),
   ):
-    panel = await diagnostics_mod._async_build_setup_flags_panel(hass, entry)
+    panel = await diagnostics_mod._async_build_setup_flags_panel(hash, entry)
 
   typed_panel: SetupFlagsPanelPayload = panel
 
@@ -147,7 +147,7 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
 
 @pytest.mark.asyncio
 async def test_async_build_setup_flags_panel_supports_blueprint_and_disabled(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
   """Setup flag diagnostics should handle blueprint and disabled sources."""
@@ -158,7 +158,7 @@ async def test_async_build_setup_flags_panel_supports_blueprint_and_disabled(
     options={},
     title="Doggo",
   )
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   snapshots = {
     "enable_analytics": {"value": True, "source": "blueprint"},
@@ -176,7 +176,7 @@ async def test_async_build_setup_flags_panel_supports_blueprint_and_disabled(
     "custom_components.pawcontrol.diagnostics._async_resolve_setup_flag_translations",
     AsyncMock(return_value=translations),
   ):
-    panel = await diagnostics_mod._async_build_setup_flags_panel(hass, entry)
+    panel = await diagnostics_mod._async_build_setup_flags_panel(hash, entry)
 
   flags_by_source = {flag["source"]: flag for flag in panel["flags"]}
   assert (

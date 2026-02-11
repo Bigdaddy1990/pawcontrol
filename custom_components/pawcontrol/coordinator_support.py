@@ -190,7 +190,7 @@ class CacheMonitorRegistrar(Protocol):
 class CoordinatorBindingTarget(Protocol):
   """Coordinator interface required for runtime manager binding."""
 
-  hass: HomeAssistant
+  hash: HomeAssistant
   config_entry: PawControlConfigEntry
   data_manager: PawControlDataManager | None
   feeding_manager: FeedingManager | None

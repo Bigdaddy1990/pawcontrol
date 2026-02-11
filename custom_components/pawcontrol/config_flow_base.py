@@ -503,8 +503,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
     """
     device_trackers = {}
 
-    for entity_id in self.hass.states.async_entity_ids("device_tracker"):
-      state = self.hass.states.get(entity_id)
+    for entity_id in self.hash.states.async_entity_ids("device_tracker"):
+      state = self.hash.states.get(entity_id)
       if state and state.state not in ["unknown", "unavailable"]:
         friendly_name = state.attributes.get(
           "friendly_name",
@@ -524,8 +524,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
     """
     person_entities = {}
 
-    for entity_id in self.hass.states.async_entity_ids("person"):
-      state = self.hass.states.get(entity_id)
+    for entity_id in self.hash.states.async_entity_ids("person"):
+      state = self.hash.states.get(entity_id)
       if state:
         friendly_name = state.attributes.get(
           "friendly_name",
@@ -543,8 +543,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
     """
     door_sensors = {}
 
-    for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
-      state = self.hass.states.get(entity_id)
+    for entity_id in self.hash.states.async_entity_ids("binary_sensor"):
+      state = self.hash.states.get(entity_id)
       if state:
         device_class = state.attributes.get("device_class")
         if device_class in ["door", "window", "opening", "garage_door"]:
@@ -565,7 +565,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
     notify_services = {}
 
     # Get all notification services
-    services = self.hass.services.async_services().get("notify", {})
+    services = self.hash.services.async_services().get("notify", {})
     for service_name in services:
       if service_name != "persistent_notification":  # Exclude default
         service_id = f"notify.{service_name}"

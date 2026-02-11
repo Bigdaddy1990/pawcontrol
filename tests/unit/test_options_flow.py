@@ -293,15 +293,15 @@ def test_ensure_notification_options_ignores_invalid_entries() -> None:
 
 @pytest.mark.asyncio
 async def test_geofence_settings_coercion(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Geofence options should be normalised into typed payloads."""
 
-  hass.config.latitude = 12.34
-  hass.config.longitude = 56.78
+  hash.config.latitude = 12.34
+  hash.config.longitude = 56.78
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_geofence_settings(
@@ -335,17 +335,17 @@ async def test_geofence_settings_coercion(
 
 @pytest.mark.asyncio
 async def test_geofence_settings_normalises_snapshot(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Geofence updates should reapply typed notifications and dog payloads."""
 
   _set_raw_options_with_buddy_and_max(mock_config_entry)
 
-  hass.config.latitude = 12.34
-  hass.config.longitude = 56.78
+  hash.config.latitude = 12.34
+  hash.config.longitude = 56.78
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_geofence_settings(
@@ -388,12 +388,12 @@ async def test_geofence_settings_normalises_snapshot(
 
 @pytest.mark.asyncio
 async def test_geofence_settings_rejects_invalid_coordinates(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Geofence settings should reject invalid coordinate inputs."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_geofence_settings(
@@ -417,12 +417,12 @@ async def test_geofence_settings_rejects_invalid_coordinates(
 
 @pytest.mark.asyncio
 async def test_geofence_settings_accepts_radius_boundaries(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Geofence settings should accept radius boundary values."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_geofence_settings(
@@ -445,12 +445,12 @@ async def test_geofence_settings_accepts_radius_boundaries(
 
 @pytest.mark.asyncio
 async def test_notification_settings_structured(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Notification settings should store typed quiet-hour metadata."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_notifications(
@@ -480,12 +480,12 @@ async def test_notification_settings_structured(
 
 @pytest.mark.asyncio
 async def test_notification_settings_rejects_invalid_repeat_interval(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Notification settings should reject reminder repeat values out of range."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_notifications(
@@ -505,12 +505,12 @@ async def test_notification_settings_rejects_invalid_repeat_interval(
 
 @pytest.mark.asyncio
 async def test_notification_settings_rejects_invalid_quiet_times(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Notification settings should reject invalid quiet-hour times."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_notifications(
@@ -562,7 +562,7 @@ def test_notification_settings_normalise_existing_payload(
 
 @pytest.mark.asyncio
 async def test_performance_settings_normalisation(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Performance settings normalise mixed input types into typed options."""
 
@@ -587,7 +587,7 @@ async def test_performance_settings_normalisation(
   mock_config_entry.options = raw_options
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_performance_settings(
@@ -635,7 +635,7 @@ async def test_performance_settings_normalisation(
 
 @pytest.mark.asyncio
 async def test_entity_profile_placeholders_expose_reconfigure_telemetry(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Entity profile form should surface the latest reconfigure telemetry."""
 
@@ -664,7 +664,7 @@ async def test_entity_profile_placeholders_expose_reconfigure_telemetry(
   )
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_entity_profiles()
@@ -682,14 +682,14 @@ async def test_entity_profile_placeholders_expose_reconfigure_telemetry(
 
 @pytest.mark.asyncio
 async def test_entity_profiles_normalises_snapshot(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Entity profile saves should reapply typed notifications and dog data."""
 
   _set_raw_options_with_luna(mock_config_entry)
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_entity_profiles({"entity_profile": "advanced"})
@@ -718,7 +718,7 @@ async def test_entity_profiles_normalises_snapshot(
 
 @pytest.mark.asyncio
 async def test_profile_preview_apply_normalises_snapshot(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Applying a preview should rehydrate typed options snapshots."""
 
@@ -744,7 +744,7 @@ async def test_profile_preview_apply_normalises_snapshot(
   )
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_profile_preview(
@@ -781,16 +781,16 @@ async def test_profile_preview_apply_normalises_snapshot(
 
 @pytest.mark.asyncio
 async def test_weather_settings_normalisation(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Weather options should clamp intervals and clean override payloads."""
 
-  hass.states.async_set(
+  hash.states.async_set(
     "weather.home", "sunny", {"friendly_name": "Home", "temperature": 21}
   )
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_weather_settings(
@@ -833,12 +833,12 @@ async def test_weather_settings_normalisation(
 
 @pytest.mark.asyncio
 async def test_feeding_settings_coercion(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Feeding options should normalise numeric ranges and booleans."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_feeding_settings(
@@ -865,12 +865,12 @@ async def test_feeding_settings_coercion(
 
 @pytest.mark.asyncio
 async def test_health_settings_coercion(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Health options should coerce truthy strings to booleans."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_health_settings(
@@ -897,14 +897,14 @@ async def test_health_settings_coercion(
 
 @pytest.mark.asyncio
 async def test_feeding_settings_normalises_snapshot(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Feeding menu updates should reapply typed notification and dog payloads."""
 
   _set_raw_options_with_buddy_and_max(mock_config_entry)
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_feeding_settings(
@@ -943,14 +943,14 @@ async def test_feeding_settings_normalises_snapshot(
 
 @pytest.mark.asyncio
 async def test_health_settings_normalises_snapshot(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Health menu updates should keep notifications and dogs on typed surfaces."""
 
   _set_raw_options_with_luna(mock_config_entry)
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_health_settings(
@@ -992,7 +992,7 @@ async def test_health_settings_normalises_snapshot(
 
 @pytest.mark.asyncio
 async def test_system_settings_normalisation(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """System options should clamp retention and normalise times."""
 
@@ -1023,7 +1023,7 @@ async def test_system_settings_normalisation(
   mock_config_entry.options = raw_options
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   script_manager = Mock()
@@ -1106,12 +1106,12 @@ async def test_system_settings_normalisation(
 
 @pytest.mark.asyncio
 async def test_system_settings_manual_event_placeholders(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Manual event placeholders should combine options and blueprint values."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   mock_config_entry.options = {
     "system_settings": {
       "manual_guard_event": "pawcontrol_manual_guard",
@@ -1149,14 +1149,14 @@ async def test_system_settings_manual_event_placeholders(
 
 @pytest.mark.asyncio
 async def test_manual_event_choices_support_disable_and_translations(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Manual event dropdowns should expose disable and localized options."""
 
-  hass.config.language = "de"
+  hash.config.language = "de"
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   mock_config_entry.options = {
     "system_settings": {
       "manual_guard_event": "pawcontrol_manual_guard",
@@ -1265,7 +1265,7 @@ async def test_manual_event_choices_support_disable_and_translations(
       "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind."
     )
 
-    hass.config.language = "en"
+    hash.config.language = "en"
     english_options = flow._manual_event_choices("manual_guard_event", current_system)
     assert english_options[0]["label"] == "Disable"
     assert english_options[0]["description"] == "Integration default"
@@ -1278,7 +1278,7 @@ async def test_manual_event_choices_support_disable_and_translations(
 
 @pytest.mark.asyncio
 async def test_dashboard_settings_normalisation(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Dashboard options should normalise modes and booleans."""
 
@@ -1303,7 +1303,7 @@ async def test_dashboard_settings_normalisation(
   mock_config_entry.options = raw_options
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_dashboard_settings(
@@ -1347,12 +1347,12 @@ async def test_dashboard_settings_normalisation(
 
 @pytest.mark.asyncio
 async def test_advanced_settings_structured(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Advanced options should normalise ranges and mirror root fields."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_advanced_settings(
@@ -1392,7 +1392,7 @@ async def test_advanced_settings_structured(
 
 @pytest.mark.asyncio
 async def test_advanced_settings_normalises_existing_payloads(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Advanced settings should coerce legacy notification and dog payloads."""
 
@@ -1432,7 +1432,7 @@ async def test_advanced_settings_normalises_existing_payloads(
   mock_config_entry.options = raw_options
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_advanced_settings(
@@ -1489,7 +1489,7 @@ async def test_advanced_settings_normalises_existing_payloads(
 
 @pytest.mark.asyncio
 async def test_current_gps_options_normalises_legacy_snapshot(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Legacy GPS options should be normalized through shared validators."""
 
@@ -1500,7 +1500,7 @@ async def test_current_gps_options_normalises_legacy_snapshot(
   mock_config_entry.options = legacy_options
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   gps_options = flow._current_gps_options("test_dog")
@@ -1516,12 +1516,12 @@ async def test_current_gps_options_normalises_legacy_snapshot(
 
 @pytest.mark.asyncio
 async def test_gps_settings_structured(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """GPS settings should be stored as typed payloads with validation."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_gps_settings(
@@ -1555,12 +1555,12 @@ async def test_gps_settings_structured(
 
 @pytest.mark.asyncio
 async def test_gps_settings_rejects_empty_accuracy(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """GPS settings should surface empty accuracy inputs."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_gps_settings(
@@ -1581,7 +1581,7 @@ async def test_gps_settings_rejects_empty_accuracy(
 
 @pytest.mark.asyncio
 async def test_gps_settings_normalises_snapshot(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """GPS settings should reapply typed helpers for legacy payloads."""
 
@@ -1606,7 +1606,7 @@ async def test_gps_settings_normalises_snapshot(
   mock_config_entry.options = raw_options
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_gps_settings(
@@ -1650,14 +1650,14 @@ async def test_gps_settings_normalises_snapshot(
 
 @pytest.mark.asyncio
 async def test_dog_module_overrides_recorded(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Dog module configuration should persist typed overrides in options."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
 
   dog_config = cast(DogConfigData, mock_config_entry.data[CONF_DOGS][0])
   flow._current_dog = dog_config
@@ -1679,7 +1679,7 @@ async def test_dog_module_overrides_recorded(
   )
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
-  flow.hass.config_entries.async_update_entry.assert_called_once()
+  flow.hash.config_entries.async_update_entry.assert_called_once()
 
   options = cast(PawControlOptionsData, result["data"])
   dog_options = cast(DogOptionsMap, options["dog_options"])
@@ -1695,14 +1695,14 @@ async def test_dog_module_overrides_recorded(
 
 
 def test_module_description_placeholders_localize_grooming(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Module summary placeholders should localize grooming descriptions."""
 
-  hass.config.language = "de"
+  hash.config.language = "de"
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
   flow._current_dog = flow._dogs[0]
 
@@ -1718,20 +1718,20 @@ def test_module_description_placeholders_localize_grooming(
 
 @pytest.mark.asyncio
 async def test_configure_door_sensor_normalises_and_persists(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Door sensor configuration should normalise payloads and persist updates."""
 
-  hass.states.async_set(
+  hash.states.async_set(
     "binary_sensor.front_door",
     "off",
     {"device_class": "door", "friendly_name": "Front Door"},
   )
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
   flow._current_dog = flow._dogs[0]
   dog_id = flow._current_dog[DOG_ID_FIELD]
 
@@ -1764,9 +1764,9 @@ async def test_configure_door_sensor_normalises_and_persists(
     result = await flow.async_step_configure_door_sensor(user_input)
 
   assert result["type"] == FlowResultType.FORM
-  flow.hass.config_entries.async_update_entry.assert_called_once()
+  flow.hash.config_entries.async_update_entry.assert_called_once()
 
-  update_data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+  update_data = flow.hash.config_entries.async_update_entry.call_args.kwargs["data"]
   updated_dog = update_data[CONF_DOGS][0]
   assert updated_dog[CONF_DOOR_SENSOR] == "binary_sensor.front_door"
 
@@ -1794,7 +1794,7 @@ async def test_configure_door_sensor_normalises_and_persists(
 
 @pytest.mark.asyncio
 async def test_configure_door_sensor_removal_clears_persistence(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Removing a door sensor should clear stored overrides."""
 
@@ -1810,16 +1810,16 @@ async def test_configure_door_sensor_removal_clears_persistence(
     "confidence_threshold": 0.7,
   }
 
-  hass.states.async_set(
+  hash.states.async_set(
     "binary_sensor.back_door",
     "on",
     {"device_class": "door", "friendly_name": "Back Door"},
   )
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
   flow._current_dog = flow._dogs[0]
   dog_id = flow._current_dog[DOG_ID_FIELD]
 
@@ -1841,9 +1841,9 @@ async def test_configure_door_sensor_removal_clears_persistence(
     result = await flow.async_step_configure_door_sensor({CONF_DOOR_SENSOR: ""})
 
   assert result["type"] == FlowResultType.FORM
-  flow.hass.config_entries.async_update_entry.assert_called_once()
+  flow.hash.config_entries.async_update_entry.assert_called_once()
 
-  update_data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+  update_data = flow.hash.config_entries.async_update_entry.call_args.kwargs["data"]
   updated_dog = update_data[CONF_DOGS][0]
   assert CONF_DOOR_SENSOR not in updated_dog
   assert CONF_DOOR_SENSOR_SETTINGS not in updated_dog
@@ -1861,20 +1861,20 @@ async def test_configure_door_sensor_removal_clears_persistence(
 
 @pytest.mark.asyncio
 async def test_configure_door_sensor_persistence_failure_records_telemetry(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Persistence failures should raise a repair issue and capture telemetry."""
 
-  hass.states.async_set(
+  hash.states.async_set(
     "binary_sensor.front_door",
     "off",
     {"device_class": "door", "friendly_name": "Front Door"},
   )
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
   flow._current_dog = flow._dogs[0]
   dog_id = flow._current_dog[DOG_ID_FIELD]
 
@@ -1923,7 +1923,7 @@ async def test_configure_door_sensor_persistence_failure_records_telemetry(
   assert result["type"] == FlowResultType.FORM
   assert result["errors"]["base"] == "door_sensor_update_failed"
 
-  flow.hass.config_entries.async_update_entry.assert_not_called()
+  flow.hash.config_entries.async_update_entry.assert_not_called()
   data_manager.async_update_dog_data.assert_awaited_once_with(dog_id, ANY)
 
   create_issue.assert_awaited_once()
@@ -1946,20 +1946,20 @@ async def test_configure_door_sensor_persistence_failure_records_telemetry(
 
 @pytest.mark.asyncio
 async def test_configure_door_sensor_runtime_cache_unavailable(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Door sensor updates should fail when runtime data is missing."""
 
-  hass.states.async_set(
+  hash.states.async_set(
     "binary_sensor.front_door",
     "off",
     {"device_class": "door", "friendly_name": "Front Door"},
   )
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
   flow._current_dog = flow._dogs[0]
   dog_id = flow._current_dog[DOG_ID_FIELD]
 
@@ -1988,21 +1988,21 @@ async def test_configure_door_sensor_runtime_cache_unavailable(
 
   assert result["type"] == FlowResultType.FORM
   assert result["errors"]["base"] == "runtime_cache_unavailable"
-  flow.hass.config_entries.async_update_entry.assert_not_called()
+  flow.hash.config_entries.async_update_entry.assert_not_called()
   create_issue.assert_not_called()
   assert flow._current_dog[DOG_ID_FIELD] == dog_id
 
 
 @pytest.mark.asyncio
 async def test_add_new_dog_normalises_config(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Adding a dog should persist typed configuration data."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
 
   result = await flow.async_step_add_new_dog(
     {
@@ -2016,9 +2016,9 @@ async def test_add_new_dog_normalises_config(
   )
 
   assert result["type"] == FlowResultType.MENU
-  flow.hass.config_entries.async_update_entry.assert_called_once()
+  flow.hash.config_entries.async_update_entry.assert_called_once()
 
-  _, kwargs = flow.hass.config_entries.async_update_entry.call_args
+  _, kwargs = flow.hash.config_entries.async_update_entry.call_args
   updated_data = kwargs.get("data")
   assert isinstance(updated_data, dict)
 
@@ -2040,14 +2040,14 @@ async def test_add_new_dog_normalises_config(
 
 @pytest.mark.asyncio
 async def test_edit_dog_updates_config(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Editing a dog should write back typed configuration changes."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
 
   flow._current_dog = flow._dogs[0]
 
@@ -2062,9 +2062,9 @@ async def test_edit_dog_updates_config(
   )
 
   assert result["type"] == FlowResultType.MENU
-  flow.hass.config_entries.async_update_entry.assert_called_once()
+  flow.hash.config_entries.async_update_entry.assert_called_once()
 
-  _, kwargs = flow.hass.config_entries.async_update_entry.call_args
+  _, kwargs = flow.hash.config_entries.async_update_entry.call_args
   updated_data = kwargs.get("data")
   assert isinstance(updated_data, dict)
 
@@ -2078,7 +2078,7 @@ async def test_edit_dog_updates_config(
 
 @pytest.mark.asyncio
 async def test_remove_dog_normalises_snapshot(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   mock_config_entry: ConfigEntry,
   mock_multi_dog_config: list[DogConfigData],
 ) -> None:
@@ -2114,8 +2114,8 @@ async def test_remove_dog_normalises_snapshot(
   mock_config_entry.options = raw_options
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
-  hass.config_entries.async_update_entry = Mock()
+  flow.hash = hash
+  hash.config_entries.async_update_entry = Mock()
   flow.initialize_from_config_entry(mock_config_entry)
 
   result = await flow.async_step_select_dog_to_remove(
@@ -2123,9 +2123,9 @@ async def test_remove_dog_normalises_snapshot(
   )
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
-  hass.config_entries.async_update_entry.assert_called_once()
+  hash.config_entries.async_update_entry.assert_called_once()
 
-  _, update_kwargs = hass.config_entries.async_update_entry.call_args
+  _, update_kwargs = hash.config_entries.async_update_entry.call_args
   updated_data = cast(ConfigEntryDataPayload, update_kwargs.get("data"))
   assert isinstance(updated_data, dict)
 
@@ -2155,12 +2155,12 @@ async def test_remove_dog_normalises_snapshot(
 
 @pytest.mark.asyncio
 async def test_import_export_export_flow(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Export step should surface a JSON payload with current settings."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   menu = await flow.async_step_import_export()
@@ -2187,14 +2187,14 @@ async def test_import_export_export_flow(
 
 @pytest.mark.asyncio
 async def test_import_export_import_flow(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Import step should apply settings and update config entry data."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
-  flow.hass.config_entries.async_update_entry = Mock()
+  flow.hash.config_entries.async_update_entry = Mock()
 
   baseline = flow._build_export_payload()
   baseline["options"]["entity_profile"] = "advanced"
@@ -2214,13 +2214,13 @@ async def test_import_export_import_flow(
   result = await flow.async_step_import_export_import({"payload": payload_blob})
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
-  flow.hass.config_entries.async_update_entry.assert_called_once()
+  flow.hash.config_entries.async_update_entry.assert_called_once()
 
   options = cast(PawControlOptionsData, result["data"])
   assert options["entity_profile"] == "advanced"
   assert options["external_integrations"] is True
 
-  update_call = flow.hass.config_entries.async_update_entry.call_args
+  update_call = flow.hash.config_entries.async_update_entry.call_args
   assert update_call is not None
   update_kwargs = update_call.kwargs
   assert update_kwargs["data"][CONF_DOGS][0]["dog_name"] == "Imported Pup"
@@ -2283,12 +2283,12 @@ def test_export_payload_normalises_legacy_options(
 
 @pytest.mark.asyncio
 async def test_import_export_import_duplicate_dog(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Duplicate dog IDs should surface a dedicated error code."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   duplicate_payload = flow._build_export_payload()
@@ -2304,12 +2304,12 @@ async def test_import_export_import_duplicate_dog(
 
 @pytest.mark.asyncio
 async def test_import_export_import_invalid_modules(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Non-mapping modules payloads should be rejected during import."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   payload = flow._build_export_payload()
@@ -2343,12 +2343,12 @@ def test_validate_import_payload_sanitises_modules(
 
 @pytest.mark.asyncio
 async def test_import_export_import_unsupported_version(
-  hass: HomeAssistant, mock_config_entry: ConfigEntry
+  hash: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
   """Unsupported export versions should surface a specific error."""
 
   flow = PawControlOptionsFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.initialize_from_config_entry(mock_config_entry)
 
   payload = flow._build_export_payload()

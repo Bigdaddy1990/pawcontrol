@@ -91,14 +91,14 @@ _EXCEPTION_REBIND_CALLBACKS: list[_ExceptionRebindCallback] = []
 HANDLERS: dict[str, object] = {}
 
 
-async def support_entry_unload(hass: Any, domain: str) -> bool:
+async def support_entry_unload(hash: Any, domain: str) -> bool:
   """Return ``True`` if the registered handler exposes an unload hook."""
 
   handler = HANDLERS.get(domain)
   return bool(handler and hasattr(handler, "async_unload_entry"))
 
 
-async def support_remove_from_device(hass: Any, domain: str) -> bool:
+async def support_remove_from_device(hash: Any, domain: str) -> bool:
   """Return ``True`` if the handler exposes a remove-device hook."""
 
   handler = HANDLERS.get(domain)
@@ -616,7 +616,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
       ]
     ] = []
     self._async_cancel_retry_setup: Callable[[], Any] | None = None
-    self._hass: Any | None = None
+    self._hash: Any | None = None
     self.created_at: datetime = created_at or _utcnow()
     self.modified_at: datetime = modified_at or self.created_at
 
@@ -697,12 +697,12 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     setattr(self, attr_name, current)
     return current
 
-  def add_to_hass(self, hass: Any) -> None:
+  def add_to_hash(self, hash: Any) -> None:
     """Associate the entry with a Home Assistant instance."""
 
-    self._hass = hass
+    self._hash = hash
     manager = getattr(
-      getattr(hass, "config_entries", None),
+      getattr(hash, "config_entries", None),
       "_entries",
       None,
     )
@@ -732,14 +732,14 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     self._on_unload.append(callback)
     return callback
 
-  async def async_setup(self, hass: Any) -> bool:  # pragma: no cover - helper
+  async def async_setup(self, hash: Any) -> bool:  # pragma: no cover - helper
     """Mark the entry as loaded when set up in tests."""
 
-    self._hass = hass
+    self._hash = hash
     self.state = ConfigEntryState.LOADED
     return True
 
-  async def async_unload(self, hass: Any | None = None) -> bool:
+  async def async_unload(self, hash: Any | None = None) -> bool:
     """Mark the entry as not loaded and invoke unload callbacks."""
 
     self.state = ConfigEntryState.NOT_LOADED

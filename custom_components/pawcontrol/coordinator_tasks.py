@@ -66,7 +66,7 @@ def _fetch_cache_repair_summary(
 ) -> CacheRepairAggregate | None:
   """Return the latest cache repair aggregate for coordinator telemetry."""
 
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   if runtime_data is None:
     return None
 
@@ -102,7 +102,7 @@ def _fetch_reconfigure_summary(
 ) -> ReconfigureTelemetrySummary | None:
   """Return the latest reconfigure summary for coordinator telemetry."""
 
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   if runtime_data is not None:
     summary = get_runtime_reconfigure_summary(runtime_data)
     if summary is None:
@@ -123,7 +123,7 @@ def _build_runtime_store_summary(
   """Return a runtime store summary combining snapshot and history telemetry."""
 
   snapshot = describe_runtime_store_status(
-    coordinator.hass,
+    coordinator.hash,
     coordinator.config_entry,
   )
   history = update_runtime_store_health(
@@ -1073,7 +1073,7 @@ def _store_resilience_diagnostics(
 ) -> None:
   """Persist the latest resilience diagnostics for reuse by runtime telemetry."""
 
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   if runtime_data is None:
     return
 
@@ -1083,7 +1083,7 @@ def _store_resilience_diagnostics(
 def _clear_resilience_diagnostics(coordinator: PawControlCoordinator) -> None:
   """Remove stored resilience telemetry when no breakers are available."""
 
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   if runtime_data is None:
     return
 
@@ -1220,7 +1220,7 @@ def build_update_statistics(
     interval=coordinator.update_interval,
     repair_summary=repair_summary,
   )
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   stats["runtime_store"] = _build_runtime_store_summary(
     coordinator,
     runtime_data,
@@ -1265,7 +1265,7 @@ def build_runtime_statistics(
     interval=coordinator.update_interval,
     repair_summary=repair_summary,
   )
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   stats["runtime_store"] = _build_runtime_store_summary(
     coordinator,
     runtime_data,
@@ -1357,7 +1357,7 @@ def ensure_background_task(
 
   if coordinator._maintenance_unsub is None:
     coordinator._maintenance_unsub = async_track_time_interval(
-      coordinator.hass,
+      coordinator.hash,
       coordinator._async_maintenance,
       interval,
     )
@@ -1366,7 +1366,7 @@ def ensure_background_task(
 async def run_maintenance(coordinator: PawControlCoordinator) -> None:
   """Perform periodic maintenance work for caches and metrics."""
 
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   now = dt_util.utcnow()
 
   diagnostics = None

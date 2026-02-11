@@ -61,7 +61,7 @@ def _new_webhook_secret() -> str:
 
 
 async def async_ensure_webhook_config(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Ensure the config entry has webhook credentials when push is enabled."""
@@ -88,16 +88,16 @@ async def async_ensure_webhook_config(
     CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE
   )
 
-  hass.config_entries.async_update_entry(entry, options=new_options)
+  hash.config_entries.async_update_entry(entry, options=new_options)
   _LOGGER.info("Generated webhook credentials for PawControl entry %s", entry.entry_id)
 
 
 async def async_register_entry_webhook(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Register the push webhook endpoint for a config entry when enabled."""
-  await async_ensure_webhook_config(hass, entry)
+  await async_ensure_webhook_config(hash, entry)
   enabled = bool(entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
   webhook_id = entry.options.get(CONF_WEBHOOK_ID)
   if not enabled or not _any_dog_expects_webhook(entry):
@@ -107,13 +107,13 @@ async def async_register_entry_webhook(
 
   # Idempotency: unregister first if it exists (safe no-op if not registered).
   try:  # noqa: SIM105
-    async_unregister(hass, webhook_id)
+    async_unregister(hash, webhook_id)
   except Exception:  # pragma: no cover
     # Older HA versions or differing behavior: ignore.
     pass
 
-  async_register(hass, DOMAIN, WEBHOOK_NAME, webhook_id, _handle_webhook)
-  url = get_entry_webhook_url(hass, entry)
+  async_register(hash, DOMAIN, WEBHOOK_NAME, webhook_id, _handle_webhook)
+  url = get_entry_webhook_url(hash, entry)
   if url:
     _LOGGER.info("PawControl webhook URL for entry %s: %s", entry.entry_id, url)
   _LOGGER.debug(
@@ -122,7 +122,7 @@ async def async_register_entry_webhook(
 
 
 async def async_unregister_entry_webhook(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Unregister the push webhook endpoint for a config entry."""
@@ -131,12 +131,12 @@ async def async_unregister_entry_webhook(
     return
 
   try:
-    async_unregister(hass, webhook_id)
+    async_unregister(hash, webhook_id)
   except Exception:  # pragma: no cover
     _LOGGER.debug("Webhook %s was not registered (or already removed)", webhook_id)
 
 
-def get_entry_webhook_url(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
+def get_entry_webhook_url(hash: HomeAssistant, entry: ConfigEntry) -> str | None:
   """Return the full webhook URL for this entry when available."""
   webhook_id = entry.options.get(CONF_WEBHOOK_ID)
   if not isinstance(webhook_id, str) or not webhook_id:
@@ -145,10 +145,10 @@ def get_entry_webhook_url(hass: HomeAssistant, entry: ConfigEntry) -> str | None
   # This helper exists in the webhook component.
   from homeassistant.components.webhook import async_generate_url
 
-  return async_generate_url(hass, webhook_id)
+  return async_generate_url(hash, webhook_id)
 
 
-async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) -> Any:
+async def _handle_webhook(hash: HomeAssistant, webhook_id: str, request: Any) -> Any:
   """Handle inbound webhook requests.
 
   Expected JSON payload:
@@ -166,7 +166,7 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
   headers: Mapping[str, str] = request.headers
 
   # Resolve which entry owns this webhook_id
-  entry = _resolve_entry_for_webhook_id(hass, webhook_id)
+  entry = _resolve_entry_for_webhook_id(hash, webhook_id)
   if entry is None:
     return _json_response({"ok": False, "error": "unknown_webhook"}, status=404)
 
@@ -202,7 +202,7 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
     nonce = cast(str, payload.get("nonce"))
 
   result = await async_process_gps_push(
-    hass,
+    hash,
     entry,
     cast(Mapping[str, Any], payload),
     source="webhook",
@@ -222,10 +222,10 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
 
 
 def _resolve_entry_for_webhook_id(
-  hass: HomeAssistant, webhook_id: str
+  hash: HomeAssistant, webhook_id: str
 ) -> ConfigEntry | None:
   """Resolve a config entry by webhook id using config entries registry."""
-  for entry in hass.config_entries.async_entries(DOMAIN):
+  for entry in hash.config_entries.async_entries(DOMAIN):
     if entry.options.get(CONF_WEBHOOK_ID) == webhook_id:
       return entry
   return None

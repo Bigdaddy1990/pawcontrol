@@ -21,10 +21,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 
-def test_build_garden_snapshot_returns_structured_payload(hass: HomeAssistant) -> None:
+def test_build_garden_snapshot_returns_structured_payload(hash: HomeAssistant) -> None:
   """Garden snapshots should expose structured TypedDict payloads."""
 
-  manager = GardenManager(hass, "entry")
+  manager = GardenManager(hash, "entry")
   now = dt_util.utcnow()
 
   active_session = GardenSession(

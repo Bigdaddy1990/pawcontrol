@@ -68,7 +68,7 @@ async def test_duplicate_dog_id_is_rejected() -> None:
 
 
 async def test_reauth_step_shows_confirmation_form(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   entry = MockConfigEntry(
     domain=DOMAIN,
@@ -82,10 +82,10 @@ async def test_reauth_step_shows_confirmation_form(
     },
     options={},
   )
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   flow = PawControlConfigFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.context = {"entry_id": entry.entry_id}
 
   result = await flow.async_step_reauth({})
@@ -95,7 +95,7 @@ async def test_reauth_step_shows_confirmation_form(
 
 
 async def test_reauth_rejects_invalid_dog_payload(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   entry = MockConfigEntry(
     domain=DOMAIN,
@@ -109,10 +109,10 @@ async def test_reauth_rejects_invalid_dog_payload(
     },
     options={},
   )
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   flow = PawControlConfigFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.context = {"entry_id": entry.entry_id}
 
   with pytest.raises(ConfigEntryAuthFailed):
@@ -120,7 +120,7 @@ async def test_reauth_rejects_invalid_dog_payload(
 
 
 async def test_reconfigure_step_shows_form(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   entry = MockConfigEntry(
     domain=DOMAIN,
@@ -134,10 +134,10 @@ async def test_reconfigure_step_shows_form(
     },
     options={"entity_profile": "standard"},
   )
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
   flow = PawControlConfigFlow()
-  flow.hass = hass
+  flow.hash = hash
   flow.context = {"entry_id": entry.entry_id}
 
   result = await flow.async_step_reconfigure()

@@ -22,7 +22,7 @@ from custom_components.pawcontrol.types import (
 
 
 @pytest.mark.asyncio
-async def test_async_migrate_entry_v1_to_v2(hass: HomeAssistant) -> None:
+async def test_async_migrate_entry_v1_to_v2(hash: HomeAssistant) -> None:
   """Ensure legacy entry data is migrated into the latest schema."""
 
   entry = ConfigEntry(
@@ -49,9 +49,9 @@ async def test_async_migrate_entry_v1_to_v2(hass: HomeAssistant) -> None:
     },
     options={},
   )
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
 
-  result = await async_migrate_entry(hass, entry)
+  result = await async_migrate_entry(hash, entry)
 
   assert result is True
   assert entry.version == CONFIG_ENTRY_VERSION

@@ -93,7 +93,7 @@ LOCATION_SOURCE_PRIORITY = {
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -101,7 +101,7 @@ async def async_setup_entry(
 
   NEW: Implements missing device tracker functionality per requirements_inventory.md
   """
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return

@@ -41,16 +41,16 @@ from custom_components.pawcontrol.weather_manager import (
 
 
 @pytest.fixture
-def weather_manager(hass: HomeAssistant) -> WeatherHealthManager:
+def weather_manager(hash: HomeAssistant) -> WeatherHealthManager:
   """Return a fresh weather health manager for each test."""
 
-  manager = WeatherHealthManager(hass)
+  manager = WeatherHealthManager(hash)
   asyncio.run(manager.async_load_translations())
   return manager
 
 
 @pytest.fixture
-def config_entry(hass: HomeAssistant) -> MockConfigEntry:
+def config_entry(hash: HomeAssistant) -> MockConfigEntry:
   """Return a config entry populated with a single dog profile."""
 
   entry = MockConfigEntry(
@@ -68,18 +68,18 @@ def config_entry(hass: HomeAssistant) -> MockConfigEntry:
     options={},
     unique_id="pawcontrol-test",
   )
-  entry.add_to_hass(hass)
+  entry.add_to_hash(hash)
   return entry
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_update_weather_data_converts_units_and_builds_alerts(
-  hass: HomeAssistant, weather_manager: WeatherHealthManager
+  hash: HomeAssistant, weather_manager: WeatherHealthManager
 ) -> None:
   """High heat and humidity should produce alerts and derived metrics."""
 
-  hass.states.async_set(
+  hash.states.async_set(
     "weather.backyard",
     "sunny",
     {
@@ -110,11 +110,11 @@ async def test_async_update_weather_data_converts_units_and_builds_alerts(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_update_weather_data_missing_temperature_uses_fallbacks(
-  hass: HomeAssistant, weather_manager: WeatherHealthManager
+  hash: HomeAssistant, weather_manager: WeatherHealthManager
 ) -> None:
   """Missing temperature should skip alerts and fall back to default score."""
 
-  hass.states.async_set(
+  hash.states.async_set(
     "weather.lawn",
     "cloudy",
     {
@@ -136,11 +136,11 @@ async def test_async_update_weather_data_missing_temperature_uses_fallbacks(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_update_weather_data_preserves_previous_conditions_when_unavailable(
-  hass: HomeAssistant, weather_manager: WeatherHealthManager
+  hash: HomeAssistant, weather_manager: WeatherHealthManager
 ) -> None:
   """Unavailable states should leave the last good snapshot untouched."""
 
-  hass.states.async_set(
+  hash.states.async_set(
     "weather.rooftop",
     "sunny",
     {
@@ -154,7 +154,7 @@ async def test_async_update_weather_data_preserves_previous_conditions_when_unav
   initial = await weather_manager.async_update_weather_data("weather.rooftop")
   assert initial is not None
 
-  hass.states.async_set("weather.rooftop", STATE_UNAVAILABLE, {})
+  hash.states.async_set("weather.rooftop", STATE_UNAVAILABLE, {})
   updated = await weather_manager.async_update_weather_data("weather.rooftop")
 
   assert updated is None
@@ -168,7 +168,7 @@ async def test_async_update_weather_data_preserves_previous_conditions_when_unav
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_update_weather_data_missing_translation_falls_back_to_english(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Broken locale entries should fall back to English strings."""
 
@@ -192,7 +192,7 @@ async def test_async_update_weather_data_missing_translation_falls_back_to_engli
     raising=True,
   )
 
-  manager = WeatherHealthManager(hass)
+  manager = WeatherHealthManager(hash)
   await manager.async_load_translations("de")
   assert "extreme_heat_warning" not in manager._translations["alerts"]
   assert (
@@ -200,7 +200,7 @@ async def test_async_update_weather_data_missing_translation_falls_back_to_engli
     == "🔥 Extreme Heat Warning"
   )
 
-  hass.states.async_set(
+  hash.states.async_set(
     "weather.terrace",
     "sunny",
     {
@@ -223,7 +223,7 @@ async def test_async_update_weather_data_missing_translation_falls_back_to_engli
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_update_weather_data_handles_formatting_errors_in_translations(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Locale formatting errors should not break alert generation."""
 
@@ -235,7 +235,7 @@ async def test_async_update_weather_data_handles_formatting_errors_in_translatio
       german_alerts = catalog["alerts"].get("high_heat_advisory")
       if german_alerts:
         german_alerts["message"] = (
-          "Temperatur {temperature}°C und {missing_placeholder} erfordern Schutz"
+          "Temperature {temperature}°C und {missing_placeholder} erfordern Schutz"
         )
     return catalog
 
@@ -251,10 +251,10 @@ async def test_async_update_weather_data_handles_formatting_errors_in_translatio
     raising=True,
   )
 
-  manager = WeatherHealthManager(hass)
+  manager = WeatherHealthManager(hash)
   await manager.async_load_translations("de")
 
-  hass.states.async_set(
+  hash.states.async_set(
     "weather.deck",
     "sunny",
     {
@@ -302,7 +302,7 @@ async def test_weather_module_adapter_returns_disabled_without_manager(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_weather_module_adapter_exposes_fallback_health_score(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config_entry: MockConfigEntry,
   weather_manager: WeatherHealthManager,
 ) -> None:
@@ -328,14 +328,14 @@ async def test_weather_module_adapter_exposes_fallback_health_score(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_weather_module_adapter_includes_conditions_when_available(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config_entry: MockConfigEntry,
   weather_manager: WeatherHealthManager,
 ) -> None:
   """Adapters should embed the active conditions snapshot when present."""
 
   config_entry.options = {CONF_WEATHER_ENTITY: "weather.home"}
-  hass.states.async_set(
+  hash.states.async_set(
     "weather.home",
     "sunny",
     {

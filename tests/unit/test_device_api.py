@@ -58,8 +58,8 @@ def device_api_module() -> ModuleType:
   class ResilienceManager:  # pragma: no cover - simple stub
     """Stubbed resilience manager used in tests."""
 
-    def __init__(self, hass: object) -> None:
-      self.hass = hass
+    def __init__(self, hash: object) -> None:
+      self.hash = hash
 
     async def execute_with_resilience(self, func, *args, **kwargs):
       if args or kwargs:

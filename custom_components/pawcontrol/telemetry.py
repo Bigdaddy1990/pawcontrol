@@ -78,7 +78,7 @@ _RUNTIME_STORE_STATUS_LEVELS: dict[
   ),
   "detached_entry": (
     "watch",
-    "Runtime data exists without a matching hass.data store entry.",
+    "Runtime data exists without a matching hash.data store entry.",
   ),
   "detached_store": (
     "watch",

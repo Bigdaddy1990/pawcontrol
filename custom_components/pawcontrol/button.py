@@ -170,11 +170,11 @@ class _ServiceRegistryProxy(ServiceRegistryLike):
 
 
 def _prepare_service_proxy(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> ServiceRegistryLike | None:
-  """Ensure the hass instance exposes a patchable services object."""
+  """Ensure the hash instance exposes a patchable services object."""
 
-  services = getattr(hass, "services", None)
+  services = getattr(hash, "services", None)
 
   if services is None:
     return None
@@ -183,11 +183,11 @@ def _prepare_service_proxy(
     return services
 
   if isinstance(services, ServiceRegistry):
-    proxy = hass.data.get("_pawcontrol_service_proxy")
+    proxy = hash.data.get("_pawcontrol_service_proxy")
     if not isinstance(proxy, _ServiceRegistryProxy) or proxy._registry is not services:
       proxy = _ServiceRegistryProxy(services)
-      hass.data["_pawcontrol_service_proxy"] = proxy
-    hass.services = proxy
+      hash.data["_pawcontrol_service_proxy"] = proxy
+    hash.services = proxy
     return proxy
 
   if isinstance(services, ServiceRegistryLike):
@@ -677,14 +677,14 @@ class ProfileAwareButtonFactory:
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
   """Set up PawControl button platform with profile-based optimization."""
 
   # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
@@ -854,9 +854,9 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     self._set_cache_ttl(2.0)
 
   def __setattr__(self, name: str, value: Any) -> None:
-    """Intercept hass assignment to prepare a patch-friendly registry."""
+    """Intercept hash assignment to prepare a patch-friendly registry."""
 
-    if name == "hass" and value is not None and isinstance(value, HomeAssistant):
+    if name == "hash" and value is not None and isinstance(value, HomeAssistant):
       _prepare_service_proxy(value)
 
     super().__setattr__(name, value)
@@ -953,17 +953,17 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
   ) -> ServiceRegistryLike | None:
     """Return a service registry object that supports attribute patching."""
 
-    if self.hass is None:
+    if self.hash is None:
       services = getattr(HomeAssistant, "services", None)
       if isinstance(services, ServiceRegistryLike):
         return services
       return None
 
-    proxy = _prepare_service_proxy(self.hass)
+    proxy = _prepare_service_proxy(self.hash)
     if proxy is not None:
       return proxy
 
-    services = getattr(self.hass, "services", None)
+    services = getattr(self.hash, "services", None)
     if isinstance(services, ServiceRegistryLike):
       return services
     return None
@@ -1102,7 +1102,7 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
 
     try:
       runtime_data = get_runtime_data(
-        self.hass,
+        self.hash,
         self.coordinator.config_entry,
       )
       if runtime_data is None:
@@ -1946,19 +1946,19 @@ class PawControlStartGroomingButton(PawControlButtonBase):
     dog_name: str,
   ) -> None:
     """Initialise the grooming session starter."""
-    hass_obj = getattr(coordinator, "hass", None)
+    hash_obj = getattr(coordinator, "hash", None)
     language_config = (
       getattr(
-        hass_obj,
+        hash_obj,
         "config",
         None,
       )
-      if hass_obj
+      if hash_obj
       else None
     )
-    hass_language: str | None = None
+    hash_language: str | None = None
     if language_config is not None:
-      hass_language = getattr(language_config, "language", None)
+      hash_language = getattr(language_config, "language", None)
     super().__init__(
       coordinator,
       dog_id,
@@ -1966,8 +1966,8 @@ class PawControlStartGroomingButton(PawControlButtonBase):
       "start_grooming",
       icon="mdi:content-cut",
       action_description=translated_grooming_label(
-        hass_obj,
-        hass_language,
+        hash_obj,
+        hash_language,
         "button_action",
       ),
     )
@@ -1976,10 +1976,10 @@ class PawControlStartGroomingButton(PawControlButtonBase):
     """Start grooming session."""
     await super().async_press()
 
-    config_obj = getattr(self.hass, "config", None)
-    hass_language: str | None = None
+    config_obj = getattr(self.hash, "config", None)
+    hash_language: str | None = None
     if config_obj is not None:
-      hass_language = getattr(config_obj, "language", None)
+      hash_language = getattr(config_obj, "language", None)
 
     try:
       await self._async_service_call(
@@ -1989,8 +1989,8 @@ class PawControlStartGroomingButton(PawControlButtonBase):
           ATTR_DOG_ID: self._dog_id,
           "type": "general",
           "notes": translated_grooming_label(
-            self.hass,
-            hass_language,
+            self.hash,
+            hash_language,
             "button_notes",
           ),
         },
@@ -1999,8 +1999,8 @@ class PawControlStartGroomingButton(PawControlButtonBase):
     except Exception as err:
       _LOGGER.error("Failed to start grooming: %s", err)
       error_message = translated_grooming_template(
-        self.hass,
-        hass_language,
+        self.hash,
+        hash_language,
         "button_error",
         error=str(err),
       )
@@ -2269,7 +2269,7 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
     await super().async_press()
 
     try:
-      if not await self._async_call_hass_service(
+      if not await self._async_call_hash_service(
         "pawcontrol",
         SERVICE_CONFIRM_GARDEN_POOP,
         {

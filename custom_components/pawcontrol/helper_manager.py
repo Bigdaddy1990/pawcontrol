@@ -73,7 +73,7 @@ from .types import (
   ensure_dog_config_data,
   ensure_dog_modules_config,
 )
-from .utils import async_call_hass_service_if_available
+from .utils import async_call_hash_service_if_available
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -284,14 +284,14 @@ class _HelperManagerCacheMonitor:
 class PawControlHelperManager:
   """Manages automatic creation and lifecycle of Home Assistant helpers for PawControl."""
 
-  def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+  def __init__(self, hash: HomeAssistant, entry: ConfigEntry) -> None:
     """Initialize the helper manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         entry: Config entry for the PawControl integration
     """
-    self._hass = hass
+    self._hash = hash
     self._entry = entry
     self._created_helpers: set[str] = set()
     self._cleanup_listeners: list[Callable[[], None]] = []
@@ -645,7 +645,7 @@ class PawControlHelperManager:
     )
 
     language = getattr(
-      getattr(self._hass, "config", None),
+      getattr(self._hash, "config", None),
       "language",
       None,
     )
@@ -659,7 +659,7 @@ class PawControlHelperManager:
       else dog_id
     )
     grooming_helper_name = translated_grooming_template(
-      self._hass,
+      self._hash,
       language,
       "helper_due",
       dog_name=helper_dog_name,
@@ -734,7 +734,7 @@ class PawControlHelperManager:
     """
     try:
       # Check if entity already exists
-      entity_registry = er.async_get(self._hass)
+      entity_registry = er.async_get(self._hash)
       if entity_registry.async_get(entity_id):
         _LOGGER.debug(
           "Helper %s already exists, skipping creation",
@@ -750,8 +750,8 @@ class PawControlHelperManager:
         service_data["icon"] = icon
 
       # Create the helper
-      guard_result = await async_call_hass_service_if_available(
-        self._hass,
+      guard_result = await async_call_hash_service_if_available(
+        self._hash,
         input_boolean.DOMAIN,
         "create",
         cast(JSONMutableMapping, dict(service_data)),
@@ -803,7 +803,7 @@ class PawControlHelperManager:
     """
     try:
       # Check if entity already exists
-      entity_registry = er.async_get(self._hass)
+      entity_registry = er.async_get(self._hash)
       if entity_registry.async_get(entity_id):
         _LOGGER.debug(
           "Helper %s already exists, skipping creation",
@@ -821,8 +821,8 @@ class PawControlHelperManager:
         service_data["initial"] = initial
 
       # Create the helper
-      guard_result = await async_call_hass_service_if_available(
-        self._hass,
+      guard_result = await async_call_hash_service_if_available(
+        self._hash,
         input_datetime.DOMAIN,
         "create",
         cast(JSONMutableMapping, dict(service_data)),
@@ -884,7 +884,7 @@ class PawControlHelperManager:
     """
     try:
       # Check if entity already exists
-      entity_registry = er.async_get(self._hass)
+      entity_registry = er.async_get(self._hash)
       if entity_registry.async_get(entity_id):
         _LOGGER.debug(
           "Helper %s already exists, skipping creation",
@@ -908,8 +908,8 @@ class PawControlHelperManager:
         service_data["initial"] = initial
 
       # Create the helper
-      guard_result = await async_call_hass_service_if_available(
-        self._hass,
+      guard_result = await async_call_hash_service_if_available(
+        self._hash,
         input_number.DOMAIN,
         "create",
         cast(JSONMutableMapping, dict(service_data)),
@@ -969,7 +969,7 @@ class PawControlHelperManager:
     """
     try:
       # Check if entity already exists
-      entity_registry = er.async_get(self._hass)
+      entity_registry = er.async_get(self._hash)
       if entity_registry.async_get(entity_id):
         _LOGGER.debug(
           "Helper %s already exists, skipping creation",
@@ -988,8 +988,8 @@ class PawControlHelperManager:
         service_data["icon"] = icon
 
       # Create the helper
-      guard_result = await async_call_hass_service_if_available(
-        self._hass,
+      guard_result = await async_call_hash_service_if_available(
+        self._hash,
         input_select.DOMAIN,
         "create",
         cast(JSONMutableMapping, dict(service_data)),
@@ -1059,11 +1059,11 @@ class PawControlHelperManager:
     @callback
     def _daily_reset(_: datetime | None = None) -> None:
       """Reset feeding toggles daily."""
-      self._hass.async_create_task(self._async_reset_feeding_toggles())
+      self._hash.async_create_task(self._async_reset_feeding_toggles())
 
     # Schedule daily reset
     unsub = async_track_time_change(
-      self._hass,
+      self._hash,
       _daily_reset,
       hour=reset_time.hour,
       minute=reset_time.minute,
@@ -1100,8 +1100,8 @@ class PawControlHelperManager:
             meal=meal_type,
           )
 
-          guard_result = await async_call_hass_service_if_available(
-            self._hass,
+          guard_result = await async_call_hash_service_if_available(
+            self._hash,
             input_boolean.DOMAIN,
             "turn_off",
             target={"entity_id": entity_id},
@@ -1171,8 +1171,8 @@ class PawControlHelperManager:
       if f"pawcontrol_{slug_dog_id}_" in entity_id:
         try:
           domain = entity_id.split(".")[0]
-          guard_result = await async_call_hass_service_if_available(
-            self._hass,
+          guard_result = await async_call_hash_service_if_available(
+            self._hash,
             domain,
             "delete",
             target={"entity_id": entity_id},

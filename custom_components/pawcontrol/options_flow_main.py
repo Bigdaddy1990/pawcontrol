@@ -359,12 +359,12 @@ class PawControlOptionsFlow(
   async def _load_setup_flag_translations_from_path(
     cls,
     path: Path,
-    hass: HomeAssistant,
+    hash: HomeAssistant,
   ) -> dict[str, str]:
     """Load setup flag translations from a JSON file if it exists."""
 
     try:
-      raw = await hass.async_add_executor_job(path.read_text, "utf-8")
+      raw = await hash.async_add_executor_job(path.read_text, "utf-8")
       content = json.loads(raw)
     except FileNotFoundError:
       return {}
@@ -407,7 +407,7 @@ class PawControlOptionsFlow(
   async def _async_setup_flag_translations_for_language(
     cls,
     language: str,
-    hass: HomeAssistant,
+    hash: HomeAssistant,
   ) -> dict[str, str]:
     """Return setup flag translations for the provided language."""
 
@@ -415,7 +415,7 @@ class PawControlOptionsFlow(
       cls._SETUP_FLAG_EN_TRANSLATIONS = (
         await cls._load_setup_flag_translations_from_path(
           cls._STRINGS_PATH,
-          hass=hass,
+          hash=hash,
         )
       )
 
@@ -430,7 +430,7 @@ class PawControlOptionsFlow(
     translation_path = cls._TRANSLATIONS_DIR / f"{language}.json"
     overlay = await cls._load_setup_flag_translations_from_path(
       translation_path,
-      hass=hass,
+      hash=hash,
     )
     merged = dict(base)
     merged.update(overlay)
@@ -465,15 +465,15 @@ class PawControlOptionsFlow(
   def _determine_language(self) -> str:
     """Return the preferred language for localized labels."""
 
-    hass = getattr(self, "hass", None)
-    hass_language: str | None = None
-    if hass is not None:
-      config = getattr(hass, "config", None)
+    hash = getattr(self, "hash", None)
+    hash_language: str | None = None
+    if hash is not None:
+      config = getattr(hash, "config", None)
       if config is not None:
-        hass_language = getattr(config, "language", None)
+        hash_language = getattr(config, "language", None)
 
     return normalize_language(
-      hass_language,
+      hash_language,
       supported=self._SETUP_FLAG_SUPPORTED_LANGUAGES,
       default="en",
     )
@@ -488,10 +488,10 @@ class PawControlOptionsFlow(
     """Preload setup flag translations without blocking the event loop."""
 
     language = self._determine_language()
-    hass = getattr(self, "hass", None)
-    if not isinstance(hass, HomeAssistant):
+    hash = getattr(self, "hash", None)
+    if not isinstance(hash, HomeAssistant):
       return
-    await self._async_setup_flag_translations_for_language(language, hass)
+    await self._async_setup_flag_translations_for_language(language, hash)
 
   @staticmethod
   def _normalise_manual_event_value(value: Any) -> str | None:
@@ -539,13 +539,13 @@ class PawControlOptionsFlow(
   def _manual_events_snapshot(self) -> Mapping[str, JSONValue] | None:
     """Return the current manual events snapshot from the script manager."""
 
-    hass = getattr(self, "hass", None)
-    if hass is None:
+    hash = getattr(self, "hash", None)
+    if hash is None:
       return None
 
     runtime: Any | None = None
     with suppress(Exception):
-      runtime = _resolve_get_runtime_data()(hass, self._entry)
+      runtime = _resolve_get_runtime_data()(hash, self._entry)
     if runtime is None:
       return None
 

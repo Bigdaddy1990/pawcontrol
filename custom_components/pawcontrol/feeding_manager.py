@@ -1114,14 +1114,14 @@ class FeedingManager:
 
   _MAX_SINGLE_FEEDING_GRAMS = 5000.0
 
-  def __init__(self, hass: HomeAssistant, max_history: int = 100) -> None:
+  def __init__(self, hash: HomeAssistant, max_history: int = 100) -> None:
     """Initialize with configurable history limit.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         max_history: Maximum feeding events to keep per dog
     """
-    self.hass = hass
+    self.hash = hash
     self._feedings: dict[str, list[FeedingEvent]] = {}
     self._configs: dict[str, FeedingConfig] = {}
     # Historic FeedingManager implementations exposed ``_dogs`` as a cache
@@ -1170,7 +1170,7 @@ class FeedingManager:
     start = perf_counter()
     if kwargs:
       func = partial(func, **kwargs)
-    result = await self.hass.async_add_executor_job(func, *args)
+    result = await self.hash.async_add_executor_job(func, *args)
     duration = perf_counter() - start
     if duration >= self._profile_threshold:
       _LOGGER.debug(

@@ -298,13 +298,13 @@ def inherit_missing_docstrings() -> None:
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
   """Set up Paw Control sensor platform."""
 
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
@@ -972,10 +972,10 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
     return self._coerce_health_payload(self._get_module_data("health"))
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hash(self) -> None:
     """Populate translation data after the entity is registered."""
 
-    await super().async_added_to_hass()
+    await super().async_added_to_hash()
 
     if self._pending_translation_key and self._attr_translation_key is None:
       self._attr_translation_key = self._pending_translation_key
@@ -4694,7 +4694,7 @@ class PawControlPushLastAcceptedSensor(PawControlSensorBase):
     entry_id = getattr(entry, "entry_id", None)
     if not isinstance(entry_id, str) or not entry_id:
       return None
-    snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hass, entry_id)
+    snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hash, entry_id)
     dogs = snapshot.get("dogs", {})
     if not isinstance(dogs, Mapping):
       return None
@@ -4733,7 +4733,7 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
     entry_id = getattr(entry, "entry_id", None)
     if not isinstance(entry_id, str) or not entry_id:
       return 0
-    snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hass, entry_id)
+    snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hash, entry_id)
     dogs = snapshot.get("dogs", {})
     if not isinstance(dogs, Mapping):
       return 0

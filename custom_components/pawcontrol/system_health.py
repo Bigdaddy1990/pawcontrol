@@ -483,7 +483,7 @@ def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapsho
 
 @callback
 def async_register(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   register: system_health.SystemHealthRegistration,
 ) -> None:
   """Register system health callbacks for PawControl."""
@@ -491,13 +491,13 @@ def async_register(
   register.async_register_info(system_health_info)
 
 
-async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
+async def system_health_info(hash: HomeAssistant) -> SystemHealthInfoPayload:
   """Return basic system health information."""
 
-  entry = _async_get_first_entry(hass)
+  entry = _async_get_first_entry(hash)
   if entry is None:
     runtime_store_snapshot = describe_runtime_store_status(
-      hass,
+      hash,
       "missing-entry",
     )
     info: SystemHealthInfoPayload = {
@@ -508,8 +508,8 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     }
     return info
 
-  runtime = get_runtime_data(hass, entry)
-  runtime_store_snapshot = describe_runtime_store_status(hass, entry)
+  runtime = get_runtime_data(hash, entry)
+  runtime_store_snapshot = describe_runtime_store_status(hash, entry)
   runtime_store_history = get_runtime_store_health(runtime)
   if runtime is None:
     info_payload: dict[str, object] = {
@@ -600,10 +600,10 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
   return cast(SystemHealthInfoPayload, service_payload)
 
 
-def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
+def _async_get_first_entry(hash: HomeAssistant) -> ConfigEntry | None:
   """Return the first loaded PawControl config entry."""
 
-  return next(iter(hass.config_entries.async_entries(DOMAIN)), None)
+  return next(iter(hash.config_entries.async_entries(DOMAIN)), None)
 
 
 def _extract_service_execution_metrics(

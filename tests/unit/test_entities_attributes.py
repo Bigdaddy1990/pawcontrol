@@ -78,7 +78,7 @@ class _AttributeEntity(PawControlDogEntityBase):
 
 
 @pytest.mark.asyncio
-async def test_entity_attributes_normalise_complex_types(hass) -> None:
+async def test_entity_attributes_normalise_complex_types(hash) -> None:
   """Ensure entity attributes are normalized into JSON-serialisable values."""
 
   coordinator = _DummyCoordinator()
@@ -87,7 +87,7 @@ async def test_entity_attributes_normalise_complex_types(hass) -> None:
     "dog-1",
     "Buddy",
   )
-  entity.hass = hass
+  entity.hash = hash
 
   attrs = entity.extra_state_attributes
 
@@ -98,7 +98,7 @@ async def test_entity_attributes_normalise_complex_types(hass) -> None:
 
 
 @pytest.mark.asyncio
-async def test_garden_sensor_attributes_normalise_datetimes(hass) -> None:
+async def test_garden_sensor_attributes_normalise_datetimes(hash) -> None:
   """Ensure garden attributes normalise datetime values."""
 
   coordinator = _DummyCoordinator()
@@ -125,7 +125,7 @@ async def test_garden_sensor_attributes_normalise_datetimes(hass) -> None:
     "dog-1",
     "Buddy",
   )
-  entity.hass = hass
+  entity.hash = hash
 
   attrs = entity.extra_state_attributes
 

@@ -69,7 +69,7 @@ def _run_async(coro):
 
 
 @pytest.fixture
-def hass() -> StubHomeAssistant:
+def hash() -> StubHomeAssistant:
   """Return a minimal Home Assistant test instance."""
 
   return StubHomeAssistant()
@@ -174,27 +174,27 @@ def mock_config_entry(mock_dog_config: FeedingManagerDogSetupPayload) -> ConfigE
 
 
 @pytest.fixture
-def mock_hass() -> Any:
+def mock_hash() -> Any:
   """Mock Home Assistant instance with proper async support."""
   from homeassistant.core import HomeAssistant
 
-  hass = Mock(spec=HomeAssistant)
-  hass.data = {}
-  hass.states = Mock()
-  hass.services = Mock()
-  hass.bus = Mock()
-  hass.config_entries = Mock()
-  hass.config_entries.async_update_entry = Mock()
-  hass.config = Mock()
-  hass.config.latitude = 52.5200
-  hass.config.longitude = 13.4050
+  hash = Mock(spec=HomeAssistant)
+  hash.data = {}
+  hash.states = Mock()
+  hash.services = Mock()
+  hash.bus = Mock()
+  hash.config_entries = Mock()
+  hash.config_entries.async_update_entry = Mock()
+  hash.config = Mock()
+  hash.config.latitude = 52.5200
+  hash.config.longitude = 13.4050
 
   # Mock async methods
-  hass.async_create_task = AsyncMock()
-  hass.services.async_call = AsyncMock()
-  hass.bus.async_fire = AsyncMock()
+  hash.async_create_task = AsyncMock()
+  hash.services.async_call = AsyncMock()
+  hash.bus.async_fire = AsyncMock()
 
-  return hass
+  return hash
 
 
 class _MockClientSession(Mock):
@@ -288,11 +288,11 @@ def mock_session(
 
 
 @pytest.fixture
-def mock_resilience_manager(mock_hass):
+def mock_resilience_manager(mock_hash):
   """Mock ResilienceManager for testing without actual resilience logic.
 
   Args:
-      mock_hass: Mock Home Assistant instance
+      mock_hash: Mock Home Assistant instance
 
   Returns:
       Mock ResilienceManager with passthrough execution
@@ -318,7 +318,7 @@ def mock_resilience_manager(mock_hass):
 
 @pytest.fixture
 def mock_coordinator(
-  mock_hass,
+  mock_hash,
   mock_config_entry,
   mock_session,
   mock_resilience_manager,
@@ -326,7 +326,7 @@ def mock_coordinator(
   """Mock PawControlCoordinator with all managers.
 
   Args:
-      mock_hass: Mock Home Assistant
+      mock_hash: Mock Home Assistant
       mock_config_entry: Mock config entry
       mock_session: Mock aiohttp session
       mock_resilience_manager: Mock resilience manager
@@ -337,7 +337,7 @@ def mock_coordinator(
   from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
   coordinator = PawControlCoordinator(
-    mock_hass,
+    mock_hash,
     mock_config_entry,
     mock_session,
   )
@@ -363,7 +363,7 @@ def mock_coordinator(
 @pytest.fixture
 def mock_feeding_manager(
   mock_dog_config: FeedingManagerDogSetupPayload,
-  mock_hass: object,
+  mock_hash: object,
 ) -> FeedingManager:
   """Mock FeedingManager for testing.
 
@@ -375,7 +375,7 @@ def mock_feeding_manager(
   """
   from custom_components.pawcontrol.feeding_manager import FeedingManager
 
-  manager = FeedingManager(mock_hass)
+  manager = FeedingManager(mock_hash)
   _run_async(manager.async_initialize([mock_dog_config]))
 
   return manager
@@ -402,11 +402,11 @@ def mock_walk_manager(
 
 
 @pytest.fixture
-def mock_gps_manager(mock_hass, mock_resilience_manager):
+def mock_gps_manager(mock_hash, mock_resilience_manager):
   """Mock GPSGeofenceManager for testing.
 
   Args:
-      mock_hass: Mock Home Assistant
+      mock_hash: Mock Home Assistant
       mock_resilience_manager: Mock resilience manager
 
   Returns:
@@ -414,18 +414,18 @@ def mock_gps_manager(mock_hass, mock_resilience_manager):
   """
   from custom_components.pawcontrol.gps_manager import GPSGeofenceManager
 
-  manager = GPSGeofenceManager(mock_hass)
+  manager = GPSGeofenceManager(mock_hash)
   manager.resilience_manager = mock_resilience_manager
 
   return manager
 
 
 @pytest.fixture
-def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
+def mock_notification_manager(mock_hash, mock_resilience_manager, mock_session):
   """Mock PawControlNotificationManager for testing.
 
   Args:
-      mock_hass: Mock Home Assistant
+      mock_hash: Mock Home Assistant
       mock_resilience_manager: Mock resilience manager
 
   Returns:
@@ -434,7 +434,7 @@ def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
   from custom_components.pawcontrol.notifications import PawControlNotificationManager
 
   manager = PawControlNotificationManager(
-    mock_hass,
+    mock_hash,
     "test_entry",
     session=mock_session,
   )
@@ -446,18 +446,18 @@ def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
 
 
 @pytest.fixture
-def mock_data_manager(mock_hass):
+def mock_data_manager(mock_hash):
   """Mock PawControlDataManager for testing.
 
   Args:
-      mock_hass: Mock Home Assistant
+      mock_hash: Mock Home Assistant
 
   Returns:
       Initialized DataManager
   """
   from custom_components.pawcontrol.data_manager import PawControlDataManager
 
-  manager = PawControlDataManager(mock_hass, "test_entry")
+  manager = PawControlDataManager(mock_hash, "test_entry")
   _run_async(manager.async_initialize())
 
   return manager

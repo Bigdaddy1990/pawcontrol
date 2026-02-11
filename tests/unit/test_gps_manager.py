@@ -38,13 +38,13 @@ class TestGPSManagerInitialization:
   """Test GPS manager initialization and setup."""
 
   async def test_initialization_basic(
-    self, mock_hass: HomeAssistant, mock_resilience_manager: ResilienceManager
+    self, mock_hash: HomeAssistant, mock_resilience_manager: ResilienceManager
   ) -> None:
     """Test basic GPS manager initialization."""
-    manager = GPSGeofenceManager(mock_hass)
+    manager = GPSGeofenceManager(mock_hash)
     manager.resilience_manager = mock_resilience_manager
 
-    assert manager.hass == mock_hass
+    assert manager.hash == mock_hash
     assert len(manager._dog_configs) == 0
     assert len(manager._active_routes) == 0
     assert len(manager._geofence_zones) == 0
@@ -92,7 +92,7 @@ class TestGPSTrackingTasks:
   async def test_start_tracking_task_handles_asyncmock_scheduler(
     self, mock_gps_manager: GPSGeofenceManager
   ) -> None:
-    """Ensure fallback scheduling engages when hass returns AsyncMock."""
+    """Ensure fallback scheduling engages when hash returns AsyncMock."""
 
     manager = mock_gps_manager
     tracking_config: GPSTrackingConfigInput = {
@@ -112,7 +112,7 @@ class TestGPSTrackingTasks:
     async def _fast_sleep(_: float) -> None:
       return None
 
-    manager.hass.async_create_task.return_value = None
+    manager.hash.async_create_task.return_value = None
 
     with (
       patch(

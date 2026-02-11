@@ -286,7 +286,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
       return {}
     try:
       return await _ASYNC_GET_TRANSLATIONS(
-        self.hass,
+        self.hash,
         language,
         "config",
         {DOMAIN},
@@ -301,7 +301,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
     """Return translations with an English fallback mapping."""
 
     target_language = (
-      cast(str | None, getattr(self.hass.config, "language", None)) or "en"
+      cast(str | None, getattr(self.hash.config, "language", None)) or "en"
     )
     translations = await self._async_get_flow_translations(target_language)
     fallback = (

@@ -16,7 +16,7 @@ from homeassistant.util import dt as dt_util
 def test_resilience_snapshot_requires_definition() -> None:
   """The resilience snapshot should be unavailable without a definition."""
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={DOMAIN: {}},
     states={},
     config_entries=SimpleNamespace(async_entries=lambda domain: []),
@@ -30,7 +30,7 @@ def test_resilience_snapshot_requires_definition() -> None:
     title="PawControl Test",
   )
 
-  manager = PawControlScriptManager(hass, entry)
+  manager = PawControlScriptManager(hash, entry)
 
   assert manager.get_resilience_escalation_snapshot() is None
 
@@ -40,7 +40,7 @@ def test_resilience_snapshot_serialises_manual_payload() -> None:
   """The resilience snapshot should expose JSON-safe manual event payloads."""
 
   now = dt_util.utcnow()
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={DOMAIN: {}},
     states={},
     config_entries=SimpleNamespace(async_entries=lambda domain: []),
@@ -54,7 +54,7 @@ def test_resilience_snapshot_serialises_manual_payload() -> None:
     title="Buddy",
   )
 
-  manager = PawControlScriptManager(hass, entry)
+  manager = PawControlScriptManager(hash, entry)
   manager._resilience_escalation_definition = {  # type: ignore[attr-defined]
     "object_id": "pawcontrol_buddy_resilience_escalation",
     "alias": "Buddy resilience escalation",
@@ -155,7 +155,7 @@ def test_resilience_snapshot_serialises_manual_payload() -> None:
     manager,
   )
 
-  hass.states = {  # type: ignore[assignment]
+  hash.states = {  # type: ignore[assignment]
     "script.pawcontrol_buddy_resilience_escalation": SimpleNamespace(
       attributes={
         "last_triggered": now - timedelta(minutes=1),

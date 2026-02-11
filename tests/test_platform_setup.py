@@ -46,14 +46,14 @@ def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeData:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("module_path", PLATFORM_MODULES)
 async def test_platform_setup_skips_without_runtime_data(
-  hass,
+  hash,
   mock_config_entry,
   module_path: str,
 ) -> None:
   module = importlib.import_module(module_path)
   async_add_entities = AsyncMock()
 
-  await module.async_setup_entry(hass, mock_config_entry, async_add_entities)
+  await module.async_setup_entry(hash, mock_config_entry, async_add_entities)
 
   async_add_entities.assert_not_called()
 
@@ -61,16 +61,16 @@ async def test_platform_setup_skips_without_runtime_data(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("module_path", PLATFORM_MODULES)
 async def test_platform_setup_adds_entities_when_configured(
-  hass,
+  hash,
   mock_config_entry,
   runtime_data: PawControlRuntimeData,
   module_path: str,
 ) -> None:
-  store_runtime_data(hass, mock_config_entry, runtime_data)
+  store_runtime_data(hash, mock_config_entry, runtime_data)
   module = importlib.import_module(module_path)
   async_add_entities = AsyncMock()
 
-  await module.async_setup_entry(hass, mock_config_entry, async_add_entities)
+  await module.async_setup_entry(hash, mock_config_entry, async_add_entities)
 
   assert async_add_entities.called
   args, _ = async_add_entities.call_args

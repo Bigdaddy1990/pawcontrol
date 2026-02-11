@@ -147,13 +147,13 @@ def test_normalise_dashboard_registry_filters_invalid_entries() -> None:
 @pytest.mark.asyncio
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
 async def test_generator_initialises_cleanup_tracking(
-  mock_store: MagicMock, hass, mock_config_entry
+  mock_store: MagicMock, hash, mock_config_entry
 ) -> None:
   """Generator initialisation should create the cleanup tracking set."""
 
   mock_store.return_value = MagicMock()
 
-  generator = PawControlDashboardGenerator(hass, mock_config_entry)
+  generator = PawControlDashboardGenerator(hash, mock_config_entry)
 
   assert hasattr(generator, "_cleanup_tasks")
   assert generator._cleanup_tasks == set()
@@ -162,12 +162,12 @@ async def test_generator_initialises_cleanup_tracking(
 @pytest.mark.asyncio
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
 async def test_track_task_registers_and_clears(
-  mock_store: MagicMock, hass, mock_config_entry
+  mock_store: MagicMock, hash, mock_config_entry
 ) -> None:
   """Tracked tasks should be cancelled during cleanup and removed on completion."""
 
   mock_store.return_value = MagicMock()
-  generator = PawControlDashboardGenerator(hass, mock_config_entry)
+  generator = PawControlDashboardGenerator(hash, mock_config_entry)
 
   async def short_task() -> None:
     await asyncio.sleep(0)
@@ -185,7 +185,7 @@ async def test_track_task_falls_back_to_asyncio(mock_config_entry) -> None:
   """Use ``asyncio.create_task`` when Home Assistant helper is unavailable."""
 
   generator = object.__new__(PawControlDashboardGenerator)
-  generator.hass = SimpleNamespace()
+  generator.hash = SimpleNamespace()
   generator._cleanup_tasks = set()
 
   async def completes_immediately() -> None:
@@ -207,12 +207,12 @@ async def test_track_task_falls_back_to_asyncio(mock_config_entry) -> None:
 
 
 @pytest.mark.asyncio
-async def test_track_task_uses_hass_loop_when_available(mock_config_entry) -> None:
-  """Fallback to ``hass.loop.create_task`` before raw asyncio scheduling."""
+async def test_track_task_uses_hash_loop_when_available(mock_config_entry) -> None:
+  """Fallback to ``hash.loop.create_task`` before raw asyncio scheduling."""
 
   loop_mock = MagicMock()
   generator = object.__new__(PawControlDashboardGenerator)
-  generator.hass = SimpleNamespace(loop=loop_mock)
+  generator.hash = SimpleNamespace(loop=loop_mock)
   generator._cleanup_tasks = set()
 
   async def completes_immediately() -> None:
@@ -247,18 +247,18 @@ async def test_track_task_uses_hass_loop_when_available(mock_config_entry) -> No
 @pytest.mark.asyncio
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
 async def test_track_task_accepts_existing_task(
-  mock_store: MagicMock, hass, mock_config_entry
+  mock_store: MagicMock, hash, mock_config_entry
 ) -> None:
   """Existing tasks should be tracked without being recreated."""
 
   mock_store.return_value = MagicMock()
 
-  generator = PawControlDashboardGenerator(hass, mock_config_entry)
+  generator = PawControlDashboardGenerator(hash, mock_config_entry)
 
   async def completes_immediately() -> None:
     await asyncio.sleep(0)
 
-  existing_task = hass.async_create_task(completes_immediately())
+  existing_task = hash.async_create_task(completes_immediately())
 
   tracked = generator._track_task(existing_task, name="existing")
 
@@ -275,14 +275,14 @@ async def test_track_task_accepts_existing_task(
 async def test_track_task_handles_helper_runtime_error(mock_config_entry) -> None:
   """Gracefully fall back when Home Assistant helper raises ``RuntimeError``."""
 
-  class HassStub(SimpleNamespace):
+  class HashStub(SimpleNamespace):
     def async_create_task(
       self, awaitable: Awaitable[None], *, name: str | None = None
     ) -> asyncio.Task[None]:
       raise RuntimeError("loop closed")
 
   generator = object.__new__(PawControlDashboardGenerator)
-  generator.hass = HassStub()
+  generator.hash = HashStub()
   generator._cleanup_tasks = set()
 
   async def completes_immediately() -> None:
@@ -305,12 +305,12 @@ async def test_track_task_handles_helper_runtime_error(mock_config_entry) -> Non
 
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
 def test_resolve_coordinator_statistics_uses_runtime_data(
-  mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+  mock_store: MagicMock, hash, mock_config_entry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Coordinator statistics should be sourced from runtime data helpers."""
 
   mock_store.return_value = MagicMock()
-  generator = PawControlDashboardGenerator(hass, mock_config_entry)
+  generator = PawControlDashboardGenerator(hash, mock_config_entry)
   sentinel_stats = {"rejection_metrics": default_rejection_metrics()}
 
   class CoordinatorStub:
@@ -330,12 +330,12 @@ def test_resolve_coordinator_statistics_uses_runtime_data(
 
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
 def test_resolve_service_execution_metrics_uses_runtime_data(
-  mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+  mock_store: MagicMock, hash, mock_config_entry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Service execution metrics should reuse runtime performance stats."""
 
   mock_store.return_value = MagicMock()
-  generator = PawControlDashboardGenerator(hass, mock_config_entry)
+  generator = PawControlDashboardGenerator(hash, mock_config_entry)
 
   service_metrics = default_rejection_metrics()
   service_metrics.update(
@@ -364,12 +364,12 @@ def test_resolve_service_execution_metrics_uses_runtime_data(
 
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
 def test_resolve_service_guard_metrics_uses_runtime_data(
-  mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+  mock_store: MagicMock, hash, mock_config_entry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Guard metrics should be normalised from runtime performance stats."""
 
   mock_store.return_value = MagicMock()
-  generator = PawControlDashboardGenerator(hass, mock_config_entry)
+  generator = PawControlDashboardGenerator(hash, mock_config_entry)
 
   guard_metrics = {
     "executed": 3,
@@ -403,11 +403,11 @@ def test_resolve_service_guard_metrics_uses_runtime_data(
 
 @pytest.mark.asyncio
 async def test_renderer_forwards_statistics_context(
-  hass, monkeypatch: pytest.MonkeyPatch
+  hash, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """The statistics renderer should receive coordinator and service metrics."""
 
-  renderer = DashboardRenderer(hass)
+  renderer = DashboardRenderer(hash)
   sentinel_stats = {"rejection_metrics": default_rejection_metrics()}
   service_metrics = default_rejection_metrics()
   guard_metrics = {
@@ -474,11 +474,11 @@ async def test_renderer_forwards_statistics_context(
 
 @pytest.mark.asyncio
 async def test_write_dashboard_file_preserves_existing_file_on_error(
-  hass, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+  hash, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Failed writes should not corrupt the existing dashboard file."""
 
-  renderer = DashboardRenderer(hass)
+  renderer = DashboardRenderer(hash)
   file_path = tmp_path / "dashboard.json"
   file_path.write_text("original", encoding="utf-8")
 
@@ -501,12 +501,12 @@ async def test_write_dashboard_file_preserves_existing_file_on_error(
 @pytest.mark.asyncio
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
 async def test_async_cleanup_cancels_tracked_tasks(
-  mock_store: MagicMock, hass, mock_config_entry
+  mock_store: MagicMock, hash, mock_config_entry
 ) -> None:
   """Pending tasks tracked by the generator should be cancelled during cleanup."""
 
   mock_store.return_value = MagicMock()
-  generator = PawControlDashboardGenerator(hass, mock_config_entry)
+  generator = PawControlDashboardGenerator(hash, mock_config_entry)
 
   cleanup_event = asyncio.Event()
 

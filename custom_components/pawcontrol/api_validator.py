@@ -107,7 +107,7 @@ class APIValidator:
 
   def __init__(
     self,
-    hass: HomeAssistant,
+    hash: HomeAssistant,
     session: aiohttp.ClientSession,
     *,
     verify_ssl: bool = True,
@@ -115,13 +115,13 @@ class APIValidator:
     """Initialize API validator.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         session: Home Assistant managed session for HTTP calls.
         verify_ssl: When ``False`` the validator will skip TLS certificate
             verification. This should only be disabled for development
             scenarios that rely on self-signed certificates.
     """
-    self.hass = hass
+    self.hash = hash
     self._session = ensure_shared_client_session(
       session,
       owner="APIValidator",

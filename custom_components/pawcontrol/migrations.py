@@ -256,7 +256,7 @@ def _migrate_v1_to_v2(
   return data, options
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: Any) -> bool:
+async def async_migrate_entry(hash: HomeAssistant, entry: Any) -> bool:
   """Migrate old entries to new versions."""
 
   if entry.version > CONFIG_ENTRY_VERSION:
@@ -285,7 +285,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: Any) -> bool:
       entry.entry_id,
       version,
     )
-    hass.config_entries.async_update_entry(
+    hash.config_entries.async_update_entry(
       entry,
       data=data,
       options=options,

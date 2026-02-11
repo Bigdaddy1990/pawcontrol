@@ -84,7 +84,7 @@ if TYPE_CHECKING:
     @property
     def _entry(self) -> ConfigEntry: ...
 
-    hass: Any
+    hash: Any
 
     def __getattr__(self, name: str) -> Any: ...
 
@@ -270,7 +270,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
           typed_dogs = self._normalise_entry_dogs(self._dogs)
           new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-          self.hass.config_entries.async_update_entry(
+          self.hash.config_entries.async_update_entry(
             self._entry,
             data=new_data,
           )
@@ -471,8 +471,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
     """Return mapping of available door sensors by friendly name."""
 
     sensors: dict[str, str] = {}
-    for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
-      state = self.hass.states.get(entity_id)
+    for entity_id in self.hash.states.async_entity_ids("binary_sensor"):
+      state = self.hash.states.get(entity_id)
       if state is None:
         continue
       device_class = state.attributes.get("device_class")
@@ -500,14 +500,14 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
     )
     current_modules_dict = ensure_dog_modules_config(self._current_dog)
 
-    hass_language: str | None = None
-    if self.hass is not None:
-      hass_config = getattr(self.hass, "config", None)
-      if hass_config is not None:
-        hass_language = getattr(hass_config, "language", None)
+    hash_language: str | None = None
+    if self.hash is not None:
+      hash_config = getattr(self.hash, "config", None)
+      if hash_config is not None:
+        hash_language = getattr(hash_config, "language", None)
       await async_preload_component_translations(
-        self.hass,
-        {hass_language, "en"},
+        self.hash,
+        {hash_language, "en"},
       )
 
     # Calculate current entity count
@@ -526,8 +526,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
       "dashboard": "Custom dashboard generation",
       "visitor": "Visitor mode for reduced monitoring",
       "grooming": translated_grooming_label(
-        self.hass,
-        hass_language,
+        self.hash,
+        hash_language,
         "module_summary_description",
       ),
       "medication": "Medication reminders and tracking",
@@ -536,8 +536,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
     module_labels = {
       "grooming": translated_grooming_label(
-        self.hass,
-        hass_language,
+        self.hash,
+        hash_language,
         "module_summary_label",
       ),
     }
@@ -629,7 +629,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
         new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-        self.hass.config_entries.async_update_entry(
+        self.hash.config_entries.async_update_entry(
           self._entry,
           data=new_data,
         )
@@ -834,7 +834,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
           new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-          self.hass.config_entries.async_update_entry(
+          self.hash.config_entries.async_update_entry(
             self._entry,
             data=new_data,
           )
@@ -951,7 +951,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         # Update config entry
         new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-        self.hass.config_entries.async_update_entry(
+        self.hash.config_entries.async_update_entry(
           self._entry,
           data=new_data,
         )

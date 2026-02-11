@@ -267,7 +267,7 @@ def get_weather_translations(language: str) -> WeatherTranslations:
 
 
 async def async_get_weather_translations(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str,
 ) -> WeatherTranslations:
   """Return weather translations for the requested language.
@@ -276,7 +276,7 @@ async def async_get_weather_translations(
   """
 
   translations, fallback = await async_get_component_translation_lookup(
-    hass,
+    hash,
     language,
   )
 

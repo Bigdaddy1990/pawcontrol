@@ -247,18 +247,18 @@ class _ErrorSummaryTracker(_DummyTracker):
 def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
   """Data manager should surface coordinator caches via diagnostics snapshots."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   modules = _DummyModules()
   tracker = _DummyTracker()
   coordinator = SimpleNamespace(
-    hass=hass,
+    hash=hash,
     config_entry=SimpleNamespace(entry_id="test-entry"),
     _modules=modules,
     _entity_budget=tracker,
   )
 
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     coordinator=coordinator,
     dogs_config=[],
   )
@@ -297,18 +297,18 @@ def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
 def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
   """Entity budget diagnostics should expose serialised error payloads."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   modules = _DummyModules()
   tracker = _ErrorSummaryTracker()
   coordinator = SimpleNamespace(
-    hass=hass,
+    hash=hash,
     config_entry=SimpleNamespace(entry_id="test-entry"),
     _modules=modules,
     _entity_budget=tracker,
   )
 
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     coordinator=coordinator,
     dogs_config=[],
   )
@@ -327,9 +327,9 @@ def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
 async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
   """Namespace cache monitors should reflect persisted updates."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     entry_id="storage-test",
     dogs_config=[{"dog_id": "buddy"}],
   )
@@ -354,9 +354,9 @@ async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
 def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
   """Namespace monitors should flag missing or stale timestamps."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     entry_id="storage-test",
     dogs_config=[{"dog_id": "buddy"}],
   )
@@ -380,9 +380,9 @@ def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
 def test_helper_manager_register_cache_monitor() -> None:
   """Helper manager should expose diagnostics through the cache registrar."""
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  helper_manager = PawControlHelperManager(hass, entry)
+  helper_manager = PawControlHelperManager(hash, entry)
   helper_manager._created_helpers.add("input_boolean.pawcontrol_buddy_breakfast_fed")
   helper_manager._dog_helpers = {
     "buddy": ["input_boolean.pawcontrol_buddy_breakfast_fed"],
@@ -419,11 +419,11 @@ def test_helper_manager_register_cache_monitor() -> None:
 async def test_helper_manager_skips_helper_creation_without_services(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Helper manager should short-circuit helper creation when hass services missing."""
+  """Helper manager should short-circuit helper creation when hash services missing."""
 
-  hass = SimpleNamespace(data={}, states=SimpleNamespace(get=lambda entity_id: None))
+  hash = SimpleNamespace(data={}, states=SimpleNamespace(get=lambda entity_id: None))
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  helper_manager = PawControlHelperManager(hass, entry)
+  helper_manager = PawControlHelperManager(hash, entry)
 
   class _DummyRegistry:
     def async_get(self, entity_id: str) -> None:
@@ -431,11 +431,11 @@ async def test_helper_manager_skips_helper_creation_without_services(
 
   monkeypatch.setattr(
     "custom_components.pawcontrol.helper_manager.er.async_get",
-    lambda hass_instance: _DummyRegistry(),
+    lambda hash_instance: _DummyRegistry(),
   )
 
   # Simulate Home Assistant instance without the services API.
-  helper_manager._hass = None
+  helper_manager._hash = None
 
   await helper_manager._async_create_input_boolean(
     "input_boolean.pawcontrol_test_breakfast_fed",
@@ -460,9 +460,9 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
 ) -> None:
   """Helper manager should aggregate guard skips across lifecycle services."""
 
-  hass = SimpleNamespace(data={})
+  hash = SimpleNamespace(data={})
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  helper_manager = PawControlHelperManager(hass, entry)
+  helper_manager = PawControlHelperManager(hash, entry)
 
   class _DummyRegistry:
     def async_get(self, entity_id: str) -> None:
@@ -470,7 +470,7 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
 
   monkeypatch.setattr(
     "custom_components.pawcontrol.helper_manager.er.async_get",
-    lambda hass_instance: _DummyRegistry(),
+    lambda hash_instance: _DummyRegistry(),
   )
 
   monkeypatch.setattr(
@@ -478,7 +478,7 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
     lambda value: value,
   )
 
-  helper_manager._hass = None
+  helper_manager._hash = None
 
   await helper_manager._async_create_input_boolean(
     "input_boolean.pawcontrol_buddy_breakfast_fed",
@@ -508,9 +508,9 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
 def test_script_manager_register_cache_monitor() -> None:
   """Script manager should expose created script diagnostics."""
 
-  hass = SimpleNamespace(data={})
+  hash = SimpleNamespace(data={})
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
   script_manager._created_entities.update(
     {
       "script.pawcontrol_buddy_reset",
@@ -543,9 +543,9 @@ def test_script_manager_register_cache_monitor() -> None:
 def test_script_manager_timestamp_anomaly() -> None:
   """Script manager diagnostics should flag stale generations."""
 
-  hass = SimpleNamespace(data={})
+  hash = SimpleNamespace(data={})
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
   script_manager._created_entities.add("script.pawcontrol_buddy_reset")
   script_manager._dog_scripts = {"buddy": ["script.pawcontrol_buddy_reset"]}
   script_manager._last_generation = dt_util.utcnow() - (
@@ -566,14 +566,14 @@ def test_script_manager_timestamp_anomaly() -> None:
 def test_script_manager_resilience_escalation_definition() -> None:
   """Entry-level resilience escalation script should expose guard thresholds."""
 
-  hass = SimpleNamespace(data={})
+  hash = SimpleNamespace(data={})
   entry = SimpleNamespace(
     entry_id="entry-id",
     data={},
     options={},
     title="Canine Ops",
   )
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
 
   object_id, config = script_manager._build_resilience_escalation_script()
 
@@ -630,7 +630,7 @@ def test_script_manager_resilience_escalation_definition() -> None:
 def test_script_manager_resilience_threshold_overrides() -> None:
   """Config entry options should override default resilience thresholds."""
 
-  hass = SimpleNamespace(data={})
+  hash = SimpleNamespace(data={})
   entry = SimpleNamespace(
     entry_id="entry-id",
     data={},
@@ -643,7 +643,7 @@ def test_script_manager_resilience_threshold_overrides() -> None:
     title="Canine Ops",
   )
 
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
 
   _object_id, config = script_manager._build_resilience_escalation_script()
   fields = config[CONF_FIELDS]
@@ -672,7 +672,7 @@ def test_script_manager_resilience_threshold_overrides() -> None:
 def test_script_manager_resilience_manual_event_snapshot() -> None:
   """Manual blueprint triggers should be surfaced in diagnostics snapshots."""
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={},
     states=SimpleNamespace(get=lambda entity_id: None),
     config_entries=SimpleNamespace(
@@ -700,7 +700,7 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
   )
   entry = SimpleNamespace(entry_id="entry-id", data={}, options={}, title="Ops")
 
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
   script_manager._build_resilience_escalation_script()
 
   snapshot = script_manager.get_resilience_escalation_snapshot()
@@ -769,7 +769,7 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
 def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() -> None:
   """System settings should appear alongside blueprint suggestions."""
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={},
     states=SimpleNamespace(get=lambda entity_id: None),
     config_entries=SimpleNamespace(
@@ -801,7 +801,7 @@ def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() 
     title="Ops",
   )
 
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
   script_manager._build_resilience_escalation_script()
 
   snapshot = script_manager.get_resilience_escalation_snapshot()
@@ -855,7 +855,7 @@ def test_script_manager_records_manual_event_trigger() -> None:
         callback(event)
 
   bus = DummyBus()
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={},
     bus=bus,
     states=SimpleNamespace(get=lambda entity_id: None),
@@ -873,7 +873,7 @@ def test_script_manager_records_manual_event_trigger() -> None:
     title="Ops",
   )
 
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
   script_manager._build_resilience_escalation_script()
   script_manager._refresh_manual_event_listeners()
 
@@ -945,7 +945,7 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
       _ConfigEntryUpdateRecord(entry=entry, data=data, options=options)
     )
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={},
     config_entries=SimpleNamespace(
       async_entries=lambda domain: (
@@ -969,7 +969,7 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
 
   entry = SimpleNamespace(entry_id="entry-id", data={}, options={}, title="Ops")
 
-  manager = PawControlScriptManager(hass, entry)
+  manager = PawControlScriptManager(hash, entry)
 
   await manager.async_sync_manual_resilience_events(
     {
@@ -1010,7 +1010,7 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
       return _unsub
 
   bus = DummyBus()
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={},
     states=SimpleNamespace(get=lambda entity_id: None),
     config_entries=SimpleNamespace(async_entries=lambda domain: []),
@@ -1023,7 +1023,7 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
     title="Ops",
   )
 
-  script_manager = PawControlScriptManager(hass, entry)
+  script_manager = PawControlScriptManager(hash, entry)
   asyncio.run(script_manager.async_initialize())
   script_manager._build_resilience_escalation_script()
 
@@ -1060,7 +1060,7 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
 def test_script_manager_manual_history_size_respects_options() -> None:
   """Manual event history length should be configurable via options."""
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     data={},
     states=SimpleNamespace(get=lambda entity_id: None),
     config_entries=SimpleNamespace(async_entries=lambda domain: []),
@@ -1072,7 +1072,7 @@ def test_script_manager_manual_history_size_respects_options() -> None:
     title="Ops",
   )
 
-  manager = PawControlScriptManager(hass, entry)
+  manager = PawControlScriptManager(hash, entry)
   assert manager._manual_event_history.maxlen == 7
 
   async def _record_events() -> None:
@@ -1114,8 +1114,8 @@ def test_resilience_followup_blueprint_manual_events() -> None:
 def test_door_sensor_manager_register_cache_monitor() -> None:
   """Door sensor manager should publish detection diagnostics."""
 
-  hass = SimpleNamespace()
-  manager = DoorSensorManager(hass, "entry")
+  hash = SimpleNamespace()
+  manager = DoorSensorManager(hash, "entry")
   now = dt_util.utcnow()
   manager._sensor_configs = {
     "buddy": DoorSensorConfig(
@@ -1161,8 +1161,8 @@ def test_door_sensor_manager_register_cache_monitor() -> None:
 def test_door_sensor_manager_timestamp_anomaly() -> None:
   """Door sensor diagnostics should surface stale activity timestamps."""
 
-  hass = SimpleNamespace()
-  manager = DoorSensorManager(hass, "entry")
+  hash = SimpleNamespace()
+  manager = DoorSensorManager(hash, "entry")
   old = dt_util.utcnow() - (CACHE_TIMESTAMP_STALE_THRESHOLD + timedelta(hours=2))
   manager._sensor_configs = {
     "buddy": DoorSensorConfig(
@@ -1207,9 +1207,9 @@ def test_auto_registers_helper_manager_cache(
 ) -> None:
   """Data manager should register helper manager caches when available."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  helper_manager = PawControlHelperManager(hass, entry)
+  helper_manager = PawControlHelperManager(hash, entry)
   helper_manager._created_helpers.add("input_boolean.pawcontrol_helper_created")
   script_manager = PawControlScriptManager(SimpleNamespace(data={}), entry)
   script_manager._created_entities.add("script.pawcontrol_helper_created")
@@ -1219,7 +1219,7 @@ def test_auto_registers_helper_manager_cache(
   modules = _DummyModules()
   tracker = _DummyTracker()
   coordinator = SimpleNamespace(
-    hass=hass,
+    hash=hash,
     config_entry=SimpleNamespace(entry_id="entry"),
     _modules=modules,
     _entity_budget=tracker,
@@ -1229,7 +1229,7 @@ def test_auto_registers_helper_manager_cache(
   coordinator.door_sensor_manager = door_manager
 
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     coordinator=coordinator,
     dogs_config=[],
   )
@@ -1247,12 +1247,12 @@ def test_auto_registers_helper_manager_cache(
 def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> None:
   """Runtime cache registration should pick up helper manager monitors."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  helper_manager = PawControlHelperManager(hass, entry)
+  helper_manager = PawControlHelperManager(hash, entry)
 
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     entry_id="entry",
     dogs_config=[],
   )
@@ -1276,9 +1276,9 @@ def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> No
 async def test_async_get_module_history_respects_limit(tmp_path: Path) -> None:
   """Module history lookups should return sorted entries with optional limits."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     entry_id="history-test",
     dogs_config=[{"dog_id": "buddy", "modules": {MODULE_HEALTH: True}}],
   )
@@ -1331,9 +1331,9 @@ async def test_weekly_health_report_filters_old_entries(
 
   from custom_components.pawcontrol import data_manager as dm
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     entry_id="weekly-health",
     dogs_config=[{"dog_id": "buddy", "modules": {MODULE_HEALTH: True}}],
   )
@@ -1396,9 +1396,9 @@ async def test_analyze_patterns_uses_filtered_history(
 
   from custom_components.pawcontrol import data_manager as dm
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     entry_id="analysis",
     dogs_config=[
       {
@@ -1497,9 +1497,9 @@ async def test_export_data_uses_history_helper(
 
   from custom_components.pawcontrol import data_manager as dm
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     entry_id="export-history",
     dogs_config=[
       {
@@ -1641,8 +1641,8 @@ class _DummyPersonManager:
 class _DummyCoordinator:
   """Coordinator stub implementing the binding protocol for tests."""
 
-  def __init__(self, hass: HomeAssistant) -> None:
-    self.hass = hass
+  def __init__(self, hash: HomeAssistant) -> None:
+    self.hash = hash
     self.config_entry = SimpleNamespace(entry_id="coordinator-test")
     self.data_manager = None
     self.feeding_manager = None
@@ -1683,11 +1683,11 @@ class _DummyModulesAdapter:
 def test_notification_person_caches_register_via_binding(tmp_path: Path) -> None:
   """Coordinator binding should surface notification and person cache snapshots."""
 
-  hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
-  coordinator = _DummyCoordinator(hass)
+  hash = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+  coordinator = _DummyCoordinator(hash)
   modules = _DummyModulesAdapter()
   manager = PawControlDataManager(
-    hass=hass,
+    hash=hash,
     coordinator=coordinator,
     dogs_config=[],
   )

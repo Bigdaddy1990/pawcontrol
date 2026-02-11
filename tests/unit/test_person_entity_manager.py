@@ -25,11 +25,11 @@ from homeassistant.util import dt as dt_util
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_person_entity_manager_coordinator_snapshot(
-  mock_hass: HomeAssistant,
+  mock_hash: HomeAssistant,
 ) -> None:
   """Coordinator snapshots should include statistics and diagnostics payloads."""
 
-  manager = PersonEntityManager(mock_hass, "test-entry")
+  manager = PersonEntityManager(mock_hash, "test-entry")
   manager._targets_cache.store("home", ["notify.mobile_app"], dt_util.now())
   manager._state_listeners.append(lambda: None)
   manager._stats["cache_hits"] = 3
@@ -72,11 +72,11 @@ async def test_person_entity_manager_coordinator_snapshot(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_force_discovery_returns_typed_payload(
-  mock_hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  mock_hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Force discovery should expose the structured TypedDict payload."""
 
-  manager = PersonEntityManager(mock_hass, "typed-entry")
+  manager = PersonEntityManager(mock_hash, "typed-entry")
   manager._persons["person.jane"] = PersonEntityInfo(
     entity_id="person.jane",
     name="jane",
@@ -104,12 +104,12 @@ async def test_force_discovery_returns_typed_payload(
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_validate_configuration_returns_structured_payload(
-  mock_hass: HomeAssistant,
+  mock_hash: HomeAssistant,
 ) -> None:
   """Validation should return the TypedDict with issues and recommendations."""
 
-  mock_hass.services.has_service = lambda *_: False
-  manager = PersonEntityManager(mock_hass, "validate-entry")
+  mock_hash.services.has_service = lambda *_: False
+  manager = PersonEntityManager(mock_hash, "validate-entry")
 
   result: PersonEntityValidationResult = await manager.async_validate_configuration()
 

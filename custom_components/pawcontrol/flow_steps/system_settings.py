@@ -335,7 +335,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         raw_entity = user_input.get("weather_entity")
         candidate = raw_entity.strip() if isinstance(raw_entity, str) else None
         if candidate and candidate.lower() != "none":
-          weather_state = self.hass.states.get(candidate)
+          weather_state = self.hash.states.get(candidate)
           if weather_state is None:
             return self.async_show_form(
               step_id="weather_settings",
@@ -406,8 +406,8 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
     # Get available weather entities
     weather_entities: list[str | dict[str, str]] = ["none"]
 
-    for entity_id in self.hass.states.async_entity_ids("weather"):
-      entity_state = self.hass.states.get(entity_id)
+    for entity_id in self.hash.states.async_entity_ids("weather"):
+      entity_state = self.hash.states.get(entity_id)
       if entity_state:
         friendly_name = entity_state.attributes.get(
           "friendly_name",
@@ -568,7 +568,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
     weather_info = "No weather entity selected"
 
     if weather_entity:
-      weather_state = self.hass.states.get(weather_entity)
+      weather_state = self.hash.states.get(weather_entity)
       if weather_state:
         weather_status = "Available"
         temperature = weather_state.attributes.get(
@@ -647,7 +647,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           "moderate",
         ).title(),
         "available_weather_entities": str(
-          len([e for e in self.hass.states.async_entity_ids("weather")]),
+          len([e for e in self.hash.states.async_entity_ids("weather")]),
         ),
       },
     )
@@ -691,7 +691,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
           mutable_options.pop("manual_breaker_event", None)
         else:
           mutable_options["manual_breaker_event"] = breaker_option
-        runtime = _resolve_get_runtime_data()(self.hass, self._entry)
+        runtime = _resolve_get_runtime_data()(self.hash, self._entry)
         script_manager = getattr(runtime, "script_manager", None)
         if script_manager is not None:
           await script_manager.async_sync_manual_resilience_events(

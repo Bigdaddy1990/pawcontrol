@@ -568,12 +568,12 @@ class OptimizedEntityBase(
 
     return attr
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hash(self) -> None:
     """Enhanced entity addition with state restoration and performance tracking."""
     start_time = dt_util.utcnow()
 
     try:
-      await super().async_added_to_hass()
+      await super().async_added_to_hash()
 
       # Restore previous state if available
       await self._async_restore_state()
@@ -1600,7 +1600,7 @@ class _RegistrySentinelCoordinator:
     "available",
     "config_entry",
     "data",
-    "hass",
+    "hash",
     "last_update_success",
     "name",
     "update_interval",
@@ -1610,7 +1610,7 @@ class _RegistrySentinelCoordinator:
     self.available = True
     self.config_entry = None
     self.data: CoordinatorDataPayload = {}
-    self.hass = None
+    self.hash = None
     self.last_update_success = True
     self.name = "PawControl Registry Sentinel"
     self.update_interval = timedelta(seconds=0)

@@ -299,12 +299,12 @@ _ManagerT = TypeVar("_ManagerT")
 class _CoordinatorResolver:
   """Resolve and cache the active PawControl coordinator instance."""
 
-  __slots__ = ("_cached_coordinator", "_cached_entry_id", "_hass")
+  __slots__ = ("_cached_coordinator", "_cached_entry_id", "_hash")
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hash: HomeAssistant) -> None:
     """Create a resolver tied to the provided Home Assistant instance."""
 
-    self._hass = hass
+    self._hash = hash
     self._cached_coordinator: PawControlCoordinator | None = None
     self._cached_entry_id: str | None = None
 
@@ -346,7 +346,7 @@ class _CoordinatorResolver:
     if coordinator is None:
       return None
 
-    if getattr(coordinator, "hass", None) is not self._hass:
+    if getattr(coordinator, "hash", None) is not self._hash:
       # The coordinator was created for a different Home Assistant instance.
       self.invalidate()
       return None
@@ -362,13 +362,13 @@ class _CoordinatorResolver:
   def _resolve_from_sources(self) -> PawControlCoordinator:
     """Locate the active coordinator from config entries or stored data."""
 
-    entries = list(self._hass.config_entries.async_entries(DOMAIN))
+    entries = list(self._hash.config_entries.async_entries(DOMAIN))
 
     for entry in entries:
       if entry.state is not ConfigEntryState.LOADED:
         continue
 
-      runtime_data = get_runtime_data(self._hass, entry)
+      runtime_data = get_runtime_data(self._hash, entry)
       if runtime_data and getattr(runtime_data, "coordinator", None):
         return cast(PawControlCoordinator, runtime_data.coordinator)
 
@@ -388,15 +388,15 @@ class _CoordinatorResolver:
 
 
 @callback
-def _coordinator_resolver(hass: HomeAssistant) -> _CoordinatorResolver:
+def _coordinator_resolver(hash: HomeAssistant) -> _CoordinatorResolver:
   """Return a coordinator resolver stored within Home Assistant data."""
 
-  domain_data = hass.data.setdefault(DOMAIN, {})
+  domain_data = hash.data.setdefault(DOMAIN, {})
   resolver = domain_data.get("_service_coordinator_resolver")
   if isinstance(resolver, _CoordinatorResolver):
     return resolver
 
-  resolver = _CoordinatorResolver(hass)
+  resolver = _CoordinatorResolver(hash)
   domain_data["_service_coordinator_resolver"] = resolver
   return resolver
 
@@ -441,7 +441,7 @@ def _get_runtime_data_for_coordinator(
   """Return runtime data associated with ``coordinator`` if available."""
 
   try:
-    return get_runtime_data(coordinator.hass, coordinator.config_entry)
+    return get_runtime_data(coordinator.hash, coordinator.config_entry)
   except Exception:  # pragma: no cover - defensive guard
     return None
 
@@ -1329,17 +1329,17 @@ SERVICE_GET_WEATHER_RECOMMENDATIONS_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup_services(hass: HomeAssistant) -> None:
+async def async_setup_services(hash: HomeAssistant) -> None:
   """Set up PawControl services.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
   """
 
-  resolver = _coordinator_resolver(hass)
+  resolver = _coordinator_resolver(hash)
   resolver.invalidate()
 
-  domain_data = hass.data.setdefault(DOMAIN, {})
+  domain_data = hash.data.setdefault(DOMAIN, {})
 
   # Replace any previous listener so duplicate registrations do not accumulate.
   remove_listener = domain_data.pop("_service_coordinator_listener", None)
@@ -1364,7 +1364,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       resolver.invalidate(entry_id=entry.entry_id)
 
   domain_data["_service_coordinator_listener"] = async_dispatcher_connect(
-    hass,
+    hash,
     SIGNAL_CONFIG_ENTRY_CHANGED,
     _handle_config_entry_state,
   )
@@ -1554,7 +1554,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         try:
           coordinator = _get_coordinator()
           runtime_data = get_runtime_data(
-            hass,
+            hash,
             coordinator.config_entry,
           )
         except Exception as err:  # pragma: no cover - telemetry guard
@@ -1583,7 +1583,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
   ) -> None:
     """Register a service with telemetry wrapping."""
 
-    hass.services.async_register(
+    hash.services.async_register(
       DOMAIN,
       service,
       _wrap_service_handler(service, handler),
@@ -2523,8 +2523,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       # Setup geofencing safe zone
       if auto_detect_home:
         # Use Home Assistant's home location
-        home_lat = hass.config.latitude
-        home_lon = hass.config.longitude
+        home_lat = hash.config.latitude
+        home_lon = hash.config.longitude
 
         await gps_manager.async_setup_safe_zone(
           dog_id=dog_id,
@@ -3200,10 +3200,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     entry_id = call.data.get("entry_id")
     target_entry: ConfigEntry | None = None
     if entry_id:
-      target_entry = hass.config_entries.async_get_entry(entry_id)
+      target_entry = hash.config_entries.async_get_entry(entry_id)
 
     if target_entry is None:
-      entries = hass.config_entries.async_entries(DOMAIN)
+      entries = hash.config_entries.async_entries(DOMAIN)
       target_entry = entries[0] if entries else None
 
     if target_entry is None:
@@ -3212,7 +3212,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
       return
 
-    await _perform_daily_reset(hass, target_entry)
+    await _perform_daily_reset(hash, target_entry)
 
   # Automation service handlers
   async def recalculate_health_portions_service(call: ServiceCall) -> None:
@@ -3695,10 +3695,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
       compliance_payload = deepcopy(compliance_result)
       display_name = dog_name or dog_id
-      language = getattr(getattr(hass, "config", None), "language", None)
+      language = getattr(getattr(hash, "config", None), "language", None)
       localized_summary: FeedingComplianceLocalizedSummary = (
         await async_build_feeding_compliance_summary(
-          hass,
+          hash,
           language,
           display_name=display_name,
           compliance=compliance_payload,
@@ -3731,14 +3731,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
       )
 
       await async_publish_feeding_compliance_issue(
-        hass,
+        hash,
         coordinator.config_entry,
         event_payload,
         context_metadata=context_metadata,
       )
 
       await async_fire_event(
-        hass,
+        hash,
         EVENT_FEEDING_COMPLIANCE_CHECKED,
         cast(JSONMutableMapping, event_payload),
         context=context,
@@ -4074,10 +4074,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     guard_results: list[ServiceGuardResult] = []
     guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
-    language_config = getattr(hass, "config", None)
-    hass_language: str | None = None
+    language_config = getattr(hash, "config", None)
+    hash_language: str | None = None
     if language_config is not None:
-      hass_language = getattr(language_config, "language", None)
+      hash_language = getattr(language_config, "language", None)
 
     dog_label = coordinator.get_configured_dog_name(dog_id) or dog_id
 
@@ -4116,15 +4116,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async with async_capture_service_guard_results() as captured_guards:
           guard_results = captured_guards
           title = translated_grooming_template(
-            hass,
-            hass_language,
+            hash,
+            hash_language,
             "notification_title",
             dog_label=dog_label,
           )
           message_parts = [
             translated_grooming_template(
-              hass,
-              hass_language,
+              hash,
+              hash_language,
               "notification_message",
               grooming_type=grooming_type,
               dog_label=dog_label,
@@ -4133,8 +4133,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           if groomer:
             message_parts.append(
               translated_grooming_template(
-                hass,
-                hass_language,
+                hash,
+                hash_language,
                 "notification_with_groomer",
                 groomer=groomer,
               ),
@@ -4142,8 +4142,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           if estimated_duration:
             message_parts.append(
               translated_grooming_template(
-                hass,
-                hass_language,
+                hash,
+                hash_language,
                 "notification_estimated_duration",
                 minutes=estimated_duration,
               ),
@@ -4202,8 +4202,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     except Exception as err:
       _LOGGER.error("Failed to start grooming for %s: %s", dog_id, err)
       error_message = translated_grooming_template(
-        hass,
-        hass_language,
+        hash,
+        hash_language,
         "start_failure",
         dog_label=dog_label,
       )
@@ -5055,11 +5055,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
   )
 
 
-async def async_unload_services(hass: HomeAssistant) -> None:
+async def async_unload_services(hash: HomeAssistant) -> None:
   """Unload PawControl services.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
   """
   services_to_remove = [
     SERVICE_ADD_FEEDING,
@@ -5105,9 +5105,9 @@ async def async_unload_services(hass: HomeAssistant) -> None:
   ]
 
   for service in services_to_remove:
-    hass.services.async_remove(DOMAIN, service)
+    hash.services.async_remove(DOMAIN, service)
 
-  domain_data = hass.data.get(DOMAIN)
+  domain_data = hash.data.get(DOMAIN)
   if isinstance(domain_data, dict):
     listener = domain_data.pop("_service_coordinator_listener", None)
     if callable(listener):
@@ -5129,13 +5129,13 @@ async def async_unload_services(hass: HomeAssistant) -> None:
 class PawControlServiceManager:
   """Manage registration of PawControl services."""
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hash: HomeAssistant) -> None:
     """Initialize the service manager and register services when needed."""
 
-    self._hass = hass
+    self._hash = hash
     self._services_task: asyncio.Task | None = None
 
-    domain_data = hass.data.setdefault(DOMAIN, {})
+    domain_data = hash.data.setdefault(DOMAIN, {})
     existing: PawControlServiceManager | None = domain_data.get(
       "service_manager",
     )
@@ -5145,9 +5145,9 @@ class PawControlServiceManager:
 
     domain_data["service_manager"] = self
 
-    if not hass.services.has_service(DOMAIN, SERVICE_ADD_FEEDING):
-      self._services_task = hass.async_create_task(
-        async_setup_services(hass),
+    if not hash.services.has_service(DOMAIN, SERVICE_ADD_FEEDING):
+      self._services_task = hash.async_create_task(
+        async_setup_services(hash),
       )
 
   async def async_shutdown(self) -> None:
@@ -5157,17 +5157,17 @@ class PawControlServiceManager:
       with suppress(asyncio.CancelledError):
         await self._services_task
 
-    await async_unload_services(self._hass)
+    await async_unload_services(self._hash)
 
-    domain_data = self._hass.data.get(DOMAIN)
+    domain_data = self._hash.data.get(DOMAIN)
     if domain_data and domain_data.get("service_manager") is self:
       domain_data.pop("service_manager")
 
 
-async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _perform_daily_reset(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Perform maintenance tasks for the daily reset."""
 
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.debug(
       "Skipping daily reset for entry %s: runtime data unavailable",
@@ -5293,7 +5293,7 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 async def async_setup_daily_reset_scheduler(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> Callable[[], None] | None:
   """Schedule the daily reset based on the configured reset time."""
@@ -5311,7 +5311,7 @@ async def async_setup_daily_reset_scheduler(
   if reset_time is None:
     return None
 
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data and runtime_data.daily_reset_unsub:
     try:
       runtime_data.daily_reset_unsub()
@@ -5322,14 +5322,14 @@ async def async_setup_daily_reset_scheduler(
       )
 
   async def _async_run_reset() -> None:
-    await _perform_daily_reset(hass, entry)
+    await _perform_daily_reset(hash, entry)
 
   @callback
   def _scheduled_reset(_: datetime | None = None) -> None:
-    hass.async_create_task(_async_run_reset())
+    hash.async_create_task(_async_run_reset())
 
   unsubscribe = async_track_time_change(
-    hass,
+    hash,
     _scheduled_reset,
     hour=reset_time.hour,
     minute=reset_time.minute,

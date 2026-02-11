@@ -52,10 +52,10 @@ class TestFeedingManagerInitialization:
   async def test_initialization_single_dog(
     self,
     mock_dog_config: FeedingManagerDogSetupPayload,
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test initialization with single dog configuration."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     await manager.async_initialize([mock_dog_config])
 
@@ -66,10 +66,10 @@ class TestFeedingManagerInitialization:
   async def test_initialization_multiple_dogs(
     self,
     mock_multi_dog_config: list[FeedingManagerDogSetupPayload],
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test initialization with multiple dogs."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     await manager.async_initialize(mock_multi_dog_config)
 
@@ -77,9 +77,9 @@ class TestFeedingManagerInitialization:
     assert "buddy" in manager._dogs
     assert "max" in manager._dogs
 
-  async def test_initialization_empty_config(self, mock_hass: object) -> None:
+  async def test_initialization_empty_config(self, mock_hash: object) -> None:
     """Test initialization with empty configuration."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     await manager.async_initialize([])
 
@@ -87,10 +87,10 @@ class TestFeedingManagerInitialization:
 
   async def test_initialization_validates_required_fields(
     self,
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test that initialization validates required fields."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     invalid_config = {"dog_id": "test", "weight": None}
 
@@ -150,10 +150,10 @@ class TestCalorieCalculations:
   async def test_calculate_daily_calories_high_activity(
     self,
     mock_dog_config: FeedingManagerDogSetupPayload,
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test daily calorie calculation for high activity."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     config = typed_deepcopy(mock_dog_config)
     config["activity_level"] = "high"
@@ -169,10 +169,10 @@ class TestCalorieCalculations:
   async def test_calculate_daily_calories_weight_loss(
     self,
     mock_dog_config: FeedingManagerDogSetupPayload,
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test calorie reduction for weight loss."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     config = typed_deepcopy(mock_dog_config)
     config["weight"] = 35.0
@@ -218,10 +218,10 @@ class TestPortionCalculations:
   async def test_calculate_portion_custom_food_calories(
     self,
     mock_dog_config: FeedingManagerDogSetupPayload,
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test portion calculation with custom food calorie content."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     config = typed_deepcopy(mock_dog_config)
     feeding_config = _mutable_feeding_config(config)
@@ -237,10 +237,10 @@ class TestPortionCalculations:
   async def test_calculate_portion_multiple_meals(
     self,
     mock_dog_config: FeedingManagerDogSetupPayload,
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test portion calculation with different meal frequencies."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     config = typed_deepcopy(mock_dog_config)
     feeding_config = _mutable_feeding_config(config)
@@ -322,10 +322,10 @@ class TestFeedingLogging:
   async def test_add_feeding_isolates_dogs(
     self,
     mock_multi_dog_config: list[FeedingManagerDogSetupPayload],
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test that feeding data is isolated between dogs."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
     await manager.async_initialize(mock_multi_dog_config)
 
     await manager.async_add_feeding(
@@ -463,10 +463,10 @@ class TestHealthConditionAdjustments:
   async def test_diabetic_mode_increases_meal_frequency(
     self,
     mock_dog_config: FeedingManagerDogSetupPayload,
-    mock_hass: object,
+    mock_hash: object,
   ) -> None:
     """Test diabetic feeding mode adjustment."""
-    manager = FeedingManager(mock_hass)
+    manager = FeedingManager(mock_hash)
 
     config = typed_deepcopy(mock_dog_config)
     config["health_conditions"] = ["diabetes"]

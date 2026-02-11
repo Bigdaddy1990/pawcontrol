@@ -24,13 +24,13 @@ class MockConfigEntry:
   title: str | None = None
   runtime_data: object | None = None
 
-  def add_to_hass(self, hass) -> None:
+  def add_to_hash(self, hash) -> None:
     """Attach the config entry to the stub Home Assistant instance."""
 
     if self.title is None:
       self.title = self.domain
-    hass.data.setdefault("config_entries", {})[self.entry_id] = self
-    config_entries = getattr(hass, "config_entries", None)
+    hash.data.setdefault("config_entries", {})[self.entry_id] = self
+    config_entries = getattr(hash, "config_entries", None)
     if config_entries is not None and hasattr(config_entries, "_entries"):
       config_entries._entries[self.entry_id] = self
 

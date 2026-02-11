@@ -272,7 +272,7 @@ def _make_coordinator() -> _DummyCoordinator:
 )
 @pytest.mark.asyncio
 async def test_extra_state_attributes_json_serialisable(
-  hass,
+  hash,
   factory: Callable[[object], object],
   mutator: Callable[[object], None],
   expected_key: str,
@@ -282,7 +282,7 @@ async def test_extra_state_attributes_json_serialisable(
 
   coordinator = _make_coordinator()
   entity = factory(coordinator)
-  entity.hass = hass
+  entity.hash = hash
   mutator(entity)
 
   attrs = cast(JSONMutableMapping, entity.extra_state_attributes)

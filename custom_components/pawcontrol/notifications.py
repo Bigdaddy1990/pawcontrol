@@ -46,7 +46,7 @@ from .types import (
 )
 from .utils import (
   ErrorContext,
-  async_call_hass_service_if_available,
+  async_call_hash_service_if_available,
   build_error_context,
 )
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
@@ -756,7 +756,7 @@ class PawControlNotificationManager:
 
   def __init__(
     self,
-    hass: HomeAssistant,
+    hash: HomeAssistant,
     entry_id: str,
     *,
     session: ClientSession,
@@ -764,11 +764,11 @@ class PawControlNotificationManager:
     """Initialize advanced notification manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         entry_id: Config entry ID for namespacing
         session: Home Assistant managed session for outbound calls
     """
-    self._hass = hass
+    self._hash = hash
     self._entry_id = entry_id
     self._notifications: dict[str, NotificationEvent] = {}
     self._configs: dict[str, NotificationConfig] = {}
@@ -783,7 +783,7 @@ class PawControlNotificationManager:
     self._person_manager: PersonEntityManager | None = None
 
     # RESILIENCE: Initialize resilience manager for notification channels
-    self.resilience_manager = ResilienceManager(hass)
+    self.resilience_manager = ResilienceManager(hash)
     self._channel_circuit_config = CircuitBreakerConfig(
       failure_threshold=5,  # More tolerance for notifications
       success_threshold=3,  # Need more successes to close
@@ -916,7 +916,7 @@ class PawControlNotificationManager:
   ) -> None:
     """Store delivery failure reasons in shared rejection metrics."""
 
-    runtime_data = get_runtime_data(self._hass, self._entry_id)
+    runtime_data = get_runtime_data(self._hash, self._entry_id)
     if runtime_data is None:
       return
 
@@ -943,7 +943,7 @@ class PawControlNotificationManager:
   def _notify_service_available(self, service_name: str) -> bool:
     """Return True when a notify service is registered."""
 
-    services = getattr(self._hass, "services", None)
+    services = getattr(self._hash, "services", None)
     async_services = getattr(services, "async_services", None)
     if not callable(async_services):
       return False
@@ -1139,7 +1139,7 @@ class PawControlNotificationManager:
     """
     try:
       self._person_manager = PersonEntityManager(
-        self._hass,
+        self._hash,
         self._entry_id,
       )
 
@@ -2023,8 +2023,8 @@ class PawControlNotificationManager:
       "message": notification.message,
     }
 
-    await async_call_hass_service_if_available(
-      self._hass,
+    await async_call_hash_service_if_available(
+      self._hash,
       "persistent_notification",
       "create",
       service_data,
@@ -2094,8 +2094,8 @@ class PawControlNotificationManager:
               },
             ]
 
-          guard_result = await async_call_hass_service_if_available(
-            self._hass,
+          guard_result = await async_call_hash_service_if_available(
+            self._hash,
             "notify",
             service_name,
             service_data,
@@ -2192,8 +2192,8 @@ class PawControlNotificationManager:
             },
           ]
 
-        guard_result = await async_call_hass_service_if_available(
-          self._hass,
+        guard_result = await async_call_hash_service_if_available(
+          self._hash,
           "notify",
           mobile_service,
           fallback_service_data,
@@ -2233,8 +2233,8 @@ class PawControlNotificationManager:
     # Combine title and message for TTS
     tts_message = f"{notification.title}. {notification.message}"
 
-    await async_call_hass_service_if_available(
-      self._hass,
+    await async_call_hash_service_if_available(
+      self._hash,
       "tts",
       tts_service,
       {
@@ -2259,8 +2259,8 @@ class PawControlNotificationManager:
 
     announcement = f"PawControl Alert: {notification.title}. {notification.message}"
 
-    await async_call_hass_service_if_available(
-      self._hass,
+    await async_call_hash_service_if_available(
+      self._hash,
       "media_player",
       "play_media",
       {
@@ -2292,8 +2292,8 @@ class PawControlNotificationManager:
       },
     }
 
-    await async_call_hass_service_if_available(
-      self._hass,
+    await async_call_hash_service_if_available(
+      self._hash,
       "notify",
       slack_service,
       service_data,
@@ -2329,8 +2329,8 @@ class PawControlNotificationManager:
       },
     }
 
-    await async_call_hass_service_if_available(
-      self._hass,
+    await async_call_hash_service_if_available(
+      self._hash,
       "notify",
       discord_service,
       service_data,
@@ -2426,8 +2426,8 @@ class PawControlNotificationManager:
       # Dismiss persistent notification if it exists
       if NotificationChannel.PERSISTENT in notification.sent_to:
         try:
-          executed = await async_call_hass_service_if_available(
-            self._hass,
+          executed = await async_call_hash_service_if_available(
+            self._hash,
             "persistent_notification",
             "dismiss",
             {"notification_id": f"{self._entry_id}_{notification_id}"},
@@ -2685,7 +2685,7 @@ class PawControlNotificationManager:
     display_name = dog_name or dog_id
 
     language = getattr(
-      getattr(self._hass, "config", None),
+      getattr(self._hash, "config", None),
       "language",
       None,
     )
@@ -2694,7 +2694,7 @@ class PawControlNotificationManager:
       no_data = cast("FeedingComplianceNoData", compliance)
       no_data_payload = cast(JSONMutableMapping, dict(no_data))
       title, message = await async_build_feeding_compliance_notification(
-        self._hass,
+        self._hash,
         language,
         display_name=display_name,
         compliance=no_data_payload,
@@ -2736,7 +2736,7 @@ class PawControlNotificationManager:
     missed_meals = completed.get("missed_meals") or []
 
     title, message = await async_build_feeding_compliance_notification(
-      self._hass,
+      self._hash,
       language,
       display_name=display_name,
       compliance=completed_payload,

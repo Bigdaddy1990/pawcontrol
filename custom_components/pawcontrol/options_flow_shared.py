@@ -642,11 +642,11 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     if has_skip and has_breaker:
       return None, None
 
-    hass = getattr(self, "hass", None)
-    if hass is None:
+    hash = getattr(self, "hash", None)
+    if hash is None:
       return None, None
 
-    return resolve_resilience_script_thresholds(hass, self._entry)
+    return resolve_resilience_script_thresholds(hash, self._entry)
 
   def _finalise_resilience_threshold(
     self,

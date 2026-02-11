@@ -167,7 +167,7 @@ _RUNTIME_STORE_STATUS_SEVERITY: dict[str, ir.IssueSeverity] = {
 
 
 async def async_create_issue(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
   issue_id: str,
   issue_type: str,
@@ -179,7 +179,7 @@ async def async_create_issue(
   """Create a repair issue for the integration.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
       issue_id: Unique issue identifier
       issue_type: Type of issue
@@ -266,7 +266,7 @@ async def async_create_issue(
 
   try:
     result = create_issue(
-      hass,
+      hash,
       DOMAIN,
       issue_id,
       **issue_kwargs,
@@ -300,7 +300,7 @@ async def async_create_issue(
 
 
 async def async_publish_feeding_compliance_issue(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
   payload: FeedingComplianceEventPayload,
   *,
@@ -315,11 +315,11 @@ async def async_publish_feeding_compliance_issue(
   if not isinstance(result, Mapping):
     return
 
-  language = getattr(getattr(hass, "config", None), "language", None)
+  language = getattr(getattr(hash, "config", None), "language", None)
   localized_summary = payload.get("localized_summary")
   if localized_summary is None:
     localized_summary = await async_build_feeding_compliance_summary(
-      hass,
+      hash,
       language,
       display_name=dog_name,
       compliance=cast(FeedingComplianceDisplayMapping, result),
@@ -378,7 +378,7 @@ async def async_publish_feeding_compliance_issue(
     )
 
     await async_create_issue(
-      hass,
+      hash,
       entry,
       issue_id,
       ISSUE_FEEDING_COMPLIANCE_NO_DATA,
@@ -429,7 +429,7 @@ async def async_publish_feeding_compliance_issue(
   delete_issue = getattr(ir, "async_delete_issue", None)
   if not has_issues:
     if callable(delete_issue):
-      delete_result = delete_issue(hass, DOMAIN, issue_id)
+      delete_result = delete_issue(hash, DOMAIN, issue_id)
       if isawaitable(delete_result):
         await delete_result
     return
@@ -487,7 +487,7 @@ async def async_publish_feeding_compliance_issue(
   )
 
   await async_create_issue(
-    hass,
+    hash,
     entry,
     issue_id,
     ISSUE_FEEDING_COMPLIANCE_ALERT,
@@ -496,14 +496,14 @@ async def async_publish_feeding_compliance_issue(
   )
 
 
-async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_check_for_issues(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Check for common issues and create repair flows if needed.
 
   This function performs comprehensive health checks and identifies
   potential configuration or operational issues that require user attention.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry to check
   """
   _LOGGER.debug(
@@ -513,42 +513,42 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
   try:
     # Check dog configuration issues
-    await _check_dog_configuration_issues(hass, entry)
+    await _check_dog_configuration_issues(hash, entry)
 
     # Check GPS configuration issues
-    await _check_gps_configuration_issues(hass, entry)
+    await _check_gps_configuration_issues(hash, entry)
 
     # Check push ingestion health (webhook/MQTT)
-    await _check_push_issues(hass, entry)
+    await _check_push_issues(hash, entry)
 
     # Check notification configuration issues
-    await _check_notification_configuration_issues(hass, entry)
+    await _check_notification_configuration_issues(hash, entry)
     # Check recurring notification delivery errors (auth/unreachable)
-    await _check_notification_delivery_errors(hass, entry)
+    await _check_notification_delivery_errors(hash, entry)
 
     # Check for outdated configuration
-    await _check_outdated_configuration(hass, entry)
+    await _check_outdated_configuration(hash, entry)
 
     # Check telemetry gathered during reconfigure flows
-    await _check_reconfigure_telemetry_issues(hass, entry)
+    await _check_reconfigure_telemetry_issues(hash, entry)
 
     # Check performance issues
-    await _check_performance_issues(hass, entry)
+    await _check_performance_issues(hash, entry)
 
     # Check storage issues
-    await _check_storage_issues(hass, entry)
+    await _check_storage_issues(hash, entry)
 
     # Check runtime store compatibility issues
-    await _check_runtime_store_health(hass, entry)
+    await _check_runtime_store_health(hash, entry)
 
     # Surface runtime store duration guard alerts
-    await _check_runtime_store_duration_alerts(hass, entry)
+    await _check_runtime_store_duration_alerts(hash, entry)
 
     # Publish cache health diagnostics
-    await _publish_cache_health_issue(hass, entry)
+    await _publish_cache_health_issue(hash, entry)
 
     # Check coordinator health
-    await _check_coordinator_health(hass, entry)
+    await _check_coordinator_health(hash, entry)
 
     _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
 
@@ -561,31 +561,31 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 
 async def async_schedule_repair_evaluation(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Schedule an asynchronous evaluation of repair issues for ``entry``."""
 
   async def _async_run_checks() -> None:
     try:
-      await async_check_for_issues(hass, entry)
+      await async_check_for_issues(hash, entry)
     except Exception as err:  # pragma: no cover - defensive guard
       _LOGGER.debug("Repair evaluation skipped due to error: %s", err)
 
-  hass.async_create_task(
+  hash.async_create_task(
     _async_run_checks(),
     name=f"{DOMAIN}-{entry.entry_id}-repair-evaluation",
   )
 
 
 async def _check_dog_configuration_issues(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Check for dog configuration issues.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
   """
   raw_dogs_obj = entry.data.get(CONF_DOGS, [])
@@ -601,7 +601,7 @@ async def _check_dog_configuration_issues(
   # Check for empty dog configuration
   if not dogs:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_no_dogs",
       ISSUE_MISSING_DOG_CONFIG,
@@ -626,7 +626,7 @@ async def _check_dog_configuration_issues(
 
   if duplicate_ids:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_duplicate_dogs",
       ISSUE_DUPLICATE_DOG_IDS,
@@ -649,7 +649,7 @@ async def _check_dog_configuration_issues(
 
   if invalid_dogs:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_invalid_dogs",
       ISSUE_INVALID_DOG_DATA,
@@ -662,13 +662,13 @@ async def _check_dog_configuration_issues(
 
 
 async def _check_gps_configuration_issues(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Check for GPS configuration issues.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
   """
   raw_dogs_obj = entry.data.get(CONF_DOGS, [])
@@ -697,7 +697,7 @@ async def _check_gps_configuration_issues(
   # Check for missing GPS source configuration
   if not gps_config.get("gps_source"):
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_missing_gps_source",
       ISSUE_INVALID_GPS_CONFIG,
@@ -717,7 +717,7 @@ async def _check_gps_configuration_issues(
   )
   if update_interval < 10:  # Less than 10 seconds
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_gps_update_too_frequent",
       ISSUE_GPS_UPDATE_INTERVAL,
@@ -729,14 +729,14 @@ async def _check_gps_configuration_issues(
     )
 
 
-async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_push_issues(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Check push ingestion telemetry and surface actionable issues.
 
   Issues created:
   - push_no_data: Push source selected but no accepted push seen after a grace period
   - push_rejections_high: High rejection counts (likely wrong dog_id/source, replay, rate limit)
   """
-  telemetry = get_entry_push_telemetry_snapshot(hass, entry.entry_id)
+  telemetry = get_entry_push_telemetry_snapshot(hash, entry.entry_id)
   dogs_tel = telemetry.get("dogs", {})
   created_at = telemetry.get("created_at")
   created_dt = (
@@ -769,7 +769,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
       for issue_type in (ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH):
         issue_id = f"{entry.entry_id}_{issue_type}_{dog_id}"
         if callable(delete_issue):
-          delete_result = delete_issue(hass, DOMAIN, issue_id)
+          delete_result = delete_issue(hash, DOMAIN, issue_id)
           if isawaitable(delete_result):
             await delete_result
       continue
@@ -800,7 +800,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     if should_no_data:
       await async_create_issue(
-        hass,
+        hash,
         entry,
         issue_id_no_data,
         ISSUE_PUSH_NO_DATA,
@@ -812,7 +812,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
         severity=ir.IssueSeverity.WARNING,
       )
     elif callable(delete_issue):
-      delete_result = delete_issue(hass, DOMAIN, issue_id_no_data)
+      delete_result = delete_issue(hash, DOMAIN, issue_id_no_data)
       if isawaitable(delete_result):
         await delete_result
 
@@ -822,7 +822,7 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     if should_rejections_high:
       await async_create_issue(
-        hass,
+        hash,
         entry,
         issue_id_rej,
         ISSUE_PUSH_REJECTIONS_HIGH,
@@ -837,19 +837,19 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
         severity=ir.IssueSeverity.WARNING,
       )
     elif callable(delete_issue):
-      delete_result = delete_issue(hass, DOMAIN, issue_id_rej)
+      delete_result = delete_issue(hash, DOMAIN, issue_id_rej)
       if isawaitable(delete_result):
         await delete_result
 
 
 async def _check_notification_configuration_issues(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Check for notification configuration issues.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
   """
   raw_dogs_obj = entry.data.get(CONF_DOGS, [])
@@ -886,13 +886,13 @@ async def _check_notification_configuration_issues(
   mobile_enabled_raw = notification_config.get("mobile_notifications", True)
   mobile_enabled = mobile_enabled_raw if isinstance(mobile_enabled_raw, bool) else True
   if mobile_enabled:
-    has_mobile_app_service = hass.services.has_service(
+    has_mobile_app_service = hash.services.has_service(
       "notify",
       "mobile_app",
     )
 
     if not has_mobile_app_service:
-      async_services = getattr(hass.services, "async_services", None)
+      async_services = getattr(hash.services, "async_services", None)
       if callable(async_services):
         notify_services: Any
         try:
@@ -907,7 +907,7 @@ async def _check_notification_configuration_issues(
 
     if not has_mobile_app_service:
       await async_create_issue(
-        hass,
+        hash,
         entry,
         f"{entry.entry_id}_mobile_app_missing",
         ISSUE_MISSING_NOTIFICATIONS,
@@ -945,7 +945,7 @@ def _coerce_int(value: object) -> int | None:
 
 
 async def _check_notification_delivery_errors(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Surface recurring notification delivery errors as repair issues.
@@ -1054,13 +1054,13 @@ async def _check_notification_delivery_errors(
   issue_ids.append(summary_issue["issue_id"])
 
   try:
-    runtime_data = require_runtime_data(hass, entry)
+    runtime_data = require_runtime_data(hash, entry)
   except RuntimeDataUnavailableError:
     # If runtime data is unavailable, remove any lingering issues
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
       for issue_id in issue_ids:
-        await delete_issue(hass, DOMAIN, issue_id)
+        await delete_issue(hash, DOMAIN, issue_id)
     return
 
   notification_manager = getattr(runtime_data, "notification_manager", None)
@@ -1068,7 +1068,7 @@ async def _check_notification_delivery_errors(
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
       for issue_id in issue_ids:
-        await delete_issue(hass, DOMAIN, issue_id)
+        await delete_issue(hash, DOMAIN, issue_id)
     return
 
   delivery_status = notification_manager.get_delivery_status_snapshot()
@@ -1076,7 +1076,7 @@ async def _check_notification_delivery_errors(
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
       for issue_id in issue_ids:
-        await delete_issue(hass, DOMAIN, issue_id)
+        await delete_issue(hash, DOMAIN, issue_id)
     return
 
   services = delivery_status.get("services")
@@ -1084,7 +1084,7 @@ async def _check_notification_delivery_errors(
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
       for issue_id in issue_ids:
-        await delete_issue(hass, DOMAIN, issue_id)
+        await delete_issue(hash, DOMAIN, issue_id)
     return
 
   # We consider an error recurring if there are >=3 consecutive failures
@@ -1151,7 +1151,7 @@ async def _check_notification_delivery_errors(
       ),
     }
     await async_create_issue(
-      hass,
+      hash,
       entry,
       summary_issue["issue_id"],
       summary_issue["issue_type"],
@@ -1159,13 +1159,13 @@ async def _check_notification_delivery_errors(
       severity=summary_issue["severity"],
     )
   elif callable(delete_issue):
-    await delete_issue(hass, DOMAIN, summary_issue["issue_id"])
+    await delete_issue(hash, DOMAIN, summary_issue["issue_id"])
 
   for classification, definition in issue_definitions.items():
     services_list = classified_services[classification]["services"]
     if not services_list:
       if callable(delete_issue):
-        await delete_issue(hass, DOMAIN, definition["issue_id"])
+        await delete_issue(hash, DOMAIN, definition["issue_id"])
       continue
     issue_data: JSONMutableMapping = {
       "classification": classification,
@@ -1185,7 +1185,7 @@ async def _check_notification_delivery_errors(
       ),
     }
     await async_create_issue(
-      hass,
+      hash,
       entry,
       definition["issue_id"],
       definition["issue_type"],
@@ -1195,19 +1195,19 @@ async def _check_notification_delivery_errors(
 
 
 async def _check_outdated_configuration(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Check for outdated configuration that needs migration.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
   """
   # Check config entry version
   if entry.version < CONFIG_ENTRY_VERSION:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_outdated_config",
       ISSUE_OUTDATED_CONFIG,
@@ -1220,7 +1220,7 @@ async def _check_outdated_configuration(
 
 
 async def _check_reconfigure_telemetry_issues(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Surface reconfigure warnings and health summaries via repairs."""
@@ -1236,8 +1236,8 @@ async def _check_reconfigure_telemetry_issues(
 
   if not isinstance(telemetry_raw, Mapping):
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, warnings_issue_id)
-      await delete_issue(hass, DOMAIN, health_issue_id)
+      await delete_issue(hash, DOMAIN, warnings_issue_id)
+      await delete_issue(hash, DOMAIN, health_issue_id)
     return
 
   telemetry = cast(ReconfigureTelemetry, telemetry_raw)
@@ -1256,7 +1256,7 @@ async def _check_reconfigure_telemetry_issues(
 
   if warnings:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       warnings_issue_id,
       ISSUE_RECONFIGURE_WARNINGS,
@@ -1269,7 +1269,7 @@ async def _check_reconfigure_telemetry_issues(
       severity=ir.IssueSeverity.WARNING,
     )
   elif callable(delete_issue):
-    await delete_issue(hass, DOMAIN, warnings_issue_id)
+    await delete_issue(hash, DOMAIN, warnings_issue_id)
 
   health_summary = telemetry.get("health_summary")
   if isinstance(health_summary, Mapping):
@@ -1284,7 +1284,7 @@ async def _check_reconfigure_telemetry_issues(
         else ir.IssueSeverity.WARNING
       )
       await async_create_issue(
-        hass,
+        hash,
         entry,
         health_issue_id,
         ISSUE_RECONFIGURE_HEALTH,
@@ -1297,16 +1297,16 @@ async def _check_reconfigure_telemetry_issues(
         severity=severity,
       )
     elif callable(delete_issue):
-      await delete_issue(hass, DOMAIN, health_issue_id)
+      await delete_issue(hash, DOMAIN, health_issue_id)
   elif callable(delete_issue):
-    await delete_issue(hass, DOMAIN, health_issue_id)
+    await delete_issue(hash, DOMAIN, health_issue_id)
 
 
-async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_performance_issues(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Check for performance-related issues.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
   """
   raw_dogs_obj = entry.data.get(CONF_DOGS, [])
@@ -1322,7 +1322,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
   # Check for too many dogs (performance warning)
   if len(dogs) > 10:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_too_many_dogs",
       ISSUE_PERFORMANCE_WARNING,
@@ -1345,7 +1345,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
 
   if len(dogs_with_all_modules) > 5:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_resource_intensive_config",
       ISSUE_MODULE_CONFLICT,
@@ -1358,11 +1358,11 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
     )
 
 
-async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_storage_issues(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Check for storage-related issues.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
   """
   # Check data retention settings
@@ -1378,7 +1378,7 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
 
   if retention_days > 365:  # More than 1 year
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_high_storage_retention",
       ISSUE_STORAGE_WARNING,
@@ -1391,11 +1391,11 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
     )
 
 
-async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_runtime_store_health(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Surface runtime store compatibility issues through repairs."""
 
   issue_id = f"{entry.entry_id}_runtime_store"
-  snapshot = describe_runtime_store_status(hass, entry)
+  snapshot = describe_runtime_store_status(hash, entry)
   status = snapshot.get("status", "current")
   severity = _RUNTIME_STORE_STATUS_SEVERITY.get(status)
 
@@ -1403,7 +1403,7 @@ async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -
 
   if severity is None:
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   entry_snapshot = snapshot.get("entry", {})
@@ -1437,7 +1437,7 @@ async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -
   )
 
   await async_create_issue(
-    hass,
+    hash,
     entry,
     issue_id,
     ISSUE_RUNTIME_STORE_COMPATIBILITY,
@@ -1527,25 +1527,25 @@ def _format_duration_summary(seconds: float) -> str:
 
 
 async def _check_runtime_store_duration_alerts(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> None:
   """Raise a repair issue when timeline durations exceed guard limits."""
 
   issue_id = f"{entry.entry_id}_runtime_store_duration_alerts"
   try:
-    runtime_data = require_runtime_data(hass, entry)
+    runtime_data = require_runtime_data(hash, entry)
   except RuntimeDataUnavailableError:
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   history = get_runtime_store_health(runtime_data)
   if not isinstance(history, Mapping):
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   timeline_summary = None
@@ -1563,7 +1563,7 @@ async def _check_runtime_store_duration_alerts(
   if not alerts:
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   severity = _resolve_duration_alert_severity(alerts)
@@ -1598,7 +1598,7 @@ async def _check_runtime_store_duration_alerts(
   issue_data["recommended_actions"] = recommendations or "n/a"
 
   await async_create_issue(
-    hass,
+    hash,
     entry,
     issue_id,
     ISSUE_RUNTIME_STORE_DURATION_ALERT,
@@ -1607,23 +1607,23 @@ async def _check_runtime_store_duration_alerts(
   )
 
 
-async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _publish_cache_health_issue(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Publish aggregated cache diagnostics to the repairs dashboard."""
 
   issue_id = f"{entry.entry_id}_cache_health"
   try:
-    runtime_data = require_runtime_data(hass, entry)
+    runtime_data = require_runtime_data(hash, entry)
   except RuntimeDataUnavailableError:
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   data_manager = getattr(runtime_data, "data_manager", None)
   if data_manager is None:
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   summary_method = getattr(data_manager, "cache_repair_summary", None)
@@ -1639,7 +1639,7 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
   if summary is None:
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   resolved_summary = ensure_cache_repair_aggregate(summary)
@@ -1655,12 +1655,12 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
   if summary.anomaly_count == 0:
     delete_issue = getattr(ir, "async_delete_issue", None)
     if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)
+      await delete_issue(hash, DOMAIN, issue_id)
     return
 
   severity = summary.severity or ir.IssueSeverity.WARNING.value
   await async_create_issue(
-    hass,
+    hash,
     entry,
     issue_id,
     ISSUE_CACHE_HEALTH_SUMMARY,
@@ -1669,18 +1669,18 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
   )
 
 
-async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_coordinator_health(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Check coordinator health and functionality.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
   """
   try:
-    runtime_data = require_runtime_data(hass, entry)
+    runtime_data = require_runtime_data(hash, entry)
   except RuntimeDataUnavailableError:
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_coordinator_missing",
       ISSUE_COORDINATOR_ERROR,
@@ -1700,7 +1700,7 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
   if not getattr(coordinator, "last_update_success", True):
     last_update_time = getattr(coordinator, "last_update_time", None)
     await async_create_issue(
-      hass,
+      hash,
       entry,
       f"{entry.entry_id}_coordinator_failed",
       ISSUE_COORDINATOR_ERROR,
@@ -1736,7 +1736,7 @@ class PawControlRepairsFlow(RepairsFlow):
     """
     self._issue_data = cast(
       JSONMutableMapping,
-      self.hass.data[ir.DOMAIN][self.issue_id].data,
+      self.hash.data[ir.DOMAIN][self.issue_id].data,
     )
     issue_type_raw = self._issue_data.get("issue_type", "")
     self._repair_type = (
@@ -1871,7 +1871,7 @@ class PawControlRepairsFlow(RepairsFlow):
           else:
             # Get the config entry and update it
             config_entry_id = self._issue_data["config_entry_id"]
-            entry = self.hass.config_entries.async_get_entry(
+            entry = self.hash.config_entries.async_get_entry(
               config_entry_id,
             )
 
@@ -1905,7 +1905,7 @@ class PawControlRepairsFlow(RepairsFlow):
             new_data = entry.data.copy()
             new_data[CONF_DOGS] = [new_dog]
 
-            self.hass.config_entries.async_update_entry(
+            self.hash.config_entries.async_update_entry(
               entry,
               data=new_data,
             )
@@ -2077,7 +2077,7 @@ class PawControlRepairsFlow(RepairsFlow):
       try:
         # Update GPS configuration
         config_entry_id = self._issue_data["config_entry_id"]
-        entry = self.hass.config_entries.async_get_entry(
+        entry = self.hash.config_entries.async_get_entry(
           config_entry_id,
         )
 
@@ -2091,7 +2091,7 @@ class PawControlRepairsFlow(RepairsFlow):
             },
           )
 
-          self.hass.config_entries.async_update_entry(
+          self.hash.config_entries.async_update_entry(
             entry,
             options=new_options,
           )
@@ -2755,7 +2755,7 @@ class PawControlRepairsFlow(RepairsFlow):
         Flow result indicating completion
     """
     # Remove the issue from the issue registry
-    await ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
+    await ir.async_delete_issue(self.hash, DOMAIN, self.issue_id)
 
     return self.async_create_entry(
       title="Repair completed",
@@ -2781,7 +2781,7 @@ class PawControlRepairsFlow(RepairsFlow):
   async def _fix_duplicate_dog_ids(self) -> None:
     """Automatically fix duplicate dog IDs."""
     config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+    entry = self.hash.config_entries.async_get_entry(config_entry_id)
 
     if not entry:
       return
@@ -2811,12 +2811,12 @@ class PawControlRepairsFlow(RepairsFlow):
     new_data = entry.data.copy()
     new_data[CONF_DOGS] = fixed_dogs
 
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
+    self.hash.config_entries.async_update_entry(entry, data=new_data)
 
   async def _disable_gps_for_all_dogs(self) -> None:
     """Disable GPS module for all dogs."""
     config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+    entry = self.hash.config_entries.async_get_entry(config_entry_id)
 
     if not entry:
       return
@@ -2833,12 +2833,12 @@ class PawControlRepairsFlow(RepairsFlow):
     new_data = entry.data.copy()
     new_data[CONF_DOGS] = updated_dogs
 
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
+    self.hash.config_entries.async_update_entry(entry, data=new_data)
 
   async def _disable_mobile_notifications(self) -> None:
     """Disable mobile app notifications."""
     config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+    entry = self.hash.config_entries.async_get_entry(config_entry_id)
 
     if not entry:
       return
@@ -2847,12 +2847,12 @@ class PawControlRepairsFlow(RepairsFlow):
     notifications = new_options.setdefault("notifications", {})
     notifications["mobile_notifications"] = False
 
-    self.hass.config_entries.async_update_entry(entry, options=new_options)
+    self.hash.config_entries.async_update_entry(entry, options=new_options)
 
   async def _apply_performance_optimizations(self) -> None:
     """Apply automatic performance optimizations."""
     config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+    entry = self.hash.config_entries.async_get_entry(config_entry_id)
 
     if not entry:
       return
@@ -2876,7 +2876,7 @@ class PawControlRepairsFlow(RepairsFlow):
       30,
     )
 
-    self.hass.config_entries.async_update_entry(entry, options=new_options)
+    self.hash.config_entries.async_update_entry(entry, options=new_options)
 
   async def _reduce_data_retention(self) -> None:
     """Reduce stored history to the recommended value."""
@@ -2885,7 +2885,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not config_entry_id:
       return
 
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+    entry = self.hash.config_entries.async_get_entry(config_entry_id)
     if not entry:
       return
 
@@ -2898,7 +2898,7 @@ class PawControlRepairsFlow(RepairsFlow):
       return
 
     new_options["data_retention_days"] = recommended_max
-    self.hass.config_entries.async_update_entry(entry, options=new_options)
+    self.hash.config_entries.async_update_entry(entry, options=new_options)
 
   async def _limit_high_resource_modules(self) -> None:
     """Disable heavy modules for dogs beyond the recommended threshold."""
@@ -2907,7 +2907,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not config_entry_id:
       return
 
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+    entry = self.hash.config_entries.async_get_entry(config_entry_id)
     if not entry:
       return
 
@@ -2986,7 +2986,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     new_data = entry.data.copy()
     new_data[CONF_DOGS] = updated_dogs
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
+    self.hash.config_entries.async_update_entry(entry, data=new_data)
 
   async def _remove_invalid_dogs(self) -> None:
     """Remove dogs that are missing required identifiers."""
@@ -2995,7 +2995,7 @@ class PawControlRepairsFlow(RepairsFlow):
     if not config_entry_id:
       return
 
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+    entry = self.hash.config_entries.async_get_entry(config_entry_id)
     if not entry:
       return
 
@@ -3009,7 +3009,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     new_data = entry.data.copy()
     new_data[CONF_DOGS] = valid_dogs
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
+    self.hash.config_entries.async_update_entry(entry, data=new_data)
 
   async def _reload_config_entry(self) -> bool:
     """Reload the integration config entry to recover from coordinator errors."""
@@ -3022,7 +3022,7 @@ class PawControlRepairsFlow(RepairsFlow):
       return False
 
     try:
-      result = await self.hass.config_entries.async_reload(config_entry_id)
+      result = await self.hash.config_entries.async_reload(config_entry_id)
     except Exception as err:  # pragma: no cover - defensive logging
       _LOGGER.error(
         "Error reloading config entry %s during repair flow: %s",
@@ -3042,7 +3042,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
 
 async def async_create_fix_flow(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   issue_id: str,
   data: JSONLikeMapping | None,
 ) -> PawControlRepairsFlow:
@@ -3054,7 +3054,7 @@ async def async_create_fix_flow(
   returns a :class:`~homeassistant.components.repairs.RepairsFlow` instance.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       issue_id: Identifier of the repair issue
       data: Issue metadata provided by the registry
 
@@ -3064,14 +3064,14 @@ async def async_create_fix_flow(
   return PawControlRepairsFlow()
 
 
-async def async_register_repairs(hass: HomeAssistant) -> None:
+async def async_register_repairs(hash: HomeAssistant) -> None:
   """Register initial repair checks for Paw Control integration."""
   _LOGGER.debug("Registering Paw Control repair checks")
 
   # Iterate over all loaded entries and run checks for those with runtime data
-  for entry in hass.config_entries.async_entries(DOMAIN):
+  for entry in hash.config_entries.async_entries(DOMAIN):
     try:
-      require_runtime_data(hass, entry)
+      require_runtime_data(hash, entry)
     except RuntimeDataUnavailableError:
       continue
-    await async_check_for_issues(hass, entry)
+    await async_check_for_issues(hash, entry)

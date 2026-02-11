@@ -618,14 +618,14 @@ class WalkDetectionState:
 class DoorSensorManager:
   """Manager for door sensor based walk detection."""
 
-  def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+  def __init__(self, hash: HomeAssistant, entry_id: str) -> None:
     """Initialize door sensor manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         entry_id: Configuration entry ID
     """
-    self.hass = hass
+    self.hash = hash
     self.entry_id = entry_id
 
     # Configuration and state tracking
@@ -685,7 +685,7 @@ class DoorSensorManager:
     if self._data_manager is not None:
       return self._data_manager
 
-    runtime_data = get_runtime_data(self.hass, self.entry_id)
+    runtime_data = get_runtime_data(self.hash, self.entry_id)
     if runtime_data is None:
       return None
 
@@ -895,7 +895,7 @@ class DoorSensorManager:
         True if entity is valid and available
     """
     # Check entity registry
-    registry = er.async_get(self.hass)
+    registry = er.async_get(self.hash)
     registry_entry = registry.async_get(entity_id)
 
     if registry_entry and registry_entry.disabled_by:
@@ -903,7 +903,7 @@ class DoorSensorManager:
       return False
 
     # Check current state
-    state = self.hass.states.get(entity_id)
+    state = self.hash.states.get(entity_id)
     if state is None:
       _LOGGER.warning("Door sensor %s state not available", entity_id)
       return False
@@ -932,7 +932,7 @@ class DoorSensorManager:
 
     # Register state change listener
     listener = async_track_state_change_event(
-      self.hass,
+      self.hash,
       sensor_entities,
       handle_state_change,
     )
@@ -1200,7 +1200,7 @@ class DoorSensorManager:
 
       # Fire walk started event
       await async_fire_event(
-        self.hass,
+        self.hash,
         EVENT_WALK_STARTED,
         {
           "dog_id": config.dog_id,
@@ -1311,7 +1311,7 @@ class DoorSensorManager:
 
       # Fire walk ended event
       await async_fire_event(
-        self.hass,
+        self.hash,
         EVENT_WALK_ENDED,
         {
           "dog_id": config.dog_id,

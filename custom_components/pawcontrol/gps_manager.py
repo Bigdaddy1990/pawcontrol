@@ -401,13 +401,13 @@ def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> flo
 class GPSGeofenceManager:
   """Manages GPS tracking and geofencing for PawControl dogs."""
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hash: HomeAssistant) -> None:
     """Initialize GPS and geofencing manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
     """
-    self.hass = hass
+    self.hash = hash
     self._dog_configs: dict[str, GPSTrackingConfig] = {}
     self._active_routes: dict[str, WalkRoute] = {}
     self._geofence_zones: dict[str, list[GeofenceZone]] = {}
@@ -421,7 +421,7 @@ class GPSGeofenceManager:
     self._notification_manager: PawControlNotificationManager | None = None
 
     # RESILIENCE: Initialize resilience manager for GPS operations
-    self.resilience_manager = ResilienceManager(hass)
+    self.resilience_manager = ResilienceManager(hash)
     self._gps_retry_config = RetryConfig(
       max_attempts=3,  # 2 retries (3 total attempts)
       initial_delay=0.5,
@@ -1060,14 +1060,14 @@ class GPSGeofenceManager:
     task_name = f"pawcontrol_gps_tracking_{dog_id}"
     task_handle: asyncio.Task[Any] | None = None
 
-    hass_create_task = getattr(self.hass, "async_create_task", None)
-    hass_coroutine: Coroutine[Any, Any, None] | None = None
-    if callable(hass_create_task):
-      hass_coroutine = _loop_factory()
+    hash_create_task = getattr(self.hash, "async_create_task", None)
+    hash_coroutine: Coroutine[Any, Any, None] | None = None
+    if callable(hash_create_task):
+      hash_coroutine = _loop_factory()
       try:
-        scheduled = hass_create_task(hass_coroutine, name=task_name)
+        scheduled = hash_create_task(hash_coroutine, name=task_name)
       except TypeError:
-        scheduled = hass_create_task(hass_coroutine)
+        scheduled = hash_create_task(hash_coroutine)
       except Exception as err:  # pragma: no cover - defensive guard
         _LOGGER.debug(
           "Home Assistant task scheduling failed for %s: %s",
@@ -1078,12 +1078,12 @@ class GPSGeofenceManager:
       else:
         task_handle = await _resolve_task(scheduled)
 
-      if task_handle is None and hass_coroutine is not None:
-        hass_coroutine.close()
-        hass_coroutine = None
+      if task_handle is None and hash_coroutine is not None:
+        hash_coroutine.close()
+        hash_coroutine = None
 
     if task_handle is None:
-      loop = getattr(self.hass, "loop", None)
+      loop = getattr(self.hash, "loop", None)
       if loop is not None:
         try:
           task_handle = loop.create_task(
@@ -1136,8 +1136,8 @@ class GPSGeofenceManager:
     async def _fetch_device_tracker_location() -> None:
       """Internal function to fetch location - wrapped by retry logic."""
       # Try to find device tracker entity for this dog
-      entity_registry = er.async_get(self.hass)
-      dr.async_get(self.hass)
+      entity_registry = er.async_get(self.hash)
+      dr.async_get(self.hash)
 
       # Look for device tracker entities that might belong to this dog
       for entity in entity_registry.entities.values():
@@ -1145,7 +1145,7 @@ class GPSGeofenceManager:
           entity.platform == "device_tracker"
           and dog_id.lower() in (entity.name or "").lower()
         ):
-          state = self.hass.states.get(entity.entity_id)
+          state = self.hash.states.get(entity.entity_id)
           if state and state.state not in ["unavailable", "unknown"]:
             # Extract GPS coordinates
             lat = state.attributes.get("latitude")
@@ -1258,15 +1258,15 @@ class GPSGeofenceManager:
           event.duration_outside.total_seconds(),
         )
 
-      hass_event = {
+      hash_event = {
         GeofenceEventType.ENTERED: EVENT_GEOFENCE_ENTERED,
         GeofenceEventType.EXITED: EVENT_GEOFENCE_LEFT,
         GeofenceEventType.BREACH: EVENT_GEOFENCE_BREACH,
         GeofenceEventType.RETURN: EVENT_GEOFENCE_RETURN,
       }[event.event_type]
       await async_fire_event(
-        self.hass,
-        hass_event,
+        self.hash,
+        hash_event,
         cast(JSONMapping, event_payload),
       )
 

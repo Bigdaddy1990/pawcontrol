@@ -365,19 +365,19 @@ class _GardenConfirmationRecord(TypedDict):
 class GardenManager:
   """Manager for garden activity tracking and monitoring."""
 
-  def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+  def __init__(self, hash: HomeAssistant, entry_id: str) -> None:
     """Initialize garden manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         entry_id: Configuration entry ID
     """
-    self.hass = hass
+    self.hash = hash
     self.entry_id = entry_id
 
     # Storage for garden data
     self._store: Store[GardenStorageData] = Store(
-      hass,
+      hash,
       STORAGE_VERSION,
       f"{DOMAIN}_{entry_id}_garden",
     )
@@ -523,12 +523,12 @@ class GardenManager:
   ) -> asyncio.Task[None]:
     """Create a named asyncio task using Home Assistant when available."""
 
-    hass_create_task = getattr(self.hass, "async_create_task", None)
-    if callable(hass_create_task):
+    hash_create_task = getattr(self.hash, "async_create_task", None)
+    if callable(hash_create_task):
       try:
-        task = hass_create_task(coro, name=name)
+        task = hash_create_task(coro, name=name)
       except TypeError:
-        task = hass_create_task(coro)
+        task = hash_create_task(coro)
     else:
       try:
         task = asyncio.create_task(coro, name=name)
@@ -653,7 +653,7 @@ class GardenManager:
 
     # Fire garden entered event
     await async_fire_event(
-      self.hass,
+      self.hash,
       EVENT_GARDEN_ENTERED,
       {
         "dog_id": dog_id,
@@ -754,7 +754,7 @@ class GardenManager:
 
     # Fire garden left event
     await async_fire_event(
-      self.hass,
+      self.hash,
       EVENT_GARDEN_LEFT,
       {
         "dog_id": dog_id,
@@ -844,7 +844,7 @@ class GardenManager:
 
     export_dir = (
       Path(
-        getattr(self.hass.config, "config_dir", "."),
+        getattr(self.hash.config, "config_dir", "."),
       )
       / DOMAIN
     )
@@ -879,7 +879,7 @@ class GardenManager:
             writer.writeheader()
           writer.writerows(payload_entries)
 
-      await self.hass.async_add_executor_job(_write_csv)
+      await self.hash.async_add_executor_job(_write_csv)
     elif normalized_format in {"markdown", "md", "txt"}:
 
       def _write_markdown() -> None:
@@ -890,7 +890,7 @@ class GardenManager:
         )
         export_path.write_text("\n".join(lines), encoding="utf-8")
 
-      await self.hass.async_add_executor_job(_write_markdown)
+      await self.hash.async_add_executor_job(_write_markdown)
     else:
 
       def _write_json() -> None:
@@ -910,7 +910,7 @@ class GardenManager:
           encoding="utf-8",
         )
 
-      await self.hass.async_add_executor_job(_write_json)
+      await self.hash.async_add_executor_job(_write_json)
 
     return export_path
 

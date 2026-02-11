@@ -299,13 +299,13 @@ async def _async_add_entities_in_batches(
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
   """Set up PawControl switch platform with profile-based optimization."""
 
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   if runtime_data is None:
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
@@ -358,14 +358,14 @@ async def async_setup_entry(
 
 
 async def async_reproduce_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   states: Sequence[State],
   *,
   context: Context | None = None,
 ) -> None:
   """Reproduce switch states for PawControl entities."""
   await async_reproduce_platform_states(
-    hass,
+    hash,
     states,
     "switch",
     _preprocess_switch_state,
@@ -386,7 +386,7 @@ def _preprocess_switch_state(state: State) -> str | None:
 
 
 async def _async_reproduce_switch_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   state: State,
   current_state: State,
   target_state: str,
@@ -396,7 +396,7 @@ async def _async_reproduce_switch_state(
     return
 
   service = SERVICE_TURN_ON if target_state == STATE_ON else SERVICE_TURN_OFF
-  await hass.services.async_call(
+  await hash.services.async_call(
     switch_component.DOMAIN,
     service,
     {ATTR_ENTITY_ID: state.entity_id},
@@ -462,9 +462,9 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
       sw_version=DEFAULT_SW_VERSION,
     )
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hash(self) -> None:
     """Restore state when added with enhanced logging."""
-    await super().async_added_to_hass()
+    await super().async_added_to_hash()
 
     # Restore previous state
     if (last_state := await self.async_get_last_state()) and last_state.state in (
@@ -526,7 +526,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
       self._is_on = True
       self._last_changed = dt_util.utcnow()
       self._update_cache(True)
-      if self.hass is not None:
+      if self.hash is not None:
         self.async_write_ha_state()
 
       _LOGGER.debug(
@@ -553,7 +553,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
       self._is_on = False
       self._last_changed = dt_util.utcnow()
       self._update_cache(False)
-      if self.hass is not None:
+      if self.hash is not None:
         self.async_write_ha_state()
 
       _LOGGER.debug(
@@ -632,8 +632,8 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
 
   async def _async_set_state(self, state: bool) -> None:
     """Set main power state with system-wide impact."""
-    if self.hass is None:
-      _LOGGER.debug("Skipping main power update; hass not available")
+    if self.hash is None:
+      _LOGGER.debug("Skipping main power update; hash not available")
       return
 
     try:
@@ -677,8 +677,8 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
 
   async def _async_set_state(self, state: bool) -> None:
     """Set DND state with notification impact."""
-    if self.hass is None:
-      _LOGGER.debug("Skipping DND update; hass not available")
+    if self.hash is None:
+      _LOGGER.debug("Skipping DND update; hash not available")
       return
 
     try:
@@ -726,7 +726,7 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
 
   async def _async_set_state(self, state: bool) -> None:
     """Set visitor mode with service call."""
-    if not await self._async_call_hass_service(
+    if not await self._async_call_hash_service(
       DOMAIN,
       "set_visitor_mode",
       {
@@ -759,16 +759,16 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
   ) -> None:
     """Initialise a toggle for enabling or disabling a module."""
     self._module_id = module_id
-    hass_language: str | None = None
-    hass_obj = getattr(coordinator, "hass", None)
-    config_obj = getattr(hass_obj, "config", None) if hass_obj else None
+    hash_language: str | None = None
+    hash_obj = getattr(coordinator, "hash", None)
+    config_obj = getattr(hash_obj, "config", None) if hash_obj else None
     if config_obj is not None:
-      hass_language = getattr(config_obj, "language", None)
+      hash_language = getattr(config_obj, "language", None)
 
     if module_id == MODULE_GROOMING:
       display_name = translated_grooming_label(
-        hass_obj,
-        hass_language,
+        hash_obj,
+        hash_language,
         "module_switch",
       )
     else:
@@ -789,9 +789,9 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
 
   async def _async_set_state(self, state: bool) -> None:
     """Set module state with config update."""
-    hass = self.hass
-    if hass is None:
-      _LOGGER.debug("Skipping module state update; hass not available")
+    hash = self.hash
+    if hash is None:
+      _LOGGER.debug("Skipping module state update; hash not available")
       return
 
     try:
@@ -819,7 +819,7 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
 
       new_data[CONF_DOGS] = dogs_data
 
-      hass.config_entries.async_update_entry(
+      hash.config_entries.async_update_entry(
         self.coordinator.config_entry,
         data=new_data,
       )
@@ -867,16 +867,16 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     self._feature_id = feature_id
     self._module = module
 
-    hass_language: str | None = None
-    hass_obj = getattr(coordinator, "hass", None)
-    config_obj = getattr(hass_obj, "config", None) if hass_obj else None
+    hash_language: str | None = None
+    hash_obj = getattr(coordinator, "hash", None)
+    config_obj = getattr(hash_obj, "config", None) if hash_obj else None
     if config_obj is not None:
-      hass_language = getattr(config_obj, "language", None)
+      hash_language = getattr(config_obj, "language", None)
 
     if module == MODULE_GROOMING:
       display_name = translated_grooming_label(
-        hass_obj,
-        hass_language,
+        hash_obj,
+        hash_language,
         f"feature_{feature_id}",
       )
     else:
@@ -909,9 +909,9 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
   async def _async_set_state(self, state: bool) -> None:
     """Set feature state with module-specific handling."""
-    if self.hass is None:
+    if self.hash is None:
       _LOGGER.debug(
-        "Skipping feature state update for %s; hass not available",
+        "Skipping feature state update for %s; hash not available",
         self._feature_id,
       )
       return
@@ -959,7 +959,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
   async def _set_notifications(self, state: bool) -> None:
     """Handle notifications state."""
-    await self._async_call_hass_service(
+    await self._async_call_hash_service(
       DOMAIN,
       "configure_alerts",
       {
@@ -974,7 +974,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
   async def _set_feeding_schedule(self, state: bool) -> None:
     """Handle feeding schedule state."""
-    await self._async_call_hass_service(
+    await self._async_call_hash_service(
       DOMAIN,
       "set_feeding_schedule",
       {
@@ -986,7 +986,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
   async def _set_health_monitoring(self, state: bool) -> None:
     """Handle health monitoring state."""
-    await self._async_call_hass_service(
+    await self._async_call_hash_service(
       DOMAIN,
       "configure_health_monitoring",
       {
@@ -998,7 +998,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
   async def _set_medication_reminders(self, state: bool) -> None:
     """Handle medication reminders state."""
-    await self._async_call_hass_service(
+    await self._async_call_hash_service(
       DOMAIN,
       "configure_medication_reminders",
       {

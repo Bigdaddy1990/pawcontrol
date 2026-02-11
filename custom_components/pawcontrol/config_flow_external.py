@@ -91,7 +91,7 @@ if TYPE_CHECKING:
     _dogs: list[DogConfigData]
     _enabled_modules: DogModulesConfig
     _external_entities: ExternalEntityConfig
-    hass: HomeAssistant
+    hash: HomeAssistant
 
     async def async_step_final_setup(
       self,
@@ -141,7 +141,7 @@ class ExternalEntityConfigurationMixin:
   """
 
   if TYPE_CHECKING:
-    hass: HomeAssistant
+    hash: HomeAssistant
     _dogs: list[DogConfigData]
     _enabled_modules: DogModulesConfig
     _external_entities: ExternalEntityConfig
@@ -395,7 +395,7 @@ class ExternalEntityConfigurationMixin:
     if not gps_source:
       return {}
     validated = validate_gps_source(
-      self.hass,
+      self.hash,
       gps_source,
       field=CONF_GPS_SOURCE,
       allow_manual=True,
@@ -407,7 +407,7 @@ class ExternalEntityConfigurationMixin:
     if not door_sensor:
       return {}
     validated = validate_sensor_entity_id(
-      self.hass,
+      self.hash,
       door_sensor,
       field=CONF_DOOR_SENSOR,
       domain="binary_sensor",
@@ -426,7 +426,7 @@ class ExternalEntityConfigurationMixin:
     if not notify_service:
       return {}
     validated = validate_notify_service(
-      self.hass,
+      self.hash,
       notify_service,
       field=CONF_NOTIFY_FALLBACK,
     )

@@ -457,13 +457,13 @@ async def retry_with_backoff[T](
 class ResilienceManager:
   """Centralized resilience management for PawControl integration."""
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hash: HomeAssistant) -> None:
     """Initialize resilience manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
     """
-    self.hass = hass
+    self.hash = hash
     self._circuit_breakers: dict[str, CircuitBreaker] = {}
     self._lock = asyncio.Lock()
 

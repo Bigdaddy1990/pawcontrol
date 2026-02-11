@@ -19,7 +19,7 @@ from custom_components.pawcontrol.utils import (
 
 @pytest.mark.asyncio
 async def test_remove_config_entry_device_blocks_configured_dog(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Ensure configured dogs are not removed from the device registry."""
 
@@ -39,14 +39,14 @@ async def test_remove_config_entry_device_blocks_configured_dog(
     identifiers={(DOMAIN, sanitize_dog_id("Buddy 1"))},
   )
 
-  result = await async_remove_config_entry_device(hass, entry, device_entry)
+  result = await async_remove_config_entry_device(hash, entry, device_entry)
 
   assert result is False
 
 
 @pytest.mark.asyncio
 async def test_remove_config_entry_device_allows_orphaned_device(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Allow removal when no configured dogs match the device identifiers."""
 
@@ -66,21 +66,21 @@ async def test_remove_config_entry_device_allows_orphaned_device(
     identifiers={(DOMAIN, sanitize_dog_id("Echo"))},
   )
 
-  result = await async_remove_config_entry_device(hass, entry, device_entry)
+  result = await async_remove_config_entry_device(hash, entry, device_entry)
 
   assert result is True
 
 
 @pytest.mark.asyncio
 async def test_async_get_or_create_dog_device_entry_updates_metadata(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Verify dog devices are created and updated dynamically."""
 
-  dr.async_get(hass)
+  dr.async_get(hash)
 
   device = await async_get_or_create_dog_device_entry(
-    hass,
+    hash,
     config_entry_id="entry-1",
     dog_id="Fido 99",
     dog_name="Fido",
@@ -104,7 +104,7 @@ async def test_async_get_or_create_dog_device_entry_updates_metadata(
   assert ("microchip", "ABC123") in device.identifiers
 
   updated = await async_get_or_create_dog_device_entry(
-    hass,
+    hash,
     config_entry_id="entry-1",
     dog_id="Fido 99",
     dog_name="Fido",

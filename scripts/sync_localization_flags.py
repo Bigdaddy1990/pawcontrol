@@ -20,7 +20,7 @@ _SOURCE_PREFIX = "setup_flags_panel_source_"
 _LANGUAGE_LABELS = {
   "en": "Englisch",
   "de": "Deutsch",
-  "es": "Spanisch",
+  "es": "Spanish",
   "fr": "Französisch",
 }
 

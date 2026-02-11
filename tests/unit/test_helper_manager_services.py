@@ -38,9 +38,9 @@ async def test_helper_manager_creates_typed_helper_services(
 ) -> None:
   """Helper creation should emit strictly typed service payloads."""
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
-  manager = PawControlHelperManager(hass, entry)
+  manager = PawControlHelperManager(hash, entry)
 
   class _DummyRegistry:
     def async_get(self, entity_id: str) -> None:
@@ -48,13 +48,13 @@ async def test_helper_manager_creates_typed_helper_services(
 
   monkeypatch.setattr(
     "custom_components.pawcontrol.helper_manager.er.async_get",
-    lambda hass_instance: _DummyRegistry(),
+    lambda hash_instance: _DummyRegistry(),
   )
 
   captured: list[CapturedServiceCall] = []
 
   async def _capture_service_call(
-    hass_instance: Any,
+    hash_instance: Any,
     domain: str,
     service: str,
     service_data: ServiceData,
@@ -83,7 +83,7 @@ async def test_helper_manager_creates_typed_helper_services(
     )
 
   monkeypatch.setattr(
-    "custom_components.pawcontrol.helper_manager.async_call_hass_service_if_available",
+    "custom_components.pawcontrol.helper_manager.async_call_hash_service_if_available",
     _capture_service_call,
   )
 

@@ -307,19 +307,19 @@ class DogLocationState:
 class PawControlGeofencing:
   """Comprehensive geofencing system for PawControl integration."""
 
-  def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+  def __init__(self, hash: HomeAssistant, entry_id: str) -> None:
     """Initialize geofencing system.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         entry_id: Configuration entry ID
     """
-    self.hass = hass
+    self.hash = hash
     self.entry_id = entry_id
 
     # Storage for zones and state
     self._store = Store(
-      hass,
+      hash,
       STORAGE_VERSION,
       f"{DOMAIN}_{entry_id}_geofencing",
     )
@@ -447,7 +447,7 @@ class PawControlGeofencing:
   async def _create_home_zone(self) -> None:
     """Create home zone based on Home Assistant location."""
     try:
-      home_location = self.hass.config.location
+      home_location = self.hash.config.location
       if home_location:
         home_zone = GeofenceZone(
           id="home",
@@ -479,12 +479,12 @@ class PawControlGeofencing:
       return
 
     # Start location checking task
-    self._update_task = self.hass.async_create_task(
+    self._update_task = self.hash.async_create_task(
       self._monitoring_loop(),
     )
 
     # Start cleanup task
-    self._cleanup_task = self.hass.async_create_task(self._cleanup_loop())
+    self._cleanup_task = self.hash.async_create_task(self._cleanup_loop())
 
     _LOGGER.debug("Started geofencing monitoring tasks")
 
@@ -628,9 +628,9 @@ class PawControlGeofencing:
 
     # Fire Home Assistant event
     if event == GeofenceEvent.ENTERED:
-      await async_fire_event(self.hass, EVENT_GEOFENCE_ENTERED, event_data)
+      await async_fire_event(self.hash, EVENT_GEOFENCE_ENTERED, event_data)
     elif event == GeofenceEvent.LEFT:
-      await async_fire_event(self.hass, EVENT_GEOFENCE_LEFT, event_data)
+      await async_fire_event(self.hash, EVENT_GEOFENCE_LEFT, event_data)
 
     _LOGGER.info(
       "Geofence event: %s %s %s zone '%s'",
@@ -641,7 +641,7 @@ class PawControlGeofencing:
     )
 
     if self._notification_manager:
-      self.hass.async_create_task(
+      self.hash.async_create_task(
         self._notify_zone_event(dog_id, zone, event, location),
         name=f"pawcontrol_geofence_notify_{dog_id}_{zone_id}",
       )

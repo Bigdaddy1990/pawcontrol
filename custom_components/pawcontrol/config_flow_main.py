@@ -1523,7 +1523,7 @@ class PawControlConfigFlow(
 
     entry_id = self.context.get("entry_id")
     entry = (
-      self.hass.config_entries.async_get_entry(entry_id)
+      self.hash.config_entries.async_get_entry(entry_id)
       if entry_id is not None
       else None
     )

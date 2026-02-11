@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     @property
     def _entry(self) -> ConfigEntry: ...
 
-    hass: Any
+    hash: Any
 
     def __getattr__(self, name: str) -> Any: ...
 
@@ -165,7 +165,7 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
                 new_dogs.append(normalised)
 
             new_data = {**self._entry.data, CONF_DOGS: new_dogs}
-            self.hass.config_entries.async_update_entry(
+            self.hash.config_entries.async_update_entry(
               self._entry,
               data=new_data,
             )

@@ -18,7 +18,7 @@ from custom_components.pawcontrol.types import PawControlRuntimeData
 
 
 async def _setup_runtime_data(
-  hass,
+  hash,
   config_entry,
   coordinator,
   tmp_path,
@@ -26,9 +26,9 @@ async def _setup_runtime_data(
   feeding_manager: MagicMock | None = None,
   walk_manager: MagicMock | None = None,
 ) -> PawControlDataManager:
-  hass.config.config_dir = str(tmp_path)
+  hash.config.config_dir = str(tmp_path)
   data_manager = PawControlDataManager(
-    hass,
+    hash,
     coordinator=coordinator,
     dogs_config=config_entry.data["dogs"],
   )
@@ -44,19 +44,19 @@ async def _setup_runtime_data(
     entity_profile="standard",
     dogs=config_entry.data["dogs"],
   )
-  store_runtime_data(hass, config_entry, runtime_data)
+  store_runtime_data(hash, config_entry, runtime_data)
   return data_manager
 
 
 @pytest.mark.asyncio
 async def test_default_meal_type_select_persists_config(
-  mock_hass,
+  mock_hash,
   mock_config_entry,
   mock_coordinator,
   tmp_path,
 ) -> None:
   data_manager = await _setup_runtime_data(
-    mock_hass,
+    mock_hash,
     mock_config_entry,
     mock_coordinator,
     tmp_path,
@@ -66,7 +66,7 @@ async def test_default_meal_type_select_persists_config(
     "test_dog",
     "Buddy",
   )
-  select.hass = mock_hass
+  select.hash = mock_hash
 
   await select.async_select_option("breakfast")
 
@@ -80,14 +80,14 @@ async def test_default_meal_type_select_persists_config(
 
 @pytest.mark.asyncio
 async def test_feeding_mode_select_persists_config_and_refreshes(
-  mock_hass,
+  mock_hash,
   mock_config_entry,
   mock_coordinator,
   tmp_path,
 ) -> None:
   mock_coordinator.async_refresh_dog = AsyncMock()
   data_manager = await _setup_runtime_data(
-    mock_hass,
+    mock_hash,
     mock_config_entry,
     mock_coordinator,
     tmp_path,
@@ -97,7 +97,7 @@ async def test_feeding_mode_select_persists_config_and_refreshes(
     "test_dog",
     "Buddy",
   )
-  select.hass = mock_hass
+  select.hash = mock_hash
 
   await select.async_select_option("scheduled")
 
@@ -108,13 +108,13 @@ async def test_feeding_mode_select_persists_config_and_refreshes(
 
 @pytest.mark.asyncio
 async def test_walk_mode_select_persists_config(
-  mock_hass,
+  mock_hash,
   mock_config_entry,
   mock_coordinator,
   tmp_path,
 ) -> None:
   data_manager = await _setup_runtime_data(
-    mock_hass,
+    mock_hash,
     mock_config_entry,
     mock_coordinator,
     tmp_path,
@@ -124,7 +124,7 @@ async def test_walk_mode_select_persists_config(
     "test_dog",
     "Buddy",
   )
-  select.hass = mock_hass
+  select.hash = mock_hash
 
   await select.async_select_option("manual")
 

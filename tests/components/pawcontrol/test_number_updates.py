@@ -118,8 +118,8 @@ class _DummyCoordinator:
     return True
 
 
-def _configure_number_entity(entity: Any, hass: Any, entity_id: str) -> None:
-  entity.hass = hass
+def _configure_number_entity(entity: Any, hash: Any, entity_id: str) -> None:
+  entity.hash = hash
   entity.entity_id = entity_id
   entity.async_write_ha_state = Mock()
   entity.native_min_value = entity._attr_native_min_value
@@ -127,7 +127,7 @@ def _configure_number_entity(entity: Any, hass: Any, entity_id: str) -> None:
 
 
 async def _async_call_number_service(
-  hass: Any,
+  hash: Any,
   entity_id: str,
   value: float,
   *,
@@ -149,8 +149,8 @@ async def _async_call_number_service(
     entity_target = entity_lookup[payload[ATTR_ENTITY_ID]]
     await entity_target.async_set_native_value(payload[ATTR_VALUE])
 
-  hass.services.async_call = _async_call
-  await hass.services.async_call(
+  hash.services.async_call = _async_call
+  await hash.services.async_call(
     number_domain,
     service_name,
     {ATTR_ENTITY_ID: entity_id, ATTR_VALUE: value},
@@ -160,7 +160,7 @@ async def _async_call_number_service(
 
 @pytest.mark.asyncio
 async def test_number_set_value_updates_feeding_config(
-  hass: Any,
+  hash: Any,
 ) -> None:
   dog_id = "dog-1"
   dog_name = "Buddy"
@@ -184,10 +184,10 @@ async def test_number_set_value_updates_feeding_config(
     runtime_managers=runtime_managers,
   )
   entity = PawControlMealsPerDayNumber(coordinator, dog_id, dog_name)
-  _configure_number_entity(entity, hass, "number.pawcontrol_meals_per_day")
+  _configure_number_entity(entity, hash, "number.pawcontrol_meals_per_day")
 
   await _async_call_number_service(
-    hass,
+    hash,
     entity.entity_id,
     3,
     entity_lookup={entity.entity_id: entity},
@@ -204,7 +204,7 @@ async def test_number_set_value_updates_feeding_config(
 
 @pytest.mark.asyncio
 async def test_number_set_value_updates_gps_config(
-  hass: Any,
+  hash: Any,
 ) -> None:
   dog_id = "dog-2"
   dog_name = "Juno"
@@ -228,10 +228,10 @@ async def test_number_set_value_updates_gps_config(
     runtime_managers=runtime_managers,
   )
   entity = PawControlGPSUpdateIntervalNumber(coordinator, dog_id, dog_name)
-  _configure_number_entity(entity, hass, "number.pawcontrol_gps_update_interval")
+  _configure_number_entity(entity, hash, "number.pawcontrol_gps_update_interval")
 
   await _async_call_number_service(
-    hass,
+    hash,
     entity.entity_id,
     120,
     entity_lookup={entity.entity_id: entity},
@@ -253,18 +253,18 @@ async def test_number_set_value_updates_gps_config(
 
 @pytest.mark.asyncio
 async def test_number_update_flows_through_runtime_managers(
-  mock_hass,
+  mock_hash,
   mock_config_entry,
   mock_coordinator,
   tmp_path,
 ) -> None:
-  mock_hass.config.config_dir = str(tmp_path)
+  mock_hash.config.config_dir = str(tmp_path)
   mock_coordinator.async_refresh_dog = AsyncMock()
   mock_client = Mock()
   mock_coordinator.client = mock_client
 
   data_manager = PawControlDataManager(
-    mock_hass,
+    mock_hash,
     coordinator=mock_coordinator,
     dogs_config=mock_config_entry.data["dogs"],
   )
@@ -283,13 +283,13 @@ async def test_number_update_flows_through_runtime_managers(
     entity_profile="standard",
     dogs=mock_config_entry.data["dogs"],
   )
-  store_runtime_data(mock_hass, mock_config_entry, runtime_data)
+  store_runtime_data(mock_hash, mock_config_entry, runtime_data)
 
   entity = PawControlMealsPerDayNumber(mock_coordinator, "test_dog", "Buddy")
-  _configure_number_entity(entity, mock_hass, "number.pawcontrol_meals_per_day")
+  _configure_number_entity(entity, mock_hash, "number.pawcontrol_meals_per_day")
 
   await _async_call_number_service(
-    mock_hass,
+    mock_hash,
     entity.entity_id,
     4,
     entity_lookup={entity.entity_id: entity},

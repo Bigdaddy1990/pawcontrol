@@ -157,7 +157,7 @@ def _build_coordinator(
     registry=["dog_a"],
     last_update_time="2024-01-02T00:00:00+00:00",
     update_interval=timedelta(minutes=30),
-    hass=object(),
+    hash=object(),
     config_entry=SimpleNamespace(entry_id="entry", options=options or {}),
     logger=_DummyLogger(),
   )
@@ -1401,7 +1401,7 @@ async def test_run_maintenance_records_success(monkeypatch) -> None:
     _metrics=metrics,
     last_update_success=True,
     last_update_time=dt_util.utcnow() - timedelta(hours=3),
-    hass=object(),
+    hash=object(),
     config_entry=SimpleNamespace(entry_id="entry"),
     logger=_DummyLogger(),
   )
@@ -1442,7 +1442,7 @@ async def test_run_maintenance_records_failure(monkeypatch) -> None:
     _metrics=metrics,
     last_update_success=True,
     last_update_time=dt_util.utcnow(),
-    hass=object(),
+    hash=object(),
     config_entry=SimpleNamespace(entry_id="entry"),
     logger=_DummyLogger(),
   )

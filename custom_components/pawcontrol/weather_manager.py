@@ -393,16 +393,16 @@ class WeatherHealthManager:
 
   def __init__(
     self,
-    hass: HomeAssistant,
+    hash: HomeAssistant,
     resilience_manager: ResilienceManager | None = None,
   ) -> None:
     """Initialize weather health manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         resilience_manager: Optional ResilienceManager for fault tolerance
     """
-    self.hass = hass
+    self.hash = hash
     self._current_conditions: WeatherConditions | None = None
     self._active_alerts: list[WeatherAlert] = []
     self._translations: WeatherTranslations = empty_weather_translations()
@@ -460,14 +460,14 @@ class WeatherHealthManager:
           language,
         )
       self._translations = await async_get_weather_translations(
-        self.hass,
+        self.hash,
         language,
       )
       if language == DEFAULT_LANGUAGE:
         self._english_translations = self._translations
       else:
         self._english_translations = await async_get_weather_translations(
-          self.hass,
+          self.hash,
           DEFAULT_LANGUAGE,
         )
       _LOGGER.debug(
@@ -693,7 +693,7 @@ class WeatherHealthManager:
         return None
 
       # Get weather state
-      weather_state = self.hass.states.get(weather_entity_id_local)
+      weather_state = self.hash.states.get(weather_entity_id_local)
       if not weather_state or weather_state.state in [
         STATE_UNAVAILABLE,
         STATE_UNKNOWN,
@@ -815,7 +815,7 @@ class WeatherHealthManager:
         return None
 
       # Get weather entity with forecast data
-      weather_state = self.hass.states.get(weather_entity_id_local)
+      weather_state = self.hash.states.get(weather_entity_id_local)
       if not weather_state or weather_state.state in [
         STATE_UNAVAILABLE,
         STATE_UNKNOWN,
@@ -1546,7 +1546,7 @@ class WeatherHealthManager:
     # Look for weather entities
     weather_entities = [
       state.entity_id
-      for state in self.hass.states.async_all(WEATHER_DOMAIN)
+      for state in self.hash.states.async_all(WEATHER_DOMAIN)
       if state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]
     ]
 

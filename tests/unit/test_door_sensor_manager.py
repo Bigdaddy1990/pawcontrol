@@ -163,8 +163,8 @@ async def test_update_settings_without_entity_change(
 ) -> None:
   """Settings updates should preserve the entity and restart monitoring when changed."""
 
-  hass = Mock()
-  manager = DoorSensorManager(hass, "entry")
+  hash = Mock()
+  manager = DoorSensorManager(hash, "entry")
   config = DoorSensorConfig(
     entity_id="binary_sensor.front_door",
     dog_id="dog-1",
@@ -205,8 +205,8 @@ async def test_update_with_blank_sensor_removes_configuration(
 ) -> None:
   """Providing an empty sensor string should remove the configuration."""
 
-  hass = Mock()
-  manager = DoorSensorManager(hass, "entry")
+  hash = Mock()
+  manager = DoorSensorManager(hash, "entry")
   manager._sensor_configs["dog-1"] = DoorSensorConfig(
     entity_id="binary_sensor.back_door",
     dog_id="dog-1",
@@ -231,8 +231,8 @@ async def test_update_without_changes_does_not_restart(
 ) -> None:
   """No-op updates should avoid restarting monitoring."""
 
-  hass = Mock()
-  manager = DoorSensorManager(hass, "entry")
+  hash = Mock()
+  manager = DoorSensorManager(hash, "entry")
   config = DoorSensorConfig(
     entity_id="binary_sensor.side_door",
     dog_id="dog-1",
@@ -267,8 +267,8 @@ async def test_initialize_persists_trimmed_payload(
 ) -> None:
   """Initialisation should persist trimmed sensor IDs and clamped settings."""
 
-  hass = Mock()
-  manager = DoorSensorManager(hass, "entry")
+  hash = Mock()
+  manager = DoorSensorManager(hash, "entry")
   data_manager = AsyncMock()
   monkeypatch.setattr(manager, "_validate_sensor_entity", AsyncMock(return_value=True))
 
@@ -305,8 +305,8 @@ async def test_initialize_ignores_non_string_sensor(
 ) -> None:
   """Non-string sensor entries should be ignored safely."""
 
-  hass = Mock()
-  manager = DoorSensorManager(hass, "entry")
+  hash = Mock()
+  manager = DoorSensorManager(hash, "entry")
   data_manager = AsyncMock()
   validate_mock = AsyncMock(side_effect=AssertionError("should not validate"))
   monkeypatch.setattr(manager, "_validate_sensor_entity", validate_mock)
@@ -333,8 +333,8 @@ async def test_initialize_discards_non_mapping_settings(
 ) -> None:
   """Settings objects that are not mappings should be ignored."""
 
-  hass = Mock()
-  manager = DoorSensorManager(hass, "entry")
+  hash = Mock()
+  manager = DoorSensorManager(hash, "entry")
   data_manager = AsyncMock()
   monkeypatch.setattr(manager, "_validate_sensor_entity", AsyncMock(return_value=True))
 
@@ -358,8 +358,8 @@ async def test_initialize_discards_non_mapping_settings(
 async def test_update_persists_changes(monkeypatch: pytest.MonkeyPatch) -> None:
   """Runtime updates should push normalised payloads into the data manager."""
 
-  hass = Mock()
-  manager = DoorSensorManager(hass, "entry")
+  hash = Mock()
+  manager = DoorSensorManager(hash, "entry")
   manager._data_manager = AsyncMock()
   config = DoorSensorConfig(
     entity_id="binary_sensor.front_door",

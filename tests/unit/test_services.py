@@ -38,7 +38,7 @@ from custom_components.pawcontrol.types import (
   GPSRouteExportPayload,
   GPSTrackingConfigInput,
 )
-from custom_components.pawcontrol.utils import async_call_hass_service_if_available
+from custom_components.pawcontrol.utils import async_call_hash_service_if_available
 
 try:  # pragma: no cover - runtime fallback for stubbed environments
   from homeassistant.core import Context
@@ -670,7 +670,7 @@ class _GuardSkippingNotificationManager(_NotificationManagerStub):
 
   async def async_send_notification(self, **kwargs: object) -> str:
     self.calls += 1
-    await async_call_hass_service_if_available(
+    await async_call_hash_service_if_available(
       None,
       "persistent_notification",
       "create",
@@ -742,7 +742,7 @@ class _CoordinatorStub:
 
   def __init__(
     self,
-    hass: object,
+    hash: object,
     *,
     notification_manager: _NotificationManagerStub | None = None,
     gps_manager: _GPSManagerStub | None = None,
@@ -751,7 +751,7 @@ class _CoordinatorStub:
     data_manager: _DataManagerStub | None = None,
     garden_manager: _GardenManagerStub | None = None,
   ) -> None:
-    self.hass = hass
+    self.hash = hash
     self.config_entry = SimpleNamespace(entry_id="entry")
     self.notification_manager = notification_manager
     self.gps_geofence_manager = gps_manager
@@ -799,17 +799,17 @@ async def _setup_service_environment(
 ) -> SimpleNamespace:
   """Register PawControl services against a stub Home Assistant instance."""
 
-  hass = SimpleNamespace(
+  hash = SimpleNamespace(
     services=_ServiceRegistryStub(),
     data={},
     config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
     bus=_BusStub(),
   )
-  hass.config_entries = SimpleNamespace(async_entries=lambda domain: [])
-  coordinator.hass = hass
+  hash.config_entries = SimpleNamespace(async_entries=lambda domain: [])
+  coordinator.hash = hash
 
   resolver = _ResolverStub(coordinator)
-  monkeypatch.setattr(services, "_coordinator_resolver", lambda hass_instance: resolver)
+  monkeypatch.setattr(services, "_coordinator_resolver", lambda hash_instance: resolver)
   monkeypatch.setattr(
     services, "async_dispatcher_connect", lambda *args, **kwargs: lambda: None
   )
@@ -817,11 +817,11 @@ async def _setup_service_environment(
     services, "async_track_time_change", lambda *args, **kwargs: lambda: None
   )
   monkeypatch.setattr(
-    services, "get_runtime_data", lambda hass_instance, entry: runtime_data
+    services, "get_runtime_data", lambda hash_instance, entry: runtime_data
   )
 
-  await services.async_setup_services(hass)  # type: ignore[arg-type]
-  return hass
+  await services.async_setup_services(hash)  # type: ignore[arg-type]
+  return hash
 
 
 @pytest.mark.unit
@@ -834,7 +834,7 @@ async def test_async_setup_services_registers_expected_services(
   coordinator = _CoordinatorStub(SimpleNamespace())
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
 
   expected_services = {
     services.SERVICE_ADD_FEEDING,
@@ -876,13 +876,13 @@ async def test_async_setup_services_registers_expected_services(
     services.SERVICE_GET_WEATHER_RECOMMENDATIONS,
   }
 
-  assert set(hass.services.handlers) == expected_services
+  assert set(hash.services.handlers) == expected_services
 
-  assert "gps_generate_diagnostics" not in hass.services.handlers
-  assert "garden_generate_diagnostics" not in hass.services.handlers
-  assert "garden_history_purge" not in hass.services.handlers
-  assert "recalculate_garden_stats" not in hass.services.handlers
-  assert "archive_old_garden_sessions" not in hass.services.handlers
+  assert "gps_generate_diagnostics" not in hash.services.handlers
+  assert "garden_generate_diagnostics" not in hash.services.handlers
+  assert "garden_history_purge" not in hash.services.handlers
+  assert "recalculate_garden_stats" not in hash.services.handlers
+  assert "archive_old_garden_sessions" not in hash.services.handlers
 
 
 @pytest.mark.unit
@@ -989,13 +989,13 @@ async def test_perform_daily_reset_records_cache_diagnostics(
   monkeypatch.setattr(
     services,
     "get_runtime_data",
-    lambda hass, entry: runtime_data,
+    lambda hash, entry: runtime_data,
   )
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="test-entry")
 
-  await services._perform_daily_reset(hass, entry)
+  await services._perform_daily_reset(hash, entry)
 
   assert coordinator.refresh_called
   assert runtime_data.walk_manager.cleaned
@@ -1108,14 +1108,14 @@ async def test_perform_daily_reset_records_failure(
   monkeypatch.setattr(
     services,
     "get_runtime_data",
-    lambda hass, entry: runtime_data,
+    lambda hash, entry: runtime_data,
   )
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="test-entry")
 
   with pytest.raises(RuntimeError, match="coordinator unavailable"):
-    await services._perform_daily_reset(hass, entry)
+    await services._perform_daily_reset(hash, entry)
 
   last_result = runtime_data.performance_stats["last_service_result"]
   assert last_result["service"] == SERVICE_DAILY_RESET
@@ -1189,12 +1189,12 @@ async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
     return complex_summary
 
   monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
-  monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)
+  monkeypatch.setattr(services, "get_runtime_data", lambda hash, entry: runtime_data)
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="test-entry")
 
-  await services._perform_daily_reset(hass, entry)
+  await services._perform_daily_reset(hash, entry)
 
   metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
     "metadata"
@@ -1249,13 +1249,13 @@ async def test_perform_daily_reset_failure_normalises_complex_metadata(
     return complex_summary
 
   monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
-  monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)
+  monkeypatch.setattr(services, "get_runtime_data", lambda hash, entry: runtime_data)
 
-  hass = SimpleNamespace()
+  hash = SimpleNamespace()
   entry = SimpleNamespace(entry_id="test-entry")
 
   with pytest.raises(RuntimeError):
-    await services._perform_daily_reset(hass, entry)
+    await services._perform_daily_reset(hash, entry)
 
   metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
     "metadata"
@@ -1290,8 +1290,8 @@ async def test_send_notification_service_records_success(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   await handler(
     SimpleNamespace(
@@ -1329,8 +1329,8 @@ async def test_send_notification_service_recovers_from_invalid_payloads(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with caplog.at_level(logging.WARNING):
     await handler(
@@ -1379,8 +1379,8 @@ async def test_send_notification_service_records_guard_skip(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   await handler(
     SimpleNamespace(
@@ -1423,8 +1423,8 @@ async def test_send_notification_service_accepts_enum_inputs(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   await handler(
     SimpleNamespace(
@@ -1467,8 +1467,8 @@ async def test_send_notification_service_accepts_string_channel(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   await handler(
     SimpleNamespace(
@@ -1500,8 +1500,8 @@ async def test_send_notification_service_deduplicates_channels(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with caplog.at_level(logging.WARNING):
     await handler(
@@ -1553,8 +1553,8 @@ async def test_send_notification_service_rejects_invalid_expiry(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with pytest.raises(
     ServiceValidationError,
@@ -1589,8 +1589,8 @@ async def test_send_notification_service_rejects_non_positive_expiry(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with pytest.raises(
     ServiceValidationError,
@@ -1625,8 +1625,8 @@ async def test_send_notification_service_rejects_blank_title(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with pytest.raises(
     ServiceValidationError,
@@ -1660,8 +1660,8 @@ async def test_send_notification_service_accepts_valid_expiry(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   await handler(
     SimpleNamespace(
@@ -1697,8 +1697,8 @@ async def test_send_notification_service_records_failure(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SEND_NOTIFICATION]
 
   with pytest.raises(services.HomeAssistantError, match="send failed"):
     await handler(
@@ -1731,8 +1731,8 @@ async def test_acknowledge_notification_service_records_success(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]
 
   await handler(SimpleNamespace(data={"notification_id": "notif-1"}))
 
@@ -1758,8 +1758,8 @@ async def test_acknowledge_notification_records_not_found(
   )
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]
 
   with pytest.raises(
     services.HomeAssistantError, match="No PawControl notification with ID"
@@ -1784,8 +1784,8 @@ async def test_gps_start_walk_service_rejects_invalid_boolean_toggle(
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_GPS_START_WALK]
 
   with pytest.raises(
     ServiceValidationError,
@@ -1822,8 +1822,8 @@ async def test_gps_start_walk_service_coerces_common_boolean_inputs(
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_GPS_START_WALK]
 
   await handler(SimpleNamespace(data={"dog_id": "fido", "track_route": service_value}))
 
@@ -1847,8 +1847,8 @@ async def test_setup_automatic_gps_service_records_success(
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
 
   await handler(
     SimpleNamespace(
@@ -1892,8 +1892,8 @@ async def test_setup_automatic_gps_service_rejects_invalid_interval(
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
 
   with pytest.raises(
     ServiceValidationError,
@@ -1926,8 +1926,8 @@ async def test_setup_automatic_gps_service_rejects_invalid_safe_zone_radius(
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
 
   with pytest.raises(
     ServiceValidationError,
@@ -1958,8 +1958,8 @@ async def test_setup_automatic_gps_service_rejects_out_of_range_safe_zone_radius
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
 
   with pytest.raises(
     ServiceValidationError,
@@ -1992,8 +1992,8 @@ async def test_setup_automatic_gps_service_rejects_invalid_boolean_toggle(
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
 
   with pytest.raises(
     ServiceValidationError,
@@ -2025,8 +2025,8 @@ async def test_setup_automatic_gps_service_records_failure(
   coordinator.register_dog("fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
 
   with pytest.raises(services.HomeAssistantError, match="configure failed"):
     await handler(SimpleNamespace(data={"dog_id": "fido"}))
@@ -2110,8 +2110,8 @@ async def test_gps_export_route_service_records_success(
   coordinator.register_dog("fido", name="Fido")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
 
   await handler(
     SimpleNamespace(data={"dog_id": "fido", "format": "json", "last_n_walks": 3})
@@ -2159,8 +2159,8 @@ async def test_gps_export_route_service_records_no_routes(
   coordinator.register_dog("luna")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
 
   await handler(SimpleNamespace(data={"dog_id": "luna"}))
 
@@ -2194,8 +2194,8 @@ async def test_add_health_snack_records_success(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]
 
   await handler(
     SimpleNamespace(
@@ -2230,8 +2230,8 @@ async def test_add_health_snack_records_failure(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]
 
   with pytest.raises(services.HomeAssistantError, match="snack failed"):
     await handler(
@@ -2303,8 +2303,8 @@ async def test_check_feeding_compliance_notifies_on_issues(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
 
   context = Context(user_id="user-1", parent_id="parent-1", context_id="ctx-1")
 
@@ -2329,7 +2329,7 @@ async def test_check_feeding_compliance_notifies_on_issues(
   compliance_result = cast(FeedingComplianceCompleted, compliance_payload["compliance"])
   assert compliance_result["status"] == "completed"
 
-  fired_events = hass.bus.fired
+  fired_events = hash.bus.fired
   assert len(fired_events) == 1
   event = fired_events[0]
   assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
@@ -2411,8 +2411,8 @@ async def test_check_feeding_compliance_skips_when_clean(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
 
   await handler(
     SimpleNamespace(
@@ -2426,7 +2426,7 @@ async def test_check_feeding_compliance_skips_when_clean(
 
   assert notification_manager.compliance_calls == []
 
-  fired_events = hass.bus.fired
+  fired_events = hash.bus.fired
   assert len(fired_events) == 1
   event = fired_events[0]
   assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
@@ -2493,8 +2493,8 @@ async def test_check_feeding_compliance_respects_notify_toggle(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
 
   await handler(
     SimpleNamespace(
@@ -2508,7 +2508,7 @@ async def test_check_feeding_compliance_respects_notify_toggle(
 
   assert notification_manager.compliance_calls == []
 
-  fired_events = hass.bus.fired
+  fired_events = hash.bus.fired
   assert len(fired_events) == 1
   event = fired_events[0]
   assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
@@ -2550,7 +2550,7 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
   published_payloads: list[FeedingComplianceEventPayload] = []
 
   async def _capture_publish(
-    hass: object,
+    hash: object,
     entry: object,
     payload: FeedingComplianceEventPayload,
     *,
@@ -2564,8 +2564,8 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
     _capture_publish,
   )
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
 
   await handler(
     SimpleNamespace(
@@ -2580,7 +2580,7 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
   assert notification_manager.compliance_calls
   assert published_payloads
 
-  event = hass.bus.fired[0]
+  event = hash.bus.fired[0]
   event_data = cast(FeedingComplianceEventPayload, event["event_data"])
   assert event_data["result"]["message"] == "Telemetry offline"
 
@@ -2676,8 +2676,8 @@ async def test_check_feeding_compliance_builds_context_from_stub(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
 
   context_stub = SimpleNamespace(
     id="ctx-stub",
@@ -2696,7 +2696,7 @@ async def test_check_feeding_compliance_builds_context_from_stub(
     )
   )
 
-  event = hass.bus.fired[0]
+  event = hash.bus.fired[0]
   kwargs = event["kwargs"]
   event_context = kwargs.get("context")
   assert event_context is not context_stub
@@ -2753,8 +2753,8 @@ async def test_check_feeding_compliance_builds_context_from_mapping(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
 
   context_mapping = {
     "context_id": "ctx-mapping",
@@ -2773,7 +2773,7 @@ async def test_check_feeding_compliance_builds_context_from_mapping(
     )
   )
 
-  event = hass.bus.fired[0]
+  event = hash.bus.fired[0]
   kwargs = event["kwargs"]
   event_context = kwargs.get("context")
   assert event_context is not None
@@ -2812,8 +2812,8 @@ async def test_check_feeding_compliance_records_errors(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
 
   with pytest.raises(services.HomeAssistantError, match="compliance failed"):
     await handler(
@@ -2826,7 +2826,7 @@ async def test_check_feeding_compliance_records_errors(
       )
     )
 
-  assert hass.bus.fired == []
+  assert hash.bus.fired == []
   result = runtime_data.performance_stats["last_service_result"]
   assert result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
   assert result["status"] == "error"
@@ -2851,8 +2851,8 @@ async def test_log_poop_service_records_success(
   runtime_data = SimpleNamespace(performance_stats={})
   timestamp = datetime(2024, 1, 1, tzinfo=UTC)
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_LOG_POOP]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_LOG_POOP]
 
   await handler(
     SimpleNamespace(
@@ -2887,8 +2887,8 @@ async def test_log_poop_service_records_failure(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_LOG_POOP]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_LOG_POOP]
 
   with pytest.raises(services.HomeAssistantError, match="poop failed"):
     await handler(SimpleNamespace(data={"dog_id": "buddy"}))
@@ -2917,8 +2917,8 @@ async def test_start_grooming_records_success(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GROOMING]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_START_GROOMING]
 
   await handler(
     SimpleNamespace(
@@ -2976,10 +2976,10 @@ async def test_start_grooming_localizes_notification(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  hass.config.language = "de"
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  hash.config.language = "de"
 
-  handler = hass.services.handlers[services.SERVICE_START_GROOMING]
+  handler = hash.services.handlers[services.SERVICE_START_GROOMING]
 
   await handler(
     SimpleNamespace(
@@ -3011,8 +3011,8 @@ async def test_start_grooming_records_failure(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GROOMING]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_START_GROOMING]
 
   with pytest.raises(services.HomeAssistantError, match="groom failed"):
     await handler(SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"}))
@@ -3040,8 +3040,8 @@ async def test_start_garden_session_records_success(
   coordinator.register_dog("buddy", name="Buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GARDEN]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_START_GARDEN]
 
   await handler(
     SimpleNamespace(
@@ -3090,8 +3090,8 @@ async def test_start_garden_session_records_failure(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GARDEN]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_START_GARDEN]
 
   with pytest.raises(services.HomeAssistantError, match="start failed"):
     await handler(SimpleNamespace(data={"dog_id": "buddy"}))
@@ -3120,8 +3120,8 @@ async def test_end_garden_session_records_validation_error(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_END_GARDEN]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_END_GARDEN]
 
   with pytest.raises(Exception, match="No active garden session is currently running"):
     await handler(SimpleNamespace(data={"dog_id": "buddy"}))
@@ -3144,8 +3144,8 @@ async def test_add_garden_activity_records_success(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]
 
   await handler(
     SimpleNamespace(
@@ -3182,8 +3182,8 @@ async def test_add_garden_activity_records_validation_error(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]
 
   with pytest.raises(Exception, match="No active garden session is currently running"):
     await handler(SimpleNamespace(data={"dog_id": "buddy", "activity_type": "play"}))
@@ -3206,8 +3206,8 @@ async def test_confirm_garden_poop_records_success(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_CONFIRM_POOP]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_CONFIRM_POOP]
 
   await handler(
     SimpleNamespace(
@@ -3245,8 +3245,8 @@ async def test_confirm_garden_poop_records_missing_pending(
   coordinator.register_dog("buddy")
   runtime_data = SimpleNamespace(performance_stats={})
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_CONFIRM_POOP]
+  hash = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  handler = hash.services.handlers[services.SERVICE_CONFIRM_POOP]
 
   with pytest.raises(Exception, match="No pending garden poop confirmation"):
     await handler(SimpleNamespace(data={"dog_id": "buddy", "confirmed": True}))

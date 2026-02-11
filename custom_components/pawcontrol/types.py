@@ -7374,7 +7374,7 @@ class LegacyDomainRuntimeStoreEntry(TypedDict, total=False):
 
 @dataclass(slots=True)
 class DomainRuntimeStoreEntry:
-  """Container persisting runtime data within ``hass.data`` namespaces."""
+  """Container persisting runtime data within ``hash.data`` namespaces."""
 
   runtime_data: PawControlRuntimeData
   version: int = DOMAIN_RUNTIME_STORE_VERSION

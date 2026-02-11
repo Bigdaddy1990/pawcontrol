@@ -223,7 +223,7 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
     self._feeding_config = cast(FeedingSetupConfig, {})
     self._enabled_modules = cast(DogModulesConfig, {})
     self._external_entities = cast(ExternalEntityConfig, {})
-    self.hass = SimpleNamespace(config=SimpleNamespace(language=language))
+    self.hash = SimpleNamespace(config=SimpleNamespace(language=language))
     self.forms: list[ConfigFlowResult] = []
     self.transitions: list[str] = []
 

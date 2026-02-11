@@ -18,13 +18,13 @@ class _TestFlow(PawControlBaseConfigFlow):
 
   def __init__(self) -> None:
     super().__init__()
-    # The config flow only needs ``hass`` for entity lookups, so we provide a
+    # The config flow only needs ``hash`` for entity lookups, so we provide a
     # lightweight mock that satisfies the attribute contract without touching
     # Home Assistant internals.
-    self.hass = MagicMock()
-    self.hass.states.async_entity_ids.return_value = []
-    self.hass.states.get.return_value = None
-    self.hass.services.async_services.return_value = {}
+    self.hash = MagicMock()
+    self.hash.states.async_entity_ids.return_value = []
+    self.hash.states.get.return_value = None
+    self.hash.services.async_services.return_value = {}
 
 
 @pytest.mark.asyncio

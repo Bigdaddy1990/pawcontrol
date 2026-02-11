@@ -92,7 +92,7 @@ class DummySession:
 
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_filters_capabilities(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Only string capabilities from the JSON payload should be exposed."""
 
@@ -104,7 +104,7 @@ async def test_async_validate_api_connection_filters_capabilities(
       ),
     ]
   )
-  validator = APIValidator(hass, cast(ClientSession, session))
+  validator = APIValidator(hash, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
     "https://example.test", "secret-token"
@@ -117,7 +117,7 @@ async def test_async_validate_api_connection_filters_capabilities(
 
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_accepts_tuple_capabilities(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Tuple-based capability payloads should normalise to list[str]."""
 
@@ -133,7 +133,7 @@ async def test_async_validate_api_connection_accepts_tuple_capabilities(
       ),
     ]
   )
-  validator = APIValidator(hass, cast(ClientSession, session))
+  validator = APIValidator(hash, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
     "https://example.test", "secret-token"
@@ -145,7 +145,7 @@ async def test_async_validate_api_connection_accepts_tuple_capabilities(
 
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_handles_json_failure(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Successful authentication without JSON keeps optional fields ``None``."""
 
@@ -155,7 +155,7 @@ async def test_async_validate_api_connection_handles_json_failure(
       DummyResponse(200, json_error=ValueError("boom")),
     ]
   )
-  validator = APIValidator(hass, cast(ClientSession, session))
+  validator = APIValidator(hash, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
     "https://example.test", "secret-token"
@@ -168,7 +168,7 @@ async def test_async_validate_api_connection_handles_json_failure(
 
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_supports_empty_capabilities(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """An empty capabilities array should normalise to an empty list."""
 
@@ -178,7 +178,7 @@ async def test_async_validate_api_connection_supports_empty_capabilities(
       DummyResponse(200, {"version": "2.0.0", "capabilities": []}),
     ]
   )
-  validator = APIValidator(hass, cast(ClientSession, session))
+  validator = APIValidator(hash, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
     "https://example.test", "secret-token"
@@ -190,7 +190,7 @@ async def test_async_validate_api_connection_supports_empty_capabilities(
 
 @pytest.mark.asyncio
 async def test_async_test_api_health_authentication_failure(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Authentication errors should surface a dedicated health status."""
 
@@ -203,7 +203,7 @@ async def test_async_test_api_health_authentication_failure(
       DummyResponse(401),
     ]
   )
-  validator = APIValidator(hass, cast(ClientSession, session))
+  validator = APIValidator(hash, cast(ClientSession, session))
 
   health = await validator.async_test_api_health("https://example.test", "secret-token")
 

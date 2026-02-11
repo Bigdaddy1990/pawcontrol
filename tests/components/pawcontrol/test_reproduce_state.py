@@ -26,7 +26,7 @@ ATTR_OPTIONS = "options"
 
 
 def _capture_service_calls(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   domain: str,
   service: str,
 ) -> list[ServiceCall]:
@@ -35,28 +35,28 @@ def _capture_service_calls(
   async def _handler(call: ServiceCall) -> None:
     calls.append(call)
 
-  hass.services.async_register(domain, service, _handler)
+  hash.services.async_register(domain, service, _handler)
   return calls
 
 
 @pytest.mark.asyncio
-async def test_switch_reproduce_state_calls_service(hass: HomeAssistant) -> None:
+async def test_switch_reproduce_state_calls_service(hash: HomeAssistant) -> None:
   """Reproduce switch state via turn_on service."""
 
   entity_id = "switch.pawcontrol_main_power"
-  hass.states.async_set(entity_id, STATE_OFF)
+  hash.states.async_set(entity_id, STATE_OFF)
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     switch_component.DOMAIN,
     switch_component.SERVICE_TURN_ON,
   )
 
   await pawcontrol_switch.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, STATE_ON)],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 1
   assert calls[0].data[ATTR_ENTITY_ID] == entity_id
@@ -64,48 +64,48 @@ async def test_switch_reproduce_state_calls_service(hass: HomeAssistant) -> None
 
 @pytest.mark.asyncio
 async def test_switch_reproduce_state_invalid_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
   """Ignore invalid switch states."""
 
   entity_id = "switch.pawcontrol_main_power"
-  hass.states.async_set(entity_id, STATE_OFF)
+  hash.states.async_set(entity_id, STATE_OFF)
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     switch_component.DOMAIN,
     switch_component.SERVICE_TURN_ON,
   )
 
   await pawcontrol_switch.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, "invalid")],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 0
   assert "Invalid switch state" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_select_reproduce_state_calls_service(hass: HomeAssistant) -> None:
+async def test_select_reproduce_state_calls_service(hash: HomeAssistant) -> None:
   """Reproduce select state via select_option service."""
 
   entity_id = "select.pawcontrol_notification_priority"
-  hass.states.async_set(entity_id, "low", {ATTR_OPTIONS: ["low", "high"]})
+  hash.states.async_set(entity_id, "low", {ATTR_OPTIONS: ["low", "high"]})
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     select_component.DOMAIN,
     select_component.SERVICE_SELECT_OPTION,
   )
 
   await pawcontrol_select.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, "high")],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 1
   assert calls[0].data[ATTR_ENTITY_ID] == entity_id
@@ -114,48 +114,48 @@ async def test_select_reproduce_state_calls_service(hass: HomeAssistant) -> None
 
 @pytest.mark.asyncio
 async def test_select_reproduce_state_invalid_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
   """Ignore invalid select options."""
 
   entity_id = "select.pawcontrol_notification_priority"
-  hass.states.async_set(entity_id, "low", {ATTR_OPTIONS: ["low", "high"]})
+  hash.states.async_set(entity_id, "low", {ATTR_OPTIONS: ["low", "high"]})
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     select_component.DOMAIN,
     select_component.SERVICE_SELECT_OPTION,
   )
 
   await pawcontrol_select.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, "invalid")],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 0
   assert "Invalid select option" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_number_reproduce_state_calls_service(hass: HomeAssistant) -> None:
+async def test_number_reproduce_state_calls_service(hash: HomeAssistant) -> None:
   """Reproduce number state via set_value service."""
 
   entity_id = "number.pawcontrol_daily_walk_target"
-  hass.states.async_set(entity_id, "5")
+  hash.states.async_set(entity_id, "5")
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     number_component.DOMAIN,
     number_component.SERVICE_SET_VALUE,
   )
 
   await pawcontrol_number.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, "7.5")],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 1
   assert calls[0].data[ATTR_ENTITY_ID] == entity_id
@@ -164,48 +164,48 @@ async def test_number_reproduce_state_calls_service(hass: HomeAssistant) -> None
 
 @pytest.mark.asyncio
 async def test_number_reproduce_state_invalid_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
   """Ignore invalid number states."""
 
   entity_id = "number.pawcontrol_daily_walk_target"
-  hass.states.async_set(entity_id, "5")
+  hash.states.async_set(entity_id, "5")
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     number_component.DOMAIN,
     number_component.SERVICE_SET_VALUE,
   )
 
   await pawcontrol_number.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, "bad")],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 0
   assert "Invalid number state" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_text_reproduce_state_calls_service(hass: HomeAssistant) -> None:
+async def test_text_reproduce_state_calls_service(hash: HomeAssistant) -> None:
   """Reproduce text state via set_value service."""
 
   entity_id = "text.pawcontrol_dog_notes"
-  hass.states.async_set(entity_id, "hello")
+  hash.states.async_set(entity_id, "hello")
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     text_component.DOMAIN,
     text_component.SERVICE_SET_VALUE,
   )
 
   await pawcontrol_text.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, "world")],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 1
   assert calls[0].data[ATTR_ENTITY_ID] == entity_id
@@ -214,25 +214,25 @@ async def test_text_reproduce_state_calls_service(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_text_reproduce_state_invalid_state(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
   """Ignore invalid text states."""
 
   entity_id = "text.pawcontrol_dog_notes"
-  hass.states.async_set(entity_id, "hello")
+  hash.states.async_set(entity_id, "hello")
 
   calls = _capture_service_calls(
-    hass,
+    hash,
     text_component.DOMAIN,
     text_component.SERVICE_SET_VALUE,
   )
 
   await pawcontrol_text.async_reproduce_state(
-    hass,
+    hash,
     [State(entity_id, STATE_UNKNOWN)],
   )
-  await hass.async_block_till_done()
+  await hash.async_block_till_done()
 
   assert len(calls) == 0
   assert "Cannot reproduce text state" in caplog.text

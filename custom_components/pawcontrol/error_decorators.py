@@ -388,21 +388,21 @@ def map_to_repair_issue(
           return await result
         return result
       except PawControlError as e:
-        # Get hass instance from args
-        hass: HomeAssistant | None = None
+        # Get hash instance from args
+        hash: HomeAssistant | None = None
         if args:
           instance = args[0]
-          if hasattr(instance, "hass"):
-            hass = instance.hass
+          if hasattr(instance, "hash"):
+            hash = instance.hash
           elif hasattr(instance, "coordinator"):
-            hass = instance.coordinator.hass
+            hash = instance.coordinator.hash
 
-        if hass is not None:
+        if hash is not None:
           # Create repair issue
           from homeassistant.helpers import issue_registry as ir
 
           ir.async_create_issue(
-            hass,
+            hash,
             "pawcontrol",
             issue_id,
             is_fixable=True,
@@ -421,19 +421,19 @@ def map_to_repair_issue(
       try:
         return func(*args, **kwargs)
       except PawControlError as e:
-        hass: HomeAssistant | None = None
+        hash: HomeAssistant | None = None
         if args:
           instance = args[0]
-          if hasattr(instance, "hass"):
-            hass = instance.hass
+          if hasattr(instance, "hash"):
+            hash = instance.hash
           elif hasattr(instance, "coordinator"):
-            hass = instance.coordinator.hass
+            hash = instance.coordinator.hash
 
-        if hass is not None:
+        if hash is not None:
           from homeassistant.helpers import issue_registry as ir
 
           ir.async_create_issue(
-            hass,
+            hash,
             "pawcontrol",
             issue_id,
             is_fixable=True,
@@ -706,7 +706,7 @@ def get_repair_issue_id(exception: PawControlError) -> str | None:
 
 
 async def create_repair_issue_from_exception(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   exception: PawControlError,
   *,
   is_fixable: bool = True,
@@ -714,7 +714,7 @@ async def create_repair_issue_from_exception(
   """Create a repair issue from an exception.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       exception: Exception to create repair issue from
       is_fixable: Whether the issue is fixable by the user
   """
@@ -732,7 +732,7 @@ async def create_repair_issue_from_exception(
   }
 
   ir.async_create_issue(
-    hass,
+    hash,
     "pawcontrol",
     issue_id,
     is_fixable=is_fixable,

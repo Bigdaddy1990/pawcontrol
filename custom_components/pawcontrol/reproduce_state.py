@@ -18,7 +18,7 @@ Handler = Callable[[HomeAssistant, State, State, T, Context | None], Awaitable[N
 
 
 async def async_reproduce_platform_states(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   states: Sequence[State],
   platform_name: str,
   preprocess: Preprocessor[T],
@@ -41,7 +41,7 @@ async def async_reproduce_platform_states(
     if processed is None:
       continue
 
-    current_state = hass.states.get(state.entity_id)
+    current_state = hash.states.get(state.entity_id)
     if current_state is None:
       _LOGGER.warning(
         "%s entity %s not found for state reproduction",
@@ -50,4 +50,4 @@ async def async_reproduce_platform_states(
       )
       continue
 
-    await handler(hass, state, current_state, processed, context)
+    await handler(hash, state, current_state, processed, context)

@@ -454,14 +454,14 @@ class BaseCardGenerator:
   and comprehensive error isolation for maximum performance.
   """
 
-  def __init__(self, hass: HomeAssistant, templates: DashboardTemplates) -> None:
+  def __init__(self, hash: HomeAssistant, templates: DashboardTemplates) -> None:
     """Initialize optimized card generator.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         templates: Template manager with caching
     """
-    self.hass = hass
+    self.hash = hash
     self.templates = templates
 
     # OPTIMIZED: Performance tracking and validation semaphore
@@ -623,7 +623,7 @@ class BaseCardGenerator:
         True if entity is valid and available
     """
     try:
-      state = self.hass.states.get(entity_id)
+      state = self.hash.states.get(entity_id)
       return state is not None and state.state not in (
         STATE_UNKNOWN,
         STATE_UNAVAILABLE,
@@ -844,7 +844,7 @@ class OverviewCardGenerator(BaseCardGenerator):
     if not typed_dogs:
       return None
 
-    language: str | None = getattr(self.hass.config, "language", None)
+    language: str | None = getattr(self.hash.config, "language", None)
 
     # OPTIMIZED: Single-pass module detection
     has_feeding = False
@@ -1245,7 +1245,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
     dog_config = typed_dog
     dog_id = dog_config[DOG_ID_FIELD]
     dog_name = dog_config[DOG_NAME_FIELD]
-    language: str | None = getattr(self.hass.config, "language", None)
+    language: str | None = getattr(self.hash.config, "language", None)
 
     # OPTIMIZED: Generate all cards concurrently
     card_generators: list[tuple[str, asyncio.Task[CardCollection]]] = [
@@ -1535,7 +1535,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
     dog_config = typed_dog
     dog_id = dog_config[DOG_ID_FIELD]
-    language: str | None = getattr(self.hass.config, "language", None)
+    language: str | None = getattr(self.hash.config, "language", None)
 
     # OPTIMIZED: Direct card generation without unnecessary async calls
     smart_buttons_card = self._generate_smart_feeding_buttons(
@@ -1618,7 +1618,7 @@ class ModuleCardGenerator(BaseCardGenerator):
     if modules.get(MODULE_HEALTH) and modules.get(MODULE_FEEDING):
       # Use health-aware feeding card generator
       health_generator = HealthAwareFeedingCardGenerator(
-        self.hass,
+        self.hash,
         self.templates,
       )
 
@@ -1760,7 +1760,7 @@ class ModuleCardGenerator(BaseCardGenerator):
 
     dog_config = typed_dog
     dog_id = dog_config[DOG_ID_FIELD]
-    language: str | None = getattr(self.hass.config, "language", None)
+    language: str | None = getattr(self.hash.config, "language", None)
     cards: list[CardConfigType] = []
 
     # OPTIMIZED: Prepare all walk-related entities for batch validation
@@ -1894,7 +1894,7 @@ class ModuleCardGenerator(BaseCardGenerator):
 
     dog_config = typed_dog
     dog_id = dog_config[DOG_ID_FIELD]
-    language: str | None = getattr(self.hass.config, "language", None)
+    language: str | None = getattr(self.hash.config, "language", None)
     cards: list[CardConfigType] = []
 
     # OPTIMIZED: Prepare all health entities for batch validation
@@ -2080,7 +2080,7 @@ class ModuleCardGenerator(BaseCardGenerator):
     if not modules.get(MODULE_VISITOR):
       return []
 
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     status_entities = [
       f"switch.{dog_id}_visitor_mode",
       f"binary_sensor.{dog_id}_visitor_mode",
@@ -2093,16 +2093,16 @@ class ModuleCardGenerator(BaseCardGenerator):
       cards.append(
         {
           "type": "entities",
-          "title": _translated_visitor_label(hass_language, "entities_title"),
+          "title": _translated_visitor_label(hash_language, "entities_title"),
           "entities": valid_entities,
           "state_color": True,
         },
       )
 
-    yes_value = _translated_visitor_value(hass_language, "yes")
-    no_value = _translated_visitor_value(hass_language, "no")
-    none_value = _translated_visitor_value(hass_language, "none")
-    unknown_value = _translated_visitor_value(hass_language, "unknown")
+    yes_value = _translated_visitor_value(hash_language, "yes")
+    no_value = _translated_visitor_value(hash_language, "no")
+    none_value = _translated_visitor_value(hash_language, "none")
+    unknown_value = _translated_visitor_value(hash_language, "unknown")
 
     yes_literal = json.dumps(yes_value)
     no_literal = json.dumps(no_value)
@@ -2111,24 +2111,24 @@ class ModuleCardGenerator(BaseCardGenerator):
 
     summary_content = (
       "### {status_heading}\n"
-      "- {active_label}: {{{{ iif(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), {yes_value}, {no_value}) }}}}\n"
+      "- {active_label}: {{{{ if(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), {yes_value}, {no_value}) }}}}\n"
       "- {visitor_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_name') or {none_value} }}}}\n"
       "- {started_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_mode_started') or {unknown_value} }}}}\n"
-      "- {alerts_reduced_label}: {{{{ iif(state_attr('binary_sensor.{dog_id}_visitor_mode', 'reduced_alerts'), {yes_value}, {no_value}) }}}}\n"
+      "- {alerts_reduced_label}: {{{{ if(state_attr('binary_sensor.{dog_id}_visitor_mode', 'reduced_alerts'), {yes_value}, {no_value}) }}}}\n"
     ).format(
       status_heading=_translated_visitor_label(
-        hass_language,
+        hash_language,
         "status_heading",
       ),
-      active_label=_translated_visitor_label(hass_language, "active"),
+      active_label=_translated_visitor_label(hash_language, "active"),
       yes_value=yes_literal,
       no_value=no_literal,
-      visitor_label=_translated_visitor_label(hass_language, "visitor"),
+      visitor_label=_translated_visitor_label(hash_language, "visitor"),
       none_value=none_literal,
-      started_label=_translated_visitor_label(hass_language, "started"),
+      started_label=_translated_visitor_label(hash_language, "started"),
       unknown_value=unknown_literal,
       alerts_reduced_label=_translated_visitor_label(
-        hass_language,
+        hash_language,
         "alerts_reduced",
       ),
       dog_id=dog_id,
@@ -2138,7 +2138,7 @@ class ModuleCardGenerator(BaseCardGenerator):
       {
         "type": "markdown",
         "title": _translated_visitor_template(
-          hass_language,
+          hash_language,
           "insights_title",
           dog_name=dog_name,
         ),
@@ -2366,7 +2366,7 @@ class WeatherCardGenerator(BaseCardGenerator):
   def _collect_weather_recommendations(self, entity_id: str) -> list[str]:
     """Gather structured weather recommendations from Home Assistant state."""
 
-    state = self.hass.states.get(entity_id)
+    state = self.hash.states.get(entity_id)
     if state is None:
       return []
 
@@ -2882,7 +2882,7 @@ class WeatherCardGenerator(BaseCardGenerator):
     """Generate weather forecast card with health predictions."""
     forecast_entity = f"sensor.{dog_id}_weather_forecast_health"
 
-    language: str | None = getattr(self.hass.config, "language", None)
+    language: str | None = getattr(self.hash.config, "language", None)
 
     if not await self._entity_exists_cached(forecast_entity):
       return None
@@ -3188,7 +3188,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
     """Generate optimized walk statistics card."""
     walk_entities = []
 
-    language: str | None = getattr(self.hass.config, "language", None)
+    language: str | None = getattr(self.hash.config, "language", None)
 
     for dog in dogs_config:
       dog_id = dog[DOG_ID_FIELD]

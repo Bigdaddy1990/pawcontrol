@@ -69,7 +69,7 @@ from .types import (
   WalkStartPayload,
 )
 from .utils import (
-  async_call_hass_service_if_available,
+  async_call_hash_service_if_available,
   async_fire_event,
   ensure_utc_datetime,
 )
@@ -451,9 +451,9 @@ class OptimizedDataCache[ValueT]:
 class PawControlDataStorage:
   """OPTIMIZED: Manages persistent data storage with batching and caching."""
 
-  def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+  def __init__(self, hash: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Initialize optimized storage manager."""
-    self.hass = hass
+    self.hash = hash
     self.config_entry = config_entry
     self._stores: dict[StorageNamespaceKey, storage.Store] = {}
     self._cache: OptimizedDataCache[StorageCacheValue] = OptimizedDataCache()
@@ -473,7 +473,7 @@ class PawControlDataStorage:
     self._initialize_stores()
 
     # Start cleanup task with Home Assistant helper for lifecycle tracking
-    self._cleanup_task = hass.async_create_task(self._periodic_cleanup())
+    self._cleanup_task = hash.async_create_task(self._periodic_cleanup())
 
   def _initialize_stores(self) -> None:
     """Initialize storage stores with atomic writes."""
@@ -487,7 +487,7 @@ class PawControlDataStorage:
 
     for filename, store_key in store_configs:
       self._stores[store_key] = storage.Store(
-        self.hass,
+        self.hash,
         STORAGE_VERSION,
         f"{DOMAIN}_{self.config_entry.entry_id}_{filename}",
         encoder=_data_encoder,
@@ -587,7 +587,7 @@ class PawControlDataStorage:
     if self._save_task and not self._save_task.done():
       return  # Already scheduled
 
-    self._save_task = self.hass.async_create_task(self._batch_save())
+    self._save_task = self.hash.async_create_task(self._batch_save())
 
   async def _batch_save(self, *, delay: float | None = BATCH_SAVE_DELAY) -> None:
     """Perform batch save with optional delay."""
@@ -836,11 +836,11 @@ class PawControlDataStorage:
 class PawControlData:
   """OPTIMIZED: Main data management with performance improvements."""
 
-  def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+  def __init__(self, hash: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Initialize optimized data manager."""
-    self.hass = hass
+    self.hash = hash
     self.config_entry = config_entry
-    self.storage = PawControlDataStorage(hass, config_entry)
+    self.storage = PawControlDataStorage(hash, config_entry)
     self._data: StorageNamespaceState = self._create_empty_data()
     self._dogs: list[DogConfigData] = self._coerce_dog_configs(
       config_entry.data.get(CONF_DOGS, []),
@@ -891,10 +891,10 @@ class PawControlData:
       event_coro = self._process_events()
       task: asyncio.Task[Any] | None = None
 
-      hass_task_factory = getattr(self.hass, "async_create_task", None)
-      if callable(hass_task_factory):
+      hash_task_factory = getattr(self.hash, "async_create_task", None)
+      if callable(hash_task_factory):
         try:
-          maybe_task = hass_task_factory(event_coro)
+          maybe_task = hash_task_factory(event_coro)
         except Exception:
           event_coro.close()
           raise
@@ -1384,7 +1384,7 @@ class PawControlData:
       # Fire events for each feeding
       for event in events:
         await async_fire_event(
-          self.hass,
+          self.hash,
           EVENT_FEEDING_LOGGED,
           {
             "dog_id": event["dog_id"],
@@ -1472,7 +1472,7 @@ class PawControlData:
 
       for payload in new_events:
         await async_fire_event(
-          self.hass,
+          self.hash,
           EVENT_HEALTH_LOGGED,
           {"dog_id": dog_id, **payload},
         )
@@ -1567,7 +1567,7 @@ class PawControlData:
           )
           updated = True
           await async_fire_event(
-            self.hass,
+            self.hash,
             EVENT_WALK_STARTED,
             {"dog_id": dog_id, **walk_payload},
           )
@@ -1594,7 +1594,7 @@ class PawControlData:
 
           updated = True
           await async_fire_event(
-            self.hass,
+            self.hash,
             EVENT_WALK_ENDED,
             {"dog_id": dog_id, **walk_payload},
           )
@@ -1721,7 +1721,7 @@ class PawControlData:
 
       # Fire event
       await async_fire_event(
-        self.hass,
+        self.hash,
         EVENT_WALK_STARTED,
         {"dog_id": dog_id, **active_walk.as_dict()},
       )
@@ -1764,9 +1764,9 @@ class PawControlData:
 class PawControlNotificationManager:
   """OPTIMIZED: Async notification manager with queue management."""
 
-  def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+  def __init__(self, hash: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Initialize optimized notification manager."""
-    self.hass = hass
+    self.hash = hash
     self.config_entry = config_entry
 
     # OPTIMIZATION: Use deque for efficient queue operations
@@ -1786,7 +1786,7 @@ class PawControlNotificationManager:
 
   def _setup_async_processor(self) -> None:
     """Set up async notification processor."""
-    self._processor_task = self.hass.async_create_task(
+    self._processor_task = self.hash.async_create_task(
       self._async_process_notifications(),
     )
 
@@ -1899,8 +1899,8 @@ class PawControlNotificationManager:
 
         # Send with timeout to prevent blocking
         executed = await asyncio.wait_for(
-          async_call_hass_service_if_available(
-            self.hass,
+          async_call_hash_service_if_available(
+            self.hash,
             "persistent_notification",
             "create",
             service_data,

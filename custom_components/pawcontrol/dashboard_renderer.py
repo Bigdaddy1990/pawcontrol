@@ -127,20 +127,20 @@ class DashboardRenderer:
   rendering jobs with proper resource isolation.
   """
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hash: HomeAssistant) -> None:
     """Initialize dashboard renderer.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
     """
-    self.hass = hass
-    self.templates = DashboardTemplates(hass)
+    self.hash = hash
+    self.templates = DashboardTemplates(hash)
 
     # Initialize card generators
-    self.overview_generator = OverviewCardGenerator(hass, self.templates)
-    self.dog_generator = DogCardGenerator(hass, self.templates)
-    self.module_generator = ModuleCardGenerator(hass, self.templates)
-    self.stats_generator = StatisticsCardGenerator(hass, self.templates)
+    self.overview_generator = OverviewCardGenerator(hash, self.templates)
+    self.dog_generator = DogCardGenerator(hash, self.templates)
+    self.module_generator = ModuleCardGenerator(hash, self.templates)
+    self.stats_generator = StatisticsCardGenerator(hash, self.templates)
 
     # Rendering queue and semaphore
     self._render_semaphore = asyncio.Semaphore(MAX_CONCURRENT_RENDERS)
@@ -510,7 +510,7 @@ class DashboardRenderer:
 
       entity_id = f"sensor.{dog_id}_activity_level"
       # Check if entity exists before adding
-      if self.hass.states.get(entity_id):
+      if self.hash.states.get(entity_id):
         activity_entities.append(entity_id)
 
     if not activity_entities:
@@ -965,7 +965,7 @@ class DashboardRenderer:
       )
 
       # Ensure parent directory exists without blocking the event loop
-      await self.hass.async_add_executor_job(
+      await self.hash.async_add_executor_job(
         partial(file_path.parent.mkdir, parents=True, exist_ok=True),
       )
 
@@ -976,7 +976,7 @@ class DashboardRenderer:
         ) as temp_file:
           return Path(temp_file.name)
 
-      temp_path = await self.hass.async_add_executor_job(_create_temp_path)
+      temp_path = await self.hash.async_add_executor_job(_create_temp_path)
 
       # Write file asynchronously
       async with aiofiles.open(temp_path, "w", encoding="utf-8") as file:
@@ -987,14 +987,14 @@ class DashboardRenderer:
         )
         await file.write(content)
 
-      await self.hass.async_add_executor_job(os.replace, temp_path, file_path)
+      await self.hash.async_add_executor_job(os.replace, temp_path, file_path)
       temp_path = None
 
       _LOGGER.debug("Dashboard file written: %s", file_path)
 
     except Exception as err:
       if temp_path is not None:
-        await self.hass.async_add_executor_job(
+        await self.hash.async_add_executor_job(
           partial(temp_path.unlink, missing_ok=True),
         )
       _LOGGER.error(

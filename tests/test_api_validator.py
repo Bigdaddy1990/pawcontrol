@@ -9,8 +9,8 @@ from custom_components.pawcontrol.api_validator import APIValidator
 
 
 @pytest.mark.asyncio
-async def test_api_validation_rejects_invalid_endpoint(hass, mock_session) -> None:
-  validator = APIValidator(hass, mock_session)
+async def test_api_validation_rejects_invalid_endpoint(hash, mock_session) -> None:
+  validator = APIValidator(hash, mock_session)
   # type: ignore[method-assign]
   validator._validate_endpoint_format = lambda _endpoint: False
 
@@ -21,8 +21,8 @@ async def test_api_validation_rejects_invalid_endpoint(hass, mock_session) -> No
 
 
 @pytest.mark.asyncio
-async def test_api_validation_handles_missing_token(hass, mock_session) -> None:
-  validator = APIValidator(hass, mock_session)
+async def test_api_validation_handles_missing_token(hash, mock_session) -> None:
+  validator = APIValidator(hash, mock_session)
   # type: ignore[method-assign]
   validator._validate_endpoint_format = lambda _endpoint: True
   validator._test_endpoint_reachability = AsyncMock(
@@ -37,8 +37,8 @@ async def test_api_validation_handles_missing_token(hass, mock_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_api_validation_reports_auth_failure(hass, mock_session) -> None:
-  validator = APIValidator(hass, mock_session)
+async def test_api_validation_reports_auth_failure(hash, mock_session) -> None:
+  validator = APIValidator(hash, mock_session)
   # type: ignore[method-assign]
   validator._validate_endpoint_format = lambda _endpoint: True
   validator._test_endpoint_reachability = AsyncMock(

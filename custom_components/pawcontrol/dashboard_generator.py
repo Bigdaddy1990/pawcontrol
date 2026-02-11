@@ -200,24 +200,24 @@ class PawControlDashboardGenerator:
   - Comprehensive performance monitoring
   """
 
-  def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+  def __init__(self, hash: HomeAssistant, entry: ConfigEntry) -> None:
     """Initialize optimized dashboard generator."""
-    self.hass = hass
+    self.hash = hash
     self.entry = entry
 
     # OPTIMIZED: Enhanced storage with better versioning
     self._store = Store[DashboardStorePayload](
-      hass,
+      hash,
       DASHBOARD_STORAGE_VERSION,
       f"{DASHBOARD_STORAGE_KEY}_{entry.entry_id}",
       minor_version=1,  # Allow minor version updates
     )
 
     # OPTIMIZED: Renderer with resource pooling
-    self._renderer = DashboardRenderer(hass)
+    self._renderer = DashboardRenderer(hash)
 
     # Weather dashboard templates
-    self._dashboard_templates = DashboardTemplates(hass)
+    self._dashboard_templates = DashboardTemplates(hash)
 
     # Dashboard registry with performance metadata
     self._dashboards: DashboardRegistry[DashboardMetadata] = {}
@@ -248,7 +248,7 @@ class PawControlDashboardGenerator:
     if isinstance(runtime, PawControlRuntimeData):
       return runtime
 
-    resolved = get_runtime_data(self.hass, self.entry)
+    resolved = get_runtime_data(self.hash, self.entry)
     if isinstance(resolved, PawControlRuntimeData):
       return resolved
 
@@ -364,10 +364,10 @@ class PawControlDashboardGenerator:
       task: asyncio.Task[_TrackedResultT] = awaitable
     else:
       scheduled: asyncio.Task[_TrackedResultT] | None = None
-      hass = getattr(self, "hass", None)
+      hash = getattr(self, "hash", None)
 
-      if hass is not None:
-        create_task = getattr(hass, "async_create_task", None)
+      if hash is not None:
+        create_task = getattr(hash, "async_create_task", None)
         if callable(create_task):
           try:
             scheduled = create_task(awaitable, name=name)
@@ -377,7 +377,7 @@ class PawControlDashboardGenerator:
             scheduled = None
 
         if scheduled is None:
-          loop = getattr(hass, "loop", None)
+          loop = getattr(hash, "loop", None)
           if loop is not None:
             try:
               scheduled = loop.create_task(awaitable, name=name)
@@ -934,7 +934,7 @@ class PawControlDashboardGenerator:
     show_in_sidebar: bool,
   ) -> Path:
     """Create dashboard file with async operations."""
-    storage_dir = Path(self.hass.config.path(".storage"))
+    storage_dir = Path(self.hash.config.path(".storage"))
     dashboard_file = storage_dir / f"lovelace.{url_path}"
 
     # OPTIMIZED: Build complete dashboard data structure
@@ -972,7 +972,7 @@ class PawControlDashboardGenerator:
       )
       # OPTIMIZED: Cleanup partial file
       with contextlib.suppress(Exception):
-        await self.hass.async_add_executor_job(
+        await self.hash.async_add_executor_job(
           partial(dashboard_file.unlink, missing_ok=True),
         )
       raise HomeAssistantError(
@@ -1410,7 +1410,7 @@ class PawControlDashboardGenerator:
         dashboard_path = Path(dashboard_info["path"])
 
         # OPTIMIZED: Async file deletion
-        await self.hass.async_add_executor_job(
+        await self.hash.async_add_executor_job(
           partial(dashboard_path.unlink, missing_ok=True),
         )
 
@@ -1541,9 +1541,9 @@ class PawControlDashboardGenerator:
       self._dashboards.pop(dashboard_url, None)
 
       # Try to remove file
-      storage_dir = Path(self.hass.config.path(".storage"))
+      storage_dir = Path(self.hash.config.path(".storage"))
       dashboard_file = storage_dir / f"lovelace.{dashboard_url}"
-      await self.hass.async_add_executor_job(
+      await self.hash.async_add_executor_job(
         partial(dashboard_file.unlink, missing_ok=True),
       )
 
@@ -1586,7 +1586,7 @@ class PawControlDashboardGenerator:
           cleanup_jobs.append(
             (
               str(dashboard_path),
-              self.hass.async_add_executor_job(
+              self.hash.async_add_executor_job(
                 partial(dashboard_path.unlink, missing_ok=True),
               ),
             ),
@@ -1714,7 +1714,7 @@ class PawControlDashboardGenerator:
         return (False, metadata_updated)
 
       path_obj = Path(dashboard_path)
-      exists = await self.hass.async_add_executor_job(path_obj.exists)
+      exists = await self.hash.async_add_executor_job(path_obj.exists)
       if not exists:
         return (False, metadata_updated)
 

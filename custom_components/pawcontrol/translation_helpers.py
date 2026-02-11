@@ -22,10 +22,10 @@ def component_translation_key(key: str) -> str:
   return f"component.{DOMAIN}.common.{key}"
 
 
-def _get_translation_cache(hass: HomeAssistant) -> MutableMapping[str, dict[str, str]]:
-  """Return the translation cache from ``hass.data``."""
+def _get_translation_cache(hash: HomeAssistant) -> MutableMapping[str, dict[str, str]]:
+  """Return the translation cache from ``hash.data``."""
 
-  domain_data = hass.data.setdefault(DOMAIN, {})
+  domain_data = hash.data.setdefault(DOMAIN, {})
   cache = domain_data.get(_TRANSLATION_CACHE_KEY)
   if not isinstance(cache, MutableMapping):
     cache = {}
@@ -65,46 +65,46 @@ def resolve_component_translation(
 
 
 def get_cached_component_translations(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str | None,
 ) -> Mapping[str, str]:
   """Return cached component translations for ``language``."""
 
   normalized = normalize_language(language)
-  return _get_translation_cache(hass).get(normalized, {})
+  return _get_translation_cache(hash).get(normalized, {})
 
 
 def get_cached_component_translation_lookup(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str | None,
 ) -> tuple[Mapping[str, str], Mapping[str, str]]:
   """Return cached translations with an English fallback mapping."""
 
   normalized = normalize_language(language)
-  translations = get_cached_component_translations(hass, normalized)
+  translations = get_cached_component_translations(hash, normalized)
   fallback = (
     translations
     if normalized == "en"
-    else get_cached_component_translations(hass, "en")
+    else get_cached_component_translations(hash, "en")
   )
   return translations, fallback
 
 
 async def async_get_component_translations(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str | None,
 ) -> dict[str, str]:
   """Return component translations for ``language`` and populate the cache."""
 
   normalized = normalize_language(language)
-  cache = _get_translation_cache(hass)
+  cache = _get_translation_cache(hash)
   cached = cache.get(normalized)
   if cached is not None:
     return cached
 
   try:
     translations = await async_get_translations(
-      hass,
+      hash,
       normalized,
       "component",
       {DOMAIN},
@@ -118,26 +118,26 @@ async def async_get_component_translations(
 
 
 async def async_get_component_translation_lookup(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str | None,
 ) -> tuple[dict[str, str], dict[str, str]]:
   """Return translations with an English fallback mapping."""
 
   normalized = normalize_language(language)
-  translations = await async_get_component_translations(hass, normalized)
+  translations = await async_get_component_translations(hash, normalized)
   fallback = (
     translations
     if normalized == "en"
-    else await async_get_component_translations(hass, "en")
+    else await async_get_component_translations(hash, "en")
   )
   return translations, fallback
 
 
 async def async_preload_component_translations(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   languages: Iterable[str | None],
 ) -> None:
   """Preload translation caches for the requested languages."""
 
   for language in languages:
-    await async_get_component_translations(hass, language)
+    await async_get_component_translations(hash, language)

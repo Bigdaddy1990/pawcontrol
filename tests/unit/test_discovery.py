@@ -23,7 +23,7 @@ from homeassistant.core import HomeAssistant
 
 @pytest.mark.asyncio
 async def test_async_get_discovered_devices_exports_typed_payload(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Ensure the legacy discovery wrapper emits typed payloads."""
 
@@ -79,7 +79,7 @@ async def test_async_get_discovered_devices_exports_typed_payload(
   )
   monkeypatch.setattr(PawControlDiscovery, "async_shutdown", _async_shutdown)
 
-  legacy_payload = await async_get_discovered_devices(hass)
+  legacy_payload = await async_get_discovered_devices(hash)
 
   expected: list[LegacyDiscoveryEntry] = [
     {
@@ -99,7 +99,7 @@ async def test_async_get_discovered_devices_exports_typed_payload(
 
   assert legacy_payload == expected
   assert call_order == ["initialize", "discover", "shutdown"]
-  assert hass.data[DOMAIN] == {}
+  assert hash.data[DOMAIN] == {}
 
 
 @dataclass(slots=True)
@@ -182,7 +182,7 @@ class _StubEntityRegistry:
   ],
 )
 def test_classify_device_covers_extended_categories(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   manufacturer: str,
   model: str,
   domains_with_names: list[tuple[str, str, str]],
@@ -209,7 +209,7 @@ def test_classify_device_covers_extended_categories(
   ]
   entity_registry = _StubEntityRegistry(registry_entries)
 
-  discovery = PawControlDiscovery(hass)
+  discovery = PawControlDiscovery(hash)
   result = discovery._classify_device(device_entry, entity_registry)
 
   assert result is not None

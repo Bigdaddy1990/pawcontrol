@@ -88,7 +88,7 @@ if TYPE_CHECKING:
     @property
     def _entry(self) -> ConfigEntry: ...
 
-    hass: Any
+    hash: Any
 
     def __getattr__(self, name: str) -> Any: ...
 
@@ -196,7 +196,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
       if trimmed_sensor:
         try:
           trimmed_sensor = validate_sensor_entity_id(
-            self.hass,
+            self.hash,
             trimmed_sensor,
             field=CONF_DOOR_SENSOR,
             domain="binary_sensor",
@@ -289,7 +289,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
           if persist_updates:
             try:
               runtime = _resolve_require_runtime_data()(
-                self.hass,
+                self.hash,
                 self._entry,
               )
             except RuntimeDataUnavailableError:
@@ -347,7 +347,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
               }
               try:
                 await _resolve_async_create_issue()(
-                  self.hass,
+                  self.hash,
                   self._entry,
                   f"{self._entry.entry_id}_door_sensor_{dog_id}",
                   ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
@@ -381,7 +381,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
               self._current_dog = typed_dogs[dog_index]
 
               new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
-              self.hass.config_entries.async_update_entry(
+              self.hash.config_entries.async_update_entry(
                 self._entry,
                 data=new_data,
               )

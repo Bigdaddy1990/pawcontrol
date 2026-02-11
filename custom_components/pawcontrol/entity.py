@@ -28,7 +28,7 @@ from .types import (
 from .utils import (
   JSONMappingLike,
   PawControlDeviceLinkMixin,
-  async_call_hass_service_if_available,
+  async_call_hash_service_if_available,
   normalise_entity_attributes,
 )
 
@@ -68,11 +68,11 @@ class PawControlEntity(
       ATTR_DOG_ID: dog_id,
       ATTR_DOG_NAME: dog_name,
     }
-    # The Home Assistant entity base class sets ``hass`` when entities are
+    # The Home Assistant entity base class sets ``hash`` when entities are
     # added to the registry. The lightweight stubs used in the test suite
     # instantiate entities directly, so we provide a safe default here to
-    # avoid attribute errors in helper routines that guard on ``self.hass``.
-    self.hass = getattr(self, "hass", None)
+    # avoid attribute errors in helper routines that guard on ``self.hash``.
+    self.hash = getattr(self, "hash", None)
 
   @property
   def dog_id(self) -> str:
@@ -182,14 +182,14 @@ class PawControlEntity(
   def _get_runtime_data(self) -> PawControlRuntimeData | None:
     """Return runtime data attached to this entity's config entry."""
 
-    if self.hass is None:
+    if self.hash is None:
       return None
 
     config_entry = getattr(self.coordinator, "config_entry", None)
     if config_entry is None:
       return None
 
-    return get_runtime_data(self.hass, config_entry)
+    return get_runtime_data(self.hash, config_entry)
 
   def _get_runtime_managers(self) -> CoordinatorRuntimeManagers:
     """Return the runtime manager container for this entity."""
@@ -224,7 +224,7 @@ class PawControlEntity(
 
     return self._get_runtime_managers().notification_manager
 
-  async def _async_call_hass_service(
+  async def _async_call_hash_service(
     self,
     domain: str,
     service: str,
@@ -239,8 +239,8 @@ class PawControlEntity(
     successfully and ``False`` when the guard short-circuited the request.
     """
 
-    return await async_call_hass_service_if_available(
-      self.hass,
+    return await async_call_hash_service_if_available(
+      self.hash,
       domain,
       service,
       service_data,

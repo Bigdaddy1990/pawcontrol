@@ -704,13 +704,13 @@ class DashboardTemplates:
   with automatic optimization based on usage patterns and multiple visual themes.
   """
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hash: HomeAssistant) -> None:
     """Initialize template manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
     """
-    self.hass = hass
+    self.hash = hash
     self._cache: TemplateCache[CardTemplatePayload] = TemplateCache()
 
   @staticmethod
@@ -1406,10 +1406,10 @@ class DashboardTemplates:
     health_style = (
       self._gradient_style("#e91e63", "#f06292") if theme == "modern" else button_style
     )
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = get_cached_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     return {
@@ -1709,10 +1709,10 @@ class DashboardTemplates:
         Statistics card template
     """
     theme_styles = self._get_theme_styles(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     # Build statistics based on enabled modules
@@ -1807,10 +1807,10 @@ class DashboardTemplates:
         if modules.get(module_name):
           module_counts[module_name] += 1
 
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = get_cached_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     statistics_header = _translated_statistics_label(
@@ -2289,10 +2289,10 @@ class DashboardTemplates:
       return None
 
     theme_styles = self._get_theme_styles(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
     title_text = _translated_notification_template(
       translation_lookup,
@@ -2321,13 +2321,13 @@ class DashboardTemplates:
 
     theme_styles = self._get_theme_styles(theme)
     card_mod = self._card_mod(theme_styles)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
-    notifications_state = self.hass.states.get(
+    notifications_state = self.hash.states.get(
       "sensor.pawcontrol_notifications",
     )
     metrics, per_dog = self._normalise_notifications_state(
@@ -2470,10 +2470,10 @@ class DashboardTemplates:
 
     theme_styles = self._get_theme_styles(theme)
     base_button = self._get_base_card_template("button")
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     buttons: CardCollection = [
@@ -2548,10 +2548,10 @@ class DashboardTemplates:
         Feeding schedule card template
     """
     theme_styles = self._get_theme_styles(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
     schedule_label = _translated_feeding_label(
       translation_lookup,
@@ -2603,10 +2603,10 @@ class DashboardTemplates:
     """
     base_button = self._get_base_card_template("button")
     self._get_theme_styles(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     meal_types = [
@@ -2728,10 +2728,10 @@ class DashboardTemplates:
         Health charts template
     """
     theme_styles = self._get_theme_styles(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     template: CardConfig
@@ -2845,10 +2845,10 @@ class DashboardTemplates:
         Timeline template
     """
     theme_styles = self._get_theme_styles(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
     last_health_label = _translated_health_label(
       translation_lookup,
@@ -2901,10 +2901,10 @@ class DashboardTemplates:
 
     theme_styles = self._get_theme_styles(theme)
     weather_icon = self._get_weather_icon(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     template: CardConfig
@@ -3229,10 +3229,10 @@ class DashboardTemplates:
         Weather chart template
     """
     theme_styles = self._get_theme_styles(theme)
-    hass_language: str | None = getattr(self.hass.config, "language", None)
+    hash_language: str | None = getattr(self.hash.config, "language", None)
     translation_lookup = await async_get_component_translation_lookup(
-      self.hass,
-      hass_language,
+      self.hash,
+      hash_language,
     )
 
     hours_map = {
@@ -3395,7 +3395,7 @@ class DashboardTemplates:
 **Breed Profile Last Updated:** {{{{ states('sensor.{dog_id}_breed_profile_updated') }}}}
 """
 
-    breed_advice_state = self.hass.states.get(
+    breed_advice_state = self.hash.states.get(
       f"sensor.{dog_id}_breed_weather_advice",
     )
     breed_advice_attrs: Mapping[str, object] = {}
@@ -3704,7 +3704,7 @@ class DashboardTemplates:
     valid_entities = []
 
     for entity_id in entities:
-      state = self.hass.states.get(entity_id)
+      state = self.hash.states.get(entity_id)
       if state and state.state != STATE_UNKNOWN:
         valid_entities.append(entity_id)
 

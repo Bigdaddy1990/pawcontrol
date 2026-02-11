@@ -640,8 +640,8 @@ class _StorageNamespaceCacheMonitor:
         summary["timestamp"] = timestamp
         parsed = dt_util.parse_datetime(timestamp)
         if parsed is None:
-          timestamp_anomalies[dog_id] = "unparseable"
-          summary["timestamp_issue"] = "unparseable"
+          timestamp_anomalies[dog_id] = "unparsable"
+          summary["timestamp_issue"] = "unparsable"
         else:
           parsed_utc = dt_util.as_utc(parsed)
           delta = _utcnow() - parsed_utc
@@ -1009,7 +1009,7 @@ class PawControlDataManager:
 
   def __init__(
     self,
-    hass: HomeAssistant,
+    hash: HomeAssistant,
     entry_id: str | None = None,
     *,
     coordinator: Any | None = None,
@@ -1017,7 +1017,7 @@ class PawControlDataManager:
   ) -> None:
     """Create a new data manager tied to ``entry_id`` and configuration."""
 
-    self.hass = hass
+    self.hash = hash
     self._coordinator = coordinator
     typed_configs: dict[str, DogConfigData] = {}
     for config in dogs_config or []:
@@ -1043,7 +1043,7 @@ class PawControlDataManager:
         entry_id = entry_id_candidate
 
     self.entry_id = entry_id or "default"
-    config_dir = Path(getattr(hass.config, "config_dir", "."))
+    config_dir = Path(getattr(hash.config, "config_dir", "."))
     self._storage_dir = config_dir / DOMAIN
     self._storage_path = self._storage_dir / f"{self.entry_id}_{_STORAGE_FILENAME}"
     self._backup_path = self._storage_path.with_suffix(
@@ -1081,7 +1081,7 @@ class PawControlDataManager:
       return None
 
     try:
-      return get_runtime_data(self.hass, entry_id)
+      return get_runtime_data(self.hash, entry_id)
     except Exception:  # pragma: no cover - runtime retrieval errors
       return None
 
@@ -3218,7 +3218,7 @@ class PawControlDataManager:
   ) -> ValueT:
     """Run a sync function in the Home Assistant executor."""
 
-    return await self.hass.async_add_executor_job(func, *args)
+    return await self.hash.async_add_executor_job(func, *args)
 
   async def _async_load_storage(self) -> JSONMutableMapping:
     """Load stored JSON data, falling back to the backup if required."""

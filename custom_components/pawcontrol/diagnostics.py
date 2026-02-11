@@ -196,7 +196,7 @@ except (ModuleNotFoundError, AttributeError):
 
 
 async def _async_get_translations_wrapper(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   language: str,
   category: str,
   integrations: set[str],
@@ -206,14 +206,14 @@ async def _async_get_translations_wrapper(
   if _ASYNC_GET_TRANSLATIONS is None:
     return {}
 
-  return await _ASYNC_GET_TRANSLATIONS(hass, language, category, integrations)
+  return await _ASYNC_GET_TRANSLATIONS(hash, language, category, integrations)
 
 
 async_get_translations = _async_get_translations_wrapper
 
 
 async def _async_resolve_setup_flag_translations(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   *,
   language: str | None = None,
 ) -> tuple[
@@ -225,14 +225,14 @@ async def _async_resolve_setup_flag_translations(
 ]:
   """Return localised labels for setup flag diagnostics."""
 
-  config_language = cast(str | None, getattr(hass.config, "language", None))
+  config_language = cast(str | None, getattr(hash.config, "language", None))
   target_language = (language or config_language or "en").lower()
 
   async def _async_fetch(lang: str) -> dict[str, str]:
     if _ASYNC_GET_TRANSLATIONS is None:
       return {}
     try:
-      return await _ASYNC_GET_TRANSLATIONS(hass, lang, "component", {DOMAIN})
+      return await _ASYNC_GET_TRANSLATIONS(hash, lang, "component", {DOMAIN})
     except Exception:  # pragma: no cover - defensive guard for HA API
       _LOGGER.debug(
         "Failed to load %s translations for setup flags",
@@ -343,7 +343,7 @@ def _summarise_setup_flags(entry: ConfigEntry) -> dict[str, bool]:
 
 
 async def _async_build_setup_flags_panel(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> SetupFlagsPanelPayload:
   """Expose setup flag metadata in a dashboard-friendly structure."""
@@ -354,7 +354,7 @@ async def _async_build_setup_flags_panel(
     resolved_source_labels,
     title,
     description,
-  ) = await _async_resolve_setup_flag_translations(hass)
+  ) = await _async_resolve_setup_flag_translations(hash)
 
   snapshots = _collect_setup_flag_snapshots(entry)
   flags: list[SetupFlagPanelEntry] = []
@@ -678,7 +678,7 @@ def _device_registry_entries_for_config_entry(
 
 
 async def async_get_config_entry_diagnostics(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
 ) -> JSONMutableMapping:
   """Return diagnostics for a config entry.
@@ -688,7 +688,7 @@ async def async_get_config_entry_diagnostics(
   metrics while ensuring sensitive data is properly redacted.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry to diagnose
 
   Returns:
@@ -700,7 +700,7 @@ async def async_get_config_entry_diagnostics(
   )
 
   # Get runtime data using the shared helper (runtime adoption still being proven)
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   coordinator = runtime_data.coordinator if runtime_data else None
 
   # Base diagnostics structure
@@ -708,28 +708,28 @@ async def async_get_config_entry_diagnostics(
 
   diagnostics_payload: dict[str, object] = {
     "config_entry": await _get_config_entry_diagnostics(entry),
-    "system_info": await _get_system_diagnostics(hass),
-    "integration_status": await _get_integration_status(hass, entry, runtime_data),
+    "system_info": await _get_system_diagnostics(hash),
+    "integration_status": await _get_integration_status(hash, entry, runtime_data),
     "coordinator_info": await _get_coordinator_diagnostics(coordinator),
-    "entities": await _get_entities_diagnostics(hass, entry),
-    "devices": await _get_devices_diagnostics(hass, entry),
+    "entities": await _get_entities_diagnostics(hash, entry),
+    "devices": await _get_devices_diagnostics(hash, entry),
     "dogs_summary": await _get_dogs_summary(entry, coordinator),
     "performance_metrics": await _get_performance_metrics(coordinator),
     "data_statistics": await _get_data_statistics(runtime_data, cache_snapshots),
     "error_logs": await _get_recent_errors(entry.entry_id),
-    "debug_info": await _get_debug_information(hass, entry),
+    "debug_info": await _get_debug_information(hash, entry),
     "door_sensor": await _get_door_sensor_diagnostics(runtime_data),
     "service_execution": await _get_service_execution_diagnostics(runtime_data),
     "bool_coercion": _get_bool_coercion_diagnostics(runtime_data),
-    "push_telemetry": get_entry_push_telemetry_snapshot(hass, entry.entry_id),
+    "push_telemetry": get_entry_push_telemetry_snapshot(hash, entry.entry_id),
     "setup_flags": _summarise_setup_flags(entry),
-    "setup_flags_panel": await _async_build_setup_flags_panel(hass, entry),
+    "setup_flags_panel": await _async_build_setup_flags_panel(hash, entry),
     "resilience": _get_resilience_diagnostics(runtime_data, coordinator),
     "resilience_escalation": _get_resilience_escalation_snapshot(runtime_data),
     "guard_notification_error_metrics": _get_guard_notification_error_metrics(
       runtime_data,
     ),
-    "runtime_store": describe_runtime_store_status(hass, entry),
+    "runtime_store": describe_runtime_store_status(hash, entry),
     "notifications": await _get_notification_diagnostics(runtime_data),
   }
 
@@ -909,16 +909,16 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMappin
   )
 
 
-async def _get_system_diagnostics(hass: HomeAssistant) -> JSONMutableMapping:
+async def _get_system_diagnostics(hash: HomeAssistant) -> JSONMutableMapping:
   """Get Home Assistant system diagnostic information.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
 
   Returns:
       System diagnostics
   """
-  config = hass.config
+  config = hash.config
   time_zone = getattr(config, "time_zone", None)
   safe_mode = getattr(config, "safe_mode", False)
   recovery_mode = getattr(config, "recovery_mode", False)
@@ -934,7 +934,7 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> JSONMutableMapping:
       "python_version": getattr(config, "python_version", None),
       "timezone": str(time_zone) if time_zone else None,
       "config_dir": getattr(config, "config_dir", None),
-      "is_running": getattr(hass, "is_running", False),
+      "is_running": getattr(hash, "is_running", False),
       "safe_mode": safe_mode,
       "recovery_mode": recovery_mode,
       "current_time": dt_util.utcnow().isoformat(),
@@ -1086,14 +1086,14 @@ def _serialise_cache_snapshot(snapshot: object) -> JSONMutableMapping:
 
 
 async def _get_integration_status(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
   runtime_data: PawControlRuntimeData | None,
 ) -> JSONMutableMapping:
   """Get integration status diagnostics.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
       runtime_data: Runtime data from entry
 
@@ -1122,8 +1122,8 @@ async def _get_integration_status(
       else None,
       "data_manager_available": data_manager is not None,
       "notification_manager_available": notification_manager is not None,
-      "platforms_loaded": await _get_loaded_platforms(hass, entry),
-      "services_registered": await _get_registered_services(hass),
+      "platforms_loaded": await _get_loaded_platforms(hash, entry),
+      "services_registered": await _get_registered_services(hash),
       "setup_completed": True,
     },
   )
@@ -1417,19 +1417,19 @@ async def _get_coordinator_diagnostics(
 
 
 async def _get_entities_diagnostics(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> JSONMutableMapping:
   """Get entities diagnostic information.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
 
   Returns:
       Entities diagnostics
   """
-  entity_registry = er.async_get(hass)
+  entity_registry = er.async_get(hash)
 
   # Get all entities for this integration
   entities = _entity_registry_entries_for_config_entry(
@@ -1462,7 +1462,7 @@ async def _get_entities_diagnostics(
     }
 
     # Get current state
-    state = hass.states.get(entity.entity_id)
+    state = hash.states.get(entity.entity_id)
     if state:
       entity_info.update(
         {
@@ -1494,19 +1494,19 @@ async def _get_entities_diagnostics(
 
 
 async def _get_devices_diagnostics(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> JSONMutableMapping:
   """Get devices diagnostic information.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
 
   Returns:
       Devices diagnostics
   """
-  device_registry = dr.async_get(hass)
+  device_registry = dr.async_get(hash)
 
   # Get all devices for this integration
   devices = _device_registry_entries_for_config_entry(
@@ -2167,13 +2167,13 @@ async def _get_recent_errors(entry_id: str) -> list[RecentErrorEntry]:
 
 
 async def _get_debug_information(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> DebugInformationPayload:
   """Get debug information.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
 
   Returns:
@@ -2202,22 +2202,22 @@ async def _get_debug_information(
     "documentation_url": "https://github.com/BigDaddy1990/pawcontrol",
     "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
     "entry_id": entry.entry_id,
-    "ha_version": hass.config.version,
+    "ha_version": hash.config.version,
   }
 
 
-async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list[str]:
+async def _get_loaded_platforms(hash: HomeAssistant, entry: ConfigEntry) -> list[str]:
   """Get list of loaded platforms for this entry.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Configuration entry
 
   Returns:
       List of loaded platform names
   """
   # Check which platforms have been loaded by checking entity registry
-  entity_registry = er.async_get(hass)
+  entity_registry = er.async_get(hash)
   entities = _entity_registry_entries_for_config_entry(
     entity_registry,
     entry.entry_id,
@@ -2227,16 +2227,16 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
   return list({entity.platform for entity in entities})
 
 
-async def _get_registered_services(hass: HomeAssistant) -> list[str]:
+async def _get_registered_services(hash: HomeAssistant) -> list[str]:
   """Get list of registered services for this domain.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
 
   Returns:
       List of registered service names
   """
-  domain_services = hass.services.async_services().get(DOMAIN, {})
+  domain_services = hash.services.async_services().get(DOMAIN, {})
 
   return list(domain_services.keys())
 

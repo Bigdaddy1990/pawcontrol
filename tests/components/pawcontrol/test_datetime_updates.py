@@ -15,16 +15,16 @@ from custom_components.pawcontrol.types import PawControlRuntimeData
 
 
 async def _setup_runtime_data(
-  hass,
+  hash,
   config_entry,
   coordinator,
   tmp_path,
   *,
   feeding_manager: MagicMock,
 ) -> PawControlDataManager:
-  hass.config.config_dir = str(tmp_path)
+  hash.config.config_dir = str(tmp_path)
   data_manager = PawControlDataManager(
-    hass,
+    hash,
     coordinator=coordinator,
     dogs_config=config_entry.data["dogs"],
   )
@@ -40,13 +40,13 @@ async def _setup_runtime_data(
     entity_profile="standard",
     dogs=config_entry.data["dogs"],
   )
-  store_runtime_data(hass, config_entry, runtime_data)
+  store_runtime_data(hash, config_entry, runtime_data)
   return data_manager
 
 
 @pytest.mark.asyncio
 async def test_next_feeding_datetime_persists_and_refreshes(
-  mock_hass,
+  mock_hash,
   mock_config_entry,
   mock_coordinator,
   tmp_path,
@@ -54,7 +54,7 @@ async def test_next_feeding_datetime_persists_and_refreshes(
   feeding_manager = MagicMock()
   feeding_manager.async_refresh_reminder = AsyncMock()
   data_manager = await _setup_runtime_data(
-    mock_hass,
+    mock_hash,
     mock_config_entry,
     mock_coordinator,
     tmp_path,
@@ -65,7 +65,7 @@ async def test_next_feeding_datetime_persists_and_refreshes(
     "test_dog",
     "Buddy",
   )
-  entity.hass = mock_hass
+  entity.hash = mock_hash
 
   reminder_time = datetime(2024, 1, 2, 9, 30, tzinfo=UTC)
   await entity.async_set_value(reminder_time)

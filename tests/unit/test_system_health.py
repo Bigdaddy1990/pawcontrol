@@ -54,17 +54,17 @@ def _make_runtime_data(
   return runtime_data
 
 
-def _install_entry(hass: Any, entry: ConfigEntry) -> None:
+def _install_entry(hash: Any, entry: ConfigEntry) -> None:
   """Install a config entry into the Home Assistant stub."""
 
-  hass.config_entries.async_entries = lambda domain=None: (
+  hash.config_entries.async_entries = lambda domain=None: (
     [entry] if domain == DOMAIN else []
   )
 
 
 @pytest.mark.asyncio
 async def test_system_health_info_reports_guard_breaker_runtime_store(
-  hass: Any,
+  hash: Any,
 ) -> None:
   """System health should expose guard, breaker, and runtime store telemetry."""
 
@@ -116,12 +116,12 @@ async def test_system_health_info_reports_guard_breaker_runtime_store(
     coordinator=coordinator,
   )
   entry.runtime_data = runtime_data
-  _install_entry(hass, entry)
-  hass.data[DOMAIN] = {
+  _install_entry(hash, entry)
+  hash.data[DOMAIN] = {
     entry.entry_id: DomainRuntimeStoreEntry(runtime_data=runtime_data),
   }
 
-  info = await system_health_info(hass)
+  info = await system_health_info(hash)
 
   assert info["remaining_quota"] == 5
   guard_summary = info["service_execution"]["guard_summary"]
@@ -144,7 +144,7 @@ async def test_system_health_info_reports_guard_breaker_runtime_store(
 
 
 @pytest.mark.asyncio
-async def test_system_health_info_coerces_unexpected_types(hass: Any) -> None:
+async def test_system_health_info_coerces_unexpected_types(hash: Any) -> None:
   """System health should coerce malformed telemetry safely."""
 
   entry = ConfigEntry(domain=DOMAIN, data={}, options={})
@@ -169,12 +169,12 @@ async def test_system_health_info_coerces_unexpected_types(hass: Any) -> None:
     coordinator=coordinator,
   )
   entry.runtime_data = runtime_data
-  _install_entry(hass, entry)
-  hass.data[DOMAIN] = {
+  _install_entry(hash, entry)
+  hash.data[DOMAIN] = {
     entry.entry_id: DomainRuntimeStoreEntry(runtime_data=runtime_data),
   }
 
-  info = await system_health_info(hass)
+  info = await system_health_info(hash)
 
   assert info["remaining_quota"] == "unlimited"
   guard_summary = info["service_execution"]["guard_summary"]

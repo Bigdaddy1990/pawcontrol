@@ -38,8 +38,8 @@ async def test_process_feeding_batch_limits_history_and_emits_events(
 ) -> None:
   """`_process_feeding_batch` should persist JSON payloads and emit events."""
 
-  hass = MagicMock(spec=HomeAssistant)
-  hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
+  hash = MagicMock(spec=HomeAssistant)
+  hash.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
   config_entry = MagicMock(spec=ConfigEntry)
   config_entry.data = {CONF_DOGS: [{"dog_id": "dog-1"}]}
@@ -56,7 +56,7 @@ async def test_process_feeding_batch_limits_history_and_emits_events(
   )
   monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 2)
 
-  data_manager = PawControlData(hass, config_entry)
+  data_manager = PawControlData(hash, config_entry)
   feedings_namespace = data_manager._ensure_namespace("feedings")
   existing_feeding_entry = cast(
     JSONMutableMapping,
@@ -110,8 +110,8 @@ async def test_process_health_batch_serializes_structured_events(
 ) -> None:
   """`_process_health_batch` should normalize history and fire events."""
 
-  hass = MagicMock(spec=HomeAssistant)
-  hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
+  hash = MagicMock(spec=HomeAssistant)
+  hash.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
   config_entry = MagicMock(spec=ConfigEntry)
   config_entry.data = {CONF_DOGS: [{"dog_id": "dog-1"}]}
@@ -128,7 +128,7 @@ async def test_process_health_batch_serializes_structured_events(
   )
   monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 3)
 
-  data_manager = PawControlData(hass, config_entry)
+  data_manager = PawControlData(hash, config_entry)
   health_namespace = data_manager._ensure_namespace("health")
   existing_health_entry = cast(
     HealthHistoryEntry,
@@ -191,8 +191,8 @@ async def test_process_walk_batch_normalizes_storage(
 ) -> None:
   """`_process_walk_batch` should persist JSON payloads and merge sessions."""
 
-  hass = MagicMock(spec=HomeAssistant)
-  hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
+  hash = MagicMock(spec=HomeAssistant)
+  hash.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
   config_entry = MagicMock(spec=ConfigEntry)
   config_entry.data = {CONF_DOGS: [{"dog_id": "dog-1"}]}
@@ -209,7 +209,7 @@ async def test_process_walk_batch_normalizes_storage(
   )
   monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 3)
 
-  data_manager = PawControlData(hass, config_entry)
+  data_manager = PawControlData(hash, config_entry)
   walk_namespace = data_manager._ensure_namespace("walks")
   legacy_active = WalkEvent.from_raw(
     "dog-1",
@@ -307,8 +307,8 @@ async def test_process_walk_batch_sorts_history_descending(
 ) -> None:
   """Walk history should be sorted newest first and trimmed to the limit."""
 
-  hass = MagicMock(spec=HomeAssistant)
-  hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
+  hash = MagicMock(spec=HomeAssistant)
+  hash.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
   config_entry = MagicMock(spec=ConfigEntry)
   config_entry.data = {CONF_DOGS: [{"dog_id": "dog-1"}]}
@@ -325,7 +325,7 @@ async def test_process_walk_batch_sorts_history_descending(
   )
   monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 2)
 
-  data_manager = PawControlData(hass, config_entry)
+  data_manager = PawControlData(hash, config_entry)
   walk_namespace = data_manager._ensure_namespace("walks")
   walk_namespace["dog-1"] = cast(
     JSONValue,
@@ -424,8 +424,8 @@ async def test_async_process_notifications_prioritizes_high_priority(
 ) -> None:
   """High-priority notifications should be delivered ahead of normal ones."""
 
-  hass = MagicMock(spec=HomeAssistant)
-  hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
+  hash = MagicMock(spec=HomeAssistant)
+  hash.async_create_task = MagicMock(side_effect=asyncio.create_task)
 
   config_entry = MagicMock(spec=ConfigEntry)
   config_entry.options = {}
@@ -435,7 +435,7 @@ async def test_async_process_notifications_prioritizes_high_priority(
     "custom_components.pawcontrol.helpers.PawControlNotificationManager._setup_async_processor",
     lambda self: None,
   ):
-    notification_manager = PawControlNotificationManager(hass, config_entry)
+    notification_manager = PawControlNotificationManager(hash, config_entry)
 
   monkeypatch.setattr(
     notification_manager,

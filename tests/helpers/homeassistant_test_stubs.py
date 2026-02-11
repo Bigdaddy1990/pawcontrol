@@ -413,14 +413,14 @@ class ServiceRegistry:
 HANDLERS: dict[str, object] = {}
 
 
-async def support_entry_unload(hass: object, domain: str) -> bool:
+async def support_entry_unload(hash: object, domain: str) -> bool:
   """Return ``True`` if the handler exposes an unload hook."""
 
   handler = HANDLERS.get(domain)
   return bool(handler and hasattr(handler, "async_unload_entry"))
 
 
-async def support_remove_from_device(hass: object, domain: str) -> bool:
+async def support_remove_from_device(hash: object, domain: str) -> bool:
   """Return ``True`` if the handler exposes a remove-device hook."""
 
   handler = HANDLERS.get(domain)
@@ -605,10 +605,10 @@ class ConfigEntry:
 
     return self._supported_subentry_types or {}
 
-  def add_to_hass(self, hass: HomeAssistant) -> None:
+  def add_to_hash(self, hash: HomeAssistant) -> None:
     """Attach this config entry to the Home Assistant test instance."""
 
-    hass.config_entries._entries[self.entry_id] = self
+    hash.config_entries._entries[self.entry_id] = self
 
 
 class _FlowBase:
@@ -733,7 +733,7 @@ class ConfigFlow(_FlowBase):
       HANDLERS[domain] = cls
 
   def __init__(self) -> None:
-    self.hass: HomeAssistant | None = None
+    self.hash: HomeAssistant | None = None
     self.context: dict[str, object] = {}
     self._unique_id: str | None = None
 
@@ -753,19 +753,19 @@ class ConfigFlow(_FlowBase):
     """Abort when another entry already uses this unique id."""
 
     _ = updates, reload_on_update
-    if self.hass is None or self._unique_id is None:
+    if self.hash is None or self._unique_id is None:
       return
 
-    for entry in self.hass.config_entries.async_entries(self.domain):
+    for entry in self.hash.config_entries.async_entries(self.domain):
       if getattr(entry, "unique_id", None) == self._unique_id:
         raise _AbortFlow("already_configured")
 
 
 class _FlowManager:
-  """Minimal flow manager implementing ``hass.config_entries.flow``."""
+  """Minimal flow manager implementing ``hash.config_entries.flow``."""
 
-  def __init__(self, hass: HomeAssistant) -> None:
-    self._hass = hass
+  def __init__(self, hash: HomeAssistant) -> None:
+    self._hash = hash
 
   async def async_init(
     self,
@@ -792,7 +792,7 @@ class _FlowManager:
       raise ValueError(f"No config flow handler registered for domain '{domain}'")
 
     handler = handler_cls()
-    handler.hass = self._hass
+    handler.hash = self._hash
     handler.context = dict(context or {})
 
     source = str(handler.context.get("source", "user"))
@@ -1074,7 +1074,7 @@ def _async_get_issue_registry(*args: object, **kwargs: object) -> IssueRegistry:
 
 
 def _async_create_issue(
-  hass: object,
+  hash: object,
   domain: str,
   issue_id: str,
   *,
@@ -1091,7 +1091,7 @@ def _async_create_issue(
   data: dict[str, object] | None = None,
   dismissed_version: str | None = None,
 ) -> dict[str, object]:
-  registry = _async_get_issue_registry(hass)
+  registry = _async_get_issue_registry(hash)
   return registry.async_create_issue(
     domain,
     issue_id,
@@ -1110,27 +1110,27 @@ def _async_create_issue(
   )
 
 
-def _async_delete_issue(hass: object, domain: str, issue_id: str) -> bool:
-  registry = _async_get_issue_registry(hass)
+def _async_delete_issue(hash: object, domain: str, issue_id: str) -> bool:
+  registry = _async_get_issue_registry(hash)
   return registry.async_delete_issue(domain, issue_id)
 
 
 def _async_get_issue(
-  hass: object,
+  hash: object,
   domain: str,
   issue_id: str,
 ) -> dict[str, object] | None:
-  registry = _async_get_issue_registry(hass)
+  registry = _async_get_issue_registry(hash)
   return registry.async_get_issue(domain, issue_id)
 
 
 def _async_ignore_issue(
-  hass: object,
+  hash: object,
   domain: str,
   issue_id: str,
   ignore: bool,
 ) -> dict[str, object]:
-  registry = _async_get_issue_registry(hass)
+  registry = _async_get_issue_registry(hash)
   return registry.async_ignore_issue(domain, issue_id, ignore)
 
 
@@ -1490,11 +1490,11 @@ class Store:
 
 
 def async_dispatcher_connect(
-  hass: HomeAssistant, signal: str, target: Callable
+  hash: HomeAssistant, signal: str, target: Callable
 ) -> Callable:
   """Minimal dispatcher connect helper used by service wiring."""
 
-  dispatcher = hass.data.setdefault("_dispatcher", {})
+  dispatcher = hash.data.setdefault("_dispatcher", {})
   listeners = dispatcher.setdefault(signal, [])
   listeners.append(target)
 
@@ -1508,7 +1508,7 @@ def async_dispatcher_connect(
 class Entity:
   """Base entity stub."""
 
-  hass: HomeAssistant | None = None
+  hash: HomeAssistant | None = None
 
   def __init__(self) -> None:
     self._attr_available = True
@@ -1816,13 +1816,13 @@ def _async_file_handle(handle: Any) -> _AsyncFile:
   return _AsyncFile(handle)
 
 
-async def _async_get_clientsession(hass: object) -> object:
+async def _async_get_clientsession(hash: object) -> object:
   """Return a stub clientsession for aiohttp helper tests."""
 
   return object()
 
 
-def _async_make_resolver(hass: object) -> Callable[[str], object]:
+def _async_make_resolver(hash: object) -> Callable[[str], object]:
   """Return a zeroconf resolver stub compatible with HACC fixtures."""
 
   def _resolve(host: str) -> object:
@@ -1858,13 +1858,13 @@ class DataUpdateCoordinator:
 
   def __init__(
     self,
-    hass: object,
+    hash: object,
     logger: object | None = None,
     *args: object,
     name: str | None = None,
     **kwargs: object,
   ) -> None:
-    self.hass = hass
+    self.hash = hash
     self.logger = logger
     self.name = name or "stub"
 
@@ -2162,7 +2162,7 @@ def install_homeassistant_stubs() -> None:
   aiofiles_module = types.ModuleType("aiofiles")
 
   async def _async_get_translations(
-    hass: HomeAssistant,
+    hash: HomeAssistant,
     language: str | None,
     category: str,
     domains: set[str],

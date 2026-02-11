@@ -315,14 +315,14 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
       ),
     )
 
-  def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+  def __init__(self, hash: HomeAssistant, entry_id: str) -> None:
     """Initialize person entity manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
         entry_id: Configuration entry ID
     """
-    self.hass = hass
+    self.hash = hash
     self.entry_id = entry_id
 
     # Configuration and state
@@ -397,7 +397,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
   async def _discover_person_entities(self) -> None:
     """Discover all person entities in Home Assistant."""
     try:
-      entity_registry = er.async_get(self.hass)
+      entity_registry = er.async_get(self.hash)
       discovered_count = 0
 
       # Get all person domain entities from registry
@@ -417,7 +417,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
           continue
 
         # Get current state
-        state = self.hass.states.get(entity_id)
+        state = self.hash.states.get(entity_id)
         if state is None:
           continue
 
@@ -507,7 +507,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         # Check if any of these services exist
         for pattern in mobile_patterns:
-          if self.hass.services.has_service("notify", pattern):
+          if self.hash.services.has_service("notify", pattern):
             return pattern
 
       # Check user_id attribute for Home Assistant user mapping
@@ -541,7 +541,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     # Track state changes for all person entities
     listener = async_track_state_change_event(
-      self.hass,
+      self.hash,
       person_entity_ids,
       handle_person_state_change,
     )
@@ -708,7 +708,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
       # Fallback to generic mobile app pattern
       else:
         mobile_service = f"mobile_app_{person.name}"
-        if self.hass.services.has_service("notify", mobile_service):
+        if self.hash.services.has_service("notify", mobile_service):
           targets.append(mobile_service)
 
     # Add static fallback targets if configured and no persons found

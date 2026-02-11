@@ -352,7 +352,7 @@ def resolve_default_feeding_amount(
 
   from .runtime_data import get_runtime_data
 
-  runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+  runtime_data = get_runtime_data(coordinator.hash, coordinator.config_entry)
   if runtime_data is None:
     raise HomeAssistantError("Runtime data not available")
 
@@ -510,8 +510,8 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
     _seen.discard(obj_id)
 
 
-async def async_call_hass_service_if_available(
-  hass: HomeAssistant | None,
+async def async_call_hash_service_if_available(
+  hash: HomeAssistant | None,
   domain: str,
   service: str,
   service_data: JSONMappingLike | JSONMutableMapping | None = None,
@@ -527,7 +527,7 @@ async def async_call_hass_service_if_available(
   active_logger = logger or _LOGGER
   description_hint = description or None
 
-  if hass is None:
+  if hash is None:
     context_hint = f" for {description}" if description_hint else ""
     active_logger.debug(
       "Skipping %s.%s service call%s because Home Assistant is not available",
@@ -547,7 +547,7 @@ async def async_call_hass_service_if_available(
       capture.append(guard_result)
     return guard_result
 
-  services = getattr(hass, "services", None)
+  services = getattr(hash, "services", None)
   async_call = getattr(services, "async_call", None)
   if not callable(async_call):
     context_hint = f" for {description}" if description_hint else ""
@@ -612,7 +612,7 @@ class PortionValidationResult(TypedDict):
 
 
 async def async_fire_event(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   event_type: str,
   event_data: JSONLikeMapping | None = None,
   *,
@@ -634,7 +634,7 @@ async def async_fire_event(
   functioning unchanged.
   """
 
-  bus_async_fire = hass.bus.async_fire
+  bus_async_fire = hash.bus.async_fire
 
   accepts_any_kw, supported_keywords = _get_bus_keyword_support(
     bus_async_fire,
@@ -848,7 +848,7 @@ async def async_call_add_entities(
 
 
 async def async_get_or_create_dog_device_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   *,
   config_entry_id: str,
   dog_id: str,
@@ -881,7 +881,7 @@ async def async_get_or_create_dog_device_entry(
     extra_identifiers=extra_identifiers,
   )
 
-  device_registry = dr.async_get(hass)
+  device_registry = dr.async_get(hash)
   device = device_registry.async_get_or_create(
     config_entry_id=config_entry_id,
     identifiers=device_info["identifiers"],
@@ -949,15 +949,15 @@ class PawControlDeviceLinkMixin:
     return cast("DeviceLinkDetails", dict(self._device_link_defaults))
 
   # Home Assistant's cooperative multiple inheritance confuses type checkers
-  # about the precise async_added_to_hass signature, so we silence the
+  # about the precise async_added_to_hash signature, so we silence the
   # override warning here.
-  async def async_added_to_hass(self) -> None:  # type: ignore[override]
+  async def async_added_to_hash(self) -> None:  # type: ignore[override]
     """Link entity to device entry after regular setup."""
 
     # CoordinatorEntity and RestoreEntity expose incompatible type hints for
-    # async_added_to_hass(), so we silence the mismatch on the cooperative
+    # async_added_to_hash(), so we silence the mismatch on the cooperative
     # super() call used by Home Assistant's entity model.
-    await super().async_added_to_hass()  # type: ignore[misc]
+    await super().async_added_to_hash()  # type: ignore[misc]
     await self._async_link_device_entry()
 
   @property
@@ -1000,9 +1000,9 @@ class PawControlDeviceLinkMixin:
     if self._device_link_initialized:
       return
 
-    hass: HomeAssistant | None = getattr(self, "hass", None)
+    hash: HomeAssistant | None = getattr(self, "hash", None)
     coordinator = getattr(self, "coordinator", None)
-    if hass is None or coordinator is None:
+    if hash is None or coordinator is None:
       return
 
     config_entry = getattr(coordinator, "config_entry", None)
@@ -1014,7 +1014,7 @@ class PawControlDeviceLinkMixin:
 
     try:
       device = await async_get_or_create_dog_device_entry(
-        hass,
+        hash,
         config_entry_id=config_entry.entry_id,
         dog_id=dog_id,
         dog_name=dog_name,
@@ -1034,7 +1034,7 @@ class PawControlDeviceLinkMixin:
 
     entity_id = cast(str | None, getattr(self, "entity_id", None))
     if entity_id:
-      entity_registry = er.async_get(hass)
+      entity_registry = er.async_get(hash)
       entity_entry = entity_registry.async_get(entity_id)
       if entity_entry and entity_entry.device_id != device.id:
         entity_registry.async_update_entity(
@@ -1619,7 +1619,7 @@ def retry_on_exception(
   delay: float = 1.0,
   backoff_factor: float = 2.0,
   exceptions: tuple[type[Exception], ...] = (Exception,),
-  hass: HomeAssistant | None = None,
+  hash: HomeAssistant | None = None,
 ) -> Callable[
   [Callable[P, Awaitable[R]] | Callable[P, R]],
   Callable[P, Awaitable[R]],
@@ -1636,7 +1636,7 @@ def retry_on_exception(
       delay: Initial delay between retries
       backoff_factor: Factor to multiply delay by each retry
       exceptions: Exception types to retry on
-      hass: Home Assistant instance used to offload sync work to the executor
+      hash: Home Assistant instance used to offload sync work to the executor
 
   Returns:
       Decorator that provides retry behaviour for async and sync callables.
@@ -1662,10 +1662,10 @@ def retry_on_exception(
             coroutine = cast(Callable[P, Awaitable[R]], func)
             return await coroutine(*args, **kwargs)
           sync_func = cast(Callable[P, R], func)
-          if hass is not None:
+          if hash is not None:
             if kwargs:
               sync_func = partial(sync_func, **kwargs)
-            return await hass.async_add_executor_job(sync_func, *args)
+            return await hash.async_add_executor_job(sync_func, *args)
           loop = asyncio.get_running_loop()
           if kwargs:
             return await loop.run_in_executor(

@@ -121,7 +121,7 @@ class PawControlCoordinator(
 
   def __init__(
     self,
-    hass: HomeAssistant,
+    hash: HomeAssistant,
     entry: PawControlConfigEntry,
     session: ClientSession,
   ) -> None:
@@ -138,7 +138,7 @@ class PawControlCoordinator(
     )
     # Initialise resilience handling before building the API client so the
     # underlying device client can use shared retry/backoff logic.
-    self.resilience_manager = ResilienceManager(hass)
+    self.resilience_manager = ResilienceManager(hash)
     self._retry_config = RetryConfig(
       max_attempts=2,
       initial_delay=1.0,
@@ -164,7 +164,7 @@ class PawControlCoordinator(
     )
 
     super().__init__(
-      hass,
+      hash,
       logger=_LOGGER,
       name="PawControl Data",
       update_interval=timedelta(seconds=base_interval),

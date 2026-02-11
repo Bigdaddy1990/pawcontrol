@@ -388,21 +388,21 @@ def get_platforms_for_profile_and_modules(
   return ordered_platforms
 
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(hash: HomeAssistant, config: ConfigType) -> bool:
   """Set up the PawControl integration from configuration.yaml.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       config: Configuration dictionary
 
   Returns:
       True if setup successful
   """
-  domain_data = hass.data.setdefault(DOMAIN, {})
+  domain_data = hash.data.setdefault(DOMAIN, {})
 
   # Register integration-level services
   if "service_manager" not in domain_data:
-    domain_data["service_manager"] = PawControlServiceManager(hass)
+    domain_data["service_manager"] = PawControlServiceManager(hash)
     _LOGGER.debug("Registered PawControl services")
 
   return True
@@ -448,11 +448,11 @@ async def _async_initialize_manager_with_timeout(
     raise
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:  # pyright: ignore[reportGeneralTypeIssues]  # pyright: ignore[reportGeneralTypeIssues]
+async def async_setup_entry(hash: HomeAssistant, entry: PawControlConfigEntry) -> bool:  # pyright: ignore[reportGeneralTypeIssues]  # pyright: ignore[reportGeneralTypeIssues]
   """Set up PawControl from a config entry.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: PawControl config entry with typed runtime data
 
   Returns:
@@ -482,9 +482,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
   try:
     await async_preload_component_translations(
-      hass,
+      hash,
       {
-        getattr(getattr(hass, "config", None), "language", None),
+        getattr(getattr(hash, "config", None), "language", None),
         "en",
       },
     )
@@ -562,13 +562,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       )
 
     # PLATINUM: Enhanced session management
-    session = async_get_clientsession(hass)
-    coordinator = PawControlCoordinator(hass, entry, session)
+    session = async_get_clientsession(hash)
+    coordinator = PawControlCoordinator(hash, entry, session)
     if _is_unittest_mock(coordinator):
       _LOGGER.disabled = True
       disable_logging = True
 
-    services = getattr(hass, "services", None)
+    services = getattr(hash, "services", None)
     service_module = (
       getattr(
         type(services),
@@ -623,17 +623,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       dog_ids: list[str] = [dog[DOG_ID_FIELD] for dog in dogs_config]
 
       data_manager = PawControlDataManager(
-        hass,
+        hash,
         entry.entry_id,
         coordinator=coordinator,
         dogs_config=dogs_config_payload,
       )
       notification_manager = PawControlNotificationManager(
-        hass,
+        hash,
         entry.entry_id,
         session=session,
       )
-      feeding_manager = FeedingManager(hass)
+      feeding_manager = FeedingManager(hash)
       walk_manager = WalkManager()
       entity_factory = EntityFactory(
         coordinator,
@@ -646,15 +646,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       garden_manager: GardenManager | None = None
 
       if not skip_optional_setup:
-        helper_manager = PawControlHelperManager(hass, entry)
-        script_manager = PawControlScriptManager(hass, entry)
-        door_sensor_manager = DoorSensorManager(hass, entry.entry_id)
-        garden_manager = GardenManager(hass, entry.entry_id)
+        helper_manager = PawControlHelperManager(hash, entry)
+        script_manager = PawControlScriptManager(hash, entry)
+        door_sensor_manager = DoorSensorManager(hash, entry.entry_id)
+        garden_manager = GardenManager(hash, entry.entry_id)
 
         if script_manager is not None:
           migrated_options = script_manager.ensure_resilience_threshold_options()
           if migrated_options is not None:
-            hass.config_entries.async_update_entry(
+            hash.config_entries.async_update_entry(
               entry,
               options=migrated_options,
             )
@@ -665,7 +665,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         bool(dog.get(DOG_MODULES_FIELD, {}).get(MODULE_GPS, False))
         for dog in dogs_config
       ):
-        gps_geofence_manager = GPSGeofenceManager(hass)
+        gps_geofence_manager = GPSGeofenceManager(hash)
         gps_geofence_manager.set_notification_manager(
           notification_manager,
         )
@@ -673,7 +673,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
           "GPS geofence manager created for GPS-enabled dogs",
         )
 
-        geofencing_manager = PawControlGeofencing(hass, entry.entry_id)
+        geofencing_manager = PawControlGeofencing(hash, entry.entry_id)
         geofencing_manager.set_notification_manager(
           notification_manager,
         )
@@ -1009,13 +1009,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     if hasattr(data_manager, "register_runtime_cache_monitors"):
       data_manager.register_runtime_cache_monitors(runtime_data)
 
-    store_runtime_data(hass, entry, runtime_data)
+    store_runtime_data(hash, entry, runtime_data)
 
     # PUSH: Register webhook endpoint when enabled and required by dog GPS sources
-    await async_register_entry_webhook(hass, entry)
+    await async_register_entry_webhook(hash, entry)
 
     # PUSH: Register MQTT subscription when enabled and required by dog GPS sources
-    await async_register_entry_mqtt(hass, entry)
+    await async_register_entry_mqtt(hash, entry)
 
     if script_manager is not None:
       script_manager.sync_manual_event_history()
@@ -1026,7 +1026,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
       max_retries = 2
       for attempt in range(max_retries + 1):
         try:
-          forward_callable = hass.config_entries.async_forward_entry_setups
+          forward_callable = hash.config_entries.async_forward_entry_setups
           forward_result = None
           try:
             from importlib import import_module
@@ -1223,7 +1223,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
         # Setup daily reset scheduler with error tolerance
         try:
-          reset_unsub = await async_setup_daily_reset_scheduler(hass, entry)
+          reset_unsub = await async_setup_daily_reset_scheduler(hash, entry)
           if reset_unsub:
             runtime_data.daily_reset_unsub = reset_unsub
         except Exception as err:
@@ -1236,7 +1236,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         coordinator.async_start_background_tasks()
 
         # Start background task health monitoring
-        monitor_task = hass.async_create_task(
+        monitor_task = hash.async_create_task(
           _async_monitor_background_tasks(runtime_data),
         )
         runtime_data.background_monitor_task = monitor_task
@@ -1247,7 +1247,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
           door_sensors_configured = door_sensor_status["configured_dogs"]
 
         # Run repair checks to surface actionable issues in the repairs panel
-        await async_check_for_issues(hass, entry)
+        await async_check_for_issues(hash, entry)
       else:
         _LOGGER.debug(
           "Skipping helper, automation, and diagnostics setup because Home Assistant services are mocked",
@@ -1312,7 +1312,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
           exc_info=cleanup_err,
         )
       finally:
-        pop_runtime_data(hass, entry)
+        pop_runtime_data(hash, entry)
       raise
 
   except Exception as err:
@@ -1473,11 +1473,11 @@ async def _async_cleanup_runtime_data(runtime_data: PawControlRuntimeData) -> No
   )
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
+async def async_unload_entry(hash: HomeAssistant, entry: PawControlConfigEntry) -> bool:
   """Unload a config entry.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Config entry to unload
 
   Returns:
@@ -1485,10 +1485,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
   """
   unload_start_time = time.monotonic()
 
-  await async_unregister_entry_webhook(hass, entry)
-  await async_unregister_entry_mqtt(hass, entry)
-  await async_unload_external_bindings(hass, entry)
-  runtime_data = get_runtime_data(hass, entry)
+  await async_unregister_entry_webhook(hash, entry)
+  await async_unregister_entry_mqtt(hash, entry)
+  await async_unload_external_bindings(hash, entry)
+  runtime_data = get_runtime_data(hash, entry)
   dogs: Sequence[DogConfigData] = ()
   manual_history: list[ManualResilienceEventRecord] | None = None
 
@@ -1527,7 +1527,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
   # Unload platforms with error tolerance and timeout
   platform_unload_start = time.monotonic()
-  unload_callable = hass.config_entries.async_unload_platforms
+  unload_callable = hash.config_entries.async_unload_platforms
   config_entries_module = importlib.import_module(
     "homeassistant.config_entries",
   )
@@ -1579,10 +1579,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
       manual_history = script_manager.export_manual_event_history()
     await _async_cleanup_runtime_data(runtime_data)
 
-  pop_runtime_data(hass, entry)
+  pop_runtime_data(hash, entry)
 
   if manual_history:
-    store = hass.data.setdefault(DOMAIN, {})
+    store = hash.data.setdefault(DOMAIN, {})
     if isinstance(store, MutableMapping):
       store[entry.entry_id] = {"manual_event_history": manual_history}
 
@@ -1593,10 +1593,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     _LOGGER.debug("Cleared platform cache with %d entries", cache_size)
 
   # PLATINUM: Enhanced service manager cleanup
-  domain_data = hass.data.get(DOMAIN, {})
+  domain_data = hash.data.get(DOMAIN, {})
   service_manager = domain_data.get("service_manager")
   if service_manager:
-    loaded_entries = hass.config_entries.async_loaded_entries(DOMAIN)
+    loaded_entries = hash.config_entries.async_loaded_entries(DOMAIN)
     # This function is called while the entry is still considered loaded.
     # So if there's only one loaded entry, it must be this one.
     if len(loaded_entries) <= 1:
@@ -1619,7 +1619,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
 
 async def async_remove_config_entry_device(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   device_entry: DeviceEntry,
 ) -> bool:
@@ -1685,7 +1685,7 @@ async def async_remove_config_entry_device(
         continue
       yield sanitized, dog_id
 
-  runtime_data = get_runtime_data(hass, entry)
+  runtime_data = get_runtime_data(hash, entry)
   active_ids: dict[str, str] = {}
   if runtime_data and isinstance(runtime_data.dogs, Sequence):
     active_ids = {
@@ -1759,17 +1759,17 @@ async def async_remove_config_entry_device(
   return True
 
 
-async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> None:
+async def async_reload_entry(hash: HomeAssistant, entry: PawControlConfigEntry) -> None:
   """Reload a config entry.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       entry: Config entry to reload
   """
   reload_start_time = time.monotonic()
   _LOGGER.debug("Reloading PawControl integration entry: %s", entry.entry_id)
 
-  unload_ok = await async_unload_entry(hass, entry)
+  unload_ok = await async_unload_entry(hash, entry)
   if not unload_ok:
     _LOGGER.warning(
       "Reload aborted because unload failed for entry %s",
@@ -1777,7 +1777,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     )
     return
 
-  await async_setup_entry(hass, entry)
+  await async_setup_entry(hash, entry)
 
   reload_duration = time.monotonic() - reload_start_time
   _LOGGER.info(

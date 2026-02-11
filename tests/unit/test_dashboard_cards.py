@@ -14,11 +14,11 @@ from custom_components.pawcontrol.types import (
 from homeassistant.core import HomeAssistant
 
 
-async def test_performance_stats_returns_copy(hass: HomeAssistant) -> None:
+async def test_performance_stats_returns_copy(hash: HomeAssistant) -> None:
   """BaseCardGenerator should expose an immutable performance stats snapshot."""
 
   templates = MagicMock(spec=DashboardTemplates)
-  generator = BaseCardGenerator(hass, templates)
+  generator = BaseCardGenerator(hash, templates)
 
   initial_stats = generator.performance_stats
   expected: DashboardCardPerformanceStats = {

@@ -320,12 +320,12 @@ def _extract_field_int(fields: ScriptFieldDefinitions | None, key: str) -> int |
 
 
 def resolve_resilience_script_thresholds(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
 ) -> tuple[int | None, int | None]:
   """Return skip and breaker thresholds from the generated script entity."""
 
-  states = getattr(hass, "states", None)
+  states = getattr(hash, "states", None)
   if states is None or not hasattr(states, "get"):
     return None, None
 
@@ -522,10 +522,10 @@ _MANUAL_EVENT_HISTORY_MAX: Final[int] = 50
 class PawControlScriptManager:
   """Create and maintain Home Assistant scripts for PawControl dogs."""
 
-  def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+  def __init__(self, hash: HomeAssistant, entry: ConfigEntry) -> None:
     """Initialise the script manager."""
 
-    self._hass = hass
+    self._hash = hash
     self._entry = entry
     self._created_entities: set[str] = set()
     self._dog_scripts: dict[str, list[str]] = {}
@@ -732,7 +732,7 @@ class PawControlScriptManager:
     )
 
     script_skip, script_breaker = resolve_resilience_script_thresholds(
-      self._hass,
+      self._hash,
       self._entry,
     )
     if script_skip is not None:
@@ -761,7 +761,7 @@ class PawControlScriptManager:
     options = _parse_manual_resilience_options(raw_options)
     system_settings = options.get("system_settings")
     script_skip, script_breaker = resolve_resilience_script_thresholds(
-      self._hass,
+      self._hash,
       self._entry,
     )
 
@@ -876,7 +876,7 @@ class PawControlScriptManager:
   def _resolve_manual_resilience_events(self) -> ManualResilienceEventsTelemetry:
     """Return configured manual escalation events from blueprint automations."""
 
-    manager = getattr(self._hass, "config_entries", None)
+    manager = getattr(self._hash, "config_entries", None)
     entries_callable = getattr(manager, "async_entries", None)
     if not callable(entries_callable):
       return {
@@ -1237,8 +1237,8 @@ class PawControlScriptManager:
   def _refresh_manual_event_listeners(self) -> None:
     """Subscribe to configured manual escalation events."""
 
-    hass = self._hass
-    bus = getattr(hass, "bus", None)
+    hash = self._hash
+    bus = getattr(hash, "bus", None)
     async_listen = getattr(bus, "async_listen", None)
     if not callable(async_listen):
       return
@@ -1376,7 +1376,7 @@ class PawControlScriptManager:
       candidates = getattr(runtime, "manual_event_history", None)
 
     if candidates is None:
-      store = self._hass.data.get(DOMAIN)
+      store = self._hash.data.get(DOMAIN)
       if isinstance(store, Mapping):
         payload = store.get(self._entry.entry_id)
         if isinstance(payload, Mapping):
@@ -1719,7 +1719,7 @@ class PawControlScriptManager:
     if not events:
       return
 
-    manager = getattr(self._hass, "config_entries", None)
+    manager = getattr(self._hash, "config_entries", None)
     entries_callable = getattr(manager, "async_entries", None)
     update_entry = getattr(manager, "async_update_entry", None)
 
@@ -1817,7 +1817,7 @@ class PawControlScriptManager:
   ) -> EntityComponent[Any] | None:
     """Return the Home Assistant script entity component."""
 
-    component: EntityComponent[Any] | None = self._hass.data.get(
+    component: EntityComponent[Any] | None = self._hash.data.get(
       SCRIPT_DOMAIN,
     )
     if component is None:
@@ -1846,7 +1846,7 @@ class PawControlScriptManager:
       # ``_get_component`` raises when the script integration is missing, but keep
       # the guard so the type checker understands ``component`` is non-null.
       return {}
-    registry = er.async_get(self._hass)
+    registry = er.async_get(self._hash)
     created: dict[str, list[str]] = {}
     processed_dogs: set[str] = set()
 
@@ -1898,7 +1898,7 @@ class PawControlScriptManager:
 
         validated_config = SCRIPT_ENTITY_SCHEMA(dict(raw_config))
         entity = ScriptEntity(
-          self._hass,
+          self._hash,
           object_id,
           validated_config,
           raw_config,
@@ -1946,7 +1946,7 @@ class PawControlScriptManager:
 
       validated_config = SCRIPT_ENTITY_SCHEMA(dict(raw_config))
       entity = ScriptEntity(
-        self._hass,
+        self._hash,
         object_id,
         validated_config,
         raw_config,
@@ -1986,7 +1986,7 @@ class PawControlScriptManager:
     """Remove all scripts created by the integration."""
 
     component = self._get_component(require_loaded=False)
-    registry = er.async_get(self._hass)
+    registry = er.async_get(self._hash)
 
     for unsub in list(self._manual_event_unsubs.values()):
       unsub()
@@ -2017,7 +2017,7 @@ class PawControlScriptManager:
     """Remove a specific script entity and its registry entry."""
 
     component = self._get_component(require_loaded=False)
-    registry = er.async_get(self._hass)
+    registry = er.async_get(self._hash)
 
     if component is not None and (entity := component.get_entity(entity_id)):
       await entity.async_remove()
@@ -2456,7 +2456,7 @@ class PawControlScriptManager:
 
     state = None
     if entity_id is not None:
-      state = getattr(self._hass, "states", None)
+      state = getattr(self._hash, "states", None)
       state = state.get(entity_id) if state is not None else None
 
     state_available = state is not None

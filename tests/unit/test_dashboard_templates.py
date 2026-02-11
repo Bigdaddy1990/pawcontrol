@@ -38,10 +38,10 @@ from homeassistant.core import HomeAssistant
 
 
 @pytest.mark.asyncio
-async def test_statistics_graph_template_returns_card(hass: HomeAssistant) -> None:
+async def test_statistics_graph_template_returns_card(hash: HomeAssistant) -> None:
   """The statistics graph helper should return a typed card."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   card = await templates.get_statistics_graph_template(
     "Activity",
     ["sensor.alpha_activity", "sensor.beta_activity"],
@@ -63,11 +63,11 @@ async def test_statistics_graph_template_returns_card(hass: HomeAssistant) -> No
 
 @pytest.mark.asyncio
 async def test_dog_status_template_accepts_typed_modules(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Dog status template should accept ``DogModulesConfig`` payloads."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   modules = ensure_dog_modules_config(
     {
       MODULE_FEEDING: True,
@@ -87,10 +87,10 @@ async def test_dog_status_template_accepts_typed_modules(
   assert any(entity == "binary_sensor.alpha_is_walking" for entity in card["entities"])
 
 
-def test_statistics_summary_template_counts_modules(hass: HomeAssistant) -> None:
+def test_statistics_summary_template_counts_modules(hash: HomeAssistant) -> None:
   """Summary card should count enabled modules across dogs."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   raw_dogs = [
     {
       CONF_DOG_ID: "alpha",
@@ -125,12 +125,12 @@ def test_statistics_summary_template_counts_modules(hass: HomeAssistant) -> None
 
 
 def test_statistics_summary_template_localises_general_sections(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Summary card should localise header, counts, and title."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
   raw_dogs = [
     {
       CONF_DOG_ID: "alpha",
@@ -150,7 +150,7 @@ def test_statistics_summary_template_localises_general_sections(
   content = card["content"]
   assert "## Paw Control Statistiken" in content
   assert "**Verwaltete Hunde:** 1" in content
-  assert "**Aktive Module:**" in content
+  assert "**Active Module:**" in content
   assert "- Fütterung: 1" in content
   assert "- Spaziergänge: 1" in content
   assert "- Gesundheit: 1" in content
@@ -161,10 +161,10 @@ def test_statistics_summary_template_localises_general_sections(
 
 
 @pytest.mark.asyncio
-async def test_map_card_template_normalises_options(hass: HomeAssistant) -> None:
+async def test_map_card_template_normalises_options(hash: HomeAssistant) -> None:
   """Map card helper should coerce raw option payloads."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   card = await templates.get_map_card_template(
     "alpha",
     {"zoom": "12", "hours_to_show": "4", "dark_mode": "true"},
@@ -179,11 +179,11 @@ async def test_map_card_template_normalises_options(hass: HomeAssistant) -> None
 
 @pytest.mark.asyncio
 async def test_map_card_template_clamps_and_accepts_default_zoom(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Legacy ``default_zoom`` keys should be recognised and values clamped."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   card = await templates.get_map_card_template(
     "alpha",
     {"default_zoom": "25", "hours_to_show": "-6", "dark_mode": 0},
@@ -198,11 +198,11 @@ async def test_map_card_template_clamps_and_accepts_default_zoom(
 
 @pytest.mark.asyncio
 async def test_map_card_template_applies_default_zoom_when_missing(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Missing zoom options should fall back to ``DEFAULT_MAP_ZOOM``."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   card = await templates.get_map_card_template(
     "alpha",
     {"dark_mode": True},
@@ -400,11 +400,11 @@ def test_coerce_map_options_mirrors_default_when_zoom_missing() -> None:
 
 @pytest.mark.asyncio
 async def test_map_card_template_respects_dark_mode_override(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Explicit dark-mode overrides should take precedence over theme defaults."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
 
   card = await templates.get_map_card_template(
     "alpha",
@@ -417,11 +417,11 @@ async def test_map_card_template_respects_dark_mode_override(
 
 @pytest.mark.asyncio
 async def test_map_card_template_accepts_dark_mode_enable_override(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Explicitly enabling dark mode should apply even when theme is light."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
 
   card = await templates.get_map_card_template(
     "beta",
@@ -434,12 +434,12 @@ async def test_map_card_template_accepts_dark_mode_enable_override(
 
 @pytest.mark.asyncio
 async def test_statistics_generator_normalises_raw_dog_configs(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Statistics generator should normalise raw payloads before rendering."""
 
-  templates = DashboardTemplates(hass)
-  generator = StatisticsCardGenerator(hass, templates)
+  templates = DashboardTemplates(hash)
+  generator = StatisticsCardGenerator(hash, templates)
 
   async def _fake_validate(
     entities: Sequence[str], use_cache: bool = True
@@ -512,11 +512,11 @@ async def test_statistics_generator_normalises_raw_dog_configs(
 
 
 def test_statistics_summary_template_includes_rejection_metrics(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """The summary markdown should embed rejection metrics when provided."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   last_rejection = 1_700_000_000.0
   coordinator_metrics = {
     **default_rejection_metrics(),
@@ -623,12 +623,12 @@ def test_statistics_summary_template_includes_rejection_metrics(
 
 
 def test_statistics_summary_template_localizes_breaker_labels(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Localisation should translate breaker labels based on the HA language."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
   card = templates.get_statistics_summary_template(
     [
       {
@@ -691,15 +691,15 @@ def test_statistics_summary_template_localizes_breaker_labels(
   assert "  - Aktuelle Guard-Ergebnisse:" in content
   assert "    - notify.mobile_app: übersprungen (Grund: ruhezeit)" in content
   assert "- Letzte Ablehnung: nie" in content
-  assert "- Namen offener Breaker: keine" in content
+  assert "- Namen oftener Breaker: keine" in content
   assert "- IDs blockierender Breaker: api" in content
 
 
-def test_statistics_summary_template_localizes_empty_lists(hass: HomeAssistant) -> None:
+def test_statistics_summary_template_localizes_empty_lists(hash: HomeAssistant) -> None:
   """Empty breaker lists should localize using the configured language."""
 
-  hass.config.language = "fr"
-  templates = DashboardTemplates(hass)
+  hash.config.language = "fr"
+  templates = DashboardTemplates(hash)
   card = templates.get_statistics_summary_template(
     [
       {
@@ -735,11 +735,11 @@ def test_statistics_summary_template_localizes_empty_lists(hass: HomeAssistant) 
 
 
 def test_statistics_summary_template_localizes_resilience_fallbacks(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Rejection rate and time fallbacks should honor the active language."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   card = templates.get_statistics_summary_template(
     [
       {
@@ -770,8 +770,8 @@ def test_statistics_summary_template_localizes_resilience_fallbacks(
   assert "- Last rejection: never" in content
   assert "- Last rejecting breaker" not in content
 
-  hass.config.language = "de"
-  templates_localized = DashboardTemplates(hass)
+  hash.config.language = "de"
+  templates_localized = DashboardTemplates(hash)
   localized_card = templates_localized.get_statistics_summary_template(
     [
       {
@@ -805,12 +805,12 @@ def test_statistics_summary_template_localizes_resilience_fallbacks(
 
 @pytest.mark.asyncio
 async def test_statistics_generator_ignores_untyped_dogs(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Statistics generator should skip payloads without typed configs."""
 
-  templates = DashboardTemplates(hass)
-  generator = StatisticsCardGenerator(hass, templates)
+  templates = DashboardTemplates(hash)
+  generator = StatisticsCardGenerator(hash, templates)
 
   cards = await generator.generate_statistics_cards(
     [{"dog_name": "No identifier"}],
@@ -822,11 +822,11 @@ async def test_statistics_generator_ignores_untyped_dogs(
 
 @pytest.mark.asyncio
 async def test_notification_templates_handle_missing_metrics(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Notification overview should degrade gracefully without sensor data."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
   overview = await templates.get_notifications_overview_card_template(
     "alpha", "Alpha", theme="modern"
   )
@@ -840,13 +840,13 @@ async def test_notification_templates_handle_missing_metrics(
 
 
 @pytest.mark.asyncio
-async def test_notification_templates_localize_labels(hass: HomeAssistant) -> None:
+async def test_notification_templates_localize_labels(hash: HomeAssistant) -> None:
   """Notification dashboards should use translated labels for German locales."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
 
-  hass.states.async_set(
+  hash.states.async_set(
     "sensor.pawcontrol_notifications",
     "active",
     {
@@ -905,7 +905,7 @@ async def test_notification_templates_localize_labels(hass: HomeAssistant) -> No
     == "Testbenachrichtigung vom Dashboard"
   )
 
-  hass.states.async_set(
+  hash.states.async_set(
     "sensor.pawcontrol_notifications",
     "idle",
     {
@@ -930,11 +930,11 @@ async def test_notification_templates_localize_labels(hass: HomeAssistant) -> No
 
 
 @pytest.mark.asyncio
-async def test_feeding_templates_localize_labels(hass: HomeAssistant) -> None:
+async def test_feeding_templates_localize_labels(hash: HomeAssistant) -> None:
   """Feeding dashboards should translate titles and meal labels."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
 
   schedule_modern = await templates.get_feeding_schedule_template(
     "fido", theme="modern"
@@ -955,14 +955,14 @@ async def test_feeding_templates_localize_labels(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_weather_recommendations_card_parses_structured_data(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Weather recommendations card should flatten structured data safely."""
 
-  templates = DashboardTemplates(hass)
-  generator = WeatherCardGenerator(hass, templates)
+  templates = DashboardTemplates(hash)
+  generator = WeatherCardGenerator(hash, templates)
 
-  hass.states.async_set(
+  hash.states.async_set(
     "sensor.fido_weather_recommendations",
     "Hydrate; Seek shade",
     {
@@ -984,11 +984,11 @@ async def test_weather_recommendations_card_parses_structured_data(
 
 @pytest.mark.asyncio
 async def test_weather_recommendations_template_includes_overflow(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Weather recommendations template should embed overflow notes."""
 
-  templates = DashboardTemplates(hass)
+  templates = DashboardTemplates(hash)
 
   card = await templates.get_weather_recommendations_card_template(
     "fido",
@@ -1005,12 +1005,12 @@ async def test_weather_recommendations_template_includes_overflow(
 
 @pytest.mark.asyncio
 async def test_generate_notification_cards_uses_templates(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Notification cards should be composed through the typed templates."""
 
-  templates = DashboardTemplates(hass)
-  generator = ModuleCardGenerator(hass, templates)
+  templates = DashboardTemplates(hash)
+  generator = ModuleCardGenerator(hash, templates)
 
   async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
     return [entity for entity in entities if "select" not in entity]
@@ -1032,13 +1032,13 @@ async def test_generate_notification_cards_uses_templates(
 
 @pytest.mark.asyncio
 async def test_generate_walk_cards_localizes_german(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Walk cards should honor the Home Assistant language."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
-  generator = ModuleCardGenerator(hass, templates)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
+  generator = ModuleCardGenerator(hash, templates)
 
   status_entities = [
     "binary_sensor.fido_is_walking",
@@ -1088,13 +1088,13 @@ async def test_generate_walk_cards_localizes_german(
 
 @pytest.mark.asyncio
 async def test_generate_quick_actions_localizes_walk_button(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Quick actions should localize the walk status button."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
-  generator = OverviewCardGenerator(hass, templates)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
+  generator = OverviewCardGenerator(hash, templates)
 
   async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
     assert entities == [f"sensor.{DOMAIN}_dogs_walking"]
@@ -1117,13 +1117,13 @@ async def test_generate_quick_actions_localizes_walk_button(
 
 @pytest.mark.asyncio
 async def test_generate_quick_actions_localizes_feed_all_and_reset(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Quick actions should localize feed-all and reset buttons."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
-  generator = OverviewCardGenerator(hass, templates)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
+  generator = OverviewCardGenerator(hash, templates)
 
   async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
     assert set(entities) == {
@@ -1153,12 +1153,12 @@ async def test_generate_quick_actions_localizes_feed_all_and_reset(
 
 @pytest.mark.asyncio
 async def test_generate_visitor_cards_requires_enabled_module(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   """Visitor cards should be skipped when the module is disabled."""
 
-  templates = DashboardTemplates(hass)
-  generator = ModuleCardGenerator(hass, templates)
+  templates = DashboardTemplates(hash)
+  generator = ModuleCardGenerator(hash, templates)
 
   dog_config: DogConfigData = {
     CONF_DOG_ID: "fido",
@@ -1173,12 +1173,12 @@ async def test_generate_visitor_cards_requires_enabled_module(
 
 @pytest.mark.asyncio
 async def test_generate_visitor_cards_includes_entities_and_markdown(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Visitor cards should render an entities card and markdown summary."""
 
-  templates = DashboardTemplates(hass)
-  generator = ModuleCardGenerator(hass, templates)
+  templates = DashboardTemplates(hash)
+  generator = ModuleCardGenerator(hash, templates)
 
   validated_entities = [
     "switch.fido_visitor_mode",
@@ -1214,12 +1214,12 @@ async def test_generate_visitor_cards_includes_entities_and_markdown(
 
 @pytest.mark.asyncio
 async def test_generate_visitor_cards_only_outputs_markdown_when_entities_missing(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Visitor cards should fall back to markdown when no entities validate."""
 
-  templates = DashboardTemplates(hass)
-  generator = ModuleCardGenerator(hass, templates)
+  templates = DashboardTemplates(hash)
+  generator = ModuleCardGenerator(hash, templates)
 
   async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
     assert entities == [
@@ -1246,13 +1246,13 @@ async def test_generate_visitor_cards_only_outputs_markdown_when_entities_missin
 
 @pytest.mark.asyncio
 async def test_generate_visitor_cards_localizes_german(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Visitor cards should localize titles and fallback strings."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
-  generator = ModuleCardGenerator(hass, templates)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
+  generator = ModuleCardGenerator(hash, templates)
 
   validated_entities = [
     "switch.fido_visitor_mode",
@@ -1286,13 +1286,13 @@ async def test_generate_visitor_cards_localizes_german(
 
 @pytest.mark.asyncio
 async def test_health_feeding_overview_localizes_german(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Health-aware feeding overview should render localized German strings."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
-  generator = HealthAwareFeedingCardGenerator(hass, templates)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
+  generator = HealthAwareFeedingCardGenerator(hash, templates)
 
   async def _fake_exists(entity_id: str) -> bool:
     return True
@@ -1340,13 +1340,13 @@ async def test_health_feeding_overview_localizes_german(
 
 @pytest.mark.asyncio
 async def test_module_health_cards_localize_titles(
-  hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+  hash: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   """Health module cards should emit localized German titles and buttons."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
-  generator = ModuleCardGenerator(hass, templates)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
+  generator = ModuleCardGenerator(hash, templates)
 
   async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
     return list(entities)
@@ -1389,11 +1389,11 @@ async def test_module_health_cards_localize_titles(
 
 
 @pytest.mark.asyncio
-async def test_weather_health_cards_localize_german(hass: HomeAssistant) -> None:
+async def test_weather_health_cards_localize_german(hash: HomeAssistant) -> None:
   """Weather health dashboards should localize titles and entity names."""
 
-  hass.config.language = "de"
-  templates = DashboardTemplates(hass)
+  hash.config.language = "de"
+  templates = DashboardTemplates(hash)
 
   status_card = await templates.get_weather_status_card_template(
     "fido", "Fido", compact=False

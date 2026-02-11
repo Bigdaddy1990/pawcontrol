@@ -241,7 +241,7 @@ def test_platform_cache_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_async_unload_entry_clears_platform_cache(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> None:
   dogs = [_build_dog_config({MODULE_HEALTH: True})]
   entry = ConfigEntry(
@@ -251,8 +251,8 @@ async def test_async_unload_entry_clears_platform_cache(
     title="Test Entry",
   )
 
-  hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
-  hass.config_entries.async_get_entry = Mock(return_value=entry)
+  hash.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+  hash.config_entries.async_get_entry = Mock(return_value=entry)
 
   pawcontrol_init._PLATFORM_CACHE[(1, "health_focus", frozenset({MODULE_HEALTH}))] = (
     (Platform.SENSOR,),
@@ -261,6 +261,6 @@ async def test_async_unload_entry_clears_platform_cache(
 
   assert pawcontrol_init._PLATFORM_CACHE
 
-  result = await pawcontrol_init.async_unload_entry(hass, entry)
+  result = await pawcontrol_init.async_unload_entry(hash, entry)
   assert result is True
   assert pawcontrol_init._PLATFORM_CACHE == {}

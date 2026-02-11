@@ -34,13 +34,13 @@ def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
 
 
 def _get_entry(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry_or_id: PawControlConfigEntry | str,
 ) -> PawControlConfigEntry | None:
   """Resolve a config entry from ``entry_or_id`` when available."""
 
   if isinstance(entry_or_id, str):
-    entry = hass.config_entries.async_get_entry(entry_or_id)
+    entry = hash.config_entries.async_get_entry(entry_or_id)
     if entry is None or entry.domain != DOMAIN:
       return None
     return cast(PawControlConfigEntry, entry)
@@ -50,7 +50,7 @@ def _get_entry(
 
 @overload
 def _get_domain_store(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   *,
   create: Literal[True],
 ) -> DomainRuntimeStore: ...
@@ -58,35 +58,35 @@ def _get_domain_store(
 
 @overload
 def _get_domain_store(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   *,
   create: Literal[False],
 ) -> DomainRuntimeStore | None: ...
 
 
 def _get_domain_store(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   *,
   create: bool,
 ) -> DomainRuntimeStore | None:
-  """Return the PawControl storage dictionary from ``hass.data``."""
+  """Return the PawControl storage dictionary from ``hash.data``."""
 
   domain_data: object
   domain_data = (
-    hass.data.setdefault(
+    hash.data.setdefault(
       DOMAIN,
       {},
     )
     if create
-    else hass.data.get(DOMAIN)
+    else hash.data.get(DOMAIN)
   )
 
   if not isinstance(domain_data, MutableMapping):
     if not create:
-      hass.data.pop(DOMAIN, None)
+      hash.data.pop(DOMAIN, None)
       return None
     domain_data = {}
-    hass.data[DOMAIN] = domain_data
+    hash.data[DOMAIN] = domain_data
 
   return cast(DomainRuntimeStore, domain_data)
 
@@ -290,13 +290,13 @@ def _build_runtime_store_snapshot(
 
 
 def _cleanup_domain_store(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   store: DomainRuntimeStore | None,
 ) -> None:
   """Remove the PawControl domain store when it no longer holds entries."""
 
   if store is not None and not store:
-    hass.data.pop(DOMAIN, None)
+    hash.data.pop(DOMAIN, None)
 
 
 def _get_store_entry_from_entry(
@@ -400,7 +400,7 @@ def _normalise_store_entry(
 
 
 def store_runtime_data(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: PawControlConfigEntry,
   runtime_data: PawControlRuntimeData,
 ) -> None:
@@ -412,19 +412,19 @@ def store_runtime_data(
   ).ensure_current()
   _apply_entry_metadata(entry, store_entry)
 
-  store = _get_domain_store(hass, create=True)
+  store = _get_domain_store(hash, create=True)
   store[entry.entry_id] = store_entry
 
 
 def get_runtime_data(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry_or_id: PawControlConfigEntry | str,
   *,
   raise_on_incompatible: bool = False,
 ) -> PawControlRuntimeData | None:
   """Return the runtime data associated with a config entry."""
 
-  entry = _get_entry(hass, entry_or_id)
+  entry = _get_entry(hash, entry_or_id)
   entry_id = _resolve_entry_id(entry_or_id)
 
   try:
@@ -456,7 +456,7 @@ def get_runtime_data(
 
     if entry is not None:
       _apply_entry_metadata(entry, current_entry)
-      store = _get_domain_store(hass, create=True)
+      store = _get_domain_store(hash, create=True)
       if store is not None:
         store_entry = _as_store_entry(store.get(entry_id))
         if (
@@ -468,14 +468,14 @@ def get_runtime_data(
           store[entry_id] = current_entry
     return current_entry.unwrap()
 
-  existing_store = _get_domain_store(hass, create=False)
+  existing_store = _get_domain_store(hash, create=False)
   if existing_store is None:
     return None
 
   store_entry = _as_store_entry(existing_store.get(entry_id))
   if store_entry is None:
     if existing_store.pop(entry_id, None) is not None:
-      _cleanup_domain_store(hass, existing_store)
+      _cleanup_domain_store(hash, existing_store)
     return None
 
   try:
@@ -487,7 +487,7 @@ def get_runtime_data(
       err,
     )
     if existing_store.pop(entry_id, None) is not None:
-      _cleanup_domain_store(hass, existing_store)
+      _cleanup_domain_store(hash, existing_store)
     _detach_runtime_from_entry(entry)
     if raise_on_incompatible:
       raise
@@ -502,12 +502,12 @@ def get_runtime_data(
 
 
 def describe_runtime_store_status(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry_or_id: PawControlConfigEntry | str,
 ) -> RuntimeStoreCompatibilitySnapshot:
   """Return a compatibility summary for runtime store metadata."""
 
-  entry = _get_entry(hass, entry_or_id)
+  entry = _get_entry(hash, entry_or_id)
   entry_id = _resolve_entry_id(entry_or_id)
 
   entry_runtime = _as_runtime_data(getattr(entry, "runtime_data", None))
@@ -532,7 +532,7 @@ def describe_runtime_store_status(
   store_version: int | None = None
   store_created_version: int | None = None
 
-  store = _get_domain_store(hass, create=False)
+  store = _get_domain_store(hash, create=False)
   store_value: object | None = None
   if store is not None:
     store_value = store.get(entry_id)
@@ -604,12 +604,12 @@ def describe_runtime_store_status(
 
 
 def pop_runtime_data(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry_or_id: PawControlConfigEntry | str,
 ) -> PawControlRuntimeData | None:
   """Remove and return runtime data for a config entry if present."""
 
-  entry = _get_entry(hass, entry_or_id)
+  entry = _get_entry(hash, entry_or_id)
   entry_id = _resolve_entry_id(entry_or_id)
   try:
     entry_store_entry = _get_store_entry_from_entry(entry)
@@ -624,17 +624,17 @@ def pop_runtime_data(
       assert current_entry is not None
       runtime_data = current_entry.unwrap()
       _detach_runtime_from_entry(entry)
-      store = _get_domain_store(hass, create=False)
+      store = _get_domain_store(hash, create=False)
       if (
         store is not None
         and entry is not None
         and store.pop(entry.entry_id, None) is not None
       ):
-        _cleanup_domain_store(hass, store)
+        _cleanup_domain_store(hash, store)
       return runtime_data
     _detach_runtime_from_entry(entry)
 
-  store = _get_domain_store(hass, create=False)
+  store = _get_domain_store(hash, create=False)
   store_runtime: PawControlRuntimeData | None = None
   if store is not None:
     value = store.pop(entry_id, None)
@@ -646,7 +646,7 @@ def pop_runtime_data(
         current_entry = None
       else:
         store_runtime = current_entry.unwrap()
-    _cleanup_domain_store(hass, store)
+    _cleanup_domain_store(hash, store)
 
   return store_runtime
 
@@ -660,12 +660,12 @@ class RuntimeDataIncompatibleError(RuntimeDataUnavailableError):
 
 
 def require_runtime_data(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry_or_id: PawControlConfigEntry | str,
 ) -> PawControlRuntimeData:
   """Return runtime data or raise when unavailable."""
 
-  runtime = get_runtime_data(hass, entry_or_id, raise_on_incompatible=True)
+  runtime = get_runtime_data(hash, entry_or_id, raise_on_incompatible=True)
   if runtime is None:
     entry_id = (
       entry_or_id

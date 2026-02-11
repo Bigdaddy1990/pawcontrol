@@ -210,21 +210,21 @@ class _DynamicPersonManager:
 class TestNotificationManagerInitialization:
   """Test notification manager initialization."""
 
-  async def test_initialization_basic(self, mock_hass, mock_session):
+  async def test_initialization_basic(self, mock_hash, mock_session):
     """Test basic notification manager initialization."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
-    assert manager._hass == mock_hass
+    assert manager._hash == mock_hash
     assert manager._entry_id == "test_entry"
     assert len(manager._notifications) == 0
     assert len(manager._configs) == 0
 
-  async def test_initialization_with_configs(self, mock_hass, mock_session):
+  async def test_initialization_with_configs(self, mock_hash, mock_session):
     """Test initialization with notification configs."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -240,42 +240,42 @@ class TestNotificationManagerInitialization:
     assert "test_dog" in manager._configs
     assert manager._configs["test_dog"].enabled is True
 
-  async def test_initialization_reuses_session(self, mock_hass, session_factory):
+  async def test_initialization_reuses_session(self, mock_hash, session_factory):
     """Providing a session should be honoured and reused."""
 
     custom_session = session_factory()
 
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=custom_session
+      mock_hash, "test_entry", session=custom_session
     )
 
     assert manager.session is custom_session
 
-  async def test_initialization_rejects_missing_session(self, mock_hass):
+  async def test_initialization_rejects_missing_session(self, mock_hash):
     """Fail loudly when no session is provided."""
 
     with pytest.raises(ValueError):
       PawControlNotificationManager(  # type: ignore[arg-type]
-        mock_hass, "test_entry", session=None
+        mock_hash, "test_entry", session=None
       )
 
   async def test_initialization_rejects_closed_session(
-    self, mock_hass, session_factory
+    self, mock_hash, session_factory
   ):
     """Fail loudly when the session has been disposed."""
 
     closed_session = session_factory(closed=True)
 
     with pytest.raises(ValueError):
-      PawControlNotificationManager(mock_hass, "test_entry", session=closed_session)
+      PawControlNotificationManager(mock_hash, "test_entry", session=closed_session)
 
   async def test_register_cache_monitors_registers_person_cache(
-    self, mock_hass, mock_session
+    self, mock_hash, mock_session
   ) -> None:
     """Cache registration should wire notification and person caches."""
 
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
     stub_person = _StubPersonManager()
     manager._person_manager = stub_person
@@ -294,7 +294,7 @@ class TestNotificationManagerInitialization:
 class TestNotificationWebhooks:
   """Ensure webhook delivery honours the shared session."""
 
-  async def test_webhook_uses_injected_session(self, mock_hass, session_factory):
+  async def test_webhook_uses_injected_session(self, mock_hash, session_factory):
     """Injected session should be used for webhook HTTP calls."""
 
     custom_session = session_factory()
@@ -305,7 +305,7 @@ class TestNotificationWebhooks:
     custom_session.post = AsyncMock(return_value=post_cm)
 
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=custom_session
+      mock_hash, "test_entry", session=custom_session
     )
     manager._configs["system"] = NotificationConfig(
       channels=[NotificationChannel.WEBHOOK],
@@ -329,7 +329,7 @@ class TestNotificationWebhooks:
     called_kwargs = custom_session.post.call_args.kwargs
     assert called_kwargs["timeout"].total == pytest.approx(10.0)
 
-  async def test_webhook_releases_direct_response(self, mock_hass, session_factory):
+  async def test_webhook_releases_direct_response(self, mock_hash, session_factory):
     """Direct ClientResponse objects should be released after validation."""
 
     custom_session = session_factory()
@@ -339,7 +339,7 @@ class TestNotificationWebhooks:
     custom_session.post = AsyncMock(return_value=response)
 
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=custom_session
+      mock_hash, "test_entry", session=custom_session
     )
     manager._configs["system"] = NotificationConfig(
       channels=[NotificationChannel.WEBHOOK],
@@ -362,7 +362,7 @@ class TestNotificationWebhooks:
     response.release.assert_awaited()
 
   async def test_webhook_closes_response_without_release(
-    self, mock_hass, session_factory
+    self, mock_hash, session_factory
   ):
     """Responses lacking release should still close the transport."""
 
@@ -374,7 +374,7 @@ class TestNotificationWebhooks:
     custom_session.post = AsyncMock(return_value=response)
 
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=custom_session
+      mock_hash, "test_entry", session=custom_session
     )
     manager._configs["system"] = NotificationConfig(
       channels=[NotificationChannel.WEBHOOK],
@@ -396,10 +396,10 @@ class TestNotificationWebhooks:
 
     response.close.assert_called_once()
 
-  async def test_initialization_validates_channels(self, mock_hass, mock_session):
+  async def test_initialization_validates_channels(self, mock_hash, mock_session):
     """Test that initialization validates channel names."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -478,10 +478,10 @@ class TestBasicNotificationSending:
 class TestNotificationConfig:
   """Test notification configuration."""
 
-  async def test_notification_disabled_prevents_sending(self, mock_hass, mock_session):
+  async def test_notification_disabled_prevents_sending(self, mock_hash, mock_session):
     """Test that disabled notifications are not sent."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -543,10 +543,10 @@ class TestWebhookSecurityStatus:
     assert status["hmac_ready"] is False
     assert status["insecure_configs"] == ("dog1",)
 
-  async def test_priority_threshold_filters_low_priority(self, mock_hass, mock_session):
+  async def test_priority_threshold_filters_low_priority(self, mock_hash, mock_session):
     """Test that priority threshold filters notifications."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -587,11 +587,11 @@ class TestQuietHours:
   """Test quiet hours functionality."""
 
   async def test_quiet_hours_suppresses_normal_notifications(
-    self, mock_hass, mock_session
+    self, mock_hash, mock_session
   ):
     """Test that quiet hours suppress normal priority notifications."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     # Set quiet hours (22:00 - 07:00)
@@ -621,10 +621,10 @@ class TestQuietHours:
       notification = manager._notifications.get(notification_id)
       assert notification is None or len(notification.sent_to) == 0
 
-  async def test_quiet_hours_allows_urgent_notifications(self, mock_hass, mock_session):
+  async def test_quiet_hours_allows_urgent_notifications(self, mock_hash, mock_session):
     """Test that urgent notifications bypass quiet hours."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -650,12 +650,12 @@ class TestQuietHours:
     assert notification is not None
 
   async def test_quiet_hours_cache_ttl_and_recompute(
-    self, mock_hass, mock_session
+    self, mock_hash, mock_session
   ) -> None:
     """Quiet-hours cache should suppress within TTL and recompute after expiry."""
 
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -732,9 +732,9 @@ class TestQuietHours:
 class TestChannelDelivery:
   """Test multi-channel notification delivery."""
 
-  async def test_send_to_persistent_channel(self, mock_notification_manager, mock_hass):
+  async def test_send_to_persistent_channel(self, mock_notification_manager, mock_hash):
     """Test sending to persistent notification channel."""
-    mock_hass.services.async_call = AsyncMock()
+    mock_hash.services.async_call = AsyncMock()
 
     await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.SYSTEM_INFO,
@@ -744,10 +744,10 @@ class TestChannelDelivery:
     )
 
     # Verify persistent notification service was called
-    mock_hass.services.async_call.assert_called()
+    mock_hash.services.async_call.assert_called()
 
     # Check call was to persistent_notification
-    calls = mock_hass.services.async_call.call_args_list
+    calls = mock_hash.services.async_call.call_args_list
     assert any(mock_call[0][0] == "persistent_notification" for mock_call in calls)
 
   async def test_send_to_multiple_channels(self, mock_notification_manager):
@@ -768,10 +768,10 @@ class TestChannelDelivery:
     assert NotificationChannel.PERSISTENT in notification.channels
     assert NotificationChannel.MOBILE in notification.channels
 
-  async def test_failed_channel_recorded(self, mock_notification_manager, mock_hass):
+  async def test_failed_channel_recorded(self, mock_notification_manager, mock_hash):
     """Test that failed channels are recorded."""
     # Mock service call to fail
-    mock_hass.services.async_call = AsyncMock(side_effect=Exception("Send failed"))
+    mock_hash.services.async_call = AsyncMock(side_effect=Exception("Send failed"))
 
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.SYSTEM_INFO,
@@ -927,11 +927,11 @@ class TestRateLimiting:
   """Test rate limiting functionality."""
 
   async def test_rate_limit_blocks_excessive_notifications(
-    self, mock_hass, mock_session
+    self, mock_hash, mock_session
   ):
     """Test that rate limiting blocks excessive notifications."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -987,10 +987,10 @@ class TestTemplates:
     # Check that template was applied
     assert notification.template_used is not None
 
-  async def test_custom_template_override(self, mock_hass, mock_session):
+  async def test_custom_template_override(self, mock_hash, mock_session):
     """Test custom template overrides."""
     manager = PawControlNotificationManager(
-      mock_hass, "test_entry", session=mock_session
+      mock_hash, "test_entry", session=mock_session
     )
 
     configs = {
@@ -1043,7 +1043,7 @@ class TestNotificationAcknowledgment:
   async def test_acknowledge_notification_without_services(
     self, mock_notification_manager
   ) -> None:
-    """Notification acknowledgment should short-circuit when hass services missing."""
+    """Notification acknowledgment should short-circuit when hash services missing."""
 
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.FEEDING_REMINDER,
@@ -1053,7 +1053,7 @@ class TestNotificationAcknowledgment:
 
     notification = mock_notification_manager._notifications[notification_id]
     notification.sent_to.append(NotificationChannel.PERSISTENT)
-    mock_notification_manager._hass.services = None
+    mock_notification_manager._hash.services = None
 
     success = await mock_notification_manager.async_acknowledge_notification(
       notification_id
@@ -1455,11 +1455,11 @@ class TestPerformanceStatistics:
     assert final_stats["performance_metrics"]["notifications_sent"] >= initial_sent
 
   async def test_statistics_track_failed_notifications(
-    self, mock_notification_manager, mock_hass
+    self, mock_notification_manager, mock_hash
   ):
     """Test that statistics track failed notifications."""
     # Mock service to fail
-    mock_hass.services.async_call = AsyncMock(side_effect=Exception("Failed"))
+    mock_hash.services.async_call = AsyncMock(side_effect=Exception("Failed"))
 
     initial_stats = await mock_notification_manager.async_get_performance_statistics()
     initial_failed = initial_stats["performance_metrics"]["notifications_failed"]

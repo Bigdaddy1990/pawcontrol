@@ -61,12 +61,12 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
 
 
 async def async_get_actions(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   device_id: str,
 ) -> list[DeviceActionPayload]:
   """List device actions for PawControl devices."""
 
-  context = resolve_device_context(hass, device_id)
+  context = resolve_device_context(hash, device_id)
   if context.dog_id is None:
     return []
 
@@ -82,7 +82,7 @@ async def async_get_actions(
 
 
 async def async_get_action_capabilities(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config: dict[str, str],
 ) -> dict[str, vol.Schema]:
   """Return action capability schemas."""
@@ -123,7 +123,7 @@ async def async_get_action_capabilities(
 
 
 async def async_call_action(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   config: dict[str, str],
   variables: dict[str, object],
   context: object | None = None,
@@ -131,7 +131,7 @@ async def async_call_action(
   """Execute a PawControl device action."""
 
   validated = ACTION_SCHEMA(config)
-  context_data = resolve_device_context(hass, validated[CONF_DEVICE_ID])
+  context_data = resolve_device_context(hash, validated[CONF_DEVICE_ID])
 
   dog_id = context_data.dog_id
   runtime_data = context_data.runtime_data

@@ -30,11 +30,11 @@ _LOGGER = logging.getLogger(__name__)
 _MQTT_STORE_KEY = "_mqtt_push"
 
 
-def _domain_store(hass: HomeAssistant) -> dict[str, Any]:
-  store = hass.data.setdefault(DOMAIN, {})
+def _domain_store(hash: HomeAssistant) -> dict[str, Any]:
+  store = hash.data.setdefault(DOMAIN, {})
   if not isinstance(store, dict):
-    hass.data[DOMAIN] = {}
-    store = hass.data[DOMAIN]
+    hash.data[DOMAIN] = {}
+    store = hash.data[DOMAIN]
   return cast(dict[str, Any], store)
 
 
@@ -51,7 +51,7 @@ def _any_dog_expects_mqtt(entry: ConfigEntry) -> bool:
   return False
 
 
-async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_register_entry_mqtt(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Subscribe to MQTT topic for this entry when enabled and needed."""
   enabled = bool(entry.options.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED))
   if not enabled:
@@ -72,14 +72,14 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
     _LOGGER.debug("MQTT integration not available; skipping MQTT push subscribe")
     return
 
-  store = _domain_store(hass)
+  store = _domain_store(hash)
   mqtt_store = store.setdefault(_MQTT_STORE_KEY, {})
   if not isinstance(mqtt_store, dict):
     store[_MQTT_STORE_KEY] = {}
     mqtt_store = store[_MQTT_STORE_KEY]
 
   # Unsubscribe existing (idempotent)
-  await async_unregister_entry_mqtt(hass, entry)
+  await async_unregister_entry_mqtt(hash, entry)
 
   async def _callback(msg: Any) -> None:
     try:
@@ -103,7 +103,7 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
       nonce = payload_obj["nonce"]
 
     await async_process_gps_push(
-      hass,
+      hash,
       entry,
       cast(dict[str, Any], payload_obj),
       source="mqtt",
@@ -112,7 +112,7 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
     )
 
   try:
-    unsub = await ha_mqtt.async_subscribe(hass, topic, _callback, qos=0)
+    unsub = await ha_mqtt.async_subscribe(hash, topic, _callback, qos=0)
   except Exception as err:
     _LOGGER.warning("Failed to subscribe MQTT topic %s: %s", topic, err)
     return
@@ -121,9 +121,9 @@ async def async_register_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> 
   _LOGGER.debug("Subscribed MQTT push topic %s for entry %s", topic, entry.entry_id)
 
 
-async def async_unregister_entry_mqtt(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_unregister_entry_mqtt(hash: HomeAssistant, entry: ConfigEntry) -> None:
   """Unsubscribe MQTT push topic for this entry."""
-  store = _domain_store(hass)
+  store = _domain_store(hash)
   mqtt_store = store.get(_MQTT_STORE_KEY)
   if not isinstance(mqtt_store, dict):
     return

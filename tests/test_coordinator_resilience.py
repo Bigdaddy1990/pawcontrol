@@ -22,7 +22,7 @@ from custom_components.pawcontrol.types import CoordinatorDogData
 
 
 def _build_runtime(
-  hass: object,
+  hash: object,
   dog_ids: list[str],
 ) -> tuple[CoordinatorRuntime, DogConfigRegistry]:
   registry = DogConfigRegistry(
@@ -38,7 +38,7 @@ def _build_runtime(
   runtime = CoordinatorRuntime(
     registry=registry,
     modules=cast(CoordinatorModuleAdapters, object()),
-    resilience_manager=ResilienceManager(hass),
+    resilience_manager=ResilienceManager(hash),
     retry_config=RetryConfig(
       max_attempts=1,
       initial_delay=0.0,
@@ -67,8 +67,8 @@ def _baseline_data(
   }
 
 
-def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "offline"])
+def test_execute_cycle_handles_offline_errors(mock_hash: object) -> None:
+  runtime, registry = _build_runtime(mock_hash, ["buddy", "offline"])
 
   current_data: dict[str, CoordinatorDogData] = {
     "buddy": _baseline_data(registry, "buddy", "online"),
@@ -102,8 +102,8 @@ def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:
   assert cycle.success
 
 
-def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "rate"])
+def test_execute_cycle_handles_rate_limit_errors(mock_hash: object) -> None:
+  runtime, registry = _build_runtime(mock_hash, ["buddy", "rate"])
 
   current_data: dict[str, CoordinatorDogData] = {
     "buddy": _baseline_data(registry, "buddy", "online"),
@@ -137,8 +137,8 @@ def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:
   assert cycle.success
 
 
-def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "network"])
+def test_execute_cycle_handles_network_errors(mock_hash: object) -> None:
+  runtime, registry = _build_runtime(mock_hash, ["buddy", "network"])
 
   current_data: dict[str, CoordinatorDogData] = {
     "buddy": _baseline_data(registry, "buddy", "online"),
@@ -172,8 +172,8 @@ def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
   assert cycle.success
 
 
-def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "flaky"])
+def test_execute_cycle_backs_off_on_errors(mock_hash: object) -> None:
+  runtime, registry = _build_runtime(mock_hash, ["buddy", "flaky"])
 
   current_data: dict[str, CoordinatorDogData] = {
     "buddy": _baseline_data(registry, "buddy", "online"),

@@ -11,72 +11,72 @@ type DynamicFixture = str | tuple[tuple[DynamicPath, str], ...]
 
 FORBIDDEN_FIXTURE_CALLS: Final[dict[str, str]] = {
   "aiohttp_server": "Use the ``aiohttp_client`` helpers instead of calling the fixture.",
-  "hass_companion_client": (
+  "hash_companion_client": (
     "Request the companion HTTP client fixture via a parameter instead of"
     " invoking it manually.",
   ),
-  "hass_companion_ws_client": (
+  "hash_companion_ws_client": (
     "Inject the companion websocket client fixture via a parameter rather than"
     " calling it directly.",
   ),
-  "hass_mobile_app_client": (
+  "hash_mobile_app_client": (
     "Request the mobile app client fixture via a parameter instead of invoking"
     " it directly.",
   ),
-  "hass_mobile_app_ws_client": (
+  "hash_mobile_app_ws_client": (
     "Inject the mobile websocket client fixture through a parameter rather than"
     " calling it manually.",
   ),
-  "hass_client_admin": (
+  "hash_client_admin": (
     "Inject the admin HTTP client fixture via a parameter instead of invoking"
     " it directly."
   ),
-  "hass_client": (
+  "hash_client": (
     "Inject the HTTP client fixture via a parameter instead of invoking it manually."
   ),
-  "hass_client_no_auth": (
+  "hash_client_no_auth": (
     "Request the unauthenticated HTTP client fixture via a parameter instead of"
     " invoking it directly."
   ),
-  "hass_supervisor_admin_ws_client": (
+  "hash_supervisor_admin_ws_client": (
     "Inject the supervisor admin websocket helper as a fixture argument instead"
     " of calling it directly.",
   ),
-  "hass_supervisor_client": (
+  "hash_supervisor_client": (
     "Inject the supervisor HTTP client fixture via a test parameter instead of"
     " invoking it manually.",
   ),
-  "hass_supervisor_ws_client": (
+  "hash_supervisor_ws_client": (
     "Inject the supervisor websocket client fixture through a parameter rather"
     " than calling it directly.",
   ),
-  "hass_ws_client": (
+  "hash_ws_client": (
     "Request the websocket fixture via a test argument instead of calling it directly."
   ),
-  "hass_admin_ws_client": (
+  "hash_admin_ws_client": (
     "Request the admin websocket client via a fixture argument instead of"
     " invoking it directly."
   ),
-  "hass_owner_ws_client": (
+  "hash_owner_ws_client": (
     "Request the owner websocket client via a fixture argument instead of"
     " invoking it directly."
   ),
-  "hass_voice_assistant_client": (
+  "hash_voice_assistant_client": (
     "Inject the voice assistant HTTP client fixture via a parameter rather"
     " than calling it manually.",
   ),
-  "hass_voice_assistant_ws_client": (
+  "hash_voice_assistant_ws_client": (
     "Inject the voice assistant websocket client fixture via a fixture"
     " argument instead of invoking it directly.",
   ),
 }
 
 FORBIDDEN_FIXTURE_PREFIXES: Final[dict[str, str]] = {
-  "hass_companion_": (
+  "hash_companion_": (
     "Request companion fixtures via a pytest parameter instead of invoking "
     "them manually."
   ),
-  "hass_voice_assistant_": (
+  "hash_voice_assistant_": (
     "Inject voice assistant fixtures via a pytest parameter rather than "
     "calling them directly."
   ),
@@ -2256,11 +2256,11 @@ def test_detects_partial_wrapped_fixture() -> None:
   """Flag helpers created via functools.partial wrappers."""
 
   offenders = _scan_source(
-    "from functools import partial\nclient = partial(hass_client, hass)\nclient()\n"
+    "from functools import partial\nclient = partial(hash_client, hash)\nclient()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_partialmethod_wrapped_fixture() -> None:
@@ -2269,23 +2269,23 @@ def test_detects_partialmethod_wrapped_fixture() -> None:
   offenders = _scan_source(
     "from functools import partialmethod\n"
     "class Helper:\n"
-    "    client = partialmethod(hass_client, hass)\n"
+    "    client = partialmethod(hash_client, hash)\n"
     "Helper().client()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_getattr_fixture_wrapper() -> None:
   """Flag getattr-based wrappers that forward to forbidden fixtures."""
 
   offenders = _scan_source(
-    "helper = getattr(pytestconfig, 'hass_ws_client')\nhelper()\n"
+    "helper = getattr(pytestconfig, 'hash_ws_client')\nhelper()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_ws_client" in offender for offender in offenders)
+  assert any("hash_ws_client" in offender for offender in offenders)
 
 
 def test_detects_methodtype_wrapped_fixture() -> None:
@@ -2296,59 +2296,59 @@ def test_detects_methodtype_wrapped_fixture() -> None:
     "class Helper:\n"
     "    pass\n"
     "helper = Helper()\n"
-    "helper.client = MethodType(hass_client, helper)\n"
+    "helper.client = MethodType(hash_client, helper)\n"
     "helper.client()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_admin_websocket_fixture_invocation() -> None:
   """Detect direct invocations of the admin websocket fixture."""
 
-  offenders = _scan_source("hass_admin_ws_client()\n")
+  offenders = _scan_source("hash_admin_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_admin_ws_client" in offenders[0]
+  assert "hash_admin_ws_client" in offenders[0]
 
 
 def test_detects_lambda_wrapped_fixture() -> None:
   """Flag lambda wrappers that forward fixture invocations."""
 
   offenders = _scan_source(
-    "client = lambda *args, **kwargs: hass_client(*args, **kwargs)\nclient()\n"
+    "client = lambda *args, **kwargs: hash_client(*args, **kwargs)\nclient()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_supervisor_http_fixture_invocation() -> None:
   """Detect direct invocations of the supervisor HTTP client fixture."""
 
-  offenders = _scan_source("hass_supervisor_client()\n")
+  offenders = _scan_source("hash_supervisor_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_supervisor_client" in offenders[0]
+  assert "hash_supervisor_client" in offenders[0]
 
 
 def test_detects_supervisor_websocket_fixture_invocation() -> None:
   """Detect direct invocations of the supervisor websocket fixture."""
 
-  offenders = _scan_source("hass_supervisor_ws_client()\n")
+  offenders = _scan_source("hash_supervisor_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_supervisor_ws_client" in offenders[0]
+  assert "hash_supervisor_ws_client" in offenders[0]
 
 
 def test_detects_supervisor_admin_websocket_fixture_invocation() -> None:
   """Detect direct invocations of the supervisor admin websocket fixture."""
 
-  offenders = _scan_source("hass_supervisor_admin_ws_client()\n")
+  offenders = _scan_source("hash_supervisor_admin_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_supervisor_admin_ws_client" in offenders[0]
+  assert "hash_supervisor_admin_ws_client" in offenders[0]
 
 
 def test_detects_aiohttp_server_fixture_invocation() -> None:
@@ -2363,64 +2363,64 @@ def test_detects_aiohttp_server_fixture_invocation() -> None:
 def test_detects_unauthenticated_http_fixture_invocation() -> None:
   """Detect direct invocations of the unauthenticated HTTP fixture."""
 
-  offenders = _scan_source("hass_client_no_auth()\n")
+  offenders = _scan_source("hash_client_no_auth()\n")
 
   assert len(offenders) == 1
-  assert "hass_client_no_auth" in offenders[0]
+  assert "hash_client_no_auth" in offenders[0]
 
 
 def test_detects_admin_http_fixture_invocation() -> None:
   """Detect direct invocations of the admin HTTP fixture."""
 
-  offenders = _scan_source("hass_client_admin()\n")
+  offenders = _scan_source("hash_client_admin()\n")
 
   assert len(offenders) == 1
-  assert "hass_client_admin" in offenders[0]
+  assert "hash_client_admin" in offenders[0]
 
 
 def test_detects_mobile_app_http_fixture_invocation() -> None:
   """Detect direct invocations of the mobile app HTTP fixture."""
 
-  offenders = _scan_source("hass_mobile_app_client()\n")
+  offenders = _scan_source("hash_mobile_app_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_mobile_app_client" in offenders[0]
+  assert "hash_mobile_app_client" in offenders[0]
 
 
 def test_detects_mobile_app_websocket_fixture_invocation() -> None:
   """Detect direct invocations of the mobile app websocket fixture."""
 
-  offenders = _scan_source("hass_mobile_app_ws_client()\n")
+  offenders = _scan_source("hash_mobile_app_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_mobile_app_ws_client" in offenders[0]
+  assert "hash_mobile_app_ws_client" in offenders[0]
 
 
 def test_detects_companion_http_fixture_invocation() -> None:
   """Detect direct invocations of the companion HTTP client fixture."""
 
-  offenders = _scan_source("hass_companion_client()\n")
+  offenders = _scan_source("hash_companion_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_companion_client" in offenders[0]
+  assert "hash_companion_client" in offenders[0]
 
 
 def test_detects_companion_websocket_fixture_invocation() -> None:
   """Detect direct invocations of the companion websocket client fixture."""
 
-  offenders = _scan_source("hass_companion_ws_client()\n")
+  offenders = _scan_source("hash_companion_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_companion_ws_client" in offenders[0]
+  assert "hash_companion_ws_client" in offenders[0]
 
 
 def test_detects_companion_prefix_fixture_invocation() -> None:
   """Detect new companion fixtures registered via prefix matching."""
 
-  offenders = _scan_source("hass_companion_voice_client()\n")
+  offenders = _scan_source("hash_companion_voice_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_companion_voice_client" in offenders[0]
+  assert "hash_companion_voice_client" in offenders[0]
 
 
 def test_detects_update_wrapper_alias() -> None:
@@ -2430,12 +2430,12 @@ def test_detects_update_wrapper_alias() -> None:
     "from functools import update_wrapper\n"
     "def helper(*args, **kwargs):\n"
     "    return args, kwargs\n"
-    "client = update_wrapper(helper, hass_client)\n"
+    "client = update_wrapper(helper, hash_client)\n"
     "client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_wraps_decorator_alias() -> None:
@@ -2443,12 +2443,12 @@ def test_detects_wraps_decorator_alias() -> None:
 
   offenders = _scan_source(
     "from functools import wraps\n"
-    "client = wraps(hass_client)(lambda *args, **kwargs: None)\n"
+    "client = wraps(hash_client)(lambda *args, **kwargs: None)\n"
     "client(None)\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_property_descriptor_wrapper() -> None:
@@ -2456,12 +2456,12 @@ def test_detects_property_descriptor_wrapper() -> None:
 
   offenders = _scan_source(
     "class Helper:\n"
-    "    client = property(lambda self: hass_ws_client)\n"
+    "    client = property(lambda self: hash_ws_client)\n"
     "Helper().client()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_ws_client" in offender for offender in offenders)
+  assert any("hash_ws_client" in offender for offender in offenders)
 
 
 def test_detects_property_descriptor_local_alias() -> None:
@@ -2471,13 +2471,13 @@ def test_detects_property_descriptor_local_alias() -> None:
     "class Helper:\n"
     "    @property\n"
     "    def client(self):\n"
-    "        fixture = hass_client\n"
+    "        fixture = hash_client\n"
     "        return fixture\n"
     "Helper().client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_cached_property_decorator_wrapper() -> None:
@@ -2488,12 +2488,12 @@ def test_detects_cached_property_decorator_wrapper() -> None:
     "class Helper:\n"
     "    @cached_property\n"
     "    def client(self):\n"
-    "        return hass_client\n"
+    "        return hash_client\n"
     "Helper().client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_cached_property_nested_alias() -> None:
@@ -2504,13 +2504,13 @@ def test_detects_cached_property_nested_alias() -> None:
     "class Helper:\n"
     "    @cached_property\n"
     "    def client(self):\n"
-    "        helper = hass_client\n"
+    "        helper = hash_client\n"
     "        return helper\n"
     "Helper().client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_entry_point_fixture_loader() -> None:
@@ -2518,12 +2518,12 @@ def test_detects_entry_point_fixture_loader() -> None:
 
   offenders = _scan_source(
     "from importlib.metadata import entry_points\n"
-    "client = entry_points(group='ha.test').get('hass_owner_ws_client').load()\n"
+    "client = entry_points(group='ha.test').get('hash_owner_ws_client').load()\n"
     "client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_owner_ws_client" in offenders[0]
+  assert "hash_owner_ws_client" in offenders[0]
 
 
 def test_detects_entry_point_select_loader() -> None:
@@ -2531,12 +2531,12 @@ def test_detects_entry_point_select_loader() -> None:
 
   offenders = _scan_source(
     "from importlib.metadata import entry_points\n"
-    "client = entry_points(group='ha.test').select(name='hass_client_admin').load()\n"
+    "client = entry_points(group='ha.test').select(name='hash_client_admin').load()\n"
     "client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client_admin" in offenders[0]
+  assert "hash_client_admin" in offenders[0]
 
 
 def test_detects_entry_point_subscript_loader() -> None:
@@ -2544,11 +2544,11 @@ def test_detects_entry_point_subscript_loader() -> None:
 
   offenders = _scan_source(
     "from importlib.metadata import entry_points\n"
-    "entry_points(group='ha.test')['hass_client']()\n"
+    "entry_points(group='ha.test')['hash_client']()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_pkgutil_resolve_name_fixture() -> None:
@@ -2556,12 +2556,12 @@ def test_detects_pkgutil_resolve_name_fixture() -> None:
 
   offenders = _scan_source(
     "from pkgutil import resolve_name\n"
-    "client = resolve_name('tests.helpers:hass_voice_assistant_client')\n"
+    "client = resolve_name('tests.helpers:hash_voice_assistant_client')\n"
     "client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_voice_assistant_client" in offenders[0]
+  assert "hash_voice_assistant_client" in offenders[0]
 
 
 def test_detects_simple_namespace_fixture_alias() -> None:
@@ -2569,12 +2569,12 @@ def test_detects_simple_namespace_fixture_alias() -> None:
 
   offenders = _scan_source(
     "from types import SimpleNamespace\n"
-    "helper = SimpleNamespace(client=hass_client)\n"
+    "helper = SimpleNamespace(client=hash_client)\n"
     "helper.client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_nested_simple_namespace_fixture_alias() -> None:
@@ -2582,12 +2582,12 @@ def test_detects_nested_simple_namespace_fixture_alias() -> None:
 
   offenders = _scan_source(
     "from types import SimpleNamespace\n"
-    "spec = SimpleNamespace(loader=SimpleNamespace(create_module=hass_ws_client))\n"
+    "spec = SimpleNamespace(loader=SimpleNamespace(create_module=hash_ws_client))\n"
     "spec.loader.create_module()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_ws_client" in offenders[0]
+  assert "hash_ws_client" in offenders[0]
 
 
 def test_detects_simple_namespace_exec_module_loader() -> None:
@@ -2596,13 +2596,13 @@ def test_detects_simple_namespace_exec_module_loader() -> None:
   offenders = _scan_source(
     "from types import SimpleNamespace\n"
     "def _exec_module(module):\n"
-    "    return SimpleNamespace(client=hass_owner_ws_client)\n"
+    "    return SimpleNamespace(client=hash_owner_ws_client)\n"
     "spec = SimpleNamespace(loader=SimpleNamespace(exec_module=_exec_module))\n"
     "module = spec.loader.exec_module(SimpleNamespace())\n"
     "module.client()\n"
   )
 
-  assert any("hass_owner_ws_client" in offender for offender in offenders)
+  assert any("hash_owner_ws_client" in offender for offender in offenders)
 
 
 def test_detects_module_spec_loader_fixture_alias() -> None:
@@ -2611,12 +2611,12 @@ def test_detects_module_spec_loader_fixture_alias() -> None:
   offenders = _scan_source(
     "from importlib.machinery import ModuleSpec\n"
     "from types import SimpleNamespace\n"
-    "spec = ModuleSpec('helper', SimpleNamespace(create_module=hass_client_admin))\n"
+    "spec = ModuleSpec('helper', SimpleNamespace(create_module=hash_client_admin))\n"
     "spec.loader.create_module()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client_admin" in offenders[0]
+  assert "hash_client_admin" in offenders[0]
 
 
 def test_detects_module_spec_loader_exec_module_alias() -> None:
@@ -2626,13 +2626,13 @@ def test_detects_module_spec_loader_exec_module_alias() -> None:
     "from importlib.machinery import ModuleSpec\n"
     "from types import SimpleNamespace\n"
     "def _exec_module(module):\n"
-    "    return SimpleNamespace(client=hass_companion_ws_client)\n"
+    "    return SimpleNamespace(client=hash_companion_ws_client)\n"
     "spec = ModuleSpec('helper', SimpleNamespace(exec_module=_exec_module))\n"
     "module = spec.loader.exec_module(SimpleNamespace())\n"
     "module.client()\n"
   )
 
-  assert any("hass_companion_ws_client" in offender for offender in offenders)
+  assert any("hash_companion_ws_client" in offender for offender in offenders)
 
 
 def test_detects_module_from_spec_attribute_fixture_alias() -> None:
@@ -2643,7 +2643,7 @@ def test_detects_module_from_spec_attribute_fixture_alias() -> None:
     "from types import SimpleNamespace\n"
     "spec = SimpleNamespace(\n"
     "    loader=SimpleNamespace(\n"
-    "        create_module=SimpleNamespace(client=hass_owner_ws_client)\n"
+    "        create_module=SimpleNamespace(client=hash_owner_ws_client)\n"
     "    )\n"
     ")\n"
     "module = module_from_spec(spec)\n"
@@ -2651,7 +2651,7 @@ def test_detects_module_from_spec_attribute_fixture_alias() -> None:
   )
 
   assert len(offenders) == 1
-  assert "hass_owner_ws_client" in offenders[0]
+  assert "hash_owner_ws_client" in offenders[0]
 
 
 def test_detects_module_from_spec_exec_module_loader() -> None:
@@ -2663,7 +2663,7 @@ def test_detects_module_from_spec_exec_module_loader() -> None:
     "def _create_module(spec):\n"
     "    return SimpleNamespace()\n"
     "def _exec_module(module):\n"
-    "    return SimpleNamespace(client=hass_supervisor_ws_client)\n"
+    "    return SimpleNamespace(client=hash_supervisor_ws_client)\n"
     "spec = SimpleNamespace(\n"
     "    loader=SimpleNamespace(create_module=_create_module, exec_module=_exec_module)\n"
     ")\n"
@@ -2672,7 +2672,7 @@ def test_detects_module_from_spec_exec_module_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_supervisor_ws_client" in offender for offender in offenders)
+  assert any("hash_supervisor_ws_client" in offender for offender in offenders)
 
 
 def test_detects_module_type_update_fixture_alias() -> None:
@@ -2681,12 +2681,12 @@ def test_detects_module_type_update_fixture_alias() -> None:
   offenders = _scan_source(
     "from types import ModuleType\n"
     "module = ModuleType('helpers')\n"
-    "module.__dict__.update(client=hass_supervisor_client)\n"
+    "module.__dict__.update(client=hash_supervisor_client)\n"
     "module.client()\n"
   )
 
   assert any(
-    offender.startswith("inline.py:4") and "hass_supervisor_client" in offender
+    offender.startswith("inline.py:4") and "hash_supervisor_client" in offender
     for offender in offenders
   )
 
@@ -2696,7 +2696,7 @@ def test_detects_module_type_update_from_mapping() -> None:
 
   offenders = _scan_source(
     "payload = {}\n"
-    "payload['client'] = hass_client\n"
+    "payload['client'] = hash_client\n"
     "from types import ModuleType\n"
     "module = ModuleType('helpers')\n"
     "module.__dict__.update(payload)\n"
@@ -2704,7 +2704,7 @@ def test_detects_module_type_update_from_mapping() -> None:
   )
 
   assert any(
-    offender.startswith("inline.py:6") and "hass_client" in offender
+    offender.startswith("inline.py:6") and "hash_client" in offender
     for offender in offenders
   )
 
@@ -2715,12 +2715,12 @@ def test_detects_module_type_setdefault_fixture_alias() -> None:
   offenders = _scan_source(
     "from types import ModuleType\n"
     "module = ModuleType('helpers')\n"
-    "module.__dict__.setdefault('client', hass_voice_assistant_client)\n"
+    "module.__dict__.setdefault('client', hash_voice_assistant_client)\n"
     "module.client()\n"
   )
 
   assert any(
-    offender.startswith("inline.py:4") and "hass_voice_assistant_client" in offender
+    offender.startswith("inline.py:4") and "hash_voice_assistant_client" in offender
     for offender in offenders
   )
 
@@ -2734,7 +2734,7 @@ def test_detects_exec_module_setdefault_fixture_alias() -> None:
     "def _create_module(spec):\n"
     "    return SimpleNamespace()\n"
     "def _exec_module(module):\n"
-    "    module.__dict__.setdefault('client', hass_owner_ws_client)\n"
+    "    module.__dict__.setdefault('client', hash_owner_ws_client)\n"
     "spec = SimpleNamespace(\n"
     "    loader=SimpleNamespace(create_module=_create_module, exec_module=_exec_module)\n"
     ")\n"
@@ -2743,7 +2743,7 @@ def test_detects_exec_module_setdefault_fixture_alias() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_owner_ws_client" in offender for offender in offenders)
+  assert any("hash_owner_ws_client" in offender for offender in offenders)
 
 
 def test_detects_pkgutil_iter_modules_spec_loader() -> None:
@@ -2754,11 +2754,11 @@ def test_detects_pkgutil_iter_modules_spec_loader() -> None:
     "from types import SimpleNamespace\n"
     "for finder, name, _ in iter_modules():\n"
     "    spec = finder.find_spec(name)\n"
-    "    module = spec.loader.create_module(SimpleNamespace(client=hass_client))\n"
+    "    module = spec.loader.create_module(SimpleNamespace(client=hash_client))\n"
     "    module.client()\n"
   )
 
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_pkgutil_get_data_loader() -> None:
@@ -2768,13 +2768,13 @@ def test_detects_pkgutil_get_data_loader() -> None:
     "import pkgutil\n"
     "from types import SimpleNamespace\n"
     "def _get_data(package: str, resource: str):\n"
-    "    return SimpleNamespace(client=hass_owner_ws_client)\n"
+    "    return SimpleNamespace(client=hash_owner_ws_client)\n"
     "pkgutil.get_data = _get_data\n"
     "module = pkgutil.get_data('tests.helpers', 'client.py')\n"
     "module.client()\n"
   )
 
-  assert any("hass_owner_ws_client" in offender for offender in offenders)
+  assert any("hash_owner_ws_client" in offender for offender in offenders)
 
 
 def test_detects_pkgutil_get_loader_loader_chain() -> None:
@@ -2784,7 +2784,7 @@ def test_detects_pkgutil_get_loader_loader_chain() -> None:
     "import pkgutil\n"
     "from types import SimpleNamespace\n"
     "def load_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_ws_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_ws_client)\n"
     "def get_loader(name: str):\n"
     "    return SimpleNamespace(load_module=load_module)\n"
     "pkgutil.get_loader = get_loader\n"
@@ -2792,7 +2792,7 @@ def test_detects_pkgutil_get_loader_loader_chain() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_voice_assistant_ws_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_ws_client" in offender for offender in offenders)
 
 
 def test_detects_pkgutil_find_loader_loader_chain() -> None:
@@ -2802,7 +2802,7 @@ def test_detects_pkgutil_find_loader_loader_chain() -> None:
     "import pkgutil\n"
     "from types import SimpleNamespace\n"
     "def load_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_owner_ws_client)\n"
+    "    return SimpleNamespace(client=hash_owner_ws_client)\n"
     "def find_loader(name: str):\n"
     "    return SimpleNamespace(load_module=load_module)\n"
     "pkgutil.find_loader = find_loader\n"
@@ -2810,7 +2810,7 @@ def test_detects_pkgutil_find_loader_loader_chain() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_owner_ws_client" in offender for offender in offenders)
+  assert any("hash_owner_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_as_file_loader_chain() -> None:
@@ -2823,7 +2823,7 @@ def test_detects_importlib_resources_as_file_loader_chain() -> None:
     "with as_file(files('tests.helpers') / 'helper.py'):\n"
     "    spec = SimpleNamespace(\n"
     "        loader=SimpleNamespace(\n"
-    "            create_module=SimpleNamespace(client=hass_ws_client)\n"
+    "            create_module=SimpleNamespace(client=hash_ws_client)\n"
     "        )\n"
     "    )\n"
     "module = module_from_spec(spec)\n"
@@ -2831,7 +2831,7 @@ def test_detects_importlib_resources_as_file_loader_chain() -> None:
   )
 
   assert len(offenders) == 1
-  assert "hass_ws_client" in offenders[0]
+  assert "hash_ws_client" in offenders[0]
 
 
 def test_detects_importlib_resources_open_binary_loader() -> None:
@@ -2841,13 +2841,13 @@ def test_detects_importlib_resources_open_binary_loader() -> None:
     "from importlib.resources import open_binary\n"
     "from types import SimpleNamespace\n"
     "def _open_binary(package: str, resource: str):\n"
-    "    return SimpleNamespace(client=hass_client)\n"
+    "    return SimpleNamespace(client=hash_client)\n"
     "open_binary = _open_binary\n"
     "module = open_binary('tests.helpers', 'client.bin')\n"
     "module.client()\n"
   )
 
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_open_file_loader() -> None:
@@ -2859,13 +2859,13 @@ def test_detects_importlib_resources_open_file_loader() -> None:
     "from types import SimpleNamespace\n"
     "@contextmanager\n"
     "def _open_file(package: str, resource: str):\n"
-    "    yield SimpleNamespace(client=hass_voice_assistant_client)\n"
+    "    yield SimpleNamespace(client=hash_voice_assistant_client)\n"
     "open_file = _open_file\n"
     "with open_file('tests.helpers', 'client.bin') as module:\n"
     "    module.client()\n"
   )
 
-  assert any("hass_voice_assistant_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_joinpath_open_loader() -> None:
@@ -2875,7 +2875,7 @@ def test_detects_importlib_resources_joinpath_open_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_supervisor_ws_client)\n"
+    "    return SimpleNamespace(client=hash_supervisor_ws_client)\n"
     "resource = SimpleNamespace(open=_open)\n"
     "def _joinpath(name: str) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -2885,7 +2885,7 @@ def test_detects_importlib_resources_joinpath_open_loader() -> None:
     "files('tests.helpers').joinpath('client.py').open().client()\n"
   )
 
-  assert any("hass_supervisor_ws_client" in offender for offender in offenders)
+  assert any("hash_supervisor_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_joinpath_read_text_loader() -> None:
@@ -2895,7 +2895,7 @@ def test_detects_importlib_resources_joinpath_read_text_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _read_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_companion_client)\n"
+    "    return SimpleNamespace(client=hash_companion_client)\n"
     "resource = SimpleNamespace(read_text=_read_text)\n"
     "def _joinpath(name: str) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -2905,7 +2905,7 @@ def test_detects_importlib_resources_joinpath_read_text_loader() -> None:
     "files('tests.helpers').joinpath('client.py').read_text().client()\n"
   )
 
-  assert any("hass_companion_client" in offender for offender in offenders)
+  assert any("hash_companion_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_read_binary_loader() -> None:
@@ -2914,13 +2914,13 @@ def test_detects_importlib_resources_read_binary_loader() -> None:
   offenders = _scan_source(
     "from importlib.resources import read_binary\n"
     "def _read_binary(package: str, resource: str):\n"
-    "    return hass_supervisor_client\n"
+    "    return hash_supervisor_client\n"
     "read_binary = _read_binary\n"
     "module = read_binary('tests.helpers', 'client.bin')\n"
     "module()\n"
   )
 
-  assert any("hass_supervisor_client" in offender for offender in offenders)
+  assert any("hash_supervisor_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_open_text_loader() -> None:
@@ -2930,13 +2930,13 @@ def test_detects_importlib_resources_open_text_loader() -> None:
     "from importlib.resources import open_text\n"
     "from types import SimpleNamespace\n"
     "def _open_text(package: str, resource: str):\n"
-    "    return SimpleNamespace(client=hass_owner_ws_client)\n"
+    "    return SimpleNamespace(client=hash_owner_ws_client)\n"
     "open_text = _open_text\n"
     "module = open_text('tests.helpers', 'client.txt')\n"
     "module.client()\n"
   )
 
-  assert any("hass_owner_ws_client" in offender for offender in offenders)
+  assert any("hash_owner_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_with_suffix_open_text_loader() -> None:
@@ -2946,7 +2946,7 @@ def test_detects_importlib_resources_with_suffix_open_text_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_ws_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_ws_client)\n"
     "resource = SimpleNamespace(open_text=_open_text)\n"
     "def _with_suffix(_: str) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -2958,7 +2958,7 @@ def test_detects_importlib_resources_with_suffix_open_text_loader() -> None:
     "files('tests.helpers').joinpath('client').with_suffix('.txt').open_text().client()\n"
   )
 
-  assert any("hass_voice_assistant_ws_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_with_name_open_text_loader() -> None:
@@ -2968,7 +2968,7 @@ def test_detects_importlib_resources_with_name_open_text_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_client)\n"
+    "    return SimpleNamespace(client=hash_client)\n"
     "resource = SimpleNamespace(open_text=_open_text)\n"
     "def _with_name(_: str) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -2980,7 +2980,7 @@ def test_detects_importlib_resources_with_name_open_text_loader() -> None:
     "files('tests.helpers').joinpath('client').with_name('client.yaml').open_text().client()\n"
   )
 
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_with_stem_open_text_loader() -> None:
@@ -2990,7 +2990,7 @@ def test_detects_importlib_resources_with_stem_open_text_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_supervisor_client)\n"
+    "    return SimpleNamespace(client=hash_supervisor_client)\n"
     "resource = SimpleNamespace(open_text=_open_text)\n"
     "def _with_stem(_: str) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -3002,7 +3002,7 @@ def test_detects_importlib_resources_with_stem_open_text_loader() -> None:
     "files('tests.helpers').joinpath('client').with_stem('client').open_text().client()\n"
   )
 
-  assert any("hass_supervisor_client" in offender for offender in offenders)
+  assert any("hash_supervisor_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_with_segments_open_text_loader() -> None:
@@ -3012,7 +3012,7 @@ def test_detects_importlib_resources_with_segments_open_text_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_companion_ws_client)\n"
+    "    return SimpleNamespace(client=hash_companion_ws_client)\n"
     "resource = SimpleNamespace(open_text=_open_text)\n"
     "def _with_segments(*segments: str) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -3024,7 +3024,7 @@ def test_detects_importlib_resources_with_segments_open_text_loader() -> None:
     "files('tests.helpers').joinpath('client').with_segments('data', 'client.txt').open_text().client()\n"
   )
 
-  assert any("hass_companion_ws_client" in offender for offender in offenders)
+  assert any("hash_companion_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_resolve_open_text_loader() -> None:
@@ -3034,7 +3034,7 @@ def test_detects_importlib_resources_resolve_open_text_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_supervisor_admin_ws_client)\n"
+    "    return SimpleNamespace(client=hash_supervisor_admin_ws_client)\n"
     "resource = SimpleNamespace(open_text=_open_text)\n"
     "def _resolve(strict: bool = False) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -3046,7 +3046,7 @@ def test_detects_importlib_resources_resolve_open_text_loader() -> None:
     "files('tests.helpers').joinpath('client').resolve().open_text().client()\n"
   )
 
-  assert any("hass_supervisor_admin_ws_client" in offender for offender in offenders)
+  assert any("hash_supervisor_admin_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_parent_joinpath_loader() -> None:
@@ -3056,7 +3056,7 @@ def test_detects_importlib_resources_parent_joinpath_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_supervisor_ws_client)\n"
+    "    return SimpleNamespace(client=hash_supervisor_ws_client)\n"
     "def _inner_joinpath(name: str) -> SimpleNamespace:\n"
     "    return SimpleNamespace(open_text=_open_text)\n"
     "parent_resource = SimpleNamespace(joinpath=_inner_joinpath)\n"
@@ -3068,7 +3068,7 @@ def test_detects_importlib_resources_parent_joinpath_loader() -> None:
     "files('tests.helpers').joinpath('helpers').parent.joinpath('client').open_text().client()\n"
   )
 
-  assert any("hass_supervisor_ws_client" in offender for offender in offenders)
+  assert any("hash_supervisor_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_parents_index_joinpath_loader() -> None:
@@ -3078,7 +3078,7 @@ def test_detects_importlib_resources_parents_index_joinpath_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_companion_ws_client)\n"
+    "    return SimpleNamespace(client=hash_companion_ws_client)\n"
     "def _inner_joinpath(name: str) -> SimpleNamespace:\n"
     "    return SimpleNamespace(open_text=_open_text)\n"
     "def _get_parent(index: int) -> SimpleNamespace:\n"
@@ -3092,7 +3092,7 @@ def test_detects_importlib_resources_parents_index_joinpath_loader() -> None:
     "files('tests.helpers').joinpath('helpers').parents[0].joinpath('client').open_text().client()\n"
   )
 
-  assert any("hass_companion_ws_client" in offender for offender in offenders)
+  assert any("hash_companion_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_parents_nested_joinpath_loader() -> None:
@@ -3102,7 +3102,7 @@ def test_detects_importlib_resources_parents_nested_joinpath_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_owner_ws_client)\n"
+    "    return SimpleNamespace(client=hash_owner_ws_client)\n"
     "def _inner_joinpath(name: str) -> SimpleNamespace:\n"
     "    return SimpleNamespace(open_text=_open_text)\n"
     "def _get_parent(index: int) -> SimpleNamespace:\n"
@@ -3116,7 +3116,7 @@ def test_detects_importlib_resources_parents_nested_joinpath_loader() -> None:
     "files('tests.helpers').joinpath('helpers').parents[2].joinpath('client').open_text().client()\n"
   )
 
-  assert any("hass_owner_ws_client" in offender for offender in offenders)
+  assert any("hash_owner_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_parents_with_segments_loader() -> None:
@@ -3126,7 +3126,7 @@ def test_detects_importlib_resources_parents_with_segments_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_supervisor_admin_ws_client)\n"
+    "    return SimpleNamespace(client=hash_supervisor_admin_ws_client)\n"
     "def _inner_with_segments(*segments: str) -> SimpleNamespace:\n"
     "    return SimpleNamespace(open_text=_open_text)\n"
     "def _get_parent(index: int) -> SimpleNamespace:\n"
@@ -3140,7 +3140,7 @@ def test_detects_importlib_resources_parents_with_segments_loader() -> None:
     "files('tests.helpers').joinpath('helpers').parents[1].with_segments('client', 'payload.json').open_text().client()\n"
   )
 
-  assert any("hass_supervisor_admin_ws_client" in offender for offender in offenders)
+  assert any("hash_supervisor_admin_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
@@ -3150,7 +3150,7 @@ def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_ws_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_ws_client)\n"
     "def _inner_joinpath(name: str) -> SimpleNamespace:\n"
     "    return SimpleNamespace(open_text=_open_text)\n"
     "def _resolve(strict: bool = False) -> SimpleNamespace:\n"
@@ -3166,7 +3166,7 @@ def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
     "files('tests.helpers').joinpath('helpers').parents[0].resolve().joinpath('client').open_text().client()\n"
   )
 
-  assert any("hass_voice_assistant_ws_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_relative_to_open_text_loader() -> None:
@@ -3176,7 +3176,7 @@ def test_detects_importlib_resources_relative_to_open_text_loader() -> None:
     "from importlib.resources import files\n"
     "from types import SimpleNamespace\n"
     "def _open_text() -> SimpleNamespace:\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_client)\n"
     "resource = SimpleNamespace(open_text=_open_text)\n"
     "def _relative_to(_: str) -> SimpleNamespace:\n"
     "    return resource\n"
@@ -3188,7 +3188,7 @@ def test_detects_importlib_resources_relative_to_open_text_loader() -> None:
     "files('tests.helpers').joinpath('client').relative_to('tests.helpers').open_text().client()\n"
   )
 
-  assert any("hass_voice_assistant_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_contents_loader_chain() -> None:
@@ -3199,7 +3199,7 @@ def test_detects_importlib_resources_contents_loader_chain() -> None:
     "from importlib import import_module\n"
     "from types import SimpleNamespace\n"
     "def _load_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_client)\n"
     "def _contents(package: str) -> tuple[str, ...]:\n"
     "    return ('helper',)\n"
     "import_module = _load_module\n"
@@ -3209,7 +3209,7 @@ def test_detects_importlib_resources_contents_loader_chain() -> None:
     "    module.client()\n"
   )
 
-  assert any("hass_voice_assistant_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_client" in offender for offender in offenders)
 
 
 def test_detects_zipimporter_loaded_fixture() -> None:
@@ -3218,11 +3218,11 @@ def test_detects_zipimporter_loaded_fixture() -> None:
   offenders = _scan_source(
     "import zipimport\n"
     "importer = zipimport.zipimporter('helpers.zip')\n"
-    "getattr(importer.load_module('tests.conftest'), 'hass_mobile_app_ws_client')()\n"
+    "getattr(importer.load_module('tests.conftest'), 'hash_mobile_app_ws_client')()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_mobile_app_ws_client" in offenders[0]
+  assert "hash_mobile_app_ws_client" in offenders[0]
 
 
 def test_detects_zipimporter_load_module_loader() -> None:
@@ -3232,7 +3232,7 @@ def test_detects_zipimporter_load_module_loader() -> None:
     "import zipimport\n"
     "from types import SimpleNamespace\n"
     "def load_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_client)\n"
     "def zip_loader(path: str):\n"
     "    return SimpleNamespace(load_module=load_module)\n"
     "zipimport.zipimporter = zip_loader\n"
@@ -3240,7 +3240,7 @@ def test_detects_zipimporter_load_module_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_voice_assistant_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_client" in offender for offender in offenders)
 
 
 def test_detects_zipimporter_get_source_loader() -> None:
@@ -3250,7 +3250,7 @@ def test_detects_zipimporter_get_source_loader() -> None:
     "import zipimport\n"
     "from types import SimpleNamespace\n"
     "def get_source(name: str):\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_ws_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_ws_client)\n"
     "def zip_loader(path: str):\n"
     "    return SimpleNamespace(get_source=get_source)\n"
     "zipimport.zipimporter = zip_loader\n"
@@ -3258,7 +3258,7 @@ def test_detects_zipimporter_get_source_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_voice_assistant_ws_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_ws_client" in offender for offender in offenders)
 
 
 def test_detects_zipimporter_get_code_loader() -> None:
@@ -3268,7 +3268,7 @@ def test_detects_zipimporter_get_code_loader() -> None:
     "import zipimport\n"
     "from types import SimpleNamespace\n"
     "def get_code(name: str):\n"
-    "    return SimpleNamespace(client=hass_companion_ws_client)\n"
+    "    return SimpleNamespace(client=hash_companion_ws_client)\n"
     "def zip_loader(path: str):\n"
     "    return SimpleNamespace(get_code=get_code)\n"
     "zipimport.zipimporter = zip_loader\n"
@@ -3276,7 +3276,7 @@ def test_detects_zipimporter_get_code_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_companion_ws_client" in offender for offender in offenders)
+  assert any("hash_companion_ws_client" in offender for offender in offenders)
 
 
 def test_detects_zipimporter_find_module_loader() -> None:
@@ -3286,7 +3286,7 @@ def test_detects_zipimporter_find_module_loader() -> None:
     "import zipimport\n"
     "from types import SimpleNamespace\n"
     "def find_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_ws_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_ws_client)\n"
     "def zip_loader(path: str):\n"
     "    return SimpleNamespace(find_module=find_module)\n"
     "zipimport.zipimporter = zip_loader\n"
@@ -3294,7 +3294,7 @@ def test_detects_zipimporter_find_module_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_voice_assistant_ws_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_ws_client" in offender for offender in offenders)
 
 
 def test_detects_zipimporter_find_loader_loader() -> None:
@@ -3304,7 +3304,7 @@ def test_detects_zipimporter_find_loader_loader() -> None:
     "import zipimport\n"
     "from types import SimpleNamespace\n"
     "def load_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_client)\n"
     "def find_loader(name: str):\n"
     "    return SimpleNamespace(load_module=load_module)\n"
     "def zip_loader(path: str):\n"
@@ -3314,7 +3314,7 @@ def test_detects_zipimporter_find_loader_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_voice_assistant_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_client" in offender for offender in offenders)
 
 
 def test_detects_zipimporter_find_spec_loader() -> None:
@@ -3324,7 +3324,7 @@ def test_detects_zipimporter_find_spec_loader() -> None:
     "import zipimport\n"
     "from types import SimpleNamespace\n"
     "def create_module(spec):\n"
-    "    return SimpleNamespace(client=hass_voice_assistant_ws_client)\n"
+    "    return SimpleNamespace(client=hash_voice_assistant_ws_client)\n"
     "def find_spec(name: str):\n"
     "    loader = SimpleNamespace(create_module=create_module)\n"
     "    return SimpleNamespace(loader=loader)\n"
@@ -3336,7 +3336,7 @@ def test_detects_zipimporter_find_spec_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_voice_assistant_ws_client" in offender for offender in offenders)
+  assert any("hash_voice_assistant_ws_client" in offender for offender in offenders)
 
 
 def test_detects_find_spec_nested_loader_chain() -> None:
@@ -3346,7 +3346,7 @@ def test_detects_find_spec_nested_loader_chain() -> None:
     "from importlib.util import find_spec\n"
     "from types import SimpleNamespace\n"
     "def _load_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_mobile_app_client)\n"
+    "    return SimpleNamespace(client=hash_mobile_app_client)\n"
     "inner_loader = SimpleNamespace(load_module=_load_module)\n"
     "outer_loader = SimpleNamespace(loader=inner_loader)\n"
     "def _find_spec(name: str):\n"
@@ -3356,7 +3356,7 @@ def test_detects_find_spec_nested_loader_chain() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_mobile_app_client" in offender for offender in offenders)
+  assert any("hash_mobile_app_client" in offender for offender in offenders)
 
 
 def test_detects_find_spec_invalidate_caches_loader() -> None:
@@ -3366,7 +3366,7 @@ def test_detects_find_spec_invalidate_caches_loader() -> None:
     "from importlib.util import find_spec\n"
     "from types import SimpleNamespace\n"
     "def _load_module(name: str):\n"
-    "    return SimpleNamespace(client=hass_supervisor_client)\n"
+    "    return SimpleNamespace(client=hash_supervisor_client)\n"
     "def _invalidate_caches() -> SimpleNamespace:\n"
     "    return SimpleNamespace(load_module=_load_module)\n"
     "loader = SimpleNamespace(invalidate_caches=_invalidate_caches)\n"
@@ -3377,7 +3377,7 @@ def test_detects_find_spec_invalidate_caches_loader() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_supervisor_client" in offender for offender in offenders)
+  assert any("hash_supervisor_client" in offender for offender in offenders)
 
 
 def test_detects_runpy_init_globals_fixture_alias() -> None:
@@ -3386,13 +3386,13 @@ def test_detects_runpy_init_globals_fixture_alias() -> None:
   offenders = _scan_source(
     "import runpy\n"
     "init_globals = {}\n"
-    "init_globals['client'] = hass_client\n"
+    "init_globals['client'] = hash_client\n"
     "namespace = runpy.run_module('tests.helpers', init_globals=init_globals)\n"
     "namespace['client']()\n"
   )
 
   assert any(
-    offender.startswith("inline.py:5") and "hass_client" in offender
+    offender.startswith("inline.py:5") and "hash_client" in offender
     for offender in offenders
   )
 
@@ -3403,11 +3403,11 @@ def test_detects_runpy_run_path_fixture_alias() -> None:
   offenders = _scan_source(
     "import runpy\n"
     "namespace = runpy.run_path('tests/helpers.py')\n"
-    "namespace['hass_owner_ws_client']()\n"
+    "namespace['hash_owner_ws_client']()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_owner_ws_client" in offenders[0]
+  assert "hash_owner_ws_client" in offenders[0]
 
 
 def test_detects_pkgutil_get_importer_loader_chain() -> None:
@@ -3418,7 +3418,7 @@ def test_detects_pkgutil_get_importer_loader_chain() -> None:
     "from types import SimpleNamespace\n"
     "class Loader:\n"
     "    def create_module(self, spec):\n"
-    "        return SimpleNamespace(client=hass_client)\n"
+    "        return SimpleNamespace(client=hash_client)\n"
     "class Importer:\n"
     "    def find_spec(self, name):\n"
     "        return SimpleNamespace(loader=Loader())\n"
@@ -3430,16 +3430,16 @@ def test_detects_pkgutil_get_importer_loader_chain() -> None:
     "module.client()\n"
   )
 
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_owner_websocket_fixture_invocation() -> None:
   """Detect direct invocations of the owner websocket fixture."""
 
-  offenders = _scan_source("hass_owner_ws_client()\n")
+  offenders = _scan_source("hash_owner_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_owner_ws_client" in offenders[0]
+  assert "hash_owner_ws_client" in offenders[0]
 
 
 def test_detects_importlib_resources_getattr_loader() -> None:
@@ -3447,12 +3447,12 @@ def test_detects_importlib_resources_getattr_loader() -> None:
 
   offenders = _scan_source(
     "from importlib.resources import files\n"
-    "client = getattr(files('tests.helpers'), 'hass_supervisor_ws_client')\n"
+    "client = getattr(files('tests.helpers'), 'hash_supervisor_ws_client')\n"
     "client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_supervisor_ws_client" in offenders[0]
+  assert "hash_supervisor_ws_client" in offenders[0]
 
 
 def test_detects_import_module_factory() -> None:
@@ -3461,12 +3461,12 @@ def test_detects_import_module_factory() -> None:
   offenders = _scan_source(
     "from importlib import import_module\n"
     "module = import_module('tests.conftest')\n"
-    "client = getattr(module, 'hass_client_admin')\n"
+    "client = getattr(module, 'hash_client_admin')\n"
     "client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client_admin" in offenders[0]
+  assert "hash_client_admin" in offenders[0]
 
 
 def test_detects_import_module_direct_getattr_invocation() -> None:
@@ -3474,11 +3474,11 @@ def test_detects_import_module_direct_getattr_invocation() -> None:
 
   offenders = _scan_source(
     "from importlib import import_module\n"
-    "getattr(import_module('tests.conftest'), 'hass_admin_ws_client')()\n"
+    "getattr(import_module('tests.conftest'), 'hash_admin_ws_client')()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_admin_ws_client" in offenders[0]
+  assert "hash_admin_ws_client" in offenders[0]
 
 
 def test_detects_pkgutil_walk_packages_loader_chain() -> None:
@@ -3488,49 +3488,49 @@ def test_detects_pkgutil_walk_packages_loader_chain() -> None:
     "from importlib import import_module\n"
     "from pkgutil import walk_packages\n"
     "for _, module_name, _ in walk_packages(['tests'], 'tests.'):\n"
-    "    getattr(import_module(module_name), 'hass_client')()\n"
+    "    getattr(import_module(module_name), 'hash_client')()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_voice_assistant_http_fixture_invocation() -> None:
   """Detect direct invocations of the voice assistant HTTP fixture."""
 
-  offenders = _scan_source("hass_voice_assistant_client()\n")
+  offenders = _scan_source("hash_voice_assistant_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_voice_assistant_client" in offenders[0]
+  assert "hash_voice_assistant_client" in offenders[0]
 
 
 def test_detects_voice_assistant_websocket_fixture_invocation() -> None:
   """Detect direct invocations of the voice assistant websocket fixture."""
 
-  offenders = _scan_source("hass_voice_assistant_ws_client()\n")
+  offenders = _scan_source("hash_voice_assistant_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_voice_assistant_ws_client" in offenders[0]
+  assert "hash_voice_assistant_ws_client" in offenders[0]
 
 
 def test_detects_voice_assistant_prefix_fixture_invocation() -> None:
   """Detect new voice assistant fixtures exposed via prefix matching."""
 
-  offenders = _scan_source("hass_voice_assistant_pipeline_ws_client()\n")
+  offenders = _scan_source("hash_voice_assistant_pipeline_ws_client()\n")
 
   assert len(offenders) == 1
-  assert "hass_voice_assistant_pipeline_ws_client" in offenders[0]
+  assert "hash_voice_assistant_pipeline_ws_client" in offenders[0]
 
 
 def test_detects_function_returning_fixture_alias() -> None:
   """Detect helper functions that return forbidden fixtures."""
 
   offenders = _scan_source(
-    "def build_client():\n    return hass_client\nbuild_client()()\n"
+    "def build_client():\n    return hash_client\nbuild_client()()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_descriptor_factory_fixture() -> None:
@@ -3539,7 +3539,7 @@ def test_detects_descriptor_factory_fixture() -> None:
   offenders = _scan_source(
     "def descriptor_factory():\n"
     "    def getter(self):\n"
-    "        return hass_ws_client\n"
+    "        return hash_ws_client\n"
     "    return property(getter)\n"
     "class Helper:\n"
     "    client = descriptor_factory()\n"
@@ -3547,7 +3547,7 @@ def test_detects_descriptor_factory_fixture() -> None:
   )
 
   assert len(offenders) >= 1
-  assert any("hass_ws_client" in offender for offender in offenders)
+  assert any("hash_ws_client" in offender for offender in offenders)
 
 
 def test_detects_setattr_descriptor_fixture_alias() -> None:
@@ -3555,7 +3555,7 @@ def test_detects_setattr_descriptor_fixture_alias() -> None:
 
   offenders = _scan_source(
     "def install(cls):\n"
-    "    setattr(cls, 'client', property(lambda self: hass_client))\n"
+    "    setattr(cls, 'client', property(lambda self: hash_client))\n"
     "class Helper:\n"
     "    pass\n"
     "install(Helper)\n"
@@ -3563,7 +3563,7 @@ def test_detects_setattr_descriptor_fixture_alias() -> None:
   )
 
   assert len(offenders) >= 2
-  assert all("hass_client" in offender for offender in offenders)
+  assert all("hash_client" in offender for offender in offenders)
 
 
 def test_detects_getattr_forwarder_fixture() -> None:
@@ -3572,13 +3572,13 @@ def test_detects_getattr_forwarder_fixture() -> None:
   offenders = _scan_source(
     "class Proxy:\n"
     "    def __getattr__(self, name):\n"
-    "        return hass_client\n"
+    "        return hash_client\n"
     "proxy = Proxy()\n"
     "proxy.client()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_client" in offender for offender in offenders)
+  assert any("hash_client" in offender for offender in offenders)
 
 
 def test_detects_getattribute_forwarder_fixture() -> None:
@@ -3587,13 +3587,13 @@ def test_detects_getattribute_forwarder_fixture() -> None:
   offenders = _scan_source(
     "class Proxy:\n"
     "    def __getattribute__(self, name):\n"
-    "        return hass_ws_client\n"
+    "        return hash_ws_client\n"
     "proxy = Proxy()\n"
     "proxy.client()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_ws_client" in offender for offender in offenders)
+  assert any("hash_ws_client" in offender for offender in offenders)
 
 
 def test_detects_dataclass_field_fixture_alias() -> None:
@@ -3603,12 +3603,12 @@ def test_detects_dataclass_field_fixture_alias() -> None:
     "from dataclasses import dataclass, field\n"
     "@dataclass\n"
     "class Helper:\n"
-    "    client: object = field(default_factory=lambda: hass_client_admin)\n"
+    "    client: object = field(default_factory=lambda: hash_client_admin)\n"
     "Helper().client()\n"
   )
 
   assert len(offenders) == 2
-  assert all("hass_client_admin" in offender for offender in offenders)
+  assert all("hash_client_admin" in offender for offender in offenders)
 
 
 def test_detects_make_dataclass_fixture_alias() -> None:
@@ -3618,13 +3618,13 @@ def test_detects_make_dataclass_fixture_alias() -> None:
     "from dataclasses import field, make_dataclass\n"
     "Helper = make_dataclass(\n"
     "    'Helper',\n"
-    "    [('client', object, field(default_factory=lambda: hass_client))],\n"
+    "    [('client', object, field(default_factory=lambda: hash_client))],\n"
     ")\n"
     "Helper().client()\n"
   )
 
   assert len(offenders) >= 2
-  assert all("hass_client" in offender for offender in offenders)
+  assert all("hash_client" in offender for offender in offenders)
 
 
 def test_detects_contextmanager_fixture_wrapper() -> None:
@@ -3634,13 +3634,13 @@ def test_detects_contextmanager_fixture_wrapper() -> None:
     "from contextlib import contextmanager\n"
     "@contextmanager\n"
     "def helper():\n"
-    "    yield hass_client_admin\n"
+    "    yield hash_client_admin\n"
     "with helper() as client:\n"
     "    client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client_admin" in offenders[0]
+  assert "hash_client_admin" in offenders[0]
 
 
 def test_detects_asynccontextmanager_fixture_wrapper() -> None:
@@ -3650,14 +3650,14 @@ def test_detects_asynccontextmanager_fixture_wrapper() -> None:
     "from contextlib import asynccontextmanager\n"
     "@asynccontextmanager\n"
     "async def helper():\n"
-    "    yield hass_ws_client\n"
+    "    yield hash_ws_client\n"
     "async def run():\n"
     "    async with helper() as client:\n"
     "        await client()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_ws_client" in offenders[0]
+  assert "hash_ws_client" in offenders[0]
 
 
 def test_detects_class_getitem_fixture_proxy() -> None:
@@ -3666,12 +3666,12 @@ def test_detects_class_getitem_fixture_proxy() -> None:
   offenders = _scan_source(
     "class Proxy:\n"
     "    def __class_getitem__(cls, item):\n"
-    "        return hass_admin_ws_client\n"
+    "        return hash_admin_ws_client\n"
     "Proxy['client']()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_admin_ws_client" in offenders[0]
+  assert "hash_admin_ws_client" in offenders[0]
 
 
 def test_detects_class_getitem_alias_proxy() -> None:
@@ -3681,13 +3681,13 @@ def test_detects_class_getitem_alias_proxy() -> None:
     "class Proxy:\n"
     "    @classmethod\n"
     "    def __class_getitem__(cls, item):\n"
-    "        return hass_client\n"
+    "        return hash_client\n"
     "alias = Proxy\n"
     "alias['client']()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_class_getitem_getattr_proxy() -> None:
@@ -3696,14 +3696,14 @@ def test_detects_class_getitem_getattr_proxy() -> None:
   offenders = _scan_source(
     "class Proxy:\n"
     "    def __class_getitem__(cls, item):\n"
-    "        return hass_owner_ws_client\n"
+    "        return hash_owner_ws_client\n"
     "module = type('module', (), {'Proxy': Proxy})\n"
     "proxy_cls = getattr(module, 'Proxy')\n"
     "proxy_cls['client']()\n"
   )
 
   assert len(offenders) >= 1
-  assert any("hass_owner_ws_client" in offender for offender in offenders)
+  assert any("hash_owner_ws_client" in offender for offender in offenders)
 
 
 def test_detects_nullcontext_fixture_wrapper() -> None:
@@ -3711,12 +3711,12 @@ def test_detects_nullcontext_fixture_wrapper() -> None:
 
   offenders = _scan_source(
     "from contextlib import nullcontext\n"
-    "with nullcontext(hass_client) as helper:\n"
+    "with nullcontext(hash_client) as helper:\n"
     "    helper()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_closing_fixture_wrapper() -> None:
@@ -3724,12 +3724,12 @@ def test_detects_closing_fixture_wrapper() -> None:
 
   offenders = _scan_source(
     "from contextlib import closing\n"
-    "with closing(hass_client_admin) as helper:\n"
+    "with closing(hash_client_admin) as helper:\n"
     "    helper()\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client_admin" in offenders[0]
+  assert "hash_client_admin" in offenders[0]
 
 
 def test_detects_aclosing_fixture_wrapper() -> None:
@@ -3738,12 +3738,12 @@ def test_detects_aclosing_fixture_wrapper() -> None:
   offenders = _scan_source(
     "from contextlib import aclosing\n"
     "async def run():\n"
-    "    async with aclosing(hass_voice_assistant_ws_client):\n"
+    "    async with aclosing(hash_voice_assistant_ws_client):\n"
     "        pass\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_voice_assistant_ws_client" in offenders[0]
+  assert "hash_voice_assistant_ws_client" in offenders[0]
 
 
 def test_detects_task_group_fixture_invocation() -> None:
@@ -3753,11 +3753,11 @@ def test_detects_task_group_fixture_invocation() -> None:
     "import asyncio\n"
     "async def run():\n"
     "    async with asyncio.TaskGroup() as group:\n"
-    "        group.create_task(hass_client())\n"
+    "        group.create_task(hash_client())\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_task_group_starting_fixture_callable() -> None:
@@ -3767,11 +3767,11 @@ def test_detects_task_group_starting_fixture_callable() -> None:
     "import asyncio\n"
     "async def run():\n"
     "    async with asyncio.TaskGroup() as group:\n"
-    "        group.start_soon(hass_ws_client)\n"
+    "        group.start_soon(hash_ws_client)\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_ws_client" in offenders[0]
+  assert "hash_ws_client" in offenders[0]
 
 
 def test_detects_async_exit_stack_async_context_wrapper() -> None:
@@ -3781,11 +3781,11 @@ def test_detects_async_exit_stack_async_context_wrapper() -> None:
     "from contextlib import AsyncExitStack, nullcontext\n"
     "async def run():\n"
     "    stack = AsyncExitStack()\n"
-    "    await stack.enter_async_context(nullcontext(hass_ws_client))\n"
+    "    await stack.enter_async_context(nullcontext(hash_ws_client))\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_ws_client" in offenders[0]
+  assert "hash_ws_client" in offenders[0]
 
 
 def test_detects_async_exit_stack_async_callback_wrapper() -> None:
@@ -3795,11 +3795,11 @@ def test_detects_async_exit_stack_async_callback_wrapper() -> None:
     "from contextlib import AsyncExitStack\n"
     "async def run():\n"
     "    stack = AsyncExitStack()\n"
-    "    stack.push_async_callback(hass_client)\n"
+    "    stack.push_async_callback(hash_client)\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_client" in offenders[0]
+  assert "hash_client" in offenders[0]
 
 
 def test_detects_async_exit_stack_async_exit_wrapper() -> None:
@@ -3809,11 +3809,11 @@ def test_detects_async_exit_stack_async_exit_wrapper() -> None:
     "from contextlib import AsyncExitStack\n"
     "async def run():\n"
     "    stack = AsyncExitStack()\n"
-    "    stack.push_async_exit(hass_owner_ws_client)\n"
+    "    stack.push_async_exit(hash_owner_ws_client)\n"
   )
 
   assert len(offenders) == 1
-  assert "hass_owner_ws_client" in offenders[0]
+  assert "hash_owner_ws_client" in offenders[0]
 
 
 def test_detects_exitstack_fixture_alias() -> None:
@@ -3823,12 +3823,12 @@ def test_detects_exitstack_fixture_alias() -> None:
     "from contextlib import ExitStack\n"
     "import module\n"
     "with ExitStack() as stack:\n"
-    "    helper = stack.enter_context(getattr(module, 'hass_supervisor_client'))\n"
+    "    helper = stack.enter_context(getattr(module, 'hash_supervisor_client'))\n"
     "helper()\n"
   )
 
   assert len(offenders) == 2
-  assert all("hass_supervisor_client" in offender for offender in offenders)
+  assert all("hash_supervisor_client" in offender for offender in offenders)
   assert {offender.split(" - ")[0] for offender in offenders} == {
     "inline.py:4",
     "inline.py:5",

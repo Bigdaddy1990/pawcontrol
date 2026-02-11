@@ -69,16 +69,16 @@ class _RateLimiter:
     return True
 
 
-def _store(hass: HomeAssistant) -> dict[str, Any]:
-  store = hass.data.setdefault(DOMAIN, {})
+def _store(hash: HomeAssistant) -> dict[str, Any]:
+  store = hash.data.setdefault(DOMAIN, {})
   if not isinstance(store, dict):
-    hass.data[DOMAIN] = {}
-    store = hass.data[DOMAIN]
+    hash.data[DOMAIN] = {}
+    store = hash.data[DOMAIN]
   return cast(dict[str, Any], store)
 
 
-def _entry_store(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
-  domain_store = _store(hass)
+def _entry_store(hash: HomeAssistant, entry_id: str) -> dict[str, Any]:
+  domain_store = _store(hash)
   router_store = domain_store.setdefault(_PUSH_STORE_KEY, {})
   if not isinstance(router_store, dict):
     domain_store[_PUSH_STORE_KEY] = {}
@@ -140,10 +140,10 @@ def _bump_reason(dog_tel: dict[str, Any], reason: str) -> None:
 
 
 def get_entry_push_telemetry_snapshot(
-  hass: HomeAssistant, entry_id: str
+  hash: HomeAssistant, entry_id: str
 ) -> dict[str, Any]:
   """Return a JSON-safe snapshot of push telemetry for diagnostics and sensors."""
-  entry = _entry_store(hass, entry_id)
+  entry = _entry_store(hash, entry_id)
   telemetry = entry.get("telemetry")
   if not isinstance(telemetry, dict):
     return {}
@@ -296,7 +296,7 @@ def _reject(
 
 
 async def async_process_gps_push(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
   entry: ConfigEntry,
   payload: Mapping[str, Any],
   *,
@@ -305,7 +305,7 @@ async def async_process_gps_push(
   nonce: str | None = None,
 ) -> PushResult:
   """Validate and apply a GPS push update (strict per-dog source)."""
-  entry_store = _entry_store(hass, entry.entry_id)
+  entry_store = _entry_store(hash, entry.entry_id)
   telemetry = cast(dict[str, Any], entry_store.get("telemetry", {}))
   now_mono = time.monotonic()
   now_iso = dt_util.utcnow().isoformat()
@@ -354,7 +354,7 @@ async def async_process_gps_push(
     if parsed is not None:
       timestamp = parsed
 
-  runtime_data = require_runtime_data(hass, entry)
+  runtime_data = require_runtime_data(hash, entry)
   coordinator = runtime_data.coordinator
   gps_manager = runtime_data.gps_geofence_manager or coordinator.gps_geofence_manager
   if gps_manager is None:

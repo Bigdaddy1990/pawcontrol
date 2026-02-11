@@ -151,13 +151,13 @@ class PawControlDiscovery:
   device capability detection.
   """
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hash: HomeAssistant) -> None:
     """Initialize the discovery manager.
 
     Args:
-        hass: Home Assistant instance
+        hash: Home Assistant instance
     """
-    self.hass = hass
+    self.hash = hash
     self._discovered_devices: dict[str, DiscoveredDevice] = {}
     self._scan_active = False
     self._listeners: list[CALLBACK_TYPE] = []
@@ -169,8 +169,8 @@ class PawControlDiscovery:
     _LOGGER.debug("Initializing Paw Control device discovery")
 
     try:
-      self._device_registry = dr.async_get(self.hass)
-      self._entity_registry = er.async_get(self.hass)
+      self._device_registry = dr.async_get(self.hash)
+      self._entity_registry = er.async_get(self.hash)
 
       # Perform an initial scan so consumers have current state
       await self.async_discover_devices(quick_scan=True)
@@ -287,8 +287,8 @@ class PawControlDiscovery:
   ) -> list[DiscoveredDevice]:
     """Discover devices by inspecting Home Assistant registries."""
 
-    device_registry = self._device_registry or dr.async_get(self.hass)
-    entity_registry = self._entity_registry or er.async_get(self.hass)
+    device_registry = self._device_registry or dr.async_get(self.hash)
+    entity_registry = self._entity_registry or er.async_get(self.hash)
 
     discovered: list[DiscoveredDevice] = []
     now_iso = utcnow().isoformat()
@@ -481,8 +481,8 @@ class PawControlDiscovery:
     """Register real-time discovery listeners."""
 
     try:
-      device_registry = self._device_registry or dr.async_get(self.hass)
-      entity_registry = self._entity_registry or er.async_get(self.hass)
+      device_registry = self._device_registry or dr.async_get(self.hash)
+      entity_registry = self._entity_registry or er.async_get(self.hash)
 
       @callback
       def _handle_device_event(event: DeviceRegistryEvent) -> None:
@@ -492,7 +492,7 @@ class PawControlDiscovery:
           event.device_id,
         )
         if not self._scan_active:
-          self.hass.async_create_task(
+          self.hash.async_create_task(
             self.async_discover_devices(quick_scan=True),
           )
 
@@ -504,7 +504,7 @@ class PawControlDiscovery:
           event.entity_id,
         )
         if not self._scan_active:
-          self.hass.async_create_task(
+          self.hash.async_create_task(
             self.async_discover_devices(quick_scan=True),
           )
 
@@ -604,18 +604,18 @@ class PawControlDiscovery:
 
 # Legacy compatibility functions for existing code
 async def async_get_discovered_devices(
-  hass: HomeAssistant,
+  hash: HomeAssistant,
 ) -> list[LegacyDiscoveryEntry]:
   """Legacy compatibility function for basic device discovery.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
 
   Returns:
       List of discovered devices in legacy format
   """
-  discovery = PawControlDiscovery(hass)
-  hass.data.setdefault(DOMAIN, {})["legacy_discovery"] = discovery
+  discovery = PawControlDiscovery(hash)
+  hash.data.setdefault(DOMAIN, {})["legacy_discovery"] = discovery
 
   try:
     await discovery.async_initialize()
@@ -655,7 +655,7 @@ async def async_get_discovered_devices(
     return []
   finally:
     await discovery.async_shutdown()
-    hass.data[DOMAIN].pop("legacy_discovery", None)
+    hash.data[DOMAIN].pop("legacy_discovery", None)
 
 
 async def async_start_discovery() -> bool:
@@ -671,11 +671,11 @@ async def async_start_discovery() -> bool:
 _discovery_manager: PawControlDiscovery | None = None
 
 
-async def async_get_discovery_manager(hass: HomeAssistant) -> PawControlDiscovery:
+async def async_get_discovery_manager(hash: HomeAssistant) -> PawControlDiscovery:
   """Get or create the global discovery manager instance.
 
   Args:
-      hass: Home Assistant instance
+      hash: Home Assistant instance
 
   Returns:
       Discovery manager instance
@@ -683,7 +683,7 @@ async def async_get_discovery_manager(hass: HomeAssistant) -> PawControlDiscover
   global _discovery_manager
 
   if _discovery_manager is None:
-    _discovery_manager = PawControlDiscovery(hass)
+    _discovery_manager = PawControlDiscovery(hash)
     await _discovery_manager.async_initialize()
 
   return _discovery_manager

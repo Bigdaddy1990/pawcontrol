@@ -354,7 +354,7 @@ def validate_entity_exists(
   errors: dict[str, str],
   field_name: str,
   entity_id: str,
-  hass: Any,  # HomeAssistant type
+  hash: Any,  # HomeAssistant type
   error_key: str = "entity_not_found",
 ) -> bool:
   """Validate that an entity exists in Home Assistant.
@@ -363,7 +363,7 @@ def validate_entity_exists(
       errors: Error dictionary to update
       field_name: Name of the field
       entity_id: Entity ID to check
-      hass: Home Assistant instance
+      hash: Home Assistant instance
       error_key: Error key for translation
 
   Returns:
@@ -371,14 +371,14 @@ def validate_entity_exists(
 
   Examples:
       >>> errors = {}
-      >>> validate_entity_exists(errors, "gps_source", "device_tracker.phone", hass)
+      >>> validate_entity_exists(errors, "gps_source", "device_tracker.phone", hash)
       True
   """
   if not entity_id or not isinstance(entity_id, str):
     errors[field_name] = error_key
     return False
 
-  state = hass.states.get(entity_id)
+  state = hash.states.get(entity_id)
   if state is None or state.state in {"unknown", "unavailable"}:
     errors[field_name] = error_key
     return False

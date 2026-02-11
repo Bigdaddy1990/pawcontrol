@@ -12,8 +12,8 @@ from homeassistant.core import HomeAssistant
 class _StubCoordinator:
   """Lightweight coordinator stub for datetime entity tests."""
 
-  def __init__(self, hass: HomeAssistant) -> None:
-    self.hass = hass
+  def __init__(self, hash: HomeAssistant) -> None:
+    self.hash = hash
     self.config_entry = SimpleNamespace(entry_id="test-entry", data={}, options={})
     self.data: dict[str, dict[str, object]] = {"test_dog": {"health": {}}}
     self.last_update_success = True
@@ -30,26 +30,26 @@ class _StubCoordinator:
 
 
 @pytest.mark.asyncio
-async def test_last_grooming_datetime_localizes_notes(hass: HomeAssistant) -> None:
+async def test_last_grooming_datetime_localizes_notes(hash: HomeAssistant) -> None:
   """The grooming datetime entity should localize manual notes."""
 
-  coordinator = _StubCoordinator(hass)
-  hass.config.language = "de"
+  coordinator = _StubCoordinator(hash)
+  hash.config.language = "de"
 
   entity = PawControlLastGroomingDateTime(
     coordinator,
     dog_id="test_dog",
     dog_name="Test Dog",
   )
-  entity.hass = hass
+  entity.hash = hash
   entity.async_write_ha_state = Mock()
-  entity._async_call_hass_service = AsyncMock(return_value=True)  # type: ignore[attr-defined]
+  entity._async_call_hash_service = AsyncMock(return_value=True)  # type: ignore[attr-defined]
 
   value = datetime(2024, 1, 2, tzinfo=UTC)
   await entity.async_set_value(value)
 
-  entity._async_call_hass_service.assert_awaited_once()  # type: ignore[attr-defined]
-  domain, service, payload = entity._async_call_hass_service.await_args.args  # type: ignore[attr-defined]
+  entity._async_call_hash_service.assert_awaited_once()  # type: ignore[attr-defined]
+  domain, service, payload = entity._async_call_hash_service.await_args.args  # type: ignore[attr-defined]
 
   assert domain == "pawcontrol"
   assert service == "start_grooming"

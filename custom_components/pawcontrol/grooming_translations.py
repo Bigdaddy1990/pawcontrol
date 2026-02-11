@@ -36,7 +36,7 @@ GROOMING_TEMPLATE_TRANSLATION_KEYS: Final[Mapping[str, str]] = {
 
 
 def translated_grooming_label(
-  hass: HomeAssistant | None,
+  hash: HomeAssistant | None,
   language: str | None,
   key: str,
   **values: object,
@@ -47,11 +47,11 @@ def translated_grooming_label(
   if translation_key is None:
     return key.format(**values) if values else key
 
-  if hass is None:
+  if hash is None:
     template = translation_key
   else:
     translations, fallback = get_cached_component_translation_lookup(
-      hass,
+      hash,
       language,
     )
     template = resolve_component_translation(
@@ -67,7 +67,7 @@ def translated_grooming_label(
 
 
 def translated_grooming_template(
-  hass: HomeAssistant | None,
+  hash: HomeAssistant | None,
   language: str | None,
   key: str,
   **values: object,
@@ -78,11 +78,11 @@ def translated_grooming_template(
   if translation_key is None:
     return key.format(**values)
 
-  if hass is None:
+  if hash is None:
     template = translation_key
   else:
     translations, fallback = get_cached_component_translation_lookup(
-      hass,
+      hash,
       language,
     )
     template = resolve_component_translation(
