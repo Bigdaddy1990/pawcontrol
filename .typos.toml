@@ -1,6 +1,6 @@
 [default.extend-words]
 # HA / Projekt-spezifische Begriffe hier rein
-"hass"
+extend-exclude = ["hass",]
 
 [files]
 extend-exclude = [
