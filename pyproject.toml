@@ -224,26 +224,6 @@ required-imports = ["from __future__ import annotations"]
 "pytz".msg = "use zoneinfo instead"
 "tests".msg = "You should not import tests"
 
-[tool.ruff.lint.flake8-import-conventions.extend-aliases]
-voluptuous = "vol"
-homeassistant.helpers.area_registry = "ar"
-homeassistant.helpers.category_registry = "cr"
-homeassistant.helpers.config_validation = "cv"
-homeassistant.helpers.device_registry = "dr"
-homeassistant.helpers.entity_registry = "er"
-homeassistant.helpers.floor_registry = "fr"
-homeassistant.helpers.issue_registry = "ir"
-homeassistant.helpers.label_registry = "lr"
-homeassistant.util.color = "color_util"
-homeassistant.util.dt = "dt_util"
-homeassistant.util.json = "json_util"
-homeassistant.util.location = "location_util"
-homeassistant.util.logging = "logging_util"
-homeassistant.util.network = "network_util"
-homeassistant.util.ulid = "ulid_util"
-homeassistant.util.uuid = "uuid_util"
-homeassistant.util.yaml = "yaml_util"
-
 [tool.pylint.TYPECHECK]
 ignored-classes = [
   "_CountingAttr", # for attrs
