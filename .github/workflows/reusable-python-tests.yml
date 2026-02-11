@@ -7,7 +7,7 @@ on:
         description: Python version to install
         required: false
         type: string
-        default: "3.13"
+        default: "3.14"
       home-assistant-spec:
         description: Version specifier for Home Assistant (e.g. ==2025.9.3 or >=2025.9.0)
         required: false
