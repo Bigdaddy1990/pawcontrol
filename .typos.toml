@@ -1,7 +1,8 @@
 [default.extend-words]
 # HA / Projekt-spezifische Begriffe hier rein
+"hass"
 
 [files]
 extend-exclude = [
-  "custom_components/pawcontrol/translations/",
+  "custom_components/pawcontrol/translations/**",
 ]
