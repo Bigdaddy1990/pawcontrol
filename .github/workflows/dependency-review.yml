@@ -2,6 +2,8 @@ name: Dependency Review
 
 on:
   pull_request:
+    branches-ignore:
+      - 'autofix/**'
 
 permissions:
   contents: read
@@ -10,8 +12,7 @@ jobs:
   dependency-review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-          fail-on-scopes: runtime
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4

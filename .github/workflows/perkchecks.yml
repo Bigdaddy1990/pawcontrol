@@ -2,7 +2,13 @@ name: Prek checks
 
 on:
   push:
+    # Skip CI on auto-fix branches to avoid loops.
+    branches-ignore:
+      - 'autofix/**'
   pull_request:
+    # Skip CI on auto-fix branches to avoid loops.
+    branches-ignore:
+      - 'autofix/**'
   workflow_dispatch:
 
 permissions:

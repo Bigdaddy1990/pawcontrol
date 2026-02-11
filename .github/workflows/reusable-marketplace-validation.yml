@@ -39,10 +39,12 @@ jobs:
           ref: ${{ inputs.checkout-ref != '' && inputs.checkout-ref || github.ref }}
 
       - name: Run Hassfest
-        uses: home-assistant/actions/hassfest@master
+        # Pin the hassfest action to a released version for determinism and supply-chain security.
+        uses: home-assistant/actions/hassfest@1.0.0
 
       - name: Run HACS validation
-        uses: hacs/action@main
+        # Pin the HACS validation action to a stable release instead of main.
+        uses: hacs/action@22.5.0
         with:
           category: ${{ inputs.category }}
           ignore: ${{ inputs.ignore }}
