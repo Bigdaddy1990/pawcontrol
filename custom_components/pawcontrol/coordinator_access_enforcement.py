@@ -39,7 +39,7 @@ class CoordinatorAccessViolation(RuntimeError):
     self.entity_id = entity_id
 
 
-def require_coordinator(
+def require_coordinator[**P, T](
   func: Callable[P, T],
 ) -> Callable[P, T]:
   """Decorator to ensure function has access to coordinator.
@@ -157,7 +157,7 @@ def require_coordinator_data(
   return decorator
 
 
-def coordinator_only_property(
+def coordinator_only_property[T](
   func: Callable[[Any], T],
 ) -> property:
   """Create a property that enforces coordinator-only access.

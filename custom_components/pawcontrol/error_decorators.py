@@ -16,7 +16,6 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
-from homeassistant.exceptions import HomeAssistantError
 
 from .exceptions import (
   DogNotFoundError,
@@ -36,7 +35,6 @@ from .exceptions import (
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
 
-  from .types import ErrorContext
 
 _LOGGER = logging.getLogger(__name__)
 

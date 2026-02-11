@@ -11,11 +11,11 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping, Set
+from collections.abc import Mapping, Set
 from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
-from .types import CoordinatorDataPayload, CoordinatorDogData, JSONValue
+from .types import CoordinatorDataPayload, CoordinatorDogData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -173,14 +173,14 @@ def _compare_values(old_value: Any, new_value: Any) -> bool:
     if old_value.keys() != new_value.keys():
       return False
     return all(
-      _compare_values(old_value[k], new_value[k]) for k in old_value.keys()
+      _compare_values(old_value[k], new_value[k]) for k in old_value
     )
 
   # Handle sequences recursively (but not strings)
   if isinstance(old_value, (list, tuple)) and isinstance(new_value, (list, tuple)):
     if len(old_value) != len(new_value):
       return False
-    return all(_compare_values(o, n) for o, n in zip(old_value, new_value))
+    return all(_compare_values(o, n) for o, n in zip(old_value, new_value, strict=False))
 
   # Default equality
   return old_value == new_value
