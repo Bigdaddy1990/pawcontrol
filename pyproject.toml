@@ -29,7 +29,7 @@ filterwarnings = [
 target-version = "py314"
 line-length = 88
 src = ["custom_components"]
-indent-width = 4
+indent-width = 2
 show-fixes = true
 # CI should never modify the code during linting.  Disable on-by-default
 # auto-fixing here.  Developers can still invoke `ruff --fix` locally or via
