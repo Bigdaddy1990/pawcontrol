@@ -11,7 +11,7 @@ bleiben.
 **Status:** Teilweise erfüllt
 
 **Beobachtungen (Evidenz):**
-- Ein UI-Config-Flow ist vorhanden (`ConfigFlow`, `async_step_user`,
+- In UI-Config-Flow ist vorhanden (`ConfigFlow`, `async_step_user`,
   `async_step_dogs`, `async_step_finish`).
 - Single-Instance-Schutz erfolgt über `_async_current_entries()`.
 - Config-Eintrag wird ohne YAML-Config erstellt.
@@ -43,7 +43,7 @@ bleiben.
 - Nutzung von `DataUpdateCoordinator` mit `config_entry` und
   `update_interval`.
 - Fehlerbehandlung via `UpdateFailed`.
-- Zentralisierung des Datenabrufs pro Hund und Modul.
+- Zentralisierung des Datenabrufs pro Hund und Module.
 
 ## 4) Plattformen (Entities)
 
@@ -78,7 +78,7 @@ bleiben.
 
 ## 7) Quality Scale / Platinum-Nachweise
 
-**Status:** Erfüllt (Deklaration + interne Nachweise vorhanden)
+**Status:** Erfüllt (Declaration + interne Nachweise vorhanden)
 
 **Beobachtungen (Evidenz):**
 - Manifest deklariert `quality_scale: "platinum"`.
@@ -87,7 +87,7 @@ bleiben.
 
 ## Nächste empfohlene Schritte
 
-1. **Config Flow**: Prüfen, ob ein stabiler `unique_id` gesetzt werden kann und
+1. **Config Flow**: Prüfen, ob in stabiler `unique_id` gesetzt werden kann und
    ob Reauth/Reconfigure-Fälle relevant sind.
 2. **Options Flow**: Validierungs-/Normalisierungslogik konsolidieren und ggf.
    per-Dog-Optionen anbieten.

@@ -18,7 +18,7 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   zusammenführt, bevor der Config Entry angelegt wird.【F:custom_components/pawcontrol/config_flow_discovery.py†L1-L207】【F:custom_components/pawcontrol/config_flow_main.py†L62-L211】
 - Im Anschluss ordnet die Modulkonfiguration vorhandene Entitäten zu
   (Personen, Geräte-Tracker, Türsensoren, Wetter-Entity) und erlaubt den
-  Import externer API-Endpunkte, falls ein Begleitgerät angebunden werden
+  Import externer API-Endpunkte, falls in Begleitgerät angebunden werden
   soll.
 - Helfer wie `input_boolean`, `input_datetime` und Counter werden automatisch
   erzeugt; fehlende Assets lassen sich im Options-Flow nachpflegen.
@@ -27,12 +27,12 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   halten Tests für die erweiterten Options-Payloads bereit.【F:custom_components/pawcontrol/options_flow_menu.py†L1-L284】【F:custom_components/pawcontrol/options_flow_dogs_management.py†L1-L457】【F:custom_components/pawcontrol/options_flow_system_settings.py†L1-L240】【F:tests/unit/test_options_flow.py†L1-L870】
 
 ### Laufzeitmodule & Koordinator
-- Der `PawControlCoordinator` bündelt alle Hundedaten und startet pro Modul
+- Der `PawControlCoordinator` bündelt alle Hundedaten und started pro Module
   passende Adapter (Feeding, Walk, GPS, Garden, Weather). Dadurch greifen alle
   Plattformen konsistent auf dieselbe Datenbasis zu.
-- Die Modul-Adapter cachen Ergebnisse, nutzen bei Bedarf den Geräte-API-Client
+- Die Module-Adapter cachen Ergebnisse, nutzen bei Bedarf den Geräte-API-Client
   und liefern strukturierte Payloads für die Sensorplattformen.
-- Das Laufzeit-Cache (`custom_components/pawcontrol/runtime_data.py`) protokolliert jetzt die erzeugende Schema-Version, hebt Altversionen automatisch auf das kompatible Minimum an und entfernt Future-Snapshots sofort aus `hass.data`, damit Reloads lieber sauber neu initialisieren als inkompatible Payloads weiterzureichen.【F:custom_components/pawcontrol/runtime_data.py†L1-L312】【F:tests/test_runtime_data.py†L1-L640】
+- Das Laufzeit-Cache (`custom_components/pawcontrol/runtime_data.py`) protokolliert jetzt die erzeugende Schema-Version, hebt Altversionen automatisch auf das kompatible Minimum an und entfernt Future-Snapshots sofort aus `hash.data`, damit Reloads lieber sauber neu initialisieren also incompatible Payloads weiterzureichen.【F:custom_components/pawcontrol/runtime_data.py†L1-L312】【F:tests/test_runtime_data.py†L1-L640】
 
 ### Benachrichtigungen & Webhooks
 - Der `PawControlNotificationManager` bündelt Push-Nachrichten, Personenerkennung,
@@ -45,26 +45,26 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 ### Besuchsmodus & temporäre Hunde
 - Besuchsstatus wird per Service, Switch und Button verwaltet; der
   Datenmanager speichert Metadaten wie Besuchername oder reduzierte Alarme und
-  die Binary-Sensor-Plattform stellt den Status dar.
+  die Binary-Sensor-Platform stellt den Status dar.
 - Schritt-für-Schritt-Abläufe für Gäste-, Türsensor- und Benachrichtigungs-
   Workflows sind in der Produktionsdokumentation zusammengefasst.【F:docs/production_integration_documentation.md†L309-L321】
 
 ### Wetter- und Gesundheitsauswertung
 - Der `WeatherHealthManager` analysiert Forecast-Daten einer konfigurierten
-  Wetter-Entity, berechnet Health-Scores und schlägt Aktivitätsfenster vor; die
-  Ergebnisse fließen über den Weather-Adapter in die Koordinator-Payload ein.
+  Wetter-Entity, berechnet Health-Scores und schlägt Aktivitätsfenster for; die
+  Ergebnisse fließen über den Weather-Adapter in die Koordinator-Payload in.
 - Ausführliche Automationsbeispiele für wettergesteuerte Benachrichtigungen und
   Schutzmaßnahmen liefert der Weather-Automation-Guide.【F:docs/weather_integration_examples.md†L1-L150】
 
 ### Automations-Bausteine
-- Der Dashboard-Generator erstellt und pflegt Lovelace-Layouts asynchron, die
+- Der Dashboard-Generator erstellt und pflegt Lovelace-Layouts asynchronous, die
   auf Modulebene differenzieren und optional Wetter-Widgets einblenden.
 - Das Script-Management legt Benachrichtigungs-, Reset- und Testskripte pro Hund
   an und hält sie bei Moduländerungen aktuell.
 - Zusätzliche Plattformen (Sensoren, Schalter, Buttons, Texte, Selektoren) lesen
   koordinierte Daten aus und spiegeln die Helper-States wider.
 - Die System-Einstellungen des Options-Flows übernehmen `manual_check_event`,
-  `manual_guard_event` und `manual_breaker_event` direkt als Text-Selectoren und
+  `manual_guard_event` und `manual_breaker_event` direkt also Text-Selectoren und
   synchronisieren sie nach dem Speichern automatisch mit den
   Resilience-Blueprint-Automationen, sodass Diagnostik, Blueprint und Skripte
   konsistent bleiben.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
@@ -76,7 +76,7 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   von Home Assistant verwaltete aiohttp-Session verwendet wird; die globalen
   Fixtures stellen mit `session_factory` konsistente aiohttp-Doubles bereit und
   Tests decken die Fehlerszenarien für Validator, Adapter, Notification-Manager
-  und HTTP-Helfer ab. Ein Pre-Commit-Guard
+  und HTTP-Helfer ab. In Pre-Commit-Guard
   (`scripts/enforce_shared_session_guard.py`) verhindert neue `ClientSession()`-
   Instanzen – inklusive aliasierter `aiohttp.client`-Aufrufe – und entdeckt
   zusätzliche Pakete automatisch.【F:tests/conftest.py†L195-L242】【F:tests/unit/test_api_validator.py†L14-L72】【F:tests/unit/test_device_api.py†L96-L157】【F:tests/unit/test_module_adapters.py†L101-L233】【F:tests/unit/test_notifications.py†L1-L180】【F:tests/unit/test_http_client.py†L30-L72】【F:scripts/enforce_shared_session_guard.py†L1-L188】【F:tests/tooling/test_enforce_shared_session_guard.py†L1-L110】
@@ -121,9 +121,9 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 ### Fehlerbehebung – Schnellcheck
 1. **Setup schlägt fehl:** Prüfe `Einstellungen → Geräte & Dienste → Logs` auf
    fehlende API-Endpunkte oder ungültige Entitäten.
-2. **Keine Entitäten sichtbar:** Stelle sicher, dass mindestens ein Hund
+2. **Keine Entitäten sichtbar:** Stelle sicher, dass mindestens in Hund
    vollständig konfiguriert ist und das Entity-Profil nicht deaktiviert wurde.
-3. **GPS ohne Daten:** GPS-Quelle muss ein aktiver Tracker oder eine Person mit
+3. **GPS ohne Daten:** GPS-Quelle muss in aktiver Tracker oder eine Person mit
    Standortupdates sein; Teste die Quelle in Home Assistant.
 4. **Benachrichtigungen fehlen:** Prüfe den gewählten Notification-Service und
    sende die Testbenachrichtigung.
@@ -131,7 +131,7 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
    aktivierten Module pro Hund.
 
 ## Qualitäts- und Supportstatus
-- Docstrings und Typannotationen werden projektweit erzwungen; ein Skript
+- Docstrings und Typannotationen werden projektweit erzwungen; in Skript
   überwacht die Ruff-Baseline für fehlende Docstrings.
 - Der Volltest-Workflow [`scheduled-pytest.yml`](.github/workflows/scheduled-pytest.yml) reserviert dienstags und freitags um
   03:00 UTC einen dedizierten Slot; manuelle Läufe erfordern `override_ci_window=true` und einen dokumentierten `run_reason`,
@@ -146,8 +146,8 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 - Der Async-Dependency-Audit dokumentiert alle synchronen Bibliotheken, die
   `_offload_blocking`-Messwerte und die gewählten Mitigationsstrategien.
 - Koordinator-Statistiken protokollieren jede Laufzeit-Store-Kompatibilitätsprüfung samt Statuszählern, Divergenzmarkern, Zeitstempeln und jetzt auch Laufzeit-Bilanzen pro Schweregrad. Diagnostics und System Health zeigen neben dem aktuellen Snapshot die kumulierten Sekunden je Level sowie die aktuelle Verweildauer an, damit Platinum-Ausrichtungs-Audits die Stabilität ohne Log-Replay nachvollziehen können. Zusätzlich hält eine begrenzte Assessment-Timeline die jüngsten Levelwechsel inklusive Divergenzrate und empfohlenen Aktionen fest und fasst das Fenster, die Event-Dichte, die häufigsten Gründe/Status sowie Spitzen- und Letztwerte der Level-Dauern zusammen, sodass Support-Teams Verlauf und Eskalationen ohne manuelles Historien-Scraping prüfen können.【F:custom_components/pawcontrol/telemetry.py†L320-L460】【F:custom_components/pawcontrol/coordinator_tasks.py†L1080-L1230】【F:custom_components/pawcontrol/diagnostics.py†L600-L690】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/unit/test_runtime_store_telemetry.py†L1-L360】【F:tests/unit/test_coordinator_tasks.py†L160-L1340】【F:tests/test_diagnostics.py†L1-L252】【F:tests/unit/test_system_health.py†L1-L189】
-- Unit-Tests decken die Session-Garantie und Kernadapter ab, benötigen jedoch
-  weiterhin ein Home-Assistant-Test-Environment für vollständige Abdeckung.
+- Unit-Tests decken die Session-Guarantee und Kernadapter ab, benötigen jedoch
+  weiterhin in Home-Assistant-Test-Environment für vollständige Abdeckung.
 
 ### Support-Diagnostik
 Das Diagnostics-Panel `setup_flags_panel` fasst Analytics-, Backup- und Debug-
@@ -156,7 +156,7 @@ die ausgehandelte Sprache, damit Support-Teams und Blueprint-Autoren den
 Onboarding-Status ohne zusätzliche Parser übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L90-L214】【F:tests/test_diagnostics.py†L1-L252】
 Neben den aktivierten Zählern liefert der Block alle Quellenbezeichnungen aus
 `SETUP_FLAG_SOURCE_LABELS` samt Übersetzungs-Keys. `strings.json` führt
-dieselben Label- und Quellen-Texte unter `common.setup_flags_panel_*`, sodass
+dieselben Label- und Quellen-Texte under `common.setup_flags_panel_*`, sodass
 Übersetzungs-Workflows die Panels ohne manuelle Exporte nachpflegen können.【F:custom_components/pawcontrol/strings.json†L1396-L1405】
 
 ```json
@@ -227,7 +227,7 @@ dieselben Label- und Quellen-Texte unter `common.setup_flags_panel_*`, sodass
 
 ### System-Health-Resilienz & Blueprint-Automation
 - Der System-Health-Endpunkt färbt Guard-Skip- und Breaker-Warnungen über
-  farbcodierte Indikatoren ein und fasst Guard-, Breaker- und Gesamtstatus
+  farbcodierte Indikatoren in und fasst Guard-, Breaker- und Gesamtstatus
   zusammen, sobald definierte Resilience-Schwellen überschritten werden. Tests
   prüfen Normal-, Warn- und Kritikalarm, deaktivierte Skript-Schwellen sowie
   Options-Fallbacks, damit Bereitschaftsteams im Frontend sofort kritische
@@ -240,14 +240,14 @@ dieselben Label- und Quellen-Texte unter `common.setup_flags_panel_*`, sodass
   Aktionen und bietet getrennte manuelle Guard-/Breaker-Events sowie einen
   Watchdog, damit Runbooks ohne Duplikate auf Abruf reagieren können.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L125】
 - Diagnostics spiegeln die konfigurierten `manual_*`-Trigger, aggregieren die
-  Blueprint-Konfiguration über `config_entries` und migrieren vorhandene
+  Blueprint-Configuration über `config_entries` und migrieren vorhandene
   Skript-Schwellen bei Bestandsinstallationen automatisch in den Optionen-
   Payload. Dadurch bleiben System-Health, Blueprint und Dokumentation
   synchronisiert.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/options_flow.py†L700-L820】【F:tests/test_diagnostics.py†L1-L252】
 - `service_execution.entity_factory_guard` exportiert die adaptive Laufzeit-
   schutzschwelle der Entity Factory inklusive aktueller Bodenzeit, Delta zum
   Baseline-Floor, gemessenem Peak- und Minimal-Floor, jüngster Bodenzeit-
-  Änderung (absolut und relativ), Durchschnitts-/Minimal-/Maximallaufzeit der
+  Änderung (absolute und relative), Durchschnitts-/Minimal-/Maximallaufzeit der
   Samples, Stabilitäts- und Volatilitätsquoten sowie Laufzeit-Jitter über
   gesamte Historie und die letzten fünf Kalibrierungen. Die Entity Factory
   protokolliert zusätzlich die letzten Guard-Events, berechnet daraus
@@ -265,14 +265,14 @@ dieselben Label- und Quellen-Texte unter `common.setup_flags_panel_*`, sodass
   Daten zugreifen können.【F:custom_components/pawcontrol/diagnostics.py†L600-L676】【F:custom_components/pawcontrol/telemetry.py†L400-L470】【F:tests/test_diagnostics.py†L1-L252】
 - Diagnostics und System-Health ergänzen einen `runtime_store`-Block, der für
   jede Config-Entry das gestempelte Schema, den Mindest-Support-Stand, offene
-  Migrationen, Divergenzen zwischen Entry-Attribut und Domain-Cache sowie
+  Migrationen, Divergenzen zwischen Entry-Attribute und Domain-Cache sowie
   zukünftige Schema-Versionen markiert. Damit lassen sich Kompatibilitäts-
-  probleme ohne Debug-Konsole erkennen und sofort belegen.【F:custom_components/pawcontrol/runtime_data.py†L1-L390】【F:custom_components/pawcontrol/diagnostics.py†L610-L684】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/test_runtime_data.py†L520-L640】【F:tests/test_diagnostics.py†L1-L252】【F:tests/unit/test_system_health.py†L1-L189】
+  problem ohne Debug-Konsole erkennen und sofort belegen.【F:custom_components/pawcontrol/runtime_data.py†L1-L390】【F:custom_components/pawcontrol/diagnostics.py†L610-L684】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/test_runtime_data.py†L520-L640】【F:tests/test_diagnostics.py†L1-L252】【F:tests/unit/test_system_health.py†L1-L189】
 - Die Telemetrie ergänzt eine `runtime_store_assessment`, die Divergenzraten,
   Migrationserfordernisse und Entry-/Store-Status in die Stufen `ok`, `watch`
   oder `action_required` verdichtet. Diagnostics, System-Health und
   Koordinatorstatistiken zeigen dadurch sofort an, wann der
-  `runtime_store_compatibility`-Repair oder ein Reload nötig ist. Zusätzlich
+  `runtime_store_compatibility`-Repair oder in Reload nötig ist. Zusätzlich
   protokollieren wir das vorherige Level, die Level-Streak, den Zeitpunkt der
   letzten Änderung sowie Eskalations- und Deeskalationszähler, damit Audits
   erkennen, ob sich die Cache-Gesundheit stabilisiert oder erneut verschlechtert
