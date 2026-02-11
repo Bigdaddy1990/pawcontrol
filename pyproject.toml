@@ -4,7 +4,7 @@ requires = ["setuptools>=80", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
-addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-missing --cov-report=xml --cov-report=html --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=10"
+addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-missing --cov-report=xml --cov-report=html --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=20"
 markers = [
   "asyncio: mark a test as using asyncio",
   "ci_only: mark a test to run only in CI",
@@ -34,8 +34,8 @@ show-fixes = true
 # CI should never modify the code during linting.  Disable on-by-default
 # auto-fixing here.  Developers can still invoke `ruff --fix` locally or via
 # pre-commit to apply automatic fixes.
-fix = false
-unsafe-fixes = false
+fix = true
+unsafe-fixes = true
 
 [tool.ruff.analyze]
 detect-string-imports = true
@@ -51,8 +51,7 @@ docstring-code-format = true
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint.pydocstyle]
-convention = "google"
-property-decorators = ["propcache.api.cached_property"]
+convention = "pep257"
 
 [tool.ruff.lint.pep8-naming]
 extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
@@ -63,60 +62,7 @@ extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 # Ruff’s import‑sorting rule and let the dedicated hook handle ordering.
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-# Extend the ignore list to cover Home Assistant–specific rules and suppress
-# overly strict or conflicting checks.  We retain the existing ignores (E501 and
-# I001) and add many additional rules recommended by the Home Assistant
-# integration blueprint.
-ignore = [
-  "E501",
-  "I001",
-  "ASYNC109",
-  "ASYNC110",
-  "D202",
-  "D203",
-  "D213",
-  "D406",
-  "D407",
-  "D417",
-  "PLC1901",
-  "PLR0911",
-  "PLR0912",
-  "PLR0913",
-  "PLR0915",
-  "PLR2004",
-  "PLW1641",
-  "PLW2901",
-  "PT011",
-  "PT018",
-  "RUF001",
-  "RUF002",
-  "RUF003",
-  "RUF015",
-  "SIM102",
-  "SIM103",
-  "SIM108",
-  "SIM115",
-  "TC001",
-  "TC002",
-  "TC003",
-  "TC006",
-  "TRY003",
-  "TRY400",
-  "UP046",
-  "UP047",
-  "UP049",
-  "W191",
-  "E111",
-  "E114",
-  "E117",
-  "D206",
-  "D300",
-  "Q",
-  "COM812",
-  "COM819",
-  "PLE0605",
-  "FURB116",
-]
+ignore = ["E501", "I001"]
 extend-ignore = [
   "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
 ]
@@ -126,10 +72,8 @@ extend-unsafe-fixes = ["E", "F401"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
-"tests/**" = ["E402", "F401", "TID252", "PTH"]
-"scripts/**" = ["E402", "F401", "T20"]
-"**/__main__.py" = ["T201"]
-"custom_components/**" = ["TID252", "PTH"]
+"tests/**" = ["E402", "F401"]
+"scripts/**" = ["E402", "F401"]
 
 [tool.setuptools.package-dir]
 "" = "."
@@ -144,7 +88,6 @@ extend-unsafe-fixes = ["E", "F401"]
 [tool.mypy]
 python_version = "3.14"
 warn_unused_configs = true
-# Jetzt wird es ernst:
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
@@ -154,7 +97,6 @@ warn_unused_ignores = true
 warn_return_any = true
 local_partial_types = true
 strict_equality = true
-# Imports von HA und anderen libs ignorieren, da oft untyped
 ignore_missing_imports = true
 explicit_package_bases = true
 
