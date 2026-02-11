@@ -69,6 +69,8 @@ repos:
       - id: pyupgrade
         args:
           - --py39-plus
+          - --py311-plus
+          - --py313-plus
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
@@ -79,10 +81,13 @@ repos:
           - --force
           - --keep-updates
         files: ^(homeassistant|tests|scripts)/.+\.py$
-  - repo: https://github.com/crate-ci/typos
-    rev: v1.41.0
+  - repo: https://github.com/asottile/reorder-python-imports
+    rev: v3.16.0
     hooks:
-      - id: typos
+    -   id: reorder-python-imports
+        exclude: ^pre_commit/resources/
+        args: [--py310-plus, --add-import, 'from __future__ import annotations']
+        
   - repo: local
     hooks:
       - id: shared-session-guard
