@@ -1,4 +1,4 @@
-name: HA pip smoke test (py3.13)
+name: HA pip smoke test (py3.14)
 
 on:
   workflow_dispatch:
