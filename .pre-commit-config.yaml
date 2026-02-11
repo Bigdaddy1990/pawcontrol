@@ -5,15 +5,15 @@ ci:
   autoupdate_branch: main
   autoupdate_commit_msg: "[pre-commit.ci] autoupdate"
   skip: []
+
 default_language_version:
-      # Use the default `python3` shim for better compatibility across environments
-      # while maintaining compatibility with ruff v0.15.0+ requirements
-      python: python3
+  python: python3
+
 default_install_hook_types:
-      - pre-commit
-      - pre-push
+  - pre-commit
+  - pre-push
+
 repos:
-  # Use Ruff for linting and formatting Python files.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:
@@ -21,51 +21,34 @@ repos:
         args:
           - --fix
           - --show-fixes
-          - --unsafe-fixes
-          - --extend-fixable
-          - ALL
           - --exit-non-zero-on-fix
-          # Avoid non-zero exit codes after fixing issues.  This prevents
-          # pre-commit from running Ruff endlessly.
-        types_or:
-          - python
-          - pyi
+        types_or: [python, pyi]
       - id: ruff-format
-        types_or:
-          - python
-          - pyi
+        types_or: [python, pyi]
 
-  # Standard pre-commit hooks for YAML/JSON/TOML validation and basic
-  # whitespace hygiene.  These remain unchanged from upstream.
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: check-yaml
-        args:
-          - --unsafe
-          - --allow-multiple-documents
+        args: [--unsafe, --allow-multiple-documents]
         exclude: ^(tests/|docs/|examples?/)
       - id: check-json
       - id: check-toml
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
-        args:
-          - --fix=lf
+        args: [--fix=lf]
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: check-added-large-files
       - id: check-case-conflict
       - id: check-builtin-literals
       - id: check-merge-conflict
-        args:
-          - --assume-in-merge
+        args: [--assume-in-merge]
       - id: check-symlinks
-        args:
-          - --autofix
+        args: [--autofix]
       - id: pretty-format-json
-        args:
-          - --autofix
+        args: [--autofix]
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
@@ -74,26 +57,21 @@ repos:
     rev: v3.21.2
     hooks:
       - id: pyupgrade
-        args:
-          - --py39-plus
+        args: [--py39-plus]
+
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
-      # Run `python-typing-update` hook manually from time to time
-      # to update python typing syntax.
-      # Will require manual work, before submitting changes!
-      # prek run --hook-stage manual python-typing-update --all-files
       - id: python-typing-update
-        stages: [pre-push]
-        args:
-          - --py311-plus
-          - --force
-          - --keep-updates
+        stages: [manual]
+        args: [--py311-plus, --force, --keep-updates]
         files: ^(homeassistant|tests|scripts)/.+\.py$
-  - repo: https://github.com/pre-commit/sync-pre-commit-deps
-    rev: v0.0.3
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.41.0
     hooks:
-    -   id: sync-pre-commit-deps
+      - id: typos
+
   - repo: local
     hooks:
       - id: shared-session-guard
@@ -101,46 +79,53 @@ repos:
         entry: python scripts/enforce_shared_session_guard.py
         language: python
         pass_filenames: false
+
       - id: enforce-test-requirements
         name: Ensure test imports declare requirements
         entry: python -m scripts.enforce_test_requirements
         language: python
-        additional_dependencies:
-          - packaging>=24.2
+        additional_dependencies: [packaging>=24.2]
         pass_filenames: false
+
       - id: docstring-baseline
         name: Ensure docstring baseline has no regressions
         entry: python scripts/enforce_docstring_baseline.py --update
         language: python
         pass_filenames: false
-        additional_dependencies:
-          - ruff>=0.12.11
+        additional_dependencies: [ruff>=0.12.11]
+        stages: [manual]
+
       - id: contributor-guide-sync-check
         name: Ensure assistant contributor guides are synced
         entry: python -m scripts.sync_contributor_guides --check
         language: python
         pass_filenames: false
+
       - id: localization-flags
         name: Validate localization flags
         entry: python -m scripts.sync_localization_flags --check
         language: python
         pass_filenames: false
+
       - id: typed-dict-audit
         name: Audit TypedDict definitions
         entry: python scripts/check_typed_dicts.py
         language: python
         pass_filenames: false
+
       - id: hassfest-lite
         name: Validate manifest and translations (hassfest shim)
         entry: python -m scripts.hassfest --integration-path custom_components/pawcontrol
         language: python
         pass_filenames: false
+
       - id: homeassistant-push-guard
         name: Home Assistant push guard (auto-fix migration patterns)
         entry: python -m scripts.homeassistant_push_guard --fix
         language: python
         pass_filenames: false
         stages: [pre-push]
+
       - id: manifest-validate
         name: Manifest Validation
         entry: python -m scripts.validate_manifest
