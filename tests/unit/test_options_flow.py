@@ -1484,6 +1484,33 @@ async def test_advanced_settings_normalises_existing_payloads(
 
 
 @pytest.mark.asyncio
+async def test_current_gps_options_normalises_legacy_snapshot(
+  hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+  """Legacy GPS options should be normalized through shared validators."""
+
+  legacy_options = dict(mock_config_entry.options)
+  legacy_options[CONF_GPS_UPDATE_INTERVAL] = "9999"
+  legacy_options[CONF_GPS_ACCURACY_FILTER] = "0"
+  legacy_options[CONF_GPS_DISTANCE_FILTER] = "bad-value"
+  mock_config_entry.options = legacy_options
+
+  flow = PawControlOptionsFlow()
+  flow.hass = hass
+  flow.initialize_from_config_entry(mock_config_entry)
+
+  gps_options = flow._current_gps_options("test_dog")
+
+  assert gps_options[CONF_GPS_UPDATE_INTERVAL] == 600
+  assert gps_options[CONF_GPS_ACCURACY_FILTER] == 5.0
+  assert gps_options[CONF_GPS_DISTANCE_FILTER] == 30.0
+  assert gps_options["gps_enabled"] is True
+  assert gps_options["route_recording"] is True
+  assert gps_options["route_history_days"] == 30
+  assert gps_options["auto_track_walks"] is True
+
+
+@pytest.mark.asyncio
 async def test_gps_settings_structured(
   hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:

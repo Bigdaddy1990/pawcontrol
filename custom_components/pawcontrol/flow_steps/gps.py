@@ -459,6 +459,11 @@ if TYPE_CHECKING:
       default: float | None,
     ) -> float | None: ...
 
+    def _normalise_gps_settings(
+      self,
+      raw: Mapping[str, JSONValue],
+    ) -> GPSOptions: ...
+
     def async_show_form(
       self,
       *,
@@ -544,16 +549,7 @@ class GPSOptionsMixin(GPSOptionsHost):
         with suppress(ValueError):
           current[GPS_DISTANCE_FILTER_FIELD] = float(distance)
 
-    if GPS_ENABLED_FIELD not in current:
-      current[GPS_ENABLED_FIELD] = True
-    if ROUTE_RECORDING_FIELD not in current:
-      current[ROUTE_RECORDING_FIELD] = True
-    if ROUTE_HISTORY_DAYS_FIELD not in current:
-      current[ROUTE_HISTORY_DAYS_FIELD] = 30
-    if AUTO_TRACK_WALKS_FIELD not in current:
-      current[AUTO_TRACK_WALKS_FIELD] = True
-
-    return current
+    return self._normalise_gps_settings(current)
 
   def _current_geofence_options(self, dog_id: str) -> GeofenceOptions:
     """Fetch the stored geofence configuration as a typed mapping."""
