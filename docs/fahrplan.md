@@ -1,20 +1,20 @@
 Aktueller Verbesserungsfahrplan für Paw Control
 
-Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan. Er bündelt kurzfristige Qualitätsarbeiten und mittelfristige Functions‑Updates. Die Reihenfolge der Punkte gibt die empfohlene Bearbeitungsreihenfolge an.
+Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan. Er bündelt kurzfristige Qualitätsarbeiten und mittelfristige Funktions‑Updates. Die Reihenfolge der Punkte gibt die empfohlene Bearbeitungsreihenfolge an.
 
 ## 0. Qualität, Typisierung & Architektur
 
-- **JSON‑Kompatibilität & Entitätsattribute**: Alle Entitätsklassen sollen ihre `extra_state_attributes` also `JSONMutableMapping` zurückgeben. Nicht serialisierbare Typen (z. B. `datetime`, `timedelta`, Dataclasses) werden mit der in `diagnostics.py` beschriebenen Normalisierungslogik in JSON‑kompatible Werte umgewandelt【938345194430286†L964-L983】.
+- **JSON‑Kompatibilität & Entitätsattribute**: Alle Entitätsklassen sollen ihre `extra_state_attributes` als `JSONMutableMapping` zurückgeben. Nicht serialisierbare Typen (z. B. `datetime`, `timedelta`, Dataclasses) werden mit der in `diagnostics.py` beschriebenen Normalisierungslogik in JSON‑kompatible Werte umgewandelt【938345194430286†L964-L983】.
 - **myPy‑Säuberung & Typisierung**: Bestehende mypy‑Fehler in den Config‑Flows, Options‑Flows und Platform‑Dateien beheben. Dazu gehören konsequente Verwendung von `TypedDict`, `Literal` und klaren Rückgabetypen.
 - **Flow‑Konsolidierung**: Die vorhandenen `config_flow_*`‑ und `options_flow_*`‑Module weiter vereinheitlichen, um doppelte Logik zu reduzieren und Tests übersichtlich zu halten.
 - **Zentralisierte Validierung & Fehlerbehandlung**: Gemeinsame Validierung in `validation.py`/`flow_validation.py` konsequent nutzen und Exceptions aus `exceptions.py` im Flow‑Pfad einheitlich einsetzen, damit Reauth‑ und Reparatur‑Flows korrekt ausgelöst werden.
 - **Dokumentationspflege**: Nach jeder Code‑Änderung `README`, `docs/` und `strings.json` aktualisieren, damit Übersetzungen und Hinweise zum Qualitätslevel synchron bleiben.
-- **Home‑Assistant‑Konformität**: Neue Features strikt entlang der HA‑Guidelines implementieren (Config Entry Pattern, Coordinator, async‑only I/O). Abweichungen also Tech‑Debt erfassen und zeitnah bereinigen.
+- **Home‑Assistant‑Konformität**: Neue Features strikt entlang der HA‑Guidelines implementieren (Config Entry Pattern, Coordinator, async‑only I/O). Abweichungen als Tech‑Debt erfassen und zeitnah bereinigen.
 - **Qualitätsnachweise bündeln**: Tests, Diagnostik und Dokumentation pro Feature gemeinsam aktualisieren, damit der Platinum‑Nachweis konsistent bleibt (Qualitätsskala, Diagnostics, Tests).
 
 ## 1. Basis‑Setup & GPS‑Kernfunktionen
 
-- Config‑Flows (`config_flow_*`) überprüfen und vereinfachen, sodass die im Info‑Document genannten Parameter (Hundename, GPS‑Quelle, Auto‑Tracking, Sicherheitsradius) vollständig unterstützt und validiert werden.
+- Config‑Flows (`config_flow_*`) überprüfen und vereinfachen, sodass die im Info‑Dokument genannten Parameter (Hundename, GPS‑Quelle, Auto‑Tracking, Sicherheitsradius) vollständig unterstützt und validiert werden.
 - Den automatischen Service `pawcontrol.setup_automatic_gps` absichern: Pflichtfelder prüfen, Fehlerfeedback verbessern und eine Erfolgsmeldung für das UI ergänzen.
 - Sicherstellen, dass das GPS‑Tracking nahtlos für Tractive, Companion‑App‑Tracker und DIY‑Integrationen funktioniert; ggf. Beispiel‑Blueprints ergänzen.
 - **Neue Aufgabe:** GPS‑Validierung in allen Flows ausschließlich über `validation.py`/`flow_validation.py` nutzen, damit min/max‑Werte und Fehlermeldungen konsistent bleiben.
@@ -23,21 +23,21 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
 
 - Binary‑Sensoren für `*_on_walk`, `*_in_safe_zone` und Gartenaufenthalte konsistent aktualisieren und mit Dauer‑/Historienwerten verknüpfen.
 - Automatische Spaziergang‑Erkennung gegenüber den dokumentierten Benachrichtigungen testen und Optimierungen (z. B. Verzögerungen, Mindestdauer) dokumentieren.
-- Sicherheitszonenlogik mit Warn‑Timeout (2 Minuten) also Standardautomation anbieten und auf Mehr‑Hund‑Szenarien prüfen.
+- Sicherheitszonenlogik mit Warn‑Timeout (2 Minuten) als Standardautomation anbieten und auf Mehr‑Hund‑Szenarien prüfen.
 - **Neue Aufgabe:** Walk‑ und Garden‑Sensoren sollen die vereinheitlichte Attributbasis aus Abschnitt 0 nutzen (JSON‑Mapping, Zeitstempel serialisieren)【947475147972407†L335-L343】【385432702482431†L799-L811】.
 - **Neue Aufgabe:** Statuswechsel über den Coordinator stabilisieren (keine direkten Client‑Zugriffe aus Entities).
 
 ## 3. Push‑Benachrichtigungen & Rückfragen
 
 - Dynamische Personenerkennung für `person.*`‑Entitäten gegen reale Home‑Assistant‑States testen und Fallback‑Kette (mobile_app) robust implementieren.
-- Interaktive Rückfragen vereinheitlichen: gleiche Texte, Emojis und Quittierungs‑Logik gemäß Info‑Document.
+- Interaktive Rückfragen vereinheitlichen: gleiche Texte, Emojis und Quittierungs‑Logik gemäß Info‑Dokument.
 - Push‑Test‑Service verbessern, damit Benutzer:innen Feedback zur Zustellung sehen (Erfolg/Fehler pro Gerät).
 - **Neue Aufgabe:** Fehlerbehandlung in der Benachrichtigungs‑Pipeline zentralisieren, um abgelehnte/fehlgeschlagene Nachrichten sichtbar zu machen.
 - **Neue Aufgabe:** Reparatur‑Flows (Repairs) für wiederkehrende Zustellfehler definieren und dokumentieren.
 
 ## 4. Fütterung & Gesundheitsüberwachung
 
-- Vier Mahlzeiten also optionale Module mit eigenen Countern, Rückfragen und Überfütterungswarnungen implementieren.
+- Vier Mahlzeiten als optionale Module mit eigenen Countern, Rückfragen und Überfütterungswarnungen implementieren.
 - Gesundheits‑/Kot‑Tracking erweitern: Notfallstatus, Tierarzt‑Erinnerungen und optionale Wetterabhängigkeiten vorbereiten.
 - Tagesübersichten validieren (Reset um 23:59 Uhr), inklusive konfigurierbarer Uhrzeit pro Hund.
 - **Neue Aufgabe:** Vorbereitung auf KI‑gestützte Gesundheitsanalyse (geplant für v1.1): Datenströme standardisieren und API‑Hook definieren, um Trends (Gewicht, Aktivität, Futtermenge) evaluieren zu können.
@@ -53,15 +53,15 @@ Dieser Fahrplan ergänzt und aktualisiert den ursprünglichen Verbesserungsplan.
   `notifications.rejection_metrics` und `guard_notification_error_metrics`
   definieren (inklusive Beispiel‑Ansichten für Fehlertrends und letzte Guard‑Ergebnisse).
 - **Neue Aufgabe:** UI‑Visualisierung mit Dokumentation im `docs/diagnostics.md`‑Abschnitt
-  verlinken, damit Nutzer:innen die Metriken ohne Code‑Such finden.
+  verlinken, damit Nutzer:innen die Metriken ohne Code‑Suche finden.
 - **Neue Aufgabe:** UI‑Texte mit HA‑String‑Guidelines abgleichen (Ton, Klarheit, konsistente Terminologie).
 
 ## 6. Automationen & Skripte
 
-- Auto‑generierte Skripte (Rückfrage, Reset, Push‑Test) gegen neue Entitäten aktualisieren und YAML‑Beispiele aus dem Info‑Document bereitstellen.
-- Standard‑Automationen für Spaziergang und Sicherheitszone also Blueprints/Rezepte veröffentlichen.
+- Auto‑generierte Skripte (Rückfrage, Reset, Push‑Test) gegen neue Entitäten aktualisieren und YAML‑Beispiele aus dem Info‑Dokument bereitstellen.
+- Standard‑Automationen für Spaziergang und Sicherheitszone als Blueprints/Rezepte veröffentlichen.
 - Service‑Schemas validieren und alle Services mit ausführlicher Fehlerbehandlung (`ServiceValidationError`) versehen.
-- **Neue Aufgabe:** Integrations‑Blueprints bereitstellen, die die neuen Validierungsfunktionen und Fehlerabfangmechanismen nutzen; Service‑Guard‑Telemetrie also Bedingung in Automationen verwenden.
+- **Neue Aufgabe:** Integrations‑Blueprints bereitstellen, die die neuen Validierungsfunktionen und Fehlerabfangmechanismen nutzen; Service‑Guard‑Telemetrie als Bedingung in Automationen verwenden.
 - **Neue Aufgabe:** Automations‑Beispiele so strukturieren, dass sie ohne YAML‑Nebenwirkungen reproduzierbar sind (HA‑Best‑Practice).
 
 ## 7. Erweiterbarkeit & Mehr‑Hund‑Unterstützung

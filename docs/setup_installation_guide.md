@@ -1,6 +1,6 @@
 # 🐕 Paw Control - Setup & Installation Guide für erweiterte Features
 
-Dieser umfassende Guide führt Sie durch die Installation und Configuration der erweiterten Paw Control Features, einschließlich GPS-Tracking, Garden Tracking, Automatisierungen und Dashboard-Configuration. Paw Control ist eine **Custom-Integration** und richtet sich am Platinum-Qualitätsstandard aus, erhält jedoch kein offizielles Platinum-Badge von Home Assistant.
+Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der erweiterten Paw Control Features, einschließlich GPS-Tracking, Garden Tracking, Automatisierungen und Dashboard-Konfiguration. Paw Control ist eine **Custom-Integration** und richtet sich am Platinum-Qualitätsstandard aus, erhält jedoch kein offizielles Platinum-Badge von Home Assistant.
 
 ## 📋 Inhaltsverzeichnis
 
@@ -62,13 +62,13 @@ Dieser umfassende Guide führt Sie durch die Installation und Configuration der 
 ## 🔍 Discovery & Voraussetzungen
 
 PawControl nutzt die in der Manifest-Datei hinterlegten Discovery-Mechanismen,
-um Geräte in Home Assistant vorzuschlagen. Sobald in Gerät erkannt wird,
-folgen Sie den UI-Schritten under [Grundkonfiguration](#grundkonfiguration) und
+um Geräte in Home Assistant vorzuschlagen. Sobald ein Gerät erkannt wird,
+folgen Sie den UI-Schritten unter [Grundkonfiguration](#grundkonfiguration) und
 starten Sie mit [Schritt 1: Integration hinzufügen](#schritt-1-integration-hinzufügen).
 
 ## 🤖 Automatische Erkennung
 
-Die automatische Erkennung started den Config-Flow, sobald Home Assistant in
+Die automatische Erkennung startet den Config-Flow, sobald Home Assistant ein
 passendes Gerät über **DHCP**, **USB**, **Zeroconf** oder **Bluetooth** findet.
 Damit Discovery zuverlässig auslöst, prüfen Sie die folgenden Voraussetzungen:
 
@@ -76,9 +76,9 @@ Damit Discovery zuverlässig auslöst, prüfen Sie die folgenden Voraussetzungen
   im selben Layer‑2‑Netz liegen. Multicast (mDNS/Bonjour) darf nicht durch VLANs
   oder Firewall-Regeln blockiert werden.
 - **USB-Passthrough (USB):** USB-Geräte müssen an den Host weitergereicht
-  werden (Docker/VM). Der Home Assistant Process benötigt Zugriff auf die
+  werden (Docker/VM). Der Home Assistant Prozess benötigt Zugriff auf die
   `/dev`-Geräte.
-- **Bluetooth (BLE):** In kompatibler Adapter und active Bluetooth-Unterstützung
+- **Bluetooth (BLE):** Ein kompatibler Adapter und aktive Bluetooth-Unterstützung
   auf dem Host sind erforderlich. Container benötigen die passenden Rechte.
 
 Sobald der Vorschlag erscheint, öffnen Sie **Einstellungen → Geräte & Dienste**
@@ -152,7 +152,7 @@ services:
     volumes:
       - ./pawcontrol:/config/custom_components/pawcontrol
       - ./config:/config
-    # ... weitere Configuration
+    # ... weitere Konfiguration
 ```
 
 ## ⚙️ Grundkonfiguration
@@ -170,10 +170,10 @@ services:
 
 ### Schritt 2: Ersten Hund konfigurieren
 
-Die Configuration erfolgt **ausschließlich in der UI** (Einstellungen →
+Die Konfiguration erfolgt **ausschließlich in der UI** (Einstellungen →
 Geräte & Dienste → Paw Control → Konfigurieren). Beispielwerte:
 
-| Field (UI) | Beispiel |
+| Feld (UI) | Beispiel |
 | --- | --- |
 | Hund-ID | `buddy` |
 | Name | `Buddy` |
@@ -186,9 +186,9 @@ Geräte & Dienste → Paw Control → Konfigurieren). Beispielwerte:
 ### Schritt 3: Grundlegende Einstellungen
 
 #### Geofencing konfigurieren
-Konfigurieren Sie die Felder im UI under **Paw Control → Konfigurieren**:
+Konfigurieren Sie die Felder im UI unter **Paw Control → Konfigurieren**:
 
-| Field (UI) | Beispiel |
+| Feld (UI) | Beispiel |
 | --- | --- |
 | Geofencing aktiviert | ✅ |
 | Geofence-Breite | `52.520008` |
@@ -198,7 +198,7 @@ Konfigurieren Sie die Felder im UI under **Paw Control → Konfigurieren**:
 | HA-Standort verwenden | ✅ |
 
 #### Benachrichtigungen einrichten
-| Field (UI) | Beispiel |
+| Feld (UI) | Beispiel |
 | --- | --- |
 | Benachrichtigungen aktiviert | ✅ |
 | Ruhezeiten aktiviert | ✅ |
@@ -208,8 +208,8 @@ Konfigurieren Sie die Felder im UI under **Paw Control → Konfigurieren**:
 | Prioritätsbenachrichtigungen | ✅ |
 | Kanäle | Mobile, Persistent |
 
-#### Garden Tracking Basis-Configuration
-| Field (UI) | Beispiel |
+#### Garden Tracking Basis-Konfiguration
+| Feld (UI) | Beispiel |
 | --- | --- |
 | Garden Tracking aktiviert | ✅ |
 | Automatische Erkennung | ✅ |
@@ -221,10 +221,10 @@ Konfigurieren Sie die Felder im UI under **Paw Control → Konfigurieren**:
 ## 🧭 UI-first Workflow (empfohlen)
 
 Nutzen Sie die aktuellen Home Assistant UI-Patterns für eine wartbare
-Configuration:
+Konfiguration:
 
 - **Automation Editor** statt YAML, dann auf YAML wechseln für `choose`,
-  Templates oder Variable.
+  Templates oder Variablen.
 - **Device Automations** über das Paw-Control-Gerät (Stabilität bei
   Entity-ID-Änderungen).
 - **Helper** (Input-Helper, Schedules) via *Einstellungen → Geräte & Dienste →
@@ -241,14 +241,14 @@ Automations, Device Automations und YAML-Style.
 
 #### 1. GPS-Einstellungen optimieren
 
-| Field (UI) | Beispiel |
+| Feld (UI) | Beispiel |
 | --- | --- |
 | GPS aktiviert | ✅ |
 | Mindestgenauigkeit (m) | `50` |
 | Mindestabstand (m) | `10` |
-| Update-Interval (Sek.) | `30` |
+| Update-Intervall (Sek.) | `30` |
 | Auto-Start Walk | ❌ |
-| Auto-End Walk | ✅ |
+| Auto-Ende Walk | ✅ |
 | Routenaufzeichnung | ✅ |
 | Verlauf (Tage) | `90` |
 
@@ -288,7 +288,7 @@ services:
       notes: "Schöner Spaziergang im Park"
       rating: 5
 
-  # Position manual setzen
+  # Position manuell setzen
   - service: pawcontrol.gps_post_location
     data:
       dog_id: "buddy"
@@ -441,14 +441,14 @@ automation:
 
 ## 🌱 Garden Tracking Setup
 
-Das Garden Tracking System überwacht automatisch Gartenbesuche, protokolliert Aktivitäten und bietet intelligence Poop-Erkennung mit Push-Rückfragen.
+Das Garden Tracking System überwacht automatisch Gartenbesuche, protokolliert Aktivitäten und bietet intelligente Poop-Erkennung mit Push-Rückfragen.
 
-### 1. Garden Tracking Configuration
+### 1. Garden Tracking Konfiguration
 
 #### Basis-Einrichtung
 
 ```yaml
-# Garden Tracking Configuration
+# Garden Tracking Konfiguration
 garden_tracking:
   enabled: true
   auto_poop_detection: true        # Automatische Poop-Rückfragen
@@ -571,7 +571,7 @@ sensor.buddy_favorite_garden_activities:  # Lieblings-Gartenaktivitäten
 #### Garden Binary Sensoren
 ```yaml
 # Garden Status Sensoren
-binary_sensor.buddy_garden_session_active:  # Active Gartensession
+binary_sensor.buddy_garden_session_active:  # Aktive Gartensession
 binary_sensor.buddy_in_garden:              # Derzeit im Garten
 binary_sensor.buddy_garden_poop_pending:    # Poop-Bestätigung ausstehend
 ```
@@ -597,7 +597,7 @@ automation:
       - platform: state
         entity_id: binary_sensor.garden_door
         to: "on"
-        for: "00:00:30"  # 30 Sekunden often
+        for: "00:00:30"  # 30 Sekunden offen
     condition:
       - condition: state
         entity_id: binary_sensor.buddy_garden_session_active
@@ -666,12 +666,12 @@ automation:
               - service: notify.mobile_app_phone
                 data:
                   title: "🏠 Garten-Erkennung"
-                  message: "Gartengang also 'Nicht im Garten' markiert."
+                  message: "Gartengang als 'Nicht im Garten' markiert."
                   data:
                     tag: "garden_detection"
 ```
 
-#### Intelligence Poop-Erkennung
+#### Intelligente Poop-Erkennung
 
 ```yaml
 automation:
@@ -844,7 +844,7 @@ cards:
               service: pawcontrol.end_garden_session
               service_data:
                 dog_id: "buddy"
-                notes: "Manual beendet"
+                notes: "Manuell beendet"
 
   # Garden Quick Actions
   - type: horizontal-stack
@@ -1035,7 +1035,7 @@ script:
 ### 3. Erweiterte Logik für Walk-Erkennung
 
 ```yaml
-# Template für intelligence Walk-Erkennung
+# Template für intelligente Walk-Erkennung
 template:
   - trigger:
       - platform: state
@@ -1089,12 +1089,12 @@ template:
 
 ## 📱 Mobile App Integration
 
-### 1. Mobile App Configuration
+### 1. Mobile App Konfiguration
 
 ```yaml
 # configuration.yaml
 mobile_app:
-  # Automatische Configuration über Home Assistant App
+  # Automatische Konfiguration über Home Assistant App
 
 # Actionable Notifications einrichten
 ios: # oder android:
@@ -1140,7 +1140,7 @@ ios: # oder android:
         identifier: feeding_reminder
         actions:
           - identifier: MARK_FED
-            title: "Also gefüttert markieren"
+            title: "Als gefüttert markieren"
             activationMode: background
             authenticationRequired: false
           - identifier: SNOOZE_15
@@ -1154,7 +1154,7 @@ ios: # oder android:
 ```yaml
 # Standort-Tracking für bessere Walk-Erkennung
 # In der Home Assistant Mobile App:
-# Einstellungen → App-Configuration → Location-Zones
+# Einstellungen → App-Konfiguration → Location-Zones
 
 # Zone für Hundepark
 zone:
@@ -1178,7 +1178,7 @@ zone:
     icon: mdi:flower
 ```
 
-### 3. Widget-Configuration
+### 3. Widget-Konfiguration
 
 ```yaml
 # iOS Widget Entities
@@ -1198,7 +1198,7 @@ widget_entities:
 
 ## 🔧 Troubleshooting
 
-### Häufige Problem und Lösungen
+### Häufige Probleme und Lösungen
 
 #### Problem: GPS-Tracking funktioniert nicht
 
@@ -1242,7 +1242,7 @@ data:
 
 **Lösung:**
 ```yaml
-# 1. Mobile App Configuration prüfen
+# 1. Mobile App Konfiguration prüfen
 # 2. Notification Service testen
 service: notify.mobile_app_phone
 data:
@@ -1303,7 +1303,7 @@ data:
     - "summary"
 ```
 
-### Performance-Problem beheben
+### Performance-Probleme beheben
 
 ```yaml
 # Performance-Monitoring aktivieren
@@ -1467,12 +1467,12 @@ data:
 service: pawcontrol.backup_configuration
 ```
 
-### Update-Process
+### Update-Prozess
 
-1. **Backup erstellen**: Immer for Updates
+1. **Backup erstellen**: Immer vor Updates
 2. **HACS Updates prüfen**: Regelmäßig auf Updates prüfen
 3. **Changelogs lesen**: Wichtige Änderungen beachten
-4. **Configuration testen**: Nach Updates testen
+4. **Konfiguration testen**: Nach Updates testen
 5. **Performance prüfen**: Monitoring nach Updates
 6. **Garden Features testen**: Garden Tracking nach Updates validieren
 
@@ -1503,11 +1503,11 @@ automation:
 
 ## 🧹 Deinstallation & Aufräumen
 
-Sollten Sie Paw Control entfernen wollen – beispielsweise bei einem Gerätewechsel oder nach Tests – gehen Sie in dieser Reihenfolge for, um Rückstände zu vermeiden:
+Sollten Sie Paw Control entfernen wollen – beispielsweise bei einem Gerätewechsel oder nach Tests – gehen Sie in dieser Reihenfolge vor, um Rückstände zu vermeiden:
 
 1. **Integration aus Home Assistant entfernen**
    - Öffnen Sie *Einstellungen → Geräte & Dienste*.
-   - Wählen Sie **Paw Control** und klicken Sie auf **Configuration entfernen**.
+   - Wählen Sie **Paw Control** und klicken Sie auf **Konfiguration entfernen**.
    - Bestätigen Sie den Dialog. Home Assistant entfernt daraufhin alle Plattformen und beendet Hintergrundaufgaben.
 2. **Automationen, Szenen und Skripte prüfen**
    - Löschen oder deaktivieren Sie Automationen/Skripte, die auf `pawcontrol.*`-Dienste zugreifen.
@@ -1520,15 +1520,15 @@ Sollten Sie Paw Control entfernen wollen – beispielsweise bei einem Gerätewec
    - Entfernen Sie exportierte Dashboards oder Skripte im `config/www`-Verzeichnis, falls vorhanden.
    - Löschen Sie gesicherte Diagnosepakete (`/config/.storage/pawcontrol_*`) nach der Archivierung.
 5. **Home Assistant neu starten (empfohlen)**
-   - In Neustart stellt sicher, dass zwischengespeicherte Daten, Service-Registrierungen und Scheduler sauber entfernt werden.
+   - Ein Neustart stellt sicher, dass zwischengespeicherte Daten, Service-Registrierungen und Scheduler sauber entfernt werden.
 
-> 💡 **Tipp:** Wenn Sie Paw Control später erneut installieren, beginnen Sie mit einer frischen Configuration. Importieren Sie keine veralteten YAML-Sicherungen ohne vorherige Prüfung.
+> 💡 **Tipp:** Wenn Sie Paw Control später erneut installieren, beginnen Sie mit einer frischen Konfiguration. Importieren Sie keine veralteten YAML-Sicherungen ohne vorherige Prüfung.
 
 ---
 
 ## 📞 Support und Community
 
-- **GitHub Issues**: [Problem melden](https://github.com/BigDaddy1990/pawcontrol/issues)
+- **GitHub Issues**: [Probleme melden](https://github.com/BigDaddy1990/pawcontrol/issues)
 - **Home Assistant Community**: [Forum-Thread](https://community.home-assistant.io/)
 - **Discord**: Paw Control Channel
 - **Dokumentation**: [Wiki](https://github.com/BigDaddy1990/pawcontrol/wiki)
@@ -1548,7 +1548,7 @@ Sollten Sie Paw Control entfernen wollen – beispielsweise bei einem Gerätewec
 Mit dem Garden Tracking System haben Sie jetzt:
 
 ✅ **Automatische Garden-Erkennung** über Türsensoren
-✅ **Intelligence Poop-Rückfragen** nach 3 Minuten
+✅ **Intelligente Poop-Rückfragen** nach 3 Minuten
 ✅ **Aktivitäts-Protokollierung** (Spielen, Schnüffeln, Graben, Ruhen)
 ✅ **Wetter-Integration** für optimale Garten-Sessions
 ✅ **Vollautomatisierte Benachrichtigungen** mit Actionable Buttons

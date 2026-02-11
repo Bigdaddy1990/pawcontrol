@@ -14,13 +14,13 @@ from .notifications import NotificationOptionsMixin, NotificationOptionsNormaliz
 from .system_settings import SystemSettingsOptionsMixin
 
 __all__ = [
-    "DogGPSFlowMixin",
-    "GPSModuleDefaultsMixin",
-    "GPSOptionsMixin",
-    "DogHealthFlowMixin",
-    "HealthSummaryMixin",
-    "HealthOptionsMixin",
-    "NotificationOptionsMixin",
-    "NotificationOptionsNormalizerMixin",
-    "SystemSettingsOptionsMixin",
+  "DogGPSFlowMixin",
+  "GPSModuleDefaultsMixin",
+  "GPSOptionsMixin",
+  "DogHealthFlowMixin",
+  "HealthSummaryMixin",
+  "HealthOptionsMixin",
+  "NotificationOptionsMixin",
+  "NotificationOptionsNormalizerMixin",
+  "SystemSettingsOptionsMixin",
 ]

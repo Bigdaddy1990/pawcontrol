@@ -89,7 +89,7 @@ PawControl stabil und guideline-konform zu halten.
 1. **Release-Notes & Developer-Blog prüfen**
    - Lies die offiziellen Release-Notes und Developer-Blog-Posts, um neue
      Funktionen, Integrationsänderungen und deprecations früh zu erkennen.
-   - Relevant Quellen:
+   - Relevante Quellen:
      - https://developers.home-assistant.io/blog
      - https://developers.home-assistant.io/
 2. **Breaking Changes & Deprecations bewerten**
@@ -101,7 +101,7 @@ PawControl stabil und guideline-konform zu halten.
      - https://developers.home-assistant.io/docs/development_checklist
 3. **Mindest-HA-Version & Metadaten aktualisieren**
    - Aktualisiere die minimale Home-Assistant-Version in Manifest/Metadata.
-   - Passe `hacs.json`, den README-Badge und relevant Doku (z. B.
+   - Passe `hacs.json`, den README-Badge und relevante Doku (z. B.
      `docs/setup_installation_guide.md`) an.
    - Stelle sicher, dass `custom_components/pawcontrol/manifest.json` und
      `hacs.json` dieselbe Mindestversion ausweisen.

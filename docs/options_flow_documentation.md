@@ -17,7 +17,7 @@ Der erweiterte Options Flow für die Paw Control Integration bietet eine umfasse
 ### Design-Prinzipien
 
 1. **Benutzerfreundlichkeit**: Intuitive Navigation mit klaren Kategorien
-2. **Flexibilität**: Modulare Configuration ermöglicht selektive Aktivierung von Features
+2. **Flexibilität**: Modulare Konfiguration ermöglicht selektive Aktivierung von Features
 3. **Wartbarkeit**: Saubere Code-Struktur mit guter Dokumentation
 4. **Erweiterbarkeit**: Einfache Erweiterung um neue Konfigurationsoptionen
 
@@ -25,11 +25,11 @@ Der erweiterte Options Flow für die Paw Control Integration bietet eine umfasse
 
 ### 1. GPS-Tracking (`gps_settings`)
 
-Configuration der GPS-Tracking-Parameter pro Hund:
+Konfiguration der GPS-Tracking-Parameter pro Hund:
 
 **Validierte Felder:**
 - `gps_enabled`: GPS-Tracking aktiv (Boolean)
-- `gps_update_interval`: Update-Interval in Sekunden (Integer, 5-600)
+- `gps_update_interval`: Update-Intervall in Sekunden (Integer, 5-600)
 - `gps_accuracy_filter`: Mindestgenauigkeit in Metern (Float, 5-500)
 - `gps_distance_filter`: Mindestdistanz für neue Punkte in Metern (Float, 1-2000)
 - `route_recording`: Routenaufzeichnung aktiv (Boolean)
@@ -38,7 +38,7 @@ Configuration der GPS-Tracking-Parameter pro Hund:
 
 **Verwendung:**
 ```python
-# Beispiel GPS-Tracking-Configuration
+# Beispiel GPS-Tracking-Konfiguration
 gps_config = {
     "gps_enabled": True,
     "gps_update_interval": 60,
@@ -52,7 +52,7 @@ gps_config = {
 
 ### 2. Geofence-Einstellungen (`geofence`)
 
-Configuration der Heimposition und Geofencing-Optionen:
+Konfiguration der Heimposition und Geofencing-Optionen:
 
 **Verfügbare Optionen:**
 - `geofencing_enabled`: Aktivierung des Geofencing (Boolean)
@@ -64,7 +64,7 @@ Configuration der Heimposition und Geofencing-Optionen:
 
 **Verwendung:**
 ```python
-# Beispiel Geofence-Configuration
+# Beispiel Geofence-Konfiguration
 geofence_config = {
     \"geofencing_enabled\": True,
     \"geofence_lat\": 52.5200,
@@ -77,7 +77,7 @@ geofence_config = {
 
 ### 3. Benachrichtigungseinstellungen (`notifications`)
 
-Configuration von Benachrichtigungen und Ruhezeiten:
+Konfiguration von Benachrichtigungen und Ruhezeiten:
 
 **Verfügbare Optionen:**
 - `notifications_enabled`: Aktivierung von Benachrichtigungen (Boolean)
@@ -88,7 +88,7 @@ Configuration von Benachrichtigungen und Ruhezeiten:
 
 **Verwendung:**
 ```python
-# Beispiel Benachrichtigungs-Configuration
+# Beispiel Benachrichtigungs-Konfiguration
 notifications_config = {
     \"notifications_enabled\": True,
     \"quiet_hours_enabled\": True,
@@ -113,7 +113,7 @@ Aktivierung/Deaktivierung spezifischer Funktionen:
 
 **Verwendung:**
 ```python
-# Beispiel Module-Configuration
+# Beispiel Modul-Konfiguration
 modules_config = {
     \"module_feeding\": True,
     \"module_gps\": True,
@@ -137,7 +137,7 @@ Allgemeine Systemkonfiguration:
 
 **Verwendung:**
 ```python
-# Beispiel System-Configuration
+# Beispiel System-Konfiguration
 system_config = {
     \"reset_time\": \"23:59:00\",
     \"visitor_mode\": False,
@@ -172,14 +172,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return self._entry.data
 ```
 
-### Flow-Methods
+### Flow-Methoden
 
-Jeder Konfigurationsbereich hat eine dedizierte `async_step_*` Method:
+Jeder Konfigurationsbereich hat eine dedizierte `async_step_*` Methode:
 
 - `async_step_init()`: Hauptmenü
-- `async_step_geofence()`: Geofence-Configuration
+- `async_step_geofence()`: Geofence-Konfiguration
 - `async_step_notifications()`: Benachrichtigungskonfiguration
-- `async_step_modules()`: Module-Configuration
+- `async_step_modules()`: Modul-Konfiguration
 - `async_step_system()`: Systemkonfiguration
 
 ### Validierung
@@ -209,7 +209,7 @@ schema = vol.Schema({
 
 ### Benutzererfahrung
 
-- **Standardwerte**: Aktuelle Configuration wird also Standard angezeigt
+- **Standardwerte**: Aktuelle Konfiguration wird als Standard angezeigt
 - **Kontextuelle Hilfe**: Beschreibungen und Platzhalter-Texte
 - **Validierung**: Sofortige Rückmeldung bei ungültigen Eingaben
 - **Erhaltung bestehender Einstellungen**: Nicht geänderte Optionen bleiben erhalten
@@ -249,7 +249,7 @@ schema = vol.Schema({
 Der Options Flow wird durch umfassende Tests abgedeckt:
 
 ```python
-async def test_options_flow_geofence_configuration(hash, mock_config_entry):
+async def test_options_flow_geofence_configuration(hass, mock_config_entry):
     \"\"\"Test geofence configuration through options flow.\"\"\"
     # Test implementation
 ```
@@ -286,7 +286,7 @@ async def async_step_init(self, user_input: dict[str, Any] | None = None) -> Flo
 
 ### Migration bestehender Konfigurationen
 
-Bestehende Konfigurationen werden automatisch erkannt und also Standardwerte verwendet.
+Bestehende Konfigurationen werden automatisch erkannt und als Standardwerte verwendet.
 
 ## Erweiterbarkeitleitfaden
 
@@ -300,7 +300,7 @@ MENU_OPTIONS: Final[dict[str, str]] = {
 }
 ```
 
-2. **Neue Step-Method implementieren:**
+2. **Neue Step-Methode implementieren:**
 ```python
 async def async_step_new_option(
     self, user_input: dict[str, Any] | None = None
@@ -331,7 +331,7 @@ schema = vol.Schema({
 
 5. **Tests schreiben:**
 ```python
-async def test_options_flow_new_option(hash, mock_config_entry):
+async def test_options_flow_new_option(hass, mock_config_entry):
     \"\"\"Test new option configuration.\"\"\"
     # Test implementation
 ```
@@ -340,7 +340,7 @@ async def test_options_flow_new_option(hash, mock_config_entry):
 
 ### Code-Qualität
 
-1. **Typisierung**: Alle Funktionen und Variable sind vollständig typisiert
+1. **Typisierung**: Alle Funktionen und Variablen sind vollständig typisiert
 2. **Dokumentation**: Comprehensive docstrings und Inline-Kommentare
 3. **Fehlerbehandlung**: Robuste Behandlung von Edge Cases
 4. **Validierung**: Strenge Eingabevalidierung mit aussagekräftigen Fehlermeldungen
@@ -361,6 +361,6 @@ async def test_options_flow_new_option(hash, mock_config_entry):
 
 ## Fazit
 
-Der erweiterte Options Flow für Paw Control bietet eine umfassende, benutzerfreundliche und erweiterbare Konfigurationslösung, die den höchsten Home Assistant Standards entspricht. Durch die menü-basierte Navigation, vollständige Typisierung und umfassende Testabdeckung bietet er eine solide Grundlage für die Configuration aller Aspekte der Integration.
+Der erweiterte Options Flow für Paw Control bietet eine umfassende, benutzerfreundliche und erweiterbare Konfigurationslösung, die den höchsten Home Assistant Standards entspricht. Durch die menü-basierte Navigation, vollständige Typisierung und umfassende Testabdeckung bietet er eine solide Grundlage für die Konfiguration aller Aspekte der Integration.
 
 Die modulare Architektur und klare Dokumentation ermöglichen es Entwicklern, einfach neue Features hinzuzufügen, während die Rückwärtskompatibilität sicherstellt, dass bestehende Installationen nahtlos funktionieren.

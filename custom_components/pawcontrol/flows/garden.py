@@ -8,19 +8,19 @@ from ..selector_shim import selector
 
 
 class GardenModuleSelectorMixin:
-    """Provide helpers for garden module selection fields."""
+  """Provide helpers for garden module selection fields."""
 
-    @staticmethod
-    def _build_garden_module_selector(
-        *,
-        field: str,
-        default: bool,
-    ) -> dict[vol.Marker, selector.Selector]:
-        """Return a selector mapping for a garden module toggle."""
+  @staticmethod
+  def _build_garden_module_selector(
+    *,
+    field: str,
+    default: bool,
+  ) -> dict[vol.Marker, selector.Selector]:
+    """Return a selector mapping for a garden module toggle."""
 
-        return {
-            vol.Optional(
-                field,
-                default=default,
-            ): selector.BooleanSelector(),
-        }
+    return {
+      vol.Optional(
+        field,
+        default=default,
+      ): selector.BooleanSelector(),
+    }
