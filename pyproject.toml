@@ -226,7 +226,6 @@ required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
 voluptuous = "vol"
-homeassistant.core.DOMAIN = "HOMEASSISTANT_DOMAIN"
 homeassistant.helpers.area_registry = "ar"
 homeassistant.helpers.category_registry = "cr"
 homeassistant.helpers.config_validation = "cv"
