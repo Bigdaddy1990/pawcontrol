@@ -39,12 +39,12 @@ jobs:
             uv pip install --system -r requirements_test.txt
             uv cache prune --ci
 
-      - name: pre-commit (check-only)
+      - name: Run pre-commit with fixes
         run: |
-           uv pip install --system pre-commit
-           pre-commit run --all-files --show-diff-on-failure --fix-all
+         uv pip install --system pre-commit
+         pre-commit run --all-files || true
 
-      - uses: pre-commit-ci/lite@v1.1.0
+      - uses: autofix-ci/action@7a166d7532b277f34e16238930461bf77f9d7ed8
         if: always()
 
       - name: Run prek once (apply fixes)
