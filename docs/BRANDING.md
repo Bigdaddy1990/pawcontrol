@@ -3,7 +3,7 @@
 Home Assistant lädt Integrations-Logos/Icons aus dem zentralen **home-assistant/brands** Repository.
 Für offizielles Branding bitte dort einen PR einreichen:
 
-- Order: `custom_integrations/pawcontrol/`
+- Ordner: `custom_integrations/pawcontrol/`
 - Dateien: `icon.svg` (256x256), `logo.svg` (512x512)
 - Transparenter Hintergrund, korrekte Benennung
 

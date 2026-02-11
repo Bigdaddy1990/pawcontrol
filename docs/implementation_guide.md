@@ -5,7 +5,7 @@
 Der Options Flow wurde umfassend erweitert und bietet jetzt folgende neue Funktionen:
 
 ### 🐕 **Hundeverwaltung**
-- **Individuelle Hunde-Configuration**: Jeder Hund kann individual konfiguriert werden
+- **Individuelle Hunde-Konfiguration**: Jeder Hund kann individual konfiguriert werden
 - **Hunde hinzufügen/bearbeiten/entfernen**: Vollständige CRUD-Operationen
 - **Modulspezifische Aktivierung**: Module können pro Hund aktiviert/deaktiviert werden
 - **Detaillierte Hundeinformationen**: Rasse, Alter, Gewicht, Größe pro Hund
@@ -22,15 +22,15 @@ Der Options Flow wurde umfassend erweitert und bietet jetzt folgende neue Funkti
 - **Erweiterte Warnungen**: Konfigurierbare Geofence-Alerts
 
 ### 🔔 **Benachrichtigungen**
-- **Mehrere Kanäle**: Mobile, E-Mail, Slack, Discord, persistence Benachrichtigungen
-- **Prioritäts-System**: Wichtige vs. normal Benachrichtigungen
+- **Mehrere Kanäle**: Mobile, E-Mail, Slack, Discord, persistente Benachrichtigungen
+- **Prioritäts-System**: Wichtige vs. normale Benachrichtigungen
 - **Tägliche Zusammenfassungen**: Automatische Tagesberichte
-- **Erweiterte Ruhezeiten**: Detaillierte Configuration der Ruhezeiten
+- **Erweiterte Ruhezeiten**: Detaillierte Konfiguration der Ruhezeiten
 
 ### 🔗 **Datenquellen**
 - **Entity-Management**: Auswahl von Person-, Device-Tracker-, Sensor-Entitäten
 - **Auto-Discovery**: Automatische Erkennung verfügbarer Entitäten
-- **Fallback-Tracking**: Backup-Tracking-Methods
+- **Fallback-Tracking**: Backup-Tracking-Methoden
 - **Integration Management**: Verwaltung aller Datenquellen-Verbindungen
 
 ### ⚙️ **System & Wartung**
@@ -96,7 +96,7 @@ DOG_CONFIG_SCHEMA = vol.Schema({
 4. **Speichern**: Korrekte Persistierung der Optionen
 
 #### **Erweiterte Tests**
-1. **GPS-Configuration**: Alle GPS-Parameter sollten funktionieren
+1. **GPS-Konfiguration**: Alle GPS-Parameter sollten funktionieren
 2. **Geofence-Setup**: Mehrere Zonen und Modi testen
 3. **Benachrichtigungen**: Verschiedene Kanäle und Timing
 4. **Backup/Restore**: Funktionalität der Wartungsoptionen
@@ -152,7 +152,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 - Device-Tracker für GPS-Tracking
 - Türsensoren für Walk-Detection
 - Wetter-Entitäten für Kontext
-- Kalender für Determine
+- Kalender für Termine
 ```
 
 ## Qualitätskontrolle
@@ -179,7 +179,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 
 ## Troubleshooting
 
-### **Häufige Problem**
+### **Häufige Probleme**
 
 1. **Import-Fehler**
    ```python

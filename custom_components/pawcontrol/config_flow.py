@@ -11,6 +11,6 @@ from typing import Final, Literal
 from .config_flow_main import ConfigFlow, PawControlConfigFlow
 
 __all__: Final[tuple[Literal["ConfigFlow"], Literal["PawControlConfigFlow"]]] = (
-    "ConfigFlow",
-    "PawControlConfigFlow",
+  "ConfigFlow",
+  "PawControlConfigFlow",
 )

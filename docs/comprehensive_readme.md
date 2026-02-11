@@ -7,17 +7,17 @@
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 
-**Paw Control** ist eine umfassende Home Assistant Integration für intelligentes Hundemanagement. Mit erweiterten GPS-Tracking, automatisierten Erinnerungen und umfassenden Gesundheitsüberwachung bringt sie das Smart Home auf die nächste Ebene der Haustierpflege. Also Custom Integration orientiert sich Paw Control an den Platinum-Regeln der Home Assistant Quality Scale, ohne einen offiziellen Core-Status zu beanspruchen.
+**Paw Control** ist eine umfassende Home Assistant Integration für intelligentes Hundemanagement. Mit erweiterten GPS-Tracking, automatisierten Erinnerungen und umfassenden Gesundheitsüberwachung bringt sie das Smart Home auf die nächste Ebene der Haustierpflege. Als Custom Integration orientiert sich Paw Control an den Platinum-Regeln der Home Assistant Quality Scale, ohne einen offiziellen Core-Status zu beanspruchen.
 
 ## ✨ Hauptfeatures
 
 ### 🗺️ **GPS-Tracking & Geofencing**
 - **Live GPS-Tracking** mit Routenaufzeichnung
-- **Intelligence Walk-Erkennung** über Türsensoren und Standort
+- **Intelligente Walk-Erkennung** über Türsensoren und Standort
 - **Geofencing** mit anpassbaren Sicherheitszonen
 - **Automatische Walk-Starts** bei Verlassen des Hauses
 - **Detaillierte Statistiken** zu Distanz, Dauer und Geschwindigkeit
-- **Routen-Export** also GPX/GeoJSON für externe Analyse
+- **Routen-Export** als GPX/GeoJSON für externe Analyse
 
 ### 🍽️ **Fütterungsmanagement**
 - **Automatische Fütterungserinnerungen** basierend auf Zeitplänen
@@ -30,7 +30,7 @@
 - **Automatische Gartenerkennung** über Türsensoren
 - **Gartengang-Sessions** mit Start/End-Tracking
 - **Aktivitätsprotokollierung** (Spielen, Schnüffeln, Graben, Ruhen)
-- **Intelligence Poop-Erkennung** mit Push-Rückfragen
+- **Intelligente Poop-Erkennung** mit Push-Rückfragen
 - **Wetter-Integration** für Gartensessions
 - **Aufenthaltsdauer-Statistiken** und Verlauf
 - **Automatische Benachrichtigungen** bei Gartenaktivitäten
@@ -53,7 +53,7 @@
 ### 🏠 **Smart Home Integration**
 - **Türsensor-Integration** für automatische Walk-Erkennung
 - **Wetter-basierte** Walk-Empfehlungen
-- **Kalender-Integration** für Determine und Events
+- **Kalender-Integration** für Termine und Events
 - **Alarm-System Integration** (Auto-Scharf bei Walk-Start)
 - **Licht-Signale** für Warnungen und Status
 
@@ -74,10 +74,10 @@
 4. **Download** und **Home Assistant neu starten**
 5. **Integration hinzufügen**: Einstellungen → Geräte & Dienste → Integration hinzufügen → "Paw Control"
 
-### Erste Configuration
+### Erste Konfiguration
 
 ```yaml
-# Beispiel-Configuration für ersten Hund
+# Beispiel-Konfiguration für ersten Hund
 initial_setup:
   dog_name: "Buddy"
   dog_breed: "Golden Retriever"
@@ -101,7 +101,7 @@ initial_setup:
 | **Number** | 4+ | Gewicht, Einstellungen |
 | **Select** | 3+ | Walk-Modi, Mahlzeit-Typen |
 | **Text** | 2+ | Notizen, Custom-Labels |
-| **DateTime** | 4+ | Letzte Fütterung, Medikation, Determine |
+| **DateTime** | 4+ | Letzte Fütterung, Medikation, Termine |
 
 ### Hauptentitäten (pro Hund)
 
@@ -172,7 +172,7 @@ button.buddy_log_garden_activity        # Gartenaktivität protokollieren
 button.buddy_confirm_garden_poop        # Garten-Poop bestätigen
 
 # Fütterung & Pflege
-button.buddy_mark_fed                   # Also gefüttert markieren
+button.buddy_mark_fed                   # Als gefüttert markieren
 button.buddy_start_grooming             # Pflege starten
 button.buddy_log_medication             # Medikation protokollieren
 
@@ -200,7 +200,7 @@ device_tracker.buddy_gps                # GPS-Position des Hundes
 ```yaml
 # Walk-Management
 pawcontrol.gps_start_walk:
-  description: "Started GPS-Tracking für einen Walk"
+  description: "Startet GPS-Tracking für einen Walk"
   fields:
     dog_id: "Hund-ID"
     label: "Optional: Walk-Bezeichnung"
@@ -222,11 +222,11 @@ pawcontrol.gps_post_location:
 
 # Route-Management
 pawcontrol.gps_export_last_route:
-  description: "Exportiert letzte Route also GPX/GeoJSON"
+  description: "Exportiert letzte Route als GPX/GeoJSON"
   fields:
     dog_id: "Hund-ID"
     format: "gpx oder geojson"
-    to_media: "In Media-Order speichern"
+    to_media: "In Media-Ordner speichern"
 ```
 
 ### Fütterungs-Services
@@ -266,15 +266,15 @@ pawcontrol.start_grooming:
 ### Garden Tracking Services
 ```yaml
 pawcontrol.start_garden_session:
-  description: "Started eine Gartensession für den Hund"
+  description: "Startet eine Gartensession für den Hund"
   fields:
     dog_id: "Hund-ID"
     detection_method: "manual, door_sensor, auto"
     weather_conditions: "Optional: Wetterbedingungen"
-    temperature: "Optional: Temperature in °C"
+    temperature: "Optional: Temperatur in °C"
 
 pawcontrol.end_garden_session:
-  description: "Beendet die active Gartensession"
+  description: "Beendet die aktive Gartensession"
   fields:
     dog_id: "Hund-ID"
     notes: "Optional: Notizen zur Session"
@@ -336,7 +336,7 @@ pawcontrol.generate_report:
 ### GPS-Tracking Optimierung
 
 ```yaml
-# Hochpräzise GPS-Configuration
+# Hochpräzise GPS-Konfiguration
 high_precision_gps:
   gps_accuracy_filter: 10      # Nur sehr genaue Punkte
   gps_distance_filter: 5       # Engmaschiges Tracking
@@ -344,7 +344,7 @@ high_precision_gps:
   route_recording: true        # Vollständige Routen
   route_history_days: 365      # 1 Jahr Historien
 
-# Batterie-schonende Configuration
+# Batterie-schonende Konfiguration
 battery_saving_gps:
   gps_accuracy_filter: 100     # Weniger streng
   gps_distance_filter: 20      # Größere Abstände
@@ -390,7 +390,7 @@ multi_dog_config:
         grooming: true
 ```
 
-### Benachrichtungs-Configuration
+### Benachrichtungs-Konfiguration
 
 ```yaml
 # Erweiterte Benachrichtigungen
@@ -429,7 +429,7 @@ notifications:
 
 ## 🎯 Beispiel-Automatisierungen
 
-### Intelligence Garden-Erkennung
+### Intelligente Garden-Erkennung
 
 ```yaml
 automation:
@@ -471,7 +471,7 @@ automation:
           temperature: "{{ states('sensor.outdoor_temperature') | float }}"
 ```
 
-### Intelligence Walk-Erkennung
+### Intelligente Walk-Erkennung
 
 ```yaml
 automation:
@@ -771,7 +771,7 @@ cards:
 ### Mobile Widget
 
 ```yaml
-# iOS/Android Widget Configuration
+# iOS/Android Widget Konfiguration
 widget_entities:
   primary:
     - sensor.buddy_name
@@ -888,7 +888,7 @@ mypy custom_components/pawcontrol/
 
 ## 🐛 Troubleshooting
 
-### Häufige Problem
+### Häufige Probleme
 
 **GPS-Tracking funktioniert nicht:**
 ```bash
@@ -897,7 +897,7 @@ logger:
   logs:
     custom_components.pawcontrol: debug
 
-# Report für das GPS-Module erzeugen
+# Report für das GPS-Modul erzeugen
 service: pawcontrol.generate_report
 data:
   dog_id: "buddy"
@@ -909,7 +909,7 @@ data:
 
 **Benachrichtigungen kommen nicht an:**
 ```yaml
-# Mobile App Configuration prüfen
+# Mobile App Konfiguration prüfen
 service: notify.mobile_app_phone
 data:
   title: "Test"
@@ -960,7 +960,7 @@ data:
 
 ## 📄 Lizenz
 
-Dieses Projekt steht under der MIT Lizenz - siehe [LICENSE](LICENSE) für Details.
+Dieses Projekt steht unter der MIT Lizenz - siehe [LICENSE](LICENSE) für Details.
 
 ## 🏆 Auszeichnungen
 

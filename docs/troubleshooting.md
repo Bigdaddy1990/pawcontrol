@@ -22,11 +22,11 @@ This guide lists common issues, symptoms, and fixes.
   API‑Requests.【F:custom_components/pawcontrol/device_api.py†L120-L191】
 
 **Welche Schritte im UI folgen (Flow‑Namen)**
-1. Home Assistant started den Reauth‑Flow **`reauth`**.
+1. Home Assistant startet den Reauth‑Flow **`reauth`**.
 2. Du siehst eine Bestätigungsmaske aus **`reauth_confirm`**; dort bestätigst
-   du die erneute Anmeldung und die Configuration wird aktualisiert.【F:custom_components/pawcontrol/config_flow_reauth.py†L152-L394】
+   du die erneute Anmeldung und die Konfiguration wird aktualisiert.【F:custom_components/pawcontrol/config_flow_reauth.py†L152-L394】
 
-**Reconfigure manual auslösen (Flow‑Name `reconfigure`)**
+**Reconfigure manuell auslösen (Flow‑Name `reconfigure`)**
 1. Öffne *Einstellungen → Geräte & Dienste → Paw Control*.
 2. Wähle den Eintrag und öffne das Drei‑Punkte‑Menü (**⋮**), dann **Reconfigure**.
 3. Wähle das gewünschte Entity‑Profil und bestätige den Dialog; der
