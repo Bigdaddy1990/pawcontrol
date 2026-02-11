@@ -90,6 +90,10 @@ repos:
           - --force
           - --keep-updates
         files: ^(homeassistant|tests|scripts)/.+\.py$
+  - repo: https://github.com/pre-commit/sync-pre-commit-deps
+    rev: v0.0.3
+    hooks:
+    -   id: sync-pre-commit-deps
   - repo: local
     hooks:
       - id: shared-session-guard
