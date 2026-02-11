@@ -43,6 +43,7 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 from custom_components.pawcontrol.runtime_data import RuntimeDataUnavailableError
 from custom_components.pawcontrol.types import (
+  AUTO_TRACK_WALKS_FIELD,
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
@@ -57,12 +58,15 @@ from custom_components.pawcontrol.types import (
   GEOFENCE_USE_HOME_FIELD,
   GEOFENCE_ZONE_ENTRY_FIELD,
   GEOFENCE_ZONE_EXIT_FIELD,
+  GPS_ENABLED_FIELD,
   NOTIFICATION_MOBILE_FIELD,
   NOTIFICATION_PRIORITY_FIELD,
   NOTIFICATION_QUIET_END_FIELD,
   NOTIFICATION_QUIET_HOURS_FIELD,
   NOTIFICATION_QUIET_START_FIELD,
   NOTIFICATION_REMINDER_REPEAT_FIELD,
+  ROUTE_HISTORY_DAYS_FIELD,
+  ROUTE_RECORDING_FIELD,
   AdvancedOptions,
   ConfigEntryDataPayload,
   DashboardOptions,
