@@ -43,6 +43,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+      - uses: astral-sh/ruff-action@v3
 
       - name: Install dependencies
         run: |
