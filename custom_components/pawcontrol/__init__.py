@@ -388,7 +388,7 @@ def get_platforms_for_profile_and_modules(
   return ordered_platforms
 
 
-async def async_setup(hash: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
   """Set up the PawControl integration from configuration.yaml.
 
   Args:
