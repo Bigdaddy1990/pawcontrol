@@ -1,5 +1,4 @@
 """Tests for PawControl repairs flow routing."""
-
 from __future__ import annotations
 
 from types import SimpleNamespace

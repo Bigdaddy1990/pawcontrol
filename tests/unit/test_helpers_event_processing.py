@@ -3,33 +3,30 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-  CONF_DOGS,
-  EVENT_FEEDING_LOGGED,
-  EVENT_HEALTH_LOGGED,
-  EVENT_WALK_ENDED,
-  EVENT_WALK_STARTED,
-)
-from custom_components.pawcontrol.helpers import (
-  PawControlData,
-  PawControlNotificationManager,
-  QueuedEvent,
-)
-from custom_components.pawcontrol.types import (
-  HealthEvent,
-  HealthHistoryEntry,
-  JSONMutableMapping,
-  JSONValue,
-  NotificationPriority,
-  QueuedNotificationPayload,
-  WalkEvent,
-  WalkNamespaceMutableEntry,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
+from custom_components.pawcontrol.const import EVENT_HEALTH_LOGGED
+from custom_components.pawcontrol.const import EVENT_WALK_ENDED
+from custom_components.pawcontrol.const import EVENT_WALK_STARTED
+from custom_components.pawcontrol.helpers import PawControlData
+from custom_components.pawcontrol.helpers import PawControlNotificationManager
+from custom_components.pawcontrol.helpers import QueuedEvent
+from custom_components.pawcontrol.types import HealthEvent
+from custom_components.pawcontrol.types import HealthHistoryEntry
+from custom_components.pawcontrol.types import JSONMutableMapping
+from custom_components.pawcontrol.types import JSONValue
+from custom_components.pawcontrol.types import NotificationPriority
+from custom_components.pawcontrol.types import QueuedNotificationPayload
+from custom_components.pawcontrol.types import WalkEvent
+from custom_components.pawcontrol.types import WalkNamespaceMutableEntry
 
 
 @pytest.mark.asyncio

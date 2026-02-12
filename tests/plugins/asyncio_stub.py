@@ -1,9 +1,9 @@
 """Pytest plugin that provides a minimal asyncio event loop fixture."""
-
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Generator
+from collections.abc import Callable
+from collections.abc import Generator
 
 import pytest
 

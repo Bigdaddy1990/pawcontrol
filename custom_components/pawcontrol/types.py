@@ -16,58 +16,55 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-from typing import TypeVar
 import logging
 from asyncio import Task
 from collections import deque
-from collections.abc import (
-  Awaitable,
-  Callable,
-  Iterable,
-  Iterator,
-  Mapping,
-  MutableMapping,
-  Sequence,
-)
-from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from dataclasses import asdict
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import UTC
 from types import MappingProxyType
-from typing import (
-  TYPE_CHECKING,
-  Any,
-  ClassVar,
-  Final,
-  Literal,
-  NotRequired,
-  Required,
-  TypedDict,
-  cast,
-)
+from typing import Any
+from typing import cast
+from typing import ClassVar
+from typing import Final
+from typing import Literal
+from typing import NotRequired
+from typing import Required
+from typing import TYPE_CHECKING
+from typing import TypedDict
+from typing import TypeVar
 
 from homeassistant.config_entries import ConfigEntry
-from .const import (
-  CONF_API_ENDPOINT,
-  CONF_API_TOKEN,
-  CONF_BREAKFAST_TIME,
-  CONF_DAILY_FOOD_AMOUNT,
-  CONF_DINNER_TIME,
-  CONF_DOOR_SENSOR,
-  CONF_DOOR_SENSOR_SETTINGS,
-  CONF_EXTERNAL_INTEGRATIONS,
-  CONF_FOOD_TYPE,
-  CONF_GPS_SETTINGS,
-  CONF_LUNCH_TIME,
-  CONF_MEALS_PER_DAY,
-  CONF_NOTIFICATIONS,
-  CONF_QUIET_END,
-  CONF_QUIET_HOURS,
-  CONF_QUIET_START,
-  CONF_REMINDER_REPEAT_MIN,
-  DEFAULT_REMINDER_REPEAT_MIN,
-)
+
+from .const import CONF_API_ENDPOINT
+from .const import CONF_API_TOKEN
+from .const import CONF_BREAKFAST_TIME
+from .const import CONF_DAILY_FOOD_AMOUNT
+from .const import CONF_DINNER_TIME
+from .const import CONF_DOOR_SENSOR
+from .const import CONF_DOOR_SENSOR_SETTINGS
+from .const import CONF_EXTERNAL_INTEGRATIONS
+from .const import CONF_FOOD_TYPE
+from .const import CONF_GPS_SETTINGS
+from .const import CONF_LUNCH_TIME
+from .const import CONF_MEALS_PER_DAY
+from .const import CONF_NOTIFICATIONS
+from .const import CONF_QUIET_END
+from .const import CONF_QUIET_HOURS
+from .const import CONF_QUIET_START
+from .const import CONF_REMINDER_REPEAT_MIN
+from .const import DEFAULT_REMINDER_REPEAT_MIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -4417,7 +4414,7 @@ def ensure_gps_payload(
   elif satellites is not None:
     try:
       gps_payload["satellites"] = int(satellites)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       _LOGGER.warning(
         "Invalid satellites value %s for GPS payload; setting to None",
         satellites,

@@ -1,5 +1,4 @@
 """DateTime platform for Paw Control integration."""
-
 from __future__ import annotations
 
 import asyncio
@@ -15,33 +14,28 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  ATTR_DOG_ID,
-  DEFAULT_MODEL,
-  DEFAULT_SW_VERSION,
-  DOMAIN,
-  MODULE_FEEDING,
-  MODULE_HEALTH,
-  MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import DEFAULT_MODEL
+from .const import DEFAULT_SW_VERSION
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_template
-from .notifications import NotificationPriority, NotificationType
+from .notifications import NotificationPriority
+from .notifications import NotificationType
 from .runtime_data import get_runtime_data
-from .types import (
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  DogConfigData,
-  DogModulesMapping,
-  JSONMutableMapping,
-  ensure_dog_modules_mapping,
-)
-from .utils import (
-  async_call_add_entities,
-  ensure_utc_datetime,
-  resolve_default_feeding_amount,
-)
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesMapping
+from .types import ensure_dog_modules_mapping
+from .types import JSONMutableMapping
+from .utils import async_call_add_entities
+from .utils import ensure_utc_datetime
+from .utils import resolve_default_feeding_amount
 
 _LOGGER = logging.getLogger(__name__)
 

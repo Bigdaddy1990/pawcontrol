@@ -1,5 +1,4 @@
 """Tests for flow helper modules."""
-
 from __future__ import annotations
 
 import pytest
@@ -11,14 +10,10 @@ from custom_components.pawcontrol.flow_steps.health_helpers import (
 from custom_components.pawcontrol.flow_steps.notifications_helpers import (
   build_notification_settings_payload,
 )
-from custom_components.pawcontrol.flows.walk_schemas import (
-  build_auto_end_walks_field,
-  build_walk_timing_schema_fields,
-)
-from custom_components.pawcontrol.types import (
-  DEFAULT_DOOR_SENSOR_SETTINGS,
-  NOTIFICATION_REMINDER_REPEAT_FIELD,
-)
+from custom_components.pawcontrol.flows.walk_schemas import build_auto_end_walks_field
+from custom_components.pawcontrol.flows.walk_schemas import build_walk_timing_schema_fields
+from custom_components.pawcontrol.types import DEFAULT_DOOR_SENSOR_SETTINGS
+from custom_components.pawcontrol.types import NOTIFICATION_REMINDER_REPEAT_FIELD
 
 
 def test_summarise_health_summary_flags_issues() -> None:

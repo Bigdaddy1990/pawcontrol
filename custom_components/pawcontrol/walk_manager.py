@@ -7,10 +7,8 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-from typing import TypeVar
 import asyncio
 import contextlib
 import json
@@ -18,40 +16,45 @@ import logging
 import math
 from collections import deque
 from collections.abc import Mapping
-from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
 from enum import StrEnum
 from html import escape
-from typing import Any, Final, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TypeVar
 
 from homeassistant.util import dt as dt_util
 
+from .types import GPSCacheDiagnosticsMetadata
+from .types import GPSCacheSnapshot
+from .types import GPSCacheStats
+from .types import GPXAttributeMap
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import WalkDailyStatistics
+from .types import WalkDetectionMetadata
+from .types import WalkDetectionMutableMetadata
+from .types import WalkGPSSnapshot
+from .types import WalkLocationSnapshot
+from .types import WalkManagerDogSnapshot
+from .types import WalkOverviewSnapshot
+from .types import WalkPerformanceCounters
+from .types import WalkPerformanceSnapshot
+from .types import WalkRouteBounds
+from .types import WalkRouteExportFormat
+from .types import WalkRouteExportPayload
+from .types import WalkRoutePoint
+from .types import WalkSessionSnapshot
+from .types import WalkStatisticsSnapshot
+from .types import WalkWeeklyStatistics
+from .utils import is_number
 from .utils import normalize_value
-from .types import (
-  GPSCacheDiagnosticsMetadata,
-  GPSCacheSnapshot,
-  GPSCacheStats,
-  GPXAttributeMap,
-  JSONMutableMapping,
-  JSONValue,
-  WalkDailyStatistics,
-  WalkDetectionMetadata,
-  WalkDetectionMutableMetadata,
-  WalkGPSSnapshot,
-  WalkLocationSnapshot,
-  WalkManagerDogSnapshot,
-  WalkOverviewSnapshot,
-  WalkPerformanceCounters,
-  WalkPerformanceSnapshot,
-  WalkRouteBounds,
-  WalkRouteExportFormat,
-  WalkRouteExportPayload,
-  WalkRoutePoint,
-  WalkSessionSnapshot,
-  WalkStatisticsSnapshot,
-  WalkWeeklyStatistics,
-)
-from .utils import Number, is_number
+from .utils import Number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -727,7 +730,7 @@ class WalkManager:
             0.0,
             min(float(detection_confidence), 1.0),
           )
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
           confidence_value = None
 
       detection_payload: WalkDetectionMutableMetadata | None = None
@@ -1233,7 +1236,7 @@ class WalkManager:
         walk_date = walk_time.date()
         date_str = walk_date.isoformat()
         walks_by_date[date_str] = walks_by_date.get(date_str, 0) + 1
-      except (ValueError, TypeError):
+      except ValueError, TypeError:
         continue
 
     # Calculate streak
@@ -1460,7 +1463,7 @@ class WalkManager:
             recent_walks.append(
               cast(WalkSessionSnapshot, dict(walk)),
             )
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
           continue
 
       ordered = sorted(
@@ -2203,7 +2206,7 @@ class WalkManager:
         dt = dt.astimezone(dt_util.UTC)
 
       return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
       # Fallback to current time if parsing fails
       return dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -2258,7 +2261,7 @@ class WalkManager:
             point_time = dt_util.parse_datetime(timestamp)
             if point_time:
               duration_from_start = (point_time - start_time).total_seconds()
-          except (ValueError, TypeError):
+          except ValueError, TypeError:
             pass
 
         # Calculate cumulative distance

@@ -1,17 +1,25 @@
 """Compatibility helpers that keep the integration functional without Home Assistant."""
-
 from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Coroutine
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from enum import Enum
 from itertools import count
 from types import ModuleType
-from typing import Any, Final, TypeVar, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TypeVar
 
 type JSONPrimitive = None | bool | int | float | str
 """Primitive JSON-compatible value."""
@@ -57,7 +65,7 @@ def _build_exception(
 def _import_optional(module: str) -> Any:
   try:  # pragma: no cover - executed when Home Assistant is installed
     return __import__(module, fromlist=["*"])
-  except (ImportError, ModuleNotFoundError):
+  except ImportError, ModuleNotFoundError:
     return None
 
 
@@ -762,7 +770,7 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
 
   try:
     signature = inspect.signature(init)  # type: ignore[arg-type]
-  except (TypeError, ValueError):  # pragma: no cover - signature unavailable
+  except TypeError, ValueError:  # pragma: no cover - signature unavailable
     return False
 
   parameter_names = {parameter.name for parameter in signature.parameters.values()}

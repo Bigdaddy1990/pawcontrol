@@ -1,35 +1,34 @@
 """Device triggers for PawControl."""
-
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 from collections.abc import Callable
-from typing import Final, cast
+from dataclasses import dataclass
+from typing import cast
+from typing import Final
 
+import voluptuous as vol
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
-from homeassistant.const import (
-  CONF_DEVICE_ID,
-  CONF_DOMAIN,
-  CONF_ENTITY_ID,
-  CONF_FROM,
-  CONF_METADATA,
-  CONF_PLATFORM,
-  CONF_TO,
-  CONF_TYPE,
-)
-from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
+from homeassistant.const import CONF_DEVICE_ID
+from homeassistant.const import CONF_DOMAIN
+from homeassistant.const import CONF_ENTITY_ID
+from homeassistant.const import CONF_FROM
+from homeassistant.const import CONF_METADATA
+from homeassistant.const import CONF_PLATFORM
+from homeassistant.const import CONF_TO
+from homeassistant.const import CONF_TYPE
+from homeassistant.core import callback
+from homeassistant.core import CALLBACK_TYPE
+from homeassistant.core import Event
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_state_change_event
-import voluptuous as vol
 
 from .const import DOMAIN
-from .device_automation_helpers import (
-  build_unique_id,
-  build_device_automation_metadata,
-  resolve_device_context,
-  resolve_entity_id,
-)
+from .device_automation_helpers import build_device_automation_metadata
+from .device_automation_helpers import build_unique_id
+from .device_automation_helpers import resolve_device_context
+from .device_automation_helpers import resolve_entity_id
 from .types import DeviceTriggerPayload
 
 _LOGGER = logging.getLogger(__name__)

@@ -1,19 +1,18 @@
 """Validate bool coercion telemetry snapshots."""
-
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
 from unittest.mock import patch
 
 from custom_components.pawcontrol.diagnostics import (
   _get_bool_coercion_diagnostics,
 )
-from custom_components.pawcontrol.telemetry import (
-  get_bool_coercion_metrics,
-  record_bool_coercion_event,
-  reset_bool_coercion_metrics,
-  summarise_bool_coercion_metrics,
-)
+from custom_components.pawcontrol.telemetry import get_bool_coercion_metrics
+from custom_components.pawcontrol.telemetry import record_bool_coercion_event
+from custom_components.pawcontrol.telemetry import reset_bool_coercion_metrics
+from custom_components.pawcontrol.telemetry import summarise_bool_coercion_metrics
 from custom_components.pawcontrol.types import _coerce_bool
 
 

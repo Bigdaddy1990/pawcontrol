@@ -6,30 +6,32 @@ features with full edge case coverage.
 Quality Scale: Platinum target
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
 from typing import cast
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.gps_manager import (
-  GeofenceEvent,
-  GeofenceEventType,
-  GeofenceZone,
-  GPSAccuracy,
-  GPSGeofenceManager,
-  GPSPoint,
-  LocationSource,
-  WalkRoute,
-  calculate_bearing,
-  calculate_distance,
-)
+from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.gps_manager import calculate_bearing
+from custom_components.pawcontrol.gps_manager import calculate_distance
+from custom_components.pawcontrol.gps_manager import GeofenceEvent
+from custom_components.pawcontrol.gps_manager import GeofenceEventType
+from custom_components.pawcontrol.gps_manager import GeofenceZone
+from custom_components.pawcontrol.gps_manager import GPSAccuracy
+from custom_components.pawcontrol.gps_manager import GPSGeofenceManager
+from custom_components.pawcontrol.gps_manager import GPSPoint
+from custom_components.pawcontrol.gps_manager import LocationSource
+from custom_components.pawcontrol.gps_manager import WalkRoute
 from custom_components.pawcontrol.resilience import ResilienceManager
 from custom_components.pawcontrol.types import GPSTrackingConfigInput
-from homeassistant.core import HomeAssistant
 
 
 @pytest.mark.unit

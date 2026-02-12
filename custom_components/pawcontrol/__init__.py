@@ -1,94 +1,90 @@
 """Set up and manage the PawControl integration lifecycle."""
-
 from __future__ import annotations
 
-from typing import TypeAlias
 import asyncio
 import importlib
 import inspect
 import logging
 import time
-from collections.abc import (
-  Awaitable,
-  Callable,
-  Iterable,
-  Mapping,
-  MutableMapping,
-  Sequence,
-)
-from typing import Any, Final, cast
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TypeAlias
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
-from .const import (
-  ALL_MODULES,
-  CONF_DOG_ID,
-  CONF_DOG_OPTIONS,
-  CONF_DOGS,
-  CONF_MODULES,
-  DOMAIN,
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
-  PLATFORMS,
-)
+from .const import ALL_MODULES
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_OPTIONS
+from .const import CONF_DOGS
+from .const import CONF_MODULES
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
+from .const import PLATFORMS
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .door_sensor_manager import DoorSensorManager
-from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import (
-  ConfigEntryAuthFailed,
-  ConfigurationError,
-  PawControlSetupError,
-  ValidationError,
-)
+from .entity_factory import ENTITY_PROFILES
+from .entity_factory import EntityFactory
+from .exceptions import ConfigEntryAuthFailed
+from .exceptions import ConfigurationError
+from .exceptions import PawControlSetupError
+from .exceptions import ValidationError
+from .external_bindings import async_setup_external_bindings
+from .external_bindings import async_unload_external_bindings
 from .feeding_manager import FeedingManager
 from .garden_manager import GardenManager
 from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
 from .migrations import async_migrate_entry
-from .notifications import (
-  NotificationPriority,
-  NotificationType,
-  PawControlNotificationManager,
-)
+from .mqtt_push import async_register_entry_mqtt
+from .mqtt_push import async_unregister_entry_mqtt
+from .notifications import NotificationPriority
+from .notifications import NotificationType
+from .notifications import PawControlNotificationManager
 from .repairs import async_check_for_issues
-from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
-from .translation_helpers import async_preload_component_translations
-from .webhooks import async_register_entry_webhook, async_unregister_entry_webhook
-from .mqtt_push import async_register_entry_mqtt, async_unregister_entry_mqtt
-from .external_bindings import (
-  async_setup_external_bindings,
-  async_unload_external_bindings,
-)
+from .runtime_data import get_runtime_data
+from .runtime_data import pop_runtime_data
+from .runtime_data import store_runtime_data
 from .script_manager import PawControlScriptManager
-from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
+from .services import async_setup_daily_reset_scheduler
+from .services import PawControlServiceManager
 from .telemetry import update_runtime_reconfigure_summary
-from .types import (
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  ConfigEntryDataPayload,
-  ConfigEntryOptionsPayload,
-  DogConfigData,
-  JSONLikeMapping,
-  JSONValue,
-  ManualResilienceEventRecord,
-  PawControlConfigEntry,
-  PawControlRuntimeData,
-  ensure_dog_config_data,
-)
+from .translation_helpers import async_preload_component_translations
+from .types import ConfigEntryDataPayload
+from .types import ConfigEntryOptionsPayload
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import JSONLikeMapping
+from .types import JSONValue
+from .types import ManualResilienceEventRecord
+from .types import PawControlConfigEntry
+from .types import PawControlRuntimeData
 from .utils import sanitize_dog_id
 from .walk_manager import WalkManager
+from .webhooks import async_register_entry_webhook
+from .webhooks import async_unregister_entry_webhook
 
 _LOGGER = logging.getLogger(__name__)
 

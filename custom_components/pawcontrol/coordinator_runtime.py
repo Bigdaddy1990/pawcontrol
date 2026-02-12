@@ -1,23 +1,27 @@
 """Runtime helpers that keep :mod:`coordinator` focused on orchestration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
 from collections import deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from statistics import fmean
 from typing import cast
 
-from .exceptions import ConfigEntryAuthFailed, UpdateFailed
+from .exceptions import ConfigEntryAuthFailed
+from .exceptions import UpdateFailed
 
 
 try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
   from homeassistant.util import dt as dt_util
-except (ImportError, ModuleNotFoundError):
+except ImportError, ModuleNotFoundError:
 
   class _DateTimeModule:
     """Minimal subset of :mod:`homeassistant.util.dt` used in tests."""

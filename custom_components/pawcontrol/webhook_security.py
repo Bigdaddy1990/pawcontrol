@@ -1,5 +1,4 @@
 """HMAC signing and verification helpers for PawControl webhooks."""
-
 from __future__ import annotations
 
 import base64
@@ -8,7 +7,8 @@ import hmac
 import secrets
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from typing import ClassVar
 
 

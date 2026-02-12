@@ -1,5 +1,4 @@
 """Tests for coordinator resilience handling."""
-
 from __future__ import annotations
 
 import asyncio
@@ -7,17 +6,15 @@ import logging
 from typing import cast
 from unittest.mock import AsyncMock
 
-from custom_components.pawcontrol.coordinator_runtime import (
-  AdaptivePollingController,
-  CoordinatorRuntime,
-)
-from custom_components.pawcontrol.coordinator_support import (
-  CoordinatorMetrics,
-  DogConfigRegistry,
-)
-from custom_components.pawcontrol.exceptions import NetworkError, RateLimitError
+from custom_components.pawcontrol.coordinator_runtime import AdaptivePollingController
+from custom_components.pawcontrol.coordinator_runtime import CoordinatorRuntime
+from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
+from custom_components.pawcontrol.coordinator_support import DogConfigRegistry
+from custom_components.pawcontrol.exceptions import NetworkError
+from custom_components.pawcontrol.exceptions import RateLimitError
 from custom_components.pawcontrol.module_adapters import CoordinatorModuleAdapters
-from custom_components.pawcontrol.resilience import ResilienceManager, RetryConfig
+from custom_components.pawcontrol.resilience import ResilienceManager
+from custom_components.pawcontrol.resilience import RetryConfig
 from custom_components.pawcontrol.types import CoordinatorDogData
 
 

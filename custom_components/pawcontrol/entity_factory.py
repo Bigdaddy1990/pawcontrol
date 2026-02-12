@@ -7,32 +7,35 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
 from collections import OrderedDict
-from collections.abc import Iterator, Mapping
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from collections.abc import Iterator
+from collections.abc import Mapping
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import UTC
 from enum import Enum
 from itertools import combinations
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final, Literal, cast
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
 
 from .coordinator_runtime import EntityBudgetSnapshot
 from .telemetry import update_runtime_entity_factory_guard_metrics
-from .types import (
-  DOG_MODULES_FIELD,
-  DogModulesProjection,
-  EntityFactoryGuardEvent,
-  ensure_dog_modules_mapping,
-)
+from .types import DOG_MODULES_FIELD
+from .types import DogModulesProjection
+from .types import ensure_dog_modules_mapping
+from .types import EntityFactoryGuardEvent
 
 if TYPE_CHECKING:
   from .coordinator import PawControlCoordinator

@@ -6,92 +6,89 @@ metrics. This module normalises runtime payloads into JSON-safe snapshots while
 redacting sensitive fields so support tooling and the bundled dashboard can
 ingest the data without custom adapters.
 """
-
 from __future__ import annotations
 
 import importlib
 import logging
-from collections.abc import Awaitable, Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
+from typing import TypedDict
 
-from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  CONF_API_ENDPOINT,
-  CONF_API_TOKEN,
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOGS,
-  DOMAIN,
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
-)
+from .const import CONF_API_ENDPOINT
+from .const import CONF_API_TOKEN
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
-from .coordinator_tasks import (
-  default_rejection_metrics,
-  derive_rejection_metrics,
-  merge_rejection_metric_values,
-  resolve_entity_factory_guard_metrics,
-)
-from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
+from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import derive_rejection_metrics
+from .coordinator_tasks import merge_rejection_metric_values
+from .coordinator_tasks import resolve_entity_factory_guard_metrics
+from .diagnostics_redaction import compile_redaction_patterns
+from .diagnostics_redaction import redact_sensitive_data
 from .error_classification import classify_error_reason
-from .runtime_data import describe_runtime_store_status, get_runtime_data
-from .service_guard import (
-  ServiceGuardMetricsSnapshot,
-  ServiceGuardResultHistory,
-  ServiceGuardSnapshot,
-  normalise_guard_history,
-)
 from .push_router import get_entry_push_telemetry_snapshot
-
-from .telemetry import (
-  get_bool_coercion_metrics,
-  get_runtime_performance_stats,
-  get_runtime_resilience_diagnostics,
-  get_runtime_store_health,
-  update_runtime_bool_coercion_summary,
-)
-from .types import (
-  BoolCoercionDiagnosticsPayload,
-  CacheDiagnosticsMap,
-  CacheDiagnosticsMetadata,
-  CacheDiagnosticsSnapshot,
-  CacheRepairAggregate,
-  CoordinatorHealthIndicators,
-  CoordinatorPerformanceMetrics,
-  CoordinatorRejectionMetrics,
-  CoordinatorResilienceDiagnostics,
-  CoordinatorStatisticsPayload,
-  CoordinatorUpdateCounts,
-  DataStatisticsPayload,
-  DebugInformationPayload,
-  DogConfigData,
-  EntityFactoryGuardMetricsSnapshot,
-  JSONLikeMapping,
-  JSONMapping,
-  JSONMutableMapping,
-  JSONValue,
-  ModuleUsageBreakdown,
-  PawControlConfigEntry,
-  PawControlRuntimeData,
-  RecentErrorEntry,
-  ResilienceEscalationSnapshot,
-  RuntimeStoreAssessmentTimelineSegment,
-  RuntimeStoreAssessmentTimelineSummary,
-  RuntimeStoreHealthAssessment,
-  SetupFlagPanelEntry,
-  SetupFlagSourceBreakdown,
-  SetupFlagSourceLabels,
-  SetupFlagsPanelPayload,
-)
+from .runtime_data import describe_runtime_store_status
+from .runtime_data import get_runtime_data
+from .service_guard import normalise_guard_history
+from .service_guard import ServiceGuardMetricsSnapshot
+from .service_guard import ServiceGuardResultHistory
+from .service_guard import ServiceGuardSnapshot
+from .telemetry import get_bool_coercion_metrics
+from .telemetry import get_runtime_performance_stats
+from .telemetry import get_runtime_resilience_diagnostics
+from .telemetry import get_runtime_store_health
+from .telemetry import update_runtime_bool_coercion_summary
+from .types import BoolCoercionDiagnosticsPayload
+from .types import CacheDiagnosticsMap
+from .types import CacheDiagnosticsMetadata
+from .types import CacheDiagnosticsSnapshot
+from .types import CacheRepairAggregate
+from .types import CoordinatorHealthIndicators
+from .types import CoordinatorPerformanceMetrics
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorResilienceDiagnostics
+from .types import CoordinatorStatisticsPayload
+from .types import CoordinatorUpdateCounts
+from .types import DataStatisticsPayload
+from .types import DebugInformationPayload
+from .types import DogConfigData
+from .types import EntityFactoryGuardMetricsSnapshot
+from .types import JSONLikeMapping
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import ModuleUsageBreakdown
+from .types import PawControlConfigEntry
+from .types import PawControlRuntimeData
+from .types import RecentErrorEntry
+from .types import ResilienceEscalationSnapshot
+from .types import RuntimeStoreAssessmentTimelineSegment
+from .types import RuntimeStoreAssessmentTimelineSummary
+from .types import RuntimeStoreHealthAssessment
+from .types import SetupFlagPanelEntry
+from .types import SetupFlagSourceBreakdown
+from .types import SetupFlagSourceLabels
+from .types import SetupFlagsPanelPayload
 from .utils import normalize_value
 
 if TYPE_CHECKING:
@@ -191,7 +188,7 @@ try:
     "async_get_translations",
     None,
   )
-except (ModuleNotFoundError, AttributeError):
+except ModuleNotFoundError, AttributeError:
   _ASYNC_GET_TRANSLATIONS = None
 
 

@@ -1,17 +1,16 @@
 """Health schema builders for Paw Control flows."""
-
 from __future__ import annotations
 
 import voluptuous as vol
 
-from ..const import (
-  MAX_DOG_WEIGHT,
-  MIN_DOG_WEIGHT,
-  MODULE_MEDICATION,
-  SPECIAL_DIET_OPTIONS,
-)
+from ..const import MAX_DOG_WEIGHT
+from ..const import MIN_DOG_WEIGHT
+from ..const import MODULE_MEDICATION
+from ..const import SPECIAL_DIET_OPTIONS
 from ..selector_shim import selector
-from ..types import DogModulesConfig, HealthOptions, OptionsHealthSettingsInput
+from ..types import DogModulesConfig
+from ..types import HealthOptions
+from ..types import OptionsHealthSettingsInput
 
 
 def build_dog_health_schema(

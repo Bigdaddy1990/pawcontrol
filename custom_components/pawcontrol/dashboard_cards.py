@@ -11,61 +11,58 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-from typing import TypeVar
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Final, cast
+from collections.abc import Awaitable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import STATE_UNAVAILABLE
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 
-from .const import (
-  DOMAIN,
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_VISITOR,
-  MODULE_WALK,
-)
-from .dashboard_shared import (
-  CardCollection,
-  CardConfig,
-  coerce_dog_config,
-  coerce_dog_configs,
-  unwrap_async_result,
-)
-from .dashboard_templates import (
-  MAP_OPTION_KEYS,
-  DashboardTemplates,
-  MapCardOptions,
-  MapOptionsInput,
-)
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_VISITOR
+from .const import MODULE_WALK
+from .dashboard_shared import CardCollection
+from .dashboard_shared import CardConfig
+from .dashboard_shared import coerce_dog_config
+from .dashboard_shared import coerce_dog_configs
+from .dashboard_shared import unwrap_async_result
+from .dashboard_templates import DashboardTemplates
+from .dashboard_templates import MAP_OPTION_KEYS
+from .dashboard_templates import MapCardOptions
+from .dashboard_templates import MapOptionsInput
 from .language import normalize_language
-from .types import (
-  DOG_ID_FIELD,
-  DOG_IMAGE_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  CoordinatorRejectionMetrics,
-  CoordinatorStatisticsPayload,
-  DashboardCardGlobalPerformanceStats,
-  DashboardCardOptions,
-  DashboardCardPerformanceStats,
-  DogConfigData,
-  DogModulesConfig,
-  HelperManagerGuardMetrics,
-  JSONMapping,
-  JSONMutableMapping,
-  RawDogConfig,
-  coerce_dog_modules_config,
-)
+from .types import coerce_dog_modules_config
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorStatisticsPayload
+from .types import DashboardCardGlobalPerformanceStats
+from .types import DashboardCardOptions
+from .types import DashboardCardPerformanceStats
+from .types import DOG_ID_FIELD
+from .types import DOG_IMAGE_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import HelperManagerGuardMetrics
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import RawDogConfig
 
 if TYPE_CHECKING:
   from .dashboard_templates import DashboardTemplates

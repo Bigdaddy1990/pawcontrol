@@ -1,8 +1,8 @@
 """Test helpers for weather module compatibility."""
-
 from __future__ import annotations
 
-from enum import Enum, StrEnum
+from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 import homeassistant.components.weather as weather_module

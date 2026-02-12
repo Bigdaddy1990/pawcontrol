@@ -12,68 +12,69 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from contextlib import suppress
 from datetime import UTC
 from importlib import import_module
 from pathlib import Path
-from typing import Any, ClassVar, Final, Literal, cast
+from typing import Any
+from typing import cast
+from typing import ClassVar
+from typing import Final
+from typing import Literal
 
-from homeassistant.config_entries import ConfigEntry, OptionsFlow
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import OptionsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  CONF_DOGS,
-  CONF_LAST_RECONFIGURE,
-  CONF_RECONFIGURE_TELEMETRY,
-  DEFAULT_MANUAL_BREAKER_EVENT,
-  DEFAULT_MANUAL_CHECK_EVENT,
-  DEFAULT_MANUAL_GUARD_EVENT,
-  MANUAL_EVENT_SOURCE_CANONICAL,
-)
+from .const import CONF_DOGS
+from .const import CONF_LAST_RECONFIGURE
+from .const import CONF_RECONFIGURE_TELEMETRY
+from .const import DEFAULT_MANUAL_BREAKER_EVENT
+from .const import DEFAULT_MANUAL_CHECK_EVENT
+from .const import DEFAULT_MANUAL_GUARD_EVENT
+from .const import MANUAL_EVENT_SOURCE_CANONICAL
 from .entity_factory import EntityFactory
 from .exceptions import FlowValidationError
+from .flow_steps.gps import GPSOptionsMixin
+from .flow_steps.gps import GPSOptionsNormalizerMixin
+from .flow_steps.health import HealthOptionsMixin
+from .flow_steps.health_helpers import summarise_health_summary
+from .flow_steps.notifications import NotificationOptionsMixin
+from .flow_steps.notifications import NotificationOptionsNormalizerMixin
+from .flow_steps.system_settings import SystemSettingsOptionsMixin
 from .language import normalize_language
 from .options_flow_dogs_management import DogManagementOptionsMixin
 from .options_flow_door_sensor import DoorSensorOptionsMixin
 from .options_flow_feeding import FeedingOptionsMixin
-from .flow_steps.gps import GPSOptionsMixin, GPSOptionsNormalizerMixin
-from .flow_steps.health import HealthOptionsMixin
-from .flow_steps.health_helpers import summarise_health_summary
-from .flow_steps.notifications import (
-  NotificationOptionsMixin,
-  NotificationOptionsNormalizerMixin,
-)
 from .options_flow_import_export import ImportExportOptionsMixin
 from .options_flow_menu import MenuOptionsMixin
 from .options_flow_profiles import ProfileOptionsMixin
 from .options_flow_shared import ADVANCED_SETTINGS_FIELD
-from .flow_steps.system_settings import SystemSettingsOptionsMixin
 from .runtime_data import get_runtime_data as _get_runtime_data
-from .types import (
-  ConfigFlowPlaceholders,
-  DogConfigData,
-  JSONLikeMapping,
-  JSONMutableMapping,
-  JSONValue,
-  ManualEventDefaults,
-  ManualEventField,
-  ManualEventOption,
-  ManualEventSchemaDefaults,
-  ManualEventSource,
-  ReconfigureTelemetry,
-  SystemOptions,
-  ensure_advanced_options,
-  ensure_dog_config_data,
-  ensure_json_mapping,
-  PawControlRuntimeData,
-)
+from .types import ConfigFlowPlaceholders
+from .types import DogConfigData
+from .types import ensure_advanced_options
+from .types import ensure_dog_config_data
+from .types import ensure_json_mapping
+from .types import JSONLikeMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import ManualEventDefaults
+from .types import ManualEventField
+from .types import ManualEventOption
+from .types import ManualEventSchemaDefaults
+from .types import ManualEventSource
+from .types import PawControlRuntimeData
+from .types import ReconfigureTelemetry
+from .types import SystemOptions
 
 _LOGGER = logging.getLogger(__name__)
 

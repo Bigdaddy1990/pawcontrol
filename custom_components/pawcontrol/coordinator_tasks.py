@@ -1,59 +1,61 @@
 """Helper routines that keep the coordinator file compact."""
-
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from datetime import UTC, date, datetime
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from datetime import date
+from datetime import datetime
+from datetime import UTC
 from math import isfinite
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .coordinator_support import ensure_cache_repair_aggregate
-from .performance import (
-  capture_cache_diagnostics,
-  performance_tracker,
-  record_maintenance_result,
-)
-from .runtime_data import describe_runtime_store_status, get_runtime_data
+from .performance import capture_cache_diagnostics
+from .performance import performance_tracker
+from .performance import record_maintenance_result
+from .runtime_data import describe_runtime_store_status
+from .runtime_data import get_runtime_data
 from .service_guard import normalise_guard_history
-from .telemetry import (
-  get_runtime_performance_stats,
-  get_runtime_reconfigure_summary,
-  summarise_reconfigure_options,
-  update_runtime_bool_coercion_summary,
-  update_runtime_reconfigure_summary,
-  update_runtime_resilience_diagnostics,
-  update_runtime_store_health,
-)
-from .types import (
-  AdaptivePollingDiagnostics,
-  CacheRepairAggregate,
-  CircuitBreakerStateSummary,
-  CircuitBreakerStatsPayload,
-  CoordinatorRejectionMetrics,
-  CoordinatorResilienceDiagnostics,
-  CoordinatorResilienceSummary,
-  CoordinatorRuntimeStatisticsPayload,
-  CoordinatorRuntimeStoreSummary,
-  CoordinatorServiceExecutionSummary,
-  CoordinatorStatisticsPayload,
-  EntityBudgetSummary,
-  EntityFactoryGuardEvent,
-  EntityFactoryGuardMetricsSnapshot,
-  EntityFactoryGuardStabilityTrend,
-  HelperManagerGuardMetrics,
-  JSONMapping,
-  JSONMutableMapping,
-  MaintenanceMetadataPayload,
-  PawControlRuntimeData,
-  ReconfigureTelemetrySummary,
-  RejectionMetricsSource,
-  RejectionMetricsTarget,
-  RuntimeStoreHealthAssessment,
-)
+from .telemetry import get_runtime_performance_stats
+from .telemetry import get_runtime_reconfigure_summary
+from .telemetry import summarise_reconfigure_options
+from .telemetry import update_runtime_bool_coercion_summary
+from .telemetry import update_runtime_reconfigure_summary
+from .telemetry import update_runtime_resilience_diagnostics
+from .telemetry import update_runtime_store_health
+from .types import AdaptivePollingDiagnostics
+from .types import CacheRepairAggregate
+from .types import CircuitBreakerStateSummary
+from .types import CircuitBreakerStatsPayload
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorResilienceDiagnostics
+from .types import CoordinatorResilienceSummary
+from .types import CoordinatorRuntimeStatisticsPayload
+from .types import CoordinatorRuntimeStoreSummary
+from .types import CoordinatorServiceExecutionSummary
+from .types import CoordinatorStatisticsPayload
+from .types import EntityBudgetSummary
+from .types import EntityFactoryGuardEvent
+from .types import EntityFactoryGuardMetricsSnapshot
+from .types import EntityFactoryGuardStabilityTrend
+from .types import HelperManagerGuardMetrics
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import MaintenanceMetadataPayload
+from .types import PawControlRuntimeData
+from .types import ReconfigureTelemetrySummary
+from .types import RejectionMetricsSource
+from .types import RejectionMetricsTarget
+from .types import RuntimeStoreHealthAssessment
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
   from datetime import timedelta
@@ -959,10 +961,10 @@ def _coerce_int(value: Any) -> int:
 
   try:
     return int(value)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     try:
       return int(float(value))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return 0
 
 
@@ -1005,13 +1007,13 @@ def _timestamp_from_datetime(value: datetime) -> float | None:
   if callable(convert):
     try:
       return float(convert(value))
-    except (TypeError, ValueError, OverflowError):
+    except TypeError, ValueError, OverflowError:
       return None
 
   as_utc = getattr(dt_util, "as_utc", None)
   try:
     aware = as_utc(value) if callable(as_utc) else value
-  except (TypeError, ValueError, AttributeError):  # pragma: no cover - compat guard
+  except TypeError, ValueError, AttributeError:  # pragma: no cover - compat guard
     aware = value
 
   if aware.tzinfo is None:
@@ -1019,7 +1021,7 @@ def _timestamp_from_datetime(value: datetime) -> float | None:
 
   try:
     return float(aware.timestamp())
-  except (OverflowError, OSError, ValueError):
+  except OverflowError, OSError, ValueError:
     return None
 
 
@@ -1038,7 +1040,7 @@ def _coerce_float(value: Any) -> float | None:
   if isinstance(value, date) and not isinstance(value, datetime):
     try:
       start_of_day = dt_util.start_of_local_day(value)
-    except (TypeError, ValueError, AttributeError):
+    except TypeError, ValueError, AttributeError:
       # ``start_of_local_day`` may be unavailable in some compat paths.
       start_of_day = datetime(
         value.year,
@@ -1051,14 +1053,14 @@ def _coerce_float(value: Any) -> float | None:
   if isinstance(value, str):
     try:
       parsed = dt_util.parse_datetime(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       parsed = None
     if parsed is not None:
       return _timestamp_from_datetime(parsed)
 
   try:
     number = float(value)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return None
 
   if not isfinite(number):

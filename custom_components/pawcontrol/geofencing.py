@@ -8,44 +8,43 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
 import math
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from collections.abc import Iterable
+from collections.abc import Mapping
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  DOMAIN,
-  EVENT_GEOFENCE_ENTERED,
-  EVENT_GEOFENCE_LEFT,
-  MAX_GEOFENCE_RADIUS,
-  MIN_GEOFENCE_RADIUS,
-  STORAGE_VERSION,
-)
-from .notifications import (
-  NotificationPriority,
-  NotificationTemplateData,
-  NotificationType,
-)
+from .const import DOMAIN
+from .const import EVENT_GEOFENCE_ENTERED
+from .const import EVENT_GEOFENCE_LEFT
+from .const import MAX_GEOFENCE_RADIUS
+from .const import MIN_GEOFENCE_RADIUS
+from .const import STORAGE_VERSION
 from .exceptions import ValidationError
-from .types import (
-  GeofenceNotificationPayload,
-  GeofenceStoragePayload,
-  GeofenceZoneMetadata,
-  GeofenceZoneStoragePayload,
-  GPSLocation,
-)
+from .notifications import NotificationPriority
+from .notifications import NotificationTemplateData
+from .notifications import NotificationType
+from .types import GeofenceNotificationPayload
+from .types import GeofenceStoragePayload
+from .types import GeofenceZoneMetadata
+from .types import GeofenceZoneStoragePayload
+from .types import GPSLocation
 from .utils import async_fire_event
 from .validation_helpers import validate_coordinate_pair
 

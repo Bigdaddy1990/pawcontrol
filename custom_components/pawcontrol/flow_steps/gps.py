@@ -1,102 +1,93 @@
 """GPS flow helpers for Paw Control configuration and options."""
-
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import Any
+from typing import cast
+from typing import Protocol
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import config_validation as cv
 
-from ..const import (
-  CONF_GPS_ACCURACY_FILTER,
-  CONF_GPS_DISTANCE_FILTER,
-  CONF_GPS_SOURCE,
-  CONF_GPS_UPDATE_INTERVAL,
-  DEFAULT_GPS_ACCURACY_FILTER,
-  DEFAULT_GPS_DISTANCE_FILTER,
-  DEFAULT_GPS_UPDATE_INTERVAL,
-  MAX_GEOFENCE_RADIUS,
-  MIN_GEOFENCE_RADIUS,
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
-)
+from ..const import CONF_GPS_ACCURACY_FILTER
+from ..const import CONF_GPS_DISTANCE_FILTER
+from ..const import CONF_GPS_SOURCE
+from ..const import CONF_GPS_UPDATE_INTERVAL
+from ..const import DEFAULT_GPS_ACCURACY_FILTER
+from ..const import DEFAULT_GPS_DISTANCE_FILTER
+from ..const import DEFAULT_GPS_UPDATE_INTERVAL
+from ..const import MAX_GEOFENCE_RADIUS
+from ..const import MIN_GEOFENCE_RADIUS
+from ..const import MODULE_FEEDING
+from ..const import MODULE_GPS
+from ..const import MODULE_HEALTH
+from ..const import MODULE_NOTIFICATIONS
+from ..const import MODULE_WALK
 from ..exceptions import ValidationError
 from ..flow_helpers import coerce_bool
-from ..schemas import (
-  GEOFENCE_OPTIONS_JSON_SCHEMA,
-  GPS_DOG_CONFIG_JSON_SCHEMA,
-  GPS_OPTIONS_JSON_SCHEMA,
-  validate_json_schema_payload,
-)
-from ..types import (
-  AUTO_TRACK_WALKS_FIELD,
-  ConfigFlowPlaceholders,
-  DOG_GPS_CONFIG_FIELD,
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  DOG_OPTIONS_FIELD,
-  GEOFENCE_ALERTS_FIELD,
-  GEOFENCE_ENABLED_FIELD,
-  GEOFENCE_LAT_FIELD,
-  GEOFENCE_LON_FIELD,
-  GEOFENCE_RADIUS_FIELD,
-  GEOFENCE_RESTRICTED_ZONE_FIELD,
-  GEOFENCE_SAFE_ZONE_FIELD,
-  GEOFENCE_USE_HOME_FIELD,
-  GEOFENCE_ZONE_ENTRY_FIELD,
-  GEOFENCE_ZONE_EXIT_FIELD,
-  GPS_ACCURACY_FILTER_FIELD,
-  GPS_DISTANCE_FILTER_FIELD,
-  GPS_ENABLED_FIELD,
-  GPS_SETTINGS_FIELD,
-  GPS_UPDATE_INTERVAL_FIELD,
-  ROUTE_HISTORY_DAYS_FIELD,
-  ROUTE_RECORDING_FIELD,
-  AddAnotherDogInput,
-  ConfigFlowDiscoveryData,
-  DogConfigData,
-  DogFeedingStepInput,
-  DogGPSConfig,
-  DogGPSStepInput,
-  DogHealthStepInput,
-  DogOptionsMap,
-  DogSetupStepInput,
-  GeofenceOptions,
-  GPSOptions,
-  JSONLikeMapping,
-  JSONMutableMapping,
-  JSONValue,
-  OptionsDogSelectionInput,
-  OptionsGeofenceInput,
-  OptionsGPSSettingsInput,
-  ensure_dog_modules_config,
-  ensure_dog_options_entry,
-)
-from ..flow_validators import (
-  validate_flow_gps_coordinates,
-  validate_flow_timer_interval,
-)
-from ..validation import (
-  InputValidator,
-  validate_float_range,
-  validate_gps_accuracy_value,
-  validate_gps_interval,
-  validate_gps_source,
-)
+from ..flow_validators import validate_flow_gps_coordinates
+from ..flow_validators import validate_flow_timer_interval
+from ..schemas import GEOFENCE_OPTIONS_JSON_SCHEMA
+from ..schemas import GPS_DOG_CONFIG_JSON_SCHEMA
+from ..schemas import GPS_OPTIONS_JSON_SCHEMA
+from ..schemas import validate_json_schema_payload
+from ..types import AddAnotherDogInput
+from ..types import AUTO_TRACK_WALKS_FIELD
+from ..types import ConfigFlowDiscoveryData
+from ..types import ConfigFlowPlaceholders
+from ..types import DOG_GPS_CONFIG_FIELD
+from ..types import DOG_ID_FIELD
+from ..types import DOG_NAME_FIELD
+from ..types import DOG_OPTIONS_FIELD
+from ..types import DogConfigData
+from ..types import DogFeedingStepInput
+from ..types import DogGPSConfig
+from ..types import DogGPSStepInput
+from ..types import DogHealthStepInput
+from ..types import DogOptionsMap
+from ..types import DogSetupStepInput
+from ..types import ensure_dog_modules_config
+from ..types import ensure_dog_options_entry
+from ..types import GEOFENCE_ALERTS_FIELD
+from ..types import GEOFENCE_ENABLED_FIELD
+from ..types import GEOFENCE_LAT_FIELD
+from ..types import GEOFENCE_LON_FIELD
+from ..types import GEOFENCE_RADIUS_FIELD
+from ..types import GEOFENCE_RESTRICTED_ZONE_FIELD
+from ..types import GEOFENCE_SAFE_ZONE_FIELD
+from ..types import GEOFENCE_USE_HOME_FIELD
+from ..types import GEOFENCE_ZONE_ENTRY_FIELD
+from ..types import GEOFENCE_ZONE_EXIT_FIELD
+from ..types import GeofenceOptions
+from ..types import GPS_ACCURACY_FILTER_FIELD
+from ..types import GPS_DISTANCE_FILTER_FIELD
+from ..types import GPS_ENABLED_FIELD
+from ..types import GPS_SETTINGS_FIELD
+from ..types import GPS_UPDATE_INTERVAL_FIELD
+from ..types import GPSOptions
+from ..types import JSONLikeMapping
+from ..types import JSONMutableMapping
+from ..types import JSONValue
+from ..types import OptionsDogSelectionInput
+from ..types import OptionsGeofenceInput
+from ..types import OptionsGPSSettingsInput
+from ..types import ROUTE_HISTORY_DAYS_FIELD
+from ..types import ROUTE_RECORDING_FIELD
+from ..validation import InputValidator
+from ..validation import validate_float_range
+from ..validation import validate_gps_accuracy_value
+from ..validation import validate_gps_interval
+from ..validation import validate_gps_source
 from ..validation_helpers import safe_validate_interval
-from .gps_helpers import build_dog_gps_placeholders, validation_error_key
-from .gps_schemas import (
-  build_dog_gps_schema,
-  build_geofence_settings_schema,
-  build_gps_settings_schema,
-)
+from .gps_helpers import build_dog_gps_placeholders
+from .gps_helpers import validation_error_key
+from .gps_schemas import build_dog_gps_schema
+from .gps_schemas import build_geofence_settings_schema
+from .gps_schemas import build_gps_settings_schema
 
 _LOGGER = logging.getLogger(__name__)
 

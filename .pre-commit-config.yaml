@@ -87,7 +87,7 @@ repos:
     -   id: reorder-python-imports
         exclude: ^pre_commit/resources/
         args: [--py310-plus, --add-import, 'from __future__ import annotations']
-        
+
   - repo: local
     hooks:
       - id: shared-session-guard

@@ -3,16 +3,15 @@
 Provides the small subset of plugin behavior exercised by the PawControl
 test suite without requiring the real pytest-asyncio dependency.
 """
-
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Generator
+import contextlib
 import inspect
+from collections.abc import Generator
 from typing import Any
 
 import pytest
-import contextlib
 
 
 def pytest_addoption(parser) -> None:
