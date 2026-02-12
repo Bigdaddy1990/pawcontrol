@@ -9,26 +9,34 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import traceback
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, Final, ParamSpec, TypedDict, TypeVar, Unpack, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import ParamSpec
+from typing import TypedDict
+from typing import TypeVar
+from typing import Unpack
 
-from homeassistant.exceptions import (
-  ConfigEntryAuthFailed as _AuthFailedType,
-  HomeAssistantError as HomeAssistantErrorType,
-  ServiceValidationError as _ServiceValidationErrorType,
-)
+from homeassistant.exceptions import ConfigEntryAuthFailed as _AuthFailedType
+from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
+from homeassistant.exceptions import ServiceValidationError as _ServiceValidationErrorType
 from homeassistant.helpers.update_coordinator import (
   CoordinatorUpdateFailed as _UpdateFailedType,
 )
 from homeassistant.util import dt as dt_util
 
-from .types import ErrorContext, ErrorPayload, GPSLocation, JSONValue
+from .types import ErrorContext
+from .types import ErrorPayload
+from .types import GPSLocation
+from .types import JSONValue
 
 P = ParamSpec("P")
 T = TypeVar("T")

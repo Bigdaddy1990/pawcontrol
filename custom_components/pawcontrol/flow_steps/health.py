@@ -1,53 +1,51 @@
 """Health flow mixins for Paw Control."""
-
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import Any
+from typing import cast
+from typing import Protocol
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from ..const import MODULE_MEDICATION, SPECIAL_DIET_OPTIONS
+from ..const import MODULE_MEDICATION
+from ..const import SPECIAL_DIET_OPTIONS
 from ..exceptions import FlowValidationError
-from ..flow_helpers import (
-  coerce_bool,
-  coerce_optional_float,
-  coerce_optional_int,
-  coerce_optional_str,
-  coerce_str,
-)
-from ..types import (
-  DOG_AGE_FIELD,
-  DOG_FEEDING_CONFIG_FIELD,
-  DOG_HEALTH_CONFIG_FIELD,
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  DOG_OPTIONS_FIELD,
-  DOG_SIZE_FIELD,
-  DOG_WEIGHT_FIELD,
-  DogConfigData,
-  DogFeedingConfig,
-  DogHealthConfig,
-  DogHealthStepInput,
-  DogMedicationEntry,
-  DogVaccinationRecord,
-  DietValidationResult,
-  HealthOptions,
-  JSONLikeMapping,
-  JSONValue,
-  OptionsDogSelectionInput,
-  OptionsHealthSettingsInput,
-  ensure_dog_modules_config,
-  ensure_dog_options_entry,
-)
-from .health_helpers import (
-  build_dog_health_placeholders,
-  build_health_settings_payload,
-  summarise_health_summary,
-)
-from .health_schemas import build_dog_health_schema, build_health_settings_schema
+from ..flow_helpers import coerce_bool
+from ..flow_helpers import coerce_optional_float
+from ..flow_helpers import coerce_optional_int
+from ..flow_helpers import coerce_optional_str
+from ..flow_helpers import coerce_str
+from ..types import DietValidationResult
+from ..types import DOG_AGE_FIELD
+from ..types import DOG_FEEDING_CONFIG_FIELD
+from ..types import DOG_HEALTH_CONFIG_FIELD
+from ..types import DOG_ID_FIELD
+from ..types import DOG_NAME_FIELD
+from ..types import DOG_OPTIONS_FIELD
+from ..types import DOG_SIZE_FIELD
+from ..types import DOG_WEIGHT_FIELD
+from ..types import DogConfigData
+from ..types import DogFeedingConfig
+from ..types import DogHealthConfig
+from ..types import DogHealthStepInput
+from ..types import DogMedicationEntry
+from ..types import DogVaccinationRecord
+from ..types import ensure_dog_modules_config
+from ..types import ensure_dog_options_entry
+from ..types import HealthOptions
+from ..types import JSONLikeMapping
+from ..types import JSONValue
+from ..types import OptionsDogSelectionInput
+from ..types import OptionsHealthSettingsInput
+from .health_helpers import build_dog_health_placeholders
+from .health_helpers import build_health_settings_payload
+from .health_helpers import summarise_health_summary
+from .health_schemas import build_dog_health_schema
+from .health_schemas import build_health_settings_schema
 
 _LOGGER = logging.getLogger(__name__)
 

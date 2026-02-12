@@ -1,18 +1,16 @@
 """Plugin to enforce type hints on specific functions."""
-
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum
-import re
 from typing import TYPE_CHECKING
 
 from astroid import nodes
 from astroid.exceptions import NameInferenceError
+from homeassistant.const import Platform
 from pylint.checkers import BaseChecker
 from pylint.lint import PyLinter
-
-from homeassistant.const import Platform
 
 if TYPE_CHECKING:
   # InferenceResult is available only from astroid >= 2.12.0

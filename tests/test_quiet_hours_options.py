@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime, timezone
+from datetime import datetime
+from datetime import timezone
+from datetime import UTC
 from types import ModuleType
 
 from tests.helpers import install_homeassistant_stubs

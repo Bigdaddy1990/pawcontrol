@@ -1,24 +1,19 @@
 """Tests for PawControl config entry migrations."""
-
 from __future__ import annotations
 
 import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from custom_components.pawcontrol.const import (
-  CONF_DOG_OPTIONS,
-  CONF_DOGS,
-  CONF_MODULES,
-  CONFIG_ENTRY_VERSION,
-  DOMAIN,
-)
+from custom_components.pawcontrol.const import CONF_DOG_OPTIONS
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import CONF_MODULES
+from custom_components.pawcontrol.const import CONFIG_ENTRY_VERSION
+from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.migrations import async_migrate_entry
-from custom_components.pawcontrol.types import (
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-)
+from custom_components.pawcontrol.types import DOG_ID_FIELD
+from custom_components.pawcontrol.types import DOG_MODULES_FIELD
+from custom_components.pawcontrol.types import DOG_NAME_FIELD
 
 
 @pytest.mark.asyncio

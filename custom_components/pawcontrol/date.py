@@ -10,48 +10,48 @@ Metadata:
     Home Assistant: 2025.9.0+
     Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Mapping
 from contextlib import suppress
 from datetime import date
 from typing import cast
 
-from homeassistant.components.date import DateEntity, DateEntityDescription
+from homeassistant.components.date import DateEntity
+from homeassistant.components.date import DateEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  ATTR_DOG_ID,
-  DEFAULT_MODEL,
-  DEFAULT_SW_VERSION,
-  DOMAIN,
-  MODULE_FEEDING,
-  MODULE_HEALTH,
-  MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import DEFAULT_MODEL
+from .const import DEFAULT_SW_VERSION
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
-from .exceptions import PawControlError, ValidationError
+from .exceptions import PawControlError
+from .exceptions import ValidationError
 from .helpers import performance_monitor
 from .runtime_data import get_runtime_data
-from .types import (
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  CoordinatorDogData,
-  DogConfigData,
-  DogModulesMapping,
-  DogProfileSnapshot,
-  HealthModulePayload,
-  JSONMutableMapping,
-  ensure_dog_modules_mapping,
-)
+from .types import CoordinatorDogData
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesMapping
+from .types import DogProfileSnapshot
+from .types import ensure_dog_modules_mapping
+from .types import HealthModulePayload
+from .types import JSONMutableMapping
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)

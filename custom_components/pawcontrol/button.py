@@ -9,87 +9,83 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import datetime
-from typing import (
-  Any,
-  ClassVar,
-  Final,
-  Literal,
-  Protocol,
-  TypedDict,
-  cast,
-  runtime_checkable,
-)
+from typing import Any
+from typing import cast
+from typing import ClassVar
+from typing import Final
+from typing import Literal
+from typing import Protocol
+from typing import runtime_checkable
+from typing import TypedDict
 
-from homeassistant.components.button import (
-  ButtonDeviceClass,
-  ButtonEntity,
-  ButtonEntityDescription,
-)
+from homeassistant.components.button import ButtonDeviceClass
+from homeassistant.components.button import ButtonEntity
+from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import Context, HomeAssistant, ServiceRegistry
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.core import Context
+from homeassistant.core import HomeAssistant
+from homeassistant.core import ServiceRegistry
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  ATTR_DOG_ID,
-  DEFAULT_MODEL,
-  DEFAULT_SW_VERSION,
-  MODULE_FEEDING,
-  MODULE_GARDEN,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_WALK,
-  SERVICE_ADD_GARDEN_ACTIVITY,
-  SERVICE_ADD_FEEDING,
-  SERVICE_CONFIRM_GARDEN_POOP,
-  SERVICE_END_GARDEN_SESSION,
-  SERVICE_GPS_EXPORT_ROUTE,
-  SERVICE_GPS_END_WALK,
-  SERVICE_GPS_START_WALK,
-  SERVICE_LOG_HEALTH,
-  SERVICE_LOG_MEDICATION,
-  SERVICE_NOTIFY_TEST,
-  SERVICE_SEND_NOTIFICATION,
-  SERVICE_START_GARDEN_SESSION,
-  SERVICE_START_GROOMING,
-)
+from .const import ATTR_DOG_ID
+from .const import DEFAULT_MODEL
+from .const import DEFAULT_SW_VERSION
+from .const import MODULE_FEEDING
+from .const import MODULE_GARDEN
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
+from .const import SERVICE_ADD_FEEDING
+from .const import SERVICE_ADD_GARDEN_ACTIVITY
+from .const import SERVICE_CONFIRM_GARDEN_POOP
+from .const import SERVICE_END_GARDEN_SESSION
+from .const import SERVICE_GPS_END_WALK
+from .const import SERVICE_GPS_EXPORT_ROUTE
+from .const import SERVICE_GPS_START_WALK
+from .const import SERVICE_LOG_HEALTH
+from .const import SERVICE_LOG_MEDICATION
+from .const import SERVICE_NOTIFY_TEST
+from .const import SERVICE_SEND_NOTIFICATION
+from .const import SERVICE_START_GARDEN_SESSION
+from .const import SERVICE_START_GROOMING
 from .coordinator import PawControlCoordinator
-from .utils import normalize_value, resolve_default_feeding_amount
 from .entity import PawControlDogEntityBase
-from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
-from .grooming_translations import (
-  translated_grooming_label,
-  translated_grooming_template,
-)
+from .exceptions import WalkAlreadyInProgressError
+from .exceptions import WalkNotInProgressError
+from .grooming_translations import translated_grooming_label
+from .grooming_translations import translated_grooming_template
 from .runtime_data import get_runtime_data
-from .types import (
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  WALK_IN_PROGRESS_FIELD,
-  DogConfigData,
-  GardenModulePayload,
-  GPSModulePayload,
-  HealthModulePayload,
-  JSONLikeMapping,
-  JSONMapping,
-  JSONMutableMapping,
-  PawControlConfigEntry,
-  WalkModulePayload,
-  ensure_dog_config_data,
-  ensure_dog_modules_projection,
-  ensure_json_mapping,
-)
-from .utils import async_call_add_entities, normalise_entity_attributes
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import ensure_dog_modules_projection
+from .types import ensure_json_mapping
+from .types import GardenModulePayload
+from .types import GPSModulePayload
+from .types import HealthModulePayload
+from .types import JSONLikeMapping
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import PawControlConfigEntry
+from .types import WALK_IN_PROGRESS_FIELD
+from .types import WalkModulePayload
+from .utils import async_call_add_entities
+from .utils import normalise_entity_attributes
+from .utils import normalize_value
+from .utils import resolve_default_feeding_amount
 
 _LOGGER = logging.getLogger(__name__)
 

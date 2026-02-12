@@ -1,53 +1,47 @@
 """JSON schemas and validators for PawControl configuration payloads."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 from numbers import Real
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
-from .const import (
-  CONF_AUTO_TRACK_WALKS,
-  CONF_GPS_ACCURACY_FILTER,
-  CONF_GPS_DISTANCE_FILTER,
-  CONF_WEBHOOK_ENABLED,
-  CONF_WEBHOOK_ID,
-  CONF_WEBHOOK_REQUIRE_SIGNATURE,
-  CONF_WEBHOOK_SECRET,
-  CONF_GPS_ENABLED,
-  CONF_GPS_SOURCE,
-  CONF_GPS_UPDATE_INTERVAL,
-  CONF_HOME_ZONE_RADIUS,
-  CONF_ROUTE_HISTORY_DAYS,
-  CONF_ROUTE_RECORDING,
-  CONF_MQTT_ENABLED,
-  CONF_MQTT_TOPIC,
-  CONF_PUSH_NONCE_TTL_SECONDS,
-  CONF_PUSH_PAYLOAD_MAX_BYTES,
-  CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-  CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-  CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
-)
-from .types import (
-  GEOFENCE_ALERTS_FIELD,
-  GEOFENCE_ENABLED_FIELD,
-  GEOFENCE_LAT_FIELD,
-  GEOFENCE_LON_FIELD,
-  GEOFENCE_RADIUS_FIELD,
-  GEOFENCE_RESTRICTED_ZONE_FIELD,
-  GEOFENCE_SAFE_ZONE_FIELD,
-  GEOFENCE_USE_HOME_FIELD,
-  GEOFENCE_ZONE_ENTRY_FIELD,
-  GEOFENCE_ZONE_EXIT_FIELD,
-)
-from .validation import (
-  MAX_GEOFENCE_RADIUS,
-  MAX_LATITUDE,
-  MAX_LONGITUDE,
-  MIN_GEOFENCE_RADIUS,
-  MIN_LATITUDE,
-  MIN_LONGITUDE,
-)
+from .const import CONF_AUTO_TRACK_WALKS
+from .const import CONF_GPS_ACCURACY_FILTER
+from .const import CONF_GPS_DISTANCE_FILTER
+from .const import CONF_GPS_ENABLED
+from .const import CONF_GPS_SOURCE
+from .const import CONF_GPS_UPDATE_INTERVAL
+from .const import CONF_HOME_ZONE_RADIUS
+from .const import CONF_MQTT_ENABLED
+from .const import CONF_MQTT_TOPIC
+from .const import CONF_PUSH_NONCE_TTL_SECONDS
+from .const import CONF_PUSH_PAYLOAD_MAX_BYTES
+from .const import CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE
+from .const import CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE
+from .const import CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE
+from .const import CONF_ROUTE_HISTORY_DAYS
+from .const import CONF_ROUTE_RECORDING
+from .const import CONF_WEBHOOK_ENABLED
+from .const import CONF_WEBHOOK_ID
+from .const import CONF_WEBHOOK_REQUIRE_SIGNATURE
+from .const import CONF_WEBHOOK_SECRET
+from .types import GEOFENCE_ALERTS_FIELD
+from .types import GEOFENCE_ENABLED_FIELD
+from .types import GEOFENCE_LAT_FIELD
+from .types import GEOFENCE_LON_FIELD
+from .types import GEOFENCE_RADIUS_FIELD
+from .types import GEOFENCE_RESTRICTED_ZONE_FIELD
+from .types import GEOFENCE_SAFE_ZONE_FIELD
+from .types import GEOFENCE_USE_HOME_FIELD
+from .types import GEOFENCE_ZONE_ENTRY_FIELD
+from .types import GEOFENCE_ZONE_EXIT_FIELD
+from .validation import MAX_GEOFENCE_RADIUS
+from .validation import MAX_LATITUDE
+from .validation import MAX_LONGITUDE
+from .validation import MIN_GEOFENCE_RADIUS
+from .validation import MIN_LATITUDE
+from .validation import MIN_LONGITUDE
 
 
 @dataclass(frozen=True, slots=True)

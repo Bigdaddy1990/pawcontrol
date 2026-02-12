@@ -1,66 +1,69 @@
 """Text platform for Paw Control integration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
+from typing import cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import text as text_component
-from homeassistant.components.text import TextEntity, TextEntityDescription, TextMode
+from homeassistant.components.text import TextEntity
+from homeassistant.components.text import TextEntityDescription
+from homeassistant.components.text import TextMode
 from homeassistant.const import (
   ATTR_VALUE,
 )
-from homeassistant.core import Context, HomeAssistant, State
+from homeassistant.core import Context
+from homeassistant.core import HomeAssistant
+from homeassistant.core import State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  ATTR_DOG_ID,
-  DEFAULT_MODEL,
-  DEFAULT_SW_VERSION,
-  DOMAIN,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import DEFAULT_MODEL
+from .const import DEFAULT_SW_VERSION
+from .const import DOMAIN
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
-from .notifications import NotificationPriority, NotificationType
+from .notifications import NotificationPriority
+from .notifications import NotificationType
 from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
-from .types import (
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  DOG_TEXT_METADATA_FIELD,
-  DOG_TEXT_VALUES_FIELD,
-  ConfigFlowUserInput,
-  CoordinatorDogData,
-  DogConfigData,
-  DogModulesConfig,
-  DogModulesProjection,
-  DogTextMetadataEntry,
-  DogTextMetadataSnapshot,
-  DogTextSnapshot,
-  JSONMapping,
-  JSONMutableMapping,
-  JSONValue,
-  ModuleToggleKey,
-  PawControlConfigEntry,
-  TextSnapshotKey,
-  _normalise_text_metadata_entry,
-  coerce_dog_modules_config,
-  ensure_dog_config_data,
-  ensure_dog_text_metadata_snapshot,
-  ensure_dog_text_snapshot,
-)
+from .types import _normalise_text_metadata_entry
+from .types import coerce_dog_modules_config
+from .types import ConfigFlowUserInput
+from .types import CoordinatorDogData
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DOG_TEXT_METADATA_FIELD
+from .types import DOG_TEXT_VALUES_FIELD
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import DogModulesProjection
+from .types import DogTextMetadataEntry
+from .types import DogTextMetadataSnapshot
+from .types import DogTextSnapshot
+from .types import ensure_dog_config_data
+from .types import ensure_dog_text_metadata_snapshot
+from .types import ensure_dog_text_snapshot
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import ModuleToggleKey
+from .types import PawControlConfigEntry
+from .types import TextSnapshotKey
 from .utils import async_call_add_entities
 
 # ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.

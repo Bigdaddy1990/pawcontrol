@@ -1,14 +1,16 @@
 """Type-checking protocols for options flow mixin hosts."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Protocol
+from typing import Any
+from typing import Protocol
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .types import DogConfigData, DogOptionsMap, JSONValue
+from .types import DogConfigData
+from .types import DogOptionsMap
+from .types import JSONValue
 
 
 class DogOptionsHost(Protocol):

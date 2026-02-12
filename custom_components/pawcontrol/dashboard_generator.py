@@ -7,7 +7,6 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -15,51 +14,61 @@ import contextlib
 import json
 import logging
 import time
-from collections.abc import Awaitable, Coroutine, Mapping, Sequence
+from collections.abc import Awaitable
+from collections.abc import Coroutine
+from collections.abc import Mapping
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Final, Literal, NotRequired, TypedDict, TypeVar, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import NotRequired
+from typing import TypedDict
+from typing import TypeVar
 
 import aiofiles  # type: ignore[import-untyped]
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .const import DOMAIN, MODULE_NOTIFICATIONS, MODULE_WEATHER
-from .coordinator_tasks import (
-  CoordinatorRejectionMetrics,
-  default_rejection_metrics,
-  merge_rejection_metric_values,
-)
+from .const import DOMAIN
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WEATHER
+from .coordinator_tasks import CoordinatorRejectionMetrics
+from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import merge_rejection_metric_values
 from .dashboard_renderer import DashboardRenderer
-from .dashboard_shared import coerce_dog_config, coerce_dog_configs, unwrap_async_result
+from .dashboard_shared import coerce_dog_config
+from .dashboard_shared import coerce_dog_configs
+from .dashboard_shared import unwrap_async_result
 from .dashboard_templates import DashboardTemplates
 from .runtime_data import get_runtime_data
 from .service_guard import normalise_guard_history
 from .telemetry import get_runtime_performance_stats
-from .types import (
-  DOG_BREED_FIELD,
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  CoordinatorStatisticsPayload,
-  DashboardRendererOptions,
-  DashboardRenderResult,
-  DogConfigData,
-  DogModulesConfig,
-  HelperManagerGuardMetrics,
-  JSONMapping,
-  JSONMutableMapping,
-  JSONValue,
-  LovelaceCardConfig,
-  LovelaceViewConfig,
-  PawControlRuntimeData,
-  RawDogConfig,
-  coerce_dog_modules_config,
-)
+from .types import coerce_dog_modules_config
+from .types import CoordinatorStatisticsPayload
+from .types import DashboardRendererOptions
+from .types import DashboardRenderResult
+from .types import DOG_BREED_FIELD
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import HelperManagerGuardMetrics
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import LovelaceCardConfig
+from .types import LovelaceViewConfig
+from .types import PawControlRuntimeData
+from .types import RawDogConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -612,7 +621,7 @@ class PawControlDashboardGenerator:
       if isinstance(card_count_raw, int | float | str):
         try:
           card_count = int(card_count_raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
           card_count = 0
       else:
         card_count = 0

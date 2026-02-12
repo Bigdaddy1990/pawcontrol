@@ -7,63 +7,60 @@ with full type annotations, async operations, and robust error handling.
 
 OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code duplication.
 """
-
 from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Mapping, Sequence
-from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING, Literal, cast
+from collections.abc import Mapping
+from collections.abc import Sequence
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
+from typing import cast
+from typing import Literal
+from typing import TYPE_CHECKING
 
-from homeassistant.components.binary_sensor import (
-  BinarySensorDeviceClass,
-  BinarySensorEntity,
-  BinarySensorEntityDescription,
-)
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  DEFAULT_MODEL,
-  DEFAULT_SW_VERSION,
-  MODULE_FEEDING,
-  MODULE_GARDEN,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_WALK,
-)
+from .const import DEFAULT_MODEL
+from .const import DEFAULT_SW_VERSION
+from .const import MODULE_FEEDING
+from .const import MODULE_GARDEN
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
-from .types import (
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  VISITOR_MODE_ACTIVE_FIELD,
-  WALK_IN_PROGRESS_FIELD,
-  CoordinatorTypedModuleName,
-  DogConfigData,
-  FeedingEmergencyState,
-  FeedingModulePayload,
-  GardenModulePayload,
-  GPSModulePayload,
-  HealthModulePayload,
-  EntityAttributeDateMutableMapping,
-  JSONMapping,
-  JSONMutableMapping,
-  JSONValue,
-  PawControlConfigEntry,
-  WalkModulePayload,
-  ensure_dog_config_data,
-  ensure_dog_modules_mapping,
-)
-from .utils import (
-  ensure_utc_datetime,
-  normalise_entity_attributes,
-)
+from .types import CoordinatorTypedModuleName
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import ensure_dog_modules_mapping
+from .types import EntityAttributeDateMutableMapping
+from .types import FeedingEmergencyState
+from .types import FeedingModulePayload
+from .types import GardenModulePayload
+from .types import GPSModulePayload
+from .types import HealthModulePayload
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import PawControlConfigEntry
+from .types import VISITOR_MODE_ACTIVE_FIELD
+from .types import WALK_IN_PROGRESS_FIELD
+from .types import WalkModulePayload
+from .utils import ensure_utc_datetime
+from .utils import normalise_entity_attributes
 
 if TYPE_CHECKING:
   from .garden_manager import GardenManager
@@ -224,7 +221,7 @@ class BinarySensorLogicMixin:
         return num_value <= threshold
       raise ValueError(f"Unknown comparison: {comparison}")
 
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return default_if_none
 
 

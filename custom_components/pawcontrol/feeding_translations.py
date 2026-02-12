@@ -1,16 +1,25 @@
 """Localised templates for feeding compliance notifications."""
-
 from __future__ import annotations
 
-from collections import UserString
 import json
-from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
+from collections import UserString
+from collections.abc import Collection
+from collections.abc import Iterable
+from collections.abc import Iterator
+from collections.abc import Mapping
+from collections.abc import Sequence
 from itertools import islice
 from math import isfinite
 from numbers import Real
-from os import PathLike, fspath
+from os import fspath
+from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final, TypeVar, cast, overload
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import overload
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
@@ -604,7 +613,7 @@ def _load_static_common_translations(language: str | None) -> Mapping[str, str]:
       return {}
     try:
       data = json.loads(file_path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except OSError, ValueError:
       return {}
     common = data.get("common", {})
     return common if isinstance(common, dict) else {}

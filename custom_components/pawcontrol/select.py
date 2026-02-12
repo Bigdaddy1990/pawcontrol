@@ -5,18 +5,23 @@ including mode selections, option choices, and status settings. All select entit
 are designed to meet Home Assistant's Platinum quality ambitions with full type
 annotations, async operations, and robust validation.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final, cast
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 from homeassistant.components import select as select_component
-from homeassistant.components.select import SelectEntity, SelectEntityDescription
-from homeassistant.core import Context, HomeAssistant, State
+from homeassistant.components.select import SelectEntity
+from homeassistant.components.select import SelectEntityDescription
+from homeassistant.core import Context
+from homeassistant.core import HomeAssistant
+from homeassistant.core import State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity

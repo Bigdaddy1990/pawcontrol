@@ -1,10 +1,12 @@
 """Tests for datetime conversion utilities."""
-
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import date
+from datetime import datetime
+from datetime import UTC
 
 import pytest
+
 from custom_components.pawcontrol.utils import ensure_utc_datetime
 
 

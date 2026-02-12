@@ -1,5 +1,4 @@
 """Session reuse safeguards for the device API client."""
-
 from __future__ import annotations
 
 import asyncio
@@ -7,7 +6,8 @@ import importlib.util
 import sys
 from pathlib import Path
 from types import ModuleType
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import pytest
 from pytest import MonkeyPatch

@@ -13,54 +13,57 @@ statements and the return type of ``extra_state_attributes`` to satisfy strict
 typing rules. All other functionality—GPS tracking, route recording, geofence
 integration, and export utilities—remains unchanged.
 """
-
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from collections.abc import Mapping
+from collections.abc import Sequence
+from datetime import datetime
+from datetime import timedelta
 from typing import cast
 
-from homeassistant.components.device_tracker import SourceType, TrackerEntity
-from homeassistant.const import Platform, STATE_HOME, STATE_NOT_HOME, STATE_UNKNOWN
+from homeassistant.components.device_tracker import SourceType
+from homeassistant.components.device_tracker import TrackerEntity
+from homeassistant.const import Platform
+from homeassistant.const import STATE_HOME
+from homeassistant.const import STATE_NOT_HOME
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, MODULE_GPS
+from .const import DEFAULT_MODEL
+from .const import DEFAULT_SW_VERSION
+from .const import MODULE_GPS
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
-from .types import (
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  DogConfigData,
-  GPSLocationSample,
-  GPSModulePayload,
-  GPSRouteBuffer,
-  GPSRouteExportCSVPayload,
-  GPSRouteExportGPXPayload,
-  GPSRouteExportJSONContent,
-  GPSRouteExportJSONPayload,
-  GPSRouteExportJSONPoint,
-  GPSRouteExportJSONRoute,
-  GPSRouteExportPayload,
-  GPSRoutePoint,
-  GPSRouteSnapshot,
-  JSONMapping,
-  JSONMutableMapping,
-  JSONValue,
-  PawControlConfigEntry,
-  ensure_dog_config_data,
-  ensure_dog_modules_projection,
-  ensure_gps_payload,
-)
-from .utils import (
-  async_call_add_entities,
-  ensure_utc_datetime,
-  normalise_entity_attributes,
-)
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import ensure_dog_modules_projection
+from .types import ensure_gps_payload
+from .types import GPSLocationSample
+from .types import GPSModulePayload
+from .types import GPSRouteBuffer
+from .types import GPSRouteExportCSVPayload
+from .types import GPSRouteExportGPXPayload
+from .types import GPSRouteExportJSONContent
+from .types import GPSRouteExportJSONPayload
+from .types import GPSRouteExportJSONPoint
+from .types import GPSRouteExportJSONRoute
+from .types import GPSRouteExportPayload
+from .types import GPSRoutePoint
+from .types import GPSRouteSnapshot
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import PawControlConfigEntry
+from .utils import async_call_add_entities
+from .utils import ensure_utc_datetime
+from .utils import normalise_entity_attributes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -306,7 +309,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       lat = gps_data.get("latitude")
       return float(lat) if lat is not None else None
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return None
 
   @property
@@ -319,7 +322,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       lon = gps_data.get("longitude")
       return float(lon) if lon is not None else None
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return None
 
   @property
@@ -332,7 +335,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       accuracy = gps_data.get("accuracy")
       return int(accuracy) if accuracy is not None else DEFAULT_GPS_ACCURACY
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return DEFAULT_GPS_ACCURACY
 
   @property
@@ -345,7 +348,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       battery = gps_data.get("battery")
       return int(battery) if battery is not None else None
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return None
 
   @property

@@ -14,25 +14,31 @@ Notes:
   is an entity_id, not one of the push keywords.
 - Telemetry / strict source checks for webhook/MQTT are handled by push_router.py.
 """
-
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Final, cast
+from typing import Any
+from typing import cast
+from typing import Final
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import Event
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import event as event_helper
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOGS, CONF_GPS_SOURCE, DOMAIN
+from .const import CONF_DOGS
+from .const import CONF_GPS_SOURCE
+from .const import DOMAIN
 from .gps_manager import LocationSource
 from .runtime_data import require_runtime_data
-import contextlib
 
 _LOGGER = logging.getLogger(__name__)
 

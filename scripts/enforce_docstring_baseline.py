@@ -1,5 +1,4 @@
 """Verify docstring coverage stays above the documented baseline."""
-
 from __future__ import annotations
 
 import argparse

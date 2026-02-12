@@ -1,5 +1,4 @@
 """Coverage shim used for PawControl's isolated test environment."""
-
 from __future__ import annotations
 
 import json
@@ -11,8 +10,10 @@ from collections import defaultdict
 from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
-from types import CodeType, FrameType
-from typing import Any, Protocol
+from types import CodeType
+from types import FrameType
+from typing import Any
+from typing import Protocol
 
 
 class TraceFunc(Protocol):

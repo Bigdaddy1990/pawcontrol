@@ -7,49 +7,58 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-from typing import TypeVar
 import asyncio
 import inspect
 import json
 import logging
+import time
 from collections import deque
-from collections.abc import Awaitable, Callable, Mapping, MutableMapping, Sequence
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
 from enum import Enum
 from functools import partial
-import time
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
+from typing import TypedDict
+from typing import TypeVar
 from uuid import uuid4
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
+from aiohttp import ClientError
+from aiohttp import ClientSession
+from aiohttp import ClientTimeout
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .coordinator_tasks import default_rejection_metrics
 from .coordinator_support import CacheMonitorRegistrar
+from .coordinator_tasks import default_rejection_metrics
 from .dashboard_shared import unwrap_async_result
 from .feeding_translations import async_build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
-from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
-from .resilience import CircuitBreakerConfig, ResilienceManager
+from .person_entity_manager import PersonEntityConfigInput
+from .person_entity_manager import PersonEntityManager
+from .resilience import CircuitBreakerConfig
+from .resilience import ResilienceManager
 from .runtime_data import get_runtime_data
 from .telemetry import ensure_runtime_performance_stats
-from .types import (
-  CoordinatorRejectionMetrics,
-  JSONMutableMapping,
-  PersonEntityStats,
-  PersonNotificationContext,
-)
-from .utils import (
-  ErrorContext,
-  async_call_hass_service_if_available,
-  build_error_context,
-)
-from .webhook_security import WebhookSecurityError, WebhookSecurityManager
+from .types import CoordinatorRejectionMetrics
+from .types import JSONMutableMapping
+from .types import PersonEntityStats
+from .types import PersonNotificationContext
+from .utils import async_call_hass_service_if_available
+from .utils import build_error_context
+from .utils import ErrorContext
+from .webhook_security import WebhookSecurityError
+from .webhook_security import WebhookSecurityManager
 
 
 def _dt_now() -> datetime:

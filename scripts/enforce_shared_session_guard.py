@@ -1,5 +1,4 @@
 """Block regressions that instantiate dedicated aiohttp sessions."""
-
 from __future__ import annotations
 
 import ast

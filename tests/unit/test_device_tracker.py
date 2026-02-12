@@ -1,12 +1,14 @@
 """Unit tests for the PawControl GPS device tracker entity."""
-
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
 
 import pytest
+
 from custom_components.pawcontrol.device_tracker import PawControlGPSTracker
 from custom_components.pawcontrol.types import GPSModulePayload
 

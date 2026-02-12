@@ -1,46 +1,56 @@
 """Feeding management with health-aware portions for PawControl."""
-
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 from enum import Enum
 from functools import partial
 from time import perf_counter
-from typing import Any, Literal, NotRequired, Required, TypedDict, TypeVar, cast
+from typing import Any
+from typing import cast
+from typing import Literal
+from typing import NotRequired
+from typing import Required
+from typing import TypedDict
+from typing import TypeVar
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .types import (
-  DietValidationResult,
-  FeedingDailyStats,
-  FeedingDietValidationSummary,
-  FeedingEmergencyState,
-  FeedingEventRecord,
-  FeedingGoalSettings,
-  FeedingHealthContext,
-  FeedingHealthStatus,
-  FeedingHealthSummary,
-  FeedingHistoryAnalysis,
-  FeedingHistoryEvent,
-  FeedingManagerDogSetupPayload,
-  FeedingMissedMeal,
-  FeedingSnapshot,
-  FeedingSnapshotCache,
-  FeedingStatisticsCache,
-  FeedingStatisticsSnapshot,
-  HealthFeedingInsights,
-  HealthMetricsOverride,
-  HealthReport,
-  JSONLikeMapping,
-  JSONMapping,
-  JSONMutableMapping,
-)
+from .types import DietValidationResult
+from .types import FeedingDailyStats
+from .types import FeedingDietValidationSummary
+from .types import FeedingEmergencyState
+from .types import FeedingEventRecord
+from .types import FeedingGoalSettings
+from .types import FeedingHealthContext
+from .types import FeedingHealthStatus
+from .types import FeedingHealthSummary
+from .types import FeedingHistoryAnalysis
+from .types import FeedingHistoryEvent
+from .types import FeedingManagerDogSetupPayload
+from .types import FeedingMissedMeal
+from .types import FeedingSnapshot
+from .types import FeedingSnapshotCache
+from .types import FeedingStatisticsCache
+from .types import FeedingStatisticsSnapshot
+from .types import HealthFeedingInsights
+from .types import HealthMetricsOverride
+from .types import HealthReport
+from .types import JSONLikeMapping
+from .types import JSONMapping
+from .types import JSONMutableMapping
 from .utils import is_number
 
 # Support running as standalone module in tests
@@ -1239,7 +1249,7 @@ class FeedingManager:
 
         try:
           parsed_weight = float(weight)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
           raise ValueError(
             f"Invalid feeding configuration for {dog_id}: weight is required",
           ) from None
@@ -1267,7 +1277,7 @@ class FeedingManager:
         ):
           try:
             config.ideal_weight = float(ideal_weight)
-          except (TypeError, ValueError):  # pragma: no cover - defensive
+          except TypeError, ValueError:  # pragma: no cover - defensive
             _LOGGER.debug(
               "Invalid ideal weight %s for %s; keeping existing value",
               ideal_weight,
@@ -1606,7 +1616,7 @@ class FeedingManager:
         return time(int(parts[0]), int(parts[1]))
       if len(parts) == 3:
         return time(int(parts[0]), int(parts[1]), int(parts[2]))
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
       _LOGGER.warning("Failed to parse time: %s", time_str)
 
     return None
@@ -1710,12 +1720,12 @@ class FeedingManager:
       try:
         base_weight = float(config.ideal_weight)
         adjusted_rer = False
-      except (TypeError, ValueError):  # pragma: no cover - defensive
+      except TypeError, ValueError:  # pragma: no cover - defensive
         base_weight = weight_value
     elif config.weight_goal == "gain" and config.ideal_weight:
       try:
         base_weight = float(config.ideal_weight)
-      except (TypeError, ValueError):
+      except TypeError, ValueError:
         base_weight = weight_value
 
     rer = self._calculate_rer(base_weight, adjusted=adjusted_rer)
@@ -2353,7 +2363,7 @@ class FeedingManager:
       if daily_calorie_target:
         try:
           progress = (total_calories_today / daily_calorie_target) * 100
-        except (TypeError, ZeroDivisionError):
+        except TypeError, ZeroDivisionError:
           calorie_goal_progress = 0.0
         else:
           calorie_goal_progress = round(min(progress, 150.0), 1)
@@ -2429,7 +2439,7 @@ class FeedingManager:
               0.0,
               min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
             )
-        except (TypeError, ZeroDivisionError):
+        except TypeError, ZeroDivisionError:
           weight_goal_progress = None
 
     emergency_mode: FeedingEmergencyState | None = None
@@ -2464,7 +2474,7 @@ class FeedingManager:
           0.0,
           target_calories - consumed_calories,
         )
-      except (TypeError, ValueError):  # pragma: no cover - defensive
+      except TypeError, ValueError:  # pragma: no cover - defensive
         remaining_calories = None
 
     daily_stats = FeedingDailyStats(
@@ -2481,7 +2491,7 @@ class FeedingManager:
     elif total_calories_today is not None and daily_calorie_target:
       try:
         ratio = total_calories_today / daily_calorie_target
-      except (TypeError, ZeroDivisionError):
+      except TypeError, ZeroDivisionError:
         health_status = "unknown"
       else:
         if ratio < 0.85:

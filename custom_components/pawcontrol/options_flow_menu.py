@@ -1,16 +1,14 @@
 """Main menu step for the PawControl options flow."""
-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigFlowResult
 
-from .types import (
-  OptionsMainMenuAction,
-  OptionsMainMenuInput,
-  PUSH_SETTINGS_MENU_ACTION,
-)
+from .types import OptionsMainMenuAction
+from .types import OptionsMainMenuInput
+from .types import PUSH_SETTINGS_MENU_ACTION
 
 
 if TYPE_CHECKING:

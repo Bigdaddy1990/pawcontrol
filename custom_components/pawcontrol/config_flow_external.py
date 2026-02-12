@@ -8,46 +8,44 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Final, Literal, Protocol, cast
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import Protocol
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant
 
-from .const import (
-  CONF_DOOR_SENSOR,
-  CONF_GPS_SOURCE,
-  CONF_NOTIFY_FALLBACK,
-  DOOR_SENSOR_DEVICE_CLASSES,
-  MODULE_GPS,
-  MODULE_NOTIFICATIONS,
-  MODULE_VISITOR,
-)
-from .exceptions import FlowValidationError, ValidationError
+from .const import CONF_DOOR_SENSOR
+from .const import CONF_GPS_SOURCE
+from .const import CONF_NOTIFY_FALLBACK
+from .const import DOOR_SENSOR_DEVICE_CLASSES
+from .const import MODULE_GPS
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_VISITOR
+from .exceptions import FlowValidationError
+from .exceptions import ValidationError
 from .selector_shim import selector
-from .types import (
-  DOOR_SENSOR_FIELD,
-  EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE,
-  GPS_SOURCE_FIELD,
-  NOTIFY_FALLBACK_FIELD,
-  ConfigFlowPlaceholders,
-  ConfigFlowUserInput,
-  DogConfigData,
-  DogModulesConfig,
-  ExternalEntityConfig,
-  ExternalEntitySelectorOption,
-  clone_placeholders,
-  freeze_placeholders,
-)
-from .validation import (
-  validate_gps_source,
-  validate_notify_service,
-  validate_sensor_entity_id,
-)
+from .types import clone_placeholders
+from .types import ConfigFlowPlaceholders
+from .types import ConfigFlowUserInput
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import DOOR_SENSOR_FIELD
+from .types import EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE
+from .types import ExternalEntityConfig
+from .types import ExternalEntitySelectorOption
+from .types import freeze_placeholders
+from .types import GPS_SOURCE_FIELD
+from .types import NOTIFY_FALLBACK_FIELD
+from .validation import validate_gps_source
+from .validation import validate_notify_service
+from .validation import validate_sensor_entity_id
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
   Literal["gps_source"],

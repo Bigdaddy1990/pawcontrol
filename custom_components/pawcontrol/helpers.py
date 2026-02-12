@@ -3,19 +3,28 @@
 OPTIMIZED VERSION with async performance improvements, batch operations,
 and memory-efficient data management for Platinum quality ambitions.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections import deque
-from collections.abc import Awaitable, Callable, Mapping, Sized
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import Sized
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
 from functools import wraps
 from time import perf_counter
-from typing import Any, Final, ParamSpec, TypedDict, TypeVar, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import ParamSpec
+from typing import TypedDict
+from typing import TypeVar
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -23,56 +32,50 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import storage
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  CONF_DOG_OPTIONS,
-  CONF_DOGS,
-  CONF_NOTIFICATIONS,
-  CONF_QUIET_END,
-  CONF_QUIET_HOURS,
-  CONF_QUIET_START,
-  DATA_FILE_FEEDINGS,
-  DATA_FILE_HEALTH,
-  DATA_FILE_ROUTES,
-  DATA_FILE_STATS,
-  DATA_FILE_WALKS,
-  DOMAIN,
-  EVENT_FEEDING_LOGGED,
-  EVENT_HEALTH_LOGGED,
-  EVENT_WALK_ENDED,
-  EVENT_WALK_STARTED,
-)
+from .const import CONF_DOG_OPTIONS
+from .const import CONF_DOGS
+from .const import CONF_NOTIFICATIONS
+from .const import CONF_QUIET_END
+from .const import CONF_QUIET_HOURS
+from .const import CONF_QUIET_START
+from .const import DATA_FILE_FEEDINGS
+from .const import DATA_FILE_HEALTH
+from .const import DATA_FILE_ROUTES
+from .const import DATA_FILE_STATS
+from .const import DATA_FILE_WALKS
+from .const import DOMAIN
+from .const import EVENT_FEEDING_LOGGED
+from .const import EVENT_HEALTH_LOGGED
+from .const import EVENT_WALK_ENDED
+from .const import EVENT_WALK_STARTED
 from .data_manager import _deserialize_datetime
-from .types import (
-  VALID_NOTIFICATION_PRIORITIES,
-  CacheDiagnosticsMetadata,
-  DogConfigData,
-  HealthEvent,
-  HealthHistoryEntry,
-  HealthNamespaceMutable,
-  JSONDateMapping,
-  JSONLikeMapping,
-  JSONMutableMapping,
-  JSONValue,
-  NotificationPriority,
-  NotificationQueueStats,
-  PerformanceMonitorSnapshot,
-  QueuedNotificationPayload,
-  StorageCacheValue,
-  StorageNamespaceKey,
-  StorageNamespacePayload,
-  StorageNamespaceState,
-  WalkEvent,
-  WalkHistoryEntry,
-  WalkNamespaceMutable,
-  WalkNamespaceMutableEntry,
-  WalkNamespaceValue,
-  WalkStartPayload,
-)
-from .utils import (
-  async_call_hass_service_if_available,
-  async_fire_event,
-  ensure_utc_datetime,
-)
+from .types import CacheDiagnosticsMetadata
+from .types import DogConfigData
+from .types import HealthEvent
+from .types import HealthHistoryEntry
+from .types import HealthNamespaceMutable
+from .types import JSONDateMapping
+from .types import JSONLikeMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import NotificationPriority
+from .types import NotificationQueueStats
+from .types import PerformanceMonitorSnapshot
+from .types import QueuedNotificationPayload
+from .types import StorageCacheValue
+from .types import StorageNamespaceKey
+from .types import StorageNamespacePayload
+from .types import StorageNamespaceState
+from .types import VALID_NOTIFICATION_PRIORITIES
+from .types import WalkEvent
+from .types import WalkHistoryEntry
+from .types import WalkNamespaceMutable
+from .types import WalkNamespaceMutableEntry
+from .types import WalkNamespaceValue
+from .types import WalkStartPayload
+from .utils import async_call_hass_service_if_available
+from .utils import async_fire_event
+from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -764,7 +767,7 @@ class PawControlDataStorage:
               before,
               len(limited_slice),
             )
-          except (TypeError, KeyError):
+          except TypeError, KeyError:
             # Fallback to simple truncation
             before = len(value)
             truncated = value[-MAX_HISTORY_ITEMS:]
@@ -1411,7 +1414,7 @@ class PawControlData:
 
     try:
       dog_id = events[0]["dog_id"]
-    except (IndexError, KeyError):
+    except IndexError, KeyError:
       _LOGGER.error("Health event batch missing dog identifier")
       return
 
@@ -1488,7 +1491,7 @@ class PawControlData:
 
     try:
       dog_id = events[0]["dog_id"]
-    except (IndexError, KeyError):
+    except IndexError, KeyError:
       _LOGGER.error("Walk event batch missing dog identifier")
       return
 

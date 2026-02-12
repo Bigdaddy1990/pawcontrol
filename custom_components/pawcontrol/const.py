@@ -10,15 +10,15 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from datetime import timedelta
 from enum import StrEnum
-import re
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final
+from typing import Final
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from homeassistant.const import Platform

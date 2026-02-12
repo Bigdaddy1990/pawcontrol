@@ -1,14 +1,16 @@
 """Tests for the async_fire_event helper."""
-
 from __future__ import annotations
 
 import inspect
 import logging
 from collections.abc import Mapping
-from datetime import UTC, datetime
-from unittest.mock import AsyncMock, Mock
+from datetime import datetime
+from datetime import UTC
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import pytest
+
 from custom_components.pawcontrol.utils import async_fire_event
 
 

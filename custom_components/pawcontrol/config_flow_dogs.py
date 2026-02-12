@@ -9,96 +9,92 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import importlib
 import logging
-from collections.abc import Awaitable, Callable, Mapping
-from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Mapping
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from custom_components.pawcontrol.config_flow_base import (
-  ENTITY_CREATION_DELAY,
-  VALIDATION_SEMAPHORE,
-)
-from custom_components.pawcontrol.const import (
-  CONF_BREAKFAST_TIME,
-  CONF_DAILY_FOOD_AMOUNT,
-  CONF_DINNER_TIME,
-  CONF_DOG_AGE,
-  CONF_DOG_BREED,
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOG_SIZE,
-  CONF_DOG_WEIGHT,
-  CONF_FOOD_TYPE,
-  CONF_LUNCH_TIME,
-  CONF_MEALS_PER_DAY,
-  DOMAIN,
-  MAX_DOG_AGE,
-  MAX_DOGS_PER_ENTRY,
-  MAX_DOG_WEIGHT,
-  MIN_DOG_AGE,
-  MIN_DOG_WEIGHT,
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_MEDICATION,
-  SPECIAL_DIET_OPTIONS,
-)
+from .flows.garden import GardenModuleSelectorMixin
+from .selector_shim import selector
+from custom_components.pawcontrol.config_flow_base import ENTITY_CREATION_DELAY
+from custom_components.pawcontrol.config_flow_base import VALIDATION_SEMAPHORE
+from custom_components.pawcontrol.const import CONF_BREAKFAST_TIME
+from custom_components.pawcontrol.const import CONF_DAILY_FOOD_AMOUNT
+from custom_components.pawcontrol.const import CONF_DINNER_TIME
+from custom_components.pawcontrol.const import CONF_DOG_AGE
+from custom_components.pawcontrol.const import CONF_DOG_BREED
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_SIZE
+from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
+from custom_components.pawcontrol.const import CONF_FOOD_TYPE
+from custom_components.pawcontrol.const import CONF_LUNCH_TIME
+from custom_components.pawcontrol.const import CONF_MEALS_PER_DAY
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MAX_DOG_AGE
+from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
+from custom_components.pawcontrol.const import MAX_DOGS_PER_ENTRY
+from custom_components.pawcontrol.const import MIN_DOG_AGE
+from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_MEDICATION
+from custom_components.pawcontrol.const import SPECIAL_DIET_OPTIONS
 from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.flow_helpers import coerce_optional_str
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
-from custom_components.pawcontrol.types import (
-  ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
-  ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
-  AddAnotherDogInput,
-  DOG_AGE_FIELD,
-  DOG_BREED_FIELD,
-  DOG_FEEDING_CONFIG_FIELD,
-  DOG_FEEDING_PLACEHOLDERS_TEMPLATE,
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE,
-  DOG_NAME_FIELD,
-  DOG_SIZE_FIELD,
-  DOG_WEIGHT_FIELD,
-  MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE,
-  MODULE_TOGGLE_FLAG_BY_KEY,
-  MODULE_TOGGLE_KEYS,
-  ConfigFlowPlaceholders,
-  DietCompatibilityIssue,
-  DietValidationResult,
-  DogConfigData,
-  DogFeedingConfig,
-  DogFeedingStepInput,
-  DogHealthStepInput,
-  DogMedicationEntry,
-  DogModulesConfig,
-  DogModuleSelectionInput,
-  DogSetupStepInput,
-  DogVaccinationRecord,
-  DogValidationCacheEntry,
-  DogValidationResult,
-  JSONValue,
-  JSONMapping,
-  ModuleConfigurationSnapshot,
-  ModuleConfigurationStepInput,
-  ModuleToggleKey,
-  clone_placeholders,
-  dog_feeding_config_from_flow,
-  dog_modules_from_flow_input,
-  ensure_dog_modules_config,
-  freeze_placeholders,
-  normalize_performance_mode,
-)
-
-from .flows.garden import GardenModuleSelectorMixin
-from .selector_shim import selector
+from custom_components.pawcontrol.types import ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import AddAnotherDogInput
+from custom_components.pawcontrol.types import clone_placeholders
+from custom_components.pawcontrol.types import ConfigFlowPlaceholders
+from custom_components.pawcontrol.types import DietCompatibilityIssue
+from custom_components.pawcontrol.types import DietValidationResult
+from custom_components.pawcontrol.types import DOG_AGE_FIELD
+from custom_components.pawcontrol.types import DOG_BREED_FIELD
+from custom_components.pawcontrol.types import DOG_FEEDING_CONFIG_FIELD
+from custom_components.pawcontrol.types import dog_feeding_config_from_flow
+from custom_components.pawcontrol.types import DOG_FEEDING_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import DOG_ID_FIELD
+from custom_components.pawcontrol.types import DOG_MODULES_FIELD
+from custom_components.pawcontrol.types import dog_modules_from_flow_input
+from custom_components.pawcontrol.types import DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import DOG_NAME_FIELD
+from custom_components.pawcontrol.types import DOG_SIZE_FIELD
+from custom_components.pawcontrol.types import DOG_WEIGHT_FIELD
+from custom_components.pawcontrol.types import DogConfigData
+from custom_components.pawcontrol.types import DogFeedingConfig
+from custom_components.pawcontrol.types import DogFeedingStepInput
+from custom_components.pawcontrol.types import DogHealthStepInput
+from custom_components.pawcontrol.types import DogMedicationEntry
+from custom_components.pawcontrol.types import DogModulesConfig
+from custom_components.pawcontrol.types import DogModuleSelectionInput
+from custom_components.pawcontrol.types import DogSetupStepInput
+from custom_components.pawcontrol.types import DogVaccinationRecord
+from custom_components.pawcontrol.types import DogValidationCacheEntry
+from custom_components.pawcontrol.types import DogValidationResult
+from custom_components.pawcontrol.types import ensure_dog_modules_config
+from custom_components.pawcontrol.types import freeze_placeholders
+from custom_components.pawcontrol.types import JSONMapping
+from custom_components.pawcontrol.types import JSONValue
+from custom_components.pawcontrol.types import MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import MODULE_TOGGLE_FLAG_BY_KEY
+from custom_components.pawcontrol.types import MODULE_TOGGLE_KEYS
+from custom_components.pawcontrol.types import ModuleConfigurationSnapshot
+from custom_components.pawcontrol.types import ModuleConfigurationStepInput
+from custom_components.pawcontrol.types import ModuleToggleKey
+from custom_components.pawcontrol.types import normalize_performance_mode
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,7 +107,7 @@ try:
     "async_get_translations",
     None,
   )
-except (ModuleNotFoundError, AttributeError):
+except ModuleNotFoundError, AttributeError:
   _ASYNC_GET_TRANSLATIONS = None
 
 # Diet compatibility matrix for validation
