@@ -1,20 +1,50 @@
 version: 2
 updates:
+  # Python dependencies
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "⬆️"
+      prefix-development: "⬆️ [dev]"
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "homeassistant"
+        update-types: ["version-update:semver-major"]
+    
+    # Group updates
     groups:
-      ha-test-stack:
+      testing:
         patterns:
-          - "pytest"
-          - "pytest-*"
-          - "pytest-homeassistant*"
-          - "ruff*"
+          - "pytest*"
+          - "hypothesis"
+          - "coverage"
+      security:
+        patterns:
+          - "bandit"
+          - "safety"
+      linting:
+        patterns:
+          - "ruff"
+          - "mypy"
+
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
     labels:
-      - dependency
-      - github_actions
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "⬆️ [actions]"
