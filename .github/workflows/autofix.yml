@@ -37,7 +37,7 @@ jobs:
             uv cache prune --ci
 
       - name: Install development tools
-        uses: taiki-e/install-action@v2.67.28
+        uses: taiki-e/install-action@v2.67.30
 
       - name: Run pre-commit with fixes
         run: |
