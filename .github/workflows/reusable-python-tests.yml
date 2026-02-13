@@ -146,7 +146,7 @@ jobs:
           python -m pip install --upgrade pip ruff
           pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
           pip install -U pytest-homeassistant-custom-component
-          pip install -U "homeassistant'${{ env.HA_SPEC }}'"
+          pip install -U "homeassistant${{ env.HA_SPEC }}"
           pip install -r requirements.txt
           pip install -r requirements_test.txt
           python scripts/enforce_docstring_baseline.py --update
@@ -158,7 +158,7 @@ jobs:
           python -m scripts.sync_localization_flags
 
       - run: |
-          ruff check . --fix all || true
+          ruff check . --fix || true
           ruff check . --fix --unsafe-fixes || true
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
@@ -240,7 +240,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: inputs.upload-coverage-artifact == true
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.coverage-artifact-name }}
           path: |
@@ -250,7 +250,7 @@ jobs:
 
       - name: Upload junit artifact
         if: inputs.upload-junit-artifact == true
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.junit-artifact-name }}
           path: ${{ env.JUNIT_PATH }}
@@ -276,7 +276,7 @@ jobs:
 
       - name: Upload GitHub Pages bundle
         if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.pages-artifact-name }}
           path: ${{ env.PAGES_ARTIFACT_DIR }}

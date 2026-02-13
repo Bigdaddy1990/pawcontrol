@@ -1,14 +1,14 @@
- name: Auto Version Tag
+name: Auto Version Tag
 
- on:
+on:
    push:
      paths:
-       - 'custom_components/hundesystem/manifest.json'
+       - 'custom_components/pawcontrol/manifest.json'
 
- permissions:
+permissions:
    contents: write
 
- jobs:
+jobs:
    tag_version:
      runs-on: ubuntu-latest
      steps:
@@ -19,7 +19,7 @@
        - name: Extract version
          id: get_version
          run: |
-           VERSION=$(jq -r .version custom_components/hundesystem/manifest.json)
+           VERSION=$(jq -r .version custom_components/pawcontrol/manifest.json)
            echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
        - name: Create Git Tag
