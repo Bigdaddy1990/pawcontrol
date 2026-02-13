@@ -232,7 +232,7 @@ class SignificantChangeTracker:
     old_value = self._last_values[key]
 
     # Different types always significant
-    if type(old_value) != type(new_value):
+    if not isinstance(new_value, type(old_value)):
       self._last_values[key] = new_value
       return True
 
