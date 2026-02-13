@@ -1,18 +1,21 @@
 """Unit tests for diagnostics redaction helpers."""
-
 from __future__ import annotations
 
 import ast
 import asyncio
-import importlib
 import importlib.util
 import json
 import sys
-from dataclasses import dataclass, is_dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from dataclasses import dataclass
+from dataclasses import is_dataclass
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import UTC
 from pathlib import Path
-from typing import Any
 from types import ModuleType
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PAWCONTROL_ROOT = PROJECT_ROOT / "custom_components" / "pawcontrol"

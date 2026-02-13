@@ -8,13 +8,15 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import functools
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import Any
+from typing import ParamSpec
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if TYPE_CHECKING:
   from .coordinator import PawControlCoordinator
@@ -39,7 +41,7 @@ class CoordinatorAccessViolation(RuntimeError):
     self.entity_id = entity_id
 
 
-def require_coordinator(
+def require_coordinator[**P, T](
   func: Callable[P, T],
 ) -> Callable[P, T]:
   """Decorator to ensure function has access to coordinator.
@@ -56,7 +58,7 @@ def require_coordinator(
   Examples:
       >>> @require_coordinator
       ... def get_dog_status(self):
-      ...     return self.coordinator.data[self.dog_id]
+      ...   return self.coordinator.data[self.dog_id]
   """
 
   @functools.wraps(func)
@@ -107,8 +109,8 @@ def require_coordinator_data(
   Examples:
       >>> @require_coordinator_data()
       ... def extra_state_attributes(self):
-      ...     # self.coordinator.data[self.dog_id] is guaranteed
-      ...     return self.coordinator.data[self.dog_id]["gps"]
+      ...   # self.coordinator.data[self.dog_id] is guaranteed
+      ...   return self.coordinator.data[self.dog_id]["gps"]
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -157,7 +159,7 @@ def require_coordinator_data(
   return decorator
 
 
-def coordinator_only_property(
+def coordinator_only_property[T](
   func: Callable[[Any], T],
 ) -> property:
   """Create a property that enforces coordinator-only access.
@@ -171,7 +173,7 @@ def coordinator_only_property(
   Examples:
       >>> @coordinator_only_property
       ... def current_location(self):
-      ...     return self.coordinator.data[self.dog_id]["gps"]["location"]
+      ...   return self.coordinator.data[self.dog_id]["gps"]["location"]
   """
 
   @functools.wraps(func)
@@ -197,9 +199,9 @@ def log_direct_access_warning(
 
   Examples:
       >>> log_direct_access_warning(
-      ...     "sensor.buddy_location",
-      ...     "self._local_cache",
-      ...     coordinator_method="coordinator.get_dog_data()"
+      ...   "sensor.buddy_location",
+      ...   "self._local_cache",
+      ...   coordinator_method="coordinator.get_dog_data()",
       ... )
   """
   message = (
@@ -316,7 +318,7 @@ def validate_coordinator_usage(
   Examples:
       >>> results = validate_coordinator_usage(coordinator)
       >>> if results["has_issues"]:
-      ...     print(f"Found {results['issue_count']} issues")
+      ...   print(f"Found {results['issue_count']} issues")
   """
   issues: list[str] = []
 

@@ -8,13 +8,14 @@ of the environment. The fallback mirrors Home Assistant's ``TypedDict`` based
 selector APIs to provide identical configuration schemas without depending on
 the Core runtime during tests.
 """
-
 from __future__ import annotations
 
 from collections.abc import Sequence
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any, TypeVar, cast
+from typing import Any
+from typing import cast
+from typing import TypeVar
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
   from homeassistant.helpers import selector as ha_selector

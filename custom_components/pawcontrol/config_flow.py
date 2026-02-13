@@ -3,12 +3,13 @@
 The full config flow implementation lives in :mod:`.config_flow_main`.
 This shim exists to keep the Home Assistant entry module small and stable.
 """
-
 from __future__ import annotations
 
-from typing import Final, Literal
+from typing import Final
+from typing import Literal
 
-from .config_flow_main import ConfigFlow, PawControlConfigFlow
+from .config_flow_main import ConfigFlow
+from .config_flow_main import PawControlConfigFlow
 
 __all__: Final[tuple[Literal["ConfigFlow"], Literal["PawControlConfigFlow"]]] = (
   "ConfigFlow",

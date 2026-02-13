@@ -5,27 +5,29 @@ kata-style repository.  We provide focused coverage for the repair helpers to
 ensure they gracefully handle unexpected severity values even without the real
 Home Assistant runtime.
 """
-
 from __future__ import annotations
 
 import asyncio
 import importlib.util
 import sys
 from collections.abc import Mapping
-from datetime import UTC, datetime, timezone
+from datetime import datetime
+from datetime import timezone
+from datetime import UTC
 from enum import StrEnum
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
-from typing import Any, cast
-from unittest.mock import AsyncMock, call
+from types import ModuleType
+from types import SimpleNamespace
+from typing import Any
+from typing import cast
+from unittest.mock import AsyncMock
+from unittest.mock import call
 
 import pytest
-from custom_components.pawcontrol.types import (
-  CacheRepairAggregate,
-  ConfigEntryDataPayload,
-  PawControlOptionsData,
-)
 
+from custom_components.pawcontrol.types import CacheRepairAggregate
+from custom_components.pawcontrol.types import ConfigEntryDataPayload
+from custom_components.pawcontrol.types import PawControlOptionsData
 from tests.helpers import homeassistant_test_stubs
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

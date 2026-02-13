@@ -1,18 +1,18 @@
 """Health helper utilities for Paw Control flows."""
-
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any, cast
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from typing import Any
+from typing import cast
 
-from ..types import (
-  DOG_HEALTH_PLACEHOLDERS_TEMPLATE,
-  ConfigFlowPlaceholders,
-  HealthOptions,
-  OptionsHealthSettingsInput,
-  clone_placeholders,
-  freeze_placeholders,
-)
+from ..types import clone_placeholders
+from ..types import ConfigFlowPlaceholders
+from ..types import DOG_HEALTH_PLACEHOLDERS_TEMPLATE
+from ..types import freeze_placeholders
+from ..types import HealthOptions
+from ..types import OptionsHealthSettingsInput
 
 
 def build_dog_health_placeholders(

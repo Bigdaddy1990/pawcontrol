@@ -1,5 +1,4 @@
 """Ensure entity translation keys are defined in strings.json and translations."""
-
 from __future__ import annotations
 
 import ast
@@ -10,14 +9,10 @@ from custom_components.pawcontrol.dashboard_templates import DASHBOARD_TRANSLATI
 from custom_components.pawcontrol.feeding_translations import (
   FEEDING_COMPLIANCE_TRANSLATION_KEYS,
 )
-from custom_components.pawcontrol.grooming_translations import (
-  GROOMING_LABEL_TRANSLATION_KEYS,
-  GROOMING_TEMPLATE_TRANSLATION_KEYS,
-)
-from custom_components.pawcontrol.weather_translations import (
-  WEATHER_ALERT_KEYS,
-  WEATHER_RECOMMENDATION_KEYS,
-)
+from custom_components.pawcontrol.grooming_translations import GROOMING_LABEL_TRANSLATION_KEYS
+from custom_components.pawcontrol.grooming_translations import GROOMING_TEMPLATE_TRANSLATION_KEYS
+from custom_components.pawcontrol.weather_translations import WEATHER_ALERT_KEYS
+from custom_components.pawcontrol.weather_translations import WEATHER_RECOMMENDATION_KEYS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 COMPONENT_ROOT = PROJECT_ROOT / "custom_components" / "pawcontrol"

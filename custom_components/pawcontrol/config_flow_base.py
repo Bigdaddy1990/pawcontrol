@@ -8,58 +8,54 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import re
 import time
-from typing import ClassVar, Final
+from typing import ClassVar
+from typing import Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_NAME
 
-from .const import (
-  CONF_DOG_AGE,
-  CONF_DOG_BREED,
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOG_SIZE,
-  CONF_DOG_WEIGHT,
-  DOG_SIZES,
-  DOMAIN,
-  MAX_DOG_AGE,
-  MAX_DOG_WEIGHT,
-  MIN_DOG_AGE,
-  MIN_DOG_WEIGHT,
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_HEALTH,
-)
-from .types import (
-  DOG_AGE_FIELD,
-  DOG_BREED_FIELD,
-  DOG_FEEDING_CONFIG_FIELD,
-  DOG_GPS_CONFIG_FIELD,
-  DOG_HEALTH_CONFIG_FIELD,
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  DOG_SIZE_FIELD,
-  DOG_WEIGHT_FIELD,
-  ConfigFlowGlobalSettings,
-  DashboardSetupConfig,
-  DogConfigData,
-  DogSetupStepInput,
-  DogValidationCache,
-  FeedingSetupConfig,
-  FeedingSizeDefaults,
-  FeedingSizeDefaultsMap,
-  IntegrationNameValidationResult,
-  ensure_dog_modules_mapping,
-)
+from .const import CONF_DOG_AGE
+from .const import CONF_DOG_BREED
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOG_SIZE
+from .const import CONF_DOG_WEIGHT
+from .const import DOG_SIZES
+from .const import DOMAIN
+from .const import MAX_DOG_AGE
+from .const import MAX_DOG_WEIGHT
+from .const import MIN_DOG_AGE
+from .const import MIN_DOG_WEIGHT
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
 from .selector_shim import selector
+from .types import ConfigFlowGlobalSettings
+from .types import DashboardSetupConfig
+from .types import DOG_AGE_FIELD
+from .types import DOG_BREED_FIELD
+from .types import DOG_FEEDING_CONFIG_FIELD
+from .types import DOG_GPS_CONFIG_FIELD
+from .types import DOG_HEALTH_CONFIG_FIELD
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DOG_SIZE_FIELD
+from .types import DOG_WEIGHT_FIELD
+from .types import DogConfigData
+from .types import DogSetupStepInput
+from .types import DogValidationCache
+from .types import ensure_dog_modules_mapping
+from .types import FeedingSetupConfig
+from .types import FeedingSizeDefaults
+from .types import FeedingSizeDefaultsMap
+from .types import IntegrationNameValidationResult
 
 _LOGGER = logging.getLogger(__name__)
 

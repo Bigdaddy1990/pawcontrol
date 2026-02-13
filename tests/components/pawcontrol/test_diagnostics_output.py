@@ -1,11 +1,13 @@
 """Tests for PawControl diagnostics payload defaults."""
-
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 

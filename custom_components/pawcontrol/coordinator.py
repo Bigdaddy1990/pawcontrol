@@ -1,88 +1,85 @@
 """Coordinator for the PawControl integration."""
-
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Final, Literal, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import TYPE_CHECKING
 
 from aiohttp import ClientSession
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import (
-  CONF_API_ENDPOINT,
-  CONF_API_TOKEN,
-  CONF_EXTERNAL_INTEGRATIONS,
-  MODULE_GARDEN,
-  MODULE_WALK,
-  UPDATE_INTERVALS,
-)
+from .const import CONF_API_ENDPOINT
+from .const import CONF_API_TOKEN
+from .const import CONF_EXTERNAL_INTEGRATIONS
+from .const import MODULE_GARDEN
+from .const import MODULE_WALK
+from .const import UPDATE_INTERVALS
 from .coordinator_accessors import CoordinatorDataAccessMixin
-from .coordinator_observability import (
-  EntityBudgetTracker,
-  normalise_webhook_status,
-)
 from .coordinator_observability import (
   build_performance_snapshot as build_observability_snapshot,
 )
 from .coordinator_observability import (
   build_security_scorecard as build_observability_scorecard,
 )
-from .coordinator_runtime import (
-  AdaptivePollingController,
-  CoordinatorRuntime,
-  EntityBudgetSnapshot,
-  RuntimeCycleInfo,
-)
-from .coordinator_support import (
-  CoordinatorMetrics,
-  DogConfigRegistry,
-  bind_runtime_managers,
-)
+from .coordinator_observability import EntityBudgetTracker
+from .coordinator_observability import normalise_webhook_status
+from .coordinator_runtime import AdaptivePollingController
+from .coordinator_runtime import CoordinatorRuntime
+from .coordinator_runtime import EntityBudgetSnapshot
+from .coordinator_runtime import RuntimeCycleInfo
+from .coordinator_support import bind_runtime_managers
 from .coordinator_support import (
   clear_runtime_managers as unbind_runtime_managers,
 )
-from .coordinator_tasks import (
-  build_runtime_statistics,
-  build_update_statistics,
-  collect_resilience_diagnostics,
-  default_rejection_metrics,
-  ensure_background_task,
-  resolve_entity_factory_guard_metrics,
-  resolve_service_guard_metrics,
-  run_maintenance,
-)
+from .coordinator_support import CoordinatorMetrics
+from .coordinator_support import DogConfigRegistry
+from .coordinator_tasks import build_runtime_statistics
+from .coordinator_tasks import build_update_statistics
+from .coordinator_tasks import collect_resilience_diagnostics
+from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import ensure_background_task
+from .coordinator_tasks import resolve_entity_factory_guard_metrics
+from .coordinator_tasks import resolve_service_guard_metrics
+from .coordinator_tasks import run_maintenance
 from .coordinator_tasks import (
   shutdown as shutdown_tasks,
 )
 from .device_api import PawControlDeviceClient
-from .exceptions import ConfigEntryAuthFailed, UpdateFailed, ValidationError
+from .exceptions import ConfigEntryAuthFailed
+from .exceptions import UpdateFailed
+from .exceptions import ValidationError
 from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
-from .resilience import ResilienceManager, RetryConfig
+from .resilience import ResilienceManager
+from .resilience import RetryConfig
 from .telemetry import get_runtime_performance_stats
-from .types import (
-  CoordinatorDataPayload,
-  CoordinatorDogData,
-  CoordinatorModuleState,
-  CoordinatorPerformanceSnapshot,
-  CoordinatorRuntimeManagers,
-  CoordinatorRuntimeStatisticsPayload,
-  CoordinatorSecurityScorecard,
-  CoordinatorStatisticsPayload,
-  ConfigEntryOptionsPayload,
-  DogConfigData,
-  JSONMapping,
-  JSONMutableMapping,
-  JSONValue,
-  PawControlConfigEntry,
-  PawControlRuntimeData,
-  WebhookSecurityStatus,
-)
+from .types import ConfigEntryOptionsPayload
+from .types import CoordinatorDataPayload
+from .types import CoordinatorDogData
+from .types import CoordinatorModuleState
+from .types import CoordinatorPerformanceSnapshot
+from .types import CoordinatorRuntimeManagers
+from .types import CoordinatorRuntimeStatisticsPayload
+from .types import CoordinatorSecurityScorecard
+from .types import CoordinatorStatisticsPayload
+from .types import DogConfigData
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import PawControlConfigEntry
+from .types import PawControlRuntimeData
+from .types import WebhookSecurityStatus
 from .utils import deep_merge_dicts
 
 # Maintain the legacy name to avoid touching the rest of the module logic

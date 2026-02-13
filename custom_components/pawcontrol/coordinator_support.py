@@ -1,54 +1,55 @@
 """Helper structures that keep :mod:`coordinator` lean and maintainable."""
-
 from __future__ import annotations
 
 import logging
 import sys
 from collections import deque
 from collections.abc import Mapping
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import cast
+from typing import Protocol
+from typing import runtime_checkable
+from typing import TYPE_CHECKING
 
-from .const import (
-  ALL_MODULES,
-  CONF_DOGS,
-  CONF_GPS_SOURCE,
-  CONF_GPS_UPDATE_INTERVAL,
-  CONF_WEBHOOK_ENABLED,
-  DEFAULT_WEBHOOK_ENABLED,
-  CONF_MODULES,
-  MAX_IDLE_POLL_INTERVAL,
-  MAX_POLLING_INTERVAL_SECONDS,
-  MODULE_FEEDING,
-  MODULE_GARDEN,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_WALK,
-  MODULE_WEATHER,
-  UPDATE_INTERVALS,
-)
+from .const import ALL_MODULES
+from .const import CONF_DOGS
+from .const import CONF_GPS_SOURCE
+from .const import CONF_GPS_UPDATE_INTERVAL
+from .const import CONF_MODULES
+from .const import CONF_WEBHOOK_ENABLED
+from .const import DEFAULT_WEBHOOK_ENABLED
+from .const import MAX_IDLE_POLL_INTERVAL
+from .const import MAX_POLLING_INTERVAL_SECONDS
+from .const import MODULE_FEEDING
+from .const import MODULE_GARDEN
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
+from .const import MODULE_WEATHER
+from .const import UPDATE_INTERVALS
 from .exceptions import ValidationError
-from .types import (
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  CacheRepairAggregate,
-  CacheRepairIssue,
-  CoordinatorDogData,
-  CoordinatorModuleState,
-  CoordinatorModuleTask,
-  CoordinatorRepairsSummary,
-  CoordinatorRuntimeManagers,
-  CoordinatorRuntimeStatisticsPayload,
-  CoordinatorStatisticsPayload,
-  DogConfigData,
-  DogModulesMapping,
-  JSONValue,
-  ModuleCacheMetrics,
-  PawControlConfigEntry,
-  coerce_dog_modules_config,
-  ensure_dog_config_data,
-)
+from .types import CacheRepairAggregate
+from .types import CacheRepairIssue
+from .types import coerce_dog_modules_config
+from .types import CoordinatorDogData
+from .types import CoordinatorModuleState
+from .types import CoordinatorModuleTask
+from .types import CoordinatorRepairsSummary
+from .types import CoordinatorRuntimeManagers
+from .types import CoordinatorRuntimeStatisticsPayload
+from .types import CoordinatorStatisticsPayload
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesMapping
+from .types import ensure_dog_config_data
+from .types import JSONValue
+from .types import ModuleCacheMetrics
+from .types import PawControlConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 

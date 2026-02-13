@@ -1,30 +1,33 @@
 """Supplementary sensors that expose derived PawControl telemetry."""
-
 from __future__ import annotations
 
-from typing import TypeVar
 import contextlib
 from collections.abc import Mapping
-from datetime import datetime, timedelta
-from typing import Protocol, cast
+from datetime import datetime
+from datetime import timedelta
+from typing import cast
+from typing import Protocol
+from typing import TypeVar
 
 from homeassistant.components.sensor import SensorStateClass
-from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
+from homeassistant.const import UnitOfEnergy
+from homeassistant.const import UnitOfLength
+from homeassistant.const import UnitOfTime
 from homeassistant.util import dt as dt_util
 
 from .coordinator import PawControlCoordinator
+from .sensor import PawControlSensorBase
+from .sensor import register_sensor
+from .types import DogConfigData
+from .types import FeedingModuleTelemetry
+from .types import HealthModulePayload
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import WalkModuleTelemetry
+from .types import WalkSessionSnapshot
+from .utils import DateTimeConvertible
+from .utils import ensure_utc_datetime
 from .utils import normalise_entity_attributes
-from .sensor import PawControlSensorBase, register_sensor
-from .types import (
-  DogConfigData,
-  FeedingModuleTelemetry,
-  HealthModulePayload,
-  JSONMutableMapping,
-  JSONValue,
-  WalkModuleTelemetry,
-  WalkSessionSnapshot,
-)
-from .utils import DateTimeConvertible, ensure_utc_datetime
 
 __all__ = [
   "PawControlActivityLevelSensor",
@@ -134,7 +137,7 @@ def calculate_activity_level(
       return activity_levels[max(health_index, calculated_index)]
 
     return calculated_level
-  except (TypeError, ValueError, IndexError):
+  except TypeError, ValueError, IndexError:
     return "unknown"
 
 
@@ -176,7 +179,7 @@ def calculate_calories_burned_today(
     }
     multiplier = multipliers.get(activity_level, 1.0)
     return round(calories_burned * multiplier, 1)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return 0.0
 
 
@@ -225,7 +228,7 @@ def derive_next_feeding_time(
 
     next_feeding_dt = last_feeding_dt + timedelta(hours=hours_between_meals)
     return next_feeding_dt.strftime("%H:%M")
-  except (TypeError, ValueError, ZeroDivisionError):
+  except TypeError, ValueError, ZeroDivisionError:
     return None
 
 
@@ -511,7 +514,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
               if isinstance(distance_value, int | float):
                 total_distance_meters += float(distance_value)
       return round(total_distance_meters / 1000, 2)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return 0.0
 
   @property
@@ -620,7 +623,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
         if walk_time and walk_time >= start_of_week:
           walks_this_week += 1
       return walks_this_week
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return 0
 
   @property

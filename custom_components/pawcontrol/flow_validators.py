@@ -6,20 +6,17 @@ on a consistent interface without coupling to the underlying implementation.
 Centralizing these wrappers keeps flow modules lean and improves maintainability
 as validation behavior evolves.
 """
-
 from __future__ import annotations
 
 from typing import Any
 
 from .const import CONF_DOG_NAME
 from .exceptions import ValidationError
-from .validation import (
-  InputValidator,
-  validate_dog_name,
-  validate_gps_interval,
-  validate_interval,
-  validate_time_window,
-)
+from .validation import InputValidator
+from .validation import validate_dog_name
+from .validation import validate_gps_interval
+from .validation import validate_interval
+from .validation import validate_time_window
 
 
 def validate_flow_dog_name(

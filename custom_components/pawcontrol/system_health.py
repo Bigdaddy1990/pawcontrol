@@ -1,57 +1,58 @@
 """System health callbacks exposing PawControl guard and breaker metrics."""
-
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import Any
+from typing import cast
+from typing import Literal
 
 from homeassistant.components import system_health
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .coordinator_tasks import (
-  derive_rejection_metrics,
-  resolve_entity_factory_guard_metrics,
-  resolve_service_guard_metrics,
-)
-from .runtime_data import describe_runtime_store_status, get_runtime_data
-from .telemetry import get_runtime_performance_stats, get_runtime_store_health
-from .types import (
-  ConfigEntryOptionsPayload,
-  CoordinatorRejectionMetrics,
-  CoordinatorResilienceSummary,
-  EntityFactoryGuardMetricsSnapshot,
-  HelperManagerGuardMetrics,
-  JSONLikeMapping,
-  JSONMapping,
-  ManualResilienceAutomationEntry,
-  ManualResilienceEventCounters,
-  ManualResilienceEventSnapshot,
-  ManualResilienceEventsTelemetry,
-  ManualResilienceListenerMetadata,
-  ManualResilienceOptionsSnapshot,
-  ManualResiliencePreferenceKey,
-  ManualResilienceSystemSettingsSnapshot,
-  PawControlRuntimeData,
-  ResilienceEscalationFieldEntry,
-  ResilienceEscalationThresholds,
-  RuntimeStoreAssessmentTimelineSegment,
-  RuntimeStoreAssessmentTimelineSummary,
-  RuntimeStoreHealthAssessment,
-  RuntimeStoreHealthHistory,
-  SystemHealthBreakerOverview,
-  SystemHealthGuardReasonEntry,
-  SystemHealthGuardSummary,
-  SystemHealthIndicatorPayload,
-  SystemHealthInfoPayload,
-  SystemHealthRemainingQuota,
-  SystemHealthServiceExecutionSnapshot,
-  SystemHealthServiceStatus,
-  SystemHealthThresholdDetail,
-  SystemHealthThresholdSummary,
-)
+from .coordinator_tasks import derive_rejection_metrics
+from .coordinator_tasks import resolve_entity_factory_guard_metrics
+from .coordinator_tasks import resolve_service_guard_metrics
+from .runtime_data import describe_runtime_store_status
+from .runtime_data import get_runtime_data
+from .telemetry import get_runtime_performance_stats
+from .telemetry import get_runtime_store_health
+from .types import ConfigEntryOptionsPayload
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorResilienceSummary
+from .types import EntityFactoryGuardMetricsSnapshot
+from .types import HelperManagerGuardMetrics
+from .types import JSONLikeMapping
+from .types import JSONMapping
+from .types import ManualResilienceAutomationEntry
+from .types import ManualResilienceEventCounters
+from .types import ManualResilienceEventSnapshot
+from .types import ManualResilienceEventsTelemetry
+from .types import ManualResilienceListenerMetadata
+from .types import ManualResilienceOptionsSnapshot
+from .types import ManualResiliencePreferenceKey
+from .types import ManualResilienceSystemSettingsSnapshot
+from .types import PawControlRuntimeData
+from .types import ResilienceEscalationFieldEntry
+from .types import ResilienceEscalationThresholds
+from .types import RuntimeStoreAssessmentTimelineSegment
+from .types import RuntimeStoreAssessmentTimelineSummary
+from .types import RuntimeStoreHealthAssessment
+from .types import RuntimeStoreHealthHistory
+from .types import SystemHealthBreakerOverview
+from .types import SystemHealthGuardReasonEntry
+from .types import SystemHealthGuardSummary
+from .types import SystemHealthIndicatorPayload
+from .types import SystemHealthInfoPayload
+from .types import SystemHealthRemainingQuota
+from .types import SystemHealthServiceExecutionSnapshot
+from .types import SystemHealthServiceStatus
+from .types import SystemHealthThresholdDetail
+from .types import SystemHealthThresholdSummary
 
 
 @dataclass(slots=True)
@@ -122,7 +123,7 @@ def _coerce_int(value: Any, *, default: int = 0) -> int:
 
   try:
     return int(value)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return default
 
 
@@ -131,7 +132,7 @@ def _coerce_positive_int(value: Any) -> int | None:
 
   try:
     result = int(value)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return None
 
   if result > 0:
@@ -1254,5 +1255,5 @@ def _coerce_float(value: Any, *, default: float = 0.0) -> float:
 
   try:
     return float(value)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return default

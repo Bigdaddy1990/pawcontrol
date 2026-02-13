@@ -1,46 +1,43 @@
 """Entity profile and performance related steps for the PawControl options flow."""
-
 from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from collections.abc import Mapping
+from collections.abc import Sequence
+from typing import Any
+from typing import cast
+from typing import Protocol
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .config_flow_profile import (
-  DEFAULT_PROFILE,
-  get_profile_selector_options,
-  validate_profile_selection,
-)
-from .const import (
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOGS,
-  MODULE_GPS,
-  MODULE_HEALTH,
-)
+from .config_flow_profile import DEFAULT_PROFILE
+from .config_flow_profile import get_profile_selector_options
+from .config_flow_profile import validate_profile_selection
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
 from .entity_factory import ENTITY_PROFILES
 from .selector_shim import selector
-from .types import (
-  RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
-  ConfigFlowPlaceholders,
-  DogConfigData,
-  EntityProfileOptionsInput,
-  JSONMutableMapping,
-  JSONValue,
-  MutableConfigFlowPlaceholders,
-  OptionsProfilePreviewInput,
-  OptionsPerformanceSettingsInput,
-  ProfileSelectionInput,
-  clone_placeholders,
-  ensure_dog_config_data,
-  ensure_dog_modules_mapping,
-  freeze_placeholders,
-  normalize_performance_mode,
-)
+from .types import clone_placeholders
+from .types import ConfigFlowPlaceholders
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import ensure_dog_modules_mapping
+from .types import EntityProfileOptionsInput
+from .types import freeze_placeholders
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import MutableConfigFlowPlaceholders
+from .types import normalize_performance_mode
+from .types import OptionsPerformanceSettingsInput
+from .types import OptionsProfilePreviewInput
+from .types import ProfileSelectionInput
+from .types import RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -205,7 +202,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
           self._normalise_export_value(dict(telemetry)),
           sort_keys=True,
         )
-      except (TypeError, ValueError):
+      except TypeError, ValueError:
         telemetry_digest = repr(sorted(telemetry.items()))
     serializable_dogs = [cast(JSONMutableMapping, dict(dog)) for dog in current_dogs]
     cache_key = (

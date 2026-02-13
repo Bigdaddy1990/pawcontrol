@@ -1,26 +1,25 @@
 """Device conditions for PawControl."""
-
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
-from typing import Final, cast
+from collections.abc import Callable
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 from homeassistant.components.device_automation import DEVICE_CONDITION_BASE_SCHEMA
-from homeassistant.const import (
-  CONF_CONDITION,
-  CONF_DEVICE_ID,
-  CONF_DOMAIN,
-  CONF_ENTITY_ID,
-  CONF_METADATA,
-  CONF_TYPE,
-  STATE_ON,
-)
+from homeassistant.const import CONF_CONDITION
+from homeassistant.const import CONF_DEVICE_ID
+from homeassistant.const import CONF_DOMAIN
+from homeassistant.const import CONF_ENTITY_ID
+from homeassistant.const import CONF_METADATA
+from homeassistant.const import CONF_TYPE
+from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-
-from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any
 
 # ``ConditionCheckerType`` is only used for typing. Some Home Assistant test harness
 # builds do not ship the helpers module that defines it, so we avoid importing it at

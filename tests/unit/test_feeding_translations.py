@@ -1,28 +1,28 @@
 """Unit tests for feeding compliance localisation helpers."""
-
 from __future__ import annotations
 
 from collections import UserString
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
+from collections.abc import Sequence
 from itertools import count
 from pathlib import Path
 from typing import cast
 
-from custom_components.pawcontrol.feeding_translations import (
-  _MAX_ISSUES,
-  _MAX_MISSED_MEALS,
-  _MAX_RECOMMENDATIONS,
-  _SEQUENCE_SCAN_LIMIT,
-  _collect_issue_summaries,
-  _collect_missed_meals,
-  _collect_recommendations,
-  _format_structured_message,
-  _iter_text_candidates,
-  _normalise_sequence,
-  build_feeding_compliance_notification,
-  build_feeding_compliance_summary,
-  get_feeding_compliance_translations,
-)
+from custom_components.pawcontrol.feeding_translations import _collect_issue_summaries
+from custom_components.pawcontrol.feeding_translations import _collect_missed_meals
+from custom_components.pawcontrol.feeding_translations import _collect_recommendations
+from custom_components.pawcontrol.feeding_translations import _format_structured_message
+from custom_components.pawcontrol.feeding_translations import _iter_text_candidates
+from custom_components.pawcontrol.feeding_translations import _MAX_ISSUES
+from custom_components.pawcontrol.feeding_translations import _MAX_MISSED_MEALS
+from custom_components.pawcontrol.feeding_translations import _MAX_RECOMMENDATIONS
+from custom_components.pawcontrol.feeding_translations import _normalise_sequence
+from custom_components.pawcontrol.feeding_translations import _SEQUENCE_SCAN_LIMIT
+from custom_components.pawcontrol.feeding_translations import build_feeding_compliance_notification
+from custom_components.pawcontrol.feeding_translations import build_feeding_compliance_summary
+from custom_components.pawcontrol.feeding_translations import get_feeding_compliance_translations
 
 
 def _limited_generator(

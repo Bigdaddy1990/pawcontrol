@@ -1,12 +1,14 @@
 """Regression coverage for Home Assistant compatibility stubs."""
-
 from __future__ import annotations
 
 import asyncio
 import sys
 import types
-from collections.abc import Awaitable, Callable, MutableMapping
-from datetime import UTC, datetime
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import MutableMapping
+from datetime import datetime
+from datetime import UTC
 
 from tests.helpers import install_homeassistant_stubs
 

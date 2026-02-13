@@ -7,17 +7,19 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from collections.abc import Awaitable
+from collections.abc import Callable
+from dataclasses import dataclass
+from dataclasses import field
 from datetime import UTC
 from enum import Enum
-from typing import Any, TypeVar
+from typing import Any
+from typing import TypeVar
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -94,7 +96,7 @@ def _utc_timestamp() -> float:
   if callable(convert):
     try:
       return float(convert(now))
-    except (TypeError, ValueError, OverflowError):
+    except TypeError, ValueError, OverflowError:
       pass
 
   if now.tzinfo is None:
@@ -102,7 +104,7 @@ def _utc_timestamp() -> float:
 
   try:
     return float(now.timestamp())
-  except (OverflowError, OSError, ValueError):  # pragma: no cover - fallback
+  except OverflowError, OSError, ValueError:  # pragma: no cover - fallback
     return time.time()
 
 

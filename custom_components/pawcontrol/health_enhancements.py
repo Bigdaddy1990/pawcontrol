@@ -9,26 +9,25 @@ ADDITIONS:
 
 Quality Scale: Platinum target++
 """
-
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
 from enum import Enum
 from typing import ClassVar
 
 from homeassistant.util import dt as dt_util
 
-from .types import (
-  HealthAlertEntry,
-  HealthAlertList,
-  HealthAppointmentRecommendation,
-  HealthMedicationQueue,
-  HealthStatusSnapshot,
-  HealthUpcomingCareEntry,
-  HealthUpcomingCareQueue,
-)
+from .types import HealthAlertEntry
+from .types import HealthAlertList
+from .types import HealthAppointmentRecommendation
+from .types import HealthMedicationQueue
+from .types import HealthStatusSnapshot
+from .types import HealthUpcomingCareEntry
+from .types import HealthUpcomingCareQueue
 from .utils import ensure_local_datetime
 
 _LOGGER = logging.getLogger(__name__)

@@ -1,49 +1,42 @@
 """Shared validation helpers for config and options flows."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import cast
 
-from .const import (
-  CONF_DOG_AGE,
-  CONF_DOG_BREED,
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOG_SIZE,
-  CONF_DOG_WEIGHT,
-  CONF_MODULES,
-  DOG_ID_PATTERN,
-  DOG_SIZES,
-  MAX_DOG_AGE,
-  MAX_DOG_WEIGHT,
-  MIN_DOG_AGE,
-  MIN_DOG_WEIGHT,
-)
-from .exceptions import FlowValidationError, ValidationError
+from .const import CONF_DOG_AGE
+from .const import CONF_DOG_BREED
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOG_SIZE
+from .const import CONF_DOG_WEIGHT
+from .const import CONF_MODULES
+from .const import DOG_ID_PATTERN
+from .const import DOG_SIZES
+from .const import MAX_DOG_AGE
+from .const import MAX_DOG_WEIGHT
+from .const import MIN_DOG_AGE
+from .const import MIN_DOG_WEIGHT
+from .exceptions import FlowValidationError
+from .exceptions import ValidationError
 from .health_calculator import HealthMetrics
-from .types import (
-  DOG_AGE_FIELD,
-  DOG_BREED_FIELD,
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  DOG_SIZE_FIELD,
-  DOG_WEIGHT_FIELD,
-  DogConfigData,
-  DogModulesConfig,
-  DogSetupStepInput,
-  FlowInputMapping,
-  ensure_dog_modules_config,
-  validate_dog_weight_for_size,
-)
-
-from .validation import (
-  InputCoercionError,
-  coerce_float,
-  coerce_int,
-  normalize_dog_id,
-)
+from .types import DOG_AGE_FIELD
+from .types import DOG_BREED_FIELD
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DOG_SIZE_FIELD
+from .types import DOG_WEIGHT_FIELD
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import DogSetupStepInput
+from .types import ensure_dog_modules_config
+from .types import FlowInputMapping
+from .types import validate_dog_weight_for_size
+from .validation import coerce_float
+from .validation import coerce_int
+from .validation import InputCoercionError
+from .validation import normalize_dog_id
 from .validation_helpers import validate_unique_dog_name
 
 

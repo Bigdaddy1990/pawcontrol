@@ -1,15 +1,17 @@
 """Unit tests for entity platform setup flows."""
-
 from __future__ import annotations
 
 import importlib
 import json
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
+
 from custom_components.pawcontrol.entity_factory import EntityFactory
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData

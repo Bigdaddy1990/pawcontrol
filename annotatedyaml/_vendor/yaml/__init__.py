@@ -1,5 +1,4 @@
 """Minimal vendored YAML parser for test fallbacks."""
-
 from __future__ import annotations
 
 import ast
@@ -58,7 +57,7 @@ def _parse_scalar(value: str) -> Any:
   if text.startswith("[") or text.startswith("{"):
     try:
       return json.loads(text)
-    except (json.JSONDecodeError, ValueError, SyntaxError):
+    except json.JSONDecodeError, ValueError, SyntaxError:
       try:
         return ast.literal_eval(text)
       except (ValueError, SyntaxError) as err:

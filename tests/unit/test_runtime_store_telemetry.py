@@ -1,24 +1,22 @@
 """Unit tests for runtime store telemetry helpers."""
-
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
 from types import SimpleNamespace
 from typing import cast
 
 import pytest
 from pytest import MonkeyPatch
+
 from custom_components.pawcontrol import telemetry as telemetry_module
-from custom_components.pawcontrol.telemetry import (
-  get_runtime_store_health,
-  update_runtime_store_health,
-)
-from custom_components.pawcontrol.types import (
-  RuntimeStoreAssessmentEvent,
-  RuntimeStoreCompatibilitySnapshot,
-  RuntimeStoreHealthAssessment,
-  RuntimeStoreHealthHistory,
-)
+from custom_components.pawcontrol.telemetry import get_runtime_store_health
+from custom_components.pawcontrol.telemetry import update_runtime_store_health
+from custom_components.pawcontrol.types import RuntimeStoreAssessmentEvent
+from custom_components.pawcontrol.types import RuntimeStoreCompatibilitySnapshot
+from custom_components.pawcontrol.types import RuntimeStoreHealthAssessment
+from custom_components.pawcontrol.types import RuntimeStoreHealthHistory
 
 
 def _runtime_data() -> SimpleNamespace:

@@ -1,43 +1,35 @@
 """Tests for PawControl device automations."""
-
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import pytest
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-  CONF_CONDITION,
-  CONF_DEVICE_ID,
-  CONF_DOMAIN,
-  CONF_ENTITY_ID,
-  CONF_FROM,
-  CONF_METADATA,
-  CONF_TO,
-  CONF_TYPE,
-  STATE_ON,
-)
+from homeassistant.const import CONF_CONDITION
+from homeassistant.const import CONF_DEVICE_ID
+from homeassistant.const import CONF_DOMAIN
+from homeassistant.const import CONF_ENTITY_ID
+from homeassistant.const import CONF_FROM
+from homeassistant.const import CONF_METADATA
+from homeassistant.const import CONF_TO
+from homeassistant.const import CONF_TYPE
+from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.device_action import (
-  async_call_action,
-  async_get_action_capabilities,
-  async_get_actions,
-)
+from custom_components.pawcontrol.device_action import async_call_action
+from custom_components.pawcontrol.device_action import async_get_action_capabilities
+from custom_components.pawcontrol.device_action import async_get_actions
 from custom_components.pawcontrol.device_automation_helpers import build_unique_id
-from custom_components.pawcontrol.device_condition import (
-  async_condition_from_config,
-  async_get_conditions,
-)
-from custom_components.pawcontrol.device_trigger import (
-  async_get_trigger_capabilities,
-  async_get_triggers,
-)
+from custom_components.pawcontrol.device_condition import async_condition_from_config
+from custom_components.pawcontrol.device_condition import async_get_conditions
+from custom_components.pawcontrol.device_trigger import async_get_trigger_capabilities
+from custom_components.pawcontrol.device_trigger import async_get_triggers
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
 

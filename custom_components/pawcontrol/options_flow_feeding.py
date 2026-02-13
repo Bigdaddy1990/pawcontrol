@@ -1,25 +1,24 @@
 """Feeding configuration steps for Paw Control options flow."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
 from .exceptions import FlowValidationError
 from .selector_shim import selector
-from .types import (
-  DOG_ID_FIELD,
-  DOG_OPTIONS_FIELD,
-  FeedingOptions,
-  JSONLikeMapping,
-  JSONValue,
-  OptionsDogSelectionInput,
-  OptionsFeedingSettingsInput,
-  ensure_dog_options_entry,
-)
+from .types import DOG_ID_FIELD
+from .types import DOG_OPTIONS_FIELD
+from .types import ensure_dog_options_entry
+from .types import FeedingOptions
+from .types import JSONLikeMapping
+from .types import JSONValue
+from .types import OptionsDogSelectionInput
+from .types import OptionsFeedingSettingsInput
 
 if TYPE_CHECKING:
   from .options_flow_hosts import DogOptionsHost
@@ -47,7 +46,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
       return default
     try:
       meals = int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return default
     return max(1, min(6, meals))
 

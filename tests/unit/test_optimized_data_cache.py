@@ -1,9 +1,11 @@
 """Tests for the OptimizedDataCache helper."""
-
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
+
 from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 
 # Ensure Home Assistant stubs are available for helper imports.

@@ -7,68 +7,67 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import Mapping
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Final, cast
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
-from homeassistant.const import STATE_OFF, STATE_ON
-from homeassistant.core import (
-  CALLBACK_TYPE,
-  Event,
-  EventStateChangedData,
-  HomeAssistant,
-)
+from homeassistant.const import STATE_OFF
+from homeassistant.const import STATE_ON
+from homeassistant.core import CALLBACK_TYPE
+from homeassistant.core import Event
+from homeassistant.core import EventStateChangedData
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
   async_track_state_change_event,
 )
 from homeassistant.util import dt as dt_util
 
-from .const import (
-  CACHE_TIMESTAMP_FUTURE_THRESHOLD,
-  CACHE_TIMESTAMP_STALE_THRESHOLD,
-  CONF_DOOR_SENSOR,
-  CONF_DOOR_SENSOR_SETTINGS,
-  EVENT_WALK_ENDED,
-  EVENT_WALK_STARTED,
-)
+from .const import CACHE_TIMESTAMP_FUTURE_THRESHOLD
+from .const import CACHE_TIMESTAMP_STALE_THRESHOLD
+from .const import CONF_DOOR_SENSOR
+from .const import CONF_DOOR_SENSOR_SETTINGS
+from .const import EVENT_WALK_ENDED
+from .const import EVENT_WALK_STARTED
 from .coordinator_support import CacheMonitorRegistrar
-from .notifications import NotificationPriority, NotificationType
+from .notifications import NotificationPriority
+from .notifications import NotificationType
 from .runtime_data import get_runtime_data
-from .types import (
-  DEFAULT_CONFIDENCE_THRESHOLD,
-  DEFAULT_DOOR_CLOSED_DELAY,
-  DEFAULT_DOOR_SENSOR_SETTINGS,
-  DEFAULT_MAXIMUM_WALK_DURATION,
-  DEFAULT_MINIMUM_WALK_DURATION,
-  DEFAULT_WALK_DETECTION_TIMEOUT,
-  DOG_ID_FIELD,
-  DOG_NAME_FIELD,
-  CacheDiagnosticsMetadata,
-  CacheDiagnosticsSnapshot,
-  DetectionStatistics,
-  DetectionStatus,
-  DetectionStatusEntry,
-  DogConfigData,
-  DoorSensorConfigUpdate,
-  DoorSensorDogSnapshot,
-  DoorSensorManagerSnapshot,
-  DoorSensorManagerStats,
-  DoorSensorOverrideScalar,
-  DoorSensorSettingsConfig,
-  DoorSensorSettingsInput,
-  DoorSensorSettingsPayload,
-  DoorSensorStateHistoryEntry,
-  DoorSensorStateSnapshot,
-  JSONLikeMapping,
-  JSONMutableMapping,
-)
+from .types import CacheDiagnosticsMetadata
+from .types import CacheDiagnosticsSnapshot
+from .types import DEFAULT_CONFIDENCE_THRESHOLD
+from .types import DEFAULT_DOOR_CLOSED_DELAY
+from .types import DEFAULT_DOOR_SENSOR_SETTINGS
+from .types import DEFAULT_MAXIMUM_WALK_DURATION
+from .types import DEFAULT_MINIMUM_WALK_DURATION
+from .types import DEFAULT_WALK_DETECTION_TIMEOUT
+from .types import DetectionStatistics
+from .types import DetectionStatus
+from .types import DetectionStatusEntry
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DoorSensorConfigUpdate
+from .types import DoorSensorDogSnapshot
+from .types import DoorSensorManagerSnapshot
+from .types import DoorSensorManagerStats
+from .types import DoorSensorOverrideScalar
+from .types import DoorSensorSettingsConfig
+from .types import DoorSensorSettingsInput
+from .types import DoorSensorSettingsPayload
+from .types import DoorSensorStateHistoryEntry
+from .types import DoorSensorStateSnapshot
+from .types import JSONLikeMapping
+from .types import JSONMutableMapping
 from .utils import async_fire_event
 
 if TYPE_CHECKING:

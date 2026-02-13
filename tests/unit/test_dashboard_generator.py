@@ -1,31 +1,29 @@
 """Unit tests for the dashboard generator metadata exports."""
-
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import json
-from collections.abc import Awaitable, Sequence
+from collections.abc import Awaitable
+from collections.abc import Sequence
 from pathlib import Path
-from types import MappingProxyType, SimpleNamespace
+from types import MappingProxyType
+from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  MODULE_NOTIFICATIONS,
-)
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
-from custom_components.pawcontrol.dashboard_generator import (
-  DashboardViewSummary,
-  PawControlDashboardGenerator,
-)
-from custom_components.pawcontrol.dashboard_renderer import (
-  DashboardRenderer,
-  HomeAssistantError,
-)
+from custom_components.pawcontrol.dashboard_generator import DashboardViewSummary
+from custom_components.pawcontrol.dashboard_generator import PawControlDashboardGenerator
+from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
+from custom_components.pawcontrol.dashboard_renderer import HomeAssistantError
 
 
 def test_copy_dashboard_options_returns_plain_dict() -> None:

@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from types import MappingProxyType
 
 import pytest
+
 from custom_components.pawcontrol.config_flow_dashboard_extension import (
   _build_dashboard_configure_placeholders,
 )
