@@ -73,8 +73,12 @@ jobs:
         run: |
           prek install
           prek run python-typing-update --hook-stage manual --all-files
-          prek run --all-files
           prek run --all-files --show-diff-on-failure
+          if ! git diff --quiet; then
+            echo "Prek applied autofixes; please run 'prek run --all-files --show-diff-on-failure' locally and commit the result." >&2
+            git --no-pager diff --stat
+            exit 1
+          fi
 
       - name: Run mypy
         run: |
