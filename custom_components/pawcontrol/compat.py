@@ -62,11 +62,7 @@ def _build_exception(
   return type(name, (base,), namespace)
 
 
-def _import_optional(module: str) -> Any:
-  try:  # pragma: no cover - executed when Home Assistant is installed
-    return __import__(module, fromlist=["*"])
-  except ImportError, ModuleNotFoundError:
-    return None
+except (ImportError, ModuleNotFoundError):
 
 
 _ha_exceptions = _import_optional("homeassistant.exceptions")
