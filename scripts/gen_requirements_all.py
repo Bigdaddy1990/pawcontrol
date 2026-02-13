@@ -1,5 +1,4 @@
 """Minimal implementation of Home Assistant's requirement tooling for tests."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping

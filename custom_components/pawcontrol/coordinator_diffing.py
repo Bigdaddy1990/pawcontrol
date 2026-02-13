@@ -7,15 +7,18 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping, Set
-from dataclasses import dataclass, field
-from typing import Any, TypeVar
+from collections.abc import Mapping
+from collections.abc import Set
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import TypeVar
 
-from .types import CoordinatorDataPayload, CoordinatorDogData, JSONValue
+from .types import CoordinatorDataPayload
+from .types import CoordinatorDogData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -172,15 +175,15 @@ def _compare_values(old_value: Any, new_value: Any) -> bool:
   if isinstance(old_value, Mapping) and isinstance(new_value, Mapping):
     if old_value.keys() != new_value.keys():
       return False
-    return all(
-      _compare_values(old_value[k], new_value[k]) for k in old_value.keys()
-    )
+    return all(_compare_values(old_value[k], new_value[k]) for k in old_value)
 
   # Handle sequences recursively (but not strings)
   if isinstance(old_value, (list, tuple)) and isinstance(new_value, (list, tuple)):
     if len(old_value) != len(new_value):
       return False
-    return all(_compare_values(o, n) for o, n in zip(old_value, new_value))
+    return all(
+      _compare_values(o, n) for o, n in zip(old_value, new_value, strict=False)
+    )
 
   # Default equality
   return old_value == new_value
@@ -402,7 +405,9 @@ def should_notify_entities(
 
   # If only module filter specified (check all dogs)
   if module is not None:
-    return any(module in dog_diff.changed_modules for dog_diff in diff.dog_diffs.values())
+    return any(
+      module in dog_diff.changed_modules for dog_diff in diff.dog_diffs.values()
+    )
 
   return False
 
@@ -499,9 +504,7 @@ class SmartDiffTracker:
     entity_keys: set[str] = set()
 
     # Filter by dog_id if specified
-    dog_ids_to_check = (
-      [dog_id] if dog_id is not None else list(diff.dog_diffs.keys())
-    )
+    dog_ids_to_check = [dog_id] if dog_id is not None else list(diff.dog_diffs.keys())
 
     for check_dog_id in dog_ids_to_check:
       if check_dog_id in diff.added_dogs or check_dog_id in diff.removed_dogs:
@@ -548,7 +551,7 @@ def get_changed_fields(
       Set of changed field names
 
   Examples:
-      >>> diff = DataDiff(added_keys={'x'}, modified_keys={'y'})
+      >>> diff = DataDiff(added_keys={"x"}, modified_keys={"y"})
       >>> get_changed_fields(diff)
       frozenset({'x', 'y'})
       >>> get_changed_fields(diff, include_modified=False)
@@ -607,7 +610,11 @@ def log_diff_summary(
   for dog_diff in diff.dog_diffs.values():
     all_changed_modules.update(dog_diff.changed_modules)
 
-  module_info = f" ({', '.join(sorted(all_changed_modules))} modules)" if all_changed_modules else ""
+  module_info = (
+    f" ({', '.join(sorted(all_changed_modules))} modules)"
+    if all_changed_modules
+    else ""
+  )
 
   logger.debug(
     "Coordinator diff: %s%s",

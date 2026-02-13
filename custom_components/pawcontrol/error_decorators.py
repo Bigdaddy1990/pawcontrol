@@ -7,36 +7,35 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import functools
 import logging
-from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+from collections.abc import Awaitable
+from collections.abc import Callable
+from typing import Any
+from typing import cast
+from typing import ParamSpec
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
-from homeassistant.exceptions import HomeAssistantError
-
-from .exceptions import (
-  DogNotFoundError,
-  ErrorCategory,
-  ErrorSeverity,
-  FlowValidationError,
-  GPSError,
-  InvalidCoordinatesError,
-  NetworkError,
-  PawControlError,
-  RateLimitError,
-  StorageError,
-  ValidationError,
-  WalkError,
-)
+from .exceptions import DogNotFoundError
+from .exceptions import ErrorCategory
+from .exceptions import ErrorSeverity
+from .exceptions import FlowValidationError
+from .exceptions import GPSError
+from .exceptions import InvalidCoordinatesError
+from .exceptions import NetworkError
+from .exceptions import PawControlError
+from .exceptions import RateLimitError
+from .exceptions import StorageError
+from .exceptions import ValidationError
+from .exceptions import WalkError
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
 
-  from .types import ErrorContext
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,8 +61,8 @@ def validate_dog_exists(
   Examples:
       >>> @validate_dog_exists()
       ... async def get_dog_status(self, dog_id: str):
-      ...     # dog_id is guaranteed to exist
-      ...     return self.coordinator.data[dog_id]
+      ...   # dog_id is guaranteed to exist
+      ...   return self.coordinator.data[dog_id]
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -126,8 +125,8 @@ def validate_gps_coordinates(
   Examples:
       >>> @validate_gps_coordinates()
       ... def set_location(self, latitude: float, longitude: float):
-      ...     # Coordinates are guaranteed valid
-      ...     self.location = (latitude, longitude)
+      ...   # Coordinates are guaranteed valid
+      ...   self.location = (latitude, longitude)
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -195,7 +194,7 @@ def validate_range(
   Examples:
       >>> @validate_range("weight", 0.5, 100.0, field_name="dog weight")
       ... def set_weight(self, weight: float):
-      ...     self.weight = weight
+      ...   self.weight = weight
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -265,8 +264,8 @@ def handle_errors(
   Examples:
       >>> @handle_errors(log_errors=True, reraise_critical=True)
       ... async def fetch_data(self):
-      ...     # Errors are logged and critical ones re-raised
-      ...     return await self.api.get_data()
+      ...   # Errors are logged and critical ones re-raised
+      ...   return await self.api.get_data()
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -375,8 +374,8 @@ def map_to_repair_issue(
   Examples:
       >>> @map_to_repair_issue("gps_unavailable", severity="warning")
       ... async def get_location(self):
-      ...     # GPSUnavailableError creates repair issue
-      ...     return await self.gps.get_location()
+      ...   # GPSUnavailableError creates repair issue
+      ...   return await self.gps.get_location()
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -475,8 +474,8 @@ def retry_on_error(
   Examples:
       >>> @retry_on_error(max_attempts=3, delay=1.0)
       ... async def fetch_api_data(self):
-      ...     # Retries up to 3 times on network errors
-      ...     return await self.api.fetch()
+      ...   # Retries up to 3 times on network errors
+      ...   return await self.api.fetch()
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -575,8 +574,8 @@ def require_coordinator_data(
   Examples:
       >>> @require_coordinator_data()
       ... def get_all_dogs(self):
-      ...     # coordinator.data is guaranteed to be populated
-      ...     return list(self.coordinator.data.keys())
+      ...   # coordinator.data is guaranteed to be populated
+      ...   return list(self.coordinator.data.keys())
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -645,9 +644,11 @@ def validate_and_handle(
 
   Examples:
       >>> @validate_and_handle(dog_id_param="dog_id", gps_coords=True)
-      ... async def update_location(self, dog_id: str, latitude: float, longitude: float):
-      ...     # Dog exists, coordinates valid, errors handled
-      ...     await self.api.update_location(dog_id, latitude, longitude)
+      ... async def update_location(
+      ...   self, dog_id: str, latitude: float, longitude: float
+      ... ):
+      ...   # Dog exists, coordinates valid, errors handled
+      ...   await self.api.update_location(dog_id, latitude, longitude)
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:

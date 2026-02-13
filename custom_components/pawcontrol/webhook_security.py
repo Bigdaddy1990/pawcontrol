@@ -7,25 +7,24 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import hashlib
 import hmac
 import logging
 import time
-from collections import defaultdict, deque
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from collections import defaultdict
+from collections import deque
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .exceptions import (
-  AuthenticationError,
-  RateLimitError,
-  ValidationError,
-)
+from .exceptions import AuthenticationError
+from .exceptions import RateLimitError
+from .exceptions import ValidationError
 from .logging_utils import StructuredLogger
 
 _LOGGER = logging.getLogger(__name__)
@@ -202,9 +201,7 @@ class WebhookAuthenticator:
         current_time=current_time,
         diff=time_diff,
       )
-      raise AuthenticationError(
-        f"Timestamp difference too large: {time_diff:.1f}s"
-      )
+      raise AuthenticationError(f"Timestamp difference too large: {time_diff:.1f}s")
 
     # Generate expected signature
     expected_signature, _ = self.generate_signature(payload, timestamp)
@@ -406,8 +403,7 @@ class WebhookValidator:
     if isinstance(payload, bytes):
       if len(payload) > self._max_payload_size:
         raise ValidationError(
-          f"Payload too large: {len(payload)} bytes "
-          f"(max: {self._max_payload_size})"
+          f"Payload too large: {len(payload)} bytes (max: {self._max_payload_size})"
         )
 
       # Parse JSON

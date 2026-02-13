@@ -1,23 +1,21 @@
 """Tests for platform selection helpers."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import pytest
-from homeassistant.const import Platform
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 import custom_components.pawcontrol as pawcontrol_init
-from custom_components.pawcontrol.const import (
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
-)
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.const import MODULE_WALK
 from custom_components.pawcontrol.types import DogConfigData
 
 

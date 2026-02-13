@@ -1,8 +1,8 @@
 # Production Deployment Checklist
 
-**Project:** PawControl HA-Integration  
-**Version:** 1.0.0  
-**Deployment Date:** _____________  
+**Project:** PawControl HA-Integration
+**Version:** 1.0.0
+**Deployment Date:** _____________
 **Deployed By:** _____________
 
 ## Pre-Deployment
@@ -226,23 +226,23 @@
 ## Sign-Off
 
 ### Technical Lead
-**Name:** _____________  
-**Date:** _____________  
+**Name:** _____________
+**Date:** _____________
 **Signature:** _____________
 
 ### QA Lead
-**Name:** _____________  
-**Date:** _____________  
+**Name:** _____________
+**Date:** _____________
 **Signature:** _____________
 
 ### Security Review
-**Name:** _____________  
-**Date:** _____________  
+**Name:** _____________
+**Date:** _____________
 **Signature:** _____________
 
 ### Product Owner
-**Name:** _____________  
-**Date:** _____________  
+**Name:** _____________
+**Date:** _____________
 **Signature:** _____________
 
 ---

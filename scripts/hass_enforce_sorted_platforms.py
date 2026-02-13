@@ -1,5 +1,4 @@
 """Plugin for checking sorted platforms list."""
-
 from __future__ import annotations
 
 from astroid import nodes

@@ -7,16 +7,17 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import inspect
 import logging
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-  from .base_manager import BaseManager
+  pass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -336,7 +337,7 @@ def validate_manager_compliance(
   Examples:
       >>> report = validate_manager_compliance(MyManager)
       >>> if report.is_compliant:
-      ...     print(f"Manager is compliant (score: {report.score})")
+      ...   print(f"Manager is compliant (score: {report.score})")
       >>> else:
       ...     print(f"Found {len(report.issues)} issues")
   """
@@ -372,7 +373,7 @@ def validate_all_managers(
   Examples:
       >>> reports = validate_all_managers(DataManager, EventManager)
       >>> for name, report in reports.items():
-      ...     print(f"{name}: {report.score}/100")
+      ...   print(f"{name}: {report.score}/100")
   """
   reports: dict[str, ComplianceReport] = {}
 

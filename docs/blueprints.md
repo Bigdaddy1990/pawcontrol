@@ -66,7 +66,7 @@ action:
             data:
               title: "🐕 Walk Started"
               message: "{{ dog_name }} is on a walk!"
-      
+
       - conditions:
           - condition: trigger
             id: "walk_end"
@@ -75,14 +75,14 @@ action:
             data:
               title: "✅ Walk Complete"
               message: >
-                {{ dog_name }} walked 
+                {{ dog_name }} walked
                 {{ states(distance_sensor) }} km
 variables:
   dog_name: !input dog_name
   distance_sensor: !input distance_sensor
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/walk_notifications.yaml)
 
 ---
@@ -140,7 +140,7 @@ condition:
     state: "off"
   - condition: template
     value_template: >
-      {{ (now() - states[dog_walk_sensor].last_changed).total_seconds() 
+      {{ (now() - states[dog_walk_sensor].last_changed).total_seconds()
          > (minimum_hours_between_walks * 3600) }}
 
 action:
@@ -159,7 +159,7 @@ variables:
   minimum_hours_between_walks: !input minimum_hours_between_walks
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/walk_reminder.yaml)
 
 ---
@@ -224,7 +224,7 @@ action:
       title: "🚨 ALERT: {{ dog_name }} Escaped!"
       message: >
         {{ dog_name }} has left the safe zone!
-        Location: {{ state_attr(dog_tracker, 'latitude') }}, 
+        Location: {{ state_attr(dog_tracker, 'latitude') }},
                   {{ state_attr(dog_tracker, 'longitude') }}
       data:
         priority: "{{ 'critical' if critical_priority else 'high' }}"
@@ -235,10 +235,10 @@ action:
           }},{{
             state_attr(dog_tracker, 'longitude')
           }}
-  
+
   - condition: template
     value_template: "{{ critical_priority }}"
-  
+
   - service: tts.google_translate_say
     data:
       entity_id: media_player.all
@@ -250,7 +250,7 @@ variables:
   critical_priority: !input critical_priority
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/escape_alert.yaml)
 
 ---
@@ -307,7 +307,7 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {{ (now() - this.attributes.get('last_triggered', now() - timedelta(days=1))).total_seconds() 
+      {{ (now() - this.attributes.get('last_triggered', now() - timedelta(days=1))).total_seconds()
          > (repeat_hours * 3600) }}
 
 action:
@@ -326,7 +326,7 @@ variables:
   repeat_hours: !input repeat_hours
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/low_battery_alert.yaml)
 
 ---
@@ -387,7 +387,7 @@ action:
         🚶 {{ states(walks_today_sensor) }} walks
         📏 {{ states(distance_today_sensor) }} km
         ⏱ {{ states(walk_time_sensor) }} minutes
-        
+
         {% if states(walks_today_sensor) | int == 0 %}
         ⚠️ No walks today!
         {% elif states(distance_today_sensor) | float > 5 %}
@@ -401,7 +401,7 @@ variables:
   walk_time_sensor: !input walk_time_sensor
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/daily_summary.yaml)
 
 ---
@@ -513,7 +513,7 @@ variables:
   temperature_sensor: !input temperature_sensor
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/weather_walk_suggestion.yaml)
 
 ---
@@ -590,7 +590,7 @@ variables:
   minimum_hours_between_meals: !input minimum_hours_between_meals
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/feeding_reminder.yaml)
 
 ---
@@ -647,9 +647,9 @@ action:
         data:
           title: "⚠️ Dogs Missing"
           message: >
-            {% set missing = expand(safe_zone_sensors) 
-                           | selectattr('state', 'eq', 'off') 
-                           | map(attribute='name') 
+            {% set missing = expand(safe_zone_sensors)
+                           | selectattr('state', 'eq', 'off')
+                           | map(attribute='name')
                            | list %}
             {{ missing | join(', ') }} not in safe zone
           data:
@@ -659,7 +659,7 @@ variables:
   safe_zone_sensors: !input safe_zone_sensors
 ```
 
-**Import:**  
+**Import:**
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/yourusername/pawcontrol/blob/main/blueprints/all_dogs_home.yaml)
 
 ---

@@ -1,5 +1,4 @@
 """Tests for the PawControl coverage shim runtime instrumentation."""
-
 from __future__ import annotations
 
 import contextlib
@@ -9,13 +8,17 @@ import json
 import os
 import sys
 import types
+from functools import lru_cache
 from pathlib import Path
-from types import CodeType, FrameType
-from unittest.mock import MagicMock, Mock, patch
+from types import CodeType
+from types import FrameType
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
+
+import pytest
 
 import coverage
-import pytest
-from functools import lru_cache
 
 try:
   from coverage import _compile_cached

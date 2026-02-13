@@ -7,21 +7,23 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import TYPE_CHECKING
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
 if TYPE_CHECKING:
-  from homeassistant.helpers.entity import Entity
+  pass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -169,7 +171,7 @@ class SignificantChangeTracker:
   Examples:
       >>> tracker = SignificantChangeTracker()
       >>> if tracker.is_significant_change("sensor.gps", 45.5231, 45.5232):
-      ...     entity.async_write_ha_state()
+      ...   entity.async_write_ha_state()
   """
 
   def __init__(self) -> None:
@@ -247,9 +249,8 @@ class SignificantChangeTracker:
     pct_threshold = percentage_threshold or thresholds.get("percentage")
 
     # Absolute threshold
-    if abs_threshold is not None:
-      if abs(new_value - old_value) < abs_threshold:
-        return False
+    if abs_threshold is not None and abs(new_value - old_value) < abs_threshold:
+      return False
 
     # Percentage threshold
     if pct_threshold is not None and old_value != 0:
@@ -377,8 +378,7 @@ class EntityUpdateScheduler:
     return {
       "total_entities": len(self._entities),
       "intervals": {
-        f"{interval}s": len(entities)
-        for interval, entities in self._intervals.items()
+        f"{interval}s": len(entities) for interval, entities in self._intervals.items()
       },
     }
 
@@ -404,9 +404,9 @@ def skip_redundant_update(
   Examples:
       >>> tracker = SignificantChangeTracker()
       >>> class MySensor(SensorEntity):
-      ...     @skip_redundant_update(tracker, "latitude", absolute=0.0001)
-      ...     async def async_update(self):
-      ...         self._attr_latitude = await get_latitude()
+      ...   @skip_redundant_update(tracker, "latitude", absolute=0.0001)
+      ...   async def async_update(self):
+      ...     self._attr_latitude = await get_latitude()
   """
 
   def decorator(func: Any) -> Any:
