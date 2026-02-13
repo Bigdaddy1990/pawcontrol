@@ -10,16 +10,28 @@ import pytest
 from custom_components.pawcontrol.const import CONF_DOOR_SENSOR
 from custom_components.pawcontrol.const import CONF_DOOR_SENSOR_SETTINGS
 from custom_components.pawcontrol.door_sensor_manager import _coerce_bool
-from custom_components.pawcontrol.door_sensor_manager import DEFAULT_CONFIDENCE_THRESHOLD
+from custom_components.pawcontrol.door_sensor_manager import (
+  DEFAULT_CONFIDENCE_THRESHOLD,
+)
 from custom_components.pawcontrol.door_sensor_manager import DEFAULT_DOOR_CLOSED_DELAY
-from custom_components.pawcontrol.door_sensor_manager import DEFAULT_DOOR_SENSOR_SETTINGS
-from custom_components.pawcontrol.door_sensor_manager import DEFAULT_MAXIMUM_WALK_DURATION
-from custom_components.pawcontrol.door_sensor_manager import DEFAULT_MINIMUM_WALK_DURATION
-from custom_components.pawcontrol.door_sensor_manager import DEFAULT_WALK_DETECTION_TIMEOUT
+from custom_components.pawcontrol.door_sensor_manager import (
+  DEFAULT_DOOR_SENSOR_SETTINGS,
+)
+from custom_components.pawcontrol.door_sensor_manager import (
+  DEFAULT_MAXIMUM_WALK_DURATION,
+)
+from custom_components.pawcontrol.door_sensor_manager import (
+  DEFAULT_MINIMUM_WALK_DURATION,
+)
+from custom_components.pawcontrol.door_sensor_manager import (
+  DEFAULT_WALK_DETECTION_TIMEOUT,
+)
 from custom_components.pawcontrol.door_sensor_manager import DoorSensorConfig
 from custom_components.pawcontrol.door_sensor_manager import DoorSensorManager
 from custom_components.pawcontrol.door_sensor_manager import DoorSensorSettingsConfig
-from custom_components.pawcontrol.door_sensor_manager import ensure_door_sensor_settings_config
+from custom_components.pawcontrol.door_sensor_manager import (
+  ensure_door_sensor_settings_config,
+)
 from custom_components.pawcontrol.door_sensor_manager import WalkDetectionState
 from custom_components.pawcontrol.types import DogConfigData
 from custom_components.pawcontrol.types import DoorSensorConfigUpdate

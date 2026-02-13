@@ -10,12 +10,20 @@ import pytest
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.pawcontrol.config_flow_modules import _build_dashboard_placeholders
+from custom_components.pawcontrol.config_flow_modules import (
+  _build_dashboard_placeholders,
+)
 from custom_components.pawcontrol.config_flow_modules import _build_feeding_placeholders
 from custom_components.pawcontrol.config_flow_modules import _build_module_placeholders
-from custom_components.pawcontrol.config_flow_modules import _coerce_dashboard_configuration
-from custom_components.pawcontrol.config_flow_modules import _coerce_feeding_configuration
-from custom_components.pawcontrol.config_flow_modules import _coerce_module_global_settings
+from custom_components.pawcontrol.config_flow_modules import (
+  _coerce_dashboard_configuration,
+)
+from custom_components.pawcontrol.config_flow_modules import (
+  _coerce_feeding_configuration,
+)
+from custom_components.pawcontrol.config_flow_modules import (
+  _coerce_module_global_settings,
+)
 from custom_components.pawcontrol.config_flow_modules import ModuleConfigurationMixin
 from custom_components.pawcontrol.const import MODULE_DASHBOARD
 from custom_components.pawcontrol.const import MODULE_FEEDING

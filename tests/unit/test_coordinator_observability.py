@@ -9,10 +9,16 @@ from typing import cast
 
 import pytest
 
-from custom_components.pawcontrol.coordinator_observability import build_performance_snapshot
-from custom_components.pawcontrol.coordinator_observability import build_security_scorecard
+from custom_components.pawcontrol.coordinator_observability import (
+  build_performance_snapshot,
+)
+from custom_components.pawcontrol.coordinator_observability import (
+  build_security_scorecard,
+)
 from custom_components.pawcontrol.coordinator_observability import EntityBudgetTracker
-from custom_components.pawcontrol.coordinator_observability import normalise_webhook_status
+from custom_components.pawcontrol.coordinator_observability import (
+  normalise_webhook_status,
+)
 from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
 from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
 from custom_components.pawcontrol.telemetry import record_bool_coercion_event

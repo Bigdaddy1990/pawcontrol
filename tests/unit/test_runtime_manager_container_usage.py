@@ -12,8 +12,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from custom_components.pawcontrol.binary_sensor import PawControlGardenPoopPendingBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGardenSessionActiveBinarySensor
+from custom_components.pawcontrol.binary_sensor import (
+  PawControlGardenPoopPendingBinarySensor,
+)
+from custom_components.pawcontrol.binary_sensor import (
+  PawControlGardenSessionActiveBinarySensor,
+)
 from custom_components.pawcontrol.binary_sensor import PawControlInGardenBinarySensor
 from custom_components.pawcontrol.button import PawControlConfirmGardenPoopButton
 from custom_components.pawcontrol.const import DOMAIN
