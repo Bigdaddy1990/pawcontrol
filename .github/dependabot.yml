@@ -18,7 +18,7 @@ updates:
       # Ignore major version updates for stable dependencies
       - dependency-name: "homeassistant"
         update-types: ["version-update:semver-major"]
-    
+
     # Group updates
     groups:
       testing:
