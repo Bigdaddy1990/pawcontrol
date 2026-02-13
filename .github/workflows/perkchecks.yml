@@ -23,4 +23,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: j178/prek-action@v1
+      - uses: taiki-e/install-action@v2.67.30
+      - name: Run prek checks
+        run: |
+          prek install
+          prek run --all-files --show-diff-on-failure
+          if ! git diff --quiet; then
+            echo "Prek applied autofixes; commit them before pushing." >&2
+            git --no-pager diff --stat
+            exit 1
+          fi
