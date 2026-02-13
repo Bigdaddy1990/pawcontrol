@@ -1,5 +1,4 @@
 """Minimal vendored YAML parser for test fallbacks."""
-
 from __future__ import annotations
 
 import ast
