@@ -54,14 +54,10 @@ def _parse_scalar(value: str) -> Any:
     if "." in text:
       return float(text)
     return int(text)
-except (json.JSONDecodeError, ValueError, SyntaxError):
-    try:
-      return json.loads(text)
-    except json.JSONDecodeError, ValueError, SyntaxError:
-      try:
-        return ast.literal_eval(text)
-      except (ValueError, SyntaxError) as err:
-        raise ValueError("Invalid YAML content") from err
+  with contextlib.suppress(json.JSONDecodeError, ValueError, SyntaxError):
+    return json.loads(text)
+  with contextlib.suppress(ValueError, SyntaxError):
+    return ast.literal_eval(text)
   return text
 
 
