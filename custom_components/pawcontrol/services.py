@@ -2679,7 +2679,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         notification_type_enum = NotificationType(
           notification_type_raw,
         )
-      except (TypeError, ValueError):
+      except TypeError, ValueError:
         _LOGGER.warning(
           "Unknown notification type '%s'; defaulting to %s",
           notification_type_raw,
@@ -2689,7 +2689,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
       try:
         priority_enum = NotificationPriority(priority_raw)
-      except (TypeError, ValueError):
+      except TypeError, ValueError:
         _LOGGER.warning(
           "Unknown notification priority '%s'; defaulting to %s",
           priority_raw,
