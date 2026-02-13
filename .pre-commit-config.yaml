@@ -81,12 +81,6 @@ repos:
           - --force
           - --keep-updates
         files: ^(homeassistant|tests|scripts)/.+\.py$
-  - repo: https://github.com/asottile/reorder-python-imports
-    rev: v3.16.0
-    hooks:
-    -   id: reorder-python-imports
-        exclude: ^pre_commit/resources/
-        args: [--py310-plus, --add-import, 'from __future__ import annotations']
 
   - repo: local
     hooks:

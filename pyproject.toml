@@ -31,9 +31,6 @@ line-length = 88
 src = ["custom_components"]
 indent-width = 2
 show-fixes = true
-# CI should never modify the code during linting.  Disable on-by-default
-# auto-fixing here.  Developers can still invoke `ruff --fix` locally or via
-# pre-commit to apply automatic fixes.
 fix = true
 unsafe-fixes = true
 
@@ -105,52 +102,17 @@ module = ["tests.*"]
 # Tests dürfen etwas lockerer sein
 disallow_untyped_defs = false
 
-# Phase 1.1: Gradual Type Safety Activation
-# Step 1: Enable basic type checking (most critical)
 [[tool.mypy.overrides]]
 module = ["custom_components.pawcontrol.*"]
-# ACTIVATED: Require function signatures
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
-# ACTIVATED: No implicit Optional types
 no_implicit_optional = true
-# Still allow some flexibility during transition
-warn_return_any = false
-disable_error_code = [
-    # Still disabled during Phase 1.1 (will be enabled in Phase 1.2)
-    "abstract",
-    "arg-type",
-    "assignment",
-    "attr-defined",
-    "call-arg",
-    "call-overload",
-    "comparison-overlap",
-    "dict-item",
-    "func-returns-value",
-    "index",
-    "list-item",
-    "literal-required",
-    "misc",
-    "no-any-return",
-    "no-redef",
-    "operator",
-    "override",
-    "redundant-cast",
-    # "return-value",  # ENABLED: Must return correct type
-    "typeddict-item",
-    "union-attr",
-    "unused-ignore",
-    "valid-type",
-    "var-annotated",
-]
+warn_return_any = true
 
 [[tool.mypy.overrides]]
 module = ["annotatedyaml.*"]
-disable_error_code = [
-    "no-any-return",
-    "unused-ignore",
-]
+disable_error_code = []
 
 [tool.coverage.run]
 branch = true
@@ -187,13 +149,12 @@ keywords = ["home assistant", "pawcontrol", "pets", "automation", "telemetry"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: AsyncIO",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Home Automation",
     "Typing :: Typed",
 ]
 dynamic = ["version", "dependencies", "optional-dependencies"]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 
 [project.urls]
 Homepage = "https://github.com/BigDaddy1990/pawcontrol"
