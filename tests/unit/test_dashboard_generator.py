@@ -21,7 +21,9 @@ from custom_components.pawcontrol.const import CONF_DOG_NAME
 from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.dashboard_generator import DashboardViewSummary
-from custom_components.pawcontrol.dashboard_generator import PawControlDashboardGenerator
+from custom_components.pawcontrol.dashboard_generator import (
+  PawControlDashboardGenerator,
+)
 from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
 from custom_components.pawcontrol.dashboard_renderer import HomeAssistantError
 

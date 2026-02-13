@@ -11,7 +11,9 @@ from custom_components.pawcontrol.flow_steps.notifications_helpers import (
   build_notification_settings_payload,
 )
 from custom_components.pawcontrol.flows.walk_schemas import build_auto_end_walks_field
-from custom_components.pawcontrol.flows.walk_schemas import build_walk_timing_schema_fields
+from custom_components.pawcontrol.flows.walk_schemas import (
+  build_walk_timing_schema_fields,
+)
 from custom_components.pawcontrol.types import DEFAULT_DOOR_SENSOR_SETTINGS
 from custom_components.pawcontrol.types import NOTIFICATION_REMINDER_REPEAT_FIELD
 

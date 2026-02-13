@@ -54,7 +54,7 @@ def _parse_scalar(value: str) -> Any:
     if "." in text:
       return float(text)
     return int(text)
-  if text.startswith("[") or text.startswith("{"):
+except (json.JSONDecodeError, ValueError, SyntaxError):
     try:
       return json.loads(text)
     except json.JSONDecodeError, ValueError, SyntaxError:
