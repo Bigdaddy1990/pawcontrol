@@ -7,12 +7,13 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Final
+from abc import ABC
+from abc import abstractmethod
+from typing import Any
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 
@@ -57,14 +58,14 @@ class BaseManager(ABC):
 
   Examples:
       >>> class MyManager(BaseManager):
-      ...     async def async_setup(self):
-      ...         self._data = {}
+      ...   async def async_setup(self):
+      ...     self._data = {}
       ...
-      ...     async def async_shutdown(self):
-      ...         self._data.clear()
+      ...   async def async_shutdown(self):
+      ...     self._data.clear()
       ...
-      ...     def get_diagnostics(self):
-      ...         return {"data_count": len(self._data)}
+      ...   def get_diagnostics(self):
+      ...     return {"data_count": len(self._data)}
   """
 
   # Class-level constants
@@ -84,9 +85,7 @@ class BaseManager(ABC):
     """
     self._hass = hass
     self._coordinator = coordinator
-    self._logger = logging.getLogger(
-      f"{__name__}.{self.__class__.__name__}"
-    )
+    self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
     self._is_setup = False
     self._is_shutdown = False
     self._setup_timestamp: float | None = None
@@ -384,12 +383,12 @@ class DataManager(BaseManager):
 
   Examples:
       >>> class MyDataManager(DataManager):
-      ...     async def async_setup(self):
-      ...         self._data = {}
+      ...   async def async_setup(self):
+      ...     self._data = {}
       ...
-      ...     async def async_save_data(self, key, value):
-      ...         self._require_ready()
-      ...         self._data[key] = value
+      ...   async def async_save_data(self, key, value):
+      ...     self._require_ready()
+      ...     self._data[key] = value
   """
 
   MANAGER_NAME: str = "DataManager"
@@ -421,9 +420,9 @@ class EventManager(BaseManager):
 
   Examples:
       >>> class MyEventManager(EventManager):
-      ...     async def async_setup(self):
-      ...         await super().async_setup()
-      ...         self._register_listener("my_event", self._handle_event)
+      ...   async def async_setup(self):
+      ...     await super().async_setup()
+      ...     self._register_listener("my_event", self._handle_event)
   """
 
   MANAGER_NAME: str = "EventManager"
@@ -489,7 +488,7 @@ def register_manager(manager_class: type[BaseManager]) -> type[BaseManager]:
   Examples:
       >>> @register_manager
       ... class MyManager(BaseManager):
-      ...     MANAGER_NAME = "MyManager"
+      ...   MANAGER_NAME = "MyManager"
   """
   _MANAGER_REGISTRY[manager_class.MANAGER_NAME] = manager_class
   return manager_class

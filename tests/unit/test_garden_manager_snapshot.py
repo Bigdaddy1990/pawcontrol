@@ -3,22 +3,19 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import cast
 
-from custom_components.pawcontrol.garden_manager import (
-  GardenActivity,
-  GardenActivityPayload,
-  GardenActivityType,
-  GardenManager,
-  GardenSession,
-  GardenSessionPayload,
-  GardenSessionStatus,
-  GardenStats,
-)
-from custom_components.pawcontrol.types import (
-  GardenFavoriteActivity,
-  GardenWeeklySummary,
-)
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.garden_manager import GardenActivity
+from custom_components.pawcontrol.garden_manager import GardenActivityPayload
+from custom_components.pawcontrol.garden_manager import GardenActivityType
+from custom_components.pawcontrol.garden_manager import GardenManager
+from custom_components.pawcontrol.garden_manager import GardenSession
+from custom_components.pawcontrol.garden_manager import GardenSessionPayload
+from custom_components.pawcontrol.garden_manager import GardenSessionStatus
+from custom_components.pawcontrol.garden_manager import GardenStats
+from custom_components.pawcontrol.types import GardenFavoriteActivity
+from custom_components.pawcontrol.types import GardenWeeklySummary
 
 
 def test_build_garden_snapshot_returns_structured_payload(hass: HomeAssistant) -> None:

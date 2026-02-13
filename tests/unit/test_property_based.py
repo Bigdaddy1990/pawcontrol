@@ -7,30 +7,26 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 
 import pytest
-from hypothesis import HealthCheck, given, settings
+from hypothesis import given
+from hypothesis import HealthCheck
+from hypothesis import settings
 from hypothesis import strategies as st
 
-from custom_components.pawcontrol.coordinator_diffing import (
-  compute_coordinator_diff,
-  compute_data_diff,
-  compute_dog_diff,
-)
-from custom_components.pawcontrol.exceptions import (
-  InvalidCoordinatesError,
-  ValidationError,
-)
-from custom_components.pawcontrol.validation import (
-  validate_dog_name,
-  validate_entity_id,
-  validate_float_range,
-  validate_gps_coordinates,
-)
+from custom_components.pawcontrol.coordinator_diffing import compute_coordinator_diff
+from custom_components.pawcontrol.coordinator_diffing import compute_data_diff
+from custom_components.pawcontrol.coordinator_diffing import compute_dog_diff
+from custom_components.pawcontrol.exceptions import InvalidCoordinatesError
+from custom_components.pawcontrol.exceptions import ValidationError
+from custom_components.pawcontrol.validation import validate_dog_name
+from custom_components.pawcontrol.validation import validate_entity_id
+from custom_components.pawcontrol.validation import validate_float_range
+from custom_components.pawcontrol.validation import validate_gps_coordinates
 
 # Hypothesis strategies for PawControl data types
 
@@ -74,7 +70,9 @@ def entity_id_strategy(draw):
   platform = draw(st.sampled_from(["sensor", "binary_sensor", "switch", "number"]))
   name_part = draw(
     st.text(
-      alphabet=st.characters(whitelist_categories=("Ll", "Nd"), whitelist_characters="_"),
+      alphabet=st.characters(
+        whitelist_categories=("Ll", "Nd"), whitelist_characters="_"
+      ),
       min_size=3,
       max_size=20,
     )
@@ -404,7 +402,7 @@ class TestSerializationRoundTripProperties:
       serialized = json.dumps(data)
       deserialized = json.loads(serialized)
       assert deserialized == data
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       # Some valid Python data isn't JSON-serializable (expected)
       pass
 

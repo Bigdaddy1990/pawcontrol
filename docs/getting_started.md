@@ -8,13 +8,13 @@ PawControl is a Home Assistant integration that helps you monitor and manage you
 
 ## Features at a Glance
 
-✅ **GPS Tracking** - Real-time location monitoring with geofencing  
-✅ **Walk Management** - Automatic walk detection and tracking  
-✅ **Feeding Schedules** - Track meals and nutrition  
-✅ **Health Monitoring** - Temperature, activity levels, and more  
-✅ **Multi-Pet Support** - Manage multiple dogs simultaneously  
-✅ **Weather Integration** - Weather-aware recommendations  
-✅ **Automations** - Powerful automation capabilities  
+✅ **GPS Tracking** - Real-time location monitoring with geofencing
+✅ **Walk Management** - Automatic walk detection and tracking
+✅ **Feeding Schedules** - Track meals and nutrition
+✅ **Health Monitoring** - Temperature, activity levels, and more
+✅ **Multi-Pet Support** - Manage multiple dogs simultaneously
+✅ **Weather Integration** - Weather-aware recommendations
+✅ **Automations** - Powerful automation capabilities
 ✅ **Mobile App Support** - Full Home Assistant mobile app integration
 
 ## Installation
@@ -332,19 +332,19 @@ Download diagnostics:
 
 ### FAQ
 
-**Q: How many dogs can I track?**  
+**Q: How many dogs can I track?**
 A: Unlimited! PawControl supports as many dogs as you have devices for.
 
-**Q: Does this work offline?**  
+**Q: Does this work offline?**
 A: GPS tracking requires internet for real-time updates. Cached data is available offline.
 
-**Q: Can I track cats?**  
+**Q: Can I track cats?**
 A: Absolutely! PawControl works with any compatible tracking device.
 
-**Q: Is my data private?**  
+**Q: Is my data private?**
 A: Yes! All data is stored locally in Home Assistant. See our [Privacy Policy](privacy.md).
 
-**Q: How accurate is the GPS?**  
+**Q: How accurate is the GPS?**
 A: Typically 5-15 meters outdoors. Indoor accuracy may be reduced.
 
 ## Next Steps

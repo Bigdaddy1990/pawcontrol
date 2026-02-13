@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import pytest
-from custom_components.pawcontrol.datetime import PawControlLastGroomingDateTime
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.datetime import PawControlLastGroomingDateTime
 
 
 class _StubCoordinator:

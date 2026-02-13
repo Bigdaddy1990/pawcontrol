@@ -1,5 +1,4 @@
 """Validate and auto-fix Home Assistant API migrations before pushing."""
-
 from __future__ import annotations
 
 import argparse
@@ -13,10 +12,13 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.error import HTTPError
+from urllib.error import URLError
+from urllib.request import Request
+from urllib.request import urlopen
 
-from packaging.version import InvalidVersion, Version
+from packaging.version import InvalidVersion
+from packaging.version import Version
 
 DEFAULT_RULES_PATH = Path("scripts/homeassistant_upgrade_rules.json")
 DEFAULT_SOURCE_ROOT = Path("custom_components/pawcontrol")

@@ -1,17 +1,17 @@
 """Tests for GPS defaults in the config flow."""
-
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
+
 from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.flow_steps.gps import (
-  DogGPSFlowMixin,
-  GPSModuleDefaultsMixin,
-)
-from custom_components.pawcontrol.types import DOG_NAME_FIELD, DogConfigData
+from custom_components.pawcontrol.flow_steps.gps import DogGPSFlowMixin
+from custom_components.pawcontrol.flow_steps.gps import GPSModuleDefaultsMixin
+from custom_components.pawcontrol.types import DOG_NAME_FIELD
+from custom_components.pawcontrol.types import DogConfigData
 from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 

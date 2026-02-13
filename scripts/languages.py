@@ -2,7 +2,6 @@
 
 To update, run python3 -m scripts.languages [frontend_tag]
 """
-
 from __future__ import annotations
 
 DEFAULT_LANGUAGE = "en"

@@ -547,10 +547,10 @@ class BuddyWalkManager(hass.Hass):
             self.walk_state_changed,
             "binary_sensor.buddy_walk_in_progress"
         )
-        
+
         self.walk_start_time = None
         self.walk_history = []
-    
+
     def walk_state_changed(self, entity, attribute, old, new, kwargs):
         if new == "on":
             self.walk_start_time = self.datetime()
@@ -558,17 +558,17 @@ class BuddyWalkManager(hass.Hass):
         elif new == "off" and self.walk_start_time:
             duration = (self.datetime() - self.walk_start_time).total_seconds()
             distance = float(self.get_state("sensor.buddy_last_walk_distance"))
-            
+
             self.walk_history.append({
                 "date": self.date(),
                 "duration": duration,
                 "distance": distance
             })
-            
+
             # Calculate statistics
             if len(self.walk_history) >= 7:
                 avg_distance = sum(w["distance"] for w in self.walk_history[-7:]) / 7
-                
+
                 if distance > avg_distance * 1.5:
                     self.call_service(
                         "notify/mobile_app",

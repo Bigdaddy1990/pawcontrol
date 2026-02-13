@@ -1,16 +1,14 @@
 """Tests for PawControl sensor module data access helpers."""
-
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
+from typing import cast
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.sensor import PawControlSensorBase
-from custom_components.pawcontrol.types import (
-  CoordinatorDogData,
-  CoordinatorModuleLookupResult,
-  CoordinatorModuleState,
-)
+from custom_components.pawcontrol.types import CoordinatorDogData
+from custom_components.pawcontrol.types import CoordinatorModuleLookupResult
+from custom_components.pawcontrol.types import CoordinatorModuleState
 
 
 class _CoordinatorStub:

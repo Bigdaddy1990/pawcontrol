@@ -3,23 +3,20 @@
 Tests smart diffing and data change detection including diff computation,
 module-level tracking, and entity update minimization.
 """
-
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.coordinator_diffing import (
-  CoordinatorDataDiff,
-  DataDiff,
-  DogDataDiff,
-  SmartDiffTracker,
-  compute_coordinator_diff,
-  compute_data_diff,
-  compute_dog_diff,
-  get_changed_fields,
-  log_diff_summary,
-  should_notify_entities,
-)
+from custom_components.pawcontrol.coordinator_diffing import compute_coordinator_diff
+from custom_components.pawcontrol.coordinator_diffing import compute_data_diff
+from custom_components.pawcontrol.coordinator_diffing import compute_dog_diff
+from custom_components.pawcontrol.coordinator_diffing import CoordinatorDataDiff
+from custom_components.pawcontrol.coordinator_diffing import DataDiff
+from custom_components.pawcontrol.coordinator_diffing import DogDataDiff
+from custom_components.pawcontrol.coordinator_diffing import get_changed_fields
+from custom_components.pawcontrol.coordinator_diffing import log_diff_summary
+from custom_components.pawcontrol.coordinator_diffing import should_notify_entities
+from custom_components.pawcontrol.coordinator_diffing import SmartDiffTracker
 
 
 class TestDataDiff:

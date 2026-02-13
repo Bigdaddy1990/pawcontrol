@@ -1,12 +1,12 @@
 """Unit tests for the shared aiohttp session helper."""
-
 from __future__ import annotations
 
 import importlib.util
 from collections.abc import Coroutine
 from pathlib import Path
 from types import ModuleType
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import pytest
 

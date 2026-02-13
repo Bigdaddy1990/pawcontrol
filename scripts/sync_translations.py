@@ -1,5 +1,4 @@
 """Sync PawControl translation files with strings.json."""
-
 from __future__ import annotations
 
 import argparse

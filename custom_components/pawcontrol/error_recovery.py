@@ -7,40 +7,33 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-import asyncio
 import logging
 from collections import defaultdict
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
-from .exceptions import (
-  APIError,
-  AuthenticationError,
-  ConfigurationError,
-  DogNotFoundError,
-  GPSUnavailableError,
-  InvalidCoordinatesError,
-  NetworkError,
-  PawControlError,
-  RateLimitError,
-  ServiceUnavailableError,
-  StorageError,
-  ValidationError,
-  WalkAlreadyInProgressError,
-  WalkNotInProgressError,
-)
+from .exceptions import AuthenticationError
+from .exceptions import ConfigurationError
+from .exceptions import GPSUnavailableError
+from .exceptions import NetworkError
+from .exceptions import RateLimitError
+from .exceptions import ServiceUnavailableError
+from .exceptions import StorageError
+from .exceptions import ValidationError
 from .logging_utils import StructuredLogger
-from .resilience import CircuitBreaker, FallbackStrategy, RetryStrategy
+from .resilience import FallbackStrategy
+from .resilience import RetryStrategy
 
 if TYPE_CHECKING:
-  from .const import DOMAIN
+  pass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -381,9 +374,7 @@ class ErrorRecoveryCoordinator:
     """
     total_errors = sum(stats.total_count for stats in self._stats.values())
     total_recovered = sum(stats.recovery_count for stats in self._stats.values())
-    total_unrecovered = sum(
-      stats.unrecovered_count for stats in self._stats.values()
-    )
+    total_unrecovered = sum(stats.unrecovered_count for stats in self._stats.values())
 
     return {
       "total_errors": total_errors,
@@ -456,11 +447,11 @@ async def handle_error_with_recovery(
 
   Examples:
       >>> try:
-      ...     result = await api.fetch()
+      ...   result = await api.fetch()
       ... except NetworkError as e:
-      ...     recovery = await handle_error_with_recovery(hass, e)
-      ...     if recovery["recovered"]:
-      ...         result = recovery["recovery_result"]
+      ...   recovery = await handle_error_with_recovery(hass, e)
+      ...   if recovery["recovered"]:
+      ...     result = recovery["recovery_result"]
   """
   coordinator = get_error_recovery_coordinator(hass)
   return await coordinator.handle_error(
