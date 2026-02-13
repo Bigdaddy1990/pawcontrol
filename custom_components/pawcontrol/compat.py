@@ -1,4 +1,5 @@
 """Compatibility helpers that keep the integration functional without Home Assistant."""
+
 from __future__ import annotations
 
 import inspect
@@ -62,7 +63,11 @@ def _build_exception(
   return type(name, (base,), namespace)
 
 
-except (ImportError, ModuleNotFoundError):
+def _import_optional(module: str) -> Any:
+  try:  # pragma: no cover - executed when Home Assistant is installed
+    return __import__(module, fromlist=["*"])
+  except (ImportError, ModuleNotFoundError):
+    return None
 
 
 _ha_exceptions = _import_optional("homeassistant.exceptions")
