@@ -7,29 +7,31 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_API_KEY
+from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_PASSWORD
+from homeassistant.const import CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from custom_components.pawcontrol.const import (
-  CONF_API_ENDPOINT,
-  CONF_API_TOKEN,
-  CONF_DOGS,
-  CONF_UPDATE_INTERVAL,
-  DOMAIN,
-  MODULE_FEEDING,
-  MODULE_GPS,
-  MODULE_WALK,
-)
+from custom_components.pawcontrol.const import CONF_API_ENDPOINT
+from custom_components.pawcontrol.const import CONF_API_TOKEN
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import CONF_UPDATE_INTERVAL
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_WALK
 
 
 # Domain constants

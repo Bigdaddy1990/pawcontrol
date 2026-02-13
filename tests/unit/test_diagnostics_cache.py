@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 
 from custom_components.pawcontrol import diagnostics
-from custom_components.pawcontrol.types import (
-  CacheDiagnosticsSnapshot,
-  CacheRepairAggregate,
-)
+from custom_components.pawcontrol.types import CacheDiagnosticsSnapshot
+from custom_components.pawcontrol.types import CacheRepairAggregate
 
 
 def _summary_payload() -> dict[str, object]:

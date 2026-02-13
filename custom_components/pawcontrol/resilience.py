@@ -7,26 +7,22 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import random
 import time
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, ParamSpec, TypeVar
+from typing import Any
+from typing import ParamSpec
+from typing import TypeVar
 
-from homeassistant.core import HomeAssistant
-
-from .exceptions import (
-  NetworkError,
-  PawControlError,
-  RateLimitError,
-  ServiceUnavailableError,
-)
+from .exceptions import NetworkError
+from .exceptions import RateLimitError
+from .exceptions import ServiceUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,7 +106,7 @@ class CircuitBreaker:
   Examples:
       >>> breaker = CircuitBreaker("api_client")
       >>> async with breaker:
-      ...     await api.call()
+      ...   await api.call()
   """
 
   def __init__(
@@ -176,18 +172,15 @@ class CircuitBreaker:
     """
     async with self._lock:
       # Check if circuit should transition to half-open
-      if self._stats.state == CircuitState.OPEN:
-        if self._should_attempt_reset():
-          _LOGGER.info("Circuit breaker %s: OPEN → HALF_OPEN", self._name)
-          self._stats.state = CircuitState.HALF_OPEN
-          self._stats.success_count = 0
+      if self._stats.state == CircuitState.OPEN and self._should_attempt_reset():
+        _LOGGER.info("Circuit breaker %s: OPEN → HALF_OPEN", self._name)
+        self._stats.state = CircuitState.HALF_OPEN
+        self._stats.success_count = 0
 
       # Block calls if open
       if self._stats.state == CircuitState.OPEN:
         self._stats.total_calls += 1
-        raise ServiceUnavailableError(
-          f"Circuit breaker {self._name} is OPEN"
-        )
+        raise ServiceUnavailableError(f"Circuit breaker {self._name} is OPEN")
 
     # Execute call
     try:
@@ -256,9 +249,7 @@ class CircuitBreaker:
     # Check state before allowing entry
     if self._stats.state == CircuitState.OPEN:
       if not self._should_attempt_reset():
-        raise ServiceUnavailableError(
-          f"Circuit breaker {self._name} is OPEN"
-        )
+        raise ServiceUnavailableError(f"Circuit breaker {self._name} is OPEN")
       async with self._lock:
         self._stats.state = CircuitState.HALF_OPEN
         self._stats.success_count = 0
@@ -385,9 +376,7 @@ class RetryStrategy:
         Delay in seconds
     """
     # Exponential backoff
-    delay = self._config.base_delay * (
-      self._config.exponential_base**attempt
-    )
+    delay = self._config.base_delay * (self._config.exponential_base**attempt)
 
     # Cap at max delay
     delay = min(delay, self._config.max_delay)
@@ -482,7 +471,7 @@ def get_circuit_breaker(
   Examples:
       >>> breaker = get_circuit_breaker("api_client")
       >>> async with breaker:
-      ...     await api.call()
+      ...   await api.call()
   """
   if name not in _circuit_breakers:
     _circuit_breakers[name] = CircuitBreaker(name, config=config)
@@ -525,7 +514,7 @@ def with_circuit_breaker(
   Examples:
       >>> @with_circuit_breaker("api_client")
       ... async def fetch_data():
-      ...     return await api.get_data()
+      ...   return await api.get_data()
   """
   breaker = get_circuit_breaker(name, config=config)
 
@@ -552,7 +541,7 @@ def with_retry(
   Examples:
       >>> @with_retry(RetryConfig(max_attempts=3))
       ... async def fetch_data():
-      ...     return await api.get_data()
+      ...   return await api.get_data()
   """
   strategy = RetryStrategy(config)
 
@@ -581,7 +570,7 @@ def with_fallback(
   Examples:
       >>> @with_fallback(default_value={})
       ... async def fetch_data():
-      ...     return await api.get_data()
+      ...   return await api.get_data()
   """
   strategy = FallbackStrategy(
     default_value=default_value,

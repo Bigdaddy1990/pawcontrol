@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import pytest
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
-from custom_components.pawcontrol.const import (
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOGS,
-  CONF_NAME,
-  DOMAIN,
-)
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import CONF_NAME
+from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed
-from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 

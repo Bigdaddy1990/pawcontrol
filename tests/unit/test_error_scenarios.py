@@ -7,29 +7,26 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from custom_components.pawcontrol.exceptions import (
-  ConfigurationError,
-  DogNotFoundError,
-  GPSUnavailableError,
-  InvalidCoordinatesError,
-  NetworkError,
-  RateLimitError,
-  StorageError,
-  ValidationError,
-  WalkError,
-)
-from tests.helpers.factories import (
-  create_mock_coordinator,
-  create_test_coordinator_data,
-)
+from custom_components.pawcontrol.exceptions import ConfigurationError
+from custom_components.pawcontrol.exceptions import DogNotFoundError
+from custom_components.pawcontrol.exceptions import GPSUnavailableError
+from custom_components.pawcontrol.exceptions import InvalidCoordinatesError
+from custom_components.pawcontrol.exceptions import NetworkError
+from custom_components.pawcontrol.exceptions import RateLimitError
+from custom_components.pawcontrol.exceptions import StorageError
+from custom_components.pawcontrol.exceptions import ValidationError
+from custom_components.pawcontrol.exceptions import WalkError
+from tests.helpers.factories import create_mock_coordinator
+from tests.helpers.factories import create_test_coordinator_data
 
 
 class TestNetworkErrorScenarios:
@@ -44,9 +41,7 @@ class TestNetworkErrorScenarios:
     coordinator = create_mock_coordinator()
 
     # First call times out, second succeeds
-    coordinator.async_request_refresh = AsyncMock(
-      side_effect=[asyncio.TimeoutError(), None]
-    )
+    coordinator.async_request_refresh = AsyncMock(side_effect=[TimeoutError(), None])
 
     # First call should raise timeout
     with pytest.raises(asyncio.TimeoutError):
@@ -61,9 +56,7 @@ class TestNetworkErrorScenarios:
 
     Scenario: Network unavailable, use cached coordinator data.
     """
-    coordinator = create_mock_coordinator(
-      data=create_test_coordinator_data()
-    )
+    coordinator = create_mock_coordinator(data=create_test_coordinator_data())
 
     # Simulate connection error
     coordinator.async_request_refresh = AsyncMock(
@@ -235,9 +228,7 @@ class TestStorageErrorScenarios:
     Scenario: Storage write fails, should retry.
     """
     mock_store = MagicMock()
-    mock_store.async_save = AsyncMock(
-      side_effect=[StorageError("Disk full"), None]
-    )
+    mock_store.async_save = AsyncMock(side_effect=[StorageError("Disk full"), None])
 
     # First call fails
     with pytest.raises(StorageError):
@@ -253,9 +244,7 @@ class TestStorageErrorScenarios:
     Scenario: Stored data corrupted, should reinitialize.
     """
     mock_store = MagicMock()
-    mock_store.async_load = AsyncMock(
-      side_effect=StorageError("Corrupted data")
-    )
+    mock_store.async_load = AsyncMock(side_effect=StorageError("Corrupted data"))
 
     # Load fails with corruption
     with pytest.raises(StorageError):
@@ -357,9 +346,7 @@ class TestEdgeCaseScenarios:
 
     Scenario: Integration with 100+ dogs.
     """
-    large_data = create_test_coordinator_data(
-      dog_ids=[f"dog_{i}" for i in range(100)]
-    )
+    large_data = create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(100)])
 
     assert len(large_data) == 100
     assert "dog_0" in large_data
@@ -426,7 +413,7 @@ class TestRecoveryMechanisms:
         if value is None:
           raise ValidationError(f"{key} not found")
         return value
-      except (ValidationError, KeyError):
+      except ValidationError, KeyError:
         return default
 
     config = {}

@@ -3,36 +3,35 @@
 Tests validation and error handling decorators including dog validation,
 GPS validation, error handling, retry logic, and repair issue mapping.
 """
-
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
 from custom_components.pawcontrol.error_decorators import (
-  EXCEPTION_TO_REPAIR_ISSUE,
   create_repair_issue_from_exception,
-  get_repair_issue_id,
-  handle_errors,
-  map_to_repair_issue,
-  require_coordinator,
-  require_coordinator_data,
-  retry_on_error,
-  validate_and_handle,
-  validate_dog_exists,
-  validate_gps_coordinates,
-  validate_range,
 )
-from custom_components.pawcontrol.exceptions import (
-  DogNotFoundError,
-  ErrorCategory,
-  ErrorSeverity,
-  InvalidCoordinatesError,
-  NetworkError,
-  PawControlError,
-  RateLimitError,
-)
+from custom_components.pawcontrol.error_decorators import EXCEPTION_TO_REPAIR_ISSUE
+from custom_components.pawcontrol.error_decorators import get_repair_issue_id
+from custom_components.pawcontrol.error_decorators import handle_errors
+from custom_components.pawcontrol.error_decorators import map_to_repair_issue
+from custom_components.pawcontrol.error_decorators import require_coordinator
+from custom_components.pawcontrol.error_decorators import require_coordinator_data
+from custom_components.pawcontrol.error_decorators import retry_on_error
+from custom_components.pawcontrol.error_decorators import validate_and_handle
+from custom_components.pawcontrol.error_decorators import validate_dog_exists
+from custom_components.pawcontrol.error_decorators import validate_gps_coordinates
+from custom_components.pawcontrol.error_decorators import validate_range
+from custom_components.pawcontrol.exceptions import DogNotFoundError
+from custom_components.pawcontrol.exceptions import ErrorCategory
+from custom_components.pawcontrol.exceptions import ErrorSeverity
+from custom_components.pawcontrol.exceptions import InvalidCoordinatesError
+from custom_components.pawcontrol.exceptions import NetworkError
+from custom_components.pawcontrol.exceptions import PawControlError
+from custom_components.pawcontrol.exceptions import RateLimitError
 
 
 class TestValidateDogExists:

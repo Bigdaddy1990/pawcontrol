@@ -7,13 +7,15 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass, field
-from typing import Any, Callable, Pattern
+from collections.abc import Callable
+from dataclasses import dataclass
+from dataclasses import field
+from re import Pattern
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 
@@ -61,9 +63,7 @@ class PIIRedactor:
     # Email addresses
     self._rules.append(
       RedactionRule(
-        pattern=re.compile(
-          r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
-        ),
+        pattern=re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
         replacement="[EMAIL]",
       )
     )
@@ -103,16 +103,15 @@ class PIIRedactor:
     )
 
   def add_rule(self, rule: RedactionRule) -> None:
-    """Add custom redaction rule.
+    r"""Add custom redaction rule.
 
     Args:
         rule: Redaction rule to add
 
     Examples:
-        >>> redactor.add_rule(RedactionRule(
-        ...     pattern=re.compile(r"dog_id_\d+"),
-        ...     replacement="[DOG_ID]"
-        ... ))
+        >>> redactor.add_rule(
+        ...   RedactionRule(pattern=re.compile(r"dog_id_\d+"), replacement="[DOG_ID]")
+        ... )
     """
     self._rules.append(rule)
 
@@ -165,9 +164,7 @@ class PIIRedactor:
 
     for key, value in data.items():
       # Check if field should be redacted by name
-      should_redact_field = any(
-        key in rule.field_names for rule in self._rules
-      )
+      should_redact_field = any(key in rule.field_names for rule in self._rules)
 
       if should_redact_field:
         redacted[key] = "[REDACTED]"
@@ -374,9 +371,9 @@ class PrivacyManager:
 
     Examples:
         >>> clean = await manager.async_sanitize_data(
-        ...     {"email": "user@example.com", "latitude": 45.5231},
-        ...     redact_pii=True,
-        ...     anonymize_gps=True,
+        ...   {"email": "user@example.com", "latitude": 45.5231},
+        ...   redact_pii=True,
+        ...   anonymize_gps=True,
         ... )
     """
     result = dict(data)
@@ -430,10 +427,12 @@ class PrivacyManager:
         rule: Redaction rule
 
     Examples:
-        >>> manager.add_redaction_rule(RedactionRule(
+        >>> manager.add_redaction_rule(
+        ...   RedactionRule(
         ...     field_names=["api_key", "secret"],
         ...     replacement="[SECRET]",
-        ... ))
+        ...   )
+        ... )
     """
     self._redactor.add_rule(rule)
 
@@ -457,7 +456,7 @@ def sanitize_return_value(
   Examples:
       >>> @sanitize_return_value(redact_pii=True)
       ... async def get_user_data():
-      ...     return {"email": "user@example.com"}
+      ...   return {"email": "user@example.com"}
   """
   redactor = PIIRedactor()
   gps_anonymizer = GPSAnonymizer()

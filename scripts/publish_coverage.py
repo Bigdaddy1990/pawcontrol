@@ -1,10 +1,8 @@
 """Publish coverage artifacts and GitHub Pages bundles."""
-
 from __future__ import annotations
 
 import argparse
 import base64
-import importlib
 import importlib.util
 import json
 import os
@@ -13,10 +11,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as StdlibET
+from collections.abc import Iterable
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
 from pathlib import Path
-from collections.abc import Iterable, Sequence
 
 if importlib.util.find_spec("defusedxml") is not None:
   ET = importlib.import_module("defusedxml.ElementTree")
@@ -90,7 +91,7 @@ def _parse_coverage_percent(coverage_xml: Path) -> float:
   line_rate = root.attrib.get("line-rate")
   try:
     return float(line_rate) * 100.0
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return 0.0
 
 
@@ -425,7 +426,7 @@ def publish(args: argparse.Namespace) -> PublishResult:
             args.pages_prefix,
             timedelta(days=args.prune_max_age_days),
           )
-      except (PublishError, urllib.error.URLError):
+      except PublishError, urllib.error.URLError:
         published = False
         url = None
 

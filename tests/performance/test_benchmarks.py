@@ -7,7 +7,6 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -17,12 +16,10 @@ from typing import Any
 
 import pytest
 
-from tests.helpers.factories import (
-  create_mock_coordinator,
-  create_test_coordinator_data,
-  create_test_entry_data,
-  create_test_entry_options,
-)
+from tests.helpers.factories import create_mock_coordinator
+from tests.helpers.factories import create_test_coordinator_data
+from tests.helpers.factories import create_test_entry_data
+from tests.helpers.factories import create_test_entry_options
 
 
 @dataclass
@@ -194,7 +191,9 @@ class TestCoordinatorPerformance:
     result = await benchmark_async(update_operation, iterations=50, warmup=5)
 
     print(f"\n{result}")
-    assert result.meets_target(500.0), f"Coordinator update too slow: {result.avg_ms:.2f}ms"
+    assert result.meets_target(500.0), (
+      f"Coordinator update too slow: {result.avg_ms:.2f}ms"
+    )
 
   @pytest.mark.benchmark
   async def test_coordinator_data_access_performance(self):
@@ -224,14 +223,14 @@ class TestCoordinatorPerformance:
     """
 
     def create_large_dataset():
-      return create_test_coordinator_data(
-        dog_ids=[f"dog_{i}" for i in range(100)]
-      )
+      return create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(100)])
 
     result = benchmark(create_large_dataset, iterations=50, warmup=5)
 
     print(f"\n{result}")
-    assert result.meets_target(100.0), f"Large dataset creation too slow: {result.avg_ms:.2f}ms"
+    assert result.meets_target(100.0), (
+      f"Large dataset creation too slow: {result.avg_ms:.2f}ms"
+    )
 
 
 class TestValidationPerformance:
@@ -283,7 +282,9 @@ class TestValidationPerformance:
     result = benchmark(validate_operation, iterations=10000, warmup=1000)
 
     print(f"\n{result}")
-    assert result.meets_target(0.1), f"Entity ID validation too slow: {result.avg_ms:.2f}ms"
+    assert result.meets_target(0.1), (
+      f"Entity ID validation too slow: {result.avg_ms:.2f}ms"
+    )
 
 
 class TestDiffingPerformance:
@@ -299,12 +300,8 @@ class TestDiffingPerformance:
       compute_coordinator_diff,
     )
 
-    old_data = create_test_coordinator_data(
-      dog_ids=[f"dog_{i}" for i in range(10)]
-    )
-    new_data = create_test_coordinator_data(
-      dog_ids=[f"dog_{i}" for i in range(10)]
-    )
+    old_data = create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(10)])
+    new_data = create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(10)])
 
     # Modify one dog's data
     new_data["dog_5"]["gps"]["latitude"] = 46.0
@@ -327,12 +324,8 @@ class TestDiffingPerformance:
       compute_coordinator_diff,
     )
 
-    old_data = create_test_coordinator_data(
-      dog_ids=[f"dog_{i}" for i in range(100)]
-    )
-    new_data = create_test_coordinator_data(
-      dog_ids=[f"dog_{i}" for i in range(100)]
-    )
+    old_data = create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(100)])
+    new_data = create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(100)])
 
     # Modify some data
     for i in range(0, 100, 10):
@@ -358,9 +351,7 @@ class TestSerializationPerformance:
     """
     import json
 
-    data = create_test_coordinator_data(
-      dog_ids=[f"dog_{i}" for i in range(10)]
-    )
+    data = create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(10)])
 
     def serialize_operation():
       # Convert to JSON-serializable format
@@ -390,9 +381,7 @@ class TestMemoryUsage:
     import sys
 
     # Create large dataset
-    data = create_test_coordinator_data(
-      dog_ids=[f"dog_{i}" for i in range(100)]
-    )
+    data = create_test_coordinator_data(dog_ids=[f"dog_{i}" for i in range(100)])
 
     # Estimate memory usage (rough approximation)
     size_bytes = sys.getsizeof(data)
@@ -423,10 +412,9 @@ class TestConcurrency:
     async def concurrent_update():
       tasks = []
       for i in range(10):
+
         async def update(idx):
-          coordinator.data = create_test_coordinator_data(
-            dog_ids=[f"dog_{idx}"]
-          )
+          coordinator.data = create_test_coordinator_data(dog_ids=[f"dog_{idx}"])
           await asyncio.sleep(0.001)
 
         tasks.append(update(i))
@@ -436,7 +424,9 @@ class TestConcurrency:
     result = await benchmark_async(concurrent_update, iterations=10, warmup=2)
 
     print(f"\n{result}")
-    assert result.meets_target(1000.0), f"Concurrent updates too slow: {result.avg_ms:.2f}ms"
+    assert result.meets_target(1000.0), (
+      f"Concurrent updates too slow: {result.avg_ms:.2f}ms"
+    )
 
 
 # Performance targets summary

@@ -7,7 +7,6 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import html
@@ -222,9 +221,7 @@ class InputSanitizer:
       result = pattern.sub("", result)
 
     # Remove control characters (except newline, tab)
-    result = "".join(
-      char for char in result if ord(char) >= 32 or char in "\n\r\t"
-    )
+    result = "".join(char for char in result if ord(char) >= 32 or char in "\n\r\t")
 
     return result
 
@@ -334,7 +331,7 @@ class InputValidator:
     # Convert to int
     try:
       int_value = int(value)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
       errors.append(f"Cannot convert to integer: {value}")
       return ValidationResult(
         is_valid=False,
@@ -377,7 +374,7 @@ class InputValidator:
     # Convert to float
     try:
       float_value = float(value)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
       errors.append(f"Cannot convert to float: {value}")
       return ValidationResult(
         is_valid=False,
@@ -441,8 +438,8 @@ class InputValidator:
 
     Examples:
         >>> schema = {
-        ...     "name": {"type": "str", "required": True, "max_length": 50},
-        ...     "age": {"type": "int", "min_value": 0, "max_value": 150},
+        ...   "name": {"type": "str", "required": True, "max_length": 50},
+        ...   "age": {"type": "int", "min_value": 0, "max_value": 150},
         ... }
         >>> result = validator.validate_dict({"name": "Buddy", "age": 5}, schema)
     """

@@ -7,16 +7,19 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import functools
 import logging
 import time
-from collections import defaultdict, deque
-from dataclasses import dataclass, field
-from typing import Any, Callable, ParamSpec, TypeVar
+from collections import deque
+from collections.abc import Callable
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import ParamSpec
+from typing import TypeVar
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -165,9 +168,7 @@ class PerformanceMonitor:
         List of slow operations
     """
     return [
-      metric
-      for metric in self._metrics.values()
-      if metric.avg_time_ms > threshold_ms
+      metric for metric in self._metrics.values() if metric.avg_time_ms > threshold_ms
     ]
 
   def reset(self) -> None:
@@ -210,7 +211,9 @@ class PerformanceMonitor:
       "metric_count": len(self._metrics),
       "total_calls": total_calls,
       "total_time_ms": round(total_time_ms, 2),
-      "avg_call_time_ms": round(total_time_ms / total_calls, 2) if total_calls > 0 else 0.0,
+      "avg_call_time_ms": round(total_time_ms / total_calls, 2)
+      if total_calls > 0
+      else 0.0,
       "slowest_operations": [m.to_dict() for m in slowest],
       "most_called_operations": [m.to_dict() for m in most_called],
     }
@@ -239,11 +242,11 @@ def track_performance(
   Examples:
       >>> @track_performance()
       ... async def fetch_data():
-      ...     await api.get_data()
+      ...   await api.get_data()
 
       >>> @track_performance("custom_name", slow_threshold_ms=50.0)
       ... def calculate():
-      ...     return sum(range(1000))
+      ...   return sum(range(1000))
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -308,7 +311,7 @@ def debounce(
   Examples:
       >>> @debounce(1.0)
       ... async def update_state():
-      ...     await coordinator.async_request_refresh()
+      ...   await coordinator.async_request_refresh()
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -361,7 +364,7 @@ def throttle(
   Examples:
       >>> @throttle(2.0)  # Max 2 calls per second
       ... async def api_call():
-      ...     return await api.fetch()
+      ...   return await api.fetch()
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -407,7 +410,7 @@ def batch_calls(
   Examples:
       >>> @batch_calls(max_batch_size=10, max_wait_ms=100.0)
       ... async def update_entities(entity_ids: list[str]):
-      ...     await coordinator.async_update_entities(entity_ids)
+      ...   await coordinator.async_update_entities(entity_ids)
   """
 
   def decorator(func: Callable[..., Any]) -> Callable[..., Any]:

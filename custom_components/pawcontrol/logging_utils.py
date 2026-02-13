@@ -7,17 +7,21 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import contextvars
 import functools
 import logging
 import traceback
-from collections import defaultdict, deque
-from dataclasses import dataclass, field
+from collections import defaultdict
+from collections import deque
+from collections.abc import Callable
+from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
-from typing import Any, Callable, ParamSpec, TypeVar
+from typing import Any
+from typing import ParamSpec
+from typing import TypeVar
 from uuid import uuid4
 
 _LOGGER = logging.getLogger(__name__)
@@ -177,9 +181,7 @@ class StructuredLogger:
     """
     self._log(logging.ERROR, message, exc_info=exc_info, **context)
 
-  def critical(
-    self, message: str, *, exc_info: bool = False, **context: Any
-  ) -> None:
+  def critical(self, message: str, *, exc_info: bool = False, **context: Any) -> None:
     """Log critical message.
 
     Args:
@@ -260,9 +262,7 @@ class LogBuffer:
     entries = list(self._entries)
     return entries[-count:][::-1]
 
-  def get_entries_by_correlation_id(
-    self, correlation_id: str
-  ) -> list[LogEntry]:
+  def get_entries_by_correlation_id(self, correlation_id: str) -> list[LogEntry]:
     """Get entries for specific correlation ID.
 
     Args:
@@ -271,11 +271,7 @@ class LogBuffer:
     Returns:
         List of matching log entries
     """
-    return [
-      entry
-      for entry in self._entries
-      if entry.correlation_id == correlation_id
-    ]
+    return [entry for entry in self._entries if entry.correlation_id == correlation_id]
 
   def get_entries_by_level(self, level: str) -> list[LogEntry]:
     """Get entries by log level.
@@ -321,7 +317,7 @@ class CorrelationContext:
 
   Examples:
       >>> async with CorrelationContext(dog_id="buddy"):
-      ...     await fetch_data()  # All logs get same correlation ID
+      ...   await fetch_data()  # All logs get same correlation ID
   """
 
   def __init__(self, **context: Any) -> None:
@@ -415,7 +411,7 @@ def log_calls(
   Examples:
       >>> @log_calls(log_args=True, log_duration=True)
       ... async def fetch_data(dog_id: str):
-      ...     return await api.get(dog_id)
+      ...   return await api.get(dog_id)
   """
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:

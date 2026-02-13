@@ -7,22 +7,23 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 if TYPE_CHECKING:
-  from .types import JSONMapping
+  pass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ T = TypeVar("T")
 
 
 @dataclass
-class CacheEntry(Generic[T]):
+class CacheEntry[T]:
   """Represents a cached entry.
 
   Attributes:
@@ -104,7 +105,7 @@ class CacheStats:
     }
 
 
-class LRUCache(Generic[T]):
+class LRUCache[T]:
   """LRU (Least Recently Used) cache implementation.
 
   Examples:
@@ -222,7 +223,7 @@ class LRUCache(Generic[T]):
     return self._stats
 
 
-class PersistentCache(Generic[T]):
+class PersistentCache[T]:
   """Persistent L2 cache using Home Assistant storage.
 
   Examples:
@@ -361,16 +362,16 @@ class PersistentCache(Generic[T]):
     return self._stats
 
 
-class TwoLevelCache(Generic[T]):
+class TwoLevelCache[T]:
   """Two-level cache with L1 (memory) and L2 (persistent) layers.
 
   Examples:
       >>> cache = TwoLevelCache[dict](
-      ...     hass,
-      ...     name="pawcontrol",
-      ...     l1_size=100,
-      ...     l1_ttl=300.0,
-      ...     l2_ttl=3600.0,
+      ...   hass,
+      ...   name="pawcontrol",
+      ...   l1_size=100,
+      ...   l1_ttl=300.0,
+      ...   l2_ttl=3600.0,
       ... )
       >>> await cache.async_setup()
       >>> await cache.set("key", {"data": "value"})
@@ -499,7 +500,7 @@ def cached(
   Examples:
       >>> @cached(my_cache, "dog_data", ttl=300.0)
       ... async def get_dog_data(dog_id: str):
-      ...     return await api.fetch(dog_id)
+      ...   return await api.fetch(dog_id)
   """
 
   def decorator(func: Any) -> Any:

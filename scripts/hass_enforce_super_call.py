@@ -1,5 +1,4 @@
 """Plugin for checking super calls."""
-
 from __future__ import annotations
 
 from astroid import nodes

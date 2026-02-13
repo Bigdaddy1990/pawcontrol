@@ -6,29 +6,28 @@ and schedule compliance monitoring.
 Quality Scale: Platinum target
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine
-from datetime import UTC, datetime, timedelta
+from collections.abc import Callable
+from collections.abc import Coroutine
+from datetime import datetime
+from datetime import timedelta
+from datetime import UTC
 from typing import cast
 
 import pytest
-from custom_components.pawcontrol.feeding_manager import (
-  FeedingBatchEntry,
-  FeedingComplianceCompleted,
-  FeedingHealthUpdatePayload,
-  FeedingManager,
-  FeedingMedicationData,
-)
-from custom_components.pawcontrol.types import (
-  FeedingDailyStats,
-  FeedingEventRecord,
-  FeedingManagerDogSetupPayload,
-  FeedingSnapshot,
-  JSONMutableMapping,
-)
+
+from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
+from custom_components.pawcontrol.feeding_manager import FeedingComplianceCompleted
+from custom_components.pawcontrol.feeding_manager import FeedingHealthUpdatePayload
+from custom_components.pawcontrol.feeding_manager import FeedingManager
+from custom_components.pawcontrol.feeding_manager import FeedingMedicationData
+from custom_components.pawcontrol.types import FeedingDailyStats
+from custom_components.pawcontrol.types import FeedingEventRecord
+from custom_components.pawcontrol.types import FeedingManagerDogSetupPayload
+from custom_components.pawcontrol.types import FeedingSnapshot
+from custom_components.pawcontrol.types import JSONMutableMapping
 from tests.helpers import typed_deepcopy
 
 
