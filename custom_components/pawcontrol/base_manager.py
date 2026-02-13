@@ -10,9 +10,9 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from contextlib import suppress
 from abc import ABC
 from abc import abstractmethod
+from contextlib import suppress
 from typing import Any
 from typing import TYPE_CHECKING
 

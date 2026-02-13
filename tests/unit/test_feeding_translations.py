@@ -20,9 +20,15 @@ from custom_components.pawcontrol.feeding_translations import _MAX_MISSED_MEALS
 from custom_components.pawcontrol.feeding_translations import _MAX_RECOMMENDATIONS
 from custom_components.pawcontrol.feeding_translations import _normalise_sequence
 from custom_components.pawcontrol.feeding_translations import _SEQUENCE_SCAN_LIMIT
-from custom_components.pawcontrol.feeding_translations import build_feeding_compliance_notification
-from custom_components.pawcontrol.feeding_translations import build_feeding_compliance_summary
-from custom_components.pawcontrol.feeding_translations import get_feeding_compliance_translations
+from custom_components.pawcontrol.feeding_translations import (
+  build_feeding_compliance_notification,
+)
+from custom_components.pawcontrol.feeding_translations import (
+  build_feeding_compliance_summary,
+)
+from custom_components.pawcontrol.feeding_translations import (
+  get_feeding_compliance_translations,
+)
 
 
 def _limited_generator(

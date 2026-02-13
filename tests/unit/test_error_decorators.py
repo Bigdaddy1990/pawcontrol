@@ -11,7 +11,9 @@ from unittest.mock import patch
 
 import pytest
 
-from custom_components.pawcontrol.error_decorators import create_repair_issue_from_exception
+from custom_components.pawcontrol.error_decorators import (
+  create_repair_issue_from_exception,
+)
 from custom_components.pawcontrol.error_decorators import EXCEPTION_TO_REPAIR_ISSUE
 from custom_components.pawcontrol.error_decorators import get_repair_issue_id
 from custom_components.pawcontrol.error_decorators import handle_errors
