@@ -1,4 +1,5 @@
 """Home Assistant compatibility shims for PawControl's test suite."""
+
 from __future__ import annotations
 
 import asyncio
@@ -9,21 +10,14 @@ import re
 import sys
 import threading
 import types
-from collections.abc import Callable
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import date
-from datetime import datetime
-from datetime import UTC
-from enum import Enum
-from enum import StrEnum
+from datetime import UTC, date, datetime
+from enum import Enum, StrEnum
 from pathlib import Path
-from typing import Any
-from typing import Generic
-from typing import TypeVar
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
+from typing import Any, Generic, TypeVar
+from unittest.mock import AsyncMock, Mock
 
 import voluptuous as vol
 

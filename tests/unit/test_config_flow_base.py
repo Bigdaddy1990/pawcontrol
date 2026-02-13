@@ -1,14 +1,16 @@
 """Regression tests for the shared config flow helpers."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.const import CONF_NAME
-
 from custom_components.pawcontrol.config_flow_base import PawControlBaseConfigFlow
-from custom_components.pawcontrol.types import FeedingSizeDefaults
-from custom_components.pawcontrol.types import IntegrationNameValidationResult
+from custom_components.pawcontrol.types import (
+  FeedingSizeDefaults,
+  IntegrationNameValidationResult,
+)
+from homeassistant.const import CONF_NAME
 
 
 class _TestFlow(PawControlBaseConfigFlow):

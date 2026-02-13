@@ -1,18 +1,17 @@
 """Tests for the template cache diagnostics helpers."""
+
 from __future__ import annotations
 
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 from typing import TypeAlias
 
 import pytest
-
-from custom_components.pawcontrol.dashboard_shared import CardCollection
-from custom_components.pawcontrol.dashboard_shared import CardConfig
-from custom_components.pawcontrol.dashboard_templates import TEMPLATE_TTL_SECONDS
-from custom_components.pawcontrol.dashboard_templates import TemplateCache
-from custom_components.pawcontrol.dashboard_templates import TemplateCacheSnapshot
+from custom_components.pawcontrol.dashboard_shared import CardCollection, CardConfig
+from custom_components.pawcontrol.dashboard_templates import (
+  TEMPLATE_TTL_SECONDS,
+  TemplateCache,
+  TemplateCacheSnapshot,
+)
 
 type TemplatePayload = CardConfig | CardCollection
 

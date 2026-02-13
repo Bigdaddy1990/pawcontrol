@@ -1,8 +1,8 @@
 """Tests for ``validate_portion_size`` helper."""
+
 from __future__ import annotations
 
 import pytest
-
 from custom_components.pawcontrol.utils import validate_portion_size
 
 

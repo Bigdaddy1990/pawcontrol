@@ -1,4 +1,5 @@
 """Regression tests for the coverage publishing helper."""
+
 from __future__ import annotations
 
 import base64
@@ -9,7 +10,6 @@ import urllib.error
 import urllib.request
 
 import pytest
-
 from scripts import publish_coverage
 
 

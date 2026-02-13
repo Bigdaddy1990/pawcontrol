@@ -1,38 +1,37 @@
 """Regression tests covering runtime manager container access patterns."""
+
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from datetime import date as date_cls
-from datetime import datetime
-from datetime import UTC
 from types import SimpleNamespace
-from typing import cast
-from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
+from typing import TYPE_CHECKING, cast
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-
 from custom_components.pawcontrol.binary_sensor import (
   PawControlGardenPoopPendingBinarySensor,
-)
-from custom_components.pawcontrol.binary_sensor import (
   PawControlGardenSessionActiveBinarySensor,
+  PawControlInGardenBinarySensor,
 )
-from custom_components.pawcontrol.binary_sensor import PawControlInGardenBinarySensor
 from custom_components.pawcontrol.button import PawControlConfirmGardenPoopButton
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.date import PawControlBirthdateDate
-from custom_components.pawcontrol.date import PawControlLastVetVisitDate
+from custom_components.pawcontrol.date import (
+  PawControlBirthdateDate,
+  PawControlLastVetVisitDate,
+)
 from custom_components.pawcontrol.datetime import PawControlEmergencyDateTime
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.switch import PawControlVisitorModeSwitch
 from custom_components.pawcontrol.text import PawControlCustomMessageText
-from custom_components.pawcontrol.types import CoordinatorDogData
-from custom_components.pawcontrol.types import CoordinatorRuntimeManagers
-from custom_components.pawcontrol.types import DogConfigData
-from custom_components.pawcontrol.types import GardenConfirmationSnapshot
-from custom_components.pawcontrol.types import GardenModulePayload
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+  CoordinatorDogData,
+  CoordinatorRuntimeManagers,
+  DogConfigData,
+  GardenConfirmationSnapshot,
+  GardenModulePayload,
+  PawControlRuntimeData,
+)
 
 if TYPE_CHECKING:
   from custom_components.pawcontrol.data_manager import PawControlDataManager

@@ -1,4 +1,5 @@
 """Unit tests for the HealthMetrics dataclass enhancements."""
+
 from __future__ import annotations
 
 import importlib.machinery
@@ -6,8 +7,7 @@ import pathlib
 import sys
 import types
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import UTC
+from datetime import UTC, datetime
 
 import pytest
 

@@ -1,10 +1,10 @@
 """Ensure Pytest fixtures are not called directly inside the test suite."""
+
 from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Final
-from typing import TypeAlias
+from typing import Final, TypeAlias
 
 type DynamicPath = tuple[str, ...]
 type DynamicFixture = str | tuple[tuple[DynamicPath, str], ...]

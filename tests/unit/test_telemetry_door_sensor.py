@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime
-from datetime import UTC
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
 import pytest
-
 from custom_components.pawcontrol.telemetry import (
   record_door_sensor_persistence_failure,
 )
-from custom_components.pawcontrol.types import DoorSensorPersistenceFailure
-from custom_components.pawcontrol.types import DoorSensorSettingsPayload
-from custom_components.pawcontrol.types import PawControlRuntimeData
-from custom_components.pawcontrol.types import RuntimeErrorHistoryEntry
+from custom_components.pawcontrol.types import (
+  DoorSensorPersistenceFailure,
+  DoorSensorSettingsPayload,
+  PawControlRuntimeData,
+  RuntimeErrorHistoryEntry,
+)
 
 
 def _build_runtime_data(
