@@ -1,17 +1,22 @@
 """Unit tests for flow validation normalization helpers."""
+
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_MODULES
+from custom_components.pawcontrol.const import (
+  CONF_DOG_AGE,
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOG_SIZE,
+  CONF_DOG_WEIGHT,
+  CONF_MODULES,
+)
 from custom_components.pawcontrol.exceptions import FlowValidationError
-from custom_components.pawcontrol.flow_validation import validate_dog_config_payload
-from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
+from custom_components.pawcontrol.flow_validation import (
+  validate_dog_config_payload,
+  validate_dog_setup_input,
+)
 
 
 def _valid_dog_input() -> dict[str, object]:

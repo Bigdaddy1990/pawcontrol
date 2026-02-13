@@ -1,18 +1,18 @@
 """Focused unit tests for the PawControl coordinator."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-
 from custom_components.pawcontrol import coordinator as coordinator_module
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
-from custom_components.pawcontrol.coordinator_runtime import RuntimeCycleInfo
+from custom_components.pawcontrol.coordinator_runtime import (
+  EntityBudgetSnapshot,
+  RuntimeCycleInfo,
+)
 
 
 @pytest.mark.unit

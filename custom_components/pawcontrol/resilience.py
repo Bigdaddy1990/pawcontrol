@@ -1,576 +1,597 @@
 """Resilience patterns for PawControl integration.
 
-Provides circuit breaker, retry logic with exponential backoff, and graceful
-degradation to ensure integration reliability even under adverse conditions.
+This module implements circuit breaker, retry, and fallback patterns to ensure
+the integration gracefully handles failures and recovers automatically.
 
 Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
+import random
 import time
-from collections.abc import Awaitable
-from collections.abc import Callable
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import UTC
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
-from typing import TypeVar
+from typing import Any, Callable, ParamSpec, TypeVar
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.util import dt as dt_util
 
+from .exceptions import (
+  NetworkError,
+  PawControlError,
+  RateLimitError,
+  ServiceUnavailableError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-# Type variables for generic retry/circuit breaker
+P = ParamSpec("P")
 T = TypeVar("T")
-
-AsyncCallable = Callable[..., Awaitable[T]]
-
-
-class CircuitBreakerStateError(HomeAssistantError):
-  """Raised when a circuit breaker rejects a call due to its state."""
 
 
 class CircuitState(Enum):
   """Circuit breaker states."""
 
   CLOSED = "closed"  # Normal operation
-  OPEN = "open"  # Failing, reject requests
-  HALF_OPEN = "half_open"  # Testing if recovered
+  OPEN = "open"  # Failure threshold exceeded, blocking calls
+  HALF_OPEN = "half_open"  # Testing if service recovered
 
 
 @dataclass
 class CircuitBreakerConfig:
-  """Configuration for circuit breaker."""
+  """Circuit breaker configuration.
 
-  failure_threshold: int = 5  # Failures before opening
-  success_threshold: int = 2  # Successes in half-open before closing
-  timeout_seconds: float = 60.0  # Time in open state before half-open
-  half_open_max_calls: int = 3  # Max calls allowed in half-open state
+  Attributes:
+      failure_threshold: Number of failures before opening
+      success_threshold: Number of successes to close from half-open
+      timeout_seconds: Time to wait before half-open attempt
+      excluded_exceptions: Exception types that don't count as failures
+  """
+
+  failure_threshold: int = 5
+  success_threshold: int = 2
+  timeout_seconds: float = 60.0
+  excluded_exceptions: tuple[type[Exception], ...] = (RateLimitError,)
 
 
 @dataclass
 class CircuitBreakerStats:
-  """Statistics for circuit breaker monitoring."""
+  """Circuit breaker statistics.
+
+  Attributes:
+      state: Current state
+      failure_count: Consecutive failures
+      success_count: Consecutive successes in half-open
+      last_failure_time: Timestamp of last failure
+      total_calls: Total calls attempted
+      total_failures: Total failures
+      total_successes: Total successes
+  """
 
   state: CircuitState = CircuitState.CLOSED
   failure_count: int = 0
   success_count: int = 0
   last_failure_time: float | None = None
-  last_state_change: float | None = None
-  last_success_time: float | None = None
   total_calls: int = 0
   total_failures: int = 0
   total_successes: int = 0
-  rejected_calls: int = 0
-  last_rejection_time: float | None = None
-  _last_failure_monotonic: float | None = field(
-    default=None,
-    init=False,
-    repr=False,
-  )
-  _last_state_change_monotonic: float | None = field(
-    default=None,
-    init=False,
-    repr=False,
-  )
-  _last_success_monotonic: float | None = field(
-    default=None,
-    init=False,
-    repr=False,
-  )
 
-
-def _utc_timestamp() -> float:
-  """Return the current UTC timestamp as a float."""
-
-  now = dt_util.utcnow()
-  convert = getattr(dt_util, "as_timestamp", None)
-  if callable(convert):
-    try:
-      return float(convert(now))
-    except TypeError, ValueError, OverflowError:
-      pass
-
-  if now.tzinfo is None:
-    now = now.replace(tzinfo=UTC)
-
-  try:
-    return float(now.timestamp())
-  except OverflowError, OSError, ValueError:  # pragma: no cover - fallback
-    return time.time()
+  def to_dict(self) -> dict[str, Any]:
+    """Convert to dictionary."""
+    return {
+      "state": self.state.value,
+      "failure_count": self.failure_count,
+      "success_count": self.success_count,
+      "last_failure_time": self.last_failure_time,
+      "total_calls": self.total_calls,
+      "total_failures": self.total_failures,
+      "total_successes": self.total_successes,
+      "success_rate": (
+        self.total_successes / self.total_calls if self.total_calls > 0 else 0.0
+      ),
+    }
 
 
 class CircuitBreaker:
-  """Circuit breaker implementation for fault tolerance.
+  """Circuit breaker pattern implementation.
 
-  Prevents cascading failures by stopping calls to failing services.
+  Prevents cascading failures by temporarily blocking calls to failing services.
+
+  States:
+      CLOSED: Normal operation, calls pass through
+      OPEN: Too many failures, calls blocked immediately
+      HALF_OPEN: Testing recovery, limited calls allowed
+
+  Examples:
+      >>> breaker = CircuitBreaker("api_client")
+      >>> async with breaker:
+      ...     await api.call()
   """
 
   def __init__(
     self,
     name: str,
+    *,
     config: CircuitBreakerConfig | None = None,
   ) -> None:
     """Initialize circuit breaker.
 
     Args:
-        name: Circuit breaker identifier
-        config: Configuration for circuit breaker behavior
+        name: Circuit breaker name
+        config: Optional configuration
     """
-    self.name = name
-    self.config = config or CircuitBreakerConfig()
+    self._name = name
+    self._config = config or CircuitBreakerConfig()
     self._stats = CircuitBreakerStats()
     self._lock = asyncio.Lock()
-    self._half_open_calls = 0
 
-    _LOGGER.info(
-      "Initialized circuit breaker '%s': threshold=%d, timeout=%.1fs",
-      name,
-      self.config.failure_threshold,
-      self.config.timeout_seconds,
-    )
+  @property
+  def name(self) -> str:
+    """Return circuit breaker name."""
+    return self._name
 
   @property
   def state(self) -> CircuitState:
-    """Get current circuit state."""
+    """Return current state."""
     return self._stats.state
 
   @property
-  def stats(self) -> CircuitBreakerStats:
-    """Get circuit breaker statistics."""
-    return self._stats
+  def is_closed(self) -> bool:
+    """Return True if circuit is closed."""
+    return self._stats.state == CircuitState.CLOSED
+
+  @property
+  def is_open(self) -> bool:
+    """Return True if circuit is open."""
+    return self._stats.state == CircuitState.OPEN
+
+  @property
+  def is_half_open(self) -> bool:
+    """Return True if circuit is half-open."""
+    return self._stats.state == CircuitState.HALF_OPEN
 
   async def call(
     self,
-    func: AsyncCallable[T],
-    *args: Any,
-    **kwargs: Any,
+    func: Callable[P, T],
+    *args: P.args,
+    **kwargs: P.kwargs,
   ) -> T:
     """Execute function with circuit breaker protection.
 
     Args:
-        func: Async function to execute
-        *args: Positional arguments for function
-        **kwargs: Keyword arguments for function
-
-    Returns:
-        Function result
-
-    Raises:
-        HomeAssistantError: If circuit is open or call fails
-    """
-    incremented_half_open = False
-
-    async with self._lock:
-      self._stats.total_calls += 1
-
-      # Check if circuit should transition from open to half-open
-      if self._stats.state == CircuitState.OPEN:
-        if self._should_attempt_reset():
-          self._transition_to_half_open()
-        else:
-          message = f"Circuit breaker '{self.name}' is OPEN - calls rejected"
-          self._record_rejection(message)
-          raise CircuitBreakerStateError(message)
-
-      # Limit calls in half-open state
-      if self._stats.state == CircuitState.HALF_OPEN:
-        if self._half_open_calls >= self.config.half_open_max_calls:
-          self._stats.total_failures += 1
-          message = (
-            f"Circuit breaker '{self.name}' is HALF_OPEN - max concurrent calls reached"
-          )
-          self._record_rejection(message)
-          raise CircuitBreakerStateError(message)
-        self._half_open_calls += 1
-        incremented_half_open = True
-
-    # Execute function outside lock to avoid blocking
-    try:
-      result = await func(*args, **kwargs)
-      await self._record_success()
-      return result
-
-    except Exception as err:
-      await self._record_failure(err)
-      raise
-
-    finally:
-      if incremented_half_open:
-        async with self._lock:
-          if self._half_open_calls > 0:
-            self._half_open_calls -= 1
-
-  async def _record_success(self) -> None:
-    """Record successful call and update state."""
-    async with self._lock:
-      self._stats.total_successes += 1
-      self._stats.success_count += 1
-      now_monotonic = time.monotonic()
-      self._stats.last_success_time = _utc_timestamp()
-      self._stats._last_success_monotonic = now_monotonic
-
-      if self._stats.state == CircuitState.HALF_OPEN:
-        if self._stats.success_count >= self.config.success_threshold:
-          self._transition_to_closed()
-
-      elif self._stats.state == CircuitState.CLOSED:
-        # Reset failure count on success
-        self._stats.failure_count = 0
-
-  async def _record_failure(self, error: Exception) -> None:
-    """Record failed call and update state.
-
-    Args:
-        error: Exception that caused the failure
-    """
-    async with self._lock:
-      self._stats.total_failures += 1
-      self._stats.failure_count += 1
-      now_monotonic = time.monotonic()
-      self._stats._last_failure_monotonic = now_monotonic
-      self._stats.last_failure_time = _utc_timestamp()
-
-      _LOGGER.warning(
-        "Circuit breaker '%s' recorded failure (%d/%d): %s",
-        self.name,
-        self._stats.failure_count,
-        self.config.failure_threshold,
-        error,
-      )
-
-      if self._stats.state == CircuitState.HALF_OPEN:
-        # Any failure in half-open immediately opens circuit
-        self._transition_to_open()
-
-      elif (
-        self._stats.state == CircuitState.CLOSED
-        and self._stats.failure_count >= self.config.failure_threshold
-      ):
-        self._transition_to_open()
-
-  def _record_rejection(self, message: str) -> None:
-    """Record a rejected call for telemetry purposes."""
-
-    self._stats.rejected_calls += 1
-    self._stats.last_rejection_time = _utc_timestamp()
-    _LOGGER.debug(
-      "Circuit breaker '%s' rejected call while %s: %s",
-      self.name,
-      self._stats.state.value,
-      message,
-    )
-
-  def _should_attempt_reset(self) -> bool:
-    """Check if circuit should attempt reset from open to half-open.
-
-    Returns:
-        True if timeout has elapsed since last failure
-    """
-    reference = (
-      self._stats._last_state_change_monotonic
-      if self._stats._last_state_change_monotonic is not None
-      else self._stats._last_failure_monotonic
-    )
-
-    if reference is None:
-      return True
-
-    elapsed = time.monotonic() - reference
-    return elapsed >= self.config.timeout_seconds
-
-  def _transition_to_open(self) -> None:
-    """Transition circuit to OPEN state."""
-    self._stats.state = CircuitState.OPEN
-    now_monotonic = time.monotonic()
-    self._stats._last_state_change_monotonic = now_monotonic
-    self._stats.last_state_change = _utc_timestamp()
-    self._stats.failure_count = 0
-    self._stats.success_count = 0
-
-    _LOGGER.error(
-      "Circuit breaker '%s' OPENED - rejecting calls for %.1fs",
-      self.name,
-      self.config.timeout_seconds,
-    )
-
-  def _transition_to_half_open(self) -> None:
-    """Transition circuit to HALF_OPEN state."""
-    self._stats.state = CircuitState.HALF_OPEN
-    now_monotonic = time.monotonic()
-    self._stats._last_state_change_monotonic = now_monotonic
-    self._stats.last_state_change = _utc_timestamp()
-    self._stats.failure_count = 0
-    self._stats.success_count = 0
-    self._half_open_calls = 0
-
-    _LOGGER.info(
-      "Circuit breaker '%s' entered HALF_OPEN - testing recovery",
-      self.name,
-    )
-
-  def _transition_to_closed(self) -> None:
-    """Transition circuit to CLOSED state."""
-    self._stats.state = CircuitState.CLOSED
-    now_monotonic = time.monotonic()
-    self._stats._last_state_change_monotonic = now_monotonic
-    self._stats.last_state_change = _utc_timestamp()
-    self._stats.failure_count = 0
-    self._stats.success_count = 0
-
-    _LOGGER.info(
-      "Circuit breaker '%s' CLOSED - normal operation resumed",
-      self.name,
-    )
-
-  async def reset(self) -> None:
-    """Manually reset circuit breaker to closed state."""
-    async with self._lock:
-      self._transition_to_closed()
-      _LOGGER.info("Circuit breaker '%s' manually reset", self.name)
-
-
-@dataclass
-class RetryConfig:
-  """Configuration for retry logic."""
-
-  max_attempts: int = 3
-  initial_delay: float = 1.0  # seconds
-  max_delay: float = 60.0  # seconds
-  exponential_base: float = 2.0
-  jitter: bool = True  # Add randomness to delays
-  random_source: Callable[[], float] | None = None
-
-
-class RetryExhaustedError(HomeAssistantError):
-  """Raised when all retry attempts are exhausted."""
-
-  def __init__(self, attempts: int, last_error: Exception) -> None:
-    """Initialize retry exhausted error.
-
-    Args:
-        attempts: Number of attempts made
-        last_error: Last exception that occurred
-    """
-    super().__init__(
-      f"Retry exhausted after {attempts} attempts: {last_error}",
-    )
-    self.attempts = attempts
-    self.last_error = last_error
-
-
-async def retry_with_backoff[T](
-  func: AsyncCallable[T],
-  *args: Any,
-  **kwargs: Any,
-) -> T:
-  """Retry function with exponential backoff.
-
-  Args:
-      func: Async function to retry
-      *args: Positional arguments for function
-      config: Retry configuration
-      **kwargs: Keyword arguments for function
-
-  Returns:
-      Function result
-
-  Raises:
-      RetryExhaustedError: If all retry attempts fail
-  """
-  retry_config = kwargs.pop(
-    "config",
-    None,
-  ) or kwargs.pop("retry_config", None)
-  retry_config = retry_config or RetryConfig()
-  if retry_config.max_attempts < 1:
-    raise HomeAssistantError("Retry requires at least one attempt")
-  last_exception: Exception | None = None
-
-  for attempt in range(1, retry_config.max_attempts + 1):
-    try:
-      result = await func(*args, **kwargs)
-      if attempt > 1:
-        log_method = (
-          _LOGGER.info if _LOGGER.isEnabledFor(logging.INFO) else _LOGGER.warning
-        )
-        log_method(
-          "Retry succeeded on attempt %d/%d for %s",
-          attempt,
-          retry_config.max_attempts,
-          func.__name__,
-        )
-      return result
-
-    except Exception as err:
-      last_exception = err
-
-      if attempt >= retry_config.max_attempts:
-        _LOGGER.error(
-          "Retry exhausted after %d attempts for %s: %s",
-          attempt,
-          func.__name__,
-          err,
-        )
-        raise RetryExhaustedError(attempt, err) from err
-
-      # Calculate delay with exponential backoff
-      delay = min(
-        retry_config.initial_delay * (retry_config.exponential_base ** (attempt - 1)),
-        retry_config.max_delay,
-      )
-
-      # Add jitter if enabled
-      if retry_config.jitter:
-        import random
-
-        random_value = (
-          retry_config.random_source()
-          if retry_config.random_source is not None
-          else random.SystemRandom().random()
-        )
-        delay = delay * (0.5 + random_value)
-
-      _LOGGER.warning(
-        "Retry attempt %d/%d failed for %s: %s - waiting %.1fs",
-        attempt,
-        retry_config.max_attempts,
-        func.__name__,
-        err,
-        delay,
-      )
-
-      await asyncio.sleep(delay)
-
-  # Should never reach here due to raise in loop, but satisfy type checker
-  if last_exception:  # pragma: no cover - defensive safeguard
-    raise RetryExhaustedError(retry_config.max_attempts, last_exception)
-  raise HomeAssistantError("Retry failed with no exception recorded")
-
-
-class ResilienceManager:
-  """Centralized resilience management for PawControl integration."""
-
-  def __init__(self, hass: HomeAssistant) -> None:
-    """Initialize resilience manager.
-
-    Args:
-        hass: Home Assistant instance
-    """
-    self.hass = hass
-    self._circuit_breakers: dict[str, CircuitBreaker] = {}
-    self._lock = asyncio.Lock()
-
-    _LOGGER.info("Initialized ResilienceManager")
-
-  async def get_circuit_breaker(
-    self,
-    name: str,
-    config: CircuitBreakerConfig | None = None,
-  ) -> CircuitBreaker:
-    """Get or create circuit breaker.
-
-    Args:
-        name: Circuit breaker identifier
-        config: Optional configuration
-
-    Returns:
-        Circuit breaker instance
-    """
-    async with self._lock:
-      if name not in self._circuit_breakers:
-        self._circuit_breakers[name] = CircuitBreaker(name, config)
-
-      return self._circuit_breakers[name]
-
-  async def execute_with_resilience(
-    self,
-    func: AsyncCallable[T],
-    *args: Any,
-    circuit_breaker_name: str | None = None,
-    retry_config: RetryConfig | None = None,
-    **kwargs: Any,
-  ) -> T:
-    """Execute function with full resilience patterns.
-
-    Combines circuit breaker and retry logic for maximum reliability.
-
-    Args:
-        func: Async function to execute
+        func: Function to call
         *args: Positional arguments
-        circuit_breaker_name: Optional circuit breaker to use
-        retry_config: Optional retry configuration
         **kwargs: Keyword arguments
 
     Returns:
         Function result
 
     Raises:
-        HomeAssistantError: If execution fails after all resilience attempts
+        ServiceUnavailableError: If circuit is open
     """
-    # If circuit breaker specified, wrap function
-    if circuit_breaker_name:
-      breaker = await self.get_circuit_breaker(circuit_breaker_name)
+    async with self._lock:
+      # Check if circuit should transition to half-open
+      if self._stats.state == CircuitState.OPEN:
+        if self._should_attempt_reset():
+          _LOGGER.info("Circuit breaker %s: OPEN → HALF_OPEN", self._name)
+          self._stats.state = CircuitState.HALF_OPEN
+          self._stats.success_count = 0
 
-      async def wrapped_func(*inner_args: Any, **inner_kwargs: Any) -> T:
-        return await breaker.call(func, *inner_args, **inner_kwargs)
+      # Block calls if open
+      if self._stats.state == CircuitState.OPEN:
+        self._stats.total_calls += 1
+        raise ServiceUnavailableError(
+          f"Circuit breaker {self._name} is OPEN"
+        )
 
-      execution_func: AsyncCallable[T] = wrapped_func
-    else:
-      execution_func = func
+    # Execute call
+    try:
+      self._stats.total_calls += 1
+      result = await func(*args, **kwargs)
+      await self._record_success()
+      return result
+    except Exception as e:
+      # Check if exception should be excluded
+      if isinstance(e, self._config.excluded_exceptions):
+        raise
 
-    # Apply retry logic
-    if retry_config:
-      return await retry_with_backoff(
-        execution_func,
-        *args,
-        config=retry_config,
-        **kwargs,
-      )
-    return await execution_func(*args, **kwargs)
+      await self._record_failure()
+      raise
 
-  def get_all_circuit_breakers(self) -> dict[str, CircuitBreakerStats]:
-    """Get statistics for all circuit breakers.
+  async def _record_success(self) -> None:
+    """Record successful call."""
+    async with self._lock:
+      self._stats.total_successes += 1
 
-    Returns:
-        Dictionary mapping circuit breaker names to their statistics
-    """
-    return {name: breaker.stats for name, breaker in self._circuit_breakers.items()}
+      if self._stats.state == CircuitState.HALF_OPEN:
+        self._stats.success_count += 1
+        if self._stats.success_count >= self._config.success_threshold:
+          _LOGGER.info("Circuit breaker %s: HALF_OPEN → CLOSED", self._name)
+          self._stats.state = CircuitState.CLOSED
+          self._stats.failure_count = 0
+          self._stats.success_count = 0
 
-  async def reset_circuit_breaker(self, name: str) -> bool:
-    """Manually reset a circuit breaker.
+      elif self._stats.state == CircuitState.CLOSED:
+        self._stats.failure_count = 0
+
+  async def _record_failure(self) -> None:
+    """Record failed call."""
+    async with self._lock:
+      self._stats.total_failures += 1
+      self._stats.failure_count += 1
+      self._stats.last_failure_time = time.time()
+
+      if self._stats.state == CircuitState.HALF_OPEN:
+        _LOGGER.warning(
+          "Circuit breaker %s: HALF_OPEN → OPEN (recovery failed)",
+          self._name,
+        )
+        self._stats.state = CircuitState.OPEN
+        self._stats.success_count = 0
+
+      elif self._stats.state == CircuitState.CLOSED:
+        if self._stats.failure_count >= self._config.failure_threshold:
+          _LOGGER.warning(
+            "Circuit breaker %s: CLOSED → OPEN (%d failures)",
+            self._name,
+            self._stats.failure_count,
+          )
+          self._stats.state = CircuitState.OPEN
+
+  def _should_attempt_reset(self) -> bool:
+    """Check if enough time has passed to attempt reset."""
+    if self._stats.last_failure_time is None:
+      return True
+
+    time_since_failure = time.time() - self._stats.last_failure_time
+    return time_since_failure >= self._config.timeout_seconds
+
+  async def __aenter__(self) -> CircuitBreaker:
+    """Enter async context."""
+    # Check state before allowing entry
+    if self._stats.state == CircuitState.OPEN:
+      if not self._should_attempt_reset():
+        raise ServiceUnavailableError(
+          f"Circuit breaker {self._name} is OPEN"
+        )
+      async with self._lock:
+        self._stats.state = CircuitState.HALF_OPEN
+        self._stats.success_count = 0
+
+    return self
+
+  async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    """Exit async context."""
+    if exc_type is None:
+      await self._record_success()
+    elif not isinstance(exc_val, self._config.excluded_exceptions):
+      await self._record_failure()
+
+  def get_stats(self) -> CircuitBreakerStats:
+    """Return circuit breaker statistics."""
+    return self._stats
+
+  def reset(self) -> None:
+    """Manually reset circuit breaker to closed state."""
+    self._stats = CircuitBreakerStats()
+    _LOGGER.info("Circuit breaker %s manually reset", self._name)
+
+
+@dataclass
+class RetryConfig:
+  """Retry configuration.
+
+  Attributes:
+      max_attempts: Maximum retry attempts
+      base_delay: Base delay in seconds
+      max_delay: Maximum delay in seconds
+      exponential_base: Base for exponential backoff
+      jitter: Add random jitter (0.0-1.0)
+      retryable_exceptions: Exception types to retry
+  """
+
+  max_attempts: int = 3
+  base_delay: float = 1.0
+  max_delay: float = 60.0
+  exponential_base: float = 2.0
+  jitter: float = 0.1
+  retryable_exceptions: tuple[type[Exception], ...] = (
+    NetworkError,
+    ServiceUnavailableError,
+  )
+
+
+class RetryStrategy:
+  """Retry strategy with exponential backoff and jitter.
+
+  Examples:
+      >>> strategy = RetryStrategy()
+      >>> result = await strategy.execute(api_call, arg1, arg2)
+  """
+
+  def __init__(self, config: RetryConfig | None = None) -> None:
+    """Initialize retry strategy.
 
     Args:
-        name: Circuit breaker name
+        config: Optional retry configuration
+    """
+    self._config = config or RetryConfig()
+
+  async def execute(
+    self,
+    func: Callable[P, T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+  ) -> T:
+    """Execute function with retry logic.
+
+    Args:
+        func: Function to execute
+        *args: Positional arguments
+        **kwargs: Keyword arguments
 
     Returns:
-        True if circuit breaker was found and reset
-    """
-    async with self._lock:
-      if name in self._circuit_breakers:
-        await self._circuit_breakers[name].reset()
-        return True
-      return False
+        Function result
 
-  async def reset_all_circuit_breakers(self) -> int:
-    """Reset all circuit breakers.
+    Raises:
+        Exception: Last exception if all retries fail
+    """
+    last_exception: Exception | None = None
+
+    for attempt in range(self._config.max_attempts):
+      try:
+        return await func(*args, **kwargs)
+      except Exception as e:
+        last_exception = e
+
+        # Check if exception is retryable
+        if not isinstance(e, self._config.retryable_exceptions):
+          raise
+
+        # Don't retry on last attempt
+        if attempt == self._config.max_attempts - 1:
+          raise
+
+        # Calculate delay
+        delay = self._calculate_delay(attempt)
+
+        _LOGGER.warning(
+          "Retry attempt %d/%d failed: %s (waiting %.2fs)",
+          attempt + 1,
+          self._config.max_attempts,
+          e,
+          delay,
+        )
+
+        await asyncio.sleep(delay)
+
+    # Should never reach here, but satisfy type checker
+    if last_exception:
+      raise last_exception
+    raise RuntimeError("Retry logic failed unexpectedly")
+
+  def _calculate_delay(self, attempt: int) -> float:
+    """Calculate delay for retry attempt.
+
+    Args:
+        attempt: Attempt number (0-based)
 
     Returns:
-        Number of circuit breakers reset
+        Delay in seconds
     """
-    async with self._lock:
-      reset_count = 0
-      for breaker in self._circuit_breakers.values():
-        await breaker.reset()
-        reset_count += 1
+    # Exponential backoff
+    delay = self._config.base_delay * (
+      self._config.exponential_base**attempt
+    )
 
-      _LOGGER.info("Reset %d circuit breakers", reset_count)
-      return reset_count
+    # Cap at max delay
+    delay = min(delay, self._config.max_delay)
+
+    # Add jitter
+    if self._config.jitter > 0:
+      jitter_amount = delay * self._config.jitter
+      delay += random.uniform(-jitter_amount, jitter_amount)
+
+    return max(0.0, delay)
+
+
+class FallbackStrategy:
+  """Fallback strategy for when operations fail.
+
+  Provides default values or alternative implementations when primary
+  operations fail.
+
+  Examples:
+      >>> fallback = FallbackStrategy(default_value={})
+      >>> result = await fallback.execute_with_fallback(fetch_data)
+  """
+
+  def __init__(
+    self,
+    *,
+    default_value: Any = None,
+    fallback_func: Callable[..., Any] | None = None,
+  ) -> None:
+    """Initialize fallback strategy.
+
+    Args:
+        default_value: Default value to return on failure
+        fallback_func: Alternative function to try
+    """
+    self._default_value = default_value
+    self._fallback_func = fallback_func
+
+  async def execute_with_fallback(
+    self,
+    func: Callable[P, T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+  ) -> T | Any:
+    """Execute function with fallback.
+
+    Args:
+        func: Primary function
+        *args: Positional arguments
+        **kwargs: Keyword arguments
+
+    Returns:
+        Primary result, fallback result, or default value
+    """
+    try:
+      return await func(*args, **kwargs)
+    except Exception as e:
+      _LOGGER.warning("Primary operation failed: %s", e)
+
+      # Try fallback function
+      if self._fallback_func:
+        try:
+          _LOGGER.info("Attempting fallback function")
+          return await self._fallback_func(*args, **kwargs)
+        except Exception as fallback_error:
+          _LOGGER.error("Fallback function failed: %s", fallback_error)
+
+      # Return default value
+      _LOGGER.info("Returning default value")
+      return self._default_value
+
+
+# Global circuit breaker registry
+
+_circuit_breakers: dict[str, CircuitBreaker] = {}
+
+
+def get_circuit_breaker(
+  name: str,
+  *,
+  config: CircuitBreakerConfig | None = None,
+) -> CircuitBreaker:
+  """Get or create circuit breaker.
+
+  Args:
+      name: Circuit breaker name
+      config: Optional configuration
+
+  Returns:
+      CircuitBreaker instance
+
+  Examples:
+      >>> breaker = get_circuit_breaker("api_client")
+      >>> async with breaker:
+      ...     await api.call()
+  """
+  if name not in _circuit_breakers:
+    _circuit_breakers[name] = CircuitBreaker(name, config=config)
+  return _circuit_breakers[name]
+
+
+def get_all_circuit_breakers() -> dict[str, CircuitBreaker]:
+  """Return all circuit breakers.
+
+  Returns:
+      Dictionary of circuit breakers
+  """
+  return dict(_circuit_breakers)
+
+
+def reset_all_circuit_breakers() -> None:
+  """Reset all circuit breakers."""
+  for breaker in _circuit_breakers.values():
+    breaker.reset()
+  _LOGGER.info("All circuit breakers reset")
+
+
+# Resilience decorators
+
+
+def with_circuit_breaker(
+  name: str,
+  *,
+  config: CircuitBreakerConfig | None = None,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  """Decorator to protect function with circuit breaker.
+
+  Args:
+      name: Circuit breaker name
+      config: Optional configuration
+
+  Returns:
+      Decorated function
+
+  Examples:
+      >>> @with_circuit_breaker("api_client")
+      ... async def fetch_data():
+      ...     return await api.get_data()
+  """
+  breaker = get_circuit_breaker(name, config=config)
+
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+      return await breaker.call(func, *args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
+  return decorator
+
+
+def with_retry(
+  config: RetryConfig | None = None,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  """Decorator to add retry logic to function.
+
+  Args:
+      config: Optional retry configuration
+
+  Returns:
+      Decorated function
+
+  Examples:
+      >>> @with_retry(RetryConfig(max_attempts=3))
+      ... async def fetch_data():
+      ...     return await api.get_data()
+  """
+  strategy = RetryStrategy(config)
+
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+      return await strategy.execute(func, *args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
+  return decorator
+
+
+def with_fallback(
+  default_value: Any = None,
+  fallback_func: Callable[..., Any] | None = None,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  """Decorator to add fallback to function.
+
+  Args:
+      default_value: Default value on failure
+      fallback_func: Alternative function
+
+  Returns:
+      Decorated function
+
+  Examples:
+      >>> @with_fallback(default_value={})
+      ... async def fetch_data():
+      ...     return await api.get_data()
+  """
+  strategy = FallbackStrategy(
+    default_value=default_value,
+    fallback_func=fallback_func,
+  )
+
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | Any:
+      return await strategy.execute_with_fallback(func, *args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
+  return decorator

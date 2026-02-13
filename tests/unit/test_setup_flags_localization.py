@@ -1,4 +1,5 @@
 """Validate setup flags localization coverage and documentation."""
+
 from __future__ import annotations
 
 import json
@@ -6,8 +7,7 @@ import re
 from pathlib import Path
 
 from custom_components.pawcontrol.options_flow_main import PawControlOptionsFlow
-from scripts.sync_localization_flags import TABLE_END_MARKER
-from scripts.sync_localization_flags import TABLE_START_MARKER
+from scripts.sync_localization_flags import TABLE_END_MARKER, TABLE_START_MARKER
 
 ROOT = Path(__file__).resolve().parents[2]
 STRINGS_PATH = ROOT / "custom_components" / "pawcontrol" / "strings.json"

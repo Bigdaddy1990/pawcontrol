@@ -1,4 +1,5 @@
 """Tests for person entity manager diagnostics hooks."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,16 +7,19 @@ from typing import cast
 from unittest.mock import AsyncMock
 
 import pytest
+from custom_components.pawcontrol.person_entity_manager import (
+  PersonEntityInfo,
+  PersonEntityManager,
+)
+from custom_components.pawcontrol.types import (
+  CacheDiagnosticsSnapshot,
+  PersonEntityDiagnostics,
+  PersonEntityDiscoveryResult,
+  PersonEntitySnapshot,
+  PersonEntityValidationResult,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.person_entity_manager import PersonEntityInfo
-from custom_components.pawcontrol.person_entity_manager import PersonEntityManager
-from custom_components.pawcontrol.types import CacheDiagnosticsSnapshot
-from custom_components.pawcontrol.types import PersonEntityDiagnostics
-from custom_components.pawcontrol.types import PersonEntityDiscoveryResult
-from custom_components.pawcontrol.types import PersonEntitySnapshot
-from custom_components.pawcontrol.types import PersonEntityValidationResult
 
 
 @pytest.mark.unit

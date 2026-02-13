@@ -1,14 +1,15 @@
 """Unit tests for PawControl system health output."""
+
 from __future__ import annotations
 
 from typing import Any
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
 
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.system_health import system_health_info
 from custom_components.pawcontrol.types import DomainRuntimeStoreEntry
+from homeassistant.config_entries import ConfigEntry
 
 
 class _Coordinator:

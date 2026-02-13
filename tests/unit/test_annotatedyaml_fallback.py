@@ -1,7 +1,9 @@
 """Tests for the local ``annotatedyaml`` fallback loader."""
+
 from __future__ import annotations
 
 import builtins
+import importlib
 import importlib.machinery
 import sys
 from collections.abc import Iterator

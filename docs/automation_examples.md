@@ -1,280 +1,646 @@
-# PawControl Automation Examples (EN)
+# PawControl Automation Examples
 
-This page provides **step-by-step automation examples** for common workflows.
-All examples assume your entities are named in the standard Home Assistant
-format (adjust names to match your instance). PawControl itself is configured
-via the UI (config entries); these YAML snippets are for automations/scripts,
-not `configuration.yaml` setup. Prefer the **Automation Editor** UI and
-device-based triggers/actions when available, then switch to YAML mode for
-fine-tuning. Home Assistant’s YAML style guide and device automation docs
-describe the recommended patterns for triggers, conditions, and actions.
+Complete collection of automation examples for PawControl integration.
 
-## 1) Feeding reminder when overdue (state trigger + notify)
+## Table of Contents
 
-**Goal:** notify you when a dog is overdue for a meal.
+- [Walk Automations](#walk-automations)
+- [Feeding Automations](#feeding-automations)
+- [Location & Geofencing](#location--geofencing)
+- [Health & Wellness](#health--wellness)
+- [Multi-Dog Scenarios](#multi-dog-scenarios)
+- [Advanced Automations](#advanced-automations)
 
-```yaml
-alias: PawControl - feeding reminder when overdue
-trigger:
-  - platform: state
-    entity_id: binary_sensor.pawcontrol_feeding_overdue
-    to: "on"
-action:
-  - service: notify.mobile_app
-    data:
-      title: "Feeding reminder"
-      message: >
-        Meal overdue for
-        {{ state_attr('binary_sensor.pawcontrol_feeding_overdue', 'dog_name') }}.
-```
+---
 
-## 2) Start GPS walk when leaving the home zone (zone trigger)
+## Walk Automations
 
-**Goal:** automatically start a walk when the dog leaves the home zone.
+### 1. Daily Walk Reminder
+
+Remind yourself to walk your dog at specific times.
 
 ```yaml
-alias: PawControl - auto start walk on zone exit
-trigger:
-  - platform: zone
-    entity_id: device_tracker.pawcontrol_gps
-    zone: zone.home
-    event: leave
-action:
-  - service: pawcontrol.gps_start_walk
-    data:
-      dog_id: "your_dog_id"
-```
-
-## 3) Alert when geofence is breached (event trigger)
-
-**Goal:** send a high-priority alert when the dog leaves a safe zone.
-
-```yaml
-alias: PawControl - geofence breach alert
-trigger:
-  - platform: event
-    event_type: pawcontrol_geofence_left
-action:
-  - service: notify.mobile_app
-    data:
-      title: "Geofence alert"
-      message: >
-        {{ trigger.event.data.dog_name }} left
-        {{ trigger.event.data.zone_name }}.
-```
-
-## 4) Weekly summary notification (time + template message)
-
-**Goal:** send a weekly summary using the available sensors.
-
-```yaml
-alias: PawControl - weekly summary
+alias: "Daily Walk Reminder - Buddy"
 trigger:
   - platform: time
     at: "08:00:00"
+  - platform: time
+    at: "18:00:00"
 condition:
-  - condition: time
-    weekday:
-      - sun
+  - condition: state
+    entity_id: binary_sensor.buddy_walk_in_progress
+    state: "off"
+  - condition: template
+    value_template: >
+      {{ (now() - states.sensor.buddy_last_walk_time.last_changed).total_seconds() > 21600 }}
 action:
   - service: notify.mobile_app
     data:
-      title: "PawControl weekly summary"
-      message: >
-        Walks this week:
-        {{ states('sensor.pawcontrol_walks_this_week') }}
-        — Calories:
-        {{ states('sensor.pawcontrol_calories_consumed_today') }}.
+      title: "🐕 Walk Time!"
+      message: "Time for Buddy's walk"
+      data:
+        actions:
+          - action: "START_WALK"
+            title: "Start Walk"
 ```
 
-## 5) Garden session auto-start on door sensor (state + for)
+### 2. Walk Statistics Summary
 
-**Goal:** automatically start a garden session when the garden door opens.
+Daily summary of walk activity.
 
 ```yaml
-alias: PawControl - auto garden session
+alias: "Daily Walk Summary - Buddy"
+trigger:
+  - platform: time
+    at: "21:00:00"
+action:
+  - service: notify.mobile_app
+    data:
+      title: "📊 Buddy's Walk Summary"
+      message: >
+        Today's walks:
+        🚶 {{ states('sensor.buddy_walks_today') }} walks
+        📏 {{ states('sensor.buddy_total_distance_today') }} km
+        ⏱ {{ states('sensor.buddy_total_walk_time_today') }} minutes
+```
+
+### 3. Long Walk Celebration
+
+Celebrate when your dog has a long walk!
+
+```yaml
+alias: "Long Walk Achievement - Buddy"
 trigger:
   - platform: state
-    entity_id: binary_sensor.garden_door
-    to: "on"
-    for: "00:00:15"
+    entity_id: binary_sensor.buddy_walk_in_progress
+    to: "off"
+condition:
+  - condition: numeric_state
+    entity_id: sensor.buddy_last_walk_distance
+    above: 5
 action:
-  - service: pawcontrol.start_garden_session
+  - service: notify.mobile_app
     data:
-      dog_id: "buddy"
+      title: "🏆 Achievement Unlocked!"
+      message: "Buddy walked {{ states('sensor.buddy_last_walk_distance') }} km today!"
+  - service: tts.google_translate_say
+    data:
+      entity_id: media_player.living_room
+      message: "Great job! Buddy walked over 5 kilometers today!"
 ```
 
-## 6) Health reminder on weigh-in day (scheduled)
+### 4. Weather-Based Walk Suggestion
 
-**Goal:** remind yourself to log weight every week.
+Suggest walks when weather is nice.
 
 ```yaml
-alias: PawControl - weekly weigh-in reminder
+alias: "Good Weather Walk Suggestion - Buddy"
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.outdoor_temperature
+    above: 15
+    below: 25
+condition:
+  - condition: state
+    entity_id: weather.home
+    state: "sunny"
+  - condition: state
+    entity_id: binary_sensor.buddy_walk_in_progress
+    state: "off"
+  - condition: time
+    after: "09:00:00"
+    before: "20:00:00"
+action:
+  - service: notify.mobile_app
+    data:
+      title: "☀️ Perfect Walk Weather!"
+      message: "It's {{ states('sensor.outdoor_temperature') }}°C and sunny - great time for a walk!"
+```
+
+---
+
+## Feeding Automations
+
+### 5. Feeding Schedule Reminder
+
+Never miss a meal time.
+
+```yaml
+alias: "Feeding Reminder - Buddy"
+trigger:
+  - platform: time
+    at: "07:00:00"
+  - platform: time
+    at: "18:00:00"
+condition:
+  - condition: template
+    value_template: >
+      {{ (now() - states.sensor.buddy_last_meal_time.last_changed).total_seconds() > 36000 }}
+action:
+  - service: notify.mobile_app
+    data:
+      title: "🍽️ Feeding Time"
+      message: "Time to feed Buddy!"
+      data:
+        actions:
+          - action: "FED_BUDDY"
+            title: "Fed"
+```
+
+### 6. Overfeeding Alert
+
+Prevent accidental overfeeding.
+
+```yaml
+alias: "Overfeeding Alert - Buddy"
+trigger:
+  - platform: state
+    entity_id: sensor.buddy_meals_today
+condition:
+  - condition: numeric_state
+    entity_id: sensor.buddy_meals_today
+    above: 2
+action:
+  - service: notify.mobile_app
+    data:
+      title: "⚠️ Feeding Alert"
+      message: "Buddy has been fed {{ states('sensor.buddy_meals_today') }} times today. Check if correct."
+      data:
+        priority: high
+```
+
+### 7. Calorie Tracking
+
+Monitor daily calorie intake.
+
+```yaml
+alias: "Daily Calorie Summary - Buddy"
+trigger:
+  - platform: time
+    at: "20:00:00"
+action:
+  - service: notify.mobile_app
+    data:
+      title: "🍖 Calorie Report"
+      message: >
+        Buddy consumed {{ states('sensor.buddy_daily_calories') }} calories today.
+        Target: {{ state_attr('sensor.buddy_daily_calories', 'target') }}
+```
+
+---
+
+## Location & Geofencing
+
+### 8. Escape Alert
+
+Critical alert when dog leaves safe zone.
+
+```yaml
+alias: "Escape Alert - Buddy"
+trigger:
+  - platform: state
+    entity_id: binary_sensor.buddy_in_safe_zone
+    to: "off"
+    for:
+      minutes: 2
+action:
+  - service: notify.mobile_app
+    data:
+      title: "🚨 ALERT: Buddy Left Safe Zone"
+      message: "Buddy is outside the safe zone!"
+      data:
+        priority: critical
+        ttl: 0
+        channel: emergency
+  - service: tts.google_translate_say
+    data:
+      entity_id: media_player.all
+      message: "Alert! Buddy has left the safe zone!"
+```
+
+### 9. Return Home Notification
+
+Welcome your dog home.
+
+```yaml
+alias: "Welcome Home - Buddy"
+trigger:
+  - platform: state
+    entity_id: binary_sensor.buddy_in_safe_zone
+    to: "on"
+condition:
+  - condition: template
+    value_template: >
+      {{ (now() - trigger.from_state.last_changed).total_seconds() > 1800 }}
+action:
+  - service: notify.mobile_app
+    data:
+      title: "🏠 Buddy is Home"
+      message: "Buddy has returned to the safe zone"
+```
+
+### 10. Location Sharing
+
+Share dog's location with family.
+
+```yaml
+alias: "Share Buddy Location - On Request"
+trigger:
+  - platform: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: "SHARE_LOCATION"
+action:
+  - service: notify.family
+    data:
+      title: "📍 Buddy's Location"
+      message: >
+        Buddy is at:
+        Lat: {{ state_attr('device_tracker.buddy', 'latitude') }}
+        Lon: {{ state_attr('device_tracker.buddy', 'longitude') }}
+      data:
+        url: >
+          https://www.google.com/maps?q={{
+            state_attr('device_tracker.buddy', 'latitude')
+          }},{{
+            state_attr('device_tracker.buddy', 'longitude')
+          }}
+```
+
+---
+
+## Health & Wellness
+
+### 11. Low Battery Warning
+
+Ensure device stays charged.
+
+```yaml
+alias: "Low Battery - Buddy Collar"
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.buddy_battery_level
+    below: 20
+action:
+  - service: notify.mobile_app
+    data:
+      title: "🔋 Low Battery"
+      message: "Buddy's collar battery is {{ states('sensor.buddy_battery_level') }}%"
+      data:
+        actions:
+          - action: "CHARGE_REMINDER"
+            title: "Remind Me Later"
+```
+
+### 12. Activity Level Monitoring
+
+Track if dog is getting enough exercise.
+
+```yaml
+alias: "Low Activity Alert - Buddy"
 trigger:
   - platform: time
     at: "19:00:00"
 condition:
-  - condition: time
-    weekday:
-      - sat
+  - condition: numeric_state
+    entity_id: sensor.buddy_total_distance_today
+    below: 2
 action:
   - service: notify.mobile_app
     data:
-      title: "Weekly weigh-in"
-      message: "Log Buddy's weight in PawControl."
+      title: "😴 Low Activity Today"
+      message: "Buddy only walked {{ states('sensor.buddy_total_distance_today') }} km today"
 ```
 
-## 7) Device automations (trigger, condition, action)
+### 13. Temperature Alert
 
-**Goal:** use the built-in PawControl device automations for hungry alerts and walk handling.
+Alert when it's too hot or cold for walks.
 
 ```yaml
-alias: PawControl - device automation demo
+alias: "Extreme Temperature Alert"
 trigger:
-  - platform: device
-    domain: pawcontrol
-    device_id: YOUR_PAWCONTROL_DOG_DEVICE_ID
-    type: hungry
+  - platform: numeric_state
+    entity_id: sensor.outdoor_temperature
+    above: 30
+  - platform: numeric_state
+    entity_id: sensor.outdoor_temperature
+    below: -10
 condition:
-  - condition: device
-    domain: pawcontrol
-    device_id: YOUR_PAWCONTROL_DOG_DEVICE_ID
-    type: in_safe_zone
+  - condition: state
+    entity_id: binary_sensor.buddy_walk_in_progress
+    state: "on"
 action:
-  - domain: pawcontrol
-    device_id: YOUR_PAWCONTROL_DOG_DEVICE_ID
-    type: log_feeding
-    amount: 120
-    meal_type: dinner
-```
-
-## 8) Blueprint: reusable walk reminder (UI inputs)
-
-**Goal:** create a reusable automation with inputs for different dogs.
-
-Save this blueprint to `blueprints/automation/pawcontrol/walk-reminder.yaml`:
-
-```yaml
-blueprint:
-  name: PawControl - Walk reminder
-  description: Notify when a walk is overdue.
-  domain: automation
-  input:
-    overdue_sensor:
-      name: Walk overdue sensor
-      selector:
-        entity:
-          domain: binary_sensor
-    notify_target:
-      name: Notification service
-      selector:
-        text: {}
-trigger:
-  - platform: state
-    entity_id: !input overdue_sensor
-    to: "on"
-action:
-  - service: !input notify_target
+  - service: notify.mobile_app
     data:
-      title: "Walk reminder"
+      title: "🌡️ Temperature Warning"
       message: >
-        Walk overdue for
-        {{ state_attr(trigger.entity_id, 'dog_name') }}.
+        Current temperature: {{ states('sensor.outdoor_temperature') }}°C
+        Consider ending walk soon for Buddy's safety.
+      data:
+        priority: high
 ```
 
-After saving, create automations in **Settings → Automations & Scenes → Create
-Automation → From Blueprint** and select this blueprint.
+---
 
-## 9) Blueprint: walk detection alerts (included)
+## Multi-Dog Scenarios
 
-**Goal:** react to walk start/end based on the built-in walk sensor.
+### 14. All Dogs Home Check
 
-Use the included blueprint at
-`blueprints/automation/pawcontrol/walk_detection.yaml`:
+Verify all dogs are safe at night.
 
 ```yaml
-alias: PawControl - walk detection alerts
-use_blueprint:
-  path: pawcontrol/walk_detection.yaml
-  input:
-    walk_sensor: binary_sensor.buddy_walk_in_progress
-    walk_start_actions:
-      - service: notify.mobile_app
-        data:
-          title: "Walk started"
-          message: "Buddy just started a walk."
-    walk_end_actions:
-      - service: notify.mobile_app
-        data:
-          title: "Walk ended"
-          message: "Buddy finished the walk."
-```
-
-## 10) Blueprint: safe zone alerts (included)
-
-**Goal:** alert when a dog leaves or returns to a safe zone.
-
-Use the included blueprint at
-`blueprints/automation/pawcontrol/safe_zone_alert.yaml`:
-
-```yaml
-alias: PawControl - safe zone alerts
-use_blueprint:
-  path: pawcontrol/safe_zone_alert.yaml
-  input:
-    safe_zone_sensor: binary_sensor.buddy_in_safe_zone
-    leave_delay: "00:02:00"
-    left_actions:
-      - service: notify.mobile_app
-        data:
-          title: "Safe zone alert"
-          message: "Buddy left the safe zone."
-    return_actions:
-      - service: notify.mobile_app
-        data:
-          title: "Safe zone return"
-          message: "Buddy is back in the safe zone."
-
-## 11) Notification action handler (choose + trigger IDs)
-
-**Goal:** respond to actionable notification buttons using a single automation.
-
-```yaml
-alias: PawControl - handle notification actions
-mode: single
+alias: "All Dogs Home - Night Check"
 trigger:
-  - platform: event
-    event_type: mobile_app_notification_action
-    event_data:
-      action: "PAWCONTROL_FEED_NOW"
-    id: feed_now
-  - platform: event
-    event_type: mobile_app_notification_action
-    event_data:
-      action: "PAWCONTROL_START_WALK"
-    id: start_walk
+  - platform: time
+    at: "22:00:00"
 action:
   - choose:
       - conditions:
-          - condition: trigger
-            id: feed_now
+          - condition: and
+            conditions:
+              - condition: state
+                entity_id: binary_sensor.buddy_in_safe_zone
+                state: "on"
+              - condition: state
+                entity_id: binary_sensor.max_in_safe_zone
+                state: "on"
         sequence:
-          - service: pawcontrol.add_feeding
+          - service: notify.mobile_app
             data:
-              dog_id: "buddy"
-              amount: 120
-              meal_type: dinner
-      - conditions:
-          - condition: trigger
-            id: start_walk
-        sequence:
-      - service: pawcontrol.gps_start_walk
-            data:
-              dog_id: "buddy"
+              title: "✅ All Dogs Home"
+              message: "Buddy and Max are both in the safe zone"
+    default:
+      - service: notify.mobile_app
+        data:
+          title: "⚠️ Dog Missing"
+          message: >
+            {% set missing = [] %}
+            {% if is_state('binary_sensor.buddy_in_safe_zone', 'off') %}
+              {% set missing = missing + ['Buddy'] %}
+            {% endif %}
+            {% if is_state('binary_sensor.max_in_safe_zone', 'off') %}
+              {% set missing = missing + ['Max'] %}
+            {% endif %}
+            {{ missing | join(' and ') }} not in safe zone
+          data:
+            priority: high
 ```
 
-## References (Home Assistant Developer Docs)
+### 15. Group Walk Detection
 
-- https://developers.home-assistant.io/docs/automations
-- https://developers.home-assistant.io/docs/device_automation_index
-- https://developers.home-assistant.io/docs/documenting/yaml-style-guide
+Detect when multiple dogs walk together.
+
+```yaml
+alias: "Group Walk - Buddy and Max"
+trigger:
+  - platform: state
+    entity_id:
+      - binary_sensor.buddy_walk_in_progress
+      - binary_sensor.max_walk_in_progress
+    to: "on"
+condition:
+  - condition: state
+    entity_id: binary_sensor.buddy_walk_in_progress
+    state: "on"
+  - condition: state
+    entity_id: binary_sensor.max_walk_in_progress
+    state: "on"
+action:
+  - service: notify.mobile_app
+    data:
+      title: "🐕🐕 Group Walk"
+      message: "Buddy and Max are both on a walk!"
+```
+
+---
+
+## Advanced Automations
+
+### 16. Intelligent Walk Scheduler
+
+AI-based walk suggestions using patterns.
+
+```yaml
+alias: "Smart Walk Scheduler - Buddy"
+trigger:
+  - platform: time_pattern
+    hours: "*"
+condition:
+  - condition: template
+    value_template: >
+      {% set last_walk = as_timestamp(states.sensor.buddy_last_walk_time.last_changed) %}
+      {% set hours_since = (now().timestamp() - last_walk) / 3600 %}
+      {% set typical_interval = state_attr('sensor.buddy_walk_pattern', 'average_interval_hours') | float %}
+      {{ hours_since >= (typical_interval * 0.9) }}
+  - condition: state
+    entity_id: weather.home
+    state:
+      - "sunny"
+      - "cloudy"
+  - condition: time
+    after: "07:00:00"
+    before: "21:00:00"
+action:
+  - service: notify.mobile_app
+    data:
+      title: "🤖 Smart Walk Suggestion"
+      message: >
+        Based on Buddy's pattern, it's time for a walk!
+        Usual interval: {{ state_attr('sensor.buddy_walk_pattern', 'average_interval_hours') }} hours
+```
+
+### 17. Automated Vacation Mode
+
+Adjust expectations when on vacation.
+
+```yaml
+alias: "Vacation Mode - Adjust Expectations"
+trigger:
+  - platform: state
+    entity_id: input_boolean.vacation_mode
+    to: "on"
+action:
+  - service: automation.turn_off
+    target:
+      entity_id:
+        - automation.daily_walk_reminder_buddy
+        - automation.feeding_reminder_buddy
+  - service: notify.mobile_app
+    data:
+      title: "✈️ Vacation Mode Active"
+      message: "Walk and feeding reminders paused"
+```
+
+### 18. Integration with Person Tracking
+
+Coordinate with person location.
+
+```yaml
+alias: "Auto-Start Walk - Phone Movement"
+trigger:
+  - platform: state
+    entity_id: person.owner
+    to: "not_home"
+condition:
+  - condition: time
+    after: "06:00:00"
+    before: "22:00:00"
+  - condition: template
+    value_template: >
+      {{ distance(states.person.owner, states.device_tracker.buddy) < 0.1 }}
+action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.buddy_walk_detection
+  - delay:
+      seconds: 30
+  - condition: state
+    entity_id: binary_sensor.buddy_walk_in_progress
+    state: "on"
+  - service: notify.mobile_app
+    data:
+      title: "🚶 Walk Auto-Detected"
+      message: "Walk tracking started for Buddy"
+```
+
+### 19. Node-RED Integration Example
+
+Complex flow using Node-RED.
+
+```json
+[
+  {
+    "id": "walk_monitor",
+    "type": "server-state-changed",
+    "name": "Buddy Walk State",
+    "server": "home_assistant",
+    "entityid": "binary_sensor.buddy_walk_in_progress",
+    "outputs": 2,
+    "wires": [
+      ["walk_started"],
+      ["walk_ended"]
+    ]
+  },
+  {
+    "id": "walk_started",
+    "type": "api-call-service",
+    "name": "Start Walk Timer",
+    "server": "home_assistant",
+    "service_domain": "timer",
+    "service": "start",
+    "data": "{\"entity_id\":\"timer.buddy_walk\"}",
+    "wires": [["notify_walk_start"]]
+  }
+]
+```
+
+### 20. AppDaemon Script
+
+Python-based automation using AppDaemon.
+
+```python
+import appdaemon.plugins.hass.hassapi as hass
+
+class BuddyWalkManager(hass.Hass):
+    def initialize(self):
+        self.listen_state(
+            self.walk_state_changed,
+            "binary_sensor.buddy_walk_in_progress"
+        )
+        
+        self.walk_start_time = None
+        self.walk_history = []
+    
+    def walk_state_changed(self, entity, attribute, old, new, kwargs):
+        if new == "on":
+            self.walk_start_time = self.datetime()
+            self.log(f"Walk started at {self.walk_start_time}")
+        elif new == "off" and self.walk_start_time:
+            duration = (self.datetime() - self.walk_start_time).total_seconds()
+            distance = float(self.get_state("sensor.buddy_last_walk_distance"))
+            
+            self.walk_history.append({
+                "date": self.date(),
+                "duration": duration,
+                "distance": distance
+            })
+            
+            # Calculate statistics
+            if len(self.walk_history) >= 7:
+                avg_distance = sum(w["distance"] for w in self.walk_history[-7:]) / 7
+                
+                if distance > avg_distance * 1.5:
+                    self.call_service(
+                        "notify/mobile_app",
+                        title="🏆 Long Walk!",
+                        message=f"Buddy walked {distance:.2f}km - above average!"
+                    )
+```
+
+---
+
+## Tips for Writing Automations
+
+### Best Practices
+
+1. **Use Descriptive Aliases**: Name automations clearly
+2. **Add Conditions**: Prevent unwanted triggers
+3. **Test Thoroughly**: Use Developer Tools → Services
+4. **Use Templates**: Make automations dynamic
+5. **Document Your Code**: Add comments for complex logic
+
+### Template Helpers
+
+Common templates for PawControl:
+
+```yaml
+# Time since last walk (hours)
+{{ (now() - states.sensor.buddy_last_walk_time.last_changed).total_seconds() / 3600 }}
+
+# Distance from home
+{{ distance('device_tracker.buddy', 'zone.home') }}
+
+# Battery percentage with formatting
+{{ states('sensor.buddy_battery_level') | int }}%
+
+# Check if walk was recent (< 6 hours)
+{{ (now() - states.sensor.buddy_last_walk_time.last_changed).total_seconds() < 21600 }}
+```
+
+### Debugging
+
+Enable automation traces:
+
+1. Go to **Settings** → **Automations & Scenes**
+2. Click on your automation
+3. Click **"..."** → **"Enable Traces"**
+4. Trigger automation
+5. View trace details
+
+---
+
+## Blueprint Conversions
+
+Many of these automations are available as blueprints!
+
+See the [Blueprint Library](blueprints.md) for ready-to-use blueprints.
+
+---
+
+## Community Automations
+
+Share your automations in the [Community Forum](https://community.home-assistant.io/tag/pawcontrol)!
+
+**Popular Community Automations:**
+- Photo capture on walk completion
+- Spotify playlist based on walk duration
+- Calendar integration for walk scheduling
+- Weather forecast integration
+- Smart speaker announcements
+
+---
+
+**Next Steps:**
+- [Advanced Configuration](advanced_config.md)
+- [Blueprint Library](blueprints.md)
+- [API Reference](api_reference.md)

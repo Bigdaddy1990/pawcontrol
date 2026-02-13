@@ -16,6 +16,7 @@ Exit codes:
 - 0: OK
 - 1: Errors found
 """
+
 from __future__ import annotations
 
 import ast
