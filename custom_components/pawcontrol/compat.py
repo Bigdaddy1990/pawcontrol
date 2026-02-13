@@ -1,5 +1,4 @@
 """Compatibility helpers that keep the integration functional without Home Assistant."""
-
 from __future__ import annotations
 
 import inspect
