@@ -1249,7 +1249,7 @@ class FeedingManager:
 
         try:
           parsed_weight = float(weight)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
           raise ValueError(
             f"Invalid feeding configuration for {dog_id}: weight is required",
           ) from None
@@ -1277,7 +1277,7 @@ class FeedingManager:
         ):
           try:
             config.ideal_weight = float(ideal_weight)
-          except TypeError, ValueError:  # pragma: no cover - defensive
+          except (TypeError, ValueError):  # pragma: no cover - defensive
             _LOGGER.debug(
               "Invalid ideal weight %s for %s; keeping existing value",
               ideal_weight,
@@ -1616,7 +1616,7 @@ class FeedingManager:
         return time(int(parts[0]), int(parts[1]))
       if len(parts) == 3:
         return time(int(parts[0]), int(parts[1]), int(parts[2]))
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
       _LOGGER.warning("Failed to parse time: %s", time_str)
 
     return None
@@ -1720,12 +1720,12 @@ class FeedingManager:
       try:
         base_weight = float(config.ideal_weight)
         adjusted_rer = False
-      except TypeError, ValueError:  # pragma: no cover - defensive
+      except (TypeError, ValueError):  # pragma: no cover - defensive
         base_weight = weight_value
     elif config.weight_goal == "gain" and config.ideal_weight:
       try:
         base_weight = float(config.ideal_weight)
-      except TypeError, ValueError:
+      except (TypeError, ValueError):
         base_weight = weight_value
 
     rer = self._calculate_rer(base_weight, adjusted=adjusted_rer)
@@ -2363,7 +2363,7 @@ class FeedingManager:
       if daily_calorie_target:
         try:
           progress = (total_calories_today / daily_calorie_target) * 100
-        except TypeError, ZeroDivisionError:
+        except (TypeError, ZeroDivisionError):
           calorie_goal_progress = 0.0
         else:
           calorie_goal_progress = round(min(progress, 150.0), 1)
@@ -2439,7 +2439,7 @@ class FeedingManager:
               0.0,
               min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
             )
-        except TypeError, ZeroDivisionError:
+        except (TypeError, ZeroDivisionError):
           weight_goal_progress = None
 
     emergency_mode: FeedingEmergencyState | None = None
@@ -2474,7 +2474,7 @@ class FeedingManager:
           0.0,
           target_calories - consumed_calories,
         )
-      except TypeError, ValueError:  # pragma: no cover - defensive
+      except (TypeError, ValueError):  # pragma: no cover - defensive
         remaining_calories = None
 
     daily_stats = FeedingDailyStats(
@@ -2491,7 +2491,7 @@ class FeedingManager:
     elif total_calories_today is not None and daily_calorie_target:
       try:
         ratio = total_calories_today / daily_calorie_target
-      except TypeError, ZeroDivisionError:
+      except (TypeError, ZeroDivisionError):
         health_status = "unknown"
       else:
         if ratio < 0.85:

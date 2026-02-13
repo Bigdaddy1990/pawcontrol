@@ -309,7 +309,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       lat = gps_data.get("latitude")
       return float(lat) if lat is not None else None
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return None
 
   @property
@@ -322,7 +322,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       lon = gps_data.get("longitude")
       return float(lon) if lon is not None else None
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return None
 
   @property
@@ -335,7 +335,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       accuracy = gps_data.get("accuracy")
       return int(accuracy) if accuracy is not None else DEFAULT_GPS_ACCURACY
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return DEFAULT_GPS_ACCURACY
 
   @property
@@ -348,7 +348,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     try:
       battery = gps_data.get("battery")
       return int(battery) if battery is not None else None
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return None
 
   @property
