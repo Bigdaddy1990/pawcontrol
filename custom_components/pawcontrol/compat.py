@@ -67,7 +67,7 @@ def _import_optional(module: str) -> Any:
 
   try:  # pragma: no cover - exercised when Home Assistant is installed
     return __import__(module, fromlist=["*"])
-  except (ImportError, ModuleNotFoundError):
+  except ImportError, ModuleNotFoundError:
     return None
 
 
