@@ -1,14 +1,15 @@
 """Unit tests for the GPS cache helpers in the walk manager."""
+
 from __future__ import annotations
 
-from datetime import datetime
-from datetime import UTC
+from datetime import UTC, datetime
 
 import pytest
-
-from custom_components.pawcontrol.walk_manager import CachedGPSLocation
-from custom_components.pawcontrol.walk_manager import GPSCache
-from custom_components.pawcontrol.walk_manager import GPSCacheSnapshot
+from custom_components.pawcontrol.walk_manager import (
+  CachedGPSLocation,
+  GPSCache,
+  GPSCacheSnapshot,
+)
 
 
 def test_gps_cache_stats_and_snapshot() -> None:

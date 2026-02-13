@@ -1,14 +1,11 @@
 """Regression tests for helper service payload construction."""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
-from typing import cast
-from typing import NotRequired
-from typing import TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 import pytest
-
 from custom_components.pawcontrol.helper_manager import PawControlHelperManager
 from custom_components.pawcontrol.service_guard import ServiceGuardResult
 from custom_components.pawcontrol.types import ServiceData

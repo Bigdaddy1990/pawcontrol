@@ -1,16 +1,14 @@
 """Unit tests for module adapter cache telemetry helpers."""
+
 from __future__ import annotations
 
 import importlib.util
 import sys
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 
 import pytest
-
 from custom_components.pawcontrol.types import ModuleCacheMetrics
 
 MODULE_PATH = (

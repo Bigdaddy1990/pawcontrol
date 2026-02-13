@@ -1,20 +1,17 @@
 """Unit tests for the lightweight parts of module_adapters."""
+
 from __future__ import annotations
 
 import asyncio
 import importlib
 import sys
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
-from datetime import UTC
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-
 from custom_components.pawcontrol.types import JSONMutableMapping
 
 

@@ -1,8 +1,8 @@
 """Tests for the adaptive polling controller."""
+
 from __future__ import annotations
 
 import pytest
-
 from custom_components.pawcontrol.coordinator_runtime import AdaptivePollingController
 
 

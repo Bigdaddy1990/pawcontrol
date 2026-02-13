@@ -1,26 +1,28 @@
 """Tests for the external entity configuration mixin."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
-from types import MappingProxyType
-from types import SimpleNamespace
-from typing import Any
-from typing import cast
+from types import MappingProxyType, SimpleNamespace
+from typing import Any, cast
 
 import pytest
-
 from custom_components.pawcontrol.config_flow_external import (
   ExternalEntityConfigurationMixin,
 )
-from custom_components.pawcontrol.const import CONF_DOOR_SENSOR
-from custom_components.pawcontrol.const import CONF_GPS_SOURCE
-from custom_components.pawcontrol.const import CONF_NOTIFY_FALLBACK
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.types import DogConfigData
-from custom_components.pawcontrol.types import DogModulesConfig
-from custom_components.pawcontrol.types import ExternalEntityConfig
+from custom_components.pawcontrol.const import (
+  CONF_DOOR_SENSOR,
+  CONF_GPS_SOURCE,
+  CONF_NOTIFY_FALLBACK,
+  MODULE_GPS,
+  MODULE_NOTIFICATIONS,
+  MODULE_VISITOR,
+)
+from custom_components.pawcontrol.types import (
+  DogConfigData,
+  DogModulesConfig,
+  ExternalEntityConfig,
+)
 from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 

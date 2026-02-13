@@ -1,8 +1,8 @@
 """Regression tests for the Home Assistant selector compatibility shim."""
+
 from __future__ import annotations
 
 import pytest
-
 from custom_components.pawcontrol import selector_shim
 from custom_components.pawcontrol.selector_shim import selector
 
