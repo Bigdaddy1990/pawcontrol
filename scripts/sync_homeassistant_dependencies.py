@@ -1,4 +1,5 @@
 """Synchronise dependencies with the upstream Home Assistant repository."""
+
 from __future__ import annotations
 
 import argparse
@@ -7,19 +8,15 @@ import shutil
 import tarfile
 import tempfile
 import tomllib
-from collections.abc import Iterable
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from pathlib import Path
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 from packaging.requirements import Requirement
 from packaging.specifiers import Specifier
 from packaging.utils import canonicalize_name
-from packaging.version import InvalidVersion
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 from pip._vendor import requests
-
 from scripts import check_vendor_pyyaml as vendor_monitor
 
 # Paths relative to the Home Assistant core repository root.
@@ -250,7 +247,7 @@ def highest_version(specifier_set: Iterable[Specifier]) -> Version | None:
   for specifier in specifier_set:
     try:
       version = Version(specifier.version)
-    except InvalidVersion, TypeError:
+    except (InvalidVersion, TypeError):
       continue
     if highest is None or version > highest:
       highest = version

@@ -6,6 +6,7 @@ records for PyYAML, compares them with the vendored version shipped under
 script is intentionally lightweight so it can run inside GitHub Actions on a
 schedule without additional dependencies.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,8 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from pip._vendor import requests
-from pip._vendor.packaging.version import InvalidVersion
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import InvalidVersion, Version
 
 ANNOTATEDYAML_INIT = Path("annotatedyaml/_vendor/yaml/__init__.py")
 PYPI_URL = "https://pypi.org/pypi/PyYAML/json"
