@@ -14,6 +14,7 @@ from custom_components.pawcontrol.missing_sensors import derive_next_feeding_tim
 from custom_components.pawcontrol.types import FeedingModuleTelemetry
 from custom_components.pawcontrol.types import HealthModulePayload
 from custom_components.pawcontrol.types import WalkModuleTelemetry
+
 """Unit tests for the derived PawControl sensor telemetry helpers."""
 
 

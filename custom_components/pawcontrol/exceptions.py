@@ -27,7 +27,9 @@ from typing import Unpack
 
 from homeassistant.exceptions import ConfigEntryAuthFailed as _AuthFailedType
 from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
-from homeassistant.exceptions import ServiceValidationError as _ServiceValidationErrorType
+from homeassistant.exceptions import (
+  ServiceValidationError as _ServiceValidationErrorType,
+)
 from homeassistant.helpers.update_coordinator import (
   CoordinatorUpdateFailed as _UpdateFailedType,
 )
