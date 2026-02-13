@@ -26,6 +26,9 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+          # Use a PAT (if provided) so workflow-file autofixes can be pushed.
+          # Fallback to GITHUB_TOKEN for repositories without AUTOFIX_TOKEN.
+          token: ${{ secrets.AUTOFIX_TOKEN != '' && secrets.AUTOFIX_TOKEN || github.token }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
