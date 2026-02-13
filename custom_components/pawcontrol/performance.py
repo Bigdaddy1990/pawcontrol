@@ -1,226 +1,491 @@
-"""Helpers for tracking performance metrics across PawControl tasks."""
+"""Performance monitoring and optimization utilities for PawControl.
+
+This module provides decorators and utilities for tracking performance,
+identifying bottlenecks, and optimizing critical code paths.
+
+Quality Scale: Platinum target
+Home Assistant: 2025.9.0+
+Python: 3.13+
+"""
+
 from __future__ import annotations
 
+import asyncio
+import functools
 import logging
-from collections.abc import Iterator
-from collections.abc import Mapping
-from contextlib import contextmanager
-from dataclasses import dataclass
-from time import perf_counter
-from typing import cast
-from typing import Literal
-
-from homeassistant.util import dt as dt_util
-
-from .coordinator_support import ensure_cache_repair_aggregate
-from .telemetry import ensure_runtime_performance_stats
-from .telemetry import get_runtime_performance_stats
-from .types import CacheDiagnosticsCapture
-from .types import CacheDiagnosticsMap
-from .types import CacheDiagnosticsSnapshot
-from .types import JSONValue
-from .types import MaintenanceExecutionDiagnostics
-from .types import MaintenanceExecutionResult
-from .types import MaintenanceMetadataPayload
-from .types import PawControlRuntimeData
-from .types import PerformanceTrackerBucket
+import time
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from typing import Any, Callable, ParamSpec, TypeVar
 
 _LOGGER = logging.getLogger(__name__)
 
-
-@dataclass(slots=True)
-class PerformanceResult:
-  """State container passed to tracked blocks for manual overrides."""
-
-  success: bool = True
-  error: Exception | None = None
-
-  def mark_failure(self, error: Exception | None = None) -> None:
-    """Mark the tracked block as failed without raising an exception."""
-
-    self.success = False
-    self.error = error
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
-@contextmanager
-def performance_tracker(
-  runtime_data: PawControlRuntimeData | None,
-  bucket_name: str,
-  *,
-  max_samples: int = 50,
-) -> Iterator[PerformanceResult]:
-  """Context manager that records execution metrics for integration tasks."""
+@dataclass
+class PerformanceMetric:
+  """Performance metric for a function.
 
-  result = PerformanceResult()
-
-  if runtime_data is None:
-    yield result
-    return
-
-  performance_stats = ensure_runtime_performance_stats(runtime_data)
-  raw_bucket_map = performance_stats.setdefault("performance_buckets", {})
-  if not isinstance(raw_bucket_map, dict):
-    raw_bucket_map = {}
-    performance_stats["performance_buckets"] = raw_bucket_map
-
-  bucket_map = cast(dict[str, PerformanceTrackerBucket], raw_bucket_map)
-  bucket = bucket_map.setdefault(
-    bucket_name,
-    {
-      "runs": 0,
-      "failures": 0,
-      "durations_ms": [],
-      "average_ms": 0.0,
-      "last_run": None,
-      "last_error": None,
-    },
-  )
-
-  start = perf_counter()
-
-  try:
-    yield result
-  except Exception as err:
-    result.mark_failure(err)
-    raise
-  finally:
-    duration_ms = max((perf_counter() - start) * 1000.0, 0.0)
-    durations = cast(list[float], bucket.setdefault("durations_ms", []))
-    durations.append(round(duration_ms, 3))
-    if len(durations) > max_samples:
-      del durations[:-max_samples]
-
-    bucket["runs"] = bucket.get("runs", 0) + 1
-
-    if result.success:
-      bucket["last_run"] = dt_util.utcnow().isoformat()
-    else:
-      bucket["failures"] = bucket.get("failures", 0) + 1
-      bucket["last_error"] = (
-        f"{result.error.__class__.__name__}: {result.error}"
-        if result.error
-        else "unknown"
-      )
-
-    if durations:
-      bucket["average_ms"] = round(sum(durations) / len(durations), 3)
-
-
-def capture_cache_diagnostics(
-  runtime_data: PawControlRuntimeData | None,
-) -> CacheDiagnosticsCapture | None:
-  """Return cache diagnostics snapshots when available.
-
-  This helper normalises interactions with the data manager so callers can
-  safely surface cache telemetry without duplicating the capture logic.
+  Attributes:
+      name: Function name
+      call_count: Number of calls
+      total_time_ms: Total execution time in milliseconds
+      min_time_ms: Minimum execution time
+      max_time_ms: Maximum execution time
+      recent_times: Recent execution times (last 100)
   """
 
-  if runtime_data is None:
-    return None
+  name: str
+  call_count: int = 0
+  total_time_ms: float = 0.0
+  min_time_ms: float = float("inf")
+  max_time_ms: float = 0.0
+  recent_times: deque[float] = field(default_factory=lambda: deque(maxlen=100))
 
-  data_manager = getattr(runtime_data, "data_manager", None)
-  if data_manager is None:
-    return None
+  @property
+  def avg_time_ms(self) -> float:
+    """Return average execution time."""
+    return self.total_time_ms / self.call_count if self.call_count > 0 else 0.0
 
-  snapshots_method = getattr(data_manager, "cache_snapshots", None)
-  if not callable(snapshots_method):
-    return None
+  @property
+  def p95_time_ms(self) -> float:
+    """Return 95th percentile execution time."""
+    if not self.recent_times:
+      return 0.0
+    sorted_times = sorted(self.recent_times)
+    index = int(len(sorted_times) * 0.95)
+    return sorted_times[index] if index < len(sorted_times) else 0.0
 
-  try:
-    snapshots = snapshots_method()
-  except Exception as err:  # pragma: no cover - diagnostics guard
-    _LOGGER.debug("Failed to capture cache snapshots: %s", err)
-    return None
+  @property
+  def p99_time_ms(self) -> float:
+    """Return 99th percentile execution time."""
+    if not self.recent_times:
+      return 0.0
+    sorted_times = sorted(self.recent_times)
+    index = int(len(sorted_times) * 0.99)
+    return sorted_times[index] if index < len(sorted_times) else 0.0
 
-  if not isinstance(snapshots, Mapping):
-    return None
+  def record(self, duration_ms: float) -> None:
+    """Record an execution time.
 
-  normalised: CacheDiagnosticsMap = {}
-  for name, payload in snapshots.items():
-    if not isinstance(name, str) or not name:
-      continue
-    if isinstance(payload, CacheDiagnosticsSnapshot):
-      normalised[name] = payload
-    elif isinstance(payload, Mapping):
-      snapshot_obj = CacheDiagnosticsSnapshot.from_mapping(payload)
-      normalised[name] = snapshot_obj
-    else:
-      snapshot_obj = CacheDiagnosticsSnapshot(error=str(payload))
-      normalised[name] = snapshot_obj
+    Args:
+        duration_ms: Duration in milliseconds
+    """
+    self.call_count += 1
+    self.total_time_ms += duration_ms
+    self.min_time_ms = min(self.min_time_ms, duration_ms)
+    self.max_time_ms = max(self.max_time_ms, duration_ms)
+    self.recent_times.append(duration_ms)
 
-  if not normalised:
-    return None
-
-  capture: CacheDiagnosticsCapture = {"snapshots": normalised}
-
-  summary_method = getattr(data_manager, "cache_repair_summary", None)
-  if callable(summary_method):
-    try:
-      summary = summary_method(normalised)
-    except Exception as err:  # pragma: no cover - diagnostics guard
-      _LOGGER.debug("Skipping cache repair summary capture: %s", err)
-    else:
-      resolved_summary = ensure_cache_repair_aggregate(summary)
-      if resolved_summary is not None:
-        capture["repair_summary"] = resolved_summary
-
-  return capture
+  def to_dict(self) -> dict[str, Any]:
+    """Convert to dictionary."""
+    return {
+      "name": self.name,
+      "call_count": self.call_count,
+      "total_time_ms": round(self.total_time_ms, 2),
+      "avg_time_ms": round(self.avg_time_ms, 2),
+      "min_time_ms": round(self.min_time_ms, 2),
+      "max_time_ms": round(self.max_time_ms, 2),
+      "p95_time_ms": round(self.p95_time_ms, 2),
+      "p99_time_ms": round(self.p99_time_ms, 2),
+    }
 
 
-def record_maintenance_result(
-  runtime_data: PawControlRuntimeData | None,
+class PerformanceMonitor:
+  """Global performance monitoring singleton."""
+
+  _instance: PerformanceMonitor | None = None
+  _metrics: dict[str, PerformanceMetric]
+  _enabled: bool
+
+  def __new__(cls) -> PerformanceMonitor:
+    """Ensure singleton instance."""
+    if cls._instance is None:
+      cls._instance = super().__new__(cls)
+      cls._instance._metrics = {}
+      cls._instance._enabled = True
+    return cls._instance
+
+  @classmethod
+  def get_instance(cls) -> PerformanceMonitor:
+    """Get singleton instance."""
+    if cls._instance is None:
+      cls._instance = cls()
+    return cls._instance
+
+  def enable(self) -> None:
+    """Enable performance monitoring."""
+    self._enabled = True
+    _LOGGER.info("Performance monitoring enabled")
+
+  def disable(self) -> None:
+    """Disable performance monitoring."""
+    self._enabled = False
+    _LOGGER.info("Performance monitoring disabled")
+
+  def record(self, name: str, duration_ms: float) -> None:
+    """Record a performance metric.
+
+    Args:
+        name: Metric name
+        duration_ms: Duration in milliseconds
+    """
+    if not self._enabled:
+      return
+
+    if name not in self._metrics:
+      self._metrics[name] = PerformanceMetric(name=name)
+
+    self._metrics[name].record(duration_ms)
+
+  def get_metric(self, name: str) -> PerformanceMetric | None:
+    """Get metric by name.
+
+    Args:
+        name: Metric name
+
+    Returns:
+        PerformanceMetric or None
+    """
+    return self._metrics.get(name)
+
+  def get_all_metrics(self) -> dict[str, PerformanceMetric]:
+    """Return all metrics."""
+    return dict(self._metrics)
+
+  def get_slow_operations(self, threshold_ms: float = 100.0) -> list[PerformanceMetric]:
+    """Get operations slower than threshold.
+
+    Args:
+        threshold_ms: Threshold in milliseconds
+
+    Returns:
+        List of slow operations
+    """
+    return [
+      metric
+      for metric in self._metrics.values()
+      if metric.avg_time_ms > threshold_ms
+    ]
+
+  def reset(self) -> None:
+    """Reset all metrics."""
+    self._metrics.clear()
+    _LOGGER.info("Performance metrics reset")
+
+  def get_summary(self) -> dict[str, Any]:
+    """Get performance summary.
+
+    Returns:
+        Summary dictionary
+    """
+    if not self._metrics:
+      return {
+        "enabled": self._enabled,
+        "metric_count": 0,
+        "total_calls": 0,
+      }
+
+    total_calls = sum(m.call_count for m in self._metrics.values())
+    total_time_ms = sum(m.total_time_ms for m in self._metrics.values())
+
+    # Find slowest operations
+    slowest = sorted(
+      self._metrics.values(),
+      key=lambda m: m.avg_time_ms,
+      reverse=True,
+    )[:5]
+
+    # Find most called operations
+    most_called = sorted(
+      self._metrics.values(),
+      key=lambda m: m.call_count,
+      reverse=True,
+    )[:5]
+
+    return {
+      "enabled": self._enabled,
+      "metric_count": len(self._metrics),
+      "total_calls": total_calls,
+      "total_time_ms": round(total_time_ms, 2),
+      "avg_call_time_ms": round(total_time_ms / total_calls, 2) if total_calls > 0 else 0.0,
+      "slowest_operations": [m.to_dict() for m in slowest],
+      "most_called_operations": [m.to_dict() for m in most_called],
+    }
+
+
+# Global performance monitor instance
+_performance_monitor = PerformanceMonitor.get_instance()
+
+
+def track_performance(
+  name: str | None = None,
   *,
-  task: str,
-  status: Literal["success", "error"],
-  message: str | None = None,
-  diagnostics: CacheDiagnosticsCapture | None = None,
-  metadata: Mapping[str, JSONValue] | None = None,
-  details: Mapping[str, JSONValue] | None = None,
-) -> None:
-  """Store structured maintenance telemetry in runtime performance stats."""
+  log_slow: bool = True,
+  slow_threshold_ms: float = 100.0,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  """Decorator to track function performance.
 
-  if runtime_data is None or not isinstance(task, str) or not task:
-    return
+  Args:
+      name: Metric name (defaults to function name)
+      log_slow: Whether to log slow operations
+      slow_threshold_ms: Threshold for slow operation logging
 
-  performance_stats = get_runtime_performance_stats(runtime_data)
-  if performance_stats is None:
-    return
+  Returns:
+      Decorated function
 
-  result: MaintenanceExecutionResult = {
-    "task": task,
-    "status": status,
-    "recorded_at": dt_util.utcnow().isoformat(),
-  }
+  Examples:
+      >>> @track_performance()
+      ... async def fetch_data():
+      ...     await api.get_data()
 
-  if message:
-    result["message"] = message
+      >>> @track_performance("custom_name", slow_threshold_ms=50.0)
+      ... def calculate():
+      ...     return sum(range(1000))
+  """
 
-  diagnostics_payload: MaintenanceExecutionDiagnostics | None = None
-  if diagnostics is not None:
-    diagnostics_payload = {"cache": diagnostics}
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    metric_name = name or func.__name__
 
-  if metadata:
-    metadata_payload = cast(MaintenanceMetadataPayload, dict(metadata))
-    if metadata_payload:
-      if diagnostics_payload is None:
-        diagnostics_payload = {"metadata": metadata_payload}
-      else:
-        diagnostics_payload["metadata"] = metadata_payload
+    @functools.wraps(func)
+    async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+      start = time.perf_counter()
+      try:
+        result = await func(*args, **kwargs)
+        return result
+      finally:
+        duration_ms = (time.perf_counter() - start) * 1000
+        _performance_monitor.record(metric_name, duration_ms)
 
-  if diagnostics_payload is not None:
-    result["diagnostics"] = diagnostics_payload
+        if log_slow and duration_ms > slow_threshold_ms:
+          _LOGGER.warning(
+            "Slow operation: %s took %.2fms (threshold: %.2fms)",
+            metric_name,
+            duration_ms,
+            slow_threshold_ms,
+          )
 
-  if details:
-    detail_payload = cast(
-      MaintenanceMetadataPayload,
-      {key: value for key, value in details.items() if value is not None},
-    )
-    if detail_payload:
-      result["details"] = detail_payload
+    @functools.wraps(func)
+    def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+      start = time.perf_counter()
+      try:
+        return func(*args, **kwargs)
+      finally:
+        duration_ms = (time.perf_counter() - start) * 1000
+        _performance_monitor.record(metric_name, duration_ms)
 
-  results = performance_stats.setdefault("maintenance_results", [])
-  if isinstance(results, list):
-    results.append(result)
-  else:
-    performance_stats["maintenance_results"] = [result]
-  performance_stats["last_maintenance_result"] = result
+        if log_slow and duration_ms > slow_threshold_ms:
+          _LOGGER.warning(
+            "Slow operation: %s took %.2fms (threshold: %.2fms)",
+            metric_name,
+            duration_ms,
+            slow_threshold_ms,
+          )
+
+    # Return appropriate wrapper
+    if asyncio.iscoroutinefunction(func):
+      return async_wrapper  # type: ignore[return-value]
+    return sync_wrapper  # type: ignore[return-value]
+
+  return decorator
+
+
+def debounce(
+  wait_seconds: float,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  """Decorator to debounce function calls.
+
+  Only executes function after wait_seconds have passed since last call.
+
+  Args:
+      wait_seconds: Wait time in seconds
+
+  Returns:
+      Decorated function
+
+  Examples:
+      >>> @debounce(1.0)
+      ... async def update_state():
+      ...     await coordinator.async_request_refresh()
+  """
+
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    last_call_time: float = 0.0
+    pending_task: asyncio.Task[Any] | None = None
+
+    @functools.wraps(func)
+    async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
+      nonlocal last_call_time, pending_task
+
+      current_time = time.time()
+
+      # Cancel pending task if exists
+      if pending_task and not pending_task.done():
+        pending_task.cancel()
+
+      # If enough time has passed, execute immediately
+      if current_time - last_call_time >= wait_seconds:
+        last_call_time = current_time
+        return await func(*args, **kwargs)
+
+      # Otherwise, schedule for later
+      async def delayed_call() -> T:
+        nonlocal last_call_time
+        await asyncio.sleep(wait_seconds)
+        last_call_time = time.time()
+        return await func(*args, **kwargs)
+
+      pending_task = asyncio.create_task(delayed_call())
+      return None
+
+    return async_wrapper  # type: ignore[return-value]
+
+  return decorator
+
+
+def throttle(
+  calls_per_second: float,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  """Decorator to throttle function calls.
+
+  Limits function to maximum calls_per_second rate.
+
+  Args:
+      calls_per_second: Maximum calls per second
+
+  Returns:
+      Decorated function
+
+  Examples:
+      >>> @throttle(2.0)  # Max 2 calls per second
+      ... async def api_call():
+      ...     return await api.fetch()
+  """
+
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    min_interval = 1.0 / calls_per_second
+    last_call_time: float = 0.0
+    lock = asyncio.Lock()
+
+    @functools.wraps(func)
+    async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+      nonlocal last_call_time
+
+      async with lock:
+        current_time = time.time()
+        time_since_last = current_time - last_call_time
+
+        if time_since_last < min_interval:
+          await asyncio.sleep(min_interval - time_since_last)
+
+        last_call_time = time.time()
+
+      return await func(*args, **kwargs)
+
+    return async_wrapper  # type: ignore[return-value]
+
+  return decorator
+
+
+def batch_calls(
+  max_batch_size: int = 10,
+  max_wait_ms: float = 100.0,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+  """Decorator to batch function calls.
+
+  Collects multiple calls and executes them in batches.
+
+  Args:
+      max_batch_size: Maximum batch size
+      max_wait_ms: Maximum wait time in milliseconds
+
+  Returns:
+      Decorated function
+
+  Examples:
+      >>> @batch_calls(max_batch_size=10, max_wait_ms=100.0)
+      ... async def update_entities(entity_ids: list[str]):
+      ...     await coordinator.async_update_entities(entity_ids)
+  """
+
+  def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+    pending_calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+    batch_task: asyncio.Task[Any] | None = None
+    lock = asyncio.Lock()
+
+    async def process_batch() -> None:
+      nonlocal pending_calls
+
+      await asyncio.sleep(max_wait_ms / 1000)
+
+      async with lock:
+        if not pending_calls:
+          return
+
+        # Combine all calls
+        batch = pending_calls[:max_batch_size]
+        pending_calls = pending_calls[max_batch_size:]
+
+        # Execute batch
+        for args, kwargs in batch:
+          try:
+            await func(*args, **kwargs)
+          except Exception as e:
+            _LOGGER.error("Batch call failed: %s", e)
+
+    @functools.wraps(func)
+    async def async_wrapper(*args: Any, **kwargs: Any) -> None:
+      nonlocal batch_task
+
+      async with lock:
+        pending_calls.append((args, kwargs))
+
+        # Start batch task if not running
+        if batch_task is None or batch_task.done():
+          batch_task = asyncio.create_task(process_batch())
+
+    return async_wrapper
+
+  return decorator
+
+
+# Performance helpers
+
+
+def get_performance_summary() -> dict[str, Any]:
+  """Get global performance summary.
+
+  Returns:
+      Performance summary dictionary
+  """
+  return _performance_monitor.get_summary()
+
+
+def get_slow_operations(threshold_ms: float = 100.0) -> list[dict[str, Any]]:
+  """Get slow operations.
+
+  Args:
+      threshold_ms: Threshold in milliseconds
+
+  Returns:
+      List of slow operations
+  """
+  slow_ops = _performance_monitor.get_slow_operations(threshold_ms)
+  return [op.to_dict() for op in slow_ops]
+
+
+def reset_performance_metrics() -> None:
+  """Reset all performance metrics."""
+  _performance_monitor.reset()
+
+
+def enable_performance_monitoring() -> None:
+  """Enable performance monitoring."""
+  _performance_monitor.enable()
+
+
+def disable_performance_monitoring() -> None:
+  """Disable performance monitoring."""
+  _performance_monitor.disable()
