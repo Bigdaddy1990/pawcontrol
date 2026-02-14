@@ -147,6 +147,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
   def __init__(self) -> None:
     """Initialize base configuration flow."""
+    super().__init__()
     self._dogs: list[DogConfigData] = []
     self._integration_name = "Paw Control"
     self._errors: dict[str, str] = {}

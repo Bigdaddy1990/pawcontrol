@@ -1006,7 +1006,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         self._errors.clear()
         self._current_dog_config = None
         return await self.async_step_add_dog()
-      # All dogs configured, continue to global settings if needed
+# All dogs configured, continue to global settings if needed
       return await self.async_step_configure_modules()
 
     # Check if we've reached the limit
