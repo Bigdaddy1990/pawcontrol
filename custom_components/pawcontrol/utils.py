@@ -1518,7 +1518,7 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
   return max(min_value, min(value, max_value))
 
 
-def is_dict_subset(subset: Mapping[K, V], superset: Mapping[K, V]) -> bool:
+def is_dict_subset[K, V](subset: Mapping[K, V], superset: Mapping[K, V]) -> bool:
   """Check if one dictionary is a subset of another.
 
   Args:

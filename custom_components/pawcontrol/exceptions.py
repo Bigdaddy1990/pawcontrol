@@ -1162,7 +1162,7 @@ def raise_from_error_code(
   raise exception_class(message, error_code=error_code, **kwargs)
 
 
-def handle_exception_gracefully(
+def handle_exception_gracefully[**P, T](
   func: Callable[P, T],
   default_return: T | None = None,
   *,

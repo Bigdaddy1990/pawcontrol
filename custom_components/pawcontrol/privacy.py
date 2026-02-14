@@ -312,7 +312,7 @@ class DataHasher:
     """
     result = dict(data)
 
-    for field in fields:
+    for field in fields:  # noqa: F402
       if field in result and isinstance(result[field], str):
         result[field] = self.hash_string(result[field], salt)
 

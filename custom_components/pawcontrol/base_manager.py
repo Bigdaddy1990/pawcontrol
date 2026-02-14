@@ -542,9 +542,9 @@ async def setup_managers(
       if stop_on_error:
         # Clean up successful managers
         for m in successful:
-          try:
+          try:  # noqa: SIM105
             await m.async_teardown()
-          except Exception:  # noqa: S110
+          except Exception:
             pass
         raise
       manager.logger.error("Failed to set up manager: %s", e)
