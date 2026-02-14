@@ -189,6 +189,9 @@ else:
     """Date selector shim."""
 
   selector = _SelectorNamespace(
+    # Home Assistant's selector() helper wraps selector config mappings into a
+    # validator object. The lightweight test shim keeps the mapping unchanged
+    # because tests assert schema shape rather than runtime coercion.
     selector=lambda config: config,
     BooleanSelector=BooleanSelector,
     BooleanSelectorConfig=BooleanSelectorConfig,
