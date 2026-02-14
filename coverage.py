@@ -78,23 +78,20 @@ class Coverage:
       return None
 
     path = Path(filename)
-    if not path.exists():
-      self._resolved_path_cache[filename] = None
-      return None
+    path = Path(filename)
+    result: Path | None = None
+    if path.exists():
+        resolved = path.resolve()
+        if not self._source_roots:
+            result = resolved
+        else:
+            for root in self._source_roots:
+                if resolved.is_relative_to(root):
+                    result = resolved
+                    break
 
-    resolved = path.resolve()
-    if not self._source_roots:
-      self._resolved_path_cache[filename] = resolved
-      return resolved
-
-    for root in self._source_roots:
-      if resolved.is_relative_to(root):
-        self._resolved_path_cache[filename] = resolved
-        return resolved
-
-    self._resolved_path_cache[filename] = None
-    return None
-
+    self._resolved_path_cache[filename] = result
+    return result
   def _handle_line_event(
     self,
     path: Path | None,
