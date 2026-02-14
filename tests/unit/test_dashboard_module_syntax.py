@@ -9,14 +9,14 @@ import pytest
 
 
 SYNTAX_GUARD_MODULES = (
-  "custom_components/pawcontrol/dashboard_cards.py",
-  "custom_components/pawcontrol/dashboard_templates.py",
-  "custom_components/pawcontrol/input_validation.py",
+  Path("custom_components/pawcontrol/dashboard_cards.py"),
+  Path("custom_components/pawcontrol/dashboard_templates.py"),
+  Path("custom_components/pawcontrol/input_validation.py"),
 )
 
 
-@pytest.mark.parametrize("module", SYNTAX_GUARD_MODULES)
-def test_syntax_guard_modules_compile(module: str) -> None:
+@pytest.mark.parametrize("module", SYNTAX_GUARD_MODULES, ids=str)
+def test_syntax_guard_modules_compile(module: Path) -> None:
   """Guarded modules should compile without parser errors."""
 
-  py_compile.compile(str(Path(module)), doraise=True)
+  py_compile.compile(module, doraise=True)
