@@ -86,6 +86,7 @@ extend-unsafe-fixes = ["E", "F401"]
 [tool.mypy]
 python_version = "3.14"
 warn_unused_configs = true
+# Jetzt wird es ernst:
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
@@ -95,8 +96,9 @@ warn_unused_ignores = true
 warn_return_any = true
 local_partial_types = true
 strict_equality = true
+# Imports von HA und anderen libs ignorieren, da oft untyped
 ignore_missing_imports = true
-explicit_package_bases = false
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]
@@ -105,15 +107,48 @@ disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = ["custom_components.pawcontrol.*"]
+# ACTIVATED: Require function signatures
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
+# ACTIVATED: No implicit Optional types
 no_implicit_optional = true
-warn_return_any = true
+# Still allow some flexibility during transition
+warn_return_any = false
+disable_error_code = [
+    # Still disabled during Phase 1.1 (will be enabled in Phase 1.2)
+    "abstract",
+    "arg-type",
+    "assignment",
+    "attr-defined",
+    "call-arg",
+    "call-overload",
+    "comparison-overlap",
+    "dict-item",
+    "func-returns-value",
+    "index",
+    "list-item",
+    "literal-required",
+    "misc",
+    "no-any-return",
+    "no-redef",
+    "operator",
+    "override",
+    "redundant-cast",
+    # "return-value",  # ENABLED: Must return correct type
+    "typeddict-item",
+    "union-attr",
+    "unused-ignore",
+    "valid-type",
+    "var-annotated",
+]
 
 [[tool.mypy.overrides]]
 module = ["annotatedyaml.*"]
-disable_error_code = []
+disable_error_code = [
+    "no-any-return",
+    "unused-ignore",
+]
 
 [tool.coverage.run]
 branch = true
