@@ -345,7 +345,7 @@ def validate_dog_name(
   field: str = CONF_DOG_NAME,
   required: bool = True,
   min_length: int = MIN_DOG_NAME_LENGTH,
-  max_length: int = 50,
+  max_length: int = MAX_DOG_NAME_LENGTH,
 ) -> str | None:
   """Validate dog name input and return a trimmed value."""
 
@@ -783,19 +783,16 @@ def validate_gps_accuracy_value(
 
 def validate_float_range(
   value: Any,
-  minimum: float | None = None,
-  maximum: float | None = None,
+  minimum: float,
+  maximum: float,
   *,
-  field: str | None = None,
+  field: str = "value",
   field_name: str | None = None,
   default: float | None = None,
   clamp: bool = False,
   required: bool = False,
 ) -> float:
   """Validate a floating-point range within bounds."""
-
-  if minimum is None or maximum is None:
-    raise TypeError("minimum and maximum must be provided")
 
   resolved_field = field_name or field or "value"
 
@@ -804,7 +801,7 @@ def validate_float_range(
       return default
     if required:
       raise ValidationError(
-        field,
+        resolved_field,
         value,
         "Value is required",
       )
