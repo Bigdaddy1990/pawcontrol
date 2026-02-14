@@ -38,9 +38,11 @@ class Coverage:
 
   def __init__(self, *, source: Iterable[str] | None = None) -> None:
     self._source_roots = tuple(Path(root).resolve() for root in (source or ()) if root)
+    self._source_root_strings = tuple(str(root) for root in self._source_roots)
     self._executed: dict[Path, set[int]] = defaultdict(set)
     self._runtime_seconds: dict[Path, float] = defaultdict(float)
     self._previous_trace: TraceFunc | None = None
+    self._resolved_path_cache: dict[str, Path | None] = {}
 
     monitoring = getattr(sys, "monitoring", None)
     required = (
@@ -61,15 +63,36 @@ class Coverage:
   def _resolve_event_path(self, filename: str | None) -> Path | None:
     if not filename or filename.startswith("<"):
       return None
+
+    cached = self._resolved_path_cache.get(filename)
+    if filename in self._resolved_path_cache:
+      return cached
+
+    absolute_filename = os.path.abspath(filename)
+    if self._source_root_strings and not any(
+      absolute_filename == root
+      or absolute_filename.startswith(f"{root}{os.sep}")
+      for root in self._source_root_strings
+    ):
+      self._resolved_path_cache[filename] = None
+      return None
+
     path = Path(filename)
     if not path.exists():
+      self._resolved_path_cache[filename] = None
       return None
+
     resolved = path.resolve()
     if not self._source_roots:
+      self._resolved_path_cache[filename] = resolved
       return resolved
+
     for root in self._source_roots:
       if resolved.is_relative_to(root):
+        self._resolved_path_cache[filename] = resolved
         return resolved
+
+    self._resolved_path_cache[filename] = None
     return None
 
   def _handle_line_event(
