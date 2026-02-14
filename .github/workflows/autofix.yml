@@ -41,7 +41,7 @@ jobs:
       - name: Install deps (uv)
         run: |
             uv pip install --system -r requirements.txt
-            uv pip install --system -r requirements_test.txt
+            uv pip install --system -r requirements_test.txt --prerelease=allow
             uv cache prune --ci
 
       - name: Install development tools
