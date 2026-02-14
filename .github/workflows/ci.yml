@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.14"]
+        python-version: ["3.13","3.14"]
 
     steps:
       - uses: actions/checkout@v4
@@ -78,7 +78,6 @@ jobs:
           prek auto-update
           prek run --hook-stage pre-merge-commit
           prek run --hook-stage pre-commit
-          prek run --hook-stage manual python-typing-update --all-files
           prek run --all-files --show-diff-on-failure
 
       - name: Run mypy
