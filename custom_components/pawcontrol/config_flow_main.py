@@ -170,7 +170,6 @@ class PawControlConfigFlow(
     self._integration_name = "Paw Control"
     self._entity_profile = "standard"
     self.reauth_entry: ConfigEntry | None = None
-    self._discovery_info: ConfigFlowDiscoveryData = {}
     self._existing_dog_ids: set[str] = set()  # Performance: O(1) lookups
     self._entity_factory = EntityFactory(None)
 
