@@ -71,7 +71,7 @@ repos:
       - id: python-typing-update
         stages: [pre-push]
         args:
-          - --py313-plus
+          - --py314-plus
           - --force
           - --keep-updates
         files: ^(homeassistant|tests|scripts)/.+\.py$
