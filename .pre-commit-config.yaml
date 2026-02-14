@@ -75,7 +75,10 @@ repos:
           - --force
           - --keep-updates
         files: ^(homeassistant|tests|scripts)/.+\.py$
-
+        
+  - name: Claude Code Action Official
+    uses: anthropics/claude-code-action@v1
+    
   - repo: local
     hooks:
       - id: shared-session-guard
