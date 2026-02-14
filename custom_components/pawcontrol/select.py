@@ -829,6 +829,10 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
     runtime_data = self._get_runtime_data()
     if runtime_data is not None:
+      direct_manager = getattr(runtime_data, "data_manager", None)
+      if direct_manager is not None:
+        return direct_manager
+
       manager_container = getattr(runtime_data, "runtime_managers", None)
       if manager_container is not None:
         return getattr(manager_container, "data_manager", None)

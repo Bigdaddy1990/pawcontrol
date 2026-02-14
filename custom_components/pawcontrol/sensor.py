@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+from inspect import isawaitable
 from collections.abc import Callable
 from collections.abc import Mapping
 from datetime import date
@@ -354,7 +355,9 @@ async def async_setup_entry(
       entity_factory.finalize_budget(dog_id, profile)
 
   if all_entities:
-    async_add_entities(all_entities)
+    add_result = async_add_entities(all_entities)
+    if isawaitable(add_result):
+      await add_result
 
 
 def _create_core_entities(

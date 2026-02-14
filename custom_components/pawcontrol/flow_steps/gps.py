@@ -896,6 +896,18 @@ class GPSOptionsNormalizerHost(Protocol):
 class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
   """Mixin providing GPS normalization for options payloads."""
 
+  @staticmethod
+  def _coerce_bool(value: Any, default: bool) -> bool:
+    """Return a boolean using Home Assistant style truthiness rules."""
+
+    if value is None:
+      return default
+    if isinstance(value, bool):
+      return value
+    if isinstance(value, str):
+      return value.strip().lower() in {"1", "true", "on", "yes"}
+    return bool(value)
+
   def _normalise_gps_settings(self, raw: Mapping[str, JSONValue]) -> GPSOptions:
     """Return a normalised GPS options payload."""
 

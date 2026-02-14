@@ -299,6 +299,11 @@ class HomeAssistant:
 
     return await asyncio.to_thread(func, *args)
 
+  async def async_block_till_done(self) -> None:
+    """Yield to the event loop until scheduled callbacks can run."""
+
+    await asyncio.sleep(0)
+
 
 class Event:
   """Simplified version of ``homeassistant.core.Event`` used by tests."""
@@ -647,12 +652,16 @@ class _FlowBase:
     data: dict[str, object] | None = None,
     options: dict[str, object] | None = None,
   ) -> FlowResult:
-    return {
+    result: FlowResult = {
       "type": "create_entry",
       **({"title": title} if title is not None else {}),
       "data": dict(data or {}),
-      "options": dict(options or {}),
     }
+
+    if options is not None:
+      result["options"] = dict(options)
+
+    return result
 
   def async_abort(self, *, reason: str) -> FlowResult:
     return {"type": "abort", "reason": reason}

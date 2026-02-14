@@ -72,22 +72,29 @@ def _get_domain_store(
 ) -> DomainRuntimeStore | None:
   """Return the PawControl storage dictionary from ``hass.data``."""
 
+  data_obj = getattr(hass, "data", None)
+  if not isinstance(data_obj, MutableMapping):
+    if not create:
+      return None
+    data_obj = {}
+    hass.data = data_obj
+
   domain_data: object
   domain_data = (
-    hass.data.setdefault(
+    data_obj.setdefault(
       DOMAIN,
       {},
     )
     if create
-    else hass.data.get(DOMAIN)
+    else data_obj.get(DOMAIN)
   )
 
   if not isinstance(domain_data, MutableMapping):
     if not create:
-      hass.data.pop(DOMAIN, None)
+      data_obj.pop(DOMAIN, None)
       return None
     domain_data = {}
-    hass.data[DOMAIN] = domain_data
+    data_obj[DOMAIN] = domain_data
 
   return cast(DomainRuntimeStore, domain_data)
 
