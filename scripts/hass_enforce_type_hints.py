@@ -100,7 +100,7 @@ _METHOD_MATCH: list[TypeHintMatch] = [
   ),
 ]
 
-_TEST_FIXTURES: dict[str, list[str] | str] = {  # noqa: S105 - fixture type names only.
+_TEST_FIXTURES: dict[str, list[str] | str] = {
   "aioclient_mock": "AiohttpClientMocker",
   "aiohttp_client": "ClientSessionGenerator",
   "aiohttp_server": "Callable[[], TestServer]",

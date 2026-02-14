@@ -101,7 +101,7 @@ else:
     EMAIL = "email"
     MONTH = "month"
     NUMBER = "number"
-    PASSWORD = "password"  # noqa: S105 - HTML input type constant, not a secret.
+    PASSWORD = "password"
     SEARCH = "search"
     TEL = "tel"
     TEXT = "text"
