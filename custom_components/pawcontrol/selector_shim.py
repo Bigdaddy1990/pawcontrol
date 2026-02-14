@@ -15,8 +15,47 @@ from collections.abc import Sequence
 from enum import StrEnum
 from types import SimpleNamespace
 from typing import Any
+from typing import Protocol
 from typing import cast
 from typing import TypeVar
+
+
+class _SelectorNamespace(SimpleNamespace):
+  """Namespace exposing selector helpers and callable schema factory."""
+
+  def __call__(self, config: Any) -> Any:
+    selector_factory = getattr(self, "selector", None)
+    if callable(selector_factory):
+      return selector_factory(config)
+    return config
+
+
+class _SelectorNamespaceProtocol(Protocol):
+  """Typing contract for the exported selector namespace."""
+
+  Selector: Any
+  BooleanSelector: Any
+  BooleanSelectorConfig: Any
+  DateSelector: Any
+  DateSelectorConfig: Any
+  NumberSelector: Any
+  NumberSelectorConfig: Any
+  NumberSelectorMode: Any
+  SelectOptionDict: Any
+  SelectSelector: Any
+  SelectSelectorConfig: Any
+  SelectSelectorMode: Any
+  TextSelector: Any
+  TextSelectorConfig: Any
+  TextSelectorType: Any
+  TimeSelector: Any
+  TimeSelectorConfig: Any
+
+  def __call__(self, config: Any) -> Any:
+    """Return normalized selector config payload."""
+
+    pass
+
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
   from homeassistant.helpers import selector as ha_selector
@@ -42,7 +81,9 @@ def _supports_selector_callables(module: object) -> bool:
 
 if ha_selector is not None and _supports_selector_callables(ha_selector):
   # pragma: no cover - passthrough when available
-  selector = ha_selector
+  selector = cast(
+    _SelectorNamespaceProtocol, _SelectorNamespace(**ha_selector.__dict__)
+  )
 else:
   from typing import Literal, Required, TypedDict
 
@@ -162,6 +203,9 @@ else:
   class BooleanSelector(_BaseSelector[BooleanSelectorConfig]):
     """Boolean selector shim."""
 
+  class Selector(_BaseSelector[BaseSelectorConfig]):
+    """Generic selector shim matching Home Assistant type hints."""
+
   class NumberSelector(_BaseSelector[NumberSelectorConfig]):
     """Number selector shim."""
 
@@ -177,23 +221,31 @@ else:
   class DateSelector(_BaseSelector[DateSelectorConfig]):
     """Date selector shim."""
 
-  selector = SimpleNamespace(
-    BooleanSelector=BooleanSelector,
-    BooleanSelectorConfig=BooleanSelectorConfig,
-    DateSelector=DateSelector,
-    DateSelectorConfig=DateSelectorConfig,
-    NumberSelector=NumberSelector,
-    NumberSelectorConfig=NumberSelectorConfig,
-    NumberSelectorMode=NumberSelectorMode,
-    SelectOptionDict=SelectOptionDict,
-    SelectSelector=SelectSelector,
-    SelectSelectorConfig=SelectSelectorConfig,
-    SelectSelectorMode=SelectSelectorMode,
-    TextSelector=TextSelector,
-    TextSelectorConfig=TextSelectorConfig,
-    TextSelectorType=TextSelectorType,
-    TimeSelector=TimeSelector,
-    TimeSelectorConfig=TimeSelectorConfig,
+  selector = cast(
+    _SelectorNamespaceProtocol,
+    _SelectorNamespace(
+      # Home Assistant's selector() helper wraps selector config mappings into a
+      # validator object. The lightweight test shim keeps the mapping unchanged
+      # because tests assert schema shape rather than runtime coercion.
+      selector=lambda config: config,
+      Selector=Selector,
+      BooleanSelector=BooleanSelector,
+      BooleanSelectorConfig=BooleanSelectorConfig,
+      DateSelector=DateSelector,
+      DateSelectorConfig=DateSelectorConfig,
+      NumberSelector=NumberSelector,
+      NumberSelectorConfig=NumberSelectorConfig,
+      NumberSelectorMode=NumberSelectorMode,
+      SelectOptionDict=SelectOptionDict,
+      SelectSelector=SelectSelector,
+      SelectSelectorConfig=SelectSelectorConfig,
+      SelectSelectorMode=SelectSelectorMode,
+      TextSelector=TextSelector,
+      TextSelectorConfig=TextSelectorConfig,
+      TextSelectorType=TextSelectorType,
+      TimeSelector=TimeSelector,
+      TimeSelectorConfig=TimeSelectorConfig,
+    ),
   )
 
 __all__ = ["selector"]

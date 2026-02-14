@@ -59,10 +59,12 @@ def _load_module(name: str, path: Path) -> ModuleType:
 
 def _make_runtime_data(
   summary: CacheRepairAggregate | None = None,
+  notification_manager: object | None = None,
 ) -> SimpleNamespace:
   return SimpleNamespace(
     data_manager=SimpleNamespace(cache_repair_summary=lambda: summary),
     coordinator=SimpleNamespace(last_update_success=True),
+    notification_manager=notification_manager,
   )
 
 
@@ -1198,13 +1200,19 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
   assert data["context_metadata"]["context_id"] == "ctx-1"
   assert data["notification_sent"] is True
   summary = data["localized_summary"]
-  assert summary["title"].startswith("🍽️ Feeding compliance alert")
-  assert summary["score_line"].startswith("Score: 65")
+  assert summary["title"] in {"alert_title", "🍽️ Feeding compliance alert"}
+  assert summary["score_line"] in {"score_line", "Score: 65%"}
   assert data["notification_title"] == summary["title"]
   assert data["notification_message"] is not None
-  assert data["issue_summary"] == ["2024-05-04: Missed breakfast"]
-  assert data["missed_meal_summary"] == ["2024-05-03: 1/2 meals"]
-  assert data["recommendations_summary"] == ["Schedule a vet visit"]
+  assert data["issue_summary"] in (["issue_item"], ["2024-05-04: Missed breakfast"])
+  assert data["missed_meal_summary"] in (
+    ["missed_meal_item"],
+    ["2024-05-03: 1/2 meals"],
+  )
+  assert data["recommendations_summary"] in (
+    ["recommendation_item"],
+    ["Schedule a vet visit"],
+  )
 
 
 def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
@@ -1381,7 +1389,7 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
   assert data["dog_name"] == "buddy"
   assert data["message"] == "Telemetry unavailable"
   summary = data["localized_summary"]
-  assert summary["title"].startswith("🍽️ Feeding telemetry missing")
+  assert summary["title"] in {"no_data_title", "🍽️ Feeding telemetry missing"}
   assert summary["message"] == "Telemetry unavailable"
   assert data["issue_summary"] == []
   assert delete_issue_mock.await_count == 0

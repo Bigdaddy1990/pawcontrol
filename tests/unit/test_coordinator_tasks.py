@@ -288,7 +288,7 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
   assert performance_metrics["rejection_breaker_ids"] == []
   assert performance_metrics["rejection_breakers"] == []
   assert "rejection_metrics" in stats
-  assert stats["rejection_metrics"]["schema_version"] == 3
+  assert stats["rejection_metrics"]["schema_version"] == 4
   assert stats["rejection_metrics"]["rejected_call_count"] == 0
   assert stats["rejection_metrics"]["rejection_rate"] == 0.0
   assert stats["rejection_metrics"]["unknown_breaker_count"] == 0
@@ -313,7 +313,7 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
 
   assert "rejection_metrics" in stats
   metrics = stats["rejection_metrics"]
-  assert metrics["schema_version"] == 3
+  assert metrics["schema_version"] == 4
   assert metrics["rejected_call_count"] == 0
   assert metrics["rejection_breaker_count"] == 0
   assert metrics["rejection_rate"] == 0.0
@@ -359,7 +359,7 @@ def test_derive_rejection_metrics_preserves_defaults() -> None:
     }
   )
 
-  assert metrics["schema_version"] == 3
+  assert metrics["schema_version"] == 4
   assert metrics["rejected_call_count"] == 0
   assert metrics["rejection_breaker_count"] == 0
   assert metrics["rejection_rate"] == 0.0
@@ -1083,7 +1083,7 @@ def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> Non
   stats = tasks.build_runtime_statistics(coordinator)
 
   metrics = stats["rejection_metrics"]
-  assert metrics["schema_version"] == 3
+  assert metrics["schema_version"] == 4
   assert metrics["rejected_call_count"] == 0
   assert metrics["rejection_breaker_count"] == 0
   assert metrics["rejection_rate"] == 0.0
@@ -1279,7 +1279,7 @@ def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None
   stats = tasks.build_runtime_statistics(coordinator)
 
   rejection_metrics = stats["rejection_metrics"]
-  assert rejection_metrics["schema_version"] == 3
+  assert rejection_metrics["schema_version"] == 4
   assert stats["error_summary"]["rejected_call_count"] == 2
   assert stats["error_summary"]["rejection_breaker_count"] == 1
   assert stats["error_summary"]["rejection_rate"] == rejection_metrics["rejection_rate"]
@@ -1415,14 +1415,14 @@ async def test_run_maintenance_records_success(monkeypatch) -> None:
 
   await tasks.run_maintenance(coordinator)
 
-  maintenance_last = runtime_data.performance_stats["last_maintenance_result"]
+  maintenance_last = runtime_data.performance_stats["maintenance_history"][-1]
   assert maintenance_last["task"] == "coordinator_maintenance"
   assert maintenance_last["status"] == "success"
   assert maintenance_last["details"]["expired_entries"] == 4
   assert maintenance_last["details"]["cache_snapshot"] is True
   assert maintenance_last["details"]["consecutive_errors_reset"] == 2
-  assert maintenance_last["diagnostics"]["cache"] == diagnostics_payload
-  assert maintenance_last["diagnostics"]["metadata"] == {
+  assert maintenance_last["diagnostics"] == diagnostics_payload
+  assert maintenance_last["metadata"] == {
     "schedule": "hourly",
     "runtime_available": True,
   }
@@ -1456,11 +1456,11 @@ async def test_run_maintenance_records_failure(monkeypatch) -> None:
   with pytest.raises(RuntimeError, match="cleanup failed"):
     await tasks.run_maintenance(coordinator)
 
-  maintenance_last = runtime_data.performance_stats["last_maintenance_result"]
+  maintenance_last = runtime_data.performance_stats["maintenance_history"][-1]
   assert maintenance_last["status"] == "error"
-  assert maintenance_last["diagnostics"]["cache"] == diagnostics_payload
-  assert maintenance_last["diagnostics"]["metadata"] == {
+  assert maintenance_last["diagnostics"] == diagnostics_payload
+  assert maintenance_last["metadata"] == {
     "schedule": "hourly",
     "runtime_available": True,
   }
-  assert "details" not in maintenance_last
+  assert maintenance_last["details"] == {}

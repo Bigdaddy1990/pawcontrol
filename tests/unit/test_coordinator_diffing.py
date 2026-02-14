@@ -344,7 +344,8 @@ class TestSmartDiffTracker:
 
     data1 = {"buddy": {"gps": {"lat": 45.0}}}
     diff1 = tracker.update(data1)
-    assert not diff1.has_changes  # First update always has no changes
+    assert diff1.has_changes
+    assert diff1.added_dogs == frozenset({"buddy"})
 
     data2 = {"buddy": {"gps": {"lat": 45.1}}}
     diff2 = tracker.update(data2)
@@ -424,6 +425,7 @@ class TestLogDiffSummary:
   def test_log_diff_summary_no_changes(self, caplog: pytest.LogCaptureFixture) -> None:
     """Test logging with no changes."""
     diff = CoordinatorDataDiff()
+    caplog.set_level("DEBUG")
     log_diff_summary(diff)
 
     assert "No changes detected" in caplog.text
@@ -441,6 +443,7 @@ class TestLogDiffSummary:
       }
     )
 
+    caplog.set_level("DEBUG")
     log_diff_summary(diff)
     assert "1 dogs changed" in caplog.text
 

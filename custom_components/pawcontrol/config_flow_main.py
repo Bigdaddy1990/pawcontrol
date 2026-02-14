@@ -165,6 +165,11 @@ class PawControlConfigFlow(
 
   def __init__(self) -> None:
     """Initialize configuration flow with enhanced state management."""
+    # Some protocol-backed runtime shim bases in the mixin graph resolve to
+    # ``object`` and can short-circuit cooperative init before the base flow
+    # state is established. Initialize the config-flow base explicitly so
+    # required attributes (for example ``_dogs``) always exist.
+    PawControlBaseConfigFlow.__init__(self)
     super().__init__()
     self._integration_name = "Paw Control"
     self._entity_profile = "standard"

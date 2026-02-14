@@ -82,3 +82,10 @@ def test_boolean_selector_defaults_to_empty_config() -> None:
   selector_instance = selector.BooleanSelector()
   assert selector_instance.config == {}
   assert selector_instance(True) is True
+
+
+def test_selector_namespace_is_callable() -> None:
+  """The selector namespace should also accept schema shorthand calls."""
+
+  config = {"boolean": {}}
+  assert selector(config) == config
