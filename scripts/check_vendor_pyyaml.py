@@ -6,6 +6,7 @@ records for PyYAML, compares them with the vendored version shipped under
 script is intentionally lightweight so it can run inside GitHub Actions on a
 schedule without additional dependencies.
 """
+
 from __future__ import annotations
 
 import argparse

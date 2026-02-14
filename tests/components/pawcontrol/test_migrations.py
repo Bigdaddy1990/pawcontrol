@@ -1,4 +1,5 @@
 """Tests for PawControl config entry migrations."""
+
 from __future__ import annotations
 
 import pytest

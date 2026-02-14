@@ -7,6 +7,7 @@ Quality scale: Platinum - fixtures mirror Home Assistant behaviour while
 remaining lightweight enough to run the full suite (unit, integration,
 diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
+
 from __future__ import annotations
 
 import asyncio

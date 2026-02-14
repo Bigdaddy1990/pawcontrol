@@ -1,4 +1,5 @@
 """Validate and auto-fix Home Assistant API migrations before pushing."""
+
 from __future__ import annotations
 
 import argparse

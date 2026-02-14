@@ -1,4 +1,5 @@
 """Notification configuration steps for Paw Control options flow."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping

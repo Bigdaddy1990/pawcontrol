@@ -1,4 +1,5 @@
 """Regression coverage for Home Assistant compatibility stubs."""
+
 from __future__ import annotations
 
 import asyncio

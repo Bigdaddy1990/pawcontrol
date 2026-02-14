@@ -1,4 +1,5 @@
 """Tooling tests that ensure packaging metadata stays synchronized."""
+
 from __future__ import annotations
 
 import tomllib

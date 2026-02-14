@@ -4,6 +4,7 @@ These functions generate description placeholders for flow forms and are kept in
 dedicated module to keep the entry flow implementation smaller and easier to
 maintain.
 """
+
 from __future__ import annotations
 
 from .types import ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE

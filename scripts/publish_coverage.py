@@ -1,4 +1,5 @@
 """Publish coverage artifacts and GitHub Pages bundles."""
+
 from __future__ import annotations
 
 import argparse

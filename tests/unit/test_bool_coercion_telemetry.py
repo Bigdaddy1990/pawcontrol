@@ -1,4 +1,5 @@
 """Validate bool coercion telemetry snapshots."""
+
 from __future__ import annotations
 
 from datetime import datetime

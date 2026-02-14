@@ -1,4 +1,5 @@
 """Reauthentication helpers for Paw Control config flow."""
+
 from __future__ import annotations
 
 import asyncio

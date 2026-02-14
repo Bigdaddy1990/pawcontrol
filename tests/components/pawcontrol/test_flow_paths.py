@@ -1,4 +1,5 @@
 """Component-level flow path tests for PawControl."""
+
 from __future__ import annotations
 
 import pytest

@@ -1,4 +1,5 @@
 """Tests for config/options flow validation helpers."""
+
 from __future__ import annotations
 
 import pytest
