@@ -227,7 +227,7 @@ def fetch_latest_homeassistant_version() -> Version:
   )
 
   try:
-    with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+    with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # nosec B310 - request URL is restricted by _validated_https_url.
       status = getattr(response, "status", 200)
       if status != 200:
         raise ValueError(f"PyPI API returned unexpected status {status}")
