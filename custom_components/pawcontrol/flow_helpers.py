@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 # Type aliases for flow step results
-FlowStepResult = ConfigFlowResult | FlowResult
+type FlowStepResult = ConfigFlowResult | FlowResult
 
 
 def coerce_bool(value: Any, *, default: bool = False) -> bool:
@@ -631,8 +631,8 @@ def store_flow_data(
       >>> store_flow_data(self, "dog_id", "buddy")
   """
   if not hasattr(flow, "_flow_data"):
-    flow._flow_data = {}  # type: ignore[attr-defined]
-  flow._flow_data[key] = value  # type: ignore[attr-defined]
+    flow._flow_data = {}
+  flow._flow_data[key] = value
 
 
 def get_flow_data(
@@ -655,7 +655,7 @@ def get_flow_data(
   """
   if not hasattr(flow, "_flow_data"):
     return default
-  return flow._flow_data.get(key, default)  # type: ignore[attr-defined]
+  return flow._flow_data.get(key, default)
 
 
 def clear_flow_data(flow: ConfigFlow | OptionsFlow) -> None:
@@ -668,4 +668,4 @@ def clear_flow_data(flow: ConfigFlow | OptionsFlow) -> None:
       >>> clear_flow_data(self)
   """
   if hasattr(flow, "_flow_data"):
-    flow._flow_data = {}  # type: ignore[attr-defined]
+    flow._flow_data = {}

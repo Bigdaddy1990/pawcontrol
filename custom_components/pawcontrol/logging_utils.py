@@ -20,6 +20,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
+from types import TracebackType
 from typing import Any
 from typing import ParamSpec
 from typing import TypeVar
@@ -342,7 +343,12 @@ class CorrelationContext:
     self._token_context = _request_context.set(self._context)
     return self._correlation_id
 
-  async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+  async def __aexit__(
+    self,
+    exc_type: type[BaseException] | None,
+    exc_val: BaseException | None,
+    exc_tb: TracebackType | None,
+  ) -> None:
     """Exit async context."""
     if self._token_correlation:
       _correlation_id.reset(self._token_correlation)

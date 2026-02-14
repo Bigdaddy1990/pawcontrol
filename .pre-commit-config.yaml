@@ -1,6 +1,6 @@
 ci:
   autoupdate_schedule: weekly
-  autofix_prs: true
+  autofix_prs: false
   autofix_commit_msg: "[pre-commit.ci] autofix"
   autoupdate_branch: main
   autoupdate_commit_msg: "[pre-commit.ci] autoupdate"
@@ -12,7 +12,7 @@ default_install_hook_types:
       - pre-push
 repos:
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.0
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
         args:

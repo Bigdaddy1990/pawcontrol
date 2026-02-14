@@ -11,6 +11,7 @@ OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code dupl
 from __future__ import annotations
 
 import logging
+from inspect import isawaitable
 import os
 from collections.abc import Mapping
 from collections.abc import Sequence
@@ -222,7 +223,7 @@ class BinarySensorLogicMixin:
         return num_value <= threshold
       raise ValueError(f"Unknown comparison: {comparison}")
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return default_if_none
 
 
@@ -306,7 +307,9 @@ async def async_setup_entry(
       )
 
   if entities:
-    async_add_entities(entities)
+    add_result = async_add_entities(entities)
+    if isawaitable(add_result):
+      await add_result
 
 
 def _create_base_binary_sensors(

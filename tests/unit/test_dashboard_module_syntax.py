@@ -1,19 +1,22 @@
-"""Regression tests ensuring dashboard modules remain syntactically valid."""
+"""Regression tests ensuring key modules remain syntactically valid."""
 
 from __future__ import annotations
 
 from pathlib import Path
 import py_compile
 
+import pytest
 
-DASHBOARD_MODULES = (
-  "custom_components/pawcontrol/dashboard_cards.py",
-  "custom_components/pawcontrol/dashboard_templates.py",
+
+SYNTAX_GUARD_MODULES = (
+  Path("custom_components/pawcontrol/dashboard_cards.py"),
+  Path("custom_components/pawcontrol/dashboard_templates.py"),
+  Path("custom_components/pawcontrol/input_validation.py"),
 )
 
 
-def test_dashboard_modules_compile() -> None:
-  """Dashboard modules should compile without parser errors."""
+@pytest.mark.parametrize("module", SYNTAX_GUARD_MODULES, ids=str)
+def test_syntax_guard_modules_compile(module: Path) -> None:
+  """Guarded modules should compile without parser errors."""
 
-  for module in DASHBOARD_MODULES:
-    py_compile.compile(str(Path(module)), doraise=True)
+  py_compile.compile(module, doraise=True)

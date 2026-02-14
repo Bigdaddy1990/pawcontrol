@@ -147,7 +147,7 @@ def _issue_registry_supports_kwarg(
 
   try:
     params = signature(create_issue).parameters.values()
-  except TypeError, ValueError:
+  except (TypeError, ValueError):
     return False
 
   return any(param.kind is param.VAR_KEYWORD for param in params) or any(
@@ -524,9 +524,6 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
     # Check recurring notification delivery errors (auth/unreachable)
     await _check_notification_delivery_errors(hass, entry)
 
-    # Check for outdated configuration
-    await _check_outdated_configuration(hass, entry)
-
     # Check telemetry gathered during reconfigure flows
     await _check_reconfigure_telemetry_issues(hass, entry)
 
@@ -734,6 +731,9 @@ async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
   - push_no_data: Push source selected but no accepted push seen after a grace period
   - push_rejections_high: High rejection counts (likely wrong dog_id/source, replay, rate limit)
   """
+  if not isinstance(getattr(hass, "data", None), Mapping):
+    return
+
   telemetry = get_entry_push_telemetry_snapshot(hass, entry.entry_id)
   dogs_tel = telemetry.get("dogs", {})
   created_at = telemetry.get("created_at")

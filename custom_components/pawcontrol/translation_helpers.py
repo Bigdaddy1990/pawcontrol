@@ -27,7 +27,12 @@ def component_translation_key(key: str) -> str:
 def _get_translation_cache(hass: HomeAssistant) -> MutableMapping[str, dict[str, str]]:
   """Return the translation cache from ``hass.data``."""
 
-  domain_data = hass.data.setdefault(DOMAIN, {})
+  data_obj = getattr(hass, "data", None)
+  if not isinstance(data_obj, MutableMapping):
+    data_obj = {}
+    hass.data = data_obj
+
+  domain_data = data_obj.setdefault(DOMAIN, {})
   cache = domain_data.get(_TRANSLATION_CACHE_KEY)
   if not isinstance(cache, MutableMapping):
     cache = {}

@@ -14,9 +14,11 @@ import asyncio
 import logging
 import random
 import time
+from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+from types import TracebackType
 from typing import Any
 from typing import ParamSpec
 from typing import TypeVar
@@ -258,7 +260,12 @@ class CircuitBreaker:
 
     return self
 
-  async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+  async def __aexit__(
+    self,
+    exc_type: type[BaseException] | None,
+    exc_val: BaseException | None,
+    exc_tb: TracebackType | None,
+  ) -> None:
     """Exit async context."""
     if exc_type is None:
       await self._record_success()
@@ -466,7 +473,7 @@ class ResilienceManager:
 
   async def execute_with_resilience(
     self,
-    func: Callable[P, T],
+    func: Callable[P, Awaitable[T]],
     *args: P.args,
     circuit_breaker_name: str | None = None,
     retry_config: RetryConfig | None = None,
