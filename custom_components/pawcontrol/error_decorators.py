@@ -531,7 +531,7 @@ def retry_on_error(
   return decorator
 
 
-def require_coordinator[**P, T](func: Callable[P, T]) -> Callable[P, T]:
+def require_coordinator(func: Callable[P, T]) -> Callable[P, T]:
   """Ensure decorated instance methods expose ``self.coordinator``."""
 
   @functools.wraps(func)
