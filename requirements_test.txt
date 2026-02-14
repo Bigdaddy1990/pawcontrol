@@ -12,6 +12,8 @@ prek>=0.3.2
 pytest-github-actions-annotate-failures>=0.3.0
 # Keep core pytest stack unconstrained here; the HA test plugin
 # pins a compatible pytest/pydantic/cov combination.
+pytest
+pytest-cov
 pytest-homeassistant-custom-component  # follows daily HA version
 pyyaml
 types-aiofiles>=25.1.0.20251011
