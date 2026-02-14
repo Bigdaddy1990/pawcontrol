@@ -255,7 +255,16 @@ else:
   class DogManagementMixinBase:  # pragma: no cover - runtime shim
     """Runtime stand-in for the config flow base during type checking."""
 
-    pass
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+      """Preserve cooperative initialisation order at runtime.
+
+      The concrete flow class composes many mixins before inheriting from
+      ``PawControlBaseConfigFlow``. Without this forwarding ``__init__``, the
+      MRO can terminate at ``object.__init__`` and skip the base flow setup,
+      leaving attributes like ``_dogs`` undefined in tests and runtime paths.
+      """
+
+      super().__init__(*args, **kwargs)
 
 
 class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):

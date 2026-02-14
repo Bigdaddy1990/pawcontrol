@@ -51,7 +51,10 @@ class _SelectorNamespaceProtocol(Protocol):
   TimeSelector: Any
   TimeSelectorConfig: Any
 
-  def __call__(self, config: Any) -> Any: ...
+  def __call__(self, config: Any) -> Any:
+    """Return normalized selector config payload."""
+
+    pass
 
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
