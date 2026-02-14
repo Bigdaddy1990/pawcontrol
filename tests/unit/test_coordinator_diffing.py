@@ -6,6 +6,8 @@ module-level tracking, and entity update minimization.
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from custom_components.pawcontrol.coordinator_diffing import compute_coordinator_diff
@@ -424,6 +426,9 @@ class TestLogDiffSummary:
 
   def test_log_diff_summary_no_changes(self, caplog: pytest.LogCaptureFixture) -> None:
     """Test logging with no changes."""
+    caplog.set_level(
+      logging.DEBUG, logger="custom_components.pawcontrol.coordinator_diffing"
+    )
     diff = CoordinatorDataDiff()
     caplog.set_level("DEBUG")
     log_diff_summary(diff)
@@ -434,6 +439,9 @@ class TestLogDiffSummary:
     self, caplog: pytest.LogCaptureFixture
   ) -> None:
     """Test logging with changes."""
+    caplog.set_level(
+      logging.DEBUG, logger="custom_components.pawcontrol.coordinator_diffing"
+    )
     diff = CoordinatorDataDiff(
       dog_diffs={
         "buddy": DogDataDiff(

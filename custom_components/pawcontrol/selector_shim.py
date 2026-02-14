@@ -247,5 +247,7 @@ else:
       TimeSelectorConfig=TimeSelectorConfig,
     ),
   )
+  for _name, _value in vars(_namespace).items():  # noqa: F821
+    setattr(selector, _name, _value)
 
 __all__ = ["selector"]
