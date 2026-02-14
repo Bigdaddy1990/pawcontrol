@@ -23,6 +23,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from homeassistant.const import Platform
+
+  NumberSelectorType = Any
 else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
   try:
     from homeassistant.const import Platform
@@ -41,6 +43,8 @@ else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
       DEVICE_TRACKER = "device_tracker"
       DATE = "date"
       DATETIME = "datetime"
+
+  NumberSelectorType = Any
 
 
 from .selector_shim import selector

@@ -47,6 +47,7 @@ from .const import (
   CONF_DOG_WEIGHT,
   CONF_DOGS,
   CONF_MODULES,
+  CONF_NAME,
   DEFAULT_DATA_RETENTION_DAYS,
   DEFAULT_PERFORMANCE_MODE,
   DOMAIN,
@@ -174,7 +175,6 @@ class PawControlConfigFlow(
     self._integration_name = "Paw Control"
     self._entity_profile = "standard"
     self.reauth_entry: ConfigEntry | None = None
-    self._discovery_info: ConfigFlowDiscoveryData = {}
     self._existing_dog_ids: set[str] = set()  # Performance: O(1) lookups
     self._entity_factory = EntityFactory(None)
 
@@ -196,6 +196,20 @@ class PawControlConfigFlow(
         Config flow result
     """
     async with timed_operation("user_step"):
+      if user_input is None:
+        return self.async_show_form(
+          step_id="user",
+          data_schema=vol.Schema(
+            {
+              vol.Required(CONF_NAME, default=self._integration_name): str,
+            },
+          ),
+        )
+
+      integration_name = str(user_input.get(CONF_NAME, self._integration_name)).strip()
+      if integration_name:
+        self._integration_name = integration_name
+
       # Ensure single instance with improved messaging
       await self.async_set_unique_id(DOMAIN)
       self._abort_if_unique_id_configured(
@@ -1021,7 +1035,7 @@ class PawControlConfigFlow(
         typed_modules = cast(DogModulesConfig, dict(modules))
         current_dog[DOG_MODULES_FIELD] = typed_modules
         self._invalidate_profile_caches()
-        return await self.async_step_add_another()
+        return await self.async_step_add_another_dog()
 
       except vol.Invalid as err:
         _LOGGER.warning("Module validation failed: %s", err)
@@ -1229,6 +1243,9 @@ class PawControlConfigFlow(
         PawControlSetupError: If setup validation fails
     """
     async with timed_operation("final_setup"):
+      if user_input is None:
+        return self.async_show_form(step_id="final_setup", data_schema=vol.Schema({}))
+
       if not self._dogs:
         raise PawControlSetupError("No dogs configured for setup")
 
