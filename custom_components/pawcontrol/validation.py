@@ -33,7 +33,6 @@ from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
-  from .exceptions import InvalidCoordinatesError
 
 ValidationError = PawControlValidationError
 
