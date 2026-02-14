@@ -3895,9 +3895,7 @@ class FeedingManager:
           duration_days * 24 * 3600,
         )  # Convert days to seconds
         try:
-          await self._offload_blocking(
-            f"restore emergency feeding plan for {dog_id}",
-            self._apply_emergency_restoration,
+          self._apply_emergency_restoration(
             config,
             original_config,
             dog_id,

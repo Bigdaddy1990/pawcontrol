@@ -14,6 +14,7 @@ from typing import Any
 from typing import TYPE_CHECKING
 
 import voluptuous as vol
+from homeassistant import data_entry_flow
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.data_entry_flow import FlowResult
 
@@ -55,7 +56,9 @@ def coerce_bool(value: Any, *, default: bool = False) -> bool:
       return False
   if isinstance(value, int | float):
     return bool(value)
-  return default
+  if value is None:
+    return default
+  return bool(value)
 
 
 def coerce_str(value: Any, *, default: str = "") -> str:
@@ -79,7 +82,9 @@ def coerce_str(value: Any, *, default: str = "") -> str:
   if isinstance(value, str):
     trimmed = value.strip()
     return trimmed or default
-  return default
+  if value is None:
+    return default
+  return str(value)
 
 
 def coerce_optional_str(value: Any) -> str | None:
@@ -165,9 +170,11 @@ def coerce_optional_int(value: Any) -> int | None:
 
 
 def create_form_result(
-  flow: ConfigFlow | OptionsFlow,
   step_id: str,
-  data_schema: vol.Schema,
+  data_schema: vol.Schema | None = None,
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
+  schema: vol.Schema | None = None,
   errors: dict[str, str] | None = None,
   description_placeholders: dict[str, str] | None = None,
   last_step: bool = False,
@@ -193,9 +200,24 @@ def create_form_result(
       ...   errors={"base": "invalid_input"},
       ... )
   """
+  resolved_schema = data_schema or schema
+  if resolved_schema is None:
+    msg = "data_schema or schema must be provided"
+    raise ValueError(msg)
+
+  if flow is None:
+    return {
+      "type": data_entry_flow.FlowResultType.FORM,
+      "step_id": step_id,
+      "data_schema": resolved_schema,
+      "errors": errors or {},
+      "description_placeholders": description_placeholders,
+      "last_step": last_step,
+    }
+
   return flow.async_show_form(
     step_id=step_id,
-    data_schema=data_schema,
+    data_schema=resolved_schema,
     errors=errors or {},
     description_placeholders=description_placeholders,
     last_step=last_step,
@@ -203,9 +225,10 @@ def create_form_result(
 
 
 def create_menu_result(
-  flow: ConfigFlow | OptionsFlow,
-  step_id: str,
   menu_options: list[str],
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
+  step_id: str = "menu",
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized menu result for config/options flows.
@@ -224,6 +247,14 @@ def create_menu_result(
       ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
       ... )
   """
+  if flow is None:
+    return {
+      "type": data_entry_flow.FlowResultType.MENU,
+      "step_id": step_id,
+      "menu_options": menu_options,
+      "description_placeholders": description_placeholders,
+    }
+
   return flow.async_show_menu(
     step_id=step_id,
     menu_options=menu_options,
@@ -232,8 +263,9 @@ def create_menu_result(
 
 
 def create_abort_result(
-  flow: ConfigFlow | OptionsFlow,
   reason: str,
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized abort result.
@@ -249,6 +281,13 @@ def create_abort_result(
   Examples:
       >>> result = create_abort_result(flow=self, reason="already_configured")
   """
+  if flow is None:
+    return {
+      "type": data_entry_flow.FlowResultType.ABORT,
+      "reason": reason,
+      "description_placeholders": description_placeholders,
+    }
+
   return flow.async_abort(
     reason=reason,
     description_placeholders=description_placeholders,
@@ -256,9 +295,10 @@ def create_abort_result(
 
 
 def create_progress_result(
-  flow: ConfigFlow | OptionsFlow,
   step_id: str,
   progress_action: str,
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized progress result.
@@ -277,6 +317,14 @@ def create_progress_result(
       ...   flow=self, step_id="validate", progress_action="validating"
       ... )
   """
+  if flow is None:
+    return {
+      "type": data_entry_flow.FlowResultType.SHOW_PROGRESS,
+      "step_id": step_id,
+      "progress_action": progress_action,
+      "description_placeholders": description_placeholders,
+    }
+
   return flow.async_show_progress(
     step_id=step_id,
     progress_action=progress_action,
@@ -288,102 +336,58 @@ def create_progress_result(
 
 
 def validate_required_field(
-  errors: dict[str, str],
   field_name: str,
   value: Any,
+  *,
+  errors: dict[str, str] | None = None,
   error_key: str = "required",
-) -> bool:
-  """Validate that a required field has a value.
+) -> dict[str, str]:
+  """Validate that a required field has a value."""
 
-  Args:
-      errors: Error dictionary to update
-      field_name: Name of the field
-      value: Field value to check
-      error_key: Error key for translation
-
-  Returns:
-      True if field is valid, False otherwise
-
-  Examples:
-      >>> errors = {}
-      >>> validate_required_field(errors, "name", "")
-      False
-      >>> errors
-      {'name': 'required'}
-  """
+  resolved_errors = errors or {}
   if value is None or (isinstance(value, str) and not value.strip()):
-    errors[field_name] = error_key
-    return False
-  return True
+    resolved_errors[field_name] = error_key
+  return resolved_errors
 
 
 def validate_min_max(
-  errors: dict[str, str],
   field_name: str,
   value: float | int,
-  min_value: float | int,
-  max_value: float | int,
+  *,
+  min_value: float | int | None,
+  max_value: float | int | None,
+  errors: dict[str, str] | None = None,
   error_key: str = "out_of_range",
-) -> bool:
-  """Validate that a numeric value is within range.
+) -> dict[str, str]:
+  """Validate that a numeric value is within range."""
 
-  Args:
-      errors: Error dictionary to update
-      field_name: Name of the field
-      value: Numeric value to check
-      min_value: Minimum allowed value
-      max_value: Maximum allowed value
-      error_key: Error key for translation
-
-  Returns:
-      True if value is in range, False otherwise
-
-  Examples:
-      >>> errors = {}
-      >>> validate_min_max(errors, "age", 150, 1, 25)
-      False
-      >>> errors
-      {'age': 'out_of_range'}
-  """
-  if value < min_value or value > max_value:
-    errors[field_name] = error_key
-    return False
-  return True
+  resolved_errors = errors or {}
+  if min_value is not None and value < min_value:
+    resolved_errors[field_name] = error_key
+  if max_value is not None and value > max_value:
+    resolved_errors[field_name] = error_key
+  return resolved_errors
 
 
 def validate_entity_exists(
-  errors: dict[str, str],
-  field_name: str,
-  entity_id: str,
+  *,
   hass: Any,  # HomeAssistant type
+  field: str,
+  entity_id: str,
+  errors: dict[str, str] | None = None,
   error_key: str = "entity_not_found",
-) -> bool:
-  """Validate that an entity exists in Home Assistant.
+) -> dict[str, str]:
+  """Validate that an entity exists in Home Assistant."""
 
-  Args:
-      errors: Error dictionary to update
-      field_name: Name of the field
-      entity_id: Entity ID to check
-      hass: Home Assistant instance
-      error_key: Error key for translation
-
-  Returns:
-      True if entity exists, False otherwise
-
-  Examples:
-      >>> errors = {}
-      >>> validate_entity_exists(errors, "gps_source", "device_tracker.phone", hass)
-      True
-  """
+  resolved_errors = errors or {}
   if not entity_id or not isinstance(entity_id, str):
-    errors[field_name] = error_key
-    return False
+    resolved_errors[field] = error_key
+    return resolved_errors
 
   state = hass.states.get(entity_id)
   if state is None or state.state in {"unknown", "unavailable"}:
-    errors[field_name] = error_key
-    return False
-  return True
+    resolved_errors[field] = error_key
+  return resolved_errors
 
 
 # Schema building helpers
@@ -574,10 +578,7 @@ def build_boolean_schema(
 # Common validation patterns
 
 
-def merge_errors(
-  base_errors: dict[str, str],
-  new_errors: dict[str, str],
-) -> dict[str, str]:
+def merge_errors(*error_maps: dict[str, str]) -> dict[str, str]:
   """Merge two error dictionaries.
 
   Args:
@@ -591,7 +592,10 @@ def merge_errors(
       >>> merge_errors({"name": "required"}, {"age": "invalid"})
       {'name': 'required', 'age': 'invalid'}
   """
-  return {**base_errors, **new_errors}
+  merged: dict[str, str] = {}
+  for errors in error_maps:
+    merged.update(errors)
+  return merged
 
 
 def has_errors(errors: dict[str, str]) -> bool:
@@ -630,9 +634,11 @@ def store_flow_data(
   Examples:
       >>> store_flow_data(self, "dog_id", "buddy")
   """
-  if not hasattr(flow, "_flow_data"):
-    flow._flow_data = {}
-  flow._flow_data[key] = value
+  flow_data = getattr(flow, "_flow_data", None)
+  if not isinstance(flow_data, dict):
+    flow_data = {}
+    flow._flow_data = flow_data
+  flow_data[key] = value
 
 
 def get_flow_data(
@@ -653,12 +659,13 @@ def get_flow_data(
   Examples:
       >>> dog_id = get_flow_data(self, "dog_id")
   """
-  if not hasattr(flow, "_flow_data"):
+  flow_data = getattr(flow, "_flow_data", None)
+  if not isinstance(flow_data, dict):
     return default
-  return flow._flow_data.get(key, default)
+  return flow_data.get(key, default)
 
 
-def clear_flow_data(flow: ConfigFlow | OptionsFlow) -> None:
+def clear_flow_data(flow: ConfigFlow | OptionsFlow, key: str | None = None) -> None:
   """Clear all flow context data.
 
   Args:
@@ -667,5 +674,10 @@ def clear_flow_data(flow: ConfigFlow | OptionsFlow) -> None:
   Examples:
       >>> clear_flow_data(self)
   """
-  if hasattr(flow, "_flow_data"):
+  flow_data = getattr(flow, "_flow_data", None)
+  if not isinstance(flow_data, dict):
+    return
+  if key is None:
     flow._flow_data = {}
+  else:
+    flow_data.pop(key, None)

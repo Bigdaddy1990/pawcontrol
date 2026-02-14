@@ -3232,7 +3232,10 @@ class PawControlDataManager:
   ) -> ValueT:
     """Run a sync function in the Home Assistant executor."""
 
-    return await self.hass.async_add_executor_job(func, *args)
+    async_add_executor_job = getattr(self.hass, "async_add_executor_job", None)
+    if callable(async_add_executor_job):
+      return await async_add_executor_job(func, *args)
+    return func(*args)
 
   async def _async_load_storage(self) -> JSONMutableMapping:
     """Load stored JSON data, falling back to the backup if required."""
