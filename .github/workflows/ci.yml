@@ -78,7 +78,6 @@ jobs:
           prek auto-update
           prek run --hook-stage pre-merge-commit
           prek run --hook-stage pre-commit
-          prek run --hook-stage manual python-typing-update --all-files
           prek run --all-files --show-diff-on-failure
 
       - name: Run mypy
