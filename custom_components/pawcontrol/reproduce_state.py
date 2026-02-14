@@ -1,4 +1,5 @@
 """Shared helpers for reproducing platform states."""
+
 from __future__ import annotations
 
 import logging
@@ -21,7 +22,7 @@ Preprocessor = Callable[[State], T | None]
 Handler = Callable[[HomeAssistant, State, State, T, Context | None], Awaitable[None]]
 
 
-async def async_reproduce_platform_states(
+async def async_reproduce_platform_states[T](
   hass: HomeAssistant,
   states: Sequence[State],
   platform_name: str,

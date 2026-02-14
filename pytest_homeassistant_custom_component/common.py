@@ -1,4 +1,5 @@
 """Common helpers exposed by the pytest-homeassistant-custom-component stub."""
+
 from __future__ import annotations
 
 import sys

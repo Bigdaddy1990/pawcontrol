@@ -6,6 +6,7 @@ notification workflows, reset helpers, and setup automation scripts directly in
 Home Assistant's ``script`` domain so that users can trigger the documented
 automation flows without manual YAML editing.
 """
+
 from __future__ import annotations
 
 import logging

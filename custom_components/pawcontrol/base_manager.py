@@ -7,11 +7,13 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import logging
 from abc import ABC
 from abc import abstractmethod
+from contextlib import suppress
 from typing import Any
 from typing import TYPE_CHECKING
 
@@ -542,10 +544,8 @@ async def setup_managers(
       if stop_on_error:
         # Clean up successful managers
         for m in successful:
-          try:
+          with suppress(Exception):
             await m.async_teardown()
-          except Exception:  # noqa: S110
-            pass
         raise
       manager.logger.error("Failed to set up manager: %s", e)
 

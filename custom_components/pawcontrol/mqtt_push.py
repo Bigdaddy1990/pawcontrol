@@ -4,6 +4,7 @@ This module subscribes to an MQTT topic and forwards JSON payloads to the
 unified push router. It is intentionally transport-only: validation and
 strict per-dog source matching happens in push_router.py.
 """
+
 from __future__ import annotations
 
 import json

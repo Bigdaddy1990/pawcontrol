@@ -1,4 +1,5 @@
 """Tests for PawControl diagnostics payload defaults."""
+
 from __future__ import annotations
 
 import json

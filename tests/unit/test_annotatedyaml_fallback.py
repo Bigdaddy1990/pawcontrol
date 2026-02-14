@@ -1,4 +1,5 @@
 """Tests for the local ``annotatedyaml`` fallback loader."""
+
 from __future__ import annotations
 
 import builtins

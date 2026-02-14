@@ -9,6 +9,7 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import traceback
@@ -1162,7 +1163,7 @@ def raise_from_error_code(
   raise exception_class(message, error_code=error_code, **kwargs)
 
 
-def handle_exception_gracefully(
+def handle_exception_gracefully[**P, T](
   func: Callable[P, T],
   default_return: T | None = None,
   *,

@@ -1,4 +1,5 @@
 """Tests for PawControl select updates and persistence."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock

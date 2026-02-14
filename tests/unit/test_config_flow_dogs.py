@@ -1,4 +1,5 @@
 """Unit tests for config flow placeholder builders."""
+
 from __future__ import annotations
 
 from types import MappingProxyType

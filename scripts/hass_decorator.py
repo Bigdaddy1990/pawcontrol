@@ -1,4 +1,5 @@
 """Plugin to check decorators."""
+
 from __future__ import annotations
 
 from astroid import nodes

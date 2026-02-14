@@ -7,6 +7,7 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -312,9 +313,9 @@ class DataHasher:
     """
     result = dict(data)
 
-    for field in fields:
-      if field in result and isinstance(result[field], str):
-        result[field] = self.hash_string(result[field], salt)
+    for field_name in fields:
+      if field_name in result and isinstance(result[field_name], str):
+        result[field_name] = self.hash_string(result[field_name], salt)
 
     return result
 

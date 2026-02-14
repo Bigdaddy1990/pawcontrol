@@ -7,6 +7,7 @@ module import which are not available in the execution environment.  We stub
 the minimal interfaces that the entity factory relies on so the module can be
 imported and exercised directly.
 """
+
 from __future__ import annotations
 
 import types

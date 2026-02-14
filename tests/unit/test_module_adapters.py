@@ -1,4 +1,5 @@
 """Unit tests for the lightweight parts of module_adapters."""
+
 from __future__ import annotations
 
 import asyncio

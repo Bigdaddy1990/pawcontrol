@@ -3,6 +3,7 @@
 This repository uses a lightweight variant of Home Assistant's localization validation.
 In CI we run this script in --check mode to ensure the expected files exist and are valid JSON.
 """
+
 from __future__ import annotations
 
 import argparse

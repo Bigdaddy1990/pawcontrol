@@ -1,4 +1,5 @@
 """Ensure entity translation keys are defined in strings.json and translations."""
+
 from __future__ import annotations
 
 import ast
