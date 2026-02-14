@@ -6,7 +6,7 @@ ci:
   autoupdate_commit_msg: "[pre-commit.ci] autoupdate"
   skip: []
 default_language_version:
-      python: python3.14
+      python: python3.13
 default_install_hook_types:
       - pre-commit
       - pre-push
@@ -19,8 +19,6 @@ repos:
           - --fix
           - --show-fixes
           - --unsafe-fixes
-          - --extend-fixable
-          - ALL
           - --exit-non-zero-on-fix
         types_or:
           - python
@@ -50,9 +48,6 @@ repos:
       - id: check-added-large-files
       - id: check-case-conflict
       - id: check-builtin-literals
-      - id: check-merge-conflict
-        args:
-          - --assume-in-merge
       - id: check-symlinks
         args:
           - --autofix
