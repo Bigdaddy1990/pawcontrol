@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 import py_compile
 
+import pytest
+
 
 SYNTAX_GUARD_MODULES = (
   "custom_components/pawcontrol/dashboard_cards.py",
@@ -13,8 +15,8 @@ SYNTAX_GUARD_MODULES = (
 )
 
 
-def test_syntax_guard_modules_compile() -> None:
+@pytest.mark.parametrize("module", SYNTAX_GUARD_MODULES)
+def test_syntax_guard_modules_compile(module: str) -> None:
   """Guarded modules should compile without parser errors."""
 
-  for module in SYNTAX_GUARD_MODULES:
-    py_compile.compile(str(Path(module)), doraise=True)
+  py_compile.compile(str(Path(module)), doraise=True)
