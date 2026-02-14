@@ -218,7 +218,7 @@ def validate_range(
 
 
 def handle_errors(
-  *,
+Remove the unused parameter `reraise_validation_errors` or integrate it into the reraising logic as shown in the P1 finding's suggested fix.
   log_errors: bool = True,
   reraise_critical: bool = True,
   reraise_validation_errors: bool = True,
