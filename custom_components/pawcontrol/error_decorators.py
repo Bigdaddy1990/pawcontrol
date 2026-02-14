@@ -322,7 +322,8 @@ Remove the unused parameter `reraise_validation_errors` or integrate it into the
         if reraise_critical:
           raise error from e
 
-        return cast(T, default_return)
+if reraise_critical and (reraise_validation_errors or e.severity == ErrorSeverity.CRITICAL):
+          raise
 
     # Return async wrapper if function is async
     if inspect.iscoroutinefunction(func):
