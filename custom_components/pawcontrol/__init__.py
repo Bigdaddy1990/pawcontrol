@@ -375,10 +375,14 @@ def get_platforms_for_profile_and_modules(
     sorted(platform_set, key=lambda platform: platform.value),
   )
 
+  # Enforce cache size limit BEFORE insertion to prevent unbounded growth
+  if len(_PLATFORM_CACHE) >= _MAX_CACHE_SIZE:
+    _cleanup_platform_cache()
+
   # Cache with monotonic timestamp
   _PLATFORM_CACHE[cache_key] = (ordered_platforms, now)
 
-  # Periodic cache cleanup
+  # Periodic cache cleanup for efficiency
   if len(_PLATFORM_CACHE) % 10 == 0:  # Every 10th call
     _cleanup_platform_cache()
 
@@ -445,7 +449,7 @@ async def _async_initialize_manager_with_timeout(
     raise
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:  # pyright: ignore[reportGeneralTypeIssues]  # pyright: ignore[reportGeneralTypeIssues]
+async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:  # pyright: ignore[reportGeneralTypeIssues]
   """Set up PawControl from a config entry.
 
   Args:
