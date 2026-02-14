@@ -7,9 +7,9 @@ from pathlib import Path
 from urllib.error import URLError
 
 import pytest
-from packaging.version import Version
-
 from scripts import homeassistant_push_guard as push_guard
+
+Version = push_guard.Version
 
 
 def _write_rule_file(path: Path) -> None:
@@ -46,12 +46,12 @@ def test_run_check_detects_findings(tmp_path: Path, monkeypatch) -> None:
   monkeypatch.setattr(
     push_guard,
     "fetch_latest_homeassistant_version",
-    lambda: Version("2025.1.0"),
+    lambda: Version.parse("2025.1.0"),
   )
 
   findings, version = push_guard.run(source_root, rule_set, fix=False)
 
-  assert version == Version("2025.1.0")
+  assert version == Version.parse("2025.1.0")
   assert len(findings) == 1
   assert findings[0].rule_id == "rule-1"
   assert "async_timeout" in target.read_text(encoding="utf-8")
@@ -69,7 +69,7 @@ def test_run_fix_applies_replacement(tmp_path: Path, monkeypatch) -> None:
   monkeypatch.setattr(
     push_guard,
     "fetch_latest_homeassistant_version",
-    lambda: Version("2025.1.0"),
+    lambda: Version.parse("2025.1.0"),
   )
 
   findings, _ = push_guard.run(source_root, rule_set, fix=True)
@@ -80,12 +80,12 @@ def test_run_fix_applies_replacement(tmp_path: Path, monkeypatch) -> None:
 
 def test_validate_coverage_reports_newer_release() -> None:
   rule_set = push_guard.RuleSet(
-    min_covered_version=Version("2024.1.0"),
-    max_covered_version=Version("2024.12.0"),
+    min_covered_version=Version.parse("2024.1.0"),
+    max_covered_version=Version.parse("2024.12.0"),
     rules=(),
   )
 
-  assert not push_guard.validate_coverage(rule_set, Version("2025.1.0"))
+  assert not push_guard.validate_coverage(rule_set, Version.parse("2025.1.0"))
 
 
 def test_fetch_latest_homeassistant_version_raises_on_network_error(
@@ -136,7 +136,7 @@ def test_apply_rule_does_not_leave_backup_file(tmp_path: Path) -> None:
     description="replace async_timeout",
     pattern=r"import async_timeout",
     replacement="import asyncio",
-    introduced_in=Version("2024.1.0"),
+    introduced_in=Version.parse("2024.1.0"),
     file_globs=("**/*.py",),
   )
 
@@ -155,7 +155,7 @@ def test_apply_rule_preserves_start_end_of_string_regex(tmp_path: Path) -> None:
     description="anchored match should apply only to full-string match",
     pattern=r"^import async_timeout$",
     replacement="import asyncio",
-    introduced_in=Version("2024.1.0"),
+    introduced_in=Version.parse("2024.1.0"),
     file_globs=("**/*.py",),
   )
 
