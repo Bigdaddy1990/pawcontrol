@@ -18,11 +18,14 @@ from collections.abc import Mapping
 from datetime import timedelta
 from enum import StrEnum
 from types import MappingProxyType
+from typing import Any
 from typing import Final
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from homeassistant.const import Platform
+
+  NumberSelectorType = Any
 else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
   try:
     from homeassistant.const import Platform
@@ -41,6 +44,8 @@ else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
       DEVICE_TRACKER = "device_tracker"
       DATE = "date"
       DATETIME = "datetime"
+
+  NumberSelectorType = Any
 
 
 from .selector_shim import selector
@@ -279,7 +284,7 @@ RESILIENCE_BREAKER_THRESHOLD_MIN: Final[int] = 0
 RESILIENCE_BREAKER_THRESHOLD_MAX: Final[int] = 10
 
 # OPTIMIZED: Reusable selector configurations
-GPS_UPDATE_INTERVAL_SELECTOR: Final[selector.NumberSelector] = selector.NumberSelector(
+GPS_UPDATE_INTERVAL_SELECTOR: Final[NumberSelectorType] = selector.NumberSelector(
   selector.NumberSelectorConfig(
     min=30,
     max=600,
@@ -289,7 +294,7 @@ GPS_UPDATE_INTERVAL_SELECTOR: Final[selector.NumberSelector] = selector.NumberSe
   ),
 )
 
-GPS_ACCURACY_FILTER_SELECTOR: Final[selector.NumberSelector] = selector.NumberSelector(
+GPS_ACCURACY_FILTER_SELECTOR: Final[NumberSelectorType] = selector.NumberSelector(
   selector.NumberSelectorConfig(
     min=5,
     max=500,
