@@ -50,7 +50,7 @@ jobs:
           python -m pip install -r requirements_test.txt
           python -m pip install -r requirements.txt
           python -m scripts.enforce_docstring_baseline --update
-          python -m scripts.sync_contributor_guides --update
+          python -m scripts.sync_contributor_guides --check
 
       - name: Validate localization flags
         run: |
