@@ -75,7 +75,7 @@ repos:
           - --force
           - --keep-updates
         files: ^(homeassistant|tests|scripts)/.+\.py$
-    
+
   - repo: local
     hooks:
       - id: shared-session-guard
