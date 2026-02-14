@@ -25,6 +25,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 INIT_FILE: Final = PROJECT_ROOT / "custom_components" / "pawcontrol" / "__init__.py"
 CONST_FILE: Final = PROJECT_ROOT / "custom_components" / "pawcontrol" / "const.py"
+PYRIGHT_IGNORE_COMMENT: Final = "# pyright: ignore[reportGeneralTypeIssues]"
 
 
 def check_fix_1_duplicate_comment() -> bool:
@@ -47,12 +48,9 @@ def check_fix_1_duplicate_comment() -> bool:
     # Find the line
     lines = content.split("\n")
     for i, line in enumerate(lines):
-      if (
-        "async def async_setup_entry" in line
-        and "# pyright: ignore[reportGeneralTypeIssues]" in line
-      ):
+      if "async def async_setup_entry" in line and PYRIGHT_IGNORE_COMMENT in line:
         # Check it's only once
-        count = line.count("# pyright: ignore[reportGeneralTypeIssues]")
+        count = line.count(PYRIGHT_IGNORE_COMMENT)
         if count == 1:
           print(f"  ✓ PASS: Single pyright comment found (line {i + 1})")
           return True
