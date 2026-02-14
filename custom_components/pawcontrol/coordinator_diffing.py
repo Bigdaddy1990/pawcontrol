@@ -464,8 +464,7 @@ class SmartDiffTracker:
     self._previous_data = dict(new_data)  # Deep copy top level
     self._last_diff = diff
     self._update_count += 1
-
-    if diff.has_changes:
+if diff.has_changes:
       _LOGGER.debug(
         "Data diff computed: %d dogs changed, %d added, %d removed",
         len([d for d in diff.dog_diffs.values() if d.has_changes]),
