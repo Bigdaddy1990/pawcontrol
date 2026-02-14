@@ -29,7 +29,7 @@ jobs:
           # Use a PAT (if provided) so workflow-file autofixes can be pushed.
           # Fallback to GITHUB_TOKEN for repositories without AUTOFIX_TOKEN.
           token: ${{ secrets.AUTOFIX_TOKEN != '' && secrets.AUTOFIX_TOKEN || github.token }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.14"
 
@@ -41,7 +41,7 @@ jobs:
       - name: Install deps (uv)
         run: |
             uv pip install --system -r requirements.txt
-            uv pip install --system -r requirements_test.txt
+            uv pip install --system -r requirements_test.txt --prerelease=allow
             uv cache prune --ci
 
       - name: Install development tools

@@ -139,7 +139,7 @@ See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
 
 **Minimum Requirements (target):**
 - Home Assistant Core 2025.9.0+
-- Python 3.13+
+- Python 3.14+
 - 512MB available RAM
 - 100MB free storage
 
