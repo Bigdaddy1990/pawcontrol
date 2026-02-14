@@ -1,4 +1,5 @@
 """Verify exception aliases stay bound to active Home Assistant classes."""
+
 from __future__ import annotations
 
 import gc

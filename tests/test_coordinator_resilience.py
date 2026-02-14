@@ -1,4 +1,5 @@
 """Tests for coordinator resilience handling."""
+
 from __future__ import annotations
 
 import asyncio

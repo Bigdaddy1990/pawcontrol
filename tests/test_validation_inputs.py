@@ -1,4 +1,5 @@
 """Unit tests for PawControl input validation helpers."""
+
 from __future__ import annotations
 
 from enum import Enum

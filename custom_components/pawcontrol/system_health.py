@@ -1,4 +1,5 @@
 """System health callbacks exposing PawControl guard and breaker metrics."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping

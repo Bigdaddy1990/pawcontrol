@@ -1,4 +1,5 @@
 """Unit tests for runtime store telemetry helpers."""
+
 from __future__ import annotations
 
 from datetime import datetime

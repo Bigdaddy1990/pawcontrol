@@ -1,4 +1,5 @@
 """Unit tests for feeding compliance localisation helpers."""
+
 from __future__ import annotations
 
 from collections import UserString

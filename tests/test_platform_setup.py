@@ -1,4 +1,5 @@
 """Unit tests for entity platform setup flows."""
+
 from __future__ import annotations
 
 import importlib

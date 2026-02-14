@@ -1,4 +1,5 @@
 """Tests for config flow module typed helpers."""
+
 from __future__ import annotations
 
 from types import MappingProxyType

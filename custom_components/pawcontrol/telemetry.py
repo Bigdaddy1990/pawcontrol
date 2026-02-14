@@ -1,4 +1,5 @@
 """Telemetry helpers shared between PawControl services and coordinators."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping

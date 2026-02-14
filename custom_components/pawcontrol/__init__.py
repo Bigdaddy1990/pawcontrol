@@ -1,4 +1,5 @@
 """Set up and manage the PawControl integration lifecycle."""
+
 from __future__ import annotations
 
 import asyncio

@@ -1,4 +1,5 @@
 """Service guard telemetry models for Home Assistant service invocations."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping

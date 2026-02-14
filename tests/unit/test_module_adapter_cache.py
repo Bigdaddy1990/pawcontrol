@@ -1,4 +1,5 @@
 """Unit tests for module adapter cache telemetry helpers."""
+
 from __future__ import annotations
 
 import importlib.util

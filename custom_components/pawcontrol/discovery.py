@@ -6,6 +6,7 @@ manages. The implementation targets Home Assistant's Platinum quality scale,
 keeps all runtime interactions asynchronous, and leans on typed payloads so the
 strict mypy gate can reason about gathered devices.
 """
+
 from __future__ import annotations
 
 import asyncio
