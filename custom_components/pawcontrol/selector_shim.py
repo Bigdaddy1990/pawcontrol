@@ -18,6 +18,17 @@ from typing import Any
 from typing import cast
 from typing import TypeVar
 
+
+class _SelectorNamespace(SimpleNamespace):
+  """Namespace exposing selector helpers and callable schema factory."""
+
+  def __call__(self, config: Any) -> Any:
+    selector_factory = getattr(self, "selector", None)
+    if callable(selector_factory):
+      return selector_factory(config)
+    return config
+
+
 try:  # pragma: no cover - exercised when Home Assistant is installed
   from homeassistant.helpers import selector as ha_selector
 except ImportError:  # pragma: no cover - used in tests
@@ -42,7 +53,7 @@ def _supports_selector_callables(module: object) -> bool:
 
 if ha_selector is not None and _supports_selector_callables(ha_selector):
   # pragma: no cover - passthrough when available
-  selector = ha_selector
+  selector = _SelectorNamespace(**ha_selector.__dict__)
 else:
   from typing import Literal, Required, TypedDict
 
@@ -177,7 +188,8 @@ else:
   class DateSelector(_BaseSelector[DateSelectorConfig]):
     """Date selector shim."""
 
-  selector = SimpleNamespace(
+  selector = _SelectorNamespace(
+    selector=lambda config: config,
     BooleanSelector=BooleanSelector,
     BooleanSelectorConfig=BooleanSelectorConfig,
     DateSelector=DateSelector,

@@ -14,46 +14,55 @@ from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
-async def test_user_step_shows_form() -> None:
+async def test_user_step_shows_form(hass: HomeAssistant) -> None:
   flow = PawControlConfigFlow()
+  flow.hass = hass
   result = await flow.async_step_user()
 
   assert result["type"] == FlowResultType.FORM
-  assert result["step_id"] == "user"
+  assert result["step_id"] == "add_dog"
 
 
-async def test_add_dog_then_finish_creates_entry() -> None:
+async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:
   flow = PawControlConfigFlow()
+  flow.hass = hass
 
   user = await flow.async_step_user({CONF_NAME: "Paw Control"})
   assert user["type"] == FlowResultType.FORM
   assert user["step_id"] == "add_dog"
 
   dog_step = await flow.async_step_add_dog(
-    {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "Buddy 1"}
+    {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy_1"}
   )
   assert dog_step["type"] == FlowResultType.FORM
   assert dog_step["step_id"] == "dog_modules"
 
-  modules = await flow.async_step_dog_modules({"enable_feeding": True})
-  assert modules["type"] == FlowResultType.FORM
-  assert modules["step_id"] == "add_another_dog"
+  step: dict[str, object] = await flow.async_step_dog_modules({"enable_feeding": True})
+  assert step["type"] == FlowResultType.FORM
 
-  profile = await flow.async_step_add_another_dog({"add_another": False})
-  assert profile["type"] == FlowResultType.FORM
-  assert profile["step_id"] == "entity_profile"
+  step = await flow.async_step_add_another_dog({"add_another": False})
 
-  finalize = await flow.async_step_entity_profile({"entity_profile": "standard"})
-  assert finalize["type"] == FlowResultType.FORM
-  assert finalize["step_id"] == "final_setup"
+  while step["type"] == FlowResultType.FORM:
+    step_id = step["step_id"]
+    if step_id == "configure_modules":
+      step = await flow.async_step_configure_modules({})
+    elif step_id == "configure_dashboard":
+      step = await flow.async_step_configure_dashboard({})
+    elif step_id == "entity_profile":
+      step = await flow.async_step_entity_profile({"entity_profile": "standard"})
+    elif step_id == "final_setup":
+      step = await flow.async_step_final_setup({})
+    else:
+      raise AssertionError(f"Unexpected step: {step_id}")
 
-  result = await flow.async_step_final_setup({})
+  result = step
   assert result["type"] == FlowResultType.CREATE_ENTRY
   assert result["data"][CONF_DOGS][0][CONF_DOG_ID] == "buddy_1"
 
 
-async def test_duplicate_dog_id_is_rejected() -> None:
+async def test_duplicate_dog_id_is_rejected(hass: HomeAssistant) -> None:
   flow = PawControlConfigFlow()
+  flow.hass = hass
   await flow.async_step_user({CONF_NAME: "Paw Control"})
   await flow.async_step_add_dog({CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"})
   await flow.async_step_dog_modules({"enable_feeding": True})

@@ -165,6 +165,7 @@ class PawControlConfigFlow(
 
   def __init__(self) -> None:
     """Initialize configuration flow with enhanced state management."""
+    PawControlBaseConfigFlow.__init__(self)
     super().__init__()
     self._integration_name = "Paw Control"
     self._entity_profile = "standard"
