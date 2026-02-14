@@ -46,16 +46,18 @@ def check_fix_1_duplicate_comment() -> bool:
         # Find the line
         lines = content.split("\n")
         for i, line in enumerate(lines):
-            if "async def async_setup_entry" in line:
-                if "# pyright: ignore[reportGeneralTypeIssues]" in line:
-                    # Check it's only once
-                    count = line.count("# pyright: ignore[reportGeneralTypeIssues]")
-                    if count == 1:
-                        print(f"  ✓ PASS: Single pyright comment found (line {i+1})")
-                        return True
-                    else:
-                        print(f"  ❌ FAIL: Found {count} pyright comments on line {i+1}")
-                        return False
+            if (
+                "async def async_setup_entry" in line
+                and "# pyright: ignore[reportGeneralTypeIssues]" in line
+            ):
+                # Check it's only once
+                count = line.count("# pyright: ignore[reportGeneralTypeIssues]")
+                if count == 1:
+                    print(f"  ✓ PASS: Single pyright comment found (line {i+1})")
+                    return True
+                else:
+                    print(f"  ❌ FAIL: Found {count} pyright comments on line {i+1}")
+                    return False
     
     print("  ❌ FAIL: async_setup_entry function not found")
     return False
