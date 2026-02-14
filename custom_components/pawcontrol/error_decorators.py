@@ -534,11 +534,11 @@ def retry_on_error(
   return decorator
 
 
-def require_coordinator[**P, T](func: Callable[P, T]) -> Callable[P, T]:
+def require_coordinator(func: Callable[..., Any]) -> Callable[..., Any]:
   """Ensure decorated instance methods expose ``self.coordinator``."""
 
   @functools.wraps(func)
-  def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+  def wrapper(*args: Any, **kwargs: Any) -> Any:
     if not args:
       raise PawControlError("Decorator requires an instance method")
 
