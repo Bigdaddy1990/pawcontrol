@@ -35,8 +35,8 @@ T = TypeVar("T")
 _correlation_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
   "correlation_id", default=None
 )
-_request_context: contextvars.ContextVar[dict[str, Any]] = contextvars.ContextVar(
-  "request_context", default_factory=dict
+_request_context: contextvars.ContextVar[dict[str, Any] | None] = (
+  contextvars.ContextVar("request_context", default=None)
 )
 
 
@@ -120,7 +120,7 @@ class StructuredLogger:
     correlation_id = _correlation_id.get()
 
     # Merge with request context
-    request_ctx = _request_context.get(default={})
+    request_ctx = _request_context.get() or {}
     full_context = {**request_ctx, **context}
 
     # Build extra dict for logging
@@ -374,7 +374,7 @@ def get_request_context() -> dict[str, Any]:
   Returns:
       Request context dictionary
   """
-  return _request_context.get(default={})
+  return _request_context.get() or {}
 
 
 def update_request_context(**context: Any) -> None:
@@ -383,7 +383,7 @@ def update_request_context(**context: Any) -> None:
   Args:
       **context: Context data to add
   """
-  current = _request_context.get(default={})
+  current = dict(_request_context.get() or {})
   current.update(context)
   _request_context.set(current)
 

@@ -35,6 +35,8 @@ _WEATHER_ALERT_KEYS: Final = (
   "wet_weather_advisory",
 )
 
+WEATHER_ALERT_KEYS: Final = _WEATHER_ALERT_KEYS
+
 type WeatherAlertKey = Literal[*_WEATHER_ALERT_KEYS]
 
 
@@ -95,6 +97,8 @@ _WEATHER_RECOMMENDATION_KEYS: Final = (
   "watch_ice_buildup",
   "waterproof_protection",
 )
+
+WEATHER_RECOMMENDATION_KEYS: Final = _WEATHER_RECOMMENDATION_KEYS
 
 type WeatherRecommendationKey = Literal[*_WEATHER_RECOMMENDATION_KEYS]
 

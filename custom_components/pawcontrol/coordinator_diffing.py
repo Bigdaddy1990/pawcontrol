@@ -139,6 +139,11 @@ class CoordinatorDataDiff:
     )
     return changed | self.added_dogs | self.removed_dogs
 
+  @property
+  def change_count(self) -> int:
+    """Return the number of changed dogs including adds/removals."""
+    return len(self.changed_dogs)
+
   def to_dict(self) -> dict[str, Any]:
     """Convert to dictionary for serialization."""
     return {

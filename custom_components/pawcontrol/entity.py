@@ -195,7 +195,11 @@ class PawControlEntity(
 
     runtime_data = self._get_runtime_data()
     if runtime_data is not None:
-      return runtime_data.runtime_managers
+      container = runtime_data.runtime_managers
+      for attr in CoordinatorRuntimeManagers.attribute_names():
+        if getattr(container, attr) is None and hasattr(runtime_data, attr):
+          setattr(container, attr, getattr(runtime_data, attr))
+      return container
 
     manager_container = getattr(self.coordinator, "runtime_managers", None)
     if isinstance(manager_container, CoordinatorRuntimeManagers):
@@ -214,7 +218,11 @@ class PawControlEntity(
     return CoordinatorRuntimeManagers()
 
   def _get_data_manager(self) -> PawControlDataManager | None:
-    """Return the data manager from the runtime container when available."""
+    """Return the data manager from runtime data or fallback containers."""
+
+    runtime_data = self._get_runtime_data()
+    if runtime_data is not None and runtime_data.data_manager is not None:
+      return runtime_data.data_manager
 
     return self._get_runtime_managers().data_manager
 

@@ -31,6 +31,19 @@ from .logging_utils import StructuredLogger
 _LOGGER = logging.getLogger(__name__)
 
 
+class WebhookSecurityError(ValidationError):
+  """Error raised when webhook payload validation fails."""
+
+  def __init__(self, message: str) -> None:
+    """Initialize webhook security error."""
+    super().__init__(
+      message,
+      field_name="webhook",
+      expected_type="signed request",
+      received_value=None,
+    )
+
+
 @dataclass
 class WebhookRequest:
   """Represents a webhook request.

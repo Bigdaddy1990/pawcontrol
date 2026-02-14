@@ -18,17 +18,12 @@ from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY
-from homeassistant.const import CONF_HOST
-from homeassistant.const import CONF_PASSWORD
-from homeassistant.const import CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from custom_components.pawcontrol.const import CONF_API_ENDPOINT
 from custom_components.pawcontrol.const import CONF_API_TOKEN
 from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_UPDATE_INTERVAL
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.const import MODULE_FEEDING
 from custom_components.pawcontrol.const import MODULE_GPS
@@ -38,6 +33,9 @@ from custom_components.pawcontrol.const import MODULE_WALK
 # Domain constants
 TEST_ENTRY_ID = "test_entry_id"
 TEST_UNIQUE_ID = "test_unique_id"
+CONF_USERNAME = "username"
+CONF_PASSWORD = "password"
+CONF_UPDATE_INTERVAL = "update_interval"
 
 
 def create_mock_hass() -> HomeAssistant:

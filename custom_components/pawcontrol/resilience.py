@@ -281,18 +281,18 @@ class RetryConfig:
 
   Attributes:
       max_attempts: Maximum retry attempts
-      base_delay: Base delay in seconds
+      initial_delay: Base delay in seconds
       max_delay: Maximum delay in seconds
       exponential_base: Base for exponential backoff
-      jitter: Add random jitter (0.0-1.0)
+      jitter: Add random jitter (boolean enables default 10%)
       retryable_exceptions: Exception types to retry
   """
 
   max_attempts: int = 3
-  base_delay: float = 1.0
+  initial_delay: float = 1.0
   max_delay: float = 60.0
   exponential_base: float = 2.0
-  jitter: float = 0.1
+  jitter: bool | float = 0.1
   retryable_exceptions: tuple[type[Exception], ...] = (
     NetworkError,
     ServiceUnavailableError,
@@ -378,14 +378,20 @@ class RetryStrategy:
         Delay in seconds
     """
     # Exponential backoff
-    delay = self._config.base_delay * (self._config.exponential_base**attempt)
+    delay = self._config.initial_delay * (self._config.exponential_base**attempt)
 
     # Cap at max delay
     delay = min(delay, self._config.max_delay)
 
     # Add jitter
-    if self._config.jitter > 0:
-      jitter_amount = delay * self._config.jitter
+    jitter_factor: float
+    if isinstance(self._config.jitter, bool):
+      jitter_factor = 0.1 if self._config.jitter else 0.0
+    else:
+      jitter_factor = max(0.0, self._config.jitter)
+
+    if jitter_factor > 0:
+      jitter_amount = delay * jitter_factor
       delay += _SECURE_RANDOM.uniform(-jitter_amount, jitter_amount)
 
     return max(0.0, delay)
@@ -449,6 +455,41 @@ class FallbackStrategy:
       # Return default value
       _LOGGER.info("Returning default value")
       return self._default_value
+
+
+class ResilienceManager:
+  """High-level facade that composes circuit breaker and retry behaviour."""
+
+  def __init__(self, hass: object | None = None) -> None:
+    """Initialise the resilience manager."""
+    self._hass = hass
+
+  async def execute_with_resilience(
+    self,
+    func: Callable[P, T],
+    *args: P.args,
+    circuit_breaker_name: str | None = None,
+    retry_config: RetryConfig | None = None,
+    **kwargs: P.kwargs,
+  ) -> T:
+    """Execute ``func`` with optional circuit breaker and retry protection."""
+
+    async def _invoke() -> T:
+      return await func(*args, **kwargs)
+
+    wrapped_call: Callable[[], Any]
+    if circuit_breaker_name:
+      breaker = get_circuit_breaker(circuit_breaker_name)
+
+      async def _invoke_with_breaker() -> T:
+        return await breaker.call(_invoke)
+
+      wrapped_call = _invoke_with_breaker
+    else:
+      wrapped_call = _invoke
+
+    strategy = RetryStrategy(retry_config or RetryConfig())
+    return await strategy.execute(wrapped_call)
 
 
 # Global circuit breaker registry

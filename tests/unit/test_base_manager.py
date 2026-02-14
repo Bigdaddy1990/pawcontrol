@@ -20,10 +20,10 @@ from custom_components.pawcontrol.base_manager import setup_managers
 from custom_components.pawcontrol.base_manager import shutdown_managers
 
 
-class TestManager(BaseManager):
+class DummyManager(BaseManager):
   """Test manager implementation."""
 
-  MANAGER_NAME = "TestManager"
+  MANAGER_NAME = "DummyManager"
   MANAGER_VERSION = "1.0.0"
 
   def __init__(self, *args, **kwargs):
@@ -59,7 +59,7 @@ class TestBaseManager:
   def test_base_manager_initialization(self) -> None:
     """Test manager initialization."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     assert manager.hass == mock_hass
     assert not manager.is_setup
@@ -70,7 +70,7 @@ class TestBaseManager:
     """Test manager with coordinator."""
     mock_hass = MagicMock()
     mock_coordinator = MagicMock()
-    manager = TestManager(mock_hass, mock_coordinator)
+    manager = DummyManager(mock_hass, mock_coordinator)
 
     assert manager.coordinator == mock_coordinator
 
@@ -78,7 +78,7 @@ class TestBaseManager:
   async def test_manager_lifecycle(self) -> None:
     """Test manager lifecycle."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     # Initially not ready
     assert not manager.is_ready
@@ -99,7 +99,7 @@ class TestBaseManager:
   async def test_manager_double_setup_raises(self) -> None:
     """Test that double setup raises error."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     await manager.async_initialize()
 
@@ -112,7 +112,7 @@ class TestBaseManager:
   async def test_manager_double_shutdown_is_safe(self) -> None:
     """Test that double shutdown is safe."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     await manager.async_initialize()
     await manager.async_teardown()
@@ -124,7 +124,7 @@ class TestBaseManager:
   async def test_manager_setup_failure(self) -> None:
     """Test manager setup failure handling."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
     manager.setup_should_fail = True
 
     with pytest.raises(ManagerLifecycleError) as exc_info:
@@ -137,7 +137,7 @@ class TestBaseManager:
   async def test_manager_shutdown_failure(self) -> None:
     """Test manager shutdown failure handling."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
     manager.shutdown_should_fail = True
 
     await manager.async_initialize()
@@ -150,7 +150,7 @@ class TestBaseManager:
   def test_require_ready_before_setup(self) -> None:
     """Test require_ready raises before setup."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     with pytest.raises(ManagerLifecycleError):
       manager._require_ready()
@@ -159,7 +159,7 @@ class TestBaseManager:
   async def test_require_ready_after_setup(self) -> None:
     """Test require_ready works after setup."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     await manager.async_initialize()
     manager._require_ready()  # Should not raise
@@ -168,7 +168,7 @@ class TestBaseManager:
   async def test_require_ready_after_shutdown(self) -> None:
     """Test require_ready raises after shutdown."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     await manager.async_initialize()
     await manager.async_teardown()
@@ -180,7 +180,7 @@ class TestBaseManager:
     """Test require_coordinator with coordinator present."""
     mock_hass = MagicMock()
     mock_coordinator = MagicMock()
-    manager = TestManager(mock_hass, mock_coordinator)
+    manager = DummyManager(mock_hass, mock_coordinator)
 
     coordinator = manager._require_coordinator()
     assert coordinator == mock_coordinator
@@ -188,7 +188,7 @@ class TestBaseManager:
   def test_require_coordinator_without_coordinator(self) -> None:
     """Test require_coordinator without coordinator."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     with pytest.raises(ManagerLifecycleError):
       manager._require_coordinator()
@@ -196,11 +196,11 @@ class TestBaseManager:
   def test_get_lifecycle_diagnostics(self) -> None:
     """Test lifecycle diagnostics."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     diagnostics = manager.get_lifecycle_diagnostics()
 
-    assert diagnostics["manager_name"] == "TestManager"
+    assert diagnostics["manager_name"] == "DummyManager"
     assert diagnostics["manager_version"] == "1.0.0"
     assert diagnostics["is_setup"] is False
     assert diagnostics["is_shutdown"] is False
@@ -209,12 +209,40 @@ class TestBaseManager:
   def test_manager_repr(self) -> None:
     """Test manager string representation."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     repr_str = repr(manager)
-    assert "TestManager" in repr_str
+    assert "DummyManager" in repr_str
     assert "ready=False" in repr_str
     assert "has_coordinator=False" in repr_str
+
+
+class DummyDataManager(DataManager):
+  """Concrete DataManager used by tests."""
+
+  async def async_setup(self) -> None:
+    """Set up the dummy data manager."""
+
+  async def async_shutdown(self) -> None:
+    """Shut down the dummy data manager."""
+
+  def get_diagnostics(self) -> dict:
+    """Return diagnostics for tests."""
+    return {}
+
+
+class DummyEventManager(EventManager):
+  """Concrete EventManager used by tests."""
+
+  async def async_setup(self) -> None:
+    """Set up the dummy event manager."""
+
+  async def async_shutdown(self) -> None:
+    """Shut down the dummy event manager."""
+
+  def get_diagnostics(self) -> dict:
+    """Return diagnostics for tests."""
+    return {}
 
 
 class TestDataManager:
@@ -223,7 +251,7 @@ class TestDataManager:
   def test_data_manager_initialization(self) -> None:
     """Test data manager initialization."""
     mock_hass = MagicMock()
-    manager = DataManager(mock_hass)
+    manager = DummyDataManager(mock_hass)
 
     assert manager.MANAGER_NAME == "DataManager"
     assert manager.get_cache_size() == 0
@@ -231,7 +259,7 @@ class TestDataManager:
   def test_data_manager_cache(self) -> None:
     """Test data manager cache operations."""
     mock_hass = MagicMock()
-    manager = DataManager(mock_hass)
+    manager = DummyDataManager(mock_hass)
 
     # Add to cache
     manager._cache["key1"] = "value1"
@@ -250,7 +278,7 @@ class TestEventManager:
   def test_event_manager_initialization(self) -> None:
     """Test event manager initialization."""
     mock_hass = MagicMock()
-    manager = EventManager(mock_hass)
+    manager = DummyEventManager(mock_hass)
 
     assert manager.MANAGER_NAME == "EventManager"
     assert len(manager._listeners) == 0
@@ -258,7 +286,7 @@ class TestEventManager:
   def test_event_manager_register_listener(self) -> None:
     """Test registering event listeners."""
     mock_hass = MagicMock()
-    manager = EventManager(mock_hass)
+    manager = DummyEventManager(mock_hass)
 
     callback = MagicMock()
     manager._register_listener("test_event", callback)
@@ -269,7 +297,7 @@ class TestEventManager:
   def test_event_manager_unregister_listener(self) -> None:
     """Test unregistering event listeners."""
     mock_hass = MagicMock()
-    manager = EventManager(mock_hass)
+    manager = DummyEventManager(mock_hass)
 
     callback = MagicMock()
     manager._register_listener("test_event", callback)
@@ -280,7 +308,7 @@ class TestEventManager:
   def test_event_manager_multiple_listeners(self) -> None:
     """Test multiple listeners for same event."""
     mock_hass = MagicMock()
-    manager = EventManager(mock_hass)
+    manager = DummyEventManager(mock_hass)
 
     callback1 = MagicMock()
     callback2 = MagicMock()
@@ -329,8 +357,8 @@ class TestBatchOperations:
   async def test_setup_managers_success(self) -> None:
     """Test setting up multiple managers."""
     mock_hass = MagicMock()
-    manager1 = TestManager(mock_hass)
-    manager2 = TestManager(mock_hass)
+    manager1 = DummyManager(mock_hass)
+    manager2 = DummyManager(mock_hass)
 
     managers = await setup_managers(manager1, manager2)
 
@@ -341,8 +369,8 @@ class TestBatchOperations:
   async def test_setup_managers_with_failure(self) -> None:
     """Test setup with one manager failing."""
     mock_hass = MagicMock()
-    manager1 = TestManager(mock_hass)
-    manager2 = TestManager(mock_hass)
+    manager1 = DummyManager(mock_hass)
+    manager2 = DummyManager(mock_hass)
     manager2.setup_should_fail = True
 
     # With stop_on_error=False
@@ -353,8 +381,8 @@ class TestBatchOperations:
   async def test_setup_managers_stop_on_error(self) -> None:
     """Test setup stops on error."""
     mock_hass = MagicMock()
-    manager1 = TestManager(mock_hass)
-    manager2 = TestManager(mock_hass)
+    manager1 = DummyManager(mock_hass)
+    manager2 = DummyManager(mock_hass)
     manager2.setup_should_fail = True
 
     with pytest.raises(ManagerLifecycleError):
@@ -367,8 +395,8 @@ class TestBatchOperations:
   async def test_shutdown_managers(self) -> None:
     """Test shutting down multiple managers."""
     mock_hass = MagicMock()
-    manager1 = TestManager(mock_hass)
-    manager2 = TestManager(mock_hass)
+    manager1 = DummyManager(mock_hass)
+    manager2 = DummyManager(mock_hass)
 
     await manager1.async_initialize()
     await manager2.async_initialize()
@@ -382,8 +410,8 @@ class TestBatchOperations:
   async def test_shutdown_managers_ignore_errors(self) -> None:
     """Test shutdown ignores errors by default."""
     mock_hass = MagicMock()
-    manager1 = TestManager(mock_hass)
-    manager2 = TestManager(mock_hass)
+    manager1 = DummyManager(mock_hass)
+    manager2 = DummyManager(mock_hass)
     manager1.shutdown_should_fail = True
 
     await manager1.async_initialize()
@@ -398,7 +426,7 @@ class TestBatchOperations:
   async def test_shutdown_managers_raise_errors(self) -> None:
     """Test shutdown raises errors when configured."""
     mock_hass = MagicMock()
-    manager1 = TestManager(mock_hass)
+    manager1 = DummyManager(mock_hass)
     manager1.shutdown_should_fail = True
 
     await manager1.async_initialize()
@@ -414,7 +442,7 @@ class TestEdgeCases:
   async def test_manager_diagnostics_after_setup(self) -> None:
     """Test diagnostics after setup."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     await manager.async_initialize()
 
@@ -425,7 +453,7 @@ class TestEdgeCases:
   async def test_manager_diagnostics_after_shutdown(self) -> None:
     """Test diagnostics after shutdown."""
     mock_hass = MagicMock()
-    manager = TestManager(mock_hass)
+    manager = DummyManager(mock_hass)
 
     await manager.async_initialize()
     await manager.async_teardown()
@@ -435,12 +463,12 @@ class TestEdgeCases:
 
   def test_manager_lifecycle_error_attributes(self) -> None:
     """Test ManagerLifecycleError attributes."""
-    error = ManagerLifecycleError("TestManager", "setup", "Test reason")
+    error = ManagerLifecycleError("DummyManager", "setup", "Test reason")
 
-    assert error.manager_name == "TestManager"
+    assert error.manager_name == "DummyManager"
     assert error.operation == "setup"
     assert error.reason == "Test reason"
-    assert "TestManager" in str(error)
+    assert "DummyManager" in str(error)
     assert "setup" in str(error)
 
   @pytest.mark.asyncio
