@@ -259,8 +259,9 @@ def handle_errors(
             e.to_dict(),
           )
 
-        if (reraise_critical and e.severity == ErrorSeverity.CRITICAL) or (
-          reraise_validation_errors and isinstance(e, ValidationError)
+        if (
+          (reraise_critical and e.severity == ErrorSeverity.CRITICAL)
+          or (reraise_validation_errors and isinstance(e, ValidationError))
         ):
           raise
 
@@ -300,8 +301,9 @@ def handle_errors(
             e.to_dict(),
           )
 
-        if (reraise_critical and e.severity == ErrorSeverity.CRITICAL) or (
-          reraise_validation_errors and isinstance(e, ValidationError)
+        if (
+          (reraise_critical and e.severity == ErrorSeverity.CRITICAL)
+          or (reraise_validation_errors and isinstance(e, ValidationError))
         ):
           raise
 
