@@ -19,8 +19,34 @@ from urllib.parse import urlparse
 from urllib.request import Request
 from urllib.request import urlopen
 
-from packaging.version import InvalidVersion
-from packaging.version import Version
+
+class InvalidVersion(ValueError):
+  """Raised when a version string cannot be parsed."""
+
+
+@dataclass(frozen=True, order=True)
+class Version:
+  """Small comparable version model for calendar-style Home Assistant versions."""
+
+  major: int
+  minor: int
+  patch: int = 0
+
+  @classmethod
+  def parse(cls, value: str) -> Version:
+    if not isinstance(value, str):
+      raise InvalidVersion(f"Expected version string, got {type(value)!r}")
+
+    match = re.fullmatch(r"\s*(\d+)\.(\d+)(?:\.(\d+))?\s*", value)
+    if not match:
+      raise InvalidVersion(f"Invalid version format: {value!r}")
+
+    major, minor, patch = match.groups(default="0")
+    return cls(int(major), int(minor), int(patch))
+
+  def __str__(self) -> str:
+    return f"{self.major}.{self.minor}.{self.patch}"
+
 
 DEFAULT_RULES_PATH = Path("scripts/homeassistant_upgrade_rules.json")
 DEFAULT_SOURCE_ROOT = Path("custom_components/pawcontrol")
@@ -124,7 +150,7 @@ def _parse_rule(index: int, entry: dict[str, Any]) -> UpgradeRule:
     raise ValueError(f"Rule '{entry.get('id', index)}' has invalid file_globs value.")
 
   try:
-    introduced_in = Version(entry["introduced_in"])
+    introduced_in = Version.parse(entry["introduced_in"])
   except InvalidVersion as err:
     raise ValueError(
       f"Rule '{entry.get('id', index)}' has invalid introduced_in version."
@@ -156,8 +182,8 @@ def load_rules(path: Path) -> RuleSet:
       raise ValueError(f"Rules file is missing required field '{field_name}'.")
 
   try:
-    min_covered_version = Version(payload["min_covered_version"])
-    max_covered_version = Version(payload["max_covered_version"])
+    min_covered_version = Version.parse(payload["min_covered_version"])
+    max_covered_version = Version.parse(payload["max_covered_version"])
   except InvalidVersion as err:
     raise ValueError(
       "min_covered_version/max_covered_version must be valid versions."
@@ -206,7 +232,7 @@ def fetch_latest_homeassistant_version() -> Version:
       if status != 200:
         raise ValueError(f"PyPI API returned unexpected status {status}")
       payload = json.loads(response.read().decode("utf-8"))
-    return Version(payload["info"]["version"])
+    return Version.parse(payload["info"]["version"])
   except (HTTPError, URLError, TimeoutError, OSError) as err:
     raise RuntimeError(
       "Failed to fetch latest Home Assistant version from PyPI."
