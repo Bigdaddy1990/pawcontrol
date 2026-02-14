@@ -164,13 +164,9 @@ class PawControlConfigFlow(
   VERSION = CONFIG_ENTRY_VERSION
   MINOR_VERSION = 3
 
-def __init__(self) -> None:
-      """Initialize configuration flow with enhanced state management."""
-      super().__init__()
-      self._integration_name = "Paw Control"
-      self._entity_profile = "standard"
-      self.reauth_entry: ConfigEntry | None = None
-      ...
+  def __init__(self) -> None:
+    """Initialize configuration flow with enhanced state management."""
+    super().__init__()
     self._integration_name = "Paw Control"
     self._entity_profile = "standard"
     self.reauth_entry: ConfigEntry | None = None
