@@ -42,7 +42,27 @@ def _supports_selector_callables(module: object) -> bool:
 
 if ha_selector is not None and _supports_selector_callables(ha_selector):
   # pragma: no cover - passthrough when available
-  selector = ha_selector
+  selector = ha_selector.selector
+  for _name in (
+    "BooleanSelector",
+    "BooleanSelectorConfig",
+    "DateSelector",
+    "DateSelectorConfig",
+    "NumberSelector",
+    "NumberSelectorConfig",
+    "NumberSelectorMode",
+    "SelectOptionDict",
+    "SelectSelector",
+    "SelectSelectorConfig",
+    "SelectSelectorMode",
+    "TextSelector",
+    "TextSelectorConfig",
+    "TextSelectorType",
+    "TimeSelector",
+    "TimeSelectorConfig",
+  ):
+    if hasattr(ha_selector, _name):
+      setattr(selector, _name, getattr(ha_selector, _name))
 else:
   from typing import Literal, Required, TypedDict
 
@@ -177,7 +197,12 @@ else:
   class DateSelector(_BaseSelector[DateSelectorConfig]):
     """Date selector shim."""
 
-  selector = SimpleNamespace(
+  def selector(config: object) -> object:
+    """Return selector configuration unchanged for schema validation."""
+
+    return config
+
+  _namespace = SimpleNamespace(
     BooleanSelector=BooleanSelector,
     BooleanSelectorConfig=BooleanSelectorConfig,
     DateSelector=DateSelector,
@@ -195,5 +220,7 @@ else:
     TimeSelector=TimeSelector,
     TimeSelectorConfig=TimeSelectorConfig,
   )
+  for _name, _value in vars(_namespace).items():
+    setattr(selector, _name, _value)
 
 __all__ = ["selector"]

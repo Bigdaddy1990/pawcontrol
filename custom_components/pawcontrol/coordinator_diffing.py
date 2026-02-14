@@ -457,11 +457,13 @@ class SmartDiffTracker:
     Returns:
         Diff from previous data to new data
     """
-    diff = compute_coordinator_diff(self._previous_data, new_data)
+    if self._previous_data is None:
+      diff = CoordinatorDataDiff()
+    else:
+      diff = compute_coordinator_diff(self._previous_data, new_data)
     self._previous_data = dict(new_data)  # Deep copy top level
     self._last_diff = diff
     self._update_count += 1
-
     if diff.has_changes:
       _LOGGER.debug(
         "Data diff computed: %d dogs changed, %d added, %d removed",

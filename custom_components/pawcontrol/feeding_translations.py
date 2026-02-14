@@ -77,7 +77,16 @@ async def async_get_feeding_compliance_translations(
     hass,
     language,
   )
-  return _resolve_feeding_compliance_translations(translations, fallback)
+  resolved = _resolve_feeding_compliance_translations(translations, fallback)
+
+  if any(resolved[key] == key for key in FEEDING_COMPLIANCE_TRANSLATION_KEYS):
+    static_translations = get_feeding_compliance_translations(language)
+    return {
+      key: static_translations.get(key, resolved[key])
+      for key in FEEDING_COMPLIANCE_TRANSLATION_KEYS
+    }
+
+  return resolved
 
 
 _MAX_MISSED_MEALS: Final[int] = 3
