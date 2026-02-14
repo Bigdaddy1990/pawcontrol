@@ -23,13 +23,13 @@ def normalize_value(value: object) -> JSONValue:
   mappings, sets, and iterables to recursively normalised forms. Falls back to repr().
   """
   if value is None or isinstance(value, int | float | str | bool):
-    return value  # type: ignore[return-value]
+    return value
   if isinstance(value, datetime):
     return value.isoformat()
   if isinstance(value, date | time):
     return value.isoformat()
   if isinstance(value, timedelta):
-    return value.total_seconds()  # type: ignore[return-value]
+    return value.total_seconds()
   if is_dataclass(value) and not isinstance(value, type):
     return {k: normalize_value(v) for k, v in asdict(value).items()}
   if isinstance(value, Mapping):
