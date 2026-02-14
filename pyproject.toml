@@ -8,6 +8,7 @@ addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-mi
 markers = [
   "asyncio: mark a test as using asyncio",
   "ci_only: mark a test to run only in CI",
+  "benchmark: mark a test as benchmark/performance",
 ]
 testpaths = [
     "tests"

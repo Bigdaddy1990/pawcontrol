@@ -29,6 +29,7 @@ from .const import CONF_GPS_SOURCE
 from .const import CONF_NOTIFY_FALLBACK
 from .const import MAX_DOG_NAME_LENGTH
 from .const import MIN_DOG_NAME_LENGTH
+from .exceptions import InvalidCoordinatesError
 from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:
@@ -344,7 +345,7 @@ def validate_dog_name(
   field: str = CONF_DOG_NAME,
   required: bool = True,
   min_length: int = MIN_DOG_NAME_LENGTH,
-  max_length: int = MAX_DOG_NAME_LENGTH,
+  max_length: int = 50,
 ) -> str | None:
   """Validate dog name input and return a trimmed value."""
 
@@ -512,6 +513,35 @@ def validate_notify_service(
   services = hass.services.async_services().get("notify", {})
   if service_parts[1] not in services:
     raise ValidationError(field, candidate, "notify_service_not_found")
+
+  return candidate
+
+
+def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, float]:
+  """Compatibility helper that raises ``InvalidCoordinatesError``."""
+
+  try:
+    return InputValidator.validate_gps_coordinates(latitude, longitude)
+  except ValidationError as err:
+    raise InvalidCoordinatesError(latitude, longitude) from err
+
+
+def validate_entity_id(entity_id: Any, *, field: str = "entity_id") -> str:
+  """Validate Home Assistant entity IDs in ``domain.object_id`` format."""
+
+  if not isinstance(entity_id, str):
+    raise ValidationError(field, entity_id, "Invalid entity_id format")
+
+  candidate = entity_id.strip()
+  parts = candidate.split(".")
+  if len(parts) != 2 or not parts[0] or not parts[1]:
+    raise ValidationError(field, entity_id, "Invalid entity_id format")
+
+  if not re.fullmatch(r"[a-z_]+", parts[0]):
+    raise ValidationError(field, entity_id, "Invalid entity_id format")
+
+  if not re.fullmatch(r"[\w]+", parts[1], flags=re.UNICODE):
+    raise ValidationError(field, entity_id, "Invalid entity_id format")
 
   return candidate
 
@@ -753,15 +783,21 @@ def validate_gps_accuracy_value(
 
 def validate_float_range(
   value: Any,
+  minimum: float | None = None,
+  maximum: float | None = None,
   *,
-  field: str,
-  minimum: float,
-  maximum: float,
+  field: str | None = None,
+  field_name: str | None = None,
   default: float | None = None,
   clamp: bool = False,
   required: bool = False,
 ) -> float:
   """Validate a floating-point range within bounds."""
+
+  if minimum is None or maximum is None:
+    raise TypeError("minimum and maximum must be provided")
+
+  resolved_field = field_name or field or "value"
 
   if value is None:
     if default is not None:
@@ -774,12 +810,12 @@ def validate_float_range(
       )
     return minimum if clamp else 0.0
 
-  candidate = _coerce_float(field, value)
+  candidate = _coerce_float(resolved_field, value)
   if candidate < minimum:
     if clamp:
       return minimum
     raise ValidationError(
-      field,
+      resolved_field,
       candidate,
       f"Minimum value is {minimum}",
       min_value=minimum,
@@ -789,7 +825,7 @@ def validate_float_range(
     if clamp:
       return maximum
     raise ValidationError(
-      field,
+      resolved_field,
       candidate,
       f"Maximum value is {maximum}",
       min_value=minimum,

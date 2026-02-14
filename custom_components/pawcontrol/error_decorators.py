@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import logging
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -20,6 +21,8 @@ from typing import cast
 from typing import ParamSpec
 from typing import TYPE_CHECKING
 from typing import TypeVar
+
+from homeassistant.helpers import issue_registry
 
 from .exceptions import DogNotFoundError
 from .exceptions import ErrorCategory
@@ -69,16 +72,8 @@ def validate_dog_exists(
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      # Extract dog_id from args/kwargs
-      dog_id = kwargs.get(dog_id_param)
-      if dog_id is None:
-        # Try to get from positional args
-        sig = func.__annotations__
-        param_names = list(sig.keys())
-        if dog_id_param in param_names:
-          idx = param_names.index(dog_id_param)
-          if idx < len(args):
-            dog_id = args[idx]
+      bound = inspect.signature(func).bind_partial(*args, **kwargs)
+      dog_id = bound.arguments.get(dog_id_param)
 
       if dog_id is None:
         raise ValidationError(
@@ -133,23 +128,9 @@ def validate_gps_coordinates(
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      latitude = kwargs.get(latitude_param)
-      longitude = kwargs.get(longitude_param)
-
-      # Try positional args if not in kwargs
-      if latitude is None or longitude is None:
-        sig = func.__annotations__
-        param_names = list(sig.keys())
-
-        if latitude is None and latitude_param in param_names:
-          idx = param_names.index(latitude_param)
-          if idx < len(args):
-            latitude = args[idx]
-
-        if longitude is None and longitude_param in param_names:
-          idx = param_names.index(longitude_param)
-          if idx < len(args):
-            longitude = args[idx]
+      bound = inspect.signature(func).bind_partial(*args, **kwargs)
+      latitude = bound.arguments.get(latitude_param)
+      longitude = bound.arguments.get(longitude_param)
 
       if latitude is None or longitude is None:
         raise InvalidCoordinatesError()
@@ -201,16 +182,8 @@ def validate_range(
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      value = kwargs.get(param)
-
-      # Try positional args
-      if value is None:
-        sig = func.__annotations__
-        param_names = list(sig.keys())
-        if param in param_names:
-          idx = param_names.index(param)
-          if idx < len(args):
-            value = args[idx]
+      bound = inspect.signature(func).bind_partial(*args, **kwargs)
+      value = bound.arguments.get(param)
 
       if value is None:
         raise ValidationError(
@@ -248,6 +221,7 @@ def handle_errors(
   *,
   log_errors: bool = True,
   reraise_critical: bool = True,
+  reraise_validation_errors: bool = True,
   default_return: Any = None,
   error_category: ErrorCategory | None = None,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
@@ -286,7 +260,7 @@ def handle_errors(
             e.to_dict(),
           )
 
-        if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
+        if reraise_critical:
           raise
 
         return cast(T, default_return)
@@ -325,7 +299,7 @@ def handle_errors(
             e.to_dict(),
           )
 
-        if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
+        if reraise_critical:
           raise
 
         return cast(T, default_return)
@@ -351,7 +325,7 @@ def handle_errors(
         return cast(T, default_return)
 
     # Return async wrapper if function is async
-    if asyncio.iscoroutinefunction(func):
+    if inspect.iscoroutinefunction(func):
       return cast(Callable[P, T], async_wrapper)
     return cast(Callable[P, T], sync_wrapper)
 
@@ -399,9 +373,8 @@ def map_to_repair_issue(
 
         if hass is not None:
           # Create repair issue
-          from homeassistant.helpers import issue_registry as ir
 
-          ir.async_create_issue(
+          issue_registry.async_create_issue(
             hass,
             "pawcontrol",
             issue_id,
@@ -430,9 +403,8 @@ def map_to_repair_issue(
             hass = instance.coordinator.hass
 
         if hass is not None:
-          from homeassistant.helpers import issue_registry as ir
 
-          ir.async_create_issue(
+          issue_registry.async_create_issue(
             hass,
             "pawcontrol",
             issue_id,
@@ -447,7 +419,7 @@ def map_to_repair_issue(
 
         raise
 
-    if asyncio.iscoroutinefunction(func):
+    if inspect.iscoroutinefunction(func):
       return cast(Callable[P, T], async_wrapper)
     return cast(Callable[P, T], sync_wrapper)
 
@@ -553,11 +525,29 @@ def retry_on_error(
 
       return cast(T, None)
 
-    if asyncio.iscoroutinefunction(func):
+    if inspect.iscoroutinefunction(func):
       return cast(Callable[P, T], async_wrapper)
     return cast(Callable[P, T], sync_wrapper)
 
   return decorator
+
+
+def require_coordinator[**P, T](func: Callable[P, T]) -> Callable[P, T]:
+  """Ensure decorated instance methods expose ``self.coordinator``."""
+
+  @functools.wraps(func)
+  def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+    if not args:
+      raise PawControlError("Decorator requires an instance method")
+
+    instance = args[0]
+    coordinator = getattr(instance, "coordinator", None)
+    if coordinator is None:
+      raise PawControlError("Coordinator is required for this operation")
+
+    return func(*args, **kwargs)
+
+  return wrapper
 
 
 def require_coordinator_data(
@@ -724,21 +714,19 @@ async def create_repair_issue_from_exception(
   if not issue_id:
     issue_id = f"error_{exception.error_code}"
 
-  from homeassistant.helpers import issue_registry as ir
-
   severity_map = {
-    ErrorSeverity.LOW: ir.IssueSeverity.WARNING,
-    ErrorSeverity.MEDIUM: ir.IssueSeverity.WARNING,
-    ErrorSeverity.HIGH: ir.IssueSeverity.ERROR,
-    ErrorSeverity.CRITICAL: ir.IssueSeverity.CRITICAL,
+    ErrorSeverity.LOW: issue_registry.IssueSeverity.WARNING,
+    ErrorSeverity.MEDIUM: issue_registry.IssueSeverity.WARNING,
+    ErrorSeverity.HIGH: issue_registry.IssueSeverity.ERROR,
+    ErrorSeverity.CRITICAL: issue_registry.IssueSeverity.CRITICAL,
   }
 
-  ir.async_create_issue(
+  issue_registry.async_create_issue(
     hass,
     "pawcontrol",
     issue_id,
     is_fixable=is_fixable,
-    severity=severity_map.get(exception.severity, ir.IssueSeverity.WARNING),
+    severity=severity_map.get(exception.severity, issue_registry.IssueSeverity.WARNING),
     translation_key=issue_id,
     translation_placeholders={
       "error": exception.user_message,

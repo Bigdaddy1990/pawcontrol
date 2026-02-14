@@ -14,8 +14,10 @@ import asyncio
 import functools
 import logging
 import time
+from contextlib import contextmanager
 from collections import deque
 from collections.abc import Callable
+from collections.abc import Mapping
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any
@@ -493,3 +495,124 @@ def enable_performance_monitoring() -> None:
 def disable_performance_monitoring() -> None:
   """Disable performance monitoring."""
   _performance_monitor.disable()
+
+
+def capture_cache_diagnostics(runtime_data: object | None) -> dict[str, Any] | None:
+  """Capture a lightweight cache snapshot for coordinator diagnostics."""
+
+  if runtime_data is None:
+    return None
+
+  diagnostics: dict[str, Any] = {}
+  for attr_name in ("cache", "_cache", "caches", "_caches"):
+    cache = getattr(runtime_data, attr_name, None)
+    if isinstance(cache, dict):
+      diagnostics[attr_name] = {"entries": len(cache)}
+
+  monitor = getattr(runtime_data, "performance_monitor", None)
+  if monitor is not None and hasattr(monitor, "get_summary"):
+    try:
+      diagnostics["performance"] = monitor.get_summary()
+    except Exception:  # pragma: no cover - defensive telemetry collection
+      diagnostics["performance"] = {"status": "unavailable"}
+
+  return diagnostics or None
+
+
+@dataclass(slots=True)
+class _TrackedPerformanceContext:
+  """Mutable context object exposed by ``performance_tracker``."""
+
+  metric_name: str
+  started_at: float = field(default_factory=time.perf_counter)
+  failure: str | None = None
+
+  def mark_failure(self, error: Exception) -> None:
+    """Record a failure for the current tracked operation."""
+    self.failure = f"{error.__class__.__name__}: {error}"
+
+
+def _ensure_runtime_performance_store(runtime_data: object) -> dict[str, Any]:
+  """Return a mutable diagnostics bucket from runtime data."""
+
+  store = getattr(runtime_data, "performance_stats", None)
+  if isinstance(store, dict):
+    return store
+
+  store = getattr(runtime_data, "_performance_stats", None)
+  if isinstance(store, dict):
+    return store
+
+  store = {}
+  if hasattr(runtime_data, "performance_stats"):
+    runtime_data.performance_stats = store
+  elif hasattr(runtime_data, "_performance_stats"):
+    runtime_data._performance_stats = store
+  return store
+
+
+
+@contextmanager
+def performance_tracker(
+  runtime_data: object,
+  metric_name: str,
+  *,
+  max_samples: int = 50,
+) -> Any:
+  """Track maintenance execution metadata for diagnostics payloads."""
+
+  context = _TrackedPerformanceContext(metric_name=metric_name)
+  try:
+    yield context
+  finally:
+    duration_ms = (time.perf_counter() - context.started_at) * 1000.0
+    store = _ensure_runtime_performance_store(runtime_data)
+    history = store.setdefault(metric_name, [])
+    if isinstance(history, list):
+      history.append(
+        {
+          "duration_ms": round(duration_ms, 2),
+          "status": "error" if context.failure else "success",
+          "failure": context.failure,
+        },
+      )
+      if len(history) > max_samples:
+        del history[:-max_samples]
+
+
+def record_maintenance_result(
+  runtime_data: object,
+  *,
+  task: str,
+  status: str,
+  message: str | None = None,
+  diagnostics: dict[str, Any] | None = None,
+  metadata: Mapping[str, Any] | None = None,
+  details: Mapping[str, Any] | None = None,
+  max_entries: int = 50,
+) -> None:
+  """Store maintenance task outcomes on runtime diagnostics state."""
+
+  store = _ensure_runtime_performance_store(runtime_data)
+  history = store.setdefault("maintenance_history", [])
+  if not isinstance(history, list):
+    history = []
+    store["maintenance_history"] = history
+
+  entry: dict[str, Any] = {
+    "task": task,
+    "status": status,
+    "timestamp": time.time(),
+  }
+  if message is not None:
+    entry["message"] = message
+  if diagnostics is not None:
+    entry["diagnostics"] = diagnostics
+  if metadata is not None:
+    entry["metadata"] = dict(metadata)
+  if details is not None:
+    entry["details"] = dict(details)
+
+  history.append(entry)
+  if len(history) > max_entries:
+    del history[:-max_entries]

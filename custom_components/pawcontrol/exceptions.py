@@ -360,6 +360,8 @@ class DogNotFoundError(PawControlError):
         available_dogs: List of available dog IDs
     """
     message = f"Dog with ID '{dog_id}' not found"
+    if available_dogs:
+      message += f" (available: {', '.join(available_dogs)})"
 
     super().__init__(
       message,
@@ -590,7 +592,7 @@ class WalkAlreadyInProgressError(WalkError):
   def __init__(
     self,
     dog_id: str,
-    walk_id: str,
+    walk_id: str | None = None,
     start_time: datetime | None = None,
   ) -> None:
     """Initialize walk already in progress error.
@@ -958,6 +960,55 @@ class NetworkError(PawControlError):
     self.retryable = retryable
 
 
+class ServiceUnavailableError(NetworkError):
+  """Exception raised when an upstream PawControl service is unavailable."""
+
+  def __init__(
+    self,
+    message: str,
+    *,
+    service_name: str | None = None,
+    endpoint: str | None = None,
+    operation: str | None = None,
+  ) -> None:
+    """Initialize service unavailable error."""
+
+    super().__init__(
+      message,
+      endpoint=endpoint,
+      operation=operation,
+      retryable=True,
+    )
+    self.error_code = "service_unavailable"
+    self.user_message = "PawControl service is temporarily unavailable"
+    if service_name is not None:
+      self.context["service_name"] = service_name
+    self.service_name = service_name
+
+
+
+
+class AuthenticationError(PawControlError):
+  """Exception raised when authentication validation fails."""
+
+  def __init__(self, message: str, *, service: str | None = None) -> None:
+    """Initialize authentication error."""
+
+    super().__init__(
+      message,
+      error_code="authentication_error",
+      severity=ErrorSeverity.HIGH,
+      category=ErrorCategory.AUTHENTICATION,
+      context={"service": service},
+      recovery_suggestions=[
+        "Verify credentials and shared secrets",
+        "Reauthenticate the integration",
+      ],
+      user_message="Authentication with PawControl failed",
+    )
+    self.service = service
+
+
 class NotificationError(PawControlError):
   """Exception raised when notification sending fails."""
 
@@ -1092,6 +1143,8 @@ EXCEPTION_MAP: Final[dict[str, type[PawControlError]]] = {
   "rate_limit_exceeded": RateLimitError,
   "notification_send_failed": NotificationError,
   "network_error": NetworkError,
+  "authentication_error": AuthenticationError,
+  "service_unavailable": ServiceUnavailableError,
   "data_export_failed": DataExportError,
   "data_import_failed": DataImportError,
   "reauth_required": ReauthRequiredError,

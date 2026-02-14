@@ -47,6 +47,7 @@ def device_api_module() -> ModuleType:
   class RateLimitError(Exception):
     """Stubbed rate limit error."""
 
+  stub_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
   stub_exceptions.NetworkError = NetworkError
   stub_exceptions.RateLimitError = RateLimitError
 

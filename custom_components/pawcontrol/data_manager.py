@@ -1142,6 +1142,11 @@ class PawControlDataManager:
     if typed_config is None:
       raise HomeAssistantError(f"Invalid PawControl profile for {dog_id}")
 
+    raw_config = cast(JSONMutableMapping, _coerce_json_mutable(profile.config))
+    for section, payload in raw_config.items():
+      if section not in typed_config:
+        typed_config[section] = payload
+
     profile.config = typed_config
     self._dogs_config[dog_id] = typed_config
     await self._async_save_dog_data(dog_id)
@@ -2991,6 +2996,10 @@ class PawControlDataManager:
       )
       if typed_config is None:
         raise HomeAssistantError(f"Invalid PawControl update for {dog_id}")
+
+      for section, payload in config.items():
+        if section not in typed_config:
+          typed_config[section] = payload
 
       profile.config = typed_config
       self._dogs_config[dog_id] = typed_config
