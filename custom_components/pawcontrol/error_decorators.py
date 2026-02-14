@@ -218,7 +218,6 @@ def validate_range(
 
 
 def handle_errors(
-Remove the unused parameter `reraise_validation_errors` or integrate it into the reraising logic as shown in the P1 finding's suggested fix.
   log_errors: bool = True,
   reraise_critical: bool = True,
   reraise_validation_errors: bool = True,
@@ -260,7 +259,10 @@ Remove the unused parameter `reraise_validation_errors` or integrate it into the
             e.to_dict(),
           )
 
-        if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
+        if (
+          (reraise_critical and e.severity == ErrorSeverity.CRITICAL)
+          or (reraise_validation_errors and isinstance(e, ValidationError))
+        ):
           raise
 
         return cast(T, default_return)
@@ -299,7 +301,10 @@ Remove the unused parameter `reraise_validation_errors` or integrate it into the
             e.to_dict(),
           )
 
-        if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
+        if (
+          (reraise_critical and e.severity == ErrorSeverity.CRITICAL)
+          or (reraise_validation_errors and isinstance(e, ValidationError))
+        ):
           raise
 
         return cast(T, default_return)
@@ -322,8 +327,7 @@ Remove the unused parameter `reraise_validation_errors` or integrate it into the
         if reraise_critical:
           raise error from e
 
-if reraise_critical and (reraise_validation_errors or e.severity == ErrorSeverity.CRITICAL):
-          raise
+        return cast(T, default_return)
 
     # Return async wrapper if function is async
     if inspect.iscoroutinefunction(func):

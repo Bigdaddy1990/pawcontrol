@@ -75,7 +75,6 @@ jobs:
       - name: Run Prek
         run: |
           prek install
-          prek auto-update
           prek run --hook-stage pre-merge-commit
           prek run --hook-stage pre-commit
           prek run --all-files --show-diff-on-failure

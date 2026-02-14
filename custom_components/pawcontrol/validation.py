@@ -29,6 +29,7 @@ from .const import CONF_GPS_SOURCE
 from .const import CONF_NOTIFY_FALLBACK
 from .const import MAX_DOG_NAME_LENGTH
 from .const import MIN_DOG_NAME_LENGTH
+from .exceptions import InvalidCoordinatesError
 from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:
