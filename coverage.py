@@ -70,8 +70,7 @@ class Coverage:
 
     absolute_filename = os.path.abspath(filename)
     if self._source_root_strings and not any(
-      absolute_filename == root
-      or absolute_filename.startswith(f"{root}{os.sep}")
+      absolute_filename == root or absolute_filename.startswith(f"{root}{os.sep}")
       for root in self._source_root_strings
     ):
       self._resolved_path_cache[filename] = None
