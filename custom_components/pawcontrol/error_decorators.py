@@ -299,7 +299,7 @@ def handle_errors(
             e.to_dict(),
           )
 
-        if reraise_critical:
+        if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
           raise
 
         return cast(T, default_return)
