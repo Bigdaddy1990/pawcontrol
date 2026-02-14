@@ -21,7 +21,7 @@ class WeatherAlertTranslation(TypedDict):
   message: str
 
 
-type WeatherAlertKey = Literal[
+WEATHER_ALERT_KEYS: Final = (
   "extreme_cold_warning",
   "extreme_heat_warning",
   "extreme_uv_warning",
@@ -33,13 +33,15 @@ type WeatherAlertKey = Literal[
   "storm_warning",
   "warm_weather_caution",
   "wet_weather_advisory",
-]
+)
+
+type WeatherAlertKey = Literal[*WEATHER_ALERT_KEYS]
 
 
 type WeatherAlertTranslations = dict[WeatherAlertKey, WeatherAlertTranslation]
 
 
-type WeatherRecommendationKey = Literal[
+WEATHER_RECOMMENDATION_KEYS: Final = (
   "avoid_peak_hours",
   "avoid_peak_uv",
   "avoid_until_passes",
@@ -92,7 +94,9 @@ type WeatherRecommendationKey = Literal[
   "watch_hypothermia",
   "watch_ice_buildup",
   "waterproof_protection",
-]
+)
+
+type WeatherRecommendationKey = Literal[*WEATHER_RECOMMENDATION_KEYS]
 
 
 type WeatherRecommendationTranslations = dict[WeatherRecommendationKey, str]
@@ -109,75 +113,6 @@ type LanguageCode = Literal["de", "en", "es", "fr"]
 
 
 DEFAULT_LANGUAGE: Final[LanguageCode] = "en"
-
-WEATHER_ALERT_KEYS: Final[tuple[WeatherAlertKey, ...]] = (
-  "extreme_cold_warning",
-  "extreme_heat_warning",
-  "extreme_uv_warning",
-  "high_cold_advisory",
-  "high_heat_advisory",
-  "high_humidity_alert",
-  "high_uv_advisory",
-  "snow_ice_alert",
-  "storm_warning",
-  "warm_weather_caution",
-  "wet_weather_advisory",
-)
-
-WEATHER_RECOMMENDATION_KEYS: Final[tuple[WeatherRecommendationKey, ...]] = (
-  "avoid_peak_hours",
-  "avoid_peak_uv",
-  "avoid_until_passes",
-  "breed_specific_caution",
-  "check_toe_irritation",
-  "cold_surface_protection",
-  "comfort_anxious",
-  "consider_clothing",
-  "cool_ventilated_areas",
-  "cooler_day_parts",
-  "cooler_surfaces",
-  "dry_paws_thoroughly",
-  "ensure_shade",
-  "essential_only",
-  "extra_water",
-  "good_air_circulation",
-  "heart_avoid_strenuous",
-  "keep_indoors",
-  "keep_indoors_storm",
-  "limit_outdoor_time",
-  "limit_peak_exposure",
-  "monitor_breathing",
-  "monitor_overheating",
-  "monitor_skin_irritation",
-  "never_leave_in_car",
-  "pet_sunscreen",
-  "postpone_activities",
-  "protect_nose_ears",
-  "protect_paws",
-  "protective_clothing",
-  "provide_shade_always",
-  "provide_traction",
-  "provide_water",
-  "puppy_extra_monitoring",
-  "reduce_exercise_intensity",
-  "respiratory_monitoring",
-  "rinse_salt_chemicals",
-  "secure_id_tags",
-  "senior_extra_protection",
-  "shade_during_activities",
-  "shorten_activities",
-  "use_cooling_aids",
-  "use_paw_balm",
-  "use_paw_protection",
-  "uv_protective_clothing",
-  "warm_shelter",
-  "warm_shelter_available",
-  "watch_heat_signs",
-  "watch_heat_stress",
-  "watch_hypothermia",
-  "watch_ice_buildup",
-  "waterproof_protection",
-)
 
 WEATHER_ALERT_KEY_SET: Final[frozenset[WeatherAlertKey]] = frozenset(
   WEATHER_ALERT_KEYS,
