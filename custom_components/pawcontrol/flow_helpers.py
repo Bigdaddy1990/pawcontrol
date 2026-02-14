@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from typing import Any
+from typing import cast
 from typing import TYPE_CHECKING
 
 import voluptuous as vol
@@ -224,10 +225,13 @@ def create_menu_result(
       ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
       ... )
   """
-  return flow.async_show_menu(
-    step_id=step_id,
-    menu_options=menu_options,
-    description_placeholders=description_placeholders,
+  return cast(
+    FlowStepResult,
+    flow.async_show_menu(
+      step_id=step_id,
+      menu_options=menu_options,
+      description_placeholders=description_placeholders,
+    ),
   )
 
 
@@ -249,9 +253,12 @@ def create_abort_result(
   Examples:
       >>> result = create_abort_result(flow=self, reason="already_configured")
   """
-  return flow.async_abort(
-    reason=reason,
-    description_placeholders=description_placeholders,
+  return cast(
+    FlowStepResult,
+    flow.async_abort(
+      reason=reason,
+      description_placeholders=description_placeholders,
+    ),
   )
 
 
@@ -277,10 +284,13 @@ def create_progress_result(
       ...   flow=self, step_id="validate", progress_action="validating"
       ... )
   """
-  return flow.async_show_progress(
-    step_id=step_id,
-    progress_action=progress_action,
-    description_placeholders=description_placeholders,
+  return cast(
+    FlowStepResult,
+    flow.async_show_progress(
+      step_id=step_id,
+      progress_action=progress_action,
+      description_placeholders=description_placeholders,
+    ),
   )
 
 
