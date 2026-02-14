@@ -23,9 +23,9 @@ CHECKS_FAILED=0
 check_step() {
     local description=$1
     local command=$2
-    
+
     echo -n "▶ $description... "
-    
+
     if eval "$command" > /dev/null 2>&1; then
         echo -e "${GREEN}✓ PASS${NC}"
         ((CHECKS_PASSED++))
