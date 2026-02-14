@@ -313,9 +313,9 @@ class DataHasher:
     """
     result = dict(data)
 
-    for field in fields:  # noqa: F402
-      if field in result and isinstance(result[field], str):
-        result[field] = self.hash_string(result[field], salt)
+    for field_name in fields:
+      if field_name in result and isinstance(result[field_name], str):
+        result[field_name] = self.hash_string(result[field_name], salt)
 
     return result
 
