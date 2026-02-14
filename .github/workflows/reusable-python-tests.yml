@@ -150,7 +150,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements_test.txt
           python scripts/enforce_docstring_baseline.py --update
-          python scripts/sync_contributor_guides.py --update
+          python scripts/sync_contributor_guides.py --check
 
       - name: Enforce test requirements and localization flags
         run: |
