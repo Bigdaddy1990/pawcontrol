@@ -517,7 +517,10 @@ def validate_notify_service(
 
 
 def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, float]:
-  """Compatibility helper that raises ``InvalidCoordinatesError``."""
+  """Compatibility helper that raises ``InvalidCoordinatesError``.
+
+  Uses a local exception import to avoid module import-order cycles.
+  """
 
   from .exceptions import InvalidCoordinatesError
 
