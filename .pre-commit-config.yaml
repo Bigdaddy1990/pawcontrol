@@ -65,7 +65,6 @@ repos:
         args:
           - --py39-plus
           - --py311-plus
-          - --py313-plus
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
