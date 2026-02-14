@@ -178,6 +178,24 @@ class TestErrorHandling:
     )
     assert errors == {"test_field": "required"}
 
+  def test_validate_required_field_legacy_api(self) -> None:
+    """Test validate_required_field legacy mutation/boolean API."""
+    errors: dict[str, str] = {}
+
+    is_valid = validate_required_field(errors, "test_field", "")
+
+    assert is_valid is False
+    assert errors == {"test_field": "required"}
+
+  def test_validate_required_field_legacy_api_valid(self) -> None:
+    """Test validate_required_field legacy API with valid input."""
+    errors: dict[str, str] = {}
+
+    is_valid = validate_required_field(errors, "test_field", "Buddy")
+
+    assert is_valid is True
+    assert errors == {}
+
   def test_validate_required_field_none(self) -> None:
     """Test validate_required_field with None value."""
     errors = validate_required_field(
@@ -266,6 +284,20 @@ class TestErrorHandling:
 
     merged = merge_errors(errors1, errors2)
     assert merged == {"field": "error2"}
+
+  def test_merge_errors_with_legacy_keywords(self) -> None:
+    """Test merge_errors supports legacy keyword arguments."""
+    merged = merge_errors(
+      {"field3": "error3"},
+      base_errors={"field1": "error1"},
+      new_errors={"field2": "error2"},
+    )
+
+    assert merged == {
+      "field1": "error1",
+      "field2": "error2",
+      "field3": "error3",
+    }
 
   def test_has_errors(self) -> None:
     """Test has_errors function."""

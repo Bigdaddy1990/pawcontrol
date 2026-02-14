@@ -336,14 +336,46 @@ def create_progress_result(
 
 
 def validate_required_field(
-  field_name: str,
-  value: Any,
-  *,
+  *args: Any,
   errors: dict[str, str] | None = None,
   error_key: str = "required",
-) -> dict[str, str]:
-  """Validate that a required field has a value."""
+) -> dict[str, str] | bool:
+  """Validate that a required field has a value.
 
+  Supports both the legacy mutation/boolean API and the newer return-errors API:
+
+  Legacy:
+      validate_required_field(errors, field_name, value, error_key="required")
+      -> bool
+
+  Current:
+      validate_required_field(field_name, value, errors=errors) -> dict[str, str]
+  """
+
+  if args and isinstance(args[0], dict):
+    # Backward-compatible positional API.
+    if len(args) < 3:
+      msg = "legacy validate_required_field requires errors, field_name, and value"
+      raise TypeError(msg)
+    legacy_errors = args[0]
+    field_name = args[1]
+    value = args[2]
+    if len(args) >= 4:
+      error_key = args[3]
+
+    has_value = value is not None and (
+      not isinstance(value, str) or bool(value.strip())
+    )
+    if not has_value:
+      legacy_errors[field_name] = error_key
+    return has_value
+
+  if len(args) < 2:
+    msg = "validate_required_field requires field_name and value"
+    raise TypeError(msg)
+
+  field_name = args[0]
+  value = args[1]
   resolved_errors = errors or {}
   if value is None or (isinstance(value, str) and not value.strip()):
     resolved_errors[field_name] = error_key
@@ -578,7 +610,11 @@ def build_boolean_schema(
 # Common validation patterns
 
 
-def merge_errors(*error_maps: dict[str, str]) -> dict[str, str]:
+def merge_errors(
+  *error_maps: dict[str, str],
+  base_errors: dict[str, str] | None = None,
+  new_errors: dict[str, str] | None = None,
+) -> dict[str, str]:
   """Merge two error dictionaries.
 
   Args:
@@ -593,6 +629,10 @@ def merge_errors(*error_maps: dict[str, str]) -> dict[str, str]:
       {'name': 'required', 'age': 'invalid'}
   """
   merged: dict[str, str] = {}
+  if base_errors:
+    merged.update(base_errors)
+  if new_errors:
+    merged.update(new_errors)
   for errors in error_maps:
     merged.update(errors)
   return merged
