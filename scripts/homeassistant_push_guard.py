@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 from urllib.error import URLError
+from urllib.parse import urlparse
 from urllib.request import Request
 from urllib.request import urlopen
 
@@ -182,9 +183,17 @@ def load_rules(path: Path) -> RuleSet:
   )
 
 
+def _validated_https_url(url: str) -> str:
+  """Return a validated HTTPS URL for outbound requests."""
+  parsed = urlparse(url)
+  if parsed.scheme != "https" or not parsed.netloc:
+    raise ValueError(f"Only absolute HTTPS URLs are allowed, got: {url!r}")
+  return url
+
+
 def fetch_latest_homeassistant_version() -> Version:
   request = Request(
-    PYPI_HOMEASSISTANT_URL,
+    _validated_https_url(PYPI_HOMEASSISTANT_URL),
     headers={
       "User-Agent": "pawcontrol-bot/1.0",
       "Accept": "application/json",

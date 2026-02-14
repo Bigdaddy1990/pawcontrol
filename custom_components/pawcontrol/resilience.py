@@ -26,6 +26,7 @@ from .exceptions import RateLimitError
 from .exceptions import ServiceUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
+_SECURE_RANDOM = random.SystemRandom()
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -385,7 +386,7 @@ class RetryStrategy:
     # Add jitter
     if self._config.jitter > 0:
       jitter_amount = delay * self._config.jitter
-      delay += random.uniform(-jitter_amount, jitter_amount)
+      delay += _SECURE_RANDOM.uniform(-jitter_amount, jitter_amount)
 
     return max(0.0, delay)
 
