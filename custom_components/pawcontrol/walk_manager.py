@@ -731,7 +731,7 @@ class WalkManager:
             0.0,
             min(float(detection_confidence), 1.0),
           )
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
           confidence_value = None
 
       detection_payload: WalkDetectionMutableMetadata | None = None
@@ -1237,7 +1237,7 @@ class WalkManager:
         walk_date = walk_time.date()
         date_str = walk_date.isoformat()
         walks_by_date[date_str] = walks_by_date.get(date_str, 0) + 1
-      except (ValueError, TypeError):
+      except ValueError, TypeError:
         continue
 
     # Calculate streak
@@ -1464,7 +1464,7 @@ class WalkManager:
             recent_walks.append(
               cast(WalkSessionSnapshot, dict(walk)),
             )
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
           continue
 
       ordered = sorted(
@@ -2207,7 +2207,7 @@ class WalkManager:
         dt = dt.astimezone(dt_util.UTC)
 
       return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
       # Fallback to current time if parsing fails
       return dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -2262,7 +2262,7 @@ class WalkManager:
             point_time = dt_util.parse_datetime(timestamp)
             if point_time:
               duration_from_start = (point_time - start_time).total_seconds()
-          except (ValueError, TypeError):
+          except ValueError, TypeError:
             pass
 
         # Calculate cumulative distance
