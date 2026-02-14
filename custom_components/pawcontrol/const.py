@@ -18,8 +18,7 @@ from collections.abc import Mapping
 from datetime import timedelta
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Any
-from typing import Final
+from typing import Any, Final
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -284,7 +283,7 @@ RESILIENCE_BREAKER_THRESHOLD_MIN: Final[int] = 0
 RESILIENCE_BREAKER_THRESHOLD_MAX: Final[int] = 10
 
 # OPTIMIZED: Reusable selector configurations
-GPS_UPDATE_INTERVAL_SELECTOR: Final[NumberSelectorType] = selector.NumberSelector(
+GPS_UPDATE_INTERVAL_SELECTOR: Final[Any] = selector.NumberSelector(
   selector.NumberSelectorConfig(
     min=30,
     max=600,
@@ -294,7 +293,7 @@ GPS_UPDATE_INTERVAL_SELECTOR: Final[NumberSelectorType] = selector.NumberSelecto
   ),
 )
 
-GPS_ACCURACY_FILTER_SELECTOR: Final[NumberSelectorType] = selector.NumberSelector(
+GPS_ACCURACY_FILTER_SELECTOR: Final[Any] = selector.NumberSelector(
   selector.NumberSelectorConfig(
     min=5,
     max=500,

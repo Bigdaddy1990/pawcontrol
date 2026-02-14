@@ -273,9 +273,7 @@ class HomeAssistant:
       _entries={},
     )
     self.config_entries.async_get_entry = lambda entry_id: (
-      self.config_entries._entries.get(
-        entry_id,
-      )
+      self.config_entries._entries.get(entry_id)
     )
     self.config_entries.async_entries = lambda domain=None: [
       entry
