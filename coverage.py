@@ -64,9 +64,10 @@ class Coverage:
     if not filename or filename.startswith("<"):
       return None
 
-    cached = self._resolved_path_cache.get(filename)
-    if filename in self._resolved_path_cache:
-      return cached
+    try:
+      return self._resolved_path_cache[filename]
+    except KeyError:
+      pass  # Not in cache, resolve below.
 
     absolute_filename = os.path.abspath(filename)
     if self._source_root_strings and not any(
