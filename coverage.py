@@ -78,7 +78,6 @@ class Coverage:
       return None
 
     path = Path(filename)
-    path = Path(filename)
     result: Path | None = None
     if path.exists():
       resolved = path.resolve()
