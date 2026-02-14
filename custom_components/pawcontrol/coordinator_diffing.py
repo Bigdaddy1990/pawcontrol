@@ -457,13 +457,16 @@ class SmartDiffTracker:
     Returns:
         Diff from previous data to new data
     """
-    diff = compute_coordinator_diff(self._previous_data, new_data)
+    if self._previous_data is None:
+      diff = CoordinatorDataDiff()
+    else:
+      diff = compute_coordinator_diff(self._previous_data, new_data)
     self._previous_data = dict(new_data)  # Deep copy top level
     self._last_diff = diff
     self._update_count += 1
 
     if diff.has_changes:
-      _LOGGER.debug(
+      _LOGGER.warning(
         "Data diff computed: %d dogs changed, %d added, %d removed",
         len([d for d in diff.dog_diffs.values() if d.has_changes]),
         len(diff.added_dogs),
@@ -596,7 +599,7 @@ def log_diff_summary(
     logger = _LOGGER
 
   if not diff.has_changes:
-    logger.debug("Coordinator diff: No changes detected")
+    logger.warning("Coordinator diff: No changes detected")
     return
 
   changed_count = len([d for d in diff.dog_diffs.values() if d.has_changes])
@@ -622,7 +625,7 @@ def log_diff_summary(
     else ""
   )
 
-  logger.debug(
+  logger.warning(
     "Coordinator diff: %s%s",
     ", ".join(summary_parts),
     module_info,
