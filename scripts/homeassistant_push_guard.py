@@ -19,8 +19,8 @@ from urllib.parse import urlparse
 from urllib.request import Request
 from urllib.request import urlopen
 
-from pip._vendor.packaging.version import InvalidVersion
-from pip._vendor.packaging.version import Version
+from packaging.version import InvalidVersion
+from packaging.version import Version
 
 DEFAULT_RULES_PATH = Path("scripts/homeassistant_upgrade_rules.json")
 DEFAULT_SOURCE_ROOT = Path("custom_components/pawcontrol")

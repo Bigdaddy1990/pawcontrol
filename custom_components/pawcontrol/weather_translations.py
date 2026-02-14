@@ -21,7 +21,7 @@ class WeatherAlertTranslation(TypedDict):
   message: str
 
 
-WEATHER_ALERT_KEYS: Final = (
+_WEATHER_ALERT_KEYS: Final = (
   "extreme_cold_warning",
   "extreme_heat_warning",
   "extreme_uv_warning",
@@ -35,13 +35,13 @@ WEATHER_ALERT_KEYS: Final = (
   "wet_weather_advisory",
 )
 
-type WeatherAlertKey = Literal[*WEATHER_ALERT_KEYS]
+type WeatherAlertKey = Literal[*_WEATHER_ALERT_KEYS]
 
 
 type WeatherAlertTranslations = dict[WeatherAlertKey, WeatherAlertTranslation]
 
 
-WEATHER_RECOMMENDATION_KEYS: Final = (
+_WEATHER_RECOMMENDATION_KEYS: Final = (
   "avoid_peak_hours",
   "avoid_peak_uv",
   "avoid_until_passes",
@@ -96,7 +96,7 @@ WEATHER_RECOMMENDATION_KEYS: Final = (
   "waterproof_protection",
 )
 
-type WeatherRecommendationKey = Literal[*WEATHER_RECOMMENDATION_KEYS]
+type WeatherRecommendationKey = Literal[*_WEATHER_RECOMMENDATION_KEYS]
 
 
 type WeatherRecommendationTranslations = dict[WeatherRecommendationKey, str]
@@ -115,10 +115,10 @@ type LanguageCode = Literal["de", "en", "es", "fr"]
 DEFAULT_LANGUAGE: Final[LanguageCode] = "en"
 
 WEATHER_ALERT_KEY_SET: Final[frozenset[WeatherAlertKey]] = frozenset(
-  WEATHER_ALERT_KEYS,
+  _WEATHER_ALERT_KEYS,
 )
 WEATHER_RECOMMENDATION_KEY_SET: Final[frozenset[WeatherRecommendationKey]] = frozenset(
-  WEATHER_RECOMMENDATION_KEYS,
+  _WEATHER_RECOMMENDATION_KEYS,
 )
 
 SUPPORTED_LANGUAGES: Final[frozenset[LanguageCode]] = frozenset(
@@ -162,7 +162,7 @@ def _load_static_common_translations(language: str) -> dict[str, str]:
       return {}
     try:
       data = json.loads(file_path.read_text(encoding="utf-8"))
-    except OSError, ValueError:
+    except (OSError, ValueError):
       return {}
     common = data.get("common", {})
     return common if isinstance(common, dict) else {}
@@ -185,7 +185,7 @@ def get_weather_translations(language: str) -> WeatherTranslations:
       "title": str(common.get(_weather_alert_title_key(alert_key), alert_key)),
       "message": str(common.get(_weather_alert_message_key(alert_key), alert_key)),
     }
-    for alert_key in WEATHER_ALERT_KEYS
+    for alert_key in _WEATHER_ALERT_KEYS
   }
 
   recommendations: WeatherRecommendationTranslations = {
@@ -195,7 +195,7 @@ def get_weather_translations(language: str) -> WeatherTranslations:
         recommendation_key,
       )
     )
-    for recommendation_key in WEATHER_RECOMMENDATION_KEYS
+    for recommendation_key in _WEATHER_RECOMMENDATION_KEYS
   }
 
   return {"alerts": alerts, "recommendations": recommendations}
@@ -230,7 +230,7 @@ async def async_get_weather_translations(
         default=alert_key,
       ),
     }
-    for alert_key in WEATHER_ALERT_KEYS
+    for alert_key in _WEATHER_ALERT_KEYS
   }
 
   recommendations: WeatherRecommendationTranslations = {
@@ -240,7 +240,7 @@ async def async_get_weather_translations(
       _weather_recommendation_key(recommendation_key),
       default=recommendation_key,
     )
-    for recommendation_key in WEATHER_RECOMMENDATION_KEYS
+    for recommendation_key in _WEATHER_RECOMMENDATION_KEYS
   }
 
   return {"alerts": alerts, "recommendations": recommendations}

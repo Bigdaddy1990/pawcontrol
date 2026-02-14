@@ -92,7 +92,7 @@ def _parse_coverage_percent(coverage_xml: Path) -> float:
   line_rate = root.attrib.get("line-rate")
   try:
     return float(line_rate) * 100.0
-  except TypeError, ValueError:
+  except (TypeError, ValueError):
     return 0.0
 
 
@@ -427,7 +427,7 @@ def publish(args: argparse.Namespace) -> PublishResult:
             args.pages_prefix,
             timedelta(days=args.prune_max_age_days),
           )
-      except PublishError, urllib.error.URLError:
+      except (PublishError, urllib.error.URLError):
         published = False
         url = None
 

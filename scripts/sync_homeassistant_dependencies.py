@@ -251,7 +251,7 @@ def highest_version(specifier_set: Iterable[Specifier]) -> Version | None:
   for specifier in specifier_set:
     try:
       version = Version(specifier.version)
-    except InvalidVersion, TypeError:
+    except (InvalidVersion, TypeError):
       continue
     if highest is None or version > highest:
       highest = version

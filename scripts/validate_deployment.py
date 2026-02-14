@@ -243,7 +243,7 @@ class DeploymentValidator:
         },
       )
 
-    except json.JSONDecodeError, KeyError:
+    except (json.JSONDecodeError, KeyError):
       return CheckResult(
         name="Security Scan",
         passed=True,

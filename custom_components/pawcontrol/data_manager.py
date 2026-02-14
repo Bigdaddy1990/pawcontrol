@@ -2014,7 +2014,7 @@ class PawControlDataManager:
       if isinstance(raw_value, int | float):
         try:
           iso = datetime.fromtimestamp(float(raw_value)).isoformat()
-        except OverflowError, ValueError:
+        except (OverflowError, ValueError):
           iso = ""
         return (0, iso)
       if isinstance(raw_value, str):
