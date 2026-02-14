@@ -330,6 +330,15 @@ class TestResolveEventPath:
     result = cov._resolve_event_path(__file__)
     assert result is None
 
+  def test_resolve_event_path_caches_non_matching_paths(self) -> None:
+    """_resolve_event_path should memoize skipped paths for speed."""
+    cov = coverage.Coverage(source=("custom_components/pawcontrol",))
+
+    result = cov._resolve_event_path(__file__)
+
+    assert result is None
+    assert __file__ in cov._resolved_path_cache
+
 
 class TestHandleLineEvent:
   """Tests for _handle_line_event method."""
