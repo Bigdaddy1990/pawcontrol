@@ -551,7 +551,6 @@ def _ensure_runtime_performance_store(runtime_data: object) -> dict[str, Any]:
   return store
 
 
-
 @contextmanager
 def performance_tracker(
   runtime_data: object,

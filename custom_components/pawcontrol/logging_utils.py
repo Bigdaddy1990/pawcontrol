@@ -35,8 +35,8 @@ T = TypeVar("T")
 _correlation_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
   "correlation_id", default=None
 )
-_request_context: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar(
-  "request_context", default=None
+_request_context: contextvars.ContextVar[dict[str, Any] | None] = (
+  contextvars.ContextVar("request_context", default=None)
 )
 
 

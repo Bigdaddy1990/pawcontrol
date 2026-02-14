@@ -986,8 +986,6 @@ class ServiceUnavailableError(NetworkError):
     self.service_name = service_name
 
 
-
-
 class AuthenticationError(PawControlError):
   """Exception raised when authentication validation fails."""
 

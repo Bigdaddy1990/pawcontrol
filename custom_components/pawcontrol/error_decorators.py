@@ -403,7 +403,6 @@ def map_to_repair_issue(
             hass = instance.coordinator.hass
 
         if hass is not None:
-
           issue_registry.async_create_issue(
             hass,
             "pawcontrol",

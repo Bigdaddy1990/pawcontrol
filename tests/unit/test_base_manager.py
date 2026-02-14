@@ -217,8 +217,6 @@ class TestBaseManager:
     assert "has_coordinator=False" in repr_str
 
 
-
-
 class DummyDataManager(DataManager):
   """Concrete DataManager used by tests."""
 
