@@ -71,7 +71,7 @@ jobs:
       - name: Run prek once (apply fixes)
         run: |
           prek install
-          prek run python-typing-update --hook-stage manual --all-files
+          prek run --all-files
 
       - name: Detect changes
         id: diff
