@@ -19,8 +19,8 @@ from pathlib import Path
 from typing import Any
 
 from pip._vendor import requests
-from pip._vendor.packaging.version import InvalidVersion
-from pip._vendor.packaging.version import Version
+from packaging.version import InvalidVersion
+from packaging.version import Version
 
 ANNOTATEDYAML_INIT = Path("annotatedyaml/_vendor/yaml/__init__.py")
 PYPI_URL = "https://pypi.org/pypi/PyYAML/json"
