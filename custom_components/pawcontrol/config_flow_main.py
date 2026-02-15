@@ -127,6 +127,12 @@ MAX_DOGS_PER_INTEGRATION = 10
 # Pre-compiled validation sets for O(1) lookups
 VALID_PROFILES: frozenset[str] = frozenset(ENTITY_PROFILES.keys())
 
+USER_SCHEMA = vol.Schema(
+  {
+    vol.Required(CONF_NAME, default="Paw Control"): str,
+  },
+)
+
 DISCOVERY_SOURCE_SET: frozenset[str] = frozenset(
   {"zeroconf", "dhcp", "usb", "bluetooth", "import", "reauth"},
 )
@@ -204,17 +210,18 @@ class PawControlConfigFlow(
         reload_on_update=False,
       )
 
-      if user_input is not None:
-        integration_name = str(
-          user_input.get(CONF_NAME, self._integration_name)
-        ).strip()
-        if integration_name:
-          self._integration_name = integration_name
+      if user_input is None:
+        return self.async_show_form(
+          step_id="user",
+          data_schema=USER_SCHEMA,
+        )
 
-      # Home Assistant and unit tests expect the initial user source to jump
-      # directly into dog configuration.
+      integration_name = str(user_input.get(CONF_NAME, self._integration_name)).strip()
+      if integration_name:
+        self._integration_name = integration_name
+
       return await self.async_step_add_dog(
-        cast(DogSetupStepInput | None, user_input),
+        cast(DogSetupStepInput | None, None),
       )
 
   async def async_step_import(
