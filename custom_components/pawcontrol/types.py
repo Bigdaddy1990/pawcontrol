@@ -4416,7 +4416,13 @@ def ensure_gps_payload(
   elif satellites is not None:
     try:
       gps_payload["satellites"] = int(satellites)
-    except TypeError, ValueError:
+    except ValueError:
+      _LOGGER.warning(
+        "Invalid satellites value %s for GPS payload; setting to None",
+        satellites,
+      )
+      gps_payload["satellites"] = None
+    except TypeError:
       _LOGGER.warning(
         "Invalid satellites value %s for GPS payload; setting to None",
         satellites,

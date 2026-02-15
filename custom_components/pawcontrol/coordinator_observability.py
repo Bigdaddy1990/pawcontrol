@@ -199,7 +199,9 @@ def _coerce_float(value: Any, default: float) -> float:
 
   try:
     number = float(value)
-  except TypeError, ValueError:
+  except ValueError:
+    return default
+  except TypeError:
     return default
 
   if not isfinite(number):

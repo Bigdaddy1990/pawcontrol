@@ -1901,7 +1901,9 @@ def _as_int(value: Any) -> int:
     if isinstance(value, bool):
       return int(value)
     return int(float(value))
-  except TypeError, ValueError:
+  except ValueError:
+    return 0
+  except TypeError:
     return 0
 
 

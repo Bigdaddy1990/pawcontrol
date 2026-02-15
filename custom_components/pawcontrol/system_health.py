@@ -125,7 +125,9 @@ def _coerce_int(value: Any, *, default: int = 0) -> int:
 
   try:
     return int(value)
-  except TypeError, ValueError:
+  except ValueError:
+    return default
+  except TypeError:
     return default
 
 
@@ -134,7 +136,9 @@ def _coerce_positive_int(value: Any) -> int | None:
 
   try:
     result = int(value)
-  except TypeError, ValueError:
+  except ValueError:
+    return None
+  except TypeError:
     return None
 
   if result > 0:
@@ -1257,5 +1261,7 @@ def _coerce_float(value: Any, *, default: float = 0.0) -> float:
 
   try:
     return float(value)
-  except TypeError, ValueError:
+  except ValueError:
+    return default
+  except TypeError:
     return default
