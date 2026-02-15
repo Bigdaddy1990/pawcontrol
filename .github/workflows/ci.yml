@@ -54,6 +54,10 @@ jobs:
         run: |
           python -m scripts.sync_contributor_guides --check
 
+      - name: Check legacy exception syntax
+        run: |
+          python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
+
       - name: Run test requirements and localization sync
         run: |
           python -m scripts.enforce_docstring_baseline --update
