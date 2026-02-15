@@ -16,6 +16,14 @@ jobs:
            pip install -r requirements_test.txt
            pip install -r requirements.txt
       - name: Run tests and collect coverage
-        run: pytest --cov app
-      - name: Upload coverage to Codecov
+        run: pytest --cov app --junitxml=junit.xml -o junit_family=legacy
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5.5.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage to Codecov (no token)
+        uses: codecov/codecov-action@main
+        with:
+          fail_ci_if_error: true
+          verbose: true
