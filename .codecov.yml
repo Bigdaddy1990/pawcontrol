@@ -108,7 +108,7 @@ cli:
   plugins:
     pycoverage:
       report_type: "json"
-      
+
 component_management:
   individual_components:
     - component_id: "calculator"
