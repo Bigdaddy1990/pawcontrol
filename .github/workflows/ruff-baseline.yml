@@ -29,13 +29,12 @@ jobs:
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
           python scripts/enforce_docstring_baseline.py --update
-
           python scripts.sync_contributor_guides.py --update
           python scripts.enforce_test_requirements.py --update
           python scripts.sync_localization_flags.py \
             --allowlist scripts/sync_localization_flags.allowlist \
-            --update
-
+            --check
+          
 
       - uses: peter-evans/create-pull-request@v8
         with:

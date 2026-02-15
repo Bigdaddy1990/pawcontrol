@@ -50,13 +50,13 @@ jobs:
       - name: Run pre-commit with fixes
         run: |
          uv pip install --system --upgrade pre-commit ruff pyupgrade
-         pre-commit run --all-files || true
          pre-commit run --hook-stage manual python-typing-update --all-files || true
          ruff check . --fix || true
          ruff check . --fix --unsafe-fixes || true
          ruff check . --add-noqa || true
          ruff check . --extend-select RUF100 --fix || true
          python scripts/enforce_docstring_baseline.py --update
+         pre-commit run --all-files || true --update
 
       - name: Verify contributor guides
         run: |
@@ -73,7 +73,7 @@ jobs:
         run: |
           prek install
           prek run --all-files --check
-          prek run --hook-stage manual python-typing-update --all-files
+          prek run --hook-stage manual python-typing-update --all-files --update
 
       - name: Detect changes
         id: diff
