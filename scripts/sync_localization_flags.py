@@ -6,6 +6,7 @@ In CI we run this script in --check mode to ensure the expected files exist and 
 
 from __future__ import annotations
 
+
 import argparse
 import json
 from pathlib import Path
