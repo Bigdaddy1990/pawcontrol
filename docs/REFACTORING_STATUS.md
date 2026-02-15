@@ -1,6 +1,6 @@
 # 🐾 PawControl __init__.py Refactoring - Status
 
-**Datum:** 2026-02-15  
+**Datum:** 2026-02-15
 **Status:** ✅ SETUP-MODULE ERSTELLT
 
 ---

@@ -1,6 +1,6 @@
 # 🧪 Test Migration Guide - __init__.py Refactoring
 
-**Datum:** 2026-02-15  
+**Datum:** 2026-02-15
 **Für:** PawControl Integration Test Suite
 
 ---
@@ -9,8 +9,8 @@
 
 Nach dem Refactoring von `__init__.py` müssen **einige Tests angepasst werden**, da interne Funktionen in Setup-Module verschoben wurden.
 
-**Betroffene Tests:** ~10-20 Tests (geschätzt)  
-**Aufwand:** 2-3 Stunden  
+**Betroffene Tests:** ~10-20 Tests (geschätzt)
+**Aufwand:** 2-3 Stunden
 **Schwierigkeit:** 🟢 Niedrig (meist simple Import-Änderungen)
 
 ---
@@ -419,6 +419,6 @@ Vor dem Merge:
 
 ---
 
-**Erstellt von:** Claude (Anthropic)  
-**Datum:** 2026-02-15  
+**Erstellt von:** Claude (Anthropic)
+**Datum:** 2026-02-15
 **Version:** 1.0
