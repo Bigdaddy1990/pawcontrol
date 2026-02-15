@@ -5,6 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
+from custom_components.pawcontrol.config_flow_base import INTEGRATION_SCHEMA
 from custom_components.pawcontrol.const import CONF_DOG_ID
 from custom_components.pawcontrol.const import CONF_DOG_NAME
 from custom_components.pawcontrol.const import CONF_DOGS
@@ -21,6 +22,18 @@ async def test_user_step_shows_form(hass: HomeAssistant) -> None:
 
   assert result["type"] == FlowResultType.FORM
   assert result["step_id"] == "user"
+  assert result["data_schema"] == INTEGRATION_SCHEMA
+
+
+async def test_user_step_rejects_invalid_name(hass: HomeAssistant) -> None:
+  flow = PawControlConfigFlow()
+  flow.hass = hass
+
+  result = await flow.async_step_user({CONF_NAME: ""})
+
+  assert result["type"] == FlowResultType.FORM
+  assert result["step_id"] == "user"
+  assert result["errors"] == {CONF_NAME: "integration_name_required"}
 
 
 async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:
@@ -30,6 +43,7 @@ async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:
   user = await flow.async_step_user({CONF_NAME: "Paw Control"})
   assert user["type"] == FlowResultType.FORM
   assert user["step_id"] == "add_dog"
+  assert flow._integration_name == "Paw Control"
 
   dog_step = await flow.async_step_add_dog(
     {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy_1"}
