@@ -1,4 +1,5 @@
 """Fallback YAML loader used in the test environment."""
+
 from __future__ import annotations
 
 

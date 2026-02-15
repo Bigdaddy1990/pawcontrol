@@ -1,4 +1,5 @@
 """Device triggers for PawControl."""
+
 from __future__ import annotations
 
 

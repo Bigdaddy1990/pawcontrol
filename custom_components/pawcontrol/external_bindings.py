@@ -14,6 +14,7 @@ Notes:
   is an entity_id, not one of the push keywords.
 - Telemetry / strict source checks for webhook/MQTT are handled by push_router.py.
 """
+
 from __future__ import annotations
 
 

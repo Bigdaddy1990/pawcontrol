@@ -7,6 +7,7 @@ Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 
@@ -623,7 +624,9 @@ class NotificationCache[ConfigT: NotificationConfig]:
         is_quiet, cache_reference, _timestamp = cached_value
       cache_monotonic = self._quiet_cache_monotonic(cache_reference)
       now_reference = (
-        _dt_now().timestamp() if isinstance(cache_reference, datetime) else time.monotonic()
+        _dt_now().timestamp()
+        if isinstance(cache_reference, datetime)
+        else time.monotonic()
       )
       if now_reference - cache_monotonic < QUIET_TIME_CACHE_TTL:
         return True, is_quiet
@@ -700,7 +703,8 @@ class NotificationCache[ConfigT: NotificationConfig]:
         (
           _dt_now().timestamp() - self._quiet_cache_monotonic(entry[1])
           if len(entry) >= 2 and isinstance(entry[1], datetime)
-          else now_monotonic - self._quiet_cache_monotonic(entry[1] if len(entry) >= 2 else 0.0)
+          else now_monotonic
+          - self._quiet_cache_monotonic(entry[1] if len(entry) >= 2 else 0.0)
         )
         > QUIET_TIME_CACHE_TTL
       )
@@ -2644,7 +2648,9 @@ class PawControlNotificationManager:
     active_tasks = [task for task in tasks_to_cancel if task is not None]
     current_loop = asyncio.get_running_loop()
     same_loop_tasks = [
-      task for task in active_tasks if getattr(task, "get_loop", lambda: current_loop)() is current_loop
+      task
+      for task in active_tasks
+      if getattr(task, "get_loop", lambda: current_loop)() is current_loop
     ]
     if same_loop_tasks:
       await asyncio.gather(*same_loop_tasks, return_exceptions=True)

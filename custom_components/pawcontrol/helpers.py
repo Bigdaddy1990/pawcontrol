@@ -3,6 +3,7 @@
 OPTIMIZED VERSION with async performance improvements, batch operations,
 and memory-efficient data management for Platinum quality ambitions.
 """
+
 from __future__ import annotations
 
 
@@ -768,7 +769,7 @@ class PawControlDataStorage:
               before,
               len(limited_slice),
             )
-          except (TypeError, KeyError):
+          except TypeError, KeyError:
             # Fallback to simple truncation
             before = len(value)
             truncated = value[-MAX_HISTORY_ITEMS:]
@@ -1415,7 +1416,7 @@ class PawControlData:
 
     try:
       dog_id = events[0]["dog_id"]
-    except (IndexError, KeyError):
+    except IndexError, KeyError:
       _LOGGER.error("Health event batch missing dog identifier")
       return
 
@@ -1492,7 +1493,7 @@ class PawControlData:
 
     try:
       dog_id = events[0]["dog_id"]
-    except (IndexError, KeyError):
+    except IndexError, KeyError:
       _LOGGER.error("Walk event batch missing dog identifier")
       return
 

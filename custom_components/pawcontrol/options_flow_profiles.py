@@ -1,4 +1,5 @@
 """Entity profile and performance related steps for the PawControl options flow."""
+
 from __future__ import annotations
 
 
@@ -203,7 +204,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
           self._normalise_export_value(dict(telemetry)),
           sort_keys=True,
         )
-      except (TypeError, ValueError):
+      except TypeError, ValueError:
         telemetry_digest = repr(sorted(telemetry.items()))
     serializable_dogs = [cast(JSONMutableMapping, dict(dog)) for dog in current_dogs]
     cache_key = (

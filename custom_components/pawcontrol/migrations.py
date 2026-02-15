@@ -1,4 +1,5 @@
 """Config entry migrations for the PawControl integration."""
+
 from __future__ import annotations
 
 

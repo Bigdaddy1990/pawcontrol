@@ -1,4 +1,5 @@
 """Coordinator for the PawControl integration."""
+
 from __future__ import annotations
 
 

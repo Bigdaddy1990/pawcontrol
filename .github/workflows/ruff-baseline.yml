@@ -35,7 +35,7 @@ jobs:
           python scripts.sync_localization_flags.py \
             --allowlist scripts/sync_localization_flags.allowlist \
             --update
-          
+
 
       - uses: peter-evans/create-pull-request@v8
         with:

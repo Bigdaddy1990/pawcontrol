@@ -1,4 +1,5 @@
 """Shared validation helpers for config and options flows."""
+
 from __future__ import annotations
 
 

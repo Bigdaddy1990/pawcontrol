@@ -1,4 +1,5 @@
 """JSON schemas and validators for PawControl configuration payloads."""
+
 from __future__ import annotations
 
 
