@@ -33,7 +33,7 @@ src = ["custom_components"]
 indent-width = 2
 show-fixes = true
 fix = true
-#unsafe-fixes = true
+unsafe-fixes = true
 
 [tool.ruff.analyze]
 detect-string-imports = true
