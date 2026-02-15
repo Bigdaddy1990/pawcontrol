@@ -1,6 +1,6 @@
 """GPS flow helpers for Paw Control configuration and options."""
-
 from __future__ import annotations
+
 
 import logging
 from collections.abc import Mapping
@@ -74,7 +74,6 @@ from ..types import JSONLikeMapping
 from ..types import JSONMutableMapping
 from ..types import JSONValue
 from ..types import OptionsDogSelectionInput
-from ..types import OptionsGeofenceInput
 from ..types import OptionsGPSSettingsInput
 from ..types import ROUTE_HISTORY_DAYS_FIELD
 from ..types import ROUTE_RECORDING_FIELD
@@ -88,7 +87,6 @@ from .gps_helpers import build_dog_gps_placeholders
 from .gps_helpers import validation_error_key
 from .gps_schemas import build_dog_gps_schema
 from .gps_schemas import build_geofence_settings_schema
-from .gps_schemas import build_gps_settings_schema
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -747,19 +745,14 @@ class GPSOptionsMixin(GPSOptionsHost):
   ) -> vol.Schema:
     """Build schema for GPS settings."""
 
-    return build_gps_settings_schema(current_options)
+    # Check for an explicitly selected dog before _require_current_dog might
+    # default to the only configured dog.
+    explicitly_selected_dog = self._current_dog
+    self._require_current_dog()
 
-  async def async_step_geofence_settings(
-    self,
-    user_input: OptionsGeofenceInput | None = None,
-  ) -> ConfigFlowResult:
-    """Configure geofencing settings."""
-
-    explicit_current_dog = self._current_dog is not None
-    current_dog = self._require_current_dog()
     dog_id: str | None = None
-    if current_dog is not None and explicit_current_dog:
-      current_dog_id = current_dog.get(DOG_ID_FIELD)
+    if explicitly_selected_dog:
+      current_dog_id = explicitly_selected_dog.get(DOG_ID_FIELD)
       if isinstance(current_dog_id, str):
         dog_id = current_dog_id
 

@@ -5,8 +5,8 @@ including weight settings, timing controls, thresholds, and system parameters.
 All number entities are designed to meet Home Assistant's Platinum quality ambitions
 with full type annotations, async operations, and robust validation.
 """
-
 from __future__ import annotations
+
 
 import asyncio
 import logging

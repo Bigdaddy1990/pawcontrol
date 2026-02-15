@@ -16,7 +16,18 @@ repos:
     hooks:
       - id: pyupgrade
         args:
-          - --py313-plus
+          - --py314-plus
+  - repo: https://github.com/cdce8p/python-typing-update
+    rev: v0.8.1
+    hooks:
+      - id: python-typing-update
+        stages: [manual]
+        args:
+          - --py314-plus
+          - --full-reorder
+          - --force
+          - --keep-updates
+        files: ^(homeassistant|tests|scripts)/.+\.py$
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:
@@ -34,7 +45,6 @@ repos:
           - python
           - pyi
         files: ^((homeassistant|scripts|tests)/.+)?[^/]+\.(py|pyi)$
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -64,17 +74,6 @@ repos:
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
-
-  - repo: https://github.com/cdce8p/python-typing-update
-    rev: v0.8.1
-    hooks:
-      - id: python-typing-update
-        stages: [pre-push]
-        args:
-          - --py314-plus
-          - --force
-          - --keep-updates
-        files: ^(homeassistant|tests|scripts)/.+\.py$
 
   - repo: local
     hooks:

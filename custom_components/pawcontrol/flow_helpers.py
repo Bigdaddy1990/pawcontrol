@@ -7,8 +7,8 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
+
 
 from typing import Any
 from typing import cast
@@ -248,16 +248,19 @@ def create_menu_result(
 
   Examples:
       >>> result = create_menu_result(
-      ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
+      ...   flow=self, step_id="menu", menu_options=["dogs", "modules", "settings"]
       ... )
   """
-def create_menu_result(  # noqa: F811
-    menu_options: list[str],
-    *,
-    flow: Any | None = None,  # Make parameter optional
-    step_id: str = "init",
-    description_placeholders: dict[str, str] | None = None,
-) -> FlowStepResult:
+  if flow is None:
+    return cast(
+      FlowStepResult,
+      {
+        "type": data_entry_flow.FlowResultType.MENU,
+        "step_id": step_id,
+        "menu_options": menu_options,
+        "description_placeholders": description_placeholders,
+      },
+    )
 
   return cast(
     FlowStepResult,

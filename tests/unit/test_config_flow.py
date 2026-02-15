@@ -1,10 +1,10 @@
 from __future__ import annotations
-
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
+from custom_components.pawcontrol.config_flow_base import INTEGRATION_SCHEMA
 from custom_components.pawcontrol.const import CONF_DOG_ID
 from custom_components.pawcontrol.const import CONF_DOG_NAME
 from custom_components.pawcontrol.const import CONF_DOGS
@@ -30,6 +30,7 @@ async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:
   user = await flow.async_step_user({CONF_NAME: "Paw Control"})
   assert user["type"] == FlowResultType.FORM
   assert user["step_id"] == "add_dog"
+  assert flow._integration_name == "Paw Control"
 
   dog_step = await flow.async_step_add_dog(
     {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy_1"}

@@ -9,6 +9,7 @@ presence for the PawControl integration.
 
 from __future__ import annotations
 
+
 import json
 import sys
 from argparse import ArgumentParser

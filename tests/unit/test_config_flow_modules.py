@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 from types import MappingProxyType
 from types import SimpleNamespace
 from typing import Any

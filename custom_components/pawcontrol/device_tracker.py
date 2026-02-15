@@ -13,8 +13,8 @@ statements and the return type of ``extra_state_attributes`` to satisfy strict
 typing rules. All other functionality—GPS tracking, route recording, geofence
 integration, and export utilities—remains unchanged.
 """
-
 from __future__ import annotations
+
 
 import logging
 from collections.abc import Mapping
