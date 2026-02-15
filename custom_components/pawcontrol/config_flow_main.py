@@ -182,6 +182,7 @@ class PawControlConfigFlow(
     self._profile_estimates_cache: dict[str, int] = {}
     self._enabled_modules: DogModulesConfig = {}
     self._external_entities: ExternalEntityConfig = {}
+    self._discovery_info: ConfigFlowDiscoveryData = {}
 
   async def async_step_user(
     self,
@@ -196,27 +197,22 @@ class PawControlConfigFlow(
         Config flow result
     """
     async with timed_operation("user_step"):
-      if user_input is None:
-        return self.async_show_form(
-          step_id="user",
-          data_schema=vol.Schema(
-            {
-              vol.Required(CONF_NAME, default=self._integration_name): str,
-            },
-          ),
-        )
-
-      integration_name = str(user_input.get(CONF_NAME, self._integration_name)).strip()
-      if integration_name:
-        self._integration_name = integration_name
-
-      # Ensure single instance with improved messaging
+      # Ensure single instance before showing any user-step UI.
       await self.async_set_unique_id(DOMAIN)
       self._abort_if_unique_id_configured(
         updates={},
         reload_on_update=False,
       )
 
+      if user_input is not None:
+        integration_name = str(
+          user_input.get(CONF_NAME, self._integration_name)
+        ).strip()
+        if integration_name:
+          self._integration_name = integration_name
+
+      # Home Assistant and unit tests expect the initial user source to jump
+      # directly into dog configuration.
       return await self.async_step_add_dog(
         cast(DogSetupStepInput | None, user_input),
       )

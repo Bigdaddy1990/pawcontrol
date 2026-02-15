@@ -251,6 +251,17 @@ def create_menu_result(
       ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
       ... )
   """
+  if flow is None:
+    return cast(
+      FlowStepResult,
+      {
+        "type": data_entry_flow.FlowResultType.MENU,
+        "step_id": step_id,
+        "menu_options": menu_options,
+        "description_placeholders": description_placeholders,
+      },
+    )
+
   return cast(
     FlowStepResult,
     flow.async_show_menu(
@@ -280,6 +291,16 @@ def create_abort_result(
   Examples:
       >>> result = create_abort_result(flow=self, reason="already_configured")
   """
+  if flow is None:
+    return cast(
+      FlowStepResult,
+      {
+        "type": data_entry_flow.FlowResultType.ABORT,
+        "reason": reason,
+        "description_placeholders": description_placeholders,
+      },
+    )
+
   return cast(
     FlowStepResult,
     flow.async_abort(
@@ -312,6 +333,17 @@ def create_progress_result(
       ...   flow=self, step_id="validate", progress_action="validating"
       ... )
   """
+  if flow is None:
+    return cast(
+      FlowStepResult,
+      {
+        "type": data_entry_flow.FlowResultType.SHOW_PROGRESS,
+        "step_id": step_id,
+        "progress_action": progress_action,
+        "description_placeholders": description_placeholders,
+      },
+    )
+
   return cast(
     FlowStepResult,
     flow.async_show_progress(

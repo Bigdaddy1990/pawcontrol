@@ -458,7 +458,7 @@ class SmartDiffTracker:
         Diff from previous data to new data
     """
     if self._previous_data is None:
-      diff = CoordinatorDataDiff()
+      diff = compute_coordinator_diff({}, new_data)
     else:
       diff = compute_coordinator_diff(self._previous_data, new_data)
     self._previous_data = dict(new_data)  # Deep copy top level

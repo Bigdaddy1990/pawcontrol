@@ -6347,7 +6347,7 @@ CoordinatorDataPayload = dict[str, CoordinatorDogData]
 class CoordinatorRejectionMetrics(TypedDict):
   """Normalised rejection counters exposed via diagnostics payloads."""
 
-  schema_version: Literal[3]
+  schema_version: Literal[4]
   rejected_call_count: int
   rejection_breaker_count: int
   rejection_rate: float | None
