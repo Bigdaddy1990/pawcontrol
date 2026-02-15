@@ -17,6 +17,7 @@ repos:
       - id: pyupgrade
         args:
           - --py314-plus
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
@@ -26,6 +27,7 @@ repos:
           - --py314-plus
           - --full-reorder
           - --keep-updates
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:
@@ -42,6 +44,7 @@ repos:
         types_or:
           - python
           - pyi
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/**|docs/**|*scripts*/**)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
