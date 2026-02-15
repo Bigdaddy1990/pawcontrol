@@ -128,6 +128,33 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
   _current_dog: DogConfigData | None
   _dogs: list[DogConfigData]
 
+  @staticmethod
+  def _string_sequence(value: Any) -> list[str]:
+    """Return ``value`` as a list of non-empty strings.
+
+    Home Assistant flows frequently persist legacy payloads where a field can be
+    a scalar string, a list, or an arbitrary serialisable value. Normalise those
+    variants to a stable ``list[str]`` for placeholder rendering.
+    """
+
+    if value is None:
+      return []
+
+    if isinstance(value, str):
+      candidate = value.strip()
+      return [candidate] if candidate else []
+
+    if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
+      values: list[str] = []
+      for item in value:
+        candidate = item.strip() if isinstance(item, str) else str(item).strip()
+        if candidate:
+          values.append(candidate)
+      return values
+
+    candidate = str(value).strip()
+    return [candidate] if candidate else []
+
   def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:
     """Return description placeholders enumerating known manual events."""
 

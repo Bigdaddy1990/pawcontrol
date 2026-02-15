@@ -233,7 +233,7 @@ def create_menu_result(
   menu_options: list[str],
   *,
   flow: ConfigFlow | OptionsFlow | None = None,
-  step_id: str = "init",
+  step_id: str = "menu",
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized menu result for config/options flows.

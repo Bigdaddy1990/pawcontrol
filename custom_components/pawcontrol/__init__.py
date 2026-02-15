@@ -79,6 +79,109 @@ ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 # PawControl is configured exclusively via the UI/config entries (no YAML setup).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+_CACHE_TTL_SECONDS: Final[int] = 300
+_MAX_CACHE_SIZE: Final[int] = 128
+_DEFAULT_PLATFORMS: Final[tuple[Platform, ...]] = tuple(
+  sorted(
+    {
+      Platform.BUTTON,
+      Platform.SENSOR,
+      Platform.SWITCH,
+    },
+    key=lambda platform: platform.value,
+  ),
+)
+_PLATFORM_CACHE: dict[
+  tuple[int, str, frozenset[str]],
+  tuple[tuple[Platform, ...], float],
+] = {}
+
+_MODULE_PLATFORM_MAP: Final[dict[str, set[Platform]]] = {
+  "gps": {Platform.BINARY_SENSOR, Platform.DEVICE_TRACKER, Platform.NUMBER},
+  "feeding": {Platform.BINARY_SENSOR, Platform.SELECT},
+  "health": {Platform.DATE, Platform.TEXT},
+  "walk": {Platform.NUMBER},
+  "notifications": {Platform.SWITCH},
+}
+
+_PROFILE_BASE_PLATFORMS: Final[dict[str, set[Platform]]] = {
+  "standard": {Platform.BUTTON, Platform.SENSOR, Platform.SWITCH},
+  "gps_focus": {
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.SWITCH,
+  },
+  "health_focus": {
+    Platform.BUTTON,
+    Platform.DATE,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.TEXT,
+  },
+  "advanced": {
+    Platform.BUTTON,
+    Platform.DATETIME,
+    Platform.SENSOR,
+  },
+}
+
+
+def _cleanup_platform_cache() -> None:
+  """Drop expired cache entries and cap cache size."""
+
+  now = time.monotonic()
+  expired_keys = [
+    key
+    for key, (_, timestamp) in _PLATFORM_CACHE.items()
+    if now - timestamp > _CACHE_TTL_SECONDS
+  ]
+  for key in expired_keys:
+    _PLATFORM_CACHE.pop(key, None)
+
+  while len(_PLATFORM_CACHE) > _MAX_CACHE_SIZE:
+    oldest_key = min(
+      _PLATFORM_CACHE.items(),
+      key=lambda item: item[1][1],
+    )[0]
+    _PLATFORM_CACHE.pop(oldest_key, None)
+
+
+def get_platforms_for_profile_and_modules(
+  dogs: Sequence[DogConfigData],
+  profile: str,
+) -> tuple[Platform, ...]:
+  """Return enabled Home Assistant platforms for the configured profile."""
+
+  if not dogs:
+    return _DEFAULT_PLATFORMS
+
+  active_modules: set[str] = set()
+  for dog in dogs:
+    modules = dog.get("modules")
+    if not isinstance(modules, Mapping):
+      continue
+    for module_name, enabled in modules.items():
+      if enabled and module_name in _MODULE_PLATFORM_MAP:
+        active_modules.add(module_name)
+
+  cache_key = (len(dogs), profile, frozenset(active_modules))
+  now = time.time()
+  cached = _PLATFORM_CACHE.get(cache_key)
+  if cached and now - cached[1] <= _CACHE_TTL_SECONDS:
+    return cached[0]
+
+  _cleanup_platform_cache()
+
+  platforms = set(_PROFILE_BASE_PLATFORMS.get(profile, _DEFAULT_PLATFORMS))
+  for module_name in active_modules:
+    platforms.update(_MODULE_PLATFORM_MAP[module_name])
+
+  resolved = tuple(sorted(platforms, key=lambda platform: platform.value))
+  _PLATFORM_CACHE[cache_key] = (resolved, now)
+  return resolved
+
 
 def _enable_debug_logging(entry: PawControlConfigEntry) -> bool:
   """Enable package-level debug logging when requested by the entry."""
@@ -378,6 +481,9 @@ async def async_unload_entry(
 
   # Remove from runtime storage
   pop_runtime_data(hass, entry)
+
+  # Platform selection cache depends on active dog modules/profile snapshots.
+  _PLATFORM_CACHE.clear()
 
   # Cleanup service manager if last entry
   domain_data = hass.data.get(DOMAIN, {})
