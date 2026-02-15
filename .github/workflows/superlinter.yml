@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   lint:
-    # Super-linter workflow running in check only mode
+   # Super-linter workflow running in check only mode
     # See https://github.com/super-linter/super-linter#get-started
 
   fix-lint-issues:
