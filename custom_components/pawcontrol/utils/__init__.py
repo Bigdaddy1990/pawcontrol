@@ -5,7 +5,6 @@ Provides common utilities for serialization, normalization, and data processing.
 
 from __future__ import annotations
 
-
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
 from pathlib import Path
@@ -28,8 +27,8 @@ _legacy_utils_spec = spec_from_file_location(
   _LEGACY_UTILS_PATH,
 )
 
-
 @lru_cache(maxsize=1)
+
 def _get_legacy_utils() -> ModuleType:
   """Load and return the legacy utils module, caching the result."""
   if _legacy_utils_spec is None or _legacy_utils_spec.loader is None:
