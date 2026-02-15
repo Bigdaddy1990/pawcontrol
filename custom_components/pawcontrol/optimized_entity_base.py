@@ -22,9 +22,6 @@ Features:
 - Intelligent state restoration and persistence
 """
 
-from __future__ import annotations
-
-
 import asyncio
 import gc
 import inspect

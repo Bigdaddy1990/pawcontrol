@@ -1,8 +1,5 @@
 """JSON schemas and validators for PawControl configuration payloads."""
 
-from __future__ import annotations
-
-
 from dataclasses import dataclass
 from numbers import Real
 from typing import Any

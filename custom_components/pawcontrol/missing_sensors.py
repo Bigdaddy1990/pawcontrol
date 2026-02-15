@@ -1,8 +1,5 @@
 """Supplementary sensors that expose derived PawControl telemetry."""
 
-from __future__ import annotations
-
-
 import contextlib
 from collections.abc import Mapping
 from datetime import datetime

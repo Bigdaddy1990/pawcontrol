@@ -11,9 +11,6 @@ Python: 3.14+
 HA: 2025.9.3+
 """
 
-from __future__ import annotations
-
-
 import re
 from collections.abc import Mapping
 from datetime import timedelta

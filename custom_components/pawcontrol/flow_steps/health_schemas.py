@@ -1,8 +1,5 @@
 """Health schema builders for Paw Control flows."""
 
-from __future__ import annotations
-
-
 import voluptuous as vol
 
 from ..const import MAX_DOG_WEIGHT

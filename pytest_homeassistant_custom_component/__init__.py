@@ -5,9 +5,6 @@ only exposes a marker placeholder so pytest can start without external
 dependencies.
 """
 
-from __future__ import annotations
-
-
 from dataclasses import dataclass
 from dataclasses import field
 

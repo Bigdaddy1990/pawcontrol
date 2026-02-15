@@ -1,8 +1,5 @@
 """Compat module for pytest-asyncio entrypoint loading."""
 
-from __future__ import annotations
-
-
 from . import event_loop
 from . import fixture
 from . import pytest_addoption

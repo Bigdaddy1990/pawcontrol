@@ -8,9 +8,6 @@ with full type annotations, async operations, and robust error handling.
 OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code duplication.
 """
 
-from __future__ import annotations
-
-
 import logging
 from inspect import isawaitable
 import os

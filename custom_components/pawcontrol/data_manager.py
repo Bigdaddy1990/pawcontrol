@@ -6,9 +6,6 @@ clear and well documented implementation that focuses on correctness,
 maintainability, and graceful error handling.
 """
 
-from __future__ import annotations
-
-
 import asyncio
 import csv
 import json
