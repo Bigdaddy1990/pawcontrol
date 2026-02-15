@@ -755,15 +755,23 @@ class GPSOptionsMixin(GPSOptionsHost):
   ) -> ConfigFlowResult:
     """Configure geofencing settings."""
 
+    explicit_current_dog = self._current_dog is not None
     current_dog = self._require_current_dog()
-    if current_dog is None:
-      return await self.async_step_select_dog_for_geofence_settings()
+    dog_id: str | None = None
+    if current_dog is not None and explicit_current_dog:
+      current_dog_id = current_dog.get(DOG_ID_FIELD)
+      if isinstance(current_dog_id, str):
+        dog_id = current_dog_id
 
-    dog_id = current_dog.get(DOG_ID_FIELD)
-    if not isinstance(dog_id, str):
-      return await self.async_step_select_dog_for_geofence_settings()
-
-    current_options = self._current_geofence_options(dog_id)
+    if dog_id is not None:
+      current_options = self._current_geofence_options(dog_id)
+    else:
+      legacy_options = self._current_options().get("geofence_settings", {})
+      current_options = (
+        cast(GeofenceOptions, dict(legacy_options))
+        if isinstance(legacy_options, Mapping)
+        else cast(GeofenceOptions, {})
+      )
 
     if user_input is not None:
       errors: dict[str, str] = {}
@@ -818,7 +826,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             user_input.get(GEOFENCE_USE_HOME_FIELD),
             default=True,
           ),
-          GEOFENCE_RADIUS_FIELD: geofence_radius,
+          GEOFENCE_RADIUS_FIELD: int(round(float(geofence_radius))),
           GEOFENCE_LAT_FIELD: geofence_lat,
           GEOFENCE_LON_FIELD: geofence_lon,
           GEOFENCE_ALERTS_FIELD: coerce_bool(
@@ -855,18 +863,20 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
       updated_options = self._clone_options()
-      dog_options = self._current_dog_options()
-      dog_entry = ensure_dog_options_entry(
-        cast(
-          JSONLikeMapping,
-          dict(dog_options.get(dog_id, {})),
-        ),
-        dog_id=dog_id,
-      )
-      dog_entry["geofence_settings"] = geofence_options
-      dog_entry[DOG_ID_FIELD] = dog_id
-      dog_options[dog_id] = dog_entry
-      updated_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
+      updated_options["geofence_settings"] = cast(JSONValue, geofence_options)
+      if dog_id is not None:
+        dog_options = self._current_dog_options()
+        dog_entry = ensure_dog_options_entry(
+          cast(
+            JSONLikeMapping,
+            dict(dog_options.get(dog_id, {})),
+          ),
+          dog_id=dog_id,
+        )
+        dog_entry["geofence_settings"] = geofence_options
+        dog_entry[DOG_ID_FIELD] = dog_id
+        dog_options[dog_id] = dog_entry
+        updated_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
 
       return self.async_create_entry(
         title="Geofence settings updated",

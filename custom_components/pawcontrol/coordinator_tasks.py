@@ -471,7 +471,7 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
   """Return a baseline rejection metric payload for diagnostics consumers."""
 
   return {
-    "schema_version": 3,
+    "schema_version": 4,
     "rejected_call_count": 0,
     "rejection_breaker_count": 0,
     "rejection_rate": 0.0,
