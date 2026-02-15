@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 import pytest
 
 from custom_components.pawcontrol import selector_shim

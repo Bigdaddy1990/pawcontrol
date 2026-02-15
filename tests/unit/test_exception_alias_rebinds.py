@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 import gc
 import sys
 from types import ModuleType

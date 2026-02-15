@@ -5,8 +5,8 @@ required by the tests in this repository.  This module intentionally favours a
 clear and well documented implementation that focuses on correctness,
 maintainability, and graceful error handling.
 """
-
 from __future__ import annotations
+
 
 import asyncio
 import csv

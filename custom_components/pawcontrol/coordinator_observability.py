@@ -1,6 +1,6 @@
 """Observability helpers that keep :mod:`coordinator` concise."""
-
 from __future__ import annotations
+
 
 import sys
 from collections.abc import Callable
