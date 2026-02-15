@@ -167,7 +167,7 @@ def get_platforms_for_profile_and_modules(
         active_modules.add(module_name)
 
   cache_key = (len(dogs), profile, frozenset(active_modules))
-  now = time.time()
+  now = time.monotonic()
   cached = _PLATFORM_CACHE.get(cache_key)
   if cached and now - cached[1] <= _CACHE_TTL_SECONDS:
     return cached[0]

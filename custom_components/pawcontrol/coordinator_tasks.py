@@ -964,19 +964,20 @@ def _coerce_int(value: Any) -> int:
   try:
     return int(value)
   except ValueError:
-    try:
-      return int(float(value))
-    except ValueError:
-      return 0
-    except TypeError:
-      return 0
+    return _coerce_int_fallback(value)
   except TypeError:
-    try:
-      return int(float(value))
-    except ValueError:
-      return 0
-    except TypeError:
-      return 0
+    return _coerce_int_fallback(value)
+
+
+def _coerce_int_fallback(value: Any) -> int:
+  """Return ``value`` coerced via float conversion for integer fallbacks."""
+
+  try:
+    return int(float(value))
+  except ValueError:
+    return 0
+  except TypeError:
+    return 0
 
 
 def _normalise_string_list(value: Any) -> list[str]:
