@@ -6,6 +6,7 @@ module-level tracking, and entity update minimization.
 
 from __future__ import annotations
 
+
 import logging
 
 import pytest

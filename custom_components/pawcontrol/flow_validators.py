@@ -6,8 +6,8 @@ on a consistent interface without coupling to the underlying implementation.
 Centralizing these wrappers keeps flow modules lean and improves maintainability
 as validation behavior evolves.
 """
-
 from __future__ import annotations
+
 
 from typing import Any
 

@@ -1,6 +1,6 @@
 """Helpers for redacting sensitive diagnostics information."""
-
 from __future__ import annotations
+
 
 import re
 from collections.abc import Iterable
