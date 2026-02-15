@@ -307,7 +307,6 @@ async def _async_create_optional_managers(
 
   if gps_enabled:
     notification_manager = core_managers["notification_manager"]
-    core_managers["dog_ids"]
 
     gps_geofence_manager = GPSGeofenceManager(hass)
     gps_geofence_manager.set_notification_manager(notification_manager)
