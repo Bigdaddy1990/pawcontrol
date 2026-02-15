@@ -146,7 +146,10 @@ class TestFormRendering:
       menu_options=["option1"],
       description_placeholders={"dog_count": "1"},
     )
-
+    assert result["type"] == data_entry_flow.FlowResultType.MENU
+    assert result["step_id"] == "menu"
+    assert result["menu_options"] == ["option1"]
+    assert result["description_placeholders"] == {"dog_count": "1"}
     assert result["description_placeholders"] == {"dog_count": "1"}
 
   def test_create_abort_result(self) -> None:
