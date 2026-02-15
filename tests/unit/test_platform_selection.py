@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 from collections.abc import Mapping
 from unittest.mock import AsyncMock
 from unittest.mock import Mock

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 from collections import UserString
 from collections.abc import Callable
 from collections.abc import Iterable
