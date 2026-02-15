@@ -333,7 +333,7 @@ class InputValidator:
     # Convert to int
     try:
       int_value = int(value)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
       errors.append(f"Cannot convert to integer: {value}")
       return ValidationResult(
         is_valid=False,
@@ -376,7 +376,7 @@ class InputValidator:
     # Convert to float
     try:
       float_value = float(value)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
       errors.append(f"Cannot convert to float: {value}")
       return ValidationResult(
         is_valid=False,
