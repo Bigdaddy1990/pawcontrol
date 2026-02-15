@@ -44,8 +44,6 @@ def _string_default(
   return value if isinstance(value, str) else fallback
 
 
-
-
 def _validate_time_input(value: Any, field: NotificationOptionsField) -> None:
   """Validate optional quiet-hour time input."""
 
@@ -65,6 +63,7 @@ def _validate_time_input(value: Any, field: NotificationOptionsField) -> None:
       continue
 
   raise FlowValidationError(field_errors={field: f"{field}_invalid"})
+
 
 def build_notification_settings_payload(
   user_input: NotificationSettingsInput,

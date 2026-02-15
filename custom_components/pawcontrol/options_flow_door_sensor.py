@@ -59,7 +59,9 @@ def _resolve_require_runtime_data() -> RuntimeDataResolver:
   """Return the patched runtime data helper when available."""
 
   try:
-    options_flow_module = import_module("custom_components.pawcontrol.options_flow_support")
+    options_flow_module = import_module(
+      "custom_components.pawcontrol.options_flow_support"
+    )
     patched = getattr(options_flow_module, "require_runtime_data", None)
     if callable(patched):
       return patched
@@ -72,7 +74,9 @@ def _resolve_async_create_issue() -> IssueCreator:
   """Return the patched repairs helper when available."""
 
   try:
-    options_flow_module = import_module("custom_components.pawcontrol.options_flow_support")
+    options_flow_module = import_module(
+      "custom_components.pawcontrol.options_flow_support"
+    )
     patched = getattr(options_flow_module, "async_create_issue", None)
     if callable(patched):
       return patched

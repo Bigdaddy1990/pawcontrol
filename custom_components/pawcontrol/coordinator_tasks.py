@@ -1018,13 +1018,13 @@ def _timestamp_from_datetime(value: datetime) -> float | None:
   if callable(convert):
     try:
       return float(convert(value))
-    except (TypeError, ValueError, OverflowError):
+    except TypeError, ValueError, OverflowError:
       return None
 
   as_utc = getattr(dt_util, "as_utc", None)
   try:
     aware = as_utc(value) if callable(as_utc) else value
-  except (TypeError, ValueError, AttributeError):  # pragma: no cover - compat guard
+  except TypeError, ValueError, AttributeError:  # pragma: no cover - compat guard
     aware = value
 
   if aware.tzinfo is None:
@@ -1032,7 +1032,7 @@ def _timestamp_from_datetime(value: datetime) -> float | None:
 
   try:
     return float(aware.timestamp())
-  except (OverflowError, OSError, ValueError):
+  except OverflowError, OSError, ValueError:
     return None
 
 
@@ -1051,7 +1051,7 @@ def _coerce_float(value: Any) -> float | None:
   if isinstance(value, date) and not isinstance(value, datetime):
     try:
       start_of_day = dt_util.start_of_local_day(value)
-    except (TypeError, ValueError, AttributeError):
+    except TypeError, ValueError, AttributeError:
       # ``start_of_local_day`` may be unavailable in some compat paths.
       start_of_day = datetime(
         value.year,

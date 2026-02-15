@@ -2263,7 +2263,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
       return next_feeding.isoformat()
 
-    except (TypeError, ValueError, KeyError):
+    except TypeError, ValueError, KeyError:
       return None
 
 
@@ -2428,7 +2428,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
       if meals_per_day > 0:
         return round(daily_amount / meals_per_day, 1)
 
-    except (TypeError, ValueError, ZeroDivisionError):
+    except TypeError, ValueError, ZeroDivisionError:
       pass
 
     return None
@@ -2933,7 +2933,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
       # Cap at 150% to show overfeeding
       return round(min(progress, 150.0), 1)
 
-    except (TypeError, ValueError, ZeroDivisionError):
+    except TypeError, ValueError, ZeroDivisionError:
       return 0.0
 
   @property
@@ -3671,7 +3671,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
       return round(base_calories, 1)
 
-    except (TypeError, ValueError, ZeroDivisionError):
+    except TypeError, ValueError, ZeroDivisionError:
       return 0.0
 
   @property
@@ -3902,7 +3902,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
       # Fallback: just return today's count (limited info)
       return walks_today
 
-    except (TypeError, ValueError, KeyError):
+    except TypeError, ValueError, KeyError:
       return 0
 
   @property
