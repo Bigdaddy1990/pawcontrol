@@ -137,6 +137,9 @@ Authoritative sources (non-exhaustive, must be consulted when relevant):
   `types.py` when expanding runtime models.
 - Ruff supplies formatting and linting—respect 88 character lines, prefer
   f-strings, and keep imports sorted by section.【F:pyproject.toml†L25-L46】
+- Handle `ValueError` and `TypeError` explicitly in separate `except` blocks
+  when coercing user/data payloads so logs and diagnostics can distinguish the
+  failure mode; never use Python 2 `except ValueError, TypeError` syntax.
 - Every coroutine interacting with Home Assistant must be async. Wrap blocking
   work with `hass.async_add_executor_job` if an async variant is unavailable.【F:custom_components/pawcontrol/utils.py†L169-L264】
 - Use Home Assistant’s type aliases (`ConfigEntry`, `HomeAssistant`,

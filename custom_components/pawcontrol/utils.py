@@ -700,7 +700,9 @@ def _introspect_bus_keywords(
 
   try:
     signature = inspect.signature(bus_async_fire)
-  except TypeError, ValueError:
+  except ValueError:
+    return True, frozenset()
+  except TypeError:
     return True, frozenset()
 
   parameters = signature.parameters
@@ -1088,7 +1090,7 @@ def safe_get_nested[DefaultT](
         return default
 
     return current
-  except AttributeError, KeyError, TypeError:
+  except (AttributeError, KeyError, TypeError):
     return default
 
 
@@ -1138,7 +1140,7 @@ def validate_time_string(time_str: str | None) -> time | None:
     if re.match(r"^\d{1,2}:\d{2}:\d{2}$", time_str):
       hour, minute, second = map(int, time_str.split(":"))
       return time(hour, minute, second)
-  except ValueError, AttributeError:
+  except (ValueError, AttributeError):
     pass
 
   return None
@@ -1502,7 +1504,7 @@ def safe_divide(numerator: float, denominator: float, default: float = 0.0) -> f
   """
   try:
     return numerator / denominator if denominator != 0 else default
-  except TypeError, ZeroDivisionError:
+  except (TypeError, ZeroDivisionError):
     return default
 
 
@@ -1534,7 +1536,7 @@ def is_dict_subset[K, V](subset: Mapping[K, V], superset: Mapping[K, V]) -> bool
     return all(
       key in superset and superset[key] == value for key, value in subset.items()
     )
-  except AttributeError, TypeError:
+  except (AttributeError, TypeError):
     return False
 
 
@@ -1845,7 +1847,9 @@ def _datetime_from_timestamp(value: Number) -> datetime | None:
 
   try:
     timestamp = float(value)
-  except TypeError, ValueError:
+  except ValueError:
+    return None
+  except TypeError:
     return None
 
   utc_from_timestamp = getattr(dt_util, "utc_from_timestamp", None)

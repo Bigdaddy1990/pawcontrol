@@ -309,7 +309,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
       step_id="configure_dog_modules",
       data_schema=self._get_dog_modules_schema(),
       description_placeholders=dict(
-        await self._get_module_description_placeholders(),
+        await self._async_get_module_description_placeholders(),
       ),
     )
 
@@ -482,7 +482,19 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
       sensors[entity_id] = str(friendly_name)
     return sensors
 
-  async def _get_module_description_placeholders(
+  async def _async_get_module_description_placeholders(
+    self,
+  ) -> ConfigFlowPlaceholders:
+    """Async wrapper for module description placeholders."""
+
+    if self.hass is not None:
+      hass_config = getattr(self.hass, "config", None)
+      hass_language = getattr(hass_config, "language", None) if hass_config else None
+      await async_preload_component_translations(self.hass, {hass_language, "en"})
+
+    return self._get_module_description_placeholders()
+
+  def _get_module_description_placeholders(
     self,
   ) -> ConfigFlowPlaceholders:
     """Get description placeholders for module configuration."""
@@ -505,13 +517,11 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
       hass_config = getattr(self.hass, "config", None)
       if hass_config is not None:
         hass_language = getattr(hass_config, "language", None)
-      await async_preload_component_translations(
-        self.hass,
-        {hass_language, "en"},
-      )
+      # Translations are loaded lazily in the UI layer; keep this helper sync for
+      # tests and placeholder generation paths that call it directly.
 
     # Calculate current entity count
-    current_estimate = await self._entity_factory.estimate_entity_count_async(
+    current_estimate = self._entity_factory.estimate_entity_count(
       current_profile,
       current_modules_dict,
     )
