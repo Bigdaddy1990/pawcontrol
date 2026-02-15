@@ -97,12 +97,12 @@ jobs:
           pytest --cov --junitxml=testreport.junit.xml -o junit_family=legacy
           codecovcli do-upload --report-type test_results --file <report_name>.junit.xml
           codecovcli upload-process
-          
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          
+
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
