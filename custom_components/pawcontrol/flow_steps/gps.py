@@ -766,12 +766,12 @@ class GPSOptionsMixin(GPSOptionsHost):
         else cast(GeofenceOptions, {})
       )
 
-    if user_input is not None:
+    if user_input is not None:  # noqa: F821
       errors: dict[str, str] = {}
 
       try:
         geofence_radius = InputValidator.validate_geofence_radius(
-          user_input.get(GEOFENCE_RADIUS_FIELD),
+          user_input.get(GEOFENCE_RADIUS_FIELD),  # noqa: F821
           required=True,
           field=GEOFENCE_RADIUS_FIELD,
           min_value=float(MIN_GEOFENCE_RADIUS),
@@ -788,8 +788,8 @@ class GPSOptionsMixin(GPSOptionsHost):
       geofence_lon: float | None
       try:
         geofence_lat, geofence_lon = validate_flow_gps_coordinates(
-          user_input.get(GEOFENCE_LAT_FIELD),
-          user_input.get(GEOFENCE_LON_FIELD),
+          user_input.get(GEOFENCE_LAT_FIELD),  # noqa: F821
+          user_input.get(GEOFENCE_LON_FIELD),  # noqa: F821
           latitude_field=GEOFENCE_LAT_FIELD,
           longitude_field=GEOFENCE_LON_FIELD,
         )
@@ -820,34 +820,34 @@ class GPSOptionsMixin(GPSOptionsHost):
         GeofenceOptions,
         {
           GEOFENCE_ENABLED_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ENABLED_FIELD),
+            user_input.get(GEOFENCE_ENABLED_FIELD),  # noqa: F821
             default=True,
           ),
           GEOFENCE_USE_HOME_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_USE_HOME_FIELD),
+            user_input.get(GEOFENCE_USE_HOME_FIELD),  # noqa: F821
             default=True,
           ),
           GEOFENCE_RADIUS_FIELD: geofence_radius_m,
           GEOFENCE_LAT_FIELD: geofence_lat,
           GEOFENCE_LON_FIELD: geofence_lon,
           GEOFENCE_ALERTS_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ALERTS_FIELD),
+            user_input.get(GEOFENCE_ALERTS_FIELD),  # noqa: F821
             default=True,
           ),
           GEOFENCE_SAFE_ZONE_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_SAFE_ZONE_FIELD),
+            user_input.get(GEOFENCE_SAFE_ZONE_FIELD),  # noqa: F821
             default=True,
           ),
           GEOFENCE_RESTRICTED_ZONE_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),
+            user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),  # noqa: F821
             default=True,
           ),
           GEOFENCE_ZONE_ENTRY_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),
+            user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),  # noqa: F821
             default=True,
           ),
           GEOFENCE_ZONE_EXIT_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ZONE_EXIT_FIELD),
+            user_input.get(GEOFENCE_ZONE_EXIT_FIELD),  # noqa: F821
             default=True,
           ),
         },
