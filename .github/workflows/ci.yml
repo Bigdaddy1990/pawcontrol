@@ -69,10 +69,10 @@ jobs:
       - name: Run Prek
         run: |
           prek install
-          prek run --hook-stage pre-merge-commit
-          prek run --hook-stage pre-commit
-          prek run --all-files --show-diff-on-failure
-          prek run --hook-stage manual python-typing-update --all-files --update
+          prek run --hook-stage pre-merge-commit --exit-non-zero-on-fix
+          prek run --hook-stage pre-commit --exit-non-zero-on-fix
+          prek run --all-files --show-diff-on-failure --exit-non-zero-on-fix
+          prek run --hook-stage manual python-typing-update --all-files --update --exit-non-zero-on-fix
 
       - name: Run mypy
         run: |

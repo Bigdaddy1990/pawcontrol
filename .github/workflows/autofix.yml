@@ -50,7 +50,7 @@ jobs:
          ruff check . --add-noqa || true
          ruff check . --extend-select RUF100 --fix || true
          python scripts/enforce_docstring_baseline.py --update
-         pre-commit run --all-files || true
+         pre-commit run --all-files --exit-non-zero-on-fix || true
 
       - name: Verify contributor guides
         run: |
@@ -66,8 +66,8 @@ jobs:
       - name: Run prek once (apply fixes)
         run: |
           prek install
-          prek run --all-files
-          prek run --hook-stage manual python-typing-update --all-files
+          prek run --all-files --exit-non-zero-on-fix
+          prek run --hook-stage manual python-typing-update --all-files --exit-non-zero-on-fix
 
 
       - name: Auto-commit autofix changes
