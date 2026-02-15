@@ -38,10 +38,10 @@ repos:
           - --show-fixes
           - --unsafe-fixes
           - --exit-non-zero-on-fix
-          -- --check
         types_or:
           - python
           - pyi
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|scripts/)
       - id: ruff-format
         types_or:
           - python
