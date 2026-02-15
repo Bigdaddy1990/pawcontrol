@@ -41,8 +41,6 @@ jobs:
             uv pip install --system -r requirements_test.txt --prerelease=allow
             uv cache prune --ci
 
-      - name: Install development tools
-        uses: taiki-e/install-action@v2.67.30
 
       - name: Run pre-commit with fixes
         run: |
@@ -72,5 +70,15 @@ jobs:
           prek run --all-files
           prek run --hook-stage manual python-typing-update --all-files
 
-      - uses: pre-commit-ci/lite-action@v1.1.0
+
+      - name: Auto-commit autofix changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "[pre-commit.ci] autofix"
+          commit_user_name: pre-commit-ci[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          commit_author: pre-commit-ci[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+
+      - name: pre-commit-ci-lite
+        uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
