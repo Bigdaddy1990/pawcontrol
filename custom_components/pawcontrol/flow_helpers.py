@@ -251,7 +251,7 @@ def create_menu_result(
       ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
       ... )
   """
-def create_menu_result(
+def create_menu_result(  # noqa: F811
     menu_options: list[str],
     *,
     flow: Any | None = None,  # Make parameter optional
