@@ -1015,7 +1015,7 @@ def _timestamp_from_datetime(value: datetime) -> float | None:
   as_utc = getattr(dt_util, "as_utc", None)
   try:
     aware = as_utc(value) if callable(as_utc) else value
-  except (TypeError, ValueError, AttributeError): # pragma: no cover - compat guard
+  except (TypeError, ValueError, AttributeError):  # pragma: no cover - compat guard
     aware = value
 
   if aware.tzinfo is None:

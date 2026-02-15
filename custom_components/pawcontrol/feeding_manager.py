@@ -1279,7 +1279,7 @@ class FeedingManager:
         ):
           try:
             config.ideal_weight = float(ideal_weight)
-          except (TypeError, ValueError): # pragma: no cover - defensive
+          except (TypeError, ValueError):  # pragma: no cover - defensive
             _LOGGER.debug(
               "Invalid ideal weight %s for %s; keeping existing value",
               ideal_weight,
@@ -1722,7 +1722,7 @@ class FeedingManager:
       try:
         base_weight = float(config.ideal_weight)
         adjusted_rer = False
-      except (TypeError, ValueError): # pragma: no cover - defensive
+      except (TypeError, ValueError):  # pragma: no cover - defensive
         base_weight = weight_value
     elif config.weight_goal == "gain" and config.ideal_weight:
       try:
@@ -2476,7 +2476,7 @@ class FeedingManager:
           0.0,
           target_calories - consumed_calories,
         )
-      except (TypeError, ValueError): # pragma: no cover - defensive
+      except (TypeError, ValueError):  # pragma: no cover - defensive
         remaining_calories = None
 
     daily_stats = FeedingDailyStats(
