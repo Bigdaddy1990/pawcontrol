@@ -27,6 +27,7 @@ repos:
           - --py314-plus
           - --full-reorder
           - --keep-updates
+          - --force
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
@@ -37,6 +38,7 @@ repos:
           - --show-fixes
           - --unsafe-fixes
           - --exit-non-zero-on-fix
+          - --check
         types_or:
           - python
           - pyi
