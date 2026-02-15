@@ -18,14 +18,17 @@ jobs:
       # To write linting fixes
       contents: write
       # To write Super-linter status checks
+      issues: write
+      pull-requests: write
       statuses: write
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
-          token: ${{ secrets.SUPER_LINTER_TOKEN }}
+
       - name: Super-Linter
         uses: super-linter/super-linter@v8.5.0 # x-release-please-version
         env:
@@ -36,6 +39,7 @@ jobs:
           # To reuse the same Super-linter configuration that you use in the
           # lint job without duplicating it, see
           # https://github.com/super-linter/super-linter/blob/main/docs/run-linter-locally.md#share-environment-variables-between-environments
+    
       - name: Commit and push linting fixes
         Run only on:
          - Pull requests
