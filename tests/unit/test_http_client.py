@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 import importlib.util
 from collections.abc import Coroutine
 from pathlib import Path

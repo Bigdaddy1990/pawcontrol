@@ -1,6 +1,6 @@
 """Shared helpers and typing aliases for PawControl dashboard orchestration."""
-
 from __future__ import annotations
+
 
 import asyncio
 import logging

@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+
 import uuid
 from datetime import datetime
 from datetime import timedelta

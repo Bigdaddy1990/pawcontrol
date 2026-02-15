@@ -7,8 +7,8 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
+
 
 from typing import Any
 from typing import cast
@@ -248,7 +248,7 @@ def create_menu_result(
 
   Examples:
       >>> result = create_menu_result(
-      ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
+      ...   flow=self, step_id="menu", menu_options=["dogs", "modules", "settings"]
       ... )
   """
   if flow is None:

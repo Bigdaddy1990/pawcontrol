@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 from datetime import date as date_cls
 from datetime import datetime
 from datetime import UTC
