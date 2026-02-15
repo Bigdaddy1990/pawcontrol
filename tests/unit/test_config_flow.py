@@ -20,7 +20,7 @@ async def test_user_step_shows_form(hass: HomeAssistant) -> None:
   result = await flow.async_step_user()
 
   assert result["type"] == FlowResultType.FORM
-  assert result["step_id"] == "add_dog"
+  assert result["step_id"] == "user"
 
 
 async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:

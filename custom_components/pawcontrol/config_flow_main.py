@@ -18,7 +18,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 
-from .config_flow_base import PawControlBaseConfigFlow
+from .config_flow_base import INTEGRATION_SCHEMA, PawControlBaseConfigFlow
 from .config_flow_dashboard_extension import DashboardFlowMixin
 from .config_flow_discovery import DiscoveryFlowMixin
 from .config_flow_dogs import DogManagementMixin
@@ -204,18 +204,27 @@ class PawControlConfigFlow(
         reload_on_update=False,
       )
 
-      if user_input is not None:
-        integration_name = str(
-          user_input.get(CONF_NAME, self._integration_name)
-        ).strip()
-        if integration_name:
-          self._integration_name = integration_name
+      if user_input is None:
+        return self.async_show_form(
+          step_id="user",
+          data_schema=INTEGRATION_SCHEMA,
+        )
 
-      # Home Assistant and unit tests expect the initial user source to jump
-      # directly into dog configuration.
-      return await self.async_step_add_dog(
-        cast(DogSetupStepInput | None, user_input),
+      integration_name = str(
+        user_input.get(CONF_NAME, self._integration_name),
+      ).strip()
+      name_validation = await self._async_validate_integration_name(
+        integration_name,
       )
+      if not name_validation["valid"]:
+        return self.async_show_form(
+          step_id="user",
+          data_schema=INTEGRATION_SCHEMA,
+          errors=name_validation["errors"],
+        )
+
+      self._integration_name = integration_name
+      return await self.async_step_add_dog()
 
   async def async_step_import(
     self,
