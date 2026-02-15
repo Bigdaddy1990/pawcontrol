@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from datetime import datetime
 from datetime import timedelta
 from datetime import UTC

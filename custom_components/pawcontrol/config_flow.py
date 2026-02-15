@@ -3,8 +3,8 @@
 The full config flow implementation lives in :mod:`.config_flow_main`.
 This shim exists to keep the Home Assistant entry module small and stable.
 """
-
 from __future__ import annotations
+
 
 from typing import Final
 from typing import Literal
