@@ -69,7 +69,7 @@ def _import_optional(module_name: str) -> ModuleType | None:
 
   try:
     return __import__(module_name, fromlist=["*"])
-  except ImportError, ModuleNotFoundError:
+  except (ImportError, ModuleNotFoundError):
     return None
 
 
@@ -774,7 +774,7 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
 
   try:
     signature = inspect.signature(init)  # type: ignore[arg-type]
-  except TypeError, ValueError:  # pragma: no cover - signature unavailable
+  except (TypeError, ValueError): # pragma: no cover - signature unavailable
     return False
 
   parameter_names = {parameter.name for parameter in signature.parameters.values()}
