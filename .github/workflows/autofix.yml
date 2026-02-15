@@ -56,7 +56,7 @@ jobs:
          ruff check . --add-noqa || true
          ruff check . --extend-select RUF100 --fix || true
          python scripts/enforce_docstring_baseline.py --update
-         pre-commit run --all-files || true --update
+         pre-commit run --all-files || true
 
       - name: Verify contributor guides
         run: |
