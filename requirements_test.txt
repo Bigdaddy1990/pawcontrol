@@ -1,5 +1,6 @@
 aiohttp>=3.13.3
 annotatedyaml>=1.0.2
+codecov-cli
 coverage>=7.10.6
 coverage[toml]>=7.5.4
 homeassistant>=2025.9.0
