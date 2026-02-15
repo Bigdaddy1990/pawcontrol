@@ -1,5 +1,7 @@
 """Type-checking protocols for options flow mixin hosts."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any
 from typing import Protocol

@@ -17,6 +17,8 @@ P26.1.1++
 Python: 3.13+
 """
 
+from __future__ import annotations
+
 import logging
 from asyncio import Task
 from collections import deque
@@ -4413,7 +4415,7 @@ def ensure_gps_payload(
   elif satellites is not None:
     try:
       gps_payload["satellites"] = int(satellites)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       _LOGGER.warning(
         "Invalid satellites value %s for GPS payload; setting to None",
         satellites,

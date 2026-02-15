@@ -10,6 +10,8 @@ Modules:
     cleanup: Resource cleanup and shutdown logic
 """
 
+from __future__ import annotations
+
 from .manager_init import async_initialize_managers
 from .platform_setup import async_setup_platforms
 from .validation import async_validate_entry_config

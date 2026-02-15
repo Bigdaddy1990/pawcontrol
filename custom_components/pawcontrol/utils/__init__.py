@@ -3,6 +3,8 @@
 Provides common utilities for serialization, normalization, and data processing.
 """
 
+from __future__ import annotations
+
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
 from pathlib import Path

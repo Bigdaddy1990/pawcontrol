@@ -1,5 +1,7 @@
 """GPS flow helpers for Paw Control configuration and options."""
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Mapping
 from contextlib import suppress

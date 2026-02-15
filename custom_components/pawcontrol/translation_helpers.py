@@ -1,5 +1,7 @@
 """Shared helpers for Home Assistant translation lookups."""
 
+from __future__ import annotations
+
 import logging
 import json
 from collections.abc import Iterable
@@ -30,7 +32,7 @@ def _load_bundled_component_translations(language: str) -> dict[str, str]:
 
   try:
     payload = json.loads(translations_path.read_text(encoding="utf-8"))
-  except (OSError, json.JSONDecodeError):
+  except OSError, json.JSONDecodeError:
     _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
     return {}
 

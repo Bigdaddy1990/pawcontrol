@@ -8,6 +8,8 @@ P26.1.1++
 Python: 3.13+
 """
 
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import json
@@ -620,7 +622,7 @@ class PawControlDashboardGenerator:
       if isinstance(card_count_raw, int | float | str):
         try:
           card_count = int(card_count_raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
           card_count = 0
       else:
         card_count = 0

@@ -1,5 +1,7 @@
 """Shared data accessor helpers for the PawControl coordinator."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import cast
 from typing import Literal

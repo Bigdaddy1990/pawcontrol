@@ -7,6 +7,8 @@ Home Assistant's ``script`` domain so that users can trigger the documented
 automation flows without manual YAML editing.
 """
 
+from __future__ import annotations
+
 import logging
 from collections import deque
 from collections.abc import Callable
@@ -929,7 +931,7 @@ class PawControlScriptManager:
 
     try:
       automation_entries = entries_callable("automation")
-    except (AttributeError, TypeError, KeyError):
+    except AttributeError, TypeError, KeyError:
       automation_entries = []
 
     _register_listener(system_guard, "guard", "system_options")

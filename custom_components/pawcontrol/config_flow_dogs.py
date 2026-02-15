@@ -10,6 +10,8 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
+from __future__ import annotations
+
 import asyncio
 import importlib
 import logging
@@ -112,7 +114,7 @@ try:
     "async_get_translations",
     None,
   )
-except (ModuleNotFoundError, AttributeError):
+except ModuleNotFoundError, AttributeError:
   _ASYNC_GET_TRANSLATIONS = None
 
 # Diet compatibility matrix for validation

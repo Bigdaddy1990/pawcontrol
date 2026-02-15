@@ -1,5 +1,7 @@
 """Helpers for working with config entry payloads."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry

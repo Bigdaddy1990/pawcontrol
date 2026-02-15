@@ -1,5 +1,7 @@
 """HTTP client helpers for communicating with Paw Control hardware."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from aiohttp import ClientError

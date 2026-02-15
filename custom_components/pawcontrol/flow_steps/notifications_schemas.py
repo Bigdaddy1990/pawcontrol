@@ -1,5 +1,7 @@
 """Notification schema builders for Paw Control flows."""
 
+from __future__ import annotations
+
 import voluptuous as vol
 
 from ..const import DEFAULT_REMINDER_REPEAT_MIN

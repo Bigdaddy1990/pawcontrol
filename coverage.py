@@ -1,5 +1,7 @@
 """Coverage shim used for PawControl's isolated test environment."""
 
+from __future__ import annotations
+
 import json
 import os
 import platform

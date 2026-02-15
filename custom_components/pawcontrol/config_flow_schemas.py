@@ -1,5 +1,7 @@
 """Schemas and constants used by the PawControl config flow."""
 
+from __future__ import annotations
+
 from typing import Final
 
 import voluptuous as vol

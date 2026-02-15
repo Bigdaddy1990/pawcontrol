@@ -1,5 +1,7 @@
 """Translation helpers for grooming workflows."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Final
 

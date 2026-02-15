@@ -1,5 +1,7 @@
 """Fallback YAML loader used in the test environment."""
 
+from __future__ import annotations
+
 import importlib.util
 from pathlib import Path
 from typing import Any

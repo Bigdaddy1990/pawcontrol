@@ -1,5 +1,7 @@
 """Helpers for constructing centralized dog status snapshots."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import cast
 

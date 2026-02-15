@@ -1,5 +1,7 @@
 """DateTime platform for Paw Control integration."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from collections.abc import Sequence

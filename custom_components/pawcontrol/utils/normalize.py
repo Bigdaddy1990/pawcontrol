@@ -1,5 +1,7 @@
 """Utility functions for JSON normalization."""
 
+from __future__ import annotations
+
 from collections.abc import Iterable
 from collections.abc import Mapping
 from collections.abc import Set as ABCSet

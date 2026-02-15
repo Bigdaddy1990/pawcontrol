@@ -9,6 +9,8 @@ selector APIs to provide identical configuration schemas without depending on
 the Core runtime during tests.
 """
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from enum import StrEnum
 from types import SimpleNamespace
