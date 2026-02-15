@@ -3,7 +3,7 @@ name: pre-lite
 on:
   pull_request:
   push:
-
+  
 jobs:
   main:
     runs-on: ubuntu-latest
