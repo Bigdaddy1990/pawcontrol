@@ -94,3 +94,29 @@ uploads:
     flags:
       - unittests
     report_type: "pytest"
+
+flag_management:
+  individual_flags:
+    - name: smart-tests
+      carryforward: true
+      carryforward_mode: "labels"
+      statuses:
+        - type: "project"
+        - type: "patch"
+
+cli:
+  plugins:
+    pycoverage:
+      report_type: "json"
+      
+component_management:
+  individual_components:
+    - component_id: "calculator"
+      paths:
+        - "calculator/"
+    - component_id: "smiles"
+      paths:
+        - "smiles/"
+
+comment:
+  layout: "header, diff, flags, components"  # show component info in the PR comment
