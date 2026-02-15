@@ -224,7 +224,7 @@ class BinarySensorLogicMixin:
         return num_value <= threshold
       raise ValueError(f"Unknown comparison: {comparison}")
 
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return default_if_none
 
 
