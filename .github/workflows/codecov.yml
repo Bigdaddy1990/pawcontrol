@@ -9,21 +9,34 @@ jobs:
       - name: Set up Python 3.14
         uses: actions/setup-python@v6.2.0
         with:
-          python-version: '3.14'
+          python-version: "3.14"
       - name: Install dependencies
         run: |
-           pip install pip --upgrade pytest pytest-cov codecov-cli
-           pip install -r requirements_test.txt
-           pip install -r requirements.txt
+          pip install --upgrade pip pytest pytest-cov
+          pip install -r requirements_test.txt
+          pip install -r requirements.txt
       - name: Run tests and collect coverage
-        run: pytest --cov app --junitxml=junit.xml -o junit_family=legacy
+        run: |
+          pytest -q --cov=custom_components/pawcontrol \
+            --cov-report=xml:coverage.xml \
+            --junitxml=junit.xml -o junit_family=legacy
+      - name: Verify coverage artifacts exist
+        run: |
+          test -f coverage.xml
+          test -f junit.xml
+
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5.5.2
         with:
+          files: junit.xml
+          report_type: test_results
+          disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload coverage to Codecov (no token)
-        uses: codecov/codecov-action@main
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5.5.2
         with:
+          files: coverage.xml
+          disable_search: true
           fail_ci_if_error: true
-          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
