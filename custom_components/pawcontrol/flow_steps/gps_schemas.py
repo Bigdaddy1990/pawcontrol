@@ -1,4 +1,5 @@
 """GPS schema builders for Paw Control flows."""
+
 from __future__ import annotations
 
 
@@ -150,7 +151,7 @@ def build_geofence_settings_schema(current_options: GeofenceOptions) -> vol.Sche
       ): selector({"boolean": {}}),
       vol.Optional(
         GEOFENCE_RADIUS_FIELD,
-        default=current_options.get(GEOFENCE_RADIUS_FIELD, 100.0),
+        default=int(current_options.get(GEOFENCE_RADIUS_FIELD, 100)),
       ): selector(
         {
           "number": {
