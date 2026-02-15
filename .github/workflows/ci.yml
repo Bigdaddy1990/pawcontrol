@@ -51,9 +51,6 @@ jobs:
           python -m pip install -r requirements.txt
 
 
-      - name: Install development tools
-        uses: taiki-e/install-action@v2.67.30
-
       - name: Verify contributor guides
         run: |
           python -m scripts.sync_contributor_guides --check
@@ -100,7 +97,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5.5.2
+        uses: codecov/test-results-action@v1
         with:
+          files: junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
-          report-type: test_results
