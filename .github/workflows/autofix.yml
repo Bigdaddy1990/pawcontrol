@@ -73,7 +73,7 @@ jobs:
         run: |
           prek install
           prek run --all-files --check
-          prek run --hook-stage manual python-typing-update --all-files --check
+          prek run --hook-stage manual python-typing-update --all-files
 
       - name: Detect changes
         id: diff
@@ -87,8 +87,4 @@ jobs:
       - name: Commit and push autofix updates
         if: steps.diff.outputs.changed == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "[autofix] pre-commit fixes"
           git push origin "HEAD:${{ github.ref_name }}"
