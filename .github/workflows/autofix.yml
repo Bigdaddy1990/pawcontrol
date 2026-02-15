@@ -73,6 +73,7 @@ jobs:
         run: |
           prek install
           prek run --all-files --check
+          prek run --hook-stage manual python-typing-update --all-files --check
 
       - name: Detect changes
         id: diff
