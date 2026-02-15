@@ -25,7 +25,6 @@ repos:
         args:
           - --py314-plus
           - --full-reorder
-          - --force
           - --keep-updates
         files: ^(homeassistant|tests|scripts)/.+\.py$
   - repo: https://github.com/astral-sh/ruff-pre-commit
