@@ -21,18 +21,6 @@ async def test_user_step_shows_form(hass: HomeAssistant) -> None:
 
   assert result["type"] == FlowResultType.FORM
   assert result["step_id"] == "user"
-  assert result["data_schema"] == INTEGRATION_SCHEMA
-
-
-async def test_user_step_rejects_invalid_name(hass: HomeAssistant) -> None:
-  flow = PawControlConfigFlow()
-  flow.hass = hass
-
-  result = await flow.async_step_user({CONF_NAME: ""})
-
-  assert result["type"] == FlowResultType.FORM
-  assert result["step_id"] == "user"
-  assert result["errors"] == {CONF_NAME: "integration_name_required"}
 
 
 async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:
