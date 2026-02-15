@@ -205,12 +205,12 @@ def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
   if hasattr(update_interval, "total_seconds"):
     try:
       interval_seconds = float(update_interval.total_seconds())
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       interval_seconds = None
   else:
     try:
       interval_seconds = float(update_interval)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       interval_seconds = None
 
   if not interval_seconds or interval_seconds <= 0:
@@ -1482,7 +1482,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
       return walk_count_score + duration_score
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return None
 
   def _calculate_feeding_score(
@@ -1503,7 +1503,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
       return min(score, 100)
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return None
 
   def _calculate_gps_score(self, gps_data: GPSModulePayload) -> float | None:
@@ -1513,7 +1513,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         return 0.0
       return 80.0 if gps_data.get("zone") else 0.0
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return None
 
   def _calculate_health_score(self, health_data: HealthModulePayload) -> float | None:
@@ -1533,7 +1533,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
       }
       return float(score_map.get(status, 70))
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return None
 
 
@@ -1684,7 +1684,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
         return "extend_walk_duration"
       return "activity_goals_met"
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return "unable_to_assess"
 
 
@@ -2246,7 +2246,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
       return next_feeding.isoformat()
 
-    except TypeError, ValueError, KeyError:
+    except (TypeError, ValueError, KeyError):
       return None
 
 
@@ -2281,7 +2281,7 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
 
     try:
       return self._coerce_float(feeding_data.get("total_calories_today", 0.0))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 0.0
 
 
@@ -2318,7 +2318,7 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
         feeding_data.get("feeding_schedule_adherence", 100.0),
         default=100.0,
       )
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 100.0
 
 
@@ -2351,7 +2351,7 @@ class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
 
     try:
       return self._coerce_int(feeding_data.get("total_feedings_today", 0))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 0
 
 
@@ -2405,7 +2405,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
       if meals_per_day > 0:
         return round(daily_amount / meals_per_day, 1)
 
-    except TypeError, ValueError, ZeroDivisionError:
+    except (TypeError, ValueError, ZeroDivisionError):
       pass
 
     return None
@@ -2464,7 +2464,7 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
         return "Consider improving meal timing consistency"
       return "Feeding schedule needs attention"
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return "Unable to generate recommendation"
 
 
@@ -2505,7 +2505,7 @@ class PawControlDietValidationStatusSensor(PawControlDietValidationSensorBase):
         return "warnings_present"
       return "validated_safe"
 
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return "validation_error"
 
 
@@ -2538,7 +2538,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
       return 0
     try:
       return int(summary.get("conflict_count", 0))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 0
 
   @property
@@ -2580,7 +2580,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
       return 0
     try:
       return int(summary.get("warning_count", 0))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 0
 
   @property
@@ -2671,7 +2671,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
     try:
       value = float(summary.get("diet_validation_adjustment", 1.0))
       return round(value, 3)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 1.0
 
   @property
@@ -2721,7 +2721,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
     try:
       score = float(summary.get("compatibility_score", 100.0))
       return round(score, 1)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 100.0
 
   @property
@@ -2772,7 +2772,7 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
         ),
       )
       return self._coerce_int(portions)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 0
 
 
@@ -2807,7 +2807,7 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
 
     try:
       return self._coerce_int(feeding_data.get("portions_today", 0))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       return 0
 
   @property
@@ -2894,7 +2894,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
       # Cap at 150% to show overfeeding
       return round(min(progress, 150.0), 1)
 
-    except TypeError, ValueError, ZeroDivisionError:
+    except (TypeError, ValueError, ZeroDivisionError):
       return 0.0
 
   @property
@@ -3632,7 +3632,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
       return round(base_calories, 1)
 
-    except TypeError, ValueError, ZeroDivisionError:
+    except (TypeError, ValueError, ZeroDivisionError):
       return 0.0
 
   @property
@@ -3863,7 +3863,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
       # Fallback: just return today's count (limited info)
       return walks_today
 
-    except TypeError, ValueError, KeyError:
+    except (TypeError, ValueError, KeyError):
       return 0
 
   @property
@@ -4658,7 +4658,7 @@ def _coerce_budget_remaining(budget: Any) -> int | None:
 
   try:
     return int(remaining)
-  except TypeError, ValueError:
+  except (TypeError, ValueError):
     _LOGGER.debug(
       "Ignoring non-numeric entity budget remaining value for %s",
       type(budget).__name__,

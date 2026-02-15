@@ -284,7 +284,7 @@ def validate_notification_targets[TNotificationTarget: Enum](
   for candidate in candidate_targets:
     try:
       target = enum_type(candidate)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       invalid.append(str(candidate))
       continue
 

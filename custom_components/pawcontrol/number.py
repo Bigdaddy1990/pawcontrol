@@ -322,7 +322,7 @@ async def async_reproduce_state(
 def _preprocess_number_state(state: State) -> float | None:
   try:
     return float(state.state)
-  except TypeError, ValueError:
+  except (TypeError, ValueError):
     _LOGGER.warning(
       "Invalid number state for %s: %s",
       state.entity_id,
@@ -341,7 +341,7 @@ async def _async_reproduce_number_state(
   if current_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
     try:
       current_value = float(current_state.state)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
       current_value = None
     else:
       if current_value == target_value:
@@ -571,7 +571,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
           self._number_type,
           self._value,
         )
-      except ValueError, TypeError:
+      except (ValueError, TypeError):
         _LOGGER.warning(
           "Could not restore number value for %s %s: %s",
           self._dog_name,
