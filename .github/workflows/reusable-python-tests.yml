@@ -161,7 +161,7 @@ jobs:
           ruff check . --fix || true
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
-          #ruff check . --fix --unsafe-fixes || true
+          ruff check . --fix --unsafe-fixes || true
 
       - name: Run pytest
         id: pytest

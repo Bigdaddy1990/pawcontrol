@@ -41,7 +41,6 @@ jobs:
             uv pip install --system -r requirements_test.txt --prerelease=allow
             uv cache prune --ci
 
-
       - name: Run pre-commit with fixes
         run: |
          uv pip install --system --upgrade pre-commit ruff pyupgrade
