@@ -136,7 +136,17 @@ class TestFormRendering:
     result = create_menu_result(menu_options=menu_options)
 
     assert result["type"] == data_entry_flow.FlowResultType.MENU
+    assert result["step_id"] == "menu"
     assert result["menu_options"] == menu_options
+
+  def test_create_menu_result_with_placeholders(self) -> None:
+    """Test create_menu_result fallback placeholders."""
+    result = create_menu_result(
+      menu_options=["option1"],
+      description_placeholders={"dog_count": "1"},
+    )
+
+    assert result["description_placeholders"] == {"dog_count": "1"}
 
   def test_create_abort_result(self) -> None:
     """Test create_abort_result function."""
