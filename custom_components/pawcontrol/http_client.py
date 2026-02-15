@@ -1,4 +1,5 @@
 """Helpers for working with Home Assistant's shared aiohttp session."""
+
 from __future__ import annotations
 
 

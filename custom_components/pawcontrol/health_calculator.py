@@ -3,6 +3,7 @@
 Provides body condition scoring, calorie calculations and weight management
 recommendations for dogs.
 """
+
 from __future__ import annotations
 
 

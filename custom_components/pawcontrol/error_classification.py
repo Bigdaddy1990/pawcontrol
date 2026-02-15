@@ -1,4 +1,5 @@
 """Shared error classification helpers for PawControl telemetry."""
+
 from __future__ import annotations
 
 

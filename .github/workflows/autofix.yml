@@ -56,7 +56,7 @@ jobs:
          ruff check . --add-noqa || true
          ruff check . --extend-select RUF100 --fix || true
          python scripts/enforce_docstring_baseline.py --update
-         pre-commit run --all-files || true --update
+         pre-commit run --all-files || true
 
       - name: Verify contributor guides
         run: |
@@ -72,8 +72,8 @@ jobs:
       - name: Run prek once (apply fixes)
         run: |
           prek install
-          prek run --all-files --check
-          prek run --hook-stage manual python-typing-update --all-files --update
+          prek run --all-files
+          prek run --hook-stage manual python-typing-update --all-files
 
       - name: Detect changes
         id: diff

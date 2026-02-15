@@ -5,6 +5,7 @@ for common configuration and setup problems. It helps users resolve issues
 independently and maintains system health. Designed to meet Home Assistant's
 Platinum quality ambitions.
 """
+
 from __future__ import annotations
 
 
@@ -147,7 +148,7 @@ def _issue_registry_supports_kwarg(
 
   try:
     params = signature(create_issue).parameters.values()
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return False
 
   return any(param.kind is param.VAR_KEYWORD for param in params) or any(
@@ -297,8 +298,6 @@ async def async_create_issue(
   _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
 
 
-
-
 def _normalize_feeding_summary_title(title: str) -> str:
   """Return backward-compatible feeding alert titles."""
 
@@ -320,7 +319,8 @@ def _normalize_feeding_score_line(score_line: str | None) -> str | None:
   if index == -1:
     return score_line
   compact = score_line[: index + 1]
-  return compact.replace('.0%', '%')
+  return compact.replace(".0%", "%")
+
 
 async def async_publish_feeding_compliance_issue(
   hass: HomeAssistant,

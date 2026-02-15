@@ -1,4 +1,5 @@
 """Helpers for PawControl device automations."""
+
 from __future__ import annotations
 
 

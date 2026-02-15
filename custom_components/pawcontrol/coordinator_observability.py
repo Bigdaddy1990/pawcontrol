@@ -1,4 +1,5 @@
 """Observability helpers that keep :mod:`coordinator` concise."""
+
 from __future__ import annotations
 
 
@@ -198,7 +199,7 @@ def _coerce_float(value: Any, default: float) -> float:
 
   try:
     number = float(value)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return default
 
   if not isfinite(number):

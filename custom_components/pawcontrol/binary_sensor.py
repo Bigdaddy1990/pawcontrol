@@ -7,6 +7,7 @@ with full type annotations, async operations, and robust error handling.
 
 OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code duplication.
 """
+
 from __future__ import annotations
 
 
@@ -223,7 +224,7 @@ class BinarySensorLogicMixin:
         return num_value <= threshold
       raise ValueError(f"Unknown comparison: {comparison}")
 
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return default_if_none
 
 

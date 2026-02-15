@@ -6,6 +6,7 @@ metrics. This module normalises runtime payloads into JSON-safe snapshots while
 redacting sensitive fields so support tooling and the bundled dashboard can
 ingest the data without custom adapters.
 """
+
 from __future__ import annotations
 
 
@@ -189,7 +190,7 @@ try:
     "async_get_translations",
     None,
   )
-except (ModuleNotFoundError, AttributeError):
+except ModuleNotFoundError, AttributeError:
   _ASYNC_GET_TRANSLATIONS = None
 
 

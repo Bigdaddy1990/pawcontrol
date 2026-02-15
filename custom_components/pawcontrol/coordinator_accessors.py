@@ -1,4 +1,5 @@
 """Shared data accessor helpers for the PawControl coordinator."""
+
 from __future__ import annotations
 
 

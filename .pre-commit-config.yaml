@@ -44,7 +44,7 @@ repos:
         types_or:
           - python
           - pyi
-        exclude: ^(custom_components/pawcontrol/manifest.*|tests/**|docs/**|*scripts*/**)
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|scripts/)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

@@ -1,4 +1,5 @@
 """Helper structures that keep :mod:`coordinator` lean and maintainable."""
+
 from __future__ import annotations
 
 

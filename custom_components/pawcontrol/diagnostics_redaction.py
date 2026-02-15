@@ -1,4 +1,5 @@
 """Helpers for redacting sensitive diagnostics information."""
+
 from __future__ import annotations
 
 

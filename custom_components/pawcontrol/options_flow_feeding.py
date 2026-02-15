@@ -1,4 +1,5 @@
 """Feeding configuration steps for Paw Control options flow."""
+
 from __future__ import annotations
 
 
@@ -47,7 +48,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
       return default
     try:
       meals = int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return default
     return max(1, min(6, meals))
 
