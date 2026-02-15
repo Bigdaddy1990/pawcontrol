@@ -1,7 +1,8 @@
+name: pre-lite
+
 on:
   pull_request:
   push:
-    branches: [main]
 
 jobs:
   main:
