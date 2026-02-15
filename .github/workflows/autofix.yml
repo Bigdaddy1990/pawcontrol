@@ -41,9 +41,6 @@ jobs:
             uv pip install --system -r requirements_test.txt --prerelease=allow
             uv cache prune --ci
 
-      - name: Install development tools
-        uses: taiki-e/install-action@v2.67.30
-
       - name: Run pre-commit with fixes
         run: |
          uv pip install --system --upgrade pre-commit ruff pyupgrade
