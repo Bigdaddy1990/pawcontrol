@@ -28,22 +28,36 @@ _legacy_utils_spec = spec_from_file_location(
 )
 
 @lru_cache(maxsize=1)
-_legacy_utils_module = module_from_spec(_legacy_utils_spec)
-sys.modules[_LEGACY_UTILS_MODULE_NAME] = _legacy_utils_module
-_legacy_utils_spec.loader.exec_module(_legacy_utils_module)
+def _get_legacy_utils() -> ModuleType:
+    """Load and return the legacy utils module, caching the result."""
+    if _legacy_utils_spec is None or _legacy_utils_spec.loader is None:
+        raise ImportError(f"Cannot load legacy utils module from {_LEGACY_UTILS_PATH}")
+    module = module_from_spec(_legacy_utils_spec)
+    sys.modules[_LEGACY_UTILS_MODULE_NAME] = module
+    _legacy_utils_spec.loader.exec_module(module)
+    return module
 
-    if hasattr(_legacy_utils, name):
-        return getattr(_legacy_utils, name)
+
+def __getattr__(name: str):
+    """Provide compatibility attributes from the legacy utils module.
+
+    This allows existing imports from the old ``utils.py`` module
+    to keep working via attribute forwarding.
+    """
+    legacy_module = _get_legacy_utils()
+    if hasattr(legacy_module, name):
+        return getattr(legacy_module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def __dir__() -> list[str]:
     """Return available attributes for static tooling and introspection."""
-
+    return __all__
 
 
 def _build_all() -> list[str]:
     """Build ``__all__`` with package-native and compatibility exports."""
+    legacy_module = _get_legacy_utils()
 
     package_exports = {
         "serialize_datetime",
@@ -54,7 +68,7 @@ def _build_all() -> list[str]:
 
     legacy_exports = {
         name
-        for name, value in vars(_legacy_utils).items()
+        for name, value in vars(legacy_module).items()
         if not name.startswith("_") and not isinstance(value, ModuleType)
     }
 
