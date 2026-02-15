@@ -4,9 +4,10 @@
 codecov:
   require_ci_to_pass: false
   notify:
-    wait_for_ci: true
+    wait_for_ci: false
   bot: <codecov-bot> #this is a username for Github/Gitlab/Bitbucket
-
+  continue-on-error: true
+  
   coverage:
     status:
       project:
@@ -22,12 +23,14 @@ codecov:
         branches:
           - main
         if_not_found: success
-        if_ci_failed: success #success, failure, error, ignore
+        if_ci_failed: error #success, failure, error, ignore
         informational: true
         only_pulls: false
     tests:  # declare a new status context "tests"
         target: 100%  # we always want 100% coverage here
-        paths: "tests/"  # only include coverage in "tests/" folder
+        paths: "tests/**"  # only include coverage in "tests/" folder
+    app:  # declare a new status context "app"
+        paths: "!tests/"  # remove all files in "tests/"
     patch:
       default:
         target: 90%

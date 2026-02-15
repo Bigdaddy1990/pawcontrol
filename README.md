@@ -11,6 +11,7 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
 [![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Bigdaddy1990/pawcontrol/branch/main/graph/badge.svg?token=Y8IFVQ0KDD)](https://codecov.io/gh/Bigdaddy1990/pawcontrol)
+[![Super-Linter](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/superlinter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
 **PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration **aims to comply with the Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports. As a custom integration, this is an alignment target rather than an official Home Assistant badge.
 

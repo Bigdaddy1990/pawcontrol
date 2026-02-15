@@ -16,14 +16,14 @@ jobs:
     name: Hassfest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6
       - uses: home-assistant/actions/hassfest@master
 
   hacs:
     name: HACS Validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6
       - uses: hacs/action@main
         with:
           category: integration
@@ -38,15 +38,17 @@ jobs:
         python-version: ["3.14"]
 
     steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-python@v6.2.0
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip codecov-cli
           python -m pip install -r requirements_test.txt
           python -m pip install -r requirements.txt
 
@@ -92,15 +94,18 @@ jobs:
         run: |
           pytest --cov=./ --cov-report=xml
           pytest --cov --junitxml=junit.xml -o junit_family=legacy
-
+          pytest --cov --junitxml=testreport.junit.xml -o junit_family=legacy
+          codecovcli do-upload --report-type test_results --file <report_name>.junit.xml
+          codecovcli upload-process
+          
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5.5.2
-        with:
-          files: junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.5.2
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          report-type: test_results
