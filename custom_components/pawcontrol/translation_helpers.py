@@ -1,6 +1,6 @@
 """Shared helpers for Home Assistant translation lookups."""
-
 from __future__ import annotations
+
 
 import logging
 import json

@@ -1,6 +1,6 @@
 """Health helper utilities for Paw Control flows."""
-
 from __future__ import annotations
+
 
 from collections.abc import Callable
 from collections.abc import Mapping

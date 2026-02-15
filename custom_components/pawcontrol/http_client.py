@@ -1,6 +1,6 @@
 """Helpers for working with Home Assistant's shared aiohttp session."""
-
 from __future__ import annotations
+
 
 from collections.abc import Callable
 from inspect import iscoroutinefunction

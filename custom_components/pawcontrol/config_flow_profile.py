@@ -6,8 +6,8 @@ annotations, which made reuse from both the configuration flow and the
 options flow difficult.  This module now provides reusable, fully typed
 utilities that standardize how entity profiles are presented and validated.
 """
-
 from __future__ import annotations
+
 
 from collections.abc import Mapping
 from typing import cast
