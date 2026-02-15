@@ -1,7 +1,7 @@
 # 🎯 PawControl - ONE-PAGE SUMMARY
 
-**Datum:** 2026-02-15  
-**Session-Dauer:** ~4 Stunden  
+**Datum:** 2026-02-15
+**Session-Dauer:** ~4 Stunden
 **Status:** ✅ READY FOR TEST MIGRATION
 
 ---
@@ -102,7 +102,7 @@ Type Safety:       ⏱️ TODO
 
 **Was als Nächstes?**
 
-A) Test-Migration durchführen (2-3h)  
+A) Test-Migration durchführen (2-3h)
 B) Stopp - Team Review
 
 **Deine Wahl?** 🎯

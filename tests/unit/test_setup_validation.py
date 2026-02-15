@@ -46,7 +46,7 @@ def mock_config_entry() -> MagicMock:
 async def test_async_validate_entry_config_success(mock_config_entry):
     """Test successful config validation."""
     dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
-    
+
     assert len(dogs) == 1
     assert dogs[0]["dog_id"] == "buddy"
     assert dogs[0]["dog_name"] == "Buddy"
@@ -60,9 +60,9 @@ async def test_async_validate_entry_config_success(mock_config_entry):
 async def test_async_validate_entry_config_empty_dogs(mock_config_entry):
     """Test validation with no dogs configured."""
     mock_config_entry.data = {CONF_DOGS: []}
-    
+
     dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
-    
+
     assert len(dogs) == 0
     assert profile == "standard"
     assert len(modules) == 0
@@ -72,7 +72,7 @@ async def test_async_validate_entry_config_empty_dogs(mock_config_entry):
 async def test_async_validate_entry_config_invalid_dogs_type(mock_config_entry):
     """Test validation fails with invalid dogs type."""
     mock_config_entry.data = {CONF_DOGS: "invalid"}
-    
+
     with pytest.raises(ConfigurationError, match="must be a list"):
         await async_validate_entry_config(mock_config_entry)
 
@@ -81,7 +81,7 @@ async def test_async_validate_entry_config_invalid_dogs_type(mock_config_entry):
 async def test_async_validate_entry_config_invalid_dog_entry(mock_config_entry):
     """Test validation fails with invalid dog entry."""
     mock_config_entry.data = {CONF_DOGS: ["not_a_dict"]}
-    
+
     with pytest.raises(ConfigurationError, match="must be mappings"):
         await async_validate_entry_config(mock_config_entry)
 
@@ -90,7 +90,7 @@ async def test_async_validate_entry_config_invalid_dog_entry(mock_config_entry):
 async def test_async_validate_entry_config_missing_dog_id(mock_config_entry):
     """Test validation fails with missing dog_id."""
     mock_config_entry.data = {CONF_DOGS: [{"dog_name": "Buddy"}]}
-    
+
     with pytest.raises(ConfigurationError, match="must include"):
         await async_validate_entry_config(mock_config_entry)
 
@@ -104,7 +104,7 @@ def test_validate_profile_standard(mock_config_entry):
 def test_validate_profile_unknown_fallback(mock_config_entry):
     """Test profile validation falls back to standard for unknown profile."""
     mock_config_entry.options = {"entity_profile": "unknown_profile"}
-    
+
     profile = _validate_profile(mock_config_entry)
     assert profile == "standard"
 
@@ -112,7 +112,7 @@ def test_validate_profile_unknown_fallback(mock_config_entry):
 def test_validate_profile_none_fallback(mock_config_entry):
     """Test profile validation falls back to standard for None."""
     mock_config_entry.options = {"entity_profile": None}
-    
+
     profile = _validate_profile(mock_config_entry)
     assert profile == "standard"
 
@@ -140,9 +140,9 @@ def test_extract_enabled_modules_success():
             },
         },
     ]
-    
+
     modules = _extract_enabled_modules(dogs_config)
-    
+
     assert "gps" in modules
     assert "feeding" in modules
     assert "walk" in modules
@@ -164,7 +164,7 @@ def test_extract_enabled_modules_no_modules_config():
             "dog_name": "Buddy",
         },
     ]
-    
+
     modules = _extract_enabled_modules(dogs_config)
     assert len(modules) == 0
 
@@ -178,7 +178,7 @@ def test_extract_enabled_modules_invalid_modules_type():
             CONF_MODULES: "invalid",  # Should be dict
         },
     ]
-    
+
     modules = _extract_enabled_modules(dogs_config)  # type: ignore
     assert len(modules) == 0
 
@@ -195,8 +195,8 @@ def test_extract_enabled_modules_unknown_module():
             },
         },
     ]
-    
+
     modules = _extract_enabled_modules(dogs_config)
-    
+
     assert "gps" in modules
     assert "unknown_module" not in modules

@@ -224,7 +224,19 @@ class BinarySensorLogicMixin:
         return num_value <= threshold
       raise ValueError(f"Unknown comparison: {comparison}")
 
-    except TypeError, ValueError:
+    except ValueError:
+      _LOGGER.debug(
+        "Failed to compare non-numeric value '%s' against threshold %s",
+        value,
+        threshold,
+      )
+      return default_if_none
+    except TypeError:
+      _LOGGER.debug(
+        "Failed to compare value of unsupported type %s against threshold %s",
+        type(value).__name__,
+        threshold,
+      )
       return default_if_none
 
 

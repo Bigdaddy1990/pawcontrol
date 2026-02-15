@@ -12,15 +12,16 @@ Modules:
 
 from __future__ import annotations
 
+
 from .manager_init import async_initialize_managers
 from .platform_setup import async_setup_platforms
 from .validation import async_validate_entry_config
 from .cleanup import async_cleanup_runtime_data, async_register_cleanup
 
 __all__ = [
-    "async_initialize_managers",
-    "async_setup_platforms",
-    "async_validate_entry_config",
-    "async_cleanup_runtime_data",
-    "async_register_cleanup",
+  "async_initialize_managers",
+  "async_setup_platforms",
+  "async_validate_entry_config",
+  "async_cleanup_runtime_data",
+  "async_register_cleanup",
 ]

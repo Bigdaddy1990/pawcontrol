@@ -700,7 +700,9 @@ def _introspect_bus_keywords(
 
   try:
     signature = inspect.signature(bus_async_fire)
-  except TypeError, ValueError:
+  except ValueError:
+    return True, frozenset()
+  except TypeError:
     return True, frozenset()
 
   parameters = signature.parameters
@@ -1845,7 +1847,9 @@ def _datetime_from_timestamp(value: Number) -> datetime | None:
 
   try:
     timestamp = float(value)
-  except TypeError, ValueError:
+  except ValueError:
+    return None
+  except TypeError:
     return None
 
   utc_from_timestamp = getattr(dt_util, "utc_from_timestamp", None)

@@ -774,7 +774,9 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
 
   try:
     signature = inspect.signature(init)  # type: ignore[arg-type]
-  except TypeError, ValueError:  # pragma: no cover - signature unavailable
+  except ValueError:  # pragma: no cover - signature unavailable
+    return False
+  except TypeError:  # pragma: no cover - signature unavailable
     return False
 
   parameter_names = {parameter.name for parameter in signature.parameters.values()}

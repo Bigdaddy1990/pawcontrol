@@ -1251,7 +1251,11 @@ class FeedingManager:
 
         try:
           parsed_weight = float(weight)
-        except TypeError, ValueError:
+        except ValueError:
+          raise ValueError(
+            f"Invalid feeding configuration for {dog_id}: weight is required",
+          ) from None
+        except TypeError:
           raise ValueError(
             f"Invalid feeding configuration for {dog_id}: weight is required",
           ) from None
@@ -1279,7 +1283,13 @@ class FeedingManager:
         ):
           try:
             config.ideal_weight = float(ideal_weight)
-          except TypeError, ValueError:  # pragma: no cover - defensive
+          except ValueError:  # pragma: no cover - defensive
+            _LOGGER.debug(
+              "Invalid ideal weight %s for %s; keeping existing value",
+              ideal_weight,
+              dog_id,
+            )
+          except TypeError:  # pragma: no cover - defensive
             _LOGGER.debug(
               "Invalid ideal weight %s for %s; keeping existing value",
               ideal_weight,
@@ -1722,12 +1732,16 @@ class FeedingManager:
       try:
         base_weight = float(config.ideal_weight)
         adjusted_rer = False
-      except TypeError, ValueError:  # pragma: no cover - defensive
+      except ValueError:  # pragma: no cover - defensive
+        base_weight = weight_value
+      except TypeError:  # pragma: no cover - defensive
         base_weight = weight_value
     elif config.weight_goal == "gain" and config.ideal_weight:
       try:
         base_weight = float(config.ideal_weight)
-      except TypeError, ValueError:
+      except ValueError:
+        base_weight = weight_value
+      except TypeError:
         base_weight = weight_value
 
     rer = self._calculate_rer(base_weight, adjusted=adjusted_rer)
@@ -2476,7 +2490,9 @@ class FeedingManager:
           0.0,
           target_calories - consumed_calories,
         )
-      except TypeError, ValueError:  # pragma: no cover - defensive
+      except ValueError:  # pragma: no cover - defensive
+        remaining_calories = None
+      except TypeError:  # pragma: no cover - defensive
         remaining_calories = None
 
     daily_stats = FeedingDailyStats(

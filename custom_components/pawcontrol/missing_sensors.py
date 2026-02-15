@@ -181,7 +181,9 @@ def calculate_calories_burned_today(
     }
     multiplier = multipliers.get(activity_level, 1.0)
     return round(calories_burned * multiplier, 1)
-  except TypeError, ValueError:
+  except ValueError:
+    return 0.0
+  except TypeError:
     return 0.0
 
 
@@ -516,7 +518,9 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
               if isinstance(distance_value, int | float):
                 total_distance_meters += float(distance_value)
       return round(total_distance_meters / 1000, 2)
-    except TypeError, ValueError:
+    except ValueError:
+      return 0.0
+    except TypeError:
       return 0.0
 
   @property
@@ -625,7 +629,9 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
         if walk_time and walk_time >= start_of_week:
           walks_this_week += 1
       return walks_this_week
-    except TypeError, ValueError:
+    except ValueError:
+      return 0
+    except TypeError:
       return 0
 
   @property

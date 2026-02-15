@@ -54,6 +54,10 @@ jobs:
         run: |
           python -m scripts.sync_contributor_guides --check
 
+      - name: Check legacy exception syntax
+        run: |
+          python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
+
       - name: Run test requirements and localization sync
         run: |
           python -m scripts.enforce_docstring_baseline --update
@@ -83,20 +87,20 @@ jobs:
           pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing
-            
+
       - name: Generate coverage report
         run: |
           pytest --cov=./ --cov-report=xml
           pytest --cov --junitxml=junit.xml -o junit_family=legacy
-          
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.5.2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          
+
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5.5.2
         with:
+          files: junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
-          report-type: test_results
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5.5.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

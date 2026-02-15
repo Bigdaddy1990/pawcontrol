@@ -95,12 +95,12 @@ flag_management:
       statuses:
         - type: "project"
         - type: "patch"
-        
+
 cli:
   plugins:
     pycoverage:
       report_type: "json"
-      
+
 component_management:
   individual_components:
     - component_id: "calculator"

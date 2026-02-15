@@ -88,6 +88,7 @@ from .gps_helpers import build_dog_gps_placeholders
 from .gps_helpers import validation_error_key
 from .gps_schemas import build_dog_gps_schema
 from .gps_schemas import build_geofence_settings_schema
+from .gps_schemas import build_gps_settings_schema
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -609,6 +610,7 @@ class GPSOptionsMixin(GPSOptionsHost):
   ) -> ConfigFlowResult:
     """Configure GPS settings."""
 
+    explicitly_selected_dog = self._current_dog
     current_dog = self._require_current_dog()
     if current_dog is None:
       return await self.async_step_select_dog_for_gps_settings()
@@ -616,6 +618,12 @@ class GPSOptionsMixin(GPSOptionsHost):
     dog_id = current_dog.get(DOG_ID_FIELD)
     if not isinstance(dog_id, str):
       return await self.async_step_select_dog_for_gps_settings()
+
+    persist_dog_id: str | None = None
+    if explicitly_selected_dog is not None:
+      explicit_id = explicitly_selected_dog.get(DOG_ID_FIELD)
+      if isinstance(explicit_id, str):
+        persist_dog_id = explicit_id
 
     current_options = self._current_gps_options(dog_id)
     if user_input is not None:
@@ -713,18 +721,19 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
       updated_options = self._clone_options()
-      dog_options = self._current_dog_options()
-      dog_entry = ensure_dog_options_entry(
-        cast(
-          JSONLikeMapping,
-          dict(dog_options.get(dog_id, {})),
-        ),
-        dog_id=dog_id,
-      )
-      dog_entry[GPS_SETTINGS_FIELD] = current_options
-      dog_entry[DOG_ID_FIELD] = dog_id
-      dog_options[dog_id] = dog_entry
-      updated_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
+      if persist_dog_id is not None:
+        dog_options = self._current_dog_options()
+        dog_entry = ensure_dog_options_entry(
+          cast(
+            JSONLikeMapping,
+            dict(dog_options.get(persist_dog_id, {})),
+          ),
+          dog_id=persist_dog_id,
+        )
+        dog_entry[GPS_SETTINGS_FIELD] = current_options
+        dog_entry[DOG_ID_FIELD] = persist_dog_id
+        dog_options[persist_dog_id] = dog_entry
+        updated_options[DOG_OPTIONS_FIELD] = cast(JSONValue, dog_options)
       updated_options[GPS_SETTINGS_FIELD] = cast(
         JSONValue,
         current_options,
@@ -740,14 +749,12 @@ class GPSOptionsMixin(GPSOptionsHost):
       data_schema=self._build_gps_settings_schema(current_options),
     )
 
-  def _build_gps_settings_schema(
+  async def async_step_geofence_settings(
     self,
-    current_options: GPSOptions,
-  ) -> vol.Schema:
-    """Build schema for GPS settings."""
+    user_input: OptionsGPSSettingsInput | None = None,
+  ) -> ConfigFlowResult:
+    """Handle geofence settings step for the selected dog."""
 
-    # Check for an explicitly selected dog before _require_current_dog might
-    # default to the only configured dog.
     explicitly_selected_dog = self._current_dog
     self._require_current_dog()
 
@@ -767,12 +774,12 @@ class GPSOptionsMixin(GPSOptionsHost):
         else cast(GeofenceOptions, {})
       )
 
-    if user_input is not None:  # noqa: F821
+    if user_input is not None:
       errors: dict[str, str] = {}
 
       try:
         geofence_radius = InputValidator.validate_geofence_radius(
-          user_input.get(GEOFENCE_RADIUS_FIELD),  # noqa: F821
+          user_input.get(GEOFENCE_RADIUS_FIELD),
           required=True,
           field=GEOFENCE_RADIUS_FIELD,
           min_value=float(MIN_GEOFENCE_RADIUS),
@@ -789,8 +796,8 @@ class GPSOptionsMixin(GPSOptionsHost):
       geofence_lon: float | None
       try:
         geofence_lat, geofence_lon = validate_flow_gps_coordinates(
-          user_input.get(GEOFENCE_LAT_FIELD),  # noqa: F821
-          user_input.get(GEOFENCE_LON_FIELD),  # noqa: F821
+          user_input.get(GEOFENCE_LAT_FIELD),
+          user_input.get(GEOFENCE_LON_FIELD),
           latitude_field=GEOFENCE_LAT_FIELD,
           longitude_field=GEOFENCE_LON_FIELD,
         )
@@ -821,34 +828,34 @@ class GPSOptionsMixin(GPSOptionsHost):
         GeofenceOptions,
         {
           GEOFENCE_ENABLED_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ENABLED_FIELD),  # noqa: F821
+            user_input.get(GEOFENCE_ENABLED_FIELD),
             default=True,
           ),
           GEOFENCE_USE_HOME_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_USE_HOME_FIELD),  # noqa: F821
+            user_input.get(GEOFENCE_USE_HOME_FIELD),
             default=True,
           ),
           GEOFENCE_RADIUS_FIELD: geofence_radius_m,
           GEOFENCE_LAT_FIELD: geofence_lat,
           GEOFENCE_LON_FIELD: geofence_lon,
           GEOFENCE_ALERTS_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ALERTS_FIELD),  # noqa: F821
+            user_input.get(GEOFENCE_ALERTS_FIELD),
             default=True,
           ),
           GEOFENCE_SAFE_ZONE_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_SAFE_ZONE_FIELD),  # noqa: F821
+            user_input.get(GEOFENCE_SAFE_ZONE_FIELD),
             default=True,
           ),
           GEOFENCE_RESTRICTED_ZONE_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),  # noqa: F821
+            user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),
             default=True,
           ),
           GEOFENCE_ZONE_ENTRY_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),  # noqa: F821
+            user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),
             default=True,
           ),
           GEOFENCE_ZONE_EXIT_FIELD: coerce_bool(
-            user_input.get(GEOFENCE_ZONE_EXIT_FIELD),  # noqa: F821
+            user_input.get(GEOFENCE_ZONE_EXIT_FIELD),
             default=True,
           ),
         },
@@ -865,9 +872,6 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
       updated_options = self._clone_options()
-      # Preserve the legacy top-level key for backward-compatible reads when
-      # no dog is selected, while persisting canonical per-dog settings below
-      # when a specific dog context is active.
       updated_options["geofence_settings"] = cast(JSONValue, geofence_options)
       if dog_id is not None:
         dog_options = self._current_dog_options()
@@ -892,6 +896,14 @@ class GPSOptionsMixin(GPSOptionsHost):
       step_id="geofence_settings",
       data_schema=self._build_geofence_settings_schema(current_options),
     )
+
+  def _build_gps_settings_schema(
+    self,
+    current_options: GPSOptions,
+  ) -> vol.Schema:
+    """Build schema for GPS settings."""
+
+    return build_gps_settings_schema(current_options)
 
   def _build_geofence_settings_schema(
     self,
@@ -1029,7 +1041,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
         ),
         GPS_DISTANCE_FILTER_FIELD: _safe_float_range(
           raw.get(GPS_DISTANCE_FILTER_FIELD),
-          default=float(DEFAULT_GPS_DISTANCE_FILTER),
+          default=30.0,
           minimum=1.0,
           maximum=2000.0,
           field=GPS_DISTANCE_FILTER_FIELD,

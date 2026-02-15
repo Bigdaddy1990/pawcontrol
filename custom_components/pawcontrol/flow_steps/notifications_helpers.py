@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 from typing import cast
 
@@ -43,6 +44,27 @@ def _string_default(
   return value if isinstance(value, str) else fallback
 
 
+def _validate_time_input(value: Any, field: NotificationOptionsField) -> None:
+  """Validate optional quiet-hour time input."""
+
+  if value is None:
+    return
+
+  candidate = str(value).strip()
+  if not candidate:
+    return
+
+  formats = ("%H:%M:%S", "%H:%M")
+  for fmt in formats:
+    try:
+      datetime.strptime(candidate, fmt)
+      return
+    except ValueError:
+      continue
+
+  raise FlowValidationError(field_errors={field: f"{field}_invalid"})
+
+
 def build_notification_settings_payload(
   user_input: NotificationSettingsInput,
   current: NotificationOptions,
@@ -51,6 +73,15 @@ def build_notification_settings_payload(
   coerce_time_string: Callable[[Any, str], str],
 ) -> NotificationOptions:
   """Create a typed notification payload from submitted form data."""
+
+  _validate_time_input(
+    user_input.get(NOTIFICATION_QUIET_START_FIELD),
+    NOTIFICATION_QUIET_START_FIELD,
+  )
+  _validate_time_input(
+    user_input.get(NOTIFICATION_QUIET_END_FIELD),
+    NOTIFICATION_QUIET_END_FIELD,
+  )
 
   try:
     reminder_repeat = validate_int_range(

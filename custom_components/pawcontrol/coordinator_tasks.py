@@ -963,10 +963,19 @@ def _coerce_int(value: Any) -> int:
 
   try:
     return int(value)
-  except TypeError, ValueError:
+  except ValueError:
     try:
       return int(float(value))
-    except TypeError, ValueError:
+    except ValueError:
+      return 0
+    except TypeError:
+      return 0
+  except TypeError:
+    try:
+      return int(float(value))
+    except ValueError:
+      return 0
+    except TypeError:
       return 0
 
 
@@ -1055,14 +1064,18 @@ def _coerce_float(value: Any) -> float | None:
   if isinstance(value, str):
     try:
       parsed = dt_util.parse_datetime(value)
-    except TypeError, ValueError:
+    except ValueError:
+      parsed = None
+    except TypeError:
       parsed = None
     if parsed is not None:
       return _timestamp_from_datetime(parsed)
 
   try:
     number = float(value)
-  except TypeError, ValueError:
+  except ValueError:
+    return None
+  except TypeError:
     return None
 
   if not isfinite(number):
