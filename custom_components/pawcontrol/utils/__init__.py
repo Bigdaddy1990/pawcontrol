@@ -9,7 +9,9 @@ from __future__ import annotations
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
 from pathlib import Path
-from typing import Any
+import sys
+from types import ModuleType
+from functools import lru_cache
 
 from .serialize import (
   serialize_dataclass,
@@ -18,52 +20,61 @@ from .serialize import (
   serialize_timedelta,
 )
 
-__all__ = [
-  "serialize_datetime",
-  "serialize_timedelta",
-  "serialize_dataclass",
-  "serialize_entity_attributes",
-]
+_LEGACY_UTILS_MODULE_NAME = "custom_components.pawcontrol._legacy_utils"
+_LEGACY_UTILS_PATH = Path(__file__).resolve().parent.parent / "utils.py"
+
+_legacy_utils_spec = spec_from_file_location(
+  _LEGACY_UTILS_MODULE_NAME,
+  _LEGACY_UTILS_PATH,
+)
 
 
-_LEGACY_UTILS_MODULE = None
-
-
-def _load_legacy_utils_module() -> Any:
-  """Load the legacy ``utils.py`` module for backwards-compatible imports."""
-
-  global _LEGACY_UTILS_MODULE
-
-  if _LEGACY_UTILS_MODULE is not None:
-    return _LEGACY_UTILS_MODULE
-
-  legacy_path = Path(__file__).resolve().parent.parent / "utils.py"
-  spec = spec_from_file_location(
-    "custom_components.pawcontrol._legacy_utils", legacy_path
-  )
-  if spec is None or spec.loader is None:  # pragma: no cover - defensive safety guard
-    raise ImportError(f"Unable to load legacy utils module from {legacy_path}")
-
-  module = module_from_spec(spec)
-  spec.loader.exec_module(module)
-  _LEGACY_UTILS_MODULE = module
+@lru_cache(maxsize=1)
+def _get_legacy_utils() -> ModuleType:
+  """Load and return the legacy utils module, caching the result."""
+  if _legacy_utils_spec is None or _legacy_utils_spec.loader is None:
+    raise ImportError(f"Cannot load legacy utils module from {_LEGACY_UTILS_PATH}")
+  module = module_from_spec(_legacy_utils_spec)
+  sys.modules[_LEGACY_UTILS_MODULE_NAME] = module
+  _legacy_utils_spec.loader.exec_module(module)
   return module
 
 
-def __getattr__(name: str) -> Any:
-  """Resolve missing attributes from the legacy ``utils.py`` module."""
+def __getattr__(name: str):
+  """Provide compatibility attributes from the legacy utils module.
 
-  module = _load_legacy_utils_module()
-  try:
-    return getattr(module, name)
-  except AttributeError as err:
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from err
+  This allows existing imports from the old ``utils.py`` module
+  to keep working via attribute forwarding.
+  """
+  legacy_module = _get_legacy_utils()
+  if hasattr(legacy_module, name):
+    return getattr(legacy_module, name)
+  raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def __dir__() -> list[str]:
-  """Return module attributes including legacy utility names."""
+  """Return available attributes for static tooling and introspection."""
+  return __all__
 
-  module = _load_legacy_utils_module()
-  names = set(globals())
-  names.update(dir(module))
-  return sorted(names)
+
+def _build_all() -> list[str]:
+  """Build ``__all__`` with package-native and compatibility exports."""
+  legacy_module = _get_legacy_utils()
+
+  package_exports = {
+    "serialize_datetime",
+    "serialize_timedelta",
+    "serialize_dataclass",
+    "serialize_entity_attributes",
+  }
+
+  legacy_exports = {
+    name
+    for name, value in vars(legacy_module).items()
+    if not name.startswith("_") and not isinstance(value, ModuleType)
+  }
+
+  return sorted(package_exports | legacy_exports)
+
+
+__all__ = _build_all()
