@@ -207,14 +207,17 @@ def create_form_result(
     raise ValueError(msg)
 
   if flow is None:
-    return {
-      "type": data_entry_flow.FlowResultType.FORM,
-      "step_id": step_id,
-      "data_schema": resolved_schema,
-      "errors": errors or {},
-      "description_placeholders": description_placeholders,
-      "last_step": last_step,
-    }
+    return cast(
+      FlowStepResult,
+      {
+        "type": data_entry_flow.FlowResultType.FORM,
+        "step_id": step_id,
+        "data_schema": resolved_schema,
+        "errors": errors or {},
+        "description_placeholders": description_placeholders,
+        "last_step": last_step,
+      },
+    )
 
   return flow.async_show_form(
     step_id=step_id,
