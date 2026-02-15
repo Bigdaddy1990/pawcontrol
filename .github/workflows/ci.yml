@@ -87,6 +87,20 @@ jobs:
           pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing
-
-      - name: Codecov
+            
+      - name: Generate coverage report
+        run: |
+          pytest --cov=./ --cov-report=xml
+          pytest --cov --junitxml=junit.xml -o junit_family=legacy
+          
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report-type: test_results
