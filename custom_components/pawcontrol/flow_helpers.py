@@ -15,6 +15,7 @@ from typing import cast
 from typing import TYPE_CHECKING
 
 import voluptuous as vol
+from homeassistant import data_entry_flow
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.data_entry_flow import FlowResult
 
@@ -56,7 +57,9 @@ def coerce_bool(value: Any, *, default: bool = False) -> bool:
       return False
   if isinstance(value, int | float):
     return bool(value)
-  return default
+  if value is None:
+    return default
+  return bool(value)
 
 
 def coerce_str(value: Any, *, default: str = "") -> str:
@@ -80,7 +83,9 @@ def coerce_str(value: Any, *, default: str = "") -> str:
   if isinstance(value, str):
     trimmed = value.strip()
     return trimmed or default
-  return default
+  if value is None:
+    return default
+  return str(value)
 
 
 def coerce_optional_str(value: Any) -> str | None:
@@ -166,9 +171,11 @@ def coerce_optional_int(value: Any) -> int | None:
 
 
 def create_form_result(
-  flow: ConfigFlow | OptionsFlow,
   step_id: str,
-  data_schema: vol.Schema,
+  data_schema: vol.Schema | None = None,
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
+  schema: vol.Schema | None = None,
   errors: dict[str, str] | None = None,
   description_placeholders: dict[str, str] | None = None,
   last_step: bool = False,
@@ -194,9 +201,27 @@ def create_form_result(
       ...   errors={"base": "invalid_input"},
       ... )
   """
+  resolved_schema = data_schema or schema
+  if resolved_schema is None:
+    msg = "data_schema or schema must be provided"
+    raise ValueError(msg)
+
+  if flow is None:
+    return cast(
+      FlowStepResult,
+      {
+        "type": data_entry_flow.FlowResultType.FORM,
+        "step_id": step_id,
+        "data_schema": resolved_schema,
+        "errors": errors or {},
+        "description_placeholders": description_placeholders,
+        "last_step": last_step,
+      },
+    )
+
   return flow.async_show_form(
     step_id=step_id,
-    data_schema=data_schema,
+    data_schema=resolved_schema,
     errors=errors or {},
     description_placeholders=description_placeholders,
     last_step=last_step,
@@ -204,9 +229,10 @@ def create_form_result(
 
 
 def create_menu_result(
-  flow: ConfigFlow | OptionsFlow,
-  step_id: str,
   menu_options: list[str],
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
+  step_id: str = "menu",
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized menu result for config/options flows.
@@ -236,8 +262,9 @@ def create_menu_result(
 
 
 def create_abort_result(
-  flow: ConfigFlow | OptionsFlow,
   reason: str,
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized abort result.
@@ -263,9 +290,10 @@ def create_abort_result(
 
 
 def create_progress_result(
-  flow: ConfigFlow | OptionsFlow,
   step_id: str,
   progress_action: str,
+  *,
+  flow: ConfigFlow | OptionsFlow | None = None,
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized progress result.
@@ -298,102 +326,90 @@ def create_progress_result(
 
 
 def validate_required_field(
-  errors: dict[str, str],
-  field_name: str,
-  value: Any,
+  *args: Any,
+  errors: dict[str, str] | None = None,
   error_key: str = "required",
-) -> bool:
+) -> dict[str, str] | bool:
   """Validate that a required field has a value.
 
-  Args:
-      errors: Error dictionary to update
-      field_name: Name of the field
-      value: Field value to check
-      error_key: Error key for translation
+  Supports both the legacy mutation/boolean API and the newer return-errors API:
 
-  Returns:
-      True if field is valid, False otherwise
+  Legacy:
+      validate_required_field(errors, field_name, value, error_key="required")
+      -> bool
 
-  Examples:
-      >>> errors = {}
-      >>> validate_required_field(errors, "name", "")
-      False
-      >>> errors
-      {'name': 'required'}
+  Current:
+      validate_required_field(field_name, value, errors=errors) -> dict[str, str]
   """
+
+  if args and isinstance(args[0], dict):
+    # Backward-compatible positional API.
+    if len(args) < 3:
+      msg = "legacy validate_required_field requires errors, field_name, and value"
+      raise TypeError(msg)
+    legacy_errors = args[0]
+    field_name = args[1]
+    value = args[2]
+    if len(args) >= 4:
+      error_key = args[3]
+
+    has_value = value is not None and (
+      not isinstance(value, str) or bool(value.strip())
+    )
+    if not has_value:
+      legacy_errors[field_name] = error_key
+    return has_value
+
+  if len(args) < 2:
+    msg = "validate_required_field requires field_name and value"
+    raise TypeError(msg)
+
+  field_name = args[0]
+  value = args[1]
+  resolved_errors = errors or {}
   if value is None or (isinstance(value, str) and not value.strip()):
-    errors[field_name] = error_key
-    return False
-  return True
+    resolved_errors[field_name] = error_key
+  return resolved_errors
 
 
 def validate_min_max(
-  errors: dict[str, str],
   field_name: str,
   value: float | int,
-  min_value: float | int,
-  max_value: float | int,
+  *,
+  min_value: float | int | None,
+  max_value: float | int | None,
+  errors: dict[str, str] | None = None,
   error_key: str = "out_of_range",
-) -> bool:
-  """Validate that a numeric value is within range.
+) -> dict[str, str]:
+  """Validate that a numeric value is within range."""
 
-  Args:
-      errors: Error dictionary to update
-      field_name: Name of the field
-      value: Numeric value to check
-      min_value: Minimum allowed value
-      max_value: Maximum allowed value
-      error_key: Error key for translation
-
-  Returns:
-      True if value is in range, False otherwise
-
-  Examples:
-      >>> errors = {}
-      >>> validate_min_max(errors, "age", 150, 1, 25)
-      False
-      >>> errors
-      {'age': 'out_of_range'}
-  """
-  if value < min_value or value > max_value:
-    errors[field_name] = error_key
-    return False
-  return True
+  resolved_errors = errors or {}
+  if min_value is not None and value < min_value:
+    resolved_errors[field_name] = error_key
+  if max_value is not None and value > max_value:
+    resolved_errors[field_name] = error_key
+  return resolved_errors
 
 
 def validate_entity_exists(
-  errors: dict[str, str],
-  field_name: str,
-  entity_id: str,
+  *,
   hass: Any,  # HomeAssistant type
+  field: str,
+  entity_id: str,
+  errors: dict[str, str] | None = None,
   error_key: str = "entity_not_found",
-) -> bool:
-  """Validate that an entity exists in Home Assistant.
+) -> dict[str, str]:
+  """Validate that an entity exists in Home Assistant."""
 
-  Args:
-      errors: Error dictionary to update
-      field_name: Name of the field
-      entity_id: Entity ID to check
-      hass: Home Assistant instance
-      error_key: Error key for translation
-
-  Returns:
-      True if entity exists, False otherwise
-
-  Examples:
-      >>> errors = {}
-      >>> validate_entity_exists(errors, "gps_source", "device_tracker.phone", hass)
-      True
-  """
+  resolved_errors = errors or {}
   if not entity_id or not isinstance(entity_id, str):
-    errors[field_name] = error_key
-    return False
+    resolved_errors[field] = error_key
+    return resolved_errors
 
   state = hass.states.get(entity_id)
   if state is None or state.state in {"unknown", "unavailable"}:
-    errors[field_name] = error_key
-    return False
-  return True
+    resolved_errors[field] = error_key
+  return resolved_errors
 
 
 # Schema building helpers
@@ -585,8 +601,9 @@ def build_boolean_schema(
 
 
 def merge_errors(
-  base_errors: dict[str, str],
-  new_errors: dict[str, str],
+  *error_maps: dict[str, str],
+  base_errors: dict[str, str] | None = None,
+  new_errors: dict[str, str] | None = None,
 ) -> dict[str, str]:
   """Merge two error dictionaries.
 
@@ -601,7 +618,14 @@ def merge_errors(
       >>> merge_errors({"name": "required"}, {"age": "invalid"})
       {'name': 'required', 'age': 'invalid'}
   """
-  return {**base_errors, **new_errors}
+  merged: dict[str, str] = {}
+  if base_errors:
+    merged.update(base_errors)
+  if new_errors:
+    merged.update(new_errors)
+  for errors in error_maps:
+    merged.update(errors)
+  return merged
 
 
 def has_errors(errors: dict[str, str]) -> bool:
@@ -640,9 +664,11 @@ def store_flow_data(
   Examples:
       >>> store_flow_data(self, "dog_id", "buddy")
   """
-  if not hasattr(flow, "_flow_data"):
-    flow._flow_data = {}
-  flow._flow_data[key] = value
+  flow_data = getattr(flow, "_flow_data", None)
+  if not isinstance(flow_data, dict):
+    flow_data = {}
+    flow._flow_data = flow_data
+  flow_data[key] = value
 
 
 def get_flow_data(
@@ -663,12 +689,13 @@ def get_flow_data(
   Examples:
       >>> dog_id = get_flow_data(self, "dog_id")
   """
-  if not hasattr(flow, "_flow_data"):
+  flow_data = getattr(flow, "_flow_data", None)
+  if not isinstance(flow_data, dict):
     return default
-  return flow._flow_data.get(key, default)
+  return flow_data.get(key, default)
 
 
-def clear_flow_data(flow: ConfigFlow | OptionsFlow) -> None:
+def clear_flow_data(flow: ConfigFlow | OptionsFlow, key: str | None = None) -> None:
   """Clear all flow context data.
 
   Args:
@@ -677,5 +704,10 @@ def clear_flow_data(flow: ConfigFlow | OptionsFlow) -> None:
   Examples:
       >>> clear_flow_data(self)
   """
-  if hasattr(flow, "_flow_data"):
+  flow_data = getattr(flow, "_flow_data", None)
+  if not isinstance(flow_data, dict):
+    return
+  if key is None:
     flow._flow_data = {}
+  else:
+    flow_data.pop(key, None)

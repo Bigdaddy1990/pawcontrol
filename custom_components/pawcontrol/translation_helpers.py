@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+import json
 from collections.abc import Iterable
 from collections.abc import Mapping
 from collections.abc import MutableMapping
+from functools import lru_cache
+from pathlib import Path
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.translation import async_get_translations
@@ -16,6 +19,32 @@ from .language import normalize_language
 _LOGGER = logging.getLogger(__name__)
 
 _TRANSLATION_CACHE_KEY = "translations"
+
+
+@lru_cache(maxsize=8)
+def _load_bundled_component_translations(language: str) -> dict[str, str]:
+  """Load bundled translations from ``translations/<language>.json``."""
+
+  base_path = Path(__file__).resolve().parent
+  translations_path = base_path / "translations" / f"{language}.json"
+  if not translations_path.exists():
+    return {}
+
+  try:
+    payload = json.loads(translations_path.read_text(encoding="utf-8"))
+  except (OSError, json.JSONDecodeError):
+    _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
+    return {}
+
+  common = payload.get("common")
+  if not isinstance(common, Mapping):
+    return {}
+
+  resolved: dict[str, str] = {}
+  for key, value in common.items():
+    if isinstance(key, str) and isinstance(value, str):
+      resolved[component_translation_key(key)] = value
+  return resolved
 
 
 def component_translation_key(key: str) -> str:
@@ -78,7 +107,10 @@ def get_cached_component_translations(
   """Return cached component translations for ``language``."""
 
   normalized = normalize_language(language)
-  return _get_translation_cache(hass).get(normalized, {})
+  cached = _get_translation_cache(hass).get(normalized)
+  if cached:
+    return cached
+  return _load_bundled_component_translations(normalized)
 
 
 def get_cached_component_translation_lookup(
@@ -119,6 +151,9 @@ async def async_get_component_translations(
   except Exception:  # pragma: no cover - defensive guard for HA API
     _LOGGER.debug("Failed to load %s translations for %s", normalized, DOMAIN)
     translations = {}
+
+  if not translations:
+    translations = dict(_load_bundled_component_translations(normalized))
 
   cache[normalized] = translations
   return translations

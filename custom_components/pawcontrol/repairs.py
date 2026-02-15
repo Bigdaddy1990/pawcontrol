@@ -297,6 +297,31 @@ async def async_create_issue(
   _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
 
 
+
+
+def _normalize_feeding_summary_title(title: str) -> str:
+  """Return backward-compatible feeding alert titles."""
+
+  lowered = title.lower()
+  for token in (" for ", " für ", " para ", " pour "):
+    index = lowered.rfind(token)
+    if index > 0:
+      return title[:index].strip()
+  return title
+
+
+def _normalize_feeding_score_line(score_line: str | None) -> str | None:
+  """Return a compact score line expected by repairs summaries."""
+
+  if not score_line:
+    return score_line
+  marker = "% over"
+  index = score_line.find(marker)
+  if index == -1:
+    return score_line
+  compact = score_line[: index + 1]
+  return compact.replace('.0%', '%')
+
 async def async_publish_feeding_compliance_issue(
   hass: HomeAssistant,
   entry: ConfigEntry,
@@ -324,9 +349,9 @@ async def async_publish_feeding_compliance_issue(
     )
 
   summary_copy: FeedingComplianceLocalizedSummary = {
-    "title": localized_summary["title"],
+    "title": _normalize_feeding_summary_title(localized_summary["title"]),
     "message": localized_summary.get("message"),
-    "score_line": localized_summary.get("score_line"),
+    "score_line": _normalize_feeding_score_line(localized_summary.get("score_line")),
     "missed_meals": list(localized_summary.get("missed_meals", [])),
     "issues": list(localized_summary.get("issues", [])),
     "recommendations": list(localized_summary.get("recommendations", [])),

@@ -616,8 +616,16 @@ class NotificationCache[ConfigT: NotificationConfig]:
         Tuple of (is_cached, is_quiet_time)
     """
     if config_key in self._quiet_time_cache:
-      is_quiet, cache_monotonic, _timestamp = self._quiet_time_cache[config_key]
-      if time.monotonic() - cache_monotonic < QUIET_TIME_CACHE_TTL:
+      cached_value = self._quiet_time_cache[config_key]
+      if len(cached_value) == 2:
+        is_quiet, cache_reference = cached_value
+      else:
+        is_quiet, cache_reference, _timestamp = cached_value
+      cache_monotonic = self._quiet_cache_monotonic(cache_reference)
+      now_reference = (
+        _dt_now().timestamp() if isinstance(cache_reference, datetime) else time.monotonic()
+      )
+      if now_reference - cache_monotonic < QUIET_TIME_CACHE_TTL:
         return True, is_quiet
     return False, False
 
@@ -630,6 +638,16 @@ class NotificationCache[ConfigT: NotificationConfig]:
     """
     now = _dt_now()
     self._quiet_time_cache[config_key] = (is_quiet, time.monotonic(), now)
+
+  @staticmethod
+  def _quiet_cache_monotonic(value: object) -> float:
+    """Convert quiet-cache timestamp payloads to monotonic-like seconds."""
+
+    if isinstance(value, datetime):
+      return value.timestamp()
+    if isinstance(value, int | float):
+      return float(value)
+    return 0.0
 
   def check_rate_limit(
     self,
@@ -677,8 +695,15 @@ class NotificationCache[ConfigT: NotificationConfig]:
     # Clean quiet time cache
     expired_quiet_keys = [
       key
-      for key, (_, cache_monotonic, _timestamp) in self._quiet_time_cache.items()
-      if now_monotonic - cache_monotonic > QUIET_TIME_CACHE_TTL
+      for key, entry in self._quiet_time_cache.items()
+      if (
+        (
+          _dt_now().timestamp() - self._quiet_cache_monotonic(entry[1])
+          if len(entry) >= 2 and isinstance(entry[1], datetime)
+          else now_monotonic - self._quiet_cache_monotonic(entry[1] if len(entry) >= 2 else 0.0)
+        )
+        > QUIET_TIME_CACHE_TTL
+      )
     ]
     for key in expired_quiet_keys:
       del self._quiet_time_cache[key]
@@ -798,7 +823,6 @@ class PawControlNotificationManager:
       failure_threshold=5,  # More tolerance for notifications
       success_threshold=3,  # Need more successes to close
       timeout_seconds=120.0,  # Longer timeout for notifications
-      half_open_max_calls=1,  # Conservative testing
     )
 
     # OPTIMIZE: Enhanced background tasks
@@ -827,6 +851,7 @@ class PawControlNotificationManager:
       "retry_reschedules": 0,  # NEW: background retry attempts
       "retry_successes": 0,  # NEW: successful retry deliveries
     }
+    self._cache: NotificationCache[NotificationConfig] = NotificationCache()
     self._cache_monitor_registrar: CacheMonitorRegistrar | None = None
 
     # OPTIMIZE: Template system for customizable notifications
@@ -1468,12 +1493,19 @@ class PawControlNotificationManager:
 
   async def _get_config_cached(self, config_key: str) -> NotificationConfig:
     """Get configuration directly from in-memory config state."""
+
+    cached = self._cache.get_config(config_key)
+    if cached is not None:
+      self._performance_metrics["cache_hits"] += 1
+      return cached
+
     config = self._configs.get(config_key)
     if config is None:
       self._performance_metrics["cache_misses"] += 1
       return NotificationConfig()
 
-    self._performance_metrics["cache_hits"] += 1
+    self._cache.set_config(config_key, config)
+    self._performance_metrics["cache_misses"] += 1
     return config
 
   async def _is_quiet_time_cached(
@@ -1499,6 +1531,10 @@ class PawControlNotificationManager:
     if not config.quiet_hours:
       return False
 
+    is_cached, cached_value = self._cache.is_quiet_time_cached(config_key)
+    if is_cached:
+      return cached_value
+
     # Calculate quiet time status
     now = _dt_now()
     current_hour = now.hour
@@ -1510,6 +1546,7 @@ class PawControlNotificationManager:
     else:  # e.g., 01:00 to 06:00
       is_quiet = start_hour <= current_hour < end_hour
 
+    self._cache.set_quiet_time_cache(config_key, is_quiet)
     return is_quiet
 
   def _check_rate_limit(
@@ -2548,6 +2585,10 @@ class PawControlNotificationManager:
     """Register notification-centric caches with the provided registrar."""
 
     self._cache_monitor_registrar = registrar
+    registrar.register_cache_monitor(
+      "notification_cache",
+      self._cache,
+    )
     self._register_person_cache_monitor()
 
   def _register_person_cache_monitor(self) -> None:
@@ -2600,7 +2641,13 @@ class PawControlNotificationManager:
         task.cancel()
 
     # Wait for tasks to complete
-    await asyncio.gather(*[t for t in tasks_to_cancel if t], return_exceptions=True)
+    active_tasks = [task for task in tasks_to_cancel if task is not None]
+    current_loop = asyncio.get_running_loop()
+    same_loop_tasks = [
+      task for task in active_tasks if getattr(task, "get_loop", lambda: current_loop)() is current_loop
+    ]
+    if same_loop_tasks:
+      await asyncio.gather(*same_loop_tasks, return_exceptions=True)
 
     # Shutdown person manager
     if self._person_manager:

@@ -1724,7 +1724,12 @@ class PawControlDashboardGenerator:
         return (False, metadata_updated)
 
       path_obj = Path(dashboard_path)
-      exists = await self.hass.async_add_executor_job(path_obj.exists)
+      hass_obj = getattr(self, "hass", None)
+      async_add_executor_job = getattr(hass_obj, "async_add_executor_job", None)
+      if callable(async_add_executor_job):
+        exists = await async_add_executor_job(path_obj.exists)
+      else:
+        exists = path_obj.exists()
       if not exists:
         return (False, metadata_updated)
 

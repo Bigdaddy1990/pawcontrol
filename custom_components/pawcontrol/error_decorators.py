@@ -260,7 +260,11 @@ def handle_errors(
           )
 
         if (reraise_critical and e.severity == ErrorSeverity.CRITICAL) or (
-          reraise_validation_errors and isinstance(e, ValidationError)
+          reraise_validation_errors
+          and isinstance(
+            e,
+            ValidationError | DogNotFoundError | InvalidCoordinatesError,
+          )
         ):
           raise
 
@@ -301,7 +305,11 @@ def handle_errors(
           )
 
         if (reraise_critical and e.severity == ErrorSeverity.CRITICAL) or (
-          reraise_validation_errors and isinstance(e, ValidationError)
+          reraise_validation_errors
+          and isinstance(
+            e,
+            ValidationError | DogNotFoundError | InvalidCoordinatesError,
+          )
         ):
           raise
 
