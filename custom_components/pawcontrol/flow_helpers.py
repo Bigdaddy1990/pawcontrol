@@ -232,7 +232,7 @@ def create_menu_result(
   menu_options: list[str],
   *,
   flow: ConfigFlow | OptionsFlow | None = None,
-  step_id: str = "menu",
+  step_id: str = "init",
   description_placeholders: dict[str, str] | None = None,
 ) -> FlowStepResult:
   """Create a standardized menu result for config/options flows.
@@ -251,13 +251,16 @@ def create_menu_result(
       ...   flow=self, step_id="init", menu_options=["dogs", "modules", "settings"]
       ... )
   """
-def create_menu_result(
-    menu_options: list[str],
-    *,
-    flow: Any | None = None,  # Make parameter optional
-    step_id: str = "init",
-    description_placeholders: dict[str, str] | None = None,
-) -> FlowStepResult:
+  if flow is None:
+    return cast(
+      FlowStepResult,
+      {
+        "type": data_entry_flow.FlowResultType.MENU,
+        "step_id": step_id,
+        "menu_options": menu_options,
+        "description_placeholders": description_placeholders,
+      },
+    )
 
   return cast(
     FlowStepResult,
