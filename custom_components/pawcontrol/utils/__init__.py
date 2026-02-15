@@ -10,6 +10,7 @@ from importlib.util import spec_from_file_location
 from pathlib import Path
 import sys
 from types import ModuleType
+from functools import lru_cache
 
 from .serialize import (
   serialize_dataclass,
@@ -26,17 +27,10 @@ _legacy_utils_spec = spec_from_file_location(
     _LEGACY_UTILS_PATH,
 )
 
-if _legacy_utils_spec is None or _legacy_utils_spec.loader is None:
-    raise ImportError(f"Unable to load legacy utils module from {_LEGACY_UTILS_PATH}")
-
+@lru_cache(maxsize=1)
 _legacy_utils_module = module_from_spec(_legacy_utils_spec)
 sys.modules[_LEGACY_UTILS_MODULE_NAME] = _legacy_utils_module
 _legacy_utils_spec.loader.exec_module(_legacy_utils_module)
-_legacy_utils = _legacy_utils_module
-
-
-def __getattr__(name: str) -> object:
-    """Provide backwards-compatible access to symbols from ``utils.py``."""
 
     if hasattr(_legacy_utils, name):
         return getattr(_legacy_utils, name)
@@ -46,7 +40,6 @@ def __getattr__(name: str) -> object:
 def __dir__() -> list[str]:
     """Return available attributes for static tooling and introspection."""
 
-    return sorted(set(__all__) | set(vars(_legacy_utils)))
 
 
 def _build_all() -> list[str]:
