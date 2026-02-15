@@ -40,9 +40,6 @@ jobs:
           # https://github.com/super-linter/super-linter/blob/main/docs/run-linter-locally.md#share-environment-variables-between-environments
     
       - name: Commit and push linting fixes
-        Run only on:
-         - Pull requests
-         - Not on the default branch
         if: >
           github.event_name == 'pull_request' &&
           github.ref_name != github.event.repository.default_branch
