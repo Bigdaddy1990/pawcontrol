@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 
+
 __all__ = ["ConfigFlow", "PawControlConfigFlow"]
 
 import copy
@@ -127,6 +128,8 @@ MAX_DOGS_PER_INTEGRATION = 10
 # Pre-compiled validation sets for O(1) lookups
 VALID_PROFILES: frozenset[str] = frozenset(ENTITY_PROFILES.keys())
 
+USER_SCHEMA = INTEGRATION_SCHEMA
+
 DISCOVERY_SOURCE_SET: frozenset[str] = frozenset(
   {"zeroconf", "dhcp", "usb", "bluetooth", "import", "reauth"},
 )
@@ -207,19 +210,15 @@ class PawControlConfigFlow(
       if user_input is None:
         return self.async_show_form(
           step_id="user",
-          data_schema=INTEGRATION_SCHEMA,
+          data_schema=USER_SCHEMA,
         )
 
-      integration_name = str(
-        user_input.get(CONF_NAME, self._integration_name),
-      ).strip()
-      name_validation = await self._async_validate_integration_name(
-        integration_name,
-      )
+      integration_name = str(user_input.get(CONF_NAME, self._integration_name)).strip()
+      name_validation = await self._async_validate_integration_name(integration_name)
       if not name_validation["valid"]:
         return self.async_show_form(
           step_id="user",
-          data_schema=INTEGRATION_SCHEMA,
+          data_schema=USER_SCHEMA,
           errors=name_validation["errors"],
         )
 
@@ -230,7 +229,9 @@ class PawControlConfigFlow(
       # Start the dog setup form with a clean payload after the integration
       # name is validated. ``async_step_add_dog`` handles ``None`` by showing
       # the first dog form.
-      return await self.async_step_add_dog()
+      return await self.async_step_add_dog(
+        cast(DogSetupStepInput | None, None),
+      )
 
   async def async_step_import(
     self,

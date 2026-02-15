@@ -808,6 +808,14 @@ class GPSOptionsMixin(GPSOptionsHost):
           errors=errors,
         )
 
+      geofence_radius_m = int(round(geofence_radius))
+      if geofence_radius_m != geofence_radius:
+        _LOGGER.debug(
+          "Geofence radius %.3f normalized to integer %d for options schema",
+          geofence_radius,
+          geofence_radius_m,
+        )
+
       geofence_options = cast(
         GeofenceOptions,
         {
@@ -819,7 +827,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             user_input.get(GEOFENCE_USE_HOME_FIELD),
             default=True,
           ),
-          GEOFENCE_RADIUS_FIELD: int(round(float(geofence_radius))),
+          GEOFENCE_RADIUS_FIELD: geofence_radius_m,
           GEOFENCE_LAT_FIELD: geofence_lat,
           GEOFENCE_LON_FIELD: geofence_lon,
           GEOFENCE_ALERTS_FIELD: coerce_bool(
@@ -856,6 +864,9 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
       updated_options = self._clone_options()
+      # Preserve the legacy top-level key for backward-compatible reads when
+      # no dog is selected, while persisting canonical per-dog settings below
+      # when a specific dog context is active.
       updated_options["geofence_settings"] = cast(JSONValue, geofence_options)
       if dog_id is not None:
         dog_options = self._current_dog_options()
