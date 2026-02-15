@@ -26,9 +26,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
-          # Use a PAT (if provided) so workflow-file autofixes can be pushed.
-          # Fallback to GITHUB_TOKEN for repositories without AUTOFIX_TOKEN.
-          token: ${{ secrets.AUTOFIX_TOKEN != '' && secrets.AUTOFIX_TOKEN || github.token }}
       - uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.14"
@@ -75,16 +72,5 @@ jobs:
           prek run --all-files
           prek run --hook-stage manual python-typing-update --all-files
 
-      - name: Detect changes
-        id: diff
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Commit and push autofix updates
-        if: steps.diff.outputs.changed == 'true'
-        run: |
-          git push origin "HEAD:${{ github.ref_name }}"
+      - uses: pre-commit-ci/lite-action@v1.1.0
+        if: always()
