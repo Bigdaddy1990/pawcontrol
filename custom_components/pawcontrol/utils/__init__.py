@@ -5,6 +5,7 @@ Provides common utilities for serialization, normalization, and data processing.
 
 from __future__ import annotations
 
+
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
 from pathlib import Path
@@ -37,7 +38,9 @@ def _load_legacy_utils_module() -> Any:
     return _LEGACY_UTILS_MODULE
 
   legacy_path = Path(__file__).resolve().parent.parent / "utils.py"
-  spec = spec_from_file_location("custom_components.pawcontrol._legacy_utils", legacy_path)
+  spec = spec_from_file_location(
+    "custom_components.pawcontrol._legacy_utils", legacy_path
+  )
   if spec is None or spec.loader is None:  # pragma: no cover - defensive safety guard
     raise ImportError(f"Unable to load legacy utils module from {legacy_path}")
 
