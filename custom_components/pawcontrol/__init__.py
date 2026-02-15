@@ -250,7 +250,11 @@ async def async_setup_entry(
     )
     return True
 
-  except ConfigEntryNotReady, ConfigEntryAuthFailed, PawControlSetupError:
+  except (
+    ConfigEntryNotReady,
+    ConfigEntryAuthFailed,
+    PawControlSetupError,
+  ):
     if debug_logging_tracked:
       _disable_debug_logging(entry)
     raise
