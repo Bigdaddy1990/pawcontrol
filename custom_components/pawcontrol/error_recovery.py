@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+
 import logging
 from collections import defaultdict
 from collections.abc import Callable

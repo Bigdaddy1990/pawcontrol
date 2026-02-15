@@ -11,6 +11,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+
 from collections.abc import Mapping
 from typing import cast
 from typing import Final

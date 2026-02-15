@@ -10,6 +10,7 @@ OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code dupl
 
 from __future__ import annotations
 
+
 import logging
 from inspect import isawaitable
 import os
@@ -223,7 +224,7 @@ class BinarySensorLogicMixin:
         return num_value <= threshold
       raise ValueError(f"Unknown comparison: {comparison}")
 
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return default_if_none
 
 

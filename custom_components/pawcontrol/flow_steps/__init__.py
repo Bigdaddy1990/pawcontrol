@@ -8,6 +8,7 @@ flow orchestration stays clean and easy to navigate.
 
 from __future__ import annotations
 
+
 from .gps import DogGPSFlowMixin
 from .gps import GPSModuleDefaultsMixin
 from .gps import GPSOptionsMixin

@@ -9,6 +9,7 @@ as validation behavior evolves.
 
 from __future__ import annotations
 
+
 from typing import Any
 
 from .const import CONF_DOG_NAME

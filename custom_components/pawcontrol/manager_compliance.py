@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+
 import inspect
 import logging
 from dataclasses import dataclass

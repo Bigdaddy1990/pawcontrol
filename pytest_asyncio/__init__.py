@@ -6,6 +6,7 @@ test suite without requiring the real pytest-asyncio dependency.
 
 from __future__ import annotations
 
+
 import asyncio
 import contextlib
 import inspect

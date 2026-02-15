@@ -11,6 +11,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+
 import functools
 import logging
 from collections.abc import Callable

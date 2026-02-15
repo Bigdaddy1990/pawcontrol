@@ -5,6 +5,7 @@ This enables a real push path without relying on periodic polling.
 
 from __future__ import annotations
 
+
 import json
 import logging
 from collections.abc import Mapping

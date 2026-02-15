@@ -7,6 +7,7 @@ manual event helpers, system/dashboard/advanced settings builders, etc.).
 
 from __future__ import annotations
 
+
 import logging
 from collections.abc import Mapping
 from collections.abc import Sequence

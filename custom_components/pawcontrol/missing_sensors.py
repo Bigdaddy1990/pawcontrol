@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 import contextlib
 from collections.abc import Mapping
 from datetime import datetime
@@ -138,7 +139,7 @@ def calculate_activity_level(
       return activity_levels[max(health_index, calculated_index)]
 
     return calculated_level
-  except (TypeError, ValueError, IndexError):
+  except TypeError, ValueError, IndexError:
     return "unknown"
 
 
@@ -180,7 +181,7 @@ def calculate_calories_burned_today(
     }
     multiplier = multipliers.get(activity_level, 1.0)
     return round(calories_burned * multiplier, 1)
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return 0.0
 
 
@@ -229,7 +230,7 @@ def derive_next_feeding_time(
 
     next_feeding_dt = last_feeding_dt + timedelta(hours=hours_between_meals)
     return next_feeding_dt.strftime("%H:%M")
-  except (TypeError, ValueError, ZeroDivisionError):
+  except TypeError, ValueError, ZeroDivisionError:
     return None
 
 
@@ -515,7 +516,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
               if isinstance(distance_value, int | float):
                 total_distance_meters += float(distance_value)
       return round(total_distance_meters / 1000, 2)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return 0.0
 
   @property
@@ -624,7 +625,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
         if walk_time and walk_time >= start_of_week:
           walks_this_week += 1
       return walks_this_week
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
       return 0
 
   @property

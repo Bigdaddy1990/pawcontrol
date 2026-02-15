@@ -8,6 +8,7 @@ Platinum quality ambitions.
 
 from __future__ import annotations
 
+
 import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
@@ -147,7 +148,7 @@ def _issue_registry_supports_kwarg(
 
   try:
     params = signature(create_issue).parameters.values()
-  except (TypeError, ValueError):
+  except TypeError, ValueError:
     return False
 
   return any(param.kind is param.VAR_KEYWORD for param in params) or any(

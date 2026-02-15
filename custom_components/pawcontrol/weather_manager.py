@@ -10,6 +10,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+
 import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
@@ -584,7 +585,7 @@ class WeatherHealthManager:
 
     try:
       return resolved.format(**kwargs) if kwargs else resolved
-    except (KeyError, ValueError):
+    except KeyError, ValueError:
       return resolved
 
   @staticmethod

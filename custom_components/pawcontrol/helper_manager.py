@@ -14,6 +14,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+
 import logging
 from collections import deque
 from collections.abc import Callable

@@ -7,6 +7,7 @@ maintain.
 
 from __future__ import annotations
 
+
 from .types import ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE
 from .types import ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE
 from .types import clone_placeholders

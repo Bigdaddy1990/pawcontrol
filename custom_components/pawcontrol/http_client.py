@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 from collections.abc import Callable
 from inspect import iscoroutinefunction
 from inspect import unwrap
