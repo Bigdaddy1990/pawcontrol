@@ -7,8 +7,8 @@ OPTIMIZED for HA 2025.9.0+ with enhanced performance patterns:
 - Memory-efficient data structures
 
 Quality Scale: Platinum target
-P26.1.1++
-Python: 3.13+
+Python: 3.14+
+HA: 2025.9.3+
 """
 
 from __future__ import annotations
