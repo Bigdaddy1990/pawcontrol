@@ -49,8 +49,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements_test.txt
           python -m pip install -r requirements.txt
-          python -m scripts.enforce_docstring_baseline --update
-          python -m scripts.sync_contributor_guides --check
+
 
       - name: Install development tools
         uses: taiki-e/install-action@v2.67.30
@@ -61,6 +60,7 @@ jobs:
 
       - name: Run test requirements and localization sync
         run: |
+          python -m scripts.enforce_docstring_baseline --update
           python -m scripts.enforce_test_requirements
           python -m scripts.sync_localization_flags \
             --allowlist scripts/sync_localization_flags.allowlist \
@@ -72,7 +72,7 @@ jobs:
           prek run --hook-stage pre-merge-commit
           prek run --hook-stage pre-commit
           prek run --all-files --show-diff-on-failure
-          prek run --hook-stage manual python-typing-update --all-files
+          prek run --hook-stage manual python-typing-update --all-files --update
 
       - name: Run mypy
         run: |

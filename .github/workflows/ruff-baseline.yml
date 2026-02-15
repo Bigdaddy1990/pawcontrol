@@ -19,14 +19,23 @@ jobs:
       - uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - run: python -m pip install pip ruff --upgrade
+      - run: python -m pip install pip ruff prek pyupgrade --upgrade
 
       - run: |
+          prek install
+          prek run --hook-stage manual python-typing-update --all-files  --update
           ruff check . --fix || true
           ruff check . --fix --unsafe-fixes || true
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
           python scripts/enforce_docstring_baseline.py --update
+
+          python scripts.sync_contributor_guides.py --update
+          python scripts.enforce_test_requirements.py --update
+          python scripts.sync_localization_flags.py \
+            --allowlist scripts/sync_localization_flags.allowlist \
+            --update
+          
 
       - uses: peter-evans/create-pull-request@v8
         with:
