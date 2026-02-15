@@ -224,6 +224,9 @@ class PawControlConfigFlow(
         )
 
       self._integration_name = integration_name
+      # Start the dog setup form with a clean payload after the integration
+      # name is validated. ``async_step_add_dog`` handles ``None`` by showing
+      # the first dog form.
       return await self.async_step_add_dog()
 
   async def async_step_import(
