@@ -53,7 +53,7 @@ parsers:
       macro: false
 
 comment:
-  layout: "header,reach,diff,flags,files,footer"
+  layout: "components,header,reach,diff,flags,files,footer"
   behavior: default
   require_changes: false
   require_base: false
@@ -87,14 +87,6 @@ flags:
 github_checks:
   annotations: true
 
-# Upload settings
-uploads:
-  - name: "pawcontrol"
-    path: "./coverage.xml"
-    flags:
-      - unittests
-    report_type: "pytest"
-
 flag_management:
   individual_flags:
     - name: smart-tests
@@ -103,7 +95,7 @@ flag_management:
       statuses:
         - type: "project"
         - type: "patch"
-
+        
 cli:
   plugins:
     pycoverage:
@@ -117,6 +109,10 @@ component_management:
     - component_id: "smiles"
       paths:
         - "smiles/"
-
-comment:
-  layout: "header, diff, flags, components"  # show component info in the PR comment
+# Upload settings
+uploads:
+  - name: "pawcontrol"
+    path: "./coverage.xml"
+    flags:
+      - unittests
+    report_type: "pytest"
