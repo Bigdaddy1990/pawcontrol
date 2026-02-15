@@ -74,7 +74,6 @@ from ..types import JSONLikeMapping
 from ..types import JSONMutableMapping
 from ..types import JSONValue
 from ..types import OptionsDogSelectionInput
-from ..types import OptionsGeofenceInput
 from ..types import OptionsGPSSettingsInput
 from ..types import ROUTE_HISTORY_DAYS_FIELD
 from ..types import ROUTE_RECORDING_FIELD
@@ -88,7 +87,6 @@ from .gps_helpers import build_dog_gps_placeholders
 from .gps_helpers import validation_error_key
 from .gps_schemas import build_dog_gps_schema
 from .gps_schemas import build_geofence_settings_schema
-from .gps_schemas import build_gps_settings_schema
 
 _LOGGER = logging.getLogger(__name__)
 
