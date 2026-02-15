@@ -223,8 +223,7 @@ class PawControlConfigFlow(
           errors=name_validation["errors"],
         )
 
-      self._integration_name = integration_name
-      return await self.async_step_add_dog()
+return await self.async_step_add_dog(user_input)
 
   async def async_step_import(
     self,
