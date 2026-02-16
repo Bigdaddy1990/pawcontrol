@@ -173,7 +173,7 @@ def ensure_cache_repair_aggregate(
 
   for candidate in dict.fromkeys(candidate_classes):
     if isinstance(summary, candidate):
-      return cast(CacheRepairAggregate, summary)
+      return summary
 
   return None
 

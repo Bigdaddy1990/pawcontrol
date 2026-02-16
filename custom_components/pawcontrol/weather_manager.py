@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 import logging
-from typing import Any, Final, Literal, NamedTuple, TypedDict, TypeVar, cast
+from typing import Any, Final, Literal, NamedTuple, TypedDict, TypeGuard, TypeVar, cast
 
 from homeassistant.components.weather import (
   ATTR_FORECAST,
@@ -54,6 +54,7 @@ from .weather_translations import (
   WeatherTranslations,
   async_get_weather_translations,  # noqa: F401
   empty_weather_translations,
+  get_weather_translations as _get_weather_translations,
 )
 
 
@@ -107,13 +108,32 @@ PRIMARY_ACTIVITIES: Final[
   tuple[Literal["walk"], Literal["play"], Literal["exercise"]]
 ] = ("walk", "play", "exercise")
 
+
+def _is_alert_field(value: str) -> TypeGuard[AlertField]:
+  """Return whether ``value`` is a valid alert translation field token."""
+
+  return value in ALERT_FIELD_TOKENS
+
+
+def _is_weather_alert_key(value: str) -> TypeGuard[WeatherAlertKey]:
+  """Return whether ``value`` is a known weather alert translation key."""
+
+  return value in WEATHER_ALERT_KEY_SET
+
+
+def _is_weather_recommendation_key(value: str) -> TypeGuard[WeatherRecommendationKey]:
+  """Return whether ``value`` is a known weather recommendation key."""
+
+  return value in WEATHER_RECOMMENDATION_KEY_SET
+
+
 _LOGGER = logging.getLogger(__name__)
 
 
 def get_weather_translations(language: str) -> WeatherTranslations:
   """Backward-compatible wrapper for weather translation loading."""
 
-  return _get_weather_translations(language)  # noqa: F821
+  return _get_weather_translations(language)
 
 
 class WeatherSeverity(Enum):
@@ -492,26 +512,17 @@ class WeatherHealthManager:
       if len(segments) != 3:
         return None
       alert_key, field_token = segments[1], segments[2]
-      if (
-        alert_key not in WEATHER_ALERT_KEY_SET or field_token not in ALERT_FIELD_TOKENS
-      ):
+      if not _is_weather_alert_key(alert_key) or not _is_alert_field(field_token):
         return None
-      return (
-        "alerts",
-        cast(WeatherAlertKey, alert_key),
-        cast(AlertField, field_token),
-      )
+      return ("alerts", alert_key, field_token)
 
     if section == "recommendations":
       if len(segments) != 2:
         return None
       recommendation_key = segments[1]
-      if recommendation_key not in WEATHER_RECOMMENDATION_KEY_SET:
+      if not _is_weather_recommendation_key(recommendation_key):
         return None
-      return (
-        "recommendations",
-        cast(WeatherRecommendationKey, recommendation_key),
-      )
+      return ("recommendations", recommendation_key)
 
     return None
 
@@ -712,12 +723,9 @@ class WeatherHealthManager:
       )
       if temperature_c is not None:
         # Convert temperature to Celsius if needed
-        temp_unit = cast(
-          UnitOfTemperature | str,
-          attributes.get(
-            "temperature_unit",
-            UnitOfTemperature.CELSIUS,
-          ),
+        temp_unit = attributes.get(
+          "temperature_unit",
+          UnitOfTemperature.CELSIUS,
         )
         if temp_unit == UnitOfTemperature.FAHRENHEIT:
           temperature_c = (temperature_c - 32) * 5 / 9

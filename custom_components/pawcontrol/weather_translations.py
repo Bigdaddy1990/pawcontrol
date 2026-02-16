@@ -37,7 +37,9 @@ _WEATHER_ALERT_KEYS: Final = (
 
 WEATHER_ALERT_KEYS: Final = _WEATHER_ALERT_KEYS
 
-type WeatherAlertKey = Literal[*_WEATHER_ALERT_KEYS]
+# mypy does not support unpacking tuple constants into Literal parameters.
+# Keep keys as string aliases and validate against runtime key sets below.
+type WeatherAlertKey = str
 
 
 type WeatherAlertTranslations = dict[WeatherAlertKey, WeatherAlertTranslation]
@@ -100,7 +102,7 @@ _WEATHER_RECOMMENDATION_KEYS: Final = (
 
 WEATHER_RECOMMENDATION_KEYS: Final = _WEATHER_RECOMMENDATION_KEYS
 
-type WeatherRecommendationKey = Literal[*_WEATHER_RECOMMENDATION_KEYS]
+type WeatherRecommendationKey = str
 
 
 type WeatherRecommendationTranslations = dict[WeatherRecommendationKey, str]

@@ -31,10 +31,10 @@ from .types import (
   DOG_SIZE_FIELD,
   DOG_WEIGHT_FIELD,
   DogConfigData,
-  DogModulesConfig,
   DogSetupStepInput,
   FlowInputMapping,
   ensure_dog_modules_config,
+  ensure_json_mapping,
   validate_dog_weight_for_size,
 )
 from .validation import InputCoercionError, coerce_float, coerce_int, normalize_dog_id
@@ -192,7 +192,7 @@ def validate_dog_setup_input(
 
   validated: DogSetupStepInput = {
     "dog_id": dog_id,
-    "dog_name": dog_name,
+    "dog_name": dog_name if isinstance(dog_name, str) else "",
     "dog_weight": dog_weight,
     "dog_size": dog_size,
     "dog_age": dog_age,
@@ -207,7 +207,7 @@ def is_dog_config_payload_valid(dog: Mapping[str, object]) -> bool:
 
   try:
     validate_dog_config_payload(
-      dog,
+      ensure_json_mapping(dog),
       existing_ids=None,
       existing_names=None,
     )
@@ -288,10 +288,9 @@ def validate_dog_config_payload(
       normalized_payload.pop(field, None)
 
   if modules or CONF_MODULES in user_input:
-    normalized_payload[DOG_MODULES_FIELD] = cast(
-      DogModulesConfig,
-      dict(modules),
-    )
+    normalized_payload[DOG_MODULES_FIELD] = {
+      key: bool(enabled) for key, enabled in modules.items()
+    }
   else:
     normalized_payload.pop(DOG_MODULES_FIELD, None)
 
@@ -321,7 +320,8 @@ def validate_dog_update_input(
   except ValidationError as err:
     field_errors[CONF_DOG_NAME] = err.constraint or "dog_name_invalid"
   else:
-    candidate[DOG_NAME_FIELD] = dog_name
+    if isinstance(dog_name, str):
+      candidate[DOG_NAME_FIELD] = dog_name
 
   raw_breed = user_input.get(CONF_DOG_BREED, candidate.get(CONF_DOG_BREED))
   if raw_breed is None:
@@ -451,8 +451,8 @@ def validate_dog_import_input(
     DOG_NAME_FIELD: validated["dog_name"],
     DOG_WEIGHT_FIELD: validated["dog_weight"],
     DOG_SIZE_FIELD: validated["dog_size"],
-    DOG_AGE_FIELD: validated["dog_age"],
-    DOG_MODULES_FIELD: cast(DogModulesConfig, dict(modules)),
+    DOG_AGE_FIELD: int(validated["dog_age"]) if validated["dog_age"] is not None else None,
+    DOG_MODULES_FIELD: modules,
   }
   if (breed := validated.get("dog_breed")) is not None:
     dog_config[DOG_BREED_FIELD] = breed

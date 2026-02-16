@@ -5213,7 +5213,7 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
         else None,
       ),
       snapshot=dict(snapshot) if isinstance(snapshot, Mapping) else None,
-      error=cast(str | None, error if isinstance(error, str) else None),
+      error=error if isinstance(error, str) else None,
       repair_summary=repair_summary,
     )
 
@@ -8498,7 +8498,7 @@ def is_dog_config_valid(config: Any) -> bool:
     from .flow_validation import validate_dog_config_payload
 
     validate_dog_config_payload(
-      cast(Mapping[str, object], config),
+      ensure_json_mapping(cast(Mapping[str, object], config)),
       existing_ids=None,
       existing_names=None,
     )

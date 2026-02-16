@@ -498,9 +498,9 @@ def _summarise_runtime_store_assessment_events(
       last_event_timestamp = timestamp
 
     if level in level_counts:
-      last_level = cast(RuntimeStoreHealthLevel, level)
+      last_level = level
     if status in status_counts:
-      last_status = cast(RuntimeStoreOverallStatus, status)
+      last_status = status
     last_reason = reason if isinstance(reason, str) else last_reason
     recommended_action = event.get("recommended_action")
     if isinstance(recommended_action, str):
@@ -703,26 +703,20 @@ def _build_runtime_store_assessment_segments(
 
     segment: RuntimeStoreAssessmentTimelineSegment = {
       "start": timestamp,
-      "level": cast(RuntimeStoreHealthLevel, event.get("level", "ok")),
+      "level": event.get("level", "ok"),
     }
 
     status = event.get("status")
     if isinstance(status, str) and status in _RUNTIME_STORE_STATUS_LEVELS:
-      segment["status"] = cast(RuntimeStoreOverallStatus, status)
+      segment["status"] = status
 
     entry_status = event.get("entry_status")
     if isinstance(entry_status, str):
-      segment["entry_status"] = cast(
-        RuntimeStoreEntryStatus,
-        entry_status,
-      )
+      segment["entry_status"] = entry_status
 
     store_status = event.get("store_status")
     if isinstance(store_status, str):
-      segment["store_status"] = cast(
-        RuntimeStoreEntryStatus,
-        store_status,
-      )
+      segment["store_status"] = store_status
 
     reason = event.get("reason")
     if isinstance(reason, str):
@@ -816,11 +810,8 @@ def _record_runtime_store_assessment_event(
       previous_assessment.get("events"),
     )
 
-  level = cast(RuntimeStoreHealthLevel, assessment.get("level", "ok"))
-  previous_level = cast(
-    RuntimeStoreHealthLevel | None,
-    assessment.get("previous_level"),
-  )
+  level = assessment.get("level", "ok")
+  previous_level = assessment.get("previous_level")
   level_changed = previous_level != level
 
   reason = assessment.get("reason")
@@ -911,7 +902,7 @@ def _record_runtime_store_assessment_event(
     )
     return history_events, timeline_summary
 
-  timestamp = cast(str | None, history.get("last_checked"))
+  timestamp = history.get("last_checked")
   if timestamp is None:
     timestamp = dt_util.utcnow().isoformat()
 
@@ -1094,24 +1085,12 @@ def update_runtime_store_health(
   status = snapshot["status"]
   entry_snapshot = snapshot.get("entry", {})
   store_snapshot = snapshot.get("store", {})
-  entry_status = cast(
-    RuntimeStoreEntryStatus | None,
-    entry_snapshot.get("status"),
-  )
-  store_status = cast(
-    RuntimeStoreEntryStatus | None,
-    store_snapshot.get("status"),
-  )
-  entry_version = cast(int | None, entry_snapshot.get("version"))
-  store_version = cast(int | None, store_snapshot.get("version"))
-  entry_created_version = cast(
-    int | None,
-    entry_snapshot.get("created_version"),
-  )
-  store_created_version = cast(
-    int | None,
-    store_snapshot.get("created_version"),
-  )
+  entry_status = entry_snapshot.get("status")
+  store_status = store_snapshot.get("status")
+  entry_version = entry_snapshot.get("version")
+  store_version = store_snapshot.get("version")
+  entry_created_version = entry_snapshot.get("created_version")
+  store_created_version = store_snapshot.get("created_version")
   divergence_detected = bool(snapshot.get("divergence_detected"))
 
   status_counts = history.get("status_counts")
@@ -1136,7 +1115,7 @@ def update_runtime_store_health(
   history["checks"] = checks
   history["divergence_events"] = divergence_events
   history["last_checked"] = dt_util.utcnow().isoformat()
-  history["last_status"] = cast(RuntimeStoreOverallStatus, status)
+  history["last_status"] = status
   history["last_entry_status"] = entry_status
   history["last_store_status"] = store_status
   history["last_entry_version"] = entry_version
@@ -1144,10 +1123,7 @@ def update_runtime_store_health(
   history["last_entry_created_version"] = entry_created_version
   history["last_store_created_version"] = store_created_version
   history["divergence_detected"] = divergence_detected
-  history["status_counts"] = cast(
-    dict[RuntimeStoreOverallStatus, int],
-    status_counts,
-  )
+  history["status_counts"] = status_counts
 
   previous_assessment = history.get("assessment")
   resolved_previous = None
@@ -1169,24 +1145,15 @@ def update_runtime_store_health(
     assessment,
     recorded=effective_record,
     previous_assessment=resolved_previous,
-    status=cast(RuntimeStoreOverallStatus, status),
+    status=status,
     entry_status=entry_status,
     store_status=store_status,
   )
   segments = _build_runtime_store_assessment_segments(events)
-  history["assessment_timeline_segments"] = cast(
-    list[RuntimeStoreAssessmentTimelineSegment],
-    list(segments),
-  )
+  history["assessment_timeline_segments"] = list(segments)
   assessment["events"] = list(events)
-  assessment["timeline_summary"] = cast(
-    RuntimeStoreAssessmentTimelineSummary,
-    dict(timeline_summary),
-  )
-  assessment["timeline_segments"] = cast(
-    list[RuntimeStoreAssessmentTimelineSegment],
-    list(segments),
-  )
+  assessment["timeline_summary"] = timeline_summary
+  assessment["timeline_segments"] = list(segments)
   history["assessment"] = assessment
 
   return history
@@ -1204,18 +1171,9 @@ def _build_runtime_store_assessment(
   checks = int(history.get("checks", 0) or 0)
   divergence_events = int(history.get("divergence_events", 0) or 0)
   divergence_rate = float(divergence_events) / checks if checks > 0 else None
-  last_status = cast(
-    RuntimeStoreOverallStatus | None,
-    history.get("last_status"),
-  )
-  entry_status = cast(
-    RuntimeStoreEntryStatus | None,
-    history.get("last_entry_status"),
-  )
-  store_status = cast(
-    RuntimeStoreEntryStatus | None,
-    history.get("last_store_status"),
-  )
+  last_status = history.get("last_status")
+  entry_status = history.get("last_entry_status")
+  store_status = history.get("last_store_status")
   divergence_detected = bool(history.get("divergence_detected"))
   status_for_level = last_status or snapshot["status"]
 
@@ -1261,27 +1219,16 @@ def _build_runtime_store_assessment(
 
   recommended_action = _RUNTIME_STORE_RECOMMENDATIONS[level]
 
-  previous_level = cast(
-    RuntimeStoreHealthLevel | None,
-    history.get("assessment_last_level"),
-  )
+  previous_level = history.get("assessment_last_level")
   if previous_level is None and previous_assessment is not None:
-    previous_level = cast(
-      RuntimeStoreHealthLevel | None,
-      previous_assessment.get("level"),
-    )
+    previous_level = previous_assessment.get("level")
 
-  last_level_change = cast(
-    str | None,
-    history.get(
-      "assessment_last_level_change",
-    ),
-  )
+  last_level_change = history.get("assessment_last_level_change")
   previous_last_level_change = last_level_change
   level_streak = int(history.get("assessment_level_streak", 0) or 0)
   escalations = int(history.get("assessment_escalations", 0) or 0)
   deescalations = int(history.get("assessment_deescalations", 0) or 0)
-  last_checked = cast(str | None, history.get("last_checked"))
+  last_checked = history.get("last_checked")
 
   previous_current_duration_raw = history.get(
     "assessment_current_level_duration_seconds",
@@ -1638,7 +1585,7 @@ def update_runtime_entity_factory_guard_metrics(
     str | bytes | bytearray,
   ):
     recent_events: list[EntityFactoryGuardEvent] = [
-      cast(EntityFactoryGuardEvent, event_name)
+      event_name
       for event_name in existing_events
       if isinstance(event_name, str) and event_name
     ]
@@ -2155,10 +2102,10 @@ def record_door_sensor_persistence_failure(
   failures_raw = performance_stats.get("door_sensor_failures")
   failures: list[DoorSensorPersistenceFailure]
   if isinstance(failures_raw, list):
-    failures = cast(list[DoorSensorPersistenceFailure], failures_raw)
+    failures = failures_raw
   elif isinstance(failures_raw, Sequence):
     failures = [
-      cast(DoorSensorPersistenceFailure, dict(entry))
+      dict(entry)
       for entry in failures_raw
       if isinstance(entry, Mapping)
     ]
@@ -2223,7 +2170,7 @@ def record_door_sensor_persistence_failure(
 
   error_history_raw = getattr(runtime_data, "error_history", None)
   if isinstance(error_history_raw, list):
-    error_history = cast(list[RuntimeErrorHistoryEntry], error_history_raw)
+    error_history = error_history_raw
     error_entry: RuntimeErrorHistoryEntry = {
       "timestamp": failure["recorded_at"],
       "source": "door_sensor_persistence",

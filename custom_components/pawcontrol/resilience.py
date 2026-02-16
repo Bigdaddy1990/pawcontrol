@@ -18,7 +18,7 @@ import logging
 import random
 import time
 from types import TracebackType
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 from .exceptions import NetworkError, RateLimitError, ServiceUnavailableError
 
@@ -152,7 +152,7 @@ class CircuitBreaker:
 
   async def call(
     self,
-    func: Callable[P, T],
+    func: Callable[P, Awaitable[T]],
     *args: P.args,
     **kwargs: P.kwargs,
   ) -> T:
@@ -319,7 +319,7 @@ class RetryStrategy:
 
   async def execute(
     self,
-    func: Callable[P, T],
+    func: Callable[P, Awaitable[T]],
     *args: P.args,
     **kwargs: P.kwargs,
   ) -> T:
@@ -414,7 +414,7 @@ class FallbackStrategy:
     self,
     *,
     default_value: Any = None,
-    fallback_func: Callable[..., Any] | None = None,
+    fallback_func: Callable[..., Awaitable[Any]] | None = None,
   ) -> None:
     """Initialize fallback strategy.
 
@@ -427,7 +427,7 @@ class FallbackStrategy:
 
   async def execute_with_fallback(
     self,
-    func: Callable[P, T],
+    func: Callable[P, Awaitable[T]],
     *args: P.args,
     **kwargs: P.kwargs,
   ) -> T | Any:
@@ -468,11 +468,11 @@ class ResilienceManager:
 
   async def execute_with_resilience(
     self,
-    func: Callable[P, Awaitable[T]],
-    *args: P.args,
+    func: Callable[..., Awaitable[T]],
+    *args: Any,
     circuit_breaker_name: str | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: P.kwargs,
+    **kwargs: Any,
   ) -> T:
     """Execute ``func`` with optional circuit breaker and retry protection."""
 
@@ -546,7 +546,7 @@ def with_circuit_breaker(
   name: str,
   *,
   config: CircuitBreakerConfig | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
   """Decorator to protect function with circuit breaker.
 
   Args:
@@ -563,18 +563,18 @@ def with_circuit_breaker(
   """
   breaker = get_circuit_breaker(name, config=config)
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
       return await breaker.call(func, *args, **kwargs)
 
-    return wrapper  # type: ignore[return-value]
+    return wrapper
 
   return decorator
 
 
 def with_retry(
   config: RetryConfig | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
   """Decorator to add retry logic to function.
 
   Args:
@@ -590,19 +590,19 @@ def with_retry(
   """
   strategy = RetryStrategy(config)
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
       return await strategy.execute(func, *args, **kwargs)
 
-    return wrapper  # type: ignore[return-value]
+    return wrapper
 
   return decorator
 
 
 def with_fallback(
   default_value: Any = None,
-  fallback_func: Callable[..., Any] | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  fallback_func: Callable[..., Awaitable[Any]] | None = None,
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | Any]]]:
   """Decorator to add fallback to function.
 
   Args:
@@ -622,10 +622,10 @@ def with_fallback(
     fallback_func=fallback_func,
   )
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | Any]]:
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | Any:
       return await strategy.execute_with_fallback(func, *args, **kwargs)
 
-    return wrapper  # type: ignore[return-value]
+    return cast(Callable[P, Awaitable[T | Any]], wrapper)
 
   return decorator

@@ -661,7 +661,7 @@ async def async_fire_event(
 
   result = bus_async_fire(event_type, event_data, **kwargs)
   if inspect.isawaitable(result):
-    return await cast(Awaitable[Any], result)
+    return await result
   return result
 
 
@@ -845,7 +845,7 @@ async def async_call_add_entities(
   result = add_entities_callback(entities_list, update_before_add)
 
   if inspect.isawaitable(result):
-    await cast(Awaitable[Any], result)
+    await result
 
 
 async def async_get_or_create_dog_device_entry(
@@ -949,10 +949,7 @@ class PawControlDeviceLinkMixin:
 
     return cast("DeviceLinkDetails", dict(self._device_link_defaults))
 
-  # Home Assistant's cooperative multiple inheritance confuses type checkers
-  # about the precise async_added_to_hass signature, so we silence the
-  # override warning here.
-  async def async_added_to_hass(self) -> None:  # type: ignore[override]
+  async def async_added_to_hass(self) -> None:
     """Link entity to device entry after regular setup."""
 
     # CoordinatorEntity and RestoreEntity expose incompatible type hints for
@@ -1953,7 +1950,7 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
       ValueError: If unit conversion not supported
   """
   # Weight conversions
-  weight_conversions = {
+  weight_conversions: dict[tuple[str, str], Callable[[float], float]] = {
     ("kg", "lb"): lambda x: x * 2.20462,
     ("lb", "kg"): lambda x: x * 0.453592,
     ("g", "kg"): lambda x: x / 1000,
@@ -1963,7 +1960,7 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
   }
 
   # Distance conversions
-  distance_conversions = {
+  distance_conversions: dict[tuple[str, str], Callable[[float], float]] = {
     ("m", "ft"): lambda x: x * 3.28084,
     ("ft", "m"): lambda x: x / 3.28084,
     ("km", "mi"): lambda x: x * 0.621371,
@@ -1973,7 +1970,7 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
   }
 
   # Temperature conversions
-  temp_conversions = {
+  temp_conversions: dict[tuple[str, str], Callable[[float], float]] = {
     ("c", "f"): lambda x: (x * 9 / 5) + 32,
     ("f", "c"): lambda x: (x - 32) * 5 / 9,
   }

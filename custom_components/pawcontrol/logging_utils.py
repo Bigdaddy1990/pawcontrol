@@ -11,7 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 import contextvars
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -20,7 +20,7 @@ import inspect
 import logging
 import traceback
 from types import TracebackType
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast, overload
 from uuid import uuid4
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class LogEntry:
 
   def to_dict(self) -> dict[str, Any]:
     """Convert to dictionary."""
-    data = {
+    data: dict[str, Any] = {
       "timestamp": self.timestamp.isoformat(),
       "level": self.level,
       "message": self.message,
@@ -293,7 +293,7 @@ class LogBuffer:
     Returns:
         Statistics dictionary
     """
-    level_counts = defaultdict(int)
+    level_counts: defaultdict[str, int] = defaultdict(int)
     for entry in self._entries:
       level_counts[entry.level] += 1
 
@@ -328,7 +328,7 @@ class CorrelationContext:
     self._correlation_id = str(uuid4())
     self._context = context
     self._token_correlation: contextvars.Token[str | None] | None = None
-    self._token_context: contextvars.Token[dict[str, Any]] | None = None
+    self._token_context: contextvars.Token[dict[str, Any] | None] | None = None
 
   async def __aenter__(self) -> str:
     """Enter async context.
@@ -418,6 +418,12 @@ def log_calls(
       ...   return await api.get(dog_id)
   """
 
+  @overload
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]: ...
+
+  @overload
+  def decorator(func: Callable[P, T]) -> Callable[P, T]: ...
+
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     nonlocal logger
     if logger is None:
@@ -428,7 +434,7 @@ def log_calls(
       import time
 
       # Log call start
-      context = {}
+      context: dict[str, Any] = {}
       if log_args:
         context["args"] = str(args)
         context["kwargs"] = str(kwargs)
@@ -438,10 +444,11 @@ def log_calls(
       # Execute
       start = time.time()
       try:
-        result = await func(*args, **kwargs)
+        async_func = cast(Callable[P, Awaitable[T]], func)
+        result = await async_func(*args, **kwargs)
 
         # Log result
-        result_context = {}
+        result_context: dict[str, Any] = {}
         if log_duration:
           result_context["duration_ms"] = (time.time() - start) * 1000
 
@@ -466,7 +473,7 @@ def log_calls(
       import time
 
       # Log call start
-      context = {}
+      context: dict[str, Any] = {}
       if log_args:
         context["args"] = str(args)
         context["kwargs"] = str(kwargs)
@@ -479,7 +486,7 @@ def log_calls(
         result = func(*args, **kwargs)
 
         # Log result
-        result_context = {}
+        result_context: dict[str, Any] = {}
         if log_duration:
           result_context["duration_ms"] = (time.time() - start) * 1000
 
@@ -502,8 +509,8 @@ def log_calls(
     # Return appropriate wrapper
 
     if inspect.iscoroutinefunction(func):
-      return async_wrapper  # type: ignore[return-value]
-    return sync_wrapper  # type: ignore[return-value]
+      return cast(Callable[P, T], async_wrapper)
+    return sync_wrapper
 
   return decorator
 

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from importlib import import_module
 import logging
-from typing import Literal, TypeVar, cast
+from typing import Any, Literal, TypeVar, cast
 
 from homeassistant.const import STATE_HOME
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State
@@ -210,10 +210,7 @@ class PersonEntityInfo:
       last_updated=last_updated,
       mobile_device_id=data.get("mobile_device_id"),
       notification_service=data.get("notification_service"),
-      attributes=cast(
-        PersonEntityAttributePayload,
-        data.get("attributes", {}),
-      ),
+      attributes=data.get("attributes", {}),
     )
 
 
@@ -327,8 +324,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
     # Configuration and state
     self._config = PersonEntityConfig()
     self._persons: dict[str, PersonEntityInfo] = {}
-    self._state_listeners: list[Callable] = []
-    self._discovery_task: asyncio.Task | None = None
+    self._state_listeners: list[Callable[[], None]] = []
+    self._discovery_task: asyncio.Task[Any] | None = None
     self._lock = asyncio.Lock()
     self._cache_registrar: CacheMonitorRegistrar | None = None
 

@@ -33,10 +33,9 @@ class WebhookSecurityError(ValidationError):
   def __init__(self, message: str) -> None:
     """Initialize webhook security error."""
     super().__init__(
-      message,
-      field_name="webhook",
-      expected_type="signed request",
-      received_value=None,
+      "webhook",
+      value=None,
+      constraint=message,
     )
 
 
@@ -292,7 +291,7 @@ class WebhookRateLimiter:
       )
       raise RateLimitError(
         f"Source banned for {remaining:.0f}s more",
-        retry_after=remaining,
+        retry_after=max(int(remaining), 0),
       )
 
     # Record request
@@ -304,7 +303,7 @@ class WebhookRateLimiter:
       self._ban_source(state)
       raise RateLimitError(
         f"Rate limit exceeded: {minute_count} requests/minute",
-        retry_after=self._config.ban_duration_seconds,
+        retry_after=int(self._config.ban_duration_seconds),
       )
 
     # Check hour limit
@@ -313,7 +312,7 @@ class WebhookRateLimiter:
       self._ban_source(state)
       raise RateLimitError(
         f"Rate limit exceeded: {hour_count} requests/hour",
-        retry_after=self._config.ban_duration_seconds,
+        retry_after=int(self._config.ban_duration_seconds),
       )
 
     # Log if approaching limit
@@ -450,7 +449,7 @@ class WebhookValidator:
     Returns:
         Sanitized payload
     """
-    sanitized = {}
+    sanitized: dict[str, Any] = {}
 
     for key, value in data.items():
       # Sanitize key

@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from enum import Enum
 import logging
 import re
-from typing import TYPE_CHECKING, ClassVar, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, TypedDict
 
 from homeassistant.util import dt as dt_util
 
@@ -23,7 +23,6 @@ from .types import (
   FeedingHistoryEvent,
   FeedingHistoryStatus,
   HealthReport,
-  HealthReportStatus,
   WeatherConditionsPayload,
 )
 from .utils import ensure_local_datetime
@@ -962,7 +961,7 @@ class HealthCalculator:
     """Generate a detailed health report with recommendations."""
     report: HealthReport = HealthReport(
       timestamp=dt_util.now().isoformat(),
-      overall_status=cast(HealthReportStatus, "good"),
+      overall_status="good",
       recommendations=[],
       health_score=85,
       areas_of_concern=[],

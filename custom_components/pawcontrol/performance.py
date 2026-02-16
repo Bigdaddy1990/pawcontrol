@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -20,7 +20,7 @@ import functools
 import inspect
 import logging
 import time
-from typing import Any, ParamSpec, TypeVar, cast
+from typing import Any, ParamSpec, TypeVar, cast, overload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -250,6 +250,12 @@ def track_performance(
       ...   return sum(range(1000))
   """
 
+  @overload
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]: ...
+
+  @overload
+  def decorator(func: Callable[P, T]) -> Callable[P, T]: ...
+
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     metric_name = name or func.__name__
 
@@ -257,7 +263,8 @@ def track_performance(
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
       start = time.perf_counter()
       try:
-        result = await func(*args, **kwargs)
+        async_func = cast(Callable[P, Awaitable[T]], func)
+        result = await async_func(*args, **kwargs)
         return result
       finally:
         duration_ms = (time.perf_counter() - start) * 1000
@@ -290,15 +297,15 @@ def track_performance(
 
     # Return appropriate wrapper
     if inspect.iscoroutinefunction(func):
-      return async_wrapper  # type: ignore[return-value]
-    return sync_wrapper  # type: ignore[return-value]
+      return cast(Callable[P, T], async_wrapper)
+    return sync_wrapper
 
   return decorator
 
 
 def debounce(
   wait_seconds: float,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | None]]]:
   """Decorator to debounce function calls.
 
   Only executes function after wait_seconds have passed since last call.
@@ -315,7 +322,7 @@ def debounce(
       ...   await coordinator.async_request_refresh()
   """
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | None]]:
     last_call_time: float = 0.0
     pending_task: asyncio.Task[Any] | None = None
 
@@ -344,14 +351,14 @@ def debounce(
       pending_task = asyncio.create_task(delayed_call())
       return None
 
-    return async_wrapper  # type: ignore[return-value]
+    return async_wrapper
 
   return decorator
 
 
 def throttle(
   calls_per_second: float,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
   """Decorator to throttle function calls.
 
   Limits function to maximum calls_per_second rate.
@@ -368,7 +375,7 @@ def throttle(
       ...   return await api.fetch()
   """
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     min_interval = 1.0 / calls_per_second
     last_call_time: float = 0.0
     lock = asyncio.Lock()
@@ -388,7 +395,7 @@ def throttle(
 
       return await func(*args, **kwargs)
 
-    return async_wrapper  # type: ignore[return-value]
+    return async_wrapper
 
   return decorator
 

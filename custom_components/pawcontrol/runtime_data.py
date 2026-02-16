@@ -572,8 +572,8 @@ def describe_runtime_store_status(
     and entry_runtime is not store_runtime
   )
 
-  entry_status = cast(RuntimeStoreEntryStatus, entry_snapshot["status"])
-  store_status = cast(RuntimeStoreEntryStatus, store_snapshot["status"])
+  entry_status = entry_snapshot["status"]
+  store_status = store_snapshot["status"]
 
   statuses: set[RuntimeStoreEntryStatus] = {entry_status, store_status}
   entry_available = bool(entry_snapshot.get("available"))

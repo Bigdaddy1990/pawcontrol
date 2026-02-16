@@ -80,7 +80,7 @@ def serialize_dataclass(obj: Any) -> dict[str, Any]:
       >>> serialize_dataclass(dog)
       {'name': 'Buddy', 'age': 5}
   """
-  if not is_dataclass(obj):
+  if not is_dataclass(obj) or isinstance(obj, type):
     raise TypeError(f"Expected dataclass, got {type(obj).__name__}")
   return asdict(obj)
 
@@ -143,7 +143,7 @@ def _serialize_value(value: Any) -> Any:
     return serialize_timedelta(value)
 
   # Handle dataclass
-  if is_dataclass(value):
+  if is_dataclass(value) and not isinstance(value, type):
     # Recursively serialize dataclass fields
     return {k: _serialize_value(v) for k, v in asdict(value).items()}
 
