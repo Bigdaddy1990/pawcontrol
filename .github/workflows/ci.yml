@@ -55,8 +55,8 @@ jobs:
           python -m pip install -r requirements.txt
           
       # Update output format to enable automatic inline annotations.
-      - name: Run Ruff
-        run: ruff check --output-format=github .
+      - name: Ruff lint
+        run: ruff check --fix --exit-non-zero-on-fix --output-format=github .
 
       - name: Verify contributor guides
         run: |
