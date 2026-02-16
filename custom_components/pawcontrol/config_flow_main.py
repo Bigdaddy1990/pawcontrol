@@ -409,7 +409,7 @@ class PawControlConfigFlow(
 
         name_raw = import_config.get("name", "PawControl (Imported)")
         name_str = str(name_raw) if name_raw is not None else "PawControl (Imported)"
-        
+
         data_payload: ConfigFlowImportData = {
           "name": name_str,
           "dogs": validated_dogs,
@@ -504,11 +504,7 @@ class PawControlConfigFlow(
     """
     data = payload if isinstance(payload, Mapping) else {}
 
-    candidate_source = (
-      source
-      or data.get("source")
-      or UNKNOWN_DISCOVERY_SOURCE
-    )
+    candidate_source = source or data.get("source") or UNKNOWN_DISCOVERY_SOURCE
     candidate_source_str = str(candidate_source).lower()
     resolved_source = (
       candidate_source_str
@@ -898,7 +894,7 @@ class PawControlConfigFlow(
     dog_id = user_input.get("dog_id")
     dog_name = user_input.get("dog_name")
     dog_weight = user_input.get("dog_weight")
-    
+
     dog_id_str = str(dog_id) if dog_id is not None else ""
     dog_name_str = str(dog_name) if dog_name is not None else ""
     dog_weight_str = str(dog_weight) if dog_weight is not None else "0"
@@ -917,8 +913,10 @@ class PawControlConfigFlow(
       )
       cached_state = cached_entry.get("state_signature")
       cached_at_raw = cached_entry.get("cached_at")
-      cached_at = float(cached_at_raw) if isinstance(cached_at_raw, int | float) else 0.0
-      
+      cached_at = (
+        float(cached_at_raw) if isinstance(cached_at_raw, int | float) else 0.0
+      )
+
       if (
         cached_state == state_signature
         and cached_result is not None
@@ -1040,7 +1038,7 @@ class PawControlConfigFlow(
     """
     dog_id_raw = validated_input.get("dog_id", "")
     dog_name_raw = validated_input.get("dog_name", "")
-    
+
     dog_id = str(dog_id_raw).strip() if dog_id_raw is not None else ""
     dog_name = str(dog_name_raw).strip() if dog_name_raw is not None else ""
 
@@ -1053,11 +1051,7 @@ class PawControlConfigFlow(
       dog_breed = None
 
     age_raw = validated_input.get("dog_age")
-    dog_age: int | None = (
-      int(age_raw)
-      if isinstance(age_raw, int | float)
-      else None
-    )
+    dog_age: int | None = int(age_raw) if isinstance(age_raw, int | float) else None
 
     weight_raw = validated_input.get("dog_weight")
     dog_weight: float | None = (
@@ -1329,11 +1323,7 @@ class PawControlConfigFlow(
     """
     dog_count = len(self._dogs)
     total_modules = sum(
-      sum(
-        1
-        for enabled in ensure_dog_modules_mapping(dog).values()
-        if enabled
-      )
+      sum(1 for enabled in ensure_dog_modules_mapping(dog).values() if enabled)
       for dog in self._dogs
     )
 
@@ -1402,7 +1392,7 @@ class PawControlConfigFlow(
     """
     async with timed_operation("final_validation"):
       errors: list[str] = []
-      
+
       for dog in self._dogs:
         if not self._is_dog_config_valid_for_flow(
           cast(Mapping[str, object], dog),
@@ -1495,7 +1485,9 @@ class PawControlConfigFlow(
       settings.get("debug_logging", False),
     )
 
-    data_retention_raw = settings.get("data_retention_days", DEFAULT_DATA_RETENTION_DAYS)
+    data_retention_raw = settings.get(
+      "data_retention_days", DEFAULT_DATA_RETENTION_DAYS
+    )
     options_data["data_retention_days"] = (
       int(data_retention_raw)
       if isinstance(data_retention_raw, int | float)
@@ -1510,7 +1502,9 @@ class PawControlConfigFlow(
       properties = discovery_info.get("properties", {})
 
       if host and isinstance(host, str) and "api_endpoint" not in options_data:
-        raw_https: object = properties.get("https") if isinstance(properties, dict) else None
+        raw_https: object = (
+          properties.get("https") if isinstance(properties, dict) else None
+        )
         if isinstance(raw_https, str):
           normalized = raw_https.strip().lower()
           https_enabled = normalized in {"true", "1", "on", "yes"}
@@ -1565,11 +1559,7 @@ class PawControlConfigFlow(
     for i, dog in enumerate(self._dogs, 1):
       modules = ensure_dog_modules_mapping(dog)
       enabled_modules = [name for name, enabled in modules.items() if enabled]
-      module_summary = (
-        ", ".join(enabled_modules)
-        if enabled_modules
-        else "none"
-      )
+      module_summary = ", ".join(enabled_modules) if enabled_modules else "none"
 
       dog_name = dog.get(DOG_NAME_FIELD)
       dog_id = dog.get(DOG_ID_FIELD)
@@ -2002,11 +1992,7 @@ class PawControlConfigFlow(
         History placeholders
     """
     telemetry_raw = options.get("reconfigure_telemetry")
-    telemetry = (
-      telemetry_raw
-      if isinstance(telemetry_raw, Mapping)
-      else None
-    )
+    telemetry = telemetry_raw if isinstance(telemetry_raw, Mapping) else None
     timestamp_raw = options.get("last_reconfigure")
 
     history: ReconfigureFormPlaceholders = cast(
@@ -2028,14 +2014,12 @@ class PawControlConfigFlow(
 
     requested_profile_raw = telemetry.get("requested_profile", "")
     previous_profile_raw = telemetry.get("previous_profile", "")
-    
+
     requested_profile = (
       str(requested_profile_raw) if requested_profile_raw else "Unknown"
     )
-    previous_profile = (
-      str(previous_profile_raw) if previous_profile_raw else "Unknown"
-    )
-    
+    previous_profile = str(previous_profile_raw) if previous_profile_raw else "Unknown"
+
     dogs_count = telemetry.get("dogs_count")
     estimated_entities = telemetry.get("estimated_entities")
     warnings_raw = telemetry.get("compatibility_warnings")
@@ -2055,9 +2039,7 @@ class PawControlConfigFlow(
     history["reconfigure_requested_profile"] = requested_profile
     history["reconfigure_previous_profile"] = previous_profile
     history["reconfigure_dogs"] = (
-      str(int(dogs_count))
-      if isinstance(dogs_count, int | float)
-      else "0"
+      str(int(dogs_count)) if isinstance(dogs_count, int | float) else "0"
     )
     history["reconfigure_entities"] = (
       str(int(estimated_entities))
@@ -2067,11 +2049,7 @@ class PawControlConfigFlow(
     history["reconfigure_health"] = self._summarise_health_summary(
       health_summary,
     )
-    history["reconfigure_warnings"] = (
-      ", ".join(warnings)
-      if warnings
-      else "None"
-    )
+    history["reconfigure_warnings"] = ", ".join(warnings) if warnings else "None"
     if merge_notes:
       history["reconfigure_merge_notes"] = "\n".join(merge_notes)
     return history
@@ -2089,11 +2067,7 @@ class PawControlConfigFlow(
       return "Never reconfigured"
 
     parse_datetime = getattr(dt_util, "parse_datetime", None)
-    parsed = (
-      parse_datetime(timestamp)
-      if callable(parse_datetime)
-      else None
-    )
+    parsed = parse_datetime(timestamp) if callable(parse_datetime) else None
     if parsed is None:
       candidate = timestamp.replace("Z", "+00:00")
       try:
@@ -2105,11 +2079,7 @@ class PawControlConfigFlow(
       parsed = parsed.replace(tzinfo=dt_util.UTC)
 
     as_local = getattr(dt_util, "as_local", None)
-    local_dt = (
-      as_local(parsed)
-      if callable(as_local)
-      else parsed.astimezone()
-    )
+    local_dt = as_local(parsed) if callable(as_local) else parsed.astimezone()
     return local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
 
   def _normalise_entry_dogs(self, entry: ConfigEntry) -> list[DogConfigData]:
@@ -2240,11 +2210,7 @@ class PawControlConfigFlow(
         continue
       if isinstance(value, Mapping):
         existing = merged.get(key)
-        existing_mapping = (
-          existing
-          if isinstance(existing, Mapping)
-          else None
-        )
+        existing_mapping = existing if isinstance(existing, Mapping) else None
         merged[key] = self._merge_nested_mapping(
           existing_mapping,
           value,
@@ -2363,9 +2329,7 @@ class PawControlConfigFlow(
       if isinstance(value, Mapping):
         existing_value = combined.get(key)
         existing_mapping = (
-          existing_value
-          if isinstance(existing_value, Mapping)
-          else None
+          existing_value if isinstance(existing_value, Mapping) else None
         )
         combined[key] = self._merge_nested_mapping(
           existing_mapping,

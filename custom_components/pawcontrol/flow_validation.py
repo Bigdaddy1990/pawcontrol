@@ -451,7 +451,9 @@ def validate_dog_import_input(
     DOG_NAME_FIELD: validated["dog_name"],
     DOG_WEIGHT_FIELD: validated["dog_weight"],
     DOG_SIZE_FIELD: validated["dog_size"],
-    DOG_AGE_FIELD: int(validated["dog_age"]) if validated["dog_age"] is not None else None,
+    DOG_AGE_FIELD: int(validated["dog_age"])
+    if validated["dog_age"] is not None
+    else None,
     DOG_MODULES_FIELD: modules,
   }
   if (breed := validated.get("dog_breed")) is not None:

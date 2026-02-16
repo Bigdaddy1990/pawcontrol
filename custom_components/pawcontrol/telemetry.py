@@ -2104,11 +2104,7 @@ def record_door_sensor_persistence_failure(
   if isinstance(failures_raw, list):
     failures = failures_raw
   elif isinstance(failures_raw, Sequence):
-    failures = [
-      dict(entry)
-      for entry in failures_raw
-      if isinstance(entry, Mapping)
-    ]
+    failures = [dict(entry) for entry in failures_raw if isinstance(entry, Mapping)]
   else:
     failures = []
 
