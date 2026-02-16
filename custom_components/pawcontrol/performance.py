@@ -638,7 +638,6 @@ def record_maintenance_result(
     "status": status,
     "recorded_at": datetime.now(UTC).isoformat(),
     "timestamp": time.time(),
-    "recorded_at": datetime.now(tz=UTC).isoformat(),  # noqa: F601
   }
   if message is not None:
     entry["message"] = message
@@ -655,8 +654,6 @@ def record_maintenance_result(
     entry["details"] = dict(details)
 
   history.append(entry)
-  results.append(entry)  # noqa: F821
-  store["last_maintenance_result"] = entry
   if len(history) > max_entries:
     del history[:-max_entries]
 
