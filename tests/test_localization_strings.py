@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import ast
 import json
 from pathlib import Path
@@ -13,12 +12,10 @@ from custom_components.pawcontrol.feeding_translations import (
 )
 from custom_components.pawcontrol.grooming_translations import (
   GROOMING_LABEL_TRANSLATION_KEYS,
-)
-from custom_components.pawcontrol.grooming_translations import (
   GROOMING_TEMPLATE_TRANSLATION_KEYS,
 )
-from custom_components.pawcontrol.weather_translations import WEATHER_ALERT_KEYS
 from custom_components.pawcontrol.weather_translations import (
+  WEATHER_ALERT_KEYS,
   WEATHER_RECOMMENDATION_KEYS,
 )
 

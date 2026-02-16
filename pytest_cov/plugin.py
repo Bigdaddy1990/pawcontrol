@@ -7,13 +7,11 @@ without affecting coverage collection.
 
 from __future__ import annotations
 
-
 from types import SimpleNamespace
 from typing import Any
 
-import pytest
-
 import coverage
+import pytest
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

@@ -2,34 +2,27 @@
 
 from __future__ import annotations
 
-
-import contextlib
 from collections.abc import Mapping
-from datetime import datetime
-from datetime import timedelta
-from typing import cast
-from typing import Protocol
-from typing import TypeVar
+import contextlib
+from datetime import datetime, timedelta
+from typing import Protocol, TypeVar, cast
 
 from homeassistant.components.sensor import SensorStateClass
-from homeassistant.const import UnitOfEnergy
-from homeassistant.const import UnitOfLength
-from homeassistant.const import UnitOfTime
+from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
 from homeassistant.util import dt as dt_util
 
 from .coordinator import PawControlCoordinator
-from .sensor import PawControlSensorBase
-from .sensor import register_sensor
-from .types import DogConfigData
-from .types import FeedingModuleTelemetry
-from .types import HealthModulePayload
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import WalkModuleTelemetry
-from .types import WalkSessionSnapshot
-from .utils import DateTimeConvertible
-from .utils import ensure_utc_datetime
-from .utils import normalise_entity_attributes
+from .sensor import PawControlSensorBase, register_sensor
+from .types import (
+  DogConfigData,
+  FeedingModuleTelemetry,
+  HealthModulePayload,
+  JSONMutableMapping,
+  JSONValue,
+  WalkModuleTelemetry,
+  WalkSessionSnapshot,
+)
+from .utils import DateTimeConvertible, ensure_utc_datetime, normalise_entity_attributes
 
 __all__ = [
   "PawControlActivityLevelSensor",

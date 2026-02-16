@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.sensor import PawControlSensorBase
-from custom_components.pawcontrol.types import CoordinatorDogData
-from custom_components.pawcontrol.types import CoordinatorModuleLookupResult
-from custom_components.pawcontrol.types import CoordinatorModuleState
+from custom_components.pawcontrol.types import (
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  CoordinatorModuleState,
+)
 
 
 class _CoordinatorStub:
@@ -61,14 +61,12 @@ def _build_sensor(payload: dict[str, CoordinatorDogData]) -> _DummySensor:
 def test_get_module_data_preserves_typed_payload() -> None:
   """Typed modules should pass through coordinator payloads unchanged."""
 
-  sensor = _build_sensor(
-    {
-      "alpha": cast(
-        CoordinatorDogData,
-        {"gps": {"status": "active", "last_fix": "2025-01-01T12:00:00"}},
-      )
-    }
-  )
+  sensor = _build_sensor({
+    "alpha": cast(
+      CoordinatorDogData,
+      {"gps": {"status": "active", "last_fix": "2025-01-01T12:00:00"}},
+    )
+  })
 
   payload = sensor._get_module_data("gps")
 

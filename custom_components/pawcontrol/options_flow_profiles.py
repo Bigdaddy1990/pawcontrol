@@ -2,49 +2,45 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Mapping, Sequence
 import json
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
-from typing import Any
-from typing import cast
-from typing import Protocol
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
-from .config_flow_profile import DEFAULT_PROFILE
-from .config_flow_profile import get_profile_selector_options
-from .config_flow_profile import validate_profile_selection
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
+from .config_flow_profile import (
+  DEFAULT_PROFILE,
+  get_profile_selector_options,
+  validate_profile_selection,
+)
+from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS, MODULE_GPS, MODULE_HEALTH
 from .entity_factory import ENTITY_PROFILES
 from .selector_shim import selector
-from .types import clone_placeholders
-from .types import ConfigFlowPlaceholders
-from .types import DogConfigData
-from .types import ensure_dog_config_data
-from .types import ensure_dog_modules_mapping
-from .types import EntityProfileOptionsInput
-from .types import freeze_placeholders
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import MutableConfigFlowPlaceholders
-from .types import normalize_performance_mode
-from .types import OptionsPerformanceSettingsInput
-from .types import OptionsProfilePreviewInput
-from .types import ProfileSelectionInput
-from .types import RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE
+from .types import (
+  RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
+  ConfigFlowPlaceholders,
+  DogConfigData,
+  EntityProfileOptionsInput,
+  JSONMutableMapping,
+  JSONValue,
+  MutableConfigFlowPlaceholders,
+  OptionsPerformanceSettingsInput,
+  OptionsProfilePreviewInput,
+  ProfileSelectionInput,
+  clone_placeholders,
+  ensure_dog_config_data,
+  ensure_dog_modules_mapping,
+  freeze_placeholders,
+  normalize_performance_mode,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
   from homeassistant.config_entries import ConfigEntry
+
   from .entity_factory import EntityFactory
 
   class ProfileOptionsHost(Protocol):

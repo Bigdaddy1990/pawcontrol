@@ -1,94 +1,93 @@
 from __future__ import annotations
-import json
-from datetime import datetime
-from datetime import time
-from datetime import UTC
-from types import SimpleNamespace
-from typing import Any
-from typing import cast
-from unittest.mock import ANY
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
 
-import pytest
+from datetime import UTC, datetime, time
+import json
+from types import SimpleNamespace
+from typing import Any, cast
+from unittest.mock import ANY, AsyncMock, Mock, patch
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 
-from custom_components.pawcontrol.const import CONF_API_ENDPOINT
-from custom_components.pawcontrol.const import CONF_API_TOKEN
-from custom_components.pawcontrol.const import CONF_DASHBOARD_MODE
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_DOOR_SENSOR
-from custom_components.pawcontrol.const import CONF_DOOR_SENSOR_SETTINGS
-from custom_components.pawcontrol.const import CONF_EXTERNAL_INTEGRATIONS
-from custom_components.pawcontrol.const import CONF_GPS_ACCURACY_FILTER
-from custom_components.pawcontrol.const import CONF_GPS_DISTANCE_FILTER
-from custom_components.pawcontrol.const import CONF_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import CONF_NOTIFICATIONS
-from custom_components.pawcontrol.const import CONF_QUIET_END
-from custom_components.pawcontrol.const import CONF_QUIET_HOURS
-from custom_components.pawcontrol.const import CONF_QUIET_START
-from custom_components.pawcontrol.const import CONF_REMINDER_REPEAT_MIN
-from custom_components.pawcontrol.const import CONF_RESET_TIME
-from custom_components.pawcontrol.const import CONF_WEATHER_ENTITY
-from custom_components.pawcontrol.const import MAX_GEOFENCE_RADIUS
-from custom_components.pawcontrol.const import MIN_GEOFENCE_RADIUS
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_GROOMING
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.const import (
+  CONF_API_ENDPOINT,
+  CONF_API_TOKEN,
+  CONF_DASHBOARD_MODE,
+  CONF_DOG_AGE,
+  CONF_DOG_BREED,
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOG_SIZE,
+  CONF_DOG_WEIGHT,
+  CONF_DOGS,
+  CONF_DOOR_SENSOR,
+  CONF_DOOR_SENSOR_SETTINGS,
+  CONF_EXTERNAL_INTEGRATIONS,
+  CONF_GPS_ACCURACY_FILTER,
+  CONF_GPS_DISTANCE_FILTER,
+  CONF_GPS_UPDATE_INTERVAL,
+  CONF_MODULES,
+  CONF_NOTIFICATIONS,
+  CONF_QUIET_END,
+  CONF_QUIET_HOURS,
+  CONF_QUIET_START,
+  CONF_REMINDER_REPEAT_MIN,
+  CONF_RESET_TIME,
+  CONF_WEATHER_ENTITY,
+  MAX_GEOFENCE_RADIUS,
+  MIN_GEOFENCE_RADIUS,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_GROOMING,
+  MODULE_HEALTH,
+  MODULE_WALK,
+)
 from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 from custom_components.pawcontrol.runtime_data import RuntimeDataUnavailableError
-from custom_components.pawcontrol.types import AdvancedOptions
-from custom_components.pawcontrol.types import AUTO_TRACK_WALKS_FIELD
-from custom_components.pawcontrol.types import ConfigEntryDataPayload
-from custom_components.pawcontrol.types import DashboardOptions
-from custom_components.pawcontrol.types import DOG_ID_FIELD
-from custom_components.pawcontrol.types import DOG_MODULES_FIELD
-from custom_components.pawcontrol.types import DOG_NAME_FIELD
-from custom_components.pawcontrol.types import DOG_WEIGHT_FIELD
-from custom_components.pawcontrol.types import DogConfigData
-from custom_components.pawcontrol.types import DogOptionsMap
-from custom_components.pawcontrol.types import ensure_notification_options
-from custom_components.pawcontrol.types import FeedingOptions
-from custom_components.pawcontrol.types import GEOFENCE_ALERTS_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_ENABLED_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_LAT_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_LON_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_RADIUS_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_RESTRICTED_ZONE_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_SAFE_ZONE_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_USE_HOME_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_ZONE_ENTRY_FIELD
-from custom_components.pawcontrol.types import GEOFENCE_ZONE_EXIT_FIELD
-from custom_components.pawcontrol.types import GeofenceOptions
-from custom_components.pawcontrol.types import GPS_ENABLED_FIELD
-from custom_components.pawcontrol.types import GPSOptions
-from custom_components.pawcontrol.types import HealthOptions
-from custom_components.pawcontrol.types import NOTIFICATION_MOBILE_FIELD
-from custom_components.pawcontrol.types import NOTIFICATION_PRIORITY_FIELD
-from custom_components.pawcontrol.types import NOTIFICATION_QUIET_END_FIELD
-from custom_components.pawcontrol.types import NOTIFICATION_QUIET_HOURS_FIELD
-from custom_components.pawcontrol.types import NOTIFICATION_QUIET_START_FIELD
-from custom_components.pawcontrol.types import NOTIFICATION_REMINDER_REPEAT_FIELD
-from custom_components.pawcontrol.types import NotificationOptions
-from custom_components.pawcontrol.types import OptionsExportPayload
-from custom_components.pawcontrol.types import PawControlOptionsData
-from custom_components.pawcontrol.types import ROUTE_HISTORY_DAYS_FIELD
-from custom_components.pawcontrol.types import ROUTE_RECORDING_FIELD
-from custom_components.pawcontrol.types import RuntimeErrorHistoryEntry
-from custom_components.pawcontrol.types import SystemOptions
-from custom_components.pawcontrol.types import WeatherOptions
+from custom_components.pawcontrol.types import (
+  AUTO_TRACK_WALKS_FIELD,
+  DOG_ID_FIELD,
+  DOG_MODULES_FIELD,
+  DOG_NAME_FIELD,
+  DOG_WEIGHT_FIELD,
+  GEOFENCE_ALERTS_FIELD,
+  GEOFENCE_ENABLED_FIELD,
+  GEOFENCE_LAT_FIELD,
+  GEOFENCE_LON_FIELD,
+  GEOFENCE_RADIUS_FIELD,
+  GEOFENCE_RESTRICTED_ZONE_FIELD,
+  GEOFENCE_SAFE_ZONE_FIELD,
+  GEOFENCE_USE_HOME_FIELD,
+  GEOFENCE_ZONE_ENTRY_FIELD,
+  GEOFENCE_ZONE_EXIT_FIELD,
+  GPS_ENABLED_FIELD,
+  NOTIFICATION_MOBILE_FIELD,
+  NOTIFICATION_PRIORITY_FIELD,
+  NOTIFICATION_QUIET_END_FIELD,
+  NOTIFICATION_QUIET_HOURS_FIELD,
+  NOTIFICATION_QUIET_START_FIELD,
+  NOTIFICATION_REMINDER_REPEAT_FIELD,
+  ROUTE_HISTORY_DAYS_FIELD,
+  ROUTE_RECORDING_FIELD,
+  AdvancedOptions,
+  ConfigEntryDataPayload,
+  DashboardOptions,
+  DogConfigData,
+  DogOptionsMap,
+  FeedingOptions,
+  GeofenceOptions,
+  GPSOptions,
+  HealthOptions,
+  NotificationOptions,
+  OptionsExportPayload,
+  PawControlOptionsData,
+  RuntimeErrorHistoryEntry,
+  SystemOptions,
+  WeatherOptions,
+  ensure_notification_options,
+)
 
 
 def _assert_notification_values(
@@ -306,19 +305,17 @@ async def test_geofence_settings_coercion(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_geofence_settings(
-    {
-      "geofencing_enabled": True,
-      "geofence_radius_m": "120",
-      "geofence_lat": "41.8899",
-      "geofence_lon": 12.4923,
-      "geofence_alerts_enabled": False,
-      "safe_zone_alerts": False,
-      "restricted_zone_alerts": True,
-      "zone_entry_notifications": True,
-      "zone_exit_notifications": False,
-    }
-  )
+  result = await flow.async_step_geofence_settings({
+    "geofencing_enabled": True,
+    "geofence_radius_m": "120",
+    "geofence_lat": "41.8899",
+    "geofence_lon": 12.4923,
+    "geofence_alerts_enabled": False,
+    "safe_zone_alerts": False,
+    "restricted_zone_alerts": True,
+    "zone_entry_notifications": True,
+    "zone_exit_notifications": False,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -350,19 +347,17 @@ async def test_geofence_settings_normalises_snapshot(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_geofence_settings(
-    {
-      "geofencing_enabled": True,
-      "geofence_radius_m": "95",
-      "geofence_lat": "41.8899",
-      "geofence_lon": 12.4923,
-      "geofence_alerts_enabled": True,
-      "safe_zone_alerts": False,
-      "restricted_zone_alerts": True,
-      "zone_entry_notifications": False,
-      "zone_exit_notifications": True,
-    }
-  )
+  result = await flow.async_step_geofence_settings({
+    "geofencing_enabled": True,
+    "geofence_radius_m": "95",
+    "geofence_lat": "41.8899",
+    "geofence_lon": 12.4923,
+    "geofence_alerts_enabled": True,
+    "safe_zone_alerts": False,
+    "restricted_zone_alerts": True,
+    "zone_entry_notifications": False,
+    "zone_exit_notifications": True,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -398,20 +393,18 @@ async def test_geofence_settings_rejects_invalid_coordinates(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_geofence_settings(
-    {
-      GEOFENCE_ENABLED_FIELD: True,
-      GEOFENCE_USE_HOME_FIELD: False,
-      GEOFENCE_RADIUS_FIELD: MIN_GEOFENCE_RADIUS,
-      GEOFENCE_LAT_FIELD: "north",
-      GEOFENCE_LON_FIELD: 12.4923,
-      GEOFENCE_ALERTS_FIELD: True,
-      GEOFENCE_SAFE_ZONE_FIELD: True,
-      GEOFENCE_RESTRICTED_ZONE_FIELD: True,
-      GEOFENCE_ZONE_ENTRY_FIELD: True,
-      GEOFENCE_ZONE_EXIT_FIELD: True,
-    }
-  )
+  result = await flow.async_step_geofence_settings({
+    GEOFENCE_ENABLED_FIELD: True,
+    GEOFENCE_USE_HOME_FIELD: False,
+    GEOFENCE_RADIUS_FIELD: MIN_GEOFENCE_RADIUS,
+    GEOFENCE_LAT_FIELD: "north",
+    GEOFENCE_LON_FIELD: 12.4923,
+    GEOFENCE_ALERTS_FIELD: True,
+    GEOFENCE_SAFE_ZONE_FIELD: True,
+    GEOFENCE_RESTRICTED_ZONE_FIELD: True,
+    GEOFENCE_ZONE_ENTRY_FIELD: True,
+    GEOFENCE_ZONE_EXIT_FIELD: True,
+  })
 
   assert result["type"] == FlowResultType.FORM
   assert result["errors"][GEOFENCE_LAT_FIELD] == "coordinate_not_numeric"
@@ -427,20 +420,18 @@ async def test_geofence_settings_accepts_radius_boundaries(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_geofence_settings(
-    {
-      GEOFENCE_ENABLED_FIELD: True,
-      GEOFENCE_USE_HOME_FIELD: False,
-      GEOFENCE_RADIUS_FIELD: MAX_GEOFENCE_RADIUS,
-      GEOFENCE_LAT_FIELD: 0,
-      GEOFENCE_LON_FIELD: 0,
-      GEOFENCE_ALERTS_FIELD: True,
-      GEOFENCE_SAFE_ZONE_FIELD: True,
-      GEOFENCE_RESTRICTED_ZONE_FIELD: True,
-      GEOFENCE_ZONE_ENTRY_FIELD: True,
-      GEOFENCE_ZONE_EXIT_FIELD: True,
-    }
-  )
+  result = await flow.async_step_geofence_settings({
+    GEOFENCE_ENABLED_FIELD: True,
+    GEOFENCE_USE_HOME_FIELD: False,
+    GEOFENCE_RADIUS_FIELD: MAX_GEOFENCE_RADIUS,
+    GEOFENCE_LAT_FIELD: 0,
+    GEOFENCE_LON_FIELD: 0,
+    GEOFENCE_ALERTS_FIELD: True,
+    GEOFENCE_SAFE_ZONE_FIELD: True,
+    GEOFENCE_RESTRICTED_ZONE_FIELD: True,
+    GEOFENCE_ZONE_ENTRY_FIELD: True,
+    GEOFENCE_ZONE_EXIT_FIELD: True,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -455,16 +446,14 @@ async def test_notification_settings_structured(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_notifications(
-    {
-      "quiet_hours": False,
-      "quiet_start": "21:30:00",
-      "quiet_end": "06:45:00",
-      "reminder_repeat_min": "45",
-      "priority_notifications": True,
-      "mobile_notifications": False,
-    }
-  )
+  result = await flow.async_step_notifications({
+    "quiet_hours": False,
+    "quiet_start": "21:30:00",
+    "quiet_end": "06:45:00",
+    "reminder_repeat_min": "45",
+    "priority_notifications": True,
+    "mobile_notifications": False,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -490,16 +479,14 @@ async def test_notification_settings_rejects_invalid_repeat_interval(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_notifications(
-    {
-      "quiet_hours": True,
-      "quiet_start": "22:00:00",
-      "quiet_end": "07:00:00",
-      "reminder_repeat_min": 1,
-      "priority_notifications": True,
-      "mobile_notifications": False,
-    }
-  )
+  result = await flow.async_step_notifications({
+    "quiet_hours": True,
+    "quiet_start": "22:00:00",
+    "quiet_end": "07:00:00",
+    "reminder_repeat_min": 1,
+    "priority_notifications": True,
+    "mobile_notifications": False,
+  })
 
   assert result["type"] == FlowResultType.FORM
   assert result["errors"]["reminder_repeat_min"] == "invalid_configuration"
@@ -515,16 +502,14 @@ async def test_notification_settings_rejects_invalid_quiet_times(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_notifications(
-    {
-      "quiet_hours": True,
-      "quiet_start": "25:61",
-      "quiet_end": "07:00:00",
-      "reminder_repeat_min": 30,
-      "priority_notifications": True,
-      "mobile_notifications": False,
-    }
-  )
+  result = await flow.async_step_notifications({
+    "quiet_hours": True,
+    "quiet_start": "25:61",
+    "quiet_end": "07:00:00",
+    "reminder_repeat_min": 30,
+    "priority_notifications": True,
+    "mobile_notifications": False,
+  })
 
   assert result["type"] == FlowResultType.FORM
   assert result["errors"]["quiet_start"] == "quiet_start_invalid"
@@ -592,15 +577,13 @@ async def test_performance_settings_normalisation(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_performance_settings(
-    {
-      "entity_profile": "advanced",
-      "performance_mode": "FAST",
-      "batch_size": 25.0,
-      "cache_ttl": "900",
-      "selective_refresh": "0",
-    }
-  )
+  result = await flow.async_step_performance_settings({
+    "entity_profile": "advanced",
+    "performance_mode": "FAST",
+    "batch_size": 25.0,
+    "cache_ttl": "900",
+    "selective_refresh": "0",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -641,29 +624,27 @@ async def test_entity_profile_placeholders_expose_reconfigure_telemetry(
 ) -> None:
   """Entity profile form should surface the latest reconfigure telemetry."""
 
-  mock_config_entry.options.update(
-    {
-      "entity_profile": "standard",
-      "last_reconfigure": "2024-01-02T03:04:05+00:00",
-      "reconfigure_telemetry": {
-        "timestamp": "2024-01-02T03:04:05+00:00",
-        "requested_profile": "balanced",
-        "previous_profile": "advanced",
-        "dogs_count": 2,
-        "estimated_entities": 12,
-        "compatibility_warnings": ["GPS disabled for dog"],
-        "health_summary": {
-          "healthy": False,
-          "issues": ["Missing GPS source"],
-          "warnings": ["Reauth recommended"],
-        },
-        "merge_notes": [
-          "Buddy: your dog options enabled gps.",
-          "Max: your config entry options added a dog configuration.",
-        ],
+  mock_config_entry.options.update({
+    "entity_profile": "standard",
+    "last_reconfigure": "2024-01-02T03:04:05+00:00",
+    "reconfigure_telemetry": {
+      "timestamp": "2024-01-02T03:04:05+00:00",
+      "requested_profile": "balanced",
+      "previous_profile": "advanced",
+      "dogs_count": 2,
+      "estimated_entities": 12,
+      "compatibility_warnings": ["GPS disabled for dog"],
+      "health_summary": {
+        "healthy": False,
+        "issues": ["Missing GPS source"],
+        "warnings": ["Reauth recommended"],
       },
-    }
-  )
+      "merge_notes": [
+        "Buddy: your dog options enabled gps.",
+        "Max: your config entry options added a dog configuration.",
+      ],
+    },
+  })
 
   flow = PawControlOptionsFlow()
   flow.hass = hass
@@ -749,9 +730,10 @@ async def test_profile_preview_apply_normalises_snapshot(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_profile_preview(
-    {"profile": "gps_focus", "apply_profile": True}
-  )
+  result = await flow.async_step_profile_preview({
+    "profile": "gps_focus",
+    "apply_profile": True,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -795,23 +777,21 @@ async def test_weather_settings_normalisation(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_weather_settings(
-    {
-      "weather_entity": "weather.home",
-      "weather_health_monitoring": False,
-      "weather_alerts": True,
-      "weather_update_interval": "5",
-      "temperature_alerts": "1",
-      "uv_alerts": 0,
-      "humidity_alerts": "yes",
-      "wind_alerts": "on",
-      "storm_alerts": "false",
-      "breed_specific_recommendations": "",
-      "health_condition_adjustments": True,
-      "auto_activity_adjustments": "1",
-      "notification_threshold": "EXTREME",
-    }
-  )
+  result = await flow.async_step_weather_settings({
+    "weather_entity": "weather.home",
+    "weather_health_monitoring": False,
+    "weather_alerts": True,
+    "weather_update_interval": "5",
+    "temperature_alerts": "1",
+    "uv_alerts": 0,
+    "humidity_alerts": "yes",
+    "wind_alerts": "on",
+    "storm_alerts": "false",
+    "breed_specific_recommendations": "",
+    "health_condition_adjustments": True,
+    "auto_activity_adjustments": "1",
+    "notification_threshold": "EXTREME",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -843,15 +823,13 @@ async def test_feeding_settings_coercion(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_feeding_settings(
-    {
-      "meals_per_day": "7",
-      "feeding_reminders": "0",
-      "portion_tracking": True,
-      "calorie_tracking": "False",
-      "auto_schedule": "yes",
-    }
-  )
+  result = await flow.async_step_feeding_settings({
+    "meals_per_day": "7",
+    "feeding_reminders": "0",
+    "portion_tracking": True,
+    "calorie_tracking": "False",
+    "auto_schedule": "yes",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -875,15 +853,13 @@ async def test_health_settings_coercion(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_health_settings(
-    {
-      "weight_tracking": "no",
-      "medication_reminders": "on",
-      "vet_reminders": "true",
-      "grooming_reminders": "0",
-      "health_alerts": "yes",
-    }
-  )
+  result = await flow.async_step_health_settings({
+    "weight_tracking": "no",
+    "medication_reminders": "on",
+    "vet_reminders": "true",
+    "grooming_reminders": "0",
+    "health_alerts": "yes",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -909,15 +885,13 @@ async def test_feeding_settings_normalises_snapshot(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_feeding_settings(
-    {
-      "meals_per_day": "3",
-      "feeding_reminders": "0",
-      "portion_tracking": "True",
-      "calorie_tracking": 0,
-      "auto_schedule": "yes",
-    }
-  )
+  result = await flow.async_step_feeding_settings({
+    "meals_per_day": "3",
+    "feeding_reminders": "0",
+    "portion_tracking": "True",
+    "calorie_tracking": 0,
+    "auto_schedule": "yes",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -955,15 +929,13 @@ async def test_health_settings_normalises_snapshot(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_health_settings(
-    {
-      "weight_tracking": "1",
-      "medication_reminders": "false",
-      "vet_reminders": "TRUE",
-      "grooming_reminders": 0,
-      "health_alerts": "YES",
-    }
-  )
+  result = await flow.async_step_health_settings({
+    "weight_tracking": "1",
+    "medication_reminders": "false",
+    "vet_reminders": "TRUE",
+    "grooming_reminders": 0,
+    "health_alerts": "YES",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -1037,21 +1009,19 @@ async def test_system_settings_normalisation(
     "custom_components.pawcontrol.options_flow_support.get_runtime_data",
     return_value=runtime,
   ):
-    result = await flow.async_step_system_settings(
-      {
-        "reset_time": time(4, 30),
-        "data_retention_days": "10",
-        "auto_backup": "true",
-        "enable_analytics": "1",
-        "enable_cloud_backup": 0,
-        "performance_mode": "FULL",
-        "resilience_skip_threshold": "7",
-        "resilience_breaker_threshold": 2,
-        "manual_check_event": "  pawcontrol_custom_check  ",
-        "manual_guard_event": "  pawcontrol_manual_guard  ",
-        "manual_breaker_event": "  ",
-      }
-    )
+    result = await flow.async_step_system_settings({
+      "reset_time": time(4, 30),
+      "data_retention_days": "10",
+      "auto_backup": "true",
+      "enable_analytics": "1",
+      "enable_cloud_backup": 0,
+      "performance_mode": "FULL",
+      "resilience_skip_threshold": "7",
+      "resilience_breaker_threshold": 2,
+      "manual_check_event": "  pawcontrol_custom_check  ",
+      "manual_guard_event": "  pawcontrol_manual_guard  ",
+      "manual_breaker_event": "  ",
+    })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -1097,13 +1067,11 @@ async def test_system_settings_normalisation(
     },
   )
 
-  script_manager.async_sync_manual_resilience_events.assert_awaited_once_with(
-    {
-      "manual_check_event": "pawcontrol_custom_check",
-      "manual_guard_event": "pawcontrol_manual_guard",
-      "manual_breaker_event": None,
-    }
-  )
+  script_manager.async_sync_manual_resilience_events.assert_awaited_once_with({
+    "manual_check_event": "pawcontrol_custom_check",
+    "manual_guard_event": "pawcontrol_manual_guard",
+    "manual_breaker_event": None,
+  })
 
 
 @pytest.mark.asyncio
@@ -1308,15 +1276,13 @@ async def test_dashboard_settings_normalisation(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_dashboard_settings(
-    {
-      "dashboard_mode": "CARDS",
-      "show_statistics": "0",
-      "show_alerts": True,
-      "compact_mode": "1",
-      "show_maps": "off",
-    }
-  )
+  result = await flow.async_step_dashboard_settings({
+    "dashboard_mode": "CARDS",
+    "show_statistics": "0",
+    "show_alerts": True,
+    "compact_mode": "1",
+    "show_maps": "off",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -1357,18 +1323,16 @@ async def test_advanced_settings_structured(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_advanced_settings(
-    {
-      "performance_mode": "ULTRA",
-      "debug_logging": "true",
-      "data_retention_days": "500",
-      "auto_backup": "1",
-      "experimental_features": "on",
-      CONF_EXTERNAL_INTEGRATIONS: "yes",
-      CONF_API_ENDPOINT: " https://demo.local ",
-      CONF_API_TOKEN: "  secret  ",
-    }
-  )
+  result = await flow.async_step_advanced_settings({
+    "performance_mode": "ULTRA",
+    "debug_logging": "true",
+    "data_retention_days": "500",
+    "auto_backup": "1",
+    "experimental_features": "on",
+    CONF_EXTERNAL_INTEGRATIONS: "yes",
+    CONF_API_ENDPOINT: " https://demo.local ",
+    CONF_API_TOKEN: "  secret  ",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -1437,18 +1401,16 @@ async def test_advanced_settings_normalises_existing_payloads(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_advanced_settings(
-    {
-      "performance_mode": "balanced",
-      "debug_logging": True,
-      "data_retention_days": 200,
-      "auto_backup": False,
-      "experimental_features": True,
-      CONF_EXTERNAL_INTEGRATIONS: False,
-      CONF_API_ENDPOINT: " https://api.demo ",
-      CONF_API_TOKEN: " token ",
-    }
-  )
+  result = await flow.async_step_advanced_settings({
+    "performance_mode": "balanced",
+    "debug_logging": True,
+    "data_retention_days": 200,
+    "auto_backup": False,
+    "experimental_features": True,
+    CONF_EXTERNAL_INTEGRATIONS: False,
+    CONF_API_ENDPOINT: " https://api.demo ",
+    CONF_API_TOKEN: " token ",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -1526,17 +1488,15 @@ async def test_gps_settings_structured(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_gps_settings(
-    {
-      CONF_GPS_UPDATE_INTERVAL: "45",
-      CONF_GPS_ACCURACY_FILTER: "12.5",
-      CONF_GPS_DISTANCE_FILTER: 30,
-      "gps_enabled": False,
-      "route_recording": False,
-      "route_history_days": "14",
-      "auto_track_walks": True,
-    }
-  )
+  result = await flow.async_step_gps_settings({
+    CONF_GPS_UPDATE_INTERVAL: "45",
+    CONF_GPS_ACCURACY_FILTER: "12.5",
+    CONF_GPS_DISTANCE_FILTER: 30,
+    "gps_enabled": False,
+    "route_recording": False,
+    "route_history_days": "14",
+    "auto_track_walks": True,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -1565,17 +1525,15 @@ async def test_gps_settings_rejects_empty_accuracy(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_gps_settings(
-    {
-      CONF_GPS_UPDATE_INTERVAL: 45,
-      CONF_GPS_ACCURACY_FILTER: "",
-      CONF_GPS_DISTANCE_FILTER: 30,
-      "gps_enabled": True,
-      "route_recording": True,
-      "route_history_days": 14,
-      "auto_track_walks": True,
-    }
-  )
+  result = await flow.async_step_gps_settings({
+    CONF_GPS_UPDATE_INTERVAL: 45,
+    CONF_GPS_ACCURACY_FILTER: "",
+    CONF_GPS_DISTANCE_FILTER: 30,
+    "gps_enabled": True,
+    "route_recording": True,
+    "route_history_days": 14,
+    "auto_track_walks": True,
+  })
 
   assert result["type"] == FlowResultType.FORM
   assert result["errors"][CONF_GPS_ACCURACY_FILTER] == "gps_accuracy_required"
@@ -1611,17 +1569,15 @@ async def test_gps_settings_normalises_snapshot(
   flow.hass = hass
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_gps_settings(
-    {
-      CONF_GPS_UPDATE_INTERVAL: 120,
-      CONF_GPS_ACCURACY_FILTER: "8",
-      CONF_GPS_DISTANCE_FILTER: "50",
-      "gps_enabled": True,
-      "route_recording": True,
-      "route_history_days": "7",
-      "auto_track_walks": "on",
-    }
-  )
+  result = await flow.async_step_gps_settings({
+    CONF_GPS_UPDATE_INTERVAL: 120,
+    CONF_GPS_ACCURACY_FILTER: "8",
+    CONF_GPS_DISTANCE_FILTER: "50",
+    "gps_enabled": True,
+    "route_recording": True,
+    "route_history_days": "7",
+    "auto_track_walks": "on",
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -1664,21 +1620,19 @@ async def test_dog_module_overrides_recorded(
   dog_config = cast(DogConfigData, mock_config_entry.data[CONF_DOGS][0])
   flow._current_dog = dog_config
 
-  result = await flow.async_step_configure_dog_modules(
-    {
-      "module_feeding": False,
-      "module_walk": True,
-      "module_gps": True,
-      "module_garden": False,
-      "module_health": True,
-      "module_notifications": False,
-      "module_dashboard": True,
-      "module_visitor": True,
-      "module_grooming": True,
-      "module_medication": False,
-      "module_training": True,
-    }
-  )
+  result = await flow.async_step_configure_dog_modules({
+    "module_feeding": False,
+    "module_walk": True,
+    "module_gps": True,
+    "module_garden": False,
+    "module_health": True,
+    "module_notifications": False,
+    "module_dashboard": True,
+    "module_visitor": True,
+    "module_grooming": True,
+    "module_medication": False,
+    "module_training": True,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
   flow.hass.config_entries.async_update_entry.assert_called_once()
@@ -2006,16 +1960,14 @@ async def test_add_new_dog_normalises_config(
   flow.initialize_from_config_entry(mock_config_entry)
   flow.hass.config_entries.async_update_entry = Mock()
 
-  result = await flow.async_step_add_new_dog(
-    {
-      CONF_DOG_ID: "Nova Pup",
-      CONF_DOG_NAME: "Nova",
-      CONF_DOG_BREED: "Border Collie",
-      CONF_DOG_AGE: 5,
-      CONF_DOG_WEIGHT: 19.5,
-      CONF_DOG_SIZE: "medium",
-    }
-  )
+  result = await flow.async_step_add_new_dog({
+    CONF_DOG_ID: "Nova Pup",
+    CONF_DOG_NAME: "Nova",
+    CONF_DOG_BREED: "Border Collie",
+    CONF_DOG_AGE: 5,
+    CONF_DOG_WEIGHT: 19.5,
+    CONF_DOG_SIZE: "medium",
+  })
 
   assert result["type"] == FlowResultType.MENU
   flow.hass.config_entries.async_update_entry.assert_called_once()
@@ -2053,15 +2005,13 @@ async def test_edit_dog_updates_config(
 
   flow._current_dog = flow._dogs[0]
 
-  result = await flow.async_step_edit_dog(
-    {
-      CONF_DOG_NAME: "Buddy II",
-      CONF_DOG_BREED: "Retriever",
-      CONF_DOG_AGE: 4,
-      CONF_DOG_WEIGHT: 32.5,
-      CONF_DOG_SIZE: "large",
-    }
-  )
+  result = await flow.async_step_edit_dog({
+    CONF_DOG_NAME: "Buddy II",
+    CONF_DOG_BREED: "Retriever",
+    CONF_DOG_AGE: 4,
+    CONF_DOG_WEIGHT: 32.5,
+    CONF_DOG_SIZE: "large",
+  })
 
   assert result["type"] == FlowResultType.MENU
   flow.hass.config_entries.async_update_entry.assert_called_once()
@@ -2120,9 +2070,10 @@ async def test_remove_dog_normalises_snapshot(
   hass.config_entries.async_update_entry = Mock()
   flow.initialize_from_config_entry(mock_config_entry)
 
-  result = await flow.async_step_select_dog_to_remove(
-    {"dog_id": "max", "confirm_remove": True}
-  )
+  result = await flow.async_step_select_dog_to_remove({
+    "dog_id": "max",
+    "confirm_remove": True,
+  })
 
   assert result["type"] == FlowResultType.CREATE_ENTRY
   hass.config_entries.async_update_entry.assert_called_once()

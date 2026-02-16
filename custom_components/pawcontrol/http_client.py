@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Callable
-from inspect import iscoroutinefunction
-from inspect import unwrap
-from typing import Any
-from typing import cast
+from inspect import iscoroutinefunction, unwrap
+from typing import Any, cast
 
 from aiohttp import ClientSession
 

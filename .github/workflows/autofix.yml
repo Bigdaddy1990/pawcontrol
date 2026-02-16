@@ -46,7 +46,7 @@ jobs:
         run: |
          ruff check . --fix || true
          ruff check . --fix --unsafe-fixes || true
-         ruff check . --target-version <py314> ||  true
+         ruff check . --target-version py314 || true
          ruff check . --add-noqa || true
          ruff check . --extend-select RUF100 --fix || true
          ruff check . --preview || true
@@ -55,6 +55,10 @@ jobs:
          python scripts/enforce_docstring_baseline.py --update
          pre-commit run --all-files || true
          pre-commit run --hook-stage manual python-typing-update --all-files || true
+
+      - name: pre-commit-ci-lite
+        uses: pre-commit-ci/lite-action@v1.1.0
+        if: always()
 
       - name: Verify contributor guides
         run: |
@@ -72,7 +76,3 @@ jobs:
           prek install
           prek run --all-files
           prek run --hook-stage manual python-typing-update --all-files
-
-      - name: pre-commit-ci-lite
-        uses: pre-commit-ci/lite-action@v1.1.0
-        if: always()

@@ -2,45 +2,39 @@
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Mapping, Sequence
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Final, cast
 
-import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOGS
-from .const import CONF_MODULES
-from .entity_factory import ENTITY_PROFILES
-from .entity_factory import EntityFactory
-from .exceptions import ConfigEntryAuthFailed
-from .exceptions import FlowValidationError
-from .exceptions import ReauthRequiredError
-from .exceptions import ValidationError
-from .flow_validation import is_dog_config_payload_valid
-from .flow_validation import validate_dog_config_payload
+from .const import CONF_DOG_ID, CONF_DOGS, CONF_MODULES
+from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .exceptions import (
+  ConfigEntryAuthFailed,
+  FlowValidationError,
+  ReauthRequiredError,
+  ValidationError,
+)
+from .flow_validation import is_dog_config_payload_valid, validate_dog_config_payload
 from .selector_shim import selector
-from .types import clone_placeholders
-from .types import DOG_ID_FIELD
-from .types import DogConfigData
-from .types import ensure_dog_modules_mapping
-from .types import freeze_placeholders
-from .types import JSONValue
-from .types import REAUTH_PLACEHOLDERS_TEMPLATE
-from .types import ReauthConfirmInput
-from .types import ReauthDataUpdates
-from .types import ReauthHealthSummary
-from .types import ReauthOptionsUpdates
-from .types import ReauthPlaceholders
+from .types import (
+  DOG_ID_FIELD,
+  REAUTH_PLACEHOLDERS_TEMPLATE,
+  DogConfigData,
+  JSONValue,
+  ReauthConfirmInput,
+  ReauthDataUpdates,
+  ReauthHealthSummary,
+  ReauthOptionsUpdates,
+  ReauthPlaceholders,
+  clone_placeholders,
+  ensure_dog_modules_mapping,
+  freeze_placeholders,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -1,9 +1,8 @@
 from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 
@@ -32,11 +31,11 @@ from custom_components.pawcontrol.number import (
 )
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import (
-  CoordinatorRuntimeManagers,
   DOG_FEEDING_CONFIG_FIELD,
   DOG_GPS_CONFIG_FIELD,
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
+  CoordinatorRuntimeManagers,
   DogConfigData,
   JSONMutableMapping,
   JSONValue,

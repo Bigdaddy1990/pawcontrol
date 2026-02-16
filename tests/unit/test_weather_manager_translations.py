@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-
 from typing import cast
 from unittest.mock import MagicMock
 
-import pytest
 from homeassistant.core import HomeAssistant
-
+import pytest
 from tests.weather_test_support import ensure_weather_module_compat
 
 ensure_weather_module_compat()

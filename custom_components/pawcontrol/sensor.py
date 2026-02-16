@@ -2,71 +2,62 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Callable, Mapping
 import contextlib
-import logging
+from datetime import date, datetime, timedelta
 from inspect import isawaitable
-from collections.abc import Callable
-from collections.abc import Mapping
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
+import logging
 from numbers import Real
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import Literal
-from typing import Protocol
-from typing import TYPE_CHECKING
-from typing import TypedDict
+from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, TypedDict, cast
 
 from homeassistant import const as ha_const
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.components.sensor import SensorEntityDescription
-from homeassistant.components.sensor import SensorStateClass
-from homeassistant.const import PERCENTAGE
-from homeassistant.const import STATE_UNKNOWN
-from homeassistant.const import UnitOfEnergy
-from homeassistant.const import UnitOfLength
-from homeassistant.const import UnitOfTime
+from homeassistant.components.sensor import (
+  SensorDeviceClass,
+  SensorEntityDescription,
+  SensorStateClass,
+)
+from homeassistant.const import (
+  PERCENTAGE,
+  STATE_UNKNOWN,
+  UnitOfEnergy,
+  UnitOfLength,
+  UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import MASS_GRAMS
-from .compat import MASS_KILOGRAMS
-from .compat import UnitOfMass
-from .const import DEFAULT_MODEL
-from .const import DEFAULT_SW_VERSION
+from .compat import MASS_GRAMS, MASS_KILOGRAMS, UnitOfMass
+from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .entity_factory import EntityFactory
 from .push_router import get_entry_push_telemetry_snapshot
 from .runtime_data import get_runtime_data
-from .types import coerce_dog_modules_config
-from .types import CoordinatorDogData
-from .types import CoordinatorModuleLookupResult
-from .types import CoordinatorUntypedModuleState
-from .types import DOG_ID_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import ensure_gps_payload
-from .types import EntityAttributeDateMutableMapping
-from .types import FeedingDietValidationSummary
-from .types import FeedingModulePayload
-from .types import GardenModulePayload
-from .types import GPSModulePayload
-from .types import HealthModulePayload
-from .types import JSONDateValue
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import ModuleToggleKey
-from .types import PawControlConfigEntry
-from .types import WalkModuleTelemetry
-from .utils import ensure_utc_datetime
-from .utils import is_number
-from .utils import normalise_entity_attributes
+from .types import (
+  DOG_ID_FIELD,
+  DOG_NAME_FIELD,
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  CoordinatorUntypedModuleState,
+  DogConfigData,
+  EntityAttributeDateMutableMapping,
+  FeedingDietValidationSummary,
+  FeedingModulePayload,
+  GardenModulePayload,
+  GPSModulePayload,
+  HealthModulePayload,
+  JSONDateValue,
+  JSONMutableMapping,
+  JSONValue,
+  ModuleToggleKey,
+  PawControlConfigEntry,
+  WalkModuleTelemetry,
+  coerce_dog_modules_config,
+  ensure_gps_payload,
+)
+from .utils import ensure_utc_datetime, is_number, normalise_entity_attributes
 
 if TYPE_CHECKING:
 

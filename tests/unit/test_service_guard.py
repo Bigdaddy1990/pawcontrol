@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-
 import pytest
 
-from custom_components.pawcontrol.service_guard import normalise_guard_history
-from custom_components.pawcontrol.service_guard import normalise_guard_result_payload
-from custom_components.pawcontrol.service_guard import ServiceGuardResult
-from custom_components.pawcontrol.service_guard import ServiceGuardSnapshot
+from custom_components.pawcontrol.service_guard import (
+  ServiceGuardResult,
+  ServiceGuardSnapshot,
+  normalise_guard_history,
+  normalise_guard_result_payload,
+)
 from custom_components.pawcontrol.types import JSONMutableMapping
 
 
@@ -90,13 +91,11 @@ def test_normalise_guard_result_payload(
 def test_normalise_guard_history_handles_mixed_entries() -> None:
   """Guard history normalisation must handle results and mappings."""
 
-  history = normalise_guard_history(
-    [
-      ServiceGuardResult("notify", "persistent_notification", True),
-      {"domain": "script", "service": "turn_on", "reason": "cooldown"},
-      object(),
-    ]
-  )
+  history = normalise_guard_history([
+    ServiceGuardResult("notify", "persistent_notification", True),
+    {"domain": "script", "service": "turn_on", "reason": "cooldown"},
+    object(),
+  ])
 
   assert len(history) == 2
   assert history[0]["executed"] is True

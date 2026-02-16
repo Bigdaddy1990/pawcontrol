@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-
 from pathlib import Path
 import py_compile
 
 import pytest
-
 
 SYNTAX_GUARD_MODULES = (
   Path("custom_components/pawcontrol/dashboard_cards.py"),

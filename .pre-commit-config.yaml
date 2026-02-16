@@ -4,56 +4,41 @@ ci:
   autofix_commit_msg: "[pre-commit.ci] autofix"
   autoupdate_branch: main
   autoupdate_commit_msg: "[pre-commit.ci] autoupdate"
-  skip: []
+
 default_language_version:
-      python: python3.14
+  python: python3.14
+
 default_install_hook_types:
-      - pre-commit
-      - pre-push
- repos:
+  - pre-commit
+  - pre-push
+
+repos:
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
-       - id: pyupgrade
-         args:
-          - --py39-plus
-          - --py310-plus
-          - --py311-plus
-          - --py313-plus
+      - id: pyupgrade
+        args:
           - --py314-plus
+
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
-       - id: python-typing-update
-         stages: [manual]
-         args:
-          - --py3-plus
-          - --py36-plus
-          - --py39-plus
+      - id: python-typing-update
+        stages: [manual]
+        args:
           - --py314-plus
           - --full-reorder
           - --keep-updates
           - --force-exclude
-  - repo: https://github.com/pycqa/flake8
-    rev: 4.0.1
-    hooks:
-       - id: flake8
-         additional_dependencies:
-           - flake8-type-checking
-  - repo: https://github.com/hhatto/autopep8
-    rev: v2.3.2
-    hooks:
-       - id: autopep8
-  - repo: https://github.com/PyCQA/flake8
-     rev: 7.3.0
-     hooks:
-       - id: flake8
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.1
     hooks:
-       - id: mypy
-         additional_dependencies: [types-pyyaml]
-         exclude: ^testing/resources/
+      - id: mypy
+        additional_dependencies:
+          - types-pyyaml
+        exclude: ^testing/resources/
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:
@@ -66,12 +51,11 @@ default_install_hook_types:
         types_or:
           - python
           - pyi
-        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|scripts/)
       - id: ruff-format
         types_or:
           - python
           - pyi
-        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|scripts/)
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -93,12 +77,10 @@ default_install_hook_types:
       - id: check-case-conflict
       - id: check-builtin-literals
       - id: check-symlinks
-        args:
-          - --autofix
       - id: pretty-format-json
         args:
           - --autofix
-        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts/)
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
 
@@ -109,6 +91,7 @@ default_install_hook_types:
         entry: python scripts/enforce_shared_session_guard.py
         language: python
         pass_filenames: false
+
       - id: enforce-test-requirements
         name: Ensure test imports declare requirements
         entry: python -m scripts.enforce_test_requirements
@@ -116,6 +99,7 @@ default_install_hook_types:
         additional_dependencies:
           - packaging>=24.2
         pass_filenames: false
+
       - id: docstring-baseline
         name: Ensure docstring baseline has no regressions
         entry: python scripts/enforce_docstring_baseline.py --update
@@ -123,32 +107,38 @@ default_install_hook_types:
         pass_filenames: false
         additional_dependencies:
           - ruff>=0.12.11
+
       - id: contributor-guide-sync-check
         name: Ensure assistant contributor guides are synced
         entry: python -m scripts.sync_contributor_guides --check
         language: python
         pass_filenames: false
+
       - id: localization-flags
         name: Validate localization flags
         entry: python -m scripts.sync_localization_flags --check
         language: python
         pass_filenames: false
+
       - id: typed-dict-audit
         name: Audit TypedDict definitions
         entry: python scripts/check_typed_dicts.py
         language: python
         pass_filenames: false
+
       - id: hassfest-lite
         name: Validate manifest and translations (hassfest shim)
         entry: python -m scripts.hassfest --integration-path custom_components/pawcontrol
         language: python
         pass_filenames: false
+
       - id: homeassistant-push-guard
         name: Home Assistant push guard (auto-fix migration patterns)
         entry: python -m scripts.homeassistant_push_guard --fix
         language: python
         pass_filenames: false
         stages: [pre-push]
+
       - id: manifest-validate
         name: Manifest Validation
         entry: python -m scripts.validate_manifest

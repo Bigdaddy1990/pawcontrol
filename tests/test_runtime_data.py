@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-
+from dataclasses import field, fields, make_dataclass
 import importlib.util
-import sys
-from dataclasses import field
-from dataclasses import fields
-from dataclasses import make_dataclass
 from pathlib import Path
-from types import ModuleType
-from types import SimpleNamespace
-from typing import cast
-from typing import TYPE_CHECKING
+import sys
+from types import ModuleType, SimpleNamespace
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -63,11 +58,7 @@ types_module = _load_module(
 if TYPE_CHECKING:
   from custom_components.pawcontrol.types import (
     DomainRuntimeStoreEntry as DomainRuntimeStoreEntryType,
-  )
-  from custom_components.pawcontrol.types import (
     PawControlConfigEntry as PawControlConfigEntryType,
-  )
-  from custom_components.pawcontrol.types import (
     PawControlRuntimeData as PawControlRuntimeDataType,
   )
 else:  # pragma: no cover - runtime aliases for type checkers

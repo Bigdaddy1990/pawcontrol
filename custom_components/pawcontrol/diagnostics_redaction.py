@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Iterable, Mapping
 import re
-from collections.abc import Iterable
-from collections.abc import Mapping
 from typing import Final
 
-from custom_components.pawcontrol.types import JSONMutableMapping
-from custom_components.pawcontrol.types import JSONMutableSequence
-from custom_components.pawcontrol.types import JSONValue
+from custom_components.pawcontrol.types import (
+  JSONMutableMapping,
+  JSONMutableSequence,
+  JSONValue,
+)
 
 __all__ = [
   "compile_redaction_patterns",

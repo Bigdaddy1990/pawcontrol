@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Iterable
-from dataclasses import dataclass
-from dataclasses import field
+from dataclasses import dataclass, field
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.discovery import async_get_discovered_devices
-from custom_components.pawcontrol.discovery import CATEGORY_CAPABILITIES
-from custom_components.pawcontrol.discovery import DiscoveredDevice
-from custom_components.pawcontrol.discovery import DiscoveredDeviceMetadata
-from custom_components.pawcontrol.discovery import DiscoveryCapabilityList
-from custom_components.pawcontrol.discovery import DiscoveryCategory
-from custom_components.pawcontrol.discovery import DiscoveryConnectionInfo
-from custom_components.pawcontrol.discovery import LegacyDiscoveryEntry
-from custom_components.pawcontrol.discovery import PawControlDiscovery
+from custom_components.pawcontrol.discovery import (
+  CATEGORY_CAPABILITIES,
+  DiscoveredDevice,
+  DiscoveredDeviceMetadata,
+  DiscoveryCapabilityList,
+  DiscoveryCategory,
+  DiscoveryConnectionInfo,
+  LegacyDiscoveryEntry,
+  PawControlDiscovery,
+  async_get_discovered_devices,
+)
 
 
 @pytest.mark.asyncio

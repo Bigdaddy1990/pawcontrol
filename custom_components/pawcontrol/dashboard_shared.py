@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Mapping, Sequence
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
-from typing import cast
-from typing import TypeVar
+from typing import TypeVar, cast
 
-from .types import DogConfigData
-from .types import ensure_dog_config_data
-from .types import JSONValue
-from .types import LovelaceCardConfig
-from .types import RawDogConfig
+from .types import (
+  DogConfigData,
+  JSONValue,
+  LovelaceCardConfig,
+  RawDogConfig,
+  ensure_dog_config_data,
+)
 
 type CardConfig = LovelaceCardConfig
 type CardCollection = list[LovelaceCardConfig]

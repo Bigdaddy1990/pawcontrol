@@ -9,12 +9,11 @@ presence for the PawControl integration.
 
 from __future__ import annotations
 
-
-import json
-import sys
 from argparse import ArgumentParser
 from collections.abc import Iterable
+import json
 from pathlib import Path
+import sys
 from typing import Any
 
 QUALITY_SCALE_LEVELS = {"internal", "bronze", "silver", "gold", "platinum"}

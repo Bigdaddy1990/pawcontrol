@@ -6,12 +6,11 @@ Handles manager shutdown, listener removal, and background task cancellation.
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Callable
 import logging
 import time
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant

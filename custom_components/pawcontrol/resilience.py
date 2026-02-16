@@ -10,23 +10,17 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from enum import Enum
 import logging
 import random
 import time
-from collections.abc import Awaitable
-from collections.abc import Callable
-from dataclasses import dataclass
-from enum import Enum
 from types import TracebackType
-from typing import Any
-from typing import ParamSpec
-from typing import TypeVar
+from typing import Any, ParamSpec, TypeVar
 
-from .exceptions import NetworkError
-from .exceptions import RateLimitError
-from .exceptions import ServiceUnavailableError
+from .exceptions import NetworkError, RateLimitError, ServiceUnavailableError
 
 _LOGGER = logging.getLogger(__name__)
 _SECURE_RANDOM = random.SystemRandom()

@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-
-from datetime import datetime
-from datetime import UTC
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

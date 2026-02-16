@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Iterable
+from datetime import UTC, datetime
 import importlib
 import json
-from collections.abc import Iterable
-from datetime import datetime
-from datetime import UTC
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

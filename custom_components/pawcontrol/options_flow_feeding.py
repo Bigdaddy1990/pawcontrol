@@ -2,25 +2,24 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
-from typing import Any
-from typing import cast
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
 from .exceptions import FlowValidationError
 from .selector_shim import selector
-from .types import DOG_ID_FIELD
-from .types import DOG_OPTIONS_FIELD
-from .types import ensure_dog_options_entry
-from .types import FeedingOptions
-from .types import JSONLikeMapping
-from .types import JSONValue
-from .types import OptionsDogSelectionInput
-from .types import OptionsFeedingSettingsInput
+from .types import (
+  DOG_ID_FIELD,
+  DOG_OPTIONS_FIELD,
+  FeedingOptions,
+  JSONLikeMapping,
+  JSONValue,
+  OptionsDogSelectionInput,
+  OptionsFeedingSettingsInput,
+  ensure_dog_options_entry,
+)
 
 if TYPE_CHECKING:
   from .options_flow_hosts import DogOptionsHost

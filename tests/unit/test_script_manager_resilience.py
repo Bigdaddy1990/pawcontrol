@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-
-import json
 from datetime import timedelta
-from types import MethodType
-from types import SimpleNamespace
+import json
+from types import MethodType, SimpleNamespace
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.script_manager import PawControlScriptManager

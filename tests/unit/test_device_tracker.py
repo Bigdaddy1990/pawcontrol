@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-
-import json
 from collections.abc import Mapping
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
+import json
 
 import pytest
 

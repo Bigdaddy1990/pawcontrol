@@ -2,53 +2,47 @@
 
 from __future__ import annotations
 
-
-from collections.abc import Mapping
-from collections.abc import MutableMapping
-from collections.abc import Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from math import ceil
-from math import floor
-from math import isfinite
-from statistics import median
-from statistics import pstdev
-from typing import Any
-from typing import cast
-from typing import Final
+from math import ceil, floor, isfinite
+from statistics import median, pstdev
+from typing import Any, Final, cast
 
 from homeassistant.util import dt as dt_util
 
-from .types import BoolCoercionMetrics
-from .types import BoolCoercionSample
-from .types import BoolCoercionSummary
-from .types import CircuitBreakerStatsPayload
-from .types import ConfigEntryOptionsPayload
-from .types import CoordinatorResilienceDiagnostics
-from .types import CoordinatorResilienceSummary
-from .types import DoorSensorFailureSummary
-from .types import DoorSensorPersistenceFailure
-from .types import DoorSensorSettingsPayload
-from .types import EntityFactoryGuardEvent
-from .types import EntityFactoryGuardMetrics
-from .types import EntityFactoryGuardStabilityTrend
-from .types import JSONLikeMapping
-from .types import PawControlRuntimeData
-from .types import ReconfigureOptionsUpdates
-from .types import ReconfigureTelemetry
-from .types import ReconfigureTelemetrySummary
-from .types import RuntimeErrorHistoryEntry
-from .types import RuntimePerformanceStats
-from .types import RuntimeStoreAssessmentEvent
-from .types import RuntimeStoreAssessmentTimelineSegment
-from .types import RuntimeStoreAssessmentTimelineSummary
-from .types import RuntimeStoreCompatibilitySnapshot
-from .types import RuntimeStoreEntryStatus
-from .types import RuntimeStoreHealthAssessment
-from .types import RuntimeStoreHealthHistory
-from .types import RuntimeStoreHealthLevel
-from .types import RuntimeStoreLevelDurationAlert
-from .types import RuntimeStoreLevelDurationPercentiles
-from .types import RuntimeStoreOverallStatus
+from .types import (
+  BoolCoercionMetrics,
+  BoolCoercionSample,
+  BoolCoercionSummary,
+  CircuitBreakerStatsPayload,
+  ConfigEntryOptionsPayload,
+  CoordinatorResilienceDiagnostics,
+  CoordinatorResilienceSummary,
+  DoorSensorFailureSummary,
+  DoorSensorPersistenceFailure,
+  DoorSensorSettingsPayload,
+  EntityFactoryGuardEvent,
+  EntityFactoryGuardMetrics,
+  EntityFactoryGuardStabilityTrend,
+  JSONLikeMapping,
+  PawControlRuntimeData,
+  ReconfigureOptionsUpdates,
+  ReconfigureTelemetry,
+  ReconfigureTelemetrySummary,
+  RuntimeErrorHistoryEntry,
+  RuntimePerformanceStats,
+  RuntimeStoreAssessmentEvent,
+  RuntimeStoreAssessmentTimelineSegment,
+  RuntimeStoreAssessmentTimelineSummary,
+  RuntimeStoreCompatibilitySnapshot,
+  RuntimeStoreEntryStatus,
+  RuntimeStoreHealthAssessment,
+  RuntimeStoreHealthHistory,
+  RuntimeStoreHealthLevel,
+  RuntimeStoreLevelDurationAlert,
+  RuntimeStoreLevelDurationPercentiles,
+  RuntimeStoreOverallStatus,
+)
 
 _BOOL_COERCION_METRICS: BoolCoercionMetrics = {
   "total": 0,

@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
-from typing import Any
-from typing import Protocol
+from typing import Any, Protocol
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
-from .types import DogConfigData
-from .types import DogOptionsMap
-from .types import JSONValue
+from .types import DogConfigData, DogOptionsMap, JSONValue
 
 
 class DogOptionsHost(Protocol):

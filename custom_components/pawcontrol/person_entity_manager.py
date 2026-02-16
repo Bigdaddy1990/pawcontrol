@@ -10,46 +10,38 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Callable, Mapping, Sequence
 import contextlib
-import logging
-from collections.abc import Callable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from dataclasses import dataclass
-from dataclasses import field
+from dataclasses import dataclass, field
 from datetime import datetime
 from importlib import import_module
-from typing import cast
-from typing import Literal
-from typing import TypeVar
+import logging
+from typing import Literal, TypeVar, cast
 
 from homeassistant.const import STATE_HOME
-from homeassistant.core import Event
-from homeassistant.core import EventStateChangedData
-from homeassistant.core import HomeAssistant
-from homeassistant.core import State
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from .coordinator_support import CacheMonitorRegistrar
-from .coordinator_support import SupportsCoordinatorSnapshot
-from .types import CacheDiagnosticsSnapshot
-from .types import JSONMutableMapping
-from .types import PersonEntityAttributePayload
-from .types import PersonEntityConfigInput
-from .types import PersonEntityCounters
-from .types import PersonEntityDiagnostics
-from .types import PersonEntityDiscoveryResult
-from .types import PersonEntitySnapshot
-from .types import PersonEntitySnapshotEntry
-from .types import PersonEntityStats
-from .types import PersonEntityStorageEntry
-from .types import PersonEntityValidationResult
-from .types import PersonNotificationCacheEntry
-from .types import PersonNotificationContext
+from .coordinator_support import CacheMonitorRegistrar, SupportsCoordinatorSnapshot
+from .types import (
+  CacheDiagnosticsSnapshot,
+  JSONMutableMapping,
+  PersonEntityAttributePayload,
+  PersonEntityConfigInput,
+  PersonEntityCounters,
+  PersonEntityDiagnostics,
+  PersonEntityDiscoveryResult,
+  PersonEntitySnapshot,
+  PersonEntitySnapshotEntry,
+  PersonEntityStats,
+  PersonEntityStorageEntry,
+  PersonEntityValidationResult,
+  PersonNotificationCacheEntry,
+  PersonNotificationContext,
+)
 from .utils import ensure_utc_datetime
 
 

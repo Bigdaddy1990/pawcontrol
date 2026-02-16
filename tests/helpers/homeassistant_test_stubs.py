@@ -2,30 +2,22 @@
 
 from __future__ import annotations
 
-
 import asyncio
 import builtins
+from collections.abc import Callable, Iterable
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
+from enum import Enum, StrEnum
 import importlib
 import inspect
+from pathlib import Path
 import re
 import sys
 import threading
 import types
-from collections.abc import Callable
-from collections.abc import Iterable
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from datetime import date
-from datetime import datetime
-from datetime import UTC
-from enum import Enum
-from enum import StrEnum
-from pathlib import Path
-from typing import Any
-from typing import Generic
-from typing import TypeVar
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
+from typing import Any, Generic, TypeVar
+from unittest.mock import AsyncMock, Mock
 
 import voluptuous as vol
 
@@ -891,12 +883,12 @@ class DeviceEntry:
         setattr(self, key, value)
 
 
+@dataclass(slots=True)
 class DeviceRegistryEvent:
   """Event payload used by device registry listeners."""
 
-  def __init__(self, action: str, device_id: str) -> None:
-    self.action = action
-    self.device_id = device_id
+  action: str
+  device_id: str
 
 
 class DeviceRegistry:
@@ -1460,12 +1452,12 @@ class EntityRegistry:
         setattr(entry, key, value)
 
 
+@dataclass(slots=True)
 class EntityRegistryEvent:
   """Event payload used by entity registry listeners."""
 
-  def __init__(self, action: str, entity_id: str) -> None:
-    self.action = action
-    self.entity_id = entity_id
+  action: str
+  entity_id: str
 
 
 def _async_get_entity_registry(*args: object, **kwargs: object) -> EntityRegistry:
@@ -1926,9 +1918,9 @@ class CoordinatorEntity(Entity):
     return bool(getattr(self.coordinator, "available", True))
 
 
+@dataclass(slots=True)
 class _SelectorBase:
-  def __init__(self, config: object | None = None) -> None:
-    self.config = config
+  config: object | None = None
 
 
 class SelectSelectorMode(StrEnum):

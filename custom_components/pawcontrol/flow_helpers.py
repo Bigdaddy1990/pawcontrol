@@ -10,15 +10,12 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, cast
 
-from typing import Any
-from typing import cast
-from typing import TYPE_CHECKING
-
-import voluptuous as vol
 from homeassistant import data_entry_flow
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.data_entry_flow import FlowResult
+import voluptuous as vol
 
 if TYPE_CHECKING:
   from homeassistant.config_entries import ConfigFlow, OptionsFlow

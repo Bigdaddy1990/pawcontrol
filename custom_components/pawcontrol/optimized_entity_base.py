@@ -24,68 +24,64 @@ Features:
 
 from __future__ import annotations
 
-
+from abc import abstractmethod
 import asyncio
+from collections.abc import Callable, Iterator, Mapping
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 import gc
 import inspect
 import logging
 import sys
-import weakref
-from abc import abstractmethod
-from collections.abc import Callable
-from collections.abc import Iterator
-from collections.abc import Mapping
-from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import cast
-from typing import ClassVar
-from typing import Final
-from typing import Protocol
+from typing import Any, ClassVar, Final, Protocol, cast
 from unittest.mock import Mock
+import weakref
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.components.sensor import SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.components.switch import SwitchDeviceClass
-from homeassistant.core import callback
-from homeassistant.core import State
+from homeassistant.core import State, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import DEFAULT_MODEL
-from .const import DEFAULT_SW_VERSION
-from .const import MANUFACTURER
+from .const import (
+  ATTR_DOG_ID,
+  ATTR_DOG_NAME,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
+  MANUFACTURER,
+)
 from .coordinator import PawControlCoordinator
 from .coordinator_accessors import CoordinatorDataAccessMixin
-from .types import CoordinatorDataPayload
-from .types import CoordinatorDogData
-from .types import CoordinatorModuleLookupResult
-from .types import CoordinatorModuleState
-from .types import CoordinatorUntypedModuleState
-from .types import DeviceLinkDetails
-from .types import ensure_json_mapping
-from .types import OptimizedEntityAttributesPayload
-from .types import OptimizedEntityCacheStats
-from .types import OptimizedEntityGlobalPerformanceStats
-from .types import OptimizedEntityMemoryConfig
-from .types import OptimizedEntityMemoryEstimate
-from .types import OptimizedEntityPerformanceMetrics
-from .types import OptimizedEntityPerformanceSummary
-from .types import OptimizedEntityStateCachePayload
-from .utils import _coerce_json_mutable
-from .utils import async_call_add_entities
-from .utils import ensure_utc_datetime
-from .utils import JSONMappingLike
-from .utils import JSONMutableMapping
-from .utils import normalize_value
-from .utils import PawControlDeviceLinkMixin
+from .types import (
+  CoordinatorDataPayload,
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  CoordinatorModuleState,
+  CoordinatorUntypedModuleState,
+  DeviceLinkDetails,
+  OptimizedEntityAttributesPayload,
+  OptimizedEntityCacheStats,
+  OptimizedEntityGlobalPerformanceStats,
+  OptimizedEntityMemoryConfig,
+  OptimizedEntityMemoryEstimate,
+  OptimizedEntityPerformanceMetrics,
+  OptimizedEntityPerformanceSummary,
+  OptimizedEntityStateCachePayload,
+  ensure_json_mapping,
+)
+from .utils import (
+  JSONMappingLike,
+  JSONMutableMapping,
+  PawControlDeviceLinkMixin,
+  _coerce_json_mutable,
+  async_call_add_entities,
+  ensure_utc_datetime,
+  normalize_value,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

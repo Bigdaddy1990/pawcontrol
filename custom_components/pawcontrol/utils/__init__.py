@@ -5,13 +5,11 @@ Provides common utilities for serialization, normalization, and data processing.
 
 from __future__ import annotations
 
-
-from importlib.util import module_from_spec
-from importlib.util import spec_from_file_location
+from functools import lru_cache
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 import sys
 from types import ModuleType
-from functools import lru_cache
 
 from .serialize import (
   serialize_dataclass,

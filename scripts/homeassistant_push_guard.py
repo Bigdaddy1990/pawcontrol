@@ -2,23 +2,20 @@
 
 from __future__ import annotations
 
-
 import argparse
+from dataclasses import dataclass
 import json
 import logging
 import os
+from pathlib import Path
 import re
 import shutil
 import sys
 import tempfile
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 class InvalidVersion(ValueError):

@@ -1,8 +1,9 @@
 from __future__ import annotations
-import importlib
-import sys
+
 from collections.abc import Iterator
 from contextlib import contextmanager
+import importlib
+import sys
 from types import ModuleType
 
 

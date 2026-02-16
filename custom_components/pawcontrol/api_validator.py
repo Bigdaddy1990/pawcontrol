@@ -10,17 +10,11 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
-import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import cast
-from typing import Final
-from typing import Literal
-from typing import NotRequired
-from typing import TypedDict
+import logging
+from typing import Final, Literal, NotRequired, TypedDict, cast
 
 import aiohttp
 from homeassistant.core import HomeAssistant

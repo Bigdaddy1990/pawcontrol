@@ -10,27 +10,23 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
-import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import time as dt_time
 from enum import Enum
 from numbers import Real
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import TYPE_CHECKING
-from typing import TypeVar
+import re
+from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
 from homeassistant.exceptions import ServiceValidationError
 
-from .const import CONF_DOG_NAME
-from .const import CONF_GPS_SOURCE
-from .const import CONF_NOTIFY_FALLBACK
-from .const import MAX_DOG_NAME_LENGTH
-from .const import MIN_DOG_NAME_LENGTH
-from .exceptions import InvalidCoordinatesError
+from .const import (
+  CONF_DOG_NAME,
+  CONF_GPS_SOURCE,
+  CONF_NOTIFY_FALLBACK,
+  MAX_DOG_NAME_LENGTH,
+  MIN_DOG_NAME_LENGTH,
+)
 from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:

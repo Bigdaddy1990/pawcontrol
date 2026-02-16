@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-
 import asyncio
 import logging
 
 import pytest
 
-from custom_components.pawcontrol.const import CONF_DOG_COLOR
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.dashboard_shared import coerce_dog_config
-from custom_components.pawcontrol.dashboard_shared import coerce_dog_configs
-from custom_components.pawcontrol.dashboard_shared import unwrap_async_result
+from custom_components.pawcontrol.const import (
+  CONF_DOG_COLOR,
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  MODULE_WALK,
+)
+from custom_components.pawcontrol.dashboard_shared import (
+  coerce_dog_config,
+  coerce_dog_configs,
+  unwrap_async_result,
+)
 from custom_components.pawcontrol.types import DogModulesProjection
 
 

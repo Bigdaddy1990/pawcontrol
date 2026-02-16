@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from tests.helpers import ensure_package
-from tests.helpers import install_homeassistant_stubs
-from tests.helpers import load_module
+from tests.helpers import ensure_package, install_homeassistant_stubs, load_module
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -52,11 +50,11 @@ class _FakeStates(dict[str, SimpleNamespace]):
   """Minimal state registry for validation tests."""
 
 
+@dataclass(slots=True)
 class _FakeHomeAssistant:
   """Minimal Home Assistant stub for validation tests."""
 
-  def __init__(self, states: _FakeStates) -> None:
-    self.states = states
+  states: _FakeStates
 
 
 class _NotificationChannel(Enum):
@@ -153,14 +151,12 @@ def test_coerce_helpers_reject_invalid_types() -> None:
 
 def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
   hass = _FakeHomeAssistant(
-    _FakeStates(
-      {
-        "binary_sensor.front_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "door"},
-        )
-      }
-    )
+    _FakeStates({
+      "binary_sensor.front_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "door"},
+      )
+    })
   )
 
   assert (
@@ -178,14 +174,12 @@ def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
 
 def test_validate_sensor_entity_id_rejects_wrong_device_class() -> None:
   hass = _FakeHomeAssistant(
-    _FakeStates(
-      {
-        "binary_sensor.front_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "motion"},
-        )
-      }
-    )
+    _FakeStates({
+      "binary_sensor.front_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "motion"},
+      )
+    })
   )
 
   with pytest.raises(ValidationError) as err:

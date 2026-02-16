@@ -10,62 +10,60 @@ for enabled modules, significantly reducing entity count and improving performan
 
 from __future__ import annotations
 
-
 import asyncio
-import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
-from typing import cast
-from typing import ClassVar
+import logging
+from typing import Any, ClassVar, cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import switch as switch_component
-from homeassistant.components.switch import SwitchDeviceClass
-from homeassistant.components.switch import SwitchEntity
-from homeassistant.components.switch import SwitchEntityDescription
-from homeassistant.const import STATE_OFF
-from homeassistant.const import STATE_ON
-from homeassistant.core import Context
-from homeassistant.core import HomeAssistant
-from homeassistant.core import State
+from homeassistant.components.switch import (
+  SwitchDeviceClass,
+  SwitchEntity,
+  SwitchEntityDescription,
+)
+from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOGS
-from .const import DEFAULT_MODEL
-from .const import DEFAULT_SW_VERSION
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_GROOMING
-from .const import MODULE_HEALTH
-from .const import MODULE_MEDICATION
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_TRAINING
-from .const import MODULE_VISITOR
-from .const import MODULE_WALK
+from .const import (
+  CONF_DOGS,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_GROOMING,
+  MODULE_HEALTH,
+  MODULE_MEDICATION,
+  MODULE_NOTIFICATIONS,
+  MODULE_TRAINING,
+  MODULE_VISITOR,
+  MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_label
 from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
-from .types import coerce_dog_modules_config
-from .types import CoordinatorDogData
-from .types import DOG_ID_FIELD
-from .types import DOG_MODULES_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import JSONMutableMapping
-from .types import ModuleToggleKey
-from .types import PawControlConfigEntry
-from .utils import async_call_add_entities
-from .utils import normalise_entity_attributes
+from .types import (
+  DOG_ID_FIELD,
+  DOG_MODULES_FIELD,
+  DOG_NAME_FIELD,
+  CoordinatorDogData,
+  DogConfigData,
+  DogModulesConfig,
+  JSONMutableMapping,
+  ModuleToggleKey,
+  PawControlConfigEntry,
+  coerce_dog_modules_config,
+)
+from .utils import async_call_add_entities, normalise_entity_attributes
 
 # ``ATTR_ENTITY_ID`` moved/changed over time; fall back to the canonical key.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")

@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
 
 from ..exceptions import ValidationError
-from ..types import clone_placeholders
-from ..types import ConfigFlowPlaceholders
-from ..types import DOG_GPS_PLACEHOLDERS_TEMPLATE
-from ..types import freeze_placeholders
+from ..types import (
+  DOG_GPS_PLACEHOLDERS_TEMPLATE,
+  ConfigFlowPlaceholders,
+  clone_placeholders,
+  freeze_placeholders,
+)
 
 
 def validation_error_key(error: ValidationError, fallback: str) -> str:

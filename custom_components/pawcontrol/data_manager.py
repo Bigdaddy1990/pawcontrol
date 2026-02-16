@@ -8,90 +8,88 @@ maintainability, and graceful error handling.
 
 from __future__ import annotations
 
-
 import asyncio
+from collections import deque
+from collections.abc import Callable, Iterable, Mapping, Sequence
 import csv
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from itertools import islice
 import json
 import logging
-import sys
-from collections import deque
-from collections.abc import Callable
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import datetime
-from datetime import timedelta
-from itertools import islice
 from math import isfinite
 from pathlib import Path
+import sys
 from time import perf_counter
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import NotRequired
-from typing import TypedDict
-from typing import TypeVar
+from typing import Any, Final, NotRequired, TypedDict, TypeVar, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from .const import CACHE_TIMESTAMP_FUTURE_THRESHOLD
-from .const import CACHE_TIMESTAMP_STALE_THRESHOLD
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_GARDEN
-from .const import MODULE_GROOMING
-from .const import MODULE_HEALTH
-from .const import MODULE_MEDICATION
-from .const import MODULE_WALK
-from .coordinator_support import CacheMonitorTarget
-from .coordinator_support import CoordinatorMetrics
-from .coordinator_support import CoordinatorModuleAdapter
-from .module_adapters import ModuleAdapterCacheError
-from .module_adapters import ModuleAdapterCacheSnapshot
-from .module_adapters import ModuleAdapterCacheStats
-from .notifications import NotificationPriority
-from .notifications import NotificationType
-from .types import CacheDiagnosticsMap
-from .types import CacheDiagnosticsMetadata
-from .types import CacheDiagnosticsSnapshot
-from .types import CacheRepairAggregate
-from .types import CacheRepairIssue
-from .types import CacheRepairTotals
-from .types import DailyStats
-from .types import DataManagerMetricsSnapshot
-from .types import DOG_ID_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import ensure_dog_config_data
-from .types import EntityBudgetDiagnostics
-from .types import EntityBudgetSnapshotEntry
-from .types import EntityBudgetStats
-from .types import FeedingData
-from .types import GPSLocation
-from .types import HealthData
-from .types import JSONLikeMapping
-from .types import JSONMutableMapping
-from .types import JSONMutableSequence
-from .types import JSONValue
-from .types import ModuleCacheMetrics
-from .types import PawControlRuntimeData
-from .types import RawDogConfig
-from .types import StorageNamespaceDogSummary
-from .types import StorageNamespacePayload
-from .types import StorageNamespaceSnapshot
-from .types import StorageNamespaceStats
-from .types import VisitorModeSettingsPayload
-from .types import WalkData
-from .types import WalkRoutePoint
-from .utils import _coerce_json_mutable
-from .utils import is_number
-from .utils import JSONMappingLike
-from .utils import normalize_value
-from .utils import Number
+from .const import (
+  CACHE_TIMESTAMP_FUTURE_THRESHOLD,
+  CACHE_TIMESTAMP_STALE_THRESHOLD,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_GARDEN,
+  MODULE_GROOMING,
+  MODULE_HEALTH,
+  MODULE_MEDICATION,
+  MODULE_WALK,
+)
+from .coordinator_support import (
+  CacheMonitorTarget,
+  CoordinatorMetrics,
+  CoordinatorModuleAdapter,
+)
+from .module_adapters import (
+  ModuleAdapterCacheError,
+  ModuleAdapterCacheSnapshot,
+  ModuleAdapterCacheStats,
+)
+from .notifications import NotificationPriority, NotificationType
+from .types import (
+  DOG_ID_FIELD,
+  DOG_NAME_FIELD,
+  CacheDiagnosticsMap,
+  CacheDiagnosticsMetadata,
+  CacheDiagnosticsSnapshot,
+  CacheRepairAggregate,
+  CacheRepairIssue,
+  CacheRepairTotals,
+  DailyStats,
+  DataManagerMetricsSnapshot,
+  DogConfigData,
+  EntityBudgetDiagnostics,
+  EntityBudgetSnapshotEntry,
+  EntityBudgetStats,
+  FeedingData,
+  GPSLocation,
+  HealthData,
+  JSONLikeMapping,
+  JSONMutableMapping,
+  JSONMutableSequence,
+  JSONValue,
+  ModuleCacheMetrics,
+  PawControlRuntimeData,
+  RawDogConfig,
+  StorageNamespaceDogSummary,
+  StorageNamespacePayload,
+  StorageNamespaceSnapshot,
+  StorageNamespaceStats,
+  VisitorModeSettingsPayload,
+  WalkData,
+  WalkRoutePoint,
+  ensure_dog_config_data,
+)
+from .utils import (
+  JSONMappingLike,
+  Number,
+  _coerce_json_mutable,
+  is_number,
+  normalize_value,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

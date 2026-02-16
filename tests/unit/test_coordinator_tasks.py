@@ -1,21 +1,24 @@
 from __future__ import annotations
+
 from collections.abc import Mapping
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from dataclasses import dataclass
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.pawcontrol import coordinator_tasks as tasks
 from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
-from custom_components.pawcontrol.telemetry import record_bool_coercion_event
-from custom_components.pawcontrol.telemetry import reset_bool_coercion_metrics
-from custom_components.pawcontrol.types import AdaptivePollingDiagnostics
-from custom_components.pawcontrol.types import CacheRepairAggregate
-from custom_components.pawcontrol.types import EntityBudgetSummary
+from custom_components.pawcontrol.telemetry import (
+  record_bool_coercion_event,
+  reset_bool_coercion_metrics,
+)
+from custom_components.pawcontrol.types import (
+  AdaptivePollingDiagnostics,
+  CacheRepairAggregate,
+  EntityBudgetSummary,
+)
 
 
 def _patch_runtime_store(
@@ -347,16 +350,14 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
 def test_derive_rejection_metrics_preserves_defaults() -> None:
   """Derived metrics should keep seeded defaults when resilience payload omits values."""
 
-  metrics = tasks.derive_rejection_metrics(
-    {
-      "rejected_call_count": None,
-      "rejection_breaker_count": None,
-      "rejection_rate": None,
-      "last_rejection_time": None,
-      "last_rejection_breaker_id": None,
-      "last_rejection_breaker_name": None,
-    }
-  )
+  metrics = tasks.derive_rejection_metrics({
+    "rejected_call_count": None,
+    "rejection_breaker_count": None,
+    "rejection_rate": None,
+    "last_rejection_time": None,
+    "last_rejection_breaker_id": None,
+    "last_rejection_breaker_name": None,
+  })
 
   assert metrics["schema_version"] == 4
   assert metrics["rejected_call_count"] == 0
@@ -708,9 +709,10 @@ def test_collect_resilience_diagnostics_defaults_unknown_state(monkeypatch) -> N
         total_successes=2,
       )
 
-  resilience_manager = _DummyResilience(
-    {"legacy": _MissingState(), "blank": _BlankState()}
-  )
+  resilience_manager = _DummyResilience({
+    "legacy": _MissingState(),
+    "blank": _BlankState(),
+  })
   coordinator = _build_coordinator(resilience_manager=resilience_manager)
 
   payload = tasks.collect_resilience_diagnostics(coordinator)
@@ -730,18 +732,16 @@ def test_collect_resilience_diagnostics_defaults_unknown_state(monkeypatch) -> N
 def test_summarise_resilience_normalises_state_metadata() -> None:
   """State aggregation should coerce whitespace, enums, and hyphenated values."""
 
+  @dataclass(slots=True)
   class _EnumState:
-    def __init__(self, value: str) -> None:
-      self.value = value
+    value: str
 
-  summary = tasks._summarise_resilience(
-    {
-      "legacy": {"state": None, "breaker_id": "legacy"},
-      "spaced": {"state": "  Open  ", "breaker_id": "api"},
-      "hyphen": {"state": "half-open", "breaker_id": "fallback"},
-      "enum": {"state": _EnumState("CLOSED"), "breaker_id": "enum"},
-    }
-  )
+  summary = tasks._summarise_resilience({
+    "legacy": {"state": None, "breaker_id": "legacy"},
+    "spaced": {"state": "  Open  ", "breaker_id": "api"},
+    "hyphen": {"state": "half-open", "breaker_id": "fallback"},
+    "enum": {"state": _EnumState("CLOSED"), "breaker_id": "enum"},
+  })
 
   assert summary["states"]["closed"] == 1
   assert summary["states"]["open"] == 1
@@ -759,12 +759,10 @@ def test_summarise_resilience_normalises_state_metadata() -> None:
 def test_summarise_resilience_uses_extended_breaker_identifiers() -> None:
   """Aggregation should honour identifier metadata when breaker IDs are missing."""
 
-  summary = tasks._summarise_resilience(
-    {
-      "api": {"state": "OPEN", "identifier": "api-primary"},
-      "fallback": {"state": "half_open", "name": "fallback-service"},
-    }
-  )
+  summary = tasks._summarise_resilience({
+    "api": {"state": "OPEN", "identifier": "api-primary"},
+    "fallback": {"state": "half_open", "name": "fallback-service"},
+  })
 
   assert summary["open_breaker_ids"] == ["api-primary"]
   assert summary["half_open_breaker_ids"] == ["fallback-service"]
@@ -994,9 +992,10 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
     "last_rejection_time": 275.0,
   }
 
-  resilience_manager = _DummyResilience(
-    {"stale": stale_breaker, "recovered": recovered_breaker}
-  )
+  resilience_manager = _DummyResilience({
+    "stale": stale_breaker,
+    "recovered": recovered_breaker,
+  })
   coordinator = _build_coordinator(resilience_manager=resilience_manager)
 
   runtime_data = SimpleNamespace(performance_stats={})

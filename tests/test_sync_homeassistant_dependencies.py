@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-
 import argparse
 import json
-import tarfile
 from pathlib import Path
+import tarfile
 
 from packaging.version import Version
-
 from scripts import sync_homeassistant_dependencies as module
 
 

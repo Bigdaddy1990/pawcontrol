@@ -2,24 +2,17 @@
 
 from __future__ import annotations
 
-
 import asyncio
-import logging
-import time
 from collections import deque
-from collections.abc import Callable
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import UTC
+from datetime import UTC, datetime
+import logging
 from statistics import fmean
+import time
 from typing import cast
 
-from .exceptions import ConfigEntryAuthFailed
-from .exceptions import UpdateFailed
-
+from .exceptions import ConfigEntryAuthFailed, UpdateFailed
 
 try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
   from homeassistant.util import dt as dt_util

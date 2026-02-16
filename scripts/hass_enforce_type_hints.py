@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-
-import re
 from dataclasses import dataclass
 from enum import Enum
+import re
 from typing import TYPE_CHECKING
 
 from astroid import nodes
@@ -82,14 +81,12 @@ _TYPE_HINT_MATCHERS: dict[str, re.Pattern[str]] = {
   "a_or_b": re.compile(rf"^(.+) \| {_INNER_MATCH}$"),
 }
 _INNER_MATCH_POSSIBILITIES = [i + 1 for i in range(5)]
-_TYPE_HINT_MATCHERS.update(
-  {
-    f"x_of_y_{i}": re.compile(
-      rf"^([\w\.]+)\[{_INNER_MATCH}" + f", {_INNER_MATCH}" * (i - 1) + r"\]$"
-    )
-    for i in _INNER_MATCH_POSSIBILITIES
-  }
-)
+_TYPE_HINT_MATCHERS.update({
+  f"x_of_y_{i}": re.compile(
+    rf"^([\w\.]+)\[{_INNER_MATCH}" + f", {_INNER_MATCH}" * (i - 1) + r"\]$"
+  )
+  for i in _INNER_MATCH_POSSIBILITIES
+})
 
 
 _MODULE_REGEX: re.Pattern[str] = re.compile(r"^homeassistant\.components\.\w+(\.\w+)?$")

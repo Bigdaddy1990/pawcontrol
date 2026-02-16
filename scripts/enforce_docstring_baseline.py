@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-
 import argparse
 import ast
-import json
 from dataclasses import dataclass
+import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

@@ -10,25 +10,26 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from tests.helpers.factories import (
+  create_mock_coordinator,
+  create_test_coordinator_data,
+)
 
-from custom_components.pawcontrol.exceptions import ConfigurationError
-from custom_components.pawcontrol.exceptions import DogNotFoundError
-from custom_components.pawcontrol.exceptions import GPSUnavailableError
-from custom_components.pawcontrol.exceptions import InvalidCoordinatesError
-from custom_components.pawcontrol.exceptions import NetworkError
-from custom_components.pawcontrol.exceptions import RateLimitError
-from custom_components.pawcontrol.exceptions import StorageError
-from custom_components.pawcontrol.exceptions import ValidationError
-from custom_components.pawcontrol.exceptions import WalkError
-from tests.helpers.factories import create_mock_coordinator
-from tests.helpers.factories import create_test_coordinator_data
+from custom_components.pawcontrol.exceptions import (
+  ConfigurationError,
+  DogNotFoundError,
+  GPSUnavailableError,
+  InvalidCoordinatesError,
+  NetworkError,
+  RateLimitError,
+  StorageError,
+  ValidationError,
+  WalkError,
+)
 
 
 class TestNetworkErrorScenarios:

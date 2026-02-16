@@ -13,14 +13,12 @@ HA: 2025.9.3+
 
 from __future__ import annotations
 
-
-import re
 from collections.abc import Mapping
 from datetime import timedelta
 from enum import StrEnum
+import re
 from types import MappingProxyType
-from typing import Any, Final
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
   from homeassistant.const import Platform

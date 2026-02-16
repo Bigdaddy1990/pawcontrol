@@ -10,13 +10,12 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
-import html
-import re
-import urllib.parse
 from dataclasses import dataclass
+import html
 from pathlib import Path
+import re
 from typing import Any
+import urllib.parse
 
 from .exceptions import ValidationError
 from .logging_utils import StructuredLogger

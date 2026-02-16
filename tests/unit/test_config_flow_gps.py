@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-
-from typing import Any
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
+from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.flow_steps.gps import DogGPSFlowMixin
-from custom_components.pawcontrol.flow_steps.gps import GPSModuleDefaultsMixin
-from custom_components.pawcontrol.types import DOG_NAME_FIELD
-from custom_components.pawcontrol.types import DogConfigData
-from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
+from custom_components.pawcontrol.flow_steps.gps import (
+  DogGPSFlowMixin,
+  GPSModuleDefaultsMixin,
+)
+from custom_components.pawcontrol.types import DOG_NAME_FIELD, DogConfigData
 
 
 class _GPSDefaultsFlow(GPSModuleDefaultsMixin):
@@ -112,15 +111,13 @@ async def test_dog_gps_rejects_invalid_accuracy_type() -> None:
 
   flow = _DogGPSFlow()
 
-  result = await flow.async_step_dog_gps(
-    {
-      "gps_source": "manual",
-      "gps_update_interval": 60,
-      "gps_accuracy_filter": "fast",
-      "enable_geofencing": True,
-      "home_zone_radius": 50,
-    }
-  )
+  result = await flow.async_step_dog_gps({
+    "gps_source": "manual",
+    "gps_update_interval": 60,
+    "gps_accuracy_filter": "fast",
+    "enable_geofencing": True,
+    "home_zone_radius": 50,
+  })
 
   assert result["type"] == "form"
   assert result["errors"]["gps_accuracy_filter"] == "gps_accuracy_not_numeric"
@@ -132,15 +129,13 @@ async def test_dog_gps_rejects_invalid_update_interval_type() -> None:
 
   flow = _DogGPSFlow()
 
-  result = await flow.async_step_dog_gps(
-    {
-      "gps_source": "manual",
-      "gps_update_interval": "fast",
-      "gps_accuracy_filter": 20,
-      "enable_geofencing": True,
-      "home_zone_radius": 50,
-    }
-  )
+  result = await flow.async_step_dog_gps({
+    "gps_source": "manual",
+    "gps_update_interval": "fast",
+    "gps_accuracy_filter": 20,
+    "enable_geofencing": True,
+    "home_zone_radius": 50,
+  })
 
   assert result["type"] == "form"
   assert result["errors"]["gps_update_interval"] == "gps_update_interval_not_numeric"
@@ -152,15 +147,13 @@ async def test_dog_gps_rejects_update_interval_out_of_range() -> None:
 
   flow = _DogGPSFlow()
 
-  result = await flow.async_step_dog_gps(
-    {
-      "gps_source": "manual",
-      "gps_update_interval": 999,
-      "gps_accuracy_filter": 20,
-      "enable_geofencing": True,
-      "home_zone_radius": 50,
-    }
-  )
+  result = await flow.async_step_dog_gps({
+    "gps_source": "manual",
+    "gps_update_interval": 999,
+    "gps_accuracy_filter": 20,
+    "enable_geofencing": True,
+    "home_zone_radius": 50,
+  })
 
   assert result["type"] == "form"
   assert result["errors"]["gps_update_interval"] == "gps_update_interval_out_of_range"
@@ -172,15 +165,13 @@ async def test_dog_gps_requires_home_zone_radius() -> None:
 
   flow = _DogGPSFlow()
 
-  result = await flow.async_step_dog_gps(
-    {
-      "gps_source": "manual",
-      "gps_update_interval": 60,
-      "gps_accuracy_filter": 5,
-      "enable_geofencing": True,
-      "home_zone_radius": " ",
-    }
-  )
+  result = await flow.async_step_dog_gps({
+    "gps_source": "manual",
+    "gps_update_interval": 60,
+    "gps_accuracy_filter": 5,
+    "enable_geofencing": True,
+    "home_zone_radius": " ",
+  })
 
   assert result["type"] == "form"
   assert result["errors"]["home_zone_radius"] == "geofence_radius_required"
@@ -192,15 +183,13 @@ async def test_dog_gps_rejects_home_zone_radius_out_of_range() -> None:
 
   flow = _DogGPSFlow()
 
-  result = await flow.async_step_dog_gps(
-    {
-      "gps_source": "manual",
-      "gps_update_interval": 60,
-      "gps_accuracy_filter": 5,
-      "enable_geofencing": True,
-      "home_zone_radius": 2,
-    }
-  )
+  result = await flow.async_step_dog_gps({
+    "gps_source": "manual",
+    "gps_update_interval": 60,
+    "gps_accuracy_filter": 5,
+    "enable_geofencing": True,
+    "home_zone_radius": 2,
+  })
 
   assert result["type"] == "form"
   assert result["errors"]["home_zone_radius"] == "geofence_radius_out_of_range"
@@ -212,14 +201,12 @@ async def test_dog_gps_accepts_boundary_values() -> None:
 
   flow = _DogGPSFlow()
 
-  result = await flow.async_step_dog_gps(
-    {
-      "gps_source": "manual",
-      "gps_update_interval": 5,
-      "gps_accuracy_filter": 5,
-      "enable_geofencing": True,
-      "home_zone_radius": 10,
-    }
-  )
+  result = await flow.async_step_dog_gps({
+    "gps_source": "manual",
+    "gps_update_interval": 5,
+    "gps_accuracy_filter": 5,
+    "enable_geofencing": True,
+    "home_zone_radius": 10,
+  })
 
   assert result["type"] == "step_dog_feeding"

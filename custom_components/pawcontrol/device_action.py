@@ -2,25 +2,22 @@
 
 from __future__ import annotations
 
-
-import logging
 from dataclasses import dataclass
-from typing import cast
-from typing import Final
+import logging
+from typing import Final, cast
 
-import voluptuous as vol
 from homeassistant.components.device_automation import DEVICE_ACTION_BASE_SCHEMA
-from homeassistant.const import CONF_DEVICE_ID
-from homeassistant.const import CONF_DOMAIN
-from homeassistant.const import CONF_METADATA
-from homeassistant.const import CONF_TYPE
+from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_METADATA, CONF_TYPE
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 
 from .const import DOMAIN
-from .device_automation_helpers import build_device_automation_metadata
-from .device_automation_helpers import resolve_device_context
+from .device_automation_helpers import (
+  build_device_automation_metadata,
+  resolve_device_context,
+)
 from .types import DeviceActionPayload
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,9 +46,9 @@ ACTION_DEFINITIONS: Final[tuple[ActionDefinition, ...]] = (
 
 ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
   {
-    vol.Required(CONF_TYPE): vol.In(
-      {definition.type for definition in ACTION_DEFINITIONS}
-    ),
+    vol.Required(CONF_TYPE): vol.In({
+      definition.type for definition in ACTION_DEFINITIONS
+    }),
     vol.Optional(CONF_AMOUNT): vol.Coerce(float),
     vol.Optional(CONF_MEAL_TYPE): cv.string,
     vol.Optional(CONF_NOTES): cv.string,
