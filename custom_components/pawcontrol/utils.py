@@ -1649,7 +1649,7 @@ def retry_on_exception(
   ) -> Callable[P, Awaitable[R]]:
     """Wrap `func` with retry handling that always returns an async callable."""
 
-    is_coroutine = asyncio.iscoroutinefunction(func)
+    is_coroutine = inspect.iscoroutinefunction(func)
 
     @wraps(func)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:

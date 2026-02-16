@@ -366,6 +366,14 @@ def validate_dog_name(
     )
 
   trimmed = name.strip()
+  if len(trimmed) > max_length:
+    raise ValidationError(
+      field,
+      name,
+      "dog_name_too_long",
+      max_value=max_length,
+    )
+
   if not trimmed:
     if required:
       raise ValidationError(
@@ -522,8 +530,6 @@ def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, floa
 
   Uses a local exception import to avoid module import-order cycles.
   """
-
-  from .exceptions import InvalidCoordinatesError
 
   try:
     return InputValidator.validate_gps_coordinates(latitude, longitude)

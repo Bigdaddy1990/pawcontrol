@@ -52,7 +52,7 @@ from .weather_translations import (
   WeatherRecommendationKey,
   WeatherRecommendationTranslations,
   WeatherTranslations,
-  async_get_weather_translations,
+  async_get_weather_translations,  # noqa: F401
   empty_weather_translations,
 )
 
@@ -108,6 +108,12 @@ PRIMARY_ACTIVITIES: Final[
 ] = ("walk", "play", "exercise")
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def get_weather_translations(language: str) -> WeatherTranslations:
+  """Backward-compatible wrapper for weather translation loading."""
+
+  return _get_weather_translations(language)  # noqa: F821
 
 
 class WeatherSeverity(Enum):
@@ -456,17 +462,11 @@ class WeatherHealthManager:
           "Weather translations for %s not available, using English fallback",
           language,
         )
-      self._translations = await async_get_weather_translations(
-        self.hass,
-        language,
-      )
+      self._translations = get_weather_translations(language)
       if language == DEFAULT_LANGUAGE:
         self._english_translations = self._translations
       else:
-        self._english_translations = await async_get_weather_translations(
-          self.hass,
-          DEFAULT_LANGUAGE,
-        )
+        self._english_translations = get_weather_translations(DEFAULT_LANGUAGE)
       _LOGGER.debug(
         "Loaded weather translations for language: %s",
         language,

@@ -904,6 +904,7 @@ def _build_guard_summary(
       if reason_key is None:
         continue
       reasons[reason_key] = _coerce_int(count, default=0)
+  reasons.setdefault("missing_instance", 0)
 
   reasons.setdefault("missing_instance", 0)
 

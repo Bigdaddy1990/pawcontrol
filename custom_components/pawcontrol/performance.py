@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 import functools
+import inspect
 import logging
 import time
 from typing import Any, ParamSpec, TypeVar, cast
@@ -288,7 +289,7 @@ def track_performance(
           )
 
     # Return appropriate wrapper
-    if asyncio.iscoroutinefunction(func):
+    if inspect.iscoroutinefunction(func):
       return async_wrapper  # type: ignore[return-value]
     return sync_wrapper  # type: ignore[return-value]
 
@@ -637,6 +638,7 @@ def record_maintenance_result(
     "status": status,
     "recorded_at": datetime.now(UTC).isoformat(),
     "timestamp": time.time(),
+    "recorded_at": datetime.now(tz=UTC).isoformat(),  # noqa: F601
   }
   if message is not None:
     entry["message"] = message
@@ -653,6 +655,8 @@ def record_maintenance_result(
     entry["details"] = dict(details)
 
   history.append(entry)
+  results.append(entry)  # noqa: F821
+  store["last_maintenance_result"] = entry
   if len(history) > max_entries:
     del history[:-max_entries]
 
