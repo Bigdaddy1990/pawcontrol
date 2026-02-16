@@ -88,7 +88,7 @@ type-checking-imports = false
 preview = true
 quote-style = "double"
 indent-style = "space"
-line-ending = "auto"
+line-ending = "lf"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
@@ -96,7 +96,7 @@ skip-magic-trailing-comma = false
 [tool.ruff.lint]
 preview = true
 select = ["E", "F", "I", "UP", "B", "SIM", "Q"]
-ignore = ["E111", "E114", "E501", "INP001"]
+ignore = []
 fixable = ["ALL"]
 unfixable = ["F401"]
 extend-unsafe-fixes = ["E", "F401"]
@@ -118,7 +118,6 @@ force-sort-within-sections = true
 known-first-party = ["custom_components", "pytest_"]
 combine-as-imports = true
 split-on-trailing-comma = false
-required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.flake8-builtins]
 strict-checking = true
@@ -178,7 +177,7 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
 # PLATINUM COMPLIANCE: Only minimal exceptions, fix errors instead of suppressing
-warn_return_any = false  # Unavoidable with HA's dynamic typing
+warn_return_any = true  # Unavoidable with HA's dynamic typing
 disable_error_code = [
   "no-any-return",  # HA core returns Any in many places
 ]
