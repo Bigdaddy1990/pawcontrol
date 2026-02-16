@@ -13,8 +13,6 @@ By default, the script targets ``custom_components/pawcontrol`` and repeats
 until mypy reports no errors or the iteration limit is hit.
 """
 
-from __future__ import annotations
-
 from argparse import ArgumentParser
 from collections import defaultdict
 from dataclasses import dataclass
