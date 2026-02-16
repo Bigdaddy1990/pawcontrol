@@ -74,7 +74,9 @@ MODULE = _load_module()
 
 
 def _load_monitor() -> type:
-  from custom_components.pawcontrol.data_manager import _CoordinatorModuleCacheMonitor
+  from custom_components.pawcontrol.data_manager import (  # noqa: E111
+    _CoordinatorModuleCacheMonitor,  # noqa: E111
+  )
 
   return _CoordinatorModuleCacheMonitor  # noqa: E111
 
