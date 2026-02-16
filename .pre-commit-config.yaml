@@ -10,23 +10,23 @@ default_language_version:
 default_install_hook_types:
       - pre-commit
       - pre-push
-repos:
+ repos:
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-      - id: pyupgrade
-        args:
+     rev: v3.21.2
+     hooks:
+       - id: pyupgrade
+         args:
           - --py39-plus
           - --py310-plus
           - --py311-plus
           - --py313-plus
           - --py314-plus
   - repo: https://github.com/cdce8p/python-typing-update
-    rev: v0.8.1
-    hooks:
-      - id: python-typing-update
-        stages: [manual]
-        args:
+     rev: v0.8.1
+     hooks:
+       - id: python-typing-update
+         stages: [manual]
+         args:
           - --py3-plus
           - --py36-plus
           - --py39-plus
@@ -34,21 +34,21 @@ repos:
           - --full-reorder
           - --keep-updates
           - --force-exclude
-   - repo: https://github.com/pycqa/flake8
+  - repo: https://github.com/pycqa/flake8
      rev: 4.0.1
      hooks:
        - id: flake8
          additional_dependencies:
            - flake8-type-checking
-   - repo: https://github.com/hhatto/autopep8
+  - repo: https://github.com/hhatto/autopep8
      rev: v2.3.2
      hooks:
        - id: autopep8
-   - repo: https://github.com/PyCQA/flake8
+  - repo: https://github.com/PyCQA/flake8
      rev: 7.3.0
      hooks:
        - id: flake8
-   - repo: https://github.com/pre-commit/mirrors-mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
      rev: v1.19.1
      hooks:
        - id: mypy
