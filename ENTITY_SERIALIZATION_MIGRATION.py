@@ -7,6 +7,7 @@ into existing entity platforms for JSON-safe state attributes.
 from __future__ import annotations
 
 
+from custom_components.pawcontrol.utils.serialize import serialize_entity_attributes
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -26,7 +27,6 @@ class OldSensorExample:
 
 
 # ✅ NACHHER (JSON-serializable):
-from custom_components.pawcontrol.utils.serialize import serialize_entity_attributes
 
 
 class NewSensorExample:

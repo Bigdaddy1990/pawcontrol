@@ -3448,7 +3448,8 @@ class DashboardTemplates:
                             #4CAF50
                         {% endif %};
                 }
-            """.replace("{dog_id}", dog_id)
+            """
+        .replace("{dog_id}", dog_id)
         .replace("breed_comfort_min", str(comfort_min_value))
         .replace("breed_comfort_max", str(comfort_max_value))
       )

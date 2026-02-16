@@ -50,7 +50,8 @@ class MenuOptionsMixin(MenuOptionsHost):
         "manage_dogs",
         "performance_settings",  # NEW: Performance & profiles
         "gps_settings",
-        PUSH_SETTINGS_MENU_ACTION,  # NEW: Push ingestion settings (webhook/MQTT)
+        # NEW: Push ingestion settings (webhook/MQTT)
+        PUSH_SETTINGS_MENU_ACTION,
         "geofence_settings",  # NEW: Geofencing configuration
         "weather_settings",  # NEW: Weather configuration
         "notifications",
