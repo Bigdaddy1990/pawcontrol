@@ -203,15 +203,15 @@ def fix_imports() -> None:
     # Add fixes
     for issue in issues:
         rel_path = issue.file_path.relative_to(project_root)
-        script_content += f'''        (
+        script_content += f"""        (
             project_root / "{rel_path}",
             {issue.line_number},
             {repr(issue.old_import)},
             {repr(issue.new_import)},
         ),
-'''
+"""
 
-    script_content += '''    ]
+    script_content += """    ]
 
     for file_path, line_num, old_text, new_text in fixes:
         if not file_path.exists():
@@ -236,7 +236,7 @@ if __name__ == "__main__":
     print("🔧 Fixing test imports...")
     fix_imports()
     print("✅ Import fixes complete!")
-'''
+"""
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(script_content, encoding="utf-8")
