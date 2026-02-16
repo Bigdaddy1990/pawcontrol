@@ -25,9 +25,9 @@ from custom_components.pawcontrol.coordinator_diffing import (
 
 
 class TestDataDiff:
-  """Test DataDiff dataclass."""
+  """Test DataDiff dataclass."""  # noqa: E111
 
-  def test_data_diff_has_changes(self) -> None:
+  def test_data_diff_has_changes(self) -> None:  # noqa: E111
     """Test has_changes property."""
     # No changes
     diff = DataDiff()
@@ -37,7 +37,7 @@ class TestDataDiff:
     diff = DataDiff(added_keys=frozenset({"key1"}))
     assert diff.has_changes is True
 
-  def test_data_diff_change_count(self) -> None:
+  def test_data_diff_change_count(self) -> None:  # noqa: E111
     """Test change_count property."""
     diff = DataDiff(
       added_keys=frozenset({"a", "b"}),
@@ -46,7 +46,7 @@ class TestDataDiff:
     )
     assert diff.change_count == 6
 
-  def test_data_diff_changed_keys(self) -> None:
+  def test_data_diff_changed_keys(self) -> None:  # noqa: E111
     """Test changed_keys property."""
     diff = DataDiff(
       added_keys=frozenset({"a"}),
@@ -55,7 +55,7 @@ class TestDataDiff:
     )
     assert diff.changed_keys == frozenset({"a", "b", "c"})
 
-  def test_data_diff_to_dict(self) -> None:
+  def test_data_diff_to_dict(self) -> None:  # noqa: E111
     """Test to_dict serialization."""
     diff = DataDiff(
       added_keys=frozenset({"a"}),
@@ -74,9 +74,9 @@ class TestDataDiff:
 
 
 class TestDogDataDiff:
-  """Test DogDataDiff dataclass."""
+  """Test DogDataDiff dataclass."""  # noqa: E111
 
-  def test_dog_data_diff_has_changes(self) -> None:
+  def test_dog_data_diff_has_changes(self) -> None:  # noqa: E111
     """Test has_changes property."""
     # No changes
     diff = DogDataDiff("buddy")
@@ -89,7 +89,7 @@ class TestDogDataDiff:
     )
     assert diff.has_changes is True
 
-  def test_dog_data_diff_changed_modules(self) -> None:
+  def test_dog_data_diff_changed_modules(self) -> None:  # noqa: E111
     """Test changed_modules property."""
     diff = DogDataDiff(
       "buddy",
@@ -102,7 +102,7 @@ class TestDogDataDiff:
 
     assert diff.changed_modules == frozenset({"gps", "walk"})
 
-  def test_dog_data_diff_to_dict(self) -> None:
+  def test_dog_data_diff_to_dict(self) -> None:  # noqa: E111
     """Test to_dict serialization."""
     diff = DogDataDiff(
       "buddy",
@@ -117,9 +117,9 @@ class TestDogDataDiff:
 
 
 class TestCoordinatorDataDiff:
-  """Test CoordinatorDataDiff dataclass."""
+  """Test CoordinatorDataDiff dataclass."""  # noqa: E111
 
-  def test_coordinator_data_diff_has_changes(self) -> None:
+  def test_coordinator_data_diff_has_changes(self) -> None:  # noqa: E111
     """Test has_changes property."""
     # No changes
     diff = CoordinatorDataDiff()
@@ -140,7 +140,7 @@ class TestCoordinatorDataDiff:
     )
     assert diff.has_changes is True
 
-  def test_coordinator_data_diff_changed_dogs(self) -> None:
+  def test_coordinator_data_diff_changed_dogs(self) -> None:  # noqa: E111
     """Test changed_dogs property."""
     diff = CoordinatorDataDiff(
       dog_diffs={
@@ -162,9 +162,9 @@ class TestCoordinatorDataDiff:
 
 
 class TestComputeDataDiff:
-  """Test compute_data_diff function."""
+  """Test compute_data_diff function."""  # noqa: E111
 
-  def test_compute_data_diff_basic(self) -> None:
+  def test_compute_data_diff_basic(self) -> None:  # noqa: E111
     """Test basic diff computation."""
     old = {"a": 1, "b": 2}
     new = {"b": 3, "c": 4}
@@ -175,7 +175,7 @@ class TestComputeDataDiff:
     assert diff.removed_keys == frozenset({"a"})
     assert diff.modified_keys == frozenset({"b"})
 
-  def test_compute_data_diff_no_changes(self) -> None:
+  def test_compute_data_diff_no_changes(self) -> None:  # noqa: E111
     """Test diff with no changes."""
     old = {"a": 1, "b": 2}
     new = {"a": 1, "b": 2}
@@ -185,7 +185,7 @@ class TestComputeDataDiff:
     assert not diff.has_changes
     assert diff.unchanged_keys == frozenset({"a", "b"})
 
-  def test_compute_data_diff_nested_structures(self) -> None:
+  def test_compute_data_diff_nested_structures(self) -> None:  # noqa: E111
     """Test diff with nested dictionaries."""
     old = {"gps": {"lat": 45.0, "lon": -122.0}}
     new = {"gps": {"lat": 45.1, "lon": -122.0}}
@@ -194,7 +194,7 @@ class TestComputeDataDiff:
 
     assert diff.modified_keys == frozenset({"gps"})
 
-  def test_compute_data_diff_lists(self) -> None:
+  def test_compute_data_diff_lists(self) -> None:  # noqa: E111
     """Test diff with lists."""
     old = {"items": [1, 2, 3]}
     new = {"items": [1, 2, 4]}
@@ -203,7 +203,7 @@ class TestComputeDataDiff:
 
     assert diff.modified_keys == frozenset({"items"})
 
-  def test_compute_data_diff_none_values(self) -> None:
+  def test_compute_data_diff_none_values(self) -> None:  # noqa: E111
     """Test diff with None old_data or new_data."""
     new = {"a": 1}
 
@@ -216,9 +216,9 @@ class TestComputeDataDiff:
 
 
 class TestComputeDogDiff:
-  """Test compute_dog_diff function."""
+  """Test compute_dog_diff function."""  # noqa: E111
 
-  def test_compute_dog_diff_basic(self) -> None:
+  def test_compute_dog_diff_basic(self) -> None:  # noqa: E111
     """Test basic dog diff computation."""
     old = {"gps": {"lat": 45.0}, "walk": {"active": False}}
     new = {"gps": {"lat": 45.1}, "walk": {"active": False}}
@@ -229,7 +229,7 @@ class TestComputeDogDiff:
     assert "gps" in diff.changed_modules
     assert "walk" not in diff.changed_modules
 
-  def test_compute_dog_diff_module_added(self) -> None:
+  def test_compute_dog_diff_module_added(self) -> None:  # noqa: E111
     """Test dog diff with module added."""
     old = {"gps": {"lat": 45.0}}
     new = {"gps": {"lat": 45.0}, "walk": {"active": True}}
@@ -238,7 +238,7 @@ class TestComputeDogDiff:
 
     assert "walk" in diff.changed_modules
 
-  def test_compute_dog_diff_module_removed(self) -> None:
+  def test_compute_dog_diff_module_removed(self) -> None:  # noqa: E111
     """Test dog diff with module removed."""
     old = {"gps": {"lat": 45.0}, "walk": {"active": True}}
     new = {"gps": {"lat": 45.0}}
@@ -249,9 +249,9 @@ class TestComputeDogDiff:
 
 
 class TestComputeCoordinatorDiff:
-  """Test compute_coordinator_diff function."""
+  """Test compute_coordinator_diff function."""  # noqa: E111
 
-  def test_compute_coordinator_diff_basic(self) -> None:
+  def test_compute_coordinator_diff_basic(self) -> None:  # noqa: E111
     """Test basic coordinator diff."""
     old = {"buddy": {"gps": {"lat": 45.0}}}
     new = {"buddy": {"gps": {"lat": 45.1}}, "max": {"gps": {"lat": 46.0}}}
@@ -262,7 +262,7 @@ class TestComputeCoordinatorDiff:
     assert "buddy" in diff.changed_dogs
     assert "max" in diff.changed_dogs
 
-  def test_compute_coordinator_diff_dog_removed(self) -> None:
+  def test_compute_coordinator_diff_dog_removed(self) -> None:  # noqa: E111
     """Test coordinator diff with dog removed."""
     old = {"buddy": {}, "max": {}}
     new = {"buddy": {}}
@@ -271,7 +271,7 @@ class TestComputeCoordinatorDiff:
 
     assert diff.removed_dogs == frozenset({"max"})
 
-  def test_compute_coordinator_diff_no_changes(self) -> None:
+  def test_compute_coordinator_diff_no_changes(self) -> None:  # noqa: E111
     """Test coordinator diff with no changes."""
     old = {"buddy": {"gps": {"lat": 45.0}}}
     new = {"buddy": {"gps": {"lat": 45.0}}}
@@ -282,19 +282,19 @@ class TestComputeCoordinatorDiff:
 
 
 class TestShouldNotifyEntities:
-  """Test should_notify_entities function."""
+  """Test should_notify_entities function."""  # noqa: E111
 
-  def test_should_notify_entities_no_changes(self) -> None:
+  def test_should_notify_entities_no_changes(self) -> None:  # noqa: E111
     """Test notification with no changes."""
     diff = CoordinatorDataDiff()
     assert should_notify_entities(diff) is False
 
-  def test_should_notify_entities_any_changes(self) -> None:
+  def test_should_notify_entities_any_changes(self) -> None:  # noqa: E111
     """Test notification with any changes."""
     diff = CoordinatorDataDiff(added_dogs=frozenset({"new_dog"}))
     assert should_notify_entities(diff) is True
 
-  def test_should_notify_entities_specific_dog(self) -> None:
+  def test_should_notify_entities_specific_dog(self) -> None:  # noqa: E111
     """Test notification for specific dog."""
     diff = CoordinatorDataDiff(
       dog_diffs={
@@ -308,7 +308,7 @@ class TestShouldNotifyEntities:
     assert should_notify_entities(diff, dog_id="buddy") is True
     assert should_notify_entities(diff, dog_id="max") is False
 
-  def test_should_notify_entities_specific_module(self) -> None:
+  def test_should_notify_entities_specific_module(self) -> None:  # noqa: E111
     """Test notification for specific module."""
     diff = CoordinatorDataDiff(
       dog_diffs={
@@ -324,15 +324,15 @@ class TestShouldNotifyEntities:
 
 
 class TestSmartDiffTracker:
-  """Test SmartDiffTracker class."""
+  """Test SmartDiffTracker class."""  # noqa: E111
 
-  def test_smart_diff_tracker_initialization(self) -> None:
+  def test_smart_diff_tracker_initialization(self) -> None:  # noqa: E111
     """Test tracker initialization."""
     tracker = SmartDiffTracker()
     assert tracker.last_diff is None
     assert tracker.update_count == 0
 
-  def test_smart_diff_tracker_update(self) -> None:
+  def test_smart_diff_tracker_update(self) -> None:  # noqa: E111
     """Test tracker update."""
     tracker = SmartDiffTracker()
 
@@ -342,7 +342,7 @@ class TestSmartDiffTracker:
     assert tracker.update_count == 1
     assert tracker.last_diff == diff1
 
-  def test_smart_diff_tracker_incremental(self) -> None:
+  def test_smart_diff_tracker_incremental(self) -> None:  # noqa: E111
     """Test tracker with incremental updates."""
     tracker = SmartDiffTracker()
 
@@ -356,7 +356,7 @@ class TestSmartDiffTracker:
     assert diff2.has_changes
     assert "buddy" in diff2.changed_dogs
 
-  def test_smart_diff_tracker_reset(self) -> None:
+  def test_smart_diff_tracker_reset(self) -> None:  # noqa: E111
     """Test tracker reset."""
     tracker = SmartDiffTracker()
 
@@ -366,7 +366,7 @@ class TestSmartDiffTracker:
     assert tracker.last_diff is None
     assert tracker.update_count == 0
 
-  def test_smart_diff_tracker_get_changed_entities(self) -> None:
+  def test_smart_diff_tracker_get_changed_entities(self) -> None:  # noqa: E111
     """Test get_changed_entities method."""
     tracker = SmartDiffTracker()
 
@@ -379,9 +379,9 @@ class TestSmartDiffTracker:
 
 
 class TestGetChangedFields:
-  """Test get_changed_fields function."""
+  """Test get_changed_fields function."""  # noqa: E111
 
-  def test_get_changed_fields_default(self) -> None:
+  def test_get_changed_fields_default(self) -> None:  # noqa: E111
     """Test getting changed fields with defaults."""
     diff = DataDiff(
       added_keys=frozenset({"x"}),
@@ -392,7 +392,7 @@ class TestGetChangedFields:
     fields = get_changed_fields(diff)
     assert fields == frozenset({"x", "y"})
 
-  def test_get_changed_fields_all(self) -> None:
+  def test_get_changed_fields_all(self) -> None:  # noqa: E111
     """Test getting all changed fields."""
     diff = DataDiff(
       added_keys=frozenset({"x"}),
@@ -408,7 +408,7 @@ class TestGetChangedFields:
     )
     assert fields == frozenset({"x", "y", "z"})
 
-  def test_get_changed_fields_only_added(self) -> None:
+  def test_get_changed_fields_only_added(self) -> None:  # noqa: E111
     """Test getting only added fields."""
     diff = DataDiff(
       added_keys=frozenset({"x"}),
@@ -424,9 +424,9 @@ class TestGetChangedFields:
 
 
 class TestLogDiffSummary:
-  """Test log_diff_summary function."""
+  """Test log_diff_summary function."""  # noqa: E111
 
-  def test_log_diff_summary_no_changes(self, caplog: pytest.LogCaptureFixture) -> None:
+  def test_log_diff_summary_no_changes(self, caplog: pytest.LogCaptureFixture) -> None:  # noqa: E111
     """Test logging with no changes."""
     caplog.set_level(
       logging.DEBUG, logger="custom_components.pawcontrol.coordinator_diffing"
@@ -437,7 +437,7 @@ class TestLogDiffSummary:
 
     assert "No changes detected" in caplog.text
 
-  def test_log_diff_summary_with_changes(
+  def test_log_diff_summary_with_changes(  # noqa: E111
     self, caplog: pytest.LogCaptureFixture
   ) -> None:
     """Test logging with changes."""
@@ -459,19 +459,19 @@ class TestLogDiffSummary:
 
 
 class TestEdgeCases:
-  """Test edge cases and error conditions."""
+  """Test edge cases and error conditions."""  # noqa: E111
 
-  def test_compute_data_diff_empty_dicts(self) -> None:
+  def test_compute_data_diff_empty_dicts(self) -> None:  # noqa: E111
     """Test diff with empty dictionaries."""
     diff = compute_data_diff({}, {})
     assert not diff.has_changes
 
-  def test_compute_dog_diff_empty_data(self) -> None:
+  def test_compute_dog_diff_empty_data(self) -> None:  # noqa: E111
     """Test dog diff with empty data."""
     diff = compute_dog_diff("buddy", {}, {})
     assert not diff.has_changes
 
-  def test_smart_diff_tracker_multiple_resets(self) -> None:
+  def test_smart_diff_tracker_multiple_resets(self) -> None:  # noqa: E111
     """Test tracker with multiple resets."""
     tracker = SmartDiffTracker()
 
@@ -481,14 +481,14 @@ class TestEdgeCases:
 
     assert tracker.update_count == 0
 
-  def test_should_notify_entities_added_dog_with_module_filter(self) -> None:
+  def test_should_notify_entities_added_dog_with_module_filter(self) -> None:  # noqa: E111
     """Test notification for added dog with module filter."""
     diff = CoordinatorDataDiff(added_dogs=frozenset({"new_dog"}))
 
     # Should notify regardless of module filter for added dogs
     assert should_notify_entities(diff, dog_id="new_dog", module="gps") is True
 
-  def test_coordinator_diff_serialization(self) -> None:
+  def test_coordinator_diff_serialization(self) -> None:  # noqa: E111
     """Test full coordinator diff serialization."""
     diff = CoordinatorDataDiff(
       dog_diffs={

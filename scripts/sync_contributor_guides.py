@@ -16,51 +16,51 @@ TARGETS = [
 
 
 def _load_canonical_block() -> str:
-  content = CANONICAL_SOURCE.read_text(encoding="utf-8")
-  if SYNC_START in content and SYNC_END in content:
+  content = CANONICAL_SOURCE.read_text(encoding="utf-8")  # noqa: E111
+  if SYNC_START in content and SYNC_END in content:  # noqa: E111
     start = content.index(SYNC_START) + len(SYNC_START)
     end = content.index(SYNC_END, start)
     block = content[start:end].strip("\n")
-  else:
+  else:  # noqa: E111
     block = content.strip("\n")
-  return f"{SYNC_START}\n{block}\n{SYNC_END}"
+  return f"{SYNC_START}\n{block}\n{SYNC_END}"  # noqa: E111
 
 
 def _apply_sync_block(target: Path, block: str) -> tuple[str, str]:
-  text = target.read_text(encoding="utf-8")
-  start = text.index(SYNC_START)
-  end = text.index(SYNC_END, start) + len(SYNC_END)
-  return text, text[:start] + block + text[end:]
+  text = target.read_text(encoding="utf-8")  # noqa: E111
+  start = text.index(SYNC_START)  # noqa: E111
+  end = text.index(SYNC_END, start) + len(SYNC_END)  # noqa: E111
+  return text, text[:start] + block + text[end:]  # noqa: E111
 
 
 def main() -> int:
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument(
+  parser = argparse.ArgumentParser(description=__doc__)  # noqa: E111
+  parser.add_argument(  # noqa: E111
     "--check",
     action="store_true",
     help="only verify the files are synced",
   )
-  args = parser.parse_args()
+  args = parser.parse_args()  # noqa: E111
 
-  block = _load_canonical_block()
-  had_changes = False
+  block = _load_canonical_block()  # noqa: E111
+  had_changes = False  # noqa: E111
 
-  for target in TARGETS:
+  for target in TARGETS:  # noqa: E111
     original, updated = _apply_sync_block(target, block)
     if updated != original:
-      if args.check:
+      if args.check:  # noqa: E111
         print(f"{target} is out of date with {CANONICAL_SOURCE}")
-      else:
+      else:  # noqa: E111
         target.write_text(updated, encoding="utf-8")
         print(f"Synced {target} with {CANONICAL_SOURCE}")
-      had_changes = True
+      had_changes = True  # noqa: E111
 
-  if args.check and had_changes:
+  if args.check and had_changes:  # noqa: E111
     return 1
-  if not had_changes:
+  if not had_changes:  # noqa: E111
     print("Contributor guides already match the canonical instructions.")
-  return 0
+  return 0  # noqa: E111
 
 
 if __name__ == "__main__":
-  raise SystemExit(main())
+  raise SystemExit(main())  # noqa: E111

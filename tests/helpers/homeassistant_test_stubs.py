@@ -51,88 +51,88 @@ HOME_ASSISTANT_VERSION = "2025.9.0"
 
 
 def _utcnow() -> datetime:
-  """Return a timezone-aware UTC timestamp."""
+  """Return a timezone-aware UTC timestamp."""  # noqa: E111
 
-  return datetime.now(UTC)
+  return datetime.now(UTC)  # noqa: E111
 
 
 def _now() -> datetime:
-  """Return a timezone-aware current timestamp."""
+  """Return a timezone-aware current timestamp."""  # noqa: E111
 
-  return datetime.now(UTC)
+  return datetime.now(UTC)  # noqa: E111
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
-  """Parse ISO formatted datetimes used by telemetry helpers."""
+  """Parse ISO formatted datetimes used by telemetry helpers."""  # noqa: E111
 
-  if not value:
+  if not value:  # noqa: E111
     return None
-  try:
+  try:  # noqa: E111
     return datetime.fromisoformat(value)
-  except ValueError:
+  except ValueError:  # noqa: E111
     return None
 
 
 def _as_utc(value: datetime) -> datetime:
-  """Return the datetime converted to UTC."""
+  """Return the datetime converted to UTC."""  # noqa: E111
 
-  if value.tzinfo is None:
+  if value.tzinfo is None:  # noqa: E111
     return value.replace(tzinfo=UTC)
-  return value.astimezone(UTC)
+  return value.astimezone(UTC)  # noqa: E111
 
 
 def _as_local(value: datetime) -> datetime:
-  """Return the datetime converted to local time (UTC fallback)."""
+  """Return the datetime converted to local time (UTC fallback)."""  # noqa: E111
 
-  if value.tzinfo is None:
+  if value.tzinfo is None:  # noqa: E111
     return value.replace(tzinfo=UTC)
-  return value
+  return value  # noqa: E111
 
 
 def _start_of_local_day(value: datetime) -> datetime:
-  """Return the start of the local day for the provided datetime."""
+  """Return the start of the local day for the provided datetime."""  # noqa: E111
 
-  if isinstance(value, date) and not isinstance(value, datetime):
+  if isinstance(value, date) and not isinstance(value, datetime):  # noqa: E111
     return datetime.combine(value, datetime.min.time(), tzinfo=UTC)
-  local = _as_local(value)
-  return local.replace(hour=0, minute=0, second=0, microsecond=0)
+  local = _as_local(value)  # noqa: E111
+  return local.replace(hour=0, minute=0, second=0, microsecond=0)  # noqa: E111
 
 
 class Platform(StrEnum):
-  """StrEnum stub that mirrors ``homeassistant.const.Platform``."""
+  """StrEnum stub that mirrors ``homeassistant.const.Platform``."""  # noqa: E111
 
-  SENSOR = "sensor"
-  BINARY_SENSOR = "binary_sensor"
-  BUTTON = "button"
-  SWITCH = "switch"
-  NUMBER = "number"
-  SELECT = "select"
-  TEXT = "text"
-  DEVICE_TRACKER = "device_tracker"
-  DATE = "date"
-  DATETIME = "datetime"
+  SENSOR = "sensor"  # noqa: E111
+  BINARY_SENSOR = "binary_sensor"  # noqa: E111
+  BUTTON = "button"  # noqa: E111
+  SWITCH = "switch"  # noqa: E111
+  NUMBER = "number"  # noqa: E111
+  SELECT = "select"  # noqa: E111
+  TEXT = "text"  # noqa: E111
+  DEVICE_TRACKER = "device_tracker"  # noqa: E111
+  DATE = "date"  # noqa: E111
+  DATETIME = "datetime"  # noqa: E111
 
 
 class EntityCategory(StrEnum):
-  """Subset of Home Assistant's entity categories."""
+  """Subset of Home Assistant's entity categories."""  # noqa: E111
 
-  CONFIG = "config"
-  DIAGNOSTIC = "diagnostic"
+  CONFIG = "config"  # noqa: E111
+  DIAGNOSTIC = "diagnostic"  # noqa: E111
 
 
 class ConfigEntryState(Enum):
-  """Enum mirroring Home Assistant's config entry states."""
+  """Enum mirroring Home Assistant's config entry states."""  # noqa: E111
 
-  LOADED = ("loaded", True)
-  SETUP_ERROR = ("setup_error", True)
-  MIGRATION_ERROR = ("migration_error", False)
-  SETUP_RETRY = ("setup_retry", True)
-  NOT_LOADED = ("not_loaded", True)
-  FAILED_UNLOAD = ("failed_unload", False)
-  SETUP_IN_PROGRESS = ("setup_in_progress", False)
-  UNLOAD_IN_PROGRESS = ("unload_in_progress", False)
+  LOADED = ("loaded", True)  # noqa: E111
+  SETUP_ERROR = ("setup_error", True)  # noqa: E111
+  MIGRATION_ERROR = ("migration_error", False)  # noqa: E111
+  SETUP_RETRY = ("setup_retry", True)  # noqa: E111
+  NOT_LOADED = ("not_loaded", True)  # noqa: E111
+  FAILED_UNLOAD = ("failed_unload", False)  # noqa: E111
+  SETUP_IN_PROGRESS = ("setup_in_progress", False)  # noqa: E111
+  UNLOAD_IN_PROGRESS = ("unload_in_progress", False)  # noqa: E111
 
-  def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
+  def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:  # noqa: E111
     """Store the string value and recoverability flag."""
 
     obj = object.__new__(cls)
@@ -140,126 +140,126 @@ class ConfigEntryState(Enum):
     obj._recoverable = recoverable
     return obj
 
-  @property
-  def recoverable(self) -> bool:
+  @property  # noqa: E111
+  def recoverable(self) -> bool:  # noqa: E111
     """Return whether the state can be auto-recovered."""
 
     return self._recoverable
 
-  @classmethod
-  def from_value(cls, value: str | ConfigEntryState) -> ConfigEntryState:
+  @classmethod  # noqa: E111
+  def from_value(cls, value: str | ConfigEntryState) -> ConfigEntryState:  # noqa: E111
     """Return the enum member matching ``value`` regardless of casing."""
 
     if isinstance(value, cls):
-      return value
+      return value  # noqa: E111
 
     for member in cls:
-      if member.value == value:
+      if member.value == value:  # noqa: E111
         return member
-      if isinstance(value, str) and member.name == value.upper():
+      if isinstance(value, str) and member.name == value.upper():  # noqa: E111
         return member
     raise ValueError(value)
 
 
 class ConfigEntryChange(StrEnum):
-  """Enum mirroring Home Assistant config entry change reasons."""
+  """Enum mirroring Home Assistant config entry change reasons."""  # noqa: E111
 
-  ADDED = "added"
-  REMOVED = "removed"
-  UPDATED = "updated"
+  ADDED = "added"  # noqa: E111
+  REMOVED = "removed"  # noqa: E111
+  UPDATED = "updated"  # noqa: E111
 
 
 class IssueSeverity(StrEnum):
-  """Home Assistant issue severity mirror."""
+  """Home Assistant issue severity mirror."""  # noqa: E111
 
-  WARNING = "warning"
-  ERROR = "error"
-  CRITICAL = "critical"
+  WARNING = "warning"  # noqa: E111
+  ERROR = "error"  # noqa: E111
+  CRITICAL = "critical"  # noqa: E111
 
-  @classmethod
-  def from_value(cls, value: str | IssueSeverity | None) -> IssueSeverity:
+  @classmethod  # noqa: E111
+  def from_value(cls, value: str | IssueSeverity | None) -> IssueSeverity:  # noqa: E111
     """Return the severity matching ``value`` with graceful fallback."""
 
     if isinstance(value, cls):
-      return value
+      return value  # noqa: E111
     if isinstance(value, str):
-      try:
+      try:  # noqa: E111
         return cls(value.lower())
-      except ValueError:
+      except ValueError:  # noqa: E111
         return cls.WARNING
     return cls.WARNING
 
 
 class UnitOfEnergy(StrEnum):
-  """Subset of Home Assistant energy units."""
+  """Subset of Home Assistant energy units."""  # noqa: E111
 
-  KILO_CALORIE = "kcal"
+  KILO_CALORIE = "kcal"  # noqa: E111
 
 
 class UnitOfLength(StrEnum):
-  """Subset of Home Assistant length units."""
+  """Subset of Home Assistant length units."""  # noqa: E111
 
-  METERS = "m"
-  KILOMETERS = "km"
+  METERS = "m"  # noqa: E111
+  KILOMETERS = "km"  # noqa: E111
 
 
 class UnitOfMass(StrEnum):
-  """Subset of Home Assistant mass units."""
+  """Subset of Home Assistant mass units."""  # noqa: E111
 
-  GRAMS = "g"
-  KILOGRAMS = "kg"
+  GRAMS = "g"  # noqa: E111
+  KILOGRAMS = "kg"  # noqa: E111
 
 
 class UnitOfTime(StrEnum):
-  """Subset of Home Assistant time units."""
+  """Subset of Home Assistant time units."""  # noqa: E111
 
-  SECONDS = "s"
-  MINUTES = "min"
-  HOURS = "h"
-  DAYS = "d"
-  MONTHS = "mo"
-  YEARS = "y"
+  SECONDS = "s"  # noqa: E111
+  MINUTES = "min"  # noqa: E111
+  HOURS = "h"  # noqa: E111
+  DAYS = "d"  # noqa: E111
+  MONTHS = "mo"  # noqa: E111
+  YEARS = "y"  # noqa: E111
 
 
 class UnitOfTemperature(StrEnum):
-  """Subset of Home Assistant temperature units."""
+  """Subset of Home Assistant temperature units."""  # noqa: E111
 
-  CELSIUS = "°C"
-  FAHRENHEIT = "°F"
-  KELVIN = "K"
+  CELSIUS = "°C"  # noqa: E111
+  FAHRENHEIT = "°F"  # noqa: E111
+  KELVIN = "K"  # noqa: E111
 
 
 class HomeAssistantError(Exception):
-  """Replacement for :class:`homeassistant.exceptions.HomeAssistantError`."""
+  """Replacement for :class:`homeassistant.exceptions.HomeAssistantError`."""  # noqa: E111
 
 
 class ConfigEntryError(HomeAssistantError):
-  """Replacement for :class:`homeassistant.exceptions.ConfigEntryError`."""
+  """Replacement for :class:`homeassistant.exceptions.ConfigEntryError`."""  # noqa: E111
 
 
 class ConfigEntryAuthFailed(ConfigEntryError):
-  """Replacement for :class:`homeassistant.exceptions.ConfigEntryAuthFailed`."""
+  """Replacement for :class:`homeassistant.exceptions.ConfigEntryAuthFailed`."""  # noqa: E111
 
 
 class ConfigEntryNotReady(ConfigEntryError):
-  """Replacement for :class:`homeassistant.exceptions.ConfigEntryNotReady`."""
+  """Replacement for :class:`homeassistant.exceptions.ConfigEntryNotReady`."""  # noqa: E111
 
 
 class ServiceValidationError(HomeAssistantError):
-  """Replacement for :class:`homeassistant.exceptions.ServiceValidationError`."""
+  """Replacement for :class:`homeassistant.exceptions.ServiceValidationError`."""  # noqa: E111
 
 
 class HomeAssistant:
-  """Minimal stand-in for :class:`homeassistant.core.HomeAssistant`."""
+  """Minimal stand-in for :class:`homeassistant.core.HomeAssistant`."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.data: dict[str, object] = {}
     self.config = types.SimpleNamespace(language=None)
 
     def _update_entry(entry: object, **changes: object) -> object:
-      for key, value in changes.items():
+      for key, value in changes.items():  # noqa: E111
         setattr(entry, key, value)
-      return entry
+      return entry  # noqa: E111
 
     self.config_entries = types.SimpleNamespace(
       async_update_entry=Mock(side_effect=_update_entry),
@@ -277,7 +277,7 @@ class HomeAssistant:
     self.services = ServiceRegistry()
     self.states = StateMachine()
 
-  def async_create_task(
+  def async_create_task(  # noqa: E111
     self,
     awaitable: object,
     *,
@@ -286,7 +286,7 @@ class HomeAssistant:
     loop = asyncio.get_running_loop()
     return loop.create_task(awaitable, name=name)
 
-  async def async_add_executor_job(
+  async def async_add_executor_job(  # noqa: E111
     self,
     func: Callable[..., Any],
     *args: Any,
@@ -295,24 +295,24 @@ class HomeAssistant:
 
     return await asyncio.to_thread(func, *args)
 
-  async def async_block_till_done(self) -> None:
+  async def async_block_till_done(self) -> None:  # noqa: E111
     """Yield to the event loop until scheduled callbacks can run."""
 
     await asyncio.sleep(0)
 
 
 class Event:
-  """Simplified version of ``homeassistant.core.Event`` used by tests."""
+  """Simplified version of ``homeassistant.core.Event`` used by tests."""  # noqa: E111
 
-  def __init__(self, event_type: str, data: dict[str, object] | None = None) -> None:
+  def __init__(self, event_type: str, data: dict[str, object] | None = None) -> None:  # noqa: E111
     self.event_type = event_type
     self.data = data or {}
 
 
 class State:
-  """Simplified version of ``homeassistant.core.State``."""
+  """Simplified version of ``homeassistant.core.State``."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     entity_id: str,
     state: str,
@@ -324,15 +324,15 @@ class State:
 
 
 class StateMachine:
-  """Minimal state storage for tests."""
+  """Minimal state storage for tests."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self._states: dict[str, State] = {}
 
-  def get(self, entity_id: str) -> State | None:
+  def get(self, entity_id: str) -> State | None:  # noqa: E111
     return self._states.get(entity_id)
 
-  def async_set(
+  def async_set(  # noqa: E111
     self,
     entity_id: str,
     state: str,
@@ -340,19 +340,19 @@ class StateMachine:
   ) -> None:
     self._states[entity_id] = State(entity_id, state, attributes)
 
-  def async_entity_ids(self, domain: str | None = None) -> list[str]:
+  def async_entity_ids(self, domain: str | None = None) -> list[str]:  # noqa: E111
     """Return entity ids, optionally filtered by domain."""
 
     if domain is None:
-      return list(self._states)
+      return list(self._states)  # noqa: E111
     prefix = f"{domain}."
     return [entity_id for entity_id in self._states if entity_id.startswith(prefix)]
 
 
 class Context:
-  """Lightweight ``homeassistant.core.Context`` replacement."""
+  """Lightweight ``homeassistant.core.Context`` replacement."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     user_id: str | None = None,
     context_id: str | None = None,
@@ -365,9 +365,9 @@ class Context:
 
 
 class ServiceCall:
-  """Simplified version of ``homeassistant.core.ServiceCall``."""
+  """Simplified version of ``homeassistant.core.ServiceCall``."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     domain: str,
     service: str,
@@ -381,16 +381,16 @@ class ServiceCall:
 
 
 def _callback(func: Callable[..., None]) -> Callable[..., None]:
-  return func
+  return func  # noqa: E111
 
 
 class ServiceRegistry:
-  """Minimal stand-in for Home Assistant's ServiceRegistry."""
+  """Minimal stand-in for Home Assistant's ServiceRegistry."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self._handlers: dict[tuple[str, str], Callable[..., Any]] = {}
 
-  def async_register(
+  def async_register(  # noqa: E111
     self,
     domain: str,
     service: str,
@@ -398,7 +398,7 @@ class ServiceRegistry:
   ) -> None:
     self._handlers[(domain, service)] = handler
 
-  async def async_call(
+  async def async_call(  # noqa: E111
     self,
     domain: str,
     service: str,
@@ -410,11 +410,11 @@ class ServiceRegistry:
     _ = blocking
     handler = self._handlers.get((domain, service))
     if handler is None:
-      return None
+      return None  # noqa: E111
     call = ServiceCall(domain, service, service_data or {}, context)
     result = handler(call)
     if asyncio.iscoroutine(result):
-      await result
+      await result  # noqa: E111
 
 
 # Minimal registry matching Home Assistant's ConfigEntry handler mapping.
@@ -422,23 +422,23 @@ HANDLERS: dict[str, object] = {}
 
 
 async def support_entry_unload(hass: object, domain: str) -> bool:
-  """Return ``True`` if the handler exposes an unload hook."""
+  """Return ``True`` if the handler exposes an unload hook."""  # noqa: E111
 
-  handler = HANDLERS.get(domain)
-  return bool(handler and hasattr(handler, "async_unload_entry"))
+  handler = HANDLERS.get(domain)  # noqa: E111
+  return bool(handler and hasattr(handler, "async_unload_entry"))  # noqa: E111
 
 
 async def support_remove_from_device(hass: object, domain: str) -> bool:
-  """Return ``True`` if the handler exposes a remove-device hook."""
+  """Return ``True`` if the handler exposes a remove-device hook."""  # noqa: E111
 
-  handler = HANDLERS.get(domain)
-  return bool(handler and hasattr(handler, "async_remove_config_entry_device"))
+  handler = HANDLERS.get(domain)  # noqa: E111
+  return bool(handler and hasattr(handler, "async_remove_config_entry_device"))  # noqa: E111
 
 
 class ConfigSubentry:
-  """Minimal representation of a Home Assistant configuration subentry."""
+  """Minimal representation of a Home Assistant configuration subentry."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     *,
     subentry_id: str,
@@ -457,10 +457,10 @@ class ConfigSubentry:
 def _build_subentries(
   subentries_data: Iterable[dict[str, Any]] | None,
 ) -> dict[str, ConfigSubentry]:
-  """Construct deterministic subentries from the provided data."""
+  """Construct deterministic subentries from the provided data."""  # noqa: E111
 
-  subentries: dict[str, ConfigSubentry] = {}
-  for index, subentry_data in enumerate(subentries_data or (), start=1):
+  subentries: dict[str, ConfigSubentry] = {}  # noqa: E111
+  for index, subentry_data in enumerate(subentries_data or (), start=1):  # noqa: E111
     subentry_id = (
       str(subentry_data.get("subentry_id"))
       if "subentry_id" in subentry_data
@@ -474,13 +474,13 @@ def _build_subentries(
       unique_id=subentry_data.get("unique_id"),
     )
 
-  return subentries
+  return subentries  # noqa: E111
 
 
 class ConfigEntry:
-  """Minimal representation of Home Assistant config entries."""
+  """Minimal representation of Home Assistant config entries."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     entry_id: str | None = None,
     *,
@@ -543,61 +543,61 @@ class ConfigEntry:
     self.created_at: datetime = created_at or _utcnow()
     self.modified_at: datetime = modified_at or self.created_at
 
-  @property
-  def supports_options(self) -> bool:
+  @property  # noqa: E111
+  def supports_options(self) -> bool:  # noqa: E111
     """Return whether the entry exposes an options flow."""
 
     if self._supports_options is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_supports_options_flow"):
+      handler = HANDLERS.get(self.domain)  # noqa: E111
+      if handler and hasattr(handler, "async_supports_options_flow"):  # noqa: E111
         self._supports_options = bool(
           handler.async_supports_options_flow(self),
         )
 
     return bool(self._supports_options)
 
-  @property
-  def supports_unload(self) -> bool:
+  @property  # noqa: E111
+  def supports_unload(self) -> bool:  # noqa: E111
     """Return whether the entry exposes an unload hook."""
 
     if self._supports_unload is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_unload_entry"):
+      handler = HANDLERS.get(self.domain)  # noqa: E111
+      if handler and hasattr(handler, "async_unload_entry"):  # noqa: E111
         self._supports_unload = True
 
     return bool(self._supports_unload)
 
-  @property
-  def supports_remove_device(self) -> bool:
+  @property  # noqa: E111
+  def supports_remove_device(self) -> bool:  # noqa: E111
     """Return whether the entry exposes a remove-device hook."""
 
     if self._supports_remove_device is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_remove_config_entry_device"):
+      handler = HANDLERS.get(self.domain)  # noqa: E111
+      if handler and hasattr(handler, "async_remove_config_entry_device"):  # noqa: E111
         self._supports_remove_device = True
 
     return bool(self._supports_remove_device)
 
-  @property
-  def supports_reconfigure(self) -> bool:
+  @property  # noqa: E111
+  def supports_reconfigure(self) -> bool:  # noqa: E111
     """Return whether the entry exposes a reconfigure flow."""
 
     if self._supports_reconfigure is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_supports_reconfigure_flow"):
+      handler = HANDLERS.get(self.domain)  # noqa: E111
+      if handler and hasattr(handler, "async_supports_reconfigure_flow"):  # noqa: E111
         self._supports_reconfigure = bool(
           handler.async_supports_reconfigure_flow(self),
         )
 
     return bool(self._supports_reconfigure)
 
-  @property
-  def supported_subentry_types(self) -> dict[str, dict[str, bool]]:
+  @property  # noqa: E111
+  def supported_subentry_types(self) -> dict[str, dict[str, bool]]:  # noqa: E111
     """Return the supported subentry types mapping."""
 
     if self._supported_subentry_types is None:
-      handler = HANDLERS.get(self.domain)
-      if handler and hasattr(handler, "async_get_supported_subentry_types"):
+      handler = HANDLERS.get(self.domain)  # noqa: E111
+      if handler and hasattr(handler, "async_get_supported_subentry_types"):  # noqa: E111
         supported_flows = handler.async_get_supported_subentry_types(
           self,
         )
@@ -613,16 +613,16 @@ class ConfigEntry:
 
     return self._supported_subentry_types or {}
 
-  def add_to_hass(self, hass: HomeAssistant) -> None:
+  def add_to_hass(self, hass: HomeAssistant) -> None:  # noqa: E111
     """Attach this config entry to the Home Assistant test instance."""
 
     hass.config_entries._entries[self.entry_id] = self
 
 
 class _FlowBase:
-  """Common helpers shared by flow handler stubs."""
+  """Common helpers shared by flow handler stubs."""  # noqa: E111
 
-  def async_show_form(
+  def async_show_form(  # noqa: E111
     self,
     *,
     step_id: str,
@@ -638,10 +638,10 @@ class _FlowBase:
       "errors": dict(errors or {}),
     }
 
-  def async_external_step(self, *, step_id: str, url: str) -> FlowResult:
+  def async_external_step(self, *, step_id: str, url: str) -> FlowResult:  # noqa: E111
     return {"type": "external", "step_id": step_id, "url": url}
 
-  def async_create_entry(
+  def async_create_entry(  # noqa: E111
     self,
     *,
     title: str | None = None,
@@ -655,14 +655,14 @@ class _FlowBase:
     }
 
     if options is not None:
-      result["options"] = dict(options)
+      result["options"] = dict(options)  # noqa: E111
 
     return result
 
-  def async_abort(self, *, reason: str) -> FlowResult:
+  def async_abort(self, *, reason: str) -> FlowResult:  # noqa: E111
     return {"type": "abort", "reason": reason}
 
-  def async_show_menu(
+  def async_show_menu(  # noqa: E111
     self,
     *,
     step_id: str,
@@ -676,7 +676,7 @@ class _FlowBase:
       "description_placeholders": dict(description_placeholders or {}),
     }
 
-  def async_show_progress(
+  def async_show_progress(  # noqa: E111
     self,
     *,
     step_id: str,
@@ -690,7 +690,7 @@ class _FlowBase:
       "description_placeholders": dict(description_placeholders or {}),
     }
 
-  def async_show_progress_done(
+  def async_show_progress_done(  # noqa: E111
     self,
     *,
     next_step_id: str,
@@ -702,36 +702,36 @@ class _FlowBase:
       "description_placeholders": dict(description_placeholders or {}),
     }
 
-  def async_external_step_done(self, *, next_step_id: str) -> FlowResult:
+  def async_external_step_done(self, *, next_step_id: str) -> FlowResult:  # noqa: E111
     return {"type": "external_done", "next_step_id": next_step_id}
 
 
 class OptionsFlow(_FlowBase):
-  """Options flow stub used by coordinator tests."""
+  """Options flow stub used by coordinator tests."""  # noqa: E111
 
-  async def async_step_init(self, user_input: dict[str, object] | None = None):
+  async def async_step_init(self, user_input: dict[str, object] | None = None):  # noqa: E111
     return self.async_create_entry(data=user_input or {})
 
 
 class ConfigFlowResult(dict):
-  """Dictionary wrapper to mimic Home Assistant flow results."""
+  """Dictionary wrapper to mimic Home Assistant flow results."""  # noqa: E111
 
 
 class _AbortFlow(Exception):
-  """Internal exception used to abort config flows from stubs."""
+  """Internal exception used to abort config flows from stubs."""  # noqa: E111
 
-  def __init__(self, reason: str) -> None:
+  def __init__(self, reason: str) -> None:  # noqa: E111
     self.reason = reason
 
 
 class ConfigFlow(_FlowBase):
-  """Config flow stub used by integration tests."""
+  """Config flow stub used by integration tests."""  # noqa: E111
 
-  domain: str | None = None
-  VERSION = 1
-  MINOR_VERSION = 0
+  domain: str | None = None  # noqa: E111
+  VERSION = 1  # noqa: E111
+  MINOR_VERSION = 0  # noqa: E111
 
-  def __init_subclass__(
+  def __init_subclass__(  # noqa: E111
     cls,
     *,
     domain: str | None = None,
@@ -741,23 +741,23 @@ class ConfigFlow(_FlowBase):
 
     super().__init_subclass__(**kwargs)
     if domain is not None:
-      cls.domain = domain
-      HANDLERS[domain] = cls
+      cls.domain = domain  # noqa: E111
+      HANDLERS[domain] = cls  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.hass: HomeAssistant | None = None
     self.context: dict[str, object] = {}
     self._unique_id: str | None = None
 
-  async def async_step_user(self, user_input: dict[str, object] | None = None):
+  async def async_step_user(self, user_input: dict[str, object] | None = None):  # noqa: E111
     return self.async_show_form(step_id="user")
 
-  async def async_set_unique_id(self, unique_id: str | None) -> None:
+  async def async_set_unique_id(self, unique_id: str | None) -> None:  # noqa: E111
     """Store the active flow unique id."""
 
     self._unique_id = unique_id
 
-  def _abort_if_unique_id_configured(
+  def _abort_if_unique_id_configured(  # noqa: E111
     self,
     updates: dict[str, object] | None = None,
     reload_on_update: bool = True,
@@ -766,20 +766,20 @@ class ConfigFlow(_FlowBase):
 
     _ = updates, reload_on_update
     if self.hass is None or self._unique_id is None:
-      return
+      return  # noqa: E111
 
     for entry in self.hass.config_entries.async_entries(self.domain):
-      if getattr(entry, "unique_id", None) == self._unique_id:
+      if getattr(entry, "unique_id", None) == self._unique_id:  # noqa: E111
         raise _AbortFlow("already_configured")
 
 
 class _FlowManager:
-  """Minimal flow manager implementing ``hass.config_entries.flow``."""
+  """Minimal flow manager implementing ``hass.config_entries.flow``."""  # noqa: E111
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hass: HomeAssistant) -> None:  # noqa: E111
     self._hass = hass
 
-  async def async_init(
+  async def async_init(  # noqa: E111
     self,
     domain: str,
     *,
@@ -788,11 +788,11 @@ class _FlowManager:
   ) -> FlowResult:
     handler_cls = HANDLERS.get(domain)
     if handler_cls is None:
-      module = importlib.import_module(f"custom_components.{domain}.config_flow")
-      handler_cls = HANDLERS.get(domain)
-      if handler_cls is None:
+      module = importlib.import_module(f"custom_components.{domain}.config_flow")  # noqa: E111
+      handler_cls = HANDLERS.get(domain)  # noqa: E111
+      if handler_cls is None:  # noqa: E111
         for candidate in module.__dict__.values():
-          if (
+          if (  # noqa: E111
             isinstance(candidate, type)
             and issubclass(candidate, ConfigFlow)
             and getattr(candidate, "domain", None) == domain
@@ -801,7 +801,7 @@ class _FlowManager:
             handler_cls = candidate
             break
     if handler_cls is None:
-      raise ValueError(f"No config flow handler registered for domain '{domain}'")
+      raise ValueError(f"No config flow handler registered for domain '{domain}'")  # noqa: E111
 
     handler = handler_cls()
     handler.hass = self._hass
@@ -811,18 +811,18 @@ class _FlowManager:
     method_name = f"async_step_{source}"
     step = getattr(handler, method_name, None)
     if step is None:
-      return handler.async_abort(reason="unknown_step")
+      return handler.async_abort(reason="unknown_step")  # noqa: E111
 
     try:
-      if source == "user":
+      if source == "user":  # noqa: E111
         return await step(data)
-      return await step(data or {})
+      return await step(data or {})  # noqa: E111
     except _AbortFlow as abort:
-      return handler.async_abort(reason=abort.reason)
+      return handler.async_abort(reason=abort.reason)  # noqa: E111
 
 
 class DeviceInfo(dict):
-  """Match Home Assistant's mapping-style device info container."""
+  """Match Home Assistant's mapping-style device info container."""  # noqa: E111
 
 
 FlowResult = dict[str, object]
@@ -830,22 +830,22 @@ MutableFlowResultDict = dict[str, object]
 
 
 class FlowResultType(StrEnum):
-  """Subset of flow result types used by tests."""
+  """Subset of flow result types used by tests."""  # noqa: E111
 
-  FORM = "form"
-  CREATE_ENTRY = "create_entry"
-  ABORT = "abort"
-  MENU = "menu"
-  EXTERNAL = "external"
-  EXTERNAL_DONE = "external_done"
-  SHOW_PROGRESS = "progress"
-  SHOW_PROGRESS_DONE = "progress_done"
+  FORM = "form"  # noqa: E111
+  CREATE_ENTRY = "create_entry"  # noqa: E111
+  ABORT = "abort"  # noqa: E111
+  MENU = "menu"  # noqa: E111
+  EXTERNAL = "external"  # noqa: E111
+  EXTERNAL_DONE = "external_done"  # noqa: E111
+  SHOW_PROGRESS = "progress"  # noqa: E111
+  SHOW_PROGRESS_DONE = "progress_done"  # noqa: E111
 
 
 class DeviceEntry:
-  """Simple device registry entry stub."""
+  """Simple device registry entry stub."""  # noqa: E111
 
-  def __init__(self, **kwargs: object) -> None:
+  def __init__(self, **kwargs: object) -> None:  # noqa: E111
     self.id = kwargs.get("id", "device")
     self.name = kwargs.get("name")
     self.manufacturer = kwargs.get("manufacturer")
@@ -874,31 +874,31 @@ class DeviceEntry:
     self.config_entries: set[str] = set()
     config_entry_id = kwargs.get("config_entry_id")
     if isinstance(config_entry_id, str):
-      self.config_entries.add(config_entry_id)
+      self.config_entries.add(config_entry_id)  # noqa: E111
     self.config_entries.update(
       entry for entry in kwargs.get("config_entries", set()) if isinstance(entry, str)
     )
     for key, value in kwargs.items():
-      if not hasattr(self, key):
+      if not hasattr(self, key):  # noqa: E111
         setattr(self, key, value)
 
 
 @dataclass(slots=True)
 class DeviceRegistryEvent:
-  """Event payload used by device registry listeners."""
+  """Event payload used by device registry listeners."""  # noqa: E111
 
-  action: str
-  device_id: str
+  action: str  # noqa: E111
+  device_id: str  # noqa: E111
 
 
 class DeviceRegistry:
-  """In-memory registry used by device tests."""
+  """In-memory registry used by device tests."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.devices: dict[str, DeviceEntry] = {}
     self._id_sequence = 0
 
-  def async_get_or_create(self, **kwargs: object) -> DeviceEntry:
+  def async_get_or_create(self, **kwargs: object) -> DeviceEntry:  # noqa: E111
     creation_kwargs = dict(kwargs)
     identifiers = set(creation_kwargs.get("identifiers", set()))
     connections = set(creation_kwargs.get("connections", set()))
@@ -914,13 +914,13 @@ class DeviceRegistry:
     )
 
     if stored is None and (identifiers or connections):
-      stored = self.async_get_device(
+      stored = self.async_get_device(  # noqa: E111
         identifiers=identifiers or None,
         connections=connections or None,
       )
 
     if stored is None:
-      stored = DeviceEntry(
+      stored = DeviceEntry(  # noqa: E111
         id=entry_id
         if isinstance(
           entry_id,
@@ -929,26 +929,26 @@ class DeviceRegistry:
         else self._next_device_id(),
         **creation_kwargs,
       )
-      self.devices.setdefault(stored.id, stored)
+      self.devices.setdefault(stored.id, stored)  # noqa: E111
 
     self._track_device_id(stored.id)
     self._update_device(stored, **creation_kwargs)
     return stored
 
-  def async_update_device(self, device_id: str, **kwargs: object) -> DeviceEntry:
+  def async_update_device(self, device_id: str, **kwargs: object) -> DeviceEntry:  # noqa: E111
     entry = self.devices.setdefault(device_id, DeviceEntry(id=device_id))
     self._update_device(entry, **kwargs)
     return entry
 
-  def async_remove_device(self, device_id: str) -> bool:
+  def async_remove_device(self, device_id: str) -> bool:  # noqa: E111
     """Remove a device by ID, mirroring Home Assistant's registry helper."""
 
     return self.devices.pop(device_id, None) is not None
 
-  def async_get(self, device_id: str) -> DeviceEntry | None:
+  def async_get(self, device_id: str) -> DeviceEntry | None:  # noqa: E111
     return self.devices.get(device_id)
 
-  def async_get_device(
+  def async_get_device(  # noqa: E111
     self,
     *,
     identifiers: set[tuple[str, str]] | None = None,
@@ -956,99 +956,99 @@ class DeviceRegistry:
     device_id: str | None = None,
   ) -> DeviceEntry | None:
     if isinstance(device_id, str) and device_id in self.devices:
-      return self.devices[device_id]
+      return self.devices[device_id]  # noqa: E111
 
     identifier_matches = identifiers or set()
     connection_matches = connections or set()
     if not identifier_matches and not connection_matches:
-      return None
+      return None  # noqa: E111
 
     for device in self.devices.values():
-      if (device.identifiers & identifier_matches) or (
+      if (device.identifiers & identifier_matches) or (  # noqa: E111
         device.connections & connection_matches
       ):
         return device
 
     return None
 
-  def async_entries_for_config_entry(self, entry_id: str) -> list[DeviceEntry]:
+  def async_entries_for_config_entry(self, entry_id: str) -> list[DeviceEntry]:  # noqa: E111
     return [
       device for device in self.devices.values() if entry_id in device.config_entries
     ]
 
-  def async_listen(self, callback):  # type: ignore[no-untyped-def]
+  def async_listen(self, callback):  # type: ignore[no-untyped-def]  # noqa: E111
     return None
 
-  def _update_device(self, entry: DeviceEntry, **kwargs: object) -> None:
+  def _update_device(self, entry: DeviceEntry, **kwargs: object) -> None:  # noqa: E111
     if isinstance(kwargs.get("config_entry_id"), str):
-      entry.config_entries.add(kwargs["config_entry_id"])
+      entry.config_entries.add(kwargs["config_entry_id"])  # noqa: E111
     if "config_entries" in kwargs:
-      entry.config_entries.update(
+      entry.config_entries.update(  # noqa: E111
         entry_id for entry_id in kwargs["config_entries"] if isinstance(entry_id, str)
       )
     if "name" in kwargs:
-      entry.name = kwargs["name"]
+      entry.name = kwargs["name"]  # noqa: E111
     if "manufacturer" in kwargs:
-      entry.manufacturer = kwargs["manufacturer"]
+      entry.manufacturer = kwargs["manufacturer"]  # noqa: E111
     if "model" in kwargs:
-      entry.model = kwargs["model"]
+      entry.model = kwargs["model"]  # noqa: E111
     if "model_id" in kwargs:
-      entry.model_id = kwargs["model_id"]
+      entry.model_id = kwargs["model_id"]  # noqa: E111
     if "sw_version" in kwargs:
-      entry.sw_version = kwargs["sw_version"]
+      entry.sw_version = kwargs["sw_version"]  # noqa: E111
     if "via_device_id" in kwargs:
-      entry.via_device_id = kwargs["via_device_id"]
+      entry.via_device_id = kwargs["via_device_id"]  # noqa: E111
     if "configuration_url" in kwargs:
-      entry.configuration_url = kwargs["configuration_url"]
+      entry.configuration_url = kwargs["configuration_url"]  # noqa: E111
     if "area_id" in kwargs:
-      entry.area_id = kwargs["area_id"]
+      entry.area_id = kwargs["area_id"]  # noqa: E111
     if "suggested_area" in kwargs:
-      entry.suggested_area = kwargs["suggested_area"]
+      entry.suggested_area = kwargs["suggested_area"]  # noqa: E111
     if "disabled_by" in kwargs:
-      entry.disabled_by = kwargs["disabled_by"]
+      entry.disabled_by = kwargs["disabled_by"]  # noqa: E111
     if "primary_config_entry" in kwargs:
-      entry.primary_config_entry = kwargs["primary_config_entry"]
+      entry.primary_config_entry = kwargs["primary_config_entry"]  # noqa: E111
     if "hw_version" in kwargs:
-      entry.hw_version = kwargs["hw_version"]
+      entry.hw_version = kwargs["hw_version"]  # noqa: E111
     if "serial_number" in kwargs:
-      entry.serial_number = kwargs["serial_number"]
+      entry.serial_number = kwargs["serial_number"]  # noqa: E111
     if "identifiers" in kwargs:
-      entry.identifiers.update(set(kwargs["identifiers"]))
+      entry.identifiers.update(set(kwargs["identifiers"]))  # noqa: E111
     if "connections" in kwargs:
-      entry.connections.update(set(kwargs["connections"]))
+      entry.connections.update(set(kwargs["connections"]))  # noqa: E111
     if "name_by_user" in kwargs:
-      entry.name_by_user = kwargs["name_by_user"]
+      entry.name_by_user = kwargs["name_by_user"]  # noqa: E111
     if "entry_type" in kwargs:
-      entry.entry_type = kwargs["entry_type"]
+      entry.entry_type = kwargs["entry_type"]  # noqa: E111
     if "preferred_area_id" in kwargs:
-      entry.preferred_area_id = kwargs["preferred_area_id"]
+      entry.preferred_area_id = kwargs["preferred_area_id"]  # noqa: E111
     if "created_at" in kwargs:
-      entry.created_at = kwargs["created_at"]
+      entry.created_at = kwargs["created_at"]  # noqa: E111
     if "modified_at" in kwargs:
-      entry.modified_at = kwargs["modified_at"]
+      entry.modified_at = kwargs["modified_at"]  # noqa: E111
     elif kwargs:
-      entry.modified_at = _utcnow()
+      entry.modified_at = _utcnow()  # noqa: E111
     for key, value in kwargs.items():
-      if not hasattr(entry, key):
+      if not hasattr(entry, key):  # noqa: E111
         setattr(entry, key, value)
 
-  def _track_device_id(self, device_id: str) -> None:
+  def _track_device_id(self, device_id: str) -> None:  # noqa: E111
     match = re.fullmatch(r"device-(\d+)", device_id)
     if match:
-      self._id_sequence = max(self._id_sequence, int(match.group(1)))
+      self._id_sequence = max(self._id_sequence, int(match.group(1)))  # noqa: E111
 
-  def _next_device_id(self) -> str:
+  def _next_device_id(self) -> str:  # noqa: E111
     self._id_sequence += 1
     return f"device-{self._id_sequence}"
 
 
 def _async_get_device_registry(*args: object, **kwargs: object) -> DeviceRegistry:
-  global _DEVICE_REGISTRY
+  global _DEVICE_REGISTRY  # noqa: E111
 
-  if _DEVICE_REGISTRY is None:
+  if _DEVICE_REGISTRY is None:  # noqa: E111
     _DEVICE_REGISTRY = DeviceRegistry()
 
-  return _DEVICE_REGISTRY
+  return _DEVICE_REGISTRY  # noqa: E111
 
 
 def _async_get_device_by_hints(
@@ -1058,7 +1058,7 @@ def _async_get_device_by_hints(
   connections: Iterable[tuple[str, str]] | None = None,
   device_id: str | None = None,
 ) -> DeviceEntry | None:
-  return registry.async_get_device(
+  return registry.async_get_device(  # noqa: E111
     identifiers=set(identifiers or set()),
     connections=set(connections or set()),
     device_id=device_id,
@@ -1069,20 +1069,20 @@ def _async_entries_for_device_config(
   registry: DeviceRegistry,
   entry_id: str,
 ) -> list[DeviceEntry]:
-  return registry.async_entries_for_config_entry(entry_id)
+  return registry.async_entries_for_config_entry(entry_id)  # noqa: E111
 
 
 def _async_remove_device_entry(registry: DeviceRegistry, device_id: str) -> bool:
-  return registry.async_remove_device(device_id)
+  return registry.async_remove_device(device_id)  # noqa: E111
 
 
 def _async_get_issue_registry(*args: object, **kwargs: object) -> IssueRegistry:
-  global _ISSUE_REGISTRY
+  global _ISSUE_REGISTRY  # noqa: E111
 
-  if _ISSUE_REGISTRY is None:
+  if _ISSUE_REGISTRY is None:  # noqa: E111
     _ISSUE_REGISTRY = IssueRegistry()
 
-  return _ISSUE_REGISTRY
+  return _ISSUE_REGISTRY  # noqa: E111
 
 
 def _async_create_issue(
@@ -1103,8 +1103,8 @@ def _async_create_issue(
   data: dict[str, object] | None = None,
   dismissed_version: str | None = None,
 ) -> dict[str, object]:
-  registry = _async_get_issue_registry(hass)
-  return registry.async_create_issue(
+  registry = _async_get_issue_registry(hass)  # noqa: E111
+  return registry.async_create_issue(  # noqa: E111
     domain,
     issue_id,
     active=active,
@@ -1123,8 +1123,8 @@ def _async_create_issue(
 
 
 def _async_delete_issue(hass: object, domain: str, issue_id: str) -> bool:
-  registry = _async_get_issue_registry(hass)
-  return registry.async_delete_issue(domain, issue_id)
+  registry = _async_get_issue_registry(hass)  # noqa: E111
+  return registry.async_delete_issue(domain, issue_id)  # noqa: E111
 
 
 def _async_get_issue(
@@ -1132,8 +1132,8 @@ def _async_get_issue(
   domain: str,
   issue_id: str,
 ) -> dict[str, object] | None:
-  registry = _async_get_issue_registry(hass)
-  return registry.async_get_issue(domain, issue_id)
+  registry = _async_get_issue_registry(hass)  # noqa: E111
+  return registry.async_get_issue(domain, issue_id)  # noqa: E111
 
 
 def _async_ignore_issue(
@@ -1142,17 +1142,17 @@ def _async_ignore_issue(
   issue_id: str,
   ignore: bool,
 ) -> dict[str, object]:
-  registry = _async_get_issue_registry(hass)
-  return registry.async_ignore_issue(domain, issue_id, ignore)
+  registry = _async_get_issue_registry(hass)  # noqa: E111
+  return registry.async_ignore_issue(domain, issue_id, ignore)  # noqa: E111
 
 
 class IssueRegistry:
-  """Minimal Home Assistant issue registry stub."""
+  """Minimal Home Assistant issue registry stub."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.issues: dict[tuple[str, str], dict[str, object]] = {}
 
-  def async_create_issue(
+  def async_create_issue(  # noqa: E111
     self,
     domain: str,
     issue_id: str,
@@ -1190,18 +1190,18 @@ class IssueRegistry:
     )
     data_value: dict[str, object] | None
     if data is not None:
-      data_value = dict(data)
+      data_value = dict(data)  # noqa: E111
     else:
-      data_value = (
+      data_value = (  # noqa: E111
         dict(existing_data)
         if (existing_data := existing.get("data")) is not None
         else None
       )
     translation_placeholders_value: dict[str, object] | None
     if translation_placeholders is not None:
-      translation_placeholders_value = dict(translation_placeholders)
+      translation_placeholders_value = dict(translation_placeholders)  # noqa: E111
     else:
-      translation_placeholders_value = (
+      translation_placeholders_value = (  # noqa: E111
         dict(existing_placeholders)
         if (existing_placeholders := existing.get("translation_placeholders"))
         is not None
@@ -1214,9 +1214,9 @@ class IssueRegistry:
     )
     dismissed_at = existing.get("dismissed")
     if dismissed_version is not None:
-      dismissed_at = dismissed_at or _utcnow()
+      dismissed_at = dismissed_at or _utcnow()  # noqa: E111
     if dismissed_version is None and dismissed_version_value is None:
-      dismissed_at = None
+      dismissed_at = None  # noqa: E111
     details = {
       **existing,
       "active": active if active is not None else existing.get("active", True),
@@ -1254,7 +1254,7 @@ class IssueRegistry:
     self.issues[key] = details
     return details
 
-  def async_ignore_issue(
+  def async_ignore_issue(  # noqa: E111
     self,
     domain: str,
     issue_id: str,
@@ -1262,8 +1262,8 @@ class IssueRegistry:
   ) -> dict[str, object]:
     key = (domain, issue_id)
     if key not in self.issues:
-      msg = f"Issue {domain}/{issue_id} not found"
-      raise KeyError(msg)
+      msg = f"Issue {domain}/{issue_id} not found"  # noqa: E111
+      raise KeyError(msg)  # noqa: E111
 
     details = dict(self.issues[key])
     dismissed_version_value = HOME_ASSISTANT_VERSION if ignore else None
@@ -1272,7 +1272,7 @@ class IssueRegistry:
       details.get("dismissed_version") == dismissed_version_value
       and details.get("ignored") is ignore
     ):
-      return details
+      return details  # noqa: E111
 
     details["dismissed_version"] = dismissed_version_value
     details["dismissed"] = _utcnow() if ignore else None
@@ -1281,22 +1281,22 @@ class IssueRegistry:
     self.issues[key] = details
     return details
 
-  def async_delete_issue(self, domain: str, issue_id: str) -> bool:
+  def async_delete_issue(self, domain: str, issue_id: str) -> bool:  # noqa: E111
     return self.issues.pop((domain, issue_id), None) is not None
 
-  def async_get_issue(self, domain: str, issue_id: str) -> dict[str, object] | None:
+  def async_get_issue(self, domain: str, issue_id: str) -> dict[str, object] | None:  # noqa: E111
     return self.issues.get((domain, issue_id))
 
 
 class RegistryEntry:
-  """Entity registry entry stub."""
+  """Entity registry entry stub."""  # noqa: E111
 
-  def __init__(self, entity_id: str, **kwargs: object) -> None:
+  def __init__(self, entity_id: str, **kwargs: object) -> None:  # noqa: E111
     self.entity_id = entity_id
     self.device_id = kwargs.get("device_id")
     self.config_entries: set[str] = set()
     if isinstance(kwargs.get("config_entry_id"), str):
-      self.config_entries.add(kwargs["config_entry_id"])
+      self.config_entries.add(kwargs["config_entry_id"])  # noqa: E111
     self.config_entries.update(
       entry for entry in kwargs.get("config_entries", set()) if isinstance(entry, str)
     )
@@ -1331,26 +1331,26 @@ class RegistryEntry:
       or self.created_at
     )
     for key, value in kwargs.items():
-      if not hasattr(self, key):
+      if not hasattr(self, key):  # noqa: E111
         setattr(self, key, value)
 
 
 class EntityRegistry:
-  """Simple entity registry storing entries in a dict."""
+  """Simple entity registry storing entries in a dict."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.entities: dict[str, RegistryEntry] = {}
 
-  def async_get(self, entity_id: str) -> RegistryEntry | None:
+  def async_get(self, entity_id: str) -> RegistryEntry | None:  # noqa: E111
     return self.entities.get(entity_id)
 
-  def async_get_or_create(self, entity_id: str, **kwargs: object) -> RegistryEntry:
+  def async_get_or_create(self, entity_id: str, **kwargs: object) -> RegistryEntry:  # noqa: E111
     unique_id = kwargs.get("unique_id")
     platform = kwargs.get("platform")
 
     entry = self.entities.get(entity_id)
     if entry is None and unique_id is not None:
-      entry = next(
+      entry = next(  # noqa: E111
         (
           candidate
           for candidate in self.entities.values()
@@ -1361,187 +1361,187 @@ class EntityRegistry:
       )
 
     if entry is None:
-      entry = RegistryEntry(entity_id, **kwargs)
-      self.entities[entity_id] = entry
+      entry = RegistryEntry(entity_id, **kwargs)  # noqa: E111
+      self.entities[entity_id] = entry  # noqa: E111
 
     self._update_entry(entry, **kwargs)
     return entry
 
-  def async_update_entity(self, entity_id: str, **kwargs: object) -> RegistryEntry:
+  def async_update_entity(self, entity_id: str, **kwargs: object) -> RegistryEntry:  # noqa: E111
     entry = self.entities.setdefault(entity_id, RegistryEntry(entity_id))
     self._update_entry(entry, **kwargs)
     return entry
 
-  def async_entries_for_config_entry(self, entry_id: str) -> list[RegistryEntry]:
+  def async_entries_for_config_entry(self, entry_id: str) -> list[RegistryEntry]:  # noqa: E111
     return [
       entity for entity in self.entities.values() if entry_id in entity.config_entries
     ]
 
-  def async_entries_for_device(self, device_id: str) -> list[RegistryEntry]:
+  def async_entries_for_device(self, device_id: str) -> list[RegistryEntry]:  # noqa: E111
     return [
       entity for entity in self.entities.values() if entity.device_id == device_id
     ]
 
-  def async_remove(self, entity_id: str) -> bool:
+  def async_remove(self, entity_id: str) -> bool:  # noqa: E111
     """Remove an entity by ID, mirroring Home Assistant's registry helper."""
 
     return self.entities.pop(entity_id, None) is not None
 
-  def async_listen(self, callback):  # type: ignore[no-untyped-def]
+  def async_listen(self, callback):  # type: ignore[no-untyped-def]  # noqa: E111
     return None
 
-  def _update_entry(self, entry: RegistryEntry, **kwargs: object) -> None:
+  def _update_entry(self, entry: RegistryEntry, **kwargs: object) -> None:  # noqa: E111
     if isinstance(kwargs.get("config_entry_id"), str):
-      entry.config_entries.add(kwargs["config_entry_id"])
+      entry.config_entries.add(kwargs["config_entry_id"])  # noqa: E111
     if "config_entries" in kwargs:
-      entry.config_entries.update(
+      entry.config_entries.update(  # noqa: E111
         entry_id for entry_id in kwargs["config_entries"] if isinstance(entry_id, str)
       )
     if "device_id" in kwargs:
-      entry.device_id = kwargs["device_id"]
+      entry.device_id = kwargs["device_id"]  # noqa: E111
     if "unique_id" in kwargs:
-      entry.unique_id = kwargs["unique_id"]
+      entry.unique_id = kwargs["unique_id"]  # noqa: E111
     if "platform" in kwargs:
-      entry.platform = kwargs["platform"]
+      entry.platform = kwargs["platform"]  # noqa: E111
     if "original_name" in kwargs:
-      entry.original_name = kwargs["original_name"]
+      entry.original_name = kwargs["original_name"]  # noqa: E111
     if "name" in kwargs:
-      entry.name = kwargs["name"]
+      entry.name = kwargs["name"]  # noqa: E111
     if "original_device_class" in kwargs:
-      entry.original_device_class = kwargs["original_device_class"]
+      entry.original_device_class = kwargs["original_device_class"]  # noqa: E111
     if "device_class" in kwargs:
-      entry.device_class = kwargs["device_class"]
+      entry.device_class = kwargs["device_class"]  # noqa: E111
     if "translation_key" in kwargs:
-      entry.translation_key = kwargs["translation_key"]
+      entry.translation_key = kwargs["translation_key"]  # noqa: E111
     if "has_entity_name" in kwargs:
-      entry.has_entity_name = kwargs["has_entity_name"]
+      entry.has_entity_name = kwargs["has_entity_name"]  # noqa: E111
     if "area_id" in kwargs:
-      entry.area_id = kwargs["area_id"]
+      entry.area_id = kwargs["area_id"]  # noqa: E111
     if "disabled_by" in kwargs:
-      entry.disabled_by = kwargs["disabled_by"]
+      entry.disabled_by = kwargs["disabled_by"]  # noqa: E111
     if "entity_category" in kwargs:
-      entry.entity_category = kwargs["entity_category"]
+      entry.entity_category = kwargs["entity_category"]  # noqa: E111
     if "icon" in kwargs:
-      entry.icon = kwargs["icon"]
+      entry.icon = kwargs["icon"]  # noqa: E111
     if "original_icon" in kwargs:
-      entry.original_icon = kwargs["original_icon"]
+      entry.original_icon = kwargs["original_icon"]  # noqa: E111
     if "aliases" in kwargs:
-      entry.aliases = set(kwargs["aliases"])
+      entry.aliases = set(kwargs["aliases"])  # noqa: E111
     if "hidden_by" in kwargs:
-      entry.hidden_by = kwargs["hidden_by"]
+      entry.hidden_by = kwargs["hidden_by"]  # noqa: E111
     if "preferred_area_id" in kwargs:
-      entry.preferred_area_id = kwargs["preferred_area_id"]
+      entry.preferred_area_id = kwargs["preferred_area_id"]  # noqa: E111
     if "options" in kwargs:
-      entry.options = dict(kwargs["options"])
+      entry.options = dict(kwargs["options"])  # noqa: E111
     if "capabilities" in kwargs:
-      entry.capabilities = dict(kwargs["capabilities"])
+      entry.capabilities = dict(kwargs["capabilities"])  # noqa: E111
     if "supported_features" in kwargs:
-      entry.supported_features = kwargs["supported_features"]
+      entry.supported_features = kwargs["supported_features"]  # noqa: E111
     if "unit_of_measurement" in kwargs:
-      entry.unit_of_measurement = kwargs["unit_of_measurement"]
+      entry.unit_of_measurement = kwargs["unit_of_measurement"]  # noqa: E111
     if "original_unit_of_measurement" in kwargs:
-      entry.original_unit_of_measurement = kwargs["original_unit_of_measurement"]
+      entry.original_unit_of_measurement = kwargs["original_unit_of_measurement"]  # noqa: E111
     if "created_at" in kwargs:
-      entry.created_at = kwargs["created_at"]
+      entry.created_at = kwargs["created_at"]  # noqa: E111
     if "modified_at" in kwargs:
-      entry.modified_at = kwargs["modified_at"]
+      entry.modified_at = kwargs["modified_at"]  # noqa: E111
     elif kwargs:
-      entry.modified_at = _utcnow()
+      entry.modified_at = _utcnow()  # noqa: E111
     for key, value in kwargs.items():
-      if not hasattr(entry, key):
+      if not hasattr(entry, key):  # noqa: E111
         setattr(entry, key, value)
 
 
 @dataclass(slots=True)
 class EntityRegistryEvent:
-  """Event payload used by entity registry listeners."""
+  """Event payload used by entity registry listeners."""  # noqa: E111
 
-  action: str
-  entity_id: str
+  action: str  # noqa: E111
+  entity_id: str  # noqa: E111
 
 
 def _async_get_entity_registry(*args: object, **kwargs: object) -> EntityRegistry:
-  global _ENTITY_REGISTRY
+  global _ENTITY_REGISTRY  # noqa: E111
 
-  if _ENTITY_REGISTRY is None:
+  if _ENTITY_REGISTRY is None:  # noqa: E111
     _ENTITY_REGISTRY = EntityRegistry()
 
-  return _ENTITY_REGISTRY
+  return _ENTITY_REGISTRY  # noqa: E111
 
 
 def _async_entries_for_registry_config(
   registry: EntityRegistry,
   entry_id: str,
 ) -> list[RegistryEntry]:
-  return registry.async_entries_for_config_entry(entry_id)
+  return registry.async_entries_for_config_entry(entry_id)  # noqa: E111
 
 
 def _async_entries_for_registry_device(
   registry: EntityRegistry,
   device_id: str,
 ) -> list[RegistryEntry]:
-  return registry.async_entries_for_device(device_id)
+  return registry.async_entries_for_device(device_id)  # noqa: E111
 
 
 def _async_remove_registry_entry(registry: EntityRegistry, entity_id: str) -> bool:
-  return registry.async_remove(entity_id)
+  return registry.async_remove(entity_id)  # noqa: E111
 
 
 class Store:
-  """Persistence helper used by coordinator storage tests."""
+  """Persistence helper used by coordinator storage tests."""  # noqa: E111
 
-  def __init__(self, *args: object, **kwargs: object) -> None:
+  def __init__(self, *args: object, **kwargs: object) -> None:  # noqa: E111
     _ = args, kwargs
     self.data: object | None = None
 
-  async def async_load(self) -> object | None:
+  async def async_load(self) -> object | None:  # noqa: E111
     return self.data
 
-  async def async_save(self, data: object) -> None:
+  async def async_save(self, data: object) -> None:  # noqa: E111
     self.data = data
 
 
 def async_dispatcher_connect(
   hass: HomeAssistant, signal: str, target: Callable
 ) -> Callable:
-  """Minimal dispatcher connect helper used by service wiring."""
+  """Minimal dispatcher connect helper used by service wiring."""  # noqa: E111
 
-  dispatcher = hass.data.setdefault("_dispatcher", {})
-  listeners = dispatcher.setdefault(signal, [])
-  listeners.append(target)
+  dispatcher = hass.data.setdefault("_dispatcher", {})  # noqa: E111
+  listeners = dispatcher.setdefault(signal, [])  # noqa: E111
+  listeners.append(target)  # noqa: E111
 
-  def _unsubscribe() -> None:
+  def _unsubscribe() -> None:  # noqa: E111
     if target in listeners:
-      listeners.remove(target)
+      listeners.remove(target)  # noqa: E111
 
-  return _unsubscribe
+  return _unsubscribe  # noqa: E111
 
 
 class Entity:
-  """Base entity stub."""
+  """Base entity stub."""  # noqa: E111
 
-  hass: HomeAssistant | None = None
+  hass: HomeAssistant | None = None  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self._attr_available = True
     self._attr_extra_state_attributes: dict[str, object] = {}
 
-  @property
-  def extra_state_attributes(self) -> dict[str, object]:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> dict[str, object]:  # noqa: E111
     return dict(getattr(self, "_attr_extra_state_attributes", {}))
 
-  @property
-  def available(self) -> bool:
+  @property  # noqa: E111
+  def available(self) -> bool:  # noqa: E111
     return bool(getattr(self, "_attr_available", True))
 
-  def async_write_ha_state(self) -> None:
+  def async_write_ha_state(self) -> None:  # noqa: E111
     return None
 
 
 class RestoreEntity(Entity):
-  """Mixin stub for state restoration helpers."""
+  """Mixin stub for state restoration helpers."""  # noqa: E111
 
-  async def async_get_last_state(self) -> State | None:
+  async def async_get_last_state(self) -> State | None:  # noqa: E111
     return None
 
 
@@ -1549,241 +1549,241 @@ EntityT = TypeVar("EntityT", bound=Entity)
 
 
 class EntityComponent[EntityT: Entity]:
-  """Minimal entity component container."""
+  """Minimal entity component container."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self._entities: dict[str, EntityT] = {}
 
-  def get_entity(self, entity_id: str) -> EntityT | None:
+  def get_entity(self, entity_id: str) -> EntityT | None:  # noqa: E111
     return self._entities.get(entity_id)
 
-  async def async_add_entities(self, entities: Iterable[EntityT]) -> None:
+  async def async_add_entities(self, entities: Iterable[EntityT]) -> None:  # noqa: E111
     for entity in entities:
-      entity_id = getattr(entity, "entity_id", None)
-      if entity_id is None:
+      entity_id = getattr(entity, "entity_id", None)  # noqa: E111
+      if entity_id is None:  # noqa: E111
         entity_id = getattr(entity, "_attr_unique_id", None)
-      if entity_id is None:
+      if entity_id is None:  # noqa: E111
         entity_id = f"entity.{len(self._entities)}"
-      self._entities[str(entity_id)] = entity
+      self._entities[str(entity_id)] = entity  # noqa: E111
 
-  async def async_remove_entity(self, entity_id: str) -> None:
+  async def async_remove_entity(self, entity_id: str) -> None:  # noqa: E111
     self._entities.pop(entity_id, None)
 
 
 class SensorEntity(Entity):
-  """Sensor entity stub."""
+  """Sensor entity stub."""  # noqa: E111
 
 
 class BinarySensorEntity(Entity):
-  """Binary sensor entity stub."""
+  """Binary sensor entity stub."""  # noqa: E111
 
 
 class ButtonEntity(Entity):
-  """Button entity stub."""
+  """Button entity stub."""  # noqa: E111
 
 
 class SwitchEntity(Entity):
-  """Switch entity stub."""
+  """Switch entity stub."""  # noqa: E111
 
 
 class NumberEntity(Entity):
-  """Number entity stub."""
+  """Number entity stub."""  # noqa: E111
 
 
 class SelectEntity(Entity):
-  """Select entity stub."""
+  """Select entity stub."""  # noqa: E111
 
-  @property
-  def options(self) -> list[str]:
+  @property  # noqa: E111
+  def options(self) -> list[str]:  # noqa: E111
     return list(getattr(self, "_attr_options", []))
 
 
 class TextEntity(Entity):
-  """Text entity stub."""
+  """Text entity stub."""  # noqa: E111
 
 
 class DateEntity(Entity):
-  """Date entity stub."""
+  """Date entity stub."""  # noqa: E111
 
 
 class DateTimeEntity(Entity):
-  """Datetime entity stub."""
+  """Datetime entity stub."""  # noqa: E111
 
 
 class TrackerEntity(Entity):
-  """Device tracker entity stub."""
+  """Device tracker entity stub."""  # noqa: E111
 
 
 class ScriptEntity(Entity):
-  """Script entity stub."""
+  """Script entity stub."""  # noqa: E111
 
 
 @dataclass
 class EntityDescription:
-  """Minimal entity description container."""
+  """Minimal entity description container."""  # noqa: E111
 
-  key: str
-  translation_key: str | None = None
-  device_class: object | None = None
-  entity_category: EntityCategory | None = None
-  native_unit_of_measurement: str | None = None
-  icon: str | None = None
-  state_class: object | None = None
-  suggested_display_precision: int | None = None
+  key: str  # noqa: E111
+  translation_key: str | None = None  # noqa: E111
+  device_class: object | None = None  # noqa: E111
+  entity_category: EntityCategory | None = None  # noqa: E111
+  native_unit_of_measurement: str | None = None  # noqa: E111
+  icon: str | None = None  # noqa: E111
+  state_class: object | None = None  # noqa: E111
+  suggested_display_precision: int | None = None  # noqa: E111
 
 
 class SensorEntityDescription(EntityDescription):
-  """Sensor entity description stub."""
+  """Sensor entity description stub."""  # noqa: E111
 
 
 class BinarySensorEntityDescription(EntityDescription):
-  """Binary sensor entity description stub."""
+  """Binary sensor entity description stub."""  # noqa: E111
 
 
 class ButtonEntityDescription(EntityDescription):
-  """Button entity description stub."""
+  """Button entity description stub."""  # noqa: E111
 
 
 class SwitchEntityDescription(EntityDescription):
-  """Switch entity description stub."""
+  """Switch entity description stub."""  # noqa: E111
 
 
 class NumberEntityDescription(EntityDescription):
-  """Number entity description stub."""
+  """Number entity description stub."""  # noqa: E111
 
 
 class SelectEntityDescription(EntityDescription):
-  """Select entity description stub."""
+  """Select entity description stub."""  # noqa: E111
 
 
 class TextEntityDescription(EntityDescription):
-  """Text entity description stub."""
+  """Text entity description stub."""  # noqa: E111
 
 
 class DateEntityDescription(EntityDescription):
-  """Date entity description stub."""
+  """Date entity description stub."""  # noqa: E111
 
 
 class DateTimeEntityDescription(EntityDescription):
-  """Datetime entity description stub."""
+  """Datetime entity description stub."""  # noqa: E111
 
 
 class SensorDeviceClass(StrEnum):
-  TEMPERATURE = "temperature"
-  HUMIDITY = "humidity"
-  TIMESTAMP = "timestamp"
-  DURATION = "duration"
-  BATTERY = "battery"
-  WEIGHT = "weight"
+  TEMPERATURE = "temperature"  # noqa: E111
+  HUMIDITY = "humidity"  # noqa: E111
+  TIMESTAMP = "timestamp"  # noqa: E111
+  DURATION = "duration"  # noqa: E111
+  BATTERY = "battery"  # noqa: E111
+  WEIGHT = "weight"  # noqa: E111
 
 
 class SensorStateClass(StrEnum):
-  MEASUREMENT = "measurement"
-  TOTAL = "total"
-  TOTAL_INCREASING = "total_increasing"
+  MEASUREMENT = "measurement"  # noqa: E111
+  TOTAL = "total"  # noqa: E111
+  TOTAL_INCREASING = "total_increasing"  # noqa: E111
 
 
 class BinarySensorDeviceClass(StrEnum):
-  MOTION = "motion"
-  PROBLEM = "problem"
-  CONNECTIVITY = "connectivity"
-  RUNNING = "running"
-  PRESENCE = "presence"
-  SAFETY = "safety"
-  BATTERY = "battery"
+  MOTION = "motion"  # noqa: E111
+  PROBLEM = "problem"  # noqa: E111
+  CONNECTIVITY = "connectivity"  # noqa: E111
+  RUNNING = "running"  # noqa: E111
+  PRESENCE = "presence"  # noqa: E111
+  SAFETY = "safety"  # noqa: E111
+  BATTERY = "battery"  # noqa: E111
 
 
 class ButtonDeviceClass(StrEnum):
-  RESTART = "restart"
-  UPDATE = "update"
-  IDENTIFY = "identify"
+  RESTART = "restart"  # noqa: E111
+  UPDATE = "update"  # noqa: E111
+  IDENTIFY = "identify"  # noqa: E111
 
 
 class SwitchDeviceClass(StrEnum):
-  SWITCH = "switch"
+  SWITCH = "switch"  # noqa: E111
 
 
 class NumberDeviceClass(StrEnum):
-  DISTANCE = "distance"
-  DURATION = "duration"
-  TEMPERATURE = "temperature"
-  WEIGHT = "weight"
+  DISTANCE = "distance"  # noqa: E111
+  DURATION = "duration"  # noqa: E111
+  TEMPERATURE = "temperature"  # noqa: E111
+  WEIGHT = "weight"  # noqa: E111
 
 
 class NumberMode(StrEnum):
-  AUTO = "auto"
-  BOX = "box"
-  SLIDER = "slider"
+  AUTO = "auto"  # noqa: E111
+  BOX = "box"  # noqa: E111
+  SLIDER = "slider"  # noqa: E111
 
 
 class TextMode(StrEnum):
-  TEXT = "text"
-  PASSWORD = "password"
+  TEXT = "text"  # noqa: E111
+  PASSWORD = "password"  # noqa: E111
 
 
 class SourceType(StrEnum):
-  GPS = "gps"
+  GPS = "gps"  # noqa: E111
 
 
 class WeatherEntity(Entity):
-  """Weather entity stub."""
+  """Weather entity stub."""  # noqa: E111
 
 
 def _config_entry_only_config_schema(domain: str):
-  def _schema(data: object) -> object:
+  def _schema(data: object) -> object:  # noqa: E111
     return data
 
-  return _schema
+  return _schema  # noqa: E111
 
 
 def _cv_string(value: Any) -> str:
-  """Coerce values to strings for config validation."""
+  """Coerce values to strings for config validation."""  # noqa: E111
 
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     return value
-  return str(value)
+  return str(value)  # noqa: E111
 
 
 def _cv_boolean(value: Any) -> bool:
-  """Coerce values to booleans for config validation."""
+  """Coerce values to booleans for config validation."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     return value
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     lowered = value.strip().lower()
     if lowered in {"1", "true", "yes", "on"}:
-      return True
+      return True  # noqa: E111
     if lowered in {"0", "false", "no", "off"}:
-      return False
-  if isinstance(value, (int, float)):
+      return False  # noqa: E111
+  if isinstance(value, (int, float)):  # noqa: E111
     return bool(value)
-  raise ValueError(value)
+  raise ValueError(value)  # noqa: E111
 
 
 def _cv_date(value: Any) -> date:
-  """Coerce values to dates for config validation."""
+  """Coerce values to dates for config validation."""  # noqa: E111
 
-  if isinstance(value, date) and not isinstance(value, datetime):
+  if isinstance(value, date) and not isinstance(value, datetime):  # noqa: E111
     return value
-  if isinstance(value, datetime):
+  if isinstance(value, datetime):  # noqa: E111
     return value.date()
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     return date.fromisoformat(value)
-  raise ValueError(value)
+  raise ValueError(value)  # noqa: E111
 
 
 def _cv_datetime(value: Any) -> datetime:
-  """Coerce values to datetimes for config validation."""
+  """Coerce values to datetimes for config validation."""  # noqa: E111
 
-  if isinstance(value, datetime):
+  if isinstance(value, datetime):  # noqa: E111
     return value
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     return datetime.fromisoformat(value)
-  raise ValueError(value)
+  raise ValueError(value)  # noqa: E111
 
 
 class _AsyncFile:
-  def __init__(self, handle: Any) -> None:
+  def __init__(self, handle: Any) -> None:  # noqa: E111
     self._handle = handle
     self.name = getattr(handle, "name", None)
     self.mode = getattr(handle, "mode", None)
@@ -1798,22 +1798,22 @@ class _AsyncFile:
     self.flush = AsyncMock(side_effect=handle.flush)
     self.close = AsyncMock(side_effect=handle.close)
 
-  def __getattr__(self, name: str) -> Any:
+  def __getattr__(self, name: str) -> Any:  # noqa: E111
     return getattr(self._handle, name)
 
-  def __aiter__(self) -> _AsyncFile:
+  def __aiter__(self) -> _AsyncFile:  # noqa: E111
     return self
 
-  async def __anext__(self) -> str:
+  async def __anext__(self) -> str:  # noqa: E111
     line = self._handle.readline()
     if not line:
-      raise StopAsyncIteration
+      raise StopAsyncIteration  # noqa: E111
     return line
 
-  async def __aenter__(self) -> _AsyncFile:
+  async def __aenter__(self) -> _AsyncFile:  # noqa: E111
     return self
 
-  async def __aexit__(
+  async def __aexit__(  # noqa: E111
     self,
     exc_type: type[BaseException] | None,
     exc: BaseException | None,
@@ -1823,52 +1823,52 @@ class _AsyncFile:
 
 
 def _async_file_handle(handle: Any) -> _AsyncFile:
-  """Return an async-compatible file handle wrapper."""
+  """Return an async-compatible file handle wrapper."""  # noqa: E111
 
-  return _AsyncFile(handle)
+  return _AsyncFile(handle)  # noqa: E111
 
 
 async def _async_get_clientsession(hass: object) -> object:
-  """Return a stub clientsession for aiohttp helper tests."""
+  """Return a stub clientsession for aiohttp helper tests."""  # noqa: E111
 
-  return object()
+  return object()  # noqa: E111
 
 
 def _async_make_resolver(hass: object) -> Callable[[str], object]:
-  """Return a zeroconf resolver stub compatible with HACC fixtures."""
+  """Return a zeroconf resolver stub compatible with HACC fixtures."""  # noqa: E111
 
-  def _resolve(host: str) -> object:
+  def _resolve(host: str) -> object:  # noqa: E111
     return host
 
-  return _resolve
+  return _resolve  # noqa: E111
 
 
 def _log_exception(format_err: Callable[..., str], *args: object) -> None:
-  """Mimic the logging helper Home Assistant exposes."""
+  """Mimic the logging helper Home Assistant exposes."""  # noqa: E111
 
-  format_err(*args)
+  format_err(*args)  # noqa: E111
 
 
 def _async_track_time_interval(*args: object, **kwargs: object):
-  return lambda: None
+  return lambda: None  # noqa: E111
 
 
 def _async_track_time_change(*args: object, **kwargs: object):
-  return lambda: None
+  return lambda: None  # noqa: E111
 
 
 def _async_call_later(*args: object, **kwargs: object):
-  return lambda: None
+  return lambda: None  # noqa: E111
 
 
 def _async_track_state_change_event(*args: object, **kwargs: object):
-  return lambda: None
+  return lambda: None  # noqa: E111
 
 
 class DataUpdateCoordinator:
-  """Simplified coordinator used by runtime data tests."""
+  """Simplified coordinator used by runtime data tests."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     hass: object,
     logger: object | None = None,
@@ -1880,33 +1880,33 @@ class DataUpdateCoordinator:
     self.logger = logger
     self.name = name or "stub"
 
-  async def async_config_entry_first_refresh(self) -> None:
+  async def async_config_entry_first_refresh(self) -> None:  # noqa: E111
     return None
 
-  async def async_request_refresh(self) -> None:
+  async def async_request_refresh(self) -> None:  # noqa: E111
     return None
 
-  @classmethod
-  def __class_getitem__(cls, item):  # pragma: no cover - helper stub
+  @classmethod  # noqa: E111
+  def __class_getitem__(cls, item):  # pragma: no cover - helper stub  # noqa: E111
     return cls
 
 
 class CoordinatorUpdateFailed(Exception):
-  """Error raised when DataUpdateCoordinator refreshes fail."""
+  """Error raised when DataUpdateCoordinator refreshes fail."""  # noqa: E111
 
 
 class CoordinatorEntity(Entity):
-  """Minimal CoordinatorEntity shim used by PawControl entities."""
+  """Minimal CoordinatorEntity shim used by PawControl entities."""  # noqa: E111
 
-  def __init__(self, coordinator: DataUpdateCoordinator) -> None:
+  def __init__(self, coordinator: DataUpdateCoordinator) -> None:  # noqa: E111
     super().__init__()
     self.coordinator = coordinator
 
-  def __class_getitem__(cls, item: object) -> type[CoordinatorEntity]:
+  def __class_getitem__(cls, item: object) -> type[CoordinatorEntity]:  # noqa: E111
     return cls
 
-  @property
-  def available(self) -> bool:
+  @property  # noqa: E111
+  def available(self) -> bool:  # noqa: E111
     if (
       last_update_success := getattr(
         self.coordinator,
@@ -1914,108 +1914,108 @@ class CoordinatorEntity(Entity):
         None,
       )
     ) is not None:
-      return bool(last_update_success)
+      return bool(last_update_success)  # noqa: E111
     return bool(getattr(self.coordinator, "available", True))
 
 
 @dataclass(slots=True)
 class _SelectorBase:
-  config: object | None = None
+  config: object | None = None  # noqa: E111
 
 
 class SelectSelectorMode(StrEnum):
-  DROPDOWN = "dropdown"
-  LIST = "list"
+  DROPDOWN = "dropdown"  # noqa: E111
+  LIST = "list"  # noqa: E111
 
 
 class SelectSelectorConfig:
-  def __init__(self, **kwargs: object) -> None:
+  def __init__(self, **kwargs: object) -> None:  # noqa: E111
     self.options = kwargs
 
 
 class SelectSelector(_SelectorBase):
-  pass
+  pass  # noqa: E111
 
 
 class BooleanSelector(_SelectorBase):
-  pass
+  pass  # noqa: E111
 
 
 class NumberSelectorMode(StrEnum):
-  BOX = "box"
-  SLIDER = "slider"
+  BOX = "box"  # noqa: E111
+  SLIDER = "slider"  # noqa: E111
 
 
 class NumberSelectorConfig:
-  def __init__(self, **kwargs: object) -> None:
+  def __init__(self, **kwargs: object) -> None:  # noqa: E111
     self.options = kwargs
 
 
 class NumberSelector(_SelectorBase):
-  pass
+  pass  # noqa: E111
 
 
 class TextSelectorType(StrEnum):
-  TEXT = "text"
-  TEL = "tel"
+  TEXT = "text"  # noqa: E111
+  TEL = "tel"  # noqa: E111
 
 
 class TextSelectorConfig:
-  def __init__(self, **kwargs: object) -> None:
+  def __init__(self, **kwargs: object) -> None:  # noqa: E111
     self.options = kwargs
 
 
 class TextSelector(_SelectorBase):
-  pass
+  pass  # noqa: E111
 
 
 class TimeSelector(_SelectorBase):
-  pass
+  pass  # noqa: E111
 
 
 class DateSelector(_SelectorBase):
-  pass
+  pass  # noqa: E111
 
 
 def selector(config: object) -> object:
-  """Return selector configuration unchanged for schema validation tests."""
+  """Return selector configuration unchanged for schema validation tests."""  # noqa: E111
 
-  return config
+  return config  # noqa: E111
 
 
 def _register_custom_component_packages() -> None:
-  custom_components_pkg = sys.modules.setdefault(
+  custom_components_pkg = sys.modules.setdefault(  # noqa: E111
     "custom_components",
     types.ModuleType("custom_components"),
   )
-  custom_components_pkg.__path__ = [str(COMPONENT_ROOT)]
+  custom_components_pkg.__path__ = [str(COMPONENT_ROOT)]  # noqa: E111
 
-  pawcontrol_pkg = types.ModuleType("custom_components.pawcontrol")
-  pawcontrol_pkg.__path__ = [str(PAWCONTROL_ROOT)]
+  pawcontrol_pkg = types.ModuleType("custom_components.pawcontrol")  # noqa: E111
+  pawcontrol_pkg.__path__ = [str(PAWCONTROL_ROOT)]  # noqa: E111
 
-  def _load_submodule(name: str):
+  def _load_submodule(name: str):  # noqa: E111
     module_name = f"custom_components.pawcontrol.{name}"
     try:
-      return importlib.import_module(module_name)
+      return importlib.import_module(module_name)  # noqa: E111
     except ModuleNotFoundError as err:
-      if err.name != module_name:
+      if err.name != module_name:  # noqa: E111
         raise
-      init_module = importlib.import_module("custom_components.pawcontrol.__init__")
-      if hasattr(init_module, name):
+      init_module = importlib.import_module("custom_components.pawcontrol.__init__")  # noqa: E111
+      if hasattr(init_module, name):  # noqa: E111
         value = getattr(init_module, name)
         setattr(pawcontrol_pkg, name, value)
         return value
-      raise
+      raise  # noqa: E111
 
-  pawcontrol_pkg.__getattr__ = _load_submodule  # type: ignore[assignment]
-  sys.modules["custom_components.pawcontrol"] = pawcontrol_pkg
-  custom_components_pkg.pawcontrol = pawcontrol_pkg
+  pawcontrol_pkg.__getattr__ = _load_submodule  # type: ignore[assignment]  # noqa: E111
+  sys.modules["custom_components.pawcontrol"] = pawcontrol_pkg  # noqa: E111
+  custom_components_pkg.pawcontrol = pawcontrol_pkg  # noqa: E111
 
 
 def install_homeassistant_stubs() -> None:
-  """Register lightweight Home Assistant modules required by the tests."""
+  """Register lightweight Home Assistant modules required by the tests."""  # noqa: E111
 
-  for module_name in [
+  for module_name in [  # noqa: E111
     "aiofiles",
     "homeassistant",
     "homeassistant.const",
@@ -2073,107 +2073,107 @@ def install_homeassistant_stubs() -> None:
   ]:
     sys.modules.pop(module_name, None)
 
-  global _DEVICE_REGISTRY, _ENTITY_REGISTRY, _ISSUE_REGISTRY
-  _DEVICE_REGISTRY = None
-  _ENTITY_REGISTRY = None
-  _ISSUE_REGISTRY = None
+  global _DEVICE_REGISTRY, _ENTITY_REGISTRY, _ISSUE_REGISTRY  # noqa: E111
+  _DEVICE_REGISTRY = None  # noqa: E111
+  _ENTITY_REGISTRY = None  # noqa: E111
+  _ISSUE_REGISTRY = None  # noqa: E111
 
-  _register_custom_component_packages()
+  _register_custom_component_packages()  # noqa: E111
 
-  homeassistant = types.ModuleType("homeassistant")
-  const_module = types.ModuleType("homeassistant.const")
-  core_module = types.ModuleType("homeassistant.core")
-  exceptions_module = types.ModuleType("homeassistant.exceptions")
-  helpers_module = types.ModuleType("homeassistant.helpers")
-  helpers_module.__path__ = []
-  entity_module = types.ModuleType("homeassistant.helpers.entity")
-  entity_component_module = types.ModuleType(
+  homeassistant = types.ModuleType("homeassistant")  # noqa: E111
+  const_module = types.ModuleType("homeassistant.const")  # noqa: E111
+  core_module = types.ModuleType("homeassistant.core")  # noqa: E111
+  exceptions_module = types.ModuleType("homeassistant.exceptions")  # noqa: E111
+  helpers_module = types.ModuleType("homeassistant.helpers")  # noqa: E111
+  helpers_module.__path__ = []  # noqa: E111
+  entity_module = types.ModuleType("homeassistant.helpers.entity")  # noqa: E111
+  entity_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.entity_component",
   )
-  entity_platform_module = types.ModuleType(
+  entity_platform_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.entity_platform",
   )
-  config_validation_module = types.ModuleType(
+  config_validation_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.config_validation",
   )
-  aiohttp_client_module = types.ModuleType(
+  aiohttp_client_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.aiohttp_client",
   )
-  dispatcher_module = types.ModuleType("homeassistant.helpers.dispatcher")
-  event_module = types.ModuleType("homeassistant.helpers.event")
-  restore_state_module = types.ModuleType("homeassistant.helpers.restore_state")
-  typing_module = types.ModuleType("homeassistant.helpers.typing")
-  update_coordinator_module = types.ModuleType(
+  dispatcher_module = types.ModuleType("homeassistant.helpers.dispatcher")  # noqa: E111
+  event_module = types.ModuleType("homeassistant.helpers.event")  # noqa: E111
+  restore_state_module = types.ModuleType("homeassistant.helpers.restore_state")  # noqa: E111
+  typing_module = types.ModuleType("homeassistant.helpers.typing")  # noqa: E111
+  update_coordinator_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.update_coordinator",
   )
-  device_registry_module = types.ModuleType(
+  device_registry_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.device_registry",
   )
-  entity_registry_module = types.ModuleType(
+  entity_registry_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.entity_registry",
   )
-  issue_registry_module = types.ModuleType(
+  issue_registry_module = types.ModuleType(  # noqa: E111
     "homeassistant.helpers.issue_registry",
   )
-  storage_module = types.ModuleType("homeassistant.helpers.storage")
-  config_entries_module = types.ModuleType("homeassistant.config_entries")
-  util_module = types.ModuleType("homeassistant.util")
-  util_module.__path__ = []
-  dt_util_module = types.ModuleType("homeassistant.util.dt")
-  logging_util_module = types.ModuleType("homeassistant.util.logging")
-  selector_module = types.ModuleType("homeassistant.helpers.selector")
-  translation_module = types.ModuleType("homeassistant.helpers.translation")
-  service_info_module = types.ModuleType("homeassistant.helpers.service_info")
-  service_info_module.__path__ = []
-  dhcp_module = types.ModuleType("homeassistant.helpers.service_info.dhcp")
-  usb_module = types.ModuleType("homeassistant.helpers.service_info.usb")
-  zeroconf_module = types.ModuleType("homeassistant.helpers.service_info.zeroconf")
-  components_module = types.ModuleType("homeassistant.components")
-  components_module.__path__ = []
-  binary_sensor_component_module = types.ModuleType(
+  storage_module = types.ModuleType("homeassistant.helpers.storage")  # noqa: E111
+  config_entries_module = types.ModuleType("homeassistant.config_entries")  # noqa: E111
+  util_module = types.ModuleType("homeassistant.util")  # noqa: E111
+  util_module.__path__ = []  # noqa: E111
+  dt_util_module = types.ModuleType("homeassistant.util.dt")  # noqa: E111
+  logging_util_module = types.ModuleType("homeassistant.util.logging")  # noqa: E111
+  selector_module = types.ModuleType("homeassistant.helpers.selector")  # noqa: E111
+  translation_module = types.ModuleType("homeassistant.helpers.translation")  # noqa: E111
+  service_info_module = types.ModuleType("homeassistant.helpers.service_info")  # noqa: E111
+  service_info_module.__path__ = []  # noqa: E111
+  dhcp_module = types.ModuleType("homeassistant.helpers.service_info.dhcp")  # noqa: E111
+  usb_module = types.ModuleType("homeassistant.helpers.service_info.usb")  # noqa: E111
+  zeroconf_module = types.ModuleType("homeassistant.helpers.service_info.zeroconf")  # noqa: E111
+  components_module = types.ModuleType("homeassistant.components")  # noqa: E111
+  components_module.__path__ = []  # noqa: E111
+  binary_sensor_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.binary_sensor",
   )
-  button_component_module = types.ModuleType("homeassistant.components.button")
-  date_component_module = types.ModuleType("homeassistant.components.date")
-  datetime_component_module = types.ModuleType("homeassistant.components.datetime")
-  device_automation_component_module = types.ModuleType(
+  button_component_module = types.ModuleType("homeassistant.components.button")  # noqa: E111
+  date_component_module = types.ModuleType("homeassistant.components.date")  # noqa: E111
+  datetime_component_module = types.ModuleType("homeassistant.components.datetime")  # noqa: E111
+  device_automation_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.device_automation",
   )
-  device_tracker_component_module = types.ModuleType(
+  device_tracker_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.device_tracker",
   )
-  input_boolean_component_module = types.ModuleType(
+  input_boolean_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.input_boolean",
   )
-  input_datetime_component_module = types.ModuleType(
+  input_datetime_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.input_datetime",
   )
-  input_number_component_module = types.ModuleType(
+  input_number_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.input_number",
   )
-  input_select_component_module = types.ModuleType(
+  input_select_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.input_select",
   )
-  number_component_module = types.ModuleType("homeassistant.components.number")
-  script_component_module = types.ModuleType("homeassistant.components.script")
-  script_config_module = types.ModuleType("homeassistant.components.script.config")
-  script_const_module = types.ModuleType("homeassistant.components.script.const")
-  select_component_module = types.ModuleType("homeassistant.components.select")
-  sensor_component_module = types.ModuleType("homeassistant.components.sensor")
-  switch_component_module = types.ModuleType("homeassistant.components.switch")
-  system_health_component_module = types.ModuleType(
+  number_component_module = types.ModuleType("homeassistant.components.number")  # noqa: E111
+  script_component_module = types.ModuleType("homeassistant.components.script")  # noqa: E111
+  script_config_module = types.ModuleType("homeassistant.components.script.config")  # noqa: E111
+  script_const_module = types.ModuleType("homeassistant.components.script.const")  # noqa: E111
+  select_component_module = types.ModuleType("homeassistant.components.select")  # noqa: E111
+  sensor_component_module = types.ModuleType("homeassistant.components.sensor")  # noqa: E111
+  switch_component_module = types.ModuleType("homeassistant.components.switch")  # noqa: E111
+  system_health_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.system_health",
   )
-  text_component_module = types.ModuleType("homeassistant.components.text")
-  weather_component_module = types.ModuleType("homeassistant.components.weather")
-  webhook_component_module = types.ModuleType("homeassistant.components.webhook")
-  repairs_component_module = types.ModuleType(
+  text_component_module = types.ModuleType("homeassistant.components.text")  # noqa: E111
+  weather_component_module = types.ModuleType("homeassistant.components.weather")  # noqa: E111
+  webhook_component_module = types.ModuleType("homeassistant.components.webhook")  # noqa: E111
+  repairs_component_module = types.ModuleType(  # noqa: E111
     "homeassistant.components.repairs",
   )
-  data_entry_flow_module = types.ModuleType("homeassistant.data_entry_flow")
-  aiofiles_module = types.ModuleType("aiofiles")
+  data_entry_flow_module = types.ModuleType("homeassistant.data_entry_flow")  # noqa: E111
+  aiofiles_module = types.ModuleType("aiofiles")  # noqa: E111
 
-  async def _async_get_translations(
+  async def _async_get_translations(  # noqa: E111
     hass: HomeAssistant,
     language: str | None,
     category: str,
@@ -2181,393 +2181,393 @@ def install_homeassistant_stubs() -> None:
   ) -> dict[str, str]:
     return {}
 
-  translation_module.async_get_translations = _async_get_translations
+  translation_module.async_get_translations = _async_get_translations  # noqa: E111
 
-  const_module.Platform = Platform
-  const_module.__version__ = HOME_ASSISTANT_VERSION
-  const_module.CONF_NAME = "name"
-  const_module.CONF_ALIAS = "alias"
-  const_module.CONF_DEFAULT = "default"
-  const_module.CONF_DESCRIPTION = "description"
-  const_module.CONF_SEQUENCE = "sequence"
-  const_module.CONF_DEVICE_ID = "device_id"
-  const_module.CONF_ENTITY_ID = "entity_id"
-  const_module.CONF_DOMAIN = "domain"
-  const_module.CONF_PLATFORM = "platform"
-  const_module.CONF_TYPE = "type"
-  const_module.CONF_FROM = "from"
-  const_module.CONF_TO = "to"
-  const_module.CONF_METADATA = "metadata"
-  const_module.ATTR_VALUE = "value"
-  const_module.CONF_CONDITION = "condition"
-  const_module.STATE_ON = "on"
-  const_module.STATE_OFF = "off"
-  const_module.STATE_UNKNOWN = "unknown"
-  const_module.STATE_UNAVAILABLE = "unavailable"
-  const_module.STATE_HOME = "home"
-  const_module.STATE_NOT_HOME = "not_home"
-  const_module.UnitOfEnergy = UnitOfEnergy
-  const_module.UnitOfLength = UnitOfLength
-  const_module.UnitOfMass = UnitOfMass
-  const_module.UnitOfTime = UnitOfTime
-  const_module.UnitOfTemperature = UnitOfTemperature
-  const_module.PERCENTAGE = "%"
+  const_module.Platform = Platform  # noqa: E111
+  const_module.__version__ = HOME_ASSISTANT_VERSION  # noqa: E111
+  const_module.CONF_NAME = "name"  # noqa: E111
+  const_module.CONF_ALIAS = "alias"  # noqa: E111
+  const_module.CONF_DEFAULT = "default"  # noqa: E111
+  const_module.CONF_DESCRIPTION = "description"  # noqa: E111
+  const_module.CONF_SEQUENCE = "sequence"  # noqa: E111
+  const_module.CONF_DEVICE_ID = "device_id"  # noqa: E111
+  const_module.CONF_ENTITY_ID = "entity_id"  # noqa: E111
+  const_module.CONF_DOMAIN = "domain"  # noqa: E111
+  const_module.CONF_PLATFORM = "platform"  # noqa: E111
+  const_module.CONF_TYPE = "type"  # noqa: E111
+  const_module.CONF_FROM = "from"  # noqa: E111
+  const_module.CONF_TO = "to"  # noqa: E111
+  const_module.CONF_METADATA = "metadata"  # noqa: E111
+  const_module.ATTR_VALUE = "value"  # noqa: E111
+  const_module.CONF_CONDITION = "condition"  # noqa: E111
+  const_module.STATE_ON = "on"  # noqa: E111
+  const_module.STATE_OFF = "off"  # noqa: E111
+  const_module.STATE_UNKNOWN = "unknown"  # noqa: E111
+  const_module.STATE_UNAVAILABLE = "unavailable"  # noqa: E111
+  const_module.STATE_HOME = "home"  # noqa: E111
+  const_module.STATE_NOT_HOME = "not_home"  # noqa: E111
+  const_module.UnitOfEnergy = UnitOfEnergy  # noqa: E111
+  const_module.UnitOfLength = UnitOfLength  # noqa: E111
+  const_module.UnitOfMass = UnitOfMass  # noqa: E111
+  const_module.UnitOfTime = UnitOfTime  # noqa: E111
+  const_module.UnitOfTemperature = UnitOfTemperature  # noqa: E111
+  const_module.PERCENTAGE = "%"  # noqa: E111
 
-  device_automation_component_module.DEVICE_TRIGGER_BASE_SCHEMA = vol.Schema(
+  device_automation_component_module.DEVICE_TRIGGER_BASE_SCHEMA = vol.Schema(  # noqa: E111
     {
       vol.Required(const_module.CONF_PLATFORM): vol.Any("device"),
       vol.Required(const_module.CONF_DEVICE_ID): vol.Coerce(str),
       vol.Required(const_module.CONF_DOMAIN): vol.Coerce(str),
     },
   )
-  device_automation_component_module.DEVICE_CONDITION_BASE_SCHEMA = vol.Schema(
+  device_automation_component_module.DEVICE_CONDITION_BASE_SCHEMA = vol.Schema(  # noqa: E111
     {
       vol.Required(const_module.CONF_CONDITION): vol.Any("device"),
       vol.Required(const_module.CONF_DEVICE_ID): vol.Coerce(str),
       vol.Required(const_module.CONF_DOMAIN): vol.Coerce(str),
     },
   )
-  device_automation_component_module.DEVICE_ACTION_BASE_SCHEMA = vol.Schema(
+  device_automation_component_module.DEVICE_ACTION_BASE_SCHEMA = vol.Schema(  # noqa: E111
     {
       vol.Required(const_module.CONF_DEVICE_ID): vol.Coerce(str),
       vol.Required(const_module.CONF_DOMAIN): vol.Coerce(str),
     },
   )
 
-  core_module.HomeAssistant = HomeAssistant
-  core_module.Event = Event
-  core_module.EventStateChangedData = dict[str, object]
-  core_module.State = State
-  core_module.Context = Context
-  core_module.ServiceCall = ServiceCall
-  core_module.callback = _callback
-  core_module.CALLBACK_TYPE = Callable[..., None]
-  core_module.ServiceRegistry = ServiceRegistry
+  core_module.HomeAssistant = HomeAssistant  # noqa: E111
+  core_module.Event = Event  # noqa: E111
+  core_module.EventStateChangedData = dict[str, object]  # noqa: E111
+  core_module.State = State  # noqa: E111
+  core_module.Context = Context  # noqa: E111
+  core_module.ServiceCall = ServiceCall  # noqa: E111
+  core_module.callback = _callback  # noqa: E111
+  core_module.CALLBACK_TYPE = Callable[..., None]  # noqa: E111
+  core_module.ServiceRegistry = ServiceRegistry  # noqa: E111
 
-  exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
-  exceptions_module.ConfigEntryError = ConfigEntryError
-  exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
-  exceptions_module.HomeAssistantError = HomeAssistantError
-  exceptions_module.ServiceValidationError = ServiceValidationError
+  exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed  # noqa: E111
+  exceptions_module.ConfigEntryError = ConfigEntryError  # noqa: E111
+  exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady  # noqa: E111
+  exceptions_module.HomeAssistantError = HomeAssistantError  # noqa: E111
+  exceptions_module.ServiceValidationError = ServiceValidationError  # noqa: E111
 
-  config_entries_module.HANDLERS = HANDLERS
-  config_entries_module.support_entry_unload = support_entry_unload
-  config_entries_module.support_remove_from_device = support_remove_from_device
-  config_entries_module.ConfigEntry = ConfigEntry
-  config_entries_module.ConfigEntryChange = ConfigEntryChange
-  config_entries_module.ConfigEntryState = ConfigEntryState
-  config_entries_module.OptionsFlow = OptionsFlow
-  config_entries_module.ConfigFlowResult = ConfigFlowResult
-  config_entries_module.SIGNAL_CONFIG_ENTRY_CHANGED = "config_entry_changed"
+  config_entries_module.HANDLERS = HANDLERS  # noqa: E111
+  config_entries_module.support_entry_unload = support_entry_unload  # noqa: E111
+  config_entries_module.support_remove_from_device = support_remove_from_device  # noqa: E111
+  config_entries_module.ConfigEntry = ConfigEntry  # noqa: E111
+  config_entries_module.ConfigEntryChange = ConfigEntryChange  # noqa: E111
+  config_entries_module.ConfigEntryState = ConfigEntryState  # noqa: E111
+  config_entries_module.OptionsFlow = OptionsFlow  # noqa: E111
+  config_entries_module.ConfigFlowResult = ConfigFlowResult  # noqa: E111
+  config_entries_module.SIGNAL_CONFIG_ENTRY_CHANGED = "config_entry_changed"  # noqa: E111
 
-  device_registry_module.DeviceInfo = DeviceInfo
-  device_registry_module.DeviceEntry = DeviceEntry
-  device_registry_module.DeviceRegistry = DeviceRegistry
-  device_registry_module.DeviceRegistryEvent = DeviceRegistryEvent
-  device_registry_module.async_get = _async_get_device_registry
-  device_registry_module.async_get_device = _async_get_device_by_hints
-  device_registry_module.async_entries_for_config_entry = (
+  device_registry_module.DeviceInfo = DeviceInfo  # noqa: E111
+  device_registry_module.DeviceEntry = DeviceEntry  # noqa: E111
+  device_registry_module.DeviceRegistry = DeviceRegistry  # noqa: E111
+  device_registry_module.DeviceRegistryEvent = DeviceRegistryEvent  # noqa: E111
+  device_registry_module.async_get = _async_get_device_registry  # noqa: E111
+  device_registry_module.async_get_device = _async_get_device_by_hints  # noqa: E111
+  device_registry_module.async_entries_for_config_entry = (  # noqa: E111
     _async_entries_for_device_config
   )
-  device_registry_module.async_remove_device = _async_remove_device_entry
+  device_registry_module.async_remove_device = _async_remove_device_entry  # noqa: E111
 
-  entity_registry_module.RegistryEntry = RegistryEntry
-  entity_registry_module.EntityRegistry = EntityRegistry
-  entity_registry_module.EntityRegistryEvent = EntityRegistryEvent
-  entity_registry_module.async_get = _async_get_entity_registry
-  entity_registry_module.async_entries_for_config_entry = (
+  entity_registry_module.RegistryEntry = RegistryEntry  # noqa: E111
+  entity_registry_module.EntityRegistry = EntityRegistry  # noqa: E111
+  entity_registry_module.EntityRegistryEvent = EntityRegistryEvent  # noqa: E111
+  entity_registry_module.async_get = _async_get_entity_registry  # noqa: E111
+  entity_registry_module.async_entries_for_config_entry = (  # noqa: E111
     _async_entries_for_registry_config
   )
-  entity_registry_module.async_entries_for_device = _async_entries_for_registry_device
-  entity_registry_module.async_remove = _async_remove_registry_entry
+  entity_registry_module.async_entries_for_device = _async_entries_for_registry_device  # noqa: E111
+  entity_registry_module.async_remove = _async_remove_registry_entry  # noqa: E111
 
-  issue_registry_module.DOMAIN = "issue_registry"
-  issue_registry_module.IssueSeverity = IssueSeverity
-  issue_registry_module.async_get = _async_get_issue_registry
-  issue_registry_module.async_get_issue = _async_get_issue
-  issue_registry_module.async_create_issue = _async_create_issue
-  issue_registry_module.async_delete_issue = _async_delete_issue
-  issue_registry_module.async_ignore_issue = _async_ignore_issue
+  issue_registry_module.DOMAIN = "issue_registry"  # noqa: E111
+  issue_registry_module.IssueSeverity = IssueSeverity  # noqa: E111
+  issue_registry_module.async_get = _async_get_issue_registry  # noqa: E111
+  issue_registry_module.async_get_issue = _async_get_issue  # noqa: E111
+  issue_registry_module.async_create_issue = _async_create_issue  # noqa: E111
+  issue_registry_module.async_delete_issue = _async_delete_issue  # noqa: E111
+  issue_registry_module.async_ignore_issue = _async_ignore_issue  # noqa: E111
 
-  storage_module.Store = Store
+  storage_module.Store = Store  # noqa: E111
 
-  entity_module.Entity = Entity
-  entity_module.EntityCategory = EntityCategory
-  entity_component_module.EntityComponent = EntityComponent
-  restore_state_module.RestoreEntity = RestoreEntity
-  dispatcher_module.async_dispatcher_connect = async_dispatcher_connect
+  entity_module.Entity = Entity  # noqa: E111
+  entity_module.EntityCategory = EntityCategory  # noqa: E111
+  entity_component_module.EntityComponent = EntityComponent  # noqa: E111
+  restore_state_module.RestoreEntity = RestoreEntity  # noqa: E111
+  dispatcher_module.async_dispatcher_connect = async_dispatcher_connect  # noqa: E111
 
-  entity_platform_module.AddEntitiesCallback = Callable[
+  entity_platform_module.AddEntitiesCallback = Callable[  # noqa: E111
     [list[Entity], bool],
     None,
   ]
 
-  config_validation_module.config_entry_only_config_schema = (
+  config_validation_module.config_entry_only_config_schema = (  # noqa: E111
     _config_entry_only_config_schema
   )
-  config_validation_module.string = _cv_string
-  config_validation_module.boolean = _cv_boolean
-  config_validation_module.date = _cv_date
-  config_validation_module.datetime = _cv_datetime
-  aiohttp_client_module.async_get_clientsession = _async_get_clientsession
-  aiohttp_client_module._async_make_resolver = _async_make_resolver
-  event_module.async_track_time_interval = _async_track_time_interval
-  event_module.async_track_time_change = _async_track_time_change
-  event_module.async_call_later = _async_call_later
-  event_module.async_track_state_change_event = _async_track_state_change_event
+  config_validation_module.string = _cv_string  # noqa: E111
+  config_validation_module.boolean = _cv_boolean  # noqa: E111
+  config_validation_module.date = _cv_date  # noqa: E111
+  config_validation_module.datetime = _cv_datetime  # noqa: E111
+  aiohttp_client_module.async_get_clientsession = _async_get_clientsession  # noqa: E111
+  aiohttp_client_module._async_make_resolver = _async_make_resolver  # noqa: E111
+  event_module.async_track_time_interval = _async_track_time_interval  # noqa: E111
+  event_module.async_track_time_change = _async_track_time_change  # noqa: E111
+  event_module.async_call_later = _async_call_later  # noqa: E111
+  event_module.async_track_state_change_event = _async_track_state_change_event  # noqa: E111
 
-  typing_module.ConfigType = dict[str, Any]
+  typing_module.ConfigType = dict[str, Any]  # noqa: E111
 
-  update_coordinator_module.DataUpdateCoordinator = DataUpdateCoordinator
-  update_coordinator_module.CoordinatorEntity = CoordinatorEntity
-  update_coordinator_module.CoordinatorUpdateFailed = CoordinatorUpdateFailed
-  update_coordinator_module.UpdateFailed = CoordinatorUpdateFailed
+  update_coordinator_module.DataUpdateCoordinator = DataUpdateCoordinator  # noqa: E111
+  update_coordinator_module.CoordinatorEntity = CoordinatorEntity  # noqa: E111
+  update_coordinator_module.CoordinatorUpdateFailed = CoordinatorUpdateFailed  # noqa: E111
+  update_coordinator_module.UpdateFailed = CoordinatorUpdateFailed  # noqa: E111
 
-  dt_util_module.utcnow = _utcnow
-  dt_util_module.now = _now
-  dt_util_module.parse_datetime = _parse_datetime
-  dt_util_module.as_utc = _as_utc
-  dt_util_module.as_local = _as_local
-  dt_util_module.start_of_local_day = _start_of_local_day
-  logging_util_module.log_exception = _log_exception
+  dt_util_module.utcnow = _utcnow  # noqa: E111
+  dt_util_module.now = _now  # noqa: E111
+  dt_util_module.parse_datetime = _parse_datetime  # noqa: E111
+  dt_util_module.as_utc = _as_utc  # noqa: E111
+  dt_util_module.as_local = _as_local  # noqa: E111
+  dt_util_module.start_of_local_day = _start_of_local_day  # noqa: E111
+  logging_util_module.log_exception = _log_exception  # noqa: E111
 
-  def _slugify(value: str) -> str:
+  def _slugify(value: str) -> str:  # noqa: E111
     return re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
 
-  util_module.slugify = _slugify
+  util_module.slugify = _slugify  # noqa: E111
 
-  class _RepairsFlow(_FlowBase):
+  class _RepairsFlow(_FlowBase):  # noqa: E111
     """Placeholder for Home Assistant repairs flow base class."""
 
-  repairs_component_module.RepairsFlow = _RepairsFlow
-  repairs_component_module.DOMAIN = "repairs"
+  repairs_component_module.RepairsFlow = _RepairsFlow  # noqa: E111
+  repairs_component_module.DOMAIN = "repairs"  # noqa: E111
 
-  class _ServiceInfo:
+  class _ServiceInfo:  # noqa: E111
     def __init__(self, **kwargs: object) -> None:
-      for key, value in kwargs.items():
+      for key, value in kwargs.items():  # noqa: E111
         setattr(self, key, value)
 
-  dhcp_module.DhcpServiceInfo = _ServiceInfo
-  usb_module.UsbServiceInfo = _ServiceInfo
-  zeroconf_module.ZeroconfServiceInfo = _ServiceInfo
+  dhcp_module.DhcpServiceInfo = _ServiceInfo  # noqa: E111
+  usb_module.UsbServiceInfo = _ServiceInfo  # noqa: E111
+  zeroconf_module.ZeroconfServiceInfo = _ServiceInfo  # noqa: E111
 
-  data_entry_flow_module.FlowResult = FlowResult
-  data_entry_flow_module.FlowResultType = FlowResultType
-  config_entries_module.FlowResult = FlowResult
-  config_entries_module.ConfigFlow = ConfigFlow
-  config_entries_module.OptionsFlow = OptionsFlow
+  data_entry_flow_module.FlowResult = FlowResult  # noqa: E111
+  data_entry_flow_module.FlowResultType = FlowResultType  # noqa: E111
+  config_entries_module.FlowResult = FlowResult  # noqa: E111
+  config_entries_module.ConfigFlow = ConfigFlow  # noqa: E111
+  config_entries_module.OptionsFlow = OptionsFlow  # noqa: E111
 
-  selector_module.SelectSelectorMode = SelectSelectorMode
-  selector_module.SelectSelectorConfig = SelectSelectorConfig
-  selector_module.SelectSelector = SelectSelector
-  selector_module.BooleanSelector = BooleanSelector
-  selector_module.NumberSelectorMode = NumberSelectorMode
-  selector_module.NumberSelectorConfig = NumberSelectorConfig
-  selector_module.NumberSelector = NumberSelector
-  selector_module.TextSelectorType = TextSelectorType
-  selector_module.TextSelectorConfig = TextSelectorConfig
-  selector_module.TextSelector = TextSelector
-  selector_module.TimeSelector = TimeSelector
-  selector_module.DateSelector = DateSelector
-  selector_module.selector = selector
+  selector_module.SelectSelectorMode = SelectSelectorMode  # noqa: E111
+  selector_module.SelectSelectorConfig = SelectSelectorConfig  # noqa: E111
+  selector_module.SelectSelector = SelectSelector  # noqa: E111
+  selector_module.BooleanSelector = BooleanSelector  # noqa: E111
+  selector_module.NumberSelectorMode = NumberSelectorMode  # noqa: E111
+  selector_module.NumberSelectorConfig = NumberSelectorConfig  # noqa: E111
+  selector_module.NumberSelector = NumberSelector  # noqa: E111
+  selector_module.TextSelectorType = TextSelectorType  # noqa: E111
+  selector_module.TextSelectorConfig = TextSelectorConfig  # noqa: E111
+  selector_module.TextSelector = TextSelector  # noqa: E111
+  selector_module.TimeSelector = TimeSelector  # noqa: E111
+  selector_module.DateSelector = DateSelector  # noqa: E111
+  selector_module.selector = selector  # noqa: E111
 
-  @asynccontextmanager
-  async def _aiofiles_open(
+  @asynccontextmanager  # noqa: E111
+  async def _aiofiles_open(  # noqa: E111
     file: str | Path,
     mode: str = "r",
     encoding: str | None = None,
   ):
     with builtins.open(file, mode, encoding=encoding) as handle:
-      yield _async_file_handle(handle)
+      yield _async_file_handle(handle)  # noqa: E111
 
-  aiofiles_module.open = _aiofiles_open
+  aiofiles_module.open = _aiofiles_open  # noqa: E111
 
-  sensor_component_module.SensorEntity = SensorEntity
-  sensor_component_module.SensorEntityDescription = SensorEntityDescription
-  sensor_component_module.SensorDeviceClass = SensorDeviceClass
-  sensor_component_module.SensorStateClass = SensorStateClass
-  binary_sensor_component_module.BinarySensorEntity = BinarySensorEntity
-  binary_sensor_component_module.BinarySensorEntityDescription = (
+  sensor_component_module.SensorEntity = SensorEntity  # noqa: E111
+  sensor_component_module.SensorEntityDescription = SensorEntityDescription  # noqa: E111
+  sensor_component_module.SensorDeviceClass = SensorDeviceClass  # noqa: E111
+  sensor_component_module.SensorStateClass = SensorStateClass  # noqa: E111
+  binary_sensor_component_module.BinarySensorEntity = BinarySensorEntity  # noqa: E111
+  binary_sensor_component_module.BinarySensorEntityDescription = (  # noqa: E111
     BinarySensorEntityDescription
   )
-  binary_sensor_component_module.BinarySensorDeviceClass = BinarySensorDeviceClass
-  button_component_module.ButtonEntity = ButtonEntity
-  button_component_module.ButtonEntityDescription = ButtonEntityDescription
-  button_component_module.ButtonDeviceClass = ButtonDeviceClass
-  switch_component_module.SwitchEntity = SwitchEntity
-  switch_component_module.SwitchEntityDescription = SwitchEntityDescription
-  switch_component_module.SwitchDeviceClass = SwitchDeviceClass
-  switch_component_module.DOMAIN = "switch"
-  switch_component_module.SERVICE_TURN_ON = "turn_on"
-  switch_component_module.SERVICE_TURN_OFF = "turn_off"
-  number_component_module.NumberEntity = NumberEntity
-  number_component_module.NumberEntityDescription = NumberEntityDescription
-  number_component_module.NumberDeviceClass = NumberDeviceClass
-  number_component_module.NumberMode = NumberMode
-  number_component_module.DOMAIN = "number"
-  number_component_module.SERVICE_SET_VALUE = "set_value"
-  select_component_module.SelectEntity = SelectEntity
-  select_component_module.SelectEntityDescription = SelectEntityDescription
-  select_component_module.DOMAIN = "select"
-  select_component_module.SERVICE_SELECT_OPTION = "select_option"
-  text_component_module.TextEntity = TextEntity
-  text_component_module.TextEntityDescription = TextEntityDescription
-  text_component_module.TextMode = TextMode
-  text_component_module.DOMAIN = "text"
-  text_component_module.SERVICE_SET_VALUE = "set_value"
-  date_component_module.DateEntity = DateEntity
-  date_component_module.DateEntityDescription = DateEntityDescription
-  datetime_component_module.DateTimeEntity = DateTimeEntity
-  datetime_component_module.DateTimeEntityDescription = DateTimeEntityDescription
-  device_tracker_component_module.TrackerEntity = TrackerEntity
-  device_tracker_component_module.SourceType = SourceType
-  weather_component_module.WeatherEntity = WeatherEntity
-  weather_component_module.DOMAIN = "weather"
-  weather_component_module.ATTR_FORECAST = "forecast"
-  weather_component_module.ATTR_FORECAST_CONDITION = "condition"
-  weather_component_module.ATTR_FORECAST_HUMIDITY = "humidity"
-  weather_component_module.ATTR_FORECAST_PRECIPITATION = "precipitation"
-  weather_component_module.ATTR_FORECAST_PRECIPITATION_PROBABILITY = (
+  binary_sensor_component_module.BinarySensorDeviceClass = BinarySensorDeviceClass  # noqa: E111
+  button_component_module.ButtonEntity = ButtonEntity  # noqa: E111
+  button_component_module.ButtonEntityDescription = ButtonEntityDescription  # noqa: E111
+  button_component_module.ButtonDeviceClass = ButtonDeviceClass  # noqa: E111
+  switch_component_module.SwitchEntity = SwitchEntity  # noqa: E111
+  switch_component_module.SwitchEntityDescription = SwitchEntityDescription  # noqa: E111
+  switch_component_module.SwitchDeviceClass = SwitchDeviceClass  # noqa: E111
+  switch_component_module.DOMAIN = "switch"  # noqa: E111
+  switch_component_module.SERVICE_TURN_ON = "turn_on"  # noqa: E111
+  switch_component_module.SERVICE_TURN_OFF = "turn_off"  # noqa: E111
+  number_component_module.NumberEntity = NumberEntity  # noqa: E111
+  number_component_module.NumberEntityDescription = NumberEntityDescription  # noqa: E111
+  number_component_module.NumberDeviceClass = NumberDeviceClass  # noqa: E111
+  number_component_module.NumberMode = NumberMode  # noqa: E111
+  number_component_module.DOMAIN = "number"  # noqa: E111
+  number_component_module.SERVICE_SET_VALUE = "set_value"  # noqa: E111
+  select_component_module.SelectEntity = SelectEntity  # noqa: E111
+  select_component_module.SelectEntityDescription = SelectEntityDescription  # noqa: E111
+  select_component_module.DOMAIN = "select"  # noqa: E111
+  select_component_module.SERVICE_SELECT_OPTION = "select_option"  # noqa: E111
+  text_component_module.TextEntity = TextEntity  # noqa: E111
+  text_component_module.TextEntityDescription = TextEntityDescription  # noqa: E111
+  text_component_module.TextMode = TextMode  # noqa: E111
+  text_component_module.DOMAIN = "text"  # noqa: E111
+  text_component_module.SERVICE_SET_VALUE = "set_value"  # noqa: E111
+  date_component_module.DateEntity = DateEntity  # noqa: E111
+  date_component_module.DateEntityDescription = DateEntityDescription  # noqa: E111
+  datetime_component_module.DateTimeEntity = DateTimeEntity  # noqa: E111
+  datetime_component_module.DateTimeEntityDescription = DateTimeEntityDescription  # noqa: E111
+  device_tracker_component_module.TrackerEntity = TrackerEntity  # noqa: E111
+  device_tracker_component_module.SourceType = SourceType  # noqa: E111
+  weather_component_module.WeatherEntity = WeatherEntity  # noqa: E111
+  weather_component_module.DOMAIN = "weather"  # noqa: E111
+  weather_component_module.ATTR_FORECAST = "forecast"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_CONDITION = "condition"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_HUMIDITY = "humidity"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_PRECIPITATION = "precipitation"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_PRECIPITATION_PROBABILITY = (  # noqa: E111
     "precipitation_probability"
   )
-  weather_component_module.ATTR_FORECAST_PRESSURE = "pressure"
-  weather_component_module.ATTR_FORECAST_TEMP = "temperature"
-  weather_component_module.ATTR_FORECAST_TEMP_LOW = "templow"
-  weather_component_module.ATTR_FORECAST_TIME = "datetime"
-  weather_component_module.ATTR_FORECAST_UV_INDEX = "uv_index"
-  weather_component_module.ATTR_FORECAST_WIND_SPEED = "wind_speed"
-  weather_component_module.ATTR_WEATHER_HUMIDITY = "humidity"
-  weather_component_module.ATTR_WEATHER_PRESSURE = "pressure"
-  weather_component_module.ATTR_WEATHER_TEMPERATURE = "temperature"
-  weather_component_module.ATTR_WEATHER_UV_INDEX = "uv_index"
-  weather_component_module.ATTR_WEATHER_VISIBILITY = "visibility"
-  weather_component_module.ATTR_WEATHER_WIND_SPEED = "wind_speed"
+  weather_component_module.ATTR_FORECAST_PRESSURE = "pressure"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_TEMP = "temperature"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_TEMP_LOW = "templow"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_TIME = "datetime"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_UV_INDEX = "uv_index"  # noqa: E111
+  weather_component_module.ATTR_FORECAST_WIND_SPEED = "wind_speed"  # noqa: E111
+  weather_component_module.ATTR_WEATHER_HUMIDITY = "humidity"  # noqa: E111
+  weather_component_module.ATTR_WEATHER_PRESSURE = "pressure"  # noqa: E111
+  weather_component_module.ATTR_WEATHER_TEMPERATURE = "temperature"  # noqa: E111
+  weather_component_module.ATTR_WEATHER_UV_INDEX = "uv_index"  # noqa: E111
+  weather_component_module.ATTR_WEATHER_VISIBILITY = "visibility"  # noqa: E111
+  weather_component_module.ATTR_WEATHER_WIND_SPEED = "wind_speed"  # noqa: E111
 
-  def _webhook_async_register(*args: object, **kwargs: object) -> None:
+  def _webhook_async_register(*args: object, **kwargs: object) -> None:  # noqa: E111
     return None
 
-  def _webhook_async_unregister(*args: object, **kwargs: object) -> None:
+  def _webhook_async_unregister(*args: object, **kwargs: object) -> None:  # noqa: E111
     return None
 
-  webhook_component_module.async_register = _webhook_async_register
-  webhook_component_module.async_unregister = _webhook_async_unregister
-  input_boolean_component_module.DOMAIN = "input_boolean"
-  input_datetime_component_module.DOMAIN = "input_datetime"
-  input_number_component_module.DOMAIN = "input_number"
-  input_select_component_module.DOMAIN = "input_select"
-  script_component_module.DOMAIN = "script"
-  script_component_module.ScriptEntity = ScriptEntity
-  script_config_module.SCRIPT_ENTITY_SCHEMA = {}
-  script_const_module.CONF_FIELDS = "fields"
-  script_const_module.CONF_TRACE = "trace"
-  system_health_component_module.DOMAIN = "system_health"
+  webhook_component_module.async_register = _webhook_async_register  # noqa: E111
+  webhook_component_module.async_unregister = _webhook_async_unregister  # noqa: E111
+  input_boolean_component_module.DOMAIN = "input_boolean"  # noqa: E111
+  input_datetime_component_module.DOMAIN = "input_datetime"  # noqa: E111
+  input_number_component_module.DOMAIN = "input_number"  # noqa: E111
+  input_select_component_module.DOMAIN = "input_select"  # noqa: E111
+  script_component_module.DOMAIN = "script"  # noqa: E111
+  script_component_module.ScriptEntity = ScriptEntity  # noqa: E111
+  script_config_module.SCRIPT_ENTITY_SCHEMA = {}  # noqa: E111
+  script_const_module.CONF_FIELDS = "fields"  # noqa: E111
+  script_const_module.CONF_TRACE = "trace"  # noqa: E111
+  system_health_component_module.DOMAIN = "system_health"  # noqa: E111
 
-  homeassistant.const = const_module
-  homeassistant.core = core_module
-  homeassistant.exceptions = exceptions_module
-  homeassistant.helpers = helpers_module
-  homeassistant.config_entries = config_entries_module
-  homeassistant.util = util_module
+  homeassistant.const = const_module  # noqa: E111
+  homeassistant.core = core_module  # noqa: E111
+  homeassistant.exceptions = exceptions_module  # noqa: E111
+  homeassistant.helpers = helpers_module  # noqa: E111
+  homeassistant.config_entries = config_entries_module  # noqa: E111
+  homeassistant.util = util_module  # noqa: E111
 
-  helpers_module.entity = entity_module
-  helpers_module.entity_component = entity_component_module
-  helpers_module.entity_platform = entity_platform_module
-  helpers_module.config_validation = config_validation_module
-  helpers_module.aiohttp_client = aiohttp_client_module
-  helpers_module.dispatcher = dispatcher_module
-  helpers_module.event = event_module
-  helpers_module.restore_state = restore_state_module
-  helpers_module.typing = typing_module
-  helpers_module.update_coordinator = update_coordinator_module
-  helpers_module.selector = selector_module
-  helpers_module.translation = translation_module
-  helpers_module.device_registry = device_registry_module
-  helpers_module.entity_registry = entity_registry_module
-  helpers_module.issue_registry = issue_registry_module
-  helpers_module.storage = storage_module
-  helpers_module.service_info = service_info_module
+  helpers_module.entity = entity_module  # noqa: E111
+  helpers_module.entity_component = entity_component_module  # noqa: E111
+  helpers_module.entity_platform = entity_platform_module  # noqa: E111
+  helpers_module.config_validation = config_validation_module  # noqa: E111
+  helpers_module.aiohttp_client = aiohttp_client_module  # noqa: E111
+  helpers_module.dispatcher = dispatcher_module  # noqa: E111
+  helpers_module.event = event_module  # noqa: E111
+  helpers_module.restore_state = restore_state_module  # noqa: E111
+  helpers_module.typing = typing_module  # noqa: E111
+  helpers_module.update_coordinator = update_coordinator_module  # noqa: E111
+  helpers_module.selector = selector_module  # noqa: E111
+  helpers_module.translation = translation_module  # noqa: E111
+  helpers_module.device_registry = device_registry_module  # noqa: E111
+  helpers_module.entity_registry = entity_registry_module  # noqa: E111
+  helpers_module.issue_registry = issue_registry_module  # noqa: E111
+  helpers_module.storage = storage_module  # noqa: E111
+  helpers_module.service_info = service_info_module  # noqa: E111
 
-  util_module.dt = dt_util_module
-  util_module.logging = logging_util_module
+  util_module.dt = dt_util_module  # noqa: E111
+  util_module.logging = logging_util_module  # noqa: E111
 
-  components_module.binary_sensor = binary_sensor_component_module
-  components_module.button = button_component_module
-  components_module.date = date_component_module
-  components_module.datetime = datetime_component_module
-  components_module.device_automation = device_automation_component_module
-  components_module.device_tracker = device_tracker_component_module
-  components_module.input_boolean = input_boolean_component_module
-  components_module.input_datetime = input_datetime_component_module
-  components_module.input_number = input_number_component_module
-  components_module.input_select = input_select_component_module
-  components_module.number = number_component_module
-  components_module.script = script_component_module
-  components_module.select = select_component_module
-  components_module.sensor = sensor_component_module
-  components_module.switch = switch_component_module
-  components_module.system_health = system_health_component_module
-  components_module.text = text_component_module
-  components_module.weather = weather_component_module
-  components_module.webhook = webhook_component_module
-  components_module.repairs = repairs_component_module
+  components_module.binary_sensor = binary_sensor_component_module  # noqa: E111
+  components_module.button = button_component_module  # noqa: E111
+  components_module.date = date_component_module  # noqa: E111
+  components_module.datetime = datetime_component_module  # noqa: E111
+  components_module.device_automation = device_automation_component_module  # noqa: E111
+  components_module.device_tracker = device_tracker_component_module  # noqa: E111
+  components_module.input_boolean = input_boolean_component_module  # noqa: E111
+  components_module.input_datetime = input_datetime_component_module  # noqa: E111
+  components_module.input_number = input_number_component_module  # noqa: E111
+  components_module.input_select = input_select_component_module  # noqa: E111
+  components_module.number = number_component_module  # noqa: E111
+  components_module.script = script_component_module  # noqa: E111
+  components_module.select = select_component_module  # noqa: E111
+  components_module.sensor = sensor_component_module  # noqa: E111
+  components_module.switch = switch_component_module  # noqa: E111
+  components_module.system_health = system_health_component_module  # noqa: E111
+  components_module.text = text_component_module  # noqa: E111
+  components_module.weather = weather_component_module  # noqa: E111
+  components_module.webhook = webhook_component_module  # noqa: E111
+  components_module.repairs = repairs_component_module  # noqa: E111
 
-  sys.modules["homeassistant"] = homeassistant
-  sys.modules["homeassistant.const"] = const_module
-  sys.modules["homeassistant.core"] = core_module
-  sys.modules["homeassistant.exceptions"] = exceptions_module
-  sys.modules["homeassistant.helpers"] = helpers_module
-  sys.modules["homeassistant.helpers.entity"] = entity_module
-  sys.modules["homeassistant.helpers.entity_component"] = entity_component_module
-  sys.modules["homeassistant.helpers.entity_platform"] = entity_platform_module
-  sys.modules["homeassistant.helpers.config_validation"] = config_validation_module
-  sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client_module
-  sys.modules["homeassistant.helpers.dispatcher"] = dispatcher_module
-  sys.modules["homeassistant.helpers.event"] = event_module
-  sys.modules["homeassistant.helpers.restore_state"] = restore_state_module
-  sys.modules["homeassistant.helpers.typing"] = typing_module
-  sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator_module
-  sys.modules["homeassistant.helpers.selector"] = selector_module
-  sys.modules["homeassistant.helpers.translation"] = translation_module
-  sys.modules["homeassistant.helpers.device_registry"] = device_registry_module
-  sys.modules["homeassistant.helpers.entity_registry"] = entity_registry_module
-  sys.modules["homeassistant.helpers.issue_registry"] = issue_registry_module
-  sys.modules["homeassistant.helpers.storage"] = storage_module
-  sys.modules["homeassistant.helpers.service_info"] = service_info_module
-  sys.modules["homeassistant.helpers.service_info.dhcp"] = dhcp_module
-  sys.modules["homeassistant.helpers.service_info.usb"] = usb_module
-  sys.modules["homeassistant.helpers.service_info.zeroconf"] = zeroconf_module
-  sys.modules["homeassistant.util"] = util_module
-  sys.modules["homeassistant.util.dt"] = dt_util_module
-  sys.modules["homeassistant.util.logging"] = logging_util_module
-  sys.modules["homeassistant.config_entries"] = config_entries_module
-  sys.modules["homeassistant.components"] = components_module
-  sys.modules["homeassistant.components.binary_sensor"] = binary_sensor_component_module
-  sys.modules["homeassistant.components.button"] = button_component_module
-  sys.modules["homeassistant.components.date"] = date_component_module
-  sys.modules["homeassistant.components.datetime"] = datetime_component_module
-  sys.modules["homeassistant.components.device_automation"] = (
+  sys.modules["homeassistant"] = homeassistant  # noqa: E111
+  sys.modules["homeassistant.const"] = const_module  # noqa: E111
+  sys.modules["homeassistant.core"] = core_module  # noqa: E111
+  sys.modules["homeassistant.exceptions"] = exceptions_module  # noqa: E111
+  sys.modules["homeassistant.helpers"] = helpers_module  # noqa: E111
+  sys.modules["homeassistant.helpers.entity"] = entity_module  # noqa: E111
+  sys.modules["homeassistant.helpers.entity_component"] = entity_component_module  # noqa: E111
+  sys.modules["homeassistant.helpers.entity_platform"] = entity_platform_module  # noqa: E111
+  sys.modules["homeassistant.helpers.config_validation"] = config_validation_module  # noqa: E111
+  sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client_module  # noqa: E111
+  sys.modules["homeassistant.helpers.dispatcher"] = dispatcher_module  # noqa: E111
+  sys.modules["homeassistant.helpers.event"] = event_module  # noqa: E111
+  sys.modules["homeassistant.helpers.restore_state"] = restore_state_module  # noqa: E111
+  sys.modules["homeassistant.helpers.typing"] = typing_module  # noqa: E111
+  sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator_module  # noqa: E111
+  sys.modules["homeassistant.helpers.selector"] = selector_module  # noqa: E111
+  sys.modules["homeassistant.helpers.translation"] = translation_module  # noqa: E111
+  sys.modules["homeassistant.helpers.device_registry"] = device_registry_module  # noqa: E111
+  sys.modules["homeassistant.helpers.entity_registry"] = entity_registry_module  # noqa: E111
+  sys.modules["homeassistant.helpers.issue_registry"] = issue_registry_module  # noqa: E111
+  sys.modules["homeassistant.helpers.storage"] = storage_module  # noqa: E111
+  sys.modules["homeassistant.helpers.service_info"] = service_info_module  # noqa: E111
+  sys.modules["homeassistant.helpers.service_info.dhcp"] = dhcp_module  # noqa: E111
+  sys.modules["homeassistant.helpers.service_info.usb"] = usb_module  # noqa: E111
+  sys.modules["homeassistant.helpers.service_info.zeroconf"] = zeroconf_module  # noqa: E111
+  sys.modules["homeassistant.util"] = util_module  # noqa: E111
+  sys.modules["homeassistant.util.dt"] = dt_util_module  # noqa: E111
+  sys.modules["homeassistant.util.logging"] = logging_util_module  # noqa: E111
+  sys.modules["homeassistant.config_entries"] = config_entries_module  # noqa: E111
+  sys.modules["homeassistant.components"] = components_module  # noqa: E111
+  sys.modules["homeassistant.components.binary_sensor"] = binary_sensor_component_module  # noqa: E111
+  sys.modules["homeassistant.components.button"] = button_component_module  # noqa: E111
+  sys.modules["homeassistant.components.date"] = date_component_module  # noqa: E111
+  sys.modules["homeassistant.components.datetime"] = datetime_component_module  # noqa: E111
+  sys.modules["homeassistant.components.device_automation"] = (  # noqa: E111
     device_automation_component_module
   )
-  sys.modules["homeassistant.components.device_tracker"] = (
+  sys.modules["homeassistant.components.device_tracker"] = (  # noqa: E111
     device_tracker_component_module
   )
-  sys.modules["homeassistant.components.input_boolean"] = input_boolean_component_module
-  sys.modules["homeassistant.components.input_datetime"] = (
+  sys.modules["homeassistant.components.input_boolean"] = input_boolean_component_module  # noqa: E111
+  sys.modules["homeassistant.components.input_datetime"] = (  # noqa: E111
     input_datetime_component_module
   )
-  sys.modules["homeassistant.components.input_number"] = input_number_component_module
-  sys.modules["homeassistant.components.input_select"] = input_select_component_module
-  sys.modules["homeassistant.components.number"] = number_component_module
-  sys.modules["homeassistant.components.script"] = script_component_module
-  sys.modules["homeassistant.components.script.config"] = script_config_module
-  sys.modules["homeassistant.components.script.const"] = script_const_module
-  sys.modules["homeassistant.components.select"] = select_component_module
-  sys.modules["homeassistant.components.sensor"] = sensor_component_module
-  sys.modules["homeassistant.components.switch"] = switch_component_module
-  sys.modules["homeassistant.components.system_health"] = system_health_component_module
-  sys.modules["homeassistant.components.text"] = text_component_module
-  sys.modules["homeassistant.components.weather"] = weather_component_module
-  sys.modules["homeassistant.components.webhook"] = webhook_component_module
-  sys.modules["homeassistant.components.repairs"] = repairs_component_module
-  sys.modules["homeassistant.data_entry_flow"] = data_entry_flow_module
-  sys.modules["aiofiles"] = aiofiles_module
+  sys.modules["homeassistant.components.input_number"] = input_number_component_module  # noqa: E111
+  sys.modules["homeassistant.components.input_select"] = input_select_component_module  # noqa: E111
+  sys.modules["homeassistant.components.number"] = number_component_module  # noqa: E111
+  sys.modules["homeassistant.components.script"] = script_component_module  # noqa: E111
+  sys.modules["homeassistant.components.script.config"] = script_config_module  # noqa: E111
+  sys.modules["homeassistant.components.script.const"] = script_const_module  # noqa: E111
+  sys.modules["homeassistant.components.select"] = select_component_module  # noqa: E111
+  sys.modules["homeassistant.components.sensor"] = sensor_component_module  # noqa: E111
+  sys.modules["homeassistant.components.switch"] = switch_component_module  # noqa: E111
+  sys.modules["homeassistant.components.system_health"] = system_health_component_module  # noqa: E111
+  sys.modules["homeassistant.components.text"] = text_component_module  # noqa: E111
+  sys.modules["homeassistant.components.weather"] = weather_component_module  # noqa: E111
+  sys.modules["homeassistant.components.webhook"] = webhook_component_module  # noqa: E111
+  sys.modules["homeassistant.components.repairs"] = repairs_component_module  # noqa: E111
+  sys.modules["homeassistant.data_entry_flow"] = data_entry_flow_module  # noqa: E111
+  sys.modules["aiofiles"] = aiofiles_module  # noqa: E111

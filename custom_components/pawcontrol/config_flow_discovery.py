@@ -24,16 +24,16 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-  from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
+  from homeassistant.components.bluetooth import BluetoothServiceInfoBleak  # noqa: E111
 else:  # pragma: no cover - only used for typing
-  BluetoothServiceInfoBleak = Any
+  BluetoothServiceInfoBleak = Any  # noqa: E111
 
 _LOGGER = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
 
-  class DiscoveryFlowHost(Protocol):
+  class DiscoveryFlowHost(Protocol):  # noqa: E111
     def _is_supported_device(
       self,
       hostname: str,
@@ -79,13 +79,13 @@ if TYPE_CHECKING:
     def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-  DiscoveryFlowHost = object
+  DiscoveryFlowHost = object  # noqa: E111
 
 
 class DiscoveryFlowMixin(DiscoveryFlowHost):
-  """Mixin that provides HA discovery steps for the config flow."""
+  """Mixin that provides HA discovery steps for the config flow."""  # noqa: E111
 
-  async def async_step_zeroconf(
+  async def async_step_zeroconf(  # noqa: E111
     self,
     discovery_info: ZeroconfServiceInfo,
   ) -> ConfigFlowResult:
@@ -98,7 +98,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
     properties: ConfigFlowDiscoveryProperties = dict(properties_raw)
 
     if not self._is_supported_device(hostname, properties):
-      return self.async_abort(reason="not_supported")
+      return self.async_abort(reason="not_supported")  # noqa: E111
 
     discovery_payload: ConfigFlowDiscoveryData = {
       "source": "zeroconf",
@@ -108,11 +108,11 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
     }
 
     if discovery_info.port is not None:
-      discovery_payload["port"] = int(discovery_info.port)
+      discovery_payload["port"] = int(discovery_info.port)  # noqa: E111
     if discovery_info.type:
-      discovery_payload["type"] = discovery_info.type
+      discovery_payload["type"] = discovery_info.type  # noqa: E111
     if discovery_info.name:
-      discovery_payload["name"] = discovery_info.name
+      discovery_payload["name"] = discovery_info.name  # noqa: E111
 
     updates, comparison = self._prepare_discovery_updates(
       discovery_payload,
@@ -126,11 +126,11 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       reload_on_update=True,
     )
     if result is not None:
-      return result
+      return result  # noqa: E111
 
     return await self.async_step_discovery_confirm()
 
-  async def async_step_dhcp(
+  async def async_step_dhcp(  # noqa: E111
     self,
     discovery_info: DhcpServiceInfo,
   ) -> ConfigFlowResult:
@@ -142,7 +142,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
     macaddress = discovery_info.macaddress or ""
 
     if not self._is_supported_device(hostname, {"mac": macaddress}):
-      return self.async_abort(reason="not_supported")
+      return self.async_abort(reason="not_supported")  # noqa: E111
 
     dhcp_payload: ConfigFlowDiscoveryData = {
       "source": "dhcp",
@@ -150,7 +150,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       "macaddress": macaddress,
     }
     if discovery_info.ip:
-      dhcp_payload["ip"] = discovery_info.ip
+      dhcp_payload["ip"] = discovery_info.ip  # noqa: E111
 
     updates, comparison = self._prepare_discovery_updates(
       dhcp_payload,
@@ -164,11 +164,11 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       reload_on_update=True,
     )
     if result is not None:
-      return result
+      return result  # noqa: E111
 
     return await self.async_step_discovery_confirm()
 
-  async def async_step_usb(self, discovery_info: UsbServiceInfo) -> ConfigFlowResult:
+  async def async_step_usb(self, discovery_info: UsbServiceInfo) -> ConfigFlowResult:  # noqa: E111
     """Handle USB discovery for supported trackers."""
 
     _LOGGER.debug("USB discovery: %s", discovery_info)
@@ -185,7 +185,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
     }
 
     if not self._is_supported_device(hostname_hint, properties):
-      return self.async_abort(reason="not_supported")
+      return self.async_abort(reason="not_supported")  # noqa: E111
 
     usb_payload: ConfigFlowDiscoveryData = {
       "source": "usb",
@@ -196,7 +196,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       "serial_number": serial_number,
     }
     if discovery_info.device:
-      usb_payload["device"] = discovery_info.device
+      usb_payload["device"] = discovery_info.device  # noqa: E111
 
     updates, comparison = self._prepare_discovery_updates(
       usb_payload,
@@ -210,11 +210,11 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       reload_on_update=True,
     )
     if result is not None:
-      return result
+      return result  # noqa: E111
 
     return await self.async_step_discovery_confirm()
 
-  async def async_step_bluetooth(
+  async def async_step_bluetooth(  # noqa: E111
     self,
     discovery_info: BluetoothServiceInfoBleak,
   ) -> ConfigFlowResult:
@@ -236,7 +236,7 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
     }
 
     if not self._is_supported_device(hostname_hint, properties):
-      return self.async_abort(reason="not_supported")
+      return self.async_abort(reason="not_supported")  # noqa: E111
 
     bluetooth_payload: ConfigFlowDiscoveryData = {
       "source": "bluetooth",
@@ -257,28 +257,28 @@ class DiscoveryFlowMixin(DiscoveryFlowHost):
       reload_on_update=True,
     )
     if result is not None:
-      return result
+      return result  # noqa: E111
 
     return await self.async_step_discovery_confirm()
 
-  async def async_step_discovery_confirm(
+  async def async_step_discovery_confirm(  # noqa: E111
     self,
     user_input: DiscoveryConfirmInput | None = None,
   ) -> ConfigFlowResult:
     """Confirm discovered device setup."""
 
     if user_input is not None:
-      if user_input.get("confirm", False):
+      if user_input.get("confirm", False):  # noqa: E111
         if getattr(self, "_unique_id", None) is not None:
-          updates: Mapping[str, object] | None = None
-          if self._discovery_info:
+          updates: Mapping[str, object] | None = None  # noqa: E111
+          if self._discovery_info:  # noqa: E111
             updates = {"discovery_info": dict(self._discovery_info)}
-          self._abort_if_unique_id_configured(
+          self._abort_if_unique_id_configured(  # noqa: E111
             updates=updates,
             reload_on_update=True,
           )
         return await self.async_step_add_dog()
-      return self.async_abort(reason="discovery_rejected")
+      return self.async_abort(reason="discovery_rejected")  # noqa: E111
 
     discovery_source = self._discovery_info.get("source", "unknown")
     device_info = self._format_discovery_info()

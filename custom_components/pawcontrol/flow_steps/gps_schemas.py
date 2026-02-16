@@ -42,9 +42,9 @@ from .gps_helpers import build_gps_source_options
 
 
 def build_dog_gps_schema(gps_sources: Mapping[str, str]) -> vol.Schema:
-  """Build the schema for GPS configuration."""
+  """Build the schema for GPS configuration."""  # noqa: E111
 
-  gps_source_schema = selector(
+  gps_source_schema = selector(  # noqa: E111
     {
       "select": {
         "options": build_gps_source_options(gps_sources),
@@ -53,7 +53,7 @@ def build_dog_gps_schema(gps_sources: Mapping[str, str]) -> vol.Schema:
     },
   )
 
-  return vol.Schema(
+  return vol.Schema(  # noqa: E111
     {
       vol.Required(CONF_GPS_SOURCE): gps_source_schema,
       vol.Required(
@@ -71,9 +71,9 @@ def build_dog_gps_schema(gps_sources: Mapping[str, str]) -> vol.Schema:
 
 
 def build_gps_settings_schema(current_options: GPSOptions) -> vol.Schema:
-  """Build schema for GPS settings."""
+  """Build schema for GPS settings."""  # noqa: E111
 
-  return vol.Schema(
+  return vol.Schema(  # noqa: E111
     {
       vol.Optional(
         GPS_ENABLED_FIELD,
@@ -137,12 +137,12 @@ def build_gps_settings_schema(current_options: GPSOptions) -> vol.Schema:
 
 
 def build_geofence_settings_schema(current_options: GeofenceOptions) -> vol.Schema:
-  """Build schema for geofence settings."""
+  """Build schema for geofence settings."""  # noqa: E111
 
-  geofence_latitude = current_options.get(GEOFENCE_LAT_FIELD) or "52.5200"
-  geofence_longitude = current_options.get(GEOFENCE_LON_FIELD) or "13.4050"
+  geofence_latitude = current_options.get(GEOFENCE_LAT_FIELD) or "52.5200"  # noqa: E111
+  geofence_longitude = current_options.get(GEOFENCE_LON_FIELD) or "13.4050"  # noqa: E111
 
-  return vol.Schema(
+  return vol.Schema(  # noqa: E111
     {
       vol.Optional(
         GEOFENCE_ENABLED_FIELD,

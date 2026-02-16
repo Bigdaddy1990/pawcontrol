@@ -45,8 +45,8 @@ ENTRY_ID = "entry-1"
 
 
 def _register_device(hass: HomeAssistant) -> dr.DeviceEntry:
-  device_registry = dr.async_get(hass)
-  return device_registry.async_get_or_create(
+  device_registry = dr.async_get(hass)  # noqa: E111
+  return device_registry.async_get_or_create(  # noqa: E111
     config_entry_id=ENTRY_ID,
     identifiers={(DOMAIN, DOG_ID)},
   )
@@ -60,8 +60,8 @@ def _register_entity(
   platform: str,
   suffix: str,
 ) -> None:
-  entity_registry = er.async_get(hass)
-  entity_registry.async_get_or_create(
+  entity_registry = er.async_get(hass)  # noqa: E111
+  entity_registry.async_get_or_create(  # noqa: E111
     entity_id,
     config_entry_id=ENTRY_ID,
     device_id=device_entry.id,
@@ -72,24 +72,24 @@ def _register_entity(
 
 @pytest.mark.asyncio
 async def test_async_get_triggers_returns_available(hass: HomeAssistant) -> None:
-  """Verify triggers are generated for registered device entities."""
+  """Verify triggers are generated for registered device entities."""  # noqa: E111
 
-  device_entry = _register_device(hass)
-  _register_entity(
+  device_entry = _register_device(hass)  # noqa: E111
+  _register_entity(  # noqa: E111
     hass,
     device_entry,
     entity_id="binary_sensor.pawcontrol_buddy_is_hungry",
     platform="binary_sensor",
     suffix="is_hungry",
   )
-  _register_entity(
+  _register_entity(  # noqa: E111
     hass,
     device_entry,
     entity_id="binary_sensor.pawcontrol_buddy_walk_in_progress",
     platform="binary_sensor",
     suffix="walk_in_progress",
   )
-  _register_entity(
+  _register_entity(  # noqa: E111
     hass,
     device_entry,
     entity_id="sensor.pawcontrol_buddy_status",
@@ -97,48 +97,48 @@ async def test_async_get_triggers_returns_available(hass: HomeAssistant) -> None
     suffix="status",
   )
 
-  triggers = await async_get_triggers(hass, device_entry.id)
-  trigger_types = {trigger[CONF_TYPE] for trigger in triggers}
+  triggers = await async_get_triggers(hass, device_entry.id)  # noqa: E111
+  trigger_types = {trigger[CONF_TYPE] for trigger in triggers}  # noqa: E111
 
-  assert "hungry" in trigger_types
-  assert "walk_started" in trigger_types
-  assert "walk_ended" in trigger_types
-  assert "status_changed" in trigger_types
-  assert all(CONF_METADATA in trigger for trigger in triggers)
+  assert "hungry" in trigger_types  # noqa: E111
+  assert "walk_started" in trigger_types  # noqa: E111
+  assert "walk_ended" in trigger_types  # noqa: E111
+  assert "status_changed" in trigger_types  # noqa: E111
+  assert all(CONF_METADATA in trigger for trigger in triggers)  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_async_get_triggers_missing_device(hass: HomeAssistant) -> None:
-  """Return no triggers when device is unknown."""
+  """Return no triggers when device is unknown."""  # noqa: E111
 
-  triggers = await async_get_triggers(hass, "missing-device")
+  triggers = await async_get_triggers(hass, "missing-device")  # noqa: E111
 
-  assert triggers == []
+  assert triggers == []  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_async_get_actions_returns_metadata(
   hass: HomeAssistant,
 ) -> None:
-  """Verify action metadata is provided for devices."""
+  """Verify action metadata is provided for devices."""  # noqa: E111
 
-  device_entry = _register_device(hass)
+  device_entry = _register_device(hass)  # noqa: E111
 
-  actions = await async_get_actions(hass, device_entry.id)
+  actions = await async_get_actions(hass, device_entry.id)  # noqa: E111
 
-  assert actions
-  assert all(CONF_METADATA in action for action in actions)
+  assert actions  # noqa: E111
+  assert all(CONF_METADATA in action for action in actions)  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_async_get_conditions_returns_metadata(
   hass: HomeAssistant,
 ) -> None:
-  """Verify condition metadata is provided for devices."""
+  """Verify condition metadata is provided for devices."""  # noqa: E111
 
-  device_entry = _register_device(hass)
-  entity_id = "binary_sensor.pawcontrol_buddy_is_hungry"
-  _register_entity(
+  device_entry = _register_device(hass)  # noqa: E111
+  entity_id = "binary_sensor.pawcontrol_buddy_is_hungry"  # noqa: E111
+  _register_entity(  # noqa: E111
     hass,
     device_entry,
     entity_id=entity_id,
@@ -146,21 +146,21 @@ async def test_async_get_conditions_returns_metadata(
     suffix="is_hungry",
   )
 
-  conditions = await async_get_conditions(hass, device_entry.id)
+  conditions = await async_get_conditions(hass, device_entry.id)  # noqa: E111
 
-  assert conditions
-  assert all(CONF_METADATA in condition for condition in conditions)
+  assert conditions  # noqa: E111
+  assert all(CONF_METADATA in condition for condition in conditions)  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_condition_uses_entity_state_fallback(
   hass: HomeAssistant,
 ) -> None:
-  """Verify conditions evaluate using entity state when no runtime data exists."""
+  """Verify conditions evaluate using entity state when no runtime data exists."""  # noqa: E111
 
-  device_entry = _register_device(hass)
-  entity_id = "binary_sensor.pawcontrol_buddy_is_hungry"
-  _register_entity(
+  device_entry = _register_device(hass)  # noqa: E111
+  entity_id = "binary_sensor.pawcontrol_buddy_is_hungry"  # noqa: E111
+  _register_entity(  # noqa: E111
     hass,
     device_entry,
     entity_id=entity_id,
@@ -168,9 +168,9 @@ async def test_condition_uses_entity_state_fallback(
     suffix="is_hungry",
   )
 
-  hass.states.async_set(entity_id, STATE_ON)
+  hass.states.async_set(entity_id, STATE_ON)  # noqa: E111
 
-  condition = await async_condition_from_config(
+  condition = await async_condition_from_config(  # noqa: E111
     hass,
     {
       CONF_CONDITION: "device",
@@ -181,18 +181,18 @@ async def test_condition_uses_entity_state_fallback(
     },
   )
 
-  assert condition(hass, {})
+  assert condition(hass, {})  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_condition_missing_entity_returns_false(
   hass: HomeAssistant,
 ) -> None:
-  """Ensure missing entities cause conditions to fail."""
+  """Ensure missing entities cause conditions to fail."""  # noqa: E111
 
-  device_entry = _register_device(hass)
+  device_entry = _register_device(hass)  # noqa: E111
 
-  condition = await async_condition_from_config(
+  condition = await async_condition_from_config(  # noqa: E111
     hass,
     {
       CONF_CONDITION: "device",
@@ -203,19 +203,19 @@ async def test_condition_missing_entity_returns_false(
     },
   )
 
-  assert not condition(hass, {})
+  assert not condition(hass, {})  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_action_calls_feeding_manager(hass: HomeAssistant) -> None:
-  """Verify device actions call managers with dog identifiers."""
+  """Verify device actions call managers with dog identifiers."""  # noqa: E111
 
-  device_entry = _register_device(hass)
+  device_entry = _register_device(hass)  # noqa: E111
 
-  feeding_manager = AsyncMock()
-  walk_manager = AsyncMock()
+  feeding_manager = AsyncMock()  # noqa: E111
+  walk_manager = AsyncMock()  # noqa: E111
 
-  runtime_data = PawControlRuntimeData(
+  runtime_data = PawControlRuntimeData(  # noqa: E111
     coordinator=Mock(),
     data_manager=Mock(),
     notification_manager=Mock(),
@@ -226,10 +226,10 @@ async def test_action_calls_feeding_manager(hass: HomeAssistant) -> None:
     dogs=[{"dog_id": DOG_ID, "dog_name": "Buddy"}],
   )
 
-  entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})
-  store_runtime_data(hass, entry, runtime_data)
+  entry = ConfigEntry(entry_id=ENTRY_ID, domain=DOMAIN, data={"dogs": []})  # noqa: E111
+  store_runtime_data(hass, entry, runtime_data)  # noqa: E111
 
-  await async_call_action(
+  await async_call_action(  # noqa: E111
     hass,
     {
       CONF_DEVICE_ID: device_entry.id,
@@ -241,26 +241,26 @@ async def test_action_calls_feeding_manager(hass: HomeAssistant) -> None:
     {},
   )
 
-  feeding_manager.async_add_feeding.assert_awaited_once()
-  call_args = feeding_manager.async_add_feeding.call_args
-  assert call_args.args[0] == DOG_ID
-  assert call_args.args[1] == 120.0
+  feeding_manager.async_add_feeding.assert_awaited_once()  # noqa: E111
+  call_args = feeding_manager.async_add_feeding.call_args  # noqa: E111
+  assert call_args.args[0] == DOG_ID  # noqa: E111
+  assert call_args.args[1] == 120.0  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_action_capabilities_require_amount(
   hass: HomeAssistant,
 ) -> None:
-  """Ensure feeding action capabilities require amount."""
+  """Ensure feeding action capabilities require amount."""  # noqa: E111
 
-  capabilities = await async_get_action_capabilities(
+  capabilities = await async_get_action_capabilities(  # noqa: E111
     hass,
     {CONF_TYPE: "log_feeding"},
   )
 
-  fields = capabilities["fields"]
-  fields({"amount": 1.0})
-  with pytest.raises(vol.Invalid):
+  fields = capabilities["fields"]  # noqa: E111
+  fields({"amount": 1.0})  # noqa: E111
+  with pytest.raises(vol.Invalid):  # noqa: E111
     fields({})
 
 
@@ -268,26 +268,26 @@ async def test_action_capabilities_require_amount(
 async def test_trigger_capabilities_status_changed(
   hass: HomeAssistant,
 ) -> None:
-  """Ensure status trigger capabilities expose from/to fields."""
+  """Ensure status trigger capabilities expose from/to fields."""  # noqa: E111
 
-  capabilities = await async_get_trigger_capabilities(
+  capabilities = await async_get_trigger_capabilities(  # noqa: E111
     hass,
     {CONF_TYPE: "status_changed"},
   )
 
-  fields = capabilities["extra_fields"]
-  fields({CONF_FROM: "sleeping", CONF_TO: "playing"})
+  fields = capabilities["extra_fields"]  # noqa: E111
+  fields({CONF_FROM: "sleeping", CONF_TO: "playing"})  # noqa: E111
 
-  assert (await async_get_trigger_capabilities(hass, {CONF_TYPE: "hungry"})) == {}
+  assert (await async_get_trigger_capabilities(hass, {CONF_TYPE: "hungry"})) == {}  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_action_missing_runtime_data_raises(
   hass: HomeAssistant,
 ) -> None:
-  """Ensure actions raise when runtime data is missing."""
+  """Ensure actions raise when runtime data is missing."""  # noqa: E111
 
-  with pytest.raises(HomeAssistantError):
+  with pytest.raises(HomeAssistantError):  # noqa: E111
     await async_call_action(
       hass,
       {

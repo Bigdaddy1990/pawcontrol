@@ -10,9 +10,9 @@ from custom_components.pawcontrol.types import CoordinatorRuntimeManagers
 
 
 class _DummyCoordinator(CoordinatorDataAccessMixin):
-  """Minimal coordinator that exposes the mixin helpers for tests."""
+  """Minimal coordinator that exposes the mixin helpers for tests."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.registry = DogConfigRegistry([
       {
         "dog_id": "alpha",
@@ -27,29 +27,29 @@ class _DummyCoordinator(CoordinatorDataAccessMixin):
 
 
 def test_get_module_data_returns_unknown_status_for_missing_typed_module() -> None:
-  """Typed modules fall back to an unknown status payload when absent."""
+  """Typed modules fall back to an unknown status payload when absent."""  # noqa: E111
 
-  coordinator = _DummyCoordinator()
+  coordinator = _DummyCoordinator()  # noqa: E111
 
-  payload = coordinator.get_module_data("alpha", "gps")
+  payload = coordinator.get_module_data("alpha", "gps")  # noqa: E111
 
-  assert payload["status"] == "unknown"
+  assert payload["status"] == "unknown"  # noqa: E111
 
 
 def test_get_module_data_preserves_typed_payloads() -> None:
-  """Typed module payloads are returned unchanged when available."""
+  """Typed module payloads are returned unchanged when available."""  # noqa: E111
 
-  coordinator = _DummyCoordinator()
-  coordinator._data["alpha"]["gps"] = {"status": "online", "fix_quality": "3d"}
+  coordinator = _DummyCoordinator()  # noqa: E111
+  coordinator._data["alpha"]["gps"] = {"status": "online", "fix_quality": "3d"}  # noqa: E111
 
-  payload = coordinator.get_module_data("alpha", "gps")
+  payload = coordinator.get_module_data("alpha", "gps")  # noqa: E111
 
-  assert payload == {"status": "online", "fix_quality": "3d"}
+  assert payload == {"status": "online", "fix_quality": "3d"}  # noqa: E111
 
 
 def test_get_module_data_returns_empty_dict_for_unknown_modules() -> None:
-  """Untyped modules continue to return empty dictionaries when unavailable."""
+  """Untyped modules continue to return empty dictionaries when unavailable."""  # noqa: E111
 
-  coordinator = _DummyCoordinator()
+  coordinator = _DummyCoordinator()  # noqa: E111
 
-  assert coordinator.get_module_data("alpha", "notifications") == {}
+  assert coordinator.get_module_data("alpha", "notifications") == {}  # noqa: E111

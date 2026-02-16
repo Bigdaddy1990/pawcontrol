@@ -30,7 +30,7 @@ from .const import (
 from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:
-  from homeassistant.core import HomeAssistant
+  from homeassistant.core import HomeAssistant  # noqa: E111
 
 ValidationError = PawControlValidationError
 
@@ -69,9 +69,9 @@ TNotificationTarget = TypeVar("TNotificationTarget", bound=Enum)
 
 
 class InputCoercionError(ValueError):
-  """Raised when raw input cannot be coerced to the expected type."""
+  """Raised when raw input cannot be coerced to the expected type."""  # noqa: E111
 
-  def __init__(self, field: str, value: Any, message: str) -> None:
+  def __init__(self, field: str, value: Any, message: str) -> None:  # noqa: E111
     super().__init__(message)
     self.field = field
     self.value = value
@@ -79,17 +79,17 @@ class InputCoercionError(ValueError):
 
 
 def _is_empty(value: Any) -> bool:
-  """Return True when a value should be treated as missing."""
+  """Return True when a value should be treated as missing."""  # noqa: E111
 
-  return value is None or (isinstance(value, str) and not value.strip())
+  return value is None or (isinstance(value, str) and not value.strip())  # noqa: E111
 
 
 @dataclass(frozen=True, slots=True)
 class NotificationTargets[TNotificationTarget: Enum]:
-  """Typed result for notification target validation."""
+  """Typed result for notification target validation."""  # noqa: E111
 
-  targets: list[TNotificationTarget]
-  invalid: list[str]
+  targets: list[TNotificationTarget]  # noqa: E111
+  invalid: list[str]  # noqa: E111
 
 
 def _coerce_float_with_constraint(
@@ -97,25 +97,25 @@ def _coerce_float_with_constraint(
   value: Any,
   constraint: str,
 ) -> float:
-  """Coerce a float while normalising validation constraints."""
+  """Coerce a float while normalising validation constraints."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     return coerce_float(field, value)
-  except InputCoercionError as err:
+  except InputCoercionError as err:  # noqa: E111
     raise ValidationError(field, value, constraint) from err
 
 
 def normalize_dog_id(raw_id: Any) -> str:
-  """Normalize a dog identifier for flow and service validation."""
+  """Normalize a dog identifier for flow and service validation."""  # noqa: E111
 
-  if raw_id is None:
+  if raw_id is None:  # noqa: E111
     return ""
 
-  if not isinstance(raw_id, str):
+  if not isinstance(raw_id, str):  # noqa: E111
     raise InputCoercionError("dog_id", raw_id, "Must be a string")
 
-  dog_id_raw = raw_id.strip().lower()
-  return re.sub(r"\s+", "_", dog_id_raw)
+  dog_id_raw = raw_id.strip().lower()  # noqa: E111
+  return re.sub(r"\s+", "_", dog_id_raw)  # noqa: E111
 
 
 def _parse_time_string(
@@ -123,52 +123,52 @@ def _parse_time_string(
   value: Any,
   invalid_constraint: str,
 ) -> str | None:
-  """Parse and normalize time strings for validation."""
+  """Parse and normalize time strings for validation."""  # noqa: E111
 
-  if value is None:
+  if value is None:  # noqa: E111
     return None
 
-  if isinstance(value, dt_time):
+  if isinstance(value, dt_time):  # noqa: E111
     return value.isoformat()
 
-  if not isinstance(value, str):
+  if not isinstance(value, str):  # noqa: E111
     raise ValidationError(field, value, invalid_constraint)
 
-  trimmed = value.strip()
-  if not trimmed:
+  trimmed = value.strip()  # noqa: E111
+  if not trimmed:  # noqa: E111
     return None
 
-  try:
+  try:  # noqa: E111
     parsed = dt_time.fromisoformat(trimmed)
-  except ValueError as err:
+  except ValueError as err:  # noqa: E111
     raise ValidationError(field, value, invalid_constraint) from err
 
-  return parsed.isoformat()
+  return parsed.isoformat()  # noqa: E111
 
 
 def coerce_float(field: str, value: Any) -> float:
-  """Convert a value to float while raising typed coercion errors."""
+  """Convert a value to float while raising typed coercion errors."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     raise InputCoercionError(field, value, "Must be numeric")
 
-  if isinstance(value, Real):
+  if isinstance(value, Real):  # noqa: E111
     return float(value)
 
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     stripped = value.strip()
     if not stripped:
-      raise InputCoercionError(field, value, "Must be numeric")
+      raise InputCoercionError(field, value, "Must be numeric")  # noqa: E111
     try:
-      return float(stripped)
+      return float(stripped)  # noqa: E111
     except ValueError as err:
-      raise InputCoercionError(
+      raise InputCoercionError(  # noqa: E111
         field,
         value,
         "Must be numeric",
       ) from err
 
-  raise InputCoercionError(
+  raise InputCoercionError(  # noqa: E111
     field,
     value,
     "Must be numeric",
@@ -176,55 +176,55 @@ def coerce_float(field: str, value: Any) -> float:
 
 
 def coerce_int(field: str, value: Any) -> int:
-  """Convert a value to int while validating fractional input."""
+  """Convert a value to int while validating fractional input."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     raise InputCoercionError(field, value, "Must be a whole number")
 
-  if isinstance(value, int):
+  if isinstance(value, int):  # noqa: E111
     return value
 
-  if isinstance(value, Real):
+  if isinstance(value, Real):  # noqa: E111
     float_value = float(value)
     if float_value.is_integer():
-      return int(float_value)
+      return int(float_value)  # noqa: E111
     raise InputCoercionError(
       field,
       value,
       "Must be a whole number",
     )
 
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     stripped = value.strip()
     if not stripped:
-      raise InputCoercionError(
+      raise InputCoercionError(  # noqa: E111
         field,
         value,
         "Must be a whole number",
       )
 
     try:
-      return int(stripped)
+      return int(stripped)  # noqa: E111
     except ValueError:
-      try:
+      try:  # noqa: E111
         float_value = float(stripped)
-      except ValueError as err:
+      except ValueError as err:  # noqa: E111
         raise InputCoercionError(
           field,
           value,
           "Must be a whole number",
         ) from err
 
-      if not float_value.is_integer():
+      if not float_value.is_integer():  # noqa: E111
         raise InputCoercionError(
           field,
           value,
           "Must be a whole number",
         ) from None
 
-      return int(float_value)
+      return int(float_value)  # noqa: E111
 
-  raise InputCoercionError(
+  raise InputCoercionError(  # noqa: E111
     field,
     value,
     "Must be a whole number",
@@ -232,11 +232,11 @@ def coerce_int(field: str, value: Any) -> int:
 
 
 def _coerce_float(field: str, value: Any) -> float:
-  """Convert a value to float while providing helpful validation errors."""
+  """Convert a value to float while providing helpful validation errors."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     return coerce_float(field, value)
-  except InputCoercionError as err:
+  except InputCoercionError as err:  # noqa: E111
     raise ValidationError(
       field,
       value,
@@ -245,11 +245,11 @@ def _coerce_float(field: str, value: Any) -> float:
 
 
 def _coerce_int(field: str, value: Any) -> int:
-  """Convert a value to int while validating fractional input."""
+  """Convert a value to int while validating fractional input."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     return coerce_int(field, value)
-  except InputCoercionError as err:
+  except InputCoercionError as err:  # noqa: E111
     raise ValidationError(
       field,
       value,
@@ -262,42 +262,42 @@ def validate_notification_targets[TNotificationTarget: Enum](
   *,
   enum_type: type[TNotificationTarget],
 ) -> NotificationTargets[TNotificationTarget]:
-  """Validate notification targets against the provided enum type."""
+  """Validate notification targets against the provided enum type."""  # noqa: E111
 
-  if raw_targets is None:
+  if raw_targets is None:  # noqa: E111
     return NotificationTargets(targets=[], invalid=[])
 
-  candidate_targets: Iterable[Any]
-  if isinstance(raw_targets, enum_type | str):
+  candidate_targets: Iterable[Any]  # noqa: E111
+  if isinstance(raw_targets, enum_type | str):  # noqa: E111
     candidate_targets = [raw_targets]
-  elif isinstance(raw_targets, Iterable) and not isinstance(
+  elif isinstance(raw_targets, Iterable) and not isinstance(  # noqa: E111
     raw_targets,
     str | bytes | bytearray,
   ):
     candidate_targets = raw_targets
-  else:
+  else:  # noqa: E111
     candidate_targets = [raw_targets]
 
-  targets: list[TNotificationTarget] = []
-  invalid: list[str] = []
-  seen: set[TNotificationTarget] = set()
-  for candidate in candidate_targets:
+  targets: list[TNotificationTarget] = []  # noqa: E111
+  invalid: list[str] = []  # noqa: E111
+  seen: set[TNotificationTarget] = set()  # noqa: E111
+  for candidate in candidate_targets:  # noqa: E111
     try:
-      target = enum_type(candidate)
+      target = enum_type(candidate)  # noqa: E111
     except ValueError:
-      invalid.append(str(candidate))
-      continue
+      invalid.append(str(candidate))  # noqa: E111
+      continue  # noqa: E111
     except TypeError:
-      invalid.append(str(candidate))
-      continue
+      invalid.append(str(candidate))  # noqa: E111
+      continue  # noqa: E111
 
     if target in seen:
-      continue
+      continue  # noqa: E111
 
     seen.add(target)
     targets.append(target)
 
-  return NotificationTargets(targets=targets, invalid=invalid)
+  return NotificationTargets(targets=targets, invalid=invalid)  # noqa: E111
 
 
 def validate_time_window(
@@ -313,30 +313,30 @@ def validate_time_window(
   required_start_constraint: str = "time_required",
   required_end_constraint: str = "time_required",
 ) -> tuple[str, str]:
-  """Validate a start/end time window."""
+  """Validate a start/end time window."""  # noqa: E111
 
-  start_time = _parse_time_string(start_field, start, invalid_start_constraint)
-  end_time = _parse_time_string(end_field, end, invalid_end_constraint)
+  start_time = _parse_time_string(start_field, start, invalid_start_constraint)  # noqa: E111
+  end_time = _parse_time_string(end_field, end, invalid_end_constraint)  # noqa: E111
 
-  if start_time is None:
+  if start_time is None:  # noqa: E111
     start_time = _parse_time_string(
       start_field,
       default_start,
       invalid_start_constraint,
     )
-  if end_time is None:
+  if end_time is None:  # noqa: E111
     end_time = _parse_time_string(
       end_field,
       default_end,
       invalid_end_constraint,
     )
 
-  if start_time is None:
+  if start_time is None:  # noqa: E111
     raise ValidationError(start_field, start, required_start_constraint)
-  if end_time is None:
+  if end_time is None:  # noqa: E111
     raise ValidationError(end_field, end, required_end_constraint)
 
-  return start_time, end_time
+  return start_time, end_time  # noqa: E111
 
 
 def validate_dog_name(
@@ -347,26 +347,26 @@ def validate_dog_name(
   min_length: int = MIN_DOG_NAME_LENGTH,
   max_length: int = MAX_DOG_NAME_LENGTH,
 ) -> str | None:
-  """Validate dog name input and return a trimmed value."""
+  """Validate dog name input and return a trimmed value."""  # noqa: E111
 
-  if name is None or name == "":
+  if name is None or name == "":  # noqa: E111
     if required:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field,
         name,
         "dog_name_required",
       )
     return None
 
-  if not isinstance(name, str):
+  if not isinstance(name, str):  # noqa: E111
     raise ValidationError(
       field,
       name,
       "dog_name_invalid",
     )
 
-  trimmed = name.strip()
-  if len(trimmed) > max_length:
+  trimmed = name.strip()  # noqa: E111
+  if len(trimmed) > max_length:  # noqa: E111
     raise ValidationError(
       field,
       name,
@@ -374,16 +374,16 @@ def validate_dog_name(
       max_value=max_length,
     )
 
-  if not trimmed:
+  if not trimmed:  # noqa: E111
     if required:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field,
         name,
         "dog_name_required",
       )
     return None
 
-  if len(trimmed) < min_length:
+  if len(trimmed) < min_length:  # noqa: E111
     raise ValidationError(
       field,
       trimmed,
@@ -391,7 +391,7 @@ def validate_dog_name(
       min_value=min_length,
     )
 
-  if len(trimmed) > max_length:
+  if len(trimmed) > max_length:  # noqa: E111
     raise ValidationError(
       field,
       trimmed,
@@ -399,7 +399,7 @@ def validate_dog_name(
       max_value=max_length,
     )
 
-  return trimmed
+  return trimmed  # noqa: E111
 
 
 def validate_name(
@@ -409,29 +409,29 @@ def validate_name(
   min_length: int = MIN_DOG_NAME_LENGTH,
   max_length: int = MAX_DOG_NAME_LENGTH,
 ) -> str:
-  """Validate and normalize a name string."""
+  """Validate and normalize a name string."""  # noqa: E111
 
-  if not isinstance(raw_name, str):
+  if not isinstance(raw_name, str):  # noqa: E111
     raise ValidationError(field, raw_name, "name_invalid_type")
 
-  name = raw_name.strip()
-  if not name:
+  name = raw_name.strip()  # noqa: E111
+  if not name:  # noqa: E111
     raise ValidationError(field, raw_name, "name_required")
-  if len(name) < min_length:
+  if len(name) < min_length:  # noqa: E111
     raise ValidationError(
       field,
       name,
       "name_too_short",
       min_value=min_length,
     )
-  if len(name) > max_length:
+  if len(name) > max_length:  # noqa: E111
     raise ValidationError(
       field,
       name,
       "name_too_long",
       max_value=max_length,
     )
-  return name
+  return name  # noqa: E111
 
 
 def validate_coordinate(
@@ -442,23 +442,23 @@ def validate_coordinate(
   maximum: float,
   required: bool = True,
 ) -> float | None:
-  """Validate a single coordinate within bounds."""
+  """Validate a single coordinate within bounds."""  # noqa: E111
 
-  if _is_empty(value):
+  if _is_empty(value):  # noqa: E111
     if required:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field,
         value,
         "coordinate_required",
       )
     return None
 
-  coordinate = _coerce_float_with_constraint(
+  coordinate = _coerce_float_with_constraint(  # noqa: E111
     field,
     value,
     "coordinate_not_numeric",
   )
-  if coordinate < minimum or coordinate > maximum:
+  if coordinate < minimum or coordinate > maximum:  # noqa: E111
     raise ValidationError(
       field,
       coordinate,
@@ -466,7 +466,7 @@ def validate_coordinate(
       min_value=minimum,
       max_value=maximum,
     )
-  return coordinate
+  return coordinate  # noqa: E111
 
 
 def validate_gps_source(
@@ -476,28 +476,28 @@ def validate_gps_source(
   field: str = CONF_GPS_SOURCE,
   allow_manual: bool = True,
 ) -> str:
-  """Validate a GPS source entity or manual selection."""
+  """Validate a GPS source entity or manual selection."""  # noqa: E111
 
-  if not isinstance(gps_source, str):
+  if not isinstance(gps_source, str):  # noqa: E111
     raise ValidationError(field, gps_source, "gps_source_required")
 
-  candidate = gps_source.strip()
-  if not candidate:
+  candidate = gps_source.strip()  # noqa: E111
+  if not candidate:  # noqa: E111
     raise ValidationError(field, gps_source, "gps_source_required")
 
-  if allow_manual and candidate == "manual":
+  if allow_manual and candidate == "manual":  # noqa: E111
     return candidate
 
-  if candidate in {"webhook", "mqtt"}:
+  if candidate in {"webhook", "mqtt"}:  # noqa: E111
     return candidate
 
-  state = hass.states.get(candidate)
-  if state is None:
+  state = hass.states.get(candidate)  # noqa: E111
+  if state is None:  # noqa: E111
     raise ValidationError(field, candidate, "gps_source_not_found")
-  if state.state in {"unknown", "unavailable"}:
+  if state.state in {"unknown", "unavailable"}:  # noqa: E111
     raise ValidationError(field, candidate, "gps_source_unavailable")
 
-  return candidate
+  return candidate  # noqa: E111
 
 
 def validate_notify_service(
@@ -506,57 +506,57 @@ def validate_notify_service(
   *,
   field: str = CONF_NOTIFY_FALLBACK,
 ) -> str:
-  """Validate notification service selection."""
+  """Validate notification service selection."""  # noqa: E111
 
-  if not isinstance(notify_service, str):
+  if not isinstance(notify_service, str):  # noqa: E111
     raise ValidationError(field, notify_service, "notify_service_invalid")
-  candidate = notify_service.strip()
-  if not candidate:
+  candidate = notify_service.strip()  # noqa: E111
+  if not candidate:  # noqa: E111
     raise ValidationError(field, notify_service, "notify_service_invalid")
 
-  service_parts = candidate.split(".", 1)
-  if len(service_parts) != 2 or service_parts[0] != "notify":
+  service_parts = candidate.split(".", 1)  # noqa: E111
+  if len(service_parts) != 2 or service_parts[0] != "notify":  # noqa: E111
     raise ValidationError(field, candidate, "notify_service_invalid")
 
-  services = hass.services.async_services().get("notify", {})
-  if service_parts[1] not in services:
+  services = hass.services.async_services().get("notify", {})  # noqa: E111
+  if service_parts[1] not in services:  # noqa: E111
     raise ValidationError(field, candidate, "notify_service_not_found")
 
-  return candidate
+  return candidate  # noqa: E111
 
 
 def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, float]:
   """Compatibility helper that raises ``InvalidCoordinatesError``.
 
   Uses a local exception import to avoid module import-order cycles.
-  """
+  """  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     return InputValidator.validate_gps_coordinates(latitude, longitude)
-  except ValidationError as err:
+  except ValidationError as err:  # noqa: E111
     from .exceptions import InvalidCoordinatesError
 
     raise InvalidCoordinatesError(latitude, longitude) from err
 
 
 def validate_entity_id(entity_id: Any, *, field: str = "entity_id") -> str:
-  """Validate Home Assistant entity IDs in ``domain.object_id`` format."""
+  """Validate Home Assistant entity IDs in ``domain.object_id`` format."""  # noqa: E111
 
-  if not isinstance(entity_id, str):
+  if not isinstance(entity_id, str):  # noqa: E111
     raise ValidationError(field, entity_id, "Invalid entity_id format")
 
-  candidate = entity_id.strip()
-  parts = candidate.split(".")
-  if len(parts) != 2 or not parts[0] or not parts[1]:
+  candidate = entity_id.strip()  # noqa: E111
+  parts = candidate.split(".")  # noqa: E111
+  if len(parts) != 2 or not parts[0] or not parts[1]:  # noqa: E111
     raise ValidationError(field, entity_id, "Invalid entity_id format")
 
-  if not re.fullmatch(r"[a-z_]+", parts[0]):
+  if not re.fullmatch(r"[a-z_]+", parts[0]):  # noqa: E111
     raise ValidationError(field, entity_id, "Invalid entity_id format")
 
-  if not re.fullmatch(r"[\w]+", parts[1], flags=re.UNICODE):
+  if not re.fullmatch(r"[\w]+", parts[1], flags=re.UNICODE):  # noqa: E111
     raise ValidationError(field, entity_id, "Invalid entity_id format")
 
-  return candidate
+  return candidate  # noqa: E111
 
 
 def validate_sensor_entity_id(
@@ -570,37 +570,37 @@ def validate_sensor_entity_id(
   required_constraint: str = "sensor_required",
   not_found_constraint: str = "sensor_not_found",
 ) -> str | None:
-  """Validate a sensor entity ID selection."""
+  """Validate a sensor entity ID selection."""  # noqa: E111
 
-  if _is_empty(entity_id):
+  if _is_empty(entity_id):  # noqa: E111
     if required:
-      raise ValidationError(field, entity_id, required_constraint)
+      raise ValidationError(field, entity_id, required_constraint)  # noqa: E111
     return None
 
-  if not isinstance(entity_id, str):
+  if not isinstance(entity_id, str):  # noqa: E111
     raise ValidationError(field, entity_id, not_found_constraint)
 
-  candidate = entity_id.strip()
-  if not candidate:
+  candidate = entity_id.strip()  # noqa: E111
+  if not candidate:  # noqa: E111
     if required:
-      raise ValidationError(field, entity_id, required_constraint)
+      raise ValidationError(field, entity_id, required_constraint)  # noqa: E111
     return None
 
-  if domain:
+  if domain:  # noqa: E111
     domain_part = candidate.split(".", 1)[0]
     if domain_part != domain:
-      raise ValidationError(field, candidate, not_found_constraint)
+      raise ValidationError(field, candidate, not_found_constraint)  # noqa: E111
 
-  state = hass.states.get(candidate)
-  if state is None or state.state in {"unknown", "unavailable"}:
+  state = hass.states.get(candidate)  # noqa: E111
+  if state is None or state.state in {"unknown", "unavailable"}:  # noqa: E111
     raise ValidationError(field, candidate, not_found_constraint)
 
-  if device_classes:
+  if device_classes:  # noqa: E111
     device_class = state.attributes.get("device_class")
     if device_class not in device_classes:
-      raise ValidationError(field, candidate, not_found_constraint)
+      raise ValidationError(field, candidate, not_found_constraint)  # noqa: E111
 
-  return candidate
+  return candidate  # noqa: E111
 
 
 def validate_interval(
@@ -613,23 +613,23 @@ def validate_interval(
   clamp: bool = False,
   required: bool = False,
 ) -> int:
-  """Validate timer/interval values within bounds."""
+  """Validate timer/interval values within bounds."""  # noqa: E111
 
-  if value is None:
+  if value is None:  # noqa: E111
     if default is not None:
-      return default
+      return default  # noqa: E111
     if required:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field,
         value,
         "Interval is required",
       )
     return minimum if clamp else 0
 
-  interval = _coerce_int(field, value)
-  if interval < minimum:
+  interval = _coerce_int(field, value)  # noqa: E111
+  if interval < minimum:  # noqa: E111
     if clamp:
-      return minimum
+      return minimum  # noqa: E111
     raise ValidationError(
       field,
       interval,
@@ -637,9 +637,9 @@ def validate_interval(
       min_value=minimum,
       max_value=maximum,
     )
-  if interval > maximum:
+  if interval > maximum:  # noqa: E111
     if clamp:
-      return maximum
+      return maximum  # noqa: E111
     raise ValidationError(
       field,
       interval,
@@ -647,7 +647,7 @@ def validate_interval(
       min_value=minimum,
       max_value=maximum,
     )
-  return interval
+  return interval  # noqa: E111
 
 
 def validate_gps_update_interval(
@@ -660,9 +660,9 @@ def validate_gps_update_interval(
   clamp: bool = False,
   required: bool = False,
 ) -> int | None:
-  """Validate GPS update intervals in seconds."""
+  """Validate GPS update intervals in seconds."""  # noqa: E111
 
-  return validate_gps_interval(
+  return validate_gps_interval(  # noqa: E111
     value,
     field=field,
     minimum=minimum,
@@ -683,9 +683,9 @@ def validate_gps_interval(
   clamp: bool = False,
   required: bool = False,
 ) -> int | None:
-  """Validate GPS update intervals in seconds."""
+  """Validate GPS update intervals in seconds."""  # noqa: E111
 
-  return validate_int_range(
+  return validate_int_range(  # noqa: E111
     value,
     field=field,
     minimum=minimum,
@@ -707,19 +707,19 @@ def validate_expires_in_hours(
   maximum: float | None = None,
   required: bool = False,
 ) -> float | None:
-  """Validate notification expiry overrides in hours."""
+  """Validate notification expiry overrides in hours."""  # noqa: E111
 
-  if _is_empty(value):
+  if _is_empty(value):  # noqa: E111
     if required:
-      raise ValidationError(field, value, "expires_in_hours_required")
+      raise ValidationError(field, value, "expires_in_hours_required")  # noqa: E111
     return None
 
-  try:
+  try:  # noqa: E111
     hours = coerce_float(field, value)
-  except InputCoercionError as err:
+  except InputCoercionError as err:  # noqa: E111
     raise ValidationError(field, value, "expires_in_hours_not_numeric") from err
 
-  if hours <= minimum:
+  if hours <= minimum:  # noqa: E111
     raise ValidationError(
       field,
       hours,
@@ -728,7 +728,7 @@ def validate_expires_in_hours(
       max_value=maximum,
     )
 
-  if maximum is not None and hours > maximum:
+  if maximum is not None and hours > maximum:  # noqa: E111
     raise ValidationError(
       field,
       hours,
@@ -737,7 +737,7 @@ def validate_expires_in_hours(
       max_value=maximum,
     )
 
-  return hours
+  return hours  # noqa: E111
 
 
 def validate_gps_accuracy_value(
@@ -750,28 +750,28 @@ def validate_gps_accuracy_value(
   default: float | None = None,
   clamp: bool = False,
 ) -> float | None:
-  """Validate GPS accuracy values."""
+  """Validate GPS accuracy values."""  # noqa: E111
 
-  if _is_empty(accuracy):
+  if _is_empty(accuracy):  # noqa: E111
     if default is not None:
-      return default
+      return default  # noqa: E111
     if required:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field,
         accuracy,
         "gps_accuracy_required",
       )
     return None
 
-  accuracy = _coerce_float_with_constraint(
+  accuracy = _coerce_float_with_constraint(  # noqa: E111
     field,
     accuracy,
     "gps_accuracy_not_numeric",
   )
 
-  if accuracy < min_value:
+  if accuracy < min_value:  # noqa: E111
     if clamp:
-      return min_value
+      return min_value  # noqa: E111
     raise ValidationError(
       field,
       accuracy,
@@ -780,9 +780,9 @@ def validate_gps_accuracy_value(
       max_value=max_value,
     )
 
-  if accuracy > max_value:
+  if accuracy > max_value:  # noqa: E111
     if clamp:
-      return max_value
+      return max_value  # noqa: E111
     raise ValidationError(
       field,
       accuracy,
@@ -791,7 +791,7 @@ def validate_gps_accuracy_value(
       max_value=max_value,
     )
 
-  return accuracy
+  return accuracy  # noqa: E111
 
 
 def validate_float_range(
@@ -805,25 +805,25 @@ def validate_float_range(
   clamp: bool = False,
   required: bool = False,
 ) -> float:
-  """Validate a floating-point range within bounds."""
+  """Validate a floating-point range within bounds."""  # noqa: E111
 
-  resolved_field = field_name or field or "value"
+  resolved_field = field_name or field or "value"  # noqa: E111
 
-  if value is None:
+  if value is None:  # noqa: E111
     if default is not None:
-      return default
+      return default  # noqa: E111
     if required:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         resolved_field,
         value,
         "Value is required",
       )
     return minimum if clamp else 0.0
 
-  candidate = _coerce_float(resolved_field, value)
-  if candidate < minimum:
+  candidate = _coerce_float(resolved_field, value)  # noqa: E111
+  if candidate < minimum:  # noqa: E111
     if clamp:
-      return minimum
+      return minimum  # noqa: E111
     raise ValidationError(
       resolved_field,
       candidate,
@@ -831,9 +831,9 @@ def validate_float_range(
       min_value=minimum,
       max_value=maximum,
     )
-  if candidate > maximum:
+  if candidate > maximum:  # noqa: E111
     if clamp:
-      return maximum
+      return maximum  # noqa: E111
     raise ValidationError(
       resolved_field,
       candidate,
@@ -841,7 +841,7 @@ def validate_float_range(
       min_value=minimum,
       max_value=maximum,
     )
-  return candidate
+  return candidate  # noqa: E111
 
 
 def validate_int_range(
@@ -857,23 +857,23 @@ def validate_int_range(
   not_numeric_constraint: str = "value_not_numeric",
   out_of_range_constraint: str = "value_out_of_range",
 ) -> int | None:
-  """Validate an integer range within bounds."""
+  """Validate an integer range within bounds."""  # noqa: E111
 
-  if _is_empty(value):
+  if _is_empty(value):  # noqa: E111
     if default is not None:
-      return default
+      return default  # noqa: E111
     if required:
-      raise ValidationError(field, value, required_constraint)
+      raise ValidationError(field, value, required_constraint)  # noqa: E111
     return None
 
-  try:
+  try:  # noqa: E111
     interval = coerce_int(field, value)
-  except InputCoercionError as err:
+  except InputCoercionError as err:  # noqa: E111
     raise ValidationError(field, value, not_numeric_constraint) from err
 
-  if interval < minimum:
+  if interval < minimum:  # noqa: E111
     if clamp:
-      return minimum
+      return minimum  # noqa: E111
     raise ValidationError(
       field,
       interval,
@@ -881,9 +881,9 @@ def validate_int_range(
       min_value=minimum,
       max_value=maximum,
     )
-  if interval > maximum:
+  if interval > maximum:  # noqa: E111
     if clamp:
-      return maximum
+      return maximum  # noqa: E111
     raise ValidationError(
       field,
       interval,
@@ -891,7 +891,7 @@ def validate_int_range(
       min_value=minimum,
       max_value=maximum,
     )
-  return interval
+  return interval  # noqa: E111
 
 
 def clamp_int_range(
@@ -902,9 +902,9 @@ def clamp_int_range(
   maximum: int,
   default: int,
 ) -> int:
-  """Coerce and clamp integer input to the provided bounds."""
+  """Coerce and clamp integer input to the provided bounds."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     validated = validate_int_range(
       value,
       field=field,
@@ -914,7 +914,7 @@ def clamp_int_range(
       clamp=True,
     )
     return default if validated is None else validated
-  except ValidationError:
+  except ValidationError:  # noqa: E111
     return default
 
 
@@ -926,9 +926,9 @@ def clamp_float_range(
   maximum: float,
   default: float,
 ) -> float:
-  """Coerce and clamp float input to the provided bounds."""
+  """Coerce and clamp float input to the provided bounds."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     return validate_float_range(
       value,
       field=field,
@@ -937,7 +937,7 @@ def clamp_float_range(
       default=default,
       clamp=True,
     )
-  except ValidationError:
+  except ValidationError:  # noqa: E111
     return default
 
 
@@ -946,10 +946,10 @@ class InputValidator:
 
   Provides static methods for validating all types of user inputs
   with detailed error reporting and security checks.
-  """
+  """  # noqa: E111
 
-  @staticmethod
-  def validate_dog_id(dog_id: Any, required: bool = True) -> str | None:
+  @staticmethod  # noqa: E111
+  def validate_dog_id(dog_id: Any, required: bool = True) -> str | None:  # noqa: E111
     """Validate and sanitize dog identifier.
 
     Args:
@@ -963,17 +963,17 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if dog_id is None or dog_id == "":
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "dog_id",
           dog_id,
           "Dog ID is required",
           "Provide a valid dog identifier",
         )
-      return None
+      return None  # noqa: E111
 
     if not isinstance(dog_id, str):
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "dog_id",
         dog_id,
         "Must be a string",
@@ -983,17 +983,17 @@ class InputValidator:
     dog_id = dog_id.strip()
 
     if not dog_id:
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "dog_id",
           dog_id,
           "Cannot be empty or whitespace only",
           "Provide a valid identifier",
         )
-      return None
+      return None  # noqa: E111
 
     if len(dog_id) > 50:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "dog_id",
         dog_id,
         "Maximum 50 characters",
@@ -1001,7 +1001,7 @@ class InputValidator:
       )
 
     if not re.match(VALID_DOG_ID_PATTERN, dog_id):
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "dog_id",
         dog_id,
         "Only alphanumeric characters, underscore, and hyphen allowed",
@@ -1010,8 +1010,8 @@ class InputValidator:
 
     return dog_id
 
-  @staticmethod
-  def validate_dog_name(name: Any, required: bool = True) -> str | None:
+  @staticmethod  # noqa: E111
+  def validate_dog_name(name: Any, required: bool = True) -> str | None:  # noqa: E111
     """Validate dog name.
 
     Args:
@@ -1026,8 +1026,8 @@ class InputValidator:
     """
     return validate_dog_name(name, required=required)
 
-  @staticmethod
-  def validate_weight(
+  @staticmethod  # noqa: E111
+  def validate_weight(  # noqa: E111
     weight: Any,
     required: bool = True,
     min_kg: float = MIN_WEIGHT_KG,
@@ -1048,19 +1048,19 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if weight is None:
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "weight",
           weight,
           "Weight is required",
           "Provide dog weight in kilograms",
         )
-      return None
+      return None  # noqa: E111
 
     weight = _coerce_float("weight", weight)
 
     if weight <= 0:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "weight",
         weight,
         "Must be positive",
@@ -1068,7 +1068,7 @@ class InputValidator:
       )
 
     if weight < min_kg:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "weight",
         weight,
         f"Minimum weight is {min_kg} kg",
@@ -1076,7 +1076,7 @@ class InputValidator:
       )
 
     if weight > max_kg:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "weight",
         weight,
         f"Maximum weight is {max_kg} kg",
@@ -1085,8 +1085,8 @@ class InputValidator:
 
     return weight
 
-  @staticmethod
-  def validate_age_months(
+  @staticmethod  # noqa: E111
+  def validate_age_months(  # noqa: E111
     age: Any,
     required: bool = False,
     min_months: int = MIN_AGE_MONTHS,
@@ -1107,19 +1107,19 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if age is None:
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "age_months",
           age,
           "Age is required",
           "Provide dog age in months",
         )
-      return None
+      return None  # noqa: E111
 
     age = _coerce_int("age_months", age)
 
     if age < min_months:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "age_months",
         age,
         f"Minimum age is {min_months} months",
@@ -1127,7 +1127,7 @@ class InputValidator:
       )
 
     if age > max_months:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "age_months",
         age,
         f"Maximum age is {max_months} months ({max_months // 12} years)",
@@ -1136,8 +1136,8 @@ class InputValidator:
 
     return age
 
-  @staticmethod
-  def validate_gps_coordinates(
+  @staticmethod  # noqa: E111
+  def validate_gps_coordinates(  # noqa: E111
     latitude: Any,
     longitude: Any,
     *,
@@ -1172,8 +1172,8 @@ class InputValidator:
     )
     return cast(float, latitude), cast(float, longitude)
 
-  @staticmethod
-  def validate_gps_accuracy(
+  @staticmethod  # noqa: E111
+  def validate_gps_accuracy(  # noqa: E111
     accuracy: Any,
     required: bool = False,
     field: str = "accuracy",
@@ -1203,8 +1203,8 @@ class InputValidator:
       max_value=max_value,
     )
 
-  @staticmethod
-  def validate_portion_size(
+  @staticmethod  # noqa: E111
+  def validate_portion_size(  # noqa: E111
     amount: Any,
     required: bool = True,
   ) -> float | None:
@@ -1221,19 +1221,19 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if amount is None:
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "amount",
           amount,
           "Portion amount is required",
           "Provide amount in grams",
         )
-      return None
+      return None  # noqa: E111
 
     amount = _coerce_float("amount", amount)
 
     if amount <= 0:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "amount",
         amount,
         "Must be positive",
@@ -1241,7 +1241,7 @@ class InputValidator:
       )
 
     if amount < MIN_PORTION_GRAMS:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "amount",
         amount,
         f"Minimum portion is {MIN_PORTION_GRAMS} grams",
@@ -1249,7 +1249,7 @@ class InputValidator:
       )
 
     if amount > MAX_PORTION_GRAMS:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "amount",
         amount,
         f"Maximum portion is {MAX_PORTION_GRAMS} grams",
@@ -1258,8 +1258,8 @@ class InputValidator:
 
     return amount
 
-  @staticmethod
-  def validate_temperature(
+  @staticmethod  # noqa: E111
+  def validate_temperature(  # noqa: E111
     temperature: Any,
     required: bool = False,
   ) -> float | None:
@@ -1276,19 +1276,19 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if temperature is None:
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "temperature",
           temperature,
           "Temperature is required",
           "Provide body temperature in Celsius",
         )
-      return None
+      return None  # noqa: E111
 
     temperature = _coerce_float("temperature", temperature)
 
     if not MIN_TEMPERATURE_CELSIUS <= temperature <= MAX_TEMPERATURE_CELSIUS:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "temperature",
         temperature,
         f"Normal range: {MIN_TEMPERATURE_CELSIUS}-{MAX_TEMPERATURE_CELSIUS}°C",
@@ -1297,8 +1297,8 @@ class InputValidator:
 
     return temperature
 
-  @staticmethod
-  def validate_text_input(
+  @staticmethod  # noqa: E111
+  def validate_text_input(  # noqa: E111
     text: Any,
     field_name: str,
     required: bool = False,
@@ -1321,17 +1321,17 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if text is None or text == "":
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           field_name,
           text,
           f"{field_name} is required",
           "Provide text input",
         )
-      return None
+      return None  # noqa: E111
 
     if not isinstance(text, str):
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field_name,
         text,
         "Must be text",
@@ -1341,7 +1341,7 @@ class InputValidator:
     text = text.strip()
 
     if not text and required:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field_name,
         text,
         "Cannot be empty or whitespace",
@@ -1349,7 +1349,7 @@ class InputValidator:
       )
 
     if len(text) < min_length:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field_name,
         text,
         f"Minimum length: {min_length} characters",
@@ -1357,7 +1357,7 @@ class InputValidator:
       )
 
     if len(text) > max_length:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field_name,
         text,
         f"Maximum length: {max_length} characters",
@@ -1367,8 +1367,8 @@ class InputValidator:
     # Remove control characters (except newlines)
     return "".join(char for char in text if ord(char) >= 32 or char == "\n")
 
-  @staticmethod
-  def validate_duration(
+  @staticmethod  # noqa: E111
+  def validate_duration(  # noqa: E111
     duration: Any,
     required: bool = False,
     min_minutes: int = MIN_DURATION_MINUTES,
@@ -1389,13 +1389,13 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if duration is None:
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "duration",
           duration,
           "Duration is required",
         )
-      return None
+      return None  # noqa: E111
 
     return validate_interval(
       duration,
@@ -1405,8 +1405,8 @@ class InputValidator:
       required=required,
     )
 
-  @staticmethod
-  def validate_geofence_radius(
+  @staticmethod  # noqa: E111
+  def validate_geofence_radius(  # noqa: E111
     radius: Any,
     required: bool = True,
     field: str = "radius",
@@ -1429,13 +1429,13 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if _is_empty(radius):
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           field,
           radius,
           "geofence_radius_required",
         )
-      return None
+      return None  # noqa: E111
 
     radius = _coerce_float_with_constraint(
       field,
@@ -1444,7 +1444,7 @@ class InputValidator:
     )
 
     if radius < min_value:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field,
         radius,
         "geofence_radius_out_of_range",
@@ -1453,7 +1453,7 @@ class InputValidator:
       )
 
     if radius > max_value:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field,
         radius,
         "geofence_radius_out_of_range",
@@ -1463,8 +1463,8 @@ class InputValidator:
 
     return radius
 
-  @staticmethod
-  def validate_email(
+  @staticmethod  # noqa: E111
+  def validate_email(  # noqa: E111
     email: Any,
     required: bool = False,
   ) -> str | None:
@@ -1481,17 +1481,17 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if email is None or email == "":
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           "email",
           email,
           "Email address is required",
           "Provide valid email address",
         )
-      return None
+      return None  # noqa: E111
 
     if not isinstance(email, str):
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "email",
         email,
         "Must be text",
@@ -1501,7 +1501,7 @@ class InputValidator:
     email = email.strip().lower()
 
     if not re.match(VALID_EMAIL_PATTERN, email):
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "email",
         email,
         "Invalid email format",
@@ -1509,7 +1509,7 @@ class InputValidator:
       )
 
     if len(email) > 254:  # RFC 5321
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         "email",
         email,
         "Email too long (max 254 characters)",
@@ -1518,8 +1518,8 @@ class InputValidator:
 
     return email
 
-  @staticmethod
-  def validate_enum_value(
+  @staticmethod  # noqa: E111
+  def validate_enum_value(  # noqa: E111
     value: Any,
     field_name: str,
     valid_values: list[str] | set[str],
@@ -1540,17 +1540,17 @@ class InputValidator:
         ValidationError: If validation fails
     """
     if value is None or value == "":
-      if required:
+      if required:  # noqa: E111
         raise ValidationError(
           field_name,
           value,
           f"{field_name} is required",
           f"Choose from: {', '.join(valid_values)}",
         )
-      return None
+      return None  # noqa: E111
 
     if not isinstance(value, str):
-      value = str(value)
+      value = str(value)  # noqa: E111
 
     value = value.strip().lower()
 
@@ -1558,7 +1558,7 @@ class InputValidator:
     valid_values_lower = {v.lower() for v in valid_values}
 
     if value not in valid_values_lower:
-      raise ValidationError(
+      raise ValidationError(  # noqa: E111
         field_name,
         value,
         "Invalid value",
@@ -1567,7 +1567,7 @@ class InputValidator:
 
     # Return original case from valid_values
     for valid in valid_values:
-      if valid.lower() == value:
+      if valid.lower() == value:  # noqa: E111
         return valid
 
     return value
@@ -1583,5 +1583,5 @@ def convert_validation_error_to_service_error(
 
   Returns:
       ServiceValidationError for Home Assistant
-  """
-  return ServiceValidationError(str(error))
+  """  # noqa: E111
+  return ServiceValidationError(str(error))  # noqa: E111

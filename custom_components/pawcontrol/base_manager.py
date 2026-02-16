@@ -18,14 +18,14 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.core import HomeAssistant
 
 if TYPE_CHECKING:
-  from .coordinator import PawControlCoordinator
-  from .types import JSONMapping
+  from .coordinator import PawControlCoordinator  # noqa: E111
+  from .types import JSONMapping  # noqa: E111
 
 
 class ManagerLifecycleError(Exception):
-  """Exception raised when manager lifecycle operations fail."""
+  """Exception raised when manager lifecycle operations fail."""  # noqa: E111
 
-  def __init__(self, manager_name: str, operation: str, reason: str) -> None:
+  def __init__(self, manager_name: str, operation: str, reason: str) -> None:  # noqa: E111
     """Initialize lifecycle error.
 
     Args:
@@ -66,13 +66,13 @@ class BaseManager(ABC):
       ...
       ...   def get_diagnostics(self):
       ...     return {"data_count": len(self._data)}
-  """
+  """  # noqa: E111
 
-  # Class-level constants
-  MANAGER_NAME: str = "BaseManager"
-  MANAGER_VERSION: str = "1.0.0"
+  # Class-level constants  # noqa: E114
+  MANAGER_NAME: str = "BaseManager"  # noqa: E111
+  MANAGER_VERSION: str = "1.0.0"  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     hass: HomeAssistant,
     coordinator: PawControlCoordinator | None = None,
@@ -97,41 +97,41 @@ class BaseManager(ABC):
       self.MANAGER_VERSION,
     )
 
-  @property
-  def hass(self) -> HomeAssistant:
+  @property  # noqa: E111
+  def hass(self) -> HomeAssistant:  # noqa: E111
     """Return Home Assistant instance."""
     return self._hass
 
-  @property
-  def coordinator(self) -> PawControlCoordinator | None:
+  @property  # noqa: E111
+  def coordinator(self) -> PawControlCoordinator | None:  # noqa: E111
     """Return coordinator instance if available."""
     return self._coordinator
 
-  @property
-  def logger(self) -> logging.Logger:
+  @property  # noqa: E111
+  def logger(self) -> logging.Logger:  # noqa: E111
     """Return manager-specific logger."""
     return self._logger
 
-  @property
-  def is_setup(self) -> bool:
+  @property  # noqa: E111
+  def is_setup(self) -> bool:  # noqa: E111
     """Return True if manager has been set up."""
     return self._is_setup
 
-  @property
-  def is_shutdown(self) -> bool:
+  @property  # noqa: E111
+  def is_shutdown(self) -> bool:  # noqa: E111
     """Return True if manager has been shut down."""
     return self._is_shutdown
 
-  @property
-  def is_ready(self) -> bool:
+  @property  # noqa: E111
+  def is_ready(self) -> bool:  # noqa: E111
     """Return True if manager is ready for operations.
 
     A manager is ready if it's been set up and not shut down.
     """
     return self._is_setup and not self._is_shutdown
 
-  @abstractmethod
-  async def async_setup(self) -> None:
+  @abstractmethod  # noqa: E111
+  async def async_setup(self) -> None:  # noqa: E111
     """Set up the manager.
 
     This method must be implemented by subclasses to initialize
@@ -141,8 +141,8 @@ class BaseManager(ABC):
         ManagerLifecycleError: If setup fails
     """
 
-  @abstractmethod
-  async def async_shutdown(self) -> None:
+  @abstractmethod  # noqa: E111
+  async def async_shutdown(self) -> None:  # noqa: E111
     """Shut down the manager.
 
     This method must be implemented by subclasses to clean up
@@ -152,8 +152,8 @@ class BaseManager(ABC):
         ManagerLifecycleError: If shutdown fails
     """
 
-  @abstractmethod
-  def get_diagnostics(self) -> JSONMapping:
+  @abstractmethod  # noqa: E111
+  def get_diagnostics(self) -> JSONMapping:  # noqa: E111
     """Return diagnostic information about the manager.
 
     Returns:
@@ -165,7 +165,7 @@ class BaseManager(ABC):
         'MyManager'
     """
 
-  async def async_initialize(self) -> None:
+  async def async_initialize(self) -> None:  # noqa: E111
     """Initialize the manager (wrapper for async_setup with lifecycle tracking).
 
     This method should be called instead of async_setup() directly.
@@ -176,40 +176,40 @@ class BaseManager(ABC):
         ManagerLifecycleError: If setup fails
     """
     if self._is_setup:
-      raise ManagerLifecycleError(
+      raise ManagerLifecycleError(  # noqa: E111
         self.MANAGER_NAME,
         "setup",
         "Manager is already set up",
       )
 
     try:
-      import time
+      import time  # noqa: E111
 
-      start = time.time()
-      await self.async_setup()
-      self._setup_timestamp = time.time()
-      self._is_setup = True
+      start = time.time()  # noqa: E111
+      await self.async_setup()  # noqa: E111
+      self._setup_timestamp = time.time()  # noqa: E111
+      self._is_setup = True  # noqa: E111
 
-      duration_ms = (self._setup_timestamp - start) * 1000
-      self._logger.info(
+      duration_ms = (self._setup_timestamp - start) * 1000  # noqa: E111
+      self._logger.info(  # noqa: E111
         "%s setup completed (duration_ms=%.2f)",
         self.MANAGER_NAME,
         duration_ms,
       )
     except Exception as e:
-      self._logger.error(
+      self._logger.error(  # noqa: E111
         "%s setup failed: %s (%s)",
         self.MANAGER_NAME,
         e,
         e.__class__.__name__,
       )
-      raise ManagerLifecycleError(
+      raise ManagerLifecycleError(  # noqa: E111
         self.MANAGER_NAME,
         "setup",
         str(e),
       ) from e
 
-  async def async_teardown(self) -> None:
+  async def async_teardown(self) -> None:  # noqa: E111
     """Tear down the manager (wrapper for async_shutdown with lifecycle tracking).
 
     This method should be called instead of async_shutdown() directly.
@@ -220,40 +220,40 @@ class BaseManager(ABC):
         ManagerLifecycleError: If shutdown fails
     """
     if self._is_shutdown:
-      self._logger.debug(
+      self._logger.debug(  # noqa: E111
         "%s already shut down, skipping teardown",
         self.MANAGER_NAME,
       )
-      return
+      return  # noqa: E111
 
     try:
-      import time
+      import time  # noqa: E111
 
-      start = time.time()
-      await self.async_shutdown()
-      self._shutdown_timestamp = time.time()
-      self._is_shutdown = True
+      start = time.time()  # noqa: E111
+      await self.async_shutdown()  # noqa: E111
+      self._shutdown_timestamp = time.time()  # noqa: E111
+      self._is_shutdown = True  # noqa: E111
 
-      duration_ms = (self._shutdown_timestamp - start) * 1000
-      self._logger.info(
+      duration_ms = (self._shutdown_timestamp - start) * 1000  # noqa: E111
+      self._logger.info(  # noqa: E111
         "%s shutdown completed (duration_ms=%.2f)",
         self.MANAGER_NAME,
         duration_ms,
       )
     except Exception as e:
-      self._logger.error(
+      self._logger.error(  # noqa: E111
         "%s shutdown failed: %s (%s)",
         self.MANAGER_NAME,
         e,
         e.__class__.__name__,
       )
-      raise ManagerLifecycleError(
+      raise ManagerLifecycleError(  # noqa: E111
         self.MANAGER_NAME,
         "shutdown",
         str(e),
       ) from e
 
-  def get_lifecycle_diagnostics(self) -> JSONMapping:
+  def get_lifecycle_diagnostics(self) -> JSONMapping:  # noqa: E111
     """Return lifecycle diagnostic information.
 
     Returns:
@@ -275,27 +275,27 @@ class BaseManager(ABC):
       "has_coordinator": self._coordinator is not None,
     }
 
-  def _require_ready(self) -> None:
+  def _require_ready(self) -> None:  # noqa: E111
     """Ensure manager is ready for operations.
 
     Raises:
         ManagerLifecycleError: If manager is not ready
     """
     if not self.is_ready:
-      if not self._is_setup:
+      if not self._is_setup:  # noqa: E111
         raise ManagerLifecycleError(
           self.MANAGER_NAME,
           "operation",
           "Manager has not been set up",
         )
-      if self._is_shutdown:
+      if self._is_shutdown:  # noqa: E111
         raise ManagerLifecycleError(
           self.MANAGER_NAME,
           "operation",
           "Manager has been shut down",
         )
 
-  def _require_coordinator(self) -> PawControlCoordinator:
+  def _require_coordinator(self) -> PawControlCoordinator:  # noqa: E111
     """Ensure coordinator is available.
 
     Returns:
@@ -305,14 +305,14 @@ class BaseManager(ABC):
         ManagerLifecycleError: If coordinator is not available
     """
     if self._coordinator is None:
-      raise ManagerLifecycleError(
+      raise ManagerLifecycleError(  # noqa: E111
         self.MANAGER_NAME,
         "coordinator_access",
         "Coordinator is not available",
       )
     return self._coordinator
 
-  async def async_health_check(self) -> dict[str, Any]:
+  async def async_health_check(self) -> dict[str, Any]:  # noqa: E111
     """Perform health check on the manager.
 
     Returns:
@@ -331,7 +331,7 @@ class BaseManager(ABC):
       "manager_name": self.MANAGER_NAME,
     }
 
-  def get_metrics(self) -> dict[str, Any]:
+  def get_metrics(self) -> dict[str, Any]:  # noqa: E111
     """Return manager-specific metrics.
 
     Subclasses can override this to provide custom metrics.
@@ -351,13 +351,13 @@ class BaseManager(ABC):
     }
 
     if self._setup_timestamp is not None:
-      import time
+      import time  # noqa: E111
 
-      metrics["uptime_seconds"] = time.time() - self._setup_timestamp
+      metrics["uptime_seconds"] = time.time() - self._setup_timestamp  # noqa: E111
 
     return metrics
 
-  def __repr__(self) -> str:
+  def __repr__(self) -> str:  # noqa: E111
     """Return string representation of manager.
 
     Returns:
@@ -389,11 +389,11 @@ class DataManager(BaseManager):
       ...   async def async_save_data(self, key, value):
       ...     self._require_ready()
       ...     self._data[key] = value
-  """
+  """  # noqa: E111
 
-  MANAGER_NAME: str = "DataManager"
+  MANAGER_NAME: str = "DataManager"  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     hass: HomeAssistant,
     coordinator: PawControlCoordinator | None = None,
@@ -402,12 +402,12 @@ class DataManager(BaseManager):
     super().__init__(hass, coordinator)
     self._cache: dict[str, Any] = {}
 
-  def clear_cache(self) -> None:
+  def clear_cache(self) -> None:  # noqa: E111
     """Clear all cached data."""
     self._cache.clear()
     self._logger.debug("%s cache cleared", self.MANAGER_NAME)
 
-  def get_cache_size(self) -> int:
+  def get_cache_size(self) -> int:  # noqa: E111
     """Return number of items in cache."""
     return len(self._cache)
 
@@ -423,11 +423,11 @@ class EventManager(BaseManager):
       ...   async def async_setup(self):
       ...     await super().async_setup()
       ...     self._register_listener("my_event", self._handle_event)
-  """
+  """  # noqa: E111
 
-  MANAGER_NAME: str = "EventManager"
+  MANAGER_NAME: str = "EventManager"  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     hass: HomeAssistant,
     coordinator: PawControlCoordinator | None = None,
@@ -436,7 +436,7 @@ class EventManager(BaseManager):
     super().__init__(hass, coordinator)
     self._listeners: dict[str, list[Any]] = {}
 
-  def _register_listener(self, event: str, callback: Any) -> None:
+  def _register_listener(self, event: str, callback: Any) -> None:  # noqa: E111
     """Register an event listener.
 
     Args:
@@ -444,7 +444,7 @@ class EventManager(BaseManager):
         callback: Callback function
     """
     if event not in self._listeners:
-      self._listeners[event] = []
+      self._listeners[event] = []  # noqa: E111
     self._listeners[event].append(callback)
     self._logger.debug(
       "Registered listener for %s (total=%d)",
@@ -452,7 +452,7 @@ class EventManager(BaseManager):
       len(self._listeners[event]),
     )
 
-  def _unregister_listener(self, event: str, callback: Any) -> None:
+  def _unregister_listener(self, event: str, callback: Any) -> None:  # noqa: E111
     """Unregister an event listener.
 
     Args:
@@ -460,14 +460,14 @@ class EventManager(BaseManager):
         callback: Callback function
     """
     if event in self._listeners:
-      try:
+      try:  # noqa: E111
         self._listeners[event].remove(callback)
         self._logger.debug(
           "Unregistered listener for %s (remaining=%d)",
           event,
           len(self._listeners[event]),
         )
-      except ValueError:
+      except ValueError:  # noqa: E111
         pass
 
 
@@ -489,9 +489,9 @@ def register_manager(manager_class: type[BaseManager]) -> type[BaseManager]:
       >>> @register_manager
       ... class MyManager(BaseManager):
       ...   MANAGER_NAME = "MyManager"
-  """
-  _MANAGER_REGISTRY[manager_class.MANAGER_NAME] = manager_class
-  return manager_class
+  """  # noqa: E111
+  _MANAGER_REGISTRY[manager_class.MANAGER_NAME] = manager_class  # noqa: E111
+  return manager_class  # noqa: E111
 
 
 def get_registered_managers() -> dict[str, type[BaseManager]]:
@@ -504,8 +504,8 @@ def get_registered_managers() -> dict[str, type[BaseManager]]:
       >>> managers = get_registered_managers()
       >>> print(list(managers.keys()))
       ['DataManager', 'EventManager', 'MyManager']
-  """
-  return dict(_MANAGER_REGISTRY)
+  """  # noqa: E111
+  return dict(_MANAGER_REGISTRY)  # noqa: E111
 
 
 # Lifecycle management utilities
@@ -531,23 +531,23 @@ async def setup_managers(
       >>> managers = await setup_managers(data_manager, event_manager)
       >>> print(len(managers))
       2
-  """
-  successful: list[BaseManager] = []
+  """  # noqa: E111
+  successful: list[BaseManager] = []  # noqa: E111
 
-  for manager in managers:
+  for manager in managers:  # noqa: E111
     try:
-      await manager.async_initialize()
-      successful.append(manager)
+      await manager.async_initialize()  # noqa: E111
+      successful.append(manager)  # noqa: E111
     except ManagerLifecycleError as e:
-      if stop_on_error:
+      if stop_on_error:  # noqa: E111
         # Clean up successful managers
         for m in successful:
-          with suppress(Exception):
+          with suppress(Exception):  # noqa: E111
             await m.async_teardown()
         raise
-      manager.logger.error("Failed to set up manager: %s", e)
+      manager.logger.error("Failed to set up manager: %s", e)  # noqa: E111
 
-  return successful
+  return successful  # noqa: E111
 
 
 async def shutdown_managers(
@@ -562,11 +562,11 @@ async def shutdown_managers(
 
   Examples:
       >>> await shutdown_managers(data_manager, event_manager)
-  """
-  for manager in managers:
+  """  # noqa: E111
+  for manager in managers:  # noqa: E111
     try:
-      await manager.async_teardown()
+      await manager.async_teardown()  # noqa: E111
     except ManagerLifecycleError as e:
-      if not ignore_errors:
+      if not ignore_errors:  # noqa: E111
         raise
-      manager.logger.error("Failed to shut down manager: %s", e)
+      manager.logger.error("Failed to shut down manager: %s", e)  # noqa: E111

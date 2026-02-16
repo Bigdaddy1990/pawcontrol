@@ -35,7 +35,7 @@ from .exceptions import (
 )
 
 if TYPE_CHECKING:
-  from homeassistant.core import HomeAssistant
+  from homeassistant.core import HomeAssistant  # noqa: E111
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,42 +64,42 @@ def validate_dog_exists(
       ... async def get_dog_status(self, dog_id: str):
       ...   # dog_id is guaranteed to exist
       ...   return self.coordinator.data[dog_id]
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      bound = inspect.signature(func).bind_partial(*args, **kwargs)
-      dog_id = bound.arguments.get(dog_id_param)
+      bound = inspect.signature(func).bind_partial(*args, **kwargs)  # noqa: E111
+      dog_id = bound.arguments.get(dog_id_param)  # noqa: E111
 
-      if dog_id is None:
+      if dog_id is None:  # noqa: E111
         raise ValidationError(
           field=dog_id_param,
           constraint="Dog ID is required",
         )
 
-      # Get coordinator from self (first arg)
-      if not args:
+      # Get coordinator from self (first arg)  # noqa: E114
+      if not args:  # noqa: E111
         raise PawControlError(
           "Decorator requires instance method with coordinator access",
         )
 
-      instance = args[0]
-      if not hasattr(instance, "coordinator"):
+      instance = args[0]  # noqa: E111
+      if not hasattr(instance, "coordinator"):  # noqa: E111
         raise PawControlError(
           "Instance must have coordinator attribute for validation",
         )
 
-      coordinator = instance.coordinator
-      if dog_id not in coordinator.data:
+      coordinator = instance.coordinator  # noqa: E111
+      if dog_id not in coordinator.data:  # noqa: E111
         available_dogs = list(coordinator.data.keys())
         raise DogNotFoundError(dog_id, available_dogs)
 
-      return func(*args, **kwargs)
+      return func(*args, **kwargs)  # noqa: E111
 
     return wrapper
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def validate_gps_coordinates(
@@ -120,36 +120,36 @@ def validate_gps_coordinates(
       ... def set_location(self, latitude: float, longitude: float):
       ...   # Coordinates are guaranteed valid
       ...   self.location = (latitude, longitude)
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      bound = inspect.signature(func).bind_partial(*args, **kwargs)
-      latitude = bound.arguments.get(latitude_param)
-      longitude = bound.arguments.get(longitude_param)
+      bound = inspect.signature(func).bind_partial(*args, **kwargs)  # noqa: E111
+      latitude = bound.arguments.get(latitude_param)  # noqa: E111
+      longitude = bound.arguments.get(longitude_param)  # noqa: E111
 
-      if latitude is None or longitude is None:
+      if latitude is None or longitude is None:  # noqa: E111
         raise InvalidCoordinatesError()
 
-      # Validate ranges
-      if not isinstance(latitude, (int, float)) or not isinstance(
+      # Validate ranges  # noqa: E114
+      if not isinstance(latitude, (int, float)) or not isinstance(  # noqa: E111
         longitude,
         (int, float),
       ):
         raise InvalidCoordinatesError(latitude, longitude)
 
-      if not -90 <= latitude <= 90:
+      if not -90 <= latitude <= 90:  # noqa: E111
         raise InvalidCoordinatesError(latitude, longitude)
 
-      if not -180 <= longitude <= 180:
+      if not -180 <= longitude <= 180:  # noqa: E111
         raise InvalidCoordinatesError(latitude, longitude)
 
-      return func(*args, **kwargs)
+      return func(*args, **kwargs)  # noqa: E111
 
     return wrapper
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def validate_range(
@@ -174,28 +174,28 @@ def validate_range(
       >>> @validate_range("weight", 0.5, 100.0, field_name="dog weight")
       ... def set_weight(self, weight: float):
       ...   self.weight = weight
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      bound = inspect.signature(func).bind_partial(*args, **kwargs)
-      value = bound.arguments.get(param)
+      bound = inspect.signature(func).bind_partial(*args, **kwargs)  # noqa: E111
+      value = bound.arguments.get(param)  # noqa: E111
 
-      if value is None:
+      if value is None:  # noqa: E111
         raise ValidationError(
           field=field_name or param,
           constraint="Value is required",
         )
 
-      if not isinstance(value, (int, float)):
+      if not isinstance(value, (int, float)):  # noqa: E111
         raise ValidationError(
           field=field_name or param,
           value=value,
           constraint="Must be numeric",
         )
 
-      if value < min_value or value > max_value:
+      if value < min_value or value > max_value:  # noqa: E111
         raise ValidationError(
           field=field_name or param,
           value=value,
@@ -204,11 +204,11 @@ def validate_range(
           max_value=max_value,
         )
 
-      return func(*args, **kwargs)
+      return func(*args, **kwargs)  # noqa: E111
 
     return wrapper
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 # Error handling decorators
@@ -237,19 +237,19 @@ def handle_errors(
       ... async def fetch_data(self):
       ...   # Errors are logged and critical ones re-raised
       ...   return await self.api.get_data()
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      try:
+      try:  # noqa: E111
         result = func(*args, **kwargs)
         if isinstance(result, Awaitable):
-          return await result
+          return await result  # noqa: E111
         return result
-      except PawControlError as e:
+      except PawControlError as e:  # noqa: E111
         if log_errors:
-          _LOGGER.error(
+          _LOGGER.error(  # noqa: E111
             "%s failed with %s: %s",
             func.__name__,
             e.__class__.__name__,
@@ -263,12 +263,12 @@ def handle_errors(
             ValidationError | DogNotFoundError | InvalidCoordinatesError,
           )
         ):
-          raise
+          raise  # noqa: E111
 
         return cast(T, default_return)
-      except Exception as e:
+      except Exception as e:  # noqa: E111
         if log_errors:
-          _LOGGER.exception(
+          _LOGGER.exception(  # noqa: E111
             "Unexpected error in %s: %s",
             func.__name__,
             e,
@@ -284,17 +284,17 @@ def handle_errors(
         )
 
         if reraise_critical:
-          raise error from e
+          raise error from e  # noqa: E111
 
         return cast(T, default_return)
 
     @functools.wraps(func)
     def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      try:
+      try:  # noqa: E111
         return func(*args, **kwargs)
-      except PawControlError as e:
+      except PawControlError as e:  # noqa: E111
         if log_errors:
-          _LOGGER.error(
+          _LOGGER.error(  # noqa: E111
             "%s failed with %s: %s",
             func.__name__,
             e.__class__.__name__,
@@ -308,12 +308,12 @@ def handle_errors(
             ValidationError | DogNotFoundError | InvalidCoordinatesError,
           )
         ):
-          raise
+          raise  # noqa: E111
 
         return cast(T, default_return)
-      except Exception as e:
+      except Exception as e:  # noqa: E111
         if log_errors:
-          _LOGGER.exception(
+          _LOGGER.exception(  # noqa: E111
             "Unexpected error in %s: %s",
             func.__name__,
             e,
@@ -328,16 +328,16 @@ def handle_errors(
         )
 
         if reraise_critical:
-          raise error from e
+          raise error from e  # noqa: E111
 
         return cast(T, default_return)
 
     # Return async wrapper if function is async
     if inspect.iscoroutinefunction(func):
-      return cast(Callable[P, T], async_wrapper)
+      return cast(Callable[P, T], async_wrapper)  # noqa: E111
     return cast(Callable[P, T], sync_wrapper)
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def map_to_repair_issue(
@@ -359,30 +359,30 @@ def map_to_repair_issue(
       ... async def get_location(self):
       ...   # GPSUnavailableError creates repair issue
       ...   return await self.gps.get_location()
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      try:
+      try:  # noqa: E111
         result = func(*args, **kwargs)
         if isinstance(result, Awaitable):
-          return await result
+          return await result  # noqa: E111
         return result
-      except PawControlError as e:
+      except PawControlError as e:  # noqa: E111
         # Get hass instance from args
         hass: HomeAssistant | None = None
         if args:
-          instance = args[0]
-          if hasattr(instance, "hass"):
+          instance = args[0]  # noqa: E111
+          if hasattr(instance, "hass"):  # noqa: E111
             hass = instance.hass
-          elif hasattr(instance, "coordinator"):
+          elif hasattr(instance, "coordinator"):  # noqa: E111
             hass = instance.coordinator.hass
 
         if hass is not None:
-          # Create repair issue
+          # Create repair issue  # noqa: E114
 
-          issue_registry.async_create_issue(
+          issue_registry.async_create_issue(  # noqa: E111
             hass,
             "pawcontrol",
             issue_id,
@@ -399,19 +399,19 @@ def map_to_repair_issue(
 
     @functools.wraps(func)
     def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      try:
+      try:  # noqa: E111
         return func(*args, **kwargs)
-      except PawControlError as e:
+      except PawControlError as e:  # noqa: E111
         hass: HomeAssistant | None = None
         if args:
-          instance = args[0]
-          if hasattr(instance, "hass"):
+          instance = args[0]  # noqa: E111
+          if hasattr(instance, "hass"):  # noqa: E111
             hass = instance.hass
-          elif hasattr(instance, "coordinator"):
+          elif hasattr(instance, "coordinator"):  # noqa: E111
             hass = instance.coordinator.hass
 
         if hass is not None:
-          issue_registry.async_create_issue(
+          issue_registry.async_create_issue(  # noqa: E111
             hass,
             "pawcontrol",
             issue_id,
@@ -427,10 +427,10 @@ def map_to_repair_issue(
         raise
 
     if inspect.iscoroutinefunction(func):
-      return cast(Callable[P, T], async_wrapper)
+      return cast(Callable[P, T], async_wrapper)  # noqa: E111
     return cast(Callable[P, T], sync_wrapper)
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def retry_on_error(
@@ -456,23 +456,23 @@ def retry_on_error(
       ... async def fetch_api_data(self):
       ...   # Retries up to 3 times on network errors
       ...   return await self.api.fetch()
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      current_delay = delay
-      last_exception: Exception | None = None
+      current_delay = delay  # noqa: E111
+      last_exception: Exception | None = None  # noqa: E111
 
-      for attempt in range(max_attempts):
+      for attempt in range(max_attempts):  # noqa: E111
         try:
-          result = func(*args, **kwargs)
-          if isinstance(result, Awaitable):
+          result = func(*args, **kwargs)  # noqa: E111
+          if isinstance(result, Awaitable):  # noqa: E111
             return await result
-          return result
+          return result  # noqa: E111
         except exceptions as e:
-          last_exception = e
-          if attempt < max_attempts - 1:
+          last_exception = e  # noqa: E111
+          if attempt < max_attempts - 1:  # noqa: E111
             _LOGGER.warning(
               "%s failed (attempt %d/%d): %s. Retrying in %.1fs...",
               func.__name__,
@@ -483,7 +483,7 @@ def retry_on_error(
             )
             await asyncio.sleep(current_delay)
             current_delay *= backoff
-          else:
+          else:  # noqa: E111
             _LOGGER.error(
               "%s failed after %d attempts: %s",
               func.__name__,
@@ -491,22 +491,22 @@ def retry_on_error(
               e,
             )
 
-      if last_exception:
+      if last_exception:  # noqa: E111
         raise last_exception
 
-      return cast(T, None)
+      return cast(T, None)  # noqa: E111
 
     @functools.wraps(func)
     def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      current_delay = delay
-      last_exception: Exception | None = None
+      current_delay = delay  # noqa: E111
+      last_exception: Exception | None = None  # noqa: E111
 
-      for attempt in range(max_attempts):
+      for attempt in range(max_attempts):  # noqa: E111
         try:
-          return func(*args, **kwargs)
+          return func(*args, **kwargs)  # noqa: E111
         except exceptions as e:
-          last_exception = e
-          if attempt < max_attempts - 1:
+          last_exception = e  # noqa: E111
+          if attempt < max_attempts - 1:  # noqa: E111
             _LOGGER.warning(
               "%s failed (attempt %d/%d): %s. Retrying in %.1fs...",
               func.__name__,
@@ -519,7 +519,7 @@ def retry_on_error(
 
             time.sleep(current_delay)
             current_delay *= backoff
-          else:
+          else:  # noqa: E111
             _LOGGER.error(
               "%s failed after %d attempts: %s",
               func.__name__,
@@ -527,34 +527,34 @@ def retry_on_error(
               e,
             )
 
-      if last_exception:
+      if last_exception:  # noqa: E111
         raise last_exception
 
-      return cast(T, None)
+      return cast(T, None)  # noqa: E111
 
     if inspect.iscoroutinefunction(func):
-      return cast(Callable[P, T], async_wrapper)
+      return cast(Callable[P, T], async_wrapper)  # noqa: E111
     return cast(Callable[P, T], sync_wrapper)
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def require_coordinator(func: Callable[..., Any]) -> Callable[..., Any]:
-  """Ensure decorated instance methods expose ``self.coordinator``."""
+  """Ensure decorated instance methods expose ``self.coordinator``."""  # noqa: E111
 
-  @functools.wraps(func)
-  def wrapper(*args: Any, **kwargs: Any) -> Any:
+  @functools.wraps(func)  # noqa: E111
+  def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: E111
     if not args:
-      raise PawControlError("Decorator requires an instance method")
+      raise PawControlError("Decorator requires an instance method")  # noqa: E111
 
     instance = args[0]
     coordinator = getattr(instance, "coordinator", None)
     if coordinator is None:
-      raise PawControlError("Coordinator is required for this operation")
+      raise PawControlError("Coordinator is required for this operation")  # noqa: E111
 
     return func(*args, **kwargs)
 
-  return wrapper
+  return wrapper  # noqa: E111
 
 
 def require_coordinator_data(
@@ -574,24 +574,24 @@ def require_coordinator_data(
       ... def get_all_dogs(self):
       ...   # coordinator.data is guaranteed to be populated
       ...   return list(self.coordinator.data.keys())
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      if not args:
+      if not args:  # noqa: E111
         raise PawControlError(
           "Decorator requires instance method with coordinator access",
         )
 
-      instance = args[0]
-      if not hasattr(instance, "coordinator"):
+      instance = args[0]  # noqa: E111
+      if not hasattr(instance, "coordinator"):  # noqa: E111
         raise PawControlError(
           "Instance must have coordinator attribute",
         )
 
-      coordinator = instance.coordinator
-      if not coordinator.data:
+      coordinator = instance.coordinator  # noqa: E111
+      if not coordinator.data:  # noqa: E111
         raise PawControlError(
           "Coordinator data not available",
           error_code="coordinator_data_unavailable",
@@ -604,7 +604,7 @@ def require_coordinator_data(
           ],
         )
 
-      if not allow_partial and not coordinator.last_update_success:
+      if not allow_partial and not coordinator.last_update_success:  # noqa: E111
         raise PawControlError(
           "Coordinator last update failed",
           error_code="coordinator_update_failed",
@@ -612,11 +612,11 @@ def require_coordinator_data(
           category=ErrorCategory.DATA,
         )
 
-      return func(*args, **kwargs)
+      return func(*args, **kwargs)  # noqa: E111
 
     return wrapper
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 # Combined decorators for common patterns
@@ -647,17 +647,17 @@ def validate_and_handle(
       ... ):
       ...   # Dog exists, coordinates valid, errors handled
       ...   await self.api.update_location(dog_id, latitude, longitude)
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     # Apply decorators in order
     decorated = func
 
     if dog_id_param:
-      decorated = validate_dog_exists(dog_id_param)(decorated)
+      decorated = validate_dog_exists(dog_id_param)(decorated)  # noqa: E111
 
     if gps_coords:
-      decorated = validate_gps_coordinates()(decorated)
+      decorated = validate_gps_coordinates()(decorated)  # noqa: E111
 
     decorated = handle_errors(
       log_errors=log_errors,
@@ -666,7 +666,7 @@ def validate_and_handle(
 
     return decorated
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 # Exception mapping utilities
@@ -697,11 +697,11 @@ def get_repair_issue_id(exception: PawControlError) -> str | None:
       >>> error = DogNotFoundError("buddy")
       >>> get_repair_issue_id(error)
       'dog_not_found'
-  """
-  for exc_type, issue_id in EXCEPTION_TO_REPAIR_ISSUE.items():
+  """  # noqa: E111
+  for exc_type, issue_id in EXCEPTION_TO_REPAIR_ISSUE.items():  # noqa: E111
     if isinstance(exception, exc_type):
-      return issue_id
-  return None
+      return issue_id  # noqa: E111
+  return None  # noqa: E111
 
 
 async def create_repair_issue_from_exception(
@@ -716,19 +716,19 @@ async def create_repair_issue_from_exception(
       hass: Home Assistant instance
       exception: Exception to create repair issue from
       is_fixable: Whether the issue is fixable by the user
-  """
-  issue_id = get_repair_issue_id(exception)
-  if not issue_id:
+  """  # noqa: E111
+  issue_id = get_repair_issue_id(exception)  # noqa: E111
+  if not issue_id:  # noqa: E111
     issue_id = f"error_{exception.error_code}"
 
-  severity_map = {
+  severity_map = {  # noqa: E111
     ErrorSeverity.LOW: issue_registry.IssueSeverity.WARNING,
     ErrorSeverity.MEDIUM: issue_registry.IssueSeverity.WARNING,
     ErrorSeverity.HIGH: issue_registry.IssueSeverity.ERROR,
     ErrorSeverity.CRITICAL: issue_registry.IssueSeverity.CRITICAL,
   }
 
-  issue_registry.async_create_issue(
+  issue_registry.async_create_issue(  # noqa: E111
     hass,
     "pawcontrol",
     issue_id,

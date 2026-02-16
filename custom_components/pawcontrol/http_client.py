@@ -23,30 +23,30 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
       ValueError: If ``session`` is ``None``, closed, or does not look like an
           aiohttp client session. The error message explains what the helper
           should receive instead.
-  """
+  """  # noqa: E111
 
-  if session is None:
+  if session is None:  # noqa: E111
     raise ValueError(
       f"{owner} requires Home Assistant's shared aiohttp ClientSession; received None.",
     )
 
-  request = getattr(session, "request", None)
-  if not callable(request):
+  request = getattr(session, "request", None)  # noqa: E111
+  if not callable(request):  # noqa: E111
     raise ValueError(
       f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",
     )
 
-  def _is_coroutine(func: Callable[..., Any] | None) -> bool:
+  def _is_coroutine(func: Callable[..., Any] | None) -> bool:  # noqa: E111
     if func is None:
-      return False
+      return False  # noqa: E111
 
     candidate = unwrap(getattr(func, "__func__", func))
 
     return iscoroutinefunction(candidate)
 
-  request_attr = getattr(type(session), "request", None)
+  request_attr = getattr(type(session), "request", None)  # noqa: E111
 
-  if (
+  if (  # noqa: E111
     not _is_coroutine(request)
     and not _is_coroutine(request_attr)
     and (
@@ -64,14 +64,14 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
       f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",
     )
 
-  closed_attr = getattr(session, "closed", False)
-  closed = closed_attr if isinstance(closed_attr, bool) else False
-  if closed:
+  closed_attr = getattr(session, "closed", False)  # noqa: E111
+  closed = closed_attr if isinstance(closed_attr, bool) else False  # noqa: E111
+  if closed:  # noqa: E111
     raise ValueError(
-      f"{owner} received a closed aiohttp ClientSession. Inject Home Assistant's managed session instead.",
+      f"{owner} received a closed aiohttp ClientSession. Inject Home Assistant's managed session instead.",  # noqa: E501
     )
 
-  return cast(ClientSession, session)
+  return cast(ClientSession, session)  # noqa: E111
 
 
 __all__ = ["ensure_shared_client_session"]

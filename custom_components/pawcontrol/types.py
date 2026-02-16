@@ -15,7 +15,7 @@ The module is designed for Platinum-targeted quality with:
 Quality Scale: Platinum target
 P26.1.1++
 Python: 3.13+
-"""
+"""  # noqa: E501
 
 from __future__ import annotations
 
@@ -73,22 +73,22 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-  from .service_guard import (
+  from .service_guard import (  # noqa: E111
     ServiceGuardMetricsSnapshot,
     ServiceGuardResultHistory,
     ServiceGuardSummary,
   )
 
 try:
-  from homeassistant.util import dt as dt_util
+  from homeassistant.util import dt as dt_util  # noqa: E111
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
-  class _DateTimeModule:
+  class _DateTimeModule:  # noqa: E111
     @staticmethod
     def utcnow() -> datetime:
-      return datetime.now(UTC)
+      return datetime.now(UTC)  # noqa: E111
 
-  dt_util = _DateTimeModule()
+  dt_util = _DateTimeModule()  # noqa: E111
 
 type JSONPrimitive = None | bool | int | float | str
 """Primitive JSON-compatible values."""
@@ -139,29 +139,29 @@ type ErrorContext = JSONMutableMapping
 
 
 class DeviceAutomationMetadata(TypedDict):
-  """Metadata payload for device automation entries."""
+  """Metadata payload for device automation entries."""  # noqa: E111
 
-  secondary: bool
+  secondary: bool  # noqa: E111
 
 
 class DeviceActionPayload(TypedDict):
-  """Payload returned for device action discovery."""
+  """Payload returned for device action discovery."""  # noqa: E111
 
-  device_id: str
-  domain: str
-  metadata: DeviceAutomationMetadata
-  type: str
+  device_id: str  # noqa: E111
+  domain: str  # noqa: E111
+  metadata: DeviceAutomationMetadata  # noqa: E111
+  type: str  # noqa: E111
 
 
 class DeviceConditionPayload(TypedDict):
-  """Payload returned for device condition discovery."""
+  """Payload returned for device condition discovery."""  # noqa: E111
 
-  condition: str
-  device_id: str
-  domain: str
-  metadata: DeviceAutomationMetadata
-  type: str
-  entity_id: str
+  condition: str  # noqa: E111
+  device_id: str  # noqa: E111
+  domain: str  # noqa: E111
+  metadata: DeviceAutomationMetadata  # noqa: E111
+  type: str  # noqa: E111
+  entity_id: str  # noqa: E111
 
 
 DeviceTriggerPayload = TypedDict(
@@ -183,53 +183,53 @@ DeviceTriggerPayload = TypedDict(
 def ensure_json_mapping(
   data: Mapping[str, object] | JSONMutableMapping | None,
 ) -> JSONMutableMapping:
-  """Return a JSON-compatible mutable mapping cloned from ``data``."""
+  """Return a JSON-compatible mutable mapping cloned from ``data``."""  # noqa: E111
 
-  if not data:
+  if not data:  # noqa: E111
     return {}
 
-  return {str(key): cast(JSONValue, value) for key, value in data.items()}
+  return {str(key): cast(JSONValue, value) for key, value in data.items()}  # noqa: E111
 
 
 def _coerce_iso_timestamp(value: Any) -> str | None:
-  """Return an ISO-formatted timestamp string when possible."""
+  """Return an ISO-formatted timestamp string when possible."""  # noqa: E111
 
-  if isinstance(value, datetime):
+  if isinstance(value, datetime):  # noqa: E111
     return dt_util.as_utc(value).isoformat()
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     text = value.strip()
     return text or None
-  return None
+  return None  # noqa: E111
 
 
 def _coerce_float_value(value: Any) -> float | None:
-  """Return a float when ``value`` is numeric."""
+  """Return a float when ``value`` is numeric."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     return None
-  if isinstance(value, float | int):
+  if isinstance(value, float | int):  # noqa: E111
     return float(value)
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     try:
-      return float(value.strip())
+      return float(value.strip())  # noqa: E111
     except ValueError:
-      return None
-  return None
+      return None  # noqa: E111
+  return None  # noqa: E111
 
 
 class ErrorPayload(TypedDict):
-  """Serialized representation of :class:`PawControlError` instances."""
+  """Serialized representation of :class:`PawControlError` instances."""  # noqa: E111
 
-  error_code: str
-  message: str
-  user_message: str
-  severity: str
-  category: str
-  context: ErrorContext
-  recovery_suggestions: list[str]
-  technical_details: str | None
-  timestamp: str
-  exception_type: str
+  error_code: str  # noqa: E111
+  message: str  # noqa: E111
+  user_message: str  # noqa: E111
+  severity: str  # noqa: E111
+  category: str  # noqa: E111
+  context: ErrorContext  # noqa: E111
+  recovery_suggestions: list[str]  # noqa: E111
+  technical_details: str | None  # noqa: E111
+  timestamp: str  # noqa: E111
+  exception_type: str  # noqa: E111
 
 
 type GPXAttributeValue = JSONPrimitive
@@ -261,270 +261,270 @@ type PersonEntityAttributePayload = JSONMutableMapping
 
 
 class TextEntityExtraAttributes(TypedDict, total=False):
-  """Extra attributes exposed by PawControl text entities."""
+  """Extra attributes exposed by PawControl text entities."""  # noqa: E111
 
-  dog_id: str
-  dog_name: str
-  text_type: str
-  character_count: int
-  last_updated: str | None
-  last_updated_context_id: str | None
-  last_updated_parent_id: str | None
-  last_updated_user_id: str | None
+  dog_id: str  # noqa: E111
+  dog_name: str  # noqa: E111
+  text_type: str  # noqa: E111
+  character_count: int  # noqa: E111
+  last_updated: str | None  # noqa: E111
+  last_updated_context_id: str | None  # noqa: E111
+  last_updated_parent_id: str | None  # noqa: E111
+  last_updated_user_id: str | None  # noqa: E111
 
 
 class DogTextSnapshot(TypedDict, total=False):
-  """Stored text values associated with a PawControl dog configuration."""
+  """Stored text values associated with a PawControl dog configuration."""  # noqa: E111
 
-  notes: NotRequired[str]
-  custom_label: NotRequired[str]
-  walk_notes: NotRequired[str]
-  current_walk_label: NotRequired[str]
-  health_notes: NotRequired[str]
-  medication_notes: NotRequired[str]
-  vet_notes: NotRequired[str]
-  grooming_notes: NotRequired[str]
-  custom_message: NotRequired[str]
-  emergency_contact: NotRequired[str]
-  microchip: NotRequired[str]
-  breeder_info: NotRequired[str]
-  registration: NotRequired[str]
-  insurance_info: NotRequired[str]
-  allergies: NotRequired[str]
-  training_notes: NotRequired[str]
-  behavior_notes: NotRequired[str]
-  location_description: NotRequired[str]
+  notes: NotRequired[str]  # noqa: E111
+  custom_label: NotRequired[str]  # noqa: E111
+  walk_notes: NotRequired[str]  # noqa: E111
+  current_walk_label: NotRequired[str]  # noqa: E111
+  health_notes: NotRequired[str]  # noqa: E111
+  medication_notes: NotRequired[str]  # noqa: E111
+  vet_notes: NotRequired[str]  # noqa: E111
+  grooming_notes: NotRequired[str]  # noqa: E111
+  custom_message: NotRequired[str]  # noqa: E111
+  emergency_contact: NotRequired[str]  # noqa: E111
+  microchip: NotRequired[str]  # noqa: E111
+  breeder_info: NotRequired[str]  # noqa: E111
+  registration: NotRequired[str]  # noqa: E111
+  insurance_info: NotRequired[str]  # noqa: E111
+  allergies: NotRequired[str]  # noqa: E111
+  training_notes: NotRequired[str]  # noqa: E111
+  behavior_notes: NotRequired[str]  # noqa: E111
+  location_description: NotRequired[str]  # noqa: E111
 
 
 class DogTextMetadataEntry(TypedDict, total=False):
-  """Metadata captured for an individual PawControl text value."""
+  """Metadata captured for an individual PawControl text value."""  # noqa: E111
 
-  last_updated: str
-  context_id: str | None
-  parent_id: str | None
-  user_id: str | None
+  last_updated: str  # noqa: E111
+  context_id: str | None  # noqa: E111
+  parent_id: str | None  # noqa: E111
+  user_id: str | None  # noqa: E111
 
 
 class DogTextMetadataSnapshot(TypedDict, total=False):
-  """Stored metadata associated with PawControl dog text values."""
+  """Stored metadata associated with PawControl dog text values."""  # noqa: E111
 
-  notes: NotRequired[DogTextMetadataEntry]
-  custom_label: NotRequired[DogTextMetadataEntry]
-  walk_notes: NotRequired[DogTextMetadataEntry]
-  current_walk_label: NotRequired[DogTextMetadataEntry]
-  health_notes: NotRequired[DogTextMetadataEntry]
-  medication_notes: NotRequired[DogTextMetadataEntry]
-  vet_notes: NotRequired[DogTextMetadataEntry]
-  grooming_notes: NotRequired[DogTextMetadataEntry]
-  custom_message: NotRequired[DogTextMetadataEntry]
-  emergency_contact: NotRequired[DogTextMetadataEntry]
-  microchip: NotRequired[DogTextMetadataEntry]
-  breeder_info: NotRequired[DogTextMetadataEntry]
-  registration: NotRequired[DogTextMetadataEntry]
-  insurance_info: NotRequired[DogTextMetadataEntry]
-  allergies: NotRequired[DogTextMetadataEntry]
-  training_notes: NotRequired[DogTextMetadataEntry]
-  behavior_notes: NotRequired[DogTextMetadataEntry]
-  location_description: NotRequired[DogTextMetadataEntry]
+  notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  custom_label: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  walk_notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  current_walk_label: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  health_notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  medication_notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  vet_notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  grooming_notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  custom_message: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  emergency_contact: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  microchip: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  breeder_info: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  registration: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  insurance_info: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  allergies: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  training_notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  behavior_notes: NotRequired[DogTextMetadataEntry]  # noqa: E111
+  location_description: NotRequired[DogTextMetadataEntry]  # noqa: E111
 
 
 class ButtonExtraAttributes(TypedDict, total=False):
-  """Extra state attributes exposed by PawControl button entities."""
+  """Extra state attributes exposed by PawControl button entities."""  # noqa: E111
 
-  dog_id: Required[str]
-  dog_name: Required[str]
-  button_type: Required[str]
-  last_pressed: str | None
-  action_description: NotRequired[str]
-  last_updated: NotRequired[str | None]
+  dog_id: Required[str]  # noqa: E111
+  dog_name: Required[str]  # noqa: E111
+  button_type: Required[str]  # noqa: E111
+  last_pressed: str | None  # noqa: E111
+  action_description: NotRequired[str]  # noqa: E111
+  last_updated: NotRequired[str | None]  # noqa: E111
 
 
 class BinarySensorAttributes(TypedDict, total=False):
-  """Extra state attributes exposed by PawControl binary sensor entities."""
+  """Extra state attributes exposed by PawControl binary sensor entities."""  # noqa: E111
 
-  dog_id: Required[str]
-  dog_name: Required[str]
-  sensor_type: Required[str]
-  last_update: Required[str]
-  last_updated: NotRequired[str | None]
-  dog_breed: NotRequired[str | None]
-  dog_age: NotRequired[int | float | None]
-  dog_size: NotRequired[str | None]
-  dog_weight: NotRequired[float | None]
-  status: NotRequired[str]
-  system_health: NotRequired[str]
-  enabled_modules: NotRequired[list[str]]
-  attention_reasons: NotRequired[list[str]]
-  urgency_level: NotRequired[str]
-  recommended_actions: NotRequired[list[str]]
-  recommended_action: NotRequired[str]
-  visitor_mode_started: NotRequired[str | None]
-  visitor_name: NotRequired[str | None]
-  modified_notifications: NotRequired[bool]
-  reduced_alerts: NotRequired[bool]
-  last_feeding: NotRequired[str | None]
-  last_feeding_hours: NotRequired[int | float | None]
-  next_feeding_due: NotRequired[str | None]
-  hunger_level: NotRequired[str]
-  walk_start_time: NotRequired[str | None]
-  walk_duration: NotRequired[int | float | None]
-  walk_distance: NotRequired[int | float | None]
-  estimated_remaining: NotRequired[int | None]
-  last_walk: NotRequired[str | None]
-  last_walk_hours: NotRequired[int | float | None]
-  walks_today: NotRequired[int]
-  garden_status: NotRequired[str]
-  sessions_today: NotRequired[int]
-  pending_confirmations: NotRequired[list[GardenConfirmationSnapshot]]
-  pending_confirmation_count: NotRequired[int]
-  current_zone: NotRequired[str]
-  distance_from_home: NotRequired[float | None]
-  last_seen: NotRequired[str | None]
-  accuracy: NotRequired[float | int | None]
-  health_alerts: NotRequired[HealthAlertList]
-  health_status: NotRequired[str | None]
-  alert_count: NotRequired[int]
-  current_activity_level: NotRequired[str]
-  concern_reason: NotRequired[str]
-  portion_adjustment_factor: NotRequired[float | None]
-  health_conditions: NotRequired[list[str]]
-  emergency_type: NotRequired[str | None]
-  portion_adjustment: NotRequired[int | float | str | None]
-  activated_at: NotRequired[str | None]
-  expires_at: NotRequired[str | None]
+  dog_id: Required[str]  # noqa: E111
+  dog_name: Required[str]  # noqa: E111
+  sensor_type: Required[str]  # noqa: E111
+  last_update: Required[str]  # noqa: E111
+  last_updated: NotRequired[str | None]  # noqa: E111
+  dog_breed: NotRequired[str | None]  # noqa: E111
+  dog_age: NotRequired[int | float | None]  # noqa: E111
+  dog_size: NotRequired[str | None]  # noqa: E111
+  dog_weight: NotRequired[float | None]  # noqa: E111
+  status: NotRequired[str]  # noqa: E111
+  system_health: NotRequired[str]  # noqa: E111
+  enabled_modules: NotRequired[list[str]]  # noqa: E111
+  attention_reasons: NotRequired[list[str]]  # noqa: E111
+  urgency_level: NotRequired[str]  # noqa: E111
+  recommended_actions: NotRequired[list[str]]  # noqa: E111
+  recommended_action: NotRequired[str]  # noqa: E111
+  visitor_mode_started: NotRequired[str | None]  # noqa: E111
+  visitor_name: NotRequired[str | None]  # noqa: E111
+  modified_notifications: NotRequired[bool]  # noqa: E111
+  reduced_alerts: NotRequired[bool]  # noqa: E111
+  last_feeding: NotRequired[str | None]  # noqa: E111
+  last_feeding_hours: NotRequired[int | float | None]  # noqa: E111
+  next_feeding_due: NotRequired[str | None]  # noqa: E111
+  hunger_level: NotRequired[str]  # noqa: E111
+  walk_start_time: NotRequired[str | None]  # noqa: E111
+  walk_duration: NotRequired[int | float | None]  # noqa: E111
+  walk_distance: NotRequired[int | float | None]  # noqa: E111
+  estimated_remaining: NotRequired[int | None]  # noqa: E111
+  last_walk: NotRequired[str | None]  # noqa: E111
+  last_walk_hours: NotRequired[int | float | None]  # noqa: E111
+  walks_today: NotRequired[int]  # noqa: E111
+  garden_status: NotRequired[str]  # noqa: E111
+  sessions_today: NotRequired[int]  # noqa: E111
+  pending_confirmations: NotRequired[list[GardenConfirmationSnapshot]]  # noqa: E111
+  pending_confirmation_count: NotRequired[int]  # noqa: E111
+  current_zone: NotRequired[str]  # noqa: E111
+  distance_from_home: NotRequired[float | None]  # noqa: E111
+  last_seen: NotRequired[str | None]  # noqa: E111
+  accuracy: NotRequired[float | int | None]  # noqa: E111
+  health_alerts: NotRequired[HealthAlertList]  # noqa: E111
+  health_status: NotRequired[str | None]  # noqa: E111
+  alert_count: NotRequired[int]  # noqa: E111
+  current_activity_level: NotRequired[str]  # noqa: E111
+  concern_reason: NotRequired[str]  # noqa: E111
+  portion_adjustment_factor: NotRequired[float | None]  # noqa: E111
+  health_conditions: NotRequired[list[str]]  # noqa: E111
+  emergency_type: NotRequired[str | None]  # noqa: E111
+  portion_adjustment: NotRequired[int | float | str | None]  # noqa: E111
+  activated_at: NotRequired[str | None]  # noqa: E111
+  expires_at: NotRequired[str | None]  # noqa: E111
 
 
 class ActivityLevelSensorAttributes(TypedDict, total=False):
-  """Extra attributes reported by the activity level sensor."""
+  """Extra attributes reported by the activity level sensor."""  # noqa: E111
 
-  walks_today: int
-  total_walk_minutes_today: float
-  last_walk_hours_ago: float | None
-  health_activity_level: str | None
-  activity_source: str
+  walks_today: int  # noqa: E111
+  total_walk_minutes_today: float  # noqa: E111
+  last_walk_hours_ago: float | None  # noqa: E111
+  health_activity_level: str | None  # noqa: E111
+  activity_source: str  # noqa: E111
 
 
 class CaloriesBurnedSensorAttributes(TypedDict, total=False):
-  """Extra attributes reported by the calories burned sensor."""
+  """Extra attributes reported by the calories burned sensor."""  # noqa: E111
 
-  dog_weight_kg: float
-  walk_minutes_today: float
-  walk_distance_meters_today: float
-  activity_level: str
-  calories_per_minute: float
-  calories_per_100m: float
+  dog_weight_kg: float  # noqa: E111
+  walk_minutes_today: float  # noqa: E111
+  walk_distance_meters_today: float  # noqa: E111
+  activity_level: str  # noqa: E111
+  calories_per_minute: float  # noqa: E111
+  calories_per_100m: float  # noqa: E111
 
 
 class LastFeedingHoursAttributes(TypedDict, total=False):
-  """Extra attributes reported by the last feeding hours sensor."""
+  """Extra attributes reported by the last feeding hours sensor."""  # noqa: E111
 
-  last_feeding_time: str | float | int | None
-  feedings_today: int
-  is_overdue: bool
-  next_feeding_due: str | None
+  last_feeding_time: str | float | int | None  # noqa: E111
+  feedings_today: int  # noqa: E111
+  is_overdue: bool  # noqa: E111
+  next_feeding_due: str | None  # noqa: E111
 
 
 class TotalWalkDistanceAttributes(TypedDict, total=False):
-  """Extra attributes reported by the total walk distance sensor."""
+  """Extra attributes reported by the total walk distance sensor."""  # noqa: E111
 
-  total_walks: int
-  total_distance_meters: float
-  average_distance_per_walk_km: float
-  distance_this_week_km: float
-  distance_this_month_km: float
+  total_walks: int  # noqa: E111
+  total_distance_meters: float  # noqa: E111
+  average_distance_per_walk_km: float  # noqa: E111
+  distance_this_week_km: float  # noqa: E111
+  distance_this_month_km: float  # noqa: E111
 
 
 class WalksThisWeekAttributes(TypedDict, total=False):
-  """Extra attributes reported by the walks this week sensor."""
+  """Extra attributes reported by the walks this week sensor."""  # noqa: E111
 
-  walks_today: int
-  total_duration_this_week_minutes: float
-  total_distance_this_week_meters: float
-  average_walks_per_day: float
-  days_this_week: int
-  distance_this_week_km: float
+  walks_today: int  # noqa: E111
+  total_duration_this_week_minutes: float  # noqa: E111
+  total_distance_this_week_meters: float  # noqa: E111
+  average_walks_per_day: float  # noqa: E111
+  days_this_week: int  # noqa: E111
+  distance_this_week_km: float  # noqa: E111
 
 
 class DateExtraAttributes(TypedDict, total=False):
-  """Extra state attributes exposed by PawControl date entities."""
+  """Extra state attributes exposed by PawControl date entities."""  # noqa: E111
 
-  dog_id: Required[str]
-  dog_name: Required[str]
-  date_type: Required[str]
-  days_from_today: NotRequired[int]
-  is_past: NotRequired[bool]
-  is_today: NotRequired[bool]
-  is_future: NotRequired[bool]
-  iso_string: NotRequired[str]
-  age_days: NotRequired[int]
-  age_years: NotRequired[float]
-  age_months: NotRequired[float]
+  dog_id: Required[str]  # noqa: E111
+  dog_name: Required[str]  # noqa: E111
+  date_type: Required[str]  # noqa: E111
+  days_from_today: NotRequired[int]  # noqa: E111
+  is_past: NotRequired[bool]  # noqa: E111
+  is_today: NotRequired[bool]  # noqa: E111
+  is_future: NotRequired[bool]  # noqa: E111
+  iso_string: NotRequired[str]  # noqa: E111
+  age_days: NotRequired[int]  # noqa: E111
+  age_years: NotRequired[float]  # noqa: E111
+  age_months: NotRequired[float]  # noqa: E111
 
 
 class TrackingModePreset(TypedDict, total=False):
-  """Configuration preset applied when selecting a GPS tracking mode."""
+  """Configuration preset applied when selecting a GPS tracking mode."""  # noqa: E111
 
-  update_interval_seconds: int
-  auto_start_walk: bool
-  track_route: bool
-  route_smoothing: bool
+  update_interval_seconds: int  # noqa: E111
+  auto_start_walk: bool  # noqa: E111
+  track_route: bool  # noqa: E111
+  route_smoothing: bool  # noqa: E111
 
 
 class LocationAccuracyConfig(TypedDict, total=False):
-  """Configuration payload applied when selecting a GPS accuracy profile."""
+  """Configuration payload applied when selecting a GPS accuracy profile."""  # noqa: E111
 
-  gps_accuracy_threshold: float
-  min_distance_for_point: float
-  route_smoothing: bool
+  gps_accuracy_threshold: float  # noqa: E111
+  min_distance_for_point: float  # noqa: E111
+  route_smoothing: bool  # noqa: E111
 
 
 class DogSizeInfo(TypedDict, total=False):
-  """Additional metadata exposed by the dog size select entity."""
+  """Additional metadata exposed by the dog size select entity."""  # noqa: E111
 
-  weight_range: str
-  exercise_needs: str
-  food_portion: str
+  weight_range: str  # noqa: E111
+  exercise_needs: str  # noqa: E111
+  food_portion: str  # noqa: E111
 
 
 class PerformanceModeInfo(TypedDict, total=False):
-  """Metadata describing a performance mode option."""
+  """Metadata describing a performance mode option."""  # noqa: E111
 
-  description: str
-  update_interval: str
-  battery_impact: str
+  description: str  # noqa: E111
+  update_interval: str  # noqa: E111
+  battery_impact: str  # noqa: E111
 
 
 class FoodTypeInfo(TypedDict, total=False):
-  """Metadata describing a feeding option exposed by selects."""
+  """Metadata describing a feeding option exposed by selects."""  # noqa: E111
 
-  calories_per_gram: float
-  moisture_content: str
-  storage: str
-  shelf_life: str
+  calories_per_gram: float  # noqa: E111
+  moisture_content: str  # noqa: E111
+  storage: str  # noqa: E111
+  shelf_life: str  # noqa: E111
 
 
 class WalkModeInfo(TypedDict, total=False):
-  """Descriptive metadata for walk mode select options."""
+  """Descriptive metadata for walk mode select options."""  # noqa: E111
 
-  description: str
-  gps_required: bool
-  accuracy: str
+  description: str  # noqa: E111
+  gps_required: bool  # noqa: E111
+  accuracy: str  # noqa: E111
 
 
 class GPSSourceInfo(TypedDict, total=False):
-  """Metadata describing a configured GPS telemetry source."""
+  """Metadata describing a configured GPS telemetry source."""  # noqa: E111
 
-  accuracy: str
-  update_frequency: str
-  battery_usage: str
+  accuracy: str  # noqa: E111
+  update_frequency: str  # noqa: E111
+  battery_usage: str  # noqa: E111
 
 
 class GroomingTypeInfo(TypedDict, total=False):
-  """Metadata describing a grooming routine selection."""
+  """Metadata describing a grooming routine selection."""  # noqa: E111
 
-  frequency: str
-  duration: str
-  difficulty: str
+  frequency: str  # noqa: E111
+  duration: str  # noqa: E111
+  difficulty: str  # noqa: E111
 
 
 TrackingModeKey = Literal["continuous", "interval", "on_demand", "battery_saver"]
@@ -618,20 +618,20 @@ type WalkStartPayload = Mapping[str, JSONValue]
 
 # OPTIMIZE: Resolve circular imports with proper conditional imports
 if TYPE_CHECKING:
-  from .coordinator import PawControlCoordinator
-  from .data_manager import PawControlDataManager
-  from .device_api import PawControlDeviceClient
-  from .door_sensor_manager import DoorSensorManager
-  from .entity_factory import EntityFactory
-  from .feeding_manager import FeedingComplianceResult, FeedingManager
-  from .garden_manager import GardenManager
-  from .geofencing import PawControlGeofencing
-  from .gps_manager import GPSGeofenceManager
-  from .helper_manager import PawControlHelperManager
-  from .notifications import PawControlNotificationManager
-  from .script_manager import PawControlScriptManager
-  from .walk_manager import WalkManager
-  from .weather_manager import WeatherHealthManager
+  from .coordinator import PawControlCoordinator  # noqa: E111
+  from .data_manager import PawControlDataManager  # noqa: E111
+  from .device_api import PawControlDeviceClient  # noqa: E111
+  from .door_sensor_manager import DoorSensorManager  # noqa: E111
+  from .entity_factory import EntityFactory  # noqa: E111
+  from .feeding_manager import FeedingComplianceResult, FeedingManager  # noqa: E111
+  from .garden_manager import GardenManager  # noqa: E111
+  from .geofencing import PawControlGeofencing  # noqa: E111
+  from .gps_manager import GPSGeofenceManager  # noqa: E111
+  from .helper_manager import PawControlHelperManager  # noqa: E111
+  from .notifications import PawControlNotificationManager  # noqa: E111
+  from .script_manager import PawControlScriptManager  # noqa: E111
+  from .walk_manager import WalkManager  # noqa: E111
+  from .weather_manager import WeatherHealthManager  # noqa: E111
 
 # OPTIMIZE: Use literal constants for performance - frozensets provide O(1) lookups
 # and are immutable, preventing accidental modification while ensuring fast validation
@@ -764,15 +764,15 @@ DEFAULT_CONFIDENCE_THRESHOLD: Final[float] = 0.7
 
 @dataclass(slots=True, frozen=True)
 class DoorSensorSettingsConfig:
-  """Normalised configuration values applied to door sensor tracking."""
+  """Normalised configuration values applied to door sensor tracking."""  # noqa: E111
 
-  walk_detection_timeout: int = DEFAULT_WALK_DETECTION_TIMEOUT
-  minimum_walk_duration: int = DEFAULT_MINIMUM_WALK_DURATION
-  maximum_walk_duration: int = DEFAULT_MAXIMUM_WALK_DURATION
-  door_closed_delay: int = DEFAULT_DOOR_CLOSED_DELAY
-  require_confirmation: bool = True
-  auto_end_walks: bool = True
-  confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
+  walk_detection_timeout: int = DEFAULT_WALK_DETECTION_TIMEOUT  # noqa: E111
+  minimum_walk_duration: int = DEFAULT_MINIMUM_WALK_DURATION  # noqa: E111
+  maximum_walk_duration: int = DEFAULT_MAXIMUM_WALK_DURATION  # noqa: E111
+  door_closed_delay: int = DEFAULT_DOOR_CLOSED_DELAY  # noqa: E111
+  require_confirmation: bool = True  # noqa: E111
+  auto_end_walks: bool = True  # noqa: E111
+  confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD  # noqa: E111
 
 
 DEFAULT_DOOR_SENSOR_SETTINGS = DoorSensorSettingsConfig()
@@ -785,43 +785,43 @@ type DoorSensorSettingsMapping = Mapping[str, DoorSensorOverrideScalar]
 
 
 class DoorSensorSettingsOverrides(TypedDict, total=False):
-  """User-provided overrides for :class:`DoorSensorSettingsConfig`."""
+  """User-provided overrides for :class:`DoorSensorSettingsConfig`."""  # noqa: E111
 
-  timeout: DoorSensorOverrideScalar
-  walk_detection_timeout: DoorSensorOverrideScalar
-  walk_timeout: DoorSensorOverrideScalar
-  minimum_walk_duration: DoorSensorOverrideScalar
-  min_walk_duration: DoorSensorOverrideScalar
-  minimum_duration: DoorSensorOverrideScalar
-  min_duration: DoorSensorOverrideScalar
-  maximum_walk_duration: DoorSensorOverrideScalar
-  max_walk_duration: DoorSensorOverrideScalar
-  maximum_duration: DoorSensorOverrideScalar
-  max_duration: DoorSensorOverrideScalar
-  door_closed_delay: DoorSensorOverrideScalar
-  door_closed_timeout: DoorSensorOverrideScalar
-  close_delay: DoorSensorOverrideScalar
-  close_timeout: DoorSensorOverrideScalar
-  require_confirmation: DoorSensorOverrideScalar
-  confirmation_required: DoorSensorOverrideScalar
-  auto_end_walks: DoorSensorOverrideScalar
-  auto_end_walk: DoorSensorOverrideScalar
-  auto_close: DoorSensorOverrideScalar
-  confidence_threshold: DoorSensorOverrideScalar
-  confidence: DoorSensorOverrideScalar
-  threshold: DoorSensorOverrideScalar
+  timeout: DoorSensorOverrideScalar  # noqa: E111
+  walk_detection_timeout: DoorSensorOverrideScalar  # noqa: E111
+  walk_timeout: DoorSensorOverrideScalar  # noqa: E111
+  minimum_walk_duration: DoorSensorOverrideScalar  # noqa: E111
+  min_walk_duration: DoorSensorOverrideScalar  # noqa: E111
+  minimum_duration: DoorSensorOverrideScalar  # noqa: E111
+  min_duration: DoorSensorOverrideScalar  # noqa: E111
+  maximum_walk_duration: DoorSensorOverrideScalar  # noqa: E111
+  max_walk_duration: DoorSensorOverrideScalar  # noqa: E111
+  maximum_duration: DoorSensorOverrideScalar  # noqa: E111
+  max_duration: DoorSensorOverrideScalar  # noqa: E111
+  door_closed_delay: DoorSensorOverrideScalar  # noqa: E111
+  door_closed_timeout: DoorSensorOverrideScalar  # noqa: E111
+  close_delay: DoorSensorOverrideScalar  # noqa: E111
+  close_timeout: DoorSensorOverrideScalar  # noqa: E111
+  require_confirmation: DoorSensorOverrideScalar  # noqa: E111
+  confirmation_required: DoorSensorOverrideScalar  # noqa: E111
+  auto_end_walks: DoorSensorOverrideScalar  # noqa: E111
+  auto_end_walk: DoorSensorOverrideScalar  # noqa: E111
+  auto_close: DoorSensorOverrideScalar  # noqa: E111
+  confidence_threshold: DoorSensorOverrideScalar  # noqa: E111
+  confidence: DoorSensorOverrideScalar  # noqa: E111
+  threshold: DoorSensorOverrideScalar  # noqa: E111
 
 
 class DoorSensorSettingsPayload(TypedDict):
-  """Serialised payload representing normalised door sensor settings."""
+  """Serialised payload representing normalised door sensor settings."""  # noqa: E111
 
-  walk_detection_timeout: int
-  minimum_walk_duration: int
-  maximum_walk_duration: int
-  door_closed_delay: int
-  require_confirmation: bool
-  auto_end_walks: bool
-  confidence_threshold: float
+  walk_detection_timeout: int  # noqa: E111
+  minimum_walk_duration: int  # noqa: E111
+  maximum_walk_duration: int  # noqa: E111
+  door_closed_delay: int  # noqa: E111
+  require_confirmation: bool  # noqa: E111
+  auto_end_walks: bool  # noqa: E111
+  confidence_threshold: float  # noqa: E111
 
 
 type DoorSensorSettingsInput = (
@@ -853,45 +853,45 @@ identification across the platform.
 
 
 class DietCompatibilityIssue(TypedDict):
-  """Structured description of diet compatibility conflicts or warnings."""
+  """Structured description of diet compatibility conflicts or warnings."""  # noqa: E111
 
-  type: str
-  diets: list[str]
-  message: str
+  type: str  # noqa: E111
+  diets: list[str]  # noqa: E111
+  message: str  # noqa: E111
 
 
 class DietValidationResult(TypedDict):
-  """Result payload returned by diet validation helpers."""
+  """Result payload returned by diet validation helpers."""  # noqa: E111
 
-  valid: bool
-  conflicts: list[DietCompatibilityIssue]
-  warnings: list[DietCompatibilityIssue]
-  recommended_vet_consultation: bool
-  total_diets: int
+  valid: bool  # noqa: E111
+  conflicts: list[DietCompatibilityIssue]  # noqa: E111
+  warnings: list[DietCompatibilityIssue]  # noqa: E111
+  recommended_vet_consultation: bool  # noqa: E111
+  total_diets: int  # noqa: E111
 
 
 class FeedingGoalSettings(TypedDict, total=False):
-  """Targeted feeding goals that influence portion adjustments."""
+  """Targeted feeding goals that influence portion adjustments."""  # noqa: E111
 
-  weight_goal: Literal["maintain", "lose", "gain"]
-  weight_loss_rate: Literal["aggressive", "moderate", "gradual"]
+  weight_goal: Literal["maintain", "lose", "gain"]  # noqa: E111
+  weight_loss_rate: Literal["aggressive", "moderate", "gradual"]  # noqa: E111
 
 
 class HealthMetricsOverride(TypedDict, total=False):
-  """Runtime override values when building :class:`HealthMetrics`."""
+  """Runtime override values when building :class:`HealthMetrics`."""  # noqa: E111
 
-  weight: float | int
-  ideal_weight: float | int
-  age_months: int
-  health_conditions: list[str]
+  weight: float | int  # noqa: E111
+  ideal_weight: float | int  # noqa: E111
+  age_months: int  # noqa: E111
+  health_conditions: list[str]  # noqa: E111
 
 
 class FeedingHistoryEvent(TypedDict, total=False):
-  """Normalised feeding event used for history analysis."""
+  """Normalised feeding event used for history analysis."""  # noqa: E111
 
-  time: datetime
-  amount: float | int
-  meal_type: str | None
+  time: datetime  # noqa: E111
+  amount: float | int  # noqa: E111
+  meal_type: str | None  # noqa: E111
 
 
 FeedingHistoryStatus = Literal[
@@ -909,38 +909,38 @@ FeedingHistoryStatus = Literal[
 
 
 class FeedingHealthContext(TypedDict, total=False):
-  """Contextual health information attached to feeding analysis."""
+  """Contextual health information attached to feeding analysis."""  # noqa: E111
 
-  weight_goal: str | None
-  body_condition_score: float | int | None
-  life_stage: str | None
-  activity_level: str | None
-  health_conditions: list[str] | None
-  special_diet: list[str] | None
+  weight_goal: str | None  # noqa: E111
+  body_condition_score: float | int | None  # noqa: E111
+  life_stage: str | None  # noqa: E111
+  activity_level: str | None  # noqa: E111
+  health_conditions: list[str] | None  # noqa: E111
+  special_diet: list[str] | None  # noqa: E111
 
 
 class FeedingHistoryAnalysis(TypedDict, total=False):
-  """Structured payload returned by feeding history analysis."""
+  """Structured payload returned by feeding history analysis."""  # noqa: E111
 
-  status: FeedingHistoryStatus
-  recommendation: str
-  message: str
-  avg_daily_calories: float
-  target_calories: float
-  calorie_variance_percent: float
-  avg_daily_meals: float
-  recommendations: list[str]
-  analysis_period_days: int
-  health_context: FeedingHealthContext
+  status: FeedingHistoryStatus  # noqa: E111
+  recommendation: str  # noqa: E111
+  message: str  # noqa: E111
+  avg_daily_calories: float  # noqa: E111
+  target_calories: float  # noqa: E111
+  calorie_variance_percent: float  # noqa: E111
+  avg_daily_meals: float  # noqa: E111
+  recommendations: list[str]  # noqa: E111
+  analysis_period_days: int  # noqa: E111
+  health_context: FeedingHealthContext  # noqa: E111
 
 
 class HealthFeedingInsights(TypedDict, total=False):
-  """Feeding-specific recommendations appended to health reports."""
+  """Feeding-specific recommendations appended to health reports."""  # noqa: E111
 
-  daily_calorie_target: float | None
-  portion_adjustment_factor: float
-  recommended_meals_per_day: int
-  food_type_recommendation: str | None
+  daily_calorie_target: float | None  # noqa: E111
+  portion_adjustment_factor: float  # noqa: E111
+  recommended_meals_per_day: int  # noqa: E111
+  food_type_recommendation: str | None  # noqa: E111
 
 
 HealthReportStatus = Literal[
@@ -954,101 +954,101 @@ HealthReportStatus = Literal[
 
 
 class HealthReport(TypedDict, total=False):
-  """Comprehensive health report exported by the feeding manager."""
+  """Comprehensive health report exported by the feeding manager."""  # noqa: E111
 
-  timestamp: str
-  overall_status: HealthReportStatus
-  recommendations: list[str]
-  health_score: int
-  areas_of_concern: list[str]
-  positive_indicators: list[str]
-  feeding_insights: HealthFeedingInsights
-  recent_feeding_performance: FeedingHistoryAnalysis
+  timestamp: str  # noqa: E111
+  overall_status: HealthReportStatus  # noqa: E111
+  recommendations: list[str]  # noqa: E111
+  health_score: int  # noqa: E111
+  areas_of_concern: list[str]  # noqa: E111
+  positive_indicators: list[str]  # noqa: E111
+  feeding_insights: HealthFeedingInsights  # noqa: E111
+  recent_feeding_performance: FeedingHistoryAnalysis  # noqa: E111
 
 
 class DogVaccinationRecord(TypedDict, total=False):
-  """Details about a specific vaccination."""
+  """Details about a specific vaccination."""  # noqa: E111
 
-  date: str | None
-  next_due: str | None
+  date: str | None  # noqa: E111
+  next_due: str | None  # noqa: E111
 
 
 class DogMedicationEntry(TypedDict, total=False):
-  """Medication reminder entry captured during configuration."""
+  """Medication reminder entry captured during configuration."""  # noqa: E111
 
-  name: str
-  dosage: str
-  frequency: str
-  time: str
-  notes: str
-  with_meals: bool
+  name: str  # noqa: E111
+  dosage: str  # noqa: E111
+  frequency: str  # noqa: E111
+  time: str  # noqa: E111
+  notes: str  # noqa: E111
+  with_meals: bool  # noqa: E111
 
 
 class DogHealthConfig(TypedDict, total=False):
-  """Extended health configuration captured during setup."""
+  """Extended health configuration captured during setup."""  # noqa: E111
 
-  vet_name: str
-  vet_phone: str
-  last_vet_visit: str | None
-  next_checkup: str | None
-  weight_tracking: bool
-  ideal_weight: float | None
-  body_condition_score: int
-  activity_level: str
-  weight_goal: str
-  spayed_neutered: bool
-  health_conditions: list[str]
-  special_diet_requirements: list[str]
-  vaccinations: dict[str, DogVaccinationRecord]
-  medications: list[DogMedicationEntry]
+  vet_name: str  # noqa: E111
+  vet_phone: str  # noqa: E111
+  last_vet_visit: str | None  # noqa: E111
+  next_checkup: str | None  # noqa: E111
+  weight_tracking: bool  # noqa: E111
+  ideal_weight: float | None  # noqa: E111
+  body_condition_score: int  # noqa: E111
+  activity_level: str  # noqa: E111
+  weight_goal: str  # noqa: E111
+  spayed_neutered: bool  # noqa: E111
+  health_conditions: list[str]  # noqa: E111
+  special_diet_requirements: list[str]  # noqa: E111
+  vaccinations: dict[str, DogVaccinationRecord]  # noqa: E111
+  medications: list[DogMedicationEntry]  # noqa: E111
 
 
 class DogModulesConfig(TypedDict, total=False):
-  """Per-dog module enablement settings."""
+  """Per-dog module enablement settings."""  # noqa: E111
 
-  feeding: bool
-  walk: bool
-  health: bool
-  gps: bool
-  garden: bool
-  notifications: bool
-  dashboard: bool
-  visitor: bool
-  grooming: bool
-  medication: bool
-  training: bool
-  weather: bool
+  feeding: bool  # noqa: E111
+  walk: bool  # noqa: E111
+  health: bool  # noqa: E111
+  gps: bool  # noqa: E111
+  garden: bool  # noqa: E111
+  notifications: bool  # noqa: E111
+  dashboard: bool  # noqa: E111
+  visitor: bool  # noqa: E111
+  grooming: bool  # noqa: E111
+  medication: bool  # noqa: E111
+  training: bool  # noqa: E111
+  weather: bool  # noqa: E111
 
 
 class HealthMedicationReminder(TypedDict, total=False):
-  """Reminder entry describing an active medication schedule."""
+  """Reminder entry describing an active medication schedule."""  # noqa: E111
 
-  name: str
-  dosage: str | None
-  frequency: str | None
-  next_dose: str | None
-  notes: str | None
-  with_meals: bool | None
+  name: str  # noqa: E111
+  dosage: str | None  # noqa: E111
+  frequency: str | None  # noqa: E111
+  next_dose: str | None  # noqa: E111
+  notes: str | None  # noqa: E111
+  with_meals: bool | None  # noqa: E111
 
 
 class HealthAlertEntry(TypedDict, total=False):
-  """Structured alert surfaced by the health enhancement routines."""
+  """Structured alert surfaced by the health enhancement routines."""  # noqa: E111
 
-  type: str
-  message: str
-  severity: Literal["low", "medium", "high", "critical"]
-  action_required: bool
-  details: JSONLikeMapping | None
+  type: str  # noqa: E111
+  message: str  # noqa: E111
+  severity: Literal["low", "medium", "high", "critical"]  # noqa: E111
+  action_required: bool  # noqa: E111
+  details: JSONLikeMapping | None  # noqa: E111
 
 
 class HealthUpcomingCareEntry(TypedDict, total=False):
-  """Scheduled or due-soon care entry tracked for a dog."""
+  """Scheduled or due-soon care entry tracked for a dog."""  # noqa: E111
 
-  type: str
-  message: str
-  due_date: str | None
-  priority: Literal["low", "medium", "high"]
-  details: str | JSONLikeMapping | None
+  type: str  # noqa: E111
+  message: str  # noqa: E111
+  due_date: str | None  # noqa: E111
+  priority: Literal["low", "medium", "high"]  # noqa: E111
+  details: str | JSONLikeMapping | None  # noqa: E111
 
 
 type HealthAlertList = list[HealthAlertEntry]
@@ -1057,23 +1057,23 @@ type HealthMedicationQueue = list[HealthMedicationReminder]
 
 
 class HealthStatusSnapshot(TypedDict, total=False):
-  """Current health status summary exported to diagnostics consumers."""
+  """Current health status summary exported to diagnostics consumers."""  # noqa: E111
 
-  overall_score: int
-  priority_alerts: HealthAlertList
-  upcoming_care: HealthUpcomingCareQueue
-  recommendations: list[str]
-  last_updated: str
+  overall_score: int  # noqa: E111
+  priority_alerts: HealthAlertList  # noqa: E111
+  upcoming_care: HealthUpcomingCareQueue  # noqa: E111
+  recommendations: list[str]  # noqa: E111
+  last_updated: str  # noqa: E111
 
 
 class HealthAppointmentRecommendation(TypedDict):
-  """Recommendation for the next veterinary appointment."""
+  """Recommendation for the next veterinary appointment."""  # noqa: E111
 
-  next_appointment_date: str
-  appointment_type: str
-  reason: str
-  urgency: Literal["low", "normal", "high"]
-  days_until: int
+  next_appointment_date: str  # noqa: E111
+  appointment_type: str  # noqa: E111
+  reason: str  # noqa: E111
+  urgency: Literal["low", "normal", "high"]  # noqa: E111
+  days_until: int  # noqa: E111
 
 
 ModuleToggleKey = Literal[
@@ -1143,19 +1143,19 @@ MODULE_TOGGLE_FLAG_BY_KEY: Final[dict[ModuleToggleKey, ModuleToggleFlowFlag]] = 
 
 
 class DogModuleSelectionInput(TypedDict):
-  """Raw module toggle payload collected during per-dog setup."""
+  """Raw module toggle payload collected during per-dog setup."""  # noqa: E111
 
-  enable_feeding: NotRequired[bool]
-  enable_walk: NotRequired[bool]
-  enable_health: NotRequired[bool]
-  enable_gps: NotRequired[bool]
-  enable_garden: NotRequired[bool]
-  enable_notifications: NotRequired[bool]
-  enable_dashboard: NotRequired[bool]
-  enable_visitor: NotRequired[bool]
-  enable_grooming: NotRequired[bool]
-  enable_medication: NotRequired[bool]
-  enable_training: NotRequired[bool]
+  enable_feeding: NotRequired[bool]  # noqa: E111
+  enable_walk: NotRequired[bool]  # noqa: E111
+  enable_health: NotRequired[bool]  # noqa: E111
+  enable_gps: NotRequired[bool]  # noqa: E111
+  enable_garden: NotRequired[bool]  # noqa: E111
+  enable_notifications: NotRequired[bool]  # noqa: E111
+  enable_dashboard: NotRequired[bool]  # noqa: E111
+  enable_visitor: NotRequired[bool]  # noqa: E111
+  enable_grooming: NotRequired[bool]  # noqa: E111
+  enable_medication: NotRequired[bool]  # noqa: E111
+  enable_training: NotRequired[bool]  # noqa: E111
 
 
 FeedingConfigKey = Literal[
@@ -1181,17 +1181,17 @@ DEFAULT_FEEDING_SCHEDULE: Final[tuple[str, ...]] = (
 
 @dataclass(slots=True)
 class DogModulesProjection:
-  """Expose both typed and plain module toggle representations."""
+  """Expose both typed and plain module toggle representations."""  # noqa: E111
 
-  config: DogModulesConfig
-  mapping: dict[str, bool]
+  config: DogModulesConfig  # noqa: E111
+  mapping: dict[str, bool]  # noqa: E111
 
-  def as_config(self) -> DogModulesConfig:
+  def as_config(self) -> DogModulesConfig:  # noqa: E111
     """Return a ``DogModulesConfig`` copy suitable for storage."""
 
     return cast(DogModulesConfig, dict(self.config))
 
-  def as_mapping(self) -> dict[str, bool]:
+  def as_mapping(self) -> dict[str, bool]:  # noqa: E111
     """Return a plain mapping for platform factories."""
 
     return dict(self.mapping)
@@ -1204,83 +1204,87 @@ def _record_bool_coercion(
   result: bool,
   reason: str,
 ) -> None:
-  """Record bool coercion telemetry for diagnostics consumers."""
+  """Record bool coercion telemetry for diagnostics consumers."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     from .telemetry import record_bool_coercion_event
-  except Exception:  # pragma: no cover - telemetry import guarded for safety
+  except (
+    Exception
+  ):  # pragma: no cover - telemetry import guarded for safety  # noqa: E111
     return
 
-  try:
+  try:  # noqa: E111
     record_bool_coercion_event(
       value=value,
       default=default,
       result=result,
       reason=reason,
     )
-  except Exception:  # pragma: no cover - telemetry failures must not break coercion
+  except (
+    Exception
+  ):  # pragma: no cover - telemetry failures must not break coercion  # noqa: E111
     return
 
 
 class BoolCoercionSample(TypedDict):
-  """Snapshot of an individual boolean coercion event."""
+  """Snapshot of an individual boolean coercion event."""  # noqa: E111
 
-  value_type: str
-  value_repr: str
-  default: bool
-  result: bool
-  reason: str
+  value_type: str  # noqa: E111
+  value_repr: str  # noqa: E111
+  default: bool  # noqa: E111
+  result: bool  # noqa: E111
+  reason: str  # noqa: E111
 
 
 class BoolCoercionMetrics(TypedDict, total=False):
-  """Aggregated metrics describing bool coercion behaviour."""
+  """Aggregated metrics describing bool coercion behaviour."""  # noqa: E111
 
-  total: int
-  defaulted: int
-  fallback: int
-  reset_count: int
-  type_counts: dict[str, int]
-  reason_counts: dict[str, int]
-  samples: list[BoolCoercionSample]
-  first_seen: str | None
-  last_seen: str | None
-  active_window_seconds: float | None
-  last_reset: str | None
-  last_reason: str | None
-  last_value_type: str | None
-  last_value_repr: str | None
-  last_result: bool | None
-  last_default: bool | None
+  total: int  # noqa: E111
+  defaulted: int  # noqa: E111
+  fallback: int  # noqa: E111
+  reset_count: int  # noqa: E111
+  type_counts: dict[str, int]  # noqa: E111
+  reason_counts: dict[str, int]  # noqa: E111
+  samples: list[BoolCoercionSample]  # noqa: E111
+  first_seen: str | None  # noqa: E111
+  last_seen: str | None  # noqa: E111
+  active_window_seconds: float | None  # noqa: E111
+  last_reset: str | None  # noqa: E111
+  last_reason: str | None  # noqa: E111
+  last_value_type: str | None  # noqa: E111
+  last_value_repr: str | None  # noqa: E111
+  last_result: bool | None  # noqa: E111
+  last_default: bool | None  # noqa: E111
 
 
 class BoolCoercionSummary(TypedDict):
-  """Condensed snapshot for coordinator observability exports."""
+  """Condensed snapshot for coordinator observability exports."""  # noqa: E111
 
-  recorded: bool
-  total: int
-  defaulted: int
-  fallback: int
-  reset_count: int
-  first_seen: str | None
-  last_seen: str | None
-  last_reset: str | None
-  active_window_seconds: float | None
-  last_reason: str | None
-  last_value_type: str | None
-  last_value_repr: str | None
-  last_result: bool | None
-  last_default: bool | None
-  reason_counts: dict[str, int]
-  type_counts: dict[str, int]
-  samples: list[BoolCoercionSample]
+  recorded: bool  # noqa: E111
+  total: int  # noqa: E111
+  defaulted: int  # noqa: E111
+  fallback: int  # noqa: E111
+  reset_count: int  # noqa: E111
+  first_seen: str | None  # noqa: E111
+  last_seen: str | None  # noqa: E111
+  last_reset: str | None  # noqa: E111
+  active_window_seconds: float | None  # noqa: E111
+  last_reason: str | None  # noqa: E111
+  last_value_type: str | None  # noqa: E111
+  last_value_repr: str | None  # noqa: E111
+  last_result: bool | None  # noqa: E111
+  last_default: bool | None  # noqa: E111
+  reason_counts: dict[str, int]  # noqa: E111
+  type_counts: dict[str, int]  # noqa: E111
+  samples: list[BoolCoercionSample]  # noqa: E111
 
 
 class BoolCoercionDiagnosticsPayload(TypedDict, total=False):
-  """Diagnostics payload combining bool coercion summary and metrics."""
+  """Diagnostics payload combining bool coercion summary and metrics."""  # noqa: E111
 
-  recorded: bool
-  summary: BoolCoercionSummary
-  metrics: BoolCoercionMetrics
+  recorded: bool  # noqa: E111
+  summary: BoolCoercionSummary  # noqa: E111
+  metrics: BoolCoercionMetrics  # noqa: E111
 
 
 _TRUTHY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
@@ -1292,9 +1296,9 @@ _FALSY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
 
 
 def _coerce_bool(value: Any, *, default: bool = False) -> bool:
-  """Return a boolean flag while tolerating common string/int representations."""
+  """Return a boolean flag while tolerating common string/int representations."""  # noqa: E111
 
-  if value is None:
+  if value is None:  # noqa: E111
     _record_bool_coercion(
       value,
       default=default,
@@ -1302,7 +1306,7 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
       reason="none",
     )
     return default
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     result = value
     _record_bool_coercion(
       value,
@@ -1311,7 +1315,7 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
       reason="native_true" if result else "native_false",
     )
     return result
-  if isinstance(value, int | float):
+  if isinstance(value, int | float):  # noqa: E111
     result = value != 0
     _record_bool_coercion(
       value,
@@ -1320,32 +1324,32 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
       reason="numeric_nonzero" if result else "numeric_zero",
     )
     return result
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     text = value.strip().lower()
     if not text:
-      _record_bool_coercion(
+      _record_bool_coercion(  # noqa: E111
         value,
         default=default,
         result=default,
         reason="blank_string",
       )
-      return default
+      return default  # noqa: E111
     if text in _TRUTHY_BOOL_STRINGS:
-      _record_bool_coercion(
+      _record_bool_coercion(  # noqa: E111
         value,
         default=default,
         result=True,
         reason="truthy_string",
       )
-      return True
+      return True  # noqa: E111
     if text in _FALSY_BOOL_STRINGS:
-      _record_bool_coercion(
+      _record_bool_coercion(  # noqa: E111
         value,
         default=default,
         result=False,
         reason="falsy_string",
       )
-      return False
+      return False  # noqa: E111
 
     result = False
     _record_bool_coercion(
@@ -1356,57 +1360,57 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     )
     return result
 
-  result = bool(value)
-  _record_bool_coercion(
+  result = bool(value)  # noqa: E111
+  _record_bool_coercion(  # noqa: E111
     value,
     default=default,
     result=result,
     reason="fallback",
   )
-  return result
+  return result  # noqa: E111
 
 
 def _coerce_int(value: Any, *, default: int) -> int:
-  """Return an integer, falling back to ``default`` when conversion fails."""
+  """Return an integer, falling back to ``default`` when conversion fails."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     return 1 if value else default
-  if isinstance(value, int):
+  if isinstance(value, int):  # noqa: E111
     return value
-  if isinstance(value, float):
+  if isinstance(value, float):  # noqa: E111
     return int(value)
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     try:
-      return int(value.strip())
+      return int(value.strip())  # noqa: E111
     except ValueError:
-      return default
-  return default
+      return default  # noqa: E111
+  return default  # noqa: E111
 
 
 def _coerce_float(value: Any, *, default: float) -> float:
-  """Return a float, tolerating numeric strings and integers."""
+  """Return a float, tolerating numeric strings and integers."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     return 1.0 if value else default
-  if isinstance(value, float):
+  if isinstance(value, float):  # noqa: E111
     return value
-  if isinstance(value, int):
+  if isinstance(value, int):  # noqa: E111
     return float(value)
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     try:
-      return float(value.strip())
+      return float(value.strip())  # noqa: E111
     except ValueError:
-      return default
-  return default
+      return default  # noqa: E111
+  return default  # noqa: E111
 
 
 def _coerce_str(value: Any, *, default: str) -> str:
-  """Return a trimmed string value or the provided default."""
+  """Return a trimmed string value or the provided default."""  # noqa: E111
 
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     text = value.strip()
     return text or default
-  return default
+  return default  # noqa: E111
 
 
 PerformanceMode = Literal["minimal", "balanced", "full"]
@@ -1421,17 +1425,17 @@ type MutableConfigFlowPlaceholders = dict[str, ConfigFlowPlaceholderValue]
 def clone_placeholders(
   template: ConfigFlowPlaceholders,
 ) -> MutableConfigFlowPlaceholders:
-  """Return a mutable copy of an immutable placeholder template."""
+  """Return a mutable copy of an immutable placeholder template."""  # noqa: E111
 
-  return dict(template)
+  return dict(template)  # noqa: E111
 
 
 def freeze_placeholders(
   placeholders: MutableConfigFlowPlaceholders,
 ) -> ConfigFlowPlaceholders:
-  """Return an immutable placeholder mapping."""
+  """Return an immutable placeholder mapping."""  # noqa: E111
 
-  return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
+  return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))  # noqa: E111
 
 
 PERFORMANCE_MODE_VALUES: Final[frozenset[PerformanceMode]] = frozenset(
@@ -1447,14 +1451,14 @@ PERFORMANCE_MODE_ALIASES: Final[Mapping[str, PerformanceMode]] = MappingProxyTyp
 
 
 def _coerce_clamped_int(value: Any, *, default: int, minimum: int, maximum: int) -> int:
-  """Return an integer constrained to the provided inclusive bounds."""
+  """Return an integer constrained to the provided inclusive bounds."""  # noqa: E111
 
-  candidate = _coerce_int(value, default=default)
-  if candidate < minimum:
+  candidate = _coerce_int(value, default=default)  # noqa: E111
+  if candidate < minimum:  # noqa: E111
     return minimum
-  if candidate > maximum:
+  if candidate > maximum:  # noqa: E111
     return maximum
-  return candidate
+  return candidate  # noqa: E111
 
 
 def normalize_performance_mode(
@@ -1463,25 +1467,25 @@ def normalize_performance_mode(
   current: str | None = None,
   fallback: PerformanceMode = "balanced",
 ) -> PerformanceMode:
-  """Return a supported performance mode string."""
+  """Return a supported performance mode string."""  # noqa: E111
 
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     candidate = value.strip().lower()
     if candidate in PERFORMANCE_MODE_VALUES:
-      return cast(PerformanceMode, candidate)
+      return cast(PerformanceMode, candidate)  # noqa: E111
     alias = PERFORMANCE_MODE_ALIASES.get(candidate)
     if alias is not None:
-      return alias
+      return alias  # noqa: E111
 
-  if isinstance(current, str):
+  if isinstance(current, str):  # noqa: E111
     existing = current.strip().lower()
     if existing in PERFORMANCE_MODE_VALUES:
-      return cast(PerformanceMode, existing)
+      return cast(PerformanceMode, existing)  # noqa: E111
     alias = PERFORMANCE_MODE_ALIASES.get(existing)
     if alias is not None:
-      return alias
+      return alias  # noqa: E111
 
-  return fallback
+  return fallback  # noqa: E111
 
 
 def ensure_advanced_options(
@@ -1489,28 +1493,28 @@ def ensure_advanced_options(
   *,
   defaults: JSONLikeMapping | None = None,
 ) -> AdvancedOptions:
-  """Normalise advanced options payloads for config entry storage."""
+  """Normalise advanced options payloads for config entry storage."""  # noqa: E111
 
-  baseline = defaults or {}
+  baseline = defaults or {}  # noqa: E111
 
-  retention_default = _coerce_int(
+  retention_default = _coerce_int(  # noqa: E111
     baseline.get("data_retention_days"),
     default=90,
   )
-  debug_default = _coerce_bool(baseline.get("debug_logging"), default=False)
-  backup_default = _coerce_bool(baseline.get("auto_backup"), default=False)
-  experimental_default = _coerce_bool(
+  debug_default = _coerce_bool(baseline.get("debug_logging"), default=False)  # noqa: E111
+  backup_default = _coerce_bool(baseline.get("auto_backup"), default=False)  # noqa: E111
+  experimental_default = _coerce_bool(  # noqa: E111
     baseline.get("experimental_features"),
     default=False,
   )
-  integrations_default = _coerce_bool(
+  integrations_default = _coerce_bool(  # noqa: E111
     baseline.get(CONF_EXTERNAL_INTEGRATIONS),
     default=False,
   )
-  endpoint_default = _coerce_str(baseline.get(CONF_API_ENDPOINT), default="")
-  token_default = _coerce_str(baseline.get(CONF_API_TOKEN), default="")
+  endpoint_default = _coerce_str(baseline.get(CONF_API_ENDPOINT), default="")  # noqa: E111
+  token_default = _coerce_str(baseline.get(CONF_API_TOKEN), default="")  # noqa: E111
 
-  advanced: AdvancedOptions = {
+  advanced: AdvancedOptions = {  # noqa: E111
     "performance_mode": normalize_performance_mode(
       source.get("performance_mode"),
       current=cast(str | None, baseline.get("performance_mode")),
@@ -1541,19 +1545,19 @@ def ensure_advanced_options(
     "api_token": _coerce_str(source.get(CONF_API_TOKEN), default=token_default),
   }
 
-  return advanced
+  return advanced  # noqa: E111
 
 
 def _project_modules_mapping(
   config: ModuleToggleMapping | DogModulesConfig,
 ) -> dict[str, bool]:
-  """Return a stable ``dict[str, bool]`` projection for module toggles."""
+  """Return a stable ``dict[str, bool]`` projection for module toggles."""  # noqa: E111
 
-  mapping: dict[str, bool] = {}
-  for key_literal in MODULE_TOGGLE_KEYS:
+  mapping: dict[str, bool] = {}  # noqa: E111
+  for key_literal in MODULE_TOGGLE_KEYS:  # noqa: E111
     key = cast(str, key_literal)
     mapping[key] = bool(config.get(key_literal, False))
-  return mapping
+  return mapping  # noqa: E111
 
 
 def dog_modules_projection_from_flow_input(
@@ -1561,28 +1565,28 @@ def dog_modules_projection_from_flow_input(
   *,
   existing: DogModulesConfig | None = None,
 ) -> DogModulesProjection:
-  """Return module toggle projections built from config-flow toggles."""
+  """Return module toggle projections built from config-flow toggles."""  # noqa: E111
 
-  modules: dict[ModuleToggleKey, bool] = {}
+  modules: dict[ModuleToggleKey, bool] = {}  # noqa: E111
 
-  if existing:
+  if existing:  # noqa: E111
     for key in MODULE_TOGGLE_KEYS:
-      flag = existing.get(key)
-      if isinstance(flag, bool):
+      flag = existing.get(key)  # noqa: E111
+      if isinstance(flag, bool):  # noqa: E111
         modules[key] = flag
 
-  for flow_flag, module_key in MODULE_TOGGLE_FLOW_FLAGS:
+  for flow_flag, module_key in MODULE_TOGGLE_FLOW_FLAGS:  # noqa: E111
     modules[module_key] = _coerce_bool(
       user_input.get(flow_flag),
       default=modules.get(module_key, False),
     )
 
-  config: DogModulesConfig = {}
-  for key in MODULE_TOGGLE_KEYS:
+  config: DogModulesConfig = {}  # noqa: E111
+  for key in MODULE_TOGGLE_KEYS:  # noqa: E111
     if key in modules:
-      config[key] = modules[key]
-  mapping = _project_modules_mapping(config)
-  return DogModulesProjection(config=config, mapping=mapping)
+      config[key] = modules[key]  # noqa: E111
+  mapping = _project_modules_mapping(config)  # noqa: E111
+  return DogModulesProjection(config=config, mapping=mapping)  # noqa: E111
 
 
 def dog_modules_from_flow_input(
@@ -1590,9 +1594,9 @@ def dog_modules_from_flow_input(
   *,
   existing: DogModulesConfig | None = None,
 ) -> DogModulesConfig:
-  """Return a :class:`DogModulesConfig` built from config-flow toggles."""
+  """Return a :class:`DogModulesConfig` built from config-flow toggles."""  # noqa: E111
 
-  return dog_modules_projection_from_flow_input(user_input, existing=existing).config
+  return dog_modules_projection_from_flow_input(user_input, existing=existing).config  # noqa: E111
 
 
 def ensure_dog_modules_projection(
@@ -1605,43 +1609,43 @@ def ensure_dog_modules_projection(
   all variants into the projection structure used throughout the integration so
   downstream consumers can rely on a consistent schema when static typing is
   enforced.
-  """
+  """  # noqa: E111
 
-  if isinstance(data, DogModulesProjection):
+  if isinstance(data, DogModulesProjection):  # noqa: E111
     return data
 
-  modules: dict[ModuleToggleKey, bool] = {}
-  modules_raw = data.get(DOG_MODULES_FIELD)
-  candidate = modules_raw if isinstance(modules_raw, Mapping) else data
+  modules: dict[ModuleToggleKey, bool] = {}  # noqa: E111
+  modules_raw = data.get(DOG_MODULES_FIELD)  # noqa: E111
+  candidate = modules_raw if isinstance(modules_raw, Mapping) else data  # noqa: E111
 
-  for key in MODULE_TOGGLE_KEYS:
+  for key in MODULE_TOGGLE_KEYS:  # noqa: E111
     value = candidate.get(key)
     if value is not None:
-      modules[key] = _coerce_bool(value)
+      modules[key] = _coerce_bool(value)  # noqa: E111
 
-  config: DogModulesConfig = {}
-  for key in MODULE_TOGGLE_KEYS:
+  config: DogModulesConfig = {}  # noqa: E111
+  for key in MODULE_TOGGLE_KEYS:  # noqa: E111
     if key in modules:
-      config[key] = modules[key]
-  mapping = _project_modules_mapping(config)
-  return DogModulesProjection(config=config, mapping=mapping)
+      config[key] = modules[key]  # noqa: E111
+  mapping = _project_modules_mapping(config)  # noqa: E111
+  return DogModulesProjection(config=config, mapping=mapping)  # noqa: E111
 
 
 def ensure_dog_modules_config(
   data: Mapping[str, object] | ConfigFlowUserInput | DogModulesProjection,
 ) -> DogModulesConfig:
-  """Extract a :class:`DogModulesConfig` from supported module payloads."""
+  """Extract a :class:`DogModulesConfig` from supported module payloads."""  # noqa: E111
 
-  return ensure_dog_modules_projection(data).config
+  return ensure_dog_modules_projection(data).config  # noqa: E111
 
 
 def _is_modules_projection_like(value: Any) -> bool:
-  """Return ``True`` when ``value`` resembles a modules projection payload."""
+  """Return ``True`` when ``value`` resembles a modules projection payload."""  # noqa: E111
 
-  if isinstance(value, DogModulesProjection):
+  if isinstance(value, DogModulesProjection):  # noqa: E111
     return True
 
-  return hasattr(value, "config") and hasattr(value, "mapping")
+  return hasattr(value, "config") and hasattr(value, "mapping")  # noqa: E111
 
 
 def coerce_dog_modules_config(
@@ -1651,47 +1655,47 @@ def coerce_dog_modules_config(
   | DogModulesConfig
   | None,
 ) -> DogModulesConfig:
-  """Return a defensive ``DogModulesConfig`` copy tolerant of projections."""
+  """Return a defensive ``DogModulesConfig`` copy tolerant of projections."""  # noqa: E111
 
-  if _is_modules_projection_like(payload):
+  if _is_modules_projection_like(payload):  # noqa: E111
     config_attr = getattr(payload, "config", None)
     if isinstance(config_attr, Mapping):
-      return cast(DogModulesConfig, dict(config_attr))
+      return cast(DogModulesConfig, dict(config_attr))  # noqa: E111
 
-  if isinstance(payload, Mapping):
+  if isinstance(payload, Mapping):  # noqa: E111
     config = ensure_dog_modules_config(payload)
     return cast(DogModulesConfig, dict(config))
 
-  return cast(DogModulesConfig, {})
+  return cast(DogModulesConfig, {})  # noqa: E111
 
 
 def ensure_dog_modules_mapping(
   data: Mapping[str, object] | DogModulesProjection,
 ) -> DogModulesMapping:
-  """Return a ``DogModulesMapping`` projection from ``data``."""
+  """Return a ``DogModulesMapping`` projection from ``data``."""  # noqa: E111
 
-  return ensure_dog_modules_projection(data).mapping
+  return ensure_dog_modules_projection(data).mapping  # noqa: E111
 
 
 def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingConfig:
-  """Build a :class:`DogFeedingConfig` structure from flow input data."""
+  """Build a :class:`DogFeedingConfig` structure from flow input data."""  # noqa: E111
 
-  meals_per_day = max(
+  meals_per_day = max(  # noqa: E111
     1,
     _coerce_int(
       user_input.get(CONF_MEALS_PER_DAY),
       default=2,
     ),
   )
-  daily_amount = _coerce_float(
+  daily_amount = _coerce_float(  # noqa: E111
     user_input.get(
       CONF_DAILY_FOOD_AMOUNT,
     ),
     default=500.0,
   )
-  portion_size = daily_amount / meals_per_day if meals_per_day else 0.0
+  portion_size = daily_amount / meals_per_day if meals_per_day else 0.0  # noqa: E111
 
-  feeding_config: DogFeedingConfig = {
+  feeding_config: DogFeedingConfig = {  # noqa: E111
     "meals_per_day": meals_per_day,
     "daily_food_amount": daily_amount,
     "portion_size": portion_size,
@@ -1710,190 +1714,190 @@ def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingC
     ),
   }
 
-  if _coerce_bool(user_input.get("breakfast_enabled"), default=meals_per_day >= 1):
+  if _coerce_bool(user_input.get("breakfast_enabled"), default=meals_per_day >= 1):  # noqa: E111
     feeding_config["breakfast_time"] = _coerce_str(
       user_input.get(CONF_BREAKFAST_TIME),
       default="07:00:00",
     )
 
-  if _coerce_bool(user_input.get("lunch_enabled"), default=meals_per_day >= 3):
+  if _coerce_bool(user_input.get("lunch_enabled"), default=meals_per_day >= 3):  # noqa: E111
     feeding_config["lunch_time"] = _coerce_str(
       user_input.get(CONF_LUNCH_TIME),
       default="12:00:00",
     )
 
-  if _coerce_bool(user_input.get("dinner_enabled"), default=meals_per_day >= 2):
+  if _coerce_bool(user_input.get("dinner_enabled"), default=meals_per_day >= 2):  # noqa: E111
     feeding_config["dinner_time"] = _coerce_str(
       user_input.get(CONF_DINNER_TIME),
       default="18:00:00",
     )
 
-  if _coerce_bool(user_input.get("snacks_enabled"), default=False):
+  if _coerce_bool(user_input.get("snacks_enabled"), default=False):  # noqa: E111
     feeding_config["snack_times"] = list(DEFAULT_FEEDING_SCHEDULE)
 
-  return feeding_config
+  return feeding_config  # noqa: E111
 
 
 class DogGPSConfig(TypedDict, total=False):
-  """GPS configuration captured during the dog setup flow."""
+  """GPS configuration captured during the dog setup flow."""  # noqa: E111
 
-  gps_source: str
-  gps_update_interval: int
-  gps_accuracy_filter: float | int
-  enable_geofencing: bool
-  home_zone_radius: int | float
+  gps_source: str  # noqa: E111
+  gps_update_interval: int  # noqa: E111
+  gps_accuracy_filter: float | int  # noqa: E111
+  enable_geofencing: bool  # noqa: E111
+  home_zone_radius: int | float  # noqa: E111
 
 
 class DogWalkConfig(TypedDict, total=False):
-  """Walk configuration captured during the dog setup flow."""
+  """Walk configuration captured during the dog setup flow."""  # noqa: E111
 
-  daily_walk_target: int
-  walk_duration_target: int
-  walk_distance_target: int
-  reminder_hours: int
-  max_walk_speed: float | int
+  daily_walk_target: int  # noqa: E111
+  walk_duration_target: int  # noqa: E111
+  walk_distance_target: int  # noqa: E111
+  reminder_hours: int  # noqa: E111
+  max_walk_speed: float | int  # noqa: E111
 
 
 class DogGPSStepInput(TypedDict, total=False):
-  """Raw GPS form payload provided during per-dog configuration."""
+  """Raw GPS form payload provided during per-dog configuration."""  # noqa: E111
 
-  gps_source: str
-  gps_update_interval: int
-  gps_accuracy_filter: float | int
-  enable_geofencing: bool
-  home_zone_radius: float | int
+  gps_source: str  # noqa: E111
+  gps_update_interval: int  # noqa: E111
+  gps_accuracy_filter: float | int  # noqa: E111
+  enable_geofencing: bool  # noqa: E111
+  home_zone_radius: float | int  # noqa: E111
 
 
 class GeofenceSettingsInput(TypedDict, total=False):
-  """Options flow payload captured while editing geofencing settings."""
+  """Options flow payload captured while editing geofencing settings."""  # noqa: E111
 
-  geofencing_enabled: bool
-  use_home_location: bool
-  geofence_lat: float | int | str | None
-  geofence_lon: float | int | str | None
-  geofence_radius_m: float | int | str | None
-  geofence_alerts_enabled: bool
-  safe_zone_alerts: bool
-  restricted_zone_alerts: bool
-  zone_entry_notifications: bool
-  zone_exit_notifications: bool
+  geofencing_enabled: bool  # noqa: E111
+  use_home_location: bool  # noqa: E111
+  geofence_lat: float | int | str | None  # noqa: E111
+  geofence_lon: float | int | str | None  # noqa: E111
+  geofence_radius_m: float | int | str | None  # noqa: E111
+  geofence_alerts_enabled: bool  # noqa: E111
+  safe_zone_alerts: bool  # noqa: E111
+  restricted_zone_alerts: bool  # noqa: E111
+  zone_entry_notifications: bool  # noqa: E111
+  zone_exit_notifications: bool  # noqa: E111
 
 
 class DogFeedingStepInput(TypedDict, total=False):
-  """Form payload captured during the per-dog feeding configuration step."""
+  """Form payload captured during the per-dog feeding configuration step."""  # noqa: E111
 
-  meals_per_day: int | float | str | None
-  daily_food_amount: float | int | str | None
-  food_type: str | None
-  feeding_schedule: str | None
-  breakfast_enabled: bool
-  breakfast_time: str | None
-  lunch_enabled: bool
-  lunch_time: str | None
-  dinner_enabled: bool
-  dinner_time: str | None
-  snacks_enabled: bool
-  enable_reminders: bool
-  reminder_minutes_before: int | float | str | None
+  meals_per_day: int | float | str | None  # noqa: E111
+  daily_food_amount: float | int | str | None  # noqa: E111
+  food_type: str | None  # noqa: E111
+  feeding_schedule: str | None  # noqa: E111
+  breakfast_enabled: bool  # noqa: E111
+  breakfast_time: str | None  # noqa: E111
+  lunch_enabled: bool  # noqa: E111
+  lunch_time: str | None  # noqa: E111
+  dinner_enabled: bool  # noqa: E111
+  dinner_time: str | None  # noqa: E111
+  snacks_enabled: bool  # noqa: E111
+  enable_reminders: bool  # noqa: E111
+  reminder_minutes_before: int | float | str | None  # noqa: E111
 
 
 class DogHealthStepInput(TypedDict, total=False):
-  """Health configuration form payload recorded for a single dog."""
+  """Health configuration form payload recorded for a single dog."""  # noqa: E111
 
-  vet_name: str | None
-  vet_phone: str | None
-  last_vet_visit: str | None
-  next_checkup: str | None
-  weight_tracking: bool
-  ideal_weight: float | int | str | None
-  body_condition_score: int | str | None
-  activity_level: str | None
-  weight_goal: str | None
-  spayed_neutered: bool
-  health_aware_portions: bool
-  other_health_conditions: str | None
-  has_diabetes: bool
-  has_kidney_disease: bool
-  has_heart_disease: bool
-  has_arthritis: bool
-  has_allergies: bool
-  has_digestive_issues: bool
-  grain_free: bool
-  hypoallergenic: bool
-  low_fat: bool
-  senior_formula: bool
-  puppy_formula: bool
-  weight_control: bool
-  sensitive_stomach: bool
-  organic: bool
-  raw_diet: bool
-  prescription: bool
-  diabetic: bool
-  kidney_support: bool
-  dental_care: bool
-  joint_support: bool
-  rabies_vaccination: str | None
-  rabies_next: str | None
-  dhpp_vaccination: str | None
-  dhpp_next: str | None
-  bordetella_vaccination: str | None
-  bordetella_next: str | None
-  medication_1_name: str | None
-  medication_1_dosage: str | None
-  medication_1_frequency: str | None
-  medication_1_time: str | None
-  medication_1_notes: str | None
-  medication_1_with_meals: bool
-  medication_2_name: str | None
-  medication_2_dosage: str | None
-  medication_2_frequency: str | None
-  medication_2_time: str | None
-  medication_2_notes: str | None
-  medication_2_with_meals: bool
+  vet_name: str | None  # noqa: E111
+  vet_phone: str | None  # noqa: E111
+  last_vet_visit: str | None  # noqa: E111
+  next_checkup: str | None  # noqa: E111
+  weight_tracking: bool  # noqa: E111
+  ideal_weight: float | int | str | None  # noqa: E111
+  body_condition_score: int | str | None  # noqa: E111
+  activity_level: str | None  # noqa: E111
+  weight_goal: str | None  # noqa: E111
+  spayed_neutered: bool  # noqa: E111
+  health_aware_portions: bool  # noqa: E111
+  other_health_conditions: str | None  # noqa: E111
+  has_diabetes: bool  # noqa: E111
+  has_kidney_disease: bool  # noqa: E111
+  has_heart_disease: bool  # noqa: E111
+  has_arthritis: bool  # noqa: E111
+  has_allergies: bool  # noqa: E111
+  has_digestive_issues: bool  # noqa: E111
+  grain_free: bool  # noqa: E111
+  hypoallergenic: bool  # noqa: E111
+  low_fat: bool  # noqa: E111
+  senior_formula: bool  # noqa: E111
+  puppy_formula: bool  # noqa: E111
+  weight_control: bool  # noqa: E111
+  sensitive_stomach: bool  # noqa: E111
+  organic: bool  # noqa: E111
+  raw_diet: bool  # noqa: E111
+  prescription: bool  # noqa: E111
+  diabetic: bool  # noqa: E111
+  kidney_support: bool  # noqa: E111
+  dental_care: bool  # noqa: E111
+  joint_support: bool  # noqa: E111
+  rabies_vaccination: str | None  # noqa: E111
+  rabies_next: str | None  # noqa: E111
+  dhpp_vaccination: str | None  # noqa: E111
+  dhpp_next: str | None  # noqa: E111
+  bordetella_vaccination: str | None  # noqa: E111
+  bordetella_next: str | None  # noqa: E111
+  medication_1_name: str | None  # noqa: E111
+  medication_1_dosage: str | None  # noqa: E111
+  medication_1_frequency: str | None  # noqa: E111
+  medication_1_time: str | None  # noqa: E111
+  medication_1_notes: str | None  # noqa: E111
+  medication_1_with_meals: bool  # noqa: E111
+  medication_2_name: str | None  # noqa: E111
+  medication_2_dosage: str | None  # noqa: E111
+  medication_2_frequency: str | None  # noqa: E111
+  medication_2_time: str | None  # noqa: E111
+  medication_2_notes: str | None  # noqa: E111
+  medication_2_with_meals: bool  # noqa: E111
 
 
 class DogFeedingConfig(TypedDict, total=False):
-  """Feeding configuration captured during setup."""
+  """Feeding configuration captured during setup."""  # noqa: E111
 
-  meals_per_day: int
-  daily_food_amount: float | int
-  food_type: str
-  feeding_schedule: str
-  breakfast_time: str
-  lunch_time: str
-  dinner_time: str
-  snack_times: list[str]
-  enable_reminders: bool
-  reminder_minutes_before: int
-  portion_size: float | int
-  health_aware_portions: bool
-  dog_weight: float | int | None
-  ideal_weight: float | int | None
-  age_months: int | None
-  breed_size: str
-  activity_level: str
-  body_condition_score: int
-  health_conditions: list[str]
-  weight_goal: str
-  spayed_neutered: bool
-  special_diet: list[str]
-  diet_validation: DietValidationResult
-  medication_with_meals: bool
+  meals_per_day: int  # noqa: E111
+  daily_food_amount: float | int  # noqa: E111
+  food_type: str  # noqa: E111
+  feeding_schedule: str  # noqa: E111
+  breakfast_time: str  # noqa: E111
+  lunch_time: str  # noqa: E111
+  dinner_time: str  # noqa: E111
+  snack_times: list[str]  # noqa: E111
+  enable_reminders: bool  # noqa: E111
+  reminder_minutes_before: int  # noqa: E111
+  portion_size: float | int  # noqa: E111
+  health_aware_portions: bool  # noqa: E111
+  dog_weight: float | int | None  # noqa: E111
+  ideal_weight: float | int | None  # noqa: E111
+  age_months: int | None  # noqa: E111
+  breed_size: str  # noqa: E111
+  activity_level: str  # noqa: E111
+  body_condition_score: int  # noqa: E111
+  health_conditions: list[str]  # noqa: E111
+  weight_goal: str  # noqa: E111
+  spayed_neutered: bool  # noqa: E111
+  special_diet: list[str]  # noqa: E111
+  diet_validation: DietValidationResult  # noqa: E111
+  medication_with_meals: bool  # noqa: E111
 
 
 class GeofenceOptions(TypedDict, total=False):
-  """Options structure describing geofencing configuration for a profile."""
+  """Options structure describing geofencing configuration for a profile."""  # noqa: E111
 
-  geofencing_enabled: bool
-  use_home_location: bool
-  geofence_lat: float | None
-  geofence_lon: float | None
-  geofence_radius_m: int
-  geofence_alerts_enabled: bool
-  safe_zone_alerts: bool
-  restricted_zone_alerts: bool
-  zone_entry_notifications: bool
-  zone_exit_notifications: bool
+  geofencing_enabled: bool  # noqa: E111
+  use_home_location: bool  # noqa: E111
+  geofence_lat: float | None  # noqa: E111
+  geofence_lon: float | None  # noqa: E111
+  geofence_radius_m: int  # noqa: E111
+  geofence_alerts_enabled: bool  # noqa: E111
+  safe_zone_alerts: bool  # noqa: E111
+  restricted_zone_alerts: bool  # noqa: E111
+  zone_entry_notifications: bool  # noqa: E111
+  zone_exit_notifications: bool  # noqa: E111
 
 
 GeofenceOptionsField = Literal[
@@ -1921,14 +1925,14 @@ GEOFENCE_ZONE_EXIT_FIELD: Final[GeofenceOptionsField] = "zone_exit_notifications
 
 
 class NotificationOptions(TypedDict, total=False):
-  """Structured notification preferences stored in config entry options."""
+  """Structured notification preferences stored in config entry options."""  # noqa: E111
 
-  quiet_hours: bool
-  quiet_start: str
-  quiet_end: str
-  reminder_repeat_min: int
-  priority_notifications: bool
-  mobile_notifications: bool
+  quiet_hours: bool  # noqa: E111
+  quiet_start: str  # noqa: E111
+  quiet_end: str  # noqa: E111
+  reminder_repeat_min: int  # noqa: E111
+  priority_notifications: bool  # noqa: E111
+  mobile_notifications: bool  # noqa: E111
 
 
 NotificationOptionsField = Literal[
@@ -1966,14 +1970,14 @@ DEFAULT_NOTIFICATION_OPTIONS: Final[NotificationOptionsInput] = MappingProxyType
 
 
 class NotificationSettingsInput(TypedDict, total=False):
-  """UI payload captured when editing notification options."""
+  """UI payload captured when editing notification options."""  # noqa: E111
 
-  quiet_hours: bool
-  quiet_start: str | None
-  quiet_end: str | None
-  reminder_repeat_min: int | float | str | None
-  priority_notifications: bool
-  mobile_notifications: bool
+  quiet_hours: bool  # noqa: E111
+  quiet_start: str | None  # noqa: E111
+  quiet_end: str | None  # noqa: E111
+  reminder_repeat_min: int | float | str | None  # noqa: E111
+  priority_notifications: bool  # noqa: E111
+  mobile_notifications: bool  # noqa: E111
 
 
 def ensure_notification_options(
@@ -1988,152 +1992,152 @@ def ensure_notification_options(
   could drift to strings or numbers. This helper coerces supported values,
   clamps reminder intervals to the selector range, and overlays optional
   defaults so downstream callers always receive a typed payload.
-  """
+  """  # noqa: E111
 
-  options: NotificationOptions = {}
+  options: NotificationOptions = {}  # noqa: E111
 
-  def _coerce_bool(candidate: Any) -> bool | None:
+  def _coerce_bool(candidate: Any) -> bool | None:  # noqa: E111
     if isinstance(candidate, bool):
-      return candidate
+      return candidate  # noqa: E111
     if isinstance(candidate, int | float):
-      return bool(candidate)
+      return bool(candidate)  # noqa: E111
     if isinstance(candidate, str):
-      lowered = candidate.strip().lower()
-      if lowered in {"true", "yes", "on", "1"}:
+      lowered = candidate.strip().lower()  # noqa: E111
+      if lowered in {"true", "yes", "on", "1"}:  # noqa: E111
         return True
-      if lowered in {"false", "no", "off", "0"}:
+      if lowered in {"false", "no", "off", "0"}:  # noqa: E111
         return False
     return None
 
-  def _coerce_time(candidate: Any) -> str | None:
+  def _coerce_time(candidate: Any) -> str | None:  # noqa: E111
     if isinstance(candidate, str):
-      trimmed = candidate.strip()
-      if trimmed:
+      trimmed = candidate.strip()  # noqa: E111
+      if trimmed:  # noqa: E111
         return trimmed
     return None
 
-  def _coerce_interval(candidate: Any) -> int | None:
+  def _coerce_interval(candidate: Any) -> int | None:  # noqa: E111
     working = candidate
     if isinstance(working, str):
-      working = working.strip()
-      if not working:
+      working = working.strip()  # noqa: E111
+      if not working:  # noqa: E111
         return None
-      try:
+      try:  # noqa: E111
         working = int(working)
-      except ValueError:
+      except ValueError:  # noqa: E111
         return None
     if isinstance(working, int | float):
-      interval = int(working)
-      return max(5, min(180, interval))
+      interval = int(working)  # noqa: E111
+      return max(5, min(180, interval))  # noqa: E111
     return None
 
-  def _apply(
+  def _apply(  # noqa: E111
     source_key: str,
     target_key: NotificationOptionsField,
     converter: Callable[[Any], Any | None],
   ) -> None:
     if defaults is not None:
-      default_value = converter(defaults.get(source_key))
-      if default_value is not None:
+      default_value = converter(defaults.get(source_key))  # noqa: E111
+      if default_value is not None:  # noqa: E111
         options[target_key] = default_value
     override = converter(value.get(source_key))
     if override is not None:
-      options[target_key] = override
+      options[target_key] = override  # noqa: E111
 
-  _apply(CONF_QUIET_HOURS, NOTIFICATION_QUIET_HOURS_FIELD, _coerce_bool)
-  _apply(CONF_QUIET_START, NOTIFICATION_QUIET_START_FIELD, _coerce_time)
-  _apply(CONF_QUIET_END, NOTIFICATION_QUIET_END_FIELD, _coerce_time)
-  _apply(
+  _apply(CONF_QUIET_HOURS, NOTIFICATION_QUIET_HOURS_FIELD, _coerce_bool)  # noqa: E111
+  _apply(CONF_QUIET_START, NOTIFICATION_QUIET_START_FIELD, _coerce_time)  # noqa: E111
+  _apply(CONF_QUIET_END, NOTIFICATION_QUIET_END_FIELD, _coerce_time)  # noqa: E111
+  _apply(  # noqa: E111
     CONF_REMINDER_REPEAT_MIN,
     NOTIFICATION_REMINDER_REPEAT_FIELD,
     _coerce_interval,
   )
-  _apply("priority_notifications", NOTIFICATION_PRIORITY_FIELD, _coerce_bool)
-  _apply("mobile_notifications", NOTIFICATION_MOBILE_FIELD, _coerce_bool)
+  _apply("priority_notifications", NOTIFICATION_PRIORITY_FIELD, _coerce_bool)  # noqa: E111
+  _apply("mobile_notifications", NOTIFICATION_MOBILE_FIELD, _coerce_bool)  # noqa: E111
 
-  return options
+  return options  # noqa: E111
 
 
 NotificationThreshold = Literal["low", "moderate", "high"]
 
 
 class WeatherOptions(TypedDict, total=False):
-  """Typed weather monitoring preferences stored in config entry options."""
+  """Typed weather monitoring preferences stored in config entry options."""  # noqa: E111
 
-  weather_entity: str | None
-  weather_health_monitoring: bool
-  weather_alerts: bool
-  weather_update_interval: int
-  temperature_alerts: bool
-  uv_alerts: bool
-  humidity_alerts: bool
-  wind_alerts: bool
-  storm_alerts: bool
-  breed_specific_recommendations: bool
-  health_condition_adjustments: bool
-  auto_activity_adjustments: bool
-  notification_threshold: NotificationThreshold
+  weather_entity: str | None  # noqa: E111
+  weather_health_monitoring: bool  # noqa: E111
+  weather_alerts: bool  # noqa: E111
+  weather_update_interval: int  # noqa: E111
+  temperature_alerts: bool  # noqa: E111
+  uv_alerts: bool  # noqa: E111
+  humidity_alerts: bool  # noqa: E111
+  wind_alerts: bool  # noqa: E111
+  storm_alerts: bool  # noqa: E111
+  breed_specific_recommendations: bool  # noqa: E111
+  health_condition_adjustments: bool  # noqa: E111
+  auto_activity_adjustments: bool  # noqa: E111
+  notification_threshold: NotificationThreshold  # noqa: E111
 
 
 class FeedingOptions(TypedDict, total=False):
-  """Typed feeding configuration stored in config entry options."""
+  """Typed feeding configuration stored in config entry options."""  # noqa: E111
 
-  default_meals_per_day: int
-  feeding_reminders: bool
-  portion_tracking: bool
-  calorie_tracking: bool
-  auto_schedule: bool
+  default_meals_per_day: int  # noqa: E111
+  feeding_reminders: bool  # noqa: E111
+  portion_tracking: bool  # noqa: E111
+  calorie_tracking: bool  # noqa: E111
+  auto_schedule: bool  # noqa: E111
 
 
 class HealthOptions(TypedDict, total=False):
-  """Typed health configuration stored in config entry options."""
+  """Typed health configuration stored in config entry options."""  # noqa: E111
 
-  weight_tracking: bool
-  medication_reminders: bool
-  vet_reminders: bool
-  grooming_reminders: bool
-  health_alerts: bool
+  weight_tracking: bool  # noqa: E111
+  medication_reminders: bool  # noqa: E111
+  vet_reminders: bool  # noqa: E111
+  grooming_reminders: bool  # noqa: E111
+  health_alerts: bool  # noqa: E111
 
 
 class SystemOptions(TypedDict, total=False):
-  """System-wide maintenance preferences persisted in options."""
+  """System-wide maintenance preferences persisted in options."""  # noqa: E111
 
-  data_retention_days: int
-  auto_backup: bool
-  performance_mode: PerformanceMode
-  enable_analytics: bool
-  enable_cloud_backup: bool
-  resilience_skip_threshold: int
-  resilience_breaker_threshold: int
-  manual_check_event: str | None
-  manual_guard_event: str | None
-  manual_breaker_event: str | None
+  data_retention_days: int  # noqa: E111
+  auto_backup: bool  # noqa: E111
+  performance_mode: PerformanceMode  # noqa: E111
+  enable_analytics: bool  # noqa: E111
+  enable_cloud_backup: bool  # noqa: E111
+  resilience_skip_threshold: int  # noqa: E111
+  resilience_breaker_threshold: int  # noqa: E111
+  manual_check_event: str | None  # noqa: E111
+  manual_guard_event: str | None  # noqa: E111
+  manual_breaker_event: str | None  # noqa: E111
 
 
 class DashboardOptions(TypedDict, total=False):
-  """Dashboard rendering preferences for the integration."""
+  """Dashboard rendering preferences for the integration."""  # noqa: E111
 
-  show_statistics: bool
-  show_alerts: bool
-  compact_mode: bool
-  show_maps: bool
+  show_statistics: bool  # noqa: E111
+  show_alerts: bool  # noqa: E111
+  compact_mode: bool  # noqa: E111
+  show_maps: bool  # noqa: E111
 
 
 class DashboardRendererOptions(DashboardOptions, total=False):
-  """Extended dashboard options consumed by the async renderer."""
+  """Extended dashboard options consumed by the async renderer."""  # noqa: E111
 
-  show_settings: bool
-  show_activity_summary: bool
-  dashboard_url: str
-  theme: str
-  title: str
-  icon: str
-  url: str
-  layout: str
-  show_in_sidebar: bool
-  show_activity_graph: bool
-  show_breed_advice: bool
-  show_weather_forecast: bool
+  show_settings: bool  # noqa: E111
+  show_activity_summary: bool  # noqa: E111
+  dashboard_url: str  # noqa: E111
+  theme: str  # noqa: E111
+  title: str  # noqa: E111
+  icon: str  # noqa: E111
+  url: str  # noqa: E111
+  layout: str  # noqa: E111
+  show_in_sidebar: bool  # noqa: E111
+  show_activity_graph: bool  # noqa: E111
+  show_breed_advice: bool  # noqa: E111
+  show_weather_forecast: bool  # noqa: E111
 
 
 type DashboardCardOptions = DashboardRendererOptions
@@ -2141,56 +2145,56 @@ type DashboardCardOptions = DashboardRendererOptions
 
 
 class DashboardCardPerformanceStats(TypedDict):
-  """Performance counters tracked while generating dashboard cards."""
+  """Performance counters tracked while generating dashboard cards."""  # noqa: E111
 
-  validations_count: int
-  cache_hits: int
-  cache_misses: int
-  generation_time_total: float
-  errors_handled: int
+  validations_count: int  # noqa: E111
+  cache_hits: int  # noqa: E111
+  cache_misses: int  # noqa: E111
+  generation_time_total: float  # noqa: E111
+  errors_handled: int  # noqa: E111
 
 
 class DashboardCardGlobalPerformanceStats(TypedDict):
-  """Static performance characteristics for dashboard card generation."""
+  """Static performance characteristics for dashboard card generation."""  # noqa: E111
 
-  validation_cache_size: int
-  cache_threshold: float
-  max_concurrent_validations: int
-  validation_timeout: float
-  card_generation_timeout: float
+  validation_cache_size: int  # noqa: E111
+  cache_threshold: float  # noqa: E111
+  max_concurrent_validations: int  # noqa: E111
+  validation_timeout: float  # noqa: E111
+  card_generation_timeout: float  # noqa: E111
 
 
 class TemplateCacheStats(TypedDict):
-  """Statistics returned by the in-memory dashboard template cache."""
+  """Statistics returned by the in-memory dashboard template cache."""  # noqa: E111
 
-  hits: int
-  misses: int
-  hit_rate: float
-  cached_items: int
-  evictions: int
-  max_size: int
+  hits: int  # noqa: E111
+  misses: int  # noqa: E111
+  hit_rate: float  # noqa: E111
+  cached_items: int  # noqa: E111
+  evictions: int  # noqa: E111
+  max_size: int  # noqa: E111
 
 
 class TemplateCacheDiagnosticsMetadata(TypedDict):
-  """Metadata describing the template cache configuration."""
+  """Metadata describing the template cache configuration."""  # noqa: E111
 
-  cached_keys: list[str]
-  ttl_seconds: int
-  max_size: int
-  evictions: int
+  cached_keys: list[str]  # noqa: E111
+  ttl_seconds: int  # noqa: E111
+  max_size: int  # noqa: E111
+  evictions: int  # noqa: E111
 
 
 class TemplateCacheSnapshot(TypedDict):
-  """Complete snapshot exported for diagnostics and telemetry."""
+  """Complete snapshot exported for diagnostics and telemetry."""  # noqa: E111
 
-  stats: TemplateCacheStats
-  metadata: TemplateCacheDiagnosticsMetadata
+  stats: TemplateCacheStats  # noqa: E111
+  metadata: TemplateCacheDiagnosticsMetadata  # noqa: E111
 
 
 class CardModConfig(TypedDict, total=False):
-  """Styling payload supported by card-mod aware templates."""
+  """Styling payload supported by card-mod aware templates."""  # noqa: E111
 
-  style: str
+  style: str  # noqa: E111
 
 
 type LovelaceCardValue = (
@@ -2207,94 +2211,94 @@ type LovelaceCardConfig = dict[str, LovelaceCardValue]
 
 
 class LovelaceViewConfig(TypedDict, total=False):
-  """Typed Lovelace view configuration produced by the renderer."""
+  """Typed Lovelace view configuration produced by the renderer."""  # noqa: E111
 
-  title: str
-  path: str
-  icon: str
-  theme: NotRequired[str]
-  cards: list[LovelaceCardConfig]
-  badges: NotRequired[list[str]]
-  type: NotRequired[str]
+  title: str  # noqa: E111
+  path: str  # noqa: E111
+  icon: str  # noqa: E111
+  theme: NotRequired[str]  # noqa: E111
+  cards: list[LovelaceCardConfig]  # noqa: E111
+  badges: NotRequired[list[str]]  # noqa: E111
+  type: NotRequired[str]  # noqa: E111
 
 
 class DashboardRenderResult(TypedDict):
-  """Typed dashboard payload emitted by the async renderer."""
+  """Typed dashboard payload emitted by the async renderer."""  # noqa: E111
 
-  views: list[LovelaceViewConfig]
+  views: list[LovelaceViewConfig]  # noqa: E111
 
 
 class DashboardRenderJobConfig(TypedDict, total=False):
-  """Payload stored on queued render jobs."""
+  """Payload stored on queued render jobs."""  # noqa: E111
 
-  dogs: Sequence[DogConfigData]
-  dog: DogConfigData
-  coordinator_statistics: CoordinatorStatisticsPayload | JSONMapping
-  service_execution_metrics: CoordinatorRejectionMetrics | JSONMapping
-  service_guard_metrics: HelperManagerGuardMetrics | JSONMapping
+  dogs: Sequence[DogConfigData]  # noqa: E111
+  dog: DogConfigData  # noqa: E111
+  coordinator_statistics: CoordinatorStatisticsPayload | JSONMapping  # noqa: E111
+  service_execution_metrics: CoordinatorRejectionMetrics | JSONMapping  # noqa: E111
+  service_guard_metrics: HelperManagerGuardMetrics | JSONMapping  # noqa: E111
 
 
 class DashboardRendererStatistics(TypedDict):
-  """Summary statistics describing renderer state."""
+  """Summary statistics describing renderer state."""  # noqa: E111
 
-  active_jobs: int
-  total_jobs_processed: int
-  template_cache: TemplateCacheStats
+  active_jobs: int  # noqa: E111
+  total_jobs_processed: int  # noqa: E111
+  template_cache: TemplateCacheStats  # noqa: E111
 
 
 class SwitchExtraAttributes(TypedDict, total=False):
-  """Common state attributes exposed by optimized switches."""
+  """Common state attributes exposed by optimized switches."""  # noqa: E111
 
-  dog_id: str
-  dog_name: str
-  switch_type: str
-  last_changed: str
-  profile_optimized: bool
-  enabled_modules: list[str]
-  total_modules: int
+  dog_id: str  # noqa: E111
+  dog_name: str  # noqa: E111
+  switch_type: str  # noqa: E111
+  last_changed: str  # noqa: E111
+  profile_optimized: bool  # noqa: E111
+  enabled_modules: list[str]  # noqa: E111
+  total_modules: int  # noqa: E111
 
 
 class SwitchFeatureAttributes(SwitchExtraAttributes, total=False):
-  """Additional metadata surfaced by feature-level switches."""
+  """Additional metadata surfaced by feature-level switches."""  # noqa: E111
 
-  feature_id: str
-  parent_module: str
-  feature_name: str
+  feature_id: str  # noqa: E111
+  parent_module: str  # noqa: E111
+  feature_name: str  # noqa: E111
 
 
 class AdvancedOptions(TypedDict, total=False):
-  """Advanced diagnostics and integration toggles stored on the entry."""
+  """Advanced diagnostics and integration toggles stored on the entry."""  # noqa: E111
 
-  performance_mode: PerformanceMode
-  debug_logging: bool
-  data_retention_days: int
-  auto_backup: bool
-  experimental_features: bool
-  external_integrations: bool
-  api_endpoint: str
-  api_token: str
+  performance_mode: PerformanceMode  # noqa: E111
+  debug_logging: bool  # noqa: E111
+  data_retention_days: int  # noqa: E111
+  auto_backup: bool  # noqa: E111
+  experimental_features: bool  # noqa: E111
+  external_integrations: bool  # noqa: E111
+  api_endpoint: str  # noqa: E111
+  api_token: str  # noqa: E111
 
 
 class PerformanceOptions(TypedDict, total=False):
-  """Performance tuning parameters applied through the options flow."""
+  """Performance tuning parameters applied through the options flow."""  # noqa: E111
 
-  entity_profile: str
-  performance_mode: PerformanceMode
-  batch_size: int
-  cache_ttl: int
-  selective_refresh: bool
+  entity_profile: str  # noqa: E111
+  performance_mode: PerformanceMode  # noqa: E111
+  batch_size: int  # noqa: E111
+  cache_ttl: int  # noqa: E111
+  selective_refresh: bool  # noqa: E111
 
 
 class GPSOptions(TypedDict, total=False):
-  """Global GPS configuration stored in the options flow."""
+  """Global GPS configuration stored in the options flow."""  # noqa: E111
 
-  gps_enabled: bool
-  gps_update_interval: int
-  gps_accuracy_filter: float
-  gps_distance_filter: float
-  route_recording: bool
-  route_history_days: int
-  auto_track_walks: bool
+  gps_enabled: bool  # noqa: E111
+  gps_update_interval: int  # noqa: E111
+  gps_accuracy_filter: float  # noqa: E111
+  gps_distance_filter: float  # noqa: E111
+  route_recording: bool  # noqa: E111
+  route_history_days: int  # noqa: E111
+  auto_track_walks: bool  # noqa: E111
 
 
 GPS_SETTINGS_FIELD: Final[Literal["gps_settings"]] = "gps_settings"
@@ -2317,52 +2321,52 @@ AUTO_TRACK_WALKS_FIELD: Final[GPSOptionsField] = "auto_track_walks"
 
 
 class DogOptionsEntry(TypedDict, total=False):
-  """Per-dog overrides captured via the options flow."""
+  """Per-dog overrides captured via the options flow."""  # noqa: E111
 
-  dog_id: str
-  modules: DogModulesConfig
-  notifications: NotificationOptions
-  gps_settings: GPSOptions
-  geofence_settings: GeofenceOptions
-  feeding_settings: FeedingOptions
-  health_settings: HealthOptions
+  dog_id: str  # noqa: E111
+  modules: DogModulesConfig  # noqa: E111
+  notifications: NotificationOptions  # noqa: E111
+  gps_settings: GPSOptions  # noqa: E111
+  geofence_settings: GeofenceOptions  # noqa: E111
+  feeding_settings: FeedingOptions  # noqa: E111
+  health_settings: HealthOptions  # noqa: E111
 
 
 type DogOptionsMap = dict[str, DogOptionsEntry]
 
 
 class PawControlOptionsData(PerformanceOptions, total=False):
-  """Complete options mapping persisted on :class:`ConfigEntry` objects."""
+  """Complete options mapping persisted on :class:`ConfigEntry` objects."""  # noqa: E111
 
-  geofence_settings: GeofenceOptions
-  notifications: NotificationOptions
-  weather_settings: WeatherOptions
-  feeding_settings: FeedingOptions
-  health_settings: HealthOptions
-  system_settings: SystemOptions
-  dashboard_settings: DashboardOptions
-  advanced_settings: AdvancedOptions
-  gps_settings: GPSOptions
-  gps_update_interval: int
-  gps_distance_filter: float
-  gps_accuracy_filter: float
-  external_integrations: bool
-  api_endpoint: str
-  api_token: str
-  weather_entity: str | None
-  reset_time: str
-  data_retention_days: int
-  modules: DogModulesConfig
-  dog_options: DogOptionsMap
-  dogs: list[DogConfigData]
-  import_source: str
-  last_reauth: NotRequired[str]
-  reauth_health_issues: NotRequired[list[str]]
-  reauth_health_warnings: NotRequired[list[str]]
-  last_reauth_summary: NotRequired[str]
-  enable_analytics: bool
-  enable_cloud_backup: bool
-  debug_logging: bool
+  geofence_settings: GeofenceOptions  # noqa: E111
+  notifications: NotificationOptions  # noqa: E111
+  weather_settings: WeatherOptions  # noqa: E111
+  feeding_settings: FeedingOptions  # noqa: E111
+  health_settings: HealthOptions  # noqa: E111
+  system_settings: SystemOptions  # noqa: E111
+  dashboard_settings: DashboardOptions  # noqa: E111
+  advanced_settings: AdvancedOptions  # noqa: E111
+  gps_settings: GPSOptions  # noqa: E111
+  gps_update_interval: int  # noqa: E111
+  gps_distance_filter: float  # noqa: E111
+  gps_accuracy_filter: float  # noqa: E111
+  external_integrations: bool  # noqa: E111
+  api_endpoint: str  # noqa: E111
+  api_token: str  # noqa: E111
+  weather_entity: str | None  # noqa: E111
+  reset_time: str  # noqa: E111
+  data_retention_days: int  # noqa: E111
+  modules: DogModulesConfig  # noqa: E111
+  dog_options: DogOptionsMap  # noqa: E111
+  dogs: list[DogConfigData]  # noqa: E111
+  import_source: str  # noqa: E111
+  last_reauth: NotRequired[str]  # noqa: E111
+  reauth_health_issues: NotRequired[list[str]]  # noqa: E111
+  reauth_health_warnings: NotRequired[list[str]]  # noqa: E111
+  last_reauth_summary: NotRequired[str]  # noqa: E111
+  enable_analytics: bool  # noqa: E111
+  enable_cloud_backup: bool  # noqa: E111
+  debug_logging: bool  # noqa: E111
 
 
 ConfigFlowDiscoverySource = Literal[
@@ -2390,52 +2394,52 @@ type ConfigFlowInputMapping = Mapping[str, JSONValue]
 
 
 class ConfigFlowImportData(TypedDict):
-  """Config entry data payload produced when importing YAML configuration."""
+  """Config entry data payload produced when importing YAML configuration."""  # noqa: E111
 
-  name: str
-  dogs: list[DogConfigData]
-  entity_profile: str
-  import_warnings: list[str]
-  import_timestamp: str
+  name: str  # noqa: E111
+  dogs: list[DogConfigData]  # noqa: E111
+  entity_profile: str  # noqa: E111
+  import_warnings: list[str]  # noqa: E111
+  import_timestamp: str  # noqa: E111
 
 
 class ConfigFlowImportOptions(TypedDict):
-  """Config entry options payload produced when importing YAML configuration."""
+  """Config entry options payload produced when importing YAML configuration."""  # noqa: E111
 
-  entity_profile: str
-  dashboard_enabled: bool
-  dashboard_auto_create: bool
-  import_source: Literal["configuration_yaml"]
+  entity_profile: str  # noqa: E111
+  dashboard_enabled: bool  # noqa: E111
+  dashboard_auto_create: bool  # noqa: E111
+  import_source: Literal["configuration_yaml"]  # noqa: E111
 
 
 class ConfigFlowImportResult(TypedDict):
-  """Structured result returned by enhanced config-flow import validation."""
+  """Structured result returned by enhanced config-flow import validation."""  # noqa: E111
 
-  data: ConfigFlowImportData
-  options: ConfigFlowImportOptions
+  data: ConfigFlowImportData  # noqa: E111
+  options: ConfigFlowImportOptions  # noqa: E111
 
 
 class ConfigFlowDiscoveryData(TypedDict, total=False):
-  """Metadata captured from config flow discovery sources."""
+  """Metadata captured from config flow discovery sources."""  # noqa: E111
 
-  source: ConfigFlowDiscoverySource
-  hostname: str
-  host: str
-  port: int
-  ip: str
-  macaddress: str
-  properties: ConfigFlowDiscoveryProperties
-  type: str
-  name: str
-  description: str
-  manufacturer: str
-  vid: str
-  pid: str
-  serial_number: str
-  device: str
-  address: str
-  service_uuids: list[str]
-  last_seen: str
+  source: ConfigFlowDiscoverySource  # noqa: E111
+  hostname: str  # noqa: E111
+  host: str  # noqa: E111
+  port: int  # noqa: E111
+  ip: str  # noqa: E111
+  macaddress: str  # noqa: E111
+  properties: ConfigFlowDiscoveryProperties  # noqa: E111
+  type: str  # noqa: E111
+  name: str  # noqa: E111
+  description: str  # noqa: E111
+  manufacturer: str  # noqa: E111
+  vid: str  # noqa: E111
+  pid: str  # noqa: E111
+  serial_number: str  # noqa: E111
+  device: str  # noqa: E111
+  address: str  # noqa: E111
+  service_uuids: list[str]  # noqa: E111
+  last_seen: str  # noqa: E111
 
 
 type ConfigFlowDiscoveryComparison = ConfigFlowDiscoveryData
@@ -2447,157 +2451,157 @@ type DiscoveryUpdateValue = ConfigFlowDiscoveryData | str
 
 
 class DiscoveryUpdatePayload(TypedDict, total=False):
-  """Updates persisted on config entries when discovery metadata changes."""
+  """Updates persisted on config entries when discovery metadata changes."""  # noqa: E111
 
-  discovery_info: ConfigFlowDiscoveryData
-  host: str
-  device: str
-  address: str
+  discovery_info: ConfigFlowDiscoveryData  # noqa: E111
+  host: str  # noqa: E111
+  device: str  # noqa: E111
+  address: str  # noqa: E111
 
 
 class DiscoveryConfirmInput(TypedDict):
-  """Form payload submitted when the user confirms discovery."""
+  """Form payload submitted when the user confirms discovery."""  # noqa: E111
 
-  confirm: bool
+  confirm: bool  # noqa: E111
 
 
 class ProfileSelectionInput(TypedDict):
-  """User input captured when selecting an entity profile."""
+  """User input captured when selecting an entity profile."""  # noqa: E111
 
-  entity_profile: str
+  entity_profile: str  # noqa: E111
 
 
 class ProfileSelectorOption(TypedDict):
-  """Selector option exposed when rendering profile choices."""
+  """Selector option exposed when rendering profile choices."""  # noqa: E111
 
-  value: str
-  label: str
+  value: str  # noqa: E111
+  label: str  # noqa: E111
 
 
 class EntityProfileOptionsInput(ProfileSelectionInput):
-  """Options flow payload for selecting an entity profile."""
+  """Options flow payload for selecting an entity profile."""  # noqa: E111
 
-  preview_estimate: NotRequired[bool]
+  preview_estimate: NotRequired[bool]  # noqa: E111
 
 
 class IntegrationNameValidationResult(TypedDict):
-  """Validation response for integration name checks during setup."""
+  """Validation response for integration name checks during setup."""  # noqa: E111
 
-  valid: bool
-  errors: dict[str, str]
+  valid: bool  # noqa: E111
+  errors: dict[str, str]  # noqa: E111
 
 
 class ConfigFlowGlobalSettings(TypedDict, total=False):
-  """Global configuration captured during the setup flow."""
+  """Global configuration captured during the setup flow."""  # noqa: E111
 
-  performance_mode: PerformanceMode
-  enable_analytics: bool
-  enable_cloud_backup: bool
-  data_retention_days: int
-  debug_logging: bool
+  performance_mode: PerformanceMode  # noqa: E111
+  enable_analytics: bool  # noqa: E111
+  enable_cloud_backup: bool  # noqa: E111
+  data_retention_days: int  # noqa: E111
+  debug_logging: bool  # noqa: E111
 
 
 class FinalSetupValidationResult(TypedDict):
-  """Outcome returned by the final setup validation pass."""
+  """Outcome returned by the final setup validation pass."""  # noqa: E111
 
-  valid: bool
-  errors: list[str]
-  estimated_entities: int
+  valid: bool  # noqa: E111
+  errors: list[str]  # noqa: E111
+  estimated_entities: int  # noqa: E111
 
 
 class ConfigEntryDataPayload(TypedDict, total=False):
-  """Config entry data stored when onboarding PawControl."""
+  """Config entry data stored when onboarding PawControl."""  # noqa: E111
 
-  name: Required[str]
-  dogs: Required[list[DogConfigData]]
-  entity_profile: Required[str]
-  setup_timestamp: Required[str]
-  discovery_info: NotRequired[ConfigFlowDiscoveryData]
-  external_entities: NotRequired[ExternalEntityConfig]
+  name: Required[str]  # noqa: E111
+  dogs: Required[list[DogConfigData]]  # noqa: E111
+  entity_profile: Required[str]  # noqa: E111
+  setup_timestamp: Required[str]  # noqa: E111
+  discovery_info: NotRequired[ConfigFlowDiscoveryData]  # noqa: E111
+  external_entities: NotRequired[ExternalEntityConfig]  # noqa: E111
 
 
 class ConfigEntryOptionsPayload(PawControlOptionsData, total=False):
-  """Options mapping persisted alongside PawControl config entries."""
+  """Options mapping persisted alongside PawControl config entries."""  # noqa: E111
 
-  dashboard_enabled: bool
-  dashboard_auto_create: bool
-  performance_monitoring: bool
-  last_reconfigure: NotRequired[str]
-  previous_profile: NotRequired[str]
-  reconfigure_telemetry: NotRequired[ReconfigureTelemetry]
-  dashboard_mode: DashboardMode
-  resilience_skip_threshold: int | float | str | None
-  resilience_breaker_threshold: int | float | str | None
-  manual_guard_event: str | None
-  manual_breaker_event: str | None
-  manual_check_event: str | None
+  dashboard_enabled: bool  # noqa: E111
+  dashboard_auto_create: bool  # noqa: E111
+  performance_monitoring: bool  # noqa: E111
+  last_reconfigure: NotRequired[str]  # noqa: E111
+  previous_profile: NotRequired[str]  # noqa: E111
+  reconfigure_telemetry: NotRequired[ReconfigureTelemetry]  # noqa: E111
+  dashboard_mode: DashboardMode  # noqa: E111
+  resilience_skip_threshold: int | float | str | None  # noqa: E111
+  resilience_breaker_threshold: int | float | str | None  # noqa: E111
+  manual_guard_event: str | None  # noqa: E111
+  manual_breaker_event: str | None  # noqa: E111
+  manual_check_event: str | None  # noqa: E111
 
 
 class ModuleConfigurationStepInput(TypedDict, total=False):
-  """User-provided values collected during the module setup step."""
+  """User-provided values collected during the module setup step."""  # noqa: E111
 
-  performance_mode: PerformanceMode
-  enable_analytics: bool
-  enable_cloud_backup: bool
-  data_retention_days: int
-  debug_logging: bool
-  enable_notifications: bool
-  enable_dashboard: bool
-  auto_backup: bool
+  performance_mode: PerformanceMode  # noqa: E111
+  enable_analytics: bool  # noqa: E111
+  enable_cloud_backup: bool  # noqa: E111
+  data_retention_days: int  # noqa: E111
+  debug_logging: bool  # noqa: E111
+  enable_notifications: bool  # noqa: E111
+  enable_dashboard: bool  # noqa: E111
+  auto_backup: bool  # noqa: E111
 
 
 class ModuleConfigurationSnapshot(TypedDict):
-  """Persisted view of the global module configuration toggles."""
+  """Persisted view of the global module configuration toggles."""  # noqa: E111
 
-  enable_notifications: bool
-  enable_dashboard: bool
-  performance_mode: PerformanceMode
-  data_retention_days: int
-  auto_backup: bool
-  debug_logging: bool
+  enable_notifications: bool  # noqa: E111
+  enable_dashboard: bool  # noqa: E111
+  performance_mode: PerformanceMode  # noqa: E111
+  data_retention_days: int  # noqa: E111
+  auto_backup: bool  # noqa: E111
+  debug_logging: bool  # noqa: E111
 
 
 class DashboardSetupConfig(TypedDict, total=False):
-  """Dashboard preferences collected during setup before persistence."""
+  """Dashboard preferences collected during setup before persistence."""  # noqa: E111
 
-  dashboard_enabled: bool
-  dashboard_auto_create: bool
-  dashboard_per_dog: bool
-  dashboard_theme: str
-  dashboard_mode: DashboardMode
-  dashboard_template: str
-  show_statistics: bool
-  show_maps: bool
-  show_health_charts: bool
-  show_feeding_schedule: bool
-  show_alerts: bool
-  compact_mode: bool
-  auto_refresh: bool
-  refresh_interval: int
+  dashboard_enabled: bool  # noqa: E111
+  dashboard_auto_create: bool  # noqa: E111
+  dashboard_per_dog: bool  # noqa: E111
+  dashboard_theme: str  # noqa: E111
+  dashboard_mode: DashboardMode  # noqa: E111
+  dashboard_template: str  # noqa: E111
+  show_statistics: bool  # noqa: E111
+  show_maps: bool  # noqa: E111
+  show_health_charts: bool  # noqa: E111
+  show_feeding_schedule: bool  # noqa: E111
+  show_alerts: bool  # noqa: E111
+  compact_mode: bool  # noqa: E111
+  auto_refresh: bool  # noqa: E111
+  refresh_interval: int  # noqa: E111
 
 
 class DashboardConfigurationStepInput(TypedDict):
-  """Raw dashboard configuration payload received from the UI step."""
+  """Raw dashboard configuration payload received from the UI step."""  # noqa: E111
 
-  auto_create_dashboard: NotRequired[bool]
-  create_per_dog_dashboards: NotRequired[bool]
-  dashboard_theme: NotRequired[str]
-  dashboard_template: NotRequired[str]
-  dashboard_mode: NotRequired[DashboardMode]
-  show_statistics: NotRequired[bool]
-  show_maps: NotRequired[bool]
-  show_health_charts: NotRequired[bool]
-  show_feeding_schedule: NotRequired[bool]
-  show_alerts: NotRequired[bool]
-  compact_mode: NotRequired[bool]
-  auto_refresh: NotRequired[bool]
-  refresh_interval: NotRequired[int]
+  auto_create_dashboard: NotRequired[bool]  # noqa: E111
+  create_per_dog_dashboards: NotRequired[bool]  # noqa: E111
+  dashboard_theme: NotRequired[str]  # noqa: E111
+  dashboard_template: NotRequired[str]  # noqa: E111
+  dashboard_mode: NotRequired[DashboardMode]  # noqa: E111
+  show_statistics: NotRequired[bool]  # noqa: E111
+  show_maps: NotRequired[bool]  # noqa: E111
+  show_health_charts: NotRequired[bool]  # noqa: E111
+  show_feeding_schedule: NotRequired[bool]  # noqa: E111
+  show_alerts: NotRequired[bool]  # noqa: E111
+  compact_mode: NotRequired[bool]  # noqa: E111
+  auto_refresh: NotRequired[bool]  # noqa: E111
+  refresh_interval: NotRequired[int]  # noqa: E111
 
 
 class AddAnotherDogInput(TypedDict):
-  """Payload for yes/no "add another dog" prompts in flows."""
+  """Payload for yes/no "add another dog" prompts in flows."""  # noqa: E111
 
-  add_another: NotRequired[bool]
+  add_another: NotRequired[bool]  # noqa: E111
 
 
 ManualEventField = Literal[
@@ -2617,31 +2621,31 @@ ManualEventSource = Literal[
 
 
 class ManualEventDefaults(TypedDict):
-  """Manual event defaults for system settings flows."""
+  """Manual event defaults for system settings flows."""  # noqa: E111
 
-  manual_check_event: str | None
-  manual_guard_event: str | None
-  manual_breaker_event: str | None
+  manual_check_event: str | None  # noqa: E111
+  manual_guard_event: str | None  # noqa: E111
+  manual_breaker_event: str | None  # noqa: E111
 
 
 class ManualEventSchemaDefaults(TypedDict):
-  """Stringified manual event defaults used in form schemas."""
+  """Stringified manual event defaults used in form schemas."""  # noqa: E111
 
-  manual_check_event: str
-  manual_guard_event: str
-  manual_breaker_event: str
+  manual_check_event: str  # noqa: E111
+  manual_guard_event: str  # noqa: E111
+  manual_breaker_event: str  # noqa: E111
 
 
 class ManualEventOption(TypedDict, total=False):
-  """Select option payload for manual event configuration choices."""
+  """Select option payload for manual event configuration choices."""  # noqa: E111
 
-  value: Required[str]
-  label: Required[str]
-  description: NotRequired[str]
-  badge: NotRequired[str]
-  help_text: NotRequired[str]
-  metadata_sources: NotRequired[list[str]]
-  metadata_primary_source: NotRequired[str]
+  value: Required[str]  # noqa: E111
+  label: Required[str]  # noqa: E111
+  description: NotRequired[str]  # noqa: E111
+  badge: NotRequired[str]  # noqa: E111
+  help_text: NotRequired[str]  # noqa: E111
+  metadata_sources: NotRequired[list[str]]  # noqa: E111
+  metadata_primary_source: NotRequired[str]  # noqa: E111
 
 
 type OptionsMainMenuAction = Literal[
@@ -2667,9 +2671,9 @@ PUSH_SETTINGS_MENU_ACTION: Final[OptionsMainMenuAction] = "push_settings"
 
 
 class OptionsMainMenuInput(TypedDict):
-  """Menu selection payload for the options flow root."""
+  """Menu selection payload for the options flow root."""  # noqa: E111
 
-  action: OptionsMainMenuAction
+  action: OptionsMainMenuAction  # noqa: E111
 
 
 type OptionsMenuAction = Literal[
@@ -2684,596 +2688,596 @@ type OptionsMenuAction = Literal[
 
 
 class OptionsMenuInput(TypedDict):
-  """Menu selection payload for the dog management options menu."""
+  """Menu selection payload for the dog management options menu."""  # noqa: E111
 
-  action: OptionsMenuAction
+  action: OptionsMenuAction  # noqa: E111
 
 
 class OptionsDogSelectionInput(TypedDict):
-  """Payload used when selecting a dog in the options flow."""
+  """Payload used when selecting a dog in the options flow."""  # noqa: E111
 
-  dog_id: str
+  dog_id: str  # noqa: E111
 
 
 class OptionsDogRemovalInput(OptionsDogSelectionInput):
-  """Payload used when confirming dog removal in the options flow."""
+  """Payload used when confirming dog removal in the options flow."""  # noqa: E111
 
-  confirm_remove: bool
+  confirm_remove: bool  # noqa: E111
 
 
 class OptionsDogEditInput(TypedDict):
-  """Payload for editing dog metadata in the options flow."""
+  """Payload for editing dog metadata in the options flow."""  # noqa: E111
 
-  dog_name: NotRequired[str]
-  dog_breed: NotRequired[str]
-  dog_age: NotRequired[int | float | str | None]
-  dog_weight: NotRequired[int | float | str | None]
-  dog_size: NotRequired[str | None]
+  dog_name: NotRequired[str]  # noqa: E111
+  dog_breed: NotRequired[str]  # noqa: E111
+  dog_age: NotRequired[int | float | str | None]  # noqa: E111
+  dog_weight: NotRequired[int | float | str | None]  # noqa: E111
+  dog_size: NotRequired[str | None]  # noqa: E111
 
 
 class OptionsProfilePreviewInput(TypedDict):
-  """Payload used for profile preview interactions in the options flow."""
+  """Payload used for profile preview interactions in the options flow."""  # noqa: E111
 
-  profile: str
-  apply_profile: NotRequired[bool]
+  profile: str  # noqa: E111
+  apply_profile: NotRequired[bool]  # noqa: E111
 
 
 class OptionsPerformanceSettingsInput(TypedDict, total=False):
-  """Payload for performance settings in the options flow."""
+  """Payload for performance settings in the options flow."""  # noqa: E111
 
-  entity_profile: str
-  performance_mode: PerformanceMode
-  batch_size: int | float | str | None
-  cache_ttl: int | float | str | None
-  selective_refresh: bool
+  entity_profile: str  # noqa: E111
+  performance_mode: PerformanceMode  # noqa: E111
+  batch_size: int | float | str | None  # noqa: E111
+  cache_ttl: int | float | str | None  # noqa: E111
+  selective_refresh: bool  # noqa: E111
 
 
 class OptionsDogModulesInput(TypedDict, total=False):
-  """Payload for per-dog module configuration in the options flow."""
+  """Payload for per-dog module configuration in the options flow."""  # noqa: E111
 
-  module_feeding: bool
-  module_walk: bool
-  module_gps: bool
-  module_garden: bool
-  module_health: bool
-  module_notifications: bool
-  module_dashboard: bool
-  module_visitor: bool
-  module_grooming: bool
-  module_medication: bool
-  module_training: bool
+  module_feeding: bool  # noqa: E111
+  module_walk: bool  # noqa: E111
+  module_gps: bool  # noqa: E111
+  module_garden: bool  # noqa: E111
+  module_health: bool  # noqa: E111
+  module_notifications: bool  # noqa: E111
+  module_dashboard: bool  # noqa: E111
+  module_visitor: bool  # noqa: E111
+  module_grooming: bool  # noqa: E111
+  module_medication: bool  # noqa: E111
+  module_training: bool  # noqa: E111
 
 
 class OptionsDoorSensorInput(TypedDict, total=False):
-  """Payload for configuring door sensor overrides in the options flow."""
+  """Payload for configuring door sensor overrides in the options flow."""  # noqa: E111
 
-  door_sensor: str | None
-  walk_detection_timeout: int | float | str | None
-  minimum_walk_duration: int | float | str | None
-  maximum_walk_duration: int | float | str | None
-  door_closed_delay: int | float | str | None
-  require_confirmation: bool | int | float | str | None
-  auto_end_walks: bool | int | float | str | None
-  confidence_threshold: int | float | str | None
+  door_sensor: str | None  # noqa: E111
+  walk_detection_timeout: int | float | str | None  # noqa: E111
+  minimum_walk_duration: int | float | str | None  # noqa: E111
+  maximum_walk_duration: int | float | str | None  # noqa: E111
+  door_closed_delay: int | float | str | None  # noqa: E111
+  require_confirmation: bool | int | float | str | None  # noqa: E111
+  auto_end_walks: bool | int | float | str | None  # noqa: E111
+  confidence_threshold: int | float | str | None  # noqa: E111
 
 
 class OptionsGeofenceInput(TypedDict, total=False):
-  """Payload for geofencing configuration in the options flow."""
+  """Payload for geofencing configuration in the options flow."""  # noqa: E111
 
-  geofence_enabled: bool
-  geofence_use_home: bool
-  geofence_lat: float | int | str | None
-  geofence_lon: float | int | str | None
-  geofence_radius: int | float | str | None
-  geofence_alerts: bool
-  geofence_safe_zone: bool
-  geofence_restricted_zone: bool
-  geofence_zone_entry: bool
-  geofence_zone_exit: bool
+  geofence_enabled: bool  # noqa: E111
+  geofence_use_home: bool  # noqa: E111
+  geofence_lat: float | int | str | None  # noqa: E111
+  geofence_lon: float | int | str | None  # noqa: E111
+  geofence_radius: int | float | str | None  # noqa: E111
+  geofence_alerts: bool  # noqa: E111
+  geofence_safe_zone: bool  # noqa: E111
+  geofence_restricted_zone: bool  # noqa: E111
+  geofence_zone_entry: bool  # noqa: E111
+  geofence_zone_exit: bool  # noqa: E111
 
 
 class OptionsGPSSettingsInput(TypedDict, total=False):
-  """Payload for GPS settings in the options flow."""
+  """Payload for GPS settings in the options flow."""  # noqa: E111
 
-  gps_enabled: bool
-  gps_update_interval: int | float | str | None
-  gps_accuracy_filter: int | float | str | None
-  gps_distance_filter: int | float | str | None
-  route_recording: bool
-  route_history_days: int | float | str | None
-  auto_track_walks: bool
+  gps_enabled: bool  # noqa: E111
+  gps_update_interval: int | float | str | None  # noqa: E111
+  gps_accuracy_filter: int | float | str | None  # noqa: E111
+  gps_distance_filter: int | float | str | None  # noqa: E111
+  route_recording: bool  # noqa: E111
+  route_history_days: int | float | str | None  # noqa: E111
+  auto_track_walks: bool  # noqa: E111
 
 
 class OptionsWeatherSettingsInput(TypedDict, total=False):
-  """Payload for weather settings in the options flow."""
+  """Payload for weather settings in the options flow."""  # noqa: E111
 
-  weather_entity: str | None
-  weather_health_monitoring: bool
-  weather_alerts: bool
-  weather_update_interval: int | float | str | None
-  temperature_alerts: bool
-  uv_alerts: bool
-  humidity_alerts: bool
-  wind_alerts: bool
-  storm_alerts: bool
-  breed_specific_recommendations: bool
-  health_condition_adjustments: bool
-  auto_activity_adjustments: bool
-  notification_threshold: str | None
+  weather_entity: str | None  # noqa: E111
+  weather_health_monitoring: bool  # noqa: E111
+  weather_alerts: bool  # noqa: E111
+  weather_update_interval: int | float | str | None  # noqa: E111
+  temperature_alerts: bool  # noqa: E111
+  uv_alerts: bool  # noqa: E111
+  humidity_alerts: bool  # noqa: E111
+  wind_alerts: bool  # noqa: E111
+  storm_alerts: bool  # noqa: E111
+  breed_specific_recommendations: bool  # noqa: E111
+  health_condition_adjustments: bool  # noqa: E111
+  auto_activity_adjustments: bool  # noqa: E111
+  notification_threshold: str | None  # noqa: E111
 
 
 class OptionsFeedingSettingsInput(TypedDict, total=False):
-  """Payload for feeding settings in the options flow."""
+  """Payload for feeding settings in the options flow."""  # noqa: E111
 
-  meals_per_day: int | float | str | None
-  feeding_reminders: bool
-  portion_tracking: bool
-  calorie_tracking: bool
-  auto_schedule: bool
+  meals_per_day: int | float | str | None  # noqa: E111
+  feeding_reminders: bool  # noqa: E111
+  portion_tracking: bool  # noqa: E111
+  calorie_tracking: bool  # noqa: E111
+  auto_schedule: bool  # noqa: E111
 
 
 class OptionsHealthSettingsInput(TypedDict, total=False):
-  """Payload for health settings in the options flow."""
+  """Payload for health settings in the options flow."""  # noqa: E111
 
-  weight_tracking: bool
-  medication_reminders: bool
-  vet_reminders: bool
-  grooming_reminders: bool
-  health_alerts: bool
+  weight_tracking: bool  # noqa: E111
+  medication_reminders: bool  # noqa: E111
+  vet_reminders: bool  # noqa: E111
+  grooming_reminders: bool  # noqa: E111
+  health_alerts: bool  # noqa: E111
 
 
 class OptionsSystemSettingsInput(TypedDict, total=False):
-  """Payload for system settings in the options flow."""
+  """Payload for system settings in the options flow."""  # noqa: E111
 
-  data_retention_days: int | float | str | None
-  auto_backup: bool
-  performance_mode: PerformanceMode
-  enable_analytics: bool
-  enable_cloud_backup: bool
-  resilience_skip_threshold: int | float | str | None
-  resilience_breaker_threshold: int | float | str | None
-  manual_check_event: str | None
-  manual_guard_event: str | None
-  manual_breaker_event: str | None
-  reset_time: str | None
+  data_retention_days: int | float | str | None  # noqa: E111
+  auto_backup: bool  # noqa: E111
+  performance_mode: PerformanceMode  # noqa: E111
+  enable_analytics: bool  # noqa: E111
+  enable_cloud_backup: bool  # noqa: E111
+  resilience_skip_threshold: int | float | str | None  # noqa: E111
+  resilience_breaker_threshold: int | float | str | None  # noqa: E111
+  manual_check_event: str | None  # noqa: E111
+  manual_guard_event: str | None  # noqa: E111
+  manual_breaker_event: str | None  # noqa: E111
+  reset_time: str | None  # noqa: E111
 
 
 class OptionsDashboardSettingsInput(TypedDict, total=False):
-  """Payload for dashboard settings in the options flow."""
+  """Payload for dashboard settings in the options flow."""  # noqa: E111
 
-  dashboard_mode: DashboardMode
-  show_statistics: bool
-  show_alerts: bool
-  compact_mode: bool
-  show_maps: bool
+  dashboard_mode: DashboardMode  # noqa: E111
+  show_statistics: bool  # noqa: E111
+  show_alerts: bool  # noqa: E111
+  compact_mode: bool  # noqa: E111
+  show_maps: bool  # noqa: E111
 
 
 class OptionsAdvancedSettingsInput(TypedDict, total=False):
-  """Payload for advanced settings in the options flow."""
+  """Payload for advanced settings in the options flow."""  # noqa: E111
 
-  performance_mode: PerformanceMode
-  debug_logging: bool
-  data_retention_days: int | float | str | None
-  auto_backup: bool
-  experimental_features: bool
-  external_integrations: bool
-  api_endpoint: str
-  api_token: str
+  performance_mode: PerformanceMode  # noqa: E111
+  debug_logging: bool  # noqa: E111
+  data_retention_days: int | float | str | None  # noqa: E111
+  auto_backup: bool  # noqa: E111
+  experimental_features: bool  # noqa: E111
+  external_integrations: bool  # noqa: E111
+  api_endpoint: str  # noqa: E111
+  api_token: str  # noqa: E111
 
 
 class PushSettingsInput(TypedDict, total=False):
-  """Payload for push ingestion settings in the options flow."""
+  """Payload for push ingestion settings in the options flow."""  # noqa: E111
 
-  webhook_enabled: bool
-  webhook_require_signature: bool
-  webhook_secret: str | None
-  mqtt_enabled: bool
-  mqtt_topic: str | None
-  push_payload_max_bytes: int | float | str | None
-  push_nonce_ttl_seconds: int | float | str | None
-  push_rate_limit_webhook_per_minute: int | float | str | None
-  push_rate_limit_mqtt_per_minute: int | float | str | None
-  push_rate_limit_entity_per_minute: int | float | str | None
+  webhook_enabled: bool  # noqa: E111
+  webhook_require_signature: bool  # noqa: E111
+  webhook_secret: str | None  # noqa: E111
+  mqtt_enabled: bool  # noqa: E111
+  mqtt_topic: str | None  # noqa: E111
+  push_payload_max_bytes: int | float | str | None  # noqa: E111
+  push_nonce_ttl_seconds: int | float | str | None  # noqa: E111
+  push_rate_limit_webhook_per_minute: int | float | str | None  # noqa: E111
+  push_rate_limit_mqtt_per_minute: int | float | str | None  # noqa: E111
+  push_rate_limit_entity_per_minute: int | float | str | None  # noqa: E111
 
 
 class OptionsImportExportInput(TypedDict, total=False):
-  """Payload for import/export selection in the options flow."""
+  """Payload for import/export selection in the options flow."""  # noqa: E111
 
-  action: Literal["export", "import"]
+  action: Literal["export", "import"]  # noqa: E111
 
 
 class OptionsExportDisplayInput(TypedDict, total=False):
-  """Payload for export display steps in the options flow."""
+  """Payload for export display steps in the options flow."""  # noqa: E111
 
-  export_blob: str
+  export_blob: str  # noqa: E111
 
 
 class OptionsImportPayloadInput(TypedDict, total=False):
-  """Payload for importing exported options data."""
+  """Payload for importing exported options data."""  # noqa: E111
 
-  payload: str
+  payload: str  # noqa: E111
 
 
 class ConfigFlowOperationMetrics(TypedDict):
-  """Aggregated metrics collected for a single config-flow operation."""
+  """Aggregated metrics collected for a single config-flow operation."""  # noqa: E111
 
-  avg_time: float
-  max_time: float
-  count: int
+  avg_time: float  # noqa: E111
+  max_time: float  # noqa: E111
+  count: int  # noqa: E111
 
 
 type ConfigFlowOperationMetricsMap = dict[str, ConfigFlowOperationMetrics]
 
 
 class ConfigFlowPerformanceStats(TypedDict):
-  """Snapshot describing config-flow performance diagnostics."""
+  """Snapshot describing config-flow performance diagnostics."""  # noqa: E111
 
-  operations: ConfigFlowOperationMetricsMap
-  validations: dict[str, int]
+  operations: ConfigFlowOperationMetricsMap  # noqa: E111
+  validations: dict[str, int]  # noqa: E111
 
 
 class FeedingSizeDefaults(TypedDict):
-  """Default feeding configuration derived from the selected dog size."""
+  """Default feeding configuration derived from the selected dog size."""  # noqa: E111
 
-  meals_per_day: int
-  daily_food_amount: int
-  feeding_times: list[str]
-  portion_size: int
+  meals_per_day: int  # noqa: E111
+  daily_food_amount: int  # noqa: E111
+  feeding_times: list[str]  # noqa: E111
+  portion_size: int  # noqa: E111
 
 
 type FeedingSizeDefaultsMap = dict[str, FeedingSizeDefaults]
 
 
 class FeedingSetupConfig(TypedDict, total=False):
-  """Feeding defaults gathered while configuring modules during setup."""
+  """Feeding defaults gathered while configuring modules during setup."""  # noqa: E111
 
-  default_daily_food_amount: float | int
-  default_meals_per_day: int
-  default_food_type: str
-  default_special_diet: list[str]
-  default_feeding_schedule_type: str
-  auto_portion_calculation: bool
-  medication_with_meals: bool
-  feeding_reminders: bool
-  portion_tolerance: int
+  default_daily_food_amount: float | int  # noqa: E111
+  default_meals_per_day: int  # noqa: E111
+  default_food_type: str  # noqa: E111
+  default_special_diet: list[str]  # noqa: E111
+  default_feeding_schedule_type: str  # noqa: E111
+  auto_portion_calculation: bool  # noqa: E111
+  medication_with_meals: bool  # noqa: E111
+  feeding_reminders: bool  # noqa: E111
+  portion_tolerance: int  # noqa: E111
 
 
 class FeedingConfigurationStepInput(TypedDict, total=False):
-  """Raw feeding configuration payload received from the UI step."""
+  """Raw feeding configuration payload received from the UI step."""  # noqa: E111
 
-  daily_food_amount: float | int
-  meals_per_day: int
-  food_type: str
-  special_diet: list[str]
-  feeding_schedule_type: str
-  portion_calculation: bool
-  medication_with_meals: bool
-  feeding_reminders: bool
-  portion_tolerance: int
+  daily_food_amount: float | int  # noqa: E111
+  meals_per_day: int  # noqa: E111
+  food_type: str  # noqa: E111
+  special_diet: list[str]  # noqa: E111
+  feeding_schedule_type: str  # noqa: E111
+  portion_calculation: bool  # noqa: E111
+  medication_with_meals: bool  # noqa: E111
+  feeding_reminders: bool  # noqa: E111
+  portion_tolerance: int  # noqa: E111
 
 
 class ModuleConfigurationPlaceholders(TypedDict):
-  """Placeholders exposed while rendering the module configuration form."""
+  """Placeholders exposed while rendering the module configuration form."""  # noqa: E111
 
-  dog_count: int
-  module_summary: str
-  total_modules: int
-  gps_dogs: int
-  health_dogs: int
+  dog_count: int  # noqa: E111
+  module_summary: str  # noqa: E111
+  total_modules: int  # noqa: E111
+  gps_dogs: int  # noqa: E111
+  health_dogs: int  # noqa: E111
 
 
 class AddDogCapacityPlaceholders(TypedDict):
-  """Placeholders rendered when summarising configured dogs."""
+  """Placeholders rendered when summarising configured dogs."""  # noqa: E111
 
-  dog_count: int
-  max_dogs: int
-  current_dogs: str
-  remaining_spots: int
+  dog_count: int  # noqa: E111
+  max_dogs: int  # noqa: E111
+  current_dogs: str  # noqa: E111
+  remaining_spots: int  # noqa: E111
 
 
 class DogModulesSuggestionPlaceholders(TypedDict):
-  """Placeholders exposed while recommending per-dog modules."""
+  """Placeholders exposed while recommending per-dog modules."""  # noqa: E111
 
-  dog_name: str
-  dog_size: str
-  dog_age: int
+  dog_name: str  # noqa: E111
+  dog_size: str  # noqa: E111
+  dog_age: int  # noqa: E111
 
 
 class AddDogSummaryPlaceholders(TypedDict):
-  """Placeholders rendered on the main add-dog form."""
+  """Placeholders rendered on the main add-dog form."""  # noqa: E111
 
-  dogs_configured: str
-  max_dogs: str
-  discovery_hint: str
+  dogs_configured: str  # noqa: E111
+  max_dogs: str  # noqa: E111
+  discovery_hint: str  # noqa: E111
 
 
 class DogModulesSmartDefaultsPlaceholders(TypedDict):
-  """Placeholders surfaced alongside smart module defaults."""
+  """Placeholders surfaced alongside smart module defaults."""  # noqa: E111
 
-  dog_name: str
-  dogs_configured: str
-  smart_defaults: str
+  dog_name: str  # noqa: E111
+  dogs_configured: str  # noqa: E111
+  smart_defaults: str  # noqa: E111
 
 
 class AddAnotherDogPlaceholders(TypedDict):
-  """Placeholders shown when asking to add another dog."""
+  """Placeholders shown when asking to add another dog."""  # noqa: E111
 
-  dogs_configured: str
-  dogs_list: str
-  can_add_more: str
-  max_dogs: str
-  performance_note: str
+  dogs_configured: str  # noqa: E111
+  dogs_list: str  # noqa: E111
+  can_add_more: str  # noqa: E111
+  max_dogs: str  # noqa: E111
+  performance_note: str  # noqa: E111
 
 
 class AddAnotherDogSummaryPlaceholders(TypedDict):
-  """Placeholders shown when summarising configured dogs."""
+  """Placeholders shown when summarising configured dogs."""  # noqa: E111
 
-  dogs_list: str
-  dog_count: str
-  max_dogs: int
-  remaining_spots: int
-  at_limit: str
+  dogs_list: str  # noqa: E111
+  dog_count: str  # noqa: E111
+  max_dogs: int  # noqa: E111
+  remaining_spots: int  # noqa: E111
+  at_limit: str  # noqa: E111
 
 
 class DashboardConfigurationPlaceholders(TypedDict):
-  """Placeholders used when rendering the dashboard configuration form."""
+  """Placeholders used when rendering the dashboard configuration form."""  # noqa: E111
 
-  dog_count: int
-  dashboard_info: str
-  features: str
+  dog_count: int  # noqa: E111
+  dashboard_info: str  # noqa: E111
+  features: str  # noqa: E111
 
 
 class FeedingConfigurationPlaceholders(TypedDict):
-  """Placeholders used when rendering the feeding configuration form."""
+  """Placeholders used when rendering the feeding configuration form."""  # noqa: E111
 
-  dog_count: int
-  feeding_summary: str
+  dog_count: int  # noqa: E111
+  feeding_summary: str  # noqa: E111
 
 
 class DogGPSPlaceholders(TypedDict):
-  """Placeholders surfaced in the per-dog GPS configuration step."""
+  """Placeholders surfaced in the per-dog GPS configuration step."""  # noqa: E111
 
-  dog_name: str
+  dog_name: str  # noqa: E111
 
 
 class DogFeedingPlaceholders(TypedDict):
-  """Placeholders rendered alongside the per-dog feeding configuration."""
+  """Placeholders rendered alongside the per-dog feeding configuration."""  # noqa: E111
 
-  dog_name: str
-  dog_weight: str
-  suggested_amount: str
-  portion_info: str
+  dog_name: str  # noqa: E111
+  dog_weight: str  # noqa: E111
+  suggested_amount: str  # noqa: E111
+  portion_info: str  # noqa: E111
 
 
 class DogHealthPlaceholders(TypedDict):
-  """Placeholders rendered alongside the per-dog health configuration."""
+  """Placeholders rendered alongside the per-dog health configuration."""  # noqa: E111
 
-  dog_name: str
-  dog_age: str
-  dog_weight: str
-  suggested_ideal_weight: str
-  suggested_activity: str
-  medication_enabled: str
-  bcs_info: str
-  special_diet_count: str
-  health_diet_info: str
+  dog_name: str  # noqa: E111
+  dog_age: str  # noqa: E111
+  dog_weight: str  # noqa: E111
+  suggested_ideal_weight: str  # noqa: E111
+  suggested_activity: str  # noqa: E111
+  medication_enabled: str  # noqa: E111
+  bcs_info: str  # noqa: E111
+  special_diet_count: str  # noqa: E111
+  health_diet_info: str  # noqa: E111
 
 
 class ModuleSetupSummaryPlaceholders(TypedDict):
-  """Placeholders rendered when summarising enabled modules."""
+  """Placeholders rendered when summarising enabled modules."""  # noqa: E111
 
-  total_dogs: str
-  gps_dogs: str
-  health_dogs: str
-  suggested_performance: str
-  complexity_info: str
-  next_step_info: str
+  total_dogs: str  # noqa: E111
+  gps_dogs: str  # noqa: E111
+  health_dogs: str  # noqa: E111
+  suggested_performance: str  # noqa: E111
+  complexity_info: str  # noqa: E111
+  next_step_info: str  # noqa: E111
 
 
 class ExternalEntitiesPlaceholders(TypedDict):
-  """Placeholders rendered while configuring external entities."""
+  """Placeholders rendered while configuring external entities."""  # noqa: E111
 
-  gps_enabled: bool
-  visitor_enabled: bool
-  dog_count: int
+  gps_enabled: bool  # noqa: E111
+  visitor_enabled: bool  # noqa: E111
+  dog_count: int  # noqa: E111
 
 
 class ExternalEntitySelectorOption(TypedDict):
-  """Selectable option exposed while configuring external entities."""
+  """Selectable option exposed while configuring external entities."""  # noqa: E111
 
-  value: str
-  label: str
+  value: str  # noqa: E111
+  label: str  # noqa: E111
 
 
 class ExternalEntityConfig(TypedDict, total=False):
-  """External entity mappings selected throughout the setup flow."""
+  """External entity mappings selected throughout the setup flow."""  # noqa: E111
 
-  gps_source: str
-  door_sensor: str
-  notify_fallback: str
+  gps_source: str  # noqa: E111
+  door_sensor: str  # noqa: E111
+  notify_fallback: str  # noqa: E111
 
 
 class ModuleConfigurationSummary(TypedDict):
-  """Aggregated per-module counts used while configuring dashboards."""
+  """Aggregated per-module counts used while configuring dashboards."""  # noqa: E111
 
-  total: int
-  gps_dogs: int
-  health_dogs: int
-  feeding_dogs: int
-  counts: dict[str, int]
-  description: str
+  total: int  # noqa: E111
+  gps_dogs: int  # noqa: E111
+  health_dogs: int  # noqa: E111
+  feeding_dogs: int  # noqa: E111
+  counts: dict[str, int]  # noqa: E111
+  description: str  # noqa: E111
 
 
 class OptionsExportPayload(TypedDict, total=False):
-  """Structured payload captured by the options import/export tools."""
+  """Structured payload captured by the options import/export tools."""  # noqa: E111
 
-  version: Literal[1]
-  options: PawControlOptionsData
-  dogs: list[DogConfigData]
-  created_at: str
+  version: Literal[1]  # noqa: E111
+  options: PawControlOptionsData  # noqa: E111
+  dogs: list[DogConfigData]  # noqa: E111
+  created_at: str  # noqa: E111
 
 
 class ReauthHealthSummary(TypedDict, total=False):
-  """Normalised health snapshot gathered during reauthentication."""
+  """Normalised health snapshot gathered during reauthentication."""  # noqa: E111
 
-  healthy: bool
-  issues: list[str]
-  warnings: list[str]
-  validated_dogs: int
-  total_dogs: int
-  invalid_modules: NotRequired[int]
-  dogs_count: NotRequired[int]
-  valid_dogs: NotRequired[int]
-  profile: NotRequired[str]
-  estimated_entities: NotRequired[int]
+  healthy: bool  # noqa: E111
+  issues: list[str]  # noqa: E111
+  warnings: list[str]  # noqa: E111
+  validated_dogs: int  # noqa: E111
+  total_dogs: int  # noqa: E111
+  invalid_modules: NotRequired[int]  # noqa: E111
+  dogs_count: NotRequired[int]  # noqa: E111
+  valid_dogs: NotRequired[int]  # noqa: E111
+  profile: NotRequired[str]  # noqa: E111
+  estimated_entities: NotRequired[int]  # noqa: E111
 
 
 class ReauthDataUpdates(TypedDict, total=False):
-  """Data fields persisted on the config entry after reauth."""
+  """Data fields persisted on the config entry after reauth."""  # noqa: E111
 
-  reauth_timestamp: str
-  reauth_version: int
-  health_status: bool
-  health_validated_dogs: int
-  health_total_dogs: int
+  reauth_timestamp: str  # noqa: E111
+  reauth_version: int  # noqa: E111
+  health_status: bool  # noqa: E111
+  health_validated_dogs: int  # noqa: E111
+  health_total_dogs: int  # noqa: E111
 
 
 class ReauthOptionsUpdates(TypedDict, total=False):
-  """Options fields updated after a successful reauth."""
+  """Options fields updated after a successful reauth."""  # noqa: E111
 
-  last_reauth: str
-  reauth_health_issues: list[str]
-  reauth_health_warnings: list[str]
-  last_reauth_summary: str
+  last_reauth: str  # noqa: E111
+  reauth_health_issues: list[str]  # noqa: E111
+  reauth_health_warnings: list[str]  # noqa: E111
+  last_reauth_summary: str  # noqa: E111
 
 
 class ReauthConfirmInput(TypedDict):
-  """Schema-constrained payload submitted by the reauth confirmation form."""
+  """Schema-constrained payload submitted by the reauth confirmation form."""  # noqa: E111
 
-  confirm: bool
+  confirm: bool  # noqa: E111
 
 
 class ReauthPlaceholders(TypedDict):
-  """Description placeholders rendered on the reauth confirm form."""
+  """Description placeholders rendered on the reauth confirm form."""  # noqa: E111
 
-  integration_name: str
-  dogs_count: str
-  current_profile: str
-  health_status: str
+  integration_name: str  # noqa: E111
+  dogs_count: str  # noqa: E111
+  current_profile: str  # noqa: E111
+  health_status: str  # noqa: E111
 
 
 class ReconfigureProfileInput(TypedDict):
-  """Schema-constrained payload submitted by the reconfigure form."""
+  """Schema-constrained payload submitted by the reconfigure form."""  # noqa: E111
 
-  entity_profile: str
+  entity_profile: str  # noqa: E111
 
 
 class ReconfigureCompatibilityResult(TypedDict):
-  """Result of validating a profile change against existing dog configs."""
+  """Result of validating a profile change against existing dog configs."""  # noqa: E111
 
-  compatible: bool
-  warnings: list[str]
+  compatible: bool  # noqa: E111
+  warnings: list[str]  # noqa: E111
 
 
 class ReconfigureDataUpdates(TypedDict, total=False):
-  """Config entry data persisted after a successful reconfigure."""
+  """Config entry data persisted after a successful reconfigure."""  # noqa: E111
 
-  entity_profile: str
-  reconfigure_timestamp: str
-  reconfigure_version: int
+  entity_profile: str  # noqa: E111
+  reconfigure_timestamp: str  # noqa: E111
+  reconfigure_version: int  # noqa: E111
 
 
 class ReconfigureTelemetry(TypedDict, total=False):
-  """Structured telemetry recorded for reconfigure operations."""
+  """Structured telemetry recorded for reconfigure operations."""  # noqa: E111
 
-  requested_profile: str
-  previous_profile: str
-  dogs_count: int
-  estimated_entities: int
-  timestamp: str
-  version: int
-  compatibility_warnings: NotRequired[list[str]]
-  health_summary: NotRequired[ReauthHealthSummary]
-  valid_dogs: NotRequired[int]
-  merge_notes: NotRequired[list[str]]
+  requested_profile: str  # noqa: E111
+  previous_profile: str  # noqa: E111
+  dogs_count: int  # noqa: E111
+  estimated_entities: int  # noqa: E111
+  timestamp: str  # noqa: E111
+  version: int  # noqa: E111
+  compatibility_warnings: NotRequired[list[str]]  # noqa: E111
+  health_summary: NotRequired[ReauthHealthSummary]  # noqa: E111
+  valid_dogs: NotRequired[int]  # noqa: E111
+  merge_notes: NotRequired[list[str]]  # noqa: E111
 
 
 class ReconfigureTelemetrySummary(TypedDict, total=False):
-  """Condensed view of reconfigure telemetry for diagnostics pipelines."""
+  """Condensed view of reconfigure telemetry for diagnostics pipelines."""  # noqa: E111
 
-  timestamp: str
-  requested_profile: str
-  previous_profile: str
-  dogs_count: int
-  estimated_entities: int
-  version: int
-  warnings: list[str]
-  warning_count: int
-  healthy: bool
-  health_issues: list[str]
-  health_issue_count: int
-  health_warnings: list[str]
-  health_warning_count: int
-  merge_notes: list[str]
-  merge_note_count: int
+  timestamp: str  # noqa: E111
+  requested_profile: str  # noqa: E111
+  previous_profile: str  # noqa: E111
+  dogs_count: int  # noqa: E111
+  estimated_entities: int  # noqa: E111
+  version: int  # noqa: E111
+  warnings: list[str]  # noqa: E111
+  warning_count: int  # noqa: E111
+  healthy: bool  # noqa: E111
+  health_issues: list[str]  # noqa: E111
+  health_issue_count: int  # noqa: E111
+  health_warnings: list[str]  # noqa: E111
+  health_warning_count: int  # noqa: E111
+  merge_notes: list[str]  # noqa: E111
+  merge_note_count: int  # noqa: E111
 
 
 class ReconfigureOptionsUpdates(TypedDict, total=False):
-  """Config entry options updated after a successful reconfigure."""
+  """Config entry options updated after a successful reconfigure."""  # noqa: E111
 
-  entity_profile: str
-  last_reconfigure: str
-  previous_profile: str
-  reconfigure_telemetry: ReconfigureTelemetry
+  entity_profile: str  # noqa: E111
+  last_reconfigure: str  # noqa: E111
+  previous_profile: str  # noqa: E111
+  reconfigure_telemetry: ReconfigureTelemetry  # noqa: E111
 
 
 class ReconfigureFormPlaceholders(TypedDict, total=False):
-  """Description placeholders displayed on the reconfigure form."""
+  """Description placeholders displayed on the reconfigure form."""  # noqa: E111
 
-  current_profile: str
-  profiles_info: str
-  dogs_count: str
-  compatibility_info: str
-  estimated_entities: str
-  error_details: str
-  last_reconfigure: str
-  reconfigure_requested_profile: str
-  reconfigure_previous_profile: str
-  reconfigure_dogs: str
-  reconfigure_entities: str
-  reconfigure_health: str
-  reconfigure_warnings: str
-  reconfigure_valid_dogs: str
-  reconfigure_invalid_dogs: str
-  reconfigure_merge_notes: str
+  current_profile: str  # noqa: E111
+  profiles_info: str  # noqa: E111
+  dogs_count: str  # noqa: E111
+  compatibility_info: str  # noqa: E111
+  estimated_entities: str  # noqa: E111
+  error_details: str  # noqa: E111
+  last_reconfigure: str  # noqa: E111
+  reconfigure_requested_profile: str  # noqa: E111
+  reconfigure_previous_profile: str  # noqa: E111
+  reconfigure_dogs: str  # noqa: E111
+  reconfigure_entities: str  # noqa: E111
+  reconfigure_health: str  # noqa: E111
+  reconfigure_warnings: str  # noqa: E111
+  reconfigure_valid_dogs: str  # noqa: E111
+  reconfigure_invalid_dogs: str  # noqa: E111
+  reconfigure_merge_notes: str  # noqa: E111
 
 
 class DogValidationResult(TypedDict):
-  """Validation result payload for dog configuration forms."""
+  """Validation result payload for dog configuration forms."""  # noqa: E111
 
-  valid: bool
-  errors: dict[str, str]
-  validated_input: NotRequired[DogSetupStepInput]
+  valid: bool  # noqa: E111
+  errors: dict[str, str]  # noqa: E111
+  validated_input: NotRequired[DogSetupStepInput]  # noqa: E111
 
 
 class DogValidationCacheEntry(TypedDict):
-  """Cached validation result metadata for config and options flows."""
+  """Cached validation result metadata for config and options flows."""  # noqa: E111
 
-  result: DogValidationResult | DogSetupStepInput | None
-  cached_at: float
-  state_signature: NotRequired[str]
+  result: DogValidationResult | DogSetupStepInput | None  # noqa: E111
+  cached_at: float  # noqa: E111
+  state_signature: NotRequired[str]  # noqa: E111
 
 
 class DogSetupStepInput(TypedDict):
-  """Minimal dog setup fields collected during the primary form."""
+  """Minimal dog setup fields collected during the primary form."""  # noqa: E111
 
-  dog_id: Required[str]
-  dog_name: Required[str]
-  dog_breed: NotRequired[str | None]
-  dog_age: NotRequired[int | float | None]
-  dog_weight: NotRequired[float | int | None]
-  dog_size: NotRequired[str | None]
-  weight: NotRequired[float | int | str | None]
+  dog_id: Required[str]  # noqa: E111
+  dog_name: Required[str]  # noqa: E111
+  dog_breed: NotRequired[str | None]  # noqa: E111
+  dog_age: NotRequired[int | float | None]  # noqa: E111
+  dog_weight: NotRequired[float | int | None]  # noqa: E111
+  dog_size: NotRequired[str | None]  # noqa: E111
+  weight: NotRequired[float | int | str | None]  # noqa: E111
 
 
 MODULE_CONFIGURATION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
@@ -3446,59 +3450,59 @@ RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
 
 
 class InputBooleanCreateServiceData(TypedDict, total=False):
-  """Service payload accepted by ``input_boolean.create``."""
+  """Service payload accepted by ``input_boolean.create``."""  # noqa: E111
 
-  name: Required[str]
-  initial: NotRequired[bool]
-  icon: NotRequired[str | None]
+  name: Required[str]  # noqa: E111
+  initial: NotRequired[bool]  # noqa: E111
+  icon: NotRequired[str | None]  # noqa: E111
 
 
 class InputDatetimeCreateServiceData(TypedDict, total=False):
-  """Service payload accepted by ``input_datetime.create``."""
+  """Service payload accepted by ``input_datetime.create``."""  # noqa: E111
 
-  name: Required[str]
-  has_date: Required[bool]
-  has_time: Required[bool]
-  initial: NotRequired[str]
+  name: Required[str]  # noqa: E111
+  has_date: Required[bool]  # noqa: E111
+  has_time: Required[bool]  # noqa: E111
+  initial: NotRequired[str]  # noqa: E111
 
 
 class InputNumberCreateServiceData(TypedDict, total=False):
-  """Service payload accepted by ``input_number.create``."""
+  """Service payload accepted by ``input_number.create``."""  # noqa: E111
 
-  name: Required[str]
-  min: Required[int | float]
-  max: Required[int | float]
-  step: Required[int | float]
-  mode: Required[str]
-  initial: NotRequired[int | float]
-  icon: NotRequired[str]
-  unit_of_measurement: NotRequired[str]
+  name: Required[str]  # noqa: E111
+  min: Required[int | float]  # noqa: E111
+  max: Required[int | float]  # noqa: E111
+  step: Required[int | float]  # noqa: E111
+  mode: Required[str]  # noqa: E111
+  initial: NotRequired[int | float]  # noqa: E111
+  icon: NotRequired[str]  # noqa: E111
+  unit_of_measurement: NotRequired[str]  # noqa: E111
 
 
 class InputSelectCreateServiceData(TypedDict, total=False):
-  """Service payload accepted by ``input_select.create``."""
+  """Service payload accepted by ``input_select.create``."""  # noqa: E111
 
-  name: Required[str]
-  options: Required[list[str]]
-  initial: NotRequired[str]
-  icon: NotRequired[str]
+  name: Required[str]  # noqa: E111
+  options: Required[list[str]]  # noqa: E111
+  initial: NotRequired[str]  # noqa: E111
+  icon: NotRequired[str]  # noqa: E111
 
 
 class HelperEntityMetadata(TypedDict, total=False):
-  """Metadata captured for helpers created by the helper manager."""
+  """Metadata captured for helpers created by the helper manager."""  # noqa: E111
 
-  domain: str
-  name: str
-  icon: str | None
-  initial: bool | int | float | str | None
-  has_date: bool
-  has_time: bool
-  options: list[str]
-  min: int | float
-  max: int | float
-  step: int | float
-  mode: str
-  unit_of_measurement: str | None
+  domain: str  # noqa: E111
+  name: str  # noqa: E111
+  icon: str | None  # noqa: E111
+  initial: bool | int | float | str | None  # noqa: E111
+  has_date: bool  # noqa: E111
+  has_time: bool  # noqa: E111
+  options: list[str]  # noqa: E111
+  min: int | float  # noqa: E111
+  max: int | float  # noqa: E111
+  step: int | float  # noqa: E111
+  mode: str  # noqa: E111
+  unit_of_measurement: str | None  # noqa: E111
 
 
 type HelperEntityMetadataMapping = dict[str, HelperEntityMetadata]
@@ -3510,27 +3514,27 @@ type DogHelperAssignments = dict[str, list[str]]
 
 
 class HelperManagerStats(TypedDict):
-  """Summary statistics reported by the helper manager diagnostics."""
+  """Summary statistics reported by the helper manager diagnostics."""  # noqa: E111
 
-  helpers: int
-  dogs: int
-  managed_entities: int
+  helpers: int  # noqa: E111
+  dogs: int  # noqa: E111
+  managed_entities: int  # noqa: E111
 
 
 class HelperManagerSnapshot(TypedDict):
-  """Snapshot payload describing managed helper assignments."""
+  """Snapshot payload describing managed helper assignments."""  # noqa: E111
 
-  per_dog: dict[str, int]
-  entity_domains: dict[str, int]
+  per_dog: dict[str, int]  # noqa: E111
+  entity_domains: dict[str, int]  # noqa: E111
 
 
 class HelperManagerGuardMetrics(TypedDict):
-  """Aggregated guard telemetry captured by the helper manager."""
+  """Aggregated guard telemetry captured by the helper manager."""  # noqa: E111
 
-  executed: int
-  skipped: int
-  reasons: dict[str, int]
-  last_results: ServiceGuardResultHistory
+  executed: int  # noqa: E111
+  skipped: int  # noqa: E111
+  reasons: dict[str, int]  # noqa: E111
+  last_results: ServiceGuardResultHistory  # noqa: E111
 
 
 EntityFactoryGuardEvent = Literal[
@@ -3550,268 +3554,268 @@ EntityFactoryGuardStabilityTrend = Literal[
 
 
 class EntityFactoryGuardMetrics(TypedDict, total=False):
-  """Runtime guard telemetry captured by the entity factory."""
+  """Runtime guard telemetry captured by the entity factory."""  # noqa: E111
 
-  schema_version: Literal[1]
-  runtime_floor: float
-  baseline_floor: float
-  max_floor: float
-  runtime_floor_delta: float
-  peak_runtime_floor: float
-  lowest_runtime_floor: float
-  last_floor_change: float
-  last_floor_change_ratio: float
-  last_actual_duration: float
-  last_duration_ratio: float
-  last_event: EntityFactoryGuardEvent
-  last_updated: str
-  samples: int
-  stable_samples: int
-  expansions: int
-  contractions: int
-  last_expansion_duration: float
-  last_contraction_duration: float
-  enforce_min_runtime: bool
-  average_duration: float
-  max_duration: float
-  min_duration: float
-  stable_ratio: float
-  expansion_ratio: float
-  contraction_ratio: float
-  volatility_ratio: float
-  consecutive_stable_samples: int
-  longest_stable_run: int
-  duration_span: float
-  jitter_ratio: float
-  recent_durations: list[float]
-  recent_average_duration: float
-  recent_max_duration: float
-  recent_min_duration: float
-  recent_duration_span: float
-  recent_jitter_ratio: float
-  recent_samples: int
-  recent_events: list[EntityFactoryGuardEvent]
-  recent_stable_samples: int
-  recent_stable_ratio: float
-  stability_trend: EntityFactoryGuardStabilityTrend
+  schema_version: Literal[1]  # noqa: E111
+  runtime_floor: float  # noqa: E111
+  baseline_floor: float  # noqa: E111
+  max_floor: float  # noqa: E111
+  runtime_floor_delta: float  # noqa: E111
+  peak_runtime_floor: float  # noqa: E111
+  lowest_runtime_floor: float  # noqa: E111
+  last_floor_change: float  # noqa: E111
+  last_floor_change_ratio: float  # noqa: E111
+  last_actual_duration: float  # noqa: E111
+  last_duration_ratio: float  # noqa: E111
+  last_event: EntityFactoryGuardEvent  # noqa: E111
+  last_updated: str  # noqa: E111
+  samples: int  # noqa: E111
+  stable_samples: int  # noqa: E111
+  expansions: int  # noqa: E111
+  contractions: int  # noqa: E111
+  last_expansion_duration: float  # noqa: E111
+  last_contraction_duration: float  # noqa: E111
+  enforce_min_runtime: bool  # noqa: E111
+  average_duration: float  # noqa: E111
+  max_duration: float  # noqa: E111
+  min_duration: float  # noqa: E111
+  stable_ratio: float  # noqa: E111
+  expansion_ratio: float  # noqa: E111
+  contraction_ratio: float  # noqa: E111
+  volatility_ratio: float  # noqa: E111
+  consecutive_stable_samples: int  # noqa: E111
+  longest_stable_run: int  # noqa: E111
+  duration_span: float  # noqa: E111
+  jitter_ratio: float  # noqa: E111
+  recent_durations: list[float]  # noqa: E111
+  recent_average_duration: float  # noqa: E111
+  recent_max_duration: float  # noqa: E111
+  recent_min_duration: float  # noqa: E111
+  recent_duration_span: float  # noqa: E111
+  recent_jitter_ratio: float  # noqa: E111
+  recent_samples: int  # noqa: E111
+  recent_events: list[EntityFactoryGuardEvent]  # noqa: E111
+  recent_stable_samples: int  # noqa: E111
+  recent_stable_ratio: float  # noqa: E111
+  stability_trend: EntityFactoryGuardStabilityTrend  # noqa: E111
 
 
 class EntityFactoryGuardMetricsSnapshot(TypedDict, total=False):
-  """Normalised guard telemetry exposed via diagnostics surfaces."""
+  """Normalised guard telemetry exposed via diagnostics surfaces."""  # noqa: E111
 
-  runtime_floor_ms: float
-  baseline_floor_ms: float
-  max_floor_ms: float
-  runtime_floor_delta_ms: float
-  peak_runtime_floor_ms: float
-  lowest_runtime_floor_ms: float
-  last_floor_change_ms: float
-  last_actual_duration_ms: float
-  last_duration_ratio: float
-  last_floor_change_ratio: float
-  last_event: EntityFactoryGuardEvent
-  last_updated: str
-  samples: int
-  stable_samples: int
-  expansions: int
-  contractions: int
-  last_expansion_duration_ms: float
-  last_contraction_duration_ms: float
-  average_duration_ms: float
-  max_duration_ms: float
-  min_duration_ms: float
-  duration_span_ms: float
-  jitter_ratio: float
-  recent_average_duration_ms: float
-  recent_max_duration_ms: float
-  recent_min_duration_ms: float
-  recent_duration_span_ms: float
-  recent_jitter_ratio: float
-  stable_ratio: float
-  expansion_ratio: float
-  contraction_ratio: float
-  volatility_ratio: float
-  consecutive_stable_samples: int
-  longest_stable_run: int
-  recent_samples: int
-  recent_events: list[EntityFactoryGuardEvent]
-  recent_stable_samples: int
-  recent_stable_ratio: float
-  stability_trend: EntityFactoryGuardStabilityTrend
+  runtime_floor_ms: float  # noqa: E111
+  baseline_floor_ms: float  # noqa: E111
+  max_floor_ms: float  # noqa: E111
+  runtime_floor_delta_ms: float  # noqa: E111
+  peak_runtime_floor_ms: float  # noqa: E111
+  lowest_runtime_floor_ms: float  # noqa: E111
+  last_floor_change_ms: float  # noqa: E111
+  last_actual_duration_ms: float  # noqa: E111
+  last_duration_ratio: float  # noqa: E111
+  last_floor_change_ratio: float  # noqa: E111
+  last_event: EntityFactoryGuardEvent  # noqa: E111
+  last_updated: str  # noqa: E111
+  samples: int  # noqa: E111
+  stable_samples: int  # noqa: E111
+  expansions: int  # noqa: E111
+  contractions: int  # noqa: E111
+  last_expansion_duration_ms: float  # noqa: E111
+  last_contraction_duration_ms: float  # noqa: E111
+  average_duration_ms: float  # noqa: E111
+  max_duration_ms: float  # noqa: E111
+  min_duration_ms: float  # noqa: E111
+  duration_span_ms: float  # noqa: E111
+  jitter_ratio: float  # noqa: E111
+  recent_average_duration_ms: float  # noqa: E111
+  recent_max_duration_ms: float  # noqa: E111
+  recent_min_duration_ms: float  # noqa: E111
+  recent_duration_span_ms: float  # noqa: E111
+  recent_jitter_ratio: float  # noqa: E111
+  stable_ratio: float  # noqa: E111
+  expansion_ratio: float  # noqa: E111
+  contraction_ratio: float  # noqa: E111
+  volatility_ratio: float  # noqa: E111
+  consecutive_stable_samples: int  # noqa: E111
+  longest_stable_run: int  # noqa: E111
+  recent_samples: int  # noqa: E111
+  recent_events: list[EntityFactoryGuardEvent]  # noqa: E111
+  recent_stable_samples: int  # noqa: E111
+  recent_stable_ratio: float  # noqa: E111
+  stability_trend: EntityFactoryGuardStabilityTrend  # noqa: E111
 
 
 class PersonEntityConfigInput(TypedDict, total=False):
-  """Configuration payload accepted by :class:`PersonEntityManager`."""
+  """Configuration payload accepted by :class:`PersonEntityManager`."""  # noqa: E111
 
-  enabled: bool
-  auto_discovery: bool
-  discovery_interval: int
-  cache_ttl: int
-  include_away_persons: bool
-  fallback_to_static: bool
-  static_notification_targets: list[str]
-  excluded_entities: list[str]
-  notification_mapping: dict[str, str]
-  priority_persons: list[str]
+  enabled: bool  # noqa: E111
+  auto_discovery: bool  # noqa: E111
+  discovery_interval: int  # noqa: E111
+  cache_ttl: int  # noqa: E111
+  include_away_persons: bool  # noqa: E111
+  fallback_to_static: bool  # noqa: E111
+  static_notification_targets: list[str]  # noqa: E111
+  excluded_entities: list[str]  # noqa: E111
+  notification_mapping: dict[str, str]  # noqa: E111
+  priority_persons: list[str]  # noqa: E111
 
 
 class PersonEntityCounters(TypedDict):
-  """Low-level person manager counters used for cache statistics."""
+  """Low-level person manager counters used for cache statistics."""  # noqa: E111
 
-  persons_discovered: int
-  notifications_targeted: int
-  cache_hits: int
-  cache_misses: int
-  discovery_runs: int
+  persons_discovered: int  # noqa: E111
+  notifications_targeted: int  # noqa: E111
+  cache_hits: int  # noqa: E111
+  cache_misses: int  # noqa: E111
+  discovery_runs: int  # noqa: E111
 
 
 class PersonEntityConfigStats(TypedDict):
-  """Normalised configuration snapshot for the person entity manager."""
+  """Normalised configuration snapshot for the person entity manager."""  # noqa: E111
 
-  enabled: bool
-  auto_discovery: bool
-  discovery_interval: int
-  include_away_persons: bool
-  fallback_to_static: bool
+  enabled: bool  # noqa: E111
+  auto_discovery: bool  # noqa: E111
+  discovery_interval: int  # noqa: E111
+  include_away_persons: bool  # noqa: E111
+  fallback_to_static: bool  # noqa: E111
 
 
 class PersonEntityStateStats(TypedDict):
-  """Runtime discovery metrics surfaced by the person entity manager."""
+  """Runtime discovery metrics surfaced by the person entity manager."""  # noqa: E111
 
-  total_persons: int
-  home_persons: int
-  away_persons: int
-  last_discovery: str
-  uptime_seconds: float
+  total_persons: int  # noqa: E111
+  home_persons: int  # noqa: E111
+  away_persons: int  # noqa: E111
+  last_discovery: str  # noqa: E111
+  uptime_seconds: float  # noqa: E111
 
 
 class PersonEntityCacheStats(TypedDict):
-  """Cache health metrics for person notification targeting."""
+  """Cache health metrics for person notification targeting."""  # noqa: E111
 
-  cache_entries: int
-  hit_rate: float
+  cache_entries: int  # noqa: E111
+  hit_rate: float  # noqa: E111
 
 
 class PersonEntityStats(PersonEntityCounters):
-  """Coordinator statistics payload exported by the person entity manager."""
+  """Coordinator statistics payload exported by the person entity manager."""  # noqa: E111
 
-  config: PersonEntityConfigStats
-  current_state: PersonEntityStateStats
-  cache: PersonEntityCacheStats
+  config: PersonEntityConfigStats  # noqa: E111
+  current_state: PersonEntityStateStats  # noqa: E111
+  cache: PersonEntityCacheStats  # noqa: E111
 
 
 class PersonNotificationCacheEntry(TypedDict, total=False):
-  """Snapshot of cached notification targets for a specific context."""
+  """Snapshot of cached notification targets for a specific context."""  # noqa: E111
 
-  targets: tuple[str, ...]
-  generated_at: str | None
-  age_seconds: float | None
-  stale: bool
+  targets: tuple[str, ...]  # noqa: E111
+  generated_at: str | None  # noqa: E111
+  age_seconds: float | None  # noqa: E111
+  stale: bool  # noqa: E111
 
 
 class PersonNotificationContext(TypedDict):
-  """Aggregated notification context surfaced to diagnostics panels."""
+  """Aggregated notification context surfaced to diagnostics panels."""  # noqa: E111
 
-  persons_home: int
-  persons_away: int
-  home_person_names: list[str]
-  away_person_names: list[str]
-  total_persons: int
-  has_anyone_home: bool
-  everyone_away: bool
+  persons_home: int  # noqa: E111
+  persons_away: int  # noqa: E111
+  home_person_names: list[str]  # noqa: E111
+  away_person_names: list[str]  # noqa: E111
+  total_persons: int  # noqa: E111
+  has_anyone_home: bool  # noqa: E111
+  everyone_away: bool  # noqa: E111
 
 
 class PersonEntityDiscoveryResult(TypedDict):
-  """Discovery summary returned by ``PersonEntityManager.async_force_discovery``."""
+  """Discovery summary returned by ``PersonEntityManager.async_force_discovery``."""  # noqa: E111
 
-  previous_count: int
-  current_count: int
-  persons_added: int
-  persons_removed: int
-  home_persons: int
-  away_persons: int
-  discovery_time: str
+  previous_count: int  # noqa: E111
+  current_count: int  # noqa: E111
+  persons_added: int  # noqa: E111
+  persons_removed: int  # noqa: E111
+  home_persons: int  # noqa: E111
+  away_persons: int  # noqa: E111
+  discovery_time: str  # noqa: E111
 
 
 class PersonEntityValidationResult(TypedDict):
-  """Validation payload produced by ``PersonEntityManager.async_validate_configuration``."""
+  """Validation payload produced by ``PersonEntityManager.async_validate_configuration``."""  # noqa: E111, E501
 
-  valid: bool
-  issues: list[str]
-  recommendations: list[str]
-  persons_configured: int
-  notification_targets_available: int
+  valid: bool  # noqa: E111
+  issues: list[str]  # noqa: E111
+  recommendations: list[str]  # noqa: E111
+  persons_configured: int  # noqa: E111
+  notification_targets_available: int  # noqa: E111
 
 
 class QueuedNotificationPayload(TypedDict, total=False):
-  """Notification entry stored in helper queues before delivery."""
+  """Notification entry stored in helper queues before delivery."""  # noqa: E111
 
-  dog_id: Required[str]
-  title: Required[str]
-  message: Required[str]
-  priority: Required[NotificationPriority]
-  data: NotRequired[JSONMutableMapping]
-  timestamp: Required[str]
+  dog_id: Required[str]  # noqa: E111
+  title: Required[str]  # noqa: E111
+  message: Required[str]  # noqa: E111
+  priority: Required[NotificationPriority]  # noqa: E111
+  data: NotRequired[JSONMutableMapping]  # noqa: E111
+  timestamp: Required[str]  # noqa: E111
 
 
 class NotificationQueueStats(TypedDict):
-  """Queue utilisation metrics for the notification manager."""
+  """Queue utilisation metrics for the notification manager."""  # noqa: E111
 
-  normal_queue_size: int
-  high_priority_queue_size: int
-  total_queued: int
-  max_queue_size: int
+  normal_queue_size: int  # noqa: E111
+  high_priority_queue_size: int  # noqa: E111
+  total_queued: int  # noqa: E111
+  max_queue_size: int  # noqa: E111
 
 
 class PersonEntitySnapshotEntry(TypedDict, total=False):
-  """Snapshot payload exported for each discovered person entity."""
+  """Snapshot payload exported for each discovered person entity."""  # noqa: E111
 
-  entity_id: str
-  name: str
-  friendly_name: str
-  state: str
-  is_home: bool
-  last_updated: str
-  mobile_device_id: str | None
-  notification_service: str | None
+  entity_id: str  # noqa: E111
+  name: str  # noqa: E111
+  friendly_name: str  # noqa: E111
+  state: str  # noqa: E111
+  is_home: bool  # noqa: E111
+  last_updated: str  # noqa: E111
+  mobile_device_id: str | None  # noqa: E111
+  notification_service: str | None  # noqa: E111
 
 
 class PersonEntityStorageEntry(PersonEntitySnapshotEntry, total=False):
-  """Persistent storage payload for discovered person entities."""
+  """Persistent storage payload for discovered person entities."""  # noqa: E111
 
-  attributes: PersonEntityAttributePayload
+  attributes: PersonEntityAttributePayload  # noqa: E111
 
 
 class PersonEntitySnapshot(TypedDict):
-  """Coordinator snapshot payload returned by the person entity manager."""
+  """Coordinator snapshot payload returned by the person entity manager."""  # noqa: E111
 
-  persons: dict[str, PersonEntitySnapshotEntry]
-  notification_context: PersonNotificationContext
+  persons: dict[str, PersonEntitySnapshotEntry]  # noqa: E111
+  notification_context: PersonNotificationContext  # noqa: E111
 
 
 class ScriptManagerDogScripts(TypedDict):
-  """Snapshot of generated scripts for a single dog."""
+  """Snapshot of generated scripts for a single dog."""  # noqa: E111
 
-  count: int
-  scripts: list[str]
+  count: int  # noqa: E111
+  scripts: list[str]  # noqa: E111
 
 
 class ScriptManagerStats(TypedDict, total=False):
-  """Summary metrics surfaced by the script manager cache monitor."""
+  """Summary metrics surfaced by the script manager cache monitor."""  # noqa: E111
 
-  scripts: int
-  dogs: int
-  entry_scripts: int
-  last_generated_age_seconds: int
+  scripts: int  # noqa: E111
+  dogs: int  # noqa: E111
+  entry_scripts: int  # noqa: E111
+  last_generated_age_seconds: int  # noqa: E111
 
 
 class ScriptManagerSnapshot(TypedDict, total=False):
-  """Detailed coordinator snapshot payload for the script manager."""
+  """Detailed coordinator snapshot payload for the script manager."""  # noqa: E111
 
-  created_entities: list[str]
-  per_dog: dict[str, ScriptManagerDogScripts]
-  entry_scripts: list[str]
-  last_generated: str | None
+  created_entities: list[str]  # noqa: E111
+  per_dog: dict[str, ScriptManagerDogScripts]  # noqa: E111
+  entry_scripts: list[str]  # noqa: E111
+  last_generated: str | None  # noqa: E111
 
 
 DogValidationCache = dict[str, DogValidationCacheEntry]
@@ -3831,75 +3835,75 @@ type ConfigData = JSONMutableMapping
 
 
 class FeedingScheduleSnapshot(TypedDict, total=False):
-  """Schedule configuration associated with the feeding telemetry."""
+  """Schedule configuration associated with the feeding telemetry."""  # noqa: E111
 
-  meals_per_day: int
-  food_type: str | None
-  schedule_type: str | None
+  meals_per_day: int  # noqa: E111
+  food_type: str | None  # noqa: E111
+  schedule_type: str | None  # noqa: E111
 
 
 class FeedingEventRecord(TypedDict, total=False):
-  """Serialized feeding event stored in manager telemetry."""
+  """Serialized feeding event stored in manager telemetry."""  # noqa: E111
 
-  time: Required[str]
-  amount: Required[float]
-  meal_type: str | None
-  portion_size: float | None
-  food_type: str | None
-  notes: str | None
-  feeder: str | None
-  scheduled: Required[bool]
-  skipped: Required[bool]
-  with_medication: Required[bool]
-  medication_name: str | None
-  medication_dose: str | None
-  medication_time: str | None
+  time: Required[str]  # noqa: E111
+  amount: Required[float]  # noqa: E111
+  meal_type: str | None  # noqa: E111
+  portion_size: float | None  # noqa: E111
+  food_type: str | None  # noqa: E111
+  notes: str | None  # noqa: E111
+  feeder: str | None  # noqa: E111
+  scheduled: Required[bool]  # noqa: E111
+  skipped: Required[bool]  # noqa: E111
+  with_medication: Required[bool]  # noqa: E111
+  medication_name: str | None  # noqa: E111
+  medication_dose: str | None  # noqa: E111
+  medication_time: str | None  # noqa: E111
 
 
 class FeedingMissedMeal(TypedDict):
-  """Scheduled meal that was not completed within the expected window."""
+  """Scheduled meal that was not completed within the expected window."""  # noqa: E111
 
-  meal_type: str
-  scheduled_time: str
+  meal_type: str  # noqa: E111
+  scheduled_time: str  # noqa: E111
 
 
 class FeedingManagerDogSetupPayload(TypedDict, total=False):
-  """Normalized dog payload consumed by ``FeedingManager.async_initialize``."""
+  """Normalized dog payload consumed by ``FeedingManager.async_initialize``."""  # noqa: E111
 
-  dog_id: Required[str]
-  weight: Required[float | int | str]
-  dog_name: NotRequired[str | None]
-  ideal_weight: NotRequired[float | int | str | None]
-  age_months: NotRequired[int | float | None]
-  activity_level: NotRequired[str | None]
-  health_conditions: NotRequired[Iterable[str] | None]
-  weight_goal: NotRequired[str | None]
-  special_diet: NotRequired[Iterable[str] | str | None]
-  feeding_config: NotRequired[JSONMutableMapping | JSONMapping]
-  breed: NotRequired[str | None]
-  modules: NotRequired[Mapping[str, bool]]
+  dog_id: Required[str]  # noqa: E111
+  weight: Required[float | int | str]  # noqa: E111
+  dog_name: NotRequired[str | None]  # noqa: E111
+  ideal_weight: NotRequired[float | int | str | None]  # noqa: E111
+  age_months: NotRequired[int | float | None]  # noqa: E111
+  activity_level: NotRequired[str | None]  # noqa: E111
+  health_conditions: NotRequired[Iterable[str] | None]  # noqa: E111
+  weight_goal: NotRequired[str | None]  # noqa: E111
+  special_diet: NotRequired[Iterable[str] | str | None]  # noqa: E111
+  feeding_config: NotRequired[JSONMutableMapping | JSONMapping]  # noqa: E111
+  breed: NotRequired[str | None]  # noqa: E111
+  modules: NotRequired[Mapping[str, bool]]  # noqa: E111
 
 
 class FeedingDailyStats(TypedDict):
-  """Daily feeding counters exposed alongside the active snapshot."""
+  """Daily feeding counters exposed alongside the active snapshot."""  # noqa: E111
 
-  total_fed_today: float
-  meals_today: int
-  remaining_calories: float | None
+  total_fed_today: float  # noqa: E111
+  meals_today: int  # noqa: E111
+  remaining_calories: float | None  # noqa: E111
 
 
 class FeedingEmergencyState(TypedDict, total=False):
-  """State metadata tracked while emergency feeding mode is active."""
+  """State metadata tracked while emergency feeding mode is active."""  # noqa: E111
 
-  active: Required[bool]
-  status: Required[str]
-  emergency_type: Required[str]
-  portion_adjustment: Required[float]
-  duration_days: Required[int]
-  activated_at: Required[str]
-  expires_at: str | None
-  resolved_at: NotRequired[str]
-  food_type_recommendation: str | None
+  active: Required[bool]  # noqa: E111
+  status: Required[str]  # noqa: E111
+  emergency_type: Required[str]  # noqa: E111
+  portion_adjustment: Required[float]  # noqa: E111
+  duration_days: Required[int]  # noqa: E111
+  activated_at: Required[str]  # noqa: E111
+  expires_at: str | None  # noqa: E111
+  resolved_at: NotRequired[str]  # noqa: E111
+  food_type_recommendation: str | None  # noqa: E111
 
 
 type FeedingHealthStatus = Literal[
@@ -3915,104 +3919,104 @@ type FeedingHealthStatus = Literal[
 
 
 class FeedingHealthSummary(TypedDict, total=False):
-  """Structured health context calculated for a dog's feeding plan."""
+  """Structured health context calculated for a dog's feeding plan."""  # noqa: E111
 
-  health_aware_enabled: bool
-  current_weight: float | None
-  ideal_weight: float | None
-  life_stage: str | None
-  activity_level: str | None
-  body_condition_score: float | int | None
-  daily_calorie_requirement: float | None
-  calories_per_gram: float
-  health_conditions: list[str]
-  special_diet: list[str]
-  weight_goal: str | None
-  diet_validation_applied: bool
+  health_aware_enabled: bool  # noqa: E111
+  current_weight: float | None  # noqa: E111
+  ideal_weight: float | None  # noqa: E111
+  life_stage: str | None  # noqa: E111
+  activity_level: str | None  # noqa: E111
+  body_condition_score: float | int | None  # noqa: E111
+  daily_calorie_requirement: float | None  # noqa: E111
+  calories_per_gram: float  # noqa: E111
+  health_conditions: list[str]  # noqa: E111
+  special_diet: list[str]  # noqa: E111
+  weight_goal: str | None  # noqa: E111
+  diet_validation_applied: bool  # noqa: E111
 
 
 class FeedingDietValidationSummary(TypedDict, total=False):
-  """Summary describing diet validation adjustments and conflicts."""
+  """Summary describing diet validation adjustments and conflicts."""  # noqa: E111
 
-  has_adjustments: bool
-  adjustment_info: str
-  conflict_count: int
-  warning_count: int
-  vet_consultation_recommended: bool
-  vet_consultation_state: str
-  consultation_urgency: str
-  total_diets: int
-  diet_validation_adjustment: float
-  percentage_adjustment: float
-  adjustment_direction: str
-  safety_factor: str
-  compatibility_score: int
-  compatibility_level: str
-  conflicts: NotRequired[list[JSONMapping]]
-  warnings: NotRequired[list[JSONMapping]]
+  has_adjustments: bool  # noqa: E111
+  adjustment_info: str  # noqa: E111
+  conflict_count: int  # noqa: E111
+  warning_count: int  # noqa: E111
+  vet_consultation_recommended: bool  # noqa: E111
+  vet_consultation_state: str  # noqa: E111
+  consultation_urgency: str  # noqa: E111
+  total_diets: int  # noqa: E111
+  diet_validation_adjustment: float  # noqa: E111
+  percentage_adjustment: float  # noqa: E111
+  adjustment_direction: str  # noqa: E111
+  safety_factor: str  # noqa: E111
+  compatibility_score: int  # noqa: E111
+  compatibility_level: str  # noqa: E111
+  conflicts: NotRequired[list[JSONMapping]]  # noqa: E111
+  warnings: NotRequired[list[JSONMapping]]  # noqa: E111
 
 
 class FeedingSnapshot(TypedDict, total=False):
-  """Primary feeding telemetry snapshot returned by the manager."""
+  """Primary feeding telemetry snapshot returned by the manager."""  # noqa: E111
 
-  status: Required[Literal["ready", "no_data"]]
-  last_feeding: str | None
-  last_feeding_type: str | None
-  last_feeding_hours: float | None
-  last_feeding_amount: float | None
-  feedings_today: Required[dict[str, int]]
-  total_feedings_today: Required[int]
-  daily_amount_consumed: Required[float]
-  daily_amount_target: Required[float]
-  daily_target: Required[float]
-  daily_amount_percentage: Required[int]
-  schedule_adherence: Required[int]
-  next_feeding: str | None
-  next_feeding_type: str | None
-  missed_feedings: Required[list[FeedingMissedMeal]]
-  feedings: Required[list[FeedingEventRecord]]
-  feeding_schedule: NotRequired[list[JSONMapping]]
-  daily_portions: NotRequired[int]
-  daily_stats: Required[FeedingDailyStats]
-  calories_per_gram: NotRequired[float]
-  daily_calorie_target: NotRequired[float]
-  total_calories_today: NotRequired[float]
-  calorie_goal_progress: NotRequired[float]
-  portion_adjustment_factor: NotRequired[float]
-  diet_validation_summary: NotRequired[FeedingDietValidationSummary | None]
-  health_conditions: NotRequired[list[str]]
-  daily_activity_level: NotRequired[str | None]
-  health_summary: NotRequired[FeedingHealthSummary]
-  medication_with_meals: Required[bool]
-  health_aware_feeding: Required[bool]
-  weight_goal: Required[str | None]
-  weight_goal_progress: NotRequired[float]
-  emergency_mode: Required[FeedingEmergencyState | None]
-  health_emergency: Required[bool]
-  health_feeding_status: Required[FeedingHealthStatus]
-  config: NotRequired[FeedingScheduleSnapshot]
+  status: Required[Literal["ready", "no_data"]]  # noqa: E111
+  last_feeding: str | None  # noqa: E111
+  last_feeding_type: str | None  # noqa: E111
+  last_feeding_hours: float | None  # noqa: E111
+  last_feeding_amount: float | None  # noqa: E111
+  feedings_today: Required[dict[str, int]]  # noqa: E111
+  total_feedings_today: Required[int]  # noqa: E111
+  daily_amount_consumed: Required[float]  # noqa: E111
+  daily_amount_target: Required[float]  # noqa: E111
+  daily_target: Required[float]  # noqa: E111
+  daily_amount_percentage: Required[int]  # noqa: E111
+  schedule_adherence: Required[int]  # noqa: E111
+  next_feeding: str | None  # noqa: E111
+  next_feeding_type: str | None  # noqa: E111
+  missed_feedings: Required[list[FeedingMissedMeal]]  # noqa: E111
+  feedings: Required[list[FeedingEventRecord]]  # noqa: E111
+  feeding_schedule: NotRequired[list[JSONMapping]]  # noqa: E111
+  daily_portions: NotRequired[int]  # noqa: E111
+  daily_stats: Required[FeedingDailyStats]  # noqa: E111
+  calories_per_gram: NotRequired[float]  # noqa: E111
+  daily_calorie_target: NotRequired[float]  # noqa: E111
+  total_calories_today: NotRequired[float]  # noqa: E111
+  calorie_goal_progress: NotRequired[float]  # noqa: E111
+  portion_adjustment_factor: NotRequired[float]  # noqa: E111
+  diet_validation_summary: NotRequired[FeedingDietValidationSummary | None]  # noqa: E111
+  health_conditions: NotRequired[list[str]]  # noqa: E111
+  daily_activity_level: NotRequired[str | None]  # noqa: E111
+  health_summary: NotRequired[FeedingHealthSummary]  # noqa: E111
+  medication_with_meals: Required[bool]  # noqa: E111
+  health_aware_feeding: Required[bool]  # noqa: E111
+  weight_goal: Required[str | None]  # noqa: E111
+  weight_goal_progress: NotRequired[float]  # noqa: E111
+  emergency_mode: Required[FeedingEmergencyState | None]  # noqa: E111
+  health_emergency: Required[bool]  # noqa: E111
+  health_feeding_status: Required[FeedingHealthStatus]  # noqa: E111
+  config: NotRequired[FeedingScheduleSnapshot]  # noqa: E111
 
 
 class FeedingStatisticsSnapshot(TypedDict):
-  """Historical feeding statistics exported by the manager."""
+  """Historical feeding statistics exported by the manager."""  # noqa: E111
 
-  period_days: int
-  total_feedings: int
-  average_daily_feedings: float
-  average_daily_amount: float
-  most_common_meal: str | None
-  schedule_adherence: int
-  daily_target_met_percentage: int
+  period_days: int  # noqa: E111
+  total_feedings: int  # noqa: E111
+  average_daily_feedings: float  # noqa: E111
+  average_daily_amount: float  # noqa: E111
+  most_common_meal: str | None  # noqa: E111
+  schedule_adherence: int  # noqa: E111
+  daily_target_met_percentage: int  # noqa: E111
 
 
 class FeedingModulePayload(FeedingSnapshot, total=False):
-  """Typed payload exposed by the feeding coordinator module."""
+  """Typed payload exposed by the feeding coordinator module."""  # noqa: E111
 
-  message: NotRequired[str]
+  message: NotRequired[str]  # noqa: E111
 
 
 class FeedingModuleTelemetry(FeedingModulePayload):
-  """Extended feeding module telemetry used by diagnostics consumers."""
+  """Extended feeding module telemetry used by diagnostics consumers."""  # noqa: E111
 
 
 type FeedingSnapshotCache = dict[str, FeedingSnapshot]
@@ -4024,249 +4028,249 @@ type FeedingStatisticsCache = dict[str, FeedingStatisticsSnapshot]
 
 
 class GPSRoutePoint(TypedDict, total=False):
-  """Individual GPS sample collected during live tracking."""
+  """Individual GPS sample collected during live tracking."""  # noqa: E111
 
-  latitude: Required[float]
-  longitude: Required[float]
-  timestamp: Required[datetime | str]
-  accuracy: NotRequired[float | int]
-  altitude: float | None
-  speed: float | None
-  heading: float | None
+  latitude: Required[float]  # noqa: E111
+  longitude: Required[float]  # noqa: E111
+  timestamp: Required[datetime | str]  # noqa: E111
+  accuracy: NotRequired[float | int]  # noqa: E111
+  altitude: float | None  # noqa: E111
+  speed: float | None  # noqa: E111
+  heading: float | None  # noqa: E111
 
 
 class GPSLocationSample(TypedDict):
-  """Validated GPS location sample with prioritisation metadata."""
+  """Validated GPS location sample with prioritisation metadata."""  # noqa: E111
 
-  latitude: float
-  longitude: float
-  accuracy: int
-  timestamp: datetime
-  source: str
-  priority: int
-  altitude: float | None
-  speed: float | None
-  heading: float | None
+  latitude: float  # noqa: E111
+  longitude: float  # noqa: E111
+  accuracy: int  # noqa: E111
+  timestamp: datetime  # noqa: E111
+  source: str  # noqa: E111
+  priority: int  # noqa: E111
+  altitude: float | None  # noqa: E111
+  speed: float | None  # noqa: E111
+  heading: float | None  # noqa: E111
 
 
 class GPSRouteSnapshot(TypedDict, total=False):
-  """Snapshot of an active or historical GPS route."""
+  """Snapshot of an active or historical GPS route."""  # noqa: E111
 
-  id: Required[str]
-  name: Required[str]
-  active: Required[bool]
-  start_time: Required[datetime | str]
-  end_time: datetime | str | None
-  duration: float | int | None
-  distance: float | None
-  points: list[GPSRoutePoint]
-  point_count: int
-  last_point_time: datetime | str | None
+  id: Required[str]  # noqa: E111
+  name: Required[str]  # noqa: E111
+  active: Required[bool]  # noqa: E111
+  start_time: Required[datetime | str]  # noqa: E111
+  end_time: datetime | str | None  # noqa: E111
+  duration: float | int | None  # noqa: E111
+  distance: float | None  # noqa: E111
+  points: list[GPSRoutePoint]  # noqa: E111
+  point_count: int  # noqa: E111
+  last_point_time: datetime | str | None  # noqa: E111
 
 
 class GPSCompletedRouteSnapshot(GPSRouteSnapshot, total=False):
-  """Snapshot returned when a GPS route recording completes."""
+  """Snapshot returned when a GPS route recording completes."""  # noqa: E111
 
-  dog_id: Required[str]
-  dog_name: Required[str]
+  dog_id: Required[str]  # noqa: E111
+  dog_name: Required[str]  # noqa: E111
 
 
 class GeofenceZoneMetadata(TypedDict, total=False):
-  """Additional attributes persisted alongside configured geofence zones."""
+  """Additional attributes persisted alongside configured geofence zones."""  # noqa: E111
 
-  auto_created: bool
-  color: str | None
-  created_by: str | None
-  notes: str | None
-  tags: list[str]
+  auto_created: bool  # noqa: E111
+  color: str | None  # noqa: E111
+  created_by: str | None  # noqa: E111
+  notes: str | None  # noqa: E111
+  tags: list[str]  # noqa: E111
 
 
 class GeofenceZoneStoragePayload(TypedDict, total=False):
-  """Serialized representation of a stored :class:`GeofenceZone`."""
+  """Serialized representation of a stored :class:`GeofenceZone`."""  # noqa: E111
 
-  id: Required[str]
-  name: Required[str]
-  type: Required[str]
-  latitude: Required[float]
-  longitude: Required[float]
-  radius: Required[float]
-  enabled: bool
-  alerts_enabled: bool
-  description: str
-  created_at: str
-  updated_at: str
-  metadata: GeofenceZoneMetadata
+  id: Required[str]  # noqa: E111
+  name: Required[str]  # noqa: E111
+  type: Required[str]  # noqa: E111
+  latitude: Required[float]  # noqa: E111
+  longitude: Required[float]  # noqa: E111
+  radius: Required[float]  # noqa: E111
+  enabled: bool  # noqa: E111
+  alerts_enabled: bool  # noqa: E111
+  description: str  # noqa: E111
+  created_at: str  # noqa: E111
+  updated_at: str  # noqa: E111
+  metadata: GeofenceZoneMetadata  # noqa: E111
 
 
 class GeofenceStoragePayload(TypedDict, total=False):
-  """Top-level storage payload tracked by :class:`PawControlGeofencing`."""
+  """Top-level storage payload tracked by :class:`PawControlGeofencing`."""  # noqa: E111
 
-  zones: dict[str, GeofenceZoneStoragePayload]
-  last_updated: str
+  zones: dict[str, GeofenceZoneStoragePayload]  # noqa: E111
+  last_updated: str  # noqa: E111
 
 
 class GeofenceNotificationPayload(TypedDict, total=False):
-  """Notification payload emitted for geofence enter/exit events."""
+  """Notification payload emitted for geofence enter/exit events."""  # noqa: E111
 
-  zone_id: Required[str]
-  zone_name: Required[str]
-  zone_type: Required[str]
-  event_type: Required[str]
-  radius: Required[float]
-  latitude: float
-  longitude: float
-  distance_from_center_m: float
-  accuracy: float | int | None
+  zone_id: Required[str]  # noqa: E111
+  zone_name: Required[str]  # noqa: E111
+  zone_type: Required[str]  # noqa: E111
+  event_type: Required[str]  # noqa: E111
+  radius: Required[float]  # noqa: E111
+  latitude: float  # noqa: E111
+  longitude: float  # noqa: E111
+  distance_from_center_m: float  # noqa: E111
+  accuracy: float | int | None  # noqa: E111
 
 
 class GPSGeofenceLocationSnapshot(TypedDict, total=False):
-  """Current GPS location exported in geofence status snapshots."""
+  """Current GPS location exported in geofence status snapshots."""  # noqa: E111
 
-  latitude: Required[float]
-  longitude: Required[float]
-  timestamp: Required[str]
-  accuracy: float | int | None
+  latitude: Required[float]  # noqa: E111
+  longitude: Required[float]  # noqa: E111
+  timestamp: Required[str]  # noqa: E111
+  accuracy: float | int | None  # noqa: E111
 
 
 class GPSGeofenceZoneStatusSnapshot(TypedDict):
-  """Status details for an individual configured geofence zone."""
+  """Status details for an individual configured geofence zone."""  # noqa: E111
 
-  inside: bool
-  zone_type: str
-  radius_meters: float
-  distance_to_center: float
-  notifications_enabled: bool
+  inside: bool  # noqa: E111
+  zone_type: str  # noqa: E111
+  radius_meters: float  # noqa: E111
+  distance_to_center: float  # noqa: E111
+  notifications_enabled: bool  # noqa: E111
 
 
 class GPSGeofenceStatusSnapshot(TypedDict):
-  """Full geofence snapshot surfaced to diagnostics and dashboards."""
+  """Full geofence snapshot surfaced to diagnostics and dashboards."""  # noqa: E111
 
-  dog_id: str
-  zones_configured: int
-  current_location: GPSGeofenceLocationSnapshot | None
-  zone_status: dict[str, GPSGeofenceZoneStatusSnapshot]
-  safe_zone_breaches: int
-  last_update: str | None
+  dog_id: str  # noqa: E111
+  zones_configured: int  # noqa: E111
+  current_location: GPSGeofenceLocationSnapshot | None  # noqa: E111
+  zone_status: dict[str, GPSGeofenceZoneStatusSnapshot]  # noqa: E111
+  safe_zone_breaches: int  # noqa: E111
+  last_update: str | None  # noqa: E111
 
 
 class GPSTrackingConfigInput(TypedDict, total=False):
-  """Mutable configuration payload accepted by the GPS manager."""
+  """Mutable configuration payload accepted by the GPS manager."""  # noqa: E111
 
-  enabled: bool
-  auto_start_walk: bool
-  track_route: bool
-  safety_alerts: bool
-  geofence_notifications: bool
-  auto_detect_home: bool
-  gps_accuracy_threshold: float | int
-  update_interval_seconds: int | float
-  min_distance_for_point: float | int
-  route_smoothing: bool
-  configured_at: datetime | str | None
+  enabled: bool  # noqa: E111
+  auto_start_walk: bool  # noqa: E111
+  track_route: bool  # noqa: E111
+  safety_alerts: bool  # noqa: E111
+  geofence_notifications: bool  # noqa: E111
+  auto_detect_home: bool  # noqa: E111
+  gps_accuracy_threshold: float | int  # noqa: E111
+  update_interval_seconds: int | float  # noqa: E111
+  min_distance_for_point: float | int  # noqa: E111
+  route_smoothing: bool  # noqa: E111
+  configured_at: datetime | str | None  # noqa: E111
 
 
 class GeofenceNotificationCoordinates(TypedDict):
-  """Latitude and longitude payload bundled with geofence notifications."""
+  """Latitude and longitude payload bundled with geofence notifications."""  # noqa: E111
 
-  latitude: float
-  longitude: float
+  latitude: float  # noqa: E111
+  longitude: float  # noqa: E111
 
 
 class GeofenceEventPayload(TypedDict, total=False):
-  """Event data fired on the Home Assistant event bus for geofence changes."""
+  """Event data fired on the Home Assistant event bus for geofence changes."""  # noqa: E111
 
-  dog_id: Required[str]
-  zone: Required[str]
-  zone_type: Required[str]
-  event: Required[str]
-  distance_meters: Required[float]
-  timestamp: Required[str]
-  latitude: Required[float]
-  longitude: Required[float]
-  duration_seconds: int
+  dog_id: Required[str]  # noqa: E111
+  zone: Required[str]  # noqa: E111
+  zone_type: Required[str]  # noqa: E111
+  event: Required[str]  # noqa: E111
+  distance_meters: Required[float]  # noqa: E111
+  timestamp: Required[str]  # noqa: E111
+  latitude: Required[float]  # noqa: E111
+  longitude: Required[float]  # noqa: E111
+  duration_seconds: int  # noqa: E111
 
 
 class GeofenceNotificationData(TypedDict, total=False):
-  """Structured data payload passed to notification templates for geofences."""
+  """Structured data payload passed to notification templates for geofences."""  # noqa: E111
 
-  zone: Required[str]
-  zone_type: Required[str]
-  event: Required[str]
-  distance_meters: Required[float]
-  coordinates: Required[GeofenceNotificationCoordinates]
-  duration_seconds: int
+  zone: Required[str]  # noqa: E111
+  zone_type: Required[str]  # noqa: E111
+  event: Required[str]  # noqa: E111
+  distance_meters: Required[float]  # noqa: E111
+  coordinates: Required[GeofenceNotificationCoordinates]  # noqa: E111
+  duration_seconds: int  # noqa: E111
 
 
 class GPSTelemetryPayload(TypedDict, total=False):
-  """Live GPS telemetry exposed to coordinators and diagnostics."""
+  """Live GPS telemetry exposed to coordinators and diagnostics."""  # noqa: E111
 
-  latitude: float | None
-  longitude: float | None
-  accuracy: float | int | None
-  altitude: float | None
-  speed: float | None
-  heading: float | None
-  source: str | None
-  last_seen: datetime | str | None
-  last_update: str | None
-  battery: float | int | None
-  zone: str | None
-  satellites: int | None
-  distance_from_home: float | None
-  geofence_status: JSONMutableMapping | None
-  walk_info: JSONMutableMapping | None
-  current_route: GPSRouteSnapshot | None
-  active_route: GPSRouteSnapshot | JSONMutableMapping | None
+  latitude: float | None  # noqa: E111
+  longitude: float | None  # noqa: E111
+  accuracy: float | int | None  # noqa: E111
+  altitude: float | None  # noqa: E111
+  speed: float | None  # noqa: E111
+  heading: float | None  # noqa: E111
+  source: str | None  # noqa: E111
+  last_seen: datetime | str | None  # noqa: E111
+  last_update: str | None  # noqa: E111
+  battery: float | int | None  # noqa: E111
+  zone: str | None  # noqa: E111
+  satellites: int | None  # noqa: E111
+  distance_from_home: float | None  # noqa: E111
+  geofence_status: JSONMutableMapping | None  # noqa: E111
+  walk_info: JSONMutableMapping | None  # noqa: E111
+  current_route: GPSRouteSnapshot | None  # noqa: E111
+  active_route: GPSRouteSnapshot | JSONMutableMapping | None  # noqa: E111
 
 
 class GPSModulePayload(GPSTelemetryPayload, total=False):
-  """GPS metrics surfaced through the GPS adapter."""
+  """GPS metrics surfaced through the GPS adapter."""  # noqa: E111
 
-  status: Required[str]
+  status: Required[str]  # noqa: E111
 
 
 class GPSManagerStats(TypedDict):
-  """Counters maintained by :class:`GPSGeofenceManager` for telemetry."""
+  """Counters maintained by :class:`GPSGeofenceManager` for telemetry."""  # noqa: E111
 
-  gps_points_processed: int
-  routes_completed: int
-  geofence_events: int
-  last_update: datetime
+  gps_points_processed: int  # noqa: E111
+  routes_completed: int  # noqa: E111
+  geofence_events: int  # noqa: E111
+  last_update: datetime  # noqa: E111
 
 
 class GPSManagerStatisticsSnapshot(GPSManagerStats):
-  """Aggregated GPS statistics exposed via coordinator diagnostics."""
+  """Aggregated GPS statistics exposed via coordinator diagnostics."""  # noqa: E111
 
-  dogs_configured: int
-  active_tracking_sessions: int
-  total_routes_stored: int
-  geofence_zones_configured: int
+  dogs_configured: int  # noqa: E111
+  active_tracking_sessions: int  # noqa: E111
+  total_routes_stored: int  # noqa: E111
+  geofence_zones_configured: int  # noqa: E111
 
 
 class GPSTrackerRouteAttributes(TypedDict, total=False):
-  """Route metadata surfaced as device tracker state attributes."""
+  """Route metadata surfaced as device tracker state attributes."""  # noqa: E111
 
-  route_active: bool
-  route_points: int
-  route_distance: float | None
-  route_duration: float | int | None
-  route_start_time: str | None
+  route_active: bool  # noqa: E111
+  route_points: int  # noqa: E111
+  route_distance: float | None  # noqa: E111
+  route_duration: float | int | None  # noqa: E111
+  route_start_time: str | None  # noqa: E111
 
 
 class GPSTrackerGeofenceAttributes(TypedDict, total=False):
-  """Geofence attributes exposed on the GPS tracker entity."""
+  """Geofence attributes exposed on the GPS tracker entity."""  # noqa: E111
 
-  in_safe_zone: bool
-  zone_name: str | None
-  zone_distance: float | None
+  in_safe_zone: bool  # noqa: E111
+  zone_name: str | None  # noqa: E111
+  zone_distance: float | None  # noqa: E111
 
 
 class GPSTrackerWalkAttributes(TypedDict, total=False):
-  """Walk linkage metadata exposed on the GPS tracker entity."""
+  """Walk linkage metadata exposed on the GPS tracker entity."""  # noqa: E111
 
-  walk_active: bool
-  walk_id: str | None
-  walk_start_time: str | None
+  walk_active: bool  # noqa: E111
+  walk_id: str | None  # noqa: E111
+  walk_start_time: str | None  # noqa: E111
 
 
 class GPSTrackerExtraAttributes(
@@ -4275,84 +4279,84 @@ class GPSTrackerExtraAttributes(
   GPSTrackerWalkAttributes,
   total=False,
 ):
-  """Complete set of extra attributes returned by the GPS tracker entity."""
+  """Complete set of extra attributes returned by the GPS tracker entity."""  # noqa: E111
 
-  dog_id: Required[str]
-  dog_name: Required[str]
-  tracker_type: Required[str]
-  altitude: float | None
-  speed: float | None
-  heading: float | None
-  satellites: int | None
-  location_source: str
-  last_seen: str | None
-  distance_from_home: float | None
+  dog_id: Required[str]  # noqa: E111
+  dog_name: Required[str]  # noqa: E111
+  tracker_type: Required[str]  # noqa: E111
+  altitude: float | None  # noqa: E111
+  speed: float | None  # noqa: E111
+  heading: float | None  # noqa: E111
+  satellites: int | None  # noqa: E111
+  location_source: str  # noqa: E111
+  last_seen: str | None  # noqa: E111
+  distance_from_home: float | None  # noqa: E111
 
 
 def _normalise_route_point(point: Mapping[str, object]) -> GPSRoutePoint | None:
-  """Return a JSON-safe GPS route point."""
+  """Return a JSON-safe GPS route point."""  # noqa: E111
 
-  latitude = _coerce_float_value(point.get("latitude"))
-  longitude = _coerce_float_value(point.get("longitude"))
-  if latitude is None or longitude is None:
+  latitude = _coerce_float_value(point.get("latitude"))  # noqa: E111
+  longitude = _coerce_float_value(point.get("longitude"))  # noqa: E111
+  if latitude is None or longitude is None:  # noqa: E111
     return None
 
-  timestamp = (
+  timestamp = (  # noqa: E111
     _coerce_iso_timestamp(point.get("timestamp")) or dt_util.utcnow().isoformat()
   )
-  payload: GPSRoutePoint = {
+  payload: GPSRoutePoint = {  # noqa: E111
     "latitude": latitude,
     "longitude": longitude,
     "timestamp": timestamp,
   }
 
-  altitude = _coerce_float_value(point.get("altitude"))
-  if altitude is not None:
+  altitude = _coerce_float_value(point.get("altitude"))  # noqa: E111
+  if altitude is not None:  # noqa: E111
     payload["altitude"] = altitude
 
-  accuracy = _coerce_float_value(point.get("accuracy"))
-  if accuracy is not None:
+  accuracy = _coerce_float_value(point.get("accuracy"))  # noqa: E111
+  if accuracy is not None:  # noqa: E111
     payload["accuracy"] = accuracy
 
-  speed = _coerce_float_value(point.get("speed"))
-  if speed is not None:
+  speed = _coerce_float_value(point.get("speed"))  # noqa: E111
+  if speed is not None:  # noqa: E111
     payload["speed"] = speed
 
-  heading = _coerce_float_value(point.get("heading"))
-  if heading is not None:
+  heading = _coerce_float_value(point.get("heading"))  # noqa: E111
+  if heading is not None:  # noqa: E111
     payload["heading"] = heading
 
-  return payload
+  return payload  # noqa: E111
 
 
 def ensure_gps_route_snapshot(
   payload: Mapping[str, JSONValue] | JSONMutableMapping | None,
 ) -> GPSRouteSnapshot | None:
-  """Normalise a route snapshot mapping into a JSON-safe structure."""
+  """Normalise a route snapshot mapping into a JSON-safe structure."""  # noqa: E111
 
-  if payload is None or not isinstance(payload, Mapping):
+  if payload is None or not isinstance(payload, Mapping):  # noqa: E111
     return None
 
-  base = ensure_json_mapping(payload)
-  points_raw = base.get("points")
-  points: list[GPSRoutePoint] = []
-  if isinstance(points_raw, Sequence) and not isinstance(points_raw, str | bytes):
+  base = ensure_json_mapping(payload)  # noqa: E111
+  points_raw = base.get("points")  # noqa: E111
+  points: list[GPSRoutePoint] = []  # noqa: E111
+  if isinstance(points_raw, Sequence) and not isinstance(points_raw, str | bytes):  # noqa: E111
     for point in points_raw:
-      if isinstance(point, Mapping):
+      if isinstance(point, Mapping):  # noqa: E111
         normalised = _normalise_route_point(point)
         if normalised is not None:
-          points.append(normalised)
-      else:
+          points.append(normalised)  # noqa: E111
+      else:  # noqa: E111
         # Skip non-mapping points to avoid corrupting the route data.
         pass
 
-  start_time = (
+  start_time = (  # noqa: E111
     _coerce_iso_timestamp(base.get("start_time")) or dt_util.utcnow().isoformat()
   )
-  end_time = _coerce_iso_timestamp(base.get("end_time"))
-  last_point_time = _coerce_iso_timestamp(base.get("last_point_time"))
+  end_time = _coerce_iso_timestamp(base.get("end_time"))  # noqa: E111
+  last_point_time = _coerce_iso_timestamp(base.get("last_point_time"))  # noqa: E111
 
-  snapshot: GPSRouteSnapshot = {
+  snapshot: GPSRouteSnapshot = {  # noqa: E111
     "active": bool(base.get("active", False)),
     "id": str(base.get("id") or ""),
     "name": str(base.get("name") or base.get("id") or "GPS Route"),
@@ -4361,42 +4365,42 @@ def ensure_gps_route_snapshot(
     "point_count": len(points),
   }
 
-  if end_time is not None:
+  if end_time is not None:  # noqa: E111
     snapshot["end_time"] = end_time
-  if last_point_time is not None:
+  if last_point_time is not None:  # noqa: E111
     snapshot["last_point_time"] = last_point_time
 
-  distance = _coerce_float_value(base.get("distance"))
-  if distance is not None:
+  distance = _coerce_float_value(base.get("distance"))  # noqa: E111
+  if distance is not None:  # noqa: E111
     snapshot["distance"] = distance
 
-  duration = _coerce_float_value(base.get("duration"))
-  if duration is not None:
+  duration = _coerce_float_value(base.get("duration"))  # noqa: E111
+  if duration is not None:  # noqa: E111
     snapshot["duration"] = duration
 
-  return snapshot
+  return snapshot  # noqa: E111
 
 
 def ensure_gps_payload(
   payload: Mapping[str, object] | JSONMutableMapping | None,
 ) -> GPSModulePayload | None:
-  """Return a normalised :class:`GPSModulePayload`."""
+  """Return a normalised :class:`GPSModulePayload`."""  # noqa: E111
 
-  if payload is None or not isinstance(payload, Mapping):
+  if payload is None or not isinstance(payload, Mapping):  # noqa: E111
     return None
 
-  gps_payload = cast(GPSModulePayload, ensure_json_mapping(payload))
-  if not gps_payload:
+  gps_payload = cast(GPSModulePayload, ensure_json_mapping(payload))  # noqa: E111
+  if not gps_payload:  # noqa: E111
     return None
-  last_seen = _coerce_iso_timestamp(gps_payload.get("last_seen"))
-  if last_seen is not None or "last_seen" in gps_payload:
+  last_seen = _coerce_iso_timestamp(gps_payload.get("last_seen"))  # noqa: E111
+  if last_seen is not None or "last_seen" in gps_payload:  # noqa: E111
     gps_payload["last_seen"] = last_seen
 
-  last_update = _coerce_iso_timestamp(gps_payload.get("last_update"))
-  if last_update is not None or "last_update" in gps_payload:
+  last_update = _coerce_iso_timestamp(gps_payload.get("last_update"))  # noqa: E111
+  if last_update is not None or "last_update" in gps_payload:  # noqa: E111
     gps_payload["last_update"] = last_update
 
-  for payload_field in (
+  for payload_field in (  # noqa: E111
     "latitude",
     "longitude",
     "accuracy",
@@ -4407,123 +4411,123 @@ def ensure_gps_payload(
     "distance_from_home",
   ):
     if payload_field not in gps_payload:
-      continue
+      continue  # noqa: E111
     gps_payload[payload_field] = _coerce_float_value(
       gps_payload.get(payload_field),
     )
 
-  satellites = gps_payload.get("satellites")
-  if satellites is None and "satellites" in gps_payload:
+  satellites = gps_payload.get("satellites")  # noqa: E111
+  if satellites is None and "satellites" in gps_payload:  # noqa: E111
     gps_payload["satellites"] = None
-  elif satellites is not None:
+  elif satellites is not None:  # noqa: E111
     try:
-      gps_payload["satellites"] = int(satellites)
+      gps_payload["satellites"] = int(satellites)  # noqa: E111
     except ValueError:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Invalid satellites value %s for GPS payload; setting to None",
         satellites,
       )
-      gps_payload["satellites"] = None
+      gps_payload["satellites"] = None  # noqa: E111
     except TypeError:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Invalid satellites value %s for GPS payload; setting to None",
         satellites,
       )
-      gps_payload["satellites"] = None
+      gps_payload["satellites"] = None  # noqa: E111
 
-  current_route_snapshot = ensure_gps_route_snapshot(
+  current_route_snapshot = ensure_gps_route_snapshot(  # noqa: E111
     cast(
       Mapping[str, JSONValue] | JSONMutableMapping | None,
       payload.get("current_route"),
     ),
   )
-  if current_route_snapshot is not None:
+  if current_route_snapshot is not None:  # noqa: E111
     gps_payload["current_route"] = current_route_snapshot
-  elif "current_route" in gps_payload:
+  elif "current_route" in gps_payload:  # noqa: E111
     gps_payload.pop("current_route", None)
 
-  route_active_payload = payload.get("active_route")
-  if isinstance(route_active_payload, Mapping):
+  route_active_payload = payload.get("active_route")  # noqa: E111
+  if isinstance(route_active_payload, Mapping):  # noqa: E111
     active_route = ensure_gps_route_snapshot(
       cast(Mapping[str, JSONValue], route_active_payload),
     )
     if active_route is not None:
-      gps_payload["active_route"] = active_route
+      gps_payload["active_route"] = active_route  # noqa: E111
 
-  status = payload.get("status")
-  gps_payload["status"] = str(status) if status is not None else "unknown"
+  status = payload.get("status")  # noqa: E111
+  gps_payload["status"] = str(status) if status is not None else "unknown"  # noqa: E111
 
-  return gps_payload
+  return gps_payload  # noqa: E111
 
 
 class GPSRouteExportJSONPoint(TypedDict, total=False):
-  """GPS point exported in JSON route downloads."""
+  """GPS point exported in JSON route downloads."""  # noqa: E111
 
-  latitude: Required[float]
-  longitude: Required[float]
-  timestamp: Required[str]
-  altitude: float | None
-  accuracy: float | int | None
-  source: str | None
+  latitude: Required[float]  # noqa: E111
+  longitude: Required[float]  # noqa: E111
+  timestamp: Required[str]  # noqa: E111
+  altitude: float | None  # noqa: E111
+  accuracy: float | int | None  # noqa: E111
+  source: str | None  # noqa: E111
 
 
 class GPSRouteExportJSONEvent(TypedDict, total=False):
-  """Geofence event metadata included in JSON route exports."""
+  """Geofence event metadata included in JSON route exports."""  # noqa: E111
 
-  event_type: Required[str]
-  zone_name: Required[str]
-  timestamp: Required[str]
-  distance_from_center: float | None
-  severity: str | None
+  event_type: Required[str]  # noqa: E111
+  zone_name: Required[str]  # noqa: E111
+  timestamp: Required[str]  # noqa: E111
+  distance_from_center: float | None  # noqa: E111
+  severity: str | None  # noqa: E111
 
 
 class GPSRouteExportJSONRoute(TypedDict, total=False):
-  """Route details serialised in JSON exports."""
+  """Route details serialised in JSON exports."""  # noqa: E111
 
-  start_time: Required[str]
-  end_time: str | None
-  duration_minutes: float | None
-  distance_km: float | None
-  avg_speed_kmh: float | None
-  route_quality: str
-  gps_points: list[GPSRouteExportJSONPoint]
-  geofence_events: list[GPSRouteExportJSONEvent]
+  start_time: Required[str]  # noqa: E111
+  end_time: str | None  # noqa: E111
+  duration_minutes: float | None  # noqa: E111
+  distance_km: float | None  # noqa: E111
+  avg_speed_kmh: float | None  # noqa: E111
+  route_quality: str  # noqa: E111
+  gps_points: list[GPSRouteExportJSONPoint]  # noqa: E111
+  geofence_events: list[GPSRouteExportJSONEvent]  # noqa: E111
 
 
 class GPSRouteExportJSONContent(TypedDict):
-  """Top-level JSON payload returned when exporting GPS routes."""
+  """Top-level JSON payload returned when exporting GPS routes."""  # noqa: E111
 
-  dog_id: str
-  export_timestamp: str
-  routes: list[GPSRouteExportJSONRoute]
+  dog_id: str  # noqa: E111
+  export_timestamp: str  # noqa: E111
+  routes: list[GPSRouteExportJSONRoute]  # noqa: E111
 
 
 class GPSRouteExportBasePayload(TypedDict):
-  """Base fields shared across all GPS route export payloads."""
+  """Base fields shared across all GPS route export payloads."""  # noqa: E111
 
-  filename: str
-  routes_count: int
+  filename: str  # noqa: E111
+  routes_count: int  # noqa: E111
 
 
 class GPSRouteExportGPXPayload(GPSRouteExportBasePayload):
-  """Payload returned when exporting GPS routes in GPX format."""
+  """Payload returned when exporting GPS routes in GPX format."""  # noqa: E111
 
-  format: Literal["gpx"]
-  content: str
+  format: Literal["gpx"]  # noqa: E111
+  content: str  # noqa: E111
 
 
 class GPSRouteExportCSVPayload(GPSRouteExportBasePayload):
-  """Payload returned when exporting GPS routes in CSV format."""
+  """Payload returned when exporting GPS routes in CSV format."""  # noqa: E111
 
-  format: Literal["csv"]
-  content: str
+  format: Literal["csv"]  # noqa: E111
+  content: str  # noqa: E111
 
 
 class GPSRouteExportJSONPayload(GPSRouteExportBasePayload):
-  """Payload returned when exporting GPS routes in JSON format."""
+  """Payload returned when exporting GPS routes in JSON format."""  # noqa: E111
 
-  format: Literal["json"]
-  content: GPSRouteExportJSONContent
+  format: Literal["json"]  # noqa: E111
+  content: GPSRouteExportJSONContent  # noqa: E111
 
 
 type GPSRouteExportPayload = (
@@ -4536,370 +4540,370 @@ TPoint = TypeVar("TPoint", bound=GPSRoutePoint)
 
 @dataclass(slots=True)
 class GPSRouteBuffer[TPoint: GPSRoutePoint]:
-  """Typed buffer that stores route samples for GPS tracking."""
+  """Typed buffer that stores route samples for GPS tracking."""  # noqa: E111
 
-  _points: list[TPoint] = field(default_factory=list)
+  _points: list[TPoint] = field(default_factory=list)  # noqa: E111
 
-  def append(self, point: TPoint) -> None:
+  def append(self, point: TPoint) -> None:  # noqa: E111
     """Append a new GPS sample to the buffer."""
 
     self._points.append(point)
 
-  def prune(self, *, cutoff: datetime, max_points: int) -> None:
+  def prune(self, *, cutoff: datetime, max_points: int) -> None:  # noqa: E111
     """Drop samples older than ``cutoff`` while enforcing ``max_points``."""
 
     filtered_points: list[TPoint] = []
     for point in self._points:
-      timestamp = point.get("timestamp")
-      if isinstance(timestamp, datetime) and timestamp > cutoff:
+      timestamp = point.get("timestamp")  # noqa: E111
+      if isinstance(timestamp, datetime) and timestamp > cutoff:  # noqa: E111
         filtered_points.append(point)
 
     self._points = filtered_points
     if len(self._points) > max_points:
-      self._points = self._points[-max_points:]
+      self._points = self._points[-max_points:]  # noqa: E111
 
-  def snapshot(self, *, limit: int | None = None) -> list[TPoint]:
+  def snapshot(self, *, limit: int | None = None) -> list[TPoint]:  # noqa: E111
     """Return a shallow copy of the most recent samples."""
 
     if limit is None:
-      return list(self._points)
+      return list(self._points)  # noqa: E111
     if limit <= 0:
-      return []
+      return []  # noqa: E111
     return list(self._points[-limit:])
 
-  def view(self) -> Sequence[TPoint]:
+  def view(self) -> Sequence[TPoint]:  # noqa: E111
     """Return a read-only view over the buffered route samples."""
 
     return self._points
 
-  def clear(self) -> None:
+  def clear(self) -> None:  # noqa: E111
     """Remove all buffered samples."""
 
     self._points.clear()
 
-  def __len__(self) -> int:
+  def __len__(self) -> int:  # noqa: E111
     """Return the number of buffered samples."""
 
     return len(self._points)
 
-  def __bool__(self) -> bool:  # pragma: no cover - delegated to __len__
+  def __bool__(self) -> bool:  # pragma: no cover - delegated to __len__  # noqa: E111
     """Return ``True`` when the buffer contains samples."""
 
     return bool(self._points)
 
-  def __iter__(self) -> Iterator[TPoint]:
+  def __iter__(self) -> Iterator[TPoint]:  # noqa: E111
     """Iterate over buffered samples in chronological order."""
 
     return iter(self._points)
 
 
 class GeofencingModulePayload(TypedDict, total=False):
-  """Structured geofence payload for coordinator consumers."""
+  """Structured geofence payload for coordinator consumers."""  # noqa: E111
 
-  status: Required[str]
-  zones_configured: int
-  zone_status: dict[str, GPSGeofenceZoneStatusSnapshot]
-  current_location: GPSGeofenceLocationSnapshot | None
-  safe_zone_breaches: int
-  last_update: str | None
-  message: NotRequired[str]
-  error: NotRequired[str]
+  status: Required[str]  # noqa: E111
+  zones_configured: int  # noqa: E111
+  zone_status: dict[str, GPSGeofenceZoneStatusSnapshot]  # noqa: E111
+  current_location: GPSGeofenceLocationSnapshot | None  # noqa: E111
+  safe_zone_breaches: int  # noqa: E111
+  last_update: str | None  # noqa: E111
+  message: NotRequired[str]  # noqa: E111
+  error: NotRequired[str]  # noqa: E111
 
 
 class HealthModulePayload(TypedDict, total=False):
-  """Combined health telemetry exposed by the health adapter."""
+  """Combined health telemetry exposed by the health adapter."""  # noqa: E111
 
-  status: Required[str]
-  weight: float | None
-  ideal_weight: float | None
-  last_vet_visit: str | None
-  medications: HealthMedicationQueue
-  health_alerts: HealthAlertList
-  life_stage: str | None
-  activity_level: str | None
-  body_condition_score: float | int | None
-  health_conditions: list[str]
-  emergency: JSONMutableMapping
-  medication: JSONMutableMapping
-  health_status: str | None
-  daily_calorie_target: float | None
-  total_calories_today: float | None
-  weight_goal_progress: Any
-  weight_goal: Any
+  status: Required[str]  # noqa: E111
+  weight: float | None  # noqa: E111
+  ideal_weight: float | None  # noqa: E111
+  last_vet_visit: str | None  # noqa: E111
+  medications: HealthMedicationQueue  # noqa: E111
+  health_alerts: HealthAlertList  # noqa: E111
+  life_stage: str | None  # noqa: E111
+  activity_level: str | None  # noqa: E111
+  body_condition_score: float | int | None  # noqa: E111
+  health_conditions: list[str]  # noqa: E111
+  emergency: JSONMutableMapping  # noqa: E111
+  medication: JSONMutableMapping  # noqa: E111
+  health_status: str | None  # noqa: E111
+  daily_calorie_target: float | None  # noqa: E111
+  total_calories_today: float | None  # noqa: E111
+  weight_goal_progress: Any  # noqa: E111
+  weight_goal: Any  # noqa: E111
 
 
 class WeatherConditionsPayload(TypedDict, total=False):
-  """Current weather snapshot consumed by dashboard entities."""
+  """Current weather snapshot consumed by dashboard entities."""  # noqa: E111
 
-  temperature_c: float | None
-  humidity_percent: float | None
-  uv_index: float | None
-  wind_speed_kmh: float | None
-  condition: str | None
-  last_updated: str
+  temperature_c: float | None  # noqa: E111
+  humidity_percent: float | None  # noqa: E111
+  uv_index: float | None  # noqa: E111
+  wind_speed_kmh: float | None  # noqa: E111
+  condition: str | None  # noqa: E111
+  last_updated: str  # noqa: E111
 
 
 class WeatherAlertPayload(TypedDict, total=False):
-  """Serialized weather alert returned by the adapter."""
+  """Serialized weather alert returned by the adapter."""  # noqa: E111
 
-  type: Required[str]
-  severity: Required[str]
-  title: Required[str]
-  message: Required[str]
-  recommendations: list[str]
-  duration_hours: int | None
-  affected_breeds: list[str]
-  age_considerations: list[str]
+  type: Required[str]  # noqa: E111
+  severity: Required[str]  # noqa: E111
+  title: Required[str]  # noqa: E111
+  message: Required[str]  # noqa: E111
+  recommendations: list[str]  # noqa: E111
+  duration_hours: int | None  # noqa: E111
+  affected_breeds: list[str]  # noqa: E111
+  age_considerations: list[str]  # noqa: E111
 
 
 type WeatherModuleStatus = Literal["ready", "disabled", "error"]
 
 
 class WeatherModulePayload(TypedDict, total=False):
-  """Weather-driven health insights returned by the weather adapter."""
+  """Weather-driven health insights returned by the weather adapter."""  # noqa: E111
 
-  status: Required[WeatherModuleStatus]
-  health_score: float | int | None
-  alerts: list[WeatherAlertPayload]
-  recommendations: list[str]
-  conditions: WeatherConditionsPayload
-  message: NotRequired[str]
+  status: Required[WeatherModuleStatus]  # noqa: E111
+  health_score: float | int | None  # noqa: E111
+  alerts: list[WeatherAlertPayload]  # noqa: E111
+  recommendations: list[str]  # noqa: E111
+  conditions: WeatherConditionsPayload  # noqa: E111
+  message: NotRequired[str]  # noqa: E111
 
 
 class GardenFavoriteActivity(TypedDict):
-  """Tracked activity that contributes to garden statistics."""
+  """Tracked activity that contributes to garden statistics."""  # noqa: E111
 
-  activity: str
-  count: int
+  activity: str  # noqa: E111
+  count: int  # noqa: E111
 
 
 class GardenWeeklySummary(TypedDict, total=False):
-  """Rolling weekly garden performance summary."""
+  """Rolling weekly garden performance summary."""  # noqa: E111
 
-  session_count: int
-  total_time_minutes: float
-  poop_events: int
-  average_duration: float
-  updated: str
+  session_count: int  # noqa: E111
+  total_time_minutes: float  # noqa: E111
+  poop_events: int  # noqa: E111
+  average_duration: float  # noqa: E111
+  updated: str  # noqa: E111
 
 
 class GardenStatsSnapshot(TypedDict, total=False):
-  """Structured garden statistics payload."""
+  """Structured garden statistics payload."""  # noqa: E111
 
-  total_sessions: int
-  total_time_minutes: float
-  total_poop_count: int
-  average_session_duration: float
-  most_active_time_of_day: str | None
-  favorite_activities: list[GardenFavoriteActivity]
-  weekly_summary: GardenWeeklySummary
-  last_garden_visit: str | None
-  total_activities: int
+  total_sessions: int  # noqa: E111
+  total_time_minutes: float  # noqa: E111
+  total_poop_count: int  # noqa: E111
+  average_session_duration: float  # noqa: E111
+  most_active_time_of_day: str | None  # noqa: E111
+  favorite_activities: list[GardenFavoriteActivity]  # noqa: E111
+  weekly_summary: GardenWeeklySummary  # noqa: E111
+  last_garden_visit: str | None  # noqa: E111
+  total_activities: int  # noqa: E111
 
 
 class GardenConfirmationSnapshot(TypedDict, total=False):
-  """Metadata describing pending garden confirmations."""
+  """Metadata describing pending garden confirmations."""  # noqa: E111
 
-  session_id: str | None
-  created: str | None
-  expires: str | None
+  session_id: str | None  # noqa: E111
+  created: str | None  # noqa: E111
+  expires: str | None  # noqa: E111
 
 
 class GardenWeatherSummary(TypedDict, total=False):
-  """Summary of weather observations collected during garden sessions."""
+  """Summary of weather observations collected during garden sessions."""  # noqa: E111
 
-  conditions: list[str]
-  average_temperature: float | None
+  conditions: list[str]  # noqa: E111
+  average_temperature: float | None  # noqa: E111
 
 
 class GardenSessionSnapshot(TypedDict, total=False):
-  """Serializable snapshot describing a garden session."""
+  """Serializable snapshot describing a garden session."""  # noqa: E111
 
-  session_id: str
-  start_time: str
-  end_time: str | None
-  duration_minutes: float
-  activity_count: int
-  poop_count: int
-  status: str
-  weather_conditions: str | None
-  temperature: float | None
-  notes: str | None
+  session_id: str  # noqa: E111
+  start_time: str  # noqa: E111
+  end_time: str | None  # noqa: E111
+  duration_minutes: float  # noqa: E111
+  activity_count: int  # noqa: E111
+  poop_count: int  # noqa: E111
+  status: str  # noqa: E111
+  weather_conditions: str | None  # noqa: E111
+  temperature: float | None  # noqa: E111
+  notes: str | None  # noqa: E111
 
 
 class GardenActiveSessionSnapshot(TypedDict, total=False):
-  """Runtime view of an active garden session."""
+  """Runtime view of an active garden session."""  # noqa: E111
 
-  session_id: str
-  start_time: str
-  duration_minutes: float
-  activity_count: int
-  poop_count: int
+  session_id: str  # noqa: E111
+  start_time: str  # noqa: E111
+  duration_minutes: float  # noqa: E111
+  activity_count: int  # noqa: E111
+  poop_count: int  # noqa: E111
 
 
 class GardenModulePayload(TypedDict, total=False):
-  """Garden telemetry surfaced to coordinators."""
+  """Garden telemetry surfaced to coordinators."""  # noqa: E111
 
-  status: Required[str]
-  message: NotRequired[str]
-  sessions_today: int
-  time_today_minutes: float
-  poop_today: int
-  activities_today: int
-  activities_total: int
-  active_session: GardenActiveSessionSnapshot | None
-  last_session: GardenSessionSnapshot | None
-  hours_since_last_session: float | None
-  stats: GardenStatsSnapshot
-  pending_confirmations: list[GardenConfirmationSnapshot]
-  weather_summary: GardenWeatherSummary | None
+  status: Required[str]  # noqa: E111
+  message: NotRequired[str]  # noqa: E111
+  sessions_today: int  # noqa: E111
+  time_today_minutes: float  # noqa: E111
+  poop_today: int  # noqa: E111
+  activities_today: int  # noqa: E111
+  activities_total: int  # noqa: E111
+  active_session: GardenActiveSessionSnapshot | None  # noqa: E111
+  last_session: GardenSessionSnapshot | None  # noqa: E111
+  hours_since_last_session: float | None  # noqa: E111
+  stats: GardenStatsSnapshot  # noqa: E111
+  pending_confirmations: list[GardenConfirmationSnapshot]  # noqa: E111
+  weather_summary: GardenWeatherSummary | None  # noqa: E111
 
 
 class WalkRoutePoint(TypedDict, total=False):
-  """Normalised GPS sample recorded during a walk."""
+  """Normalised GPS sample recorded during a walk."""  # noqa: E111
 
-  latitude: float
-  longitude: float
-  timestamp: str
-  accuracy: NotRequired[float | None]
-  altitude: NotRequired[float | None]
-  speed: NotRequired[float | None]
-  heading: NotRequired[float | None]
-  source: NotRequired[str | None]
-  battery_level: NotRequired[int | None]
-  signal_strength: NotRequired[int | None]
+  latitude: float  # noqa: E111
+  longitude: float  # noqa: E111
+  timestamp: str  # noqa: E111
+  accuracy: NotRequired[float | None]  # noqa: E111
+  altitude: NotRequired[float | None]  # noqa: E111
+  speed: NotRequired[float | None]  # noqa: E111
+  heading: NotRequired[float | None]  # noqa: E111
+  source: NotRequired[str | None]  # noqa: E111
+  battery_level: NotRequired[int | None]  # noqa: E111
+  signal_strength: NotRequired[int | None]  # noqa: E111
 
 
 class GPSCacheStats(TypedDict):
-  """Statistics tracked by the GPS cache for diagnostics."""
+  """Statistics tracked by the GPS cache for diagnostics."""  # noqa: E111
 
-  hits: int
-  misses: int
-  hit_rate: float
-  cached_locations: int
-  distance_cache_entries: int
-  evictions: int
-  max_size: int
+  hits: int  # noqa: E111
+  misses: int  # noqa: E111
+  hit_rate: float  # noqa: E111
+  cached_locations: int  # noqa: E111
+  distance_cache_entries: int  # noqa: E111
+  evictions: int  # noqa: E111
+  max_size: int  # noqa: E111
 
 
 class GPSCacheDiagnosticsMetadata(TypedDict):
-  """Metadata describing cache configuration and contents."""
+  """Metadata describing cache configuration and contents."""  # noqa: E111
 
-  cached_dogs: list[str]
-  max_size: int
-  distance_cache_entries: int
-  evictions: int
+  cached_dogs: list[str]  # noqa: E111
+  max_size: int  # noqa: E111
+  distance_cache_entries: int  # noqa: E111
+  evictions: int  # noqa: E111
 
 
 class GPSCacheSnapshot(TypedDict):
-  """Combined telemetry exported by the GPS cache."""
+  """Combined telemetry exported by the GPS cache."""  # noqa: E111
 
-  stats: GPSCacheStats
-  metadata: GPSCacheDiagnosticsMetadata
+  stats: GPSCacheStats  # noqa: E111
+  metadata: GPSCacheDiagnosticsMetadata  # noqa: E111
 
 
 class WalkLocationSnapshot(TypedDict, total=False):
-  """Snapshot describing a recorded walk location."""
+  """Snapshot describing a recorded walk location."""  # noqa: E111
 
-  latitude: float
-  longitude: float
-  timestamp: str
-  accuracy: NotRequired[float | None]
-  altitude: NotRequired[float | None]
-  source: NotRequired[str | None]
-  battery_level: NotRequired[int | None]
-  signal_strength: NotRequired[int | None]
+  latitude: float  # noqa: E111
+  longitude: float  # noqa: E111
+  timestamp: str  # noqa: E111
+  accuracy: NotRequired[float | None]  # noqa: E111
+  altitude: NotRequired[float | None]  # noqa: E111
+  source: NotRequired[str | None]  # noqa: E111
+  battery_level: NotRequired[int | None]  # noqa: E111
+  signal_strength: NotRequired[int | None]  # noqa: E111
 
 
 class WalkPerformanceCounters(TypedDict):
-  """Performance counters captured by the walk manager."""
+  """Performance counters captured by the walk manager."""  # noqa: E111
 
-  gps_updates: int
-  distance_calculations: int
-  cache_hits: int
-  cache_misses: int
-  memory_cleanups: int
-  gpx_exports: int
-  export_errors: int
+  gps_updates: int  # noqa: E111
+  distance_calculations: int  # noqa: E111
+  cache_hits: int  # noqa: E111
+  cache_misses: int  # noqa: E111
+  memory_cleanups: int  # noqa: E111
+  gpx_exports: int  # noqa: E111
+  export_errors: int  # noqa: E111
 
 
 class WalkSessionSnapshot(TypedDict, total=False):
-  """Structured walk session metadata used for diagnostics and history."""
+  """Structured walk session metadata used for diagnostics and history."""  # noqa: E111
 
-  walk_id: str
-  dog_id: str
-  walk_type: str
-  start_time: str
-  walker: str | None
-  leash_used: bool
-  weather: str | None
-  track_route: bool
-  safety_alerts: bool
-  start_location: WalkLocationSnapshot | None
-  end_time: str | None
-  duration: float | None
-  distance: float | None
-  end_location: WalkLocationSnapshot | None
-  status: str
-  average_speed: float | None
-  max_speed: float | None
-  calories_burned: float | None
-  elevation_gain: float | None
-  path: list[WalkRoutePoint]
-  notes: str | None
-  dog_weight_kg: float | None
-  detection_confidence: float | None
-  door_sensor: str | None
-  detection_metadata: JSONMutableMapping | None
-  save_route: bool | None
-  path_optimization_applied: bool | None
-  current_distance: float | None
-  current_duration: float | None
-  elapsed_duration: NotRequired[float]
+  walk_id: str  # noqa: E111
+  dog_id: str  # noqa: E111
+  walk_type: str  # noqa: E111
+  start_time: str  # noqa: E111
+  walker: str | None  # noqa: E111
+  leash_used: bool  # noqa: E111
+  weather: str | None  # noqa: E111
+  track_route: bool  # noqa: E111
+  safety_alerts: bool  # noqa: E111
+  start_location: WalkLocationSnapshot | None  # noqa: E111
+  end_time: str | None  # noqa: E111
+  duration: float | None  # noqa: E111
+  distance: float | None  # noqa: E111
+  end_location: WalkLocationSnapshot | None  # noqa: E111
+  status: str  # noqa: E111
+  average_speed: float | None  # noqa: E111
+  max_speed: float | None  # noqa: E111
+  calories_burned: float | None  # noqa: E111
+  elevation_gain: float | None  # noqa: E111
+  path: list[WalkRoutePoint]  # noqa: E111
+  notes: str | None  # noqa: E111
+  dog_weight_kg: float | None  # noqa: E111
+  detection_confidence: float | None  # noqa: E111
+  door_sensor: str | None  # noqa: E111
+  detection_metadata: JSONMutableMapping | None  # noqa: E111
+  save_route: bool | None  # noqa: E111
+  path_optimization_applied: bool | None  # noqa: E111
+  current_distance: float | None  # noqa: E111
+  current_duration: float | None  # noqa: E111
+  elapsed_duration: NotRequired[float]  # noqa: E111
 
 
 class WalkStatisticsSnapshot(TypedDict, total=False):
-  """Aggregated walk statistics tracked per dog."""
+  """Aggregated walk statistics tracked per dog."""  # noqa: E111
 
-  status: str
-  message: str
-  walks_today: Required[int]
-  total_duration_today: Required[float]
-  total_distance_today: Required[float]
-  last_walk: str | None
-  last_walk_duration: float | None
-  last_walk_distance: float | None
-  average_duration: float | None
-  average_distance: float | None
-  weekly_walks: Required[int]
-  weekly_distance: Required[float]
-  needs_walk: Required[bool]
-  walk_streak: Required[int]
-  energy_level: Required[str]
-  walk_in_progress: bool
-  current_walk: WalkSessionSnapshot | None
+  status: str  # noqa: E111
+  message: str  # noqa: E111
+  walks_today: Required[int]  # noqa: E111
+  total_duration_today: Required[float]  # noqa: E111
+  total_distance_today: Required[float]  # noqa: E111
+  last_walk: str | None  # noqa: E111
+  last_walk_duration: float | None  # noqa: E111
+  last_walk_distance: float | None  # noqa: E111
+  average_duration: float | None  # noqa: E111
+  average_distance: float | None  # noqa: E111
+  weekly_walks: Required[int]  # noqa: E111
+  weekly_distance: Required[float]  # noqa: E111
+  needs_walk: Required[bool]  # noqa: E111
+  walk_streak: Required[int]  # noqa: E111
+  energy_level: Required[str]  # noqa: E111
+  walk_in_progress: bool  # noqa: E111
+  current_walk: WalkSessionSnapshot | None  # noqa: E111
 
 
 class WalkModulePayload(WalkStatisticsSnapshot, total=False):
-  """Telemetry returned by the walk adapter."""
+  """Telemetry returned by the walk adapter."""  # noqa: E111
 
-  daily_walks: NotRequired[int]
-  total_distance: NotRequired[float]
+  daily_walks: NotRequired[int]  # noqa: E111
+  total_distance: NotRequired[float]  # noqa: E111
 
 
 class WalkModuleTelemetry(WalkModulePayload, total=False):
-  """Extended walk telemetry with historical and lifetime statistics."""
+  """Extended walk telemetry with historical and lifetime statistics."""  # noqa: E111
 
-  total_distance_lifetime: NotRequired[float]
-  total_walks_lifetime: NotRequired[int]
-  distance_this_week: NotRequired[float]
-  distance_this_month: NotRequired[float]
-  total_duration_this_week: NotRequired[float]
-  walks_this_week: NotRequired[int]
-  walks_history: NotRequired[list[WalkSessionSnapshot]]
-  daily_walk_counts: NotRequired[dict[str, int]]
-  weekly_walk_target: NotRequired[int]
-  walks_yesterday: NotRequired[int]
+  total_distance_lifetime: NotRequired[float]  # noqa: E111
+  total_walks_lifetime: NotRequired[int]  # noqa: E111
+  distance_this_week: NotRequired[float]  # noqa: E111
+  distance_this_month: NotRequired[float]  # noqa: E111
+  total_duration_this_week: NotRequired[float]  # noqa: E111
+  walks_this_week: NotRequired[int]  # noqa: E111
+  walks_history: NotRequired[list[WalkSessionSnapshot]]  # noqa: E111
+  daily_walk_counts: NotRequired[dict[str, int]]  # noqa: E111
+  weekly_walk_target: NotRequired[int]  # noqa: E111
+  walks_yesterday: NotRequired[int]  # noqa: E111
 
 
 ModuleAdapterPayload = (
@@ -4916,53 +4920,53 @@ type DogModulesMapping = Mapping[str, bool]
 
 
 class WalkGPSSnapshot(TypedDict, total=False):
-  """Latest GPS status exported by the walk manager."""
+  """Latest GPS status exported by the walk manager."""  # noqa: E111
 
-  latitude: float | None
-  longitude: float | None
-  accuracy: float | None
-  altitude: float | None
-  speed: float | None
-  heading: float | None
-  last_seen: str | None
-  source: str | None
-  available: Required[bool]
-  zone: Required[str]
-  distance_from_home: float | None
-  signal_strength: int | None
-  battery_level: int | None
-  accuracy_threshold: float | None
-  update_interval: float | int | None
-  automatic_config: JSONMutableMapping | None
-  error: str
+  latitude: float | None  # noqa: E111
+  longitude: float | None  # noqa: E111
+  accuracy: float | None  # noqa: E111
+  altitude: float | None  # noqa: E111
+  speed: float | None  # noqa: E111
+  heading: float | None  # noqa: E111
+  last_seen: str | None  # noqa: E111
+  source: str | None  # noqa: E111
+  available: Required[bool]  # noqa: E111
+  zone: Required[str]  # noqa: E111
+  distance_from_home: float | None  # noqa: E111
+  signal_strength: int | None  # noqa: E111
+  battery_level: int | None  # noqa: E111
+  accuracy_threshold: float | None  # noqa: E111
+  update_interval: float | int | None  # noqa: E111
+  automatic_config: JSONMutableMapping | None  # noqa: E111
+  error: str  # noqa: E111
 
 
 class WalkRouteBounds(TypedDict):
-  """Bounding box describing the extents of exported walk routes."""
+  """Bounding box describing the extents of exported walk routes."""  # noqa: E111
 
-  min_lat: float
-  max_lat: float
-  min_lon: float
-  max_lon: float
+  min_lat: float  # noqa: E111
+  max_lat: float  # noqa: E111
+  min_lon: float  # noqa: E111
+  max_lon: float  # noqa: E111
 
 
 class WalkDailyStatistics(TypedDict):
-  """Aggregated walk statistics for the active day."""
+  """Aggregated walk statistics for the active day."""  # noqa: E111
 
-  total_walks_today: int
-  total_duration_today: float
-  total_distance_today: float
-  average_duration: float | None
-  average_distance: float | None
-  energy_level: str
+  total_walks_today: int  # noqa: E111
+  total_duration_today: float  # noqa: E111
+  total_distance_today: float  # noqa: E111
+  average_duration: float | None  # noqa: E111
+  average_distance: float | None  # noqa: E111
+  energy_level: str  # noqa: E111
 
 
 class WalkWeeklyStatistics(TypedDict):
-  """Aggregated walk statistics for the active week."""
+  """Aggregated walk statistics for the active week."""  # noqa: E111
 
-  total_walks_this_week: int
-  total_distance_this_week: float
-  walk_streak: int
+  total_walks_this_week: int  # noqa: E111
+  total_distance_this_week: float  # noqa: E111
+  walk_streak: int  # noqa: E111
 
 
 type WalkRouteExportFormat = Literal["gpx", "json", "csv"]
@@ -4977,105 +4981,105 @@ type WalkDetectionMutableMetadata = dict[str, JSONValue]
 
 
 class WalkRouteExportMetadata(TypedDict):
-  """Metadata describing the exported walk routes."""
+  """Metadata describing the exported walk routes."""  # noqa: E111
 
-  creator: str
-  version: str
-  generated_by: str
-  bounds: WalkRouteBounds
+  creator: str  # noqa: E111
+  version: str  # noqa: E111
+  generated_by: str  # noqa: E111
+  bounds: WalkRouteBounds  # noqa: E111
 
 
 class WalkRouteExportPayload(TypedDict, total=False):
-  """Serialized walk route export payload returned to callers."""
+  """Serialized walk route export payload returned to callers."""  # noqa: E111
 
-  dog_id: str
-  export_timestamp: str
-  format: WalkRouteExportFormat
-  walks_count: int
-  total_distance_meters: float
-  total_duration_seconds: float
-  total_gps_points: int
-  walks: list[WalkSessionSnapshot] | list[JSONMutableMapping]
-  export_metadata: WalkRouteExportMetadata
-  file_extension: NotRequired[str]
-  mime_type: NotRequired[str]
-  gpx_data: NotRequired[str]
-  json_data: NotRequired[str]
-  csv_data: NotRequired[str]
+  dog_id: str  # noqa: E111
+  export_timestamp: str  # noqa: E111
+  format: WalkRouteExportFormat  # noqa: E111
+  walks_count: int  # noqa: E111
+  total_distance_meters: float  # noqa: E111
+  total_duration_seconds: float  # noqa: E111
+  total_gps_points: int  # noqa: E111
+  walks: list[WalkSessionSnapshot] | list[JSONMutableMapping]  # noqa: E111
+  export_metadata: WalkRouteExportMetadata  # noqa: E111
+  file_extension: NotRequired[str]  # noqa: E111
+  mime_type: NotRequired[str]  # noqa: E111
+  gpx_data: NotRequired[str]  # noqa: E111
+  json_data: NotRequired[str]  # noqa: E111
+  csv_data: NotRequired[str]  # noqa: E111
 
 
 class WalkManagerDogSnapshot(TypedDict):
-  """Composite snapshot exposed to diagnostics for each dog."""
+  """Composite snapshot exposed to diagnostics for each dog."""  # noqa: E111
 
-  active_walk: WalkSessionSnapshot | None
-  history: list[WalkSessionSnapshot]
-  stats: WalkStatisticsSnapshot
-  gps: WalkGPSSnapshot
+  active_walk: WalkSessionSnapshot | None  # noqa: E111
+  history: list[WalkSessionSnapshot]  # noqa: E111
+  stats: WalkStatisticsSnapshot  # noqa: E111
+  gps: WalkGPSSnapshot  # noqa: E111
 
 
 class WalkOverviewSnapshot(WalkManagerDogSnapshot, total=False):
-  """Composite snapshot returned by :func:`WalkManager.get_walk_data`."""
+  """Composite snapshot returned by :func:`WalkManager.get_walk_data`."""  # noqa: E111
 
-  statistics: Required[WalkStatisticsSnapshot]
+  statistics: Required[WalkStatisticsSnapshot]  # noqa: E111
 
 
 class WalkPerformanceSnapshot(TypedDict):
-  """Structured snapshot of walk manager performance telemetry."""
+  """Structured snapshot of walk manager performance telemetry."""  # noqa: E111
 
-  total_dogs: int
-  dogs_with_gps: int
-  active_walks: int
-  total_walks_today: int
-  total_distance_today: float
-  walk_detection_enabled: bool
-  performance_metrics: WalkPerformanceCounters
-  cache_stats: GPSCacheStats
-  statistics_cache_entries: int
-  location_analysis_queue_size: int
-  average_path_length: float
+  total_dogs: int  # noqa: E111
+  dogs_with_gps: int  # noqa: E111
+  active_walks: int  # noqa: E111
+  total_walks_today: int  # noqa: E111
+  total_distance_today: float  # noqa: E111
+  walk_detection_enabled: bool  # noqa: E111
+  performance_metrics: WalkPerformanceCounters  # noqa: E111
+  cache_stats: GPSCacheStats  # noqa: E111
+  statistics_cache_entries: int  # noqa: E111
+  location_analysis_queue_size: int  # noqa: E111
+  average_path_length: float  # noqa: E111
 
 
 @dataclass(slots=True)
 class ModuleCacheMetrics:
-  """Cache metrics exposed by coordinator module adapters."""
+  """Cache metrics exposed by coordinator module adapters."""  # noqa: E111
 
-  entries: int = 0
-  hits: int = 0
-  misses: int = 0
+  entries: int = 0  # noqa: E111
+  hits: int = 0  # noqa: E111
+  misses: int = 0  # noqa: E111
 
-  @property
-  def hit_rate(self) -> float:
+  @property  # noqa: E111
+  def hit_rate(self) -> float:  # noqa: E111
     """Return the cache hit rate as a percentage."""
 
     total = self.hits + self.misses
     if total <= 0:
-      return 0.0
+      return 0.0  # noqa: E111
     return (self.hits / total) * 100.0
 
 
 @dataclass(slots=True)
 class CoordinatorModuleTask:
-  """Wrapper describing a coroutine used to fetch module payloads."""
+  """Wrapper describing a coroutine used to fetch module payloads."""  # noqa: E111
 
-  module: CoordinatorTypedModuleName
-  coroutine: Awaitable[ModuleAdapterPayload]
+  module: CoordinatorTypedModuleName  # noqa: E111
+  coroutine: Awaitable[ModuleAdapterPayload]  # noqa: E111
 
 
 @dataclass(slots=True)
 class CoordinatorRuntimeManagers:
-  """Typed container describing runtime manager dependencies."""
+  """Typed container describing runtime manager dependencies."""  # noqa: E111
 
-  data_manager: PawControlDataManager | None = None
-  feeding_manager: FeedingManager | None = None
-  walk_manager: WalkManager | None = None
-  notification_manager: PawControlNotificationManager | None = None
-  gps_geofence_manager: GPSGeofenceManager | None = None
-  geofencing_manager: PawControlGeofencing | None = None
-  weather_health_manager: WeatherHealthManager | None = None
-  garden_manager: GardenManager | None = None
+  data_manager: PawControlDataManager | None = None  # noqa: E111
+  feeding_manager: FeedingManager | None = None  # noqa: E111
+  walk_manager: WalkManager | None = None  # noqa: E111
+  notification_manager: PawControlNotificationManager | None = None  # noqa: E111
+  gps_geofence_manager: GPSGeofenceManager | None = None  # noqa: E111
+  geofencing_manager: PawControlGeofencing | None = None  # noqa: E111
+  weather_health_manager: WeatherHealthManager | None = None  # noqa: E111
+  garden_manager: GardenManager | None = None  # noqa: E111
 
-  @classmethod
-  def attribute_names(cls) -> tuple[str, ...]:
+  @classmethod  # noqa: E111
+  def attribute_names(cls) -> tuple[str, ...]:  # noqa: E111
     """Return the coordinator attribute names mirrored by this container."""
 
     return (
@@ -5091,96 +5095,96 @@ class CoordinatorRuntimeManagers:
 
 
 class CacheDiagnosticsMetadata(TypedDict, total=False):
-  """Metadata surfaced by cache diagnostics providers."""
+  """Metadata surfaced by cache diagnostics providers."""  # noqa: E111
 
-  cleanup_invocations: int
-  last_cleanup: datetime | str | None
-  last_override_ttl: int | float | None
-  last_expired_count: int
-  expired_entries: int
-  expired_via_override: int
-  pending_expired_entries: int
-  pending_override_candidates: int
-  active_override_flags: int
-  active_override_entries: int
-  tracked_entries: int
-  per_module: JSONMutableMapping
-  per_dog: JSONMutableMapping
-  entry_scripts: list[str]
-  per_dog_helpers: dict[str, int]
-  entity_domains: dict[str, int]
-  errors: list[str]
-  summary: JSONMutableMapping
-  snapshots: list[JSONMutableMapping]
-  created_entities: list[str]
-  detection_stats: JSONMutableMapping
-  cleanup_task_active: bool
-  cleanup_listeners: int
-  daily_reset_configured: bool
-  namespace: str
-  storage_path: str
-  timestamp_anomalies: dict[str, str]
-  last_generated: str | None
-  manager_last_generated_age_seconds: int | float
-  manager_last_activity: str | None
-  manager_last_activity_age_seconds: int | float
-  service_guard_metrics: HelperManagerGuardMetrics
+  cleanup_invocations: int  # noqa: E111
+  last_cleanup: datetime | str | None  # noqa: E111
+  last_override_ttl: int | float | None  # noqa: E111
+  last_expired_count: int  # noqa: E111
+  expired_entries: int  # noqa: E111
+  expired_via_override: int  # noqa: E111
+  pending_expired_entries: int  # noqa: E111
+  pending_override_candidates: int  # noqa: E111
+  active_override_flags: int  # noqa: E111
+  active_override_entries: int  # noqa: E111
+  tracked_entries: int  # noqa: E111
+  per_module: JSONMutableMapping  # noqa: E111
+  per_dog: JSONMutableMapping  # noqa: E111
+  entry_scripts: list[str]  # noqa: E111
+  per_dog_helpers: dict[str, int]  # noqa: E111
+  entity_domains: dict[str, int]  # noqa: E111
+  errors: list[str]  # noqa: E111
+  summary: JSONMutableMapping  # noqa: E111
+  snapshots: list[JSONMutableMapping]  # noqa: E111
+  created_entities: list[str]  # noqa: E111
+  detection_stats: JSONMutableMapping  # noqa: E111
+  cleanup_task_active: bool  # noqa: E111
+  cleanup_listeners: int  # noqa: E111
+  daily_reset_configured: bool  # noqa: E111
+  namespace: str  # noqa: E111
+  storage_path: str  # noqa: E111
+  timestamp_anomalies: dict[str, str]  # noqa: E111
+  last_generated: str | None  # noqa: E111
+  manager_last_generated_age_seconds: int | float  # noqa: E111
+  manager_last_activity: str | None  # noqa: E111
+  manager_last_activity_age_seconds: int | float  # noqa: E111
+  service_guard_metrics: HelperManagerGuardMetrics  # noqa: E111
 
 
 class PersonEntityDiagnostics(CacheDiagnosticsMetadata, total=False):
-  """Diagnostics payload enriched with person manager cache metadata."""
+  """Diagnostics payload enriched with person manager cache metadata."""  # noqa: E111
 
-  cache_entries: dict[str, PersonNotificationCacheEntry]
-  discovery_task_state: Literal[
+  cache_entries: dict[str, PersonNotificationCacheEntry]  # noqa: E111
+  discovery_task_state: Literal[  # noqa: E111
     "not_started",
     "running",
     "completed",
     "cancelled",
   ]
-  listener_count: int
+  listener_count: int  # noqa: E111
 
 
 class CacheDiagnosticsPayload(TypedDict, total=False):
-  """Structured mapping exported by :class:`CacheDiagnosticsSnapshot`."""
+  """Structured mapping exported by :class:`CacheDiagnosticsSnapshot`."""  # noqa: E111
 
-  stats: JSONMutableMapping
-  diagnostics: CacheDiagnosticsMetadata
-  snapshot: JSONMutableMapping
-  error: str
-  repair_summary: JSONMutableMapping
+  stats: JSONMutableMapping  # noqa: E111
+  diagnostics: CacheDiagnosticsMetadata  # noqa: E111
+  snapshot: JSONMutableMapping  # noqa: E111
+  error: str  # noqa: E111
+  repair_summary: JSONMutableMapping  # noqa: E111
 
 
 @dataclass(slots=True)
 class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
-  """Structured diagnostics snapshot returned by cache monitors."""
+  """Structured diagnostics snapshot returned by cache monitors."""  # noqa: E111
 
-  stats: JSONLikeMapping | None = None
-  diagnostics: CacheDiagnosticsMetadata | None = None
-  snapshot: JSONLikeMapping | None = None
-  error: str | None = None
-  repair_summary: CacheRepairAggregate | None = None
+  stats: JSONLikeMapping | None = None  # noqa: E111
+  diagnostics: CacheDiagnosticsMetadata | None = None  # noqa: E111
+  snapshot: JSONLikeMapping | None = None  # noqa: E111
+  error: str | None = None  # noqa: E111
+  repair_summary: CacheRepairAggregate | None = None  # noqa: E111
 
-  def to_mapping(self) -> JSONMutableMapping:
+  def to_mapping(self) -> JSONMutableMapping:  # noqa: E111
     """Return a mapping representation for downstream consumers."""
 
     payload: JSONMutableMapping = {}
     if self.stats is not None:
-      payload["stats"] = cast(JSONValue, dict(self.stats))
+      payload["stats"] = cast(JSONValue, dict(self.stats))  # noqa: E111
     if self.diagnostics is not None:
-      payload["diagnostics"] = cast(JSONValue, dict(self.diagnostics))
+      payload["diagnostics"] = cast(JSONValue, dict(self.diagnostics))  # noqa: E111
     if self.snapshot is not None:
-      payload["snapshot"] = cast(JSONValue, dict(self.snapshot))
+      payload["snapshot"] = cast(JSONValue, dict(self.snapshot))  # noqa: E111
     if self.error is not None:
-      payload["error"] = self.error
+      payload["error"] = self.error  # noqa: E111
     if isinstance(self.repair_summary, CacheRepairAggregate):
-      payload["repair_summary"] = cast(
+      payload["repair_summary"] = cast(  # noqa: E111
         JSONValue,
         self.repair_summary.to_mapping(),
       )
     return payload
 
-  @classmethod
-  def from_mapping(cls, payload: JSONMapping) -> CacheDiagnosticsSnapshot:
+  @classmethod  # noqa: E111
+  def from_mapping(cls, payload: JSONMapping) -> CacheDiagnosticsSnapshot:  # noqa: E111
     """Create a snapshot payload from an arbitrary mapping."""
 
     stats = payload.get("stats")
@@ -5191,16 +5195,16 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
 
     repair_summary: CacheRepairAggregate | None
     if isinstance(repair_summary_payload, CacheRepairAggregate):
-      repair_summary = repair_summary_payload
+      repair_summary = repair_summary_payload  # noqa: E111
     elif isinstance(repair_summary_payload, Mapping):
-      try:
+      try:  # noqa: E111
         repair_summary = CacheRepairAggregate.from_mapping(
           repair_summary_payload,
         )
-      except Exception:  # pragma: no cover - defensive fallback
+      except Exception:  # pragma: no cover - defensive fallback  # noqa: E111
         repair_summary = None
     else:
-      repair_summary = None
+      repair_summary = None  # noqa: E111
 
     return cls(
       stats=dict(stats) if isinstance(stats, Mapping) else None,
@@ -5217,15 +5221,15 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
       repair_summary=repair_summary,
     )
 
-  def __getitem__(self, key: str) -> JSONValue:
+  def __getitem__(self, key: str) -> JSONValue:  # noqa: E111
     """Return the value associated with ``key`` from the mapping view."""
     return self.to_mapping()[key]
 
-  def __iter__(self) -> Iterator[str]:
+  def __iter__(self) -> Iterator[str]:  # noqa: E111
     """Yield cache diagnostic mapping keys in iteration order."""
     return iter(self.to_mapping())
 
-  def __len__(self) -> int:
+  def __len__(self) -> int:  # noqa: E111
     """Return the number of items exposed by the mapping view."""
     return len(self.to_mapping())
 
@@ -5235,74 +5239,74 @@ CacheDiagnosticsMap = dict[str, CacheDiagnosticsSnapshot]
 
 
 class DataStatisticsPayload(TypedDict):
-  """Diagnostics payload returned by data statistics collectors."""
+  """Diagnostics payload returned by data statistics collectors."""  # noqa: E111
 
-  data_manager_available: bool
-  metrics: JSONMutableMapping
+  data_manager_available: bool  # noqa: E111
+  metrics: JSONMutableMapping  # noqa: E111
 
 
 class RecentErrorEntry(TypedDict):
-  """Placeholder entry returned when detailed error history is unavailable."""
+  """Placeholder entry returned when detailed error history is unavailable."""  # noqa: E111
 
-  note: str
-  suggestion: str
-  entry_id: str
+  note: str  # noqa: E111
+  suggestion: str  # noqa: E111
+  entry_id: str  # noqa: E111
 
 
 class DebugInformationPayload(TypedDict):
-  """Static debug metadata exported by diagnostics handlers."""
+  """Static debug metadata exported by diagnostics handlers."""  # noqa: E111
 
-  debug_logging_enabled: bool
-  integration_version: str
-  quality_scale: str
-  supported_features: list[str]
-  documentation_url: str
-  issue_tracker: str
-  entry_id: str
-  ha_version: str
+  debug_logging_enabled: bool  # noqa: E111
+  integration_version: str  # noqa: E111
+  quality_scale: str  # noqa: E111
+  supported_features: list[str]  # noqa: E111
+  documentation_url: str  # noqa: E111
+  issue_tracker: str  # noqa: E111
+  entry_id: str  # noqa: E111
+  ha_version: str  # noqa: E111
 
 
 class ModuleUsageBreakdown(TypedDict):
-  """Aggregated module usage counters used in diagnostics exports."""
+  """Aggregated module usage counters used in diagnostics exports."""  # noqa: E111
 
-  counts: dict[str, int]
-  percentages: dict[str, float]
-  most_used_module: str | None
-  least_used_module: str | None
+  counts: dict[str, int]  # noqa: E111
+  percentages: dict[str, float]  # noqa: E111
+  most_used_module: str | None  # noqa: E111
+  least_used_module: str | None  # noqa: E111
 
 
 class CacheRepairIssue(TypedDict, total=False):
-  """Per-cache anomaly metadata forwarded to Home Assistant repairs."""
+  """Per-cache anomaly metadata forwarded to Home Assistant repairs."""  # noqa: E111
 
-  cache: Required[str]
-  entries: NotRequired[int]
-  hits: NotRequired[int]
-  misses: NotRequired[int]
-  hit_rate: NotRequired[float]
-  expired_entries: NotRequired[int]
-  expired_via_override: NotRequired[int]
-  pending_expired_entries: NotRequired[int]
-  pending_override_candidates: NotRequired[int]
-  active_override_flags: NotRequired[int]
-  errors: NotRequired[list[str]]
-  timestamp_anomalies: NotRequired[dict[str, str]]
+  cache: Required[str]  # noqa: E111
+  entries: NotRequired[int]  # noqa: E111
+  hits: NotRequired[int]  # noqa: E111
+  misses: NotRequired[int]  # noqa: E111
+  hit_rate: NotRequired[float]  # noqa: E111
+  expired_entries: NotRequired[int]  # noqa: E111
+  expired_via_override: NotRequired[int]  # noqa: E111
+  pending_expired_entries: NotRequired[int]  # noqa: E111
+  pending_override_candidates: NotRequired[int]  # noqa: E111
+  active_override_flags: NotRequired[int]  # noqa: E111
+  errors: NotRequired[list[str]]  # noqa: E111
+  timestamp_anomalies: NotRequired[dict[str, str]]  # noqa: E111
 
 
 @dataclass(slots=True)
 class CacheRepairTotals:
-  """Summarised cache counters shared across diagnostics and repairs."""
+  """Summarised cache counters shared across diagnostics and repairs."""  # noqa: E111
 
-  entries: int = 0
-  hits: int = 0
-  misses: int = 0
-  expired_entries: int = 0
-  expired_via_override: int = 0
-  pending_expired_entries: int = 0
-  pending_override_candidates: int = 0
-  active_override_flags: int = 0
-  overall_hit_rate: float | None = None
+  entries: int = 0  # noqa: E111
+  hits: int = 0  # noqa: E111
+  misses: int = 0  # noqa: E111
+  expired_entries: int = 0  # noqa: E111
+  expired_via_override: int = 0  # noqa: E111
+  pending_expired_entries: int = 0  # noqa: E111
+  pending_override_candidates: int = 0  # noqa: E111
+  active_override_flags: int = 0  # noqa: E111
+  overall_hit_rate: float | None = None  # noqa: E111
 
-  def as_dict(self) -> dict[str, int | float]:
+  def as_dict(self) -> dict[str, int | float]:  # noqa: E111
     """Return a JSON-serialisable view of the totals."""
 
     payload: dict[str, int | float] = {
@@ -5316,27 +5320,27 @@ class CacheRepairTotals:
       "active_override_flags": self.active_override_flags,
     }
     if self.overall_hit_rate is not None:
-      payload["overall_hit_rate"] = round(self.overall_hit_rate, 2)
+      payload["overall_hit_rate"] = round(self.overall_hit_rate, 2)  # noqa: E111
     return payload
 
 
 @dataclass(slots=True)
 class CacheRepairAggregate(Mapping[str, JSONValue]):
-  """Aggregated cache health metrics surfaced through repairs issues."""
+  """Aggregated cache health metrics surfaced through repairs issues."""  # noqa: E111
 
-  total_caches: int
-  anomaly_count: int
-  severity: str
-  generated_at: str
-  caches_with_errors: list[str] | None = None
-  caches_with_expired_entries: list[str] | None = None
-  caches_with_pending_expired_entries: list[str] | None = None
-  caches_with_override_flags: list[str] | None = None
-  caches_with_low_hit_rate: list[str] | None = None
-  totals: CacheRepairTotals | None = None
-  issues: list[CacheRepairIssue] | None = None
+  total_caches: int  # noqa: E111
+  anomaly_count: int  # noqa: E111
+  severity: str  # noqa: E111
+  generated_at: str  # noqa: E111
+  caches_with_errors: list[str] | None = None  # noqa: E111
+  caches_with_expired_entries: list[str] | None = None  # noqa: E111
+  caches_with_pending_expired_entries: list[str] | None = None  # noqa: E111
+  caches_with_override_flags: list[str] | None = None  # noqa: E111
+  caches_with_low_hit_rate: list[str] | None = None  # noqa: E111
+  totals: CacheRepairTotals | None = None  # noqa: E111
+  issues: list[CacheRepairIssue] | None = None  # noqa: E111
 
-  def to_mapping(self) -> JSONMutableMapping:
+  def to_mapping(self) -> JSONMutableMapping:  # noqa: E111
     """Return a mapping representation for Home Assistant repairs."""
 
     payload: JSONMutableMapping = {
@@ -5346,65 +5350,65 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
       "generated_at": self.generated_at,
     }
     if self.caches_with_errors:
-      payload["caches_with_errors"] = list(self.caches_with_errors)
+      payload["caches_with_errors"] = list(self.caches_with_errors)  # noqa: E111
     if self.caches_with_expired_entries:
-      payload["caches_with_expired_entries"] = list(
+      payload["caches_with_expired_entries"] = list(  # noqa: E111
         self.caches_with_expired_entries,
       )
     if self.caches_with_pending_expired_entries:
-      payload["caches_with_pending_expired_entries"] = list(
+      payload["caches_with_pending_expired_entries"] = list(  # noqa: E111
         self.caches_with_pending_expired_entries,
       )
     if self.caches_with_override_flags:
-      payload["caches_with_override_flags"] = list(
+      payload["caches_with_override_flags"] = list(  # noqa: E111
         self.caches_with_override_flags,
       )
     if self.caches_with_low_hit_rate:
-      payload["caches_with_low_hit_rate"] = list(
+      payload["caches_with_low_hit_rate"] = list(  # noqa: E111
         self.caches_with_low_hit_rate,
       )
     if self.totals is not None:
-      payload["totals"] = self.totals.as_dict()
+      payload["totals"] = self.totals.as_dict()  # noqa: E111
     if self.issues:
-      payload["issues"] = [
+      payload["issues"] = [  # noqa: E111
         cast(JSONMutableMapping, dict(issue)) for issue in self.issues
       ]
     return payload
 
-  @classmethod
-  def from_mapping(cls, payload: JSONMapping) -> CacheRepairAggregate:
+  @classmethod  # noqa: E111
+  def from_mapping(cls, payload: JSONMapping) -> CacheRepairAggregate:  # noqa: E111
     """Return a :class:`CacheRepairAggregate` constructed from a mapping."""
 
     def _coerce_int(value: JSONValue | object) -> int:
-      if isinstance(value, bool):
+      if isinstance(value, bool):  # noqa: E111
         return int(value)
-      if isinstance(value, int):
+      if isinstance(value, int):  # noqa: E111
         return value
-      if isinstance(value, float):
+      if isinstance(value, float):  # noqa: E111
         return int(value)
-      if isinstance(value, str):
+      if isinstance(value, str):  # noqa: E111
         try:
-          return int(float(value))
+          return int(float(value))  # noqa: E111
         except ValueError:
-          return 0
-      return 0
+          return 0  # noqa: E111
+      return 0  # noqa: E111
 
     totals_payload = payload.get("totals")
     totals = None
     if isinstance(totals_payload, Mapping):
-      overall_hit_rate_value = totals_payload.get("overall_hit_rate")
-      overall_hit_rate: float | None
-      if isinstance(overall_hit_rate_value, int | float):
+      overall_hit_rate_value = totals_payload.get("overall_hit_rate")  # noqa: E111
+      overall_hit_rate: float | None  # noqa: E111
+      if isinstance(overall_hit_rate_value, int | float):  # noqa: E111
         overall_hit_rate = float(overall_hit_rate_value)
-      elif isinstance(overall_hit_rate_value, str):
+      elif isinstance(overall_hit_rate_value, str):  # noqa: E111
         try:
-          overall_hit_rate = float(overall_hit_rate_value)
+          overall_hit_rate = float(overall_hit_rate_value)  # noqa: E111
         except ValueError:
-          overall_hit_rate = None
-      else:
+          overall_hit_rate = None  # noqa: E111
+      else:  # noqa: E111
         overall_hit_rate = None
 
-      totals = CacheRepairTotals(
+      totals = CacheRepairTotals(  # noqa: E111
         entries=_coerce_int(totals_payload.get("entries")),
         hits=_coerce_int(totals_payload.get("hits")),
         misses=_coerce_int(totals_payload.get("misses")),
@@ -5427,22 +5431,22 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
       )
 
     def _string_list(field: str) -> list[str] | None:
-      value = payload.get(field)
-      if isinstance(value, list):
+      value = payload.get(field)  # noqa: E111
+      if isinstance(value, list):  # noqa: E111
         return [str(item) for item in value if isinstance(item, str)]
-      if isinstance(value, tuple | set | frozenset):
+      if isinstance(value, tuple | set | frozenset):  # noqa: E111
         return [str(item) for item in value if isinstance(item, str)]
-      return None
+      return None  # noqa: E111
 
     issues_payload = payload.get("issues")
     issues: list[CacheRepairIssue] | None = None
     if isinstance(issues_payload, list):
-      filtered = [
+      filtered = [  # noqa: E111
         cast(CacheRepairIssue, dict(issue))
         for issue in issues_payload
         if isinstance(issue, Mapping)
       ]
-      if filtered:
+      if filtered:  # noqa: E111
         issues = filtered
 
     return cls(
@@ -5465,90 +5469,90 @@ class CacheRepairAggregate(Mapping[str, JSONValue]):
       issues=issues,
     )
 
-  def __getitem__(self, key: str) -> JSONValue:
+  def __getitem__(self, key: str) -> JSONValue:  # noqa: E111
     """Return the value associated with ``key`` from the mapping view."""
     return self.to_mapping()[key]
 
-  def __iter__(self) -> Iterator[str]:
+  def __iter__(self) -> Iterator[str]:  # noqa: E111
     """Yield cache repair aggregate keys in iteration order."""
     return iter(self.to_mapping())
 
-  def __len__(self) -> int:
+  def __len__(self) -> int:  # noqa: E111
     """Return the number of items exposed by the mapping view."""
     return len(self.to_mapping())
 
 
 class CacheDiagnosticsCapture(TypedDict, total=False):
-  """Snapshot captured by services during maintenance routines."""
+  """Snapshot captured by services during maintenance routines."""  # noqa: E111
 
-  snapshots: Required[CacheDiagnosticsMap]
-  repair_summary: NotRequired[CacheRepairAggregate]
+  snapshots: Required[CacheDiagnosticsMap]  # noqa: E111
+  repair_summary: NotRequired[CacheRepairAggregate]  # noqa: E111
 
 
 class MaintenanceExecutionDiagnostics(TypedDict, total=False):
-  """Diagnostics metadata captured by maintenance utilities."""
+  """Diagnostics metadata captured by maintenance utilities."""  # noqa: E111
 
-  cache: NotRequired[CacheDiagnosticsCapture]
-  metadata: NotRequired[MaintenanceMetadataPayload]
+  cache: NotRequired[CacheDiagnosticsCapture]  # noqa: E111
+  metadata: NotRequired[MaintenanceMetadataPayload]  # noqa: E111
 
 
 class MaintenanceExecutionResult(TypedDict, total=False):
-  """Structured payload appended after running maintenance utilities."""
+  """Structured payload appended after running maintenance utilities."""  # noqa: E111
 
-  task: Required[str]
-  status: Required[Literal["success", "error"]]
-  recorded_at: Required[str]
-  message: NotRequired[str]
-  diagnostics: NotRequired[MaintenanceExecutionDiagnostics]
-  details: NotRequired[MaintenanceMetadataPayload]
+  task: Required[str]  # noqa: E111
+  status: Required[Literal["success", "error"]]  # noqa: E111
+  recorded_at: Required[str]  # noqa: E111
+  message: NotRequired[str]  # noqa: E111
+  diagnostics: NotRequired[MaintenanceExecutionDiagnostics]  # noqa: E111
+  details: NotRequired[MaintenanceMetadataPayload]  # noqa: E111
 
 
 class ServiceExecutionDiagnostics(TypedDict, total=False):
-  """Diagnostics metadata captured while executing a service handler."""
+  """Diagnostics metadata captured while executing a service handler."""  # noqa: E111
 
-  cache: NotRequired[CacheDiagnosticsCapture]
-  metadata: NotRequired[MaintenanceMetadataPayload]
-  guard: NotRequired[ServiceGuardSummary]
-  resilience_summary: NotRequired[CoordinatorResilienceSummary]
-  rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
+  cache: NotRequired[CacheDiagnosticsCapture]  # noqa: E111
+  metadata: NotRequired[MaintenanceMetadataPayload]  # noqa: E111
+  guard: NotRequired[ServiceGuardSummary]  # noqa: E111
+  resilience_summary: NotRequired[CoordinatorResilienceSummary]  # noqa: E111
+  rejection_metrics: NotRequired[CoordinatorRejectionMetrics]  # noqa: E111
 
 
 class ServiceExecutionResult(TypedDict, total=False):
-  """Structured payload appended to runtime stats after service execution."""
+  """Structured payload appended to runtime stats after service execution."""  # noqa: E111
 
-  service: Required[str]
-  status: Required[Literal["success", "error"]]
-  dog_id: NotRequired[str]
-  message: NotRequired[str]
-  diagnostics: NotRequired[ServiceExecutionDiagnostics]
-  details: NotRequired[ServiceDetailsPayload]
-  guard: NotRequired[ServiceGuardSummary]
+  service: Required[str]  # noqa: E111
+  status: Required[Literal["success", "error"]]  # noqa: E111
+  dog_id: NotRequired[str]  # noqa: E111
+  message: NotRequired[str]  # noqa: E111
+  diagnostics: NotRequired[ServiceExecutionDiagnostics]  # noqa: E111
+  details: NotRequired[ServiceDetailsPayload]  # noqa: E111
+  guard: NotRequired[ServiceGuardSummary]  # noqa: E111
 
 
 class ServiceCallLatencyTelemetry(TypedDict, total=False):
-  """Latency summary for Home Assistant service calls."""
+  """Latency summary for Home Assistant service calls."""  # noqa: E111
 
-  samples: int
-  average_ms: float
-  minimum_ms: float
-  maximum_ms: float
-  last_ms: float
+  samples: int  # noqa: E111
+  average_ms: float  # noqa: E111
+  minimum_ms: float  # noqa: E111
+  maximum_ms: float  # noqa: E111
+  last_ms: float  # noqa: E111
 
 
 class ServiceCallTelemetryEntry(TypedDict, total=False):
-  """Aggregated telemetry for a subset of service calls."""
+  """Aggregated telemetry for a subset of service calls."""  # noqa: E111
 
-  total_calls: int
-  success_calls: int
-  error_calls: int
-  error_rate: float
-  latency_ms: ServiceCallLatencyTelemetry
+  total_calls: int  # noqa: E111
+  success_calls: int  # noqa: E111
+  error_calls: int  # noqa: E111
+  error_rate: float  # noqa: E111
+  latency_ms: ServiceCallLatencyTelemetry  # noqa: E111
 
 
 class ServiceCallTelemetry(ServiceCallTelemetryEntry, total=False):
-  """Aggregated telemetry for all service calls, grouped by service."""
+  """Aggregated telemetry for all service calls, grouped by service."""  # noqa: E111
 
-  per_service: dict[str, ServiceCallTelemetryEntry]
+  per_service: dict[str, ServiceCallTelemetryEntry]  # noqa: E111
 
 
 ManualResiliencePreferenceKey = Literal[
@@ -5559,66 +5563,66 @@ ManualResiliencePreferenceKey = Literal[
 
 
 class ManualResilienceEventSource(TypedDict, total=False):
-  """Metadata describing a tracked manual resilience escalation event."""
+  """Metadata describing a tracked manual resilience escalation event."""  # noqa: E111
 
-  preference_key: ManualResiliencePreferenceKey
-  configured_role: Literal["check", "guard", "breaker"]
-  listener_sources: tuple[str, ...]
-  source_tags: list[str]
-  primary_source: str
+  preference_key: ManualResiliencePreferenceKey  # noqa: E111
+  configured_role: Literal["check", "guard", "breaker"]  # noqa: E111
+  listener_sources: tuple[str, ...]  # noqa: E111
+  source_tags: list[str]  # noqa: E111
+  primary_source: str  # noqa: E111
 
 
 class ManualResilienceEventRecord(TypedDict, total=False):
-  """Captured metadata for a manual resilience event before serialisation."""
+  """Captured metadata for a manual resilience event before serialisation."""  # noqa: E111
 
-  event_type: str
-  preference_key: ManualResiliencePreferenceKey | None
-  configured_role: Literal["check", "guard", "breaker"] | None
-  time_fired: datetime | None
-  received_at: datetime | None
-  context_id: str | None
-  user_id: str | None
-  origin: str | None
-  data: JSONMutableMapping | None
-  sources: Sequence[str]
-  source_tags: list[str]
-  primary_source: str
-  reasons: list[str]
-  recorded_at: datetime | None
-  recorded_age_seconds: int | None
+  event_type: str  # noqa: E111
+  preference_key: ManualResiliencePreferenceKey | None  # noqa: E111
+  configured_role: Literal["check", "guard", "breaker"] | None  # noqa: E111
+  time_fired: datetime | None  # noqa: E111
+  received_at: datetime | None  # noqa: E111
+  context_id: str | None  # noqa: E111
+  user_id: str | None  # noqa: E111
+  origin: str | None  # noqa: E111
+  data: JSONMutableMapping | None  # noqa: E111
+  sources: Sequence[str]  # noqa: E111
+  source_tags: list[str]  # noqa: E111
+  primary_source: str  # noqa: E111
+  reasons: list[str]  # noqa: E111
+  recorded_at: datetime | None  # noqa: E111
+  recorded_age_seconds: int | None  # noqa: E111
 
 
 class ManualResilienceEventSnapshot(TypedDict, total=False):
-  """Serialised telemetry for the last manual resilience trigger."""
+  """Serialised telemetry for the last manual resilience trigger."""  # noqa: E111
 
-  event_type: str | None
-  category: Literal["check", "guard", "breaker", "unknown"]
-  matched_preference: ManualResiliencePreferenceKey | None
-  time_fired: str | None
-  time_fired_age_seconds: int | None
-  received_at: str | None
-  received_age_seconds: int | None
-  recorded_at: str | None
-  recorded_age_seconds: int | None
-  origin: str | None
-  context_id: str | None
-  user_id: str | None
-  data: JSONMutableMapping | None
-  sources: list[str] | None
-  reasons: list[str]
+  event_type: str | None  # noqa: E111
+  category: Literal["check", "guard", "breaker", "unknown"]  # noqa: E111
+  matched_preference: ManualResiliencePreferenceKey | None  # noqa: E111
+  time_fired: str | None  # noqa: E111
+  time_fired_age_seconds: int | None  # noqa: E111
+  received_at: str | None  # noqa: E111
+  received_age_seconds: int | None  # noqa: E111
+  recorded_at: str | None  # noqa: E111
+  recorded_age_seconds: int | None  # noqa: E111
+  origin: str | None  # noqa: E111
+  context_id: str | None  # noqa: E111
+  user_id: str | None  # noqa: E111
+  data: JSONMutableMapping | None  # noqa: E111
+  sources: list[str] | None  # noqa: E111
+  reasons: list[str]  # noqa: E111
 
 
 class ResilienceEscalationFieldEntry(TypedDict, total=False):
-  """Active and default field values for resilience escalation scripts."""
+  """Active and default field values for resilience escalation scripts."""  # noqa: E111
 
-  default: JSONValue | None
-  active: JSONValue | None
+  default: JSONValue | None  # noqa: E111
+  active: JSONValue | None  # noqa: E111
 
 
 class ResilienceEscalationFollowupEntry(ResilienceEscalationFieldEntry, total=False):
-  """Follow-up script metadata with configuration state."""
+  """Follow-up script metadata with configuration state."""  # noqa: E111
 
-  configured: bool
+  configured: bool  # noqa: E111
 
 
 type ResilienceEscalationThresholds = dict[str, ResilienceEscalationFieldEntry]
@@ -5630,100 +5634,100 @@ type ResilienceEscalationFields = dict[str, ResilienceEscalationFieldEntry]
 
 
 class ResilienceEscalationSnapshot(TypedDict, total=False):
-  """Snapshot describing the resilience escalation helper state."""
+  """Snapshot describing the resilience escalation helper state."""  # noqa: E111
 
-  available: bool
-  state_available: bool
-  entity_id: str | None
-  object_id: str | None
-  alias: str | None
-  description: str | None
-  last_generated: str | None
-  last_generated_age_seconds: int | None
-  last_generated_status: str | None
-  last_triggered: str | None
-  last_triggered_age_seconds: int | None
-  thresholds: ResilienceEscalationThresholds
-  fields: ResilienceEscalationFields
-  followup_script: ResilienceEscalationFollowupEntry
-  statistics_entity_id: ResilienceEscalationFieldEntry
-  escalation_service: ResilienceEscalationFieldEntry
-  manual_events: JSONMutableMapping
+  available: bool  # noqa: E111
+  state_available: bool  # noqa: E111
+  entity_id: str | None  # noqa: E111
+  object_id: str | None  # noqa: E111
+  alias: str | None  # noqa: E111
+  description: str | None  # noqa: E111
+  last_generated: str | None  # noqa: E111
+  last_generated_age_seconds: int | None  # noqa: E111
+  last_generated_status: str | None  # noqa: E111
+  last_triggered: str | None  # noqa: E111
+  last_triggered_age_seconds: int | None  # noqa: E111
+  thresholds: ResilienceEscalationThresholds  # noqa: E111
+  fields: ResilienceEscalationFields  # noqa: E111
+  followup_script: ResilienceEscalationFollowupEntry  # noqa: E111
+  statistics_entity_id: ResilienceEscalationFieldEntry  # noqa: E111
+  escalation_service: ResilienceEscalationFieldEntry  # noqa: E111
+  manual_events: JSONMutableMapping  # noqa: E111
 
 
 class ManualResilienceAutomationEntry(TypedDict, total=False):
-  """Metadata describing automation listeners for manual resilience events."""
+  """Metadata describing automation listeners for manual resilience events."""  # noqa: E111
 
-  config_entry_id: str | None
-  title: str | None
-  manual_guard_event: str | None
-  manual_breaker_event: str | None
-  manual_check_event: str | None
-  configured_guard: bool
-  configured_breaker: bool
-  configured_check: bool
+  config_entry_id: str | None  # noqa: E111
+  title: str | None  # noqa: E111
+  manual_guard_event: str | None  # noqa: E111
+  manual_breaker_event: str | None  # noqa: E111
+  manual_check_event: str | None  # noqa: E111
+  configured_guard: bool  # noqa: E111
+  configured_breaker: bool  # noqa: E111
+  configured_check: bool  # noqa: E111
 
 
 class ManualResilienceListenerMetadata(TypedDict, total=False):
-  """Aggregated listener metadata for manual resilience events."""
+  """Aggregated listener metadata for manual resilience events."""  # noqa: E111
 
-  sources: list[str]
-  source_tags: list[str]
-  primary_source: str | None
+  sources: list[str]  # noqa: E111
+  source_tags: list[str]  # noqa: E111
+  primary_source: str | None  # noqa: E111
 
 
 class ManualResilienceEventCounters(TypedDict):
-  """Aggregated counters for manual resilience event activity."""
+  """Aggregated counters for manual resilience event activity."""  # noqa: E111
 
-  total: int
-  by_event: dict[str, int]
-  by_reason: dict[str, int]
+  total: int  # noqa: E111
+  by_event: dict[str, int]  # noqa: E111
+  by_reason: dict[str, int]  # noqa: E111
 
 
 class ManualResilienceEventsTelemetry(TypedDict, total=False):
-  """Telemetry payload embedded in resilience diagnostics snapshots."""
+  """Telemetry payload embedded in resilience diagnostics snapshots."""  # noqa: E111
 
-  available: Required[bool]
-  automations: list[ManualResilienceAutomationEntry]
-  configured_guard_events: list[str]
-  configured_breaker_events: list[str]
-  configured_check_events: list[str]
-  system_guard_event: str | None
-  system_breaker_event: str | None
-  listener_events: dict[str, list[str]]
-  listener_sources: dict[str, list[str]]
-  listener_metadata: dict[str, ManualResilienceListenerMetadata]
-  preferred_events: dict[ManualResiliencePreferenceKey, str | None]
-  preferred_guard_event: str | None
-  preferred_breaker_event: str | None
-  preferred_check_event: str | None
-  active_listeners: list[str]
-  last_event: Required[ManualResilienceEventSnapshot | None]
-  last_trigger: ManualResilienceEventSnapshot | None
-  event_history: Required[list[ManualResilienceEventSnapshot]]
-  event_counters: ManualResilienceEventCounters
+  available: Required[bool]  # noqa: E111
+  automations: list[ManualResilienceAutomationEntry]  # noqa: E111
+  configured_guard_events: list[str]  # noqa: E111
+  configured_breaker_events: list[str]  # noqa: E111
+  configured_check_events: list[str]  # noqa: E111
+  system_guard_event: str | None  # noqa: E111
+  system_breaker_event: str | None  # noqa: E111
+  listener_events: dict[str, list[str]]  # noqa: E111
+  listener_sources: dict[str, list[str]]  # noqa: E111
+  listener_metadata: dict[str, ManualResilienceListenerMetadata]  # noqa: E111
+  preferred_events: dict[ManualResiliencePreferenceKey, str | None]  # noqa: E111
+  preferred_guard_event: str | None  # noqa: E111
+  preferred_breaker_event: str | None  # noqa: E111
+  preferred_check_event: str | None  # noqa: E111
+  active_listeners: list[str]  # noqa: E111
+  last_event: Required[ManualResilienceEventSnapshot | None]  # noqa: E111
+  last_trigger: ManualResilienceEventSnapshot | None  # noqa: E111
+  event_history: Required[list[ManualResilienceEventSnapshot]]  # noqa: E111
+  event_counters: ManualResilienceEventCounters  # noqa: E111
 
 
 class ManualResilienceSystemSettingsSnapshot(TypedDict, total=False):
-  """Normalised resilience system settings derived from config entry options."""
+  """Normalised resilience system settings derived from config entry options."""  # noqa: E111
 
-  manual_check_event: str | None
-  manual_guard_event: str | None
-  manual_breaker_event: str | None
-  resilience_skip_threshold: int
-  resilience_breaker_threshold: int
+  manual_check_event: str | None  # noqa: E111
+  manual_guard_event: str | None  # noqa: E111
+  manual_breaker_event: str | None  # noqa: E111
+  resilience_skip_threshold: int  # noqa: E111
+  resilience_breaker_threshold: int  # noqa: E111
 
 
 class ManualResilienceOptionsSnapshot(TypedDict, total=False):
-  """Normalised config-entry options impacting manual resilience behaviour."""
+  """Normalised config-entry options impacting manual resilience behaviour."""  # noqa: E111
 
-  manual_check_event: str | None
-  manual_guard_event: str | None
-  manual_breaker_event: str | None
-  resilience_skip_threshold: int
-  resilience_breaker_threshold: int
-  manual_event_history_size: int
-  system_settings: ManualResilienceSystemSettingsSnapshot
+  manual_check_event: str | None  # noqa: E111
+  manual_guard_event: str | None  # noqa: E111
+  manual_breaker_event: str | None  # noqa: E111
+  resilience_skip_threshold: int  # noqa: E111
+  resilience_breaker_threshold: int  # noqa: E111
+  manual_event_history_size: int  # noqa: E111
+  system_settings: ManualResilienceSystemSettingsSnapshot  # noqa: E111
 
 
 type ManualResilienceEventSelection = dict[ManualResiliencePreferenceKey, str | None]
@@ -5731,27 +5735,27 @@ type ManualResilienceEventSelection = dict[ManualResiliencePreferenceKey, str | 
 
 
 class ServiceContextMetadata(TypedDict, total=False):
-  """Service context identifiers captured for telemetry."""
+  """Service context identifiers captured for telemetry."""  # noqa: E111
 
-  context_id: str | None
-  parent_id: str | None
-  user_id: str | None
+  context_id: str | None  # noqa: E111
+  parent_id: str | None  # noqa: E111
+  user_id: str | None  # noqa: E111
 
 
 class FeedingComplianceEventPayload(TypedDict, total=False):
-  """Structured event payload emitted after running feeding compliance checks."""
+  """Structured event payload emitted after running feeding compliance checks."""  # noqa: E111
 
-  dog_id: str
-  dog_name: str | None
-  days_to_check: int
-  notify_on_issues: bool
-  notification_sent: bool
-  result: FeedingComplianceResult
-  notification_id: NotRequired[str]
-  context_id: NotRequired[str]
-  parent_id: NotRequired[str]
-  user_id: NotRequired[str | None]
-  localized_summary: NotRequired[FeedingComplianceLocalizedSummary]
+  dog_id: str  # noqa: E111
+  dog_name: str | None  # noqa: E111
+  days_to_check: int  # noqa: E111
+  notify_on_issues: bool  # noqa: E111
+  notification_sent: bool  # noqa: E111
+  result: FeedingComplianceResult  # noqa: E111
+  notification_id: NotRequired[str]  # noqa: E111
+  context_id: NotRequired[str]  # noqa: E111
+  parent_id: NotRequired[str]  # noqa: E111
+  user_id: NotRequired[str | None]  # noqa: E111
+  localized_summary: NotRequired[FeedingComplianceLocalizedSummary]  # noqa: E111
 
 
 type FeedingComplianceDisplayMapping = Mapping[str, object]
@@ -5759,112 +5763,112 @@ type FeedingComplianceDisplayMapping = Mapping[str, object]
 
 
 class FeedingComplianceLocalizedSummary(TypedDict):
-  """Localised representation of a feeding compliance result."""
+  """Localised representation of a feeding compliance result."""  # noqa: E111
 
-  title: str
-  message: str | None
-  score_line: str | None
-  missed_meals: list[str]
-  issues: list[str]
-  recommendations: list[str]
+  title: str  # noqa: E111
+  message: str | None  # noqa: E111
+  score_line: str | None  # noqa: E111
+  missed_meals: list[str]  # noqa: E111
+  issues: list[str]  # noqa: E111
+  recommendations: list[str]  # noqa: E111
 
 
 class CoordinatorRepairsSummary(TypedDict, total=False):
-  """Condensed repairs telemetry surfaced alongside coordinator statistics."""
+  """Condensed repairs telemetry surfaced alongside coordinator statistics."""  # noqa: E111
 
-  severity: str
-  anomaly_count: int
-  total_caches: int
-  generated_at: str
-  issues: int
-  caches_with_errors: NotRequired[int]
-  caches_with_expired_entries: NotRequired[int]
-  caches_with_pending_expired_entries: NotRequired[int]
-  caches_with_override_flags: NotRequired[int]
-  caches_with_low_hit_rate: NotRequired[int]
+  severity: str  # noqa: E111
+  anomaly_count: int  # noqa: E111
+  total_caches: int  # noqa: E111
+  generated_at: str  # noqa: E111
+  issues: int  # noqa: E111
+  caches_with_errors: NotRequired[int]  # noqa: E111
+  caches_with_expired_entries: NotRequired[int]  # noqa: E111
+  caches_with_pending_expired_entries: NotRequired[int]  # noqa: E111
+  caches_with_override_flags: NotRequired[int]  # noqa: E111
+  caches_with_low_hit_rate: NotRequired[int]  # noqa: E111
 
 
 class CoordinatorUpdateCounts(TypedDict):
-  """Aggregated update counters exposed by coordinator diagnostics."""
+  """Aggregated update counters exposed by coordinator diagnostics."""  # noqa: E111
 
-  total: int
-  successful: int
-  failed: int
+  total: int  # noqa: E111
+  successful: int  # noqa: E111
+  failed: int  # noqa: E111
 
 
 class CoordinatorPerformanceMetrics(TypedDict):
-  """Performance metrics captured for coordinator statistics panels."""
+  """Performance metrics captured for coordinator statistics panels."""  # noqa: E111
 
-  success_rate: float
-  cache_entries: int
-  cache_hit_rate: float
-  consecutive_errors: int
-  last_update: Any
-  update_interval: float
-  api_calls: int
-  rejected_call_count: NotRequired[int]
-  rejection_breaker_count: NotRequired[int]
-  rejection_rate: NotRequired[float | None]
-  last_rejection_time: NotRequired[float | None]
-  last_rejection_breaker_id: NotRequired[str | None]
-  last_rejection_breaker_name: NotRequired[str | None]
-  open_breaker_count: NotRequired[int]
-  half_open_breaker_count: NotRequired[int]
-  unknown_breaker_count: NotRequired[int]
-  open_breakers: NotRequired[list[str]]
-  open_breaker_ids: NotRequired[list[str]]
-  half_open_breakers: NotRequired[list[str]]
-  half_open_breaker_ids: NotRequired[list[str]]
-  unknown_breakers: NotRequired[list[str]]
-  unknown_breaker_ids: NotRequired[list[str]]
-  rejection_breaker_ids: NotRequired[list[str]]
-  rejection_breakers: NotRequired[list[str]]
+  success_rate: float  # noqa: E111
+  cache_entries: int  # noqa: E111
+  cache_hit_rate: float  # noqa: E111
+  consecutive_errors: int  # noqa: E111
+  last_update: Any  # noqa: E111
+  update_interval: float  # noqa: E111
+  api_calls: int  # noqa: E111
+  rejected_call_count: NotRequired[int]  # noqa: E111
+  rejection_breaker_count: NotRequired[int]  # noqa: E111
+  rejection_rate: NotRequired[float | None]  # noqa: E111
+  last_rejection_time: NotRequired[float | None]  # noqa: E111
+  last_rejection_breaker_id: NotRequired[str | None]  # noqa: E111
+  last_rejection_breaker_name: NotRequired[str | None]  # noqa: E111
+  open_breaker_count: NotRequired[int]  # noqa: E111
+  half_open_breaker_count: NotRequired[int]  # noqa: E111
+  unknown_breaker_count: NotRequired[int]  # noqa: E111
+  open_breakers: NotRequired[list[str]]  # noqa: E111
+  open_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  half_open_breakers: NotRequired[list[str]]  # noqa: E111
+  half_open_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  unknown_breakers: NotRequired[list[str]]  # noqa: E111
+  unknown_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  rejection_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  rejection_breakers: NotRequired[list[str]]  # noqa: E111
 
 
 class CoordinatorHealthIndicators(TypedDict, total=False):
-  """Health indicator flags surfaced alongside coordinator statistics."""
+  """Health indicator flags surfaced alongside coordinator statistics."""  # noqa: E111
 
-  consecutive_errors: int
-  stability_window_ok: bool
+  consecutive_errors: int  # noqa: E111
+  stability_window_ok: bool  # noqa: E111
 
 
 class EntityBudgetSummary(TypedDict):
-  """Aggregate entity budget metrics exposed via diagnostics."""
+  """Aggregate entity budget metrics exposed via diagnostics."""  # noqa: E111
 
-  active_dogs: int
-  total_capacity: int
-  total_allocated: int
-  total_remaining: int
-  average_utilization: float
-  peak_utilization: float
-  denied_requests: int
+  active_dogs: int  # noqa: E111
+  total_capacity: int  # noqa: E111
+  total_allocated: int  # noqa: E111
+  total_remaining: int  # noqa: E111
+  average_utilization: float  # noqa: E111
+  peak_utilization: float  # noqa: E111
+  denied_requests: int  # noqa: E111
 
 
 class AdaptivePollingDiagnostics(TypedDict):
-  """Runtime diagnostics captured from the adaptive polling controller."""
+  """Runtime diagnostics captured from the adaptive polling controller."""  # noqa: E111
 
-  target_cycle_ms: float
-  current_interval_ms: float
-  average_cycle_ms: float
-  history_samples: int
-  error_streak: int
-  entity_saturation: float
-  idle_interval_ms: float
-  idle_grace_ms: float
+  target_cycle_ms: float  # noqa: E111
+  current_interval_ms: float  # noqa: E111
+  average_cycle_ms: float  # noqa: E111
+  history_samples: int  # noqa: E111
+  error_streak: int  # noqa: E111
+  entity_saturation: float  # noqa: E111
+  idle_interval_ms: float  # noqa: E111
+  idle_grace_ms: float  # noqa: E111
 
 
 class SetupFlagPanelEntry(TypedDict):
-  """Single setup flag entry used by the diagnostics panel."""
+  """Single setup flag entry used by the diagnostics panel."""  # noqa: E111
 
-  key: str
-  label: str
-  label_default: str
-  label_translation_key: str
-  enabled: bool
-  source: str
-  source_label: str
-  source_label_default: str
-  source_label_translation_key: str
+  key: str  # noqa: E111
+  label: str  # noqa: E111
+  label_default: str  # noqa: E111
+  label_translation_key: str  # noqa: E111
+  enabled: bool  # noqa: E111
+  source: str  # noqa: E111
+  source_label: str  # noqa: E111
+  source_label_default: str  # noqa: E111
+  source_label_translation_key: str  # noqa: E111
 
 
 type SetupFlagSourceBreakdown = dict[str, int]
@@ -5876,178 +5880,178 @@ type SetupFlagSourceLabels = dict[str, str]
 
 
 class SetupFlagsPanelPayload(TypedDict):
-  """Structured payload rendered by the setup flag diagnostics panel."""
+  """Structured payload rendered by the setup flag diagnostics panel."""  # noqa: E111
 
-  title: str
-  title_translation_key: str
-  title_default: str
-  description: str
-  description_translation_key: str
-  description_default: str
-  flags: list[SetupFlagPanelEntry]
-  enabled_count: int
-  disabled_count: int
-  source_breakdown: SetupFlagSourceBreakdown
-  source_labels: SetupFlagSourceLabels
-  source_labels_default: SetupFlagSourceLabels
-  source_label_translation_keys: SetupFlagSourceLabels
-  language: str
+  title: str  # noqa: E111
+  title_translation_key: str  # noqa: E111
+  title_default: str  # noqa: E111
+  description: str  # noqa: E111
+  description_translation_key: str  # noqa: E111
+  description_default: str  # noqa: E111
+  flags: list[SetupFlagPanelEntry]  # noqa: E111
+  enabled_count: int  # noqa: E111
+  disabled_count: int  # noqa: E111
+  source_breakdown: SetupFlagSourceBreakdown  # noqa: E111
+  source_labels: SetupFlagSourceLabels  # noqa: E111
+  source_labels_default: SetupFlagSourceLabels  # noqa: E111
+  source_label_translation_keys: SetupFlagSourceLabels  # noqa: E111
+  language: str  # noqa: E111
 
 
 class CoordinatorRuntimeCycleSnapshot(TypedDict):
-  """Snapshot exported for a single coordinator update cycle."""
+  """Snapshot exported for a single coordinator update cycle."""  # noqa: E111
 
-  dog_count: int
-  errors: int
-  success_rate: float
-  duration_ms: float
-  next_interval_s: float
-  error_ratio: float
-  success: bool
+  dog_count: int  # noqa: E111
+  errors: int  # noqa: E111
+  success_rate: float  # noqa: E111
+  duration_ms: float  # noqa: E111
+  next_interval_s: float  # noqa: E111
+  error_ratio: float  # noqa: E111
+  success: bool  # noqa: E111
 
 
 class PerformanceMonitorCountersSnapshot(TypedDict):
-  """Rolling counters surfaced by the performance monitor."""
+  """Rolling counters surfaced by the performance monitor."""  # noqa: E111
 
-  operations: int
-  errors: int
-  cache_hits: int
-  cache_misses: int
-  avg_operation_time: float
-  last_cleanup: str | None
+  operations: int  # noqa: E111
+  errors: int  # noqa: E111
+  cache_hits: int  # noqa: E111
+  cache_misses: int  # noqa: E111
+  avg_operation_time: float  # noqa: E111
+  last_cleanup: str | None  # noqa: E111
 
 
 class PerformanceMonitorSnapshot(PerformanceMonitorCountersSnapshot):
-  """Derived metrics exposed by the performance monitor."""
+  """Derived metrics exposed by the performance monitor."""  # noqa: E111
 
-  cache_hit_rate: float
-  error_rate: float
-  recent_operations: int
+  cache_hit_rate: float  # noqa: E111
+  error_rate: float  # noqa: E111
+  recent_operations: int  # noqa: E111
 
 
 class OptimizedEntityMemoryConfig(TypedDict):
-  """Memory optimisation tuning options for optimized entity caches."""
+  """Memory optimisation tuning options for optimized entity caches."""  # noqa: E111
 
-  max_cache_entries: int
-  cache_cleanup_threshold: float
-  weak_ref_cleanup_interval: int
-  performance_sample_size: int
+  max_cache_entries: int  # noqa: E111
+  cache_cleanup_threshold: float  # noqa: E111
+  weak_ref_cleanup_interval: int  # noqa: E111
+  performance_sample_size: int  # noqa: E111
 
 
 class OptimizedEntityCacheStats(TypedDict):
-  """Cache statistics aggregated across optimized entities."""
+  """Cache statistics aggregated across optimized entities."""  # noqa: E111
 
-  state_cache_size: int
-  attributes_cache_size: int
-  availability_cache_size: int
+  state_cache_size: int  # noqa: E111
+  attributes_cache_size: int  # noqa: E111
+  availability_cache_size: int  # noqa: E111
 
 
 class OptimizedEntityGlobalPerformanceStats(TypedDict):
-  """Global performance snapshot returned by :func:`get_global_performance_stats`."""
+  """Global performance snapshot returned by :func:`get_global_performance_stats`."""  # noqa: E111
 
-  total_entities_registered: int
-  active_entities: int
-  cache_statistics: OptimizedEntityCacheStats
-  average_operation_time_ms: float
-  average_cache_hit_rate: float
-  total_errors: int
-  entities_with_performance_data: int
+  total_entities_registered: int  # noqa: E111
+  active_entities: int  # noqa: E111
+  cache_statistics: OptimizedEntityCacheStats  # noqa: E111
+  average_operation_time_ms: float  # noqa: E111
+  average_cache_hit_rate: float  # noqa: E111
+  total_errors: int  # noqa: E111
+  entities_with_performance_data: int  # noqa: E111
 
 
 class OptimizedEntityPerformanceSummary(TypedDict, total=False):
-  """Per-entity performance metrics recorded by :class:`PerformanceTracker`."""
+  """Per-entity performance metrics recorded by :class:`PerformanceTracker`."""  # noqa: E111
 
-  status: str
-  avg_operation_time: float
-  min_operation_time: float
-  max_operation_time: float
-  total_operations: int
-  error_count: int
-  error_rate: float
-  cache_hit_rate: float
-  total_cache_operations: int
+  status: str  # noqa: E111
+  avg_operation_time: float  # noqa: E111
+  min_operation_time: float  # noqa: E111
+  max_operation_time: float  # noqa: E111
+  total_operations: int  # noqa: E111
+  error_count: int  # noqa: E111
+  error_rate: float  # noqa: E111
+  cache_hit_rate: float  # noqa: E111
+  total_cache_operations: int  # noqa: E111
 
 
 class OptimizedEntityMemoryEstimate(TypedDict):
-  """Approximate memory usage reported by optimized entities."""
+  """Approximate memory usage reported by optimized entities."""  # noqa: E111
 
-  base_entity_bytes: int
-  cache_contribution_bytes: int
-  estimated_total_bytes: int
+  base_entity_bytes: int  # noqa: E111
+  cache_contribution_bytes: int  # noqa: E111
+  estimated_total_bytes: int  # noqa: E111
 
 
 class OptimizedEntityPerformanceMetrics(TypedDict):
-  """Composite telemetry returned by :meth:`OptimizedEntityBase.get_performance_metrics`."""
+  """Composite telemetry returned by :meth:`OptimizedEntityBase.get_performance_metrics`."""  # noqa: E111, E501
 
-  entity_id: str
-  dog_id: str
-  entity_type: str
-  initialization_time: str
-  uptime_seconds: float
-  performance: OptimizedEntityPerformanceSummary
-  memory_usage_estimate: OptimizedEntityMemoryEstimate
+  entity_id: str  # noqa: E111
+  dog_id: str  # noqa: E111
+  entity_type: str  # noqa: E111
+  initialization_time: str  # noqa: E111
+  uptime_seconds: float  # noqa: E111
+  performance: OptimizedEntityPerformanceSummary  # noqa: E111
+  memory_usage_estimate: OptimizedEntityMemoryEstimate  # noqa: E111
 
 
 class WebhookSecurityStatus(TypedDict, total=False):
-  """Webhook security posture exported via coordinator diagnostics."""
+  """Webhook security posture exported via coordinator diagnostics."""  # noqa: E111
 
-  configured: bool
-  secure: bool
-  hmac_ready: bool
-  insecure_configs: tuple[str, ...]
-  error: NotRequired[str]
+  configured: bool  # noqa: E111
+  secure: bool  # noqa: E111
+  hmac_ready: bool  # noqa: E111
+  insecure_configs: tuple[str, ...]  # noqa: E111
+  error: NotRequired[str]  # noqa: E111
 
 
 class CoordinatorPerformanceSnapshotCounts(TypedDict):
-  """Update counter payload surfaced via performance diagnostics."""
+  """Update counter payload surfaced via performance diagnostics."""  # noqa: E111
 
-  total: int
-  successful: int
-  failed: int
+  total: int  # noqa: E111
+  successful: int  # noqa: E111
+  failed: int  # noqa: E111
 
 
 class CoordinatorPerformanceSnapshotMetrics(TypedDict, total=False):
-  """Performance telemetry attached to coordinator diagnostics snapshots."""
+  """Performance telemetry attached to coordinator diagnostics snapshots."""  # noqa: E111
 
-  last_update: str | None
-  last_update_success: bool
-  success_rate: float
-  consecutive_errors: int
-  update_interval_s: float
-  current_cycle_ms: float | None
-  rejected_call_count: int
-  rejection_breaker_count: int
-  rejection_rate: float | None
-  last_rejection_time: float | None
-  last_rejection_breaker_id: str | None
-  last_rejection_breaker_name: str | None
-  open_breaker_count: int
-  half_open_breaker_count: int
-  unknown_breaker_count: int
-  open_breakers: list[str]
-  open_breaker_ids: list[str]
-  half_open_breakers: list[str]
-  half_open_breaker_ids: list[str]
-  unknown_breakers: list[str]
-  unknown_breaker_ids: list[str]
-  rejection_breaker_ids: list[str]
-  rejection_breakers: list[str]
+  last_update: str | None  # noqa: E111
+  last_update_success: bool  # noqa: E111
+  success_rate: float  # noqa: E111
+  consecutive_errors: int  # noqa: E111
+  update_interval_s: float  # noqa: E111
+  current_cycle_ms: float | None  # noqa: E111
+  rejected_call_count: int  # noqa: E111
+  rejection_breaker_count: int  # noqa: E111
+  rejection_rate: float | None  # noqa: E111
+  last_rejection_time: float | None  # noqa: E111
+  last_rejection_breaker_id: str | None  # noqa: E111
+  last_rejection_breaker_name: str | None  # noqa: E111
+  open_breaker_count: int  # noqa: E111
+  half_open_breaker_count: int  # noqa: E111
+  unknown_breaker_count: int  # noqa: E111
+  open_breakers: list[str]  # noqa: E111
+  open_breaker_ids: list[str]  # noqa: E111
+  half_open_breakers: list[str]  # noqa: E111
+  half_open_breaker_ids: list[str]  # noqa: E111
+  unknown_breakers: list[str]  # noqa: E111
+  unknown_breaker_ids: list[str]  # noqa: E111
+  rejection_breaker_ids: list[str]  # noqa: E111
+  rejection_breakers: list[str]  # noqa: E111
 
 
 class CoordinatorPerformanceSnapshot(TypedDict, total=False):
-  """Composite payload returned by performance snapshot helpers."""
+  """Composite payload returned by performance snapshot helpers."""  # noqa: E111
 
-  update_counts: CoordinatorPerformanceSnapshotCounts
-  performance_metrics: CoordinatorPerformanceSnapshotMetrics
-  adaptive_polling: AdaptivePollingDiagnostics
-  entity_budget: EntityBudgetSummary
-  webhook_security: WebhookSecurityStatus
-  resilience_summary: CoordinatorResilienceSummary
-  rejection_metrics: CoordinatorRejectionMetrics
-  bool_coercion: BoolCoercionSummary
-  resilience: CoordinatorResilienceDiagnostics
-  service_execution: CoordinatorServiceExecutionSummary
-  last_cycle: CoordinatorRuntimeCycleSnapshot
+  update_counts: CoordinatorPerformanceSnapshotCounts  # noqa: E111
+  performance_metrics: CoordinatorPerformanceSnapshotMetrics  # noqa: E111
+  adaptive_polling: AdaptivePollingDiagnostics  # noqa: E111
+  entity_budget: EntityBudgetSummary  # noqa: E111
+  webhook_security: WebhookSecurityStatus  # noqa: E111
+  resilience_summary: CoordinatorResilienceSummary  # noqa: E111
+  rejection_metrics: CoordinatorRejectionMetrics  # noqa: E111
+  bool_coercion: BoolCoercionSummary  # noqa: E111
+  resilience: CoordinatorResilienceDiagnostics  # noqa: E111
+  service_execution: CoordinatorServiceExecutionSummary  # noqa: E111
+  last_cycle: CoordinatorRuntimeCycleSnapshot  # noqa: E111
 
 
 CoordinatorSecurityAdaptiveCheck = TypedDict(
@@ -6091,177 +6095,177 @@ CoordinatorSecurityWebhookCheck = TypedDict(
 
 
 class CoordinatorSecurityChecks(TypedDict):
-  """Collection of security check results surfaced to diagnostics."""
+  """Collection of security check results surfaced to diagnostics."""  # noqa: E111
 
-  adaptive_polling: CoordinatorSecurityAdaptiveCheck
-  entity_budget: CoordinatorSecurityEntityCheck
-  webhooks: CoordinatorSecurityWebhookCheck
+  adaptive_polling: CoordinatorSecurityAdaptiveCheck  # noqa: E111
+  entity_budget: CoordinatorSecurityEntityCheck  # noqa: E111
+  webhooks: CoordinatorSecurityWebhookCheck  # noqa: E111
 
 
 class CoordinatorSecurityScorecard(TypedDict):
-  """Aggregated security score surfaced via diagnostics endpoints."""
+  """Aggregated security score surfaced via diagnostics endpoints."""  # noqa: E111
 
-  status: Literal["pass", "fail"]
-  checks: CoordinatorSecurityChecks
+  status: Literal["pass", "fail"]  # noqa: E111
+  checks: CoordinatorSecurityChecks  # noqa: E111
 
 
 class CircuitBreakerStatsPayload(TypedDict, total=False):
-  """Circuit breaker statistics forwarded to diagnostics panels."""
+  """Circuit breaker statistics forwarded to diagnostics panels."""  # noqa: E111
 
-  breaker_id: str
-  state: str
-  failure_count: int
-  success_count: int
-  last_failure_time: float | None
-  last_state_change: float | None
-  last_success_time: float
-  last_rejection_time: float | None
-  total_calls: int
-  total_failures: int
-  total_successes: int
-  rejected_calls: int
+  breaker_id: str  # noqa: E111
+  state: str  # noqa: E111
+  failure_count: int  # noqa: E111
+  success_count: int  # noqa: E111
+  last_failure_time: float | None  # noqa: E111
+  last_state_change: float | None  # noqa: E111
+  last_success_time: float  # noqa: E111
+  last_rejection_time: float | None  # noqa: E111
+  total_calls: int  # noqa: E111
+  total_failures: int  # noqa: E111
+  total_successes: int  # noqa: E111
+  rejected_calls: int  # noqa: E111
 
 
 class CircuitBreakerStateSummary(TypedDict):
-  """Aggregated state counters across all circuit breakers."""
+  """Aggregated state counters across all circuit breakers."""  # noqa: E111
 
-  closed: int
-  open: int
-  half_open: int
-  unknown: int
-  other: int
+  closed: int  # noqa: E111
+  open: int  # noqa: E111
+  half_open: int  # noqa: E111
+  unknown: int  # noqa: E111
+  other: int  # noqa: E111
 
 
 class CoordinatorResilienceSummary(TypedDict):
-  """Condensed view of coordinator resilience health."""
+  """Condensed view of coordinator resilience health."""  # noqa: E111
 
-  total_breakers: int
-  states: CircuitBreakerStateSummary
-  failure_count: int
-  success_count: int
-  total_calls: int
-  total_failures: int
-  total_successes: int
-  rejected_call_count: int
-  last_failure_time: float | None
-  last_state_change: float | None
-  last_success_time: float | None
-  last_rejection_time: float | None
-  recovery_latency: float | None
-  recovery_breaker_id: str | None
-  recovery_breaker_name: NotRequired[str | None]
-  last_rejection_breaker_id: NotRequired[str | None]
-  last_rejection_breaker_name: NotRequired[str | None]
-  rejection_rate: float | None
-  open_breaker_count: int
-  half_open_breaker_count: int
-  unknown_breaker_count: int
-  open_breakers: list[str]
-  open_breaker_ids: list[str]
-  half_open_breakers: list[str]
-  half_open_breaker_ids: list[str]
-  unknown_breakers: list[str]
-  unknown_breaker_ids: list[str]
-  rejection_breaker_count: int
-  rejection_breakers: list[str]
-  rejection_breaker_ids: list[str]
+  total_breakers: int  # noqa: E111
+  states: CircuitBreakerStateSummary  # noqa: E111
+  failure_count: int  # noqa: E111
+  success_count: int  # noqa: E111
+  total_calls: int  # noqa: E111
+  total_failures: int  # noqa: E111
+  total_successes: int  # noqa: E111
+  rejected_call_count: int  # noqa: E111
+  last_failure_time: float | None  # noqa: E111
+  last_state_change: float | None  # noqa: E111
+  last_success_time: float | None  # noqa: E111
+  last_rejection_time: float | None  # noqa: E111
+  recovery_latency: float | None  # noqa: E111
+  recovery_breaker_id: str | None  # noqa: E111
+  recovery_breaker_name: NotRequired[str | None]  # noqa: E111
+  last_rejection_breaker_id: NotRequired[str | None]  # noqa: E111
+  last_rejection_breaker_name: NotRequired[str | None]  # noqa: E111
+  rejection_rate: float | None  # noqa: E111
+  open_breaker_count: int  # noqa: E111
+  half_open_breaker_count: int  # noqa: E111
+  unknown_breaker_count: int  # noqa: E111
+  open_breakers: list[str]  # noqa: E111
+  open_breaker_ids: list[str]  # noqa: E111
+  half_open_breakers: list[str]  # noqa: E111
+  half_open_breaker_ids: list[str]  # noqa: E111
+  unknown_breakers: list[str]  # noqa: E111
+  unknown_breaker_ids: list[str]  # noqa: E111
+  rejection_breaker_count: int  # noqa: E111
+  rejection_breakers: list[str]  # noqa: E111
+  rejection_breaker_ids: list[str]  # noqa: E111
 
 
 class CoordinatorResilienceDiagnostics(TypedDict, total=False):
-  """Structured resilience payload surfaced through coordinator statistics."""
+  """Structured resilience payload surfaced through coordinator statistics."""  # noqa: E111
 
-  breakers: dict[str, CircuitBreakerStatsPayload]
-  summary: CoordinatorResilienceSummary
+  breakers: dict[str, CircuitBreakerStatsPayload]  # noqa: E111
+  summary: CoordinatorResilienceSummary  # noqa: E111
 
 
 class CoordinatorStatisticsPayload(TypedDict):
-  """Structured payload returned by :class:`CoordinatorMetrics.update_statistics`."""
+  """Structured payload returned by :class:`CoordinatorMetrics.update_statistics`."""  # noqa: E111
 
-  update_counts: CoordinatorUpdateCounts
-  performance_metrics: CoordinatorPerformanceMetrics
-  health_indicators: CoordinatorHealthIndicators
-  repairs: NotRequired[CoordinatorRepairsSummary]
-  reconfigure: NotRequired[ReconfigureTelemetrySummary]
-  entity_budget: NotRequired[EntityBudgetSummary]
-  adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
-  resilience: NotRequired[CoordinatorResilienceDiagnostics]
-  rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
-  runtime_store: NotRequired[CoordinatorRuntimeStoreSummary]
+  update_counts: CoordinatorUpdateCounts  # noqa: E111
+  performance_metrics: CoordinatorPerformanceMetrics  # noqa: E111
+  health_indicators: CoordinatorHealthIndicators  # noqa: E111
+  repairs: NotRequired[CoordinatorRepairsSummary]  # noqa: E111
+  reconfigure: NotRequired[ReconfigureTelemetrySummary]  # noqa: E111
+  entity_budget: NotRequired[EntityBudgetSummary]  # noqa: E111
+  adaptive_polling: NotRequired[AdaptivePollingDiagnostics]  # noqa: E111
+  resilience: NotRequired[CoordinatorResilienceDiagnostics]  # noqa: E111
+  rejection_metrics: NotRequired[CoordinatorRejectionMetrics]  # noqa: E111
+  runtime_store: NotRequired[CoordinatorRuntimeStoreSummary]  # noqa: E111
 
 
 class CoordinatorRuntimeContext(TypedDict):
-  """Context metadata included in runtime statistics snapshots."""
+  """Context metadata included in runtime statistics snapshots."""  # noqa: E111
 
-  total_dogs: int
-  last_update: Any
-  update_interval: float
+  total_dogs: int  # noqa: E111
+  last_update: Any  # noqa: E111
+  update_interval: float  # noqa: E111
 
 
 class CoordinatorErrorSummary(TypedDict):
-  """Error summary included with coordinator runtime statistics."""
+  """Error summary included with coordinator runtime statistics."""  # noqa: E111
 
-  consecutive_errors: int
-  error_rate: float
-  rejection_rate: NotRequired[float | None]
-  rejected_call_count: NotRequired[int]
-  rejection_breaker_count: NotRequired[int]
-  open_breaker_count: NotRequired[int]
-  half_open_breaker_count: NotRequired[int]
-  unknown_breaker_count: NotRequired[int]
-  open_breakers: NotRequired[list[str]]
-  open_breaker_ids: NotRequired[list[str]]
-  half_open_breakers: NotRequired[list[str]]
-  half_open_breaker_ids: NotRequired[list[str]]
-  unknown_breakers: NotRequired[list[str]]
-  unknown_breaker_ids: NotRequired[list[str]]
-  rejection_breaker_ids: NotRequired[list[str]]
-  rejection_breakers: NotRequired[list[str]]
+  consecutive_errors: int  # noqa: E111
+  error_rate: float  # noqa: E111
+  rejection_rate: NotRequired[float | None]  # noqa: E111
+  rejected_call_count: NotRequired[int]  # noqa: E111
+  rejection_breaker_count: NotRequired[int]  # noqa: E111
+  open_breaker_count: NotRequired[int]  # noqa: E111
+  half_open_breaker_count: NotRequired[int]  # noqa: E111
+  unknown_breaker_count: NotRequired[int]  # noqa: E111
+  open_breakers: NotRequired[list[str]]  # noqa: E111
+  open_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  half_open_breakers: NotRequired[list[str]]  # noqa: E111
+  half_open_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  unknown_breakers: NotRequired[list[str]]  # noqa: E111
+  unknown_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  rejection_breaker_ids: NotRequired[list[str]]  # noqa: E111
+  rejection_breakers: NotRequired[list[str]]  # noqa: E111
 
 
 class CoordinatorServiceExecutionSummary(TypedDict, total=False):
-  """Aggregated service execution telemetry surfaced via runtime statistics."""
+  """Aggregated service execution telemetry surfaced via runtime statistics."""  # noqa: E111
 
-  guard_metrics: HelperManagerGuardMetrics
-  entity_factory_guard: EntityFactoryGuardMetricsSnapshot
-  rejection_metrics: CoordinatorRejectionMetrics
+  guard_metrics: HelperManagerGuardMetrics  # noqa: E111
+  entity_factory_guard: EntityFactoryGuardMetricsSnapshot  # noqa: E111
+  rejection_metrics: CoordinatorRejectionMetrics  # noqa: E111
 
 
 class CoordinatorCachePerformance(TypedDict):
-  """Cache performance counters surfaced during runtime diagnostics."""
+  """Cache performance counters surfaced during runtime diagnostics."""  # noqa: E111
 
-  hits: int
-  misses: int
-  entries: int
-  hit_rate: float
+  hits: int  # noqa: E111
+  misses: int  # noqa: E111
+  entries: int  # noqa: E111
+  hit_rate: float  # noqa: E111
 
 
 class CoordinatorRuntimeStatisticsPayload(TypedDict):
-  """Payload returned by :class:`CoordinatorMetrics.runtime_statistics`."""
+  """Payload returned by :class:`CoordinatorMetrics.runtime_statistics`."""  # noqa: E111
 
-  update_counts: CoordinatorUpdateCounts
-  context: CoordinatorRuntimeContext
-  error_summary: CoordinatorErrorSummary
-  cache_performance: CoordinatorCachePerformance
-  repairs: NotRequired[CoordinatorRepairsSummary]
-  reconfigure: NotRequired[ReconfigureTelemetrySummary]
-  entity_budget: NotRequired[EntityBudgetSummary]
-  adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
-  resilience: NotRequired[CoordinatorResilienceDiagnostics]
-  rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
-  bool_coercion: NotRequired[BoolCoercionSummary]
-  service_execution: NotRequired[CoordinatorServiceExecutionSummary]
-  runtime_store: NotRequired[CoordinatorRuntimeStoreSummary]
+  update_counts: CoordinatorUpdateCounts  # noqa: E111
+  context: CoordinatorRuntimeContext  # noqa: E111
+  error_summary: CoordinatorErrorSummary  # noqa: E111
+  cache_performance: CoordinatorCachePerformance  # noqa: E111
+  repairs: NotRequired[CoordinatorRepairsSummary]  # noqa: E111
+  reconfigure: NotRequired[ReconfigureTelemetrySummary]  # noqa: E111
+  entity_budget: NotRequired[EntityBudgetSummary]  # noqa: E111
+  adaptive_polling: NotRequired[AdaptivePollingDiagnostics]  # noqa: E111
+  resilience: NotRequired[CoordinatorResilienceDiagnostics]  # noqa: E111
+  rejection_metrics: NotRequired[CoordinatorRejectionMetrics]  # noqa: E111
+  bool_coercion: NotRequired[BoolCoercionSummary]  # noqa: E111
+  service_execution: NotRequired[CoordinatorServiceExecutionSummary]  # noqa: E111
+  runtime_store: NotRequired[CoordinatorRuntimeStoreSummary]  # noqa: E111
 
 
 class CoordinatorModuleErrorPayload(TypedDict, total=False):
-  """Fallback payload recorded when a module cannot provide telemetry."""
+  """Fallback payload recorded when a module cannot provide telemetry."""  # noqa: E111
 
-  status: Required[str]
-  reason: NotRequired[str]
-  message: NotRequired[str]
-  error: NotRequired[str]
-  error_type: NotRequired[str]
-  retry_after: NotRequired[int | float | None]
+  status: Required[str]  # noqa: E111
+  reason: NotRequired[str]  # noqa: E111
+  message: NotRequired[str]  # noqa: E111
+  error: NotRequired[str]  # noqa: E111
+  error_type: NotRequired[str]  # noqa: E111
+  retry_after: NotRequired[int | float | None]  # noqa: E111
 
 
 CoordinatorModuleState = ModuleAdapterPayload | CoordinatorModuleErrorPayload
@@ -6299,83 +6303,83 @@ type OptimizedEntityAttributesPayload = JSONMutableMapping
 
 
 class DeviceLinkDetails(TypedDict, total=False):
-  """Device metadata mapping used by :class:`PawControlDeviceLinkMixin`."""
+  """Device metadata mapping used by :class:`PawControlDeviceLinkMixin`."""  # noqa: E111
 
-  manufacturer: str
-  model: str
-  sw_version: str | None
-  configuration_url: str | None
-  breed: str | None
-  microchip_id: str | None
-  serial_number: str | None
-  hw_version: str | None
-  suggested_area: str | None
-  extra_identifiers: Sequence[tuple[str, str]]
+  manufacturer: str  # noqa: E111
+  model: str  # noqa: E111
+  sw_version: str | None  # noqa: E111
+  configuration_url: str | None  # noqa: E111
+  breed: str | None  # noqa: E111
+  microchip_id: str | None  # noqa: E111
+  serial_number: str | None  # noqa: E111
+  hw_version: str | None  # noqa: E111
+  suggested_area: str | None  # noqa: E111
+  extra_identifiers: Sequence[tuple[str, str]]  # noqa: E111
 
 
 class CoordinatorDogData(TypedDict, total=False):
-  """Runtime payload stored by the coordinator for a single dog."""
+  """Runtime payload stored by the coordinator for a single dog."""  # noqa: E111
 
-  dog_info: DogConfigData
-  status: str
-  status_snapshot: NotRequired[DogStatusSnapshot]
-  last_update: str | None
-  gps: NotRequired[CoordinatorModuleState]
-  geofencing: NotRequired[CoordinatorModuleState]
-  feeding: NotRequired[CoordinatorModuleState]
-  walk: NotRequired[CoordinatorModuleState]
-  health: NotRequired[CoordinatorModuleState]
-  weather: NotRequired[CoordinatorModuleState]
-  garden: NotRequired[CoordinatorModuleState]
-  profile: NotRequired[DogProfileSnapshot]
-  notifications: NotRequired[JSONMutableMapping]
-  dashboard: NotRequired[JSONMutableMapping]
-  visitor: NotRequired[JSONMutableMapping]
-  grooming: NotRequired[JSONMutableMapping]
-  medication: NotRequired[JSONMutableMapping]
-  training: NotRequired[JSONMutableMapping]
-  text_values: NotRequired[DogTextSnapshot]
+  dog_info: DogConfigData  # noqa: E111
+  status: str  # noqa: E111
+  status_snapshot: NotRequired[DogStatusSnapshot]  # noqa: E111
+  last_update: str | None  # noqa: E111
+  gps: NotRequired[CoordinatorModuleState]  # noqa: E111
+  geofencing: NotRequired[CoordinatorModuleState]  # noqa: E111
+  feeding: NotRequired[CoordinatorModuleState]  # noqa: E111
+  walk: NotRequired[CoordinatorModuleState]  # noqa: E111
+  health: NotRequired[CoordinatorModuleState]  # noqa: E111
+  weather: NotRequired[CoordinatorModuleState]  # noqa: E111
+  garden: NotRequired[CoordinatorModuleState]  # noqa: E111
+  profile: NotRequired[DogProfileSnapshot]  # noqa: E111
+  notifications: NotRequired[JSONMutableMapping]  # noqa: E111
+  dashboard: NotRequired[JSONMutableMapping]  # noqa: E111
+  visitor: NotRequired[JSONMutableMapping]  # noqa: E111
+  grooming: NotRequired[JSONMutableMapping]  # noqa: E111
+  medication: NotRequired[JSONMutableMapping]  # noqa: E111
+  training: NotRequired[JSONMutableMapping]  # noqa: E111
+  text_values: NotRequired[DogTextSnapshot]  # noqa: E111
 
 
 class DogStatusSnapshot(TypedDict, total=False):
-  """Centralized status snapshot for a dog."""
+  """Centralized status snapshot for a dog."""  # noqa: E111
 
-  dog_id: str
-  state: str
-  zone: str | None
-  is_home: bool
-  in_safe_zone: bool
-  on_walk: bool
-  needs_walk: bool
-  is_hungry: bool
+  dog_id: str  # noqa: E111
+  state: str  # noqa: E111
+  zone: str | None  # noqa: E111
+  is_home: bool  # noqa: E111
+  in_safe_zone: bool  # noqa: E111
+  on_walk: bool  # noqa: E111
+  needs_walk: bool  # noqa: E111
+  is_hungry: bool  # noqa: E111
 
 
 CoordinatorDataPayload = dict[str, CoordinatorDogData]
 
 
 class CoordinatorRejectionMetrics(TypedDict):
-  """Normalised rejection counters exposed via diagnostics payloads."""
+  """Normalised rejection counters exposed via diagnostics payloads."""  # noqa: E111
 
-  schema_version: Literal[4]
-  rejected_call_count: int
-  rejection_breaker_count: int
-  rejection_rate: float | None
-  last_rejection_time: float | None
-  last_rejection_breaker_id: str | None
-  last_rejection_breaker_name: str | None
-  last_failure_reason: str | None
-  failure_reasons: dict[str, int]
-  open_breaker_count: int
-  half_open_breaker_count: int
-  unknown_breaker_count: int
-  open_breakers: list[str]
-  open_breaker_ids: list[str]
-  half_open_breakers: list[str]
-  half_open_breaker_ids: list[str]
-  unknown_breakers: list[str]
-  unknown_breaker_ids: list[str]
-  rejection_breaker_ids: list[str]
-  rejection_breakers: list[str]
+  schema_version: Literal[4]  # noqa: E111
+  rejected_call_count: int  # noqa: E111
+  rejection_breaker_count: int  # noqa: E111
+  rejection_rate: float | None  # noqa: E111
+  last_rejection_time: float | None  # noqa: E111
+  last_rejection_breaker_id: str | None  # noqa: E111
+  last_rejection_breaker_name: str | None  # noqa: E111
+  last_failure_reason: str | None  # noqa: E111
+  failure_reasons: dict[str, int]  # noqa: E111
+  open_breaker_count: int  # noqa: E111
+  half_open_breaker_count: int  # noqa: E111
+  unknown_breaker_count: int  # noqa: E111
+  open_breakers: list[str]  # noqa: E111
+  open_breaker_ids: list[str]  # noqa: E111
+  half_open_breakers: list[str]  # noqa: E111
+  half_open_breaker_ids: list[str]  # noqa: E111
+  unknown_breakers: list[str]  # noqa: E111
+  unknown_breaker_ids: list[str]  # noqa: E111
+  rejection_breaker_ids: list[str]  # noqa: E111
+  rejection_breakers: list[str]  # noqa: E111
 
 
 type RejectionMetricsTarget = (
@@ -6391,85 +6395,85 @@ type RejectionMetricsSource = (
 
 
 class SystemHealthThresholdDetail(TypedDict, total=False):
-  """Threshold details exposed through the system health endpoint."""
+  """Threshold details exposed through the system health endpoint."""  # noqa: E111
 
-  count: int
-  ratio: float
-  percentage: float
+  count: int  # noqa: E111
+  ratio: float  # noqa: E111
+  percentage: float  # noqa: E111
 
 
 class SystemHealthThresholdSummary(TypedDict, total=False):
-  """Source metadata for guard and breaker threshold indicators."""
+  """Source metadata for guard and breaker threshold indicators."""  # noqa: E111
 
-  source: Required[str]
-  source_key: str | None
-  warning: SystemHealthThresholdDetail
-  critical: SystemHealthThresholdDetail
+  source: Required[str]  # noqa: E111
+  source_key: str | None  # noqa: E111
+  warning: SystemHealthThresholdDetail  # noqa: E111
+  critical: SystemHealthThresholdDetail  # noqa: E111
 
 
 class SystemHealthGuardReasonEntry(TypedDict):
-  """Top guard skip reason surfaced through system health."""
+  """Top guard skip reason surfaced through system health."""  # noqa: E111
 
-  reason: str
-  count: int
+  reason: str  # noqa: E111
+  count: int  # noqa: E111
 
 
 type SystemHealthIndicatorLevel = Literal["critical", "warning", "normal"]
 
 
 class SystemHealthIndicatorPayload(TypedDict, total=False):
-  """Indicator payload summarising guard/breaker health."""
+  """Indicator payload summarising guard/breaker health."""  # noqa: E111
 
-  level: Required[SystemHealthIndicatorLevel]
-  color: Required[Literal["red", "amber", "green"]]
-  message: Required[str]
-  metric_type: Required[str]
-  context: str
-  metric: float | int
-  threshold: float | int
-  threshold_type: str
-  threshold_source: str
+  level: Required[SystemHealthIndicatorLevel]  # noqa: E111
+  color: Required[Literal["red", "amber", "green"]]  # noqa: E111
+  message: Required[str]  # noqa: E111
+  metric_type: Required[str]  # noqa: E111
+  context: str  # noqa: E111
+  metric: float | int  # noqa: E111
+  threshold: float | int  # noqa: E111
+  threshold_type: str  # noqa: E111
+  threshold_source: str  # noqa: E111
 
 
 class SystemHealthGuardSummary(TypedDict):
-  """Aggregated guard statistics returned by system health."""
+  """Aggregated guard statistics returned by system health."""  # noqa: E111
 
-  executed: int
-  skipped: int
-  total_calls: int
-  skip_ratio: float
-  skip_percentage: float
-  has_skips: bool
-  reasons: dict[str, int]
-  top_reasons: list[SystemHealthGuardReasonEntry]
-  thresholds: SystemHealthThresholdSummary
-  indicator: SystemHealthIndicatorPayload
+  executed: int  # noqa: E111
+  skipped: int  # noqa: E111
+  total_calls: int  # noqa: E111
+  skip_ratio: float  # noqa: E111
+  skip_percentage: float  # noqa: E111
+  has_skips: bool  # noqa: E111
+  reasons: dict[str, int]  # noqa: E111
+  top_reasons: list[SystemHealthGuardReasonEntry]  # noqa: E111
+  thresholds: SystemHealthThresholdSummary  # noqa: E111
+  indicator: SystemHealthIndicatorPayload  # noqa: E111
 
 
 class SystemHealthBreakerOverview(TypedDict):
-  """Breaker metrics surfaced through the system health endpoint."""
+  """Breaker metrics surfaced through the system health endpoint."""  # noqa: E111
 
-  status: Literal["open", "recovering", "monitoring", "healthy"]
-  open_breaker_count: int
-  half_open_breaker_count: int
-  unknown_breaker_count: int
-  rejection_rate: float
-  last_rejection_breaker_id: str | None
-  last_rejection_breaker_name: str | None
-  last_rejection_time: float | None
-  open_breakers: list[str]
-  half_open_breakers: list[str]
-  unknown_breakers: list[str]
-  thresholds: SystemHealthThresholdSummary
-  indicator: SystemHealthIndicatorPayload
+  status: Literal["open", "recovering", "monitoring", "healthy"]  # noqa: E111
+  open_breaker_count: int  # noqa: E111
+  half_open_breaker_count: int  # noqa: E111
+  unknown_breaker_count: int  # noqa: E111
+  rejection_rate: float  # noqa: E111
+  last_rejection_breaker_id: str | None  # noqa: E111
+  last_rejection_breaker_name: str | None  # noqa: E111
+  last_rejection_time: float | None  # noqa: E111
+  open_breakers: list[str]  # noqa: E111
+  half_open_breakers: list[str]  # noqa: E111
+  unknown_breakers: list[str]  # noqa: E111
+  thresholds: SystemHealthThresholdSummary  # noqa: E111
+  indicator: SystemHealthIndicatorPayload  # noqa: E111
 
 
 class SystemHealthServiceStatus(TypedDict):
-  """Composite indicator status for guard and breaker telemetry."""
+  """Composite indicator status for guard and breaker telemetry."""  # noqa: E111
 
-  guard: SystemHealthIndicatorPayload
-  breaker: SystemHealthIndicatorPayload
-  overall: SystemHealthIndicatorPayload
+  guard: SystemHealthIndicatorPayload  # noqa: E111
+  breaker: SystemHealthIndicatorPayload  # noqa: E111
+  overall: SystemHealthIndicatorPayload  # noqa: E111
 
 
 type SystemHealthRemainingQuota = (
@@ -6483,39 +6487,39 @@ type SystemHealthRemainingQuota = (
 
 
 class SystemHealthServiceExecutionSnapshot(TypedDict):
-  """Structured service execution payload for system health diagnostics."""
+  """Structured service execution payload for system health diagnostics."""  # noqa: E111
 
-  guard_metrics: HelperManagerGuardMetrics
-  guard_summary: SystemHealthGuardSummary
-  entity_factory_guard: EntityFactoryGuardMetricsSnapshot
-  rejection_metrics: CoordinatorRejectionMetrics
-  breaker_overview: SystemHealthBreakerOverview
-  status: SystemHealthServiceStatus
-  manual_events: ManualResilienceEventsTelemetry
+  guard_metrics: HelperManagerGuardMetrics  # noqa: E111
+  guard_summary: SystemHealthGuardSummary  # noqa: E111
+  entity_factory_guard: EntityFactoryGuardMetricsSnapshot  # noqa: E111
+  rejection_metrics: CoordinatorRejectionMetrics  # noqa: E111
+  breaker_overview: SystemHealthBreakerOverview  # noqa: E111
+  status: SystemHealthServiceStatus  # noqa: E111
+  manual_events: ManualResilienceEventsTelemetry  # noqa: E111
 
 
 class SystemHealthInfoPayload(TypedDict):
-  """Top-level system health payload exposed by the integration."""
+  """Top-level system health payload exposed by the integration."""  # noqa: E111
 
-  can_reach_backend: bool
-  remaining_quota: SystemHealthRemainingQuota
-  service_execution: SystemHealthServiceExecutionSnapshot
-  runtime_store: RuntimeStoreCompatibilitySnapshot
+  can_reach_backend: bool  # noqa: E111
+  remaining_quota: SystemHealthRemainingQuota  # noqa: E111
+  service_execution: SystemHealthServiceExecutionSnapshot  # noqa: E111
+  runtime_store: RuntimeStoreCompatibilitySnapshot  # noqa: E111
 
 
 class DogProfileSnapshot(TypedDict, total=False):
-  """Profile metadata exposed through coordinator dog snapshots."""
+  """Profile metadata exposed through coordinator dog snapshots."""  # noqa: E111
 
-  birthdate: str | None
-  adoption_date: str | None
-  diet_start_date: str | None
-  diet_end_date: str | None
-  training_start_date: str | None
-  next_training_date: str | None
-  dog_age: int | None
-  dog_weight: float | None
-  dog_size: str | None
-  entity_profile: str | None
+  birthdate: str | None  # noqa: E111
+  adoption_date: str | None  # noqa: E111
+  diet_start_date: str | None  # noqa: E111
+  diet_end_date: str | None  # noqa: E111
+  training_start_date: str | None  # noqa: E111
+  next_training_date: str | None  # noqa: E111
+  dog_age: int | None  # noqa: E111
+  dog_weight: float | None  # noqa: E111
+  dog_size: str | None  # noqa: E111
+  entity_profile: str | None  # noqa: E111
 
 
 class DogConfigData(TypedDict, total=False):
@@ -6542,34 +6546,34 @@ class DogConfigData(TypedDict, total=False):
       emergency_contact: Emergency contact details (optional, critical situations)
       modules: Module enablement configuration (affects available features)
       discovery_info: Device discovery metadata (optional, for hardware integration)
-  """
+  """  # noqa: E111
 
-  # Required fields - must be present for valid configuration
-  dog_id: Required[str]
-  dog_name: Required[str]
+  # Required fields - must be present for valid configuration  # noqa: E114
+  dog_id: Required[str]  # noqa: E111
+  dog_name: Required[str]  # noqa: E111
 
-  # Optional fields with comprehensive coverage for dog characteristics
-  dog_breed: NotRequired[str | None]
-  dog_age: NotRequired[int | None]
-  dog_weight: NotRequired[float | None]
-  dog_size: NotRequired[str | None]
-  dog_color: NotRequired[str | None]
-  microchip_id: NotRequired[str | None]
-  vet_contact: NotRequired[str | None]
-  emergency_contact: NotRequired[str | None]
-  modules: NotRequired[DogModulesConfig]
-  dog_image: NotRequired[str | None]
-  discovery_info: NotRequired[ConfigFlowDiscoveryData]
-  gps_config: NotRequired[DogGPSConfig]
-  walk_config: NotRequired[DogWalkConfig]
-  feeding_config: NotRequired[DogFeedingConfig]
-  health_config: NotRequired[DogHealthConfig]
-  feeding: NotRequired[JSONMutableMapping]
-  walk: NotRequired[JSONMutableMapping]
-  door_sensor: NotRequired[str | None]
-  door_sensor_settings: NotRequired[DoorSensorSettingsPayload | None]
-  text_values: NotRequired[DogTextSnapshot]
-  text_metadata: NotRequired[DogTextMetadataSnapshot]
+  # Optional fields with comprehensive coverage for dog characteristics  # noqa: E114
+  dog_breed: NotRequired[str | None]  # noqa: E111
+  dog_age: NotRequired[int | None]  # noqa: E111
+  dog_weight: NotRequired[float | None]  # noqa: E111
+  dog_size: NotRequired[str | None]  # noqa: E111
+  dog_color: NotRequired[str | None]  # noqa: E111
+  microchip_id: NotRequired[str | None]  # noqa: E111
+  vet_contact: NotRequired[str | None]  # noqa: E111
+  emergency_contact: NotRequired[str | None]  # noqa: E111
+  modules: NotRequired[DogModulesConfig]  # noqa: E111
+  dog_image: NotRequired[str | None]  # noqa: E111
+  discovery_info: NotRequired[ConfigFlowDiscoveryData]  # noqa: E111
+  gps_config: NotRequired[DogGPSConfig]  # noqa: E111
+  walk_config: NotRequired[DogWalkConfig]  # noqa: E111
+  feeding_config: NotRequired[DogFeedingConfig]  # noqa: E111
+  health_config: NotRequired[DogHealthConfig]  # noqa: E111
+  feeding: NotRequired[JSONMutableMapping]  # noqa: E111
+  walk: NotRequired[JSONMutableMapping]  # noqa: E111
+  door_sensor: NotRequired[str | None]  # noqa: E111
+  door_sensor_settings: NotRequired[DoorSensorSettingsPayload | None]  # noqa: E111
+  text_values: NotRequired[DogTextSnapshot]  # noqa: E111
+  text_metadata: NotRequired[DogTextMetadataSnapshot]  # noqa: E111
 
 
 # TypedDict key literals for dog configuration structures.
@@ -6643,70 +6647,70 @@ _DOG_TEXT_SNAPSHOT_KEYS: Final[tuple[TextSnapshotKey, ...]] = (
 def ensure_dog_text_snapshot(
   payload: Mapping[str, JSONValue],
 ) -> DogTextSnapshot | None:
-  """Return a normalised :class:`DogTextSnapshot` built from ``payload``."""
+  """Return a normalised :class:`DogTextSnapshot` built from ``payload``."""  # noqa: E111
 
-  snapshot: dict[str, str] = {}
-  for key in _DOG_TEXT_SNAPSHOT_KEYS:
+  snapshot: dict[str, str] = {}  # noqa: E111
+  for key in _DOG_TEXT_SNAPSHOT_KEYS:  # noqa: E111
     raw_value = payload.get(key)
     if isinstance(raw_value, str):
-      snapshot[key] = raw_value
+      snapshot[key] = raw_value  # noqa: E111
 
-  if not snapshot:
+  if not snapshot:  # noqa: E111
     return None
 
-  return cast(DogTextSnapshot, snapshot)
+  return cast(DogTextSnapshot, snapshot)  # noqa: E111
 
 
 def _normalise_text_metadata_entry(
   raw_value: object | None,
 ) -> DogTextMetadataEntry | None:
-  """Return a typed metadata entry built from ``raw_value`` when possible."""
+  """Return a typed metadata entry built from ``raw_value`` when possible."""  # noqa: E111
 
-  if isinstance(raw_value, Mapping):
+  if isinstance(raw_value, Mapping):  # noqa: E111
     entry: dict[str, str | None] = {}
     last_updated = raw_value.get("last_updated")
     if isinstance(last_updated, str) and last_updated:
-      entry["last_updated"] = last_updated
+      entry["last_updated"] = last_updated  # noqa: E111
 
     context_id = raw_value.get("context_id")
     if isinstance(context_id, str) and context_id:
-      entry["context_id"] = context_id
+      entry["context_id"] = context_id  # noqa: E111
 
     parent_id = raw_value.get("parent_id")
     if isinstance(parent_id, str) and parent_id:
-      entry["parent_id"] = parent_id
+      entry["parent_id"] = parent_id  # noqa: E111
 
     user_id = raw_value.get("user_id")
     if isinstance(user_id, str) and user_id:
-      entry["user_id"] = user_id
+      entry["user_id"] = user_id  # noqa: E111
 
     if not entry:
-      return None
+      return None  # noqa: E111
 
     return cast(DogTextMetadataEntry, entry)
 
-  if isinstance(raw_value, str) and raw_value:
+  if isinstance(raw_value, str) and raw_value:  # noqa: E111
     return cast(DogTextMetadataEntry, {"last_updated": raw_value})
 
-  return None
+  return None  # noqa: E111
 
 
 def ensure_dog_text_metadata_snapshot(
   payload: Mapping[str, JSONValue],
 ) -> DogTextMetadataSnapshot | None:
-  """Return a normalised :class:`DogTextMetadataSnapshot` from ``payload``."""
+  """Return a normalised :class:`DogTextMetadataSnapshot` from ``payload``."""  # noqa: E111
 
-  metadata: dict[str, DogTextMetadataEntry] = {}
-  for key in _DOG_TEXT_SNAPSHOT_KEYS:
+  metadata: dict[str, DogTextMetadataEntry] = {}  # noqa: E111
+  for key in _DOG_TEXT_SNAPSHOT_KEYS:  # noqa: E111
     raw_value = payload.get(key)
     entry = _normalise_text_metadata_entry(raw_value)
     if entry is not None:
-      metadata[key] = entry
+      metadata[key] = entry  # noqa: E111
 
-  if not metadata:
+  if not metadata:  # noqa: E111
     return None
 
-  return cast(DogTextMetadataSnapshot, metadata)
+  return cast(DogTextMetadataSnapshot, metadata)  # noqa: E111
 
 
 # Field literals for external entity configuration helpers.
@@ -6734,127 +6738,127 @@ AUTO_REFRESH_FIELD: Final[Literal["auto_refresh"]] = "auto_refresh"
 
 
 def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | None:
-  """Return a ``DogConfigData`` structure extracted from ``data`` mappings."""
+  """Return a ``DogConfigData`` structure extracted from ``data`` mappings."""  # noqa: E111
 
-  dog_id = data.get(DOG_ID_FIELD)
-  dog_name = data.get(DOG_NAME_FIELD)
+  dog_id = data.get(DOG_ID_FIELD)  # noqa: E111
+  dog_name = data.get(DOG_NAME_FIELD)  # noqa: E111
 
-  if not isinstance(dog_id, str) or not dog_id:
+  if not isinstance(dog_id, str) or not dog_id:  # noqa: E111
     return None
-  if not isinstance(dog_name, str) or not dog_name:
+  if not isinstance(dog_name, str) or not dog_name:  # noqa: E111
     return None
 
-  config: DogConfigData = {
+  config: DogConfigData = {  # noqa: E111
     DOG_ID_FIELD: dog_id,
     DOG_NAME_FIELD: dog_name,
   }
 
-  breed = data.get(DOG_BREED_FIELD)
-  if isinstance(breed, str):
+  breed = data.get(DOG_BREED_FIELD)  # noqa: E111
+  if isinstance(breed, str):  # noqa: E111
     config[DOG_BREED_FIELD] = breed
 
-  age = data.get(DOG_AGE_FIELD)
-  if isinstance(age, int):
+  age = data.get(DOG_AGE_FIELD)  # noqa: E111
+  if isinstance(age, int):  # noqa: E111
     config[DOG_AGE_FIELD] = age
 
-  weight = data.get(DOG_WEIGHT_FIELD)
-  if isinstance(weight, int | float):
+  weight = data.get(DOG_WEIGHT_FIELD)  # noqa: E111
+  if isinstance(weight, int | float):  # noqa: E111
     config[DOG_WEIGHT_FIELD] = float(weight)
 
-  size = data.get(DOG_SIZE_FIELD)
-  if isinstance(size, str):
+  size = data.get(DOG_SIZE_FIELD)  # noqa: E111
+  if isinstance(size, str):  # noqa: E111
     config[DOG_SIZE_FIELD] = size
 
-  color = data.get(DOG_COLOR_FIELD)
-  if isinstance(color, str) and color:
+  color = data.get(DOG_COLOR_FIELD)  # noqa: E111
+  if isinstance(color, str) and color:  # noqa: E111
     config[DOG_COLOR_FIELD] = color
 
-  microchip_id = data.get(DOG_MICROCHIP_ID_FIELD)
-  if isinstance(microchip_id, str) and microchip_id:
+  microchip_id = data.get(DOG_MICROCHIP_ID_FIELD)  # noqa: E111
+  if isinstance(microchip_id, str) and microchip_id:  # noqa: E111
     config[DOG_MICROCHIP_ID_FIELD] = microchip_id
 
-  vet_contact = data.get(DOG_VET_CONTACT_FIELD)
-  if isinstance(vet_contact, str) and vet_contact:
+  vet_contact = data.get(DOG_VET_CONTACT_FIELD)  # noqa: E111
+  if isinstance(vet_contact, str) and vet_contact:  # noqa: E111
     config[DOG_VET_CONTACT_FIELD] = vet_contact
 
-  emergency_contact = data.get(DOG_EMERGENCY_CONTACT_FIELD)
-  if isinstance(emergency_contact, str) and emergency_contact:
+  emergency_contact = data.get(DOG_EMERGENCY_CONTACT_FIELD)  # noqa: E111
+  if isinstance(emergency_contact, str) and emergency_contact:  # noqa: E111
     config[DOG_EMERGENCY_CONTACT_FIELD] = emergency_contact
 
-  modules_payload = data.get(DOG_MODULES_FIELD)
-  if _is_modules_projection_like(modules_payload):
+  modules_payload = data.get(DOG_MODULES_FIELD)  # noqa: E111
+  if _is_modules_projection_like(modules_payload):  # noqa: E111
     config[DOG_MODULES_FIELD] = coerce_dog_modules_config(
       cast(DogModulesProjection, modules_payload),
     )
-  elif isinstance(modules_payload, Mapping):
+  elif isinstance(modules_payload, Mapping):  # noqa: E111
     config[DOG_MODULES_FIELD] = coerce_dog_modules_config(
       cast(Mapping[str, object], modules_payload),
     )
 
-  discovery_info = data.get(DOG_DISCOVERY_FIELD)
-  if isinstance(discovery_info, Mapping):
+  discovery_info = data.get(DOG_DISCOVERY_FIELD)  # noqa: E111
+  if isinstance(discovery_info, Mapping):  # noqa: E111
     config[DOG_DISCOVERY_FIELD] = cast(
       ConfigFlowDiscoveryData,
       dict(discovery_info),
     )
 
-  gps_config = data.get(DOG_GPS_CONFIG_FIELD)
-  if isinstance(gps_config, Mapping):
+  gps_config = data.get(DOG_GPS_CONFIG_FIELD)  # noqa: E111
+  if isinstance(gps_config, Mapping):  # noqa: E111
     config[DOG_GPS_CONFIG_FIELD] = cast(DogGPSConfig, dict(gps_config))
 
-  walk_config = data.get(DOG_WALK_CONFIG_FIELD)
-  if isinstance(walk_config, Mapping):
+  walk_config = data.get(DOG_WALK_CONFIG_FIELD)  # noqa: E111
+  if isinstance(walk_config, Mapping):  # noqa: E111
     config[DOG_WALK_CONFIG_FIELD] = cast(DogWalkConfig, dict(walk_config))
 
-  feeding_config = data.get(DOG_FEEDING_CONFIG_FIELD)
-  if isinstance(feeding_config, Mapping):
+  feeding_config = data.get(DOG_FEEDING_CONFIG_FIELD)  # noqa: E111
+  if isinstance(feeding_config, Mapping):  # noqa: E111
     config[DOG_FEEDING_CONFIG_FIELD] = cast(
       DogFeedingConfig,
       dict(feeding_config),
     )
 
-  health_config = data.get(DOG_HEALTH_CONFIG_FIELD)
-  if isinstance(health_config, Mapping):
+  health_config = data.get(DOG_HEALTH_CONFIG_FIELD)  # noqa: E111
+  if isinstance(health_config, Mapping):  # noqa: E111
     config[DOG_HEALTH_CONFIG_FIELD] = cast(
       DogHealthConfig,
       dict(health_config),
     )
 
-  feeding_module = data.get("feeding")
-  if isinstance(feeding_module, Mapping):
+  feeding_module = data.get("feeding")  # noqa: E111
+  if isinstance(feeding_module, Mapping):  # noqa: E111
     config["feeding"] = ensure_json_mapping(feeding_module)
 
-  walk_module = data.get("walk")
-  if isinstance(walk_module, Mapping):
+  walk_module = data.get("walk")  # noqa: E111
+  if isinstance(walk_module, Mapping):  # noqa: E111
     config["walk"] = ensure_json_mapping(walk_module)
 
-  door_sensor = data.get(CONF_DOOR_SENSOR)
-  if isinstance(door_sensor, str):
+  door_sensor = data.get(CONF_DOOR_SENSOR)  # noqa: E111
+  if isinstance(door_sensor, str):  # noqa: E111
     trimmed_sensor = door_sensor.strip()
     if trimmed_sensor:
-      config["door_sensor"] = trimmed_sensor
+      config["door_sensor"] = trimmed_sensor  # noqa: E111
 
-  normalised_settings = _normalise_door_sensor_settings_payload(
+  normalised_settings = _normalise_door_sensor_settings_payload(  # noqa: E111
     data.get(CONF_DOOR_SENSOR_SETTINGS),
   )
-  if normalised_settings is not None:
+  if normalised_settings is not None:  # noqa: E111
     config["door_sensor_settings"] = normalised_settings
 
-  text_payload = data.get(DOG_TEXT_VALUES_FIELD)
-  if isinstance(text_payload, Mapping):
+  text_payload = data.get(DOG_TEXT_VALUES_FIELD)  # noqa: E111
+  if isinstance(text_payload, Mapping):  # noqa: E111
     snapshot = ensure_dog_text_snapshot(text_payload)
     if snapshot is not None:
-      config[DOG_TEXT_VALUES_FIELD] = snapshot
+      config[DOG_TEXT_VALUES_FIELD] = snapshot  # noqa: E111
 
-  text_metadata_payload = data.get(DOG_TEXT_METADATA_FIELD)
-  if isinstance(text_metadata_payload, Mapping):
+  text_metadata_payload = data.get(DOG_TEXT_METADATA_FIELD)  # noqa: E111
+  if isinstance(text_metadata_payload, Mapping):  # noqa: E111
     metadata_snapshot = ensure_dog_text_metadata_snapshot(
       text_metadata_payload,
     )
     if metadata_snapshot is not None:
-      config[DOG_TEXT_METADATA_FIELD] = metadata_snapshot
+      config[DOG_TEXT_METADATA_FIELD] = metadata_snapshot  # noqa: E111
 
-  return config
+  return config  # noqa: E111
 
 
 RawDogConfig = JSONMapping | DogConfigData
@@ -6863,31 +6867,31 @@ RawDogConfig = JSONMapping | DogConfigData
 def _normalise_door_sensor_settings_payload(
   payload: Any,
 ) -> DoorSensorSettingsPayload | None:
-  """Return a stored payload for door sensor overrides when available."""
+  """Return a stored payload for door sensor overrides when available."""  # noqa: E111
 
-  if payload is None:
+  if payload is None:  # noqa: E111
     return None
 
-  from .door_sensor_manager import ensure_door_sensor_settings_config
+  from .door_sensor_manager import ensure_door_sensor_settings_config  # noqa: E111
 
-  if isinstance(payload, DoorSensorSettingsConfig):
+  if isinstance(payload, DoorSensorSettingsConfig):  # noqa: E111
     settings = payload
-  elif isinstance(payload, Mapping):
+  elif isinstance(payload, Mapping):  # noqa: E111
     settings = ensure_door_sensor_settings_config(payload)
-  else:
+  else:  # noqa: E111
     return None
 
-  settings_payload = cast(DoorSensorSettingsPayload, asdict(settings))
-  if not settings_payload:
+  settings_payload = cast(DoorSensorSettingsPayload, asdict(settings))  # noqa: E111
+  if not settings_payload:  # noqa: E111
     return None
 
-  if settings_payload == cast(
+  if settings_payload == cast(  # noqa: E111
     DoorSensorSettingsPayload,
     asdict(DEFAULT_DOOR_SENSOR_SETTINGS),
   ):
     return None
 
-  return settings_payload
+  return settings_payload  # noqa: E111
 
 
 def ensure_dog_options_entry(
@@ -6896,53 +6900,53 @@ def ensure_dog_options_entry(
   *,
   dog_id: str | None = None,
 ) -> DogOptionsEntry:
-  """Return a normalised :class:`DogOptionsEntry` built from ``value``."""
+  """Return a normalised :class:`DogOptionsEntry` built from ``value``."""  # noqa: E111
 
-  entry: DogOptionsEntry = {}
+  entry: DogOptionsEntry = {}  # noqa: E111
 
-  raw_dog_id = value.get(DOG_ID_FIELD)
-  if isinstance(raw_dog_id, str) and raw_dog_id:
+  raw_dog_id = value.get(DOG_ID_FIELD)  # noqa: E111
+  if isinstance(raw_dog_id, str) and raw_dog_id:  # noqa: E111
     entry["dog_id"] = raw_dog_id
-  elif isinstance(dog_id, str) and dog_id:
+  elif isinstance(dog_id, str) and dog_id:  # noqa: E111
     entry["dog_id"] = dog_id
 
-  modules_payload = value.get(DOG_MODULES_FIELD)
-  if _is_modules_projection_like(modules_payload):
+  modules_payload = value.get(DOG_MODULES_FIELD)  # noqa: E111
+  if _is_modules_projection_like(modules_payload):  # noqa: E111
     entry["modules"] = coerce_dog_modules_config(
       cast(DogModulesProjection, modules_payload),
     )
-  elif isinstance(modules_payload, Mapping):
+  elif isinstance(modules_payload, Mapping):  # noqa: E111
     entry["modules"] = coerce_dog_modules_config(
       cast(Mapping[str, object], modules_payload),
     )
 
-  notifications_payload = value.get(CONF_NOTIFICATIONS)
-  if isinstance(notifications_payload, Mapping):
+  notifications_payload = value.get(CONF_NOTIFICATIONS)  # noqa: E111
+  if isinstance(notifications_payload, Mapping):  # noqa: E111
     entry["notifications"] = ensure_notification_options(
       cast(NotificationOptionsInput, dict(notifications_payload)),
       defaults=DEFAULT_NOTIFICATION_OPTIONS,
     )
 
-  gps_payload = value.get(CONF_GPS_SETTINGS)
-  if isinstance(gps_payload, Mapping):
+  gps_payload = value.get(CONF_GPS_SETTINGS)  # noqa: E111
+  if isinstance(gps_payload, Mapping):  # noqa: E111
     entry["gps_settings"] = cast(GPSOptions, dict(gps_payload))
 
-  geofence_payload = value.get("geofence_settings")
-  if isinstance(geofence_payload, Mapping):
+  geofence_payload = value.get("geofence_settings")  # noqa: E111
+  if isinstance(geofence_payload, Mapping):  # noqa: E111
     entry["geofence_settings"] = cast(
       GeofenceOptions,
       dict(geofence_payload),
     )
 
-  feeding_payload = value.get("feeding_settings")
-  if isinstance(feeding_payload, Mapping):
+  feeding_payload = value.get("feeding_settings")  # noqa: E111
+  if isinstance(feeding_payload, Mapping):  # noqa: E111
     entry["feeding_settings"] = cast(FeedingOptions, dict(feeding_payload))
 
-  health_payload = value.get("health_settings")
-  if isinstance(health_payload, Mapping):
+  health_payload = value.get("health_settings")  # noqa: E111
+  if isinstance(health_payload, Mapping):  # noqa: E111
     entry["health_settings"] = cast(HealthOptions, dict(health_payload))
 
-  return entry
+  return entry  # noqa: E111
 
 
 class DetectionStatistics(TypedDict):
@@ -6959,71 +6963,71 @@ class DetectionStatistics(TypedDict):
       false_positives: Count of detections that were dismissed as false alarms.
       false_negatives: Number of missed walks detected through manual review.
       average_confidence: Rolling average confidence score for detections.
-  """
+  """  # noqa: E111
 
-  total_detections: int
-  successful_walks: int
-  false_positives: int
-  false_negatives: int
-  average_confidence: float
+  total_detections: int  # noqa: E111
+  successful_walks: int  # noqa: E111
+  false_positives: int  # noqa: E111
+  false_negatives: int  # noqa: E111
+  average_confidence: float  # noqa: E111
 
 
 class DetectionStatusEntry(TypedDict):
-  """Status information for an individual dog's detection state."""
+  """Status information for an individual dog's detection state."""  # noqa: E111
 
-  dog_name: str
-  door_sensor: str
-  current_state: str
-  confidence_score: float
-  active_walk_id: str | None
-  last_door_state: str | None
-  recent_activity: int
+  dog_name: str  # noqa: E111
+  door_sensor: str  # noqa: E111
+  current_state: str  # noqa: E111
+  confidence_score: float  # noqa: E111
+  active_walk_id: str | None  # noqa: E111
+  last_door_state: str | None  # noqa: E111
+  recent_activity: int  # noqa: E111
 
 
 class DetectionStatus(TypedDict):
-  """Structured detection status payload for diagnostics endpoints."""
+  """Structured detection status payload for diagnostics endpoints."""  # noqa: E111
 
-  configured_dogs: int
-  active_detections: int
-  detection_states: dict[str, DetectionStatusEntry]
-  statistics: DetectionStatistics
+  configured_dogs: int  # noqa: E111
+  active_detections: int  # noqa: E111
+  detection_states: dict[str, DetectionStatusEntry]  # noqa: E111
+  statistics: DetectionStatistics  # noqa: E111
 
 
 class DoorSensorStateHistoryEntry(TypedDict):
-  """Serialised state transition captured by the door sensor manager."""
+  """Serialised state transition captured by the door sensor manager."""  # noqa: E111
 
-  timestamp: str | None
-  state: str
+  timestamp: str | None  # noqa: E111
+  state: str  # noqa: E111
 
 
 class DoorSensorStateSnapshot(TypedDict, total=False):
-  """Detailed walk detection state exported in cache diagnostics."""
+  """Detailed walk detection state exported in cache diagnostics."""  # noqa: E111
 
-  current_state: str
-  door_opened_at: str | None
-  door_closed_at: str | None
-  potential_walk_start: str | None
-  active_walk_id: str | None
-  confidence_score: float
-  last_door_state: str | None
-  consecutive_opens: int
-  state_history: list[DoorSensorStateHistoryEntry]
-  last_activity_age_seconds: int
+  current_state: str  # noqa: E111
+  door_opened_at: str | None  # noqa: E111
+  door_closed_at: str | None  # noqa: E111
+  potential_walk_start: str | None  # noqa: E111
+  active_walk_id: str | None  # noqa: E111
+  confidence_score: float  # noqa: E111
+  last_door_state: str | None  # noqa: E111
+  consecutive_opens: int  # noqa: E111
+  state_history: list[DoorSensorStateHistoryEntry]  # noqa: E111
+  last_activity_age_seconds: int  # noqa: E111
 
 
 class DoorSensorDogSnapshot(TypedDict, total=False):
-  """Per-dog configuration snapshot for diagnostics exports."""
+  """Per-dog configuration snapshot for diagnostics exports."""  # noqa: E111
 
-  entity_id: str
-  enabled: bool
-  walk_detection_timeout: int
-  minimum_walk_duration: int
-  maximum_walk_duration: int
-  door_closed_delay: int
-  require_confirmation: bool
-  auto_end_walks: bool
-  confidence_threshold: float
-  state: DoorSensorStateSnapshot
+  entity_id: str  # noqa: E111
+  enabled: bool  # noqa: E111
+  walk_detection_timeout: int  # noqa: E111
+  minimum_walk_duration: int  # noqa: E111
+  maximum_walk_duration: int  # noqa: E111
+  door_closed_delay: int  # noqa: E111
+  require_confirmation: bool  # noqa: E111
+  auto_end_walks: bool  # noqa: E111
+  confidence_threshold: float  # noqa: E111
+  state: DoorSensorStateSnapshot  # noqa: E111
 
 
 type DoorSensorConfigUpdateValue = DoorSensorSettingsPayload | str | None
@@ -7034,155 +7038,155 @@ type DoorSensorConfigUpdate = dict[str, DoorSensorConfigUpdateValue]
 
 
 class DoorSensorManagerStats(DetectionStatistics, total=False):
-  """Aggregated statistics surfaced alongside detection telemetry."""
+  """Aggregated statistics surfaced alongside detection telemetry."""  # noqa: E111
 
-  configured_sensors: int
-  active_detections: int
-  last_activity_age_seconds: int
+  configured_sensors: int  # noqa: E111
+  active_detections: int  # noqa: E111
+  last_activity_age_seconds: int  # noqa: E111
 
 
 class DoorSensorManagerSnapshot(TypedDict):
-  """Coordinator snapshot payload returned by the door sensor cache monitor."""
+  """Coordinator snapshot payload returned by the door sensor cache monitor."""  # noqa: E111
 
-  per_dog: dict[str, DoorSensorDogSnapshot]
-  detection_stats: DetectionStatistics
-  manager_last_activity: str | None
+  per_dog: dict[str, DoorSensorDogSnapshot]  # noqa: E111
+  detection_stats: DetectionStatistics  # noqa: E111
+  manager_last_activity: str | None  # noqa: E111
 
 
 class StorageNamespaceDogSummary(TypedDict, total=False):
-  """Aggregated state persisted for a single storage namespace entry."""
+  """Aggregated state persisted for a single storage namespace entry."""  # noqa: E111
 
-  entries: int
-  payload_type: str
-  timestamp: str | None
-  timestamp_age_seconds: int
-  timestamp_issue: str
+  entries: int  # noqa: E111
+  payload_type: str  # noqa: E111
+  timestamp: str | None  # noqa: E111
+  timestamp_age_seconds: int  # noqa: E111
+  timestamp_issue: str  # noqa: E111
 
 
 class StorageNamespaceStats(TypedDict):
-  """Summary metrics for coordinator storage namespace diagnostics."""
+  """Summary metrics for coordinator storage namespace diagnostics."""  # noqa: E111
 
-  namespace: str
-  dogs: int
-  entries: int
+  namespace: str  # noqa: E111
+  dogs: int  # noqa: E111
+  entries: int  # noqa: E111
 
 
 class StorageNamespaceSnapshot(TypedDict):
-  """Structured snapshot returned by storage namespace monitors."""
+  """Structured snapshot returned by storage namespace monitors."""  # noqa: E111
 
-  namespace: str
-  per_dog: dict[str, StorageNamespaceDogSummary]
+  namespace: str  # noqa: E111
+  per_dog: dict[str, StorageNamespaceDogSummary]  # noqa: E111
 
 
 class DataManagerMetricsSnapshot(TypedDict):
-  """Metrics exposed by :class:`PawControlDataManager`."""
+  """Metrics exposed by :class:`PawControlDataManager`."""  # noqa: E111
 
-  dogs: int
-  storage_path: str
-  cache_diagnostics: CacheDiagnosticsMap
+  dogs: int  # noqa: E111
+  storage_path: str  # noqa: E111
+  cache_diagnostics: CacheDiagnosticsMap  # noqa: E111
 
 
 class EntityBudgetSnapshotEntry(TypedDict, total=False):
-  """Serialised budget snapshot exported for coordinator diagnostics."""
+  """Serialised budget snapshot exported for coordinator diagnostics."""  # noqa: E111
 
-  dog_id: str
-  profile: str
-  capacity: int | float
-  base_allocation: int | float
-  dynamic_allocation: int | float
-  requested_entities: tuple[str, ...]
-  denied_requests: tuple[str, ...]
-  recorded_at: str | None
+  dog_id: str  # noqa: E111
+  profile: str  # noqa: E111
+  capacity: int | float  # noqa: E111
+  base_allocation: int | float  # noqa: E111
+  dynamic_allocation: int | float  # noqa: E111
+  requested_entities: tuple[str, ...]  # noqa: E111
+  denied_requests: tuple[str, ...]  # noqa: E111
+  recorded_at: str | None  # noqa: E111
 
 
 class EntityBudgetStats(TypedDict):
-  """Summary metrics for entity budget tracker diagnostics."""
+  """Summary metrics for entity budget tracker diagnostics."""  # noqa: E111
 
-  tracked_dogs: int
-  saturation_percent: float
+  tracked_dogs: int  # noqa: E111
+  saturation_percent: float  # noqa: E111
 
 
 class EntityBudgetDiagnostics(TypedDict):
-  """Structured diagnostics payload for entity budget telemetry."""
+  """Structured diagnostics payload for entity budget telemetry."""  # noqa: E111
 
-  summary: JSONMutableMapping
-  snapshots: list[EntityBudgetSnapshotEntry]
+  summary: JSONMutableMapping  # noqa: E111
+  snapshots: list[EntityBudgetSnapshotEntry]  # noqa: E111
 
 
 class RuntimeErrorHistoryEntry(TypedDict, total=False):
-  """Structured runtime error metadata stored for diagnostics."""
+  """Structured runtime error metadata stored for diagnostics."""  # noqa: E111
 
-  timestamp: Required[str]
-  source: Required[str]
-  dog_id: NotRequired[str]
-  door_sensor: NotRequired[str | None]
-  error: NotRequired[str]
-  context: NotRequired[ErrorContext | None]
+  timestamp: Required[str]  # noqa: E111
+  source: Required[str]  # noqa: E111
+  dog_id: NotRequired[str]  # noqa: E111
+  door_sensor: NotRequired[str | None]  # noqa: E111
+  error: NotRequired[str]  # noqa: E111
+  context: NotRequired[ErrorContext | None]  # noqa: E111
 
 
 type RuntimeErrorHistory = list[RuntimeErrorHistoryEntry]
 
 
 class DoorSensorPersistenceFailure(TypedDict, total=False):
-  """Telemetry entry captured when door sensor persistence fails."""
+  """Telemetry entry captured when door sensor persistence fails."""  # noqa: E111
 
-  dog_id: Required[str]
-  recorded_at: Required[str]
-  dog_name: NotRequired[str | None]
-  door_sensor: NotRequired[str | None]
-  settings: NotRequired[DoorSensorSettingsPayload | None]
-  error: NotRequired[str]
+  dog_id: Required[str]  # noqa: E111
+  recorded_at: Required[str]  # noqa: E111
+  dog_name: NotRequired[str | None]  # noqa: E111
+  door_sensor: NotRequired[str | None]  # noqa: E111
+  settings: NotRequired[DoorSensorSettingsPayload | None]  # noqa: E111
+  error: NotRequired[str]  # noqa: E111
 
 
 class DoorSensorFailureSummary(TypedDict, total=False):
-  """Aggregated telemetry for door sensor persistence failures per dog."""
+  """Aggregated telemetry for door sensor persistence failures per dog."""  # noqa: E111
 
-  dog_id: Required[str]
-  failure_count: Required[int]
-  last_failure: Required[DoorSensorPersistenceFailure]
-  dog_name: NotRequired[str | None]
+  dog_id: Required[str]  # noqa: E111
+  failure_count: Required[int]  # noqa: E111
+  last_failure: Required[DoorSensorPersistenceFailure]  # noqa: E111
+  dog_name: NotRequired[str | None]  # noqa: E111
 
 
 class PerformanceTrackerBucket(TypedDict, total=False):
-  """Execution metrics recorded by :func:`performance_tracker`."""
+  """Execution metrics recorded by :func:`performance_tracker`."""  # noqa: E111
 
-  runs: int
-  failures: int
-  durations_ms: list[float]
-  average_ms: float
-  last_run: str | None
-  last_error: str | None
+  runs: int  # noqa: E111
+  failures: int  # noqa: E111
+  durations_ms: list[float]  # noqa: E111
+  average_ms: float  # noqa: E111
+  last_run: str | None  # noqa: E111
+  last_error: str | None  # noqa: E111
 
 
 class RuntimePerformanceStats(TypedDict, total=False):
-  """Mutable runtime telemetry stored on :class:`PawControlRuntimeData`."""
+  """Mutable runtime telemetry stored on :class:`PawControlRuntimeData`."""  # noqa: E111
 
-  bool_coercion_summary: BoolCoercionSummary
-  reconfigure_summary: ReconfigureTelemetrySummary
-  resilience_summary: CoordinatorResilienceSummary
-  resilience_diagnostics: CoordinatorResilienceDiagnostics
-  door_sensor_failures: list[DoorSensorPersistenceFailure]
-  door_sensor_failure_count: int
-  last_door_sensor_failure: DoorSensorPersistenceFailure
-  door_sensor_failure_summary: dict[str, DoorSensorFailureSummary]
-  runtime_store_health: RuntimeStoreHealthHistory
-  service_guard_metrics: ServiceGuardMetricsSnapshot
-  entity_factory_guard_metrics: EntityFactoryGuardMetrics
-  rejection_metrics: CoordinatorRejectionMetrics
-  service_results: list[ServiceExecutionResult]
-  last_service_result: ServiceExecutionResult
-  service_call_telemetry: ServiceCallTelemetry
-  maintenance_results: list[MaintenanceExecutionResult]
-  last_maintenance_result: MaintenanceExecutionResult
-  last_cache_diagnostics: CacheDiagnosticsCapture
-  daily_resets: int
-  performance_buckets: dict[str, PerformanceTrackerBucket]
+  bool_coercion_summary: BoolCoercionSummary  # noqa: E111
+  reconfigure_summary: ReconfigureTelemetrySummary  # noqa: E111
+  resilience_summary: CoordinatorResilienceSummary  # noqa: E111
+  resilience_diagnostics: CoordinatorResilienceDiagnostics  # noqa: E111
+  door_sensor_failures: list[DoorSensorPersistenceFailure]  # noqa: E111
+  door_sensor_failure_count: int  # noqa: E111
+  last_door_sensor_failure: DoorSensorPersistenceFailure  # noqa: E111
+  door_sensor_failure_summary: dict[str, DoorSensorFailureSummary]  # noqa: E111
+  runtime_store_health: RuntimeStoreHealthHistory  # noqa: E111
+  service_guard_metrics: ServiceGuardMetricsSnapshot  # noqa: E111
+  entity_factory_guard_metrics: EntityFactoryGuardMetrics  # noqa: E111
+  rejection_metrics: CoordinatorRejectionMetrics  # noqa: E111
+  service_results: list[ServiceExecutionResult]  # noqa: E111
+  last_service_result: ServiceExecutionResult  # noqa: E111
+  service_call_telemetry: ServiceCallTelemetry  # noqa: E111
+  maintenance_results: list[MaintenanceExecutionResult]  # noqa: E111
+  last_maintenance_result: MaintenanceExecutionResult  # noqa: E111
+  last_cache_diagnostics: CacheDiagnosticsCapture  # noqa: E111
+  daily_resets: int  # noqa: E111
+  performance_buckets: dict[str, PerformanceTrackerBucket]  # noqa: E111
 
 
 def empty_runtime_performance_stats() -> RuntimePerformanceStats:
-  """Return an empty runtime performance stats mapping for dataclass defaults."""
+  """Return an empty runtime performance stats mapping for dataclass defaults."""  # noqa: E111
 
-  return cast(RuntimePerformanceStats, {})
+  return cast(RuntimePerformanceStats, {})  # noqa: E111
 
 
 DOMAIN_RUNTIME_STORE_VERSION: Final[int] = 2
@@ -7224,53 +7228,53 @@ class PawControlRuntimeData:
   Note:
       This class implements both dataclass and dictionary-like access
       patterns for maximum flexibility in integration usage scenarios.
-  """
+  """  # noqa: E111
 
-  coordinator: PawControlCoordinator
-  data_manager: PawControlDataManager
-  notification_manager: PawControlNotificationManager
-  feeding_manager: FeedingManager
-  walk_manager: WalkManager
-  entity_factory: EntityFactory
-  entity_profile: str
-  dogs: list[DogConfigData]
-  config_entry_data: ConfigEntryDataPayload | None = None
-  config_entry_options: ConfigEntryOptionsPayload | None = None
-  background_monitor_task: Task[None] | None = None
-  garden_manager: GardenManager | None = None
-  geofencing_manager: PawControlGeofencing | None = None
-  helper_manager: PawControlHelperManager | None = None
-  script_manager: PawControlScriptManager | None = None
-  gps_geofence_manager: GPSGeofenceManager | None = None
-  door_sensor_manager: DoorSensorManager | None = None
-  device_api_client: PawControlDeviceClient | None = None
+  coordinator: PawControlCoordinator  # noqa: E111
+  data_manager: PawControlDataManager  # noqa: E111
+  notification_manager: PawControlNotificationManager  # noqa: E111
+  feeding_manager: FeedingManager  # noqa: E111
+  walk_manager: WalkManager  # noqa: E111
+  entity_factory: EntityFactory  # noqa: E111
+  entity_profile: str  # noqa: E111
+  dogs: list[DogConfigData]  # noqa: E111
+  config_entry_data: ConfigEntryDataPayload | None = None  # noqa: E111
+  config_entry_options: ConfigEntryOptionsPayload | None = None  # noqa: E111
+  background_monitor_task: Task[None] | None = None  # noqa: E111
+  garden_manager: GardenManager | None = None  # noqa: E111
+  geofencing_manager: PawControlGeofencing | None = None  # noqa: E111
+  helper_manager: PawControlHelperManager | None = None  # noqa: E111
+  script_manager: PawControlScriptManager | None = None  # noqa: E111
+  gps_geofence_manager: GPSGeofenceManager | None = None  # noqa: E111
+  door_sensor_manager: DoorSensorManager | None = None  # noqa: E111
+  device_api_client: PawControlDeviceClient | None = None  # noqa: E111
 
-  # Enhanced runtime tracking for Platinum-targeted monitoring
-  performance_stats: RuntimePerformanceStats = field(
+  # Enhanced runtime tracking for Platinum-targeted monitoring  # noqa: E114
+  performance_stats: RuntimePerformanceStats = field(  # noqa: E111
     default_factory=empty_runtime_performance_stats,
   )
-  error_history: RuntimeErrorHistory = field(default_factory=list)
-  manual_event_history: deque[ManualResilienceEventRecord] = field(
+  error_history: RuntimeErrorHistory = field(default_factory=list)  # noqa: E111
+  manual_event_history: deque[ManualResilienceEventRecord] = field(  # noqa: E111
     default_factory=lambda: deque(maxlen=5),
   )
-  # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
-  daily_reset_unsub: Any = field(default=None)
-  reload_unsub: Callable[[], Any] | None = None
-  schema_created_version: int = DOMAIN_RUNTIME_STORE_VERSION
-  schema_version: int = DOMAIN_RUNTIME_STORE_VERSION
-  _runtime_managers_cache: CoordinatorRuntimeManagers | None = field(
+  # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener  # noqa: E114
+  daily_reset_unsub: Any = field(default=None)  # noqa: E111
+  reload_unsub: Callable[[], Any] | None = None  # noqa: E111
+  schema_created_version: int = DOMAIN_RUNTIME_STORE_VERSION  # noqa: E111
+  schema_version: int = DOMAIN_RUNTIME_STORE_VERSION  # noqa: E111
+  _runtime_managers_cache: CoordinatorRuntimeManagers | None = field(  # noqa: E111
     default=None,
     init=False,
     repr=False,
   )
 
-  @property
-  def runtime_managers(self) -> CoordinatorRuntimeManagers:
+  @property  # noqa: E111
+  def runtime_managers(self) -> CoordinatorRuntimeManagers:  # noqa: E111
     """Return the runtime manager container associated with this entry."""
 
     cached = self._runtime_managers_cache
     if cached is not None:
-      return cached
+      return cached  # noqa: E111
 
     coordinator_managers = getattr(
       self.coordinator,
@@ -7278,8 +7282,8 @@ class PawControlRuntimeData:
       None,
     )
     if isinstance(coordinator_managers, CoordinatorRuntimeManagers):
-      self._runtime_managers_cache = coordinator_managers
-      return coordinator_managers
+      self._runtime_managers_cache = coordinator_managers  # noqa: E111
+      return coordinator_managers  # noqa: E111
 
     container = CoordinatorRuntimeManagers(
       data_manager=getattr(self, "data_manager", None),
@@ -7298,7 +7302,7 @@ class PawControlRuntimeData:
     self._runtime_managers_cache = container
     return container
 
-  def as_dict(self) -> PawControlRuntimeDataExport:
+  def as_dict(self) -> PawControlRuntimeDataExport:  # noqa: E111
     """Return a dictionary representation of the runtime data.
 
     Provides dictionary access to all runtime components for scenarios
@@ -7336,7 +7340,7 @@ class PawControlRuntimeData:
       "schema_version": self.schema_version,
     }
 
-  def __getitem__(self, key: str) -> Any:
+  def __getitem__(self, key: str) -> Any:  # noqa: E111
     """Allow dictionary-style access for backward compatibility.
 
     Provides backward compatibility for code that expects dictionary-style
@@ -7352,10 +7356,10 @@ class PawControlRuntimeData:
         KeyError: If the requested key does not exist
     """
     if hasattr(self, key):
-      return getattr(self, key)
+      return getattr(self, key)  # noqa: E111
     raise KeyError(key) from None
 
-  def get(self, key: str, default: Any | None = None) -> Any | None:
+  def get(self, key: str, default: Any | None = None) -> Any | None:  # noqa: E111
     """Return an attribute using dictionary-style access with default.
 
     Provides safe dictionary-style access with default value support
@@ -7372,50 +7376,50 @@ class PawControlRuntimeData:
 
 
 class LegacyDomainRuntimeStoreEntry(TypedDict, total=False):
-  """Serialized representation of legacy runtime store entries."""
+  """Serialized representation of legacy runtime store entries."""  # noqa: E111
 
-  runtime_data: PawControlRuntimeData
-  version: int
-  created_version: int
+  runtime_data: PawControlRuntimeData  # noqa: E111
+  version: int  # noqa: E111
+  created_version: int  # noqa: E111
 
 
 @dataclass(slots=True)
 class DomainRuntimeStoreEntry:
-  """Container persisting runtime data within ``hass.data`` namespaces."""
+  """Container persisting runtime data within ``hass.data`` namespaces."""  # noqa: E111
 
-  runtime_data: PawControlRuntimeData
-  version: int = DOMAIN_RUNTIME_STORE_VERSION
-  created_version: int = DOMAIN_RUNTIME_STORE_VERSION
+  runtime_data: PawControlRuntimeData  # noqa: E111
+  version: int = DOMAIN_RUNTIME_STORE_VERSION  # noqa: E111
+  created_version: int = DOMAIN_RUNTIME_STORE_VERSION  # noqa: E111
 
-  CURRENT_VERSION: ClassVar[int] = DOMAIN_RUNTIME_STORE_VERSION
-  MINIMUM_COMPATIBLE_VERSION: ClassVar[int] = (
+  CURRENT_VERSION: ClassVar[int] = DOMAIN_RUNTIME_STORE_VERSION  # noqa: E111
+  MINIMUM_COMPATIBLE_VERSION: ClassVar[int] = (  # noqa: E111
     DOMAIN_RUNTIME_STORE_MINIMUM_COMPATIBLE_VERSION
   )
 
-  def unwrap(self) -> PawControlRuntimeData:
+  def unwrap(self) -> PawControlRuntimeData:  # noqa: E111
     """Return the stored runtime payload."""
 
     return self.runtime_data
 
-  def ensure_current(self) -> DomainRuntimeStoreEntry:
+  def ensure_current(self) -> DomainRuntimeStoreEntry:  # noqa: E111
     """Return an entry stamped with the current schema version."""
 
     if self.version == self.CURRENT_VERSION:
-      return self
+      return self  # noqa: E111
     return DomainRuntimeStoreEntry(
       runtime_data=self.runtime_data,
       version=self.CURRENT_VERSION,
       created_version=self.created_version,
     )
 
-  def is_future_version(self) -> bool:
+  def is_future_version(self) -> bool:  # noqa: E111
     """Return ``True`` when the entry was produced by a newer schema."""
 
     return (
       self.version > self.CURRENT_VERSION or self.created_version > self.CURRENT_VERSION
     )
 
-  def is_legacy_version(self) -> bool:
+  def is_legacy_version(self) -> bool:  # noqa: E111
     """Return ``True`` when the entry predates the compatibility window."""
 
     return self.created_version < self.MINIMUM_COMPATIBLE_VERSION
@@ -7448,24 +7452,24 @@ RuntimeStoreOverallStatus = Literal[
 
 
 class RuntimeStoreEntrySnapshot(TypedDict, total=False):
-  """Snapshot describing a single runtime store representation."""
+  """Snapshot describing a single runtime store representation."""  # noqa: E111
 
-  available: bool
-  version: int | None
-  created_version: int | None
-  status: RuntimeStoreEntryStatus
+  available: bool  # noqa: E111
+  version: int | None  # noqa: E111
+  created_version: int | None  # noqa: E111
+  status: RuntimeStoreEntryStatus  # noqa: E111
 
 
 class RuntimeStoreCompatibilitySnapshot(TypedDict):
-  """Composite compatibility summary for runtime store metadata."""
+  """Composite compatibility summary for runtime store metadata."""  # noqa: E111
 
-  entry_id: str
-  status: RuntimeStoreOverallStatus
-  current_version: int
-  minimum_compatible_version: int
-  entry: RuntimeStoreEntrySnapshot
-  store: RuntimeStoreEntrySnapshot
-  divergence_detected: bool
+  entry_id: str  # noqa: E111
+  status: RuntimeStoreOverallStatus  # noqa: E111
+  current_version: int  # noqa: E111
+  minimum_compatible_version: int  # noqa: E111
+  entry: RuntimeStoreEntrySnapshot  # noqa: E111
+  store: RuntimeStoreEntrySnapshot  # noqa: E111
+  divergence_detected: bool  # noqa: E111
 
 
 RuntimeStoreHealthLevel = Literal["ok", "watch", "action_required"]
@@ -7473,169 +7477,169 @@ RuntimeStoreHealthLevel = Literal["ok", "watch", "action_required"]
 
 
 class RuntimeStoreAssessmentEvent(TypedDict, total=False):
-  """Timeline entry capturing individual runtime store assessments."""
+  """Timeline entry capturing individual runtime store assessments."""  # noqa: E111
 
-  timestamp: str
-  level: RuntimeStoreHealthLevel
-  previous_level: RuntimeStoreHealthLevel | None
-  status: RuntimeStoreOverallStatus
-  entry_status: RuntimeStoreEntryStatus | None
-  store_status: RuntimeStoreEntryStatus | None
-  reason: str
-  recommended_action: str | None
-  divergence_detected: bool
-  divergence_rate: float | None
-  checks: int
-  divergence_events: int
-  level_streak: int
-  escalations: int
-  deescalations: int
-  level_changed: bool
-  current_level_duration_seconds: float | None
+  timestamp: str  # noqa: E111
+  level: RuntimeStoreHealthLevel  # noqa: E111
+  previous_level: RuntimeStoreHealthLevel | None  # noqa: E111
+  status: RuntimeStoreOverallStatus  # noqa: E111
+  entry_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  store_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  reason: str  # noqa: E111
+  recommended_action: str | None  # noqa: E111
+  divergence_detected: bool  # noqa: E111
+  divergence_rate: float | None  # noqa: E111
+  checks: int  # noqa: E111
+  divergence_events: int  # noqa: E111
+  level_streak: int  # noqa: E111
+  escalations: int  # noqa: E111
+  deescalations: int  # noqa: E111
+  level_changed: bool  # noqa: E111
+  current_level_duration_seconds: float | None  # noqa: E111
 
 
 class RuntimeStoreAssessmentTimelineSegment(TypedDict, total=False):
-  """Contiguous period derived from runtime store assessment events."""
+  """Contiguous period derived from runtime store assessment events."""  # noqa: E111
 
-  start: str
-  end: str | None
-  level: RuntimeStoreHealthLevel
-  status: RuntimeStoreOverallStatus | None
-  entry_status: RuntimeStoreEntryStatus | None
-  store_status: RuntimeStoreEntryStatus | None
-  reason: str | None
-  recommended_action: str | None
-  divergence_detected: bool | None
-  divergence_rate: float | None
-  checks: int | None
-  divergence_events: int | None
-  duration_seconds: float | None
+  start: str  # noqa: E111
+  end: str | None  # noqa: E111
+  level: RuntimeStoreHealthLevel  # noqa: E111
+  status: RuntimeStoreOverallStatus | None  # noqa: E111
+  entry_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  store_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  reason: str | None  # noqa: E111
+  recommended_action: str | None  # noqa: E111
+  divergence_detected: bool | None  # noqa: E111
+  divergence_rate: float | None  # noqa: E111
+  checks: int | None  # noqa: E111
+  divergence_events: int | None  # noqa: E111
+  duration_seconds: float | None  # noqa: E111
 
 
 class RuntimeStoreLevelDurationPercentiles(TypedDict, total=False):
-  """Percentile distribution for runtime store level durations."""
+  """Percentile distribution for runtime store level durations."""  # noqa: E111
 
-  p75: float
-  p90: float
-  p95: float
+  p75: float  # noqa: E111
+  p90: float  # noqa: E111
+  p95: float  # noqa: E111
 
 
 class RuntimeStoreLevelDurationAlert(TypedDict, total=False):
-  """Alert produced when duration percentiles exceed guard limits."""
+  """Alert produced when duration percentiles exceed guard limits."""  # noqa: E111
 
-  level: RuntimeStoreHealthLevel
-  percentile_label: str
-  percentile_rank: float
-  percentile_seconds: float
-  guard_limit_seconds: float
-  severity: str
-  recommended_action: str | None
+  level: RuntimeStoreHealthLevel  # noqa: E111
+  percentile_label: str  # noqa: E111
+  percentile_rank: float  # noqa: E111
+  percentile_seconds: float  # noqa: E111
+  guard_limit_seconds: float  # noqa: E111
+  severity: str  # noqa: E111
+  recommended_action: str | None  # noqa: E111
 
 
 class RuntimeStoreAssessmentTimelineSummary(TypedDict, total=False):
-  """Derived statistics for the runtime store assessment timeline."""
+  """Derived statistics for the runtime store assessment timeline."""  # noqa: E111
 
-  total_events: int
-  level_changes: int
-  level_change_rate: float | None
-  level_counts: dict[RuntimeStoreHealthLevel, int]
-  status_counts: dict[RuntimeStoreOverallStatus, int]
-  reason_counts: dict[str, int]
-  distinct_reasons: int
-  first_event_timestamp: str | None
-  last_event_timestamp: str | None
-  last_level: RuntimeStoreHealthLevel | None
-  last_status: RuntimeStoreOverallStatus | None
-  last_reason: str | None
-  last_recommended_action: str | None
-  last_divergence_detected: bool | None
-  last_divergence_rate: float | None
-  last_level_duration_seconds: float | None
-  timeline_window_seconds: float | None
-  timeline_window_days: float | None
-  events_per_day: float | None
-  most_common_reason: str | None
-  most_common_level: RuntimeStoreHealthLevel | None
-  most_common_status: RuntimeStoreOverallStatus | None
-  average_divergence_rate: float | None
-  max_divergence_rate: float | None
-  level_duration_peaks: dict[RuntimeStoreHealthLevel, float]
-  level_duration_latest: dict[RuntimeStoreHealthLevel, float | None]
-  level_duration_totals: dict[RuntimeStoreHealthLevel, float]
-  level_duration_samples: dict[RuntimeStoreHealthLevel, int]
-  level_duration_averages: dict[RuntimeStoreHealthLevel, float | None]
-  level_duration_minimums: dict[RuntimeStoreHealthLevel, float | None]
-  level_duration_medians: dict[RuntimeStoreHealthLevel, float | None]
-  level_duration_standard_deviations: dict[RuntimeStoreHealthLevel, float | None]
-  level_duration_percentiles: dict[
+  total_events: int  # noqa: E111
+  level_changes: int  # noqa: E111
+  level_change_rate: float | None  # noqa: E111
+  level_counts: dict[RuntimeStoreHealthLevel, int]  # noqa: E111
+  status_counts: dict[RuntimeStoreOverallStatus, int]  # noqa: E111
+  reason_counts: dict[str, int]  # noqa: E111
+  distinct_reasons: int  # noqa: E111
+  first_event_timestamp: str | None  # noqa: E111
+  last_event_timestamp: str | None  # noqa: E111
+  last_level: RuntimeStoreHealthLevel | None  # noqa: E111
+  last_status: RuntimeStoreOverallStatus | None  # noqa: E111
+  last_reason: str | None  # noqa: E111
+  last_recommended_action: str | None  # noqa: E111
+  last_divergence_detected: bool | None  # noqa: E111
+  last_divergence_rate: float | None  # noqa: E111
+  last_level_duration_seconds: float | None  # noqa: E111
+  timeline_window_seconds: float | None  # noqa: E111
+  timeline_window_days: float | None  # noqa: E111
+  events_per_day: float | None  # noqa: E111
+  most_common_reason: str | None  # noqa: E111
+  most_common_level: RuntimeStoreHealthLevel | None  # noqa: E111
+  most_common_status: RuntimeStoreOverallStatus | None  # noqa: E111
+  average_divergence_rate: float | None  # noqa: E111
+  max_divergence_rate: float | None  # noqa: E111
+  level_duration_peaks: dict[RuntimeStoreHealthLevel, float]  # noqa: E111
+  level_duration_latest: dict[RuntimeStoreHealthLevel, float | None]  # noqa: E111
+  level_duration_totals: dict[RuntimeStoreHealthLevel, float]  # noqa: E111
+  level_duration_samples: dict[RuntimeStoreHealthLevel, int]  # noqa: E111
+  level_duration_averages: dict[RuntimeStoreHealthLevel, float | None]  # noqa: E111
+  level_duration_minimums: dict[RuntimeStoreHealthLevel, float | None]  # noqa: E111
+  level_duration_medians: dict[RuntimeStoreHealthLevel, float | None]  # noqa: E111
+  level_duration_standard_deviations: dict[RuntimeStoreHealthLevel, float | None]  # noqa: E111
+  level_duration_percentiles: dict[  # noqa: E111
     RuntimeStoreHealthLevel,
     RuntimeStoreLevelDurationPercentiles,
   ]
-  level_duration_alert_thresholds: dict[RuntimeStoreHealthLevel, float | None]
-  level_duration_guard_alerts: list[RuntimeStoreLevelDurationAlert]
+  level_duration_alert_thresholds: dict[RuntimeStoreHealthLevel, float | None]  # noqa: E111
+  level_duration_guard_alerts: list[RuntimeStoreLevelDurationAlert]  # noqa: E111
 
 
 class RuntimeStoreHealthHistory(TypedDict, total=False):
-  """Rolling history of runtime store compatibility checks."""
+  """Rolling history of runtime store compatibility checks."""  # noqa: E111
 
-  schema_version: int
-  checks: int
-  status_counts: dict[RuntimeStoreOverallStatus, int]
-  divergence_events: int
-  last_checked: str | None
-  last_status: RuntimeStoreOverallStatus | None
-  last_entry_status: RuntimeStoreEntryStatus | None
-  last_store_status: RuntimeStoreEntryStatus | None
-  last_entry_version: int | None
-  last_store_version: int | None
-  last_entry_created_version: int | None
-  last_store_created_version: int | None
-  divergence_detected: bool
-  assessment_last_level: RuntimeStoreHealthLevel | None
-  assessment_last_level_change: str | None
-  assessment_level_streak: int
-  assessment_escalations: int
-  assessment_deescalations: int
-  assessment_level_durations: dict[RuntimeStoreHealthLevel, float]
-  assessment_current_level_duration_seconds: float | None
-  assessment_events: list[RuntimeStoreAssessmentEvent]
-  assessment: RuntimeStoreHealthAssessment
-  assessment_timeline_segments: list[RuntimeStoreAssessmentTimelineSegment]
-  assessment_timeline_summary: RuntimeStoreAssessmentTimelineSummary
+  schema_version: int  # noqa: E111
+  checks: int  # noqa: E111
+  status_counts: dict[RuntimeStoreOverallStatus, int]  # noqa: E111
+  divergence_events: int  # noqa: E111
+  last_checked: str | None  # noqa: E111
+  last_status: RuntimeStoreOverallStatus | None  # noqa: E111
+  last_entry_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  last_store_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  last_entry_version: int | None  # noqa: E111
+  last_store_version: int | None  # noqa: E111
+  last_entry_created_version: int | None  # noqa: E111
+  last_store_created_version: int | None  # noqa: E111
+  divergence_detected: bool  # noqa: E111
+  assessment_last_level: RuntimeStoreHealthLevel | None  # noqa: E111
+  assessment_last_level_change: str | None  # noqa: E111
+  assessment_level_streak: int  # noqa: E111
+  assessment_escalations: int  # noqa: E111
+  assessment_deescalations: int  # noqa: E111
+  assessment_level_durations: dict[RuntimeStoreHealthLevel, float]  # noqa: E111
+  assessment_current_level_duration_seconds: float | None  # noqa: E111
+  assessment_events: list[RuntimeStoreAssessmentEvent]  # noqa: E111
+  assessment: RuntimeStoreHealthAssessment  # noqa: E111
+  assessment_timeline_segments: list[RuntimeStoreAssessmentTimelineSegment]  # noqa: E111
+  assessment_timeline_summary: RuntimeStoreAssessmentTimelineSummary  # noqa: E111
 
 
 class RuntimeStoreHealthAssessment(TypedDict, total=False):
-  """Risk assessment based on runtime store history and current snapshot."""
+  """Risk assessment based on runtime store history and current snapshot."""  # noqa: E111
 
-  level: RuntimeStoreHealthLevel
-  previous_level: RuntimeStoreHealthLevel | None
-  reason: str
-  recommended_action: str | None
-  divergence_rate: float | None
-  checks: int
-  divergence_events: int
-  last_status: RuntimeStoreOverallStatus | None
-  last_entry_status: RuntimeStoreEntryStatus | None
-  last_store_status: RuntimeStoreEntryStatus | None
-  last_checked: str | None
-  divergence_detected: bool
-  level_streak: int
-  last_level_change: str | None
-  escalations: int
-  deescalations: int
-  level_durations: dict[RuntimeStoreHealthLevel, float]
-  current_level_duration_seconds: float | None
-  events: list[RuntimeStoreAssessmentEvent]
-  timeline_summary: RuntimeStoreAssessmentTimelineSummary
-  timeline_segments: list[RuntimeStoreAssessmentTimelineSegment]
+  level: RuntimeStoreHealthLevel  # noqa: E111
+  previous_level: RuntimeStoreHealthLevel | None  # noqa: E111
+  reason: str  # noqa: E111
+  recommended_action: str | None  # noqa: E111
+  divergence_rate: float | None  # noqa: E111
+  checks: int  # noqa: E111
+  divergence_events: int  # noqa: E111
+  last_status: RuntimeStoreOverallStatus | None  # noqa: E111
+  last_entry_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  last_store_status: RuntimeStoreEntryStatus | None  # noqa: E111
+  last_checked: str | None  # noqa: E111
+  divergence_detected: bool  # noqa: E111
+  level_streak: int  # noqa: E111
+  last_level_change: str | None  # noqa: E111
+  escalations: int  # noqa: E111
+  deescalations: int  # noqa: E111
+  level_durations: dict[RuntimeStoreHealthLevel, float]  # noqa: E111
+  current_level_duration_seconds: float | None  # noqa: E111
+  events: list[RuntimeStoreAssessmentEvent]  # noqa: E111
+  timeline_summary: RuntimeStoreAssessmentTimelineSummary  # noqa: E111
+  timeline_segments: list[RuntimeStoreAssessmentTimelineSegment]  # noqa: E111
 
 
 class CoordinatorRuntimeStoreSummary(TypedDict, total=False):
-  """Runtime store snapshot surfaced through coordinator diagnostics."""
+  """Runtime store snapshot surfaced through coordinator diagnostics."""  # noqa: E111
 
-  snapshot: RuntimeStoreCompatibilitySnapshot
-  history: RuntimeStoreHealthHistory
-  assessment: RuntimeStoreHealthAssessment
+  snapshot: RuntimeStoreCompatibilitySnapshot  # noqa: E111
+  history: RuntimeStoreHealthHistory  # noqa: E111
+  assessment: RuntimeStoreHealthAssessment  # noqa: E111
 
 
 # PLATINUM: Custom ConfigEntry type for PawControl integrations
@@ -7651,50 +7655,50 @@ and remains compatible with forward-looking changes to Home Assistant's
 
 
 class DailyStatsPayload(TypedDict, total=False):
-  """Serialized representation of :class:`DailyStats` records."""
+  """Serialized representation of :class:`DailyStats` records."""  # noqa: E111
 
-  date: str
-  feedings_count: int
-  walks_count: int
-  health_logs_count: int
-  gps_updates_count: int
-  total_food_amount: float
-  total_walk_distance: float
-  total_walk_time: int
-  total_calories_burned: float
-  last_feeding: str | None
-  last_walk: str | None
-  last_health_event: str | None
+  date: str  # noqa: E111
+  feedings_count: int  # noqa: E111
+  walks_count: int  # noqa: E111
+  health_logs_count: int  # noqa: E111
+  gps_updates_count: int  # noqa: E111
+  total_food_amount: float  # noqa: E111
+  total_walk_distance: float  # noqa: E111
+  total_walk_time: int  # noqa: E111
+  total_calories_burned: float  # noqa: E111
+  last_feeding: str | None  # noqa: E111
+  last_walk: str | None  # noqa: E111
+  last_health_event: str | None  # noqa: E111
 
 
 class PawControlRuntimeDataExport(TypedDict):
-  """Dictionary-style runtime data export returned by ``as_dict``."""
+  """Dictionary-style runtime data export returned by ``as_dict``."""  # noqa: E111
 
-  coordinator: PawControlCoordinator
-  data_manager: PawControlDataManager
-  notification_manager: PawControlNotificationManager
-  feeding_manager: FeedingManager
-  walk_manager: WalkManager
-  runtime_managers: CoordinatorRuntimeManagers
-  entity_factory: EntityFactory
-  entity_profile: str
-  dogs: list[DogConfigData]
-  config_entry_data: ConfigEntryDataPayload | None
-  config_entry_options: ConfigEntryOptionsPayload | None
-  garden_manager: GardenManager | None
-  geofencing_manager: PawControlGeofencing | None
-  script_manager: PawControlScriptManager | None
-  gps_geofence_manager: GPSGeofenceManager | None
-  door_sensor_manager: DoorSensorManager | None
-  helper_manager: PawControlHelperManager | None
-  device_api_client: PawControlDeviceClient | None
-  performance_stats: RuntimePerformanceStats
-  error_history: RuntimeErrorHistory
-  manual_event_history: list[ManualResilienceEventRecord]
-  background_monitor_task: Task[None] | None
-  daily_reset_unsub: Any
-  schema_created_version: int
-  schema_version: int
+  coordinator: PawControlCoordinator  # noqa: E111
+  data_manager: PawControlDataManager  # noqa: E111
+  notification_manager: PawControlNotificationManager  # noqa: E111
+  feeding_manager: FeedingManager  # noqa: E111
+  walk_manager: WalkManager  # noqa: E111
+  runtime_managers: CoordinatorRuntimeManagers  # noqa: E111
+  entity_factory: EntityFactory  # noqa: E111
+  entity_profile: str  # noqa: E111
+  dogs: list[DogConfigData]  # noqa: E111
+  config_entry_data: ConfigEntryDataPayload | None  # noqa: E111
+  config_entry_options: ConfigEntryOptionsPayload | None  # noqa: E111
+  garden_manager: GardenManager | None  # noqa: E111
+  geofencing_manager: PawControlGeofencing | None  # noqa: E111
+  script_manager: PawControlScriptManager | None  # noqa: E111
+  gps_geofence_manager: GPSGeofenceManager | None  # noqa: E111
+  door_sensor_manager: DoorSensorManager | None  # noqa: E111
+  helper_manager: PawControlHelperManager | None  # noqa: E111
+  device_api_client: PawControlDeviceClient | None  # noqa: E111
+  performance_stats: RuntimePerformanceStats  # noqa: E111
+  error_history: RuntimeErrorHistory  # noqa: E111
+  manual_event_history: list[ManualResilienceEventRecord]  # noqa: E111
+  background_monitor_task: Task[None] | None  # noqa: E111
+  daily_reset_unsub: Any  # noqa: E111
+  schema_created_version: int  # noqa: E111
+  schema_version: int  # noqa: E111
 
 
 @dataclass
@@ -7706,77 +7710,77 @@ class DailyStats:
   or walks can be retrieved without scanning the full history on every
   update.  The class mirrors the behaviour of the Home Assistant integration
   by providing helpers for serialization and incremental updates.
-  """
+  """  # noqa: E111
 
-  date: datetime
-  feedings_count: int = 0
-  walks_count: int = 0
-  health_logs_count: int = 0
-  gps_updates_count: int = 0
-  total_food_amount: float = 0.0
-  total_walk_distance: float = 0.0
-  total_walk_time: int = 0
-  total_calories_burned: float = 0.0
-  last_feeding: datetime | None = None
-  last_walk: datetime | None = None
-  last_health_event: datetime | None = None
+  date: datetime  # noqa: E111
+  feedings_count: int = 0  # noqa: E111
+  walks_count: int = 0  # noqa: E111
+  health_logs_count: int = 0  # noqa: E111
+  gps_updates_count: int = 0  # noqa: E111
+  total_food_amount: float = 0.0  # noqa: E111
+  total_walk_distance: float = 0.0  # noqa: E111
+  total_walk_time: int = 0  # noqa: E111
+  total_calories_burned: float = 0.0  # noqa: E111
+  last_feeding: datetime | None = None  # noqa: E111
+  last_walk: datetime | None = None  # noqa: E111
+  last_health_event: datetime | None = None  # noqa: E111
 
-  @staticmethod
-  def _parse_datetime(value: Any) -> datetime | None:
+  @staticmethod  # noqa: E111
+  def _parse_datetime(value: Any) -> datetime | None:  # noqa: E111
     """Convert ISO formatted values into timezone aware ``datetime`` objects."""
 
     if value is None:
-      return None
+      return None  # noqa: E111
     if isinstance(value, datetime):
-      return dt_util.as_utc(value)
+      return dt_util.as_utc(value)  # noqa: E111
     if isinstance(value, str):
-      parsed = dt_util.parse_datetime(value)
-      if parsed is not None:
+      parsed = dt_util.parse_datetime(value)  # noqa: E111
+      if parsed is not None:  # noqa: E111
         return dt_util.as_utc(parsed)
     return None
 
-  @classmethod
-  def from_dict(cls, payload: JSONDateMapping) -> DailyStats:
+  @classmethod  # noqa: E111
+  def from_dict(cls, payload: JSONDateMapping) -> DailyStats:  # noqa: E111
     """Deserialize daily statistics from a dictionary structure."""
 
     raw_date = payload.get("date")
     date_value = cls._parse_datetime(raw_date) or dt_util.utcnow()
 
     def _coerce_int(value: JSONDateValue | None, *, default: int = 0) -> int:
-      if isinstance(value, bool):
+      if isinstance(value, bool):  # noqa: E111
         return int(value)
-      if isinstance(value, int):
+      if isinstance(value, int):  # noqa: E111
         return value
-      if isinstance(value, float):
+      if isinstance(value, float):  # noqa: E111
         return int(value)
-      if isinstance(value, str):
+      if isinstance(value, str):  # noqa: E111
         stripped = value.strip()
         if not stripped:
-          return default
+          return default  # noqa: E111
         try:
-          return int(float(stripped))
+          return int(float(stripped))  # noqa: E111
         except ValueError:
-          return default
-      return default
+          return default  # noqa: E111
+      return default  # noqa: E111
 
     def _coerce_float(
       value: JSONDateValue | None,
       *,
       default: float = 0.0,
     ) -> float:
-      if isinstance(value, bool):
+      if isinstance(value, bool):  # noqa: E111
         return float(value)
-      if isinstance(value, int | float):
+      if isinstance(value, int | float):  # noqa: E111
         return float(value)
-      if isinstance(value, str):
+      if isinstance(value, str):  # noqa: E111
         stripped = value.strip()
         if not stripped:
-          return default
+          return default  # noqa: E111
         try:
-          return float(stripped)
+          return float(stripped)  # noqa: E111
         except ValueError:
-          return default
-      return default
+          return default  # noqa: E111
+      return default  # noqa: E111
 
     return cls(
       date=date_value,
@@ -7799,7 +7803,7 @@ class DailyStats:
       ),
     )
 
-  def as_dict(self) -> DailyStatsPayload:
+  def as_dict(self) -> DailyStatsPayload:  # noqa: E111
     """Serialize the statistics for storage."""
 
     return {
@@ -7819,11 +7823,11 @@ class DailyStats:
       else None,
     }
 
-  def reset(self, *, preserve_date: bool = True) -> None:
+  def reset(self, *, preserve_date: bool = True) -> None:  # noqa: E111
     """Reset all counters, optionally keeping the current date."""
 
     if not preserve_date:
-      self.date = dt_util.utcnow()
+      self.date = dt_util.utcnow()  # noqa: E111
     self.feedings_count = 0
     self.walks_count = 0
     self.health_logs_count = 0
@@ -7836,17 +7840,17 @@ class DailyStats:
     self.last_walk = None
     self.last_health_event = None
 
-  def register_feeding(self, portion_size: float, timestamp: datetime | None) -> None:
+  def register_feeding(self, portion_size: float, timestamp: datetime | None) -> None:  # noqa: E111
     """Record a feeding event in the aggregate counters."""
 
     self.feedings_count += 1
     if portion_size > 0:
-      self.total_food_amount += portion_size
+      self.total_food_amount += portion_size  # noqa: E111
     parsed = self._parse_datetime(timestamp)
     if parsed is not None:
-      self.last_feeding = parsed
+      self.last_feeding = parsed  # noqa: E111
 
-  def register_walk(
+  def register_walk(  # noqa: E111
     self,
     duration: int | None,
     distance: float | None,
@@ -7856,22 +7860,22 @@ class DailyStats:
 
     self.walks_count += 1
     if duration:
-      self.total_walk_time += int(duration)
+      self.total_walk_time += int(duration)  # noqa: E111
     if distance:
-      self.total_walk_distance += float(distance)
+      self.total_walk_distance += float(distance)  # noqa: E111
     parsed = self._parse_datetime(timestamp)
     if parsed is not None:
-      self.last_walk = parsed
+      self.last_walk = parsed  # noqa: E111
 
-  def register_health_event(self, timestamp: datetime | None) -> None:
+  def register_health_event(self, timestamp: datetime | None) -> None:  # noqa: E111
     """Record a health log entry in the aggregate counters."""
 
     self.health_logs_count += 1
     parsed = self._parse_datetime(timestamp)
     if parsed is not None:
-      self.last_health_event = parsed
+      self.last_health_event = parsed  # noqa: E111
 
-  def register_gps_update(self) -> None:
+  def register_gps_update(self) -> None:  # noqa: E111
     """Increase the GPS update counter for the day."""
 
     self.gps_updates_count += 1
@@ -7897,18 +7901,18 @@ class FeedingData:
 
   Raises:
       ValueError: If any validation constraints are violated
-  """
+  """  # noqa: E111
 
-  meal_type: str
-  portion_size: float
-  food_type: str
-  timestamp: datetime
-  notes: str = ""
-  logged_by: str = ""
-  calories: float | None = None
-  automatic: bool = False
+  meal_type: str  # noqa: E111
+  portion_size: float  # noqa: E111
+  food_type: str  # noqa: E111
+  timestamp: datetime  # noqa: E111
+  notes: str = ""  # noqa: E111
+  logged_by: str = ""  # noqa: E111
+  calories: float | None = None  # noqa: E111
+  automatic: bool = False  # noqa: E111
 
-  def __post_init__(self) -> None:
+  def __post_init__(self) -> None:  # noqa: E111
     """Validate feeding data after initialization.
 
     Performs comprehensive validation including meal type validation,
@@ -7919,13 +7923,13 @@ class FeedingData:
         ValueError: If any validation constraint is violated
     """
     if self.meal_type not in VALID_MEAL_TYPES:
-      raise ValueError(f"Invalid meal type: {self.meal_type}")
+      raise ValueError(f"Invalid meal type: {self.meal_type}")  # noqa: E111
     if self.food_type not in VALID_FOOD_TYPES:
-      raise ValueError(f"Invalid food type: {self.food_type}")
+      raise ValueError(f"Invalid food type: {self.food_type}")  # noqa: E111
     if self.portion_size < 0:
-      raise ValueError("Portion size cannot be negative")
+      raise ValueError("Portion size cannot be negative")  # noqa: E111
     if self.calories is not None and self.calories < 0:
-      raise ValueError("Calories cannot be negative")
+      raise ValueError("Calories cannot be negative")  # noqa: E111
 
 
 @dataclass
@@ -7953,23 +7957,23 @@ class WalkData:
 
   Raises:
       ValueError: If validation constraints are violated
-  """
+  """  # noqa: E111
 
-  start_time: datetime
-  end_time: datetime | None = None
-  duration: int | None = None  # seconds
-  distance: float | None = None  # meters
-  route: list[WalkRoutePoint] = field(default_factory=list)
-  label: str = ""
-  location: str = ""
-  notes: str = ""
-  rating: int = 0
-  started_by: str = ""
-  ended_by: str = ""
-  weather: str = ""
-  temperature: float | None = None
+  start_time: datetime  # noqa: E111
+  end_time: datetime | None = None  # noqa: E111
+  duration: int | None = None  # seconds  # noqa: E111
+  distance: float | None = None  # meters  # noqa: E111
+  route: list[WalkRoutePoint] = field(default_factory=list)  # noqa: E111
+  label: str = ""  # noqa: E111
+  location: str = ""  # noqa: E111
+  notes: str = ""  # noqa: E111
+  rating: int = 0  # noqa: E111
+  started_by: str = ""  # noqa: E111
+  ended_by: str = ""  # noqa: E111
+  weather: str = ""  # noqa: E111
+  temperature: float | None = None  # noqa: E111
 
-  def __post_init__(self) -> None:
+  def __post_init__(self) -> None:  # noqa: E111
     """Validate walk data after initialization.
 
     Ensures logical consistency in walk data including time relationships,
@@ -7979,13 +7983,13 @@ class WalkData:
         ValueError: If validation constraints are violated
     """
     if self.rating < 0 or self.rating > 10:
-      raise ValueError("Rating must be between 0 and 10")
+      raise ValueError("Rating must be between 0 and 10")  # noqa: E111
     if self.duration is not None and self.duration < 0:
-      raise ValueError("Duration cannot be negative")
+      raise ValueError("Duration cannot be negative")  # noqa: E111
     if self.distance is not None and self.distance < 0:
-      raise ValueError("Distance cannot be negative")
+      raise ValueError("Distance cannot be negative")  # noqa: E111
     if self.end_time and self.end_time < self.start_time:
-      raise ValueError("End time cannot be before start time")
+      raise ValueError("End time cannot be before start time")  # noqa: E111
 
 
 @dataclass(slots=True)
@@ -8004,14 +8008,14 @@ class HealthEvent:
   Note:
       Uses __slots__ for memory optimization when storing large numbers
       of health events in historical data.
-  """
+  """  # noqa: E111
 
-  dog_id: str
-  timestamp: str | None = None
-  metrics: JSONMutableMapping = field(default_factory=dict)
+  dog_id: str  # noqa: E111
+  timestamp: str | None = None  # noqa: E111
+  metrics: JSONMutableMapping = field(default_factory=dict)  # noqa: E111
 
-  @classmethod
-  def from_raw(
+  @classmethod  # noqa: E111
+  def from_raw(  # noqa: E111
     cls,
     dog_id: str,
     payload: JSONDateMapping,
@@ -8048,14 +8052,14 @@ class HealthEvent:
       else None
     )
     if isinstance(raw_timestamp, datetime):
-      event_timestamp = raw_timestamp.isoformat()
+      event_timestamp = raw_timestamp.isoformat()  # noqa: E111
     if event_timestamp is None:
-      event_timestamp = timestamp
+      event_timestamp = timestamp  # noqa: E111
 
     return cls(dog_id=dog_id, timestamp=event_timestamp, metrics=event_data)
 
-  @classmethod
-  def from_storage(cls, dog_id: str, payload: JSONDateMapping) -> HealthEvent:
+  @classmethod  # noqa: E111
+  def from_storage(cls, dog_id: str, payload: JSONDateMapping) -> HealthEvent:  # noqa: E111
     """Create a health event from stored data.
 
     Factory method specifically for deserializing health events from
@@ -8070,7 +8074,7 @@ class HealthEvent:
     """
     return cls.from_raw(dog_id, payload)
 
-  def as_dict(self) -> JSONMutableMapping:
+  def as_dict(self) -> JSONMutableMapping:  # noqa: E111
     """Return a storage-friendly representation of the health event.
 
     Serializes the health event into a dictionary format suitable for
@@ -8081,7 +8085,7 @@ class HealthEvent:
     """
     payload = cast(JSONMutableMapping, dict(self.metrics))
     if self.timestamp is not None:
-      payload["timestamp"] = self.timestamp
+      payload["timestamp"] = self.timestamp  # noqa: E111
     return payload
 
 
@@ -8103,16 +8107,16 @@ class WalkEvent:
   Note:
       Uses __slots__ for memory optimization when tracking numerous
       walk events and session state changes.
-  """
+  """  # noqa: E111
 
-  dog_id: str
-  action: str | None = None
-  session_id: str | None = None
-  timestamp: str | None = None
-  details: JSONMutableMapping = field(default_factory=dict)
+  dog_id: str  # noqa: E111
+  action: str | None = None  # noqa: E111
+  session_id: str | None = None  # noqa: E111
+  timestamp: str | None = None  # noqa: E111
+  details: JSONMutableMapping = field(default_factory=dict)  # noqa: E111
 
-  @classmethod
-  def from_raw(
+  @classmethod  # noqa: E111
+  def from_raw(  # noqa: E111
     cls,
     dog_id: str,
     payload: JSONDateMapping,
@@ -8148,7 +8152,7 @@ class WalkEvent:
       else None
     )
     if isinstance(raw_timestamp, datetime):
-      timestamp_value = raw_timestamp.isoformat()
+      timestamp_value = raw_timestamp.isoformat()  # noqa: E111
     raw_action = event_data.pop("action", None)
     action = raw_action if isinstance(raw_action, str) else None
     raw_session = event_data.pop("session_id", None)
@@ -8163,8 +8167,8 @@ class WalkEvent:
       details=event_data,
     )
 
-  @classmethod
-  def from_storage(cls, dog_id: str, payload: JSONDateMapping) -> WalkEvent:
+  @classmethod  # noqa: E111
+  def from_storage(cls, dog_id: str, payload: JSONDateMapping) -> WalkEvent:  # noqa: E111
     """Create a walk event from stored data.
 
     Factory method for deserializing walk events from persistent storage
@@ -8179,7 +8183,7 @@ class WalkEvent:
     """
     return cls.from_raw(dog_id, payload)
 
-  def as_dict(self) -> JSONMutableMapping:
+  def as_dict(self) -> JSONMutableMapping:  # noqa: E111
     """Return a storage-friendly representation of the walk event.
 
     Serializes the walk event into a dictionary format optimized for
@@ -8190,14 +8194,14 @@ class WalkEvent:
     """
     payload = cast(JSONMutableMapping, dict(self.details))
     if self.action is not None:
-      payload["action"] = self.action
+      payload["action"] = self.action  # noqa: E111
     if self.session_id is not None:
-      payload["session_id"] = self.session_id
+      payload["session_id"] = self.session_id  # noqa: E111
     if self.timestamp is not None:
-      payload["timestamp"] = self.timestamp
+      payload["timestamp"] = self.timestamp  # noqa: E111
     return payload
 
-  def merge(self, payload: JSONDateMapping, timestamp: str | None = None) -> None:
+  def merge(self, payload: JSONDateMapping, timestamp: str | None = None) -> None:  # noqa: E111
     """Merge incremental updates into the existing walk event.
 
     Allows for incremental updates to walk events during active sessions
@@ -8212,19 +8216,19 @@ class WalkEvent:
       for key, value in payload.items()
     }
     if "action" in updates:
-      raw_action = updates.pop("action")
-      if isinstance(raw_action, str):
+      raw_action = updates.pop("action")  # noqa: E111
+      if isinstance(raw_action, str):  # noqa: E111
         self.action = raw_action
     if "session_id" in updates:
-      raw_session = updates.pop("session_id")
-      if isinstance(raw_session, str):
+      raw_session = updates.pop("session_id")  # noqa: E111
+      if isinstance(raw_session, str):  # noqa: E111
         self.session_id = raw_session
     if "timestamp" in updates:
-      raw_timestamp = updates.pop("timestamp")
-      if isinstance(raw_timestamp, str):
+      raw_timestamp = updates.pop("timestamp")  # noqa: E111
+      if isinstance(raw_timestamp, str):  # noqa: E111
         self.timestamp = raw_timestamp
     elif timestamp and self.timestamp is None:
-      self.timestamp = timestamp
+      self.timestamp = timestamp  # noqa: E111
 
     self.details.update(updates)
 
@@ -8253,22 +8257,22 @@ class HealthData:
 
   Raises:
       ValueError: If any health parameter is outside valid ranges
-  """
+  """  # noqa: E111
 
-  timestamp: datetime
-  weight: float | None = None
-  temperature: float | None = None
-  mood: str = ""
-  activity_level: str = ""
-  health_status: str = ""
-  symptoms: str = ""
-  medication: JSONMutableMapping | None = None
-  note: str = ""
-  logged_by: str = ""
-  heart_rate: int | None = None
-  respiratory_rate: int | None = None
+  timestamp: datetime  # noqa: E111
+  weight: float | None = None  # noqa: E111
+  temperature: float | None = None  # noqa: E111
+  mood: str = ""  # noqa: E111
+  activity_level: str = ""  # noqa: E111
+  health_status: str = ""  # noqa: E111
+  symptoms: str = ""  # noqa: E111
+  medication: JSONMutableMapping | None = None  # noqa: E111
+  note: str = ""  # noqa: E111
+  logged_by: str = ""  # noqa: E111
+  heart_rate: int | None = None  # noqa: E111
+  respiratory_rate: int | None = None  # noqa: E111
 
-  def __post_init__(self) -> None:
+  def __post_init__(self) -> None:  # noqa: E111
     """Validate health data against veterinary standards.
 
     Performs comprehensive validation of all health parameters against
@@ -8279,21 +8283,21 @@ class HealthData:
         ValueError: If any parameter is outside acceptable ranges
     """
     if self.mood and self.mood not in VALID_MOOD_OPTIONS:
-      raise ValueError(f"Invalid mood: {self.mood}")
+      raise ValueError(f"Invalid mood: {self.mood}")  # noqa: E111
     if self.activity_level and self.activity_level not in VALID_ACTIVITY_LEVELS:
-      raise ValueError(f"Invalid activity level: {self.activity_level}")
+      raise ValueError(f"Invalid activity level: {self.activity_level}")  # noqa: E111
     if self.health_status and self.health_status not in VALID_HEALTH_STATUS:
-      raise ValueError(f"Invalid health status: {self.health_status}")
+      raise ValueError(f"Invalid health status: {self.health_status}")  # noqa: E111
     if self.weight is not None and (self.weight <= 0 or self.weight > 200):
-      raise ValueError("Weight must be between 0 and 200 kg")
+      raise ValueError("Weight must be between 0 and 200 kg")  # noqa: E111
     if self.temperature is not None and (
       self.temperature < 35 or self.temperature > 45
     ):
-      raise ValueError(
+      raise ValueError(  # noqa: E111
         "Temperature must be between 35 and 45 degrees Celsius",
       )
     if self.heart_rate is not None and (self.heart_rate < 50 or self.heart_rate > 250):
-      raise ValueError("Heart rate must be between 50 and 250 bpm")
+      raise ValueError("Heart rate must be between 50 and 250 bpm")  # noqa: E111
 
 
 @dataclass
@@ -8316,18 +8320,18 @@ class GPSLocation:
 
   Raises:
       ValueError: If coordinates or other parameters are invalid
-  """
+  """  # noqa: E111
 
-  latitude: float
-  longitude: float
-  accuracy: float | None = None
-  altitude: float | None = None
-  timestamp: datetime = field(default_factory=dt_util.utcnow)
-  source: str = ""
-  battery_level: int | None = None
-  signal_strength: int | None = None
+  latitude: float  # noqa: E111
+  longitude: float  # noqa: E111
+  accuracy: float | None = None  # noqa: E111
+  altitude: float | None = None  # noqa: E111
+  timestamp: datetime = field(default_factory=dt_util.utcnow)  # noqa: E111
+  source: str = ""  # noqa: E111
+  battery_level: int | None = None  # noqa: E111
+  signal_strength: int | None = None  # noqa: E111
 
-  def __post_init__(self) -> None:
+  def __post_init__(self) -> None:  # noqa: E111
     """Validate GPS coordinates and device parameters.
 
     Ensures GPS coordinates are within valid Earth coordinate ranges and
@@ -8337,15 +8341,15 @@ class GPSLocation:
         ValueError: If coordinates or parameters are invalid
     """
     if not (-90 <= self.latitude <= 90):
-      raise ValueError(f"Invalid latitude: {self.latitude}")
+      raise ValueError(f"Invalid latitude: {self.latitude}")  # noqa: E111
     if not (-180 <= self.longitude <= 180):
-      raise ValueError(f"Invalid longitude: {self.longitude}")
+      raise ValueError(f"Invalid longitude: {self.longitude}")  # noqa: E111
     if self.accuracy is not None and self.accuracy < 0:
-      raise ValueError("Accuracy cannot be negative")
+      raise ValueError("Accuracy cannot be negative")  # noqa: E111
     if self.battery_level is not None and not (0 <= self.battery_level <= 100):
-      raise ValueError("Battery level must be between 0 and 100")
+      raise ValueError("Battery level must be between 0 and 100")  # noqa: E111
     if self.signal_strength is not None and not (0 <= self.signal_strength <= 100):
-      raise ValueError("Signal strength must be between 0 and 100")
+      raise ValueError("Signal strength must be between 0 and 100")  # noqa: E111
 
 
 # OPTIMIZE: Utility functions for common operations with comprehensive documentation
@@ -8369,8 +8373,8 @@ def create_entity_id(dog_id: str, entity_type: str, module: str) -> str:
   Example:
       >>> create_entity_id("buddy", "sensor", "feeding")
       'pawcontrol_buddy_feeding_sensor'
-  """
-  return f"pawcontrol_{dog_id}_{module}_{entity_type}".lower()
+  """  # noqa: E111
+  return f"pawcontrol_{dog_id}_{module}_{entity_type}".lower()  # noqa: E111
 
 
 def validate_dog_weight_for_size(weight: float, size: str) -> bool:
@@ -8397,8 +8401,8 @@ def validate_dog_weight_for_size(weight: float, size: str) -> bool:
   Note:
       Size ranges are based on veterinary standards and allow for
       some overlap between categories to accommodate breed variations.
-  """
-  size_ranges = {
+  """  # noqa: E111
+  size_ranges = {  # noqa: E111
     "toy": (1.0, 6.0),  # Chihuahua, Yorkshire Terrier
     "small": (4.0, 15.0),  # Jack Russell, Beagle
     "medium": (8.0, 30.0),  # Border Collie, Bulldog
@@ -8406,11 +8410,11 @@ def validate_dog_weight_for_size(weight: float, size: str) -> bool:
     "giant": (35.0, 90.0),  # Great Dane, Saint Bernard
   }
 
-  if size not in size_ranges:
+  if size not in size_ranges:  # noqa: E111
     return True  # Unknown size category, skip validation
 
-  min_weight, max_weight = size_ranges[size]
-  return min_weight <= weight <= max_weight
+  min_weight, max_weight = size_ranges[size]  # noqa: E111
+  return min_weight <= weight <= max_weight  # noqa: E111
 
 
 def calculate_daily_calories(weight: float, activity_level: str, age: int) -> int:
@@ -8437,14 +8441,14 @@ def calculate_daily_calories(weight: float, activity_level: str, age: int) -> in
       Calculation uses the formula: 70 * (weight in kg)^0.75 * activity_multiplier
       with age-based adjustments for puppies and senior dogs. Always consult
       with a veterinarian for specific dietary recommendations.
-  """
-  import math
+  """  # noqa: E111
+  import math  # noqa: E111
 
-  # Base metabolic rate: 70 * (weight in kg)^0.75
-  base_calories = 70 * math.pow(weight, 0.75)
+  # Base metabolic rate: 70 * (weight in kg)^0.75  # noqa: E114
+  base_calories = 70 * math.pow(weight, 0.75)  # noqa: E111
 
-  # Activity level multipliers based on veterinary guidelines
-  activity_multipliers = {
+  # Activity level multipliers based on veterinary guidelines  # noqa: E114
+  activity_multipliers = {  # noqa: E111
     "very_low": 1.2,  # Sedentary, minimal exercise
     "low": 1.4,  # Light exercise, short walks
     "normal": 1.6,  # Moderate exercise, regular walks
@@ -8452,17 +8456,17 @@ def calculate_daily_calories(weight: float, activity_level: str, age: int) -> in
     "very_high": 2.0,  # Very active, working dogs, intense exercise
   }
 
-  multiplier = activity_multipliers.get(activity_level, 1.6)
+  multiplier = activity_multipliers.get(activity_level, 1.6)  # noqa: E111
 
-  # Age-based adjustments for metabolic differences
-  if age < 1:
+  # Age-based adjustments for metabolic differences  # noqa: E114
+  if age < 1:  # noqa: E111
     # Puppies have higher metabolic needs for growth
     multiplier *= 2.0
-  elif age > 7:
+  elif age > 7:  # noqa: E111
     # Senior dogs typically have lower metabolic needs
     multiplier *= 0.9
 
-  return int(base_calories * multiplier)
+  return int(base_calories * multiplier)  # noqa: E111
 
 
 # OPTIMIZE: Enhanced type guards for runtime validation with O(1) performance
@@ -8490,10 +8494,10 @@ def is_dog_config_valid(config: Any) -> bool:
       This function is used throughout the integration to ensure data
       integrity and should be called whenever dog configuration data
       is received from external sources or user input.
-  """
-  if not isinstance(config, Mapping):
+  """  # noqa: E111
+  if not isinstance(config, Mapping):  # noqa: E111
     return False
-  try:
+  try:  # noqa: E111
     from .exceptions import FlowValidationError
     from .flow_validation import validate_dog_config_payload
 
@@ -8502,9 +8506,9 @@ def is_dog_config_valid(config: Any) -> bool:
       existing_ids=None,
       existing_names=None,
     )
-  except FlowValidationError:
+  except FlowValidationError:  # noqa: E111
     return False
-  return True
+  return True  # noqa: E111
 
 
 def is_gps_location_valid(location: Any) -> bool:
@@ -8529,35 +8533,35 @@ def is_gps_location_valid(location: Any) -> bool:
       Validation includes Earth coordinate bounds, non-negative accuracy
       values, and reasonable battery/signal strength ranges for
       GPS tracking devices.
-  """
-  if not isinstance(location, dict):
+  """  # noqa: E111
+  if not isinstance(location, dict):  # noqa: E111
     return False
 
-  # Validate required coordinates with Earth bounds checking
-  for coord, limits in [("latitude", (-90, 90)), ("longitude", (-180, 180))]:
+  # Validate required coordinates with Earth bounds checking  # noqa: E114
+  for coord, limits in [("latitude", (-90, 90)), ("longitude", (-180, 180))]:  # noqa: E111
     if coord not in location:
-      return False
+      return False  # noqa: E111
     value = location[coord]
     if not is_number(value):
-      return False
+      return False  # noqa: E111
     numeric_value = float(value)
     if not (limits[0] <= numeric_value <= limits[1]):
-      return False
+      return False  # noqa: E111
 
-  # Validate optional fields with appropriate constraints
-  if "accuracy" in location and (
+  # Validate optional fields with appropriate constraints  # noqa: E114
+  if "accuracy" in location and (  # noqa: E111
     not is_number(location["accuracy"]) or float(location["accuracy"]) < 0
   ):
     return False
 
-  if "battery_level" in location:
+  if "battery_level" in location:  # noqa: E111
     battery = location["battery_level"]
     if battery is not None and (
       not isinstance(battery, int) or not (0 <= battery <= 100)
     ):
-      return False
+      return False  # noqa: E111
 
-  return True
+  return True  # noqa: E111
 
 
 def is_feeding_data_valid(data: Any) -> bool:
@@ -8582,31 +8586,31 @@ def is_feeding_data_valid(data: Any) -> bool:
       Uses frozenset lookup for O(1) meal type validation performance.
       Validates portion sizes as non-negative and calorie information
       if provided.
-  """
-  if not isinstance(data, dict):
+  """  # noqa: E111
+  if not isinstance(data, dict):  # noqa: E111
     return False
 
-  # Validate required fields with frozenset lookup for performance
-  if "meal_type" not in data or data["meal_type"] not in VALID_MEAL_TYPES:
+  # Validate required fields with frozenset lookup for performance  # noqa: E114
+  if "meal_type" not in data or data["meal_type"] not in VALID_MEAL_TYPES:  # noqa: E111
     return False
 
-  if "portion_size" not in data:
+  if "portion_size" not in data:  # noqa: E111
     return False
 
-  portion = data["portion_size"]
-  if not is_number(portion) or float(portion) < 0:
+  portion = data["portion_size"]  # noqa: E111
+  if not is_number(portion) or float(portion) < 0:  # noqa: E111
     return False
 
-  # Validate optional fields with appropriate constraints
-  if "food_type" in data and data["food_type"] not in VALID_FOOD_TYPES:
+  # Validate optional fields with appropriate constraints  # noqa: E114
+  if "food_type" in data and data["food_type"] not in VALID_FOOD_TYPES:  # noqa: E111
     return False
 
-  if "calories" in data:
+  if "calories" in data:  # noqa: E111
     calories = data["calories"]
     if calories is not None and (not is_number(calories) or float(calories) < 0):
-      return False
+      return False  # noqa: E111
 
-  return True
+  return True  # noqa: E111
 
 
 def is_health_data_valid(data: Any) -> bool:
@@ -8631,44 +8635,44 @@ def is_health_data_valid(data: Any) -> bool:
       Validation includes veterinary-standard ranges for temperature,
       weight, and other physiological measurements to ensure data
       accuracy for health trend analysis.
-  """
-  if not isinstance(data, dict):
+  """  # noqa: E111
+  if not isinstance(data, dict):  # noqa: E111
     return False
 
-  # Validate optional fields with frozenset lookups for performance
-  if "mood" in data and data["mood"] and data["mood"] not in VALID_MOOD_OPTIONS:
+  # Validate optional fields with frozenset lookups for performance  # noqa: E114
+  if "mood" in data and data["mood"] and data["mood"] not in VALID_MOOD_OPTIONS:  # noqa: E111
     return False
 
-  if (
+  if (  # noqa: E111
     "activity_level" in data
     and data["activity_level"]
     and data["activity_level"] not in VALID_ACTIVITY_LEVELS
   ):
     return False
 
-  if (
+  if (  # noqa: E111
     "health_status" in data
     and data["health_status"]
     and data["health_status"] not in VALID_HEALTH_STATUS
   ):
     return False
 
-  # Validate physiological measurements with veterinary standards
-  if "weight" in data:
+  # Validate physiological measurements with veterinary standards  # noqa: E114
+  if "weight" in data:  # noqa: E111
     weight = data["weight"]
     if weight is not None and (
       not is_number(weight) or float(weight) <= 0 or float(weight) > 200
     ):
-      return False
+      return False  # noqa: E111
 
-  if "temperature" in data:
+  if "temperature" in data:  # noqa: E111
     temp = data["temperature"]
     if temp is not None and (
       not is_number(temp) or float(temp) < 35 or float(temp) > 45
     ):
-      return False
+      return False  # noqa: E111
 
-  return True
+  return True  # noqa: E111
 
 
 def is_notification_data_valid(data: Any) -> bool:
@@ -8693,39 +8697,39 @@ def is_notification_data_valid(data: Any) -> bool:
       Uses frozenset lookups for O(1) priority and channel validation.
       Ensures title and message content is present and non-empty for
       successful notification display across all channels.
-  """
-  if not isinstance(data, dict):
+  """  # noqa: E111
+  if not isinstance(data, dict):  # noqa: E111
     return False
 
-  # Validate required content fields
-  required_fields = ["title", "message"]
-  for required_field in required_fields:
+  # Validate required content fields  # noqa: E114
+  required_fields = ["title", "message"]  # noqa: E111
+  for required_field in required_fields:  # noqa: E111
     if (
       required_field not in data
       or not isinstance(data[required_field], str)
       or not data[required_field].strip()
     ):
-      return False
+      return False  # noqa: E111
 
-  # Validate optional fields with frozenset lookups for performance
-  if "priority" in data and data["priority"] not in VALID_NOTIFICATION_PRIORITIES:
+  # Validate optional fields with frozenset lookups for performance  # noqa: E114
+  if "priority" in data and data["priority"] not in VALID_NOTIFICATION_PRIORITIES:  # noqa: E111
     return False
 
-  return not ("channel" in data and data["channel"] not in VALID_NOTIFICATION_CHANNELS)
+  return not ("channel" in data and data["channel"] not in VALID_NOTIFICATION_CHANNELS)  # noqa: E111
 
 
 # geminivorschlag:
 class DogModule(TypedDict):
-  id: str
-  name: str
-  enabled: bool
+  id: str  # noqa: E111
+  name: str  # noqa: E111
+  enabled: bool  # noqa: E111
 
 
 class DogConfig(TypedDict):
-  dog_id: str
-  dog_name: str
-  modules: DogModulesConfig
-  # Add other fields as needed
+  dog_id: str  # noqa: E111
+  dog_name: str  # noqa: E111
+  modules: DogModulesConfig  # noqa: E111
+  # Add other fields as needed  # noqa: E114
 
 
 # Immutable constant for Reauth placeholders

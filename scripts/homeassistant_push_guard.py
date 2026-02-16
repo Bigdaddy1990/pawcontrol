@@ -19,30 +19,30 @@ from urllib.request import Request, urlopen
 
 
 class InvalidVersion(ValueError):
-  """Raised when a version string cannot be parsed."""
+  """Raised when a version string cannot be parsed."""  # noqa: E111
 
 
 @dataclass(frozen=True, order=True)
 class Version:
-  """Small comparable version model for calendar-style Home Assistant versions."""
+  """Small comparable version model for calendar-style Home Assistant versions."""  # noqa: E111
 
-  major: int
-  minor: int
-  patch: int = 0
+  major: int  # noqa: E111
+  minor: int  # noqa: E111
+  patch: int = 0  # noqa: E111
 
-  @classmethod
-  def parse(cls, value: str) -> Version:
+  @classmethod  # noqa: E111
+  def parse(cls, value: str) -> Version:  # noqa: E111
     if not isinstance(value, str):
-      raise InvalidVersion(f"Expected version string, got {type(value)!r}")
+      raise InvalidVersion(f"Expected version string, got {type(value)!r}")  # noqa: E111
 
     match = re.fullmatch(r"\s*(\d+)\.(\d+)(?:\.(\d+))?\s*", value)
     if not match:
-      raise InvalidVersion(f"Invalid version format: {value!r}")
+      raise InvalidVersion(f"Invalid version format: {value!r}")  # noqa: E111
 
     major, minor, patch = match.groups(default="0")
     return cls(int(major), int(minor), int(patch))
 
-  def __str__(self) -> str:
+  def __str__(self) -> str:  # noqa: E111
     return f"{self.major}.{self.minor}.{self.patch}"
 
 
@@ -56,105 +56,105 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class UpgradeRule:
-  """Single codemod-style replacement rule."""
+  """Single codemod-style replacement rule."""  # noqa: E111
 
-  id: str
-  description: str
-  pattern: str
-  replacement: str
-  introduced_in: Version
-  file_globs: tuple[str, ...]
+  id: str  # noqa: E111
+  description: str  # noqa: E111
+  pattern: str  # noqa: E111
+  replacement: str  # noqa: E111
+  introduced_in: Version  # noqa: E111
+  file_globs: tuple[str, ...]  # noqa: E111
 
 
 @dataclass(frozen=True)
 class RuleSet:
-  """Parsed rule set with version metadata."""
+  """Parsed rule set with version metadata."""  # noqa: E111
 
-  min_covered_version: Version
-  max_covered_version: Version
-  rules: tuple[UpgradeRule, ...]
+  min_covered_version: Version  # noqa: E111
+  max_covered_version: Version  # noqa: E111
+  rules: tuple[UpgradeRule, ...]  # noqa: E111
 
 
 @dataclass(frozen=True)
 class MatchResult:
-  """Represents one matched rule occurrence."""
+  """Represents one matched rule occurrence."""  # noqa: E111
 
-  rule_id: str
-  path: Path
-  count: int
+  rule_id: str  # noqa: E111
+  path: Path  # noqa: E111
+  count: int  # noqa: E111
 
 
 def parse_args() -> argparse.Namespace:
-  parser = argparse.ArgumentParser(
+  parser = argparse.ArgumentParser(  # noqa: E111
     description=(
       "Checks PawControl against Home Assistant migration rules and can "
       "auto-apply known API fixes."
     )
   )
-  parser.add_argument(
+  parser.add_argument(  # noqa: E111
     "--rules",
     type=Path,
     default=DEFAULT_RULES_PATH,
     help="Path to JSON rule file.",
   )
-  parser.add_argument(
+  parser.add_argument(  # noqa: E111
     "--root",
     type=Path,
     default=DEFAULT_SOURCE_ROOT,
     help="Source folder to scan.",
   )
-  parser.add_argument(
+  parser.add_argument(  # noqa: E111
     "--fix",
     action="store_true",
     help="Apply replacements in-place.",
   )
-  parser.add_argument(
+  parser.add_argument(  # noqa: E111
     "--check",
     action="store_true",
     help="Do not modify files, fail if matching deprecated patterns are found.",
   )
-  return parser.parse_args()
+  return parser.parse_args()  # noqa: E111
 
 
 def _parse_rule(index: int, entry: dict[str, Any]) -> UpgradeRule:
-  required_fields = (
+  required_fields = (  # noqa: E111
     "id",
     "description",
     "pattern",
     "replacement",
     "introduced_in",
   )
-  for field_name in required_fields:
+  for field_name in required_fields:  # noqa: E111
     if field_name not in entry:
-      raise ValueError(
+      raise ValueError(  # noqa: E111
         f"Rule at index {index} is missing required field '{field_name}'."
       )
 
-  pattern = entry["pattern"]
-  if not isinstance(pattern, str):
+  pattern = entry["pattern"]  # noqa: E111
+  if not isinstance(pattern, str):  # noqa: E111
     raise ValueError(f"Rule at index {index} has non-string pattern.")
 
-  try:
+  try:  # noqa: E111
     re.compile(pattern)
-  except re.error as err:
+  except re.error as err:  # noqa: E111
     raise ValueError(
       f"Rule '{entry.get('id', index)}' has invalid regex pattern: {err}"
     ) from err
 
-  raw_globs = entry.get("file_globs", ["**/*.py"])
-  if not isinstance(raw_globs, list) or not all(
+  raw_globs = entry.get("file_globs", ["**/*.py"])  # noqa: E111
+  if not isinstance(raw_globs, list) or not all(  # noqa: E111
     isinstance(glob, str) for glob in raw_globs
   ):
     raise ValueError(f"Rule '{entry.get('id', index)}' has invalid file_globs value.")
 
-  try:
+  try:  # noqa: E111
     introduced_in = Version.parse(entry["introduced_in"])
-  except InvalidVersion as err:
+  except InvalidVersion as err:  # noqa: E111
     raise ValueError(
       f"Rule '{entry.get('id', index)}' has invalid introduced_in version."
     ) from err
 
-  return UpgradeRule(
+  return UpgradeRule(  # noqa: E111
     id=entry["id"],
     description=entry["description"],
     pattern=pattern,
@@ -165,42 +165,42 @@ def _parse_rule(index: int, entry: dict[str, Any]) -> UpgradeRule:
 
 
 def load_rules(path: Path) -> RuleSet:
-  try:
+  try:  # noqa: E111
     payload = json.loads(path.read_text(encoding="utf-8"))
-  except OSError as err:
+  except OSError as err:  # noqa: E111
     raise ValueError(f"Failed to read rule file '{path}': {err}") from err
-  except json.JSONDecodeError as err:
+  except json.JSONDecodeError as err:  # noqa: E111
     raise ValueError(f"Invalid JSON in rules file '{path}': {err}") from err
 
-  if not isinstance(payload, dict):
+  if not isinstance(payload, dict):  # noqa: E111
     raise ValueError("Rules file must contain a JSON object.")
 
-  for field_name in ("min_covered_version", "max_covered_version", "rules"):
+  for field_name in ("min_covered_version", "max_covered_version", "rules"):  # noqa: E111
     if field_name not in payload:
-      raise ValueError(f"Rules file is missing required field '{field_name}'.")
+      raise ValueError(f"Rules file is missing required field '{field_name}'.")  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     min_covered_version = Version.parse(payload["min_covered_version"])
     max_covered_version = Version.parse(payload["max_covered_version"])
-  except InvalidVersion as err:
+  except InvalidVersion as err:  # noqa: E111
     raise ValueError(
       "min_covered_version/max_covered_version must be valid versions."
     ) from err
 
-  if min_covered_version > max_covered_version:
+  if min_covered_version > max_covered_version:  # noqa: E111
     raise ValueError("min_covered_version cannot be newer than max_covered_version.")
 
-  raw_rules = payload["rules"]
-  if not isinstance(raw_rules, list):
+  raw_rules = payload["rules"]  # noqa: E111
+  if not isinstance(raw_rules, list):  # noqa: E111
     raise ValueError("rules must be a list.")
 
-  rules: list[UpgradeRule] = []
-  for index, entry in enumerate(raw_rules):
+  rules: list[UpgradeRule] = []  # noqa: E111
+  for index, entry in enumerate(raw_rules):  # noqa: E111
     if not isinstance(entry, dict):
-      raise ValueError(f"Rule at index {index} must be a JSON object.")
+      raise ValueError(f"Rule at index {index} must be a JSON object.")  # noqa: E111
     rules.append(_parse_rule(index, entry))
 
-  return RuleSet(
+  return RuleSet(  # noqa: E111
     min_covered_version=min_covered_version,
     max_covered_version=max_covered_version,
     rules=tuple(rules),
@@ -208,15 +208,15 @@ def load_rules(path: Path) -> RuleSet:
 
 
 def _validated_https_url(url: str) -> str:
-  """Return a validated HTTPS URL for outbound requests."""
-  parsed = urlparse(url)
-  if parsed.scheme != "https" or not parsed.netloc:
+  """Return a validated HTTPS URL for outbound requests."""  # noqa: E111
+  parsed = urlparse(url)  # noqa: E111
+  if parsed.scheme != "https" or not parsed.netloc:  # noqa: E111
     raise ValueError(f"Only absolute HTTPS URLs are allowed, got: {url!r}")
-  return url
+  return url  # noqa: E111
 
 
 def fetch_latest_homeassistant_version() -> Version:
-  request = Request(
+  request = Request(  # noqa: E111
     _validated_https_url(PYPI_HOMEASSISTANT_URL),
     headers={
       "User-Agent": "pawcontrol-bot/1.0",
@@ -224,36 +224,36 @@ def fetch_latest_homeassistant_version() -> Version:
     },
   )
 
-  try:
+  try:  # noqa: E111
     with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # nosec B310 - request URL is restricted by _validated_https_url.
-      status = getattr(response, "status", 200)
-      if status != 200:
+      status = getattr(response, "status", 200)  # noqa: E111
+      if status != 200:  # noqa: E111
         raise ValueError(f"PyPI API returned unexpected status {status}")
-      payload = json.loads(response.read().decode("utf-8"))
+      payload = json.loads(response.read().decode("utf-8"))  # noqa: E111
     return Version.parse(payload["info"]["version"])
-  except (HTTPError, URLError, TimeoutError, OSError) as err:
+  except (HTTPError, URLError, TimeoutError, OSError) as err:  # noqa: E111
     raise RuntimeError(
       "Failed to fetch latest Home Assistant version from PyPI."
     ) from err
-  except (json.JSONDecodeError, KeyError, ValueError, InvalidVersion) as err:
+  except (json.JSONDecodeError, KeyError, ValueError, InvalidVersion) as err:  # noqa: E111
     raise RuntimeError("PyPI returned malformed Home Assistant version data.") from err
 
 
 def applicable_rules(
   rule_set: RuleSet, latest_version: Version
 ) -> tuple[UpgradeRule, ...]:
-  return tuple(rule for rule in rule_set.rules if latest_version >= rule.introduced_in)
+  return tuple(rule for rule in rule_set.rules if latest_version >= rule.introduced_in)  # noqa: E111
 
 
 def collect_python_files(root: Path, globs: tuple[str, ...]) -> list[Path]:
-  files: set[Path] = set()
-  for pattern in globs:
+  files: set[Path] = set()  # noqa: E111
+  for pattern in globs:  # noqa: E111
     files.update(root.glob(pattern))
-  return sorted(path for path in files if path.is_file())
+  return sorted(path for path in files if path.is_file())  # noqa: E111
 
 
 def _write_file_atomically(path: Path, content: str) -> None:
-  with tempfile.NamedTemporaryFile(
+  with tempfile.NamedTemporaryFile(  # noqa: E111
     mode="w",
     encoding="utf-8",
     dir=path.parent,
@@ -262,37 +262,37 @@ def _write_file_atomically(path: Path, content: str) -> None:
     tmp_file.write(content)
     tmp_path = Path(tmp_file.name)
 
-  try:
+  try:  # noqa: E111
     os.replace(tmp_path, path)
-  finally:
+  finally:  # noqa: E111
     if tmp_path.exists():
-      tmp_path.unlink()
+      tmp_path.unlink()  # noqa: E111
 
 
 def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:
-  try:
+  try:  # noqa: E111
     content = path.read_text(encoding="utf-8")
-  except OSError as err:
+  except OSError as err:  # noqa: E111
     _LOGGER.warning("Unable to read %s: %s", path, err)
     return 0
 
-  updated, count = re.subn(rule.pattern, rule.replacement, content)
+  updated, count = re.subn(rule.pattern, rule.replacement, content)  # noqa: E111
 
-  if not (fix and count):
+  if not (fix and count):  # noqa: E111
     return count
 
-  backup_path = path.with_suffix(f"{path.suffix}.bak")
-  backup_created = False
-  try:
+  backup_path = path.with_suffix(f"{path.suffix}.bak")  # noqa: E111
+  backup_created = False  # noqa: E111
+  try:  # noqa: E111
     shutil.copy2(path, backup_path)
     backup_created = True
     _write_file_atomically(path, updated)
-  except OSError as err:
+  except OSError as err:  # noqa: E111
     _LOGGER.warning("Failed to update %s safely: %s", path, err)
     if backup_created:
-      try:
+      try:  # noqa: E111
         shutil.copy2(backup_path, path)
-      except OSError as restore_err:
+      except OSError as restore_err:  # noqa: E111
         _LOGGER.critical(
           "Failed to restore %s from backup %s: %s",
           path,
@@ -300,102 +300,102 @@ def apply_rule(path: Path, rule: UpgradeRule, *, fix: bool) -> int:
           restore_err,
         )
     return 0
-  finally:
+  finally:  # noqa: E111
     if backup_created and backup_path.exists():
-      try:
+      try:  # noqa: E111
         backup_path.unlink()
-      except OSError as err:
+      except OSError as err:  # noqa: E111
         _LOGGER.warning("Failed to remove backup file %s: %s", backup_path, err)
 
-  return count
+  return count  # noqa: E111
 
 
 def run(
   root: Path, rule_set: RuleSet, *, fix: bool
 ) -> tuple[list[MatchResult], Version]:
-  latest_version = fetch_latest_homeassistant_version()
-  rules = applicable_rules(rule_set, latest_version)
+  latest_version = fetch_latest_homeassistant_version()  # noqa: E111
+  rules = applicable_rules(rule_set, latest_version)  # noqa: E111
 
-  findings: list[MatchResult] = []
-  for rule in rules:
+  findings: list[MatchResult] = []  # noqa: E111
+  for rule in rules:  # noqa: E111
     for path in collect_python_files(root, rule.file_globs):
-      count = apply_rule(path, rule, fix=fix)
-      if count:
+      count = apply_rule(path, rule, fix=fix)  # noqa: E111
+      if count:  # noqa: E111
         findings.append(MatchResult(rule_id=rule.id, path=path, count=count))
 
-  return findings, latest_version
+  return findings, latest_version  # noqa: E111
 
 
 def print_findings(findings: list[MatchResult]) -> None:
-  grouped: dict[str, list[MatchResult]] = {}
-  for finding in findings:
+  grouped: dict[str, list[MatchResult]] = {}  # noqa: E111
+  for finding in findings:  # noqa: E111
     grouped.setdefault(finding.rule_id, []).append(finding)
 
-  for rule_id, results in grouped.items():
+  for rule_id, results in grouped.items():  # noqa: E111
     print(f"- Rule {rule_id}:")
     for result in results:
-      print(f"  * {result.path}: {result.count} matches")
+      print(f"  * {result.path}: {result.count} matches")  # noqa: E111
 
 
 def validate_coverage(rule_set: RuleSet, latest_version: Version) -> bool:
-  if latest_version <= rule_set.max_covered_version:
+  if latest_version <= rule_set.max_covered_version:  # noqa: E111
     return True
-  print(
+  print(  # noqa: E111
     "WARNING: The rule definition covers Home Assistant versions only up to "
     f"{rule_set.max_covered_version}, but found {latest_version}."
   )
-  print(
+  print(  # noqa: E111
     "Please extend scripts/homeassistant_upgrade_rules.json so new breaking "
     "changes can be fixed automatically."
   )
-  return False
+  return False  # noqa: E111
 
 
 def main() -> int:
-  logging.basicConfig(
+  logging.basicConfig(  # noqa: E111
     level=logging.WARNING,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
   )
-  args = parse_args()
-  if args.fix and args.check:
+  args = parse_args()  # noqa: E111
+  if args.fix and args.check:  # noqa: E111
     print("Please use either --fix or --check.")
     return 2
 
-  mode_fix = args.fix and not args.check
-  rule_set = load_rules(args.rules)
-  try:
+  mode_fix = args.fix and not args.check  # noqa: E111
+  rule_set = load_rules(args.rules)  # noqa: E111
+  try:  # noqa: E111
     findings, latest_version = run(args.root, rule_set, fix=mode_fix)
-  except RuntimeError as err:
+  except RuntimeError as err:  # noqa: E111
     _LOGGER.error("Failed to run push guard: %s", err, exc_info=True)
     return 1
 
-  coverage_ok = validate_coverage(rule_set, latest_version)
+  coverage_ok = validate_coverage(rule_set, latest_version)  # noqa: E111
 
-  print(f"Latest Home Assistant version from PyPI: {latest_version}")
-  if findings:
+  print(f"Latest Home Assistant version from PyPI: {latest_version}")  # noqa: E111
+  if findings:  # noqa: E111
     print_findings(findings)
 
-  if args.check:
+  if args.check:  # noqa: E111
     if findings:
-      print("Error: Deprecated patterns found. Use --fix for automatic repairs.")
-      return 1
+      print("Error: Deprecated patterns found. Use --fix for automatic repairs.")  # noqa: E111
+      return 1  # noqa: E111
     if not coverage_ok:
-      return 1
+      return 1  # noqa: E111
     print("OK: No known deprecated Home Assistant patterns found.")
     return 0
 
-  if mode_fix:
+  if mode_fix:  # noqa: E111
     if findings:
-      print("Automatic migrations were applied.")
+      print("Automatic migrations were applied.")  # noqa: E111
     else:
-      print("No automatic migrations were needed.")
+      print("No automatic migrations were needed.")  # noqa: E111
     return 0 if coverage_ok else 1
 
-  # Default mode behaves like check in CI-safe mode.
-  if findings or not coverage_ok:
+  # Default mode behaves like check in CI-safe mode.  # noqa: E114
+  if findings or not coverage_ok:  # noqa: E111
     return 1
-  return 0
+  return 0  # noqa: E111
 
 
 if __name__ == "__main__":
-  sys.exit(main())
+  sys.exit(main())  # noqa: E111

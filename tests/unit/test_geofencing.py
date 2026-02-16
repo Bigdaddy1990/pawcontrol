@@ -24,14 +24,14 @@ from custom_components.pawcontrol.types import (
 
 @pytest.mark.unit
 def test_geofence_zone_storage_roundtrip() -> None:
-  """Geofence zone payloads should round-trip through typed storage."""
+  """Geofence zone payloads should round-trip through typed storage."""  # noqa: E111
 
-  metadata: GeofenceZoneMetadata = {
+  metadata: GeofenceZoneMetadata = {  # noqa: E111
     "auto_created": True,
     "color": "#00FFAA",
     "notes": "Back garden",
   }
-  zone = GeofenceZone(
+  zone = GeofenceZone(  # noqa: E111
     id="garden",
     name="Garden",
     type=GeofenceType.SAFE_ZONE,
@@ -41,27 +41,27 @@ def test_geofence_zone_storage_roundtrip() -> None:
     metadata=metadata,
   )
 
-  payload = zone.to_storage_payload()
-  assert payload["metadata"]["auto_created"] is True
-  assert payload["metadata"]["color"] == "#00FFAA"
+  payload = zone.to_storage_payload()  # noqa: E111
+  assert payload["metadata"]["auto_created"] is True  # noqa: E111
+  assert payload["metadata"]["color"] == "#00FFAA"  # noqa: E111
 
-  restored = GeofenceZone.from_storage_payload(payload)
-  assert restored.metadata["notes"] == "Back garden"
-  assert restored.metadata["auto_created"] is True
+  restored = GeofenceZone.from_storage_payload(payload)  # noqa: E111
+  assert restored.metadata["notes"] == "Back garden"  # noqa: E111
+  assert restored.metadata["auto_created"] is True  # noqa: E111
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_save_data_persists_typed_metadata(mock_hass) -> None:
-  """Persisted data should include the typed zone metadata."""
+  """Persisted data should include the typed zone metadata."""  # noqa: E111
 
-  geofencing = PawControlGeofencing(mock_hass, "entry")
-  store = MagicMock()
-  store.async_save = AsyncMock()
-  store.async_load = AsyncMock(return_value=None)
-  geofencing._store = store
+  geofencing = PawControlGeofencing(mock_hass, "entry")  # noqa: E111
+  store = MagicMock()  # noqa: E111
+  store.async_save = AsyncMock()  # noqa: E111
+  store.async_load = AsyncMock(return_value=None)  # noqa: E111
+  geofencing._store = store  # noqa: E111
 
-  geofencing._zones["garden"] = GeofenceZone(
+  geofencing._zones["garden"] = GeofenceZone(  # noqa: E111
     id="garden",
     name="Garden",
     type=GeofenceType.SAFE_ZONE,
@@ -71,24 +71,24 @@ async def test_save_data_persists_typed_metadata(mock_hass) -> None:
     metadata={"notes": "Typed"},
   )
 
-  await geofencing._save_data()
+  await geofencing._save_data()  # noqa: E111
 
-  store.async_save.assert_awaited_once()
-  payload = store.async_save.await_args.args[0]
-  assert payload["zones"]["garden"]["metadata"]["notes"] == "Typed"
+  store.async_save.assert_awaited_once()  # noqa: E111
+  payload = store.async_save.await_args.args[0]  # noqa: E111
+  assert payload["zones"]["garden"]["metadata"]["notes"] == "Typed"  # noqa: E111
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_notify_zone_event_uses_typed_payload(mock_hass) -> None:
-  """Notification payloads should expose the typed geofence structure."""
+  """Notification payloads should expose the typed geofence structure."""  # noqa: E111
 
-  geofencing = PawControlGeofencing(mock_hass, "entry")
-  notify = AsyncMock()
-  manager = SimpleNamespace(async_send_notification=notify)
-  geofencing.set_notification_manager(manager)
+  geofencing = PawControlGeofencing(mock_hass, "entry")  # noqa: E111
+  notify = AsyncMock()  # noqa: E111
+  manager = SimpleNamespace(async_send_notification=notify)  # noqa: E111
+  geofencing.set_notification_manager(manager)  # noqa: E111
 
-  zone = GeofenceZone(
+  zone = GeofenceZone(  # noqa: E111
     id="restricted",
     name="Restricted",
     type=GeofenceType.RESTRICTED_AREA,
@@ -96,28 +96,28 @@ async def test_notify_zone_event_uses_typed_payload(mock_hass) -> None:
     longitude=-74.0060,
     radius=35.0,
   )
-  location = GPSLocation(latitude=40.7130, longitude=-74.0055, accuracy=5.0)
+  location = GPSLocation(latitude=40.7130, longitude=-74.0055, accuracy=5.0)  # noqa: E111
 
-  await geofencing._notify_zone_event("doggo", zone, GeofenceEvent.ENTERED, location)
+  await geofencing._notify_zone_event("doggo", zone, GeofenceEvent.ENTERED, location)  # noqa: E111
 
-  notify.assert_awaited_once()
-  payload = notify.await_args.kwargs["data"]
+  notify.assert_awaited_once()  # noqa: E111
+  payload = notify.await_args.kwargs["data"]  # noqa: E111
 
-  assert payload["zone_id"] == "restricted"
-  assert payload["event_type"] == GeofenceEvent.ENTERED.value
-  assert payload["latitude"] == pytest.approx(location.latitude)
-  expected_distance = calculate_distance(
+  assert payload["zone_id"] == "restricted"  # noqa: E111
+  assert payload["event_type"] == GeofenceEvent.ENTERED.value  # noqa: E111
+  assert payload["latitude"] == pytest.approx(location.latitude)  # noqa: E111
+  expected_distance = calculate_distance(  # noqa: E111
     zone.latitude, zone.longitude, location.latitude, location.longitude
   )
-  assert payload["distance_from_center_m"] == pytest.approx(expected_distance, abs=0.01)
-  assert payload["accuracy"] == 5.0
+  assert payload["distance_from_center_m"] == pytest.approx(expected_distance, abs=0.01)  # noqa: E111
+  assert payload["accuracy"] == 5.0  # noqa: E111
 
 
 @pytest.mark.unit
 def test_geofence_zone_metadata_sanitization() -> None:
-  """Zone metadata should drop unsupported legacy values."""
+  """Zone metadata should drop unsupported legacy values."""  # noqa: E111
 
-  raw_metadata: dict[str, object] = {
+  raw_metadata: dict[str, object] = {  # noqa: E111
     "auto_created": "yes",
     "color": 128934,
     "created_by": None,
@@ -125,7 +125,7 @@ def test_geofence_zone_metadata_sanitization() -> None:
     "tags": ("garden", 42, "safe"),
   }
 
-  zone = GeofenceZone(
+  zone = GeofenceZone(  # noqa: E111
     id="garden",
     name="Garden",
     type=GeofenceType.SAFE_ZONE,
@@ -135,18 +135,18 @@ def test_geofence_zone_metadata_sanitization() -> None:
     metadata=cast(GeofenceZoneMetadata, raw_metadata),
   )
 
-  assert "auto_created" not in zone.metadata
-  assert "color" not in zone.metadata
-  assert zone.metadata["created_by"] is None
-  assert zone.metadata["notes"] == "legacy"
-  assert zone.metadata["tags"] == ["garden", "safe"]
+  assert "auto_created" not in zone.metadata  # noqa: E111
+  assert "color" not in zone.metadata  # noqa: E111
+  assert zone.metadata["created_by"] is None  # noqa: E111
+  assert zone.metadata["notes"] == "legacy"  # noqa: E111
+  assert zone.metadata["tags"] == ["garden", "safe"]  # noqa: E111
 
 
 @pytest.mark.unit
 def test_from_storage_payload_sanitizes_metadata() -> None:
-  """Stored payloads with invalid metadata types are normalised."""
+  """Stored payloads with invalid metadata types are normalised."""  # noqa: E111
 
-  payload: GeofenceZoneStoragePayload = cast(
+  payload: GeofenceZoneStoragePayload = cast(  # noqa: E111
     GeofenceZoneStoragePayload,
     {
       "id": "legacy",
@@ -164,22 +164,22 @@ def test_from_storage_payload_sanitizes_metadata() -> None:
     },
   )
 
-  zone = GeofenceZone.from_storage_payload(payload)
+  zone = GeofenceZone.from_storage_payload(payload)  # noqa: E111
 
-  assert "auto_created" not in zone.metadata
-  assert zone.metadata["color"] is None
-  assert zone.metadata["notes"] == "memo"
-  assert "tags" not in zone.metadata
+  assert "auto_created" not in zone.metadata  # noqa: E111
+  assert zone.metadata["color"] is None  # noqa: E111
+  assert zone.metadata["notes"] == "memo"  # noqa: E111
+  assert "tags" not in zone.metadata  # noqa: E111
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_initialize_accepts_legacy_list_storage(mock_hass) -> None:
-  """Legacy list-based storage payloads should load successfully."""
+  """Legacy list-based storage payloads should load successfully."""  # noqa: E111
 
-  geofencing = PawControlGeofencing(mock_hass, "entry")
-  store = MagicMock()
-  legacy_zone: GeofenceZoneStoragePayload = cast(
+  geofencing = PawControlGeofencing(mock_hass, "entry")  # noqa: E111
+  store = MagicMock()  # noqa: E111
+  legacy_zone: GeofenceZoneStoragePayload = cast(  # noqa: E111
     GeofenceZoneStoragePayload,
     {
       "id": "park",
@@ -190,11 +190,11 @@ async def test_initialize_accepts_legacy_list_storage(mock_hass) -> None:
       "radius": 45.0,
     },
   )
-  store.async_load = AsyncMock(return_value={"zones": [legacy_zone]})
-  store.async_save = AsyncMock()
-  geofencing._store = store
+  store.async_load = AsyncMock(return_value={"zones": [legacy_zone]})  # noqa: E111
+  store.async_save = AsyncMock()  # noqa: E111
+  geofencing._store = store  # noqa: E111
 
-  await geofencing.async_initialize(
+  await geofencing.async_initialize(  # noqa: E111
     dogs=["dog-1"],
     enabled=False,
     use_home_location=False,
@@ -202,8 +202,8 @@ async def test_initialize_accepts_legacy_list_storage(mock_hass) -> None:
     check_interval=10,
   )
 
-  store.async_load.assert_awaited_once()
-  zones = geofencing.get_zones()
-  assert "park" in zones
-  assert zones["park"].name == "Park"
-  assert geofencing.get_dog_state("dog-1") is not None
+  store.async_load.assert_awaited_once()  # noqa: E111
+  zones = geofencing.get_zones()  # noqa: E111
+  assert "park" in zones  # noqa: E111
+  assert zones["park"].name == "Park"  # noqa: E111
+  assert geofencing.get_dog_state("dog-1") is not None  # noqa: E111

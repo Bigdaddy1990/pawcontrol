@@ -79,7 +79,7 @@ from .types import (
 )
 from .utils import async_call_add_entities, normalise_entity_attributes
 
-# ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.
+# ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.  # noqa: E501
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")
 ATTR_VALUE = getattr(ha_const, "ATTR_VALUE", "value")
 
@@ -93,11 +93,11 @@ PARALLEL_UPDATES = 0
 UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
 if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
 
-  class _FallbackUnitOfSpeed:
+  class _FallbackUnitOfSpeed:  # noqa: E111
     KILOMETERS_PER_HOUR = "km/h"
     METERS_PER_SECOND = "m/s"
 
-  UnitOfSpeed = _FallbackUnitOfSpeed
+  UnitOfSpeed = _FallbackUnitOfSpeed  # noqa: E111
 
 
 DEFAULT_NUMBER_MODE = getattr(NumberMode, "AUTO", NumberMode.BOX)
@@ -122,48 +122,48 @@ def _merge_config_updates(
   current: Mapping[str, JSONValue] | None,
   updates: Mapping[str, JSONValue],
 ) -> JSONMutableMapping:
-  """Return a merged mapping for configuration updates."""
+  """Return a merged mapping for configuration updates."""  # noqa: E111
 
-  merged: JSONMutableMapping = dict(current) if isinstance(current, Mapping) else {}
-  merged.update(dict(updates))
-  return merged
+  merged: JSONMutableMapping = dict(current) if isinstance(current, Mapping) else {}  # noqa: E111
+  merged.update(dict(updates))  # noqa: E111
+  return merged  # noqa: E111
 
 
 def _build_gps_tracking_input(
   config: Mapping[str, JSONValue],
 ) -> GPSTrackingConfigInput:
-  """Build GPS manager input from stored GPS configuration."""
+  """Build GPS manager input from stored GPS configuration."""  # noqa: E111
 
-  tracking_input: GPSTrackingConfigInput = {}
+  tracking_input: GPSTrackingConfigInput = {}  # noqa: E111
 
-  accuracy_value = config.get(CONF_GPS_ACCURACY_FILTER)
-  if isinstance(accuracy_value, int | float):
+  accuracy_value = config.get(CONF_GPS_ACCURACY_FILTER)  # noqa: E111
+  if isinstance(accuracy_value, int | float):  # noqa: E111
     tracking_input["gps_accuracy_threshold"] = float(accuracy_value)
-  elif isinstance((legacy_accuracy := config.get("accuracy_threshold")), int | float):
+  elif isinstance((legacy_accuracy := config.get("accuracy_threshold")), int | float):  # noqa: E111
     tracking_input["gps_accuracy_threshold"] = float(legacy_accuracy)
 
-  update_interval_value = config.get(CONF_GPS_UPDATE_INTERVAL)
-  if isinstance(update_interval_value, int | float):
+  update_interval_value = config.get(CONF_GPS_UPDATE_INTERVAL)  # noqa: E111
+  if isinstance(update_interval_value, int | float):  # noqa: E111
     tracking_input["update_interval_seconds"] = int(update_interval_value)
-  elif isinstance((legacy_interval := config.get("update_interval")), int | float):
+  elif isinstance((legacy_interval := config.get("update_interval")), int | float):  # noqa: E111
     tracking_input["update_interval_seconds"] = int(legacy_interval)
 
-  distance_value = config.get(CONF_GPS_DISTANCE_FILTER)
-  if isinstance(distance_value, int | float):
+  distance_value = config.get(CONF_GPS_DISTANCE_FILTER)  # noqa: E111
+  if isinstance(distance_value, int | float):  # noqa: E111
     tracking_input["min_distance_for_point"] = float(distance_value)
-  elif isinstance(
+  elif isinstance(  # noqa: E111
     (legacy_distance := config.get("min_distance_for_point")),
     int | float,
   ):
     tracking_input["min_distance_for_point"] = float(legacy_distance)
 
-  return tracking_input
+  return tracking_input  # noqa: E111
 
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
-  """Return JSON-serialisable attributes for number entities."""
+  """Return JSON-serialisable attributes for number entities."""  # noqa: E111
 
-  return normalise_entity_attributes(attrs)
+  return normalise_entity_attributes(attrs)  # noqa: E111
 
 
 async def _async_add_entities_in_batches(
@@ -182,17 +182,17 @@ async def _async_add_entities_in_batches(
       entities: List of number entities to add
       batch_size: Number of entities per batch (default: 12)
       delay_between_batches: Seconds to wait between batches (default: 0.1s)
-  """
-  total_entities = len(entities)
+  """  # noqa: E111
+  total_entities = len(entities)  # noqa: E111
 
-  _LOGGER.debug(
+  _LOGGER.debug(  # noqa: E111
     "Adding %d number entities in batches of %d to prevent Registry overload",
     total_entities,
     batch_size,
   )
 
-  # Process entities in batches
-  for i in range(0, total_entities, batch_size):
+  # Process entities in batches  # noqa: E114
+  for i in range(0, total_entities, batch_size):  # noqa: E111
     batch = entities[i : i + batch_size]
     batch_num = (i // batch_size) + 1
     total_batches = (total_entities + batch_size - 1) // batch_size
@@ -213,7 +213,7 @@ async def _async_add_entities_in_batches(
 
     # Small delay between batches to prevent Registry flooding
     if i + batch_size < total_entities:  # No delay after last batch
-      await asyncio.sleep(delay_between_batches)
+      await asyncio.sleep(delay_between_batches)  # noqa: E111
 
 
 async def async_setup_entry(
@@ -231,19 +231,19 @@ async def async_setup_entry(
       hass: Home Assistant instance
       entry: Configuration entry containing dog configurations
       async_add_entities: Callback to add number entities
-  """
-  runtime_data = get_runtime_data(hass, entry)
-  if runtime_data is None:
+  """  # noqa: E111
+  runtime_data = get_runtime_data(hass, entry)  # noqa: E111
+  if runtime_data is None:  # noqa: E111
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
 
-  coordinator: PawControlCoordinator = runtime_data.coordinator
-  dogs: list[DogConfigData] = runtime_data.dogs
+  coordinator: PawControlCoordinator = runtime_data.coordinator  # noqa: E111
+  dogs: list[DogConfigData] = runtime_data.dogs  # noqa: E111
 
-  entities: list[PawControlNumberBase] = []
+  entities: list[PawControlNumberBase] = []  # noqa: E111
 
-  # Create number entities for each configured dog
-  for dog in dogs:
+  # Create number entities for each configured dog  # noqa: E114
+  for dog in dogs:  # noqa: E111
     dog_id: str = dog[DOG_ID_FIELD]
     dog_name: str = dog[DOG_NAME_FIELD]
     modules: DogModulesMapping = ensure_dog_modules_mapping(dog)
@@ -266,7 +266,7 @@ async def async_setup_entry(
 
     # Module-specific numbers
     if modules.get(MODULE_FEEDING, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_feeding_numbers(
           coordinator,
           dog_id,
@@ -275,7 +275,7 @@ async def async_setup_entry(
       )
 
     if modules.get(MODULE_WALK, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_walk_numbers(
           coordinator,
           dog_id,
@@ -284,10 +284,10 @@ async def async_setup_entry(
       )
 
     if modules.get(MODULE_GPS, False):
-      entities.extend(_create_gps_numbers(coordinator, dog_id, dog_name))
+      entities.extend(_create_gps_numbers(coordinator, dog_id, dog_name))  # noqa: E111
 
     if modules.get(MODULE_HEALTH, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_health_numbers(
           coordinator,
           dog_id,
@@ -295,11 +295,11 @@ async def async_setup_entry(
         ),
       )
 
-  # Add entities in smaller batches to prevent Entity Registry overload
-  # With 46+ number entities (2 dogs), batching prevents Registry flooding
-  await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
+  # Add entities in smaller batches to prevent Entity Registry overload  # noqa: E114
+  # With 46+ number entities (2 dogs), batching prevents Registry flooding  # noqa: E114
+  await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)  # noqa: E111
 
-  _LOGGER.info(
+  _LOGGER.info(  # noqa: E111
     "Created %d number entities for %d dogs using batched approach",
     len(entities),
     len(dogs),
@@ -312,8 +312,8 @@ async def async_reproduce_state(
   *,
   context: Context | None = None,
 ) -> None:
-  """Reproduce number states for PawControl entities."""
-  await async_reproduce_platform_states(
+  """Reproduce number states for PawControl entities."""  # noqa: E111
+  await async_reproduce_platform_states(  # noqa: E111
     hass,
     states,
     "number",
@@ -324,16 +324,16 @@ async def async_reproduce_state(
 
 
 def _preprocess_number_state(state: State) -> float | None:
-  try:
+  try:  # noqa: E111
     return float(state.state)
-  except ValueError:
+  except ValueError:  # noqa: E111
     _LOGGER.warning(
       "Invalid number state for %s: %s",
       state.entity_id,
       state.state,
     )
     return None
-  except TypeError:
+  except TypeError:  # noqa: E111
     _LOGGER.warning(
       "Invalid number state for %s: %s",
       state.entity_id,
@@ -349,18 +349,18 @@ async def _async_reproduce_number_state(
   target_value: float,
   context: Context | None,
 ) -> None:
-  if current_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+  if current_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):  # noqa: E111
     try:
-      current_value = float(current_state.state)
+      current_value = float(current_state.state)  # noqa: E111
     except ValueError:
-      current_value = None
+      current_value = None  # noqa: E111
     except TypeError:
-      current_value = None
+      current_value = None  # noqa: E111
     else:
-      if current_value == target_value:
+      if current_value == target_value:  # noqa: E111
         return
 
-  await hass.services.async_call(
+  await hass.services.async_call(  # noqa: E111
     number_component.DOMAIN,
     number_component.SERVICE_SET_VALUE,
     {ATTR_ENTITY_ID: state.entity_id, ATTR_VALUE: target_value},
@@ -385,8 +385,8 @@ def _create_base_numbers(
 
   Returns:
       List of base number entities
-  """
-  return [
+  """  # noqa: E111
+  return [  # noqa: E111
     PawControlDogWeightNumber(coordinator, dog_id, dog_name, dog_config),
     PawControlDogAgeNumber(coordinator, dog_id, dog_name, dog_config),
     PawControlActivityGoalNumber(coordinator, dog_id, dog_name),
@@ -407,8 +407,8 @@ def _create_feeding_numbers(
 
   Returns:
       List of feeding number entities
-  """
-  return [
+  """  # noqa: E111
+  return [  # noqa: E111
     PawControlDailyFoodAmountNumber(coordinator, dog_id, dog_name),
     PawControlFeedingReminderHoursNumber(coordinator, dog_id, dog_name),
     PawControlMealsPerDayNumber(coordinator, dog_id, dog_name),
@@ -431,8 +431,8 @@ def _create_walk_numbers(
 
   Returns:
       List of walk number entities
-  """
-  return [
+  """  # noqa: E111
+  return [  # noqa: E111
     PawControlDailyWalkTargetNumber(coordinator, dog_id, dog_name),
     PawControlWalkDurationTargetNumber(coordinator, dog_id, dog_name),
     PawControlWalkDistanceTargetNumber(coordinator, dog_id, dog_name),
@@ -455,8 +455,8 @@ def _create_gps_numbers(
 
   Returns:
       List of GPS number entities
-  """
-  return [
+  """  # noqa: E111
+  return [  # noqa: E111
     PawControlGPSAccuracyThresholdNumber(coordinator, dog_id, dog_name),
     PawControlGPSUpdateIntervalNumber(coordinator, dog_id, dog_name),
     PawControlGeofenceRadiusNumber(coordinator, dog_id, dog_name),
@@ -479,8 +479,8 @@ def _create_health_numbers(
 
   Returns:
       List of health number entities
-  """
-  return [
+  """  # noqa: E111
+  return [  # noqa: E111
     PawControlTargetWeightNumber(coordinator, dog_id, dog_name),
     PawControlWeightChangeThresholdNumber(coordinator, dog_id, dog_name),
     PawControlGroomingIntervalNumber(coordinator, dog_id, dog_name),
@@ -495,9 +495,9 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
   Provides common functionality and ensures consistent behavior across
   all number types. Includes proper device grouping, state persistence,
   validation, and error handling.
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -563,7 +563,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
       sw_version=DEFAULT_SW_VERSION,
     )
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hass(self) -> None:  # noqa: E111
     """Called when entity is added to Home Assistant.
 
     Restores the previous value and sets up any required listeners.
@@ -576,7 +576,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
       "unknown",
       "unavailable",
     ):
-      try:
+      try:  # noqa: E111
         self._value = float(last_state.state)
         _LOGGER.debug(
           "Restored number value for %s %s: %s",
@@ -584,14 +584,14 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
           self._number_type,
           self._value,
         )
-      except ValueError:
+      except ValueError:  # noqa: E111
         _LOGGER.warning(
           "Could not restore number value for %s %s: %s",
           self._dog_name,
           self._number_type,
           last_state.state,
         )
-      except TypeError:
+      except TypeError:  # noqa: E111
         _LOGGER.warning(
           "Could not restore number value for %s %s: %s",
           self._dog_name,
@@ -599,8 +599,8 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
           last_state.state,
         )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the current value of the number.
 
     Returns:
@@ -608,8 +608,8 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     """
     return self._value
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for the number.
 
     Provides information about the number's function and constraints.
@@ -629,7 +629,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     return _normalise_attributes(attrs)
 
-  async def async_set_native_value(self, value: float) -> None:
+  async def async_set_native_value(self, value: float) -> None:  # noqa: E111
     """Set the number value.
 
     Args:
@@ -640,17 +640,17 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     """
     # Validate value range
     if not (self.native_min_value <= value <= self.native_max_value):
-      raise HomeAssistantError(
+      raise HomeAssistantError(  # noqa: E111
         f"Value {value} is outside allowed range "
         f"({self.native_min_value}-{self.native_max_value})",
       )
 
     try:
-      await self._async_set_number_value(value)
-      self._value = value
-      self.async_write_ha_state()
+      await self._async_set_number_value(value)  # noqa: E111
+      self._value = value  # noqa: E111
+      self.async_write_ha_state()  # noqa: E111
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Set %s for %s (%s) to %s",
         self._number_type,
         self._dog_name,
@@ -659,17 +659,17 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
       )
 
     except Exception as err:
-      _LOGGER.error(
+      _LOGGER.error(  # noqa: E111
         "Failed to set %s for %s: %s",
         self._number_type,
         self._dog_name,
         err,
       )
-      raise HomeAssistantError(
+      raise HomeAssistantError(  # noqa: E111
         f"Failed to set {self._number_type}",
       ) from err
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the number value implementation.
 
     This method should be overridden by subclasses to implement
@@ -681,7 +681,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     # Base implementation - subclasses should override
     pass
 
-  def _get_dog_config_section(self, section: str) -> JSONMutableMapping:
+  def _get_dog_config_section(self, section: str) -> JSONMutableMapping:  # noqa: E111
     """Return a copy of the stored configuration section."""
 
     config = (
@@ -690,14 +690,14 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
       else None
     )
     if not isinstance(config, Mapping):
-      return {}
+      return {}  # noqa: E111
 
     section_data = config.get(section)
     if isinstance(section_data, Mapping):
-      return dict(section_data)
+      return dict(section_data)  # noqa: E111
     return {}
 
-  async def _async_persist_config_update(
+  async def _async_persist_config_update(  # noqa: E111
     self,
     updates: DogConfigUpdatePayload,
     *,
@@ -707,22 +707,22 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     data_manager = self._get_data_manager()
     if data_manager is None:
-      return
+      return  # noqa: E111
 
     payload: Mapping[str, JSONValue | Mapping[str, JSONValue]]
     payload = updates if section is None else {section: updates}
 
     try:
-      await data_manager.async_update_dog_data(self._dog_id, payload)
+      await data_manager.async_update_dog_data(self._dog_id, payload)  # noqa: E111
     except Exception as err:  # pragma: no cover - defensive log
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Failed to persist %s update for %s: %s",
         self._number_type,
         self._dog_name,
         err,
       )
 
-  async def _async_update_feeding_manager(
+  async def _async_update_feeding_manager(  # noqa: E111
     self,
     updates: DogConfigUpdatePayload,
   ) -> None:
@@ -730,20 +730,20 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     feeding_manager = self._get_runtime_managers().feeding_manager
     if feeding_manager is None:
-      return
+      return  # noqa: E111
 
     current = self._get_dog_config_section(DOG_FEEDING_CONFIG_FIELD)
     merged = _merge_config_updates(current, updates)
     try:
-      await feeding_manager.async_update_config(self._dog_id, merged)
+      await feeding_manager.async_update_config(self._dog_id, merged)  # noqa: E111
     except Exception as err:  # pragma: no cover - defensive log
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Failed to apply feeding updates for %s: %s",
         self._dog_name,
         err,
       )
 
-  async def _async_update_gps_manager(
+  async def _async_update_gps_manager(  # noqa: E111
     self,
     updates: DogConfigUpdatePayload,
   ) -> None:
@@ -751,37 +751,37 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
     gps_manager = self._get_runtime_managers().gps_geofence_manager
     if gps_manager is None:
-      return
+      return  # noqa: E111
 
     current = self._get_dog_config_section(DOG_GPS_CONFIG_FIELD)
     merged = _merge_config_updates(current, updates)
     tracking_input = _build_gps_tracking_input(merged)
     if not tracking_input:
-      return
+      return  # noqa: E111
 
     try:
-      await gps_manager.async_configure_dog_gps(
+      await gps_manager.async_configure_dog_gps(  # noqa: E111
         self._dog_id,
         tracking_input,
       )
     except Exception as err:  # pragma: no cover - defensive log
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Failed to apply GPS updates for %s: %s",
         self._dog_name,
         err,
       )
 
-  async def _async_refresh_after_update(self) -> None:
+  async def _async_refresh_after_update(self) -> None:  # noqa: E111
     """Refresh coordinator data after a configuration update."""
 
     await self.coordinator.async_refresh_dog(self._dog_id)
 
-  def _get_dog_data(self) -> CoordinatorDogData | None:
+  def _get_dog_data(self) -> CoordinatorDogData | None:  # noqa: E111
     """Get data for this number's dog from the coordinator."""
 
     return self._get_dog_data_cached()
 
-  def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
+  def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:  # noqa: E111
     """Get specific module data for this dog.
 
     Args:
@@ -792,8 +792,8 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     """
     return super()._get_module_data(module)
 
-  @property
-  def available(self) -> bool:
+  @property  # noqa: E111
+  def available(self) -> bool:  # noqa: E111
     """Return if the number is available.
 
     A number is available when the coordinator is available and
@@ -807,9 +807,9 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
 # Base numbers
 class PawControlDogWeightNumber(PawControlNumberBase):
-  """Number entity for the dog's current weight."""
+  """Number entity for the dog's current weight."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -820,7 +820,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
     config: DogConfigData = cast(DogConfigData, dog_config or {})
     current_weight = cast(float | None, config.get(DOG_WEIGHT_FIELD))
     if current_weight is None:
-      current_weight = 20.0
+      current_weight = 20.0  # noqa: E111
 
     super().__init__(
       coordinator,
@@ -838,52 +838,52 @@ class PawControlDogWeightNumber(PawControlNumberBase):
       translation_key="weight",
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the dog's weight."""
     weight_value = float(value)
 
     dog_data = self._get_dog_data()
     if isinstance(dog_data, Mapping):
-      dog_info = cast(
+      dog_info = cast(  # noqa: E111
         DogConfigData,
         dog_data.setdefault("dog_info", cast(DogConfigData, {})),
       )
-      dog_info[DOG_WEIGHT_FIELD] = weight_value
+      dog_info[DOG_WEIGHT_FIELD] = weight_value  # noqa: E111
 
     updates: DogConfigUpdatePayload = {DOG_WEIGHT_FIELD: weight_value}
     await self._async_persist_config_update(updates)
     await self._async_refresh_after_update()
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional attributes for the weight number."""
     attrs = super().extra_state_attributes
     health_data = self._get_module_data("health")
 
     if isinstance(health_data, Mapping):
-      weight_trend = health_data.get("weight_trend")
-      if isinstance(weight_trend, str):
+      weight_trend = health_data.get("weight_trend")  # noqa: E111
+      if isinstance(weight_trend, str):  # noqa: E111
         attrs["weight_trend"] = weight_trend
 
-      weight_change_percent = health_data.get("weight_change_percent")
-      if isinstance(weight_change_percent, int | float):
+      weight_change_percent = health_data.get("weight_change_percent")  # noqa: E111
+      if isinstance(weight_change_percent, int | float):  # noqa: E111
         attrs["weight_change_percent"] = float(weight_change_percent)
 
-      last_weight_date = health_data.get("last_weight_date")
-      if isinstance(last_weight_date, str):
+      last_weight_date = health_data.get("last_weight_date")  # noqa: E111
+      if isinstance(last_weight_date, str):  # noqa: E111
         attrs["last_weight_date"] = last_weight_date
 
-      target_weight = health_data.get("target_weight")
-      if isinstance(target_weight, int | float):
+      target_weight = health_data.get("target_weight")  # noqa: E111
+      if isinstance(target_weight, int | float):  # noqa: E111
         attrs["target_weight"] = float(target_weight)
 
     return _normalise_attributes(attrs)
 
 
 class PawControlDogAgeNumber(PawControlNumberBase):
-  """Number entity for the dog's age."""
+  """Number entity for the dog's age."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -893,7 +893,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
     """Initialize the dog age number."""
     current_age = cast(int | None, dog_config.get(DOG_AGE_FIELD))
     if current_age is None:
-      current_age = 3
+      current_age = 3  # noqa: E111
 
     super().__init__(
       coordinator,
@@ -911,17 +911,17 @@ class PawControlDogAgeNumber(PawControlNumberBase):
       translation_key="age",
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the dog's age."""
     int_value = int(value)
 
     dog_data = self._get_dog_data()
     if isinstance(dog_data, Mapping):
-      dog_info = cast(
+      dog_info = cast(  # noqa: E111
         DogConfigData,
         dog_data.setdefault("dog_info", cast(DogConfigData, {})),
       )
-      dog_info[DOG_AGE_FIELD] = int_value
+      dog_info[DOG_AGE_FIELD] = int_value  # noqa: E111
 
     updates: DogConfigUpdatePayload = {DOG_AGE_FIELD: int_value}
     await self._async_persist_config_update(updates)
@@ -931,9 +931,9 @@ class PawControlDogAgeNumber(PawControlNumberBase):
 
 
 class PawControlActivityGoalNumber(PawControlNumberBase):
-  """Number entity for the dog's daily activity goal."""
+  """Number entity for the dog's daily activity goal."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -954,7 +954,7 @@ class PawControlActivityGoalNumber(PawControlNumberBase):
       initial_value=DEFAULT_ACTIVITY_GOAL,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the activity goal."""
     int_value = int(value)
     await self._async_persist_config_update(
@@ -966,9 +966,9 @@ class PawControlActivityGoalNumber(PawControlNumberBase):
 
 # Feeding numbers
 class PawControlDailyFoodAmountNumber(PawControlNumberBase):
-  """Number entity for daily food amount in grams."""
+  """Number entity for daily food amount in grams."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -990,7 +990,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
       translation_key="daily_food_amount",
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the daily food amount."""
     amount = float(value)
     updates: DogConfigUpdatePayload = {CONF_DAILY_FOOD_AMOUNT: amount}
@@ -1001,28 +1001,28 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
     await self._async_update_feeding_manager(updates)
     await self._async_refresh_after_update()
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional attributes for daily food amount."""
     attrs = super().extra_state_attributes
 
     # Calculate recommended amount based on dog size/weight
     dog_data = self._get_dog_data()
     if dog_data and "dog_info" in dog_data:
-      info = dog_data["dog_info"]
-      weight_value = info.get("dog_weight")
-      weight = float(weight_value) if isinstance(weight_value, int | float) else 20.0
-      recommended = self._calculate_recommended_amount(weight)
-      attrs["recommended_amount"] = recommended
-      current_value = self.native_value
-      if current_value is None or recommended <= 0:
+      info = dog_data["dog_info"]  # noqa: E111
+      weight_value = info.get("dog_weight")  # noqa: E111
+      weight = float(weight_value) if isinstance(weight_value, int | float) else 20.0  # noqa: E111
+      recommended = self._calculate_recommended_amount(weight)  # noqa: E111
+      attrs["recommended_amount"] = recommended  # noqa: E111
+      current_value = self.native_value  # noqa: E111
+      if current_value is None or recommended <= 0:  # noqa: E111
         attrs["current_vs_recommended"] = "N/A"
-      else:
+      else:  # noqa: E111
         attrs["current_vs_recommended"] = f"{(current_value / recommended * 100):.0f}%"
 
     return _normalise_attributes(attrs)
 
-  def _calculate_recommended_amount(self, weight: float) -> float:
+  def _calculate_recommended_amount(self, weight: float) -> float:  # noqa: E111
     """Calculate recommended daily food amount based on weight.
 
     Args:
@@ -1036,9 +1036,9 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
 
 
 class PawControlFeedingReminderHoursNumber(PawControlNumberBase):
-  """Number entity for feeding reminder interval in hours."""
+  """Number entity for feeding reminder interval in hours."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1059,7 +1059,7 @@ class PawControlFeedingReminderHoursNumber(PawControlNumberBase):
       initial_value=DEFAULT_FEEDING_REMINDER_HOURS,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the feeding reminder hours."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"reminder_hours": int_value}
@@ -1072,9 +1072,9 @@ class PawControlFeedingReminderHoursNumber(PawControlNumberBase):
 
 
 class PawControlMealsPerDayNumber(PawControlNumberBase):
-  """Number entity for number of meals per day."""
+  """Number entity for number of meals per day."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1094,7 +1094,7 @@ class PawControlMealsPerDayNumber(PawControlNumberBase):
       initial_value=2,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the meals per day."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {CONF_MEALS_PER_DAY: int_value}
@@ -1107,9 +1107,9 @@ class PawControlMealsPerDayNumber(PawControlNumberBase):
 
 
 class PawControlPortionSizeNumber(PawControlNumberBase):
-  """Number entity for default portion size in grams."""
+  """Number entity for default portion size in grams."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1131,7 +1131,7 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
       translation_key="portion_size",
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the portion size."""
     portion_size = float(value)
     updates: DogConfigUpdatePayload = {"portion_size": portion_size}
@@ -1144,9 +1144,9 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
 
 
 class PawControlCalorieTargetNumber(PawControlNumberBase):
-  """Number entity for daily calorie target."""
+  """Number entity for daily calorie target."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1168,7 +1168,7 @@ class PawControlCalorieTargetNumber(PawControlNumberBase):
       translation_key="calorie_target",
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the calorie target."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"calorie_target": int_value}
@@ -1182,9 +1182,9 @@ class PawControlCalorieTargetNumber(PawControlNumberBase):
 
 # Walk numbers
 class PawControlDailyWalkTargetNumber(PawControlNumberBase):
-  """Number entity for daily walk target count."""
+  """Number entity for daily walk target count."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1204,7 +1204,7 @@ class PawControlDailyWalkTargetNumber(PawControlNumberBase):
       initial_value=3,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the daily walk target."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"daily_walk_target": int_value}
@@ -1216,9 +1216,9 @@ class PawControlDailyWalkTargetNumber(PawControlNumberBase):
 
 
 class PawControlWalkDurationTargetNumber(PawControlNumberBase):
-  """Number entity for walk duration target in minutes."""
+  """Number entity for walk duration target in minutes."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1239,7 +1239,7 @@ class PawControlWalkDurationTargetNumber(PawControlNumberBase):
       initial_value=DEFAULT_WALK_DURATION_TARGET,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the walk duration target."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"walk_duration_target": int_value}
@@ -1251,9 +1251,9 @@ class PawControlWalkDurationTargetNumber(PawControlNumberBase):
 
 
 class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
-  """Number entity for walk distance target in meters."""
+  """Number entity for walk distance target in meters."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1274,7 +1274,7 @@ class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
       initial_value=2000,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the walk distance target."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"walk_distance_target": int_value}
@@ -1286,9 +1286,9 @@ class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
 
 
 class PawControlWalkReminderHoursNumber(PawControlNumberBase):
-  """Number entity for walk reminder interval in hours."""
+  """Number entity for walk reminder interval in hours."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1309,7 +1309,7 @@ class PawControlWalkReminderHoursNumber(PawControlNumberBase):
       initial_value=8,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the walk reminder hours."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"reminder_hours": int_value}
@@ -1321,9 +1321,9 @@ class PawControlWalkReminderHoursNumber(PawControlNumberBase):
 
 
 class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
-  """Number entity for maximum expected walk speed."""
+  """Number entity for maximum expected walk speed."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1348,7 +1348,7 @@ class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
       initial_value=15,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the max walk speed."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"max_walk_speed": int_value}
@@ -1361,9 +1361,9 @@ class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
 
 # GPS numbers
 class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
-  """Number entity for GPS accuracy threshold in meters."""
+  """Number entity for GPS accuracy threshold in meters."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1385,7 +1385,7 @@ class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
       initial_value=DEFAULT_GPS_ACCURACY_THRESHOLD,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the GPS accuracy threshold."""
     accuracy_value = float(value)
     updates: DogConfigUpdatePayload = {CONF_GPS_ACCURACY_FILTER: accuracy_value}
@@ -1398,9 +1398,9 @@ class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
 
 
 class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
-  """Number entity for GPS update interval in seconds."""
+  """Number entity for GPS update interval in seconds."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1422,7 +1422,7 @@ class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
       initial_value=60,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the GPS update interval."""
     interval = int(value)
     updates: DogConfigUpdatePayload = {CONF_GPS_UPDATE_INTERVAL: interval}
@@ -1435,9 +1435,9 @@ class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
 
 
 class PawControlGeofenceRadiusNumber(PawControlNumberBase):
-  """Number entity for geofence radius in meters."""
+  """Number entity for geofence radius in meters."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1458,7 +1458,7 @@ class PawControlGeofenceRadiusNumber(PawControlNumberBase):
       initial_value=100,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the geofence radius."""
     radius = float(value)
     updates: DogConfigUpdatePayload = {CONF_HOME_ZONE_RADIUS: radius}
@@ -1470,9 +1470,9 @@ class PawControlGeofenceRadiusNumber(PawControlNumberBase):
 
 
 class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
-  """Number entity for minimum distance for location updates."""
+  """Number entity for minimum distance for location updates."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1494,7 +1494,7 @@ class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
       initial_value=10,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the location update distance."""
     distance = float(value)
     updates: DogConfigUpdatePayload = {CONF_GPS_DISTANCE_FILTER: distance}
@@ -1507,9 +1507,9 @@ class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
 
 
 class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
-  """Number entity for GPS battery alert threshold."""
+  """Number entity for GPS battery alert threshold."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1530,7 +1530,7 @@ class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
       initial_value=20,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the GPS battery threshold."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"gps_battery_threshold": int_value}
@@ -1543,9 +1543,9 @@ class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
 
 # Health numbers
 class PawControlTargetWeightNumber(PawControlNumberBase):
-  """Number entity for target weight in kg."""
+  """Number entity for target weight in kg."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1567,7 +1567,7 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
       initial_value=20.0,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the target weight."""
     weight_value = float(value)
     updates: DogConfigUpdatePayload = {"target_weight": weight_value}
@@ -1579,9 +1579,9 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
 
 
 class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
-  """Number entity for weight change alert threshold."""
+  """Number entity for weight change alert threshold."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1602,7 +1602,7 @@ class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
       initial_value=10,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the weight change threshold."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"weight_change_threshold": int_value}
@@ -1614,9 +1614,9 @@ class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
 
 
 class PawControlGroomingIntervalNumber(PawControlNumberBase):
-  """Number entity for grooming interval in days."""
+  """Number entity for grooming interval in days."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1637,7 +1637,7 @@ class PawControlGroomingIntervalNumber(PawControlNumberBase):
       initial_value=28,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the grooming interval."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {CONF_GROOMING_INTERVAL: int_value}
@@ -1649,9 +1649,9 @@ class PawControlGroomingIntervalNumber(PawControlNumberBase):
 
 
 class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
-  """Number entity for vet checkup interval in months."""
+  """Number entity for vet checkup interval in months."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1673,7 +1673,7 @@ class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
       translation_key="vet_checkup_interval",
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the vet checkup interval."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"vet_checkup_interval": int_value}
@@ -1685,9 +1685,9 @@ class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
 
 
 class PawControlHealthScoreThresholdNumber(PawControlNumberBase):
-  """Number entity for health score alert threshold."""
+  """Number entity for health score alert threshold."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1708,7 +1708,7 @@ class PawControlHealthScoreThresholdNumber(PawControlNumberBase):
       initial_value=70,
     )
 
-  async def _async_set_number_value(self, value: float) -> None:
+  async def _async_set_number_value(self, value: float) -> None:  # noqa: E111
     """Set the health score threshold."""
     int_value = int(value)
     updates: DogConfigUpdatePayload = {"health_score_threshold": int_value}

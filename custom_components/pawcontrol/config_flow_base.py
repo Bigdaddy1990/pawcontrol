@@ -141,14 +141,14 @@ class PawControlBaseConfigFlow(ConfigFlow):
   This base class provides shared validation, error handling, and utility
   methods used across all configuration flow steps. It implements proper
   rate limiting and caching for optimal performance.
-  """
+  """  # noqa: E111
 
-  domain = DOMAIN
-  VERSION: ClassVar[int] = 1
-  # Increased for new per-dog configuration features
-  MINOR_VERSION: ClassVar[int] = 2
+  domain = DOMAIN  # noqa: E111
+  VERSION: ClassVar[int] = 1  # noqa: E111
+  # Increased for new per-dog configuration features  # noqa: E114
+  MINOR_VERSION: ClassVar[int] = 2  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     """Initialize base configuration flow."""
     super().__init__()
     self._dogs: list[DogConfigData] = []
@@ -164,7 +164,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
     # Feeding defaults captured when configuring modules
     self._feeding_config: FeedingSetupConfig = {}
 
-  def _generate_unique_id(self, integration_name: str) -> str:
+  def _generate_unique_id(self, integration_name: str) -> str:  # noqa: E111
     """Generate a unique ID for the integration with collision avoidance.
 
     Args:
@@ -180,11 +180,11 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     # Ensure it starts with a letter
     if not safe_id or not safe_id[0].isalpha():
-      safe_id = f"paw_control_{safe_id}"
+      safe_id = f"paw_control_{safe_id}"  # noqa: E111
 
     return safe_id
 
-  def _get_feature_summary(self) -> str:
+  def _get_feature_summary(self) -> str:  # noqa: E111
     """Get a summary of key features for display.
 
     Returns:
@@ -204,7 +204,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
     ]
     return "\n".join(features)
 
-  async def _async_validate_integration_name(
+  async def _async_validate_integration_name(  # noqa: E111
     self,
     name: str,
   ) -> IntegrationNameValidationResult:
@@ -219,13 +219,13 @@ class PawControlBaseConfigFlow(ConfigFlow):
     errors: dict[str, str] = {}
 
     if not name or len(name.strip()) == 0:
-      errors[CONF_NAME] = "integration_name_required"
+      errors[CONF_NAME] = "integration_name_required"  # noqa: E111
     elif len(name) < 1:
-      errors[CONF_NAME] = "integration_name_too_short"
+      errors[CONF_NAME] = "integration_name_too_short"  # noqa: E111
     elif len(name) > 50:
-      errors[CONF_NAME] = "integration_name_too_long"
+      errors[CONF_NAME] = "integration_name_too_long"  # noqa: E111
     elif name.lower() in ("home assistant", "ha", "hassio"):
-      errors[CONF_NAME] = "reserved_integration_name"
+      errors[CONF_NAME] = "reserved_integration_name"  # noqa: E111
 
     result: IntegrationNameValidationResult = {
       "valid": len(errors) == 0,
@@ -234,7 +234,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     return result
 
-  def _is_weight_size_compatible(self, weight: float, size: str) -> bool:
+  def _is_weight_size_compatible(self, weight: float, size: str) -> bool:  # noqa: E111
     """Check if weight is compatible with selected size category.
 
     Args:
@@ -264,7 +264,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
     # Allow some flexibility with overlapping ranges for realistic breed variations
     return range_min <= weight <= range_max
 
-  def _get_feeding_defaults_by_size(self, size: str) -> FeedingSizeDefaults:
+  def _get_feeding_defaults_by_size(self, size: str) -> FeedingSizeDefaults:  # noqa: E111
     """Get intelligent feeding defaults based on dog size.
 
     Args:
@@ -310,7 +310,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     return feeding_configs.get(size, default_config)
 
-  def _format_dogs_list(self) -> str:
+  def _format_dogs_list(self) -> str:  # noqa: E111
     """Format the current dogs list with enhanced readability.
 
     Creates a comprehensive, readable list of configured dogs
@@ -320,12 +320,12 @@ class PawControlBaseConfigFlow(ConfigFlow):
         Formatted string listing all configured dogs
     """
     if not self._dogs:
-      return "No dogs configured yet. Add your first dog to get started!"
+      return "No dogs configured yet. Add your first dog to get started!"  # noqa: E111
 
     dogs_list = []
     for i, dog in enumerate(self._dogs, 1):
-      breed_value = dog.get(DOG_BREED_FIELD)
-      breed_info = (
+      breed_value = dog.get(DOG_BREED_FIELD)  # noqa: E111
+      breed_info = (  # noqa: E111
         breed_value
         if isinstance(
           breed_value,
@@ -333,36 +333,36 @@ class PawControlBaseConfigFlow(ConfigFlow):
         )
         else "Mixed Breed"
       )
-      if not breed_info or breed_info == "":
+      if not breed_info or breed_info == "":  # noqa: E111
         breed_info = "Mixed Breed"
 
-      # Size emoji mapping
-      size_emojis = {
+      # Size emoji mapping  # noqa: E114
+      size_emojis = {  # noqa: E111
         "toy": "🐭",
         "small": "🐕",
         "medium": "🐶",
         "large": "🐕‍🦺",
         "giant": "🐺",
       }
-      dog_size = dog.get(DOG_SIZE_FIELD)
-      size_key = dog_size if isinstance(dog_size, str) else "medium"
-      size_emoji = size_emojis.get(size_key, "🐶")
+      dog_size = dog.get(DOG_SIZE_FIELD)  # noqa: E111
+      size_key = dog_size if isinstance(dog_size, str) else "medium"  # noqa: E111
+      size_emoji = size_emojis.get(size_key, "🐶")  # noqa: E111
 
-      # Enabled modules count
-      modules_mapping = ensure_dog_modules_mapping(dog)
-      enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)
-      total_modules = len(modules_mapping)
+      # Enabled modules count  # noqa: E114
+      modules_mapping = ensure_dog_modules_mapping(dog)  # noqa: E111
+      enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)  # noqa: E111
+      total_modules = len(modules_mapping)  # noqa: E111
 
-      # Special configurations
-      special_configs = []
-      if dog.get(DOG_GPS_CONFIG_FIELD):
+      # Special configurations  # noqa: E114
+      special_configs = []  # noqa: E111
+      if dog.get(DOG_GPS_CONFIG_FIELD):  # noqa: E111
         special_configs.append("📍 GPS")
-      if dog.get(DOG_FEEDING_CONFIG_FIELD):
+      if dog.get(DOG_FEEDING_CONFIG_FIELD):  # noqa: E111
         special_configs.append("🍽️ Feeding")
-      if dog.get(DOG_HEALTH_CONFIG_FIELD):
+      if dog.get(DOG_HEALTH_CONFIG_FIELD):  # noqa: E111
         special_configs.append("🏥 Health")
 
-      special_text = (
+      special_text = (  # noqa: E111
         " | ".join(
           special_configs,
         )
@@ -370,17 +370,17 @@ class PawControlBaseConfigFlow(ConfigFlow):
         else ""
       )
 
-      dogs_list.append(
+      dogs_list.append(  # noqa: E111
         f"{i}. {size_emoji} **{dog[DOG_NAME_FIELD]}** ({dog[DOG_ID_FIELD]})\n"
         f"   {size_key.title()} {breed_info}, "
-        f"{dog.get(DOG_AGE_FIELD, 'unknown')} years, {dog.get(DOG_WEIGHT_FIELD, 'unknown')}kg\n"
+        f"{dog.get(DOG_AGE_FIELD, 'unknown')} years, {dog.get(DOG_WEIGHT_FIELD, 'unknown')}kg\n"  # noqa: E501
         f"   {enabled_count}/{total_modules} modules enabled"
         + (f"\n   {special_text}" if special_text else ""),
       )
 
     return "\n\n".join(dogs_list)
 
-  async def _suggest_dog_breed(self, user_input: DogSetupStepInput | None) -> str:
+  async def _suggest_dog_breed(self, user_input: DogSetupStepInput | None) -> str:  # noqa: E111
     """Suggest dog breed based on name and characteristics.
 
     Args:
@@ -390,7 +390,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         Breed suggestion or empty string
     """
     if not user_input:
-      return ""
+      return ""  # noqa: E111
 
     name = str(user_input.get(DOG_NAME_FIELD, "")).lower()
     size = user_input.get(DOG_SIZE_FIELD, "")
@@ -419,18 +419,18 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     # Check name patterns first
     for hint_name, breed in breed_hints.items():
-      if hint_name in name:
+      if hint_name in name:  # noqa: E111
         return breed
 
     # Use size-based suggestion if available
     if size in size_breeds:
-      # Return first breed that roughly matches weight
-      for breed in size_breeds[size]:
+      # Return first breed that roughly matches weight  # noqa: E114
+      for breed in size_breeds[size]:  # noqa: E111
         return breed
 
     return ""
 
-  async def _generate_smart_dog_id_suggestion(
+  async def _generate_smart_dog_id_suggestion(  # noqa: E111
     self,
     user_input: DogSetupStepInput | None,
   ) -> str:
@@ -446,7 +446,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         Optimized dog ID suggestion
     """
     if not user_input or not user_input.get(DOG_NAME_FIELD):
-      return ""
+      return ""  # noqa: E111
 
     dog_name = user_input[DOG_NAME_FIELD].strip()
 
@@ -455,28 +455,28 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     # Handle common name patterns
     if " " in name_lower:
-      # Multi-word names: take first word + first letter of others
-      parts = name_lower.split()
-      if len(parts) == 2:
+      # Multi-word names: take first word + first letter of others  # noqa: E114
+      parts = name_lower.split()  # noqa: E111
+      if len(parts) == 2:  # noqa: E111
         suggestion = f"{parts[0]}_{parts[1][0]}"
-      else:
+      else:  # noqa: E111
         suggestion = parts[0] + "".join(p[0] for p in parts[1:])
     else:
-      suggestion = name_lower
+      suggestion = name_lower  # noqa: E111
 
     # Clean up the suggestion
     suggestion = re.sub(r"[^a-z0-9_]", "", suggestion)
 
     # Ensure it starts with a letter
     if not suggestion or not suggestion[0].isalpha():
-      suggestion = f"dog_{suggestion}"
+      suggestion = f"dog_{suggestion}"  # noqa: E111
 
     # Avoid conflicts with intelligent numbering
     original_suggestion = suggestion
     counter = 1
 
     while any(dog[DOG_ID_FIELD] == suggestion for dog in self._dogs):
-      if counter == 1:
+      if counter == 1:  # noqa: E111
         # Try common variations first
         variations = [
           f"{original_suggestion}_2",
@@ -485,18 +485,18 @@ class PawControlBaseConfigFlow(ConfigFlow):
         ]
         suggestion = variations[0]
         counter = 2
-      else:
+      else:  # noqa: E111
         suggestion = f"{original_suggestion}_{counter}"
         counter += 1
 
-      # Prevent infinite loops
-      if counter > 100:
+      # Prevent infinite loops  # noqa: E114
+      if counter > 100:  # noqa: E111
         suggestion = f"{original_suggestion}_{time.time():.0f}"[-20:]
         break
 
     return suggestion
 
-  def _get_available_device_trackers(self) -> dict[str, str]:
+  def _get_available_device_trackers(self) -> dict[str, str]:  # noqa: E111
     """Get available device tracker entities.
 
     Returns:
@@ -505,19 +505,19 @@ class PawControlBaseConfigFlow(ConfigFlow):
     device_trackers = {}
 
     for entity_id in self.hass.states.async_entity_ids("device_tracker"):
-      state = self.hass.states.get(entity_id)
-      if state and state.state not in ["unknown", "unavailable"]:
+      state = self.hass.states.get(entity_id)  # noqa: E111
+      if state and state.state not in ["unknown", "unavailable"]:  # noqa: E111
         friendly_name = state.attributes.get(
           "friendly_name",
           entity_id,
         )
         # Filter out the Home Assistant companion apps to avoid confusion
         if "home_assistant" not in entity_id.lower():
-          device_trackers[entity_id] = friendly_name
+          device_trackers[entity_id] = friendly_name  # noqa: E111
 
     return device_trackers
 
-  def _get_available_person_entities(self) -> dict[str, str]:
+  def _get_available_person_entities(self) -> dict[str, str]:  # noqa: E111
     """Get available person entities.
 
     Returns:
@@ -526,8 +526,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
     person_entities = {}
 
     for entity_id in self.hass.states.async_entity_ids("person"):
-      state = self.hass.states.get(entity_id)
-      if state:
+      state = self.hass.states.get(entity_id)  # noqa: E111
+      if state:  # noqa: E111
         friendly_name = state.attributes.get(
           "friendly_name",
           entity_id,
@@ -536,7 +536,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     return person_entities
 
-  def _get_available_door_sensors(self) -> dict[str, str]:
+  def _get_available_door_sensors(self) -> dict[str, str]:  # noqa: E111
     """Get available door/window sensors.
 
     Returns:
@@ -545,19 +545,19 @@ class PawControlBaseConfigFlow(ConfigFlow):
     door_sensors = {}
 
     for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
-      state = self.hass.states.get(entity_id)
-      if state:
+      state = self.hass.states.get(entity_id)  # noqa: E111
+      if state:  # noqa: E111
         device_class = state.attributes.get("device_class")
         if device_class in ["door", "window", "opening", "garage_door"]:
-          friendly_name = state.attributes.get(
+          friendly_name = state.attributes.get(  # noqa: E111
             "friendly_name",
             entity_id,
           )
-          door_sensors[entity_id] = friendly_name
+          door_sensors[entity_id] = friendly_name  # noqa: E111
 
     return door_sensors
 
-  def _get_available_notify_services(self) -> dict[str, str]:
+  def _get_available_notify_services(self) -> dict[str, str]:  # noqa: E111
     """Get available notification services.
 
     Returns:
@@ -568,7 +568,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
     # Get all notification services
     services = self.hass.services.async_services().get("notify", {})
     for service_name in services:
-      if service_name != "persistent_notification":  # Exclude default
+      if service_name != "persistent_notification":  # Exclude default  # noqa: E111
         service_id = f"notify.{service_name}"
         # Create friendly name from service name
         friendly_name = service_name.replace("_", " ").title()
@@ -576,7 +576,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     return notify_services
 
-  def _get_dogs_module_summary(self) -> str:
+  def _get_dogs_module_summary(self) -> str:  # noqa: E111
     """Get a summary of dogs and their configured modules.
 
     Returns:
@@ -584,21 +584,21 @@ class PawControlBaseConfigFlow(ConfigFlow):
     """
     summaries = []
     for dog in self._dogs:
-      modules = ensure_dog_modules_mapping(dog)
-      enabled_modules = [name for name, enabled in modules.items() if enabled]
+      modules = ensure_dog_modules_mapping(dog)  # noqa: E111
+      enabled_modules = [name for name, enabled in modules.items() if enabled]  # noqa: E111
 
-      if enabled_modules:
+      if enabled_modules:  # noqa: E111
         modules_text = ", ".join(enabled_modules[:3])
         if len(enabled_modules) > 3:
-          modules_text += f" +{len(enabled_modules) - 3} more"
-      else:
+          modules_text += f" +{len(enabled_modules) - 3} more"  # noqa: E111
+      else:  # noqa: E111
         modules_text = "Basic monitoring"
 
-      summaries.append(f"• {dog[DOG_NAME_FIELD]}: {modules_text}")
+      summaries.append(f"• {dog[DOG_NAME_FIELD]}: {modules_text}")  # noqa: E111
 
     return "\n".join(summaries)
 
-  def _get_dashboard_features_string(self, has_gps: bool) -> str:
+  def _get_dashboard_features_string(self, has_gps: bool) -> str:  # noqa: E111
     """Get dashboard feature list string.
 
     Args:
@@ -614,12 +614,12 @@ class PawControlBaseConfigFlow(ConfigFlow):
       "Multiple Themes",
     ]
     if has_gps:
-      features.insert(0, "GPS Maps")
+      features.insert(0, "GPS Maps")  # noqa: E111
     if len(self._dogs) > 1:
-      features.append("Multi-Dog Overview")
+      features.append("Multi-Dog Overview")  # noqa: E111
     return ", ".join(features)
 
-  def _get_dashboard_setup_info(self) -> str:
+  def _get_dashboard_setup_info(self) -> str:  # noqa: E111
     """Get dashboard setup information for display.
 
     Returns:
@@ -650,14 +650,14 @@ class PawControlBaseConfigFlow(ConfigFlow):
     )
 
     if has_gps:
-      info.append("🗺️ GPS maps and location tracking")
+      info.append("🗺️ GPS maps and location tracking")  # noqa: E111
     if has_feeding:
-      info.append("🍽️ Feeding schedules and meal tracking")
+      info.append("🍽️ Feeding schedules and meal tracking")  # noqa: E111
     if has_health:
-      info.append("📈 Health charts and medication reminders")
+      info.append("📈 Health charts and medication reminders")  # noqa: E111
 
     if len(self._dogs) > 1:
-      info.append(
+      info.append(  # noqa: E111
         f"🐕 Individual dashboards for {len(self._dogs)} dogs available",
       )
 

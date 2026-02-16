@@ -11,26 +11,26 @@ COMPONENT_ROOT = PROJECT_ROOT / "custom_components" / "pawcontrol"
 
 
 def _load_strings(path: Path) -> dict[str, object]:
-  return json.loads(path.read_text(encoding="utf-8"))
+  return json.loads(path.read_text(encoding="utf-8"))  # noqa: E111
 
 
 def _select_options(selectors: dict[str, object], key: str) -> set[str]:
-  entry = selectors[key]
-  if isinstance(entry, dict):
+  entry = selectors[key]  # noqa: E111
+  if isinstance(entry, dict):  # noqa: E111
     options = entry.get("options")
     if isinstance(options, dict):
-      return set(options)
-  return set(cast(dict[str, object], entry))
+      return set(options)  # noqa: E111
+  return set(cast(dict[str, object], entry))  # noqa: E111
 
 
 def test_selector_options_are_localized() -> None:
-  strings = _load_strings(COMPONENT_ROOT / "strings.json")
-  selectors = strings["selector"]
+  strings = _load_strings(COMPONENT_ROOT / "strings.json")  # noqa: E111
+  selectors = strings["selector"]  # noqa: E111
 
-  en = _load_strings(COMPONENT_ROOT / "translations" / "en.json")["selector"]
-  de = _load_strings(COMPONENT_ROOT / "translations" / "de.json")["selector"]
+  en = _load_strings(COMPONENT_ROOT / "translations" / "en.json")["selector"]  # noqa: E111
+  de = _load_strings(COMPONENT_ROOT / "translations" / "de.json")["selector"]  # noqa: E111
 
-  required = {
+  required = {  # noqa: E111
     "activity_level": {
       "very_low",
       "low",
@@ -50,7 +50,7 @@ def test_selector_options_are_localized() -> None:
     "weight_goal": {"lose", "maintain", "gain"},
   }
 
-  for key, option_keys in required.items():
+  for key, option_keys in required.items():  # noqa: E111
     assert key in selectors
     assert option_keys.issubset(_select_options(selectors, key))
     assert option_keys.issubset(_select_options(en, key))

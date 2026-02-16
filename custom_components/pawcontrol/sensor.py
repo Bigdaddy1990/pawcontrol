@@ -61,7 +61,7 @@ from .utils import ensure_utc_datetime, is_number, normalise_entity_attributes
 
 if TYPE_CHECKING:
 
-  class SensorEntityProtocol(Protocol):
+  class SensorEntityProtocol(Protocol):  # noqa: E111
     """Typed protocol for Home Assistant sensor entities."""
 
     _attr_has_entity_name: bool
@@ -90,37 +90,37 @@ type ModuleProfileKey = Literal[
 
 
 class GardenAttributes(TypedDict, total=False):
-  """Typed attributes exposed by garden sensors."""
+  """Typed attributes exposed by garden sensors."""  # noqa: E111
 
-  garden_status: str | None
-  sessions_today: int | None
-  time_today_minutes: float | int | None
-  poop_today: int | None
-  activities_today: int | None
-  activities_total: int | None
-  last_session_id: str | None
-  last_session_start: JSONDateValue | None
-  last_session_end: JSONDateValue | None
-  last_session_duration: float | int | None
-  last_session_activities: int | None
-  last_session_poop: int | None
-  last_session_status: str | None
-  last_session_weather: str | None
-  last_garden_visit: JSONDateValue | None
-  favorite_garden_activities: JSONValue
-  weekly_summary: JSONValue
-  weather_summary: JSONValue
-  pending_confirmations: JSONValue
-  hours_since_last_session: float | int | None
-  started_at: JSONDateValue | None
-  duration_minutes: float | None
-  last_seen: JSONDateValue | None
+  garden_status: str | None  # noqa: E111
+  sessions_today: int | None  # noqa: E111
+  time_today_minutes: float | int | None  # noqa: E111
+  poop_today: int | None  # noqa: E111
+  activities_today: int | None  # noqa: E111
+  activities_total: int | None  # noqa: E111
+  last_session_id: str | None  # noqa: E111
+  last_session_start: JSONDateValue | None  # noqa: E111
+  last_session_end: JSONDateValue | None  # noqa: E111
+  last_session_duration: float | int | None  # noqa: E111
+  last_session_activities: int | None  # noqa: E111
+  last_session_poop: int | None  # noqa: E111
+  last_session_status: str | None  # noqa: E111
+  last_session_weather: str | None  # noqa: E111
+  last_garden_visit: JSONDateValue | None  # noqa: E111
+  favorite_garden_activities: JSONValue  # noqa: E111
+  weekly_summary: JSONValue  # noqa: E111
+  weather_summary: JSONValue  # noqa: E111
+  pending_confirmations: JSONValue  # noqa: E111
+  hours_since_last_session: float | int | None  # noqa: E111
+  started_at: JSONDateValue | None  # noqa: E111
+  duration_minutes: float | None  # noqa: E111
+  last_seen: JSONDateValue | None  # noqa: E111
 
 
 class SensorEntityFactory(Protocol):
-  """Factory signature for sensor entities in module rules."""
+  """Factory signature for sensor entities in module rules."""  # noqa: E111
 
-  def __call__(
+  def __call__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -138,11 +138,11 @@ _STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
 UnitOfSpeed = getattr(ha_const, "UnitOfSpeed", None)
 if UnitOfSpeed is None:  # pragma: no cover - fallback for test harness constants
 
-  class _FallbackUnitOfSpeed:
+  class _FallbackUnitOfSpeed:  # noqa: E111
     KILOMETERS_PER_HOUR = "km/h"
     METERS_PER_SECOND = "m/s"
 
-  UnitOfSpeed = _FallbackUnitOfSpeed
+  UnitOfSpeed = _FallbackUnitOfSpeed  # noqa: E111
 
 
 # Home Assistant platform configuration
@@ -150,23 +150,23 @@ PARALLEL_UPDATES = 0
 
 # Gracefully handle Home Assistant constant backports in the test harness
 try:  # pragma: no cover - executed indirectly during import
-  _SPEED_UNIT = UnitOfSpeed.KILOMETERS_PER_HOUR
+  _SPEED_UNIT = UnitOfSpeed.KILOMETERS_PER_HOUR  # noqa: E111
 except AttributeError:  # pragma: no cover - fallback for older constant sets
-  _SPEED_UNIT = getattr(UnitOfSpeed, "METERS_PER_SECOND", "km/h")
+  _SPEED_UNIT = getattr(UnitOfSpeed, "METERS_PER_SECOND", "km/h")  # noqa: E111
 
 try:  # pragma: no cover - executed indirectly during import
-  _CALORIE_UNIT = UnitOfEnergy.KILO_CALORIE
+  _CALORIE_UNIT = UnitOfEnergy.KILO_CALORIE  # noqa: E111
 except AttributeError:  # pragma: no cover - fallback for older constant sets
-  _CALORIE_UNIT = "kcal"
+  _CALORIE_UNIT = "kcal"  # noqa: E111
 
 
 def _suggested_precision_from_unit(unit: str | None) -> int | None:
-  """Return a suggested display precision for common PawControl units."""
+  """Return a suggested display precision for common PawControl units."""  # noqa: E111
 
-  if unit is None:
+  if unit is None:  # noqa: E111
     return None
 
-  precision_map: dict[str, int] = {
+  precision_map: dict[str, int] = {  # noqa: E111
     PERCENTAGE: 0,
     UnitOfTime.MINUTES: 0,
     UnitOfTime.HOURS: 1,
@@ -177,45 +177,45 @@ def _suggested_precision_from_unit(unit: str | None) -> int | None:
     MASS_GRAMS: 0,
     _CALORIE_UNIT: 0,
   }
-  return precision_map.get(unit)
+  return precision_map.get(unit)  # noqa: E111
 
 
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
-  """Return JSON-serialisable attributes for sensor entities."""
+  """Return JSON-serialisable attributes for sensor entities."""  # noqa: E111
 
-  return normalise_entity_attributes(attrs)
+  return normalise_entity_attributes(attrs)  # noqa: E111
 
 
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
 def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
-  """Calculate dynamic cache TTL based on coordinator update interval."""
+  """Calculate dynamic cache TTL based on coordinator update interval."""  # noqa: E111
 
-  update_interval = getattr(coordinator, "update_interval", None)
-  if not update_interval:
+  update_interval = getattr(coordinator, "update_interval", None)  # noqa: E111
+  if not update_interval:  # noqa: E111
     return 300  # Default 5 minutes
 
-  interval_seconds: float | None
+  interval_seconds: float | None  # noqa: E111
 
-  if hasattr(update_interval, "total_seconds"):
+  if hasattr(update_interval, "total_seconds"):  # noqa: E111
     try:
-      interval_seconds = float(update_interval.total_seconds())
+      interval_seconds = float(update_interval.total_seconds())  # noqa: E111
     except ValueError:
-      interval_seconds = None
+      interval_seconds = None  # noqa: E111
     except TypeError:
-      interval_seconds = None
-  else:
+      interval_seconds = None  # noqa: E111
+  else:  # noqa: E111
     try:
-      interval_seconds = float(update_interval)
+      interval_seconds = float(update_interval)  # noqa: E111
     except ValueError:
-      interval_seconds = None
+      interval_seconds = None  # noqa: E111
     except TypeError:
-      interval_seconds = None
+      interval_seconds = None  # noqa: E111
 
-  if not interval_seconds or interval_seconds <= 0:
+  if not interval_seconds or interval_seconds <= 0:  # noqa: E111
     return 300
 
-  # Cache for 2.5x the update interval, minimum 60s, maximum 600s
-  return max(60, min(600, int(interval_seconds * 2.5)))
+  # Cache for 2.5x the update interval, minimum 60s, maximum 600s  # noqa: E114
+  return max(60, min(600, int(interval_seconds * 2.5)))  # noqa: E111
 
 
 # Sensor mapping for profile-based creation
@@ -225,9 +225,9 @@ SENSOR_MAPPING: dict[str, type[PawControlSensorBase]] = {}
 def register_sensor(
   name: str,
 ) -> Callable[[type[PawControlSensorBase]], type[PawControlSensorBase]]:
-  """Decorator to register sensor classes."""
+  """Decorator to register sensor classes."""  # noqa: E111
 
-  def decorator(
+  def decorator(  # noqa: E111
     cls: type[PawControlSensorBase],
   ) -> type[PawControlSensorBase]:
     """Register the decorated sensor class in the mapping."""
@@ -235,7 +235,7 @@ def register_sensor(
     SENSOR_MAPPING[name] = cls
     return cls
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def _copy_base_docstring(
@@ -244,19 +244,19 @@ def _copy_base_docstring(
   cls: type[PawControlSensorBase],
   attribute: Any,
 ) -> None:
-  """Copy a docstring from a base implementation to the given attribute."""
+  """Copy a docstring from a base implementation to the given attribute."""  # noqa: E111
 
-  for base in cls.__mro__[1:]:
+  for base in cls.__mro__[1:]:  # noqa: E111
     base_attribute = getattr(base, attribute_name, None)
     if base_attribute is None:
-      continue
+      continue  # noqa: E111
 
     base_doc = getattr(base_attribute, "__doc__", None)
     if not base_doc:
-      continue
+      continue  # noqa: E111
 
     if isinstance(attribute, property):
-      setattr(
+      setattr(  # noqa: E111
         cls,
         attribute_name,
         property(
@@ -266,32 +266,32 @@ def _copy_base_docstring(
           base_doc,
         ),
       )
-      return
+      return  # noqa: E111
 
     if isinstance(attribute, classmethod | staticmethod):
-      func = attribute.__func__
-      if getattr(func, "__doc__", None):
+      func = attribute.__func__  # noqa: E111
+      if getattr(func, "__doc__", None):  # noqa: E111
         return
-      func.__doc__ = base_doc
-      return
+      func.__doc__ = base_doc  # noqa: E111
+      return  # noqa: E111
 
     with contextlib.suppress(AttributeError):
-      attribute.__doc__ = base_doc
+      attribute.__doc__ = base_doc  # noqa: E111
     return
 
 
 def inherit_missing_docstrings() -> None:
-  """Ensure all PawControl sensor overrides provide a docstring."""
+  """Ensure all PawControl sensor overrides provide a docstring."""  # noqa: E111
 
-  for obj in list(globals().values()):
+  for obj in list(globals().values()):  # noqa: E111
     if not isinstance(obj, type) or not issubclass(obj, PawControlSensorBase):
-      continue
+      continue  # noqa: E111
 
     for name, attr in vars(obj).items():
-      if getattr(attr, "__doc__", None):
+      if getattr(attr, "__doc__", None):  # noqa: E111
         continue
 
-      _copy_base_docstring(
+      _copy_base_docstring(  # noqa: E111
         attribute_name=name,
         cls=obj,
         attribute=attr,
@@ -303,23 +303,23 @@ async def async_setup_entry(
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up Paw Control sensor platform."""
+  """Set up Paw Control sensor platform."""  # noqa: E111
 
-  runtime_data = get_runtime_data(hass, entry)
-  if runtime_data is None:
+  runtime_data = get_runtime_data(hass, entry)  # noqa: E111
+  if runtime_data is None:  # noqa: E111
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
-  coordinator = runtime_data.coordinator
-  dogs: list[DogConfigData] = runtime_data.dogs
-  entity_factory = runtime_data.entity_factory
-  profile = runtime_data.entity_profile
+  coordinator = runtime_data.coordinator  # noqa: E111
+  dogs: list[DogConfigData] = runtime_data.dogs  # noqa: E111
+  entity_factory = runtime_data.entity_factory  # noqa: E111
+  profile = runtime_data.entity_profile  # noqa: E111
 
-  if not dogs:
+  if not dogs:  # noqa: E111
     return
 
-  all_entities: list[PawControlSensorBase] = []
+  all_entities: list[PawControlSensorBase] = []  # noqa: E111
 
-  for dog in dogs:
+  for dog in dogs:  # noqa: E111
     dog_id = dog[DOG_ID_FIELD]
     dog_name = dog[DOG_NAME_FIELD]
     modules_config = coerce_dog_modules_config(
@@ -338,7 +338,7 @@ async def async_setup_entry(
 
     # Create module-specific entities based on profile
     try:
-      module_entities = _create_module_entities(
+      module_entities = _create_module_entities(  # noqa: E111
         coordinator,
         entity_factory,
         dog_id,
@@ -346,14 +346,14 @@ async def async_setup_entry(
         modules,
         profile,
       )
-      all_entities.extend(module_entities)
+      all_entities.extend(module_entities)  # noqa: E111
     finally:
-      entity_factory.finalize_budget(dog_id, profile)
+      entity_factory.finalize_budget(dog_id, profile)  # noqa: E111
 
-  if all_entities:
+  if all_entities:  # noqa: E111
     add_result = async_add_entities(all_entities)
     if isawaitable(add_result):
-      await add_result
+      await add_result  # noqa: E111
 
 
 def _create_core_entities(
@@ -361,8 +361,8 @@ def _create_core_entities(
   dog_id: str,
   dog_name: str,
 ) -> list[PawControlSensorBase]:
-  """Create core entities that are always present."""
-  return [
+  """Create core entities that are always present."""  # noqa: E111
+  return [  # noqa: E111
     PawControlDogStatusSensor(coordinator, dog_id, dog_name),
     PawControlLastActionSensor(coordinator, dog_id, dog_name),
     PawControlActivityScoreSensor(coordinator, dog_id, dog_name),
@@ -384,12 +384,12 @@ def _create_module_entities(
   modules: Mapping[ModuleToggleKey, bool],
   profile: str,
 ) -> list[PawControlSensorBase]:
-  """Create module-specific entities based on profile and enabled modules."""
-  entities = []
-  budget = entity_factory.get_budget(dog_id, profile)
+  """Create module-specific entities based on profile and enabled modules."""  # noqa: E111
+  entities = []  # noqa: E111
+  budget = entity_factory.get_budget(dog_id, profile)  # noqa: E111
 
-  # Define entity creation rules per module and profile
-  module_entity_rules: ModuleEntityRules = {
+  # Define entity creation rules per module and profile  # noqa: E114
+  module_entity_rules: ModuleEntityRules = {  # noqa: E111
     "feeding": {
       "basic": [
         ("last_feeding", PawControlLastFeedingSensor, 9),
@@ -748,18 +748,18 @@ def _create_module_entities(
     },
   }
 
-  # Create entities based on rules
-  for module, enabled in modules.items():
+  # Create entities based on rules  # noqa: E114
+  for module, enabled in modules.items():  # noqa: E111
     if not enabled or module not in module_entity_rules:
-      continue
+      continue  # noqa: E111
 
     if _is_budget_exhausted(budget):
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Entity budget depleted for %s/%s; skipping remaining modules",
         dog_id,
         profile,
       )
-      break
+      break  # noqa: E111
 
     # Get rules for this profile (with fallback to standard)
     profile_rules = module_entity_rules[module].get(
@@ -768,7 +768,7 @@ def _create_module_entities(
     )
 
     for entity_key, entity_class, priority in profile_rules:
-      if _is_budget_exhausted(budget):
+      if _is_budget_exhausted(budget):  # noqa: E111
         _LOGGER.debug(
           "Entity budget exhausted while building %s entities for %s/%s",
           module,
@@ -776,8 +776,8 @@ def _create_module_entities(
           profile,
         )
         break
-      # Use entity factory to determine if entity should be created
-      config = entity_factory.create_entity_config(
+      # Use entity factory to determine if entity should be created  # noqa: E114
+      config = entity_factory.create_entity_config(  # noqa: E111
         dog_id=dog_id,
         entity_type="sensor",
         module=module,
@@ -786,31 +786,31 @@ def _create_module_entities(
         entity_key=entity_key,
       )
 
-      if config:
+      if config:  # noqa: E111
         entity = entity_class(coordinator, dog_id, dog_name)
         entities.append(entity)
 
-  return entities
+  return entities  # noqa: E111
 
 
 class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
-  """Base sensor class with optimized data access and thread-safe caching."""
+  """Base sensor class with optimized data access and thread-safe caching."""  # noqa: E111
 
-  _attr_should_poll = False
-  _attr_has_entity_name = True
-  _attr_device_class: SensorDeviceClass | None
-  _attr_state_class: SensorStateClass | None
-  _attr_native_unit_of_measurement: str | None
-  _attr_unit_of_measurement_translation_key: str | None
-  _attr_icon: str | None
-  _attr_entity_category: EntityCategory | None
-  _attr_suggested_display_precision: int | None
-  _attr_translation_key: str | None
-  _attr_unique_id: str
-  _pending_translation_key: str
-  _sensor_type: str
+  _attr_should_poll = False  # noqa: E111
+  _attr_has_entity_name = True  # noqa: E111
+  _attr_device_class: SensorDeviceClass | None  # noqa: E111
+  _attr_state_class: SensorStateClass | None  # noqa: E111
+  _attr_native_unit_of_measurement: str | None  # noqa: E111
+  _attr_unit_of_measurement_translation_key: str | None  # noqa: E111
+  _attr_icon: str | None  # noqa: E111
+  _attr_entity_category: EntityCategory | None  # noqa: E111
+  _attr_suggested_display_precision: int | None  # noqa: E111
+  _attr_translation_key: str | None  # noqa: E111
+  _attr_unique_id: str  # noqa: E111
+  _pending_translation_key: str  # noqa: E111
+  _sensor_type: str  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -863,127 +863,127 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
     self._set_cache_ttl(30.0)
 
-  def _get_dog_data(self) -> CoordinatorDogData | None:
+  def _get_dog_data(self) -> CoordinatorDogData | None:  # noqa: E111
     """Get dog data from coordinator with thread-safe caching."""
     return self._get_dog_data_cached()
 
-  @staticmethod
-  def _coerce_module_payload(
+  @staticmethod  # noqa: E111
+  def _coerce_module_payload(  # noqa: E111
     module_data: object | None,
   ) -> CoordinatorModuleLookupResult:
     """Return a mapping payload regardless of adapter state."""
 
     if isinstance(module_data, Mapping):
-      return cast(CoordinatorModuleLookupResult, module_data)
+      return cast(CoordinatorModuleLookupResult, module_data)  # noqa: E111
     return cast(CoordinatorUntypedModuleState, {})
 
-  @staticmethod
-  def _coerce_float(value: object, default: float = 0.0) -> float:
+  @staticmethod  # noqa: E111
+  def _coerce_float(value: object, default: float = 0.0) -> float:  # noqa: E111
     """Return a float converted from ``value`` when possible."""
 
     if isinstance(value, bool):
-      return float(value)
+      return float(value)  # noqa: E111
     if isinstance(value, int | float):
-      return float(value)
+      return float(value)  # noqa: E111
     if isinstance(value, str):
-      try:
+      try:  # noqa: E111
         return float(value)
-      except ValueError:
+      except ValueError:  # noqa: E111
         return default
     return default
 
-  @staticmethod
-  def _coerce_int(value: object, default: int = 0) -> int:
+  @staticmethod  # noqa: E111
+  def _coerce_int(value: object, default: int = 0) -> int:  # noqa: E111
     """Return an int converted from ``value`` when possible."""
 
     if isinstance(value, bool):
-      return int(value)
+      return int(value)  # noqa: E111
     if isinstance(value, int):
-      return value
+      return value  # noqa: E111
     if isinstance(value, float):
-      return int(value)
+      return int(value)  # noqa: E111
     if isinstance(value, str):
-      try:
+      try:  # noqa: E111
         return int(float(value))
-      except ValueError:
+      except ValueError:  # noqa: E111
         return default
     return default
 
-  @staticmethod
-  def _coerce_utc_datetime(value: object | None) -> datetime | None:
+  @staticmethod  # noqa: E111
+  def _coerce_utc_datetime(value: object | None) -> datetime | None:  # noqa: E111
     """Return an aware UTC datetime when ``value`` is convertible."""
 
     if isinstance(value, datetime | date | str | int | float | Real) or value is None:
-      return ensure_utc_datetime(value)
+      return ensure_utc_datetime(value)  # noqa: E111
     return None
 
-  @staticmethod
-  def _coerce_feeding_payload(
+  @staticmethod  # noqa: E111
+  def _coerce_feeding_payload(  # noqa: E111
     payload: CoordinatorModuleLookupResult,
   ) -> FeedingModulePayload | None:
     """Return a feeding payload when the mapping is compatible."""
 
     if isinstance(payload, Mapping):
-      return cast(FeedingModulePayload, payload)
+      return cast(FeedingModulePayload, payload)  # noqa: E111
     return None
 
-  @staticmethod
-  def _coerce_walk_payload(
+  @staticmethod  # noqa: E111
+  def _coerce_walk_payload(  # noqa: E111
     payload: CoordinatorModuleLookupResult,
   ) -> WalkModuleTelemetry | None:
     """Return a walk payload when the mapping is compatible."""
 
     if isinstance(payload, Mapping):
-      return cast(WalkModuleTelemetry, payload)
+      return cast(WalkModuleTelemetry, payload)  # noqa: E111
     return None
 
-  @staticmethod
-  def _coerce_gps_payload(
+  @staticmethod  # noqa: E111
+  def _coerce_gps_payload(  # noqa: E111
     payload: CoordinatorModuleLookupResult,
   ) -> GPSModulePayload | None:
     """Return a GPS payload when the mapping is compatible."""
 
     return ensure_gps_payload(payload) if isinstance(payload, Mapping) else None
 
-  @staticmethod
-  def _coerce_health_payload(
+  @staticmethod  # noqa: E111
+  def _coerce_health_payload(  # noqa: E111
     payload: CoordinatorModuleLookupResult,
   ) -> HealthModulePayload | None:
     """Return a health payload when the mapping is compatible."""
 
     if isinstance(payload, Mapping):
-      return cast(HealthModulePayload, payload)
+      return cast(HealthModulePayload, payload)  # noqa: E111
     return None
 
-  def _get_feeding_module(self) -> FeedingModulePayload | None:
+  def _get_feeding_module(self) -> FeedingModulePayload | None:  # noqa: E111
     """Return the feeding module payload when available."""
 
     return self._coerce_feeding_payload(self._get_module_data("feeding"))
 
-  def _get_walk_module(self) -> WalkModuleTelemetry | None:
+  def _get_walk_module(self) -> WalkModuleTelemetry | None:  # noqa: E111
     """Return the walk module payload when available."""
 
     return self._coerce_walk_payload(self._get_module_data("walk"))
 
-  def _get_gps_module(self) -> GPSModulePayload | None:
+  def _get_gps_module(self) -> GPSModulePayload | None:  # noqa: E111
     """Return the GPS module payload when available."""
 
     return self._coerce_gps_payload(self._get_module_data("gps"))
 
-  def _get_health_module(self) -> HealthModulePayload | None:
+  def _get_health_module(self) -> HealthModulePayload | None:  # noqa: E111
     """Return the health module payload when available."""
 
     return self._coerce_health_payload(self._get_module_data("health"))
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hass(self) -> None:  # noqa: E111
     """Populate translation data after the entity is registered."""
 
     await super().async_added_to_hass()
 
     if self._pending_translation_key and self._attr_translation_key is None:
-      self._attr_translation_key = self._pending_translation_key
+      self._attr_translation_key = self._pending_translation_key  # noqa: E111
 
-  def _base_attributes(self) -> AttributeInputDict:
+  def _base_attributes(self) -> AttributeInputDict:  # noqa: E111
     """Return a copy of the base extra state attributes."""
 
     base = cast(
@@ -995,58 +995,58 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     )
     return cast(AttributeInputDict, dict(base) if base else {})
 
-  @property
-  def device_class(self) -> SensorDeviceClass | None:
+  @property  # noqa: E111
+  def device_class(self) -> SensorDeviceClass | None:  # noqa: E111
     """Expose the configured device class for test doubles."""
 
     return getattr(self, "_attr_device_class", None)
 
-  @property
-  def state_class(self) -> SensorStateClass | None:
+  @property  # noqa: E111
+  def state_class(self) -> SensorStateClass | None:  # noqa: E111
     """Expose the configured state class for test doubles."""
 
     return getattr(self, "_attr_state_class", None)
 
-  @property
-  def native_unit_of_measurement(self) -> str | None:
+  @property  # noqa: E111
+  def native_unit_of_measurement(self) -> str | None:  # noqa: E111
     """Expose the configured native unit for test doubles."""
 
     return getattr(self, "_attr_native_unit_of_measurement", None)
 
-  @property
-  def state(self) -> Any:
+  @property  # noqa: E111
+  def state(self) -> Any:  # noqa: E111
     """Expose the sensor state for compatibility with legacy inspectors."""
 
     return self.native_value
 
-  @property
-  def available(self) -> bool:
+  @property  # noqa: E111
+  def available(self) -> bool:  # noqa: E111
     """Return True if the coordinator and dog data are available."""
     return self.coordinator.available and self._get_dog_data() is not None
 
-  def _extra_state_attributes(self) -> AttributeInputDict:
+  def _extra_state_attributes(self) -> AttributeInputDict:  # noqa: E111
     """Return additional state attributes for the sensor."""
 
     return {"sensor_type": self._sensor_type}
 
 
 class PawControlGardenSensorBase(PawControlSensorBase):
-  """Base class for garden tracking sensors."""
+  """Base class for garden tracking sensors."""  # noqa: E111
 
-  _module_name: Literal["garden"] = "garden"
+  _module_name: Literal["garden"] = "garden"  # noqa: E111
 
-  def _get_garden_data(self) -> GardenModulePayload:
+  def _get_garden_data(self) -> GardenModulePayload:  # noqa: E111
     """Return garden snapshot data for the current dog."""
 
     module_data = self._get_module_data(self._module_name)
     if module_data:
-      return cast(GardenModulePayload, module_data)
+      return cast(GardenModulePayload, module_data)  # noqa: E111
 
     garden_manager = self._get_runtime_managers().garden_manager
     if garden_manager is not None:
-      try:
+      try:  # noqa: E111
         return garden_manager.build_garden_snapshot(self._dog_id)
-      except Exception as err:  # pragma: no cover - defensive logging
+      except Exception as err:  # pragma: no cover - defensive logging  # noqa: E111
         _LOGGER.debug(
           "Garden snapshot fallback failed for %s: %s",
           self._dog_id,
@@ -1055,7 +1055,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     return cast(GardenModulePayload, {})
 
-  def _garden_attributes(self) -> JSONMutableMapping:
+  def _garden_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Build shared garden attributes for subclasses."""
 
     data = self._get_garden_data()
@@ -1070,13 +1070,13 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     last_session = data.get("last_session") or {}
     if last_session:
-      last_session_start = self._coerce_utc_datetime(
+      last_session_start = self._coerce_utc_datetime(  # noqa: E111
         last_session.get("start_time"),
       )
-      last_session_end = self._coerce_utc_datetime(
+      last_session_end = self._coerce_utc_datetime(  # noqa: E111
         last_session.get("end_time"),
       )
-      attrs.update(
+      attrs.update(  # noqa: E111
         {
           "last_session_id": last_session.get("session_id"),
           "last_session_start": last_session_start,
@@ -1091,25 +1091,25 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     stats = data.get("stats") or {}
     if stats:
-      attrs["last_garden_visit"] = self._coerce_utc_datetime(
+      attrs["last_garden_visit"] = self._coerce_utc_datetime(  # noqa: E111
         stats.get("last_garden_visit"),
       )
-      attrs["favorite_garden_activities"] = cast(
+      attrs["favorite_garden_activities"] = cast(  # noqa: E111
         JSONValue,
         stats.get("favorite_activities"),
       )
-      attrs["weekly_summary"] = cast(
+      attrs["weekly_summary"] = cast(  # noqa: E111
         JSONValue,
         stats.get("weekly_summary"),
       )
 
     weather_summary = data.get("weather_summary")
     if weather_summary:
-      attrs["weather_summary"] = cast(JSONValue, weather_summary)
+      attrs["weather_summary"] = cast(JSONValue, weather_summary)  # noqa: E111
 
     pending = data.get("pending_confirmations")
     if pending is not None:
-      attrs["pending_confirmations"] = cast(JSONValue, pending)
+      attrs["pending_confirmations"] = cast(JSONValue, pending)  # noqa: E111
 
     attrs["hours_since_last_session"] = data.get(
       "hours_since_last_session",
@@ -1119,17 +1119,17 @@ class PawControlGardenSensorBase(PawControlSensorBase):
     started_at = None
     duration_minutes = None
     if isinstance(active_session, Mapping):
-      started_at = active_session.get("start_time")
-      duration_minutes = active_session.get("duration_minutes")
+      started_at = active_session.get("start_time")  # noqa: E111
+      duration_minutes = active_session.get("duration_minutes")  # noqa: E111
     if started_at is None and last_session:
-      started_at = last_session.get("start_time")
+      started_at = last_session.get("start_time")  # noqa: E111
     if duration_minutes is None and last_session:
-      duration_minutes = last_session.get("duration_minutes")
+      duration_minutes = last_session.get("duration_minutes")  # noqa: E111
     last_seen = None
     if last_session:
-      last_seen = last_session.get("end_time")
+      last_seen = last_session.get("end_time")  # noqa: E111
     if last_seen is None and stats:
-      last_seen = stats.get("last_garden_visit")
+      last_seen = stats.get("last_garden_visit")  # noqa: E111
 
     attrs["started_at"] = self._coerce_utc_datetime(started_at)
     attrs["duration_minutes"] = (
@@ -1139,8 +1139,8 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     return _normalise_attributes(attrs)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     attrs.update(self._garden_attributes())
@@ -1148,29 +1148,29 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
 
 class PawControlDietValidationSensorBase(PawControlSensorBase):
-  """Base class for diet validation sensors."""
+  """Base class for diet validation sensors."""  # noqa: E111
 
-  _module_name: Literal["feeding"] = "feeding"
+  _module_name: Literal["feeding"] = "feeding"  # noqa: E111
 
-  def _get_validation_summary(self) -> FeedingDietValidationSummary | None:
+  def _get_validation_summary(self) -> FeedingDietValidationSummary | None:  # noqa: E111
     """Return diet validation summary for the current dog."""
 
     module_data = self._get_module_data(self._module_name)
     if not module_data:
-      return None
+      return None  # noqa: E111
 
     summary = module_data.get("diet_validation_summary")
     if isinstance(summary, Mapping):
-      return cast(FeedingDietValidationSummary, dict(summary))
+      return cast(FeedingDietValidationSummary, dict(summary))  # noqa: E111
     return None
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
     if summary:
-      attrs.update(
+      attrs.update(  # noqa: E111
         {
           "diet_validation_available": True,
           "diet_conflict_count": summary.get("conflict_count", 0),
@@ -1195,7 +1195,7 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
         },
       )
     else:
-      attrs["diet_validation_available"] = False
+      attrs["diet_validation_available"] = False  # noqa: E111
 
     return _normalise_attributes(attrs)
 
@@ -1205,9 +1205,9 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
 
 @register_sensor("last_action")
 class PawControlLastActionSensor(PawControlSensorBase):
-  """Sensor for tracking the last action timestamp."""
+  """Sensor for tracking the last action timestamp."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1223,30 +1223,30 @@ class PawControlLastActionSensor(PawControlSensorBase):
       icon="mdi:clock-outline",
     )
 
-  @property
-  def native_value(self) -> datetime | None:
+  @property  # noqa: E111
+  def native_value(self) -> datetime | None:  # noqa: E111
     """Return the most recent action timestamp."""
     dog_data = self._get_dog_data()
     if not dog_data:
-      return None
+      return None  # noqa: E111
 
     timestamps: list[datetime] = []
 
     # Collect timestamps from all modules
     for module in ["feeding", "walk", "health"]:
-      module_data = dog_data.get(module, {})
-      if not isinstance(module_data, dict):
+      module_data = dog_data.get(module, {})  # noqa: E111
+      if not isinstance(module_data, dict):  # noqa: E111
         continue
 
-      timestamp_key = f"last_{module}" if module != "health" else "last_health_entry"
-      timestamp_value = module_data.get(timestamp_key)
+      timestamp_key = f"last_{module}" if module != "health" else "last_health_entry"  # noqa: E111
+      timestamp_value = module_data.get(timestamp_key)  # noqa: E111
 
-      if timestamp_value:
+      if timestamp_value:  # noqa: E111
         timestamp = self._coerce_utc_datetime(timestamp_value)
         if timestamp is not None:
-          timestamps.append(timestamp)
+          timestamps.append(timestamp)  # noqa: E111
         else:
-          _LOGGER.debug(
+          _LOGGER.debug(  # noqa: E111
             "Invalid timestamp in %s: %s",
             module,
             timestamp_value,
@@ -1257,9 +1257,9 @@ class PawControlLastActionSensor(PawControlSensorBase):
 
 @register_sensor("status")
 class PawControlDogStatusSensor(PawControlSensorBase):
-  """Sensor for overall dog status with enhanced logic."""
+  """Sensor for overall dog status with enhanced logic."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1268,67 +1268,67 @@ class PawControlDogStatusSensor(PawControlSensorBase):
     """Initialize the Paw Control Dog Status Sensor."""
     super().__init__(coordinator, dog_id, dog_name, "status", icon="mdi:dog")
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return the current status of the dog."""
     dog_data = self._get_dog_data()
     if not dog_data:
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
     try:
-      status_snapshot = self._get_status_snapshot()
-      if status_snapshot is not None:
+      status_snapshot = self._get_status_snapshot()  # noqa: E111
+      if status_snapshot is not None:  # noqa: E111
         state = status_snapshot.get("state")
         if isinstance(state, str) and state:
-          return state
+          return state  # noqa: E111
 
-      walk_data: WalkModuleTelemetry = cast(
+      walk_data: WalkModuleTelemetry = cast(  # noqa: E111
         WalkModuleTelemetry,
         self._get_walk_module() or {},
       )
-      feeding_data: FeedingModulePayload = cast(
+      feeding_data: FeedingModulePayload = cast(  # noqa: E111
         FeedingModulePayload,
         self._get_feeding_module() or {},
       )
-      gps_data: GPSModulePayload = cast(
+      gps_data: GPSModulePayload = cast(  # noqa: E111
         GPSModulePayload,
         self._get_gps_module() or {},
       )
 
-      # Priority-based status determination
-      if walk_data.get("walk_in_progress", False):
+      # Priority-based status determination  # noqa: E114
+      if walk_data.get("walk_in_progress", False):  # noqa: E111
         return "walking"
 
-      current_zone = gps_data.get("zone", STATE_UNKNOWN)
+      current_zone = gps_data.get("zone", STATE_UNKNOWN)  # noqa: E111
 
-      if current_zone == "home":
+      if current_zone == "home":  # noqa: E111
         if feeding_data.get("is_hungry", False):
-          return "hungry"
+          return "hungry"  # noqa: E111
         if walk_data.get("needs_walk", False):
-          return "needs_walk"
+          return "needs_walk"  # noqa: E111
         return "home"
-      if (
+      if (  # noqa: E111
         isinstance(current_zone, str)
         and current_zone
         and current_zone != _STATE_UNKNOWN
       ):
         return f"at_{current_zone}"
-      return "away"
+      return "away"  # noqa: E111
 
     except Exception as err:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Error determining dog status for %s: %s",
         self._dog_id,
         err,
       )
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
 
 @register_sensor("activity_score")
 class PawControlActivityScoreSensor(PawControlSensorBase):
-  """Sensor for calculating activity score with optimized performance."""
+  """Sensor for calculating activity score with optimized performance."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1349,8 +1349,8 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     self._cached_score: float | None = None
     self._score_cache_time: datetime | None = None
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Calculate and return the activity score with optimized caching."""
     now = dt_util.utcnow()
 
@@ -1360,30 +1360,30 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
       and self._score_cache_time is not None
       and (now - self._score_cache_time).total_seconds() < self._dynamic_cache_ttl
     ):
-      return self._cached_score
+      return self._cached_score  # noqa: E111
 
     dog_data = self._get_dog_data()
     if not dog_data:
-      return None
+      return None  # noqa: E111
 
     try:
-      score = self._compute_activity_score_optimized(dog_data)
+      score = self._compute_activity_score_optimized(dog_data)  # noqa: E111
 
-      if score is not None:
+      if score is not None:  # noqa: E111
         self._cached_score = score
         self._score_cache_time = now
 
-      return score
+      return score  # noqa: E111
 
     except Exception as err:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Error calculating activity score for %s: %s",
         self._dog_id,
         err,
       )
-      return None
+      return None  # noqa: E111
 
-  def _compute_activity_score_optimized(
+  def _compute_activity_score_optimized(  # noqa: E111
     self,
     dog_data: CoordinatorDogData,
   ) -> float | None:
@@ -1393,14 +1393,14 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
     walk_payload = self._coerce_module_payload(dog_data.get("walk"))
     if walk_payload:
-      try:
+      try:  # noqa: E111
         score = self._calculate_walk_score(
           cast(WalkModuleTelemetry, walk_payload),
         )
         if score is not None:
-          weighted_sum += score * 0.4
-          total_weight += 0.4
-      except (TypeError, ValueError, KeyError) as err:
+          weighted_sum += score * 0.4  # noqa: E111
+          total_weight += 0.4  # noqa: E111
+      except (TypeError, ValueError, KeyError) as err:  # noqa: E111
         _LOGGER.debug(
           "Activity score calculation error for %s module %s: %s",
           self._dog_id,
@@ -1410,14 +1410,14 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
     feeding_payload = self._coerce_module_payload(dog_data.get("feeding"))
     if feeding_payload:
-      try:
+      try:  # noqa: E111
         score = self._calculate_feeding_score(
           cast(FeedingModulePayload, feeding_payload),
         )
         if score is not None:
-          weighted_sum += score * 0.2
-          total_weight += 0.2
-      except (TypeError, ValueError, KeyError) as err:
+          weighted_sum += score * 0.2  # noqa: E111
+          total_weight += 0.2  # noqa: E111
+      except (TypeError, ValueError, KeyError) as err:  # noqa: E111
         _LOGGER.debug(
           "Activity score calculation error for %s module %s: %s",
           self._dog_id,
@@ -1427,14 +1427,14 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
     gps_payload = self._coerce_module_payload(dog_data.get("gps"))
     if gps_payload:
-      try:
+      try:  # noqa: E111
         score = self._calculate_gps_score(
           cast(GPSModulePayload, gps_payload),
         )
         if score is not None:
-          weighted_sum += score * 0.25
-          total_weight += 0.25
-      except (TypeError, ValueError, KeyError) as err:
+          weighted_sum += score * 0.25  # noqa: E111
+          total_weight += 0.25  # noqa: E111
+      except (TypeError, ValueError, KeyError) as err:  # noqa: E111
         _LOGGER.debug(
           "Activity score calculation error for %s module %s: %s",
           self._dog_id,
@@ -1444,14 +1444,14 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
     health_payload = self._coerce_module_payload(dog_data.get("health"))
     if health_payload:
-      try:
+      try:  # noqa: E111
         score = self._calculate_health_score(
           cast(HealthModulePayload, health_payload),
         )
         if score is not None:
-          weighted_sum += score * 0.15
-          total_weight += 0.15
-      except (TypeError, ValueError, KeyError) as err:
+          weighted_sum += score * 0.15  # noqa: E111
+          total_weight += 0.15  # noqa: E111
+      except (TypeError, ValueError, KeyError) as err:  # noqa: E111
         _LOGGER.debug(
           "Activity score calculation error for %s module %s: %s",
           self._dog_id,
@@ -1461,73 +1461,73 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
     return round(weighted_sum / total_weight, 1) if total_weight > 0 else None
 
-  def _calculate_walk_score(self, walk_data: WalkModuleTelemetry) -> float | None:
+  def _calculate_walk_score(self, walk_data: WalkModuleTelemetry) -> float | None:  # noqa: E111
     """Calculate walk activity score with validation."""
     try:
-      walks_today = int(walk_data.get("walks_today", 0))
-      total_duration = float(walk_data.get("total_duration_today", 0))
+      walks_today = int(walk_data.get("walks_today", 0))  # noqa: E111
+      total_duration = float(walk_data.get("total_duration_today", 0))  # noqa: E111
 
-      if walks_today == 0:
+      if walks_today == 0:  # noqa: E111
         return 0.0
 
-      # OPTIMIZED: Simplified scoring algorithm
-      # Max 75 points for frequency
-      walk_count_score = min(walks_today * 25, 75)
-      duration_score = min(
+      # OPTIMIZED: Simplified scoring algorithm  # noqa: E114
+      # Max 75 points for frequency  # noqa: E114
+      walk_count_score = min(walks_today * 25, 75)  # noqa: E111
+      duration_score = min(  # noqa: E111
         total_duration / 60 * 10,
         25,
       )  # Max 25 points for duration
 
-      return walk_count_score + duration_score
+      return walk_count_score + duration_score  # noqa: E111
 
     except ValueError:
-      return None
+      return None  # noqa: E111
     except TypeError:
-      return None
+      return None  # noqa: E111
 
-  def _calculate_feeding_score(
+  def _calculate_feeding_score(  # noqa: E111
     self,
     feeding_data: FeedingModulePayload,
   ) -> float | None:
     """Calculate feeding regularity score."""
     try:
-      adherence = self._coerce_float(
+      adherence = self._coerce_float(  # noqa: E111
         feeding_data.get("feeding_schedule_adherence", 0),
         default=0.0,
       )
-      target_met = bool(feeding_data.get("daily_target_met", False))
+      target_met = bool(feeding_data.get("daily_target_met", False))  # noqa: E111
 
-      score = adherence
-      if target_met:
+      score = adherence  # noqa: E111
+      if target_met:  # noqa: E111
         score += 20
 
-      return min(score, 100)
+      return min(score, 100)  # noqa: E111
 
     except ValueError:
-      return None
+      return None  # noqa: E111
     except TypeError:
-      return None
+      return None  # noqa: E111
 
-  def _calculate_gps_score(self, gps_data: GPSModulePayload) -> float | None:
+  def _calculate_gps_score(self, gps_data: GPSModulePayload) -> float | None:  # noqa: E111
     """Calculate GPS activity score."""
     try:
-      if not gps_data.get("last_seen"):
+      if not gps_data.get("last_seen"):  # noqa: E111
         return 0.0
-      return 80.0 if gps_data.get("zone") else 0.0
+      return 80.0 if gps_data.get("zone") else 0.0  # noqa: E111
 
     except ValueError:
-      return None
+      return None  # noqa: E111
     except TypeError:
-      return None
+      return None  # noqa: E111
 
-  def _calculate_health_score(self, health_data: HealthModulePayload) -> float | None:
+  def _calculate_health_score(self, health_data: HealthModulePayload) -> float | None:  # noqa: E111
     """Calculate health maintenance score."""
     try:
-      status = health_data.get("health_status", "good")
-      if not isinstance(status, str):
+      status = health_data.get("health_status", "good")  # noqa: E111
+      if not isinstance(status, str):  # noqa: E111
         status = "good"
-      # OPTIMIZED: Pre-calculated score mapping
-      score_map = {
+      # OPTIMIZED: Pre-calculated score mapping  # noqa: E114
+      score_map = {  # noqa: E111
         "excellent": 100,
         "very_good": 90,
         "good": 80,
@@ -1535,12 +1535,12 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         "unwell": 40,
         "sick": 20,
       }
-      return float(score_map.get(status, 70))
+      return float(score_map.get(status, 70))  # noqa: E111
 
     except ValueError:
-      return None
+      return None  # noqa: E111
     except TypeError:
-      return None
+      return None  # noqa: E111
 
 
 # NEW: Critical missing sensor per requirements inventory
@@ -1550,9 +1550,9 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
   NEW: This sensor was identified as missing in requirements_inventory.md
   and marked as critical. Provides categorical activity level (low/medium/high).
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1567,93 +1567,93 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
       icon="mdi:speedometer",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return current activity level classification."""
     dog_data = self._get_dog_data()
     if not dog_data:
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
     try:
-      health_data: HealthModulePayload = cast(
+      health_data: HealthModulePayload = cast(  # noqa: E111
         HealthModulePayload,
         self._get_health_module() or {},
       )
-      activity_state = health_data.get("activity_level")
-      if isinstance(activity_state, str) and activity_state:
+      activity_state = health_data.get("activity_level")  # noqa: E111
+      if isinstance(activity_state, str) and activity_state:  # noqa: E111
         return activity_state
 
-      # Get current activity metrics
-      walk_data: WalkModuleTelemetry = cast(
+      # Get current activity metrics  # noqa: E114
+      walk_data: WalkModuleTelemetry = cast(  # noqa: E111
         WalkModuleTelemetry,
         self._get_walk_module() or {},
       )
-      gps_data: GPSModulePayload = cast(
+      gps_data: GPSModulePayload = cast(  # noqa: E111
         GPSModulePayload,
         self._get_gps_module() or {},
       )
 
-      # Check if currently walking
-      if walk_data.get("walk_in_progress", False):
+      # Check if currently walking  # noqa: E114
+      if walk_data.get("walk_in_progress", False):  # noqa: E111
         current_speed = self._coerce_float(
           gps_data.get("current_speed", 0),
           default=0.0,
         )
         if current_speed > 8:  # km/h - running
-          return "high"
+          return "high"  # noqa: E111
         if current_speed > 3:  # km/h - fast walk
-          return "medium"
+          return "medium"  # noqa: E111
         return "low"
 
-      # Calculate based on recent activity (today)
-      walks_today = self._coerce_int(walk_data.get("walks_today", 0))
-      total_duration = self._coerce_float(
+      # Calculate based on recent activity (today)  # noqa: E114
+      walks_today = self._coerce_int(walk_data.get("walks_today", 0))  # noqa: E111
+      total_duration = self._coerce_float(  # noqa: E111
         walk_data.get("total_duration_today", 0),
       )
-      total_distance = self._coerce_float(
+      total_distance = self._coerce_float(  # noqa: E111
         walk_data.get("total_distance_today", 0),
       )
 
-      # Calculate activity intensity score
-      if walks_today == 0:
+      # Calculate activity intensity score  # noqa: E114
+      if walks_today == 0:  # noqa: E111
         return activity_state if isinstance(activity_state, str) else "inactive"
 
-      # Weighted scoring: walks * duration * distance
-      activity_score = (
+      # Weighted scoring: walks * duration * distance  # noqa: E114
+      activity_score = (  # noqa: E111
         (walks_today * 0.3)
         + (total_duration / 60 * 0.4)
         + (total_distance / 1000 * 0.3)
       )
 
-      if activity_score >= 3:
+      if activity_score >= 3:  # noqa: E111
         return "high"
-      if activity_score >= 1.5:
+      if activity_score >= 1.5:  # noqa: E111
         return "medium"
-      if activity_score > 0:
+      if activity_score > 0:  # noqa: E111
         return "low"
-      return "inactive"
+      return "inactive"  # noqa: E111
 
     except (TypeError, ValueError) as err:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Error calculating activity level for %s: %s",
         self._dog_id,
         err,
       )
-      if isinstance(activity_state, str) and activity_state:
+      if isinstance(activity_state, str) and activity_state:  # noqa: E111
         return activity_state
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for activity level sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     dog_data = self._get_dog_data()
     if dog_data:
-      walk_data = self._coerce_module_payload(dog_data.get("walk"))
-      gps_data = self._coerce_module_payload(dog_data.get("gps"))
+      walk_data = self._coerce_module_payload(dog_data.get("walk"))  # noqa: E111
+      gps_data = self._coerce_module_payload(dog_data.get("gps"))  # noqa: E111
 
-      with contextlib.suppress(TypeError, ValueError):
+      with contextlib.suppress(TypeError, ValueError):  # noqa: E111
         speed_value = gps_data.get("current_speed", 0)
         duration_value = walk_data.get("total_duration_today", 0)
         distance_value = walk_data.get("total_distance_today", 0)
@@ -1676,24 +1676,24 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
     return _normalise_attributes(attrs)
 
-  def _get_activity_recommendation(self, walk_data: WalkModuleTelemetry) -> str:
+  def _get_activity_recommendation(self, walk_data: WalkModuleTelemetry) -> str:  # noqa: E111
     """Get activity recommendation based on current level."""
     try:
-      walks_today = int(walk_data.get("walks_today", 0))
-      total_duration = float(walk_data.get("total_duration_today", 0))
+      walks_today = int(walk_data.get("walks_today", 0))  # noqa: E111
+      total_duration = float(walk_data.get("total_duration_today", 0))  # noqa: E111
 
-      if walks_today == 0:
+      if walks_today == 0:  # noqa: E111
         return "schedule_first_walk"
-      if walks_today < 2:
+      if walks_today < 2:  # noqa: E111
         return "needs_more_walks"
-      if total_duration < 30:
+      if total_duration < 30:  # noqa: E111
         return "extend_walk_duration"
-      return "activity_goals_met"
+      return "activity_goals_met"  # noqa: E111
 
     except ValueError:
-      return "unable_to_assess"
+      return "unable_to_assess"  # noqa: E111
     except TypeError:
-      return "unable_to_assess"
+      return "unable_to_assess"  # noqa: E111
 
 
 # Garden Sensors
@@ -1701,9 +1701,9 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
 @register_sensor("garden_time_today")
 class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
-  """Sensor for tracking garden time today."""
+  """Sensor for tracking garden time today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1721,22 +1721,22 @@ class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
       translation_key="garden_time_today",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     data = self._get_garden_data()
     value = data.get("time_today_minutes")
     if is_number(value):
-      numeric_value = cast(float | int | str, value)
-      return round(float(numeric_value), 2)
+      numeric_value = cast(float | int | str, value)  # noqa: E111
+      return round(float(numeric_value), 2)  # noqa: E111
     return None
 
 
 @register_sensor("garden_sessions_today")
 class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
-  """Sensor for counting garden sessions today."""
+  """Sensor for counting garden sessions today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1753,21 +1753,21 @@ class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
       translation_key="garden_sessions_today",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     data = self._get_garden_data()
     value = data.get("sessions_today")
     if is_number(value):
-      return int(float(value))
+      return int(float(value))  # noqa: E111
     return None
 
 
 @register_sensor("garden_poop_count_today")
 class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
-  """Sensor for poop events recorded in the garden today."""
+  """Sensor for poop events recorded in the garden today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1784,21 +1784,21 @@ class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
       translation_key="garden_poop_count_today",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     data = self._get_garden_data()
     value = data.get("poop_today")
     if is_number(value):
-      return int(float(value))
+      return int(float(value))  # noqa: E111
     return None
 
 
 @register_sensor("last_garden_session")
 class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
-  """Sensor reporting the end of the last garden session."""
+  """Sensor reporting the end of the last garden session."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1815,13 +1815,13 @@ class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
       translation_key="last_garden_session",
     )
 
-  @property
-  def native_value(self) -> datetime | None:
+  @property  # noqa: E111
+  def native_value(self) -> datetime | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     data = self._get_garden_data()
     last_session = data.get("last_session")
     if not last_session:
-      return None
+      return None  # noqa: E111
 
     timestamp = last_session.get(
       "end_time",
@@ -1831,9 +1831,9 @@ class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
 
 @register_sensor("garden_activities_count")
 class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
-  """Sensor tracking the total number of garden activities."""
+  """Sensor tracking the total number of garden activities."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1849,21 +1849,21 @@ class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
       translation_key="garden_activities_count",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     data = self._get_garden_data()
     value = data.get("activities_total")
     if is_number(value):
-      return int(float(value))
+      return int(float(value))  # noqa: E111
     return None
 
 
 @register_sensor("avg_garden_duration")
 class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
-  """Sensor reporting the average garden session duration."""
+  """Sensor reporting the average garden session duration."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1881,22 +1881,22 @@ class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
       translation_key="avg_garden_duration",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     stats = self._get_garden_data().get("stats") or {}
     value = stats.get("average_session_duration")
     if is_number(value):
-      numeric_value = cast(float | int | str, value)
-      return round(float(numeric_value), 2)
+      numeric_value = cast(float | int | str, value)  # noqa: E111
+      return round(float(numeric_value), 2)  # noqa: E111
     return None
 
 
 @register_sensor("garden_stats_weekly")
 class PawControlGardenStatsWeeklySensor(PawControlGardenSensorBase):
-  """Sensor summarizing weekly garden statistics."""
+  """Sensor summarizing weekly garden statistics."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1912,12 +1912,12 @@ class PawControlGardenStatsWeeklySensor(PawControlGardenSensorBase):
       translation_key="garden_stats_weekly",
     )
 
-  @property
-  def native_value(self) -> str | None:
+  @property  # noqa: E111
+  def native_value(self) -> str | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     summary = self._get_garden_data().get("stats", {}).get("weekly_summary")
     if not summary or not summary.get("session_count"):
-      return None
+      return None  # noqa: E111
 
     session_count = summary.get("session_count", 0)
     total_time = summary.get("total_time_minutes", 0)
@@ -1926,9 +1926,9 @@ class PawControlGardenStatsWeeklySensor(PawControlGardenSensorBase):
 
 @register_sensor("favorite_garden_activities")
 class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
-  """Sensor listing favorite garden activities."""
+  """Sensor listing favorite garden activities."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1944,12 +1944,12 @@ class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
       translation_key="favorite_garden_activities",
     )
 
-  @property
-  def native_value(self) -> str | None:
+  @property  # noqa: E111
+  def native_value(self) -> str | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     favorites = self._get_garden_data().get("stats", {}).get("favorite_activities", [])
     if not favorites:
-      return None
+      return None  # noqa: E111
 
     names = [item.get("activity", "unknown") for item in favorites]
     return ", ".join(names)
@@ -1957,9 +1957,9 @@ class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
 
 @register_sensor("last_garden_duration")
 class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
-  """Sensor reporting the duration of the last garden session."""
+  """Sensor reporting the duration of the last garden session."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1977,24 +1977,24 @@ class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
       translation_key="last_garden_duration",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     last_session = self._get_garden_data().get("last_session")
     if not last_session:
-      return None
+      return None  # noqa: E111
 
     duration = last_session.get("duration_minutes")
     if is_number(duration):
-      return round(float(duration), 2)
+      return round(float(duration), 2)  # noqa: E111
     return None
 
 
 @register_sensor("garden_activities_last_session")
 class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
-  """Sensor counting activities recorded in the last session."""
+  """Sensor counting activities recorded in the last session."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2010,24 +2010,24 @@ class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
       translation_key="garden_activities_last_session",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     last_session = self._get_garden_data().get("last_session")
     if not last_session:
-      return None
+      return None  # noqa: E111
 
     activity_count = last_session.get("activity_count")
     if is_number(activity_count):
-      return int(float(activity_count))
+      return int(float(activity_count))  # noqa: E111
     return None
 
 
 @register_sensor("garden_activities_today")
 class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
-  """Sensor tracking garden activities for the current day."""
+  """Sensor tracking garden activities for the current day."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2043,21 +2043,21 @@ class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
       translation_key="garden_activities_today",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     data = self._get_garden_data()
     value = data.get("activities_today")
     if is_number(value):
-      return int(float(value))
+      return int(float(value))  # noqa: E111
     return None
 
 
 @register_sensor("last_garden_session_hours")
 class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
-  """Sensor reporting hours since the last garden session."""
+  """Sensor reporting hours since the last garden session."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2075,14 +2075,14 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
       translation_key="last_garden_session_hours",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     data = self._get_garden_data()
     value = data.get("hours_since_last_session")
     if is_number(value):
-      numeric_value = cast(float | int | str, value)
-      return round(float(numeric_value), 2)
+      numeric_value = cast(float | int | str, value)  # noqa: E111
+      return round(float(numeric_value), 2)  # noqa: E111
     return None
 
 
@@ -2091,9 +2091,9 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
 
 @register_sensor("last_feeding")
 class PawControlLastFeedingSensor(PawControlSensorBase):
-  """Sensor for last feeding timestamp."""
+  """Sensor for last feeding timestamp."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2109,20 +2109,20 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
       icon="mdi:food-drumstick",
     )
 
-  @property
-  def native_value(self) -> datetime | None:
+  @property  # noqa: E111
+  def native_value(self) -> datetime | None:  # noqa: E111
     """Return the last feeding timestamp."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return None
+      return None  # noqa: E111
 
     last_feeding = feeding_data.get("last_feeding")
     if not last_feeding:
-      return None
+      return None  # noqa: E111
 
     timestamp = self._coerce_utc_datetime(last_feeding)
     if timestamp is not None:
-      return timestamp
+      return timestamp  # noqa: E111
 
     _LOGGER.debug("Invalid last_feeding timestamp: %s", last_feeding)
 
@@ -2136,9 +2136,9 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
   NEW: This sensor was identified as missing in requirements_inventory.md
   and marked as critical for automation purposes.
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2157,48 +2157,48 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
       translation_key="last_feeding_hours",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return hours since last feeding."""
     feeding_payload = self._get_feeding_module()
     if not feeding_payload:
-      return None
+      return None  # noqa: E111
 
     last_feeding = feeding_payload.get("last_feeding")
     if not last_feeding:
-      return None
+      return None  # noqa: E111
 
     try:
-      last_feeding_dt = self._coerce_utc_datetime(last_feeding)
-      if last_feeding_dt is None:
+      last_feeding_dt = self._coerce_utc_datetime(last_feeding)  # noqa: E111
+      if last_feeding_dt is None:  # noqa: E111
         return None
 
-      now: datetime = dt_util.utcnow()
-      time_delta: timedelta = now - last_feeding_dt
-      hours_since = time_delta.total_seconds() / 3600
+      now: datetime = dt_util.utcnow()  # noqa: E111
+      time_delta: timedelta = now - last_feeding_dt  # noqa: E111
+      hours_since = time_delta.total_seconds() / 3600  # noqa: E111
 
-      return round(hours_since, 1)
+      return round(hours_since, 1)  # noqa: E111
 
     except (TypeError, ValueError) as err:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Error calculating hours since last feeding for %s: %s",
         self._dog_id,
         err,
       )
-      return None
+      return None  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for hours since feeding sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     feeding_payload = self._get_feeding_module()
     if feeding_payload:
-      with contextlib.suppress(TypeError, ValueError):
+      with contextlib.suppress(TypeError, ValueError):  # noqa: E111
         last_feeding = feeding_payload.get("last_feeding")
         if last_feeding:
-          last_feeding_dt = self._coerce_utc_datetime(last_feeding)
-          if last_feeding_dt:
+          last_feeding_dt = self._coerce_utc_datetime(last_feeding)  # noqa: E111
+          if last_feeding_dt:  # noqa: E111
             now = dt_util.utcnow()
             time_delta = now - last_feeding_dt
 
@@ -2219,50 +2219,50 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
     return _normalise_attributes(attrs)
 
-  def _get_feeding_status(self, time_delta: timedelta) -> str:
+  def _get_feeding_status(self, time_delta: timedelta) -> str:  # noqa: E111
     """Get feeding status based on time since last feeding."""
     hours_since = time_delta.total_seconds() / 3600
 
     if hours_since < 2:
-      return "recently_fed"
+      return "recently_fed"  # noqa: E111
     if hours_since < 6:
-      return "normal_interval"
+      return "normal_interval"  # noqa: E111
     if hours_since < 12:
-      return "getting_hungry"
+      return "getting_hungry"  # noqa: E111
     return "overdue"
 
-  def _calculate_next_feeding_due(
+  def _calculate_next_feeding_due(  # noqa: E111
     self,
     feeding_data: FeedingModulePayload,
     last_feeding: datetime,
   ) -> str | None:
     """Calculate when next feeding is due."""
     try:
-      config = feeding_data.get("config")
-      if isinstance(config, Mapping):
+      config = feeding_data.get("config")  # noqa: E111
+      if isinstance(config, Mapping):  # noqa: E111
         meals_per_day = self._coerce_int(
           config.get("meals_per_day", 2),
           2,
         )
-      else:
+      else:  # noqa: E111
         meals_per_day = 2
-      if meals_per_day <= 0:
+      if meals_per_day <= 0:  # noqa: E111
         return None
 
-      hours_between_meals = 24 / meals_per_day
-      next_feeding = last_feeding + timedelta(hours=hours_between_meals)
+      hours_between_meals = 24 / meals_per_day  # noqa: E111
+      next_feeding = last_feeding + timedelta(hours=hours_between_meals)  # noqa: E111
 
-      return next_feeding.isoformat()
+      return next_feeding.isoformat()  # noqa: E111
 
     except TypeError, ValueError, KeyError:
-      return None
+      return None  # noqa: E111
 
 
 @register_sensor("daily_calories")
 class PawControlDailyCaloriesSensor(PawControlSensorBase):
-  """Sensor for daily calorie intake."""
+  """Sensor for daily calorie intake."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2280,26 +2280,26 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
       translation_key="daily_calories",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return daily calorie intake."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return 0.0
+      return 0.0  # noqa: E111
 
     try:
-      return self._coerce_float(feeding_data.get("total_calories_today", 0.0))
+      return self._coerce_float(feeding_data.get("total_calories_today", 0.0))  # noqa: E111
     except ValueError:
-      return 0.0
+      return 0.0  # noqa: E111
     except TypeError:
-      return 0.0
+      return 0.0  # noqa: E111
 
 
 @register_sensor("feeding_schedule_adherence")
 class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
-  """Sensor for feeding schedule adherence."""
+  """Sensor for feeding schedule adherence."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2316,29 +2316,29 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
       icon="mdi:calendar-check",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return feeding schedule adherence percentage."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return 100.0
+      return 100.0  # noqa: E111
 
     try:
-      return self._coerce_float(
+      return self._coerce_float(  # noqa: E111
         feeding_data.get("feeding_schedule_adherence", 100.0),
         default=100.0,
       )
     except ValueError:
-      return 100.0
+      return 100.0  # noqa: E111
     except TypeError:
-      return 100.0
+      return 100.0  # noqa: E111
 
 
 @register_sensor("total_feedings_today")
 class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
-  """Sensor for total feedings today."""
+  """Sensor for total feedings today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2354,26 +2354,26 @@ class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
       icon="mdi:counter",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return total feedings today."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return 0
+      return 0  # noqa: E111
 
     try:
-      return self._coerce_int(feeding_data.get("total_feedings_today", 0))
+      return self._coerce_int(feeding_data.get("total_feedings_today", 0))  # noqa: E111
     except ValueError:
-      return 0
+      return 0  # noqa: E111
     except TypeError:
-      return 0
+      return 0  # noqa: E111
 
 
 @register_sensor("health_aware_portion")
 class PawControlHealthAwarePortionSensor(PawControlSensorBase):
-  """Sensor for health-aware calculated portion size."""
+  """Sensor for health-aware calculated portion size."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2391,45 +2391,45 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
       translation_key="health_aware_portion",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return health-aware calculated portion size."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return None
+      return None  # noqa: E111
 
     try:
-      # Try health-aware portion first
-      health_portion = feeding_data.get("health_aware_portion")
-      if health_portion is not None:
+      # Try health-aware portion first  # noqa: E114
+      health_portion = feeding_data.get("health_aware_portion")  # noqa: E111
+      if health_portion is not None:  # noqa: E111
         return round(self._coerce_float(health_portion), 1)
 
-      # Fallback to basic calculation
-      daily_amount = self._coerce_float(
+      # Fallback to basic calculation  # noqa: E114
+      daily_amount = self._coerce_float(  # noqa: E111
         feeding_data.get("daily_amount_target", 500),
         default=500.0,
       )
-      config = feeding_data.get("config")
-      meals_per_day = (
+      config = feeding_data.get("config")  # noqa: E111
+      meals_per_day = (  # noqa: E111
         self._coerce_int(config.get("meals_per_day", 2))
         if isinstance(config, Mapping)
         else 2
       )
 
-      if meals_per_day > 0:
+      if meals_per_day > 0:  # noqa: E111
         return round(daily_amount / meals_per_day, 1)
 
     except TypeError, ValueError, ZeroDivisionError:
-      pass
+      pass  # noqa: E111
 
     return None
 
 
 @register_sensor("feeding_recommendation")
 class PawControlFeedingRecommendationSensor(PawControlSensorBase):
-  """Sensor for feeding recommendations based on health analysis."""
+  """Sensor for feeding recommendations based on health analysis."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2444,17 +2444,17 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
       icon="mdi:lightbulb",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return primary feeding recommendation."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return "No data available"
+      return "No data available"  # noqa: E111
 
     try:
-      # Get feeding analysis
-      analysis = feeding_data.get("feeding_analysis")
-      analysis_mapping = (
+      # Get feeding analysis  # noqa: E114
+      analysis = feeding_data.get("feeding_analysis")  # noqa: E111
+      analysis_mapping = (  # noqa: E111
         analysis
         if isinstance(
           analysis,
@@ -2462,33 +2462,33 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
         )
         else {}
       )
-      recommendations = analysis_mapping.get("recommendations", [])
+      recommendations = analysis_mapping.get("recommendations", [])  # noqa: E111
 
-      if recommendations and isinstance(recommendations, list):
+      if recommendations and isinstance(recommendations, list):  # noqa: E111
         return str(recommendations[0])  # Primary recommendation
 
-      # Default based on adherence
-      adherence = self._coerce_float(
+      # Default based on adherence  # noqa: E114
+      adherence = self._coerce_float(  # noqa: E111
         feeding_data.get("schedule_adherence", 100),
         default=100.0,
       )
-      if adherence >= 90:
+      if adherence >= 90:  # noqa: E111
         return "Feeding schedule is well maintained"
-      if adherence >= 70:
+      if adherence >= 70:  # noqa: E111
         return "Consider improving meal timing consistency"
-      return "Feeding schedule needs attention"
+      return "Feeding schedule needs attention"  # noqa: E111
 
     except ValueError:
-      return "Unable to generate recommendation"
+      return "Unable to generate recommendation"  # noqa: E111
     except TypeError:
-      return "Unable to generate recommendation"
+      return "Unable to generate recommendation"  # noqa: E111
 
 
 @register_sensor("diet_validation_status")
 class PawControlDietValidationStatusSensor(PawControlDietValidationSensorBase):
-  """Sensor for overall diet validation status."""
+  """Sensor for overall diet validation status."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2504,34 +2504,34 @@ class PawControlDietValidationStatusSensor(PawControlDietValidationSensorBase):
       translation_key="diet_validation_status",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return diet validation status."""
     summary = self._get_validation_summary()
     if not summary:
-      return "no_data"
+      return "no_data"  # noqa: E111
 
     try:
-      conflict_count = int(summary.get("conflict_count", 0))
-      warning_count = int(summary.get("warning_count", 0))
+      conflict_count = int(summary.get("conflict_count", 0))  # noqa: E111
+      warning_count = int(summary.get("warning_count", 0))  # noqa: E111
 
-      if conflict_count > 0:
+      if conflict_count > 0:  # noqa: E111
         return "conflicts_detected"
-      if warning_count > 0:
+      if warning_count > 0:  # noqa: E111
         return "warnings_present"
-      return "validated_safe"
+      return "validated_safe"  # noqa: E111
 
     except ValueError:
-      return "validation_error"
+      return "validation_error"  # noqa: E111
     except TypeError:
-      return "validation_error"
+      return "validation_error"  # noqa: E111
 
 
 @register_sensor("diet_conflict_count")
 class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
-  """Sensor tracking the number of diet conflicts detected."""
+  """Sensor tracking the number of diet conflicts detected."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2548,34 +2548,34 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
       translation_key="diet_conflict_count",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return the native value reported by this sensor."""
     summary = self._get_validation_summary()
     if not summary:
-      return 0
+      return 0  # noqa: E111
     try:
-      return int(summary.get("conflict_count", 0))
+      return int(summary.get("conflict_count", 0))  # noqa: E111
     except ValueError:
-      return 0
+      return 0  # noqa: E111
     except TypeError:
-      return 0
+      return 0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
     if summary and summary.get("conflicts"):
-      attrs["conflicts"] = summary.get("conflicts")
+      attrs["conflicts"] = summary.get("conflicts")  # noqa: E111
     return _normalise_attributes(attrs)
 
 
 @register_sensor("diet_warning_count")
 class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
-  """Sensor tracking warning count for diet combinations."""
+  """Sensor tracking warning count for diet combinations."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2592,34 +2592,34 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
       translation_key="diet_warning_count",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return the native value reported by this sensor."""
     summary = self._get_validation_summary()
     if not summary:
-      return 0
+      return 0  # noqa: E111
     try:
-      return int(summary.get("warning_count", 0))
+      return int(summary.get("warning_count", 0))  # noqa: E111
     except ValueError:
-      return 0
+      return 0  # noqa: E111
     except TypeError:
-      return 0
+      return 0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
     if summary and summary.get("warnings"):
-      attrs["warnings"] = summary.get("warnings")
+      attrs["warnings"] = summary.get("warnings")  # noqa: E111
     return _normalise_attributes(attrs)
 
 
 @register_sensor("diet_vet_consultation")
 class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
-  """Sensor indicating if veterinary consultation is recommended."""
+  """Sensor indicating if veterinary consultation is recommended."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2636,21 +2636,21 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
       entity_category=EntityCategory.DIAGNOSTIC,
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return the native value reported by this sensor."""
     summary = self._get_validation_summary()
     if not summary:
-      return "not_needed"
+      return "not_needed"  # noqa: E111
     return str(summary.get("vet_consultation_state", "not_needed"))
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
     if summary:
-      attrs.update(
+      attrs.update(  # noqa: E111
         {
           "vet_consultation_recommended": summary.get(
             "vet_consultation_recommended",
@@ -2665,9 +2665,9 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
 
 @register_sensor("diet_validation_adjustment")
 class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBase):
-  """Sensor reporting the diet validation adjustment factor."""
+  """Sensor reporting the diet validation adjustment factor."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2684,27 +2684,27 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
       translation_key="diet_validation_adjustment",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return the native value reported by this sensor."""
     summary = self._get_validation_summary()
     if not summary:
-      return 1.0
+      return 1.0  # noqa: E111
     try:
-      value = float(summary.get("diet_validation_adjustment", 1.0))
-      return round(value, 3)
+      value = float(summary.get("diet_validation_adjustment", 1.0))  # noqa: E111
+      return round(value, 3)  # noqa: E111
     except ValueError:
-      return 1.0
+      return 1.0  # noqa: E111
     except TypeError:
-      return 1.0
+      return 1.0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
     if summary:
-      attrs.update(
+      attrs.update(  # noqa: E111
         {
           "percentage_adjustment": summary.get("percentage_adjustment"),
           "adjustment_info": summary.get("adjustment_info"),
@@ -2716,9 +2716,9 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
 
 @register_sensor("diet_compatibility_score")
 class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase):
-  """Sensor showing the overall diet compatibility score."""
+  """Sensor showing the overall diet compatibility score."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2736,35 +2736,35 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
       translation_key="diet_compatibility_score",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return the native value reported by this sensor."""
     summary = self._get_validation_summary()
     if not summary:
-      return 100.0
+      return 100.0  # noqa: E111
     try:
-      score = float(summary.get("compatibility_score", 100.0))
-      return round(score, 1)
+      score = float(summary.get("compatibility_score", 100.0))  # noqa: E111
+      return round(score, 1)  # noqa: E111
     except ValueError:
-      return 100.0
+      return 100.0  # noqa: E111
     except TypeError:
-      return 100.0
+      return 100.0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     summary = self._get_validation_summary()
     if summary:
-      attrs["compatibility_level"] = summary.get("compatibility_level")
+      attrs["compatibility_level"] = summary.get("compatibility_level")  # noqa: E111
     return _normalise_attributes(attrs)
 
 
 @register_sensor("daily_portions")
 class PawControlDailyPortionsSensor(PawControlSensorBase):
-  """Sensor for daily portions count."""
+  """Sensor for daily portions count."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2781,34 +2781,34 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
       translation_key="daily_portions",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return number of portions given today."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return 0
+      return 0  # noqa: E111
 
     try:
-      # Use total feedings as portions count
-      portions = feeding_data.get(
+      # Use total feedings as portions count  # noqa: E114
+      portions = feeding_data.get(  # noqa: E111
         "total_portions_today",
         feeding_data.get(
           "total_feedings_today",
           0,
         ),
       )
-      return self._coerce_int(portions)
+      return self._coerce_int(portions)  # noqa: E111
     except ValueError:
-      return 0
+      return 0  # noqa: E111
     except TypeError:
-      return 0
+      return 0  # noqa: E111
 
 
 @register_sensor("portions_today")
 class PawControlPortionsTodaySensor(PawControlSensorBase):
-  """Sensor that reports the recorded portions served today."""
+  """Sensor that reports the recorded portions served today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2825,29 +2825,29 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
       translation_key="portions_today",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return number of configured feeding portions completed today."""
 
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return 0
+      return 0  # noqa: E111
 
     try:
-      return self._coerce_int(feeding_data.get("portions_today", 0))
+      return self._coerce_int(feeding_data.get("portions_today", 0))  # noqa: E111
     except ValueError:
-      return 0
+      return 0  # noqa: E111
     except TypeError:
-      return 0
+      return 0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for portions sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     feeding_data = self._get_feeding_module()
     if feeding_data:
-      with contextlib.suppress(TypeError, ValueError):
+      with contextlib.suppress(TypeError, ValueError):  # noqa: E111
         attrs.update(
           {
             "target_portions": self._coerce_int(
@@ -2878,9 +2878,9 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
 
 @register_sensor("calorie_goal_progress")
 class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
-  """Sensor for calorie goal progress percentage."""
+  """Sensor for calorie goal progress percentage."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2898,18 +2898,18 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
       translation_key="calorie_goal_progress",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return percentage progress towards daily calorie goal."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return 0.0
+      return 0.0  # noqa: E111
 
     try:
-      calories_consumed = self._coerce_float(
+      calories_consumed = self._coerce_float(  # noqa: E111
         feeding_data.get("total_calories_today", 0.0),
       )
-      calorie_target = self._coerce_float(
+      calorie_target = self._coerce_float(  # noqa: E111
         feeding_data.get(
           "daily_calorie_target",
           feeding_data.get("target_calories_per_day", 1000.0),
@@ -2917,24 +2917,24 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
         default=0.0,
       )
 
-      if calorie_target <= 0:
+      if calorie_target <= 0:  # noqa: E111
         return 0.0
 
-      progress = (calories_consumed / calorie_target) * 100
-      # Cap at 150% to show overfeeding
-      return round(min(progress, 150.0), 1)
+      progress = (calories_consumed / calorie_target) * 100  # noqa: E111
+      # Cap at 150% to show overfeeding  # noqa: E114
+      return round(min(progress, 150.0), 1)  # noqa: E111
 
     except TypeError, ValueError, ZeroDivisionError:
-      return 0.0
+      return 0.0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for calorie progress sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     feeding_snapshot = self._get_feeding_module()
     if feeding_snapshot:
-      with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
+      with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):  # noqa: E111
         calories_consumed = self._coerce_float(
           feeding_snapshot.get("total_calories_today", 0.0),
         )
@@ -2978,9 +2978,9 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
 
 @register_sensor("health_feeding_status")
 class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
-  """Sensor reflecting overall health-aware feeding status."""
+  """Sensor reflecting overall health-aware feeding status."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2996,8 +2996,8 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
       translation_key="health_feeding_status",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return current health feeding status."""
 
     feeding_data = self._get_module_data("feeding")
@@ -3009,11 +3009,11 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
       else None
     )
     if not status:
-      return "unknown"
+      return "unknown"  # noqa: E111
     return str(status)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return diagnostic attributes for the health feeding status."""
 
     attrs: AttributeInputDict = self._base_attributes()
@@ -3042,15 +3042,15 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
     )
     emergency_details = feeding_data.get("health_emergency_details")
     if emergency_details is not None:
-      attrs["emergency_details"] = cast(JSONValue, emergency_details)
+      attrs["emergency_details"] = cast(JSONValue, emergency_details)  # noqa: E111
     return _normalise_attributes(attrs)
 
 
 @register_sensor("daily_calorie_target")
 class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
-  """Sensor reporting the calculated daily calorie target."""
+  """Sensor reporting the calculated daily calorie target."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3068,23 +3068,23 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
       translation_key="daily_calorie_target",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the current calorie target in kcal."""
 
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return None
+      return None  # noqa: E111
 
     value = feeding_data.get("daily_calorie_target")
     if value is None:
-      return None
+      return None  # noqa: E111
     with contextlib.suppress(TypeError, ValueError):
-      return round(self._coerce_float(value), 1)
+      return round(self._coerce_float(value), 1)  # noqa: E111
     return None
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     feeding_payload = self._get_feeding_module() or cast(FeedingModulePayload, {})
@@ -3111,9 +3111,9 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
 
 @register_sensor("calories_consumed_today")
 class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
-  """Sensor for calories consumed today."""
+  """Sensor for calories consumed today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3131,22 +3131,22 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
       translation_key="calories_consumed_today",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return None
+      return None  # noqa: E111
 
     value = feeding_data.get("total_calories_today")
     if value is None:
-      return None
+      return None  # noqa: E111
     with contextlib.suppress(TypeError, ValueError):
-      return round(self._coerce_float(value), 1)
+      return round(self._coerce_float(value), 1)  # noqa: E111
     return None
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     feeding_payload = self._get_feeding_module() or cast(FeedingModulePayload, {})
@@ -3167,9 +3167,9 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
 
 @register_sensor("portion_adjustment_factor")
 class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
-  """Sensor exposing the calculated portion adjustment factor."""
+  """Sensor exposing the calculated portion adjustment factor."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3186,27 +3186,27 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
       translation_key="portion_adjustment_factor",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the native value reported by this sensor."""
     feeding_data = self._get_feeding_module()
     if not feeding_data:
-      return None
+      return None  # noqa: E111
 
     factor = feeding_data.get("portion_adjustment_factor")
     if factor is None:
-      return None
+      return None  # noqa: E111
     with contextlib.suppress(TypeError, ValueError):
-      return round(self._coerce_float(factor), 2)
+      return round(self._coerce_float(factor), 2)  # noqa: E111
     return None
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     feeding_payload = self._get_feeding_module()
     if feeding_payload:
-      attrs.update(
+      attrs.update(  # noqa: E111
         {
           "weight_goal": cast(JSONValue, feeding_payload.get("weight_goal")),
           "health_conditions": cast(
@@ -3225,9 +3225,9 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
 
 @register_sensor("food_consumption")
 class PawControlFoodConsumptionSensor(PawControlSensorBase):
-  """Sensor for food consumption tracking."""
+  """Sensor for food consumption tracking."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3245,12 +3245,12 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
       translation_key="food_consumption",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return total food consumption today in grams."""
     feeding_payload = self._get_feeding_module()
     if not feeding_payload:
-      return 0.0
+      return 0.0  # noqa: E111
 
     total_consumption = self._coerce_float(
       feeding_payload.get("total_food_consumed_today", 0.0),
@@ -3258,24 +3258,24 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
 
     # Fallback calculation from feedings if total not available
     if total_consumption == 0.0:
-      feedings_today = feeding_payload.get("feedings_today")
-      if isinstance(feedings_today, list):
+      feedings_today = feeding_payload.get("feedings_today")  # noqa: E111
+      if isinstance(feedings_today, list):  # noqa: E111
         for feeding in feedings_today:
-          if isinstance(feeding, Mapping):
+          if isinstance(feeding, Mapping):  # noqa: E111
             amount = self._coerce_float(feeding.get("amount", 0.0))
             total_consumption += amount
 
     return round(total_consumption, 1)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for food consumption sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     feeding_payload = self._get_feeding_module()
     if feeding_payload:
-      feedings = feeding_payload.get("feedings_today")
-      feedings_list: list[Mapping[str, object]] = (
+      feedings = feeding_payload.get("feedings_today")  # noqa: E111
+      feedings_list: list[Mapping[str, object]] = (  # noqa: E111
         [
           feeding
           for feeding in feedings
@@ -3287,30 +3287,30 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
         if isinstance(feedings, list)
         else []
       )
-      food_types: set[str] = set()
-      meal_types: set[str] = set()
+      food_types: set[str] = set()  # noqa: E111
+      meal_types: set[str] = set()  # noqa: E111
 
-      for feeding in feedings_list:
+      for feeding in feedings_list:  # noqa: E111
         food_type = feeding.get("food_type")
         meal_type = feeding.get("meal_type")
         if isinstance(food_type, str) and food_type:
-          food_types.add(food_type)
+          food_types.add(food_type)  # noqa: E111
         if isinstance(meal_type, str) and meal_type:
-          meal_types.add(meal_type)
+          meal_types.add(meal_type)  # noqa: E111
 
-      target_daily = self._coerce_float(
+      target_daily = self._coerce_float(  # noqa: E111
         feeding_payload.get("daily_amount_target", 500.0),
         default=500.0,
       )
-      consumed = self._coerce_float(
+      consumed = self._coerce_float(  # noqa: E111
         feeding_payload.get("total_food_consumed_today", 0.0),
       )
 
-      remaining = max(0.0, target_daily - consumed)
-      feedings_count = len(feedings_list)
-      average_portion = round(consumed / feedings_count, 1) if feedings_count else 0.0
+      remaining = max(0.0, target_daily - consumed)  # noqa: E111
+      feedings_count = len(feedings_list)  # noqa: E111
+      average_portion = round(consumed / feedings_count, 1) if feedings_count else 0.0  # noqa: E111
 
-      attrs.update(
+      attrs.update(  # noqa: E111
         {
           "target_daily_grams": target_daily,
           "remaining_grams": remaining,
@@ -3332,9 +3332,9 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
 
 @register_sensor("last_walk")
 class PawControlLastWalkSensor(PawControlSensorBase):
-  """Sensor for last walk timestamp."""
+  """Sensor for last walk timestamp."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3350,20 +3350,20 @@ class PawControlLastWalkSensor(PawControlSensorBase):
       icon="mdi:walk",
     )
 
-  @property
-  def native_value(self) -> datetime | None:
+  @property  # noqa: E111
+  def native_value(self) -> datetime | None:  # noqa: E111
     """Return timestamp of the last walk."""
     walk_data = self._get_module_data("walk")
     if not walk_data:
-      return None
+      return None  # noqa: E111
 
     last_walk = walk_data.get("last_walk")
     if not last_walk:
-      return None
+      return None  # noqa: E111
 
     timestamp = self._coerce_utc_datetime(last_walk)
     if timestamp is not None:
-      return timestamp
+      return timestamp  # noqa: E111
 
     _LOGGER.debug("Invalid last_walk timestamp: %s", last_walk)
 
@@ -3372,9 +3372,9 @@ class PawControlLastWalkSensor(PawControlSensorBase):
 
 @register_sensor("last_walk_hours")
 class PawControlLastWalkHoursSensor(PawControlSensorBase):
-  """Sensor providing the elapsed hours since the last walk."""
+  """Sensor providing the elapsed hours since the last walk."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3393,13 +3393,13 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
       translation_key="last_walk_hours",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return hours elapsed since the most recent walk."""
 
     walk_data = self._get_walk_module()
     if not walk_data:
-      return 0.0
+      return 0.0  # noqa: E111
 
     last_walk_hours = walk_data.get("last_walk_hours", 0.0)
     return self._coerce_float(last_walk_hours, default=0.0)
@@ -3407,9 +3407,9 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
 
 @register_sensor("walks_today")
 class PawControlWalksTodaySensor(PawControlSensorBase):
-  """Sensor counting walks completed today."""
+  """Sensor counting walks completed today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3426,22 +3426,22 @@ class PawControlWalksTodaySensor(PawControlSensorBase):
       translation_key="walks_today",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return the number of walks recorded for today."""
 
     walk_data = self._get_walk_module()
     if not walk_data:
-      return 0
+      return 0  # noqa: E111
 
     return self._coerce_int(walk_data.get("walks_today", 0))
 
 
 @register_sensor("current_walk_duration")
 class PawControlCurrentWalkDurationSensor(PawControlSensorBase):
-  """Sensor indicating the active walk duration in minutes."""
+  """Sensor indicating the active walk duration in minutes."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3459,22 +3459,22 @@ class PawControlCurrentWalkDurationSensor(PawControlSensorBase):
       translation_key="current_walk_duration",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return the active walk duration if a walk is in progress."""
 
     walk_data = self._get_walk_module()
     if not walk_data or not walk_data.get("walk_in_progress"):
-      return 0
+      return 0  # noqa: E111
 
     return self._coerce_int(walk_data.get("current_walk_duration", 0))
 
 
 @register_sensor("walk_count_today")
 class PawControlWalkCountTodaySensor(PawControlSensorBase):
-  """Sensor for walk count today."""
+  """Sensor for walk count today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3490,21 +3490,21 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
       icon="mdi:counter",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return number of walks recorded today."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return 0
+      return 0  # noqa: E111
 
     return self._coerce_int(walk_data.get("walks_today", 0))
 
 
 @register_sensor("walk_distance_today")
 class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
-  """Sensor for total walk distance today."""
+  """Sensor for total walk distance today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3522,24 +3522,24 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
       translation_key="walk_distance_today",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return total walk distance for today in meters."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return 0.0
+      return 0.0  # noqa: E111
 
     distance_today = walk_data.get("total_distance_today", 0)
     return round(self._coerce_float(distance_today), 1)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for walk distance sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     walk_data = self._get_walk_module()
     if walk_data:
-      with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
+      with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):  # noqa: E111
         total_distance_today = self._coerce_float(
           walk_data.get("total_distance_today", 0),
         )
@@ -3565,9 +3565,9 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
   NEW: This sensor was identified as missing in requirements_inventory.md
   and marked as critical for health tracking and automation purposes.
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3585,94 +3585,94 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
       translation_key="calories_burned_today",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return total calories burned today through activity."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return 0.0
+      return 0.0  # noqa: E111
 
     try:
-      # Direct value if available
-      calories_burned = walk_data.get("calories_burned_today")
-      if calories_burned is not None:
+      # Direct value if available  # noqa: E114
+      calories_burned = walk_data.get("calories_burned_today")  # noqa: E111
+      if calories_burned is not None:  # noqa: E111
         return round(self._coerce_float(calories_burned), 1)
 
-      # Calculate based on walk activity
-      return self._calculate_calories_from_activity(walk_data)
+      # Calculate based on walk activity  # noqa: E114
+      return self._calculate_calories_from_activity(walk_data)  # noqa: E111
 
     except (TypeError, ValueError) as err:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Error calculating calories burned for %s: %s",
         self._dog_id,
         err,
       )
-      return 0.0
+      return 0.0  # noqa: E111
 
-  def _calculate_calories_from_activity(
+  def _calculate_calories_from_activity(  # noqa: E111
     self,
     walk_data: WalkModuleTelemetry,
   ) -> float:
     """Calculate calories burned from walk activity data."""
     try:
-      # Get dog weight for calculation
-      dog_data = self._get_dog_data()
-      if not dog_data:
+      # Get dog weight for calculation  # noqa: E114
+      dog_data = self._get_dog_data()  # noqa: E111
+      if not dog_data:  # noqa: E111
         return 0.0
 
-      dog_weight = self._coerce_float(
+      dog_weight = self._coerce_float(  # noqa: E111
         dog_data.get("dog_info", {}).get("dog_weight", 25),
         default=25.0,
       )  # Default 25kg
 
-      # Get walk metrics
-      duration_value = walk_data.get("total_duration_today")
-      distance_value = walk_data.get("total_distance_today")
-      total_duration_minutes = (
+      # Get walk metrics  # noqa: E114
+      duration_value = walk_data.get("total_duration_today")  # noqa: E111
+      distance_value = walk_data.get("total_distance_today")  # noqa: E111
+      total_duration_minutes = (  # noqa: E111
         self._coerce_float(duration_value) if duration_value is not None else 0.0
       )
-      total_distance_meters = (
+      total_distance_meters = (  # noqa: E111
         self._coerce_float(distance_value) if distance_value is not None else 0.0
       )
 
-      if total_duration_minutes == 0:
+      if total_duration_minutes == 0:  # noqa: E111
         return 0.0
 
-      # Basic calorie calculation for dogs:
-      # Approximately 0.8 calories per kg per minute of moderate activity
-      # Adjusted by distance (more distance = higher intensity)
+      # Basic calorie calculation for dogs:  # noqa: E114
+      # Approximately 0.8 calories per kg per minute of moderate activity  # noqa: E114
+      # Adjusted by distance (more distance = higher intensity)  # noqa: E114
 
-      base_calories = dog_weight * total_duration_minutes * 0.8
+      base_calories = dog_weight * total_duration_minutes * 0.8  # noqa: E111
 
-      # Distance adjustment (higher speed = more calories)
-      if total_distance_meters > 0:
+      # Distance adjustment (higher speed = more calories)  # noqa: E114
+      if total_distance_meters > 0:  # noqa: E111
         speed_kmh = (total_distance_meters / 1000) / (total_duration_minutes / 60)
         intensity_factor = 1.0
 
         if speed_kmh > 8:  # Running
-          intensity_factor = 1.8
+          intensity_factor = 1.8  # noqa: E111
         elif speed_kmh > 5:  # Fast walking
-          intensity_factor = 1.4
+          intensity_factor = 1.4  # noqa: E111
         elif speed_kmh > 3:  # Normal walking
-          intensity_factor = 1.0
+          intensity_factor = 1.0  # noqa: E111
         else:  # Slow walking
-          intensity_factor = 0.8
+          intensity_factor = 0.8  # noqa: E111
 
         base_calories *= intensity_factor
 
-      return round(base_calories, 1)
+      return round(base_calories, 1)  # noqa: E111
 
     except TypeError, ValueError, ZeroDivisionError:
-      return 0.0
+      return 0.0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for calories burned sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     walk_data = self._get_walk_module()
     if walk_data:
-      with contextlib.suppress(TypeError, ValueError):
+      with contextlib.suppress(TypeError, ValueError):  # noqa: E111
         dog_data = self._get_dog_data()
         dog_weight = (
           self._coerce_float(
@@ -3720,9 +3720,9 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
 
   NEW: This sensor was identified as missing in requirements_inventory.md
   and marked as critical. Tracks total distance over all recorded walks.
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3740,48 +3740,48 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
       translation_key="total_walk_distance",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return total cumulative walk distance in kilometers."""
     walk_data = self._get_module_data("walk")
     if not walk_data:
-      return 0.0
+      return 0.0  # noqa: E111
 
     try:
-      # Check for direct total distance value
-      total_distance = walk_data.get("total_distance_all_time")
-      if total_distance is not None:
+      # Check for direct total distance value  # noqa: E114
+      total_distance = walk_data.get("total_distance_all_time")  # noqa: E111
+      if total_distance is not None:  # noqa: E111
         return round(
           self._coerce_float(total_distance) / 1000,
           2,
         )  # Convert to km
 
-      # Fallback: use cumulative calculation
-      cumulative_distance = walk_data.get(
+      # Fallback: use cumulative calculation  # noqa: E114
+      cumulative_distance = walk_data.get(  # noqa: E111
         "cumulative_distance_meters",
         0,
       )
-      return round(
+      return round(  # noqa: E111
         self._coerce_float(cumulative_distance) / 1000,
         2,
       )  # Convert to km
 
     except (TypeError, ValueError) as err:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Error calculating total walk distance for %s: %s",
         self._dog_id,
         err,
       )
-      return 0.0
+      return 0.0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for total walk distance sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     walk_data = self._get_walk_module()
     if walk_data:
-      with contextlib.suppress(TypeError, ValueError):
+      with contextlib.suppress(TypeError, ValueError):  # noqa: E111
         total_distance_m = self._coerce_float(
           walk_data.get("cumulative_distance_meters", 0),
         )
@@ -3826,9 +3826,9 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
   NEW: This sensor was identified as missing in requirements_inventory.md
   and marked as critical for weekly activity tracking and automation.
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3845,65 +3845,65 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
       translation_key="walks_this_week",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return number of walks recorded this week."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return 0
+      return 0  # noqa: E111
 
     try:
-      walks_this_week = walk_data.get("walks_this_week")
-      if walks_this_week is not None:
+      walks_this_week = walk_data.get("walks_this_week")  # noqa: E111
+      if walks_this_week is not None:  # noqa: E111
         return self._coerce_int(walks_this_week)
 
-      # Fallback: calculate from daily data if available
-      return self._calculate_walks_this_week(walk_data)
+      # Fallback: calculate from daily data if available  # noqa: E114
+      return self._calculate_walks_this_week(walk_data)  # noqa: E111
 
     except (TypeError, ValueError) as err:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Error calculating walks this week for %s: %s",
         self._dog_id,
         err,
       )
-      return 0
+      return 0  # noqa: E111
 
-  def _calculate_walks_this_week(self, walk_data: WalkModuleTelemetry) -> int:
+  def _calculate_walks_this_week(self, walk_data: WalkModuleTelemetry) -> int:  # noqa: E111
     """Calculate walks this week from available data."""
     try:
-      # Get current walks today and try to estimate week total
-      walks_today = self._coerce_int(walk_data.get("walks_today", 0))
+      # Get current walks today and try to estimate week total  # noqa: E114
+      walks_today = self._coerce_int(walk_data.get("walks_today", 0))  # noqa: E111
 
-      # If we have daily walk history, sum it up
-      daily_walks = walk_data.get("daily_walk_counts", {})
-      if isinstance(daily_walks, dict):
+      # If we have daily walk history, sum it up  # noqa: E114
+      daily_walks = walk_data.get("daily_walk_counts", {})  # noqa: E111
+      if isinstance(daily_walks, dict):  # noqa: E111
         now = dt_util.utcnow()
         week_start = now - timedelta(days=now.weekday())  # Monday start
 
         total_walks = 0
         for i in range(7):  # 7 days in a week
-          day = week_start + timedelta(days=i)
-          day_key = day.strftime("%Y-%m-%d")
-          total_walks += self._coerce_int(
+          day = week_start + timedelta(days=i)  # noqa: E111
+          day_key = day.strftime("%Y-%m-%d")  # noqa: E111
+          total_walks += self._coerce_int(  # noqa: E111
             daily_walks.get(day_key, 0),
           )
 
         return total_walks
 
-      # Fallback: just return today's count (limited info)
-      return walks_today
+      # Fallback: just return today's count (limited info)  # noqa: E114
+      return walks_today  # noqa: E111
 
     except TypeError, ValueError, KeyError:
-      return 0
+      return 0  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for walks this week sensor."""
     attrs: AttributeInputDict = self._base_attributes()
 
     walk_data = self._get_walk_module()
     if walk_data:
-      with contextlib.suppress(TypeError, ValueError):
+      with contextlib.suppress(TypeError, ValueError):  # noqa: E111
         now = dt_util.utcnow()
         week_start = now - timedelta(days=now.weekday())
 
@@ -3942,9 +3942,9 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
 @register_sensor("last_walk_duration")
 class PawControlLastWalkDurationSensor(PawControlSensorBase):
-  """Sensor for duration of last walk."""
+  """Sensor for duration of last walk."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3962,24 +3962,24 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
       translation_key="last_walk_duration",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return duration of the last walk in minutes."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return None
+      return None  # noqa: E111
 
     duration = walk_data.get("last_walk_duration")
     if duration is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_int(duration)
 
 
 @register_sensor("last_walk_distance")
 class PawControlLastWalkDistanceSensor(PawControlSensorBase):
-  """Sensor for distance of last walk."""
+  """Sensor for distance of last walk."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -3997,24 +3997,24 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
       translation_key="last_walk_distance",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return the distance of the last walk."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return None
+      return None  # noqa: E111
 
     distance = walk_data.get("last_walk_distance")
     if distance is None:
-      return None
+      return None  # noqa: E111
     return round(self._coerce_float(distance), 1)
 
 
 @register_sensor("total_walk_time_today")
 class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
-  """Sensor for total walk time today."""
+  """Sensor for total walk time today."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4033,21 +4033,21 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
       translation_key="total_walk_time_today",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     """Return total walking time today in minutes."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return 0
+      return 0  # noqa: E111
 
     return self._coerce_int(walk_data.get("total_duration_today", 0))
 
 
 @register_sensor("average_walk_duration")
 class PawControlAverageWalkDurationSensor(PawControlSensorBase):
-  """Sensor for average walk duration."""
+  """Sensor for average walk duration."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4066,16 +4066,16 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
       translation_key="average_walk_duration",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return average walk duration in minutes."""
     walk_data = self._get_walk_module()
     if not walk_data:
-      return None
+      return None  # noqa: E111
 
     avg_duration = walk_data.get("average_duration")
     if avg_duration is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_float(avg_duration)
 
 
@@ -4084,9 +4084,9 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
 
 @register_sensor("current_zone")
 class PawControlCurrentZoneSensor(PawControlSensorBase):
-  """Sensor for current zone."""
+  """Sensor for current zone."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4095,12 +4095,12 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
     """Initialize the Paw Control Current Zone Sensor."""
     super().__init__(coordinator, dog_id, dog_name, "current_zone", icon="mdi:map")
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return current GPS zone for the dog."""
     gps_data = self._get_gps_module()
     if not gps_data:
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
     zone = gps_data.get("zone", _STATE_UNKNOWN)
     return zone if isinstance(zone, str) else _STATE_UNKNOWN
@@ -4108,9 +4108,9 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
 
 @register_sensor("current_location")
 class PawControlCurrentLocationSensor(PawControlSensorBase):
-  """Sensor exposing the dog's current location label."""
+  """Sensor exposing the dog's current location label."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4126,22 +4126,22 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
       translation_key="current_location",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return the friendly current location for the dog."""
 
     gps_data = self._get_gps_module()
     if not gps_data:
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
     location = gps_data.get("current_location") or gps_data.get("zone")
     if not isinstance(location, str) or not location:
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
     return location
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     gps_data: GPSModulePayload = cast(
@@ -4157,9 +4157,9 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
 
 @register_sensor("distance_from_home")
 class PawControlDistanceFromHomeSensor(PawControlSensorBase):
-  """Sensor for distance from home."""
+  """Sensor for distance from home."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4177,24 +4177,24 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
       translation_key="distance_from_home",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return distance from home in meters."""
     gps_data = self._get_gps_module()
     if not gps_data:
-      return None
+      return None  # noqa: E111
 
     distance = gps_data.get("distance_from_home")
     if distance is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_float(distance)
 
 
 @register_sensor("current_speed")
 class PawControlCurrentSpeedSensor(PawControlSensorBase):
-  """Sensor for current speed."""
+  """Sensor for current speed."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4212,24 +4212,24 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
       translation_key="current_speed",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return current speed in km/h."""
     gps_data = self._get_gps_module()
     if not gps_data:
-      return None
+      return None  # noqa: E111
 
     speed = gps_data.get("current_speed")
     if speed is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_float(speed)
 
 
 @register_sensor("speed")
 class PawControlSpeedSensor(PawControlSensorBase):
-  """Compatibility sensor exposing GPS speed readings."""
+  """Compatibility sensor exposing GPS speed readings."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4247,13 +4247,13 @@ class PawControlSpeedSensor(PawControlSensorBase):
       translation_key="speed",
     )
 
-  @property
-  def native_value(self) -> float:
+  @property  # noqa: E111
+  def native_value(self) -> float:  # noqa: E111
     """Return the current GPS speed reading."""
 
     gps_data = self._get_gps_module()
     if not gps_data:
-      return 0.0
+      return 0.0  # noqa: E111
 
     value = gps_data.get("speed", gps_data.get("current_speed", 0.0))
     return self._coerce_float(value)
@@ -4261,9 +4261,9 @@ class PawControlSpeedSensor(PawControlSensorBase):
 
 @register_sensor("gps_accuracy")
 class PawControlGPSAccuracySensor(PawControlSensorBase):
-  """Sensor for GPS accuracy."""
+  """Sensor for GPS accuracy."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4281,24 +4281,24 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
       translation_key="gps_accuracy",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return GPS accuracy in meters."""
     gps_data = self._get_gps_module()
     if not gps_data:
-      return None
+      return None  # noqa: E111
 
     accuracy = gps_data.get("accuracy")
     if accuracy is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_float(accuracy)
 
 
 @register_sensor("gps_battery_level")
 class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
-  """Sensor for GPS tracker battery level."""
+  """Sensor for GPS tracker battery level."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4316,16 +4316,16 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
       icon="mdi:battery",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return GPS tracker battery level in percent."""
     gps_data = self._get_gps_module()
     if not gps_data:
-      return None
+      return None  # noqa: E111
 
     battery = gps_data.get("battery")
     if battery is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_int(battery)
 
 
@@ -4334,9 +4334,9 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
 
 @register_sensor("health_status")
 class PawControlHealthStatusSensor(PawControlSensorBase):
-  """Sensor for overall health status."""
+  """Sensor for overall health status."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4351,12 +4351,12 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
       icon="mdi:heart-pulse",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return overall health status."""
     health_data = self._get_health_module()
     if not health_data:
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
     status = health_data.get("health_status", "good")
     return status if isinstance(status, str) else "good"
@@ -4364,9 +4364,9 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
 
 @register_sensor("weight")
 class PawControlWeightSensor(PawControlSensorBase):
-  """Sensor for dog weight."""
+  """Sensor for dog weight."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4385,24 +4385,24 @@ class PawControlWeightSensor(PawControlSensorBase):
       translation_key="weight",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return current weight in kilograms."""
     health_data = self._get_health_module()
     if not health_data:
-      return None
+      return None  # noqa: E111
 
     weight = health_data.get("weight")
     if weight is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_float(weight)
 
 
 @register_sensor("weight_trend")
 class PawControlWeightTrendSensor(PawControlSensorBase):
-  """Sensor for dog weight trend."""
+  """Sensor for dog weight trend."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4417,12 +4417,12 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
       icon="mdi:trending-up",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return current weight trend."""
     health_data = self._get_health_module()
     if not health_data:
-      return _STATE_UNKNOWN
+      return _STATE_UNKNOWN  # noqa: E111
 
     trend = health_data.get("weight_trend", "stable")
     return trend if isinstance(trend, str) else "stable"
@@ -4430,9 +4430,9 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
 
 @register_sensor("body_condition_score")
 class PawControlBodyConditionScoreSensor(PawControlSensorBase):
-  """Sensor for body condition score (1-9 scale)."""
+  """Sensor for body condition score (1-9 scale)."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4448,24 +4448,24 @@ class PawControlBodyConditionScoreSensor(PawControlSensorBase):
       icon="mdi:weight",
     )
 
-  @property
-  def native_value(self) -> int | None:
+  @property  # noqa: E111
+  def native_value(self) -> int | None:  # noqa: E111
     """Return body condition score."""
     health_data = self._get_health_module()
     if not health_data:
-      return None
+      return None  # noqa: E111
 
     score = health_data.get("body_condition_score")
     if score is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_int(score)
 
 
 @register_sensor("last_vet_visit")
 class PawControlLastVetVisitSensor(PawControlSensorBase):
-  """Sensor for last vet visit timestamp."""
+  """Sensor for last vet visit timestamp."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4481,20 +4481,20 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
       icon="mdi:stethoscope",
     )
 
-  @property
-  def native_value(self) -> datetime | None:
+  @property  # noqa: E111
+  def native_value(self) -> datetime | None:  # noqa: E111
     """Return timestamp of the last veterinary visit."""
     health_data = self._get_health_module()
     if not health_data:
-      return None
+      return None  # noqa: E111
 
     last_visit = health_data.get("last_vet_visit")
     if not last_visit:
-      return None
+      return None  # noqa: E111
 
     timestamp = self._coerce_utc_datetime(last_visit)
     if timestamp is not None:
-      return timestamp
+      return timestamp  # noqa: E111
 
     _LOGGER.debug("Invalid last_vet_visit timestamp: %s", last_visit)
 
@@ -4503,9 +4503,9 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
 
 @register_sensor("health_conditions")
 class PawControlHealthConditionsSensor(PawControlSensorBase):
-  """Sensor exposing tracked health conditions."""
+  """Sensor exposing tracked health conditions."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4522,8 +4522,8 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
       entity_category=EntityCategory.DIAGNOSTIC,
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return comma separated list of health conditions."""
 
     conditions: HealthModulePayload = cast(
@@ -4532,16 +4532,16 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     )
     condition_list = conditions.get("health_conditions")
     if not condition_list:
-      return "none"
+      return "none"  # noqa: E111
     if isinstance(condition_list, list):
-      normalized = [
+      normalized = [  # noqa: E111
         str(cond) for cond in condition_list if isinstance(cond, str | int | float)
       ]
-      return ", ".join(normalized) if normalized else "none"
+      return ", ".join(normalized) if normalized else "none"  # noqa: E111
     return str(condition_list)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     conditions: HealthModulePayload = cast(
@@ -4551,7 +4551,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     condition_list = conditions.get("health_conditions")
     normalized_list: list[str] = []
     if isinstance(condition_list, list):
-      normalized_list = [
+      normalized_list = [  # noqa: E111
         str(cond) for cond in condition_list if isinstance(cond, str | int | float)
       ]
     attrs["conditions"] = normalized_list
@@ -4560,9 +4560,9 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
 
 @register_sensor("weight_goal_progress")
 class PawControlWeightGoalProgressSensor(PawControlSensorBase):
-  """Sensor for weight goal progress percentage."""
+  """Sensor for weight goal progress percentage."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4580,21 +4580,21 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
       translation_key="weight_goal_progress",
     )
 
-  @property
-  def native_value(self) -> float | None:
+  @property  # noqa: E111
+  def native_value(self) -> float | None:  # noqa: E111
     """Return percentage progress toward weight goal."""
 
     health_data = self._get_health_module()
     if not health_data:
-      return None
+      return None  # noqa: E111
 
     progress = health_data.get("weight_goal_progress")
     if progress is None:
-      return None
+      return None  # noqa: E111
     return self._coerce_float(progress)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     health_data: HealthModulePayload = cast(
@@ -4613,9 +4613,9 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
 
 @register_sensor("daily_activity_level")
 class PawControlDailyActivityLevelSensor(PawControlSensorBase):
-  """Sensor summarizing the daily health activity level."""
+  """Sensor summarizing the daily health activity level."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4631,23 +4631,23 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
       translation_key="daily_activity_level",
     )
 
-  @property
-  def native_value(self) -> str:
+  @property  # noqa: E111
+  def native_value(self) -> str:  # noqa: E111
     """Return the activity level for today."""
 
     health_data = self._get_module_data("health")
     if not health_data:
-      return "unknown"
+      return "unknown"  # noqa: E111
 
     level = health_data.get("activity_level") or health_data.get(
       "daily_activity_level",
     )
     if not level:
-      return "unknown"
+      return "unknown"  # noqa: E111
     return str(level)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return extra state attributes provided by this sensor."""
     attrs: AttributeInputDict = self._base_attributes()
     health_data: HealthModulePayload = cast(
@@ -4674,27 +4674,27 @@ inherit_missing_docstrings()
 
 
 def _coerce_budget_remaining(budget: Any) -> int | None:
-  """Return an integer remaining capacity for arbitrary budget objects."""
+  """Return an integer remaining capacity for arbitrary budget objects."""  # noqa: E111
 
-  if budget is None:
+  if budget is None:  # noqa: E111
     return None
 
-  remaining = getattr(budget, "remaining", None)
-  if remaining is None:
+  remaining = getattr(budget, "remaining", None)  # noqa: E111
+  if remaining is None:  # noqa: E111
     return None
 
-  if isinstance(remaining, int | float):
+  if isinstance(remaining, int | float):  # noqa: E111
     return int(remaining)
 
-  try:
+  try:  # noqa: E111
     return int(remaining)
-  except ValueError:
+  except ValueError:  # noqa: E111
     _LOGGER.debug(
       "Ignoring non-numeric entity budget remaining value for %s",
       type(budget).__name__,
     )
     return None
-  except TypeError:
+  except TypeError:  # noqa: E111
     _LOGGER.debug(
       "Ignoring non-numeric entity budget remaining value for %s",
       type(budget).__name__,
@@ -4703,16 +4703,16 @@ def _coerce_budget_remaining(budget: Any) -> int | None:
 
 
 def _is_budget_exhausted(budget: Any) -> bool:
-  """Return True when the provided budget is known to be depleted."""
+  """Return True when the provided budget is known to be depleted."""  # noqa: E111
 
-  remaining = _coerce_budget_remaining(budget)
-  return remaining is not None and remaining <= 0
+  remaining = _coerce_budget_remaining(budget)  # noqa: E111
+  return remaining is not None and remaining <= 0  # noqa: E111
 
 
 class PawControlPushLastAcceptedSensor(PawControlSensorBase):
-  """Timestamp of the last accepted push update for this dog."""
+  """Timestamp of the last accepted push update for this dog."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4729,29 +4729,29 @@ class PawControlPushLastAcceptedSensor(PawControlSensorBase):
       translation_key="push_last_accepted",
     )
 
-  @property
-  def native_value(self) -> datetime | None:
+  @property  # noqa: E111
+  def native_value(self) -> datetime | None:  # noqa: E111
     entry = getattr(self.coordinator, "config_entry", None)
     entry_id = getattr(entry, "entry_id", None)
     if not isinstance(entry_id, str) or not entry_id:
-      return None
+      return None  # noqa: E111
     snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hass, entry_id)
     dogs = snapshot.get("dogs", {})
     if not isinstance(dogs, Mapping):
-      return None
+      return None  # noqa: E111
     dog_tel = dogs.get(self._dog_id)
     if not isinstance(dog_tel, Mapping):
-      return None
+      return None  # noqa: E111
     raw = dog_tel.get("last_accepted")
     if isinstance(raw, str) and raw:
-      return dt_util.parse_datetime(raw)
+      return dt_util.parse_datetime(raw)  # noqa: E111
     return None
 
 
 class PawControlPushRejectedTotalSensor(PawControlSensorBase):
-  """Total rejected push updates for this dog (since HA restart)."""
+  """Total rejected push updates for this dog (since HA restart)."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -4768,20 +4768,20 @@ class PawControlPushRejectedTotalSensor(PawControlSensorBase):
       translation_key="push_rejected_total",
     )
 
-  @property
-  def native_value(self) -> int:
+  @property  # noqa: E111
+  def native_value(self) -> int:  # noqa: E111
     entry = getattr(self.coordinator, "config_entry", None)
     entry_id = getattr(entry, "entry_id", None)
     if not isinstance(entry_id, str) or not entry_id:
-      return 0
+      return 0  # noqa: E111
     snapshot = get_entry_push_telemetry_snapshot(self.coordinator.hass, entry_id)
     dogs = snapshot.get("dogs", {})
     if not isinstance(dogs, Mapping):
-      return 0
+      return 0  # noqa: E111
     dog_tel = dogs.get(self._dog_id)
     if not isinstance(dog_tel, Mapping):
-      return 0
+      return 0  # noqa: E111
     try:
-      return int(dog_tel.get("rejected_total", 0))
+      return int(dog_tel.get("rejected_total", 0))  # noqa: E111
     except Exception:
-      return 0
+      return 0  # noqa: E111

@@ -8,10 +8,10 @@ from ..selector_shim import selector
 
 
 class GardenModuleSelectorMixin:
-  """Provide helpers for garden module selection fields."""
+  """Provide helpers for garden module selection fields."""  # noqa: E111
 
-  @staticmethod
-  def _build_garden_module_selector(
+  @staticmethod  # noqa: E111
+  def _build_garden_module_selector(  # noqa: E111
     *,
     field: str,
     default: bool,

@@ -25,7 +25,7 @@ def _build_runtime(
   hass: object,
   dog_ids: list[str],
 ) -> tuple[CoordinatorRuntime, DogConfigRegistry]:
-  registry = DogConfigRegistry(
+  registry = DogConfigRegistry(  # noqa: E111
     [
       {
         "dog_id": dog_id,
@@ -35,7 +35,7 @@ def _build_runtime(
     ],
   )
 
-  runtime = CoordinatorRuntime(
+  runtime = CoordinatorRuntime(  # noqa: E111
     registry=registry,
     modules=cast(CoordinatorModuleAdapters, object()),
     resilience_manager=ResilienceManager(hass),
@@ -51,7 +51,7 @@ def _build_runtime(
     ),
     logger=logging.getLogger("tests.pawcontrol.resilience"),
   )
-  return runtime, registry
+  return runtime, registry  # noqa: E111
 
 
 def _baseline_data(
@@ -59,8 +59,8 @@ def _baseline_data(
   dog_id: str,
   status: str,
 ) -> CoordinatorDogData:
-  dog_info = registry.get(dog_id)
-  return {
+  dog_info = registry.get(dog_id)  # noqa: E111
+  return {  # noqa: E111
     "dog_info": dog_info if dog_info is not None else {"dog_id": dog_id},
     "status": status,
     "last_update": "previous",
@@ -68,27 +68,27 @@ def _baseline_data(
 
 
 def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "offline"])
+  runtime, registry = _build_runtime(mock_hass, ["buddy", "offline"])  # noqa: E111
 
-  current_data: dict[str, CoordinatorDogData] = {
+  current_data: dict[str, CoordinatorDogData] = {  # noqa: E111
     "buddy": _baseline_data(registry, "buddy", "online"),
     "offline": _baseline_data(registry, "offline", "offline"),
   }
 
-  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
+  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:  # noqa: E111
     if dog_id == "offline":
-      raise ConnectionError("Device offline")
+      raise ConnectionError("Device offline")  # noqa: E111
     return {
       "dog_info": registry.get(dog_id),
       "status": "online",
       "last_update": "now",
     }
 
-  runtime._resilience.execute_with_resilience = AsyncMock(
+  runtime._resilience.execute_with_resilience = AsyncMock(  # noqa: E111
     side_effect=fake_execute,
   )
 
-  data, cycle = asyncio.run(
+  data, cycle = asyncio.run(  # noqa: E111
     runtime.execute_cycle(
       ["buddy", "offline"],
       current_data,
@@ -96,34 +96,34 @@ def test_execute_cycle_handles_offline_errors(mock_hass: object) -> None:
     ),
   )
 
-  assert data["offline"] == current_data["offline"]
-  assert data["buddy"]["status"] == "online"
-  assert cycle.errors == 1
-  assert cycle.success
+  assert data["offline"] == current_data["offline"]  # noqa: E111
+  assert data["buddy"]["status"] == "online"  # noqa: E111
+  assert cycle.errors == 1  # noqa: E111
+  assert cycle.success  # noqa: E111
 
 
 def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "rate"])
+  runtime, registry = _build_runtime(mock_hass, ["buddy", "rate"])  # noqa: E111
 
-  current_data: dict[str, CoordinatorDogData] = {
+  current_data: dict[str, CoordinatorDogData] = {  # noqa: E111
     "buddy": _baseline_data(registry, "buddy", "online"),
     "rate": _baseline_data(registry, "rate", "online"),
   }
 
-  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
+  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:  # noqa: E111
     if dog_id == "rate":
-      raise RateLimitError("dog_data", limit="1/min", retry_after=60)
+      raise RateLimitError("dog_data", limit="1/min", retry_after=60)  # noqa: E111
     return {
       "dog_info": registry.get(dog_id),
       "status": "online",
       "last_update": "now",
     }
 
-  runtime._resilience.execute_with_resilience = AsyncMock(
+  runtime._resilience.execute_with_resilience = AsyncMock(  # noqa: E111
     side_effect=fake_execute,
   )
 
-  data, cycle = asyncio.run(
+  data, cycle = asyncio.run(  # noqa: E111
     runtime.execute_cycle(
       ["buddy", "rate"],
       current_data,
@@ -131,34 +131,34 @@ def test_execute_cycle_handles_rate_limit_errors(mock_hass: object) -> None:
     ),
   )
 
-  assert data["rate"] == current_data["rate"]
-  assert data["buddy"]["status"] == "online"
-  assert cycle.errors == 1
-  assert cycle.success
+  assert data["rate"] == current_data["rate"]  # noqa: E111
+  assert data["buddy"]["status"] == "online"  # noqa: E111
+  assert cycle.errors == 1  # noqa: E111
+  assert cycle.success  # noqa: E111
 
 
 def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "network"])
+  runtime, registry = _build_runtime(mock_hass, ["buddy", "network"])  # noqa: E111
 
-  current_data: dict[str, CoordinatorDogData] = {
+  current_data: dict[str, CoordinatorDogData] = {  # noqa: E111
     "buddy": _baseline_data(registry, "buddy", "online"),
     "network": _baseline_data(registry, "network", "offline"),
   }
 
-  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
+  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:  # noqa: E111
     if dog_id == "network":
-      raise NetworkError("Temporary network failure")
+      raise NetworkError("Temporary network failure")  # noqa: E111
     return {
       "dog_info": registry.get(dog_id),
       "status": "online",
       "last_update": "now",
     }
 
-  runtime._resilience.execute_with_resilience = AsyncMock(
+  runtime._resilience.execute_with_resilience = AsyncMock(  # noqa: E111
     side_effect=fake_execute,
   )
 
-  data, cycle = asyncio.run(
+  data, cycle = asyncio.run(  # noqa: E111
     runtime.execute_cycle(
       ["buddy", "network"],
       current_data,
@@ -166,35 +166,35 @@ def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
     ),
   )
 
-  assert data["network"] == current_data["network"]
-  assert data["buddy"]["status"] == "online"
-  assert cycle.errors == 1
-  assert cycle.success
+  assert data["network"] == current_data["network"]  # noqa: E111
+  assert data["buddy"]["status"] == "online"  # noqa: E111
+  assert cycle.errors == 1  # noqa: E111
+  assert cycle.success  # noqa: E111
 
 
 def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
-  runtime, registry = _build_runtime(mock_hass, ["buddy", "flaky"])
+  runtime, registry = _build_runtime(mock_hass, ["buddy", "flaky"])  # noqa: E111
 
-  current_data: dict[str, CoordinatorDogData] = {
+  current_data: dict[str, CoordinatorDogData] = {  # noqa: E111
     "buddy": _baseline_data(registry, "buddy", "online"),
     "flaky": _baseline_data(registry, "flaky", "online"),
   }
 
-  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
+  async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:  # noqa: E111
     if dog_id == "flaky":
-      raise NetworkError("Intermittent connectivity")
+      raise NetworkError("Intermittent connectivity")  # noqa: E111
     return {
       "dog_info": registry.get(dog_id),
       "status": "online",
       "last_update": "now",
     }
 
-  runtime._resilience.execute_with_resilience = AsyncMock(
+  runtime._resilience.execute_with_resilience = AsyncMock(  # noqa: E111
     side_effect=fake_execute,
   )
 
-  initial_interval = runtime._adaptive_polling.current_interval
-  data, cycle = asyncio.run(
+  initial_interval = runtime._adaptive_polling.current_interval  # noqa: E111
+  data, cycle = asyncio.run(  # noqa: E111
     runtime.execute_cycle(
       ["buddy", "flaky"],
       current_data,
@@ -202,7 +202,7 @@ def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
     ),
   )
 
-  assert data["flaky"] == current_data["flaky"]
-  assert cycle.errors == 1
-  assert cycle.success
-  assert cycle.new_interval > initial_interval
+  assert data["flaky"] == current_data["flaky"]  # noqa: E111
+  assert cycle.errors == 1  # noqa: E111
+  assert cycle.success  # noqa: E111
+  assert cycle.new_interval > initial_interval  # noqa: E111

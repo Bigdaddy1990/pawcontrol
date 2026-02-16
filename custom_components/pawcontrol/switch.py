@@ -87,12 +87,12 @@ PARALLEL_UPDATES = 0
 
 
 class ProfileOptimizedSwitchFactory:
-  """Factory for efficient profile-based switch creation with minimal entity count."""
+  """Factory for efficient profile-based switch creation with minimal entity count."""  # noqa: E111
 
-  # Module configurations - only for modules that support switches
-  type SwitchDefinition = tuple[str, str, str]
+  # Module configurations - only for modules that support switches  # noqa: E114
+  type SwitchDefinition = tuple[str, str, str]  # noqa: E111
 
-  MODULE_CONFIGS: ClassVar[list[tuple[ModuleToggleKey, str, str]]] = [
+  MODULE_CONFIGS: ClassVar[list[tuple[ModuleToggleKey, str, str]]] = [  # noqa: E111
     (MODULE_FEEDING, "Feeding Tracking", "mdi:food-drumstick"),
     (MODULE_WALK, "Walk Tracking", "mdi:walk"),
     (MODULE_GPS, "GPS Tracking", "mdi:map-marker"),
@@ -103,8 +103,8 @@ class ProfileOptimizedSwitchFactory:
     (MODULE_TRAINING, "Training Mode", "mdi:school"),
   ]
 
-  # Feature switches grouped by module - only created if module is enabled
-  FEATURE_SWITCHES: ClassVar[dict[ModuleToggleKey, list[SwitchDefinition]]] = {
+  # Feature switches grouped by module - only created if module is enabled  # noqa: E114
+  FEATURE_SWITCHES: ClassVar[dict[ModuleToggleKey, list[SwitchDefinition]]] = {  # noqa: E111
     MODULE_FEEDING: [
       ("auto_feeding_reminders", "Auto Feeding Reminders", "mdi:clock-alert"),
       ("feeding_schedule", "Feeding Schedule", "mdi:calendar-check"),
@@ -157,8 +157,8 @@ class ProfileOptimizedSwitchFactory:
     ],
   }
 
-  @classmethod
-  def create_switches_for_dog(
+  @classmethod  # noqa: E111
+  def create_switches_for_dog(  # noqa: E111
     cls,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -197,7 +197,7 @@ class ProfileOptimizedSwitchFactory:
 
     # Visitor mode switch - only if visitor module enabled OR as fallback
     if MODULE_VISITOR in enabled_modules or not enabled_modules:
-      switches.append(
+      switches.append(  # noqa: E111
         PawControlVisitorModeSwitch(
           coordinator,
           dog_id,
@@ -207,7 +207,7 @@ class ProfileOptimizedSwitchFactory:
 
     # Module control switches - only for enabled modules
     for module_id, module_name, icon in cls.MODULE_CONFIGS:
-      if module_id in enabled_modules:
+      if module_id in enabled_modules:  # noqa: E111
         switches.append(
           PawControlModuleSwitch(
             coordinator,
@@ -222,9 +222,9 @@ class ProfileOptimizedSwitchFactory:
 
     # Feature switches - only for enabled modules
     for module in enabled_modules:
-      if module in cls.FEATURE_SWITCHES:
+      if module in cls.FEATURE_SWITCHES:  # noqa: E111
         for switch_id, switch_name, icon in cls.FEATURE_SWITCHES[module]:
-          switches.append(
+          switches.append(  # noqa: E111
             PawControlFeatureSwitch(
               coordinator,
               dog_id,
@@ -260,21 +260,21 @@ async def _async_add_entities_in_batches(
       entities: List of switch entities to add
       batch_size: Number of entities per batch
       delay_between_batches: Seconds to wait between batches
-  """
-  total_entities = len(entities)
+  """  # noqa: E111
+  total_entities = len(entities)  # noqa: E111
 
-  if total_entities == 0:
+  if total_entities == 0:  # noqa: E111
     _LOGGER.debug("No switches to add - profile optimization successful")
     return
 
-  _LOGGER.debug(
+  _LOGGER.debug(  # noqa: E111
     "Adding %d profile-optimized switches in batches of %d",
     total_entities,
     batch_size,
   )
 
-  # Process entities in batches
-  for i in range(0, total_entities, batch_size):
+  # Process entities in batches  # noqa: E114
+  for i in range(0, total_entities, batch_size):  # noqa: E111
     batch = entities[i : i + batch_size]
     batch_num = (i // batch_size) + 1
     total_batches = (total_entities + batch_size - 1) // batch_size
@@ -295,7 +295,7 @@ async def _async_add_entities_in_batches(
 
     # Small delay between batches to prevent Registry flooding
     if i + batch_size < total_entities:  # No delay after last batch
-      await asyncio.sleep(delay_between_batches)
+      await asyncio.sleep(delay_between_batches)  # noqa: E111
 
 
 async def async_setup_entry(
@@ -303,21 +303,21 @@ async def async_setup_entry(
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up PawControl switch platform with profile-based optimization."""
+  """Set up PawControl switch platform with profile-based optimization."""  # noqa: E111
 
-  runtime_data = get_runtime_data(hass, entry)
-  if runtime_data is None:
+  runtime_data = get_runtime_data(hass, entry)  # noqa: E111
+  if runtime_data is None:  # noqa: E111
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
 
-  coordinator = runtime_data.coordinator
-  dogs: list[DogConfigData] = runtime_data.dogs
+  coordinator = runtime_data.coordinator  # noqa: E111
+  dogs: list[DogConfigData] = runtime_data.dogs  # noqa: E111
 
-  # Profile-optimized entity creation
-  all_entities: list[OptimizedSwitchBase] = []
-  total_modules_enabled = 0
+  # Profile-optimized entity creation  # noqa: E114
+  all_entities: list[OptimizedSwitchBase] = []  # noqa: E111
+  total_modules_enabled = 0  # noqa: E111
 
-  for dog in dogs:
+  for dog in dogs:  # noqa: E111
     dog_id = dog[DOG_ID_FIELD]
     dog_name = dog[DOG_NAME_FIELD]
     modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
@@ -342,12 +342,12 @@ async def async_setup_entry(
     )
     all_entities.extend(dog_switches)
 
-  total_entities = len(all_entities)
+  total_entities = len(all_entities)  # noqa: E111
 
-  # Add entities using optimized batching
-  await _async_add_entities_in_batches(async_add_entities, all_entities)
+  # Add entities using optimized batching  # noqa: E114
+  await _async_add_entities_in_batches(async_add_entities, all_entities)  # noqa: E111
 
-  _LOGGER.info(
+  _LOGGER.info(  # noqa: E111
     "Profile optimization: Created %d switch entities for %d dogs "
     "(avg %.1f switches/dog, %d total modules enabled)",
     total_entities,
@@ -363,8 +363,8 @@ async def async_reproduce_state(
   *,
   context: Context | None = None,
 ) -> None:
-  """Reproduce switch states for PawControl entities."""
-  await async_reproduce_platform_states(
+  """Reproduce switch states for PawControl entities."""  # noqa: E111
+  await async_reproduce_platform_states(  # noqa: E111
     hass,
     states,
     "switch",
@@ -375,14 +375,14 @@ async def async_reproduce_state(
 
 
 def _preprocess_switch_state(state: State) -> str | None:
-  if state.state not in (STATE_ON, STATE_OFF):
+  if state.state not in (STATE_ON, STATE_OFF):  # noqa: E111
     _LOGGER.warning(
       "Invalid switch state for %s: %s",
       state.entity_id,
       state.state,
     )
     return None
-  return state.state
+  return state.state  # noqa: E111
 
 
 async def _async_reproduce_switch_state(
@@ -392,11 +392,11 @@ async def _async_reproduce_switch_state(
   target_state: str,
   context: Context | None,
 ) -> None:
-  if current_state.state == target_state:
+  if current_state.state == target_state:  # noqa: E111
     return
 
-  service = SERVICE_TURN_ON if target_state == STATE_ON else SERVICE_TURN_OFF
-  await hass.services.async_call(
+  service = SERVICE_TURN_ON if target_state == STATE_ON else SERVICE_TURN_OFF  # noqa: E111
+  await hass.services.async_call(  # noqa: E111
     switch_component.DOMAIN,
     service,
     {ATTR_ENTITY_ID: state.entity_id},
@@ -406,24 +406,24 @@ async def _async_reproduce_switch_state(
 
 
 class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
-  """Optimized base switch class with enhanced caching and state management."""
+  """Optimized base switch class with enhanced caching and state management."""  # noqa: E111
 
-  _attr_should_poll = False
-  _attr_has_entity_name = True
-  _attr_device_class: SwitchDeviceClass | None
-  _attr_icon: str | None
-  _attr_entity_category: EntityCategory | None
-  _attr_name: str | None
-  _attr_translation_key: str | None
-  _attr_unique_id: str
+  _attr_should_poll = False  # noqa: E111
+  _attr_has_entity_name = True  # noqa: E111
+  _attr_device_class: SwitchDeviceClass | None  # noqa: E111
+  _attr_icon: str | None  # noqa: E111
+  _attr_entity_category: EntityCategory | None  # noqa: E111
+  _attr_name: str | None  # noqa: E111
+  _attr_translation_key: str | None  # noqa: E111
+  _attr_unique_id: str  # noqa: E111
 
-  # OPTIMIZATION: Enhanced state cache with TTL
-  _state_cache: ClassVar[dict[str, tuple[bool, float]]] = {}
-  _is_on: bool
-  _last_changed: datetime
-  _switch_type: str
+  # OPTIMIZATION: Enhanced state cache with TTL  # noqa: E114
+  _state_cache: ClassVar[dict[str, tuple[bool, float]]] = {}  # noqa: E111
+  _is_on: bool  # noqa: E111
+  _last_changed: datetime  # noqa: E111
+  _switch_type: str  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -462,7 +462,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
       sw_version=DEFAULT_SW_VERSION,
     )
 
-  async def async_added_to_hass(self) -> None:
+  async def async_added_to_hass(self) -> None:  # noqa: E111
     """Restore state when added with enhanced logging."""
     await super().async_added_to_hass()
 
@@ -471,32 +471,32 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
       "on",
       "off",
     ):
-      self._is_on = last_state.state == "on"
-      _LOGGER.debug(
+      self._is_on = last_state.state == "on"  # noqa: E111
+      _LOGGER.debug(  # noqa: E111
         "Restored switch state for %s %s: %s",
         self._dog_name,
         self._switch_type,
         "on" if self._is_on else "off",
       )
 
-  @property
-  def is_on(self) -> bool:
+  @property  # noqa: E111
+  def is_on(self) -> bool:  # noqa: E111
     """Return switch state with enhanced caching."""
     # Check cache first
     cache_key = f"{self._dog_id}_{self._switch_type}"
     now = dt_util.utcnow().timestamp()
 
     if cache_key in self._state_cache:
-      cached_state, cache_time = self._state_cache[cache_key]
-      if now - cache_time < self._cache_ttl:
+      cached_state, cache_time = self._state_cache[cache_key]  # noqa: E111
+      if now - cache_time < self._cache_ttl:  # noqa: E111
         return cached_state
 
     # Return stored state and update cache
     self._update_cache(self._is_on)
     return self._is_on
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return enhanced attributes with profile information."""
     attrs = normalise_entity_attributes(super().extra_state_attributes)
     attrs.update(
@@ -510,110 +510,110 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
     )
 
     if dog_config := self._get_dog_config():
-      modules = coerce_dog_modules_config(
+      modules = coerce_dog_modules_config(  # noqa: E111
         dog_config.get(DOG_MODULES_FIELD),
       )
-      enabled_modules = [module for module, enabled in modules.items() if enabled]
-      attrs["enabled_modules"] = enabled_modules
-      attrs["total_modules"] = len(enabled_modules)
+      enabled_modules = [module for module, enabled in modules.items() if enabled]  # noqa: E111
+      attrs["enabled_modules"] = enabled_modules  # noqa: E111
+      attrs["total_modules"] = len(enabled_modules)  # noqa: E111
 
     return normalise_entity_attributes(attrs)
 
-  async def async_turn_on(self, **kwargs: Any) -> None:
+  async def async_turn_on(self, **kwargs: Any) -> None:  # noqa: E111
     """Turn switch on with enhanced error handling."""
     try:
-      await self._async_set_state(True)
-      self._is_on = True
-      self._last_changed = dt_util.utcnow()
-      self._update_cache(True)
-      if self.hass is not None:
+      await self._async_set_state(True)  # noqa: E111
+      self._is_on = True  # noqa: E111
+      self._last_changed = dt_util.utcnow()  # noqa: E111
+      self._update_cache(True)  # noqa: E111
+      if self.hass is not None:  # noqa: E111
         self.async_write_ha_state()
 
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Switch turned on: %s %s",
         self._dog_name,
         self._switch_type,
       )
 
     except Exception as err:
-      _LOGGER.error(
+      _LOGGER.error(  # noqa: E111
         "Failed to turn on %s for %s: %s",
         self._switch_type,
         self._dog_name,
         err,
       )
-      raise HomeAssistantError(
+      raise HomeAssistantError(  # noqa: E111
         f"Failed to turn on {self._switch_type}",
       ) from err
 
-  async def async_turn_off(self, **kwargs: Any) -> None:
+  async def async_turn_off(self, **kwargs: Any) -> None:  # noqa: E111
     """Turn switch off with enhanced error handling."""
     try:
-      await self._async_set_state(False)
-      self._is_on = False
-      self._last_changed = dt_util.utcnow()
-      self._update_cache(False)
-      if self.hass is not None:
+      await self._async_set_state(False)  # noqa: E111
+      self._is_on = False  # noqa: E111
+      self._last_changed = dt_util.utcnow()  # noqa: E111
+      self._update_cache(False)  # noqa: E111
+      if self.hass is not None:  # noqa: E111
         self.async_write_ha_state()
 
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Switch turned off: %s %s",
         self._dog_name,
         self._switch_type,
       )
 
     except Exception as err:
-      _LOGGER.error(
+      _LOGGER.error(  # noqa: E111
         "Failed to turn off %s for %s: %s",
         self._switch_type,
         self._dog_name,
         err,
       )
-      raise HomeAssistantError(
+      raise HomeAssistantError(  # noqa: E111
         f"Failed to turn off {self._switch_type}",
       ) from err
 
-  async def _async_set_state(self, state: bool) -> None:
+  async def _async_set_state(self, state: bool) -> None:  # noqa: E111
     """Set switch state - override in subclasses."""
     # Base implementation - subclasses should override
     pass
 
-  def _update_cache(self, state: bool) -> None:
+  def _update_cache(self, state: bool) -> None:  # noqa: E111
     """Update state cache with current timestamp."""
     cache_key = f"{self._dog_id}_{self._switch_type}"
     self._state_cache[cache_key] = (state, dt_util.utcnow().timestamp())
 
-  def _get_coordinator_dog_data(self) -> CoordinatorDogData | None:
+  def _get_coordinator_dog_data(self) -> CoordinatorDogData | None:  # noqa: E111
     """Get dog data from coordinator."""
 
     if self.coordinator.available:
-      return self.coordinator.get_dog_data(self._dog_id)
+      return self.coordinator.get_dog_data(self._dog_id)  # noqa: E111
     return None
 
-  def _get_dog_config(self) -> DogConfigData | None:
+  def _get_dog_config(self) -> DogConfigData | None:  # noqa: E111
     """Return the typed dog configuration when available."""
 
     payload = self._get_coordinator_dog_data()
     if payload is None:
-      return None
+      return None  # noqa: E111
 
     dog_info = payload.get("dog_info")
     if isinstance(dog_info, Mapping):
-      return cast(DogConfigData, dog_info)
+      return cast(DogConfigData, dog_info)  # noqa: E111
 
     return None
 
-  @property
-  def available(self) -> bool:
+  @property  # noqa: E111
+  def available(self) -> bool:  # noqa: E111
     """Check availability with enhanced logic."""
     return self.coordinator.available and self._get_coordinator_dog_data() is not None
 
 
 # Core switches (always created)
 class PawControlMainPowerSwitch(OptimizedSwitchBase):
-  """Main power switch for dog monitoring system."""
+  """Main power switch for dog monitoring system."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -630,26 +630,26 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
       initial_state=True,
     )
 
-  async def _async_set_state(self, state: bool) -> None:
+  async def _async_set_state(self, state: bool) -> None:  # noqa: E111
     """Set main power state with system-wide impact."""
     if self.hass is None:
-      _LOGGER.debug("Skipping main power update; hass not available")
-      return
+      _LOGGER.debug("Skipping main power update; hass not available")  # noqa: E111
+      return  # noqa: E111
 
     try:
-      data_manager = self._get_data_manager()
+      data_manager = self._get_data_manager()  # noqa: E111
 
-      if data_manager is not None:
+      if data_manager is not None:  # noqa: E111
         await data_manager.async_set_dog_power_state(self._dog_id, state)
 
-      # High priority refresh for power changes
-      await self.coordinator.async_request_selective_refresh(
+      # High priority refresh for power changes  # noqa: E114
+      await self.coordinator.async_request_selective_refresh(  # noqa: E111
         [self._dog_id],
         priority=10,
       )
 
     except Exception as err:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Power state update failed for %s: %s",
         self._dog_name,
         err,
@@ -657,9 +657,9 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
 
 
 class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
-  """Do not disturb switch for quiet periods."""
+  """Do not disturb switch for quiet periods."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -675,23 +675,23 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
       initial_state=False,
     )
 
-  async def _async_set_state(self, state: bool) -> None:
+  async def _async_set_state(self, state: bool) -> None:  # noqa: E111
     """Set DND state with notification impact."""
     if self.hass is None:
-      _LOGGER.debug("Skipping DND update; hass not available")
-      return
+      _LOGGER.debug("Skipping DND update; hass not available")  # noqa: E111
+      return  # noqa: E111
 
     try:
-      notification_manager = self._get_notification_manager()
+      notification_manager = self._get_notification_manager()  # noqa: E111
 
-      if notification_manager and hasattr(
+      if notification_manager and hasattr(  # noqa: E111
         notification_manager,
         "async_set_dnd_mode",
       ):
         await notification_manager.async_set_dnd_mode(self._dog_id, state)
 
     except Exception as err:
-      _LOGGER.error(
+      _LOGGER.error(  # noqa: E111
         "Failed to update DND for %s: %s",
         self._dog_name,
         err,
@@ -699,9 +699,9 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
 
 
 class PawControlVisitorModeSwitch(OptimizedSwitchBase):
-  """Visitor mode switch for reduced monitoring."""
+  """Visitor mode switch for reduced monitoring."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -717,14 +717,14 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
       initial_state=False,
     )
 
-  @property
-  def is_on(self) -> bool:
+  @property  # noqa: E111
+  def is_on(self) -> bool:  # noqa: E111
     """Check visitor mode state from data."""
     if dog_data := self._get_coordinator_dog_data():
-      return bool(dog_data.get("visitor_mode_active", False))
+      return bool(dog_data.get("visitor_mode_active", False))  # noqa: E111
     return self._is_on
 
-  async def _async_set_state(self, state: bool) -> None:
+  async def _async_set_state(self, state: bool) -> None:  # noqa: E111
     """Set visitor mode with service call."""
     if not await self._async_call_hass_service(
       DOMAIN,
@@ -737,17 +737,17 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
       },
       blocking=False,
     ):
-      return
+      return  # noqa: E111
 
 
 # Module switch (only for enabled modules)
 class PawControlModuleSwitch(OptimizedSwitchBase):
-  """Switch to control individual modules."""
+  """Switch to control individual modules."""  # noqa: E111
 
-  _module_id: str
-  _module_name: str
+  _module_id: str  # noqa: E111
+  _module_name: str  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -763,16 +763,16 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
     hass_obj = getattr(coordinator, "hass", None)
     config_obj = getattr(hass_obj, "config", None) if hass_obj else None
     if config_obj is not None:
-      hass_language = getattr(config_obj, "language", None)
+      hass_language = getattr(config_obj, "language", None)  # noqa: E111
 
     if module_id == MODULE_GROOMING:
-      display_name = translated_grooming_label(
+      display_name = translated_grooming_label(  # noqa: E111
         hass_obj,
         hass_language,
         "module_switch",
       )
     else:
-      display_name = module_name
+      display_name = module_name  # noqa: E111
 
     self._module_name = display_name
 
@@ -787,23 +787,23 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
     )
     self._attr_name = f"{dog_name} {display_name}"
 
-  async def _async_set_state(self, state: bool) -> None:
+  async def _async_set_state(self, state: bool) -> None:  # noqa: E111
     """Set module state with config update."""
     hass = self.hass
     if hass is None:
-      _LOGGER.debug("Skipping module state update; hass not available")
-      return
+      _LOGGER.debug("Skipping module state update; hass not available")  # noqa: E111
+      return  # noqa: E111
 
     try:
-      # Update config entry
-      new_data = dict(self.coordinator.config_entry.data)
-      dogs_data = list(new_data.get(CONF_DOGS, []))
+      # Update config entry  # noqa: E114
+      new_data = dict(self.coordinator.config_entry.data)  # noqa: E111
+      dogs_data = list(new_data.get(CONF_DOGS, []))  # noqa: E111
 
-      for index, dog in enumerate(dogs_data):
+      for index, dog in enumerate(dogs_data):  # noqa: E111
         if not isinstance(dog, dict):
-          continue
+          continue  # noqa: E111
         if dog.get(DOG_ID_FIELD) != self._dog_id:
-          continue
+          continue  # noqa: E111
 
         modules = dict(
           coerce_dog_modules_config(
@@ -817,19 +817,19 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
         }
         break
 
-      new_data[CONF_DOGS] = dogs_data
+      new_data[CONF_DOGS] = dogs_data  # noqa: E111
 
-      hass.config_entries.async_update_entry(
+      hass.config_entries.async_update_entry(  # noqa: E111
         self.coordinator.config_entry,
         data=new_data,
       )
 
-      await self.coordinator.async_request_selective_refresh(
+      await self.coordinator.async_request_selective_refresh(  # noqa: E111
         [self._dog_id],
         priority=7,
       )
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Module %s %s for %s",
         self._module_name,
         "enabled" if state else "disabled",
@@ -837,7 +837,7 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
       )
 
     except Exception as err:
-      _LOGGER.error(
+      _LOGGER.error(  # noqa: E111
         "Failed to update module %s for %s: %s",
         self._module_name,
         self._dog_name,
@@ -847,13 +847,13 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
 
 # Feature switch (only for enabled modules)
 class PawControlFeatureSwitch(OptimizedSwitchBase):
-  """Feature switch for module-specific functionality."""
+  """Feature switch for module-specific functionality."""  # noqa: E111
 
-  _feature_id: str
-  _feature_name: str
-  _module: str
+  _feature_id: str  # noqa: E111
+  _feature_name: str  # noqa: E111
+  _module: str  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -871,16 +871,16 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     hass_obj = getattr(coordinator, "hass", None)
     config_obj = getattr(hass_obj, "config", None) if hass_obj else None
     if config_obj is not None:
-      hass_language = getattr(config_obj, "language", None)
+      hass_language = getattr(config_obj, "language", None)  # noqa: E111
 
     if module == MODULE_GROOMING:
-      display_name = translated_grooming_label(
+      display_name = translated_grooming_label(  # noqa: E111
         hass_obj,
         hass_language,
         f"feature_{feature_id}",
       )
     else:
-      display_name = feature_name
+      display_name = feature_name  # noqa: E111
 
     self._feature_name = display_name
 
@@ -894,8 +894,8 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     )
     self._attr_name = f"{dog_name} {display_name}"
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return feature-specific attributes."""
     feature_attrs = dict(super().extra_state_attributes)
     feature_attrs.update(
@@ -907,14 +907,14 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     )
     return normalise_entity_attributes(feature_attrs)
 
-  async def _async_set_state(self, state: bool) -> None:
+  async def _async_set_state(self, state: bool) -> None:  # noqa: E111
     """Set feature state with module-specific handling."""
     if self.hass is None:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Skipping feature state update for %s; hass not available",
         self._feature_id,
       )
-      return
+      return  # noqa: E111
 
     _LOGGER.info(
       "%s %s for %s (module: %s)",
@@ -926,38 +926,38 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
     # Feature-specific handling
     try:
-      if self._feature_id == "gps_tracking":
+      if self._feature_id == "gps_tracking":  # noqa: E111
         await self._set_gps_tracking(state)
-      elif self._feature_id == "notifications":
+      elif self._feature_id == "notifications":  # noqa: E111
         await self._set_notifications(state)
-      elif self._feature_id == "feeding_schedule":
+      elif self._feature_id == "feeding_schedule":  # noqa: E111
         await self._set_feeding_schedule(state)
-      elif self._feature_id == "health_monitoring":
+      elif self._feature_id == "health_monitoring":  # noqa: E111
         await self._set_health_monitoring(state)
-      elif self._feature_id == "medication_reminders":
+      elif self._feature_id == "medication_reminders":  # noqa: E111
         await self._set_medication_reminders(state)
-      # Add more specific handlers as needed
+      # Add more specific handlers as needed  # noqa: E114
 
     except Exception as err:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Feature state update failed for %s %s: %s",
         self._dog_name,
         self._feature_name,
         err,
       )
 
-  async def _set_gps_tracking(self, state: bool) -> None:
+  async def _set_gps_tracking(self, state: bool) -> None:  # noqa: E111
     """Handle GPS tracking state."""
     try:
-      data_manager = self._get_data_manager()
+      data_manager = self._get_data_manager()  # noqa: E111
 
-      if data_manager is not None:
+      if data_manager is not None:  # noqa: E111
         await data_manager.async_set_gps_tracking(self._dog_id, state)
 
     except Exception as err:
-      _LOGGER.warning("GPS tracking update failed: %s", err)
+      _LOGGER.warning("GPS tracking update failed: %s", err)  # noqa: E111
 
-  async def _set_notifications(self, state: bool) -> None:
+  async def _set_notifications(self, state: bool) -> None:  # noqa: E111
     """Handle notifications state."""
     await self._async_call_hass_service(
       DOMAIN,
@@ -972,7 +972,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
       blocking=False,
     )
 
-  async def _set_feeding_schedule(self, state: bool) -> None:
+  async def _set_feeding_schedule(self, state: bool) -> None:  # noqa: E111
     """Handle feeding schedule state."""
     await self._async_call_hass_service(
       DOMAIN,
@@ -984,7 +984,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
       blocking=False,
     )
 
-  async def _set_health_monitoring(self, state: bool) -> None:
+  async def _set_health_monitoring(self, state: bool) -> None:  # noqa: E111
     """Handle health monitoring state."""
     await self._async_call_hass_service(
       DOMAIN,
@@ -996,7 +996,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
       blocking=False,
     )
 
-  async def _set_medication_reminders(self, state: bool) -> None:
+  async def _set_medication_reminders(self, state: bool) -> None:  # noqa: E111
     """Handle medication reminders state."""
     await self._async_call_hass_service(
       DOMAIN,

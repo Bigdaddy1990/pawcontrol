@@ -13,14 +13,14 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ConfigFlowPerformanceMonitor:
-  """Monitor performance of config flow operations."""
+  """Monitor performance of config flow operations."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     """Initialise empty metric buckets for tracking config flow performance."""
     self.operation_times: dict[str, list[float]] = {}
     self.validation_counts: dict[str, int] = {}
 
-  def record_operation(self, operation: str, duration: float) -> None:
+  def record_operation(self, operation: str, duration: float) -> None:  # noqa: E111
     """Record timing information for an operation."""
 
     times = self.operation_times.setdefault(operation, [])
@@ -28,23 +28,23 @@ class ConfigFlowPerformanceMonitor:
 
     # Keep cache size bounded to avoid memory bloat
     if len(times) > 100:
-      self.operation_times[operation] = times[-50:]
+      self.operation_times[operation] = times[-50:]  # noqa: E111
 
-  def record_validation(self, validation_type: str) -> None:
+  def record_validation(self, validation_type: str) -> None:  # noqa: E111
     """Record a validation invocation."""
 
     self.validation_counts[validation_type] = (
       self.validation_counts.get(validation_type, 0) + 1
     )
 
-  def get_stats(self) -> ConfigFlowPerformanceStats:
+  def get_stats(self) -> ConfigFlowPerformanceStats:  # noqa: E111
     """Return aggregated statistics for diagnostics."""
 
     operations: ConfigFlowOperationMetricsMap = {}
     for operation, times in self.operation_times.items():
-      if not times:
+      if not times:  # noqa: E111
         continue
-      operations[operation] = {
+      operations[operation] = {  # noqa: E111
         "avg_time": sum(times) / len(times),
         "max_time": max(times),
         "count": len(times),
@@ -61,16 +61,16 @@ config_flow_monitor = ConfigFlowPerformanceMonitor()
 
 @asynccontextmanager
 async def timed_operation(operation_name: str) -> AsyncIterator[None]:
-  """Async context manager that records operation duration."""
+  """Async context manager that records operation duration."""  # noqa: E111
 
-  start_time = time.monotonic()
-  try:
+  start_time = time.monotonic()  # noqa: E111
+  try:  # noqa: E111
     yield
-  finally:
+  finally:  # noqa: E111
     duration = time.monotonic() - start_time
     config_flow_monitor.record_operation(operation_name, duration)
     if duration > 2.0:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Slow config flow operation: %s took %.2fs",
         operation_name,
         duration,

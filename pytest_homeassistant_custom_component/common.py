@@ -12,9 +12,9 @@ __all__ = ["MockConfigEntry", "MockModule", "mock_integration", "patch_all"]
 
 
 class MockModule(ModuleType):
-  """Minimal integration module used to seed Home Assistant stubs in tests."""
+  """Minimal integration module used to seed Home Assistant stubs in tests."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     *,
     domain: str,
@@ -30,21 +30,21 @@ class MockModule(ModuleType):
 
 
 def mock_integration(hass, module: ModuleType) -> ModuleType:
-  """Register a mocked integration with the Home Assistant test stubs."""
+  """Register a mocked integration with the Home Assistant test stubs."""  # noqa: E111
 
-  domain = getattr(module, "domain", None) or getattr(module, "DOMAIN", None)
-  if domain is None:
+  domain = getattr(module, "domain", None) or getattr(module, "DOMAIN", None)  # noqa: E111
+  if domain is None:  # noqa: E111
     raise ValueError("mock integration must provide a domain")
 
-  hass.config.components.add(domain)
-  sys.modules[module.__name__] = module
-  sys.modules[f"homeassistant.components.{domain}"] = module
-  return module
+  hass.config.components.add(domain)  # noqa: E111
+  sys.modules[module.__name__] = module  # noqa: E111
+  sys.modules[f"homeassistant.components.{domain}"] = module  # noqa: E111
+  return module  # noqa: E111
 
 
 def patch_all(
   mock_config: dict[str, Any],
 ) -> dict[str, Any]:  # pragma: no cover - compat shim
-  """Compatibility helper retained for third-party tests."""
+  """Compatibility helper retained for third-party tests."""  # noqa: E111
 
-  return mock_config
+  return mock_config  # noqa: E111

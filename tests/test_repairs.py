@@ -32,33 +32,33 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _ensure_package(name: str, path: Path) -> ModuleType:
-  """Ensure a namespace package exists for dynamic imports."""
+  """Ensure a namespace package exists for dynamic imports."""  # noqa: E111
 
-  module = sys.modules.get(name)
-  if module is None:
+  module = sys.modules.get(name)  # noqa: E111
+  if module is None:  # noqa: E111
     module = ModuleType(name)
     module.__path__ = [str(path)]  # type: ignore[attr-defined]
     sys.modules[name] = module
-  return module
+  return module  # noqa: E111
 
 
 def _load_module(name: str, path: Path) -> ModuleType:
-  """Import ``name`` from ``path`` without executing package ``__init__`` files."""
+  """Import ``name`` from ``path`` without executing package ``__init__`` files."""  # noqa: E111
 
-  spec = importlib.util.spec_from_file_location(name, path)
-  if spec is None or spec.loader is None:
+  spec = importlib.util.spec_from_file_location(name, path)  # noqa: E111
+  if spec is None or spec.loader is None:  # noqa: E111
     raise RuntimeError(f"Cannot load module {name} from {path}")
-  module = importlib.util.module_from_spec(spec)
-  sys.modules[name] = module
-  spec.loader.exec_module(module)
-  return module
+  module = importlib.util.module_from_spec(spec)  # noqa: E111
+  sys.modules[name] = module  # noqa: E111
+  spec.loader.exec_module(module)  # noqa: E111
+  return module  # noqa: E111
 
 
 def _make_runtime_data(
   summary: CacheRepairAggregate | None = None,
   notification_manager: object | None = None,
 ) -> SimpleNamespace:
-  return SimpleNamespace(
+  return SimpleNamespace(  # noqa: E111
     data_manager=SimpleNamespace(cache_repair_summary=lambda: summary),
     coordinator=SimpleNamespace(last_update_success=True),
     notification_manager=notification_manager,
@@ -66,7 +66,7 @@ def _make_runtime_data(
 
 
 def _make_basic_entry(module: Any) -> SimpleNamespace:
-  return SimpleNamespace(
+  return SimpleNamespace(  # noqa: E111
     entry_id="entry",
     data={
       module.CONF_DOGS: [
@@ -88,7 +88,7 @@ def _make_reconfigure_entry(
   compatibility_warnings: list[str],
   health_summary: Mapping[str, object],
 ) -> SimpleNamespace:
-  return SimpleNamespace(
+  return SimpleNamespace(  # noqa: E111
     entry_id="entry",
     data={
       module.CONF_DOGS: [
@@ -116,18 +116,18 @@ def _make_reconfigure_entry(
 
 
 def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]:
-  """Register Home Assistant stubs required by repairs.py."""
+  """Register Home Assistant stubs required by repairs.py."""  # noqa: E111
 
-  homeassistant_test_stubs.install_homeassistant_stubs()
+  homeassistant_test_stubs.install_homeassistant_stubs()  # noqa: E111
 
-  from homeassistant.components import repairs as repairs_component
-  from homeassistant.helpers import issue_registry
-  from homeassistant.util import dt as dt_util
+  from homeassistant.components import repairs as repairs_component  # noqa: E111
+  from homeassistant.helpers import issue_registry  # noqa: E111
+  from homeassistant.util import dt as dt_util  # noqa: E111
 
-  async_create_issue = AsyncMock()
-  async_delete_issue = AsyncMock()
+  async_create_issue = AsyncMock()  # noqa: E111
+  async_delete_issue = AsyncMock()  # noqa: E111
 
-  class _RepairsFlowStub:
+  class _RepairsFlowStub:  # noqa: E111
     """Minimal replacement for Home Assistant's repairs flow base class."""
 
     def async_show_form(
@@ -138,7 +138,7 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
       description_placeholders: Mapping[str, object] | None = None,
       errors: Mapping[str, object] | None = None,
     ) -> dict[str, object]:
-      return {
+      return {  # noqa: E111
         "type": "form",
         "step_id": step_id,
         "data_schema": data_schema,
@@ -147,7 +147,7 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
       }
 
     def async_external_step(self, *, step_id: str, url: str) -> dict[str, object]:
-      return {"type": "external", "step_id": step_id, "url": url}
+      return {"type": "external", "step_id": step_id, "url": url}  # noqa: E111
 
     def async_create_entry(
       self,
@@ -155,34 +155,34 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
       title: str,
       data: Mapping[str, object],
     ) -> dict[str, object]:
-      return {"type": "create_entry", "title": title, "data": dict(data)}
+      return {"type": "create_entry", "title": title, "data": dict(data)}  # noqa: E111
 
     def async_abort(self, *, reason: str) -> dict[str, object]:
-      return {"type": "abort", "reason": reason}
+      return {"type": "abort", "reason": reason}  # noqa: E111
 
-  repairs_component.RepairsFlow = _RepairsFlowStub
+  repairs_component.RepairsFlow = _RepairsFlowStub  # noqa: E111
 
-  class IssueSeverity(StrEnum):
+  class IssueSeverity(StrEnum):  # noqa: E111
     WARNING = "warning"
     ERROR = "error"
     CRITICAL = "critical"
 
-  issue_registry.IssueSeverity = IssueSeverity
-  issue_registry.async_create_issue = async_create_issue
-  issue_registry.async_delete_issue = async_delete_issue
+  issue_registry.IssueSeverity = IssueSeverity  # noqa: E111
+  issue_registry.async_create_issue = async_create_issue  # noqa: E111
+  issue_registry.async_delete_issue = async_delete_issue  # noqa: E111
 
-  # Ensure datetime helpers return timezone-aware values during tests.
-  dt_util.utcnow = lambda: datetime.now(UTC)
+  # Ensure datetime helpers return timezone-aware values during tests.  # noqa: E114
+  dt_util.utcnow = lambda: datetime.now(UTC)  # noqa: E111
 
-  return async_create_issue, IssueSeverity, async_delete_issue
+  return async_create_issue, IssueSeverity, async_delete_issue  # noqa: E111
 
 
 def _build_hass(*, domain: str | None = None) -> SimpleNamespace:
-  hass = SimpleNamespace()
-  if domain is not None:
+  hass = SimpleNamespace()  # noqa: E111
+  if domain is not None:  # noqa: E111
     hass.data = {domain: {}}
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
-  return hass
+  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)  # noqa: E111
+  return hass  # noqa: E111
 
 
 def _build_entry(
@@ -190,7 +190,7 @@ def _build_entry(
   *,
   options: Mapping[str, Any] | None = None,
 ) -> SimpleNamespace:
-  return SimpleNamespace(
+  return SimpleNamespace(  # noqa: E111
     entry_id="entry",
     data={
       module.CONF_DOGS: [
@@ -212,32 +212,32 @@ def _run_check_for_issues(
   entry: SimpleNamespace,
   runtime_data: SimpleNamespace,
 ) -> None:
-  original_require_runtime_data = module.require_runtime_data
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
+  original_require_runtime_data = module.require_runtime_data  # noqa: E111
+  module.require_runtime_data = lambda _hass, _entry: runtime_data  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     asyncio.run(module.async_check_for_issues(hass, entry))
-  finally:
+  finally:  # noqa: E111
     module.require_runtime_data = original_require_runtime_data
 
 
 @pytest.fixture
 def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
-  """Return the loaded repairs module alongside the issue registry mock."""
+  """Return the loaded repairs module alongside the issue registry mock."""  # noqa: E111
 
-  async_create_issue, issue_severity_cls, async_delete_issue = (
+  async_create_issue, issue_severity_cls, async_delete_issue = (  # noqa: E111
     _install_homeassistant_stubs()
   )
 
-  _ensure_package("custom_components", PROJECT_ROOT / "custom_components")
-  _ensure_package(
+  _ensure_package("custom_components", PROJECT_ROOT / "custom_components")  # noqa: E111
+  _ensure_package(  # noqa: E111
     "custom_components.pawcontrol",
     PROJECT_ROOT / "custom_components" / "pawcontrol",
   )
 
-  module_name = "custom_components.pawcontrol.repairs"
-  sys.modules.pop(module_name, None)
-  module = cast(
+  module_name = "custom_components.pawcontrol.repairs"  # noqa: E111
+  sys.modules.pop(module_name, None)  # noqa: E111
+  module = cast(  # noqa: E111
     Any,
     _load_module(
       module_name,
@@ -245,22 +245,22 @@ def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
     ),
   )
 
-  return module, async_create_issue, issue_severity_cls, async_delete_issue
+  return module, async_create_issue, issue_severity_cls, async_delete_issue  # noqa: E111
 
 
 def test_async_create_issue_normalises_unknown_severity(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
   caplog: pytest.LogCaptureFixture,
 ) -> None:
-  """Severity values outside the registry should fall back to warnings."""
+  """Severity values outside the registry should fall back to warnings."""  # noqa: E111
 
-  module, create_issue_mock, issue_severity_cls, _ = repairs_module
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  module, create_issue_mock, issue_severity_cls, _ = repairs_module  # noqa: E111
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  caplog.set_level("WARNING")
+  caplog.set_level("WARNING")  # noqa: E111
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_create_issue(
       hass,
       entry,
@@ -271,26 +271,26 @@ def test_async_create_issue_normalises_unknown_severity(
     ),
   )
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  severity_enum = cast(Any, issue_severity_cls)
-  assert kwargs["severity"] == severity_enum.WARNING
-  assert kwargs["translation_placeholders"]["severity"] == severity_enum.WARNING.value
-  assert "Unsupported issue severity 'info'" in caplog.text
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  severity_enum = cast(Any, issue_severity_cls)  # noqa: E111
+  assert kwargs["severity"] == severity_enum.WARNING  # noqa: E111
+  assert kwargs["translation_placeholders"]["severity"] == severity_enum.WARNING.value  # noqa: E111
+  assert "Unsupported issue severity 'info'" in caplog.text  # noqa: E111
 
 
 def test_async_create_issue_accepts_issue_severity_instances(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Passing an IssueSeverity instance should be preserved."""
+  """Passing an IssueSeverity instance should be preserved."""  # noqa: E111
 
-  module, create_issue_mock, issue_severity_cls, _ = repairs_module
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  module, create_issue_mock, issue_severity_cls, _ = repairs_module  # noqa: E111
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_create_issue(
       hass,
       entry,
@@ -300,25 +300,25 @@ def test_async_create_issue_accepts_issue_severity_instances(
     ),
   )
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  severity_enum = cast(Any, issue_severity_cls)
-  assert kwargs["severity"] == severity_enum.ERROR
-  assert kwargs["translation_placeholders"]["severity"] == severity_enum.ERROR.value
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  severity_enum = cast(Any, issue_severity_cls)  # noqa: E111
+  assert kwargs["severity"] == severity_enum.ERROR  # noqa: E111
+  assert kwargs["translation_placeholders"]["severity"] == severity_enum.ERROR.value  # noqa: E111
 
 
 def test_async_create_issue_passes_learn_more_url(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Learn-more URLs should be forwarded to the issue registry when supported."""
+  """Learn-more URLs should be forwarded to the issue registry when supported."""  # noqa: E111
 
-  module, create_issue_mock, _, _ = repairs_module
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  module, create_issue_mock, _, _ = repairs_module  # noqa: E111
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_create_issue(
       hass,
       entry,
@@ -328,66 +328,66 @@ def test_async_create_issue_passes_learn_more_url(
     ),
   )
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  assert kwargs["learn_more_url"] == "https://example.com/learn-more"
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  assert kwargs["learn_more_url"] == "https://example.com/learn-more"  # noqa: E111
 
 
 def _build_config_entries(
   entry: Any,
 ) -> tuple[Any, list[tuple[Any | None, Any | None]], AsyncMock]:
-  """Return a config entries namespace with tracking mocks."""
+  """Return a config entries namespace with tracking mocks."""  # noqa: E111
 
-  updates: list[tuple[Any | None, Any | None]] = []
-  reload_mock = AsyncMock(return_value=True)
+  updates: list[tuple[Any | None, Any | None]] = []  # noqa: E111
+  reload_mock = AsyncMock(return_value=True)  # noqa: E111
 
-  def async_get_entry(entry_id: str) -> Any | None:
+  def async_get_entry(entry_id: str) -> Any | None:  # noqa: E111
     return entry if entry.entry_id == entry_id else None
 
-  def async_update_entry(
+  def async_update_entry(  # noqa: E111
     entry_obj: Any,
     data: Any | None = None,
     options: Any | None = None,
   ) -> None:
     if data is not None:
-      entry_obj.data = data
+      entry_obj.data = data  # noqa: E111
     if options is not None:
-      entry_obj.options = options
+      entry_obj.options = options  # noqa: E111
     updates.append((data, options))
 
-  config_entries = SimpleNamespace(
+  config_entries = SimpleNamespace(  # noqa: E111
     async_get_entry=async_get_entry,
     async_update_entry=async_update_entry,
     async_reload=reload_mock,
   )
 
-  return config_entries, updates, reload_mock
+  return config_entries, updates, reload_mock  # noqa: E111
 
 
 def _create_flow(module: ModuleType, hass: Any, issue_id: str) -> Any:
-  """Instantiate the repairs flow with the provided Home Assistant stub."""
+  """Instantiate the repairs flow with the provided Home Assistant stub."""  # noqa: E111
 
-  flow = module.PawControlRepairsFlow()
-  flow.hass = hass
-  flow.issue_id = issue_id
-  return flow
+  flow = module.PawControlRepairsFlow()  # noqa: E111
+  flow.hass = hass  # noqa: E111
+  flow.issue_id = issue_id  # noqa: E111
+  return flow  # noqa: E111
 
 
 def test_storage_warning_flow_reduces_retention(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Storage warning repair should lower retention and resolve the issue."""
+  """Storage warning repair should lower retention and resolve the issue."""  # noqa: E111
 
-  module, _, _, delete_issue_mock = repairs_module
-  entry = module.ConfigEntry("entry")
-  entry.data = {module.CONF_DOGS: []}
-  entry.options = {"data_retention_days": 400}
-  config_entries, updates, _ = _build_config_entries(entry)
+  module, _, _, delete_issue_mock = repairs_module  # noqa: E111
+  entry = module.ConfigEntry("entry")  # noqa: E111
+  entry.data = {module.CONF_DOGS: []}  # noqa: E111
+  entry.options = {"data_retention_days": 400}  # noqa: E111
+  config_entries, updates, _ = _build_config_entries(entry)  # noqa: E111
 
-  issue_id = "entry_storage_warning"
-  issue_data = {
+  issue_id = "entry_storage_warning"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": entry.entry_id,
     "issue_type": module.ISSUE_STORAGE_WARNING,
     "current_retention": 400,
@@ -395,41 +395,41 @@ def test_storage_warning_flow_reduces_retention(
     "suggestion": "Consider reducing data retention period",
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
 
-  result = asyncio.run(flow.async_step_init())
-  assert result["type"] == "form"
-  assert result["step_id"] == "storage_warning"
+  result = asyncio.run(flow.async_step_init())  # noqa: E111
+  assert result["type"] == "form"  # noqa: E111
+  assert result["step_id"] == "storage_warning"  # noqa: E111
 
-  delete_issue_mock.reset_mock()
-  updates.clear()
-  asyncio.run(
+  delete_issue_mock.reset_mock()  # noqa: E111
+  updates.clear()  # noqa: E111
+  asyncio.run(  # noqa: E111
     flow.async_step_storage_warning(
       {"action": "reduce_retention"},
     ),
   )
 
-  assert entry.options["data_retention_days"] == 365
-  _, options_payload = updates[-1]
-  assert options_payload is not None
-  assert options_payload["data_retention_days"] == 365
-  assert delete_issue_mock.await_count == 1
+  assert entry.options["data_retention_days"] == 365  # noqa: E111
+  _, options_payload = updates[-1]  # noqa: E111
+  assert options_payload is not None  # noqa: E111
+  assert options_payload["data_retention_days"] == 365  # noqa: E111
+  assert delete_issue_mock.await_count == 1  # noqa: E111
 
 
 def test_notification_auth_error_flow_shows_guidance(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Notification auth error repairs should guide users to credentials."""
+  """Notification auth error repairs should guide users to credentials."""  # noqa: E111
 
-  module, _, _, _ = repairs_module
+  module, _, _, _ = repairs_module  # noqa: E111
 
-  issue_id = "entry_notification_auth_error"
-  issue_data = {
+  issue_id = "entry_notification_auth_error"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": "entry",
     "issue_type": module.ISSUE_NOTIFICATION_AUTH_ERROR,
     "services": "notify.mobile_app_phone",
@@ -439,27 +439,27 @@ def test_notification_auth_error_flow_shows_guidance(
     "last_error_reasons": "unauthorized",
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
   )
 
-  flow = _create_flow(module, hass, issue_id)
-  result = asyncio.run(flow.async_step_init())
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
+  result = asyncio.run(flow.async_step_init())  # noqa: E111
 
-  assert result["type"] == "form"
-  assert result["step_id"] == "notification_auth_error"
-  assert result["description_placeholders"]["service_count"] == 1
+  assert result["type"] == "form"  # noqa: E111
+  assert result["step_id"] == "notification_auth_error"  # noqa: E111
+  assert result["description_placeholders"]["service_count"] == 1  # noqa: E111
 
 
 def test_notification_device_unreachable_flow_shows_guidance(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Notification unreachable repairs should guide users to device checks."""
+  """Notification unreachable repairs should guide users to device checks."""  # noqa: E111
 
-  module, _, _, _ = repairs_module
+  module, _, _, _ = repairs_module  # noqa: E111
 
-  issue_id = "entry_notification_device_unreachable"
-  issue_data = {
+  issue_id = "entry_notification_device_unreachable"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": "entry",
     "issue_type": module.ISSUE_NOTIFICATION_DEVICE_UNREACHABLE,
     "services": "notify.mobile_app_watch",
@@ -469,27 +469,27 @@ def test_notification_device_unreachable_flow_shows_guidance(
     "last_error_reasons": "device offline",
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
   )
 
-  flow = _create_flow(module, hass, issue_id)
-  result = asyncio.run(flow.async_step_init())
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
+  result = asyncio.run(flow.async_step_init())  # noqa: E111
 
-  assert result["type"] == "form"
-  assert result["step_id"] == "notification_device_unreachable"
-  assert result["description_placeholders"]["service_count"] == 1
+  assert result["type"] == "form"  # noqa: E111
+  assert result["step_id"] == "notification_device_unreachable"  # noqa: E111
+  assert result["description_placeholders"]["service_count"] == 1  # noqa: E111
 
 
 def test_notification_missing_service_flow_shows_guidance(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Missing notification service repairs should guide users to setup."""
+  """Missing notification service repairs should guide users to setup."""  # noqa: E111
 
-  module, _, _, _ = repairs_module
+  module, _, _, _ = repairs_module  # noqa: E111
 
-  issue_id = "entry_notification_missing_service"
-  issue_data = {
+  issue_id = "entry_notification_missing_service"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": "entry",
     "issue_type": module.ISSUE_NOTIFICATION_MISSING_SERVICE,
     "services": "notify.mobile_app_phone",
@@ -500,26 +500,26 @@ def test_notification_missing_service_flow_shows_guidance(
     "recommended_steps": "Verify notify service configuration",
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
   )
 
-  flow = _create_flow(module, hass, issue_id)
-  result = asyncio.run(flow.async_step_init())
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
+  result = asyncio.run(flow.async_step_init())  # noqa: E111
 
-  assert result["type"] == "form"
-  assert result["step_id"] == "notification_missing_service"
-  assert result["description_placeholders"]["service_count"] == 1
+  assert result["type"] == "form"  # noqa: E111
+  assert result["step_id"] == "notification_missing_service"  # noqa: E111
+  assert result["description_placeholders"]["service_count"] == 1  # noqa: E111
 
 
 def test_module_conflict_flow_disables_extra_gps_modules(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Module conflict repair should disable GPS for dogs beyond the limit."""
+  """Module conflict repair should disable GPS for dogs beyond the limit."""  # noqa: E111
 
-  module, _, _, delete_issue_mock = repairs_module
-  entry = module.ConfigEntry("entry")
-  entry.data = {
+  module, _, _, delete_issue_mock = repairs_module  # noqa: E111
+  entry = module.ConfigEntry("entry")  # noqa: E111
+  entry.data = {  # noqa: E111
     module.CONF_DOGS: [
       {
         module.CONF_DOG_ID: f"dog{i}",
@@ -529,11 +529,11 @@ def test_module_conflict_flow_disables_extra_gps_modules(
       for i in range(6)
     ],
   }
-  entry.options = {}
-  config_entries, _, _ = _build_config_entries(entry)
+  entry.options = {}  # noqa: E111
+  config_entries, _, _ = _build_config_entries(entry)  # noqa: E111
 
-  issue_id = "entry_module_conflict"
-  issue_data = {
+  issue_id = "entry_module_conflict"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": entry.entry_id,
     "issue_type": module.ISSUE_MODULE_CONFLICT,
     "intensive_dogs": 6,
@@ -541,34 +541,34 @@ def test_module_conflict_flow_disables_extra_gps_modules(
     "suggestion": "Consider selective module enabling",
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
-  asyncio.run(flow.async_step_init())
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
+  asyncio.run(flow.async_step_init())  # noqa: E111
 
-  delete_issue_mock.reset_mock()
-  asyncio.run(flow.async_step_module_conflict({"action": "reduce_load"}))
+  delete_issue_mock.reset_mock()  # noqa: E111
+  asyncio.run(flow.async_step_module_conflict({"action": "reduce_load"}))  # noqa: E111
 
-  disabled = [
+  disabled = [  # noqa: E111
     dog
     for dog in entry.data[module.CONF_DOGS]
     if dog["modules"].get(module.MODULE_GPS) is False
   ]
-  assert disabled, "Expected at least one dog to have GPS disabled"
-  assert delete_issue_mock.await_count == 1
+  assert disabled, "Expected at least one dog to have GPS disabled"  # noqa: E111
+  assert delete_issue_mock.await_count == 1  # noqa: E111
 
 
 def test_invalid_dog_data_flow_removes_entries(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Invalid dog data repair should remove malformed entries."""
+  """Invalid dog data repair should remove malformed entries."""  # noqa: E111
 
-  module, _, _, delete_issue_mock = repairs_module
-  entry = module.ConfigEntry("entry")
-  entry.data = {
+  module, _, _, delete_issue_mock = repairs_module  # noqa: E111
+  entry = module.ConfigEntry("entry")  # noqa: E111
+  entry.data = {  # noqa: E111
     module.CONF_DOGS: [
       {
         module.CONF_DOG_ID: "valid",
@@ -577,129 +577,129 @@ def test_invalid_dog_data_flow_removes_entries(
       {module.CONF_DOG_ID: "invalid", module.CONF_DOG_NAME: ""},
     ],
   }
-  entry.options = {}
-  config_entries, _, _ = _build_config_entries(entry)
+  entry.options = {}  # noqa: E111
+  config_entries, _, _ = _build_config_entries(entry)  # noqa: E111
 
-  issue_id = "entry_invalid_dogs"
-  issue_data = {
+  issue_id = "entry_invalid_dogs"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": entry.entry_id,
     "issue_type": module.ISSUE_INVALID_DOG_DATA,
     "invalid_dogs": ["invalid"],
     "total_dogs": 2,
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
-  asyncio.run(flow.async_step_init())
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
+  asyncio.run(flow.async_step_init())  # noqa: E111
 
-  delete_issue_mock.reset_mock()
-  asyncio.run(flow.async_step_invalid_dog_data({"action": "clean_up"}))
+  delete_issue_mock.reset_mock()  # noqa: E111
+  asyncio.run(flow.async_step_invalid_dog_data({"action": "clean_up"}))  # noqa: E111
 
-  dogs = entry.data[module.CONF_DOGS]
-  assert len(dogs) == 1 and dogs[0][module.CONF_DOG_ID] == "valid"
-  assert delete_issue_mock.await_count == 1
+  dogs = entry.data[module.CONF_DOGS]  # noqa: E111
+  assert len(dogs) == 1 and dogs[0][module.CONF_DOG_ID] == "valid"  # noqa: E111
+  assert delete_issue_mock.await_count == 1  # noqa: E111
 
 
 def test_coordinator_error_flow_triggers_reload(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Coordinator repair should reload the config entry and resolve the issue."""
+  """Coordinator repair should reload the config entry and resolve the issue."""  # noqa: E111
 
-  module, _, _, delete_issue_mock = repairs_module
-  entry = module.ConfigEntry("entry")
-  entry.data = {module.CONF_DOGS: []}
-  entry.options = {}
-  config_entries, _, reload_mock = _build_config_entries(entry)
+  module, _, _, delete_issue_mock = repairs_module  # noqa: E111
+  entry = module.ConfigEntry("entry")  # noqa: E111
+  entry.data = {module.CONF_DOGS: []}  # noqa: E111
+  entry.options = {}  # noqa: E111
+  config_entries, _, reload_mock = _build_config_entries(entry)  # noqa: E111
 
-  issue_id = "entry_coordinator_error"
-  issue_data = {
+  issue_id = "entry_coordinator_error"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": entry.entry_id,
     "issue_type": module.ISSUE_COORDINATOR_ERROR,
     "error": "coordinator_not_initialized",
     "suggestion": "Try reloading the integration",
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
-  asyncio.run(flow.async_step_init())
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
+  asyncio.run(flow.async_step_init())  # noqa: E111
 
-  delete_issue_mock.reset_mock()
-  reload_mock.reset_mock()
-  result = asyncio.run(
+  delete_issue_mock.reset_mock()  # noqa: E111
+  reload_mock.reset_mock()  # noqa: E111
+  result = asyncio.run(  # noqa: E111
     flow.async_step_coordinator_error({"action": "reload"}),
   )
 
-  assert reload_mock.await_count == 1
-  assert delete_issue_mock.await_count == 1
-  assert result["type"] == "create_entry"
+  assert reload_mock.await_count == 1  # noqa: E111
+  assert delete_issue_mock.await_count == 1  # noqa: E111
+  assert result["type"] == "create_entry"  # noqa: E111
 
 
 def test_coordinator_error_flow_handles_failed_reload(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Coordinator repair should keep the issue when reload fails."""
+  """Coordinator repair should keep the issue when reload fails."""  # noqa: E111
 
-  module, _, _, delete_issue_mock = repairs_module
-  entry = module.ConfigEntry("entry")
-  entry.data = {module.CONF_DOGS: []}
-  entry.options = {}
-  config_entries, _, reload_mock = _build_config_entries(entry)
+  module, _, _, delete_issue_mock = repairs_module  # noqa: E111
+  entry = module.ConfigEntry("entry")  # noqa: E111
+  entry.data = {module.CONF_DOGS: []}  # noqa: E111
+  entry.options = {}  # noqa: E111
+  config_entries, _, reload_mock = _build_config_entries(entry)  # noqa: E111
 
-  reload_mock.return_value = False
+  reload_mock.return_value = False  # noqa: E111
 
-  issue_id = "entry_coordinator_error"
-  issue_data = {
+  issue_id = "entry_coordinator_error"  # noqa: E111
+  issue_data = {  # noqa: E111
     "config_entry_id": entry.entry_id,
     "issue_type": module.ISSUE_COORDINATOR_ERROR,
     "error": "coordinator_not_initialized",
     "suggestion": "Try reloading the integration",
   }
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
     config_entries=config_entries,
   )
 
-  flow = _create_flow(module, hass, issue_id)
-  asyncio.run(flow.async_step_init())
+  flow = _create_flow(module, hass, issue_id)  # noqa: E111
+  asyncio.run(flow.async_step_init())  # noqa: E111
 
-  delete_issue_mock.reset_mock()
-  reload_mock.reset_mock()
-  result = asyncio.run(
+  delete_issue_mock.reset_mock()  # noqa: E111
+  reload_mock.reset_mock()  # noqa: E111
+  result = asyncio.run(  # noqa: E111
     flow.async_step_coordinator_error({"action": "reload"}),
   )
 
-  assert reload_mock.await_count == 1
-  cache_delete_calls = [
+  assert reload_mock.await_count == 1  # noqa: E111
+  cache_delete_calls = [  # noqa: E111
     invocation
     for invocation in delete_issue_mock.await_args_list
     if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
   ]
-  assert not cache_delete_calls
-  assert result["type"] == "form"
-  assert result["errors"]["base"] == "reload_failed"
+  assert not cache_delete_calls  # noqa: E111
+  assert result["type"] == "form"  # noqa: E111
+  assert result["errors"]["base"] == "reload_failed"  # noqa: E111
 
 
 def test_async_check_for_issues_checks_coordinator_health(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Coordinator health should be validated when scanning for issues."""
+  """Coordinator health should be validated when scanning for issues."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
 
-  hass = SimpleNamespace()
-  hass.data = {module.DOMAIN: {}}
-  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+  hass = SimpleNamespace()  # noqa: E111
+  hass.data = {module.DOMAIN: {}}  # noqa: E111
+  hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)  # noqa: E111
 
-  entry = SimpleNamespace(
+  entry = SimpleNamespace(  # noqa: E111
     entry_id="entry",
     data={
       module.CONF_DOGS: [
@@ -714,45 +714,45 @@ def test_async_check_for_issues_checks_coordinator_health(
     version=1,
   )
 
-  original_require_runtime_data = module.require_runtime_data
+  original_require_runtime_data = module.require_runtime_data  # noqa: E111
 
-  def _raise_runtime_error(*_: Any, **__: Any) -> Any:
+  def _raise_runtime_error(*_: Any, **__: Any) -> Any:  # noqa: E111
     raise module.RuntimeDataUnavailableError("runtime missing")
 
-  module.require_runtime_data = _raise_runtime_error
+  module.require_runtime_data = _raise_runtime_error  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     asyncio.run(module.async_check_for_issues(hass, entry))
-  finally:
+  finally:  # noqa: E111
     module.require_runtime_data = original_require_runtime_data
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  assert kwargs["translation_key"] == module.ISSUE_COORDINATOR_ERROR
-  assert kwargs["data"]["error"] == "coordinator_not_initialized"
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  assert kwargs["translation_key"] == module.ISSUE_COORDINATOR_ERROR  # noqa: E111
+  assert kwargs["data"]["error"] == "coordinator_not_initialized"  # noqa: E111
 
-  cache_delete_calls = [
+  cache_delete_calls = [  # noqa: E111
     invocation
     for invocation in delete_issue_mock.await_args_list
     if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
   ]
-  assert len(cache_delete_calls) == 1
+  assert len(cache_delete_calls) == 1  # noqa: E111
 
 
 def test_async_check_for_issues_publishes_cache_health_issue(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Aggregated cache anomalies should surface as repairs issues."""
+  """Aggregated cache anomalies should surface as repairs issues."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = _build_hass(domain=module.DOMAIN)
+  hass = _build_hass(domain=module.DOMAIN)  # noqa: E111
 
-  summary = CacheRepairAggregate(
+  summary = CacheRepairAggregate(  # noqa: E111
     total_caches=1,
     anomaly_count=1,
     severity="warning",
@@ -770,80 +770,80 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     caches_with_expired_entries=["adaptive_cache"],
   )
 
-  runtime_data = _make_runtime_data(summary)
-  entry = _make_basic_entry(module)
+  runtime_data = _make_runtime_data(summary)  # noqa: E111
+  entry = _make_basic_entry(module)  # noqa: E111
 
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
+  module.require_runtime_data = lambda _hass, _entry: runtime_data  # noqa: E111
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hass, entry, runtime_data)  # noqa: E111
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  assert kwargs["translation_key"] == module.ISSUE_CACHE_HEALTH_SUMMARY
-  assert kwargs["data"]["summary"] == summary.to_mapping()
-  cache_delete_calls = [
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  assert kwargs["translation_key"] == module.ISSUE_CACHE_HEALTH_SUMMARY  # noqa: E111
+  assert kwargs["data"]["summary"] == summary.to_mapping()  # noqa: E111
+  cache_delete_calls = [  # noqa: E111
     invocation
     for invocation in delete_issue_mock.await_args_list
     if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
   ]
-  assert not cache_delete_calls
+  assert not cache_delete_calls  # noqa: E111
 
 
 def test_async_check_for_issues_clears_cache_issue_without_anomalies(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Repairs should clear cache issues when anomalies disappear."""
+  """Repairs should clear cache issues when anomalies disappear."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = _build_hass(domain=module.DOMAIN)
+  hass = _build_hass(domain=module.DOMAIN)  # noqa: E111
 
-  summary = CacheRepairAggregate(
+  summary = CacheRepairAggregate(  # noqa: E111
     total_caches=1,
     anomaly_count=0,
     severity="info",
     generated_at="2024-01-01T00:00:00+00:00",
   )
 
-  runtime_data = _make_runtime_data(summary)
-  entry = _make_basic_entry(module)
+  runtime_data = _make_runtime_data(summary)  # noqa: E111
+  entry = _make_basic_entry(module)  # noqa: E111
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hass, entry, runtime_data)  # noqa: E111
 
-  assert create_issue_mock.await_count == 0
-  cache_delete_calls = [
+  assert create_issue_mock.await_count == 0  # noqa: E111
+  cache_delete_calls = [  # noqa: E111
     invocation
     for invocation in delete_issue_mock.await_args_list
     if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
   ]
-  assert len(cache_delete_calls) == 1
+  assert len(cache_delete_calls) == 1  # noqa: E111
 
 
 def test_async_check_for_issues_surfaces_reconfigure_warnings(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Reconfigure telemetry warnings should surface as repair issues."""
+  """Reconfigure telemetry warnings should surface as repair issues."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = _build_hass()
+  hass = _build_hass()  # noqa: E111
 
-  runtime_data = _make_runtime_data()
-  entry = _make_reconfigure_entry(
+  runtime_data = _make_runtime_data()  # noqa: E111
+  entry = _make_reconfigure_entry(  # noqa: E111
     module,
     compatibility_warnings=["GPS module disabled for configured dog"],
     health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hass, entry, runtime_data)  # noqa: E111
 
-  assert any(
+  assert any(  # noqa: E111
     invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_WARNINGS
     for invocation in create_issue_mock.await_args_list
   )
@@ -852,16 +852,16 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
 def test_async_check_for_issues_surfaces_reconfigure_health_issue(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Health summaries from reconfigure telemetry should raise issues."""
+  """Health summaries from reconfigure telemetry should raise issues."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = _build_hass()
+  hass = _build_hass()  # noqa: E111
 
-  runtime_data = _make_runtime_data()
-  entry = _make_reconfigure_entry(
+  runtime_data = _make_runtime_data()  # noqa: E111
+  entry = _make_reconfigure_entry(  # noqa: E111
     module,
     compatibility_warnings=[],
     health_summary={
@@ -871,9 +871,9 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
     },
   )
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hass, entry, runtime_data)  # noqa: E111
 
-  assert any(
+  assert any(  # noqa: E111
     invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_HEALTH
     for invocation in create_issue_mock.await_args_list
   )
@@ -882,20 +882,20 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
 def test_check_runtime_store_duration_alerts_creates_issue(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Guard alerts should create a runtime store repair issue."""
+  """Guard alerts should create a runtime store repair issue."""  # noqa: E111
 
-  module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
-  runtime_data = SimpleNamespace()
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
+  runtime_data = SimpleNamespace()  # noqa: E111
 
-  original_require_runtime_data = module.require_runtime_data
-  original_get_runtime_store_health = module.get_runtime_store_health
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
-  module.get_runtime_store_health = lambda _runtime: {
+  original_require_runtime_data = module.require_runtime_data  # noqa: E111
+  original_get_runtime_store_health = module.get_runtime_store_health  # noqa: E111
+  module.require_runtime_data = lambda _hass, _entry: runtime_data  # noqa: E111
+  module.get_runtime_store_health = lambda _runtime: {  # noqa: E111
     "assessment_timeline_summary": {
       "level_duration_guard_alerts": [
         {
@@ -913,85 +913,85 @@ def test_check_runtime_store_duration_alerts_creates_issue(
     },
   }
 
-  try:
+  try:  # noqa: E111
     asyncio.run(module._check_runtime_store_duration_alerts(hass, entry))
-  finally:
+  finally:  # noqa: E111
     module.require_runtime_data = original_require_runtime_data
     module.get_runtime_store_health = original_get_runtime_store_health
 
-  assert create_issue_mock.await_count == 1
-  kwargs = create_issue_mock.await_args.kwargs
-  assert kwargs["translation_key"] == module.ISSUE_RUNTIME_STORE_DURATION_ALERT
-  assert kwargs["severity"] == issue_severity_cls.WARNING
-  data = kwargs["data"]
-  assert data["alert_count"] == 1
-  assert data["triggered_levels"] == "watch"
-  assert "alert_summaries" in data
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  kwargs = create_issue_mock.await_args.kwargs  # noqa: E111
+  assert kwargs["translation_key"] == module.ISSUE_RUNTIME_STORE_DURATION_ALERT  # noqa: E111
+  assert kwargs["severity"] == issue_severity_cls.WARNING  # noqa: E111
+  data = kwargs["data"]  # noqa: E111
+  assert data["alert_count"] == 1  # noqa: E111
+  assert data["triggered_levels"] == "watch"  # noqa: E111
+  assert "alert_summaries" in data  # noqa: E111
 
 
 def test_check_runtime_store_duration_alerts_clears_issue_without_alerts(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Existing issues should be cleared when no guard alerts remain."""
+  """Existing issues should be cleared when no guard alerts remain."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
-  runtime_data = SimpleNamespace()
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
+  runtime_data = SimpleNamespace()  # noqa: E111
 
-  original_require_runtime_data = module.require_runtime_data
-  original_get_runtime_store_health = module.get_runtime_store_health
-  module.require_runtime_data = lambda _hass, _entry: runtime_data
-  module.get_runtime_store_health = lambda _runtime: {
+  original_require_runtime_data = module.require_runtime_data  # noqa: E111
+  original_get_runtime_store_health = module.get_runtime_store_health  # noqa: E111
+  module.require_runtime_data = lambda _hass, _entry: runtime_data  # noqa: E111
+  module.get_runtime_store_health = lambda _runtime: {  # noqa: E111
     "assessment_timeline_summary": {"level_duration_guard_alerts": []},
   }
 
-  try:
+  try:  # noqa: E111
     asyncio.run(module._check_runtime_store_duration_alerts(hass, entry))
-  finally:
+  finally:  # noqa: E111
     module.require_runtime_data = original_require_runtime_data
     module.get_runtime_store_health = original_get_runtime_store_health
 
-  assert create_issue_mock.await_count == 0
-  assert delete_issue_mock.await_count == 1
+  assert create_issue_mock.await_count == 0  # noqa: E111
+  assert delete_issue_mock.await_count == 1  # noqa: E111
 
 
 def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Reconfigure telemetry without warnings should clear existing issues."""
+  """Reconfigure telemetry without warnings should clear existing issues."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = _build_hass()
+  hass = _build_hass()  # noqa: E111
 
-  runtime_data = _make_runtime_data()
-  entry = _make_reconfigure_entry(
+  runtime_data = _make_runtime_data()  # noqa: E111
+  entry = _make_reconfigure_entry(  # noqa: E111
     module,
     compatibility_warnings=[],
     health_summary={"healthy": True, "issues": [], "warnings": []},
   )
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hass, entry, runtime_data)  # noqa: E111
 
-  assert not any(
+  assert not any(  # noqa: E111
     invocation.kwargs["translation_key"]
     in {module.ISSUE_RECONFIGURE_WARNINGS, module.ISSUE_RECONFIGURE_HEALTH}
     for invocation in create_issue_mock.await_args_list
   )
-  assert any(
+  assert any(  # noqa: E111
     invocation.args
     and str(
       invocation.args[-1],
     ).endswith("reconfigure_warnings")
     for invocation in delete_issue_mock.await_args_list
   )
-  assert any(
+  assert any(  # noqa: E111
     invocation.args
     and str(
       invocation.args[-1],
@@ -1003,18 +1003,18 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
 def test_notification_check_accepts_mobile_app_service_prefix(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Notification checks should detect mobile_app_* notify services."""
+  """Notification checks should detect mobile_app_* notify services."""  # noqa: E111
 
-  module, create_issue_mock, _, _ = repairs_module
+  module, create_issue_mock, _, _ = repairs_module  # noqa: E111
 
-  hass = SimpleNamespace()
+  hass = SimpleNamespace()  # noqa: E111
 
-  hass.services = SimpleNamespace(
+  hass.services = SimpleNamespace(  # noqa: E111
     has_service=lambda domain, service: False,
     async_services=lambda: {"notify": {"mobile_app_jane": object()}},
   )
 
-  entry = SimpleNamespace(
+  entry = SimpleNamespace(  # noqa: E111
     entry_id="entry",
     data={
       module.CONF_DOGS: [
@@ -1029,23 +1029,23 @@ def test_notification_check_accepts_mobile_app_service_prefix(
     version=1,
   )
 
-  asyncio.run(module._check_notification_configuration_issues(hass, entry))
+  asyncio.run(module._check_notification_configuration_issues(hass, entry))  # noqa: E111
 
-  assert create_issue_mock.await_count == 0
+  assert create_issue_mock.await_count == 0  # noqa: E111
 
 
 def test_notification_delivery_errors_create_issues(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Recurring notification failures should surface repair issues."""
+  """Recurring notification failures should surface repair issues."""  # noqa: E111
 
-  module, create_issue_mock, issue_severity_cls, _ = repairs_module
-  create_issue_mock.reset_mock()
+  module, create_issue_mock, issue_severity_cls, _ = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
 
-  hass = _build_hass(domain=module.DOMAIN)
-  entry = _build_entry(module)
+  hass = _build_hass(domain=module.DOMAIN)  # noqa: E111
+  entry = _build_entry(module)  # noqa: E111
 
-  notification_manager = SimpleNamespace(
+  notification_manager = SimpleNamespace(  # noqa: E111
     get_delivery_status_snapshot=lambda: {
       "services": {
         "notify.mobile_app_phone": {
@@ -1075,37 +1075,37 @@ def test_notification_delivery_errors_create_issues(
       }
     }
   )
-  runtime_data = _make_runtime_data(notification_manager=notification_manager)
+  runtime_data = _make_runtime_data(notification_manager=notification_manager)  # noqa: E111
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hass, entry, runtime_data)  # noqa: E111
 
-  keys = {
+  keys = {  # noqa: E111
     invocation.kwargs["translation_key"]
     for invocation in create_issue_mock.await_args_list
   }
-  assert module.ISSUE_NOTIFICATION_AUTH_ERROR in keys
-  assert module.ISSUE_NOTIFICATION_DEVICE_UNREACHABLE in keys
-  assert module.ISSUE_NOTIFICATION_MISSING_SERVICE in keys
-  assert module.ISSUE_NOTIFICATION_DELIVERY_REPEATED in keys
-  assert module.ISSUE_NOTIFICATION_TIMEOUT in keys
+  assert module.ISSUE_NOTIFICATION_AUTH_ERROR in keys  # noqa: E111
+  assert module.ISSUE_NOTIFICATION_DEVICE_UNREACHABLE in keys  # noqa: E111
+  assert module.ISSUE_NOTIFICATION_MISSING_SERVICE in keys  # noqa: E111
+  assert module.ISSUE_NOTIFICATION_DELIVERY_REPEATED in keys  # noqa: E111
+  assert module.ISSUE_NOTIFICATION_TIMEOUT in keys  # noqa: E111
 
-  for invocation in create_issue_mock.await_args_list:
+  for invocation in create_issue_mock.await_args_list:  # noqa: E111
     if invocation.kwargs["translation_key"] == module.ISSUE_NOTIFICATION_AUTH_ERROR:
-      assert invocation.kwargs["severity"] == issue_severity_cls.ERROR
+      assert invocation.kwargs["severity"] == issue_severity_cls.ERROR  # noqa: E111
 
 
 def test_notification_delivery_errors_clears_issues_when_clean(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Notification error issues should clear when delivery recovers."""
+  """Notification error issues should clear when delivery recovers."""  # noqa: E111
 
-  module, _, _, delete_issue_mock = repairs_module
-  delete_issue_mock.reset_mock()
+  module, _, _, delete_issue_mock = repairs_module  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = _build_hass(domain=module.DOMAIN)
-  entry = _build_entry(module)
+  hass = _build_hass(domain=module.DOMAIN)  # noqa: E111
+  entry = _build_entry(module)  # noqa: E111
 
-  notification_manager = SimpleNamespace(
+  notification_manager = SimpleNamespace(  # noqa: E111
     get_delivery_status_snapshot=lambda: {
       "services": {
         "notify.mobile_app_phone": {
@@ -1117,35 +1117,35 @@ def test_notification_delivery_errors_clears_issues_when_clean(
       }
     }
   )
-  runtime_data = _make_runtime_data(notification_manager=notification_manager)
+  runtime_data = _make_runtime_data(notification_manager=notification_manager)  # noqa: E111
 
-  _run_check_for_issues(module, hass, entry, runtime_data)
+  _run_check_for_issues(module, hass, entry, runtime_data)  # noqa: E111
 
-  # Use a different variable name to avoid shadowing the imported ``call`` from ``unittest.mock``
-  deleted = [args.args[-1] for args in delete_issue_mock.await_args_list]
-  assert any(str(name).endswith("notification_auth_error") for name in deleted)
-  assert any(str(name).endswith("notification_device_unreachable") for name in deleted)
-  assert any(str(name).endswith("notification_missing_service") for name in deleted)
-  assert any(str(name).endswith("notification_timeout") for name in deleted)
-  assert any(
+  # Use a different variable name to avoid shadowing the imported ``call`` from ``unittest.mock``  # noqa: E114, E501
+  deleted = [args.args[-1] for args in delete_issue_mock.await_args_list]  # noqa: E111
+  assert any(str(name).endswith("notification_auth_error") for name in deleted)  # noqa: E111
+  assert any(str(name).endswith("notification_device_unreachable") for name in deleted)  # noqa: E111
+  assert any(str(name).endswith("notification_missing_service") for name in deleted)  # noqa: E111
+  assert any(str(name).endswith("notification_timeout") for name in deleted)  # noqa: E111
+  assert any(  # noqa: E111
     str(name).endswith("notification_delivery_error_exception") for name in deleted
   )
-  assert any(str(name).endswith("notification_delivery_repeated") for name in deleted)
+  assert any(str(name).endswith("notification_delivery_repeated") for name in deleted)  # noqa: E111
 
 
 def test_async_publish_feeding_compliance_issue_creates_alert(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Feeding compliance issues should create repair alerts with metadata."""
+  """Feeding compliance issues should create repair alerts with metadata."""  # noqa: E111
 
-  module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  payload = cast(
+  payload = cast(  # noqa: E111
     dict[str, object],
     {
       "dog_id": "buddy",
@@ -1174,7 +1174,7 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     },
   )
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_publish_feeding_compliance_issue(
       hass,
       entry,
@@ -1183,30 +1183,30 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     ),
   )
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_ALERT
-  severity_enum = cast(Any, issue_severity_cls)
-  assert kwargs["severity"] == severity_enum.CRITICAL
-  data = kwargs["data"]
-  assert data["dog_id"] == "buddy"
-  assert data["issue_count"] == 1
-  assert data["missed_meal_count"] == 1
-  assert data["context_metadata"]["context_id"] == "ctx-1"
-  assert data["notification_sent"] is True
-  summary = data["localized_summary"]
-  assert summary["title"] in {"alert_title", "🍽️ Feeding compliance alert"}
-  assert summary["score_line"] in {"score_line", "Score: 65%"}
-  assert data["notification_title"] == summary["title"]
-  assert data["notification_message"] is not None
-  assert data["issue_summary"] in (["issue_item"], ["2024-05-04: Missed breakfast"])
-  assert data["missed_meal_summary"] in (
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_ALERT  # noqa: E111
+  severity_enum = cast(Any, issue_severity_cls)  # noqa: E111
+  assert kwargs["severity"] == severity_enum.CRITICAL  # noqa: E111
+  data = kwargs["data"]  # noqa: E111
+  assert data["dog_id"] == "buddy"  # noqa: E111
+  assert data["issue_count"] == 1  # noqa: E111
+  assert data["missed_meal_count"] == 1  # noqa: E111
+  assert data["context_metadata"]["context_id"] == "ctx-1"  # noqa: E111
+  assert data["notification_sent"] is True  # noqa: E111
+  summary = data["localized_summary"]  # noqa: E111
+  assert summary["title"] in {"alert_title", "🍽️ Feeding compliance alert"}  # noqa: E111
+  assert summary["score_line"] in {"score_line", "Score: 65%"}  # noqa: E111
+  assert data["notification_title"] == summary["title"]  # noqa: E111
+  assert data["notification_message"] is not None  # noqa: E111
+  assert data["issue_summary"] in (["issue_item"], ["2024-05-04: Missed breakfast"])  # noqa: E111
+  assert data["missed_meal_summary"] in (  # noqa: E111
     ["missed_meal_item"],
     ["2024-05-03: 1/2 meals"],
   )
-  assert data["recommendations_summary"] in (
+  assert data["recommendations_summary"] in (  # noqa: E111
     ["recommendation_item"],
     ["Schedule a vet visit"],
   )
@@ -1216,33 +1216,33 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Severity should fall back when CRITICAL is unavailable."""
+  """Severity should fall back when CRITICAL is unavailable."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  class LimitedSeverity(StrEnum):
+  class LimitedSeverity(StrEnum):  # noqa: E111
     ERROR = "error"
     WARNING = "warning"
 
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     module.ir,
     "IssueSeverity",
     LimitedSeverity,
     raising=False,
   )
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     module.ir,
     "async_create_issue",
     create_issue_mock,
     raising=False,
   )
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  payload = cast(
+  payload = cast(  # noqa: E111
     dict[str, object],
     {
       "dog_id": "buddy",
@@ -1271,7 +1271,7 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     },
   )
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_publish_feeding_compliance_issue(
       hass,
       entry,
@@ -1280,26 +1280,26 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     ),
   )
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  assert kwargs["severity"] == LimitedSeverity.ERROR
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  assert kwargs["severity"] == LimitedSeverity.ERROR  # noqa: E111
 
 
 def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Resolved compliance checks should clear existing repair issues."""
+  """Resolved compliance checks should clear existing repair issues."""  # noqa: E111
 
-  module, create_issue_mock, _, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  payload = cast(
+  payload = cast(  # noqa: E111
     dict[str, object],
     {
       "dog_id": "buddy",
@@ -1320,7 +1320,7 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
     },
   )
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_publish_feeding_compliance_issue(
       hass,
       entry,
@@ -1329,29 +1329,29 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
     ),
   )
 
-  assert create_issue_mock.await_count == 0
-  assert delete_issue_mock.await_count == 1
-  delete_args = delete_issue_mock.await_args
-  assert delete_args is not None
-  args = delete_args.args
-  assert len(args) >= 2
-  assert args[0] == hass
-  assert args[1] == module.DOMAIN
+  assert create_issue_mock.await_count == 0  # noqa: E111
+  assert delete_issue_mock.await_count == 1  # noqa: E111
+  delete_args = delete_issue_mock.await_args  # noqa: E111
+  assert delete_args is not None  # noqa: E111
+  args = delete_args.args  # noqa: E111
+  assert len(args) >= 2  # noqa: E111
+  assert args[0] == hass  # noqa: E111
+  assert args[1] == module.DOMAIN  # noqa: E111
 
 
 def test_async_publish_feeding_compliance_issue_handles_no_data(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """No-data results should raise a warning issue."""
+  """No-data results should raise a warning issue."""  # noqa: E111
 
-  module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  payload = cast(
+  payload = cast(  # noqa: E111
     dict[str, object],
     {
       "dog_id": "buddy",
@@ -1366,7 +1366,7 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     },
   )
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_publish_feeding_compliance_issue(
       hass,
       entry,
@@ -1375,36 +1375,36 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     ),
   )
 
-  assert create_issue_mock.await_count == 1
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  kwargs = await_args.kwargs
-  assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_NO_DATA
-  severity_enum = cast(Any, issue_severity_cls)
-  assert kwargs["severity"] == severity_enum.WARNING
-  data = kwargs["data"]
-  assert data["dog_name"] == "buddy"
-  assert data["message"] == "Telemetry unavailable"
-  summary = data["localized_summary"]
-  assert summary["title"] in {"no_data_title", "🍽️ Feeding telemetry missing"}
-  assert summary["message"] == "Telemetry unavailable"
-  assert data["issue_summary"] == []
-  assert delete_issue_mock.await_count == 0
+  assert create_issue_mock.await_count == 1  # noqa: E111
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  kwargs = await_args.kwargs  # noqa: E111
+  assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_NO_DATA  # noqa: E111
+  severity_enum = cast(Any, issue_severity_cls)  # noqa: E111
+  assert kwargs["severity"] == severity_enum.WARNING  # noqa: E111
+  data = kwargs["data"]  # noqa: E111
+  assert data["dog_name"] == "buddy"  # noqa: E111
+  assert data["message"] == "Telemetry unavailable"  # noqa: E111
+  summary = data["localized_summary"]  # noqa: E111
+  assert summary["title"] in {"no_data_title", "🍽️ Feeding telemetry missing"}  # noqa: E111
+  assert summary["message"] == "Telemetry unavailable"  # noqa: E111
+  assert data["issue_summary"] == []  # noqa: E111
+  assert delete_issue_mock.await_count == 0  # noqa: E111
 
 
 def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
   repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
-  """Structured messages should fall back to the localised summary text."""
+  """Structured messages should fall back to the localised summary text."""  # noqa: E111
 
-  module, create_issue_mock, _issue_severity_cls, delete_issue_mock = repairs_module
-  create_issue_mock.reset_mock()
-  delete_issue_mock.reset_mock()
+  module, create_issue_mock, _issue_severity_cls, delete_issue_mock = repairs_module  # noqa: E111
+  create_issue_mock.reset_mock()  # noqa: E111
+  delete_issue_mock.reset_mock()  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)  # noqa: E111
 
-  payload = cast(
+  payload = cast(  # noqa: E111
     dict[str, object],
     {
       "dog_id": "buddy",
@@ -1427,7 +1427,7 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
     },
   )
 
-  asyncio.run(
+  asyncio.run(  # noqa: E111
     module.async_publish_feeding_compliance_issue(
       hass,
       entry,
@@ -1436,8 +1436,8 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
     ),
   )
 
-  await_args = create_issue_mock.await_args
-  assert await_args is not None
-  data = await_args.kwargs["data"]
-  assert data["message"] == "Telemetry offline"
-  assert data["localized_summary"]["message"] == "Telemetry offline"
+  await_args = create_issue_mock.await_args  # noqa: E111
+  assert await_args is not None  # noqa: E111
+  data = await_args.kwargs["data"]  # noqa: E111
+  assert data["message"] == "Telemetry offline"  # noqa: E111
+  assert data["localized_summary"]["message"] == "Telemetry offline"  # noqa: E111

@@ -20,27 +20,27 @@ from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 async def test_user_flow_aborts_when_entry_exists(
   hass: HomeAssistant,
 ) -> None:
-  """Ensure the user flow aborts when the integration is already configured."""
+  """Ensure the user flow aborts when the integration is already configured."""  # noqa: E111
 
-  entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id=DOMAIN)
-  entry.add_to_hass(hass)
+  entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id=DOMAIN)  # noqa: E111
+  entry.add_to_hass(hass)  # noqa: E111
 
-  result = await hass.config_entries.flow.async_init(
+  result = await hass.config_entries.flow.async_init(  # noqa: E111
     DOMAIN,
     context={"source": "user"},
   )
 
-  assert result["type"] == FlowResultType.ABORT
-  assert result["reason"] == "already_configured"
+  assert result["type"] == FlowResultType.ABORT  # noqa: E111
+  assert result["reason"] == "already_configured"  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_import_flow_normalizes_dog_id(
   hass: HomeAssistant,
 ) -> None:
-  """Verify import flow normalizes dog identifiers."""
+  """Verify import flow normalizes dog identifiers."""  # noqa: E111
 
-  result = await hass.config_entries.flow.async_init(
+  result = await hass.config_entries.flow.async_init(  # noqa: E111
     DOMAIN,
     context={"source": "import"},
     data={
@@ -53,7 +53,7 @@ async def test_import_flow_normalizes_dog_id(
     },
   )
 
-  assert result["type"] == FlowResultType.CREATE_ENTRY
-  dogs = result["data"][CONF_DOGS]
-  assert dogs[0][DOG_ID_FIELD] == "buddy_1"
-  assert dogs[0][DOG_NAME_FIELD] == "Buddy"
+  assert result["type"] == FlowResultType.CREATE_ENTRY  # noqa: E111
+  dogs = result["data"][CONF_DOGS]  # noqa: E111
+  assert dogs[0][DOG_ID_FIELD] == "buddy_1"  # noqa: E111
+  assert dogs[0][DOG_NAME_FIELD] == "Buddy"  # noqa: E111

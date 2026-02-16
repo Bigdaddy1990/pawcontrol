@@ -19,30 +19,30 @@ PAWCONTROL_ROOT = (PACKAGE_ROOT / "pawcontrol").resolve()
 
 
 def _ensure_package(name: str, path: pathlib.Path) -> None:
-  """Register a namespace package without executing its __init__."""
+  """Register a namespace package without executing its __init__."""  # noqa: E111
 
-  if name in sys.modules:
+  if name in sys.modules:  # noqa: E111
     return
 
-  module = types.ModuleType(name)
-  module.__path__ = [str(path)]  # type: ignore[attr-defined]
-  module.__package__ = name
-  sys.modules[name] = module
+  module = types.ModuleType(name)  # noqa: E111
+  module.__path__ = [str(path)]  # type: ignore[attr-defined]  # noqa: E111
+  module.__package__ = name  # noqa: E111
+  sys.modules[name] = module  # noqa: E111
 
 
 def _load_module(name: str, filename: str):
-  """Load a module from the pawcontrol package without side effects."""
+  """Load a module from the pawcontrol package without side effects."""  # noqa: E111
 
-  spec = importlib.util.spec_from_file_location(
+  spec = importlib.util.spec_from_file_location(  # noqa: E111
     name,
     PAWCONTROL_ROOT / filename,
     submodule_search_locations=[str(PAWCONTROL_ROOT)],
   )
-  module = importlib.util.module_from_spec(spec)
-  sys.modules[name] = module
-  assert spec.loader is not None
-  spec.loader.exec_module(module)
-  return module
+  module = importlib.util.module_from_spec(spec)  # noqa: E111
+  sys.modules[name] = module  # noqa: E111
+  assert spec.loader is not None  # noqa: E111
+  spec.loader.exec_module(module)  # noqa: E111
+  return module  # noqa: E111
 
 
 _ensure_package("custom_components", PACKAGE_ROOT.resolve())
@@ -61,37 +61,37 @@ from custom_components.pawcontrol.types import (  # isort:skip
 
 @dataclass(slots=True)
 class _EntityBudgetSnapshot:
-  """Lightweight snapshot model mirroring the production contract."""
+  """Lightweight snapshot model mirroring the production contract."""  # noqa: E111
 
-  dog_id: str
-  capacity: int
-  base_allocation: int
-  dynamic_allocation: int
-  requested_entities: tuple[str, ...] = ()
-  denied_requests: tuple[str, ...] = ()
+  dog_id: str  # noqa: E111
+  capacity: int  # noqa: E111
+  base_allocation: int  # noqa: E111
+  dynamic_allocation: int  # noqa: E111
+  requested_entities: tuple[str, ...] = ()  # noqa: E111
+  denied_requests: tuple[str, ...] = ()  # noqa: E111
 
-  @property
-  def total_allocated(self) -> int:
+  @property  # noqa: E111
+  def total_allocated(self) -> int:  # noqa: E111
     return self.base_allocation + self.dynamic_allocation
 
-  @property
-  def remaining(self) -> int:
+  @property  # noqa: E111
+  def remaining(self) -> int:  # noqa: E111
     return max(self.capacity - self.total_allocated, 0)
 
-  @property
-  def saturation(self) -> float:
+  @property  # noqa: E111
+  def saturation(self) -> float:  # noqa: E111
     if self.capacity <= 0:
-      return 0.0
+      return 0.0  # noqa: E111
     return max(0.0, min(1.0, self.total_allocated / self.capacity))
 
 
 def _summarize_entity_budgets(
   snapshots: Iterable[_EntityBudgetSnapshot],
 ) -> dict[str, float | int]:
-  """Provide deterministic aggregation used by the observability helpers."""
+  """Provide deterministic aggregation used by the observability helpers."""  # noqa: E111
 
-  snapshots = tuple(snapshots)
-  if not snapshots:
+  snapshots = tuple(snapshots)  # noqa: E111
+  if not snapshots:  # noqa: E111
     return {
       "active_dogs": 0,
       "total_capacity": 0,
@@ -102,17 +102,17 @@ def _summarize_entity_budgets(
       "denied_requests": 0,
     }
 
-  total_capacity = sum(snapshot.capacity for snapshot in snapshots)
-  total_allocated = sum(snapshot.total_allocated for snapshot in snapshots)
-  total_remaining = sum(snapshot.remaining for snapshot in snapshots)
-  denied_requests = sum(len(snapshot.denied_requests) for snapshot in snapshots)
-  average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
-  peak_utilisation = max(
+  total_capacity = sum(snapshot.capacity for snapshot in snapshots)  # noqa: E111
+  total_allocated = sum(snapshot.total_allocated for snapshot in snapshots)  # noqa: E111
+  total_remaining = sum(snapshot.remaining for snapshot in snapshots)  # noqa: E111
+  denied_requests = sum(len(snapshot.denied_requests) for snapshot in snapshots)  # noqa: E111
+  average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0  # noqa: E111
+  peak_utilisation = max(  # noqa: E111
     (snapshot.saturation for snapshot in snapshots),
     default=0.0,
   )
 
-  return {
+  return {  # noqa: E111
     "active_dogs": len(snapshots),
     "total_capacity": total_capacity,
     "total_allocated": total_allocated,
@@ -151,30 +151,30 @@ record_bool_coercion_event = _telemetry.record_bool_coercion_event
 
 
 class DummyMetrics:
-  """Minimal metrics stub mirroring the coordinator counters."""
+  """Minimal metrics stub mirroring the coordinator counters."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self, *, update_count: int, failed_cycles: int, consecutive_errors: int
   ) -> None:
     self.update_count = update_count
     self.failed_cycles = failed_cycles
     self.consecutive_errors = consecutive_errors
 
-  @property
-  def successful_cycles(self) -> int:
+  @property  # noqa: E111
+  def successful_cycles(self) -> int:  # noqa: E111
     return max(self.update_count - self.failed_cycles, 0)
 
-  @property
-  def success_rate_percent(self) -> float:
+  @property  # noqa: E111
+  def success_rate_percent(self) -> float:  # noqa: E111
     if self.update_count == 0:
-      return 0.0
+      return 0.0  # noqa: E111
     return (self.successful_cycles / self.update_count) * 100
 
 
 class DummySnapshot:
-  """Lightweight stand-in for :class:`EntityBudgetSnapshot`."""
+  """Lightweight stand-in for :class:`EntityBudgetSnapshot`."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -191,32 +191,32 @@ class DummySnapshot:
     self.requested_entities = requested_entities
     self.denied_requests = denied_requests
 
-  @property
-  def total_allocated(self) -> int:
+  @property  # noqa: E111
+  def total_allocated(self) -> int:  # noqa: E111
     return self.base_allocation + self.dynamic_allocation
 
-  @property
-  def remaining(self) -> int:
+  @property  # noqa: E111
+  def remaining(self) -> int:  # noqa: E111
     return max(self.capacity - self.total_allocated, 0)
 
-  @property
-  def saturation(self) -> float:
+  @property  # noqa: E111
+  def saturation(self) -> float:  # noqa: E111
     if self.capacity <= 0:
-      return 0.0
+      return 0.0  # noqa: E111
     return self.total_allocated / self.capacity
 
 
 def test_security_scorecard_passes_with_secure_configuration() -> None:
-  """A healthy runtime should report a passing security scorecard."""
+  """A healthy runtime should report a passing security scorecard."""  # noqa: E111
 
-  adaptive = cast(
+  adaptive = cast(  # noqa: E111
     AdaptivePollingDiagnostics,
     {"current_interval_ms": 150.0, "target_cycle_ms": 180.0},
   )
-  entity_summary = cast(
+  entity_summary = cast(  # noqa: E111
     EntityBudgetSummary, {"peak_utilization": 40.0, "active_dogs": 1}
   )
-  webhook_status = cast(
+  webhook_status = cast(  # noqa: E111
     WebhookSecurityStatus,
     {
       "configured": True,
@@ -226,56 +226,56 @@ def test_security_scorecard_passes_with_secure_configuration() -> None:
     },
   )
 
-  scorecard: CoordinatorSecurityScorecard = build_security_scorecard(
+  scorecard: CoordinatorSecurityScorecard = build_security_scorecard(  # noqa: E111
     adaptive=adaptive,
     entity_summary=entity_summary,
     webhook_status=webhook_status,
   )
 
-  assert scorecard["status"] == "pass"
-  assert all(check["pass"] for check in scorecard["checks"].values())
+  assert scorecard["status"] == "pass"  # noqa: E111
+  assert all(check["pass"] for check in scorecard["checks"].values())  # noqa: E111
 
 
 def test_security_scorecard_gracefully_handles_missing_values() -> None:
-  """Missing metrics should fall back to safe defaults without raising."""
+  """Missing metrics should fall back to safe defaults without raising."""  # noqa: E111
 
-  scorecard = build_security_scorecard(
+  scorecard = build_security_scorecard(  # noqa: E111
     adaptive=cast(AdaptivePollingDiagnostics, {"current_interval_ms": None}),
     entity_summary=cast(EntityBudgetSummary, {"peak_utilization": None}),
     webhook_status=cast(WebhookSecurityStatus, {}),
   )
 
-  assert scorecard["checks"]["adaptive_polling"]["pass"] is True
-  assert scorecard["checks"]["entity_budget"]["pass"] is True
-  assert scorecard["checks"]["webhooks"]["pass"] is True
+  assert scorecard["checks"]["adaptive_polling"]["pass"] is True  # noqa: E111
+  assert scorecard["checks"]["entity_budget"]["pass"] is True  # noqa: E111
+  assert scorecard["checks"]["webhooks"]["pass"] is True  # noqa: E111
 
 
 def test_build_performance_snapshot_includes_runtime_metadata() -> None:
-  """Performance snapshots expose update counters and webhook posture."""
+  """Performance snapshots expose update counters and webhook posture."""  # noqa: E111
 
-  metrics = DummyMetrics(update_count=5, failed_cycles=1, consecutive_errors=0)
-  adaptive = cast(
+  metrics = DummyMetrics(update_count=5, failed_cycles=1, consecutive_errors=0)  # noqa: E111
+  adaptive = cast(  # noqa: E111
     AdaptivePollingDiagnostics,
     {"current_interval_ms": 120.0, "target_cycle_ms": 180.0},
   )
-  entity_budget = cast(
+  entity_budget = cast(  # noqa: E111
     EntityBudgetSummary,
     {"active_dogs": 1, "peak_utilization": 50.0},
   )
-  webhook_status = cast(
+  webhook_status = cast(  # noqa: E111
     WebhookSecurityStatus,
     {"configured": False, "secure": True, "hmac_ready": False},
   )
 
-  reset_bool_coercion_metrics()
-  record_bool_coercion_event(
+  reset_bool_coercion_metrics()  # noqa: E111
+  record_bool_coercion_event(  # noqa: E111
     value="true",
     default=False,
     result=True,
     reason="truthy_string",
   )
 
-  try:
+  try:  # noqa: E111
     snapshot: CoordinatorPerformanceSnapshot = build_performance_snapshot(
       metrics=metrics,
       adaptive=adaptive,
@@ -285,22 +285,22 @@ def test_build_performance_snapshot_includes_runtime_metadata() -> None:
       last_update_success=True,
       webhook_status=webhook_status,
     )
-  finally:
+  finally:  # noqa: E111
     reset_bool_coercion_metrics()
 
-  assert snapshot["update_counts"]["total"] == 5
-  assert snapshot["performance_metrics"]["current_cycle_ms"] == 120.0
-  assert snapshot["webhook_security"]["secure"] is True
-  assert snapshot["bool_coercion"]["recorded"] is True
+  assert snapshot["update_counts"]["total"] == 5  # noqa: E111
+  assert snapshot["performance_metrics"]["current_cycle_ms"] == 120.0  # noqa: E111
+  assert snapshot["webhook_security"]["secure"] is True  # noqa: E111
+  assert snapshot["bool_coercion"]["recorded"] is True  # noqa: E111
 
 
 def test_entity_budget_tracker_summary_and_saturation() -> None:
-  """Entity budget tracking aggregates utilisation across dogs."""
+  """Entity budget tracking aggregates utilisation across dogs."""  # noqa: E111
 
-  tracker = EntityBudgetTracker()
-  assert tracker.saturation() == 0.0
+  tracker = EntityBudgetTracker()  # noqa: E111
+  assert tracker.saturation() == 0.0  # noqa: E111
 
-  tracker.record(
+  tracker.record(  # noqa: E111
     DummySnapshot(
       dog_id="dog-a",
       capacity=10,
@@ -309,7 +309,7 @@ def test_entity_budget_tracker_summary_and_saturation() -> None:
       requested_entities=("sensor.a",),
     )
   )
-  tracker.record(
+  tracker.record(  # noqa: E111
     DummySnapshot(
       dog_id="dog-b",
       capacity=5,
@@ -319,7 +319,7 @@ def test_entity_budget_tracker_summary_and_saturation() -> None:
     )
   )
 
-  tracker.record(
+  tracker.record(  # noqa: E111
     DummySnapshot(
       dog_id="dog-c",
       capacity=0,
@@ -328,20 +328,20 @@ def test_entity_budget_tracker_summary_and_saturation() -> None:
     )
   )
 
-  summary = tracker.summary()
+  summary = tracker.summary()  # noqa: E111
 
-  assert summary["active_dogs"] == 3
-  assert summary["denied_requests"] == 1
-  assert summary["peak_utilization"] == 100.0
-  assert len(tracker.snapshots()) == 3
-  assert tracker.saturation() == pytest.approx(10 / 15)
+  assert summary["active_dogs"] == 3  # noqa: E111
+  assert summary["denied_requests"] == 1  # noqa: E111
+  assert summary["peak_utilization"] == 100.0  # noqa: E111
+  assert len(tracker.snapshots()) == 3  # noqa: E111
+  assert tracker.saturation() == pytest.approx(10 / 15)  # noqa: E111
 
 
 def test_entity_budget_tracker_handles_zero_capacity() -> None:
-  """Zero capacity snapshots should yield zero saturation."""
+  """Zero capacity snapshots should yield zero saturation."""  # noqa: E111
 
-  tracker = EntityBudgetTracker()
-  tracker.record(
+  tracker = EntityBudgetTracker()  # noqa: E111
+  tracker.record(  # noqa: E111
     DummySnapshot(
       dog_id="dog-zero",
       capacity=0,
@@ -350,13 +350,13 @@ def test_entity_budget_tracker_handles_zero_capacity() -> None:
     )
   )
 
-  assert tracker.saturation() == 0.0
+  assert tracker.saturation() == 0.0  # noqa: E111
 
 
 def test_security_scorecard_reports_failure_reason() -> None:
-  """Failing checks should include the appropriate remediation hints."""
+  """Failing checks should include the appropriate remediation hints."""  # noqa: E111
 
-  scorecard = build_security_scorecard(
+  scorecard = build_security_scorecard(  # noqa: E111
     adaptive=cast(
       AdaptivePollingDiagnostics,
       {"current_interval_ms": 320.0, "target_cycle_ms": 180.0},
@@ -372,17 +372,17 @@ def test_security_scorecard_reports_failure_reason() -> None:
     ),
   )
 
-  assert scorecard["status"] == "fail"
-  assert scorecard["checks"]["adaptive_polling"]["pass"] is False
-  assert "200ms" in scorecard["checks"]["adaptive_polling"]["reason"]
-  assert scorecard["checks"]["entity_budget"]["pass"] is False
-  assert scorecard["checks"]["webhooks"]["pass"] is False
+  assert scorecard["status"] == "fail"  # noqa: E111
+  assert scorecard["checks"]["adaptive_polling"]["pass"] is False  # noqa: E111
+  assert "200ms" in scorecard["checks"]["adaptive_polling"]["reason"]  # noqa: E111
+  assert scorecard["checks"]["entity_budget"]["pass"] is False  # noqa: E111
+  assert scorecard["checks"]["webhooks"]["pass"] is False  # noqa: E111
 
 
 def test_security_scorecard_coerces_invalid_numbers() -> None:
-  """Invalid numeric inputs should be normalised before evaluation."""
+  """Invalid numeric inputs should be normalised before evaluation."""  # noqa: E111
 
-  scorecard = build_security_scorecard(
+  scorecard = build_security_scorecard(  # noqa: E111
     adaptive=cast(
       AdaptivePollingDiagnostics,
       {"current_interval_ms": float("nan"), "target_cycle_ms": -50},
@@ -391,20 +391,20 @@ def test_security_scorecard_coerces_invalid_numbers() -> None:
     webhook_status=cast(WebhookSecurityStatus, {"configured": False}),
   )
 
-  adaptive_check = scorecard["checks"]["adaptive_polling"]
-  assert adaptive_check["pass"] is True
-  assert adaptive_check["target_ms"] == 200.0
+  adaptive_check = scorecard["checks"]["adaptive_polling"]  # noqa: E111
+  assert adaptive_check["pass"] is True  # noqa: E111
+  assert adaptive_check["target_ms"] == 200.0  # noqa: E111
 
-  entity_check = scorecard["checks"]["entity_budget"]
-  assert entity_check["pass"] is False
-  assert entity_check["threshold_percent"] == 95.0
-  assert entity_check["summary"]["peak_utilization"] == "150"
+  entity_check = scorecard["checks"]["entity_budget"]  # noqa: E111
+  assert entity_check["pass"] is False  # noqa: E111
+  assert entity_check["threshold_percent"] == 95.0  # noqa: E111
+  assert entity_check["summary"]["peak_utilization"] == "150"  # noqa: E111
 
 
 def test_security_scorecard_resets_negative_current_interval() -> None:
-  """Negative current intervals should fall back to the target value."""
+  """Negative current intervals should fall back to the target value."""  # noqa: E111
 
-  scorecard = build_security_scorecard(
+  scorecard = build_security_scorecard(  # noqa: E111
     adaptive=cast(
       AdaptivePollingDiagnostics,
       {"current_interval_ms": -10.0, "target_cycle_ms": 180.0},
@@ -413,75 +413,75 @@ def test_security_scorecard_resets_negative_current_interval() -> None:
     webhook_status=cast(WebhookSecurityStatus, {"configured": False}),
   )
 
-  adaptive_check = scorecard["checks"]["adaptive_polling"]
-  assert adaptive_check["current_ms"] == adaptive_check["target_ms"]
-  assert adaptive_check["pass"] is True
+  adaptive_check = scorecard["checks"]["adaptive_polling"]  # noqa: E111
+  assert adaptive_check["current_ms"] == adaptive_check["target_ms"]  # noqa: E111
+  assert adaptive_check["pass"] is True  # noqa: E111
 
 
 def test_normalise_webhook_status_defaults_and_errors() -> None:
-  """Webhook normalisation handles missing managers and raised exceptions."""
+  """Webhook normalisation handles missing managers and raised exceptions."""  # noqa: E111
 
-  class BrokenManager:
+  class BrokenManager:  # noqa: E111
     @staticmethod
     def webhook_security_status() -> dict[str, str]:
-      raise RuntimeError("boom")
+      raise RuntimeError("boom")  # noqa: E111
 
-  error_status = normalise_webhook_status(BrokenManager())
-  assert error_status["configured"] is True
-  assert error_status["secure"] is False
-  assert error_status["error"] == "boom"
+  error_status = normalise_webhook_status(BrokenManager())  # noqa: E111
+  assert error_status["configured"] is True  # noqa: E111
+  assert error_status["secure"] is False  # noqa: E111
+  assert error_status["error"] == "boom"  # noqa: E111
 
-  class WorkingManager:
+  class WorkingManager:  # noqa: E111
     @staticmethod
     def webhook_security_status() -> dict[str, object]:
-      return {
+      return {  # noqa: E111
         "configured": True,
         "secure": True,
         "hmac_ready": True,
         "insecure_configs": "dog-a",
       }
 
-  default_status = normalise_webhook_status(None)
-  assert default_status["configured"] is False
-  assert default_status["secure"] is True
+  default_status = normalise_webhook_status(None)  # noqa: E111
+  assert default_status["configured"] is False  # noqa: E111
+  assert default_status["secure"] is True  # noqa: E111
 
-  working_status = normalise_webhook_status(WorkingManager())
-  assert working_status["insecure_configs"] == ("dog-a",)
-  assert working_status["secure"] is True
+  working_status = normalise_webhook_status(WorkingManager())  # noqa: E111
+  assert working_status["insecure_configs"] == ("dog-a",)  # noqa: E111
+  assert working_status["secure"] is True  # noqa: E111
 
-  class IterableManager:
+  class IterableManager:  # noqa: E111
     @staticmethod
     def webhook_security_status() -> dict[str, object]:
-      return {
+      return {  # noqa: E111
         "configured": True,
         "secure": True,
         "hmac_ready": True,
         "insecure_configs": ["dog-b", "dog-c"],
       }
 
-  iterable_status = normalise_webhook_status(IterableManager())
-  assert iterable_status["insecure_configs"] == ("dog-b", "dog-c")
+  iterable_status = normalise_webhook_status(IterableManager())  # noqa: E111
+  assert iterable_status["insecure_configs"] == ("dog-b", "dog-c")  # noqa: E111
 
-  class GeneratorManager:
+  class GeneratorManager:  # noqa: E111
     @staticmethod
     def webhook_security_status() -> dict[str, object]:
-      return {
+      return {  # noqa: E111
         "configured": True,
         "secure": False,
         "hmac_ready": False,
         "insecure_configs": (config for config in ("dog-d", "dog-e")),
       }
 
-  generator_status = normalise_webhook_status(GeneratorManager())
-  assert generator_status["insecure_configs"] == ("dog-d", "dog-e")
+  generator_status = normalise_webhook_status(GeneratorManager())  # noqa: E111
+  assert generator_status["insecure_configs"] == ("dog-d", "dog-e")  # noqa: E111
 
 
 def test_summarize_entity_budgets_empty_input() -> None:
-  """Summary helper should handle empty iterables gracefully."""
+  """Summary helper should handle empty iterables gracefully."""  # noqa: E111
 
-  summary = summarize_entity_budgets(())
+  summary = summarize_entity_budgets(())  # noqa: E111
 
-  assert summary == {
+  assert summary == {  # noqa: E111
     "active_dogs": 0,
     "total_capacity": 0,
     "total_allocated": 0,

@@ -11,15 +11,15 @@ from .types import JSONLikeMapping, JSONMutableMapping, JSONValue
 
 @dataclass(slots=True, frozen=True)
 class ServiceGuardResult:
-  """Snapshot describing a guarded Home Assistant service invocation."""
+  """Snapshot describing a guarded Home Assistant service invocation."""  # noqa: E111
 
-  domain: str
-  service: str
-  executed: bool
-  reason: str | None = None
-  description: str | None = None
+  domain: str  # noqa: E111
+  service: str  # noqa: E111
+  executed: bool  # noqa: E111
+  reason: str | None = None  # noqa: E111
+  description: str | None = None  # noqa: E111
 
-  def to_mapping(self) -> ServiceGuardResultPayload:
+  def to_mapping(self) -> ServiceGuardResultPayload:  # noqa: E111
     """Return a serialisable mapping for diagnostics exports."""
 
     payload: ServiceGuardResultPayload = {
@@ -29,27 +29,29 @@ class ServiceGuardResult:
     }
 
     if self.reason is not None:
-      payload["reason"] = self.reason
+      payload["reason"] = self.reason  # noqa: E111
 
     if self.description is not None:
-      payload["description"] = self.description
+      payload["description"] = self.description  # noqa: E111
 
     return payload
 
-  def __bool__(self) -> bool:  # pragma: no cover - bool protocol passthrough
+  def __bool__(
+    self,
+  ) -> bool:  # pragma: no cover - bool protocol passthrough  # noqa: E111
     """Allow guard results to be treated as booleans in guard checks."""
 
     return self.executed
 
 
 class ServiceGuardResultPayload(TypedDict, total=False):
-  """JSON-compatible payload describing a guarded service invocation."""
+  """JSON-compatible payload describing a guarded service invocation."""  # noqa: E111
 
-  executed: Required[bool]
-  domain: NotRequired[str]
-  service: NotRequired[str]
-  reason: NotRequired[str]
-  description: NotRequired[str]
+  executed: Required[bool]  # noqa: E111
+  domain: NotRequired[str]  # noqa: E111
+  service: NotRequired[str]  # noqa: E111
+  reason: NotRequired[str]  # noqa: E111
+  description: NotRequired[str]  # noqa: E111
 
 
 type ServiceGuardResultHistory = list[ServiceGuardResultPayload]
@@ -57,21 +59,21 @@ type ServiceGuardResultHistory = list[ServiceGuardResultPayload]
 
 
 class ServiceGuardSummary(TypedDict, total=False):
-  """Aggregated metrics describing guarded Home Assistant service calls."""
+  """Aggregated metrics describing guarded Home Assistant service calls."""  # noqa: E111
 
-  executed: int
-  skipped: int
-  reasons: dict[str, int]
-  results: ServiceGuardResultHistory
+  executed: int  # noqa: E111
+  skipped: int  # noqa: E111
+  reasons: dict[str, int]  # noqa: E111
+  results: ServiceGuardResultHistory  # noqa: E111
 
 
 class ServiceGuardMetricsSnapshot(TypedDict, total=False):
-  """Aggregated runtime metrics for guarded service calls."""
+  """Aggregated runtime metrics for guarded service calls."""  # noqa: E111
 
-  executed: int
-  skipped: int
-  reasons: dict[str, int]
-  last_results: ServiceGuardResultHistory
+  executed: int  # noqa: E111
+  skipped: int  # noqa: E111
+  reasons: dict[str, int]  # noqa: E111
+  last_results: ServiceGuardResultHistory  # noqa: E111
 
 
 TGuardResult = TypeVar("TGuardResult", bound=ServiceGuardResult)
@@ -79,15 +81,15 @@ TGuardResult = TypeVar("TGuardResult", bound=ServiceGuardResult)
 
 @dataclass(slots=True, frozen=True)
 class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
-  """Aggregated telemetry derived from a guard result sequence."""
+  """Aggregated telemetry derived from a guard result sequence."""  # noqa: E111
 
-  results: tuple[TGuardResult, ...]
-  executed: int
-  skipped: int
-  reasons: dict[str, int]
+  results: tuple[TGuardResult, ...]  # noqa: E111
+  executed: int  # noqa: E111
+  skipped: int  # noqa: E111
+  reasons: dict[str, int]  # noqa: E111
 
-  @classmethod
-  def from_sequence(
+  @classmethod  # noqa: E111
+  def from_sequence(  # noqa: E111
     cls,
     results: Sequence[TGuardResult],
   ) -> ServiceGuardSnapshot[TGuardResult]:
@@ -98,15 +100,15 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
     skipped = len(ordered) - executed
     reasons: dict[str, int] = {}
     for entry in ordered:
-      if entry.executed:
+      if entry.executed:  # noqa: E111
         continue
-      reason_key = entry.reason or "unknown"
-      reasons[reason_key] = reasons.get(reason_key, 0) + 1
+      reason_key = entry.reason or "unknown"  # noqa: E111
+      reasons[reason_key] = reasons.get(reason_key, 0) + 1  # noqa: E111
 
     return cls(ordered, executed, skipped, reasons)
 
-  @staticmethod
-  def zero_metrics() -> ServiceGuardMetricsSnapshot:
+  @staticmethod  # noqa: E111
+  def zero_metrics() -> ServiceGuardMetricsSnapshot:  # noqa: E111
     """Return an empty metrics payload for service guard aggregation."""
 
     return {
@@ -116,12 +118,12 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
       "last_results": [],
     }
 
-  def history(self) -> ServiceGuardResultHistory:
+  def history(self) -> ServiceGuardResultHistory:  # noqa: E111
     """Serialise the guard result history for diagnostics exports."""
 
     return [entry.to_mapping() for entry in self.results]
 
-  def to_summary(self) -> ServiceGuardSummary:
+  def to_summary(self) -> ServiceGuardSummary:  # noqa: E111
     """Return a diagnostics summary payload for the aggregated guard data."""
 
     return {
@@ -131,7 +133,7 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
       "results": self.history(),
     }
 
-  def to_metrics(self) -> ServiceGuardMetricsSnapshot:
+  def to_metrics(self) -> ServiceGuardMetricsSnapshot:  # noqa: E111
     """Return a metrics snapshot representing the aggregated guard data."""
 
     metrics = self.zero_metrics()
@@ -141,7 +143,7 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
     metrics["last_results"] = self.history()
     return metrics
 
-  def accumulate(
+  def accumulate(  # noqa: E111
     self,
     metrics: MutableMapping[str, JSONValue],
   ) -> ServiceGuardMetricsSnapshot:
@@ -157,17 +159,17 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
 
     reasons_payload_raw = metrics.get("reasons")
     if isinstance(reasons_payload_raw, MutableMapping):
-      reasons_payload = cast(
+      reasons_payload = cast(  # noqa: E111
         MutableMapping[str, JSONValue],
         reasons_payload_raw,
       )
     else:
-      reasons_payload = cast(JSONMutableMapping, {})
-      metrics["reasons"] = reasons_payload
+      reasons_payload = cast(JSONMutableMapping, {})  # noqa: E111
+      metrics["reasons"] = reasons_payload  # noqa: E111
 
     for reason_key, count in self.reasons.items():
-      existing_value = reasons_payload.get(reason_key)
-      existing = (
+      existing_value = reasons_payload.get(reason_key)  # noqa: E111
+      existing = (  # noqa: E111
         int(existing_value)
         if isinstance(
           existing_value,
@@ -175,19 +177,19 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         )
         else 0
       )
-      reasons_payload[reason_key] = existing + count
+      reasons_payload[reason_key] = existing + count  # noqa: E111
 
     metrics["last_results"] = cast(JSONValue, list(self.history()))
 
     reasons_snapshot = metrics.get("reasons")
     reasons_dict: dict[str, int]
     if isinstance(reasons_snapshot, Mapping):
-      reasons_dict = {
+      reasons_dict = {  # noqa: E111
         key: int(value) if isinstance(value, int | float) else 0
         for key, value in reasons_snapshot.items()
       }
     else:
-      reasons_dict = {}
+      reasons_dict = {}  # noqa: E111
 
     last_results_raw = metrics.get("last_results", [])
     last_results = (
@@ -205,63 +207,63 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
 def normalise_guard_result_payload(
   payload: JSONLikeMapping,
 ) -> ServiceGuardResultPayload:
-  """Return a JSON-compatible payload for a guard result mapping."""
+  """Return a JSON-compatible payload for a guard result mapping."""  # noqa: E111
 
-  result: ServiceGuardResultPayload = {
+  result: ServiceGuardResultPayload = {  # noqa: E111
     "executed": bool(payload.get("executed")),
   }
 
-  domain = payload.get("domain")
-  if isinstance(domain, str) and domain:
+  domain = payload.get("domain")  # noqa: E111
+  if isinstance(domain, str) and domain:  # noqa: E111
     result["domain"] = domain
 
-  service = payload.get("service")
-  if isinstance(service, str) and service:
+  service = payload.get("service")  # noqa: E111
+  if isinstance(service, str) and service:  # noqa: E111
     result["service"] = service
 
-  reason = payload.get("reason")
-  if isinstance(reason, str) and reason:
+  reason = payload.get("reason")  # noqa: E111
+  if isinstance(reason, str) and reason:  # noqa: E111
     result["reason"] = reason
 
-  description = payload.get("description")
-  if isinstance(description, str) and description:
+  description = payload.get("description")  # noqa: E111
+  if isinstance(description, str) and description:  # noqa: E111
     result["description"] = description
 
-  return result
+  return result  # noqa: E111
 
 
 def _coerce_int(value: object) -> int:
-  """Return ``value`` coerced to an ``int`` when safe."""
+  """Return ``value`` coerced to an ``int`` when safe."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     return int(value)
 
-  if isinstance(value, int | float):
+  if isinstance(value, int | float):  # noqa: E111
     return int(value)
 
-  if isinstance(value, str):
+  if isinstance(value, str):  # noqa: E111
     try:
-      return int(value)
+      return int(value)  # noqa: E111
     except ValueError:
-      return 0
+      return 0  # noqa: E111
 
-  return 0
+  return 0  # noqa: E111
 
 
 def normalise_guard_history(payload: Any) -> ServiceGuardResultHistory:
-  """Convert an arbitrary sequence into a guard result history payload."""
+  """Convert an arbitrary sequence into a guard result history payload."""  # noqa: E111
 
-  if not isinstance(payload, Sequence) or isinstance(
+  if not isinstance(payload, Sequence) or isinstance(  # noqa: E111
     payload,
     str | bytes | bytearray,
   ):
     return []
 
-  history: ServiceGuardResultHistory = []
-  for entry in payload:
+  history: ServiceGuardResultHistory = []  # noqa: E111
+  for entry in payload:  # noqa: E111
     if isinstance(entry, ServiceGuardResult):
-      history.append(entry.to_mapping())
+      history.append(entry.to_mapping())  # noqa: E111
     elif isinstance(entry, Mapping):
-      history.append(normalise_guard_result_payload(entry))
+      history.append(normalise_guard_result_payload(entry))  # noqa: E111
 
-  return history
+  return history  # noqa: E111
