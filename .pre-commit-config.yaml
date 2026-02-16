@@ -34,26 +34,26 @@ repos:
           - --full-reorder
           - --keep-updates
           - --force-exclude
-   - repo: https://github.com/pycqa/flake8
-     rev: 4.0.1
-     hooks:
-       - id: flake8
-         additional_dependencies:
-           - flake8-type-checking
-   - repo: https://github.com/hhatto/autopep8
-     rev: v2.3.2
-     hooks:
-       - id: autopep8
-   - repo: https://github.com/PyCQA/flake8
-     rev: 7.3.0
-     hooks:
-       - id: flake8
-   - repo: https://github.com/pre-commit/mirrors-mypy
-     rev: v1.19.1
-     hooks:
-       - id: mypy
-         additional_dependencies: [types-pyyaml]
-         exclude: ^testing/resources/
+  - repo: https://github.com/pycqa/flake8
+    rev: 4.0.1
+    hooks:
+      - id: flake8
+        additional_dependencies:
+          - flake8-type-checking
+  - repo: https://github.com/hhatto/autopep8
+    rev: v2.3.2
+    hooks:
+      - id: autopep8
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-pyyaml]
+        exclude: ^testing/resources/
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:

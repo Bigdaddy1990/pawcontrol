@@ -82,6 +82,7 @@ line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
@@ -105,8 +106,6 @@ unfixable = ["F401"]
 extend-unsafe-fixes = ["E", "F401"]
 extend-select = ["B", "Q"]
 extend-fixable = ["B"]
-# Enable `from __future__ import annotations` imports
-future-annotations = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
