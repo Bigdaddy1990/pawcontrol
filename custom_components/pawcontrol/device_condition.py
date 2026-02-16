@@ -26,9 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from homeassistant.helpers.condition import ConditionCheckerType
   except ImportError:  # noqa: E111
     try:
-      from homeassistant.helpers.typing import (  # noqa: E111
-        ConditionCheckerType,
-      )
+      from homeassistant.helpers.typing import ConditionCheckerType  # noqa: E111
     except ImportError:
       ConditionCheckerType = Callable[..., bool]  # noqa: E111
 else:

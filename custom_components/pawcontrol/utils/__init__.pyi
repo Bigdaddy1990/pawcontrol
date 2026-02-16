@@ -1,7 +1,13 @@
+# ruff: noqa: F403, F405
 """Typing stub for dynamic utils re-exports."""
 
 from ._legacy import *
-from .serialize import serialize_dataclass, serialize_datetime, serialize_entity_attributes, serialize_timedelta
+from .serialize import (
+    serialize_dataclass,
+    serialize_datetime,
+    serialize_entity_attributes,
+    serialize_timedelta,
+)
 
 __all__: list[str] = [
     "ConfigurationValidationResult",
