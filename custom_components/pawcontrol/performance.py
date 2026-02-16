@@ -252,11 +252,9 @@ def track_performance(
 
   @overload
   def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
-    pass
+    ...
 
-  @overload
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
-    pass
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E112, E306
 
   def decorator(
     func: Callable[P, T] | Callable[P, Awaitable[T]],
@@ -301,7 +299,45 @@ def track_performance(
 
     # Return appropriate wrapper
     if inspect.iscoroutinefunction(func):
+      start = time.perf_counter()
+      try:
+        async_func = cast(Callable[P, Awaitable[T]], func)
+        result = await async_func(*args, **kwargs)
+        return result
+      finally:
+        duration_ms = (time.perf_counter() - start) * 1000
+        _performance_monitor.record(metric_name, duration_ms)
       return cast(Callable[P, T], async_wrapper)
+        if log_slow and duration_ms > slow_threshold_ms:
+          _LOGGER.warning(
+            "Slow operation: %s took %.2fms (threshold: %.2fms)",
+            metric_name,
+            duration_ms,
+            slow_threshold_ms,
+          )
+
+    @functools.wraps(func)
+    def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+      start = time.perf_counter()
+      try:
+        return func(*args, **kwargs)
+      finally:
+        duration_ms = (time.perf_counter() - start) * 1000
+        _performance_monitor.record(metric_name, duration_ms)
+
+        if log_slow and duration_ms > slow_threshold_ms:
+          _LOGGER.warning(
+            "Slow operation: %s took %.2fms (threshold: %.2fms)",
+            metric_name,
+            duration_ms,
+            slow_threshold_ms,
+          )
+
+    # Return appropriate wrapper
+    if inspect.iscoroutinefunction(func):
+      return cast(Callable[P, T], async_wrapper)
+    return sync_wrapper
+
     return sync_wrapper
 
   return decorator

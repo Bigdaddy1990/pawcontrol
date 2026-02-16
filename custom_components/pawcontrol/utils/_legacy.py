@@ -845,7 +845,8 @@ async def async_call_add_entities(
   result = add_entities_callback(entities_list, update_before_add)
 
   if inspect.isawaitable(result):
-    await result
+    awaitable_result = cast(Awaitable[Any], result)
+    await awaitable_result
 
 
 async def async_get_or_create_dog_device_entry(

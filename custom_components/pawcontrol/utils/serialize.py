@@ -80,8 +80,10 @@ def serialize_dataclass(obj: Any) -> dict[str, Any]:
       >>> serialize_dataclass(dog)
       {'name': 'Buddy', 'age': 5}
   """
-  if not is_dataclass(obj) or isinstance(obj, type):
-    raise TypeError(f"Expected dataclass, got {type(obj).__name__}")
+if not is_dataclass(obj):
+    raise TypeError(f"Expected dataclass instance, got {type(obj).__name__}")
+if isinstance(obj, type):
+    raise TypeError(f"Expected dataclass instance, but received a class. Did you mean to instantiate it?")
   return asdict(obj)
 
 

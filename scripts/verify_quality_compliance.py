@@ -94,9 +94,7 @@ class QualityVerifier:
         )
 
       # Check for potential non-JSON-serializable returns
-      if has_extra_attrs and re.search(
-        r"return\s+(?!_normalise|normalise).*datetime|timedelta", content
-      ):
+      if has_extra_attrs:  # noqa: SIM102
         # Look for direct datetime/timedelta returns without serialization
         self.issues.append(
           ComplianceIssue(
@@ -192,10 +190,7 @@ class QualityVerifier:
 
       # Check for validation functions outside validation modules
       for keyword in validation_keywords:
-        if keyword in content and not (
-          "from .validation import" in content
-          or "from .flow_validation import" in content
-        ):
+        if keyword in content:  # noqa: SIM102
           # Check if it's using centralized validation or implementing its own
           matches = re.finditer(rf"def {keyword}\w+\(", content)
           for match in matches:
