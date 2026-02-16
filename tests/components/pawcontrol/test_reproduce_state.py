@@ -2,22 +2,25 @@
 
 from __future__ import annotations
 
-
 import pytest
 
 pytest.importorskip("homeassistant")
 
-from homeassistant.components import number as number_component
-from homeassistant.components import select as select_component
-from homeassistant.components import switch as switch_component
-from homeassistant.components import text as text_component
+from homeassistant.components import (
+  number as number_component,
+  select as select_component,
+  switch as switch_component,
+  text as text_component,
+)
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, ServiceCall, State
 
-from custom_components.pawcontrol import number as pawcontrol_number
-from custom_components.pawcontrol import select as pawcontrol_select
-from custom_components.pawcontrol import switch as pawcontrol_switch
-from custom_components.pawcontrol import text as pawcontrol_text
+from custom_components.pawcontrol import (
+  number as pawcontrol_number,
+  select as pawcontrol_select,
+  switch as pawcontrol_switch,
+  text as pawcontrol_text,
+)
 
 # Compatibility constants for different Home Assistant test harness versions.
 ATTR_ENTITY_ID = "entity_id"

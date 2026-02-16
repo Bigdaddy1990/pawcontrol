@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-
-from typing import Protocol
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from homeassistant.config_entries import ConfigFlowResult
 
-from .types import OptionsMainMenuAction
-from .types import OptionsMainMenuInput
-from .types import PUSH_SETTINGS_MENU_ACTION
-
+from .types import (
+  PUSH_SETTINGS_MENU_ACTION,
+  OptionsMainMenuAction,
+  OptionsMainMenuInput,
+)
 
 if TYPE_CHECKING:
 

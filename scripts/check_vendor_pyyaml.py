@@ -9,19 +9,17 @@ schedule without additional dependencies.
 
 from __future__ import annotations
 
-
 import argparse
+from dataclasses import dataclass
 import json
 import os
+from pathlib import Path
 import re
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
+from packaging.version import InvalidVersion, Version
 from pip._vendor import requests
-from packaging.version import InvalidVersion
-from packaging.version import Version
 
 ANNOTATEDYAML_INIT = Path("annotatedyaml/_vendor/yaml/__init__.py")
 PYPI_URL = "https://pypi.org/pypi/PyYAML/json"

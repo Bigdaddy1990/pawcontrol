@@ -2,32 +2,31 @@
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Awaitable, Sequence
 import contextlib
 import json
-from collections.abc import Awaitable
-from collections.abc import Sequence
 from pathlib import Path
-from types import MappingProxyType
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.const import (
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  MODULE_NOTIFICATIONS,
+)
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
-from custom_components.pawcontrol.dashboard_generator import DashboardViewSummary
 from custom_components.pawcontrol.dashboard_generator import (
+  DashboardViewSummary,
   PawControlDashboardGenerator,
 )
-from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
-from custom_components.pawcontrol.dashboard_renderer import HomeAssistantError
+from custom_components.pawcontrol.dashboard_renderer import (
+  DashboardRenderer,
+  HomeAssistantError,
+)
 
 
 def test_copy_dashboard_options_returns_plain_dict() -> None:

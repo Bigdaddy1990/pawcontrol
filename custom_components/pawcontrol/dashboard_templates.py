@@ -11,61 +11,56 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Iterable, Mapping, Sequence
+from datetime import UTC, datetime
+from functools import lru_cache
 import json
 import logging
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from datetime import datetime
-from datetime import UTC
-from functools import lru_cache
 from math import isfinite
-from typing import cast
-from typing import Final
-from typing import NotRequired
-from typing import TypedDict
-from typing import TypeVar
+from typing import Final, NotRequired, TypedDict, TypeVar, cast
 
 from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
-from homeassistant.core import State
+from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.util import dt as dt_util
 
-from .const import DEFAULT_REGULAR_FEEDING_AMOUNT
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_WALK
-from .coordinator_tasks import default_rejection_metrics
-from .coordinator_tasks import derive_rejection_metrics
-from .coordinator_tasks import merge_rejection_metric_values
-from .dashboard_shared import CardCollection
-from .dashboard_shared import CardConfig
-from .dashboard_shared import coerce_dog_configs
-from .service_guard import normalise_guard_history
-from .service_guard import ServiceGuardResultPayload
-from .translation_helpers import async_get_component_translation_lookup
-from .translation_helpers import get_cached_component_translation_lookup
-from .translation_helpers import resolve_component_translation
-from .types import CardModConfig
-from .types import coerce_dog_modules_config
-from .types import CoordinatorRejectionMetrics
-from .types import CoordinatorResilienceSummary
-from .types import CoordinatorStatisticsPayload
-from .types import DogModulesConfig
-from .types import HelperManagerGuardMetrics
-from .types import JSONMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import RawDogConfig
-from .types import TemplateCacheDiagnosticsMetadata
-from .types import TemplateCacheSnapshot
-from .types import TemplateCacheStats
+from .const import (
+  DEFAULT_REGULAR_FEEDING_AMOUNT,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_NOTIFICATIONS,
+  MODULE_WALK,
+)
+from .coordinator_tasks import (
+  default_rejection_metrics,
+  derive_rejection_metrics,
+  merge_rejection_metric_values,
+)
+from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
+from .service_guard import ServiceGuardResultPayload, normalise_guard_history
+from .translation_helpers import (
+  async_get_component_translation_lookup,
+  get_cached_component_translation_lookup,
+  resolve_component_translation,
+)
+from .types import (
+  CardModConfig,
+  CoordinatorRejectionMetrics,
+  CoordinatorResilienceSummary,
+  CoordinatorStatisticsPayload,
+  DogModulesConfig,
+  HelperManagerGuardMetrics,
+  JSONMapping,
+  JSONMutableMapping,
+  JSONValue,
+  RawDogConfig,
+  TemplateCacheDiagnosticsMetadata,
+  TemplateCacheSnapshot,
+  TemplateCacheStats,
+  coerce_dog_modules_config,
+)
 
 type TranslationLookup = tuple[Mapping[str, str], Mapping[str, str]]
 

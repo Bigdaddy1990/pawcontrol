@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
-from typing import cast
-from typing import Literal
-from typing import overload
-from typing import TYPE_CHECKING
-from typing import TypeGuard
+from typing import TYPE_CHECKING, Literal, TypeGuard, cast, overload
 
-from .types import CoordinatorDataPayload
-from .types import CoordinatorDogData
-from .types import CoordinatorModuleLookupResult
-from .types import CoordinatorModuleState
-from .types import CoordinatorRuntimeManagers
-from .types import CoordinatorTypedModuleName
-from .types import CoordinatorUntypedModuleState
-from .types import DogConfigData
+from .types import (
+  CoordinatorDataPayload,
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  CoordinatorModuleState,
+  CoordinatorRuntimeManagers,
+  CoordinatorTypedModuleName,
+  CoordinatorUntypedModuleState,
+  DogConfigData,
+)
 
 _TYPED_MODULES: frozenset[CoordinatorTypedModuleName] = frozenset(
   {"feeding", "garden", "geofencing", "gps", "health", "walk", "weather"},

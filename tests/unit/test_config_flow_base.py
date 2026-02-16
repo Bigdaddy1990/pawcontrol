@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-
 from unittest.mock import MagicMock
 
-import pytest
 from homeassistant.const import CONF_NAME
+import pytest
 
 from custom_components.pawcontrol.config_flow_base import PawControlBaseConfigFlow
-from custom_components.pawcontrol.types import FeedingSizeDefaults
-from custom_components.pawcontrol.types import IntegrationNameValidationResult
+from custom_components.pawcontrol.types import (
+  FeedingSizeDefaults,
+  IntegrationNameValidationResult,
+)
 
 
 class _TestFlow(PawControlBaseConfigFlow):

@@ -2,35 +2,35 @@
 
 from __future__ import annotations
 
-
-import logging
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
-from typing import cast
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
+from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .dog_status import build_dog_status_snapshot
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
-from .types import CoordinatorDogData
-from .types import CoordinatorModuleLookupResult
-from .types import CoordinatorRuntimeManagers
-from .types import CoordinatorUntypedModuleState
-from .types import DogConfigData
-from .types import DogStatusSnapshot
-from .types import JSONMutableMapping
-from .utils import async_call_hass_service_if_available
-from .utils import JSONMappingLike
-from .utils import normalise_entity_attributes
-from .utils import PawControlDeviceLinkMixin
+from .types import (
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  CoordinatorRuntimeManagers,
+  CoordinatorUntypedModuleState,
+  DogConfigData,
+  DogStatusSnapshot,
+  JSONMutableMapping,
+)
+from .utils import (
+  JSONMappingLike,
+  PawControlDeviceLinkMixin,
+  async_call_hass_service_if_available,
+  normalise_entity_attributes,
+)
 
 __all__ = ["PawControlDogEntityBase", "PawControlEntity"]
 

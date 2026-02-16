@@ -6,20 +6,16 @@ Handles coordinator, data manager, notification manager, and all optional manage
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Mapping, Sequence
 import logging
 import time
-from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from ..const import (
-  CONF_DOG_OPTIONS,
-  MODULE_GPS,
-)
+from ..const import CONF_DOG_OPTIONS, MODULE_GPS
 from ..coordinator import PawControlCoordinator
 from ..data_manager import PawControlDataManager
 from ..door_sensor_manager import DoorSensorManager
@@ -34,10 +30,10 @@ from ..notifications import PawControlNotificationManager
 from ..script_manager import PawControlScriptManager
 from ..telemetry import update_runtime_reconfigure_summary
 from ..types import (
-  ConfigEntryDataPayload,
-  ConfigEntryOptionsPayload,
   DOG_ID_FIELD,
   DOG_MODULES_FIELD,
+  ConfigEntryDataPayload,
+  ConfigEntryOptionsPayload,
   DogConfigData,
   JSONLikeMapping,
   PawControlRuntimeData,

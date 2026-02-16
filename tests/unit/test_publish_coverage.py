@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import base64
 import datetime as dt
 import json
@@ -11,7 +10,6 @@ import urllib.error
 import urllib.request
 
 import pytest
-
 from scripts import publish_coverage
 
 

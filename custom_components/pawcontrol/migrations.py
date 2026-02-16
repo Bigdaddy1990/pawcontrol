@@ -2,34 +2,27 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Mapping, Sequence
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
-from typing import Any
-from typing import cast
-from typing import Final
+from typing import Any, Final, cast
 
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_DOG_OPTIONS
-from .const import CONF_DOGS
-from .const import CONF_MODULES
-from .const import CONFIG_ENTRY_VERSION
+from .const import CONF_DOG_OPTIONS, CONF_DOGS, CONF_MODULES, CONFIG_ENTRY_VERSION
 from .exceptions import ValidationError
-from .types import DOG_ID_FIELD
-from .types import DOG_MODULES_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import DogOptionsEntry
-from .types import ensure_dog_modules_config
-from .types import ensure_dog_options_entry
-from .types import MODULE_TOGGLE_KEYS
-from .types import ModuleToggleKey
-from .validation import InputCoercionError
-from .validation import normalize_dog_id
-from .validation import validate_dog_name
+from .types import (
+  DOG_ID_FIELD,
+  DOG_MODULES_FIELD,
+  DOG_NAME_FIELD,
+  MODULE_TOGGLE_KEYS,
+  DogConfigData,
+  DogModulesConfig,
+  DogOptionsEntry,
+  ModuleToggleKey,
+  ensure_dog_modules_config,
+  ensure_dog_options_entry,
+)
+from .validation import InputCoercionError, normalize_dog_id, validate_dog_name
 
 _LOGGER = logging.getLogger(__name__)
 

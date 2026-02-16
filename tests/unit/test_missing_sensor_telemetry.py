@@ -1,18 +1,22 @@
 from __future__ import annotations
+
 from collections.abc import Mapping
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import cast
 
 from homeassistant.util import dt as dt_util
 
-from custom_components.pawcontrol.missing_sensors import calculate_activity_level
-from custom_components.pawcontrol.missing_sensors import calculate_calories_burned_today
-from custom_components.pawcontrol.missing_sensors import calculate_hours_since
-from custom_components.pawcontrol.missing_sensors import derive_next_feeding_time
-from custom_components.pawcontrol.types import FeedingModuleTelemetry
-from custom_components.pawcontrol.types import HealthModulePayload
-from custom_components.pawcontrol.types import WalkModuleTelemetry
+from custom_components.pawcontrol.missing_sensors import (
+  calculate_activity_level,
+  calculate_calories_burned_today,
+  calculate_hours_since,
+  derive_next_feeding_time,
+)
+from custom_components.pawcontrol.types import (
+  FeedingModuleTelemetry,
+  HealthModulePayload,
+  WalkModuleTelemetry,
+)
 
 """Unit tests for the derived PawControl sensor telemetry helpers."""
 

@@ -1,16 +1,14 @@
 from __future__ import annotations
-from collections.abc import Generator
-from collections.abc import Iterable
-from types import TracebackType
-from typing import cast
-from typing import TypeAlias
 
-import pytest
+from collections.abc import Generator, Iterable
+from types import TracebackType
+from typing import TypeAlias, cast
+
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
+import pytest
 
-from custom_components.pawcontrol.api_validator import APIValidator
-from custom_components.pawcontrol.api_validator import JSONValue
+from custom_components.pawcontrol.api_validator import APIValidator, JSONValue
 
 type DummyPayload = dict[str, JSONValue]
 

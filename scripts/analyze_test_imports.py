@@ -7,9 +7,8 @@ that reference internal functions moved to setup modules.
 
 from __future__ import annotations
 
-
-import re
 from pathlib import Path
+import re
 from typing import NamedTuple
 
 

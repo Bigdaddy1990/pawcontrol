@@ -11,14 +11,10 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
+from collections.abc import Callable
 import functools
 import logging
-from collections.abc import Callable
-from typing import Any
-from typing import ParamSpec
-from typing import TYPE_CHECKING
-from typing import TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 if TYPE_CHECKING:
   from .coordinator import PawControlCoordinator

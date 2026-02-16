@@ -2,26 +2,16 @@
 
 from __future__ import annotations
 
-
-import inspect
-import sys
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Coroutine
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import UTC
+from datetime import UTC, datetime
 from enum import Enum
+import inspect
 from itertools import count
+import sys
 from types import ModuleType
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import TypeVar
+from typing import Any, Final, TypeVar, cast
 
 type JSONPrimitive = None | bool | int | float | str
 """Primitive JSON-compatible value."""

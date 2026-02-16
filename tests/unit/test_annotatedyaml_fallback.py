@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-
 import builtins
-import importlib.machinery
-import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+import importlib.machinery
 from pathlib import Path
+import sys
 from types import ModuleType
 from unittest.mock import patch
 

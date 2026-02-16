@@ -9,17 +9,13 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
+from datetime import UTC, datetime, timedelta
 import json
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
 from unittest.mock import Mock
 
 import pytest
 
-from custom_components.pawcontrol.types import WalkRoutePoint
-from custom_components.pawcontrol.types import WalkSessionSnapshot
+from custom_components.pawcontrol.types import WalkRoutePoint, WalkSessionSnapshot
 from custom_components.pawcontrol.walk_manager import dt_util as walk_dt_util
 
 if not hasattr(walk_dt_util, "UTC"):

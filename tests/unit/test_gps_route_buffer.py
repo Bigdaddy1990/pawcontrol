@@ -1,10 +1,8 @@
 from __future__ import annotations
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
 
-from custom_components.pawcontrol.types import GPSRouteBuffer
-from custom_components.pawcontrol.types import GPSRoutePoint
+from datetime import UTC, datetime, timedelta
+
+from custom_components.pawcontrol.types import GPSRouteBuffer, GPSRoutePoint
 
 
 def _make_point(ts: datetime, *, latitude: float) -> GPSRoutePoint:

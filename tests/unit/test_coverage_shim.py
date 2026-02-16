@@ -2,25 +2,20 @@
 
 from __future__ import annotations
 
-
 import contextlib
+from functools import lru_cache
 import importlib.util
 import io
 import json
 import os
+from pathlib import Path
 import sys
 import types
-from functools import lru_cache
-from pathlib import Path
-from types import CodeType
-from types import FrameType
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
-
-import pytest
+from types import CodeType, FrameType
+from unittest.mock import MagicMock, Mock, patch
 
 import coverage
+import pytest
 
 try:
   from coverage import _compile_cached

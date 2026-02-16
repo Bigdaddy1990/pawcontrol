@@ -6,19 +6,20 @@ and manager registration system.
 
 from __future__ import annotations
 
-
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.pawcontrol.base_manager import BaseManager
-from custom_components.pawcontrol.base_manager import DataManager
-from custom_components.pawcontrol.base_manager import EventManager
-from custom_components.pawcontrol.base_manager import get_registered_managers
-from custom_components.pawcontrol.base_manager import ManagerLifecycleError
-from custom_components.pawcontrol.base_manager import register_manager
-from custom_components.pawcontrol.base_manager import setup_managers
-from custom_components.pawcontrol.base_manager import shutdown_managers
+from custom_components.pawcontrol.base_manager import (
+  BaseManager,
+  DataManager,
+  EventManager,
+  ManagerLifecycleError,
+  get_registered_managers,
+  register_manager,
+  setup_managers,
+  shutdown_managers,
+)
 
 
 class DummyManager(BaseManager):

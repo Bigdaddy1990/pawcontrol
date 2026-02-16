@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
 from typing import Final
 
 from homeassistant.core import HomeAssistant
 
-from .translation_helpers import get_cached_component_translation_lookup
-from .translation_helpers import resolve_component_translation
+from .translation_helpers import (
+  get_cached_component_translation_lookup,
+  resolve_component_translation,
+)
 
 GROOMING_LABEL_TRANSLATION_KEYS: Final[Mapping[str, str]] = {
   "button_action": "grooming_label_button_action",

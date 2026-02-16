@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-
-import json
-import os
-import platform
-import sys
-import time
 from collections import defaultdict
 from collections.abc import Iterable
 from functools import lru_cache
+import json
+import os
 from pathlib import Path
-from types import CodeType
-from types import FrameType
-from typing import Any
-from typing import Protocol
+import platform
+import sys
+import time
+from types import CodeType, FrameType
+from typing import Any, Protocol
 
 
 class TraceFunc(Protocol):

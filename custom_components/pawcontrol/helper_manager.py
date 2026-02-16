@@ -14,67 +14,64 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
-import logging
 from collections import deque
-from collections.abc import Callable
-from collections.abc import Collection
-from collections.abc import Mapping
-from collections.abc import Sequence
-from dataclasses import dataclass
-from dataclasses import field
+from collections.abc import Callable, Collection, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import cast
-from typing import Final
+import logging
+from typing import Final, cast
 
-from homeassistant.components import input_boolean
-from homeassistant.components import input_datetime
-from homeassistant.components import input_number
-from homeassistant.components import input_select
+from homeassistant.components import (
+  input_boolean,
+  input_datetime,
+  input_number,
+  input_select,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
-from homeassistant.util import dt as dt_util
-from homeassistant.util import slugify
+from homeassistant.util import dt as dt_util, slugify
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOGS
-from .const import CONF_MODULES
-from .const import DEFAULT_RESET_TIME
-from .const import HEALTH_STATUS_OPTIONS
-from .const import MEAL_TYPES
-from .const import MODULE_FEEDING
-from .const import MODULE_HEALTH
-from .const import MODULE_MEDICATION
+from .const import (
+  CONF_DOG_ID,
+  CONF_DOGS,
+  CONF_MODULES,
+  DEFAULT_RESET_TIME,
+  HEALTH_STATUS_OPTIONS,
+  MEAL_TYPES,
+  MODULE_FEEDING,
+  MODULE_HEALTH,
+  MODULE_MEDICATION,
+)
 from .coordinator_support import CacheMonitorRegistrar
 from .grooming_translations import translated_grooming_template
-from .service_guard import ServiceGuardResult
-from .service_guard import ServiceGuardResultPayload
-from .types import CacheDiagnosticsMetadata
-from .types import CacheDiagnosticsSnapshot
-from .types import DOG_ID_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import DogHelperAssignments
-from .types import DogModulesConfig
-from .types import ensure_dog_config_data
-from .types import ensure_dog_modules_config
-from .types import HelperEntityMetadata
-from .types import HelperEntityMetadataMapping
-from .types import HelperManagerGuardMetrics
-from .types import HelperManagerSnapshot
-from .types import HelperManagerStats
-from .types import InputBooleanCreateServiceData
-from .types import InputDatetimeCreateServiceData
-from .types import InputNumberCreateServiceData
-from .types import InputSelectCreateServiceData
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import MODULE_TOGGLE_KEYS
-from .types import ModuleToggleKey
+from .service_guard import ServiceGuardResult, ServiceGuardResultPayload
+from .types import (
+  DOG_ID_FIELD,
+  DOG_NAME_FIELD,
+  MODULE_TOGGLE_KEYS,
+  CacheDiagnosticsMetadata,
+  CacheDiagnosticsSnapshot,
+  DogConfigData,
+  DogHelperAssignments,
+  DogModulesConfig,
+  HelperEntityMetadata,
+  HelperEntityMetadataMapping,
+  HelperManagerGuardMetrics,
+  HelperManagerSnapshot,
+  HelperManagerStats,
+  InputBooleanCreateServiceData,
+  InputDatetimeCreateServiceData,
+  InputNumberCreateServiceData,
+  InputSelectCreateServiceData,
+  JSONMutableMapping,
+  JSONValue,
+  ModuleToggleKey,
+  ensure_dog_config_data,
+  ensure_dog_modules_config,
+)
 from .utils import async_call_hass_service_if_available
 
 _LOGGER = logging.getLogger(__name__)

@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-
 from datetime import timedelta
 
 from homeassistant.util import dt as dt_util
 
-from custom_components.pawcontrol.health_enhancements import DewormingRecord
-from custom_components.pawcontrol.health_enhancements import DewormingType
-from custom_components.pawcontrol.health_enhancements import EnhancedHealthCalculator
-from custom_components.pawcontrol.health_enhancements import EnhancedHealthProfile
-from custom_components.pawcontrol.health_enhancements import VaccinationRecord
-from custom_components.pawcontrol.health_enhancements import VaccinationType
+from custom_components.pawcontrol.health_enhancements import (
+  DewormingRecord,
+  DewormingType,
+  EnhancedHealthCalculator,
+  EnhancedHealthProfile,
+  VaccinationRecord,
+  VaccinationType,
+)
 
 
 def test_update_health_status_generates_typed_entries() -> None:

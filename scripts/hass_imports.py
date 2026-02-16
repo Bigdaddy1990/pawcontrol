@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-
-import re
 from dataclasses import dataclass
+import re
 
 from astroid import nodes
 from pylint.checkers import BaseChecker

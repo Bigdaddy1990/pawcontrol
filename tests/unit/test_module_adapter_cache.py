@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-
+from datetime import UTC, datetime, timedelta
 import importlib.util
-import sys
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
 from pathlib import Path
+import sys
 from types import ModuleType
 
 import pytest

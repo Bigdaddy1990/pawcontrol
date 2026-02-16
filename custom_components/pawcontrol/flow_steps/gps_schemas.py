@@ -2,39 +2,42 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
 
 import voluptuous as vol
 
-from ..const import CONF_GPS_SOURCE
-from ..const import DEFAULT_GPS_ACCURACY_FILTER
-from ..const import DEFAULT_GPS_DISTANCE_FILTER
-from ..const import DEFAULT_GPS_UPDATE_INTERVAL
-from ..const import GPS_ACCURACY_FILTER_SELECTOR
-from ..const import GPS_UPDATE_INTERVAL_SELECTOR
-from ..const import MAX_GEOFENCE_RADIUS
-from ..const import MIN_GEOFENCE_RADIUS
+from ..const import (
+  CONF_GPS_SOURCE,
+  DEFAULT_GPS_ACCURACY_FILTER,
+  DEFAULT_GPS_DISTANCE_FILTER,
+  DEFAULT_GPS_UPDATE_INTERVAL,
+  GPS_ACCURACY_FILTER_SELECTOR,
+  GPS_UPDATE_INTERVAL_SELECTOR,
+  MAX_GEOFENCE_RADIUS,
+  MIN_GEOFENCE_RADIUS,
+)
 from ..selector_shim import selector
-from ..types import AUTO_TRACK_WALKS_FIELD
-from ..types import GEOFENCE_ALERTS_FIELD
-from ..types import GEOFENCE_ENABLED_FIELD
-from ..types import GEOFENCE_LAT_FIELD
-from ..types import GEOFENCE_LON_FIELD
-from ..types import GEOFENCE_RADIUS_FIELD
-from ..types import GEOFENCE_RESTRICTED_ZONE_FIELD
-from ..types import GEOFENCE_SAFE_ZONE_FIELD
-from ..types import GEOFENCE_USE_HOME_FIELD
-from ..types import GEOFENCE_ZONE_ENTRY_FIELD
-from ..types import GEOFENCE_ZONE_EXIT_FIELD
-from ..types import GeofenceOptions
-from ..types import GPS_ACCURACY_FILTER_FIELD
-from ..types import GPS_DISTANCE_FILTER_FIELD
-from ..types import GPS_ENABLED_FIELD
-from ..types import GPS_UPDATE_INTERVAL_FIELD
-from ..types import GPSOptions
-from ..types import ROUTE_HISTORY_DAYS_FIELD
-from ..types import ROUTE_RECORDING_FIELD
+from ..types import (
+  AUTO_TRACK_WALKS_FIELD,
+  GEOFENCE_ALERTS_FIELD,
+  GEOFENCE_ENABLED_FIELD,
+  GEOFENCE_LAT_FIELD,
+  GEOFENCE_LON_FIELD,
+  GEOFENCE_RADIUS_FIELD,
+  GEOFENCE_RESTRICTED_ZONE_FIELD,
+  GEOFENCE_SAFE_ZONE_FIELD,
+  GEOFENCE_USE_HOME_FIELD,
+  GEOFENCE_ZONE_ENTRY_FIELD,
+  GEOFENCE_ZONE_EXIT_FIELD,
+  GPS_ACCURACY_FILTER_FIELD,
+  GPS_DISTANCE_FILTER_FIELD,
+  GPS_ENABLED_FIELD,
+  GPS_UPDATE_INTERVAL_FIELD,
+  ROUTE_HISTORY_DAYS_FIELD,
+  ROUTE_RECORDING_FIELD,
+  GeofenceOptions,
+  GPSOptions,
+)
 from .gps_helpers import build_gps_source_options
 
 

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-
 import argparse
 
-import pytest
 from pip._vendor.packaging.version import Version
-
+import pytest
 from scripts import check_vendor_pyyaml as module
 
 

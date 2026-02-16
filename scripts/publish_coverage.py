@@ -2,24 +2,20 @@
 
 from __future__ import annotations
 
-
 import argparse
 import base64
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 import importlib.util
 import json
 import os
+from pathlib import Path
 import tarfile
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as StdlibET
-from collections.abc import Iterable
-from collections.abc import Sequence
-from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
-from pathlib import Path
 
 if importlib.util.find_spec("defusedxml") is not None:
   ET = importlib.import_module("defusedxml.ElementTree")

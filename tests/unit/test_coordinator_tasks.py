@@ -1,21 +1,23 @@
 from __future__ import annotations
+
 from collections.abc import Mapping
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
-import pytest
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.pawcontrol import coordinator_tasks as tasks
 from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
-from custom_components.pawcontrol.telemetry import record_bool_coercion_event
-from custom_components.pawcontrol.telemetry import reset_bool_coercion_metrics
-from custom_components.pawcontrol.types import AdaptivePollingDiagnostics
-from custom_components.pawcontrol.types import CacheRepairAggregate
-from custom_components.pawcontrol.types import EntityBudgetSummary
+from custom_components.pawcontrol.telemetry import (
+  record_bool_coercion_event,
+  reset_bool_coercion_metrics,
+)
+from custom_components.pawcontrol.types import (
+  AdaptivePollingDiagnostics,
+  CacheRepairAggregate,
+  EntityBudgetSummary,
+)
 
 
 def _patch_runtime_store(

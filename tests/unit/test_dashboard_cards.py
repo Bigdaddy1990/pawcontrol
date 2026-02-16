@@ -1,13 +1,18 @@
 from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.pawcontrol.dashboard_cards import _resolve_dashboard_theme_option
-from custom_components.pawcontrol.dashboard_cards import BaseCardGenerator
+from custom_components.pawcontrol.dashboard_cards import (
+  BaseCardGenerator,
+  _resolve_dashboard_theme_option,
+)
 from custom_components.pawcontrol.dashboard_templates import DashboardTemplates
-from custom_components.pawcontrol.types import DashboardCardOptions
-from custom_components.pawcontrol.types import DashboardCardPerformanceStats
+from custom_components.pawcontrol.types import (
+  DashboardCardOptions,
+  DashboardCardPerformanceStats,
+)
 
 
 async def test_performance_stats_returns_copy(hass: HomeAssistant) -> None:

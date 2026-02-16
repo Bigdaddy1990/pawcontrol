@@ -2,63 +2,63 @@
 
 from __future__ import annotations
 
-
 import asyncio
-import json
 from collections import deque
-from collections.abc import Callable
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
+import json
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-import pytest
 from homeassistant import const as ha_const
 from homeassistant.components.script.const import CONF_FIELDS
-from homeassistant.const import CONF_ALIAS
-from homeassistant.const import CONF_DEFAULT
-from homeassistant.const import STATE_OFF
-from homeassistant.const import STATE_ON
+from homeassistant.const import CONF_ALIAS, CONF_DEFAULT, STATE_OFF, STATE_ON
 from homeassistant.core import Event
-from homeassistant.util import dt as dt_util
-from homeassistant.util import slugify as ha_slugify
+from homeassistant.util import dt as dt_util, slugify as ha_slugify
+import pytest
 
-from custom_components.pawcontrol.const import CACHE_TIMESTAMP_STALE_THRESHOLD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_MEDICATION
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator_support import bind_runtime_managers
-from custom_components.pawcontrol.coordinator_support import CacheMonitorRegistrar
-from custom_components.pawcontrol.coordinator_support import CacheMonitorTarget
-from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
+from custom_components.pawcontrol.const import (
+  CACHE_TIMESTAMP_STALE_THRESHOLD,
+  MODULE_FEEDING,
+  MODULE_HEALTH,
+  MODULE_MEDICATION,
+  MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator_support import (
+  CacheMonitorRegistrar,
+  CacheMonitorTarget,
+  CoordinatorMetrics,
+  bind_runtime_managers,
+)
 from custom_components.pawcontrol.data_manager import PawControlDataManager
-from custom_components.pawcontrol.door_sensor_manager import DoorSensorConfig
-from custom_components.pawcontrol.door_sensor_manager import DoorSensorManager
-from custom_components.pawcontrol.door_sensor_manager import WALK_STATE_ACTIVE
-from custom_components.pawcontrol.door_sensor_manager import WalkDetectionState
+from custom_components.pawcontrol.door_sensor_manager import (
+  WALK_STATE_ACTIVE,
+  DoorSensorConfig,
+  DoorSensorManager,
+  WalkDetectionState,
+)
 from custom_components.pawcontrol.helper_manager import PawControlHelperManager
 from custom_components.pawcontrol.script_manager import PawControlScriptManager
-from custom_components.pawcontrol.types import ConfigEntryDataPayload
-from custom_components.pawcontrol.types import CoordinatorRuntimeManagers
-from custom_components.pawcontrol.types import FeedingData
-from custom_components.pawcontrol.types import HelperEntityMetadata
-from custom_components.pawcontrol.types import JSONMutableMapping
-from custom_components.pawcontrol.types import PawControlOptionsData
+from custom_components.pawcontrol.types import (
+  ConfigEntryDataPayload,
+  CoordinatorRuntimeManagers,
+  FeedingData,
+  HelperEntityMetadata,
+  JSONMutableMapping,
+  PawControlOptionsData,
+)
 
 if TYPE_CHECKING:
+  from homeassistant.core import HomeAssistant
+
   from custom_components.pawcontrol.feeding_manager import FeedingManager
   from custom_components.pawcontrol.garden_manager import GardenManager
   from custom_components.pawcontrol.gps_manager import GPSGeofenceManager
   from custom_components.pawcontrol.notifications import PawControlNotificationManager
   from custom_components.pawcontrol.walk_manager import WalkManager
   from custom_components.pawcontrol.weather_manager import WeatherHealthManager
-  from homeassistant.core import HomeAssistant
 
 
 if hasattr(ha_slugify, "slugify"):

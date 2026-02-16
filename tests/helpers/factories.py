@@ -10,26 +10,24 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
-import uuid
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
+import uuid
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from custom_components.pawcontrol.const import CONF_API_ENDPOINT
-from custom_components.pawcontrol.const import CONF_API_TOKEN
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_WALK
-
+from custom_components.pawcontrol.const import (
+  CONF_API_ENDPOINT,
+  CONF_API_TOKEN,
+  CONF_DOGS,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_WALK,
+)
 
 # Domain constants
 TEST_ENTRY_ID = "test_entry_id"

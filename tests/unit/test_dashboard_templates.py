@@ -1,33 +1,38 @@
 from __future__ import annotations
-import logging
+
 from collections.abc import Sequence
-from datetime import datetime
-from datetime import UTC
+from datetime import UTC, datetime
+import logging
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.const import (
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_NOTIFICATIONS,
+  MODULE_VISITOR,
+  MODULE_WALK,
+)
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
-from custom_components.pawcontrol.dashboard_cards import _coerce_map_options
-from custom_components.pawcontrol.dashboard_cards import HealthAwareFeedingCardGenerator
-from custom_components.pawcontrol.dashboard_cards import ModuleCardGenerator
-from custom_components.pawcontrol.dashboard_cards import OverviewCardGenerator
-from custom_components.pawcontrol.dashboard_cards import StatisticsCardGenerator
-from custom_components.pawcontrol.dashboard_cards import WeatherCardGenerator
-from custom_components.pawcontrol.dashboard_templates import DashboardTemplates
-from custom_components.pawcontrol.dashboard_templates import DEFAULT_MAP_HOURS_TO_SHOW
-from custom_components.pawcontrol.dashboard_templates import DEFAULT_MAP_ZOOM
-from custom_components.pawcontrol.types import DogConfigData
-from custom_components.pawcontrol.types import ensure_dog_modules_config
+from custom_components.pawcontrol.dashboard_cards import (
+  HealthAwareFeedingCardGenerator,
+  ModuleCardGenerator,
+  OverviewCardGenerator,
+  StatisticsCardGenerator,
+  WeatherCardGenerator,
+  _coerce_map_options,
+)
+from custom_components.pawcontrol.dashboard_templates import (
+  DEFAULT_MAP_HOURS_TO_SHOW,
+  DEFAULT_MAP_ZOOM,
+  DashboardTemplates,
+)
+from custom_components.pawcontrol.types import DogConfigData, ensure_dog_modules_config
 
 
 @pytest.mark.asyncio

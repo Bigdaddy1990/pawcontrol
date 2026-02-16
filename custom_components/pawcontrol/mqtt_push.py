@@ -7,22 +7,22 @@ strict per-dog source matching happens in push_router.py.
 
 from __future__ import annotations
 
-
 import json
 import logging
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_DOGS
-from .const import CONF_GPS_SOURCE
-from .const import CONF_MQTT_ENABLED
-from .const import CONF_MQTT_TOPIC
-from .const import DEFAULT_MQTT_ENABLED
-from .const import DEFAULT_MQTT_TOPIC
-from .const import DOMAIN
+from .const import (
+  CONF_DOGS,
+  CONF_GPS_SOURCE,
+  CONF_MQTT_ENABLED,
+  CONF_MQTT_TOPIC,
+  DEFAULT_MQTT_ENABLED,
+  DEFAULT_MQTT_TOPIC,
+  DOMAIN,
+)
 from .push_router import async_process_gps_push
 
 _LOGGER = logging.getLogger(__name__)

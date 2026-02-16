@@ -2,22 +2,24 @@
 
 from __future__ import annotations
 
-
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.pawcontrol.geofencing import calculate_distance
-from custom_components.pawcontrol.geofencing import GeofenceEvent
-from custom_components.pawcontrol.geofencing import GeofenceType
-from custom_components.pawcontrol.geofencing import GeofenceZone
-from custom_components.pawcontrol.geofencing import PawControlGeofencing
-from custom_components.pawcontrol.types import GeofenceZoneMetadata
-from custom_components.pawcontrol.types import GeofenceZoneStoragePayload
-from custom_components.pawcontrol.types import GPSLocation
+from custom_components.pawcontrol.geofencing import (
+  GeofenceEvent,
+  GeofenceType,
+  GeofenceZone,
+  PawControlGeofencing,
+  calculate_distance,
+)
+from custom_components.pawcontrol.types import (
+  GeofenceZoneMetadata,
+  GeofenceZoneStoragePayload,
+  GPSLocation,
+)
 
 
 @pytest.mark.unit

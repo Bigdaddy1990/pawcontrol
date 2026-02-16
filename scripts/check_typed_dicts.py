@@ -19,11 +19,9 @@ Exit codes:
 
 from __future__ import annotations
 
-
 import ast
-import sys
 from pathlib import Path
-
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "custom_components" / "pawcontrol"

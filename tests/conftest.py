@@ -10,22 +10,19 @@ diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 
 from __future__ import annotations
 
-
 import asyncio
 from collections.abc import Callable
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
-from typing import Any
-from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
+from unittest.mock import AsyncMock, Mock
 
-import pytest
 from aiohttp import ClientSession
+import pytest
 
-from tests.helpers.homeassistant_test_stubs import HomeAssistant as StubHomeAssistant
-from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
+from tests.helpers.homeassistant_test_stubs import (
+  HomeAssistant as StubHomeAssistant,
+  install_homeassistant_stubs,
+)
 
 install_homeassistant_stubs()
 
@@ -39,17 +36,16 @@ from custom_components.pawcontrol.types import (
   FeedingManagerDogSetupPayload,
   JSONMutableMapping,
 )
-
 from tests.helpers import typed_deepcopy
 
-
 if TYPE_CHECKING:
+  from homeassistant.config_entries import ConfigEntry
+
   from custom_components.pawcontrol.feeding_manager import (
     FeedingBatchEntry,
     FeedingManager,
   )
   from custom_components.pawcontrol.walk_manager import WalkManager
-  from homeassistant.config_entries import ConfigEntry
 
 
 pytest_plugins = (

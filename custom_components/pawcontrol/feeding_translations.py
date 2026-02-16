@@ -2,34 +2,20 @@
 
 from __future__ import annotations
 
-
-import json
 from collections import UserString
-from collections.abc import Collection
-from collections.abc import Iterable
-from collections.abc import Iterator
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from itertools import islice
+import json
 from math import isfinite
 from numbers import Real
-from os import fspath
-from os import PathLike
+from os import PathLike, fspath
 from pathlib import Path
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import overload
-from typing import TYPE_CHECKING
-from typing import TypeVar
+from typing import TYPE_CHECKING, Any, Final, TypeVar, cast, overload
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
 
-  from .types import (
-    FeedingComplianceDisplayMapping,
-    FeedingComplianceLocalizedSummary,
-  )
+  from .types import FeedingComplianceDisplayMapping, FeedingComplianceLocalizedSummary
 
 from .translation_helpers import (
   async_get_component_translation_lookup,

@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-
 from types import SimpleNamespace
 
 import pytest
 
 from custom_components.pawcontrol.exceptions import ValidationError
-from custom_components.pawcontrol.validation import validate_gps_source
-from custom_components.pawcontrol.validation import validate_notify_service
+from custom_components.pawcontrol.validation import (
+  validate_gps_source,
+  validate_notify_service,
+)
 
 
 class _FakeStates(dict[str, SimpleNamespace]):

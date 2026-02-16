@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-
 import ast
+from collections.abc import Generator
 import contextlib
 import json
-from collections.abc import Generator
 from typing import Any
 
 

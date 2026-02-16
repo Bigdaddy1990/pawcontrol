@@ -1,11 +1,9 @@
 from __future__ import annotations
-import json
+
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, date, datetime, timedelta
+import json
 from typing import cast
 
 import pytest

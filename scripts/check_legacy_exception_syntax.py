@@ -6,10 +6,9 @@ Python 3 AST parsing and hassfest validation.
 
 from __future__ import annotations
 
-
 import argparse
-import re
 from pathlib import Path
+import re
 
 LEGACY_EXCEPT_PATTERN = re.compile(
   r"^(?P<indent>\s*)except\s+(?!\()"

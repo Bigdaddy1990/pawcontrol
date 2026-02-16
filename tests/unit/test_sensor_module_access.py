@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.sensor import PawControlSensorBase
-from custom_components.pawcontrol.types import CoordinatorDogData
-from custom_components.pawcontrol.types import CoordinatorModuleLookupResult
-from custom_components.pawcontrol.types import CoordinatorModuleState
+from custom_components.pawcontrol.types import (
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  CoordinatorModuleState,
+)
 
 
 class _CoordinatorStub:

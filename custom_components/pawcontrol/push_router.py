@@ -10,35 +10,32 @@ Telemetry is intentionally non-sensitive (no coordinates).
 
 from __future__ import annotations
 
-
-import logging
-import time
 from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import Literal
-from typing import TypedDict
+import logging
+import time
+from typing import Any, Final, Literal, TypedDict, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOGS
-from .const import CONF_GPS_SOURCE
-from .const import CONF_PUSH_NONCE_TTL_SECONDS
-from .const import CONF_PUSH_PAYLOAD_MAX_BYTES
-from .const import CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE
-from .const import CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE
-from .const import CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE
-from .const import DEFAULT_PUSH_NONCE_TTL_SECONDS
-from .const import DEFAULT_PUSH_PAYLOAD_MAX_BYTES
-from .const import DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE
-from .const import DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE
-from .const import DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE
-from .const import DOMAIN
+from .const import (
+  CONF_DOGS,
+  CONF_GPS_SOURCE,
+  CONF_PUSH_NONCE_TTL_SECONDS,
+  CONF_PUSH_PAYLOAD_MAX_BYTES,
+  CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+  DEFAULT_PUSH_NONCE_TTL_SECONDS,
+  DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
+  DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+  DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+  DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+  DOMAIN,
+)
 from .runtime_data import require_runtime_data
 
 _LOGGER = logging.getLogger(__name__)

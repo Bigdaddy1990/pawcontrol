@@ -2,57 +2,45 @@
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Callable, Iterable, Mapping, Sequence
 import contextlib
-import logging
-from collections.abc import Callable
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import date
-from datetime import datetime
-from datetime import time
-from datetime import timedelta
+from dataclasses import dataclass, field
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from functools import partial
+import logging
 from time import perf_counter
-from typing import Any
-from typing import cast
-from typing import Literal
-from typing import NotRequired
-from typing import Required
-from typing import TypedDict
-from typing import TypeVar
+from typing import Any, Literal, NotRequired, Required, TypedDict, TypeVar, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .types import DietValidationResult
-from .types import FeedingDailyStats
-from .types import FeedingDietValidationSummary
-from .types import FeedingEmergencyState
-from .types import FeedingEventRecord
-from .types import FeedingGoalSettings
-from .types import FeedingHealthContext
-from .types import FeedingHealthStatus
-from .types import FeedingHealthSummary
-from .types import FeedingHistoryAnalysis
-from .types import FeedingHistoryEvent
-from .types import FeedingManagerDogSetupPayload
-from .types import FeedingMissedMeal
-from .types import FeedingSnapshot
-from .types import FeedingSnapshotCache
-from .types import FeedingStatisticsCache
-from .types import FeedingStatisticsSnapshot
-from .types import HealthFeedingInsights
-from .types import HealthMetricsOverride
-from .types import HealthReport
-from .types import JSONLikeMapping
-from .types import JSONMapping
-from .types import JSONMutableMapping
+from .types import (
+  DietValidationResult,
+  FeedingDailyStats,
+  FeedingDietValidationSummary,
+  FeedingEmergencyState,
+  FeedingEventRecord,
+  FeedingGoalSettings,
+  FeedingHealthContext,
+  FeedingHealthStatus,
+  FeedingHealthSummary,
+  FeedingHistoryAnalysis,
+  FeedingHistoryEvent,
+  FeedingManagerDogSetupPayload,
+  FeedingMissedMeal,
+  FeedingSnapshot,
+  FeedingSnapshotCache,
+  FeedingStatisticsCache,
+  FeedingStatisticsSnapshot,
+  HealthFeedingInsights,
+  HealthMetricsOverride,
+  HealthReport,
+  JSONLikeMapping,
+  JSONMapping,
+  JSONMutableMapping,
+)
 from .utils import is_number
 
 # Support running as standalone module in tests

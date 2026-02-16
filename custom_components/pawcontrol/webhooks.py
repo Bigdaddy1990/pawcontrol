@@ -5,27 +5,26 @@ This enables a real push path without relying on periodic polling.
 
 from __future__ import annotations
 
-
+from collections.abc import Mapping
 import json
 import logging
-from collections.abc import Mapping
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
-from homeassistant.components.webhook import async_register
-from homeassistant.components.webhook import async_unregister
+from homeassistant.components.webhook import async_register, async_unregister
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_DOGS
-from .const import CONF_GPS_SOURCE
-from .const import CONF_WEBHOOK_ENABLED
-from .const import CONF_WEBHOOK_ID
-from .const import CONF_WEBHOOK_REQUIRE_SIGNATURE
-from .const import CONF_WEBHOOK_SECRET
-from .const import DEFAULT_WEBHOOK_ENABLED
-from .const import DEFAULT_WEBHOOK_REQUIRE_SIGNATURE
-from .const import DOMAIN
+from .const import (
+  CONF_DOGS,
+  CONF_GPS_SOURCE,
+  CONF_WEBHOOK_ENABLED,
+  CONF_WEBHOOK_ID,
+  CONF_WEBHOOK_REQUIRE_SIGNATURE,
+  CONF_WEBHOOK_SECRET,
+  DEFAULT_WEBHOOK_ENABLED,
+  DEFAULT_WEBHOOK_REQUIRE_SIGNATURE,
+  DOMAIN,
+)
 from .push_router import async_process_gps_push
 from .webhook_security import WebhookSecurityManager
 

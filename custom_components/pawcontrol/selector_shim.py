@@ -11,14 +11,10 @@ the Core runtime during tests.
 
 from __future__ import annotations
 
-
 from collections.abc import Sequence
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any
-from typing import Protocol
-from typing import cast
-from typing import TypeVar
+from typing import Any, Protocol, TypeVar, cast
 
 
 class _SelectorNamespace(SimpleNamespace):

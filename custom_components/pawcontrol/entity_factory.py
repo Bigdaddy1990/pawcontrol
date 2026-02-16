@@ -10,34 +10,29 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
-import logging
-import time
 from collections import OrderedDict
-from collections.abc import Iterator
-from collections.abc import Mapping
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import datetime
-from datetime import UTC
+from collections.abc import Iterator, Mapping
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
 from itertools import combinations
+import logging
+import time
 from types import MappingProxyType
-from typing import cast
-from typing import Final
-from typing import Literal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final, Literal, cast
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
 
 from .coordinator_runtime import EntityBudgetSnapshot
 from .telemetry import update_runtime_entity_factory_guard_metrics
-from .types import DOG_MODULES_FIELD
-from .types import DogModulesProjection
-from .types import ensure_dog_modules_mapping
-from .types import EntityFactoryGuardEvent
+from .types import (
+  DOG_MODULES_FIELD,
+  DogModulesProjection,
+  EntityFactoryGuardEvent,
+  ensure_dog_modules_mapping,
+)
 
 if TYPE_CHECKING:
   from .coordinator import PawControlCoordinator

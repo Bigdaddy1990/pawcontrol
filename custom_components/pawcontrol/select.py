@@ -8,22 +8,15 @@ annotations, async operations, and robust validation.
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Mapping, Sequence
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
 from types import MappingProxyType
-from typing import cast
-from typing import Final
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.components import select as select_component
-from homeassistant.components.select import SelectEntity
-from homeassistant.components.select import SelectEntityDescription
-from homeassistant.core import Context
-from homeassistant.core import HomeAssistant
-from homeassistant.core import State
+from homeassistant.components.select import SelectEntity, SelectEntityDescription
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -38,6 +31,7 @@ except ImportError:  # pragma: no cover
   ATTR_ENTITY_ID = "entity_id"
 
 from homeassistant.exceptions import HomeAssistantError  # noqa: E402
+
 from .const import (  # noqa: E402
   ACTIVITY_LEVELS,
   DEFAULT_MODEL,
@@ -56,13 +50,11 @@ from .const import (  # noqa: E402
   PERFORMANCE_MODES,
 )
 from .coordinator import PawControlCoordinator  # noqa: E402
-from .utils import (  # noqa: E402
-  async_call_add_entities,
-  deep_merge_dicts,
-  normalise_entity_attributes,
-)
 from .entity import PawControlDogEntityBase  # noqa: E402
-from .notifications import NotificationPriority, PawControlNotificationManager  # noqa: E402
+from .notifications import (  # noqa: E402
+  NotificationPriority,
+  PawControlNotificationManager,
+)
 from .reproduce_state import async_reproduce_platform_states  # noqa: E402
 from .runtime_data import get_runtime_data  # noqa: E402
 from .types import (  # noqa: E402
@@ -70,9 +62,9 @@ from .types import (  # noqa: E402
   DOG_MODULES_FIELD,
   DOG_NAME_FIELD,
   DOG_SIZE_FIELD,
-  CoordinatorModuleLookupResult,
-  CoordinatorDogData,
   ActivityLevelKey,
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
   DogConfigData,
   DogSizeInfo,
   DogSizeKey,
@@ -82,8 +74,9 @@ from .types import (  # noqa: E402
   GPSSourceInfo,
   GPSSourceKey,
   GPSTrackingConfigInput,
-  GroomingTypeKey,
   GroomingTypeInfo,
+  GroomingTypeKey,
+  HealthStatusKey,
   JSONMapping,
   JSONMutableMapping,
   JSONValue,
@@ -94,17 +87,20 @@ from .types import (  # noqa: E402
   NotificationPriorityKey,
   PawControlConfigEntry,
   PawControlRuntimeData,
-  PerformanceModeKey,
   PerformanceModeInfo,
-  TrackingModePreset,
+  PerformanceModeKey,
   TrackingModeKey,
-  WalkModeKey,
+  TrackingModePreset,
   WalkModeInfo,
+  WalkModeKey,
   WeatherConditionKey,
-  HealthStatusKey,
   coerce_dog_modules_config,
 )
-
+from .utils import (  # noqa: E402
+  async_call_add_entities,
+  deep_merge_dicts,
+  normalise_entity_attributes,
+)
 
 if TYPE_CHECKING:
   from .data_manager import PawControlDataManager

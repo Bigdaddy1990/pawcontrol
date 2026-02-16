@@ -8,75 +8,76 @@ with full type annotations, async operations, and robust validation.
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Mapping, Sequence
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
 from typing import cast
 
 from homeassistant import const as ha_const
 from homeassistant.components import number as number_component
-from homeassistant.components.number import NumberDeviceClass
-from homeassistant.components.number import NumberEntity
-from homeassistant.components.number import NumberEntityDescription
-from homeassistant.components.number import NumberMode
-from homeassistant.const import PERCENTAGE
-from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.const import STATE_UNKNOWN
-from homeassistant.const import UnitOfEnergy
-from homeassistant.const import UnitOfLength
-from homeassistant.const import UnitOfTime
-from homeassistant.core import Context
-from homeassistant.core import HomeAssistant
-from homeassistant.core import State
+from homeassistant.components.number import (
+  NumberDeviceClass,
+  NumberEntity,
+  NumberEntityDescription,
+  NumberMode,
+)
+from homeassistant.const import (
+  PERCENTAGE,
+  STATE_UNAVAILABLE,
+  STATE_UNKNOWN,
+  UnitOfEnergy,
+  UnitOfLength,
+  UnitOfTime,
+)
+from homeassistant.core import Context, HomeAssistant, State
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry
-from .compat import HomeAssistantError
-from .compat import UnitOfMass
-from .const import CONF_DAILY_FOOD_AMOUNT
-from .const import CONF_GPS_ACCURACY_FILTER
-from .const import CONF_GPS_DISTANCE_FILTER
-from .const import CONF_GPS_UPDATE_INTERVAL
-from .const import CONF_GROOMING_INTERVAL
-from .const import CONF_HOME_ZONE_RADIUS
-from .const import CONF_MEALS_PER_DAY
-from .const import DEFAULT_MODEL
-from .const import DEFAULT_SW_VERSION
-from .const import MAX_DOG_AGE
-from .const import MAX_DOG_WEIGHT
-from .const import MIN_DOG_AGE
-from .const import MIN_DOG_WEIGHT
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
+from .compat import ConfigEntry, HomeAssistantError, UnitOfMass
+from .const import (
+  CONF_DAILY_FOOD_AMOUNT,
+  CONF_GPS_ACCURACY_FILTER,
+  CONF_GPS_DISTANCE_FILTER,
+  CONF_GPS_UPDATE_INTERVAL,
+  CONF_GROOMING_INTERVAL,
+  CONF_HOME_ZONE_RADIUS,
+  CONF_MEALS_PER_DAY,
+  DEFAULT_MODEL,
+  DEFAULT_SW_VERSION,
+  MAX_DOG_AGE,
+  MAX_DOG_WEIGHT,
+  MIN_DOG_AGE,
+  MIN_DOG_WEIGHT,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .reproduce_state import async_reproduce_platform_states
 from .runtime_data import get_runtime_data
-from .types import CoordinatorDogData
-from .types import CoordinatorModuleLookupResult
-from .types import DOG_AGE_FIELD
-from .types import DOG_FEEDING_CONFIG_FIELD
-from .types import DOG_GPS_CONFIG_FIELD
-from .types import DOG_HEALTH_CONFIG_FIELD
-from .types import DOG_ID_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DOG_WALK_CONFIG_FIELD
-from .types import DOG_WEIGHT_FIELD
-from .types import DogConfigData
-from .types import DogModulesMapping
-from .types import ensure_dog_modules_mapping
-from .types import GPSTrackingConfigInput
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .utils import async_call_add_entities
-from .utils import normalise_entity_attributes
+from .types import (
+  DOG_AGE_FIELD,
+  DOG_FEEDING_CONFIG_FIELD,
+  DOG_GPS_CONFIG_FIELD,
+  DOG_HEALTH_CONFIG_FIELD,
+  DOG_ID_FIELD,
+  DOG_NAME_FIELD,
+  DOG_WALK_CONFIG_FIELD,
+  DOG_WEIGHT_FIELD,
+  CoordinatorDogData,
+  CoordinatorModuleLookupResult,
+  DogConfigData,
+  DogModulesMapping,
+  GPSTrackingConfigInput,
+  JSONMutableMapping,
+  JSONValue,
+  ensure_dog_modules_mapping,
+)
+from .utils import async_call_add_entities, normalise_entity_attributes
 
 # ``ATTR_ENTITY_ID``/``ATTR_VALUE`` moved/changed over time; fall back to canonical keys.
 ATTR_ENTITY_ID = getattr(ha_const, "ATTR_ENTITY_ID", "entity_id")

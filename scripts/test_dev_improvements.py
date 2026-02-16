@@ -15,10 +15,9 @@ Usage:
 
 from __future__ import annotations
 
-
 import argparse
-import time
 from pathlib import Path
+import time
 from typing import Final
 
 PROJECT_ROOT: Final = Path(__file__).parent.parent

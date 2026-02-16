@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-
 import pytest
 
-from custom_components.pawcontrol.service_guard import normalise_guard_history
-from custom_components.pawcontrol.service_guard import normalise_guard_result_payload
-from custom_components.pawcontrol.service_guard import ServiceGuardResult
-from custom_components.pawcontrol.service_guard import ServiceGuardSnapshot
+from custom_components.pawcontrol.service_guard import (
+  ServiceGuardResult,
+  ServiceGuardSnapshot,
+  normalise_guard_history,
+  normalise_guard_result_payload,
+)
 from custom_components.pawcontrol.types import JSONMutableMapping
 
 

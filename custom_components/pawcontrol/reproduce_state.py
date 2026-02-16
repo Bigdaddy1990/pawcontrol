@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Awaitable, Callable, Sequence
 import logging
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Sequence
 from typing import TypeVar
 
-from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import Context
-from homeassistant.core import HomeAssistant
-from homeassistant.core import State
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import Context, HomeAssistant, State
 
 _LOGGER = logging.getLogger(__name__)
 

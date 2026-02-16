@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.types import DOG_ID_FIELD
-from custom_components.pawcontrol.types import DOG_NAME_FIELD
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.pawcontrol.const import (
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOGS,
+  DOMAIN,
+)
+from custom_components.pawcontrol.types import DOG_ID_FIELD, DOG_NAME_FIELD
 
 
 @pytest.mark.asyncio

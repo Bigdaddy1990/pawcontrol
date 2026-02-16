@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-
 import pytest
 
 from custom_components.pawcontrol.exceptions import ValidationError
-from custom_components.pawcontrol.validation import validate_coordinate
-from custom_components.pawcontrol.validation import validate_dog_name
-from custom_components.pawcontrol.validation import validate_float_range
-from custom_components.pawcontrol.validation import validate_interval
+from custom_components.pawcontrol.validation import (
+  validate_coordinate,
+  validate_dog_name,
+  validate_float_range,
+  validate_interval,
+)
 
 
 def test_validate_dog_name_trims_and_accepts() -> None:

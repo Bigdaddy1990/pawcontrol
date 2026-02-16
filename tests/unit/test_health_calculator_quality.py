@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
-from datetime import UTC
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
+from tests.unit.test_health_metrics import (
+  HealthCalculator,
+  HealthMetrics,
+  health_calculator,
+)
 
-from custom_components.pawcontrol.types import DietValidationResult
-from custom_components.pawcontrol.types import FeedingHistoryEvent
-from tests.unit.test_health_metrics import health_calculator
-from tests.unit.test_health_metrics import HealthCalculator
-from tests.unit.test_health_metrics import HealthMetrics
+from custom_components.pawcontrol.types import DietValidationResult, FeedingHistoryEvent
 
 dt_util = health_calculator.dt_util  # type: ignore[attr-defined]
 ActivityLevel = health_calculator.ActivityLevel

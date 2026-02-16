@@ -9,12 +9,11 @@ Refactored: ~300 lines (80% reduction)
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 import importlib
 import logging
 import time
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import Any, Final, cast
 
 from homeassistant.const import Platform
@@ -24,13 +23,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
-from .const import (
-  CONF_DOG_ID,
-  CONF_DOG_OPTIONS,
-  CONF_DOGS,
-  DOMAIN,
-  PLATFORMS,
-)
+from .const import CONF_DOG_ID, CONF_DOG_OPTIONS, CONF_DOGS, DOMAIN, PLATFORMS
 from .exceptions import ConfigEntryAuthFailed, PawControlSetupError
 from .external_bindings import (
   async_setup_external_bindings,
@@ -39,12 +32,8 @@ from .external_bindings import (
 from .migrations import async_migrate_entry
 from .mqtt_push import async_register_entry_mqtt, async_unregister_entry_mqtt
 from .repairs import async_check_for_issues
-from .runtime_data import (
-  get_runtime_data,
-  pop_runtime_data,
-  store_runtime_data,
-)
-from .services import async_setup_daily_reset_scheduler, PawControlServiceManager
+from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
+from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .setup import (
   async_cleanup_runtime_data,
   async_initialize_managers,
@@ -56,10 +45,10 @@ from .types import (
   DOG_ID_FIELD,
   DOG_NAME_FIELD,
   DogConfigData,
-  ensure_dog_config_data,
   ManualResilienceEventRecord,
   PawControlConfigEntry,
   PawControlRuntimeData,
+  ensure_dog_config_data,
 )
 from .utils import sanitize_dog_id
 from .webhooks import async_register_entry_webhook, async_unregister_entry_webhook

@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-
+from dataclasses import dataclass
+from datetime import UTC, datetime
 import importlib.machinery
 import pathlib
 import sys
 import types
-from dataclasses import dataclass
-from datetime import datetime
-from datetime import UTC
 
 import pytest
 

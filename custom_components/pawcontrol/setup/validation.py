@@ -6,9 +6,8 @@ Handles validation of dogs configuration, modules, and profiles.
 
 from __future__ import annotations
 
-
-import logging
 from collections.abc import Mapping, Sequence
+import logging
 from typing import TYPE_CHECKING
 
 from ..const import CONF_DOGS, CONF_MODULES

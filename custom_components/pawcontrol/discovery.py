@@ -9,29 +9,20 @@ strict mypy gate can reason about gathered devices.
 
 from __future__ import annotations
 
-
 import asyncio
-import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import cast
-from typing import Final
-from typing import Literal
-from typing import TypedDict
+import logging
+from typing import Final, Literal, TypedDict, cast
 
-from homeassistant.core import callback
-from homeassistant.core import CALLBACK_TYPE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceEntry
-from homeassistant.helpers.device_registry import DeviceRegistryEvent
+from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistryEvent
 from homeassistant.helpers.entity_registry import EntityRegistryEvent
 from homeassistant.util.dt import utcnow
 
-from .const import DEVICE_CATEGORIES
-from .const import DOMAIN
+from .const import DEVICE_CATEGORIES, DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)

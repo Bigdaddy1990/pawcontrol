@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-
-from custom_components.pawcontrol.const import DEFAULT_PERFORMANCE_MODE
-from custom_components.pawcontrol.const import PERFORMANCE_MODES
+from custom_components.pawcontrol.const import (
+  DEFAULT_PERFORMANCE_MODE,
+  PERFORMANCE_MODES,
+)
 from custom_components.pawcontrol.types import normalize_performance_mode
 
 

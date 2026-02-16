@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from astroid import nodes
 from homeassistant.const import Platform
 from pylint.checkers import BaseChecker

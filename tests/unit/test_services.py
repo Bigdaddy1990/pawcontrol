@@ -2,43 +2,43 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from datetime import UTC, datetime, timedelta
 import json
 import logging
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
-from types import MappingProxyType
-from types import SimpleNamespace
-from typing import cast
-from typing import TypedDict
+from types import MappingProxyType, SimpleNamespace
+from typing import TypedDict, cast
 
-import pytest
 from homeassistant.exceptions import ServiceValidationError
+import pytest
 
 from custom_components.pawcontrol import services
-from custom_components.pawcontrol.const import EVENT_FEEDING_COMPLIANCE_CHECKED
-from custom_components.pawcontrol.const import SERVICE_CHECK_FEEDING_COMPLIANCE
-from custom_components.pawcontrol.const import SERVICE_DAILY_RESET
+from custom_components.pawcontrol.const import (
+  EVENT_FEEDING_COMPLIANCE_CHECKED,
+  SERVICE_CHECK_FEEDING_COMPLIANCE,
+  SERVICE_DAILY_RESET,
+)
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
-from custom_components.pawcontrol.feeding_manager import FeedingComplianceCompleted
-from custom_components.pawcontrol.feeding_manager import FeedingComplianceNoData
-from custom_components.pawcontrol.feeding_manager import FeedingComplianceResult
+from custom_components.pawcontrol.feeding_manager import (
+  FeedingComplianceCompleted,
+  FeedingComplianceNoData,
+  FeedingComplianceResult,
+)
 from custom_components.pawcontrol.garden_manager import GardenActivityInputPayload
-from custom_components.pawcontrol.notifications import NotificationChannel
-from custom_components.pawcontrol.notifications import NotificationPriority
-from custom_components.pawcontrol.notifications import NotificationType
-from custom_components.pawcontrol.types import CacheDiagnosticsSnapshot
-from custom_components.pawcontrol.types import CacheRepairAggregate
-from custom_components.pawcontrol.types import CoordinatorRuntimeManagers
-from custom_components.pawcontrol.types import FeedingComplianceEventPayload
-from custom_components.pawcontrol.types import GPSRouteExportJSONPayload
-from custom_components.pawcontrol.types import GPSRouteExportPayload
-from custom_components.pawcontrol.types import GPSTrackingConfigInput
+from custom_components.pawcontrol.notifications import (
+  NotificationChannel,
+  NotificationPriority,
+  NotificationType,
+)
+from custom_components.pawcontrol.types import (
+  CacheDiagnosticsSnapshot,
+  CacheRepairAggregate,
+  CoordinatorRuntimeManagers,
+  FeedingComplianceEventPayload,
+  GPSRouteExportJSONPayload,
+  GPSRouteExportPayload,
+  GPSTrackingConfigInput,
+)
 from custom_components.pawcontrol.utils import async_call_hass_service_if_available
 
 try:  # pragma: no cover - runtime fallback for stubbed environments
