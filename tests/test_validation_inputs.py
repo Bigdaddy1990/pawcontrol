@@ -153,14 +153,12 @@ def test_coerce_helpers_reject_invalid_types() -> None:
 
 def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
   hass = _FakeHomeAssistant(
-    _FakeStates(
-      {
-        "binary_sensor.front_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "door"},
-        )
-      }
-    )
+    _FakeStates({
+      "binary_sensor.front_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "door"},
+      )
+    })
   )
 
   assert (
@@ -178,14 +176,12 @@ def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
 
 def test_validate_sensor_entity_id_rejects_wrong_device_class() -> None:
   hass = _FakeHomeAssistant(
-    _FakeStates(
-      {
-        "binary_sensor.front_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "motion"},
-        )
-      }
-    )
+    _FakeStates({
+      "binary_sensor.front_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "motion"},
+      )
+    })
   )
 
   with pytest.raises(ValidationError) as err:

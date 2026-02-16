@@ -264,9 +264,10 @@ class HassImportsFormatChecker(BaseChecker):
     self, current_package: str, node: nodes.ImportFrom
   ) -> None:
     """Check for improper 'from ._ import _' invocations."""
-    if not current_package.startswith(
-      ("homeassistant.components.", "tests.components.")
-    ):
+    if not current_package.startswith((
+      "homeassistant.components.",
+      "tests.components.",
+    )):
       return
 
     split_package = current_package.split(".")

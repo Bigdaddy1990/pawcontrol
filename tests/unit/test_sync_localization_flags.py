@@ -24,17 +24,15 @@ def test_update_markdown_table_writes_expected_rows(tmp_path: Path) -> None:
 
   markdown = tmp_path / "diagnostics.md"
   markdown.write_text(
-    "\n".join(
-      [
-        "Intro",
-        sync_localization_flags.TABLE_START_MARKER,
-        "| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |",
-        "| --- | --- | --- |",
-        "| component.pawcontrol.common.setup_flags_panel_flag_test | old | alt |",
-        sync_localization_flags.TABLE_END_MARKER,
-        "Outro",
-      ]
-    )
+    "\n".join([
+      "Intro",
+      sync_localization_flags.TABLE_START_MARKER,
+      "| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |",
+      "| --- | --- | --- |",
+      "| component.pawcontrol.common.setup_flags_panel_flag_test | old | alt |",
+      sync_localization_flags.TABLE_END_MARKER,
+      "Outro",
+    ])
     + "\n",
     encoding="utf-8",
   )
@@ -60,16 +58,14 @@ def test_update_markdown_table_check_mode_detects_drift(tmp_path: Path) -> None:
 
   markdown = tmp_path / "diagnostics.md"
   markdown.write_text(
-    "\n".join(
-      [
-        "Intro",
-        sync_localization_flags.TABLE_START_MARKER,
-        "| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |",
-        "| --- | --- | --- |",
-        "| component.pawcontrol.common.setup_flags_panel_flag_test | English | Deutsch |",
-        sync_localization_flags.TABLE_END_MARKER,
-      ]
-    )
+    "\n".join([
+      "Intro",
+      sync_localization_flags.TABLE_START_MARKER,
+      "| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |",
+      "| --- | --- | --- |",
+      "| component.pawcontrol.common.setup_flags_panel_flag_test | English | Deutsch |",
+      sync_localization_flags.TABLE_END_MARKER,
+    ])
     + "\n",
     encoding="utf-8",
   )

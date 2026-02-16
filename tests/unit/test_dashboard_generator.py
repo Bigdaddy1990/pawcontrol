@@ -93,23 +93,19 @@ def test_summarise_dashboard_views_marks_notifications() -> None:
 def test_normalise_dashboard_registry_filters_invalid_entries() -> None:
   """Stored dashboard registry payloads should be normalised to plain dicts."""
 
-  stored_dashboard = MappingProxyType(
-    {
-      "url": "dashboard-1",
-      "title": "Primary dashboard",
-      "path": "/config/.storage/lovelace.dashboard-1",
-      "options": {"theme": "modern", "layout": "full"},
-      "updated": "2024-04-02T12:34:56+00:00",
-    }
-  )
+  stored_dashboard = MappingProxyType({
+    "url": "dashboard-1",
+    "title": "Primary dashboard",
+    "path": "/config/.storage/lovelace.dashboard-1",
+    "options": {"theme": "modern", "layout": "full"},
+    "updated": "2024-04-02T12:34:56+00:00",
+  })
 
-  registry = PawControlDashboardGenerator._normalise_dashboard_registry(
-    {
-      "dashboard-1": stored_dashboard,
-      "skipped": "not a mapping",
-      42: {"url": "wrong-key"},
-    }
-  )
+  registry = PawControlDashboardGenerator._normalise_dashboard_registry({
+    "dashboard-1": stored_dashboard,
+    "skipped": "not a mapping",
+    42: {"url": "wrong-key"},
+  })
 
   assert registry == {
     "dashboard-1": {
@@ -125,16 +121,14 @@ def test_normalise_dashboard_registry_filters_invalid_entries() -> None:
   assert isinstance(restored_dashboard, dict)
   assert restored_dashboard is not stored_dashboard
 
-  metrics = PawControlDashboardGenerator._coerce_performance_metrics(
-    {
-      "total_generations": "5",
-      "avg_generation_time": "2.5",
-      "cache_hits": True,
-      "cache_misses": 3.9,
-      "file_operations": "7",
-      "errors": "0",
-    }
-  )
+  metrics = PawControlDashboardGenerator._coerce_performance_metrics({
+    "total_generations": "5",
+    "avg_generation_time": "2.5",
+    "cache_hits": True,
+    "cache_misses": 3.9,
+    "file_operations": "7",
+    "errors": "0",
+  })
 
   assert metrics == {
     "total_generations": 5,
@@ -340,14 +334,12 @@ def test_resolve_service_execution_metrics_uses_runtime_data(
   generator = PawControlDashboardGenerator(hass, mock_config_entry)
 
   service_metrics = default_rejection_metrics()
-  service_metrics.update(
-    {
-      "rejected_call_count": 4,
-      "rejection_breaker_count": 1,
-      "last_rejection_time": 42.0,
-      "last_rejection_breaker_id": "automation",
-    }
-  )
+  service_metrics.update({
+    "rejected_call_count": 4,
+    "rejection_breaker_count": 1,
+    "last_rejection_time": 42.0,
+    "last_rejection_breaker_id": "automation",
+  })
 
   class RuntimeStub:
     def __init__(self) -> None:

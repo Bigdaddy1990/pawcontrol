@@ -46,14 +46,12 @@ def test_route_buffer_append_prune_and_snapshot() -> None:
 
 def test_route_buffer_clear() -> None:
   buffer = GPSRouteBuffer[GPSRoutePoint]()
-  buffer.append(
-    {
-      "latitude": 1.0,
-      "longitude": 2.0,
-      "timestamp": datetime.now(tz=UTC),
-      "accuracy": 5,
-    }
-  )
+  buffer.append({
+    "latitude": 1.0,
+    "longitude": 2.0,
+    "timestamp": datetime.now(tz=UTC),
+    "accuracy": 5,
+  })
   assert len(buffer) == 1
   buffer.clear()
   assert not buffer

@@ -296,13 +296,11 @@ class _BusStub:
     event_data: object | None = None,
     **kwargs: object,
   ) -> None:
-    self.fired.append(
-      {
-        "event_type": event_type,
-        "event_data": event_data,
-        "kwargs": dict(kwargs),
-      }
-    )
+    self.fired.append({
+      "event_type": event_type,
+      "event_data": event_data,
+      "kwargs": dict(kwargs),
+    })
 
 
 class _DummyDataManager:
@@ -408,13 +406,11 @@ class _FeedingManagerStub:
     if self.compliance_error:
       raise self.compliance_error
 
-    self.compliance_calls.append(
-      {
-        "dog_id": dog_id,
-        "days_to_check": days_to_check,
-        "notify_on_issues": notify_on_issues,
-      }
-    )
+    self.compliance_calls.append({
+      "dog_id": dog_id,
+      "days_to_check": days_to_check,
+      "notify_on_issues": notify_on_issues,
+    })
     return self.compliance_result
 
 
@@ -480,15 +476,13 @@ class _GardenManagerStub:
     if self.fail_start:
       raise self.fail_start
 
-    self.start_calls.append(
-      {
-        "dog_id": dog_id,
-        "dog_name": dog_name,
-        "detection_method": detection_method,
-        "weather_conditions": weather_conditions,
-        "temperature": temperature,
-      }
-    )
+    self.start_calls.append({
+      "dog_id": dog_id,
+      "dog_name": dog_name,
+      "detection_method": detection_method,
+      "weather_conditions": weather_conditions,
+      "temperature": temperature,
+    })
     return self.next_session_id
 
   async def async_end_garden_session(
@@ -517,16 +511,14 @@ class _GardenManagerStub:
     if self.fail_activity:
       raise self.fail_activity
 
-    self.activity_calls.append(
-      {
-        "dog_id": dog_id,
-        "activity_type": activity_type,
-        "duration_seconds": duration_seconds,
-        "location": location,
-        "notes": notes,
-        "confirmed": confirmed,
-      }
-    )
+    self.activity_calls.append({
+      "dog_id": dog_id,
+      "activity_type": activity_type,
+      "duration_seconds": duration_seconds,
+      "location": location,
+      "notes": notes,
+      "confirmed": confirmed,
+    })
     return self.activity_success
 
   def has_pending_confirmation(self, dog_id: str) -> bool:
@@ -544,15 +536,13 @@ class _GardenManagerStub:
     if self.fail_confirm:
       raise self.fail_confirm
 
-    self.confirm_calls.append(
-      {
-        "dog_id": dog_id,
-        "confirmed": confirmed,
-        "quality": quality,
-        "size": size,
-        "location": location,
-      }
-    )
+    self.confirm_calls.append({
+      "dog_id": dog_id,
+      "confirmed": confirmed,
+      "quality": quality,
+      "size": size,
+      "location": location,
+    })
 
 
 class _ServiceRegistryStub:
@@ -644,13 +634,11 @@ class _NotificationManagerStub:
       if not has_issues:
         return None
 
-    self.compliance_calls.append(
-      {
-        "dog_id": dog_id,
-        "dog_name": dog_name,
-        "compliance": compliance,
-      }
-    )
+    self.compliance_calls.append({
+      "dog_id": dog_id,
+      "dog_name": dog_name,
+      "compliance": compliance,
+    })
     return "compliance-1"
 
   async def async_acknowledge_notification(self, notification_id: str) -> bool:
@@ -1164,15 +1152,13 @@ async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
       "restore",
       SimpleNamespace(code="501", reason={"id": 9}),
     ),
-    "overrides": MappingProxyType(
-      {
-        1: {
-          "threshold": 5.5,
-          "set": {1, 2},
-          "scheduled_at": datetime(2024, 3, 15, tzinfo=UTC),
-        }
+    "overrides": MappingProxyType({
+      1: {
+        "threshold": 5.5,
+        "set": {1, 2},
+        "scheduled_at": datetime(2024, 3, 15, tzinfo=UTC),
       }
-    ),
+    }),
   }
 
   coordinator = _DummyCoordinator()

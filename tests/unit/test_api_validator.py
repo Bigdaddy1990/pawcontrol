@@ -99,14 +99,10 @@ async def test_async_validate_api_connection_filters_capabilities(
 ) -> None:
   """Only string capabilities from the JSON payload should be exposed."""
 
-  session = DummySession(
-    [
-      DummyResponse(200),
-      DummyResponse(
-        200, {"version": "1.2.3", "capabilities": ["status", 42, "metrics"]}
-      ),
-    ]
-  )
+  session = DummySession([
+    DummyResponse(200),
+    DummyResponse(200, {"version": "1.2.3", "capabilities": ["status", 42, "metrics"]}),
+  ])
   validator = APIValidator(hass, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
@@ -124,18 +120,16 @@ async def test_async_validate_api_connection_accepts_tuple_capabilities(
 ) -> None:
   """Tuple-based capability payloads should normalise to list[str]."""
 
-  session = DummySession(
-    [
-      DummyResponse(200),
-      DummyResponse(
-        200,
-        {
-          "version": "9.9.9",
-          "capabilities": ("status", {"ignored": True}, "insights"),
-        },
-      ),
-    ]
-  )
+  session = DummySession([
+    DummyResponse(200),
+    DummyResponse(
+      200,
+      {
+        "version": "9.9.9",
+        "capabilities": ("status", {"ignored": True}, "insights"),
+      },
+    ),
+  ])
   validator = APIValidator(hass, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
@@ -152,12 +146,10 @@ async def test_async_validate_api_connection_handles_json_failure(
 ) -> None:
   """Successful authentication without JSON keeps optional fields ``None``."""
 
-  session = DummySession(
-    [
-      DummyResponse(200),
-      DummyResponse(200, json_error=ValueError("boom")),
-    ]
-  )
+  session = DummySession([
+    DummyResponse(200),
+    DummyResponse(200, json_error=ValueError("boom")),
+  ])
   validator = APIValidator(hass, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
@@ -175,12 +167,10 @@ async def test_async_validate_api_connection_supports_empty_capabilities(
 ) -> None:
   """An empty capabilities array should normalise to an empty list."""
 
-  session = DummySession(
-    [
-      DummyResponse(200),
-      DummyResponse(200, {"version": "2.0.0", "capabilities": []}),
-    ]
-  )
+  session = DummySession([
+    DummyResponse(200),
+    DummyResponse(200, {"version": "2.0.0", "capabilities": []}),
+  ])
   validator = APIValidator(hass, cast(ClientSession, session))
 
   result = await validator.async_validate_api_connection(
@@ -197,15 +187,13 @@ async def test_async_test_api_health_authentication_failure(
 ) -> None:
   """Authentication errors should surface a dedicated health status."""
 
-  session = DummySession(
-    [
-      DummyResponse(200),
-      DummyResponse(401),
-      DummyResponse(401),
-      DummyResponse(401),
-      DummyResponse(401),
-    ]
-  )
+  session = DummySession([
+    DummyResponse(200),
+    DummyResponse(401),
+    DummyResponse(401),
+    DummyResponse(401),
+    DummyResponse(401),
+  ])
   validator = APIValidator(hass, cast(ClientSession, session))
 
   health = await validator.async_test_api_health("https://example.test", "secret-token")

@@ -15,22 +15,20 @@ Version = push_guard.Version
 
 def _write_rule_file(path: Path) -> None:
   path.write_text(
-    json.dumps(
-      {
-        "min_covered_version": "2024.1.0",
-        "max_covered_version": "2026.2.0",
-        "rules": [
-          {
-            "id": "rule-1",
-            "description": "replace async_timeout",
-            "introduced_in": "2024.1.0",
-            "pattern": r"import async_timeout",
-            "replacement": "import asyncio",
-            "file_globs": ["**/*.py"],
-          }
-        ],
-      }
-    ),
+    json.dumps({
+      "min_covered_version": "2024.1.0",
+      "max_covered_version": "2026.2.0",
+      "rules": [
+        {
+          "id": "rule-1",
+          "description": "replace async_timeout",
+          "introduced_in": "2024.1.0",
+          "pattern": r"import async_timeout",
+          "replacement": "import asyncio",
+          "file_globs": ["**/*.py"],
+        }
+      ],
+    }),
     encoding="utf-8",
   )
 
@@ -107,21 +105,19 @@ def test_fetch_latest_homeassistant_version_raises_on_network_error(
 def test_load_rules_rejects_invalid_pattern(tmp_path: Path) -> None:
   rules_path = tmp_path / "rules.json"
   rules_path.write_text(
-    json.dumps(
-      {
-        "min_covered_version": "2024.1.0",
-        "max_covered_version": "2026.2.0",
-        "rules": [
-          {
-            "id": "rule-1",
-            "description": "broken regex",
-            "introduced_in": "2024.1.0",
-            "pattern": r"(",
-            "replacement": "x",
-          }
-        ],
-      }
-    ),
+    json.dumps({
+      "min_covered_version": "2024.1.0",
+      "max_covered_version": "2026.2.0",
+      "rules": [
+        {
+          "id": "rule-1",
+          "description": "broken regex",
+          "introduced_in": "2024.1.0",
+          "pattern": r"(",
+          "replacement": "x",
+        }
+      ],
+    }),
     encoding="utf-8",
   )
 

@@ -32,9 +32,10 @@ async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:
   assert user["step_id"] == "add_dog"
   assert flow._integration_name == "Paw Control"
 
-  dog_step = await flow.async_step_add_dog(
-    {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy_1"}
-  )
+  dog_step = await flow.async_step_add_dog({
+    CONF_DOG_NAME: "Buddy",
+    CONF_DOG_ID: "buddy_1",
+  })
   assert dog_step["type"] == FlowResultType.FORM
   assert dog_step["step_id"] == "dog_modules"
 
@@ -68,9 +69,10 @@ async def test_duplicate_dog_id_is_rejected(hass: HomeAssistant) -> None:
   await flow.async_step_add_dog({CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"})
   await flow.async_step_dog_modules({"enable_feeding": True})
 
-  duplicate = await flow.async_step_add_dog(
-    {CONF_DOG_NAME: "Buddy 2", CONF_DOG_ID: "buddy"}
-  )
+  duplicate = await flow.async_step_add_dog({
+    CONF_DOG_NAME: "Buddy 2",
+    CONF_DOG_ID: "buddy",
+  })
   assert duplicate["type"] == FlowResultType.FORM
   assert duplicate["errors"] == {CONF_DOG_ID: "dog_id_already_exists"}
 

@@ -507,13 +507,11 @@ def test_script_manager_register_cache_monitor() -> None:
   hass = SimpleNamespace(data={})
   entry = SimpleNamespace(entry_id="entry", data={}, options={})
   script_manager = PawControlScriptManager(hass, entry)
-  script_manager._created_entities.update(
-    {
-      "script.pawcontrol_buddy_reset",
-      "script.pawcontrol_max_reset",
-      "script.pawcontrol_entry_resilience_escalation",
-    }
-  )
+  script_manager._created_entities.update({
+    "script.pawcontrol_buddy_reset",
+    "script.pawcontrol_max_reset",
+    "script.pawcontrol_entry_resilience_escalation",
+  })
   script_manager._dog_scripts = {
     "buddy": ["script.pawcontrol_buddy_reset"],
     "max": ["script.pawcontrol_max_reset"],
@@ -967,13 +965,11 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
 
   manager = PawControlScriptManager(hass, entry)
 
-  await manager.async_sync_manual_resilience_events(
-    {
-      "manual_check_event": " pawcontrol_resilience_check_custom ",
-      "manual_guard_event": "  ",
-      "manual_breaker_event": "pawcontrol_manual_breaker",
-    }
-  )
+  await manager.async_sync_manual_resilience_events({
+    "manual_check_event": " pawcontrol_resilience_check_custom ",
+    "manual_guard_event": "  ",
+    "manual_breaker_event": "pawcontrol_manual_breaker",
+  })
 
   assert len(updated_payloads) == 1
   payload = updated_payloads[0]

@@ -137,17 +137,15 @@ class TestPortionCalculations:
   def test_diet_interactions_detects_risk_levels(self) -> None:
     """Diet interactions categorise combinations correctly."""
 
-    interactions = HealthCalculator.get_diet_interaction_effects(
-      [
-        "senior_formula",
-        "joint_support",
-        "raw_diet",
-        "prescription",
-        "weight_control",
-        "puppy_formula",
-        "low_fat",
-      ]
-    )
+    interactions = HealthCalculator.get_diet_interaction_effects([
+      "senior_formula",
+      "joint_support",
+      "raw_diet",
+      "prescription",
+      "weight_control",
+      "puppy_formula",
+      "low_fat",
+    ])
 
     assert len(interactions["synergistic"]) == 3
     assert len(interactions["caution"]) == 2

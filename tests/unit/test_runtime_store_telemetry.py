@@ -506,14 +506,12 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
   """Trend counters should track level changes and streaks."""
 
   runtime_data = _runtime_data()
-  moments = iter(
-    (
-      datetime(2024, 4, 1, tzinfo=UTC),
-      datetime(2024, 4, 2, tzinfo=UTC),
-      datetime(2024, 4, 3, tzinfo=UTC),
-      datetime(2024, 4, 4, tzinfo=UTC),
-    )
-  )
+  moments = iter((
+    datetime(2024, 4, 1, tzinfo=UTC),
+    datetime(2024, 4, 2, tzinfo=UTC),
+    datetime(2024, 4, 3, tzinfo=UTC),
+    datetime(2024, 4, 4, tzinfo=UTC),
+  ))
   monkeypatch.setattr(
     "custom_components.pawcontrol.telemetry.dt_util.utcnow",
     lambda: next(moments),

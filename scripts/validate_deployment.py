@@ -112,14 +112,12 @@ class DeploymentValidator:
 
   def check_mypy(self) -> CheckResult:
     """Run MyPy type checking."""
-    returncode, stdout, stderr = self.run_command(
-      [
-        "mypy",
-        "custom_components/pawcontrol",
-        "--strict",
-        "--no-error-summary",
-      ]
-    )
+    returncode, stdout, stderr = self.run_command([
+      "mypy",
+      "custom_components/pawcontrol",
+      "--strict",
+      "--no-error-summary",
+    ])
 
     if returncode == 0:
       return CheckResult(
@@ -141,14 +139,12 @@ class DeploymentValidator:
 
   def check_ruff(self) -> CheckResult:
     """Run Ruff linting."""
-    returncode, stdout, stderr = self.run_command(
-      [
-        "ruff",
-        "check",
-        "custom_components/pawcontrol",
-        "--output-format=json",
-      ]
-    )
+    returncode, stdout, stderr = self.run_command([
+      "ruff",
+      "check",
+      "custom_components/pawcontrol",
+      "--output-format=json",
+    ])
 
     if returncode == 0:
       return CheckResult(
@@ -176,15 +172,13 @@ class DeploymentValidator:
 
   def check_tests(self) -> CheckResult:
     """Run test suite."""
-    returncode, stdout, stderr = self.run_command(
-      [
-        "pytest",
-        "tests/",
-        "-v",
-        "--tb=no",
-        "--no-header",
-      ]
-    )
+    returncode, stdout, stderr = self.run_command([
+      "pytest",
+      "tests/",
+      "-v",
+      "--tb=no",
+      "--no-header",
+    ])
 
     if returncode == 0:
       # Count tests
@@ -207,16 +201,14 @@ class DeploymentValidator:
 
   def check_security(self) -> CheckResult:
     """Run security scan with Bandit."""
-    returncode, stdout, stderr = self.run_command(
-      [
-        "bandit",
-        "-r",
-        "custom_components/pawcontrol",
-        "-f",
-        "json",
-        "-ll",  # Only medium and high severity
-      ]
-    )
+    returncode, stdout, stderr = self.run_command([
+      "bandit",
+      "-r",
+      "custom_components/pawcontrol",
+      "-f",
+      "json",
+      "-ll",  # Only medium and high severity
+    ])
 
     try:
       result = json.loads(stdout) if stdout else {}

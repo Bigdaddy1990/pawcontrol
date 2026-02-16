@@ -70,16 +70,14 @@ async def test_helper_manager_creates_typed_helper_services(
     logger: Any,
   ) -> ServiceGuardResult:
     target_payload = cast(ServiceCallTargetPayload, dict(target or {}))
-    captured.append(
-      {
-        "domain": domain,
-        "service": service,
-        "service_data": typed_deepcopy(service_data),
-        "target": target_payload,
-        "blocking": blocking,
-        "description": description,
-      }
-    )
+    captured.append({
+      "domain": domain,
+      "service": service,
+      "service_data": typed_deepcopy(service_data),
+      "target": target_payload,
+      "blocking": blocking,
+      "description": description,
+    })
     return ServiceGuardResult(
       domain=domain,
       service=service,

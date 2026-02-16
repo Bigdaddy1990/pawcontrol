@@ -61,13 +61,11 @@ async def test_dog_status_template_accepts_typed_modules(
   """Dog status template should accept ``DogModulesConfig`` payloads."""
 
   templates = DashboardTemplates(hass)
-  modules = ensure_dog_modules_config(
-    {
-      MODULE_FEEDING: True,
-      MODULE_WALK: True,
-      MODULE_HEALTH: False,
-    }
-  )
+  modules = ensure_dog_modules_config({
+    MODULE_FEEDING: True,
+    MODULE_WALK: True,
+    MODULE_HEALTH: False,
+  })
 
   assert modules[MODULE_FEEDING] is True
 
@@ -258,9 +256,11 @@ def test_coerce_map_options_defaults_when_none() -> None:
 def test_coerce_map_options_iterable_pairs() -> None:
   """Iterable payloads of string-keyed pairs should be supported."""
 
-  result = _coerce_map_options(
-    [("zoom", "6"), ("hours_to_show", 12.7), ("dark_mode", "ON")]
-  )
+  result = _coerce_map_options([
+    ("zoom", "6"),
+    ("hours_to_show", 12.7),
+    ("dark_mode", "ON"),
+  ])
 
   assert result["zoom"] == 6
   assert result["default_zoom"] == 6
@@ -271,12 +271,10 @@ def test_coerce_map_options_iterable_pairs() -> None:
 def test_coerce_map_options_nested_mapping_payload() -> None:
   """Nested map option payloads should be unwrapped before normalisation."""
 
-  result = _coerce_map_options(
-    {
-      "map_options": {"zoom": 5, "dark_mode": "off"},
-      "show_activity_graph": False,
-    }
-  )
+  result = _coerce_map_options({
+    "map_options": {"zoom": 5, "dark_mode": "off"},
+    "show_activity_graph": False,
+  })
 
   assert result["zoom"] == 5
   assert result["default_zoom"] == 5
@@ -295,9 +293,10 @@ def test_coerce_map_options_map_key_alias() -> None:
 def test_coerce_map_options_merges_nested_and_top_level() -> None:
   """Nested payloads should augment top-level overrides instead of replacing them."""
 
-  result = _coerce_map_options(
-    {"zoom": 9, "map_options": {"hours_to_show": 48, "dark_mode": True}}
-  )
+  result = _coerce_map_options({
+    "zoom": 9,
+    "map_options": {"hours_to_show": 48, "dark_mode": True},
+  })
 
   assert result["zoom"] == 9
   assert result["default_zoom"] == 9
@@ -308,9 +307,10 @@ def test_coerce_map_options_merges_nested_and_top_level() -> None:
 def test_coerce_map_options_prefers_top_level_over_nested() -> None:
   """Top-level overrides should take precedence over nested aliases."""
 
-  result = _coerce_map_options(
-    {"zoom": 12, "map_options": {"zoom": 3, "default_zoom": 4}}
-  )
+  result = _coerce_map_options({
+    "zoom": 12,
+    "map_options": {"zoom": 3, "default_zoom": 4},
+  })
 
   assert result["zoom"] == 12
   assert result["default_zoom"] == 4
@@ -325,14 +325,12 @@ def test_coerce_map_options_ignores_invalid_iterables(
     logging.DEBUG, logger="custom_components.pawcontrol.dashboard_templates"
   )
 
-  result = _coerce_map_options(
-    [
-      (123, 4),  # invalid key type
-      ("zoom", "3"),
-      "zoom",  # unsupported entry
-      {"hours_to_show": "72"},
-    ]
-  )
+  result = _coerce_map_options([
+    (123, 4),  # invalid key type
+    ("zoom", "3"),
+    "zoom",  # unsupported entry
+    {"hours_to_show": "72"},
+  ])
 
   assert result["zoom"] == 3
   assert result["default_zoom"] == 3
@@ -349,13 +347,11 @@ def test_coerce_map_options_ignores_unsupported_mapping_entries(
     logging.DEBUG, logger="custom_components.pawcontrol.dashboard_templates"
   )
 
-  result = _coerce_map_options(
-    {
-      "zoom": 7,
-      "unsupported": "value",
-      123: "bad",  # type: ignore[dict-item]
-    }
-  )
+  result = _coerce_map_options({
+    "zoom": 7,
+    "unsupported": "value",
+    123: "bad",  # type: ignore[dict-item]
+  })
 
   assert result["zoom"] == 7
   assert result["default_zoom"] == 7

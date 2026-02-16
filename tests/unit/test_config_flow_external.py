@@ -116,15 +116,13 @@ async def test_async_step_configure_external_entities_accepts_valid_payload() ->
   """The mixin persists validated entity selections into the shared mapping."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "device_tracker.main_phone": SimpleNamespace(state="home"),
-        "binary_sensor.back_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "door"},
-        ),
-      }
-    ),
+    states=_FakeStates({
+      "device_tracker.main_phone": SimpleNamespace(state="home"),
+      "binary_sensor.back_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "door"},
+      ),
+    }),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
   )
   modules = cast(
@@ -157,14 +155,12 @@ async def test_async_step_configure_external_entities_rejects_invalid_door_senso
   """Door sensor validation rejects entities with unsupported device classes."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "binary_sensor.back_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "motion"},
-        ),
-      }
-    ),
+    states=_FakeStates({
+      "binary_sensor.back_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "motion"},
+      ),
+    }),
     services=_FakeServices({"notify": {}}),
   )
   modules = cast(
@@ -189,15 +185,13 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
   """Invalid notify service selections surface the validation error in the form."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "device_tracker.main_phone": SimpleNamespace(state="home"),
-        "binary_sensor.back_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "door"},
-        ),
-      }
-    ),
+    states=_FakeStates({
+      "device_tracker.main_phone": SimpleNamespace(state="home"),
+      "binary_sensor.back_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "door"},
+      ),
+    }),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
   )
   modules = cast(
@@ -224,11 +218,9 @@ async def test_async_step_configure_external_entities_rejects_invalid_notify_for
   """Notify service formatting errors surface a field validation key."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "device_tracker.main_phone": SimpleNamespace(state="home"),
-      }
-    ),
+    states=_FakeStates({
+      "device_tracker.main_phone": SimpleNamespace(state="home"),
+    }),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
   )
   modules = cast(

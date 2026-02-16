@@ -222,103 +222,99 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
       return self.async_create_entry(title="", data=cast(dict[str, Any], mutable))
 
-    schema = vol.Schema(
-      {
-        vol.Optional(
-          CONF_WEBHOOK_ENABLED,
-          default=bool(current.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)),
-        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
-        vol.Optional(
-          CONF_WEBHOOK_REQUIRE_SIGNATURE,
-          default=bool(
-            current.get(
-              CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE
-            )
-          ),
-        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
-        vol.Optional(
-          CONF_WEBHOOK_SECRET,
-          default=str(current.get(CONF_WEBHOOK_SECRET, ""))
-          if current.get(CONF_WEBHOOK_SECRET)
-          else "",
-        ): selector.TextSelector(
-          selector.TextSelectorConfig(
-            type=selector.TextSelectorType.PASSWORD, multiline=False
-          ),
+    schema = vol.Schema({
+      vol.Optional(
+        CONF_WEBHOOK_ENABLED,
+        default=bool(current.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)),
+      ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+      vol.Optional(
+        CONF_WEBHOOK_REQUIRE_SIGNATURE,
+        default=bool(
+          current.get(CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE)
         ),
-        vol.Optional(
-          CONF_MQTT_ENABLED,
-          default=bool(current.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED)),
-        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
-        vol.Optional(
-          CONF_MQTT_TOPIC,
-          default=str(current.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)),
-        ): selector.TextSelector(
-          selector.TextSelectorConfig(
-            type=selector.TextSelectorType.TEXT, multiline=False
-          ),
+      ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+      vol.Optional(
+        CONF_WEBHOOK_SECRET,
+        default=str(current.get(CONF_WEBHOOK_SECRET, ""))
+        if current.get(CONF_WEBHOOK_SECRET)
+        else "",
+      ): selector.TextSelector(
+        selector.TextSelectorConfig(
+          type=selector.TextSelectorType.PASSWORD, multiline=False
         ),
-        vol.Optional(
-          CONF_PUSH_PAYLOAD_MAX_BYTES,
-          default=int(
-            current.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1024, max=262144, mode=selector.NumberSelectorMode.BOX, step=256
-          ),
+      ),
+      vol.Optional(
+        CONF_MQTT_ENABLED,
+        default=bool(current.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED)),
+      ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+      vol.Optional(
+        CONF_MQTT_TOPIC,
+        default=str(current.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)),
+      ): selector.TextSelector(
+        selector.TextSelectorConfig(
+          type=selector.TextSelectorType.TEXT, multiline=False
         ),
-        vol.Optional(
-          CONF_PUSH_NONCE_TTL_SECONDS,
-          default=int(
-            current.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=60, max=86400, mode=selector.NumberSelectorMode.BOX, step=30
-          ),
+      ),
+      vol.Optional(
+        CONF_PUSH_PAYLOAD_MAX_BYTES,
+        default=int(
+          current.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)
         ),
-        vol.Optional(
-          CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
-          default=int(
-            current.get(
-              CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
-              DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
-            )
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
-          ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1024, max=262144, mode=selector.NumberSelectorMode.BOX, step=256
         ),
-        vol.Optional(
-          CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-          default=int(
-            current.get(
-              CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-              DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-            )
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
-          ),
+      ),
+      vol.Optional(
+        CONF_PUSH_NONCE_TTL_SECONDS,
+        default=int(
+          current.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)
         ),
-        vol.Optional(
-          CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-          default=int(
-            current.get(
-              CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-              DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-            )
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
-          ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=60, max=86400, mode=selector.NumberSelectorMode.BOX, step=30
         ),
-      }
-    )
+      ),
+      vol.Optional(
+        CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+        default=int(
+          current.get(
+            CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+            DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+          )
+        ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
+        ),
+      ),
+      vol.Optional(
+        CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+        default=int(
+          current.get(
+            CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+            DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+          )
+        ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
+        ),
+      ),
+      vol.Optional(
+        CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+        default=int(
+          current.get(
+            CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+            DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+          )
+        ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
+        ),
+      ),
+    })
     return self.async_show_form(step_id="push_settings", data_schema=schema)
 
   async def async_step_weather_settings(

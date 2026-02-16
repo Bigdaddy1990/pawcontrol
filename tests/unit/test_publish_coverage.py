@@ -33,26 +33,24 @@ def test_publish_coverage_degrades_without_network(tmp_path, monkeypatch) -> Non
   monkeypatch.delenv("GITHUB_TOKEN", raising=False)
   monkeypatch.setenv("GITHUB_REPOSITORY", "pawcontrol/pawcontrol")
 
-  exit_code = publish_coverage.main(
-    [
-      "--coverage-xml",
-      str(coverage_xml),
-      "--coverage-html-index",
-      str(html_root / "index.html"),
-      "--artifact-directory",
-      str(artifact_dir),
-      "--mode",
-      "pages",
-      "--run-id",
-      "test-run",
-      "--run-attempt",
-      "3",
-      "--commit-sha",
-      "deadbeef",
-      "--ref",
-      "refs/heads/main",
-    ]
-  )
+  exit_code = publish_coverage.main([
+    "--coverage-xml",
+    str(coverage_xml),
+    "--coverage-html-index",
+    str(html_root / "index.html"),
+    "--artifact-directory",
+    str(artifact_dir),
+    "--mode",
+    "pages",
+    "--run-id",
+    "test-run",
+    "--run-attempt",
+    "3",
+    "--commit-sha",
+    "deadbeef",
+    "--ref",
+    "refs/heads/main",
+  ])
 
   assert exit_code == 0
   archive_path = artifact_dir / "coverage-test-run.tar.gz"
@@ -90,30 +88,28 @@ def test_publish_coverage_supports_custom_prefix_templates(
   monkeypatch.delenv("GITHUB_TOKEN", raising=False)
   monkeypatch.setenv("GITHUB_REPOSITORY", "pawcontrol/pawcontrol")
 
-  exit_code = publish_coverage.main(
-    [
-      "--coverage-xml",
-      str(coverage_xml),
-      "--coverage-html-index",
-      str(html_root / "index.html"),
-      "--artifact-directory",
-      str(artifact_dir),
-      "--mode",
-      "pages",
-      "--pages-prefix",
-      "coverage",
-      "--pages-prefix-template",
-      "{prefix}/latest",
-      "--pages-prefix-template",
-      "runs/{run_id}",
-      "--pages-prefix-template",
-      "attempts/{run_id}/{run_attempt}",
-      "--run-id",
-      "custom-run",
-      "--run-attempt",
-      "2",
-    ]
-  )
+  exit_code = publish_coverage.main([
+    "--coverage-xml",
+    str(coverage_xml),
+    "--coverage-html-index",
+    str(html_root / "index.html"),
+    "--artifact-directory",
+    str(artifact_dir),
+    "--mode",
+    "pages",
+    "--pages-prefix",
+    "coverage",
+    "--pages-prefix-template",
+    "{prefix}/latest",
+    "--pages-prefix-template",
+    "runs/{run_id}",
+    "--pages-prefix-template",
+    "attempts/{run_id}/{run_attempt}",
+    "--run-id",
+    "custom-run",
+    "--run-attempt",
+    "2",
+  ])
 
   assert exit_code == 0
   archive_path = artifact_dir / "coverage-custom-run.tar.gz"
@@ -165,13 +161,11 @@ def test_github_pages_publisher_prunes_expired_runs(monkeypatch) -> None:
     url = request.full_url
     method = request.get_method()
     if url.endswith("/contents/coverage?ref=gh-pages") and method == "GET":
-      return DummyResponse(
-        [
-          {"type": "dir", "name": "latest"},
-          {"type": "dir", "name": "run-new"},
-          {"type": "dir", "name": "run-old"},
-        ]
-      )
+      return DummyResponse([
+        {"type": "dir", "name": "latest"},
+        {"type": "dir", "name": "run-new"},
+        {"type": "dir", "name": "run-old"},
+      ])
     if (
       url.endswith("/contents/coverage/run-old/summary.json?ref=gh-pages")
       and method == "GET"
@@ -233,21 +227,19 @@ def test_publish_prune_expired_runs_degrades_on_failure(tmp_path, monkeypatch) -
     lambda *args, **kwargs: (_ for _ in ()).throw(urllib.error.URLError("offline")),
   )
 
-  args = publish_coverage.build_cli().parse_args(
-    [
-      "--coverage-xml",
-      str(coverage_xml),
-      "--coverage-html-index",
-      str(html_root / "index.html"),
-      "--artifact-directory",
-      str(artifact_dir),
-      "--mode",
-      "pages",
-      "--run-id",
-      "offline-test",
-      "--prune-expired-runs",
-    ]
-  )
+  args = publish_coverage.build_cli().parse_args([
+    "--coverage-xml",
+    str(coverage_xml),
+    "--coverage-html-index",
+    str(html_root / "index.html"),
+    "--artifact-directory",
+    str(artifact_dir),
+    "--mode",
+    "pages",
+    "--run-id",
+    "offline-test",
+    "--prune-expired-runs",
+  ])
 
   result = publish_coverage.publish(args)
 
@@ -313,23 +305,21 @@ def test_publish_uses_custom_prune_max_age(tmp_path, monkeypatch) -> None:
 
   monkeypatch.setattr(publish_coverage, "GitHubPagesPublisher", _DummyPublisher)
 
-  args = publish_coverage.build_cli().parse_args(
-    [
-      "--coverage-xml",
-      str(coverage_xml),
-      "--coverage-html-index",
-      str(html_root / "index.html"),
-      "--artifact-directory",
-      str(artifact_dir),
-      "--mode",
-      "pages",
-      "--run-id",
-      "custom-age",
-      "--prune-expired-runs",
-      "--prune-max-age-days",
-      "5",
-    ]
-  )
+  args = publish_coverage.build_cli().parse_args([
+    "--coverage-xml",
+    str(coverage_xml),
+    "--coverage-html-index",
+    str(html_root / "index.html"),
+    "--artifact-directory",
+    str(artifact_dir),
+    "--mode",
+    "pages",
+    "--run-id",
+    "custom-age",
+    "--prune-expired-runs",
+    "--prune-max-age-days",
+    "5",
+  ])
 
   result = publish_coverage.publish(args)
 

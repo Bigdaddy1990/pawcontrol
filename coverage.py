@@ -203,18 +203,16 @@ class Coverage:
       executed_count = len(executed)
       missed = max(statements - executed_count, 0)
       percent = 100.0 if statements == 0 else (executed_count / statements) * 100.0
-      files.append(
-        {
-          "relative": relative,
-          "statements": statements,
-          "executed": executed_count,
-          "missed": missed,
-          "coverage_percent": percent,
-          "runtime_seconds": self._runtime_seconds.get(path, 0.0),
-          "host": host["name"],
-          "cpu_count": host["cpu_count"],
-        }
-      )
+      files.append({
+        "relative": relative,
+        "statements": statements,
+        "executed": executed_count,
+        "missed": missed,
+        "coverage_percent": percent,
+        "runtime_seconds": self._runtime_seconds.get(path, 0.0),
+        "host": host["name"],
+        "cpu_count": host["cpu_count"],
+      })
 
     runtime_payload = {
       "schema_version": 1,
@@ -230,18 +228,16 @@ class Coverage:
     ]
     for entry in files:
       csv_lines.append(
-        ",".join(
-          [
-            entry["relative"],
-            str(entry["statements"]),
-            str(entry["executed"]),
-            str(entry["missed"]),
-            f"{entry['coverage_percent']:.2f}",
-            f"{entry['runtime_seconds']:.6f}",
-            entry["host"],
-            str(entry["cpu_count"]),
-          ]
-        )
+        ",".join([
+          entry["relative"],
+          str(entry["statements"]),
+          str(entry["executed"]),
+          str(entry["missed"]),
+          f"{entry['coverage_percent']:.2f}",
+          f"{entry['runtime_seconds']:.6f}",
+          entry["host"],
+          str(entry["cpu_count"]),
+        ])
       )
     csv_path.write_text("\n".join(csv_lines), encoding="utf-8")
 

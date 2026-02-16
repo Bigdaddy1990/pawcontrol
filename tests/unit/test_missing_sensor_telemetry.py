@@ -71,9 +71,10 @@ def test_calculate_activity_level_prefers_health_snapshot() -> None:
 
 
 def test_calculate_calories_burned_today_applies_multiplier() -> None:
-  walk_data = _walk_payload(
-    {"total_distance_today": 2000.0, "total_duration_today": 60.0}
-  )
+  walk_data = _walk_payload({
+    "total_distance_today": 2000.0,
+    "total_duration_today": 60.0,
+  })
   health_data = _health_payload({"activity_level": "high"})
   assert calculate_calories_burned_today(walk_data, 30.0, health_data) == 1800.0
 

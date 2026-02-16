@@ -720,13 +720,11 @@ def _build_export_snapshot(
   ]
 
   if include_invalid_point:
-    path.append(
-      {
-        "latitude": 123.456,
-        "longitude": 789.012,
-        "timestamp": (start + timedelta(minutes=10)).isoformat(),
-      }
-    )
+    path.append({
+      "latitude": 123.456,
+      "longitude": 789.012,
+      "timestamp": (start + timedelta(minutes=10)).isoformat(),
+    })
 
   snapshot: WalkSessionSnapshot = {
     "walk_id": walk_id,

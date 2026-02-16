@@ -87,9 +87,9 @@ TRIGGER_DEFINITIONS: Final[tuple[TriggerDefinition, ...]] = (
 
 TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
   {
-    vol.Required(CONF_TYPE): vol.In(
-      {definition.type for definition in TRIGGER_DEFINITIONS}
-    ),
+    vol.Required(CONF_TYPE): vol.In({
+      definition.type for definition in TRIGGER_DEFINITIONS
+    }),
     vol.Optional(CONF_ENTITY_ID): _ENTITY_ID_VALIDATOR,
     vol.Optional(CONF_FROM): cv.string,
     vol.Optional(CONF_TO): cv.string,

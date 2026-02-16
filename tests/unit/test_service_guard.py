@@ -90,13 +90,11 @@ def test_normalise_guard_result_payload(
 def test_normalise_guard_history_handles_mixed_entries() -> None:
   """Guard history normalisation must handle results and mappings."""
 
-  history = normalise_guard_history(
-    [
-      ServiceGuardResult("notify", "persistent_notification", True),
-      {"domain": "script", "service": "turn_on", "reason": "cooldown"},
-      object(),
-    ]
-  )
+  history = normalise_guard_history([
+    ServiceGuardResult("notify", "persistent_notification", True),
+    {"domain": "script", "service": "turn_on", "reason": "cooldown"},
+    object(),
+  ])
 
   assert len(history) == 2
   assert history[0]["executed"] is True

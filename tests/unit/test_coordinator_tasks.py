@@ -347,16 +347,14 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
 def test_derive_rejection_metrics_preserves_defaults() -> None:
   """Derived metrics should keep seeded defaults when resilience payload omits values."""
 
-  metrics = tasks.derive_rejection_metrics(
-    {
-      "rejected_call_count": None,
-      "rejection_breaker_count": None,
-      "rejection_rate": None,
-      "last_rejection_time": None,
-      "last_rejection_breaker_id": None,
-      "last_rejection_breaker_name": None,
-    }
-  )
+  metrics = tasks.derive_rejection_metrics({
+    "rejected_call_count": None,
+    "rejection_breaker_count": None,
+    "rejection_rate": None,
+    "last_rejection_time": None,
+    "last_rejection_breaker_id": None,
+    "last_rejection_breaker_name": None,
+  })
 
   assert metrics["schema_version"] == 4
   assert metrics["rejected_call_count"] == 0
@@ -708,9 +706,10 @@ def test_collect_resilience_diagnostics_defaults_unknown_state(monkeypatch) -> N
         total_successes=2,
       )
 
-  resilience_manager = _DummyResilience(
-    {"legacy": _MissingState(), "blank": _BlankState()}
-  )
+  resilience_manager = _DummyResilience({
+    "legacy": _MissingState(),
+    "blank": _BlankState(),
+  })
   coordinator = _build_coordinator(resilience_manager=resilience_manager)
 
   payload = tasks.collect_resilience_diagnostics(coordinator)
@@ -734,14 +733,12 @@ def test_summarise_resilience_normalises_state_metadata() -> None:
     def __init__(self, value: str) -> None:
       self.value = value
 
-  summary = tasks._summarise_resilience(
-    {
-      "legacy": {"state": None, "breaker_id": "legacy"},
-      "spaced": {"state": "  Open  ", "breaker_id": "api"},
-      "hyphen": {"state": "half-open", "breaker_id": "fallback"},
-      "enum": {"state": _EnumState("CLOSED"), "breaker_id": "enum"},
-    }
-  )
+  summary = tasks._summarise_resilience({
+    "legacy": {"state": None, "breaker_id": "legacy"},
+    "spaced": {"state": "  Open  ", "breaker_id": "api"},
+    "hyphen": {"state": "half-open", "breaker_id": "fallback"},
+    "enum": {"state": _EnumState("CLOSED"), "breaker_id": "enum"},
+  })
 
   assert summary["states"]["closed"] == 1
   assert summary["states"]["open"] == 1
@@ -759,12 +756,10 @@ def test_summarise_resilience_normalises_state_metadata() -> None:
 def test_summarise_resilience_uses_extended_breaker_identifiers() -> None:
   """Aggregation should honour identifier metadata when breaker IDs are missing."""
 
-  summary = tasks._summarise_resilience(
-    {
-      "api": {"state": "OPEN", "identifier": "api-primary"},
-      "fallback": {"state": "half_open", "name": "fallback-service"},
-    }
-  )
+  summary = tasks._summarise_resilience({
+    "api": {"state": "OPEN", "identifier": "api-primary"},
+    "fallback": {"state": "half_open", "name": "fallback-service"},
+  })
 
   assert summary["open_breaker_ids"] == ["api-primary"]
   assert summary["half_open_breaker_ids"] == ["fallback-service"]
@@ -994,9 +989,10 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
     "last_rejection_time": 275.0,
   }
 
-  resilience_manager = _DummyResilience(
-    {"stale": stale_breaker, "recovered": recovered_breaker}
-  )
+  resilience_manager = _DummyResilience({
+    "stale": stale_breaker,
+    "recovered": recovered_breaker,
+  })
   coordinator = _build_coordinator(resilience_manager=resilience_manager)
 
   runtime_data = SimpleNamespace(performance_stats={})

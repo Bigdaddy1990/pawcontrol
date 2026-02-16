@@ -14,15 +14,13 @@ class _DummyCoordinator(CoordinatorDataAccessMixin):
   """Minimal coordinator that exposes the mixin helpers for tests."""
 
   def __init__(self) -> None:
-    self.registry = DogConfigRegistry(
-      [
-        {
-          "dog_id": "alpha",
-          "dog_name": "Alpha",
-          "modules": {"gps": True, "feeding": True},
-        }
-      ]
-    )
+    self.registry = DogConfigRegistry([
+      {
+        "dog_id": "alpha",
+        "dog_name": "Alpha",
+        "modules": {"gps": True, "feeding": True},
+      }
+    ])
     self._data = {
       dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
     }
