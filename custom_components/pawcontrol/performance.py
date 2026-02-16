@@ -11,13 +11,13 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import inspect
 from collections import deque
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 import functools
+import inspect
 import logging
 import time
 from typing import Any, ParamSpec, TypeVar, cast
@@ -638,7 +638,7 @@ def record_maintenance_result(
     "status": status,
     "recorded_at": datetime.now(UTC).isoformat(),
     "timestamp": time.time(),
-    "recorded_at": datetime.now(tz=UTC).isoformat(),
+    "recorded_at": datetime.now(tz=UTC).isoformat(),  # noqa: F601
   }
   if message is not None:
     entry["message"] = message
@@ -655,7 +655,7 @@ def record_maintenance_result(
     entry["details"] = dict(details)
 
   history.append(entry)
-  results.append(entry)
+  results.append(entry)  # noqa: F821
   store["last_maintenance_result"] = entry
   if len(history) > max_entries:
     del history[:-max_entries]

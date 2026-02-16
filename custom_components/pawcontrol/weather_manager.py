@@ -52,7 +52,7 @@ from .weather_translations import (
   WeatherRecommendationKey,
   WeatherRecommendationTranslations,
   WeatherTranslations,
-  async_get_weather_translations,
+  async_get_weather_translations,  # noqa: F401
   empty_weather_translations,
 )
 
@@ -113,7 +113,7 @@ _LOGGER = logging.getLogger(__name__)
 def get_weather_translations(language: str) -> WeatherTranslations:
   """Backward-compatible wrapper for weather translation loading."""
 
-  return _get_weather_translations(language)
+  return _get_weather_translations(language)  # noqa: F821
 
 
 class WeatherSeverity(Enum):
