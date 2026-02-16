@@ -96,7 +96,7 @@ skip-magic-trailing-comma = false
 [tool.ruff.lint]
 preview = true
 select = ["E", "F", "I", "UP", "B", "SIM", "Q"]
-ignore = ["E501", "INP001"]
+ignore = ["E111", "E114", "E501", "INP001"]
 fixable = ["ALL"]
 unfixable = ["F401"]
 extend-unsafe-fixes = ["E", "F401"]
