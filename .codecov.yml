@@ -26,20 +26,26 @@ codecov:
         if_ci_failed: error #success, failure, error, ignore
         informational: true
         only_pulls: false
-    tests:  # declare a new status context "tests"
+      tests:  # declare a new status context "tests"
         target: 100%  # we always want 100% coverage here
-        paths: "tests/**"  # only include coverage in "tests/" folder
-    app:  # declare a new status context "app"
+        paths: "tests/"  # only include coverage in "tests/" folder
+      app:  # declare a new status context "app"
         paths: "!tests/"  # remove all files in "tests/"
-    patch:
-      default:
-        target: 90%
-        threshold: 1%
-        base: auto
-        if_not_found: success
-        if_ci_failed: error
-        informational: true
-        only_pulls: false
+      patch:
+        default:
+         target: 90%
+         threshold: 1%
+         base: auto
+         branches: 
+           - master
+         if_not_found: success
+         if_ci_failed: error
+         informational: true
+         only_pulls: false
+         flags: 
+           - "unit"
+         paths: 
+           - "src"
     changes: false
   precision: 2
   round: down

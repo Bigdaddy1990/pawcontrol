@@ -19,11 +19,14 @@ from contextlib import contextmanager
 from collections import deque
 from collections.abc import Callable
 from collections.abc import Mapping
+from datetime import UTC
+from datetime import datetime
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any
 from typing import ParamSpec
 from typing import TypeVar
+from typing import cast
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -499,16 +502,41 @@ def disable_performance_monitoring() -> None:
 
 
 def capture_cache_diagnostics(runtime_data: object | None) -> dict[str, Any] | None:
-  """Capture a lightweight cache snapshot for coordinator diagnostics."""
+  """Capture cache snapshots and repair telemetry when available."""
 
   if runtime_data is None:
     return None
 
   diagnostics: dict[str, Any] = {}
+
+  data_manager = getattr(runtime_data, "data_manager", None)
+  snapshot_method = getattr(data_manager, "cache_snapshots", None)
+  if callable(snapshot_method):
+    try:
+      snapshots = snapshot_method()
+    except Exception:  # pragma: no cover - diagnostics guard
+      snapshots = None
+    if isinstance(snapshots, Mapping):
+      diagnostics["snapshots"] = dict(snapshots)
+
+      summary_method = getattr(data_manager, "cache_repair_summary", None)
+      if callable(summary_method):
+        try:
+          summary = summary_method(cast(dict[str, object], diagnostics["snapshots"]))
+        except TypeError:
+          try:
+            summary = summary_method()
+          except Exception:  # pragma: no cover - diagnostics guard
+            summary = None
+        except Exception:  # pragma: no cover - diagnostics guard
+          summary = None
+        if summary is not None:
+          diagnostics["repair_summary"] = summary
+
   for attr_name in ("cache", "_cache", "caches", "_caches"):
     cache = getattr(runtime_data, attr_name, None)
     if isinstance(cache, dict):
-      diagnostics[attr_name] = {"entries": len(cache)}
+      diagnostics.setdefault("legacy", {})[attr_name] = {"entries": len(cache)}
 
   monitor = getattr(runtime_data, "performance_monitor", None)
   if monitor is not None and hasattr(monitor, "get_summary"):
@@ -567,17 +595,27 @@ def performance_tracker(
   finally:
     duration_ms = (time.perf_counter() - context.started_at) * 1000.0
     store = _ensure_runtime_performance_store(runtime_data)
-    history = store.setdefault(metric_name, [])
-    if isinstance(history, list):
-      history.append(
-        {
-          "duration_ms": round(duration_ms, 2),
-          "status": "error" if context.failure else "success",
-          "failure": context.failure,
-        },
-      )
-      if len(history) > max_samples:
-        del history[:-max_samples]
+    buckets = store.setdefault("performance_buckets", {})
+    if not isinstance(buckets, dict):
+      buckets = {}
+      store["performance_buckets"] = buckets
+
+    bucket = buckets.setdefault(metric_name, {"runs": 0, "failures": 0, "durations_ms": []})
+    if not isinstance(bucket, dict):
+      bucket = {"runs": 0, "failures": 0, "durations_ms": []}
+      buckets[metric_name] = bucket
+
+    bucket["runs"] = int(bucket.get("runs", 0) or 0) + 1
+    if context.failure:
+      bucket["failures"] = int(bucket.get("failures", 0) or 0) + 1
+
+    durations = bucket.get("durations_ms")
+    if not isinstance(durations, list):
+      durations = []
+      bucket["durations_ms"] = durations
+    durations.append(round(duration_ms, 2))
+    if len(durations) > max_samples:
+      del durations[:-max_samples]
 
 
 def record_maintenance_result(
@@ -594,25 +632,33 @@ def record_maintenance_result(
   """Store maintenance task outcomes on runtime diagnostics state."""
 
   store = _ensure_runtime_performance_store(runtime_data)
-  history = store.setdefault("maintenance_history", [])
+  history = store.setdefault("maintenance_results", [])
   if not isinstance(history, list):
     history = []
-    store["maintenance_history"] = history
+    store["maintenance_results"] = history
 
   entry: dict[str, Any] = {
     "task": task,
     "status": status,
+    "recorded_at": datetime.now(UTC).isoformat(),
     "timestamp": time.time(),
   }
   if message is not None:
     entry["message"] = message
+
+  diagnostics_payload: dict[str, Any] = {}
   if diagnostics is not None:
-    entry["diagnostics"] = diagnostics
+    diagnostics_payload["cache"] = diagnostics
   if metadata is not None:
-    entry["metadata"] = dict(metadata)
+    diagnostics_payload["metadata"] = dict(metadata)
+  if diagnostics_payload:
+    entry["diagnostics"] = diagnostics_payload
+
   if details is not None:
     entry["details"] = dict(details)
 
   history.append(entry)
   if len(history) > max_entries:
     del history[:-max_entries]
+
+  store["last_maintenance_result"] = entry

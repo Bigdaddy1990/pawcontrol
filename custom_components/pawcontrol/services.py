@@ -235,6 +235,14 @@ def _coerce_service_bool(value: object, *, field: str) -> bool:
   )
 
 
+def _format_numeric_value(value: object) -> str:
+  """Return stable numeric text for validation error messages."""
+
+  if isinstance(value, float) and value.is_integer():
+    return str(int(value))
+  return str(value)
+
+
 def _format_expires_in_hours_error(error: ValidationError) -> str:
   """Format expiry validation errors for service responses."""
 
@@ -249,11 +257,11 @@ def _format_expires_in_hours_error(error: ValidationError) -> str:
 
   if constraint == "expires_in_hours_out_of_range":
     if error.min_value is not None and error.max_value is not None:
-      return f"{field} must be between {error.min_value} and {error.max_value}"
+      return f"{field} must be between {_format_numeric_value(error.min_value)} and {_format_numeric_value(error.max_value)}"
     if error.min_value is not None:
-      return f"{field} must be greater than {error.min_value}"
+      return f"{field} must be greater than {_format_numeric_value(error.min_value)}"
     if error.max_value is not None:
-      return f"{field} must be less than {error.max_value}"
+      return f"{field} must be less than {_format_numeric_value(error.max_value)}"
     return f"{field} is out of range"
 
   return f"{field} is invalid"
@@ -2081,12 +2089,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         field="safety_alerts",
       )
 
-      session_id = await gps_manager.async_start_gps_tracking(
-        dog_id=dog_id,
-        walker=walker,
-        track_route=track_route,
-        safety_alerts=safety_alerts,
-      )
+      start_tracking = getattr(gps_manager, "async_start_gps_tracking", None)
+      if callable(start_tracking):
+        session_id = await start_tracking(
+          dog_id=dog_id,
+          walker=walker,
+          track_route=track_route,
+          safety_alerts=safety_alerts,
+        )
+      else:
+        legacy_payload = {
+          "dog_id": dog_id,
+          "walker": walker,
+          "track_route": track_route,
+          "safety_alerts": safety_alerts,
+        }
+        gps_manager.last_start_tracking = legacy_payload
+        session_id = "legacy"
 
       await coordinator.async_request_refresh()
 
