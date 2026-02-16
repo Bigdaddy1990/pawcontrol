@@ -2096,9 +2096,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           track_route=track_route,
           safety_alerts=safety_alerts,
         )
-      else:
-        gps_manager.last_start_tracking = {"dog_id": dog_id, "walker": walker, "track_route": track_route, "safety_alerts": safety_alerts}
-        session_id = f"{dog_id}-gps-session"
+session_id = f"legacy-{dog_id}"
 
       await coordinator.async_request_refresh()
 
