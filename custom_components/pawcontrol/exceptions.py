@@ -112,7 +112,7 @@ def _ensure_error_context(context: Mapping[str, object] | None) -> ErrorContext:
   return normalised  # noqa: E111
 
 
-class PawControlError(HomeAssistantErrorType):
+class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
   """Base exception for all Paw Control related errors with enhanced features.
 
   This base class provides structured error information, contextual data,

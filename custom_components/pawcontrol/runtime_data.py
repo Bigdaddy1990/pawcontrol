@@ -656,7 +656,7 @@ def pop_runtime_data(
   return store_runtime  # noqa: E111
 
 
-class RuntimeDataUnavailableError(HomeAssistantError):
+class RuntimeDataUnavailableError(HomeAssistantError):  # type: ignore[misc]
   """Raised when PawControl runtime data cannot be resolved."""  # noqa: E111
 
 

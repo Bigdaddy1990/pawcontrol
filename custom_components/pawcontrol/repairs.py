@@ -1737,7 +1737,7 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
     )
 
 
-class PawControlRepairsFlow(RepairsFlow):
+class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
   """Handle repair flows for Paw Control integration."""  # noqa: E111
 
   def __init__(self) -> None:  # noqa: E111

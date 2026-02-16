@@ -133,7 +133,7 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
 )
 
 
-class PawControlBaseConfigFlow(ConfigFlow):
+class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
   """Base configuration flow with common functionality.
 
   This base class provides shared validation, error handling, and utility

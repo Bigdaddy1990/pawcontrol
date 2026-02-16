@@ -30,7 +30,7 @@ if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant  # noqa: E111
 
 
-class PawControlValidationError(ServiceValidationError):
+class PawControlValidationError(ServiceValidationError):  # type: ignore[misc]
   """Base validation error for PawControl."""  # noqa: E111
 
 
