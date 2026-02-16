@@ -94,18 +94,19 @@ class QualityVerifier:
         )
 
       # Check for potential non-JSON-serializable returns
-      if has_extra_attrs:
+      if has_extra_attrs and re.search(
+        r"return\s+(?!_normalise|normalise).*datetime|timedelta", content
+      ):
         # Look for direct datetime/timedelta returns without serialization
-        if re.search(r"return\s+(?!_normalise|normalise).*datetime|timedelta", content):
-          self.issues.append(
-            ComplianceIssue(
-              file=platform_file,
-              line=None,
-              issue_type="JSON_SERIALIZATION",
-              description="Potential non-serialized datetime/timedelta in extra_state_attributes",
-              severity="WARNING",
-            )
+        self.issues.append(
+          ComplianceIssue(
+            file=platform_file,
+            line=None,
+            issue_type="JSON_SERIALIZATION",
+            description="Potential non-serialized datetime/timedelta in extra_state_attributes",
+            severity="WARNING",
           )
+        )
 
   def verify_mypy_compliance(self) -> None:
     """Verify MyPy strict mode compliance."""
@@ -191,24 +192,23 @@ class QualityVerifier:
 
       # Check for validation functions outside validation modules
       for keyword in validation_keywords:
-        if keyword in content:
+        if keyword in content and not (
+          "from .validation import" in content
+          or "from .flow_validation import" in content
+        ):
           # Check if it's using centralized validation or implementing its own
-          if not (
-            "from .validation import" in content
-            or "from .flow_validation import" in content
-          ):
-            matches = re.finditer(rf"def {keyword}\w+\(", content)
-            for match in matches:
-              line_no = content[: match.start()].count("\n") + 1
-              self.issues.append(
-                ComplianceIssue(
-                  file=py_file.name,
-                  line=line_no,
-                  issue_type="VALIDATION_DECENTRALIZED",
-                  description=f"Validation function {match.group()} should be in validation.py",
-                  severity="WARNING",
-                )
+          matches = re.finditer(rf"def {keyword}\w+\(", content)
+          for match in matches:
+            line_no = content[: match.start()].count("\n") + 1
+            self.issues.append(
+              ComplianceIssue(
+                file=py_file.name,
+                line=line_no,
+                issue_type="VALIDATION_DECENTRALIZED",
+                description=f"Validation function {match.group()} should be in validation.py",
+                severity="WARNING",
               )
+            )
 
   def verify_coordinator_architecture(self) -> None:
     """Verify entities use coordinator-based architecture (no direct client access)."""
