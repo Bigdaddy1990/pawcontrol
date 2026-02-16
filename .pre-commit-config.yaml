@@ -17,7 +17,6 @@ repos:
       - id: pyupgrade
         args:
           - --py314-plus
-        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
@@ -28,7 +27,7 @@ repos:
           - --full-reorder
           - --keep-updates
           - --force-exclude
-        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
+
    - repo: https://github.com/pycqa/flake8
      rev: 4.0.1
      hooks:
