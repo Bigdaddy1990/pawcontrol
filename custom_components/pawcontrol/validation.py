@@ -27,10 +27,14 @@ from .const import (
   MAX_DOG_NAME_LENGTH,
   MIN_DOG_NAME_LENGTH,
 )
-from .exceptions import ValidationError as PawControlValidationError
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant  # noqa: E111
+
+
+class PawControlValidationError(ServiceValidationError):
+  """Base validation error for PawControl."""
+
 
 ValidationError = PawControlValidationError
 
