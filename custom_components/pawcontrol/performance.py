@@ -643,7 +643,13 @@ def record_maintenance_result(
     results = []
     store["maintenance_results"] = results
 
-  entry: dict[str, Any] = {
+diagnostics_payload: dict[str, Any] = {}
+    if diagnostics is not None:
+      diagnostics_payload["cache"] = diagnostics
+    if metadata is not None:
+      diagnostics_payload["metadata"] = dict(metadata)
+    if diagnostics_payload:
+      entry["diagnostics"] = diagnostics_payload
     "task": task,
     "status": status,
     "timestamp": time.time(),
