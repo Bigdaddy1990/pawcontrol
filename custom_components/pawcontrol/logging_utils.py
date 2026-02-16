@@ -421,6 +421,7 @@ def log_calls(
   @overload
   def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     """Overload for async callables."""
+
   @overload
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     """Overload for sync callables."""
