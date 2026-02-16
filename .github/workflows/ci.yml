@@ -56,7 +56,7 @@ jobs:
            python -m pip install --upgrade pip
            python -m pip install -r requirements_test.txt
            python -m pip install --upgrade ruff mypy pre-commit pytest-cov
-          
+
       # Update output format to enable automatic inline annotations.
       - name: Ruff lint
         run: ruff check --fix --exit-non-zero-on-fix --output-format=github .
