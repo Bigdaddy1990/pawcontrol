@@ -1,7 +1,5 @@
 """System, dashboard, advanced and weather settings steps for the PawControl options flow."""  # noqa: E501
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping, Sequence
 from importlib import import_module
 import logging

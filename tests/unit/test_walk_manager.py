@@ -7,8 +7,6 @@ Quality Scale: Platinum target
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 import json
 from unittest.mock import Mock

@@ -1,7 +1,5 @@
 """Ensure test imports declare the third-party packages they rely on."""
 
-from __future__ import annotations
-
 import argparse
 import ast
 from collections.abc import Iterable

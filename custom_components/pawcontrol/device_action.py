@@ -1,7 +1,5 @@
 """Device actions for PawControl."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import logging
 from typing import Final, cast

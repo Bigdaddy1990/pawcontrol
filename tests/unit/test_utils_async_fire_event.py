@@ -1,7 +1,5 @@
 """Tests for the async_fire_event helper."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import UTC, datetime
 import inspect

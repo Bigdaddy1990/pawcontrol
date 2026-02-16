@@ -1,7 +1,5 @@
 """Unit tests for feeding compliance localisation helpers."""
 
-from __future__ import annotations
-
 from collections import UserString
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from itertools import count

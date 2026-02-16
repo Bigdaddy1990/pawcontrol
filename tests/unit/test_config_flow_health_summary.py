@@ -1,7 +1,5 @@
 """Tests for health summary helpers in the config flow."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from custom_components.pawcontrol.flow_steps.health import HealthSummaryMixin

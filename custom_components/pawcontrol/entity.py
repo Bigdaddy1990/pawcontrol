@@ -1,7 +1,5 @@
 """Shared base entity classes for the PawControl integration."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import datetime
 import logging

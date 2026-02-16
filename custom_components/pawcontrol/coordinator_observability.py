@@ -1,7 +1,5 @@
 """Observability helpers that keep :mod:`coordinator` concise."""
 
-from __future__ import annotations
-
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
 from logging import getLogger

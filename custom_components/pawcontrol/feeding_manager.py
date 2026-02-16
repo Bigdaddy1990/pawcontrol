@@ -1,7 +1,5 @@
 """Feeding management with health-aware portions for PawControl."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import contextlib

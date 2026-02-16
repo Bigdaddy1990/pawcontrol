@@ -1,7 +1,5 @@
 """Tests for the OptimizedDataCache helper."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import UTC, datetime, timedelta
 

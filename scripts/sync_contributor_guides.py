@@ -1,7 +1,5 @@
 """Synchronise assistant-specific contributor guides with the canonical copy."""
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
 

@@ -1,7 +1,5 @@
 """Runtime data helpers for the PawControl integration."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping, MutableMapping
 import logging
 from typing import Literal, cast, overload

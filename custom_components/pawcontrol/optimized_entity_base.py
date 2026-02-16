@@ -22,8 +22,6 @@ Features:
 - Intelligent state restoration and persistence
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 import asyncio
 from collections.abc import Callable, Iterator, Mapping

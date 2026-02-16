@@ -1,7 +1,5 @@
 """Synchronise dependencies with the upstream Home Assistant repository."""
 
-from __future__ import annotations
-
 import argparse
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass

@@ -4,8 +4,6 @@ This guard prevents regressions like ``except TypeError, ValueError:`` that brea
 Python 3 AST parsing and hassfest validation.
 """
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
 import re

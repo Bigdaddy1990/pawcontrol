@@ -1,7 +1,5 @@
 """Shared test helpers for the PawControl integration."""
 
-from __future__ import annotations
-
 from copy import deepcopy
 import importlib.util
 from pathlib import Path

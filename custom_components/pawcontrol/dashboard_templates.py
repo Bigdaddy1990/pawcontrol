@@ -9,8 +9,6 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime

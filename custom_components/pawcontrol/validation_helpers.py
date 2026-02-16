@@ -1,7 +1,5 @@
 """Shared validation helpers for flows and services."""
 
-from __future__ import annotations
-
 from typing import Any, cast
 
 from .const import CONF_DOG_NAME

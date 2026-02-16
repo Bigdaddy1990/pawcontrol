@@ -1,7 +1,5 @@
 """Publish coverage artifacts and GitHub Pages bundles."""
 
-from __future__ import annotations
-
 import argparse
 import base64
 from collections.abc import Iterable, Sequence

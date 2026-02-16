@@ -8,8 +8,6 @@ This module implements profile-optimized switch entities that only create switch
 for enabled modules, significantly reducing entity count and improving performance.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Mapping, Sequence
 from datetime import datetime

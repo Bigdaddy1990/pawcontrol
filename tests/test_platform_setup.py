@@ -1,7 +1,5 @@
 """Unit tests for entity platform setup flows."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from datetime import UTC, datetime
 import importlib

@@ -19,8 +19,6 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """  # noqa: E501
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 import logging
 from typing import TYPE_CHECKING, Final, Protocol, cast

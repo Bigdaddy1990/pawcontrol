@@ -1,7 +1,5 @@
 """Shared data accessor helpers for the PawControl coordinator."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Literal, TypeGuard, cast, overload
 

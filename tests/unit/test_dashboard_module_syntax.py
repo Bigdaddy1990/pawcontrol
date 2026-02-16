@@ -1,7 +1,5 @@
 """Regression tests ensuring key modules remain syntactically valid."""
 
-from __future__ import annotations
-
 from pathlib import Path
 import py_compile
 

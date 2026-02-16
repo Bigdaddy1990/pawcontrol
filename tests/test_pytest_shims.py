@@ -5,8 +5,6 @@ third-party dependencies, preventing regressions when upstream pytest plugins
 change behaviour.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Generator
 import importlib

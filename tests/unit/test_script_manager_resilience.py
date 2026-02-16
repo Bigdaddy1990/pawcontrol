@@ -1,7 +1,5 @@
 """Regression tests for the resilience escalation diagnostics snapshot."""
 
-from __future__ import annotations
-
 from datetime import timedelta
 import json
 from types import MethodType, SimpleNamespace

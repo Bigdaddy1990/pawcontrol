@@ -1,7 +1,5 @@
 """Shared helpers for Home Assistant translation lookups."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping, MutableMapping
 from functools import lru_cache
 import json

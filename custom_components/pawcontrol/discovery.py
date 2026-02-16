@@ -7,8 +7,6 @@ keeps all runtime interactions asynchronous, and leans on typed payloads so the
 strict mypy gate can reason about gathered devices.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass

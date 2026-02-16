@@ -5,8 +5,6 @@ It contains common helper methods used by multiple option-flow mixins (telemetry
 manual event helpers, system/dashboard/advanced settings builders, etc.).
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 import logging

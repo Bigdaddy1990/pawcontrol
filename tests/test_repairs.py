@@ -6,8 +6,6 @@ ensure they gracefully handle unexpected severity values even without the real
 Home Assistant runtime.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Mapping
 from datetime import UTC, datetime, timezone

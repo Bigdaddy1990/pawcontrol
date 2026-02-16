@@ -1,7 +1,5 @@
 """Unit tests for PawControl system health output."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry

@@ -4,8 +4,6 @@ Tests validation and error handling decorators including dog validation,
 GPS validation, error handling, retry logic, and repair issue mapping.
 """
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

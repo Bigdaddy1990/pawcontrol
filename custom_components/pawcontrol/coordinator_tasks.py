@@ -1,7 +1,5 @@
 """Helper routines that keep the coordinator file compact."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import UTC, date, datetime
 from math import isfinite

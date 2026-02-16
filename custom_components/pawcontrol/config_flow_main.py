@@ -1,7 +1,5 @@
 """Config flow for the PawControl integration."""
 
-from __future__ import annotations
-
 __all__ = ["ConfigFlow", "PawControlConfigFlow"]
 
 from collections.abc import Awaitable, Mapping, Sequence

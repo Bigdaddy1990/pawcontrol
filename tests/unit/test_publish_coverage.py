@@ -1,7 +1,5 @@
 """Regression tests for the coverage publishing helper."""
 
-from __future__ import annotations
-
 import base64
 import datetime as dt
 import json

@@ -8,8 +8,6 @@ for diagnostics and repairs.
 Telemetry is intentionally non-sensitive (no coordinates).
 """
 
-from __future__ import annotations
-
 from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass

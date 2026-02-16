@@ -1,7 +1,5 @@
 """Tests for PawControl sensor module data access helpers."""
 
-from __future__ import annotations
-
 from typing import Any, cast
 
 from custom_components.pawcontrol.coordinator import PawControlCoordinator

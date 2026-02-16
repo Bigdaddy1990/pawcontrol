@@ -1,7 +1,5 @@
 """Tests for the Home Assistant dependency synchroniser."""
 
-from __future__ import annotations
-
 import argparse
 import json
 from pathlib import Path

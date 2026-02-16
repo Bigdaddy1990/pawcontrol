@@ -4,8 +4,6 @@ Tests smart diffing and data change detection including diff computation,
 module-level tracking, and entity update minimization.
 """
 
-from __future__ import annotations
-
 import logging
 
 import pytest

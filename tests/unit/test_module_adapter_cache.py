@@ -1,7 +1,5 @@
 """Unit tests for module adapter cache telemetry helpers."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 import importlib.util
 from pathlib import Path

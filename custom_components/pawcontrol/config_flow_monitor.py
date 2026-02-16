@@ -1,7 +1,5 @@
 """Performance monitoring helpers for the PawControl config flow."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 import logging

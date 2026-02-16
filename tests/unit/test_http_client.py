@@ -1,7 +1,5 @@
 """Unit tests for the shared aiohttp session helper."""
 
-from __future__ import annotations
-
 from collections.abc import Coroutine
 import importlib.util
 from pathlib import Path

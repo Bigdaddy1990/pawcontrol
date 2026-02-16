@@ -1,7 +1,5 @@
 """Helpers that translate runtime managers into coordinator-facing adapters."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 import logging

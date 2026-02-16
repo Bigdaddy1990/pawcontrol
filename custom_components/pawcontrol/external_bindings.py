@@ -15,8 +15,6 @@ Notes:
 - Telemetry / strict source checks for webhook/MQTT are handled by push_router.py.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Mapping
 import contextlib

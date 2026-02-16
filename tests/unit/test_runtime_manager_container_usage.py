@@ -1,7 +1,5 @@
 """Regression tests covering runtime manager container access patterns."""
 
-from __future__ import annotations
-
 from datetime import UTC, date as date_cls, datetime
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast

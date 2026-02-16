@@ -4,8 +4,6 @@ Extracted from __init__.py to isolate platform-related logic.
 Handles platform forwarding, helper creation, and script generation.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 import time

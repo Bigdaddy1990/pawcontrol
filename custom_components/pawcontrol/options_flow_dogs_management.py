@@ -1,7 +1,5 @@
 """Dog management steps for the PawControl options flow."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 import logging
 from typing import TYPE_CHECKING, Any, Protocol, cast
