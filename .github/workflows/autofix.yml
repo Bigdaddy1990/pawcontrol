@@ -72,7 +72,7 @@ jobs:
           prek install
           prek run --all-files
           prek run --hook-stage manual python-typing-update --all-files
-          
+
       - name: pre-commit-ci-lite
         uses: pre-commit-ci/lite-action@v1.1.0
         if: always()

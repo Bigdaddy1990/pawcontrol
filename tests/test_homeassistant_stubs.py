@@ -314,8 +314,12 @@ def test_flow_result_aliases_stay_consistent_with_home_assistant() -> None:
   install_homeassistant_stubs()  # noqa: E111
 
   from homeassistant.components import repairs  # noqa: E111
-  from homeassistant.config_entries import FlowResult as ConfigEntriesFlowResult
-  from homeassistant.data_entry_flow import FlowResult as DataEntryFlowResult
+  from homeassistant.config_entries import (  # noqa: E111
+    FlowResult as ConfigEntriesFlowResult,  # noqa: E111
+  )
+  from homeassistant.data_entry_flow import (  # noqa: E111
+    FlowResult as DataEntryFlowResult,  # noqa: E111
+  )
 
   from tests.helpers.homeassistant_test_stubs import FlowResult  # noqa: E111
 

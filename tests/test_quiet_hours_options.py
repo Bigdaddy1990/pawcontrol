@@ -49,7 +49,9 @@ def test_notification_settings_payload_coercion() -> None:
   """Ensure notification settings normalise quiet hours input."""  # noqa: E111
 
   _install_options_flow_dependencies()  # noqa: E111
-  from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
+  from custom_components.pawcontrol.options_flow import (  # noqa: E111
+    PawControlOptionsFlow,  # noqa: E111
+  )
 
   current = {  # noqa: E111
     "quiet_hours": True,
@@ -84,9 +86,13 @@ def test_gps_settings_payload_clamps_ranges() -> None:
   """Ensure GPS options normalization clamps and defaults values."""  # noqa: E111
 
   _install_options_flow_dependencies()  # noqa: E111
-  from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
+  from custom_components.pawcontrol.const import (  # noqa: E111
+    DEFAULT_GPS_UPDATE_INTERVAL,  # noqa: E111
+  )
   from custom_components.pawcontrol.flow_helpers import coerce_bool  # noqa: E111
-  from custom_components.pawcontrol.flow_steps.gps import GPSOptionsNormalizerMixin
+  from custom_components.pawcontrol.flow_steps.gps import (  # noqa: E111
+    GPSOptionsNormalizerMixin,  # noqa: E111
+  )
   from custom_components.pawcontrol.types import (  # noqa: E111
     AUTO_TRACK_WALKS_FIELD,
     GPS_ACCURACY_FILTER_FIELD,
