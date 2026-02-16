@@ -8,6 +8,7 @@ remaining lightweight enough to run the full suite (unit, integration,
 diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
 
+# ruff: noqa: E111
 from __future__ import annotations
 
 import asyncio
@@ -333,7 +334,9 @@ def mock_coordinator(
   Returns:
       Mock coordinator instance
   """  # noqa: E111
-  from custom_components.pawcontrol.coordinator import PawControlCoordinator
+  from custom_components.pawcontrol.coordinator import (
+    PawControlCoordinator,  # noqa: E111
+  )
 
   coordinator = PawControlCoordinator(  # noqa: E111
     mock_hass,
@@ -430,7 +433,9 @@ def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
   Returns:
       Initialized NotificationManager
   """  # noqa: E111
-  from custom_components.pawcontrol.notifications import PawControlNotificationManager
+  from custom_components.pawcontrol.notifications import (
+    PawControlNotificationManager,  # noqa: E111
+  )
 
   manager = PawControlNotificationManager(  # noqa: E111
     mock_hass,
@@ -454,7 +459,9 @@ def mock_data_manager(mock_hass):
   Returns:
       Initialized DataManager
   """  # noqa: E111
-  from custom_components.pawcontrol.data_manager import PawControlDataManager
+  from custom_components.pawcontrol.data_manager import (
+    PawControlDataManager,  # noqa: E111
+  )
 
   manager = PawControlDataManager(mock_hass, "test_entry")  # noqa: E111
   _run_async(manager.async_initialize())  # noqa: E111
