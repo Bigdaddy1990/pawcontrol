@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E111, E114, E501
 """Automated patch script to fix 40 MyPy strict mode errors in PawControl.
 
 Usage:
@@ -6,10 +7,10 @@ Usage:
 """
 
 import argparse
-import re
-import shutil
 from datetime import datetime
 from pathlib import Path
+import re
+import shutil
 from typing import NamedTuple
 
 
@@ -157,7 +158,7 @@ def main() -> None:
         backup_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"\n📦 Creating backup at: {backup_path}")
         shutil.copytree(BASE_DIR, backup_path)
-        print(f"✅ Backup created successfully")
+        print("✅ Backup created successfully")
     
     # Collect all fixes
     all_fixes = SUBCLASS_FIXES + DECORATOR_FIXES + REDUNDANT_CAST_FIXES

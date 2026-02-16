@@ -46,7 +46,6 @@ from .types import (
   CoordinatorTypedModuleName,
   DogConfigData,
   EntityAttributeDateMutableMapping,
-  FeedingEmergencyState,
   FeedingModulePayload,
   GardenModulePayload,
   GPSModulePayload,

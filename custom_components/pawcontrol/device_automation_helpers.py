@@ -3,7 +3,7 @@
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 import logging
-from typing import Final, cast
+from typing import Final
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er

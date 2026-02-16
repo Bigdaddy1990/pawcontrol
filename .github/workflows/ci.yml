@@ -90,19 +90,10 @@ jobs:
             --cov-report=xml \
             --junitxml=testreport.junit.xml
 
-      - name: Upload coverage to Codecov
+      - name: Upload (test) coverage to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
-          fail_ci_if_error: false
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          report-type: test_results
-          files: testreport.junit.xml
+          files: coverage.xml, testreport.junit.xml
           fail_ci_if_error: false

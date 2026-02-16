@@ -19,7 +19,6 @@ from .types import (
   CoordinatorModuleLookupResult,
   CoordinatorRuntimeManagers,
   CoordinatorUntypedModuleState,
-  DogConfigData,
   DogStatusSnapshot,
   JSONMutableMapping,
 )

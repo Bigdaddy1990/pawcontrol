@@ -27,7 +27,6 @@ from ..types import (
   DOG_WEIGHT_FIELD,
   DietValidationResult,
   DogConfigData,
-  DogFeedingConfig,
   DogHealthConfig,
   DogHealthStepInput,
   DogMedicationEntry,

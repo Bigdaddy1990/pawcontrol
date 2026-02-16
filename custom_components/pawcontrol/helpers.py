@@ -62,7 +62,6 @@ from .types import (
   StorageNamespaceState,
   WalkEvent,
   WalkHistoryEntry,
-  WalkNamespaceMutable,
   WalkNamespaceMutableEntry,
   WalkNamespaceValue,
   WalkStartPayload,
