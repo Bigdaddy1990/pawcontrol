@@ -1,7 +1,6 @@
 name: Pre-commit Lite
 
 on:
-  pull_request:
   push:
 
 permissions:
