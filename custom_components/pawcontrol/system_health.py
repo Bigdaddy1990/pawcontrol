@@ -908,6 +908,8 @@ def _build_guard_summary(
         continue
       reasons[reason_key] = _coerce_int(count, default=0)
 
+  reasons.setdefault("missing_instance", 0)
+
   sorted_reasons = sorted(
     reasons.items(),
     key=lambda item: (-item[1], item[0]),
@@ -1015,6 +1017,7 @@ def _build_breaker_overview(
     "open_breaker_count": open_count,
     "half_open_breaker_count": half_open_count,
     "unknown_breaker_count": unknown_count,
+    "rejection_breaker_count": rejection_breakers,
     "rejection_rate": rejection_rate,
     "last_rejection_breaker_id": last_breaker_id,
     "last_rejection_breaker_name": last_breaker_name,
