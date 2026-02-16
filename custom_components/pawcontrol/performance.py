@@ -253,9 +253,6 @@ def track_performance(
   @overload
   def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]: ...
 
-  @overload
-  def decorator(func: Callable[P, T]) -> Callable[P, T]: ...
-
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     metric_name = name or func.__name__
 
