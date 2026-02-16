@@ -13,13 +13,6 @@ default_install_hook_types:
   - pre-push
 
 repos:
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-      - id: pyupgrade
-        args:
-          - --py314-plus
-
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
     hooks:
@@ -29,7 +22,8 @@ repos:
           - --py314-plus
           - --full-reorder
           - --keep-updates
-          - --force-exclude
+          - --check
+          - --force
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.1
@@ -38,6 +32,15 @@ repos:
         additional_dependencies:
           - types-pyyaml
         exclude: ^testing/resources/
+        
+  - repos:
+  - repo: https://github.com/JelleZijlstra/autotyping
+    rev: 24.9.0
+    hooks:
+      - id: autotyping
+        stages: [pre-commit]
+        types: [python]
+        args: [--safe] # or alternatively, --aggressive, or any of the other flags mentioned above 
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
