@@ -269,7 +269,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
         )
         attrs.update(
           {
-            "walks_today": int(cast(int, walk_data.get("walks_today", 0))),
+            "walks_today": int(walk_data.get("walks_today", 0)),
             "total_walk_minutes_today": float(
               cast(
                 float,
@@ -329,7 +329,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
     dog_data = self._get_dog_data()
     if dog_data and "dog_info" in dog_data:
-      dog_info = cast(DogConfigData, dog_data["dog_info"])  # noqa: E111
+      dog_info = dog_data["dog_info"]  # noqa: E111
       if "dog_weight" in dog_info and dog_info["dog_weight"] is not None:  # noqa: E111
         with contextlib.suppress(TypeError, ValueError):
           weight = float(dog_info["dog_weight"])  # noqa: E111
@@ -593,7 +593,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
     try:
       walks_this_week = int(  # noqa: E111
-        cast(int, walk_data.get("walks_this_week", 0)),
+        walk_data.get("walks_this_week", 0),
       )
       if walks_this_week:  # noqa: E111
         return walks_this_week
@@ -634,12 +634,12 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
       return _normalise_attributes(attrs)  # noqa: E111
 
     with contextlib.suppress(TypeError, ValueError):
-      walks_today = int(cast(int, walk_data.get("walks_today", 0)))  # noqa: E111
+      walks_today = int(walk_data.get("walks_today", 0))  # noqa: E111
       total_duration_this_week = float(  # noqa: E111
-        cast(float, walk_data.get("total_duration_this_week", 0.0)),
+        walk_data.get("total_duration_this_week", 0.0),
       )
       distance_this_week = float(  # noqa: E111
-        cast(float, walk_data.get("distance_this_week", 0.0)),
+        walk_data.get("distance_this_week", 0.0),
       )
       now = dt_util.utcnow()  # noqa: E111
       days_this_week = now.weekday() + 1  # noqa: E111

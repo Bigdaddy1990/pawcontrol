@@ -553,7 +553,7 @@ class PawControlBirthdateDate(PawControlDateBase):
     """Extract birthdate from dog data."""
     profile = dog_data.get("profile")
     if isinstance(profile, dict):
-      birthdate_str = cast(DogProfileSnapshot, profile).get("birthdate")  # noqa: E111
+      birthdate_str = profile.get("birthdate")  # noqa: E111
       if birthdate_str:  # noqa: E111
         with suppress(ValueError, TypeError):
           return dt_util.parse_date(birthdate_str)  # noqa: E111

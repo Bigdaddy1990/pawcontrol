@@ -173,7 +173,7 @@ class ExternalEntityConfigurationMixin:
       # Validate and store external entity selections  # noqa: E114
       try:  # noqa: E111
         validated_entities = await self._async_validate_external_entities(
-          cast(ExternalEntityConfig, user_input),
+          user_input,
         )
         self._merge_external_entity_config(
           flow._external_entities,

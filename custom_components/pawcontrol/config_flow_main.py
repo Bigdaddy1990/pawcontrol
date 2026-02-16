@@ -753,7 +753,7 @@ class PawControlConfigFlow(
     )
 
     updates: DiscoveryUpdatePayload = {
-      "discovery_info": cast(ConfigFlowDiscoveryData, copy.deepcopy(normalised)),
+      "discovery_info": copy.deepcopy(normalised),
     }
 
     host = discovery_info.get("host") or discovery_info.get("ip")
@@ -799,7 +799,7 @@ class PawControlConfigFlow(
         True if valid
     """
     return is_dog_config_payload_valid(
-      cast(Mapping[str, object], dog),
+      object], dog,
     )
 
   async def async_step_add_dog(  # noqa: E111
@@ -1262,7 +1262,7 @@ class PawControlConfigFlow(
     if user_input is not None:
       try:  # noqa: E111
         self._entity_profile = validate_profile_selection(
-          cast(ProfileSelectionInput, user_input),
+          user_input,
         )
         modules = self._aggregate_enabled_modules()
         gps_enabled = modules.get(MODULE_GPS, False)
@@ -1465,7 +1465,7 @@ class PawControlConfigFlow(
       "performance_monitoring": True,
     }
 
-    settings = cast(ConfigFlowGlobalSettings, self._global_settings)
+    settings = self._global_settings
     performance_mode = normalize_performance_mode(
       settings.get("performance_mode"),
       fallback=cast(PerformanceMode, DEFAULT_PERFORMANCE_MODE),

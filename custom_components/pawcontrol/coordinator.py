@@ -555,7 +555,7 @@ class PawControlCoordinator(
 
     existing_module = dog_payload.get(module)
     base_payload: JSONMutableMapping = (
-      dict(cast(Mapping[str, JSONValue], existing_module))
+      dict(JSONValue], existing_module)
       if isinstance(existing_module, Mapping)
       else {}
     )

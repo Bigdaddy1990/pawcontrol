@@ -2743,7 +2743,7 @@ class PawControlNotificationManager:
     )
 
     if compliance["status"] != "completed":
-      no_data = cast("FeedingComplianceNoData", compliance)  # noqa: E111
+      no_data = compliance  # noqa: E111
       no_data_payload = cast(JSONMutableMapping, dict(no_data))  # noqa: E111
       title, message = await async_build_feeding_compliance_notification(  # noqa: E111
         self._hass,
@@ -2766,7 +2766,7 @@ class PawControlNotificationManager:
         allow_batching=False,
       )
 
-    completed = cast("FeedingComplianceCompleted", compliance)
+    completed = compliance
     has_issues = bool(
       completed["days_with_issues"]
       or completed["compliance_issues"]

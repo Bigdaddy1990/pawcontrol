@@ -317,7 +317,7 @@ class PawControlDogEntityBase(PawControlEntity):
     if not isinstance(dog_info, Mapping):
       return  # noqa: E111
 
-    info = cast(DogConfigData, dog_info)
+    info = dog_info
     if (breed := info.get("dog_breed")) is not None:
       attrs["dog_breed"] = breed  # noqa: E111
     if (age := info.get("dog_age")) is not None:
@@ -410,6 +410,6 @@ class PawControlDogEntityBase(PawControlEntity):
 
     snapshot = dog_data.get("status_snapshot")
     if isinstance(snapshot, Mapping):
-      return cast(DogStatusSnapshot, snapshot)  # noqa: E111
+      return snapshot  # noqa: E111
 
     return build_dog_status_snapshot(self._dog_id, dog_data)

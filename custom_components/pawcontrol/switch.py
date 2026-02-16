@@ -597,7 +597,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
 
     dog_info = payload.get("dog_info")
     if isinstance(dog_info, Mapping):
-      return cast(DogConfigData, dog_info)  # noqa: E111
+      return dog_info  # noqa: E111
 
     return None
 

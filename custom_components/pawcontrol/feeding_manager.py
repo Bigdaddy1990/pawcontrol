@@ -2970,18 +2970,18 @@ class FeedingManager:
       if config.weight_goal is not None:  # noqa: E111
         health_context["weight_goal"] = config.weight_goal
       if (bcs := health_summary.get("body_condition_score")) is not None:  # noqa: E111
-        health_context["body_condition_score"] = cast(float | int, bcs)
+        health_context["body_condition_score"] = bcs
       if (life_stage := health_summary.get("life_stage")) is not None:  # noqa: E111
-        health_context["life_stage"] = cast(str, life_stage)
+        health_context["life_stage"] = life_stage
       if (activity := health_summary.get("activity_level")) is not None:  # noqa: E111
-        health_context["activity_level"] = cast(str, activity)
+        health_context["activity_level"] = activity
       if (conditions := health_summary.get("health_conditions")) is not None:  # noqa: E111
         health_context["health_conditions"] = cast(
           list[str],
           conditions,
         )
       if (diet := health_summary.get("special_diet")) is not None:  # noqa: E111
-        health_context["special_diet"] = cast(list[str], diet)
+        health_context["special_diet"] = diet
       if health_context:  # noqa: E111
         analysis["health_context"] = health_context
 

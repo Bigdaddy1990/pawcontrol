@@ -398,13 +398,13 @@ class WalkManager:
     container["history"] = [cast(WalkSessionSnapshot, dict(entry)) for entry in history]
     stats = self._walk_data.get(dog_id)
     container["stats"] = (
-      cast(WalkStatisticsSnapshot, stats.copy())
+      stats.copy()
       if stats is not None
       else cast(WalkStatisticsSnapshot, {})
     )
     gps = self._gps_data.get(dog_id)
     container["gps"] = (
-      cast(WalkGPSSnapshot, gps.copy())
+      gps.copy()
       if gps is not None
       else cast(WalkGPSSnapshot, {})
     )
@@ -734,7 +734,7 @@ class WalkManager:
           detection_payload = cast(  # noqa: E111
             WalkDetectionMutableMetadata,
             {
-              str(key): cast(JSONValue, value)
+              str(key): value
               for key, value in dict(detection_metadata).items()
             },
           )
@@ -1569,12 +1569,12 @@ class WalkManager:
       "total_duration_today": stats["total_duration_today"],
       "total_distance_today": stats["total_distance_today"],
       "average_duration": (
-        cast(float | None, stats["average_duration"])
+        stats["average_duration"]
         if "average_duration" in stats
         else None
       ),
       "average_distance": (
-        cast(float | None, stats["average_distance"])
+        stats["average_distance"]
         if "average_distance" in stats
         else None
       ),
@@ -2311,7 +2311,7 @@ class WalkManager:
 
         # Store GPS configuration
         automatic_config: JSONMutableMapping = {
-          str(key): cast(JSONValue, value) for key, value in config.items()
+          str(key): value for key, value in config.items()
         }
         self._gps_data[dog_id]["automatic_config"] = automatic_config
 

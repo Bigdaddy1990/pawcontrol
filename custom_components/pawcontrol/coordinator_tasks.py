@@ -1294,7 +1294,7 @@ def build_runtime_statistics(
     coordinator._adaptive_polling.as_diagnostics(),
   )
   performance_stats_payload = get_runtime_performance_stats(  # noqa: E111
-    cast(PawControlRuntimeData | None, runtime_data),
+    runtime_data,
   )
   guard_metrics = resolve_service_guard_metrics(performance_stats_payload)  # noqa: E111
   entity_factory_guard = resolve_entity_factory_guard_metrics(  # noqa: E111

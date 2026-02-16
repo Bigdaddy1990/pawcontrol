@@ -111,7 +111,7 @@ def _normalize_dog_configs(
     modules_payload = typed_mapping.get(DOG_MODULES_FIELD)
     modules_source: ConfigFlowUserInput | DogModulesProjection | DogModulesConfig | None
     if isinstance(modules_payload, Mapping):
-      modules_source = cast(ConfigFlowUserInput, modules_payload)  # noqa: E111
+      modules_source = modules_payload  # noqa: E111
     elif isinstance(modules_payload, DogModulesProjection) or (
       hasattr(modules_payload, "config")
       and hasattr(
@@ -124,7 +124,7 @@ def _normalize_dog_configs(
       modules_source = None  # noqa: E111
     modules: DogModulesConfig = coerce_dog_modules_config(modules_source)
     typed_config = {**typed_config, DOG_MODULES_FIELD: modules}
-    normalized_configs.append(cast(DogConfigData, typed_config))
+    normalized_configs.append(typed_config)
 
   return normalized_configs  # noqa: E111
 
@@ -567,7 +567,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         existing_snapshot = mutable_payload.get(DOG_TEXT_VALUES_FIELD)
         merged_snapshot = (
           ensure_dog_text_snapshot(
-            cast(JSONMapping, existing_snapshot),
+            existing_snapshot,
           )
           if isinstance(existing_snapshot, Mapping)
           else None
@@ -591,7 +591,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         )
         merged_metadata_snapshot = (
           ensure_dog_text_metadata_snapshot(
-            cast(JSONMapping, existing_metadata),
+            existing_metadata,
           )
           if isinstance(existing_metadata, Mapping)
           else None

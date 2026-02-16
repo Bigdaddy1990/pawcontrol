@@ -816,7 +816,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
   ) -> None:
     """Initialize the dog weight number."""
     config: DogConfigData = cast(DogConfigData, dog_config or {})
-    current_weight = cast(float | None, config.get(DOG_WEIGHT_FIELD))
+    current_weight = config.get(DOG_WEIGHT_FIELD)
     if current_weight is None:
       current_weight = 20.0  # noqa: E111
 
@@ -889,7 +889,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
     dog_config: DogConfigData,
   ) -> None:
     """Initialize the dog age number."""
-    current_age = cast(int | None, dog_config.get(DOG_AGE_FIELD))
+    current_age = dog_config.get(DOG_AGE_FIELD)
     if current_age is None:
       current_age = 3  # noqa: E111
 

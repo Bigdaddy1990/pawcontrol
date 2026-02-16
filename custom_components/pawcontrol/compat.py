@@ -294,7 +294,7 @@ def _get_exception(
 
   attr = getattr(module, name, None)  # noqa: E111
   if isinstance(attr, type) and issubclass(attr, Exception):  # noqa: E111
-    return cast(type[Exception], attr)
+    return attr
 
   return default_factory()  # noqa: E111
 
@@ -318,7 +318,7 @@ ServiceValidationError: type[Exception]
 
 
 def _config_entry_error_factory() -> type[Exception]:
-  base = cast(type[Exception], HomeAssistantError)  # noqa: E111
+  base = HomeAssistantError  # noqa: E111
   return type(  # noqa: E111
     "ConfigEntryError",
     (base,),
@@ -327,7 +327,7 @@ def _config_entry_error_factory() -> type[Exception]:
 
 
 def _auth_failed_factory() -> type[Exception]:
-  base = cast(type[Exception], ConfigEntryError)  # noqa: E111
+  base = ConfigEntryError  # noqa: E111
 
   def _init(  # noqa: E111
     self: Any,
@@ -347,7 +347,7 @@ def _auth_failed_factory() -> type[Exception]:
 
 
 def _not_ready_factory() -> type[Exception]:
-  base = cast(type[Exception], ConfigEntryError)  # noqa: E111
+  base = ConfigEntryError  # noqa: E111
   return type(  # noqa: E111
     "ConfigEntryNotReady",
     (base,),
@@ -356,7 +356,7 @@ def _not_ready_factory() -> type[Exception]:
 
 
 def _service_validation_error_factory() -> type[Exception]:
-  base = cast(type[Exception], HomeAssistantError)  # noqa: E111
+  base = HomeAssistantError  # noqa: E111
   return type(  # noqa: E111
     "ServiceValidationError",
     (base,),
@@ -381,7 +381,7 @@ def _refresh_exception_symbols(exceptions_module: ModuleType | None) -> None:
   if exceptions_module is not None:  # noqa: E111
     candidate = getattr(exceptions_module, "HomeAssistantError", None)
     if isinstance(candidate, type) and issubclass(candidate, Exception):
-      resolved_homeassistant_error = cast(type[Exception], candidate)  # noqa: E111
+      resolved_homeassistant_error = candidate  # noqa: E111
 
   if resolved_homeassistant_error is None:  # noqa: E111
     HomeAssistantError = _FallbackHomeAssistantError
@@ -534,7 +534,7 @@ def _build_subentries(
   return subentries  # noqa: E111
 
 
-class ConfigEntry[RuntimeT]:  # type: ignore[override]
+class ConfigEntry[RuntimeT]:
   """Lightweight ConfigEntry implementation for test environments."""  # noqa: E111
 
   _id_source = count(1)  # noqa: E111
@@ -763,7 +763,7 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
     return False
 
   try:  # noqa: E111
-    signature = inspect.signature(init)  # type: ignore[arg-type]
+    signature = inspect.signature(init)
   except ValueError:  # pragma: no cover - signature unavailable  # noqa: E111
     return False
   except TypeError:  # pragma: no cover - signature unavailable  # noqa: E111

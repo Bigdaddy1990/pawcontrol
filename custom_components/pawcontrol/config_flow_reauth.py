@@ -132,7 +132,7 @@ class ReauthFlowMixin(ReauthFlowHost):
   @staticmethod  # noqa: E111
   def _is_dog_config_valid_for_reauth(dog: Mapping[str, object]) -> bool:  # noqa: E111
     return is_dog_config_payload_valid(
-      cast(Mapping[str, object], dog),
+      object], dog,
     )
 
   def _build_reauth_updates(  # noqa: E111
@@ -469,7 +469,7 @@ class ReauthFlowMixin(ReauthFlowHost):
       description_placeholders=dict(
         cast(
           Mapping[str, str],
-          self._build_reauth_placeholders(cast(ReauthHealthSummary, summary)),
+          self._build_reauth_placeholders(summary),
         ),
       ),
     )

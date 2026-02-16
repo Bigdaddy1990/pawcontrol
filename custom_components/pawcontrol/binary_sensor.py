@@ -1982,7 +1982,7 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
     )
 
     if isinstance(emergency_payload, Mapping):
-      emergency = cast(FeedingEmergencyState, emergency_payload)  # noqa: E111
+      emergency = emergency_payload  # noqa: E111
 
       emergency_type = emergency.get("emergency_type")  # noqa: E111
       if isinstance(emergency_type, str):  # noqa: E111

@@ -851,7 +851,7 @@ async def async_call_add_entities(
   result = add_entities_callback(entities_list, update_before_add)  # noqa: E111
 
   if inspect.isawaitable(result):  # noqa: E111
-    awaitable_result = cast(Awaitable[Any], result)
+    awaitable_result = result
     await awaitable_result
 
 

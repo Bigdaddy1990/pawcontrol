@@ -1089,7 +1089,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
           AUTO_TRACK_WALKS_FIELD: True,
         },
       )
-    return cast(GPSOptions, payload)
+    return payload
 
   def _normalise_gps_options_snapshot(  # noqa: E111
     self,
@@ -1106,7 +1106,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
         for raw_id, raw_entry in raw_dog_options.items():
           dog_id = str(raw_id)  # noqa: E111
           entry_source = (  # noqa: E111
-            cast(Mapping[str, JSONValue], raw_entry)
+            JSONValue], raw_entry
             if isinstance(raw_entry, Mapping)
             else {}
           )
@@ -1129,7 +1129,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
       raw_gps_settings = mutable.get(GPS_SETTINGS_FIELD)  # noqa: E111
       if isinstance(raw_gps_settings, Mapping):  # noqa: E111
         gps_settings = self._normalise_gps_settings(
-          cast(Mapping[str, JSONValue], raw_gps_settings),
+          JSONValue], raw_gps_settings,
         )
         mutable[GPS_SETTINGS_FIELD] = cast(JSONValue, gps_settings)
 

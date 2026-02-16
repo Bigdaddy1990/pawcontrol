@@ -120,7 +120,7 @@ class CoordinatorDataAccessMixin:
     if dog_data is not None:
       dog_info = dog_data.get("dog_info")  # noqa: E111
       if isinstance(dog_info, Mapping):  # noqa: E111
-        return cast(DogConfigData, dog_info)
+        return dog_info
 
     config = self.registry.get(dog_id)
     if config is not None:

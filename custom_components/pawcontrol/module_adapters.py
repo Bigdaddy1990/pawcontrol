@@ -814,7 +814,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
         elif walk_overview:
           health_data["activity_level"] = "low"  # noqa: E111
 
-    payload = cast(HealthModulePayload, health_data)
+    payload = health_data
     self._remember(dog_id, payload)
     return payload
 
@@ -1025,7 +1025,7 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
       return payload  # noqa: E111
 
     snapshot.setdefault("status", "idle")
-    payload = cast(GardenModulePayload, snapshot)
+    payload = snapshot
     self._remember(dog_id, payload)
     return payload
 

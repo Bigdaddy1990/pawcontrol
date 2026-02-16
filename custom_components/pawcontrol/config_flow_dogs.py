@@ -351,7 +351,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
           # Add timeout for validation  # noqa: E114
           async with asyncio.timeout(5):  # noqa: E111
             validation_result = await self._async_validate_dog_config(
-              cast(DogSetupStepInput, user_input),
+              user_input,
             )
 
         if validation_result["valid"]:
@@ -387,10 +387,10 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
     # Generate intelligent suggestions
     suggested_id = await self._generate_smart_dog_id_suggestion(
-      cast(DogSetupStepInput | None, user_input),
+      user_input,
     )
     suggested_breed = await self._suggest_dog_breed(
-      cast(DogSetupStepInput | None, user_input),
+      user_input,
     )
 
     # Create dynamic schema with enhanced UX
@@ -448,7 +448,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             selection[flag] = bool(enabled)
         input_payload: DogModuleSelectionInput = selection
       else:  # noqa: E111
-        input_payload = cast(DogModuleSelectionInput, user_input)
+        input_payload = user_input
 
       modules: DogModulesConfig = dog_modules_from_flow_input(  # noqa: E111
         input_payload,
@@ -571,7 +571,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
     if user_input is not None:
       feeding_config: DogFeedingConfig = dog_feeding_config_from_flow(  # noqa: E111
-        cast(DogFeedingStepInput, user_input),
+        user_input,
       )
 
       current_dog[DOG_FEEDING_CONFIG_FIELD] = feeding_config  # noqa: E111
@@ -835,8 +835,8 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
     Returns:
         Complete dog configuration dictionary
     """
-    dog_id = cast(str, user_input[DOG_ID_FIELD]).strip()
-    dog_name = cast(str, user_input[DOG_NAME_FIELD]).strip()
+    dog_id = user_input[DOG_ID_FIELD].strip()
+    dog_name = user_input[DOG_NAME_FIELD].strip()
 
     config: DogConfigData = {
       DOG_ID_FIELD: dog_id,

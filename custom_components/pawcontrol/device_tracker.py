@@ -664,10 +664,10 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
           cast(datetime | str | None, current_route.get("start_time")),
         )
         end_time_iso = self._serialize_timestamp(
-          cast(datetime | str | None, current_route.get("end_time")),
+          current_route.get("end_time"),
         )
         route_points: list[GPSRoutePoint] = [
-          cast(GPSRoutePoint, self._serialize_route_point(point))
+          self._serialize_route_point(point)
           for point in self._route_points.snapshot(limit=100)
         ]
         route_snapshot: GPSRouteSnapshot = {

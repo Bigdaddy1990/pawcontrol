@@ -282,7 +282,7 @@ def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnap
   )
   system_raw = options.get("system_settings")  # noqa: E111
   system = (  # noqa: E111
-    cast(JSONMapping, system_raw)
+    system_raw
     if isinstance(
       system_raw,
       Mapping,
@@ -291,7 +291,7 @@ def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnap
   )
   advanced_raw = options.get("advanced_settings")  # noqa: E111
   advanced = (  # noqa: E111
-    cast(JSONMapping, advanced_raw)
+    advanced_raw
     if isinstance(
       advanced_raw,
       Mapping,
@@ -395,7 +395,7 @@ async def _async_build_setup_flags_panel(
 
   source_breakdown: SetupFlagSourceBreakdown = {}  # noqa: E111
   for flag in flags:  # noqa: E111
-    source = cast(str, flag["source"])
+    source = flag["source"]
     source_breakdown[source] = source_breakdown.get(source, 0) + 1
 
   return {  # noqa: E111
@@ -627,7 +627,7 @@ def _build_statistics_payload(
   rejection_metrics = payload.get("rejection_metrics")  # noqa: E111
   if isinstance(rejection_metrics, Mapping):  # noqa: E111
     stats["rejection_metrics"] = derive_rejection_metrics(
-      cast(JSONMapping, rejection_metrics),
+      rejection_metrics,
     )
 
   return stats  # noqa: E111
@@ -2261,7 +2261,7 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
   )
 
   valid_dogs: list[DogConfigData] = [  # noqa: E111
-    cast(DogConfigData, dog) for dog in dogs_sequence if isinstance(dog, Mapping)
+    dog for dog in dogs_sequence if isinstance(dog, Mapping)
   ]
 
   total_dogs = len(valid_dogs)  # noqa: E111

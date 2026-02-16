@@ -27,10 +27,10 @@ if TYPE_CHECKING:  # pragma: no cover
   except ImportError:  # noqa: E111
     try:
       from homeassistant.helpers.typing import (  # noqa: E111
-        ConditionCheckerType,  # type: ignore[attr-defined]
+        ConditionCheckerType,
       )
     except ImportError:
-      ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]  # noqa: E111
+      ConditionCheckerType = Callable[..., bool]  # noqa: E111
 else:
   ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]  # noqa: E111
 

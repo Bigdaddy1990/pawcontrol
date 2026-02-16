@@ -882,19 +882,19 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
   def _get_walk_payload(self) -> WalkModulePayload | None:  # noqa: E111
     """Return the walk module payload if available."""
 
-    walk_data = self._get_module_data(cast(str, MODULE_WALK))
+    walk_data = self._get_module_data(MODULE_WALK)
     return cast(WalkModulePayload, walk_data) if walk_data is not None else None
 
   def _get_gps_payload(self) -> GPSModulePayload | None:  # noqa: E111
     """Return the GPS module payload if available."""
 
-    gps_data = self._get_module_data(cast(str, MODULE_GPS))
+    gps_data = self._get_module_data(MODULE_GPS)
     return cast(GPSModulePayload, gps_data) if gps_data is not None else None
 
   def _get_garden_payload(self) -> GardenModulePayload | None:  # noqa: E111
     """Return the garden module payload if available."""
 
-    garden_data = self._get_module_data(cast(str, MODULE_GARDEN))
+    garden_data = self._get_module_data(MODULE_GARDEN)
     return (
       cast(
         GardenModulePayload,

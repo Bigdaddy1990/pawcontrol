@@ -142,7 +142,7 @@ def resolve_dog_data(
     return None
 
   if isinstance(dog_data, Mapping):  # noqa: E111
-    return cast(CoordinatorDogData, dog_data)
+    return dog_data
 
   return None  # noqa: E111
 
@@ -159,6 +159,6 @@ def resolve_status_snapshot(
 
   snapshot = dog_data.get("status_snapshot")  # noqa: E111
   if isinstance(snapshot, Mapping):  # noqa: E111
-    return cast(DogStatusSnapshot, snapshot)
+    return snapshot
 
   return build_dog_status_snapshot(dog_id, dog_data)  # noqa: E111

@@ -113,7 +113,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
           dog_id=dog_id,
         )
         entry["feeding_settings"] = self._build_feeding_settings(
-          cast(OptionsFeedingSettingsInput, user_input),
+          user_input,
           current_feeding,
         )
         if dog_id in dog_options or not dog_options:

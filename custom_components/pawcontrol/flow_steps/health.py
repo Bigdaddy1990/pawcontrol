@@ -183,7 +183,7 @@ class DogHealthFlowMixin(DogHealthFlowHost):
 
       feeding_config = current_dog.get(DOG_FEEDING_CONFIG_FIELD)  # noqa: E111
       if isinstance(feeding_config, dict):  # noqa: E111
-        feeding_config_typed = cast(DogFeedingConfig, feeding_config)
+        feeding_config_typed = feeding_config
 
         dog_weight_update = coerce_optional_float(
           current_dog.get(DOG_WEIGHT_FIELD),
@@ -368,7 +368,7 @@ class HealthOptionsMixin(HealthOptionsHost):
           dog_id=dog_id,
         )
         entry["health_settings"] = self._build_health_settings(
-          cast(OptionsHealthSettingsInput, user_input),
+          user_input,
           current_health,
         )
         if dog_id in dog_options or not dog_options:

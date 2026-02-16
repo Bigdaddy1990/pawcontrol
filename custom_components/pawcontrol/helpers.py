@@ -521,7 +521,7 @@ class PawControlDataStorage:
           data[store_key] = cast(StorageNamespacePayload, {})  # noqa: E111
         else:
           payload = result if isinstance(result, dict) else {}  # noqa: E111
-          data[store_key] = cast(StorageNamespacePayload, payload)  # noqa: E111
+          data[store_key] = payload  # noqa: E111
 
       # Cache the loaded data  # noqa: E114
       await self._cache.set(cache_key, data, ttl_seconds=300)  # noqa: E111
@@ -981,7 +981,7 @@ class PawControlData:
 
     namespace = self._data.get(key)
     if isinstance(namespace, dict):
-      return cast(StorageNamespacePayload, namespace)  # noqa: E111
+      return namespace  # noqa: E111
 
     payload = self._empty_namespace_payload()
     self._data[key] = payload
@@ -1046,7 +1046,7 @@ class PawControlData:
       )
 
     walk_namespace_payload = self._ensure_namespace("walks")
-    walk_namespace = cast(WalkNamespaceMutable, walk_namespace_payload)
+    walk_namespace = walk_namespace_payload
     for dog_id, walk_data_any in list(walk_namespace.items()):
       if not isinstance(walk_data_any, dict):  # noqa: E111
         walk_namespace[dog_id] = cast(
@@ -1070,7 +1070,7 @@ class PawControlData:
           )
           if normalized_entry is not None:  # noqa: E111
             normalized_history.append(
-              cast(WalkHistoryEntry, normalized_entry),
+              normalized_entry,
             )
 
       walk_data["history"] = cast(  # noqa: E111
@@ -1154,7 +1154,7 @@ class PawControlData:
           )
           if normalized_entry is not None:  # noqa: E111
             history_payload.append(
-              cast(WalkHistoryEntry, normalized_entry),
+              normalized_entry,
             )
 
       serialized_walk["history"] = cast(  # noqa: E111
@@ -1188,7 +1188,7 @@ class PawControlData:
         return cast(JSONMutableMapping, dict(payload))
 
     if isinstance(entry, HealthEvent):
-      return cast(JSONMutableMapping, entry.as_dict())  # noqa: E111
+      return entry.as_dict()  # noqa: E111
 
     if isinstance(entry, Mapping):
       try:  # noqa: E111
@@ -1208,7 +1208,7 @@ class PawControlData:
           sanitized["timestamp"] = timestamp.isoformat()  # noqa: E111
         return sanitized
 
-      return cast(JSONMutableMapping, normalized.as_dict())  # noqa: E111
+      return normalized.as_dict()  # noqa: E111
 
     _LOGGER.debug(
       "Skipping unsupported health history entry type: %s",
@@ -1224,7 +1224,7 @@ class PawControlData:
     """Return a storage-safe walk event entry or ``None`` if invalid."""
 
     if isinstance(entry, WalkEvent):
-      return cast(JSONMutableMapping, entry.as_dict())  # noqa: E111
+      return entry.as_dict()  # noqa: E111
 
     if isinstance(entry, Mapping):
       try:  # noqa: E111
@@ -1244,7 +1244,7 @@ class PawControlData:
           sanitized["timestamp"] = timestamp.isoformat()  # noqa: E111
         return sanitized
 
-      return cast(JSONMutableMapping, normalized.as_dict())  # noqa: E111
+      return normalized.as_dict()  # noqa: E111
 
     if entry is not None:
       _LOGGER.debug(  # noqa: E111
@@ -1493,7 +1493,7 @@ class PawControlData:
 
     try:
       walk_namespace_payload = self._ensure_namespace("walks")  # noqa: E111
-      walk_namespace = cast(WalkNamespaceMutable, walk_namespace_payload)  # noqa: E111
+      walk_namespace = walk_namespace_payload  # noqa: E111
       walk_entry = walk_namespace.setdefault(  # noqa: E111
         dog_id,
         cast(
@@ -1556,7 +1556,7 @@ class PawControlData:
         )
         timestamp = event.get("timestamp")
         walk_event = WalkEvent.from_raw(dog_id, event_data, timestamp)
-        walk_payload = cast(JSONMutableMapping, walk_event.as_dict())
+        walk_payload = walk_event.as_dict()
 
         if walk_event.action == "start":
           active_session = walk_event  # noqa: E111
@@ -1583,7 +1583,7 @@ class PawControlData:
             }
             completed_walk = WalkEvent.from_raw(
               dog_id,
-              cast(JSONMutableMapping, merged_payload),
+              merged_payload,
             )
             history_models.append(completed_walk)
             active_session = None
@@ -1610,7 +1610,7 @@ class PawControlData:
           )
           dog_walks["active"] = cast(  # noqa: E111
             WalkNamespaceValue,
-            cast(JSONMutableMapping, active_session.as_dict()),
+            active_session.as_dict(),
           )
           updated = True  # noqa: E111
           continue  # noqa: E111
@@ -1619,7 +1619,7 @@ class PawControlData:
         updated = True
 
       history_payloads: list[WalkHistoryEntry] = [  # noqa: E111
-        cast(WalkHistoryEntry, model.as_dict()) for model in history_models
+        model.as_dict() for model in history_models
       ]
       dog_walks["history"] = cast(  # noqa: E111
         list[WalkHistoryEntry],
@@ -1627,7 +1627,7 @@ class PawControlData:
       )
 
       active_payload = (  # noqa: E111
-        cast(JSONMutableMapping, active_session.as_dict())
+        active_session.as_dict()
         if active_session is not None
         else None
       )
@@ -1656,7 +1656,7 @@ class PawControlData:
     try:
       # Ensure walks data structure exists  # noqa: E114
       walk_namespace_payload = self._ensure_namespace("walks")  # noqa: E111
-      walk_namespace = cast(WalkNamespaceMutable, walk_namespace_payload)  # noqa: E111
+      walk_namespace = walk_namespace_payload  # noqa: E111
       walk_entry = walk_namespace.setdefault(  # noqa: E111
         dog_id,
         cast(
@@ -1832,7 +1832,7 @@ class PawControlNotificationManager:
 
     return cast(
       JSONMutableMapping,
-      {str(key): cast(JSONValue, value) for key, value in data.items()},
+      {str(key): value for key, value in data.items()},
     )
 
   async def async_send_notification(  # noqa: E111

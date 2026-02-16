@@ -368,7 +368,7 @@ class _CoordinatorResolver:
 
       runtime_data = get_runtime_data(self._hass, entry)  # noqa: E111
       if runtime_data and getattr(runtime_data, "coordinator", None):  # noqa: E111
-        return cast(PawControlCoordinator, runtime_data.coordinator)
+        return runtime_data.coordinator
 
     if any(entry.state is ConfigEntryState.LOADED for entry in entries):
       raise _service_validation_error(  # noqa: E111

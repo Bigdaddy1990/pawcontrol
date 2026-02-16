@@ -687,7 +687,7 @@ class _StorageNamespaceCacheMonitor:
 
   def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
     stats, snapshot, diagnostics = self._build_payload()
-    diagnostics_payload = cast(CacheDiagnosticsMetadata, diagnostics)
+    diagnostics_payload = diagnostics
     return CacheDiagnosticsSnapshot(
       stats=cast(JSONMutableMapping, dict(stats)),
       snapshot=cast(JSONMutableMapping, dict(snapshot)),
@@ -700,7 +700,7 @@ class _StorageNamespaceCacheMonitor:
 
   def get_diagnostics(self) -> CacheDiagnosticsMetadata:  # noqa: E111
     _stats, _snapshot, diagnostics = self._build_payload()
-    return cast(CacheDiagnosticsMetadata, diagnostics)
+    return diagnostics
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:
@@ -756,7 +756,7 @@ def _coerce_mapping(value: JSONLikeMapping | None) -> JSONMutableMapping:
     return {}
   if isinstance(value, dict):  # noqa: E111
     return cast(JSONMutableMapping, dict(value))
-  return {key: cast(JSONValue, item) for key, item in value.items()}  # noqa: E111
+  return {key: item for key, item in value.items()}  # noqa: E111
 
 
 def _merge_dicts(
@@ -775,12 +775,12 @@ def _merge_dicts(
       merged[key] = cast(  # noqa: E111
         JSONValue,
         _merge_dicts(
-          cast(JSONLikeMapping, existing),
-          cast(JSONLikeMapping, value),
+          existing,
+          value,
         ),
       )
     else:
-      merged[key] = cast(JSONValue, value)  # noqa: E111
+      merged[key] = value  # noqa: E111
   return merged  # noqa: E111
 
 
@@ -2986,7 +2986,7 @@ class PawControlDataManager:
           )
           config[section] = _merge_dicts(  # noqa: E111
             current,
-            cast(JSONLikeMapping, payload),
+            payload,
           )
         else:
           config[section] = cast(JSONValue, payload)  # noqa: E111

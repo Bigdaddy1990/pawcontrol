@@ -633,7 +633,7 @@ async def _check_dog_configuration_issues(
 
   # Check for duplicate dog IDs  # noqa: E114
   dog_ids = [  # noqa: E111
-    cast(str, dog_id)
+    dog_id
     for dog_id in (dog.get(CONF_DOG_ID) for dog in dogs)
     if isinstance(dog_id, str)
   ]
@@ -665,7 +665,7 @@ async def _check_dog_configuration_issues(
     dog_name = dog.get(CONF_DOG_NAME)
     if not isinstance(dog_id, str) or not dog_id or not isinstance(dog_name, str):
       invalid_dogs.append(  # noqa: E111
-        cast(str, dog_id) if isinstance(dog_id, str) else "unknown",
+        dog_id if isinstance(dog_id, str) else "unknown",
       )
 
   if invalid_dogs:  # noqa: E111
@@ -1151,10 +1151,10 @@ async def _check_notification_delivery_errors(
     # Append service name and accumulate counts
     classified_entry["services"].append(service_name)
     classified_entry["total_failures"] = (
-      cast(int, classified_entry["total_failures"]) + total_failures
+      classified_entry["total_failures"] + total_failures
     )
     classified_entry["consecutive_failures"] = (
-      cast(int, classified_entry["consecutive_failures"]) + consecutive_failures
+      classified_entry["consecutive_failures"] + consecutive_failures
     )
     if reason_text:
       reasons_by_class[classification].add(reason_text)  # noqa: E111
@@ -1599,7 +1599,7 @@ async def _check_runtime_store_duration_alerts(
     for alert in alerts
   )
   recommendations = "; ".join(  # noqa: E111
-    cast(str, action)
+    action
     for action in (alert.get("recommended_action") for alert in alerts)
     if isinstance(action, str)
   )

@@ -920,7 +920,7 @@ class DashboardTemplates:
     card_mod = theme_styles.get("card_mod")
     if card_mod is None:
       return cast(CardModConfig, {})  # noqa: E111
-    return cast(CardModConfig, card_mod.copy())
+    return card_mod.copy()
 
   def _ensure_card_mod(  # noqa: E111
     self,

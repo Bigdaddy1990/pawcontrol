@@ -75,7 +75,7 @@ RenderJobType = Literal["main_dashboard", "dog_dashboard"]
 def _as_card_options(options: DashboardRendererOptions) -> DashboardCardOptions:
   """Return ``options`` as card generator payload."""  # noqa: E111
 
-  return cast(DashboardCardOptions, options)  # noqa: E111
+  return options  # noqa: E111
 
 
 ConfigT = TypeVar("ConfigT", bound=DashboardRenderJobConfig)

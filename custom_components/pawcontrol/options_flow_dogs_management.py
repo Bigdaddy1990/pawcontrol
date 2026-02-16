@@ -759,8 +759,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
           )
           if normalised is not None:  # noqa: E111
             current_dogs.append(normalised)
-    current_dogs = cast(list[DogConfigData], current_dogs)
-    current_dogs = cast(list[DogConfigData], current_dogs)
+    current_dogs = current_dogs
+    current_dogs = current_dogs
 
     if not current_dogs:
       return await self.async_step_init()  # noqa: E111

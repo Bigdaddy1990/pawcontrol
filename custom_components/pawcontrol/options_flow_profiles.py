@@ -174,8 +174,8 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         )
         if normalised is not None:
           current_dogs.append(normalised)  # noqa: E111
-    current_dogs = cast(list[DogConfigData], current_dogs)
-    current_dogs = cast(list[DogConfigData], current_dogs)
+    current_dogs = current_dogs
+    current_dogs = current_dogs
     dog_entries: list[Mapping[str, JSONValue]] = cast(
       list[Mapping[str, JSONValue]],
       current_dogs,
@@ -442,7 +442,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
     warnings: list[str] = []
 
     for dog in dogs:
-      dog_config = cast(DogConfigData, dog)  # noqa: E111
+      dog_config = dog  # noqa: E111
       module_flags = ensure_dog_modules_mapping(  # noqa: E111
         cast(Mapping[str, JSONValue], dog_config),
       )
