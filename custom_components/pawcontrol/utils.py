@@ -657,7 +657,7 @@ async def async_fire_event(
   if time_fired is not None:
     sanitized_time_fired = ensure_utc_datetime(time_fired)
     if sanitized_time_fired is None:
-      _LOGGER.debug(
+      _LOGGER.warning(
         "Dropping invalid time_fired payload %r for %s event",
         time_fired,
         event_type,
@@ -1795,6 +1795,8 @@ def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:
     dt_value = datetime.combine(value, datetime.min.time())
   elif isinstance(value, str):
     if not value:
+      return None
+    if not any(character.isdigit() for character in value):
       return None
     parsed_value = _parse_datetime_string(value)
     if parsed_value is None:

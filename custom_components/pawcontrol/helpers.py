@@ -8,6 +8,7 @@ from __future__ import annotations
 
 
 import asyncio
+import inspect
 import logging
 from collections import deque
 from collections.abc import Awaitable
@@ -2136,7 +2137,7 @@ class PerformanceMonitor:
     ) -> Callable[P, Awaitable[R] | R]:
       func_label = label or getattr(func, "__qualname__", func.__name__)
 
-      if asyncio.iscoroutinefunction(func):
+      if inspect.iscoroutinefunction(func):
 
         @wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
