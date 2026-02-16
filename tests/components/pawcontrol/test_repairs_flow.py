@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-
 from types import SimpleNamespace
 
-import pytest
 from homeassistant.helpers import issue_registry as ir
+import pytest
 
 from custom_components.pawcontrol import repairs
 

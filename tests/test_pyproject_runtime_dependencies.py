@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-
-import tomllib
 from pathlib import Path
+import tomllib
 
 
 def test_runtime_dependencies_match_requirements_txt() -> None:

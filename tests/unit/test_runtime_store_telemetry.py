@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
 
@@ -13,12 +10,16 @@ import pytest
 from pytest import MonkeyPatch
 
 from custom_components.pawcontrol import telemetry as telemetry_module
-from custom_components.pawcontrol.telemetry import get_runtime_store_health
-from custom_components.pawcontrol.telemetry import update_runtime_store_health
-from custom_components.pawcontrol.types import RuntimeStoreAssessmentEvent
-from custom_components.pawcontrol.types import RuntimeStoreCompatibilitySnapshot
-from custom_components.pawcontrol.types import RuntimeStoreHealthAssessment
-from custom_components.pawcontrol.types import RuntimeStoreHealthHistory
+from custom_components.pawcontrol.telemetry import (
+  get_runtime_store_health,
+  update_runtime_store_health,
+)
+from custom_components.pawcontrol.types import (
+  RuntimeStoreAssessmentEvent,
+  RuntimeStoreCompatibilitySnapshot,
+  RuntimeStoreHealthAssessment,
+  RuntimeStoreHealthHistory,
+)
 
 
 def _runtime_data() -> SimpleNamespace:
@@ -506,14 +507,12 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
   """Trend counters should track level changes and streaks."""
 
   runtime_data = _runtime_data()
-  moments = iter(
-    (
-      datetime(2024, 4, 1, tzinfo=UTC),
-      datetime(2024, 4, 2, tzinfo=UTC),
-      datetime(2024, 4, 3, tzinfo=UTC),
-      datetime(2024, 4, 4, tzinfo=UTC),
-    )
-  )
+  moments = iter((
+    datetime(2024, 4, 1, tzinfo=UTC),
+    datetime(2024, 4, 2, tzinfo=UTC),
+    datetime(2024, 4, 3, tzinfo=UTC),
+    datetime(2024, 4, 4, tzinfo=UTC),
+  ))
   monkeypatch.setattr(
     "custom_components.pawcontrol.telemetry.dt_util.utcnow",
     lambda: next(moments),

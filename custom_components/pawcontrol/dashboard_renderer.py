@@ -11,58 +11,57 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Awaitable, Callable, Sequence
+from functools import partial
 import json
 import logging
 import os
-import tempfile
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Sequence
-from functools import partial
 from pathlib import Path
-from typing import cast
-from typing import Literal
-from typing import TypeVar
+import tempfile
+from typing import Literal, TypeVar, cast
 
 import aiofiles  # type: ignore[import-untyped]
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_VISITOR
-from .const import MODULE_WALK
-from .dashboard_cards import DogCardGenerator
-from .dashboard_cards import ModuleCardGenerator
-from .dashboard_cards import OverviewCardGenerator
-from .dashboard_cards import StatisticsCardGenerator
-from .dashboard_shared import coerce_dog_config
-from .dashboard_shared import coerce_dog_configs
-from .dashboard_shared import unwrap_async_result
+from .const import (
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_NOTIFICATIONS,
+  MODULE_VISITOR,
+  MODULE_WALK,
+)
+from .dashboard_cards import (
+  DogCardGenerator,
+  ModuleCardGenerator,
+  OverviewCardGenerator,
+  StatisticsCardGenerator,
+)
+from .dashboard_shared import coerce_dog_config, coerce_dog_configs, unwrap_async_result
 from .dashboard_templates import DashboardTemplates
-from .types import coerce_dog_modules_config
-from .types import CoordinatorRejectionMetrics
-from .types import CoordinatorStatisticsPayload
-from .types import DashboardCardOptions
-from .types import DashboardRendererOptions
-from .types import DashboardRendererStatistics
-from .types import DashboardRenderJobConfig
-from .types import DashboardRenderResult
-from .types import DOG_ID_FIELD
-from .types import DOG_MODULES_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import HelperManagerGuardMetrics
-from .types import JSONMapping
-from .types import JSONMutableMapping
-from .types import LovelaceCardConfig
-from .types import LovelaceViewConfig
-from .types import RawDogConfig
+from .types import (
+  DOG_ID_FIELD,
+  DOG_MODULES_FIELD,
+  DOG_NAME_FIELD,
+  CoordinatorRejectionMetrics,
+  CoordinatorStatisticsPayload,
+  DashboardCardOptions,
+  DashboardRendererOptions,
+  DashboardRendererStatistics,
+  DashboardRenderJobConfig,
+  DashboardRenderResult,
+  DogConfigData,
+  HelperManagerGuardMetrics,
+  JSONMapping,
+  JSONMutableMapping,
+  LovelaceCardConfig,
+  LovelaceViewConfig,
+  RawDogConfig,
+  coerce_dog_modules_config,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

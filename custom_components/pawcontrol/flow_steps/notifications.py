@@ -2,33 +2,31 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
-from typing import Any
-from typing import cast
-from typing import Protocol
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
 from ..const import CONF_NOTIFICATIONS
 from ..exceptions import FlowValidationError
-from ..types import ConfigFlowPlaceholders
-from ..types import DEFAULT_NOTIFICATION_OPTIONS
-from ..types import DOG_ID_FIELD
-from ..types import DOG_OPTIONS_FIELD
-from ..types import DogConfigData
-from ..types import DogOptionsMap
-from ..types import ensure_dog_options_entry
-from ..types import ensure_notification_options
-from ..types import JSONLikeMapping
-from ..types import JSONMutableMapping
-from ..types import JSONValue
-from ..types import NotificationOptions
-from ..types import NotificationOptionsInput
-from ..types import NotificationSettingsInput
-from ..types import OptionsDogSelectionInput
+from ..types import (
+  DEFAULT_NOTIFICATION_OPTIONS,
+  DOG_ID_FIELD,
+  DOG_OPTIONS_FIELD,
+  ConfigFlowPlaceholders,
+  DogConfigData,
+  DogOptionsMap,
+  JSONLikeMapping,
+  JSONMutableMapping,
+  JSONValue,
+  NotificationOptions,
+  NotificationOptionsInput,
+  NotificationSettingsInput,
+  OptionsDogSelectionInput,
+  ensure_dog_options_entry,
+  ensure_notification_options,
+)
 from .notifications_helpers import build_notification_settings_payload
 from .notifications_schemas import build_notifications_schema
 

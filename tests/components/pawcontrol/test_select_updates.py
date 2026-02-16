@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.pawcontrol.data_manager import PawControlDataManager
 from custom_components.pawcontrol.entity_factory import EntityFactory
 from custom_components.pawcontrol.runtime_data import store_runtime_data
-from custom_components.pawcontrol.select import PawControlDefaultMealTypeSelect
-from custom_components.pawcontrol.select import PawControlFeedingModeSelect
-from custom_components.pawcontrol.select import PawControlWalkModeSelect
+from custom_components.pawcontrol.select import (
+  PawControlDefaultMealTypeSelect,
+  PawControlFeedingModeSelect,
+  PawControlWalkModeSelect,
+)
 from custom_components.pawcontrol.types import PawControlRuntimeData
 
 

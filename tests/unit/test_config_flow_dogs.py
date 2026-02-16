@@ -2,31 +2,20 @@
 
 from __future__ import annotations
 
-
 from types import MappingProxyType
 
 import pytest
 
 from custom_components.pawcontrol.config_flow_dogs import (
   _build_add_another_summary_placeholders,
-)
-from custom_components.pawcontrol.config_flow_dogs import _build_add_dog_placeholders
-from custom_components.pawcontrol.config_flow_dogs import (
+  _build_add_dog_placeholders,
   _build_dog_feeding_placeholders,
-)
-from custom_components.pawcontrol.config_flow_dogs import (
   _build_dog_modules_placeholders,
-)
-from custom_components.pawcontrol.config_flow_dogs import (
   _build_module_setup_placeholders,
 )
 from custom_components.pawcontrol.config_flow_placeholders import (
   _build_add_another_placeholders,
-)
-from custom_components.pawcontrol.config_flow_placeholders import (
   _build_add_dog_summary_placeholders,
-)
-from custom_components.pawcontrol.config_flow_placeholders import (
   _build_dog_modules_form_placeholders,
 )
 from custom_components.pawcontrol.flow_steps.gps_helpers import (

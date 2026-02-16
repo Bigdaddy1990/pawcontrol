@@ -10,23 +10,16 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
+from collections import deque
+from collections.abc import Callable, Mapping
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 import functools
 import logging
 import time
-from contextlib import contextmanager
-from collections import deque
-from collections.abc import Callable
-from collections.abc import Mapping
-from datetime import UTC
-from datetime import datetime
-from dataclasses import dataclass
-from dataclasses import field
-from typing import Any
-from typing import ParamSpec
-from typing import TypeVar
-from typing import cast
+from typing import Any, ParamSpec, TypeVar, cast
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -600,7 +593,9 @@ def performance_tracker(
       buckets = {}
       store["performance_buckets"] = buckets
 
-    bucket = buckets.setdefault(metric_name, {"runs": 0, "failures": 0, "durations_ms": []})
+    bucket = buckets.setdefault(
+      metric_name, {"runs": 0, "failures": 0, "durations_ms": []}
+    )
     if not isinstance(bucket, dict):
       bucket = {"runs": 0, "failures": 0, "durations_ms": []}
       buckets[metric_name] = bucket

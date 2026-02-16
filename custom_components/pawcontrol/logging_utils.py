@@ -10,21 +10,16 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
+from collections import defaultdict, deque
+from collections.abc import Callable
 import contextvars
+from dataclasses import dataclass, field
+from datetime import datetime
 import functools
 import logging
 import traceback
-from collections import defaultdict
-from collections import deque
-from collections.abc import Callable
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import datetime
 from types import TracebackType
-from typing import Any
-from typing import ParamSpec
-from typing import TypeVar
+from typing import Any, ParamSpec, TypeVar
 from uuid import uuid4
 
 _LOGGER = logging.getLogger(__name__)

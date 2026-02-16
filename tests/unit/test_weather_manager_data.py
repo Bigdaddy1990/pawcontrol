@@ -6,28 +6,29 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
 from datetime import timedelta
 from typing import cast
 
 import homeassistant.components.weather as weather_module
 import homeassistant.const as ha_const
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+from tests.weather_test_support import ensure_weather_module_compat
 
 from custom_components.pawcontrol import weather_translations
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_WEATHER_ENTITY
-from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import (
+  CONF_DOG_AGE,
+  CONF_DOG_BREED,
+  CONF_DOG_ID,
+  CONF_DOGS,
+  CONF_WEATHER_ENTITY,
+  DOMAIN,
+)
 from custom_components.pawcontrol.module_adapters import WeatherModuleAdapter
 from custom_components.pawcontrol.types import PawControlConfigEntry
 from custom_components.pawcontrol.weather_translations import WeatherTranslations
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-from tests.weather_test_support import ensure_weather_module_compat
 
 UnitOfTemperature = ensure_weather_module_compat()
 STATE_UNAVAILABLE = ha_const.STATE_UNAVAILABLE

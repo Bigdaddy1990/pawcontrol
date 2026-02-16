@@ -9,30 +9,29 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
 import contextlib
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 from typing import cast
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock, call
 
 import pytest
 
 from custom_components.pawcontrol.coordinator_support import CacheMonitorRegistrar
-from custom_components.pawcontrol.notifications import NotificationChannel
-from custom_components.pawcontrol.notifications import NotificationConfig
-from custom_components.pawcontrol.notifications import NotificationEvent
-from custom_components.pawcontrol.notifications import NotificationPriority
-from custom_components.pawcontrol.notifications import NotificationType
-from custom_components.pawcontrol.notifications import PawControlNotificationManager
-from custom_components.pawcontrol.notifications import RETRY_DELAY_SECONDS
-from custom_components.pawcontrol.types import PersonEntityStats
-from custom_components.pawcontrol.types import PersonNotificationContext
+from custom_components.pawcontrol.notifications import (
+  RETRY_DELAY_SECONDS,
+  NotificationChannel,
+  NotificationConfig,
+  NotificationEvent,
+  NotificationPriority,
+  NotificationType,
+  PawControlNotificationManager,
+)
+from custom_components.pawcontrol.types import (
+  PersonEntityStats,
+  PersonNotificationContext,
+)
 
 
 class _RecorderRegistrar(CacheMonitorRegistrar):

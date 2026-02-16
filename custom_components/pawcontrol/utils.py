@@ -10,54 +10,49 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import (
+  AsyncIterator,
+  Awaitable,
+  Callable,
+  Iterable,
+  Mapping,
+  Sequence,
+)
+from contextlib import asynccontextmanager, suppress
+from contextvars import ContextVar
+from dataclasses import asdict, dataclass, is_dataclass
+from datetime import UTC, date, datetime, time, timedelta
+from functools import partial, wraps
 import hashlib
 import inspect
 import logging
 import math
-import re
-from collections.abc import AsyncIterator
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from contextlib import asynccontextmanager
-from contextlib import suppress
-from contextvars import ContextVar
-from dataclasses import asdict
-from dataclasses import dataclass
-from dataclasses import is_dataclass
-from datetime import date
-from datetime import datetime
-from datetime import time
-from datetime import timedelta
-from datetime import UTC
-from functools import partial
-from functools import wraps
 from numbers import Real
+import re
 from types import SimpleNamespace
-from typing import Any
-from typing import cast
-from typing import overload
-from typing import ParamSpec
-from typing import Protocol
-from typing import TYPE_CHECKING
-from typing import TypedDict
-from typing import TypeGuard
-from typing import TypeVar
+from typing import (
+  TYPE_CHECKING,
+  Any,
+  ParamSpec,
+  Protocol,
+  TypedDict,
+  TypeGuard,
+  TypeVar,
+  cast,
+  overload,
+)
 from weakref import WeakKeyDictionary
 
 if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
   from homeassistant.core import Context, EventOrigin, HomeAssistant
   from homeassistant.exceptions import HomeAssistantError
-  from homeassistant.helpers import device_registry as dr
-  from homeassistant.helpers import entity_registry as er
+  from homeassistant.helpers import device_registry as dr, entity_registry as er
   from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
   from homeassistant.helpers.entity import Entity
   from homeassistant.helpers.entity_platform import AddEntitiesCallback
   from homeassistant.util import dt as dt_util
+
   from .coordinator import PawControlCoordinator
 else:  # pragma: no branch - executed under tests without Home Assistant installed
   try:
@@ -68,8 +63,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
     except ImportError:  # pragma: no cover - EventOrigin missing on older cores
       EventOrigin = object  # type: ignore[assignment]
     from homeassistant.exceptions import HomeAssistantError
-    from homeassistant.helpers import device_registry as dr
-    from homeassistant.helpers import entity_registry as er
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
     from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
     from homeassistant.helpers.entity import Entity
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -1296,7 +1290,8 @@ def parse_weight(weight_input: str | float | int) -> float | None:
     try:
       # Convert pounds to kilograms
       lbs = float(
-        weight_str.replace(
+        weight_str
+        .replace(
           "lbs",
           "",
         )

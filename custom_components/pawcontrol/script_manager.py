@@ -9,82 +9,77 @@ automation flows without manual YAML editing.
 
 from __future__ import annotations
 
-
-import logging
 from collections import deque
-from collections.abc import Callable
-from collections.abc import Collection
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import MutableMapping
-from collections.abc import Sequence
+from collections.abc import (
+  Callable,
+  Collection,
+  Iterable,
+  Mapping,
+  MutableMapping,
+  Sequence,
+)
 from contextlib import suppress
 from datetime import datetime
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import Literal
-from typing import Protocol
+import logging
+from typing import Any, Final, Literal, Protocol, cast
 
 from homeassistant import const as ha_const
-from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
-from homeassistant.components.script import ScriptEntity
+from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN, ScriptEntity
 from homeassistant.components.script.config import SCRIPT_ENTITY_SCHEMA
-from homeassistant.components.script.const import CONF_FIELDS
-from homeassistant.components.script.const import CONF_TRACE
+from homeassistant.components.script.const import CONF_FIELDS, CONF_TRACE
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import callback
-from homeassistant.core import CALLBACK_TYPE
-from homeassistant.core import Event
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.util import dt as dt_util
-from homeassistant.util import slugify
+from homeassistant.util import dt as dt_util, slugify
 
-from .const import CACHE_TIMESTAMP_FUTURE_THRESHOLD
-from .const import CACHE_TIMESTAMP_STALE_THRESHOLD
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import DEFAULT_MANUAL_BREAKER_EVENT
-from .const import DEFAULT_MANUAL_CHECK_EVENT
-from .const import DEFAULT_MANUAL_GUARD_EVENT
-from .const import DEFAULT_RESILIENCE_BREAKER_THRESHOLD
-from .const import DEFAULT_RESILIENCE_SKIP_THRESHOLD
-from .const import DOMAIN
-from .const import MANUAL_EVENT_SOURCE_CANONICAL
-from .const import MODULE_NOTIFICATIONS
-from .const import RESILIENCE_BREAKER_THRESHOLD_MAX
-from .const import RESILIENCE_BREAKER_THRESHOLD_MIN
-from .const import RESILIENCE_SKIP_THRESHOLD_MAX
-from .const import RESILIENCE_SKIP_THRESHOLD_MIN
+from .const import (
+  CACHE_TIMESTAMP_FUTURE_THRESHOLD,
+  CACHE_TIMESTAMP_STALE_THRESHOLD,
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  DEFAULT_MANUAL_BREAKER_EVENT,
+  DEFAULT_MANUAL_CHECK_EVENT,
+  DEFAULT_MANUAL_GUARD_EVENT,
+  DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+  DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+  DOMAIN,
+  MANUAL_EVENT_SOURCE_CANONICAL,
+  MODULE_NOTIFICATIONS,
+  RESILIENCE_BREAKER_THRESHOLD_MAX,
+  RESILIENCE_BREAKER_THRESHOLD_MIN,
+  RESILIENCE_SKIP_THRESHOLD_MAX,
+  RESILIENCE_SKIP_THRESHOLD_MIN,
+)
 from .coordinator_support import CacheMonitorRegistrar
 from .error_classification import classify_error_reason
-from .types import CacheDiagnosticsMetadata
-from .types import CacheDiagnosticsSnapshot
-from .types import ConfigEntryOptionsPayload
-from .types import DogConfigData
-from .types import ensure_dog_modules_mapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import ManualResilienceAutomationEntry
-from .types import ManualResilienceEventRecord
-from .types import ManualResilienceEventSelection
-from .types import ManualResilienceEventSnapshot
-from .types import ManualResilienceEventSource
-from .types import ManualResilienceEventsTelemetry
-from .types import ManualResilienceListenerMetadata
-from .types import ManualResilienceOptionsSnapshot
-from .types import ManualResiliencePreferenceKey
-from .types import ManualResilienceSystemSettingsSnapshot
-from .types import ResilienceEscalationSnapshot
-from .types import ResilienceEscalationThresholds
-from .types import ScriptManagerDogScripts
-from .types import ScriptManagerSnapshot
-from .types import ScriptManagerStats
-from .types import SystemOptions
+from .types import (
+  CacheDiagnosticsMetadata,
+  CacheDiagnosticsSnapshot,
+  ConfigEntryOptionsPayload,
+  DogConfigData,
+  JSONMutableMapping,
+  JSONValue,
+  ManualResilienceAutomationEntry,
+  ManualResilienceEventRecord,
+  ManualResilienceEventSelection,
+  ManualResilienceEventSnapshot,
+  ManualResilienceEventSource,
+  ManualResilienceEventsTelemetry,
+  ManualResilienceListenerMetadata,
+  ManualResilienceOptionsSnapshot,
+  ManualResiliencePreferenceKey,
+  ManualResilienceSystemSettingsSnapshot,
+  ResilienceEscalationSnapshot,
+  ResilienceEscalationThresholds,
+  ScriptManagerDogScripts,
+  ScriptManagerSnapshot,
+  ScriptManagerStats,
+  SystemOptions,
+  ensure_dog_modules_mapping,
+)
 
 CONF_ALIAS = getattr(ha_const, "CONF_ALIAS", "alias")
 CONF_DEFAULT = getattr(ha_const, "CONF_DEFAULT", "default")

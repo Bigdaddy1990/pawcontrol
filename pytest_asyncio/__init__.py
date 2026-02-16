@@ -6,11 +6,10 @@ test suite without requiring the real pytest-asyncio dependency.
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Generator
 import contextlib
 import inspect
-from collections.abc import Generator
 from typing import Any
 
 import pytest

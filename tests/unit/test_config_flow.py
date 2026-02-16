@@ -1,17 +1,20 @@
 from __future__ import annotations
-import pytest
+
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
 from custom_components.pawcontrol.config_flow_base import INTEGRATION_SCHEMA
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_NAME
-from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import (
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOGS,
+  CONF_NAME,
+  DOMAIN,
+)
 from custom_components.pawcontrol.exceptions import ConfigEntryAuthFailed
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 async def test_user_step_shows_form(hass: HomeAssistant) -> None:
@@ -32,9 +35,10 @@ async def test_add_dog_then_finish_creates_entry(hass: HomeAssistant) -> None:
   assert user["step_id"] == "add_dog"
   assert flow._integration_name == "Paw Control"
 
-  dog_step = await flow.async_step_add_dog(
-    {CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy_1"}
-  )
+  dog_step = await flow.async_step_add_dog({
+    CONF_DOG_NAME: "Buddy",
+    CONF_DOG_ID: "buddy_1",
+  })
   assert dog_step["type"] == FlowResultType.FORM
   assert dog_step["step_id"] == "dog_modules"
 
@@ -68,9 +72,10 @@ async def test_duplicate_dog_id_is_rejected(hass: HomeAssistant) -> None:
   await flow.async_step_add_dog({CONF_DOG_NAME: "Buddy", CONF_DOG_ID: "buddy"})
   await flow.async_step_dog_modules({"enable_feeding": True})
 
-  duplicate = await flow.async_step_add_dog(
-    {CONF_DOG_NAME: "Buddy 2", CONF_DOG_ID: "buddy"}
-  )
+  duplicate = await flow.async_step_add_dog({
+    CONF_DOG_NAME: "Buddy 2",
+    CONF_DOG_ID: "buddy",
+  })
   assert duplicate["type"] == FlowResultType.FORM
   assert duplicate["errors"] == {CONF_DOG_ID: "dog_id_already_exists"}
 

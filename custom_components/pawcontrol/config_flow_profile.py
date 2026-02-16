@@ -9,16 +9,13 @@ utilities that standardize how entity profiles are presented and validated.
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
-from typing import cast
-from typing import Final
+from typing import Final, cast
 
 import voluptuous as vol
 
 from .entity_factory import ENTITY_PROFILES
-from .types import ProfileSelectionInput
-from .types import ProfileSelectorOption
+from .types import ProfileSelectionInput, ProfileSelectorOption
 
 #: Default profile used when the user has not made a choice yet.
 DEFAULT_PROFILE: Final[str] = "standard"

@@ -2,21 +2,11 @@
 
 from __future__ import annotations
 
-
-from collections.abc import Mapping
-from collections.abc import MutableMapping
-from collections.abc import Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import Any
-from typing import cast
-from typing import NotRequired
-from typing import Required
-from typing import TypedDict
-from typing import TypeVar
+from typing import Any, NotRequired, Required, TypedDict, TypeVar, cast
 
-from .types import JSONLikeMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
+from .types import JSONLikeMapping, JSONMutableMapping, JSONValue
 
 
 @dataclass(slots=True, frozen=True)

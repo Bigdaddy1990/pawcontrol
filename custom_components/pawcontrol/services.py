@@ -11,125 +11,123 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
-import logging
-import time
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Mapping
-from collections.abc import MutableMapping
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Mapping, MutableMapping, Sequence
 from contextlib import suppress
 from copy import deepcopy
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import cast
-from typing import Literal
-from typing import TypeVar
+from datetime import datetime, timedelta
+import logging
+import time
+from typing import Any, Literal, TypeVar, cast
 
-import voluptuous as vol
 from homeassistant import config_entries as ha_config_entries
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigEntryChange
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.core import callback
-from homeassistant.core import Context
-from homeassistant.core import HomeAssistant
-from homeassistant.core import ServiceCall
+from homeassistant.config_entries import (
+  ConfigEntry,
+  ConfigEntryChange,
+  ConfigEntryState,
+)
+from homeassistant.core import Context, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from .const import CONF_RESET_TIME
-from .const import DEFAULT_RESET_TIME
-from .const import DOMAIN
-from .const import EVENT_FEEDING_COMPLIANCE_CHECKED
-from .const import MAX_GEOFENCE_RADIUS
-from .const import MIN_GEOFENCE_RADIUS
-from .const import SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE
-from .const import SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE
-from .const import SERVICE_ADD_HEALTH_SNACK
-from .const import SERVICE_ADJUST_CALORIES_FOR_ACTIVITY
-from .const import SERVICE_ADJUST_DAILY_PORTIONS
-from .const import SERVICE_CHECK_FEEDING_COMPLIANCE
-from .const import SERVICE_DAILY_RESET
-from .const import SERVICE_FEED_WITH_MEDICATION
-from .const import SERVICE_GENERATE_WEEKLY_HEALTH_REPORT
-from .const import SERVICE_GET_WEATHER_ALERTS
-from .const import SERVICE_GET_WEATHER_RECOMMENDATIONS
-from .const import SERVICE_GPS_END_WALK
-from .const import SERVICE_GPS_EXPORT_ROUTE
-from .const import SERVICE_GPS_POST_LOCATION
-from .const import SERVICE_GPS_START_WALK
-from .const import SERVICE_LOG_HEALTH
-from .const import SERVICE_LOG_MEDICATION
-from .const import SERVICE_LOG_POOP
-from .const import SERVICE_RECALCULATE_HEALTH_PORTIONS
-from .const import SERVICE_START_DIET_TRANSITION
-from .const import SERVICE_START_GROOMING
-from .const import SERVICE_TOGGLE_VISITOR_MODE
-from .const import SERVICE_UPDATE_WEATHER
+from .const import (
+  CONF_RESET_TIME,
+  DEFAULT_RESET_TIME,
+  DOMAIN,
+  EVENT_FEEDING_COMPLIANCE_CHECKED,
+  MAX_GEOFENCE_RADIUS,
+  MIN_GEOFENCE_RADIUS,
+  SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
+  SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
+  SERVICE_ADD_HEALTH_SNACK,
+  SERVICE_ADJUST_CALORIES_FOR_ACTIVITY,
+  SERVICE_ADJUST_DAILY_PORTIONS,
+  SERVICE_CHECK_FEEDING_COMPLIANCE,
+  SERVICE_DAILY_RESET,
+  SERVICE_FEED_WITH_MEDICATION,
+  SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
+  SERVICE_GET_WEATHER_ALERTS,
+  SERVICE_GET_WEATHER_RECOMMENDATIONS,
+  SERVICE_GPS_END_WALK,
+  SERVICE_GPS_EXPORT_ROUTE,
+  SERVICE_GPS_POST_LOCATION,
+  SERVICE_GPS_START_WALK,
+  SERVICE_LOG_HEALTH,
+  SERVICE_LOG_MEDICATION,
+  SERVICE_LOG_POOP,
+  SERVICE_RECALCULATE_HEALTH_PORTIONS,
+  SERVICE_START_DIET_TRANSITION,
+  SERVICE_START_GROOMING,
+  SERVICE_TOGGLE_VISITOR_MODE,
+  SERVICE_UPDATE_WEATHER,
+)
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
-from .coordinator_tasks import default_rejection_metrics
-from .coordinator_tasks import merge_rejection_metric_values
-from .exceptions import HomeAssistantError
-from .exceptions import ServiceValidationError
+from .coordinator_tasks import default_rejection_metrics, merge_rejection_metric_values
+from .exceptions import HomeAssistantError, ServiceValidationError
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import async_build_feeding_compliance_summary
-from .grooming_translations import (
-  translated_grooming_template,
+from .grooming_translations import translated_grooming_template
+from .notifications import NotificationChannel, NotificationPriority, NotificationType
+from .performance import (
+  capture_cache_diagnostics,
+  performance_tracker,
+  record_maintenance_result,
 )
-from .notifications import NotificationChannel
-from .notifications import NotificationPriority
-from .notifications import NotificationType
-from .performance import capture_cache_diagnostics
-from .performance import performance_tracker
-from .performance import record_maintenance_result
 from .repairs import async_publish_feeding_compliance_issue
 from .runtime_data import get_runtime_data
-from .service_guard import ServiceGuardMetricsSnapshot
-from .service_guard import ServiceGuardResult
-from .service_guard import ServiceGuardSnapshot
-from .service_guard import ServiceGuardSummary
-from .telemetry import ensure_runtime_performance_stats
-from .telemetry import get_runtime_performance_stats
-from .telemetry import get_runtime_resilience_summary
-from .telemetry import update_runtime_reconfigure_summary
-from .types import CacheDiagnosticsCapture
-from .types import CacheDiagnosticsMap
-from .types import CacheDiagnosticsSnapshot
-from .types import CoordinatorRejectionMetrics
-from .types import CoordinatorResilienceSummary
-from .types import CoordinatorRuntimeManagers
-from .types import DogConfigData
-from .types import FeedingComplianceEventPayload
-from .types import FeedingComplianceLocalizedSummary
-from .types import GPSTrackingConfigInput
-from .types import JSONLikeMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import PawControlRuntimeData
-from .types import ServiceCallTelemetry
-from .types import ServiceCallTelemetryEntry
-from .types import ServiceContextMetadata
-from .types import ServiceData
-from .types import ServiceDetailsPayload
-from .types import ServiceExecutionDiagnostics
-from .types import ServiceExecutionResult
-from .utils import async_capture_service_guard_results
-from .utils import async_fire_event
-from .utils import build_error_context
-from .validation import InputCoercionError
-from .validation import InputValidator
-from .validation import normalize_dog_id
-from .validation import validate_expires_in_hours
-from .validation import validate_gps_interval
-from .validation import validate_notification_targets
-from .validation import ValidationError
+from .service_guard import (
+  ServiceGuardMetricsSnapshot,
+  ServiceGuardResult,
+  ServiceGuardSnapshot,
+  ServiceGuardSummary,
+)
+from .telemetry import (
+  ensure_runtime_performance_stats,
+  get_runtime_performance_stats,
+  get_runtime_resilience_summary,
+  update_runtime_reconfigure_summary,
+)
+from .types import (
+  CacheDiagnosticsCapture,
+  CacheDiagnosticsMap,
+  CacheDiagnosticsSnapshot,
+  CoordinatorRejectionMetrics,
+  CoordinatorResilienceSummary,
+  CoordinatorRuntimeManagers,
+  DogConfigData,
+  FeedingComplianceEventPayload,
+  FeedingComplianceLocalizedSummary,
+  GPSTrackingConfigInput,
+  JSONLikeMapping,
+  JSONMutableMapping,
+  JSONValue,
+  PawControlRuntimeData,
+  ServiceCallTelemetry,
+  ServiceCallTelemetryEntry,
+  ServiceContextMetadata,
+  ServiceData,
+  ServiceDetailsPayload,
+  ServiceExecutionDiagnostics,
+  ServiceExecutionResult,
+)
+from .utils import (
+  async_capture_service_guard_results,
+  async_fire_event,
+  build_error_context,
+)
+from .validation import (
+  InputCoercionError,
+  InputValidator,
+  ValidationError,
+  normalize_dog_id,
+  validate_expires_in_hours,
+  validate_gps_interval,
+  validate_notification_targets,
+)
 from .validation_helpers import validate_service_coordinates
 
 SIGNAL_CONFIG_ENTRY_CHANGED = getattr(

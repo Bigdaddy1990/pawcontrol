@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-
 import json
 from pathlib import Path
-from typing import Final
-from typing import Literal
-from typing import TypedDict
+from typing import Final, Literal, TypedDict
 
 from homeassistant.core import HomeAssistant
 
-from .translation_helpers import async_get_component_translation_lookup
-from .translation_helpers import resolve_component_translation
+from .translation_helpers import (
+  async_get_component_translation_lookup,
+  resolve_component_translation,
+)
 
 
 class WeatherAlertTranslation(TypedDict):

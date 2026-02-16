@@ -10,17 +10,12 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
+from collections.abc import Mapping, Set
+from dataclasses import dataclass, field
 import logging
-from collections.abc import Mapping
-from collections.abc import Set
-from dataclasses import dataclass
-from dataclasses import field
-from typing import Any
-from typing import TypeVar
+from typing import Any, TypeVar
 
-from .types import CoordinatorDataPayload
-from .types import CoordinatorDogData
+from .types import CoordinatorDataPayload, CoordinatorDogData
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-
-import json
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from datetime import UTC, datetime, timedelta
+import json
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-
-import logging
-from collections.abc import Callable
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from homeassistant.components.device_automation import DEVICE_CONDITION_BASE_SCHEMA
-from homeassistant.const import CONF_CONDITION
-from homeassistant.const import CONF_DEVICE_ID
-from homeassistant.const import CONF_DOMAIN
-from homeassistant.const import CONF_ENTITY_ID
-from homeassistant.const import CONF_METADATA
-from homeassistant.const import CONF_TYPE
-from homeassistant.const import STATE_ON
+from homeassistant.const import (
+  CONF_CONDITION,
+  CONF_DEVICE_ID,
+  CONF_DOMAIN,
+  CONF_ENTITY_ID,
+  CONF_METADATA,
+  CONF_TYPE,
+  STATE_ON,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
@@ -31,7 +28,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from homeassistant.helpers.condition import ConditionCheckerType
   except ImportError:
     try:
-      from homeassistant.helpers.typing import ConditionCheckerType  # type: ignore[attr-defined]
+      from homeassistant.helpers.typing import (
+        ConditionCheckerType,  # type: ignore[attr-defined]
+      )
     except ImportError:
       ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]
 else:
@@ -41,8 +40,8 @@ import voluptuous as vol
 
 from .const import DOMAIN
 from .device_automation_helpers import (
-  build_unique_id,
   build_device_automation_metadata,
+  build_unique_id,
   resolve_device_context,
   resolve_entity_id,
   resolve_status_snapshot,

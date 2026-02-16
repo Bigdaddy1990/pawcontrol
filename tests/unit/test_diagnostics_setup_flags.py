@@ -1,28 +1,24 @@
 from __future__ import annotations
-from unittest.mock import AsyncMock
-from unittest.mock import patch
 
-import pytest
+from unittest.mock import AsyncMock, patch
+
 from homeassistant.core import HomeAssistant
+import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pawcontrol import diagnostics as diagnostics_mod
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.diagnostics import SETUP_FLAG_LABEL_TRANSLATION_KEYS
-from custom_components.pawcontrol.diagnostics import SETUP_FLAG_LABELS
 from custom_components.pawcontrol.diagnostics import (
+  SETUP_FLAG_LABEL_TRANSLATION_KEYS,
+  SETUP_FLAG_LABELS,
   SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS,
-)
-from custom_components.pawcontrol.diagnostics import SETUP_FLAG_SOURCE_LABELS
-from custom_components.pawcontrol.diagnostics import SETUP_FLAGS_PANEL_DESCRIPTION
-from custom_components.pawcontrol.diagnostics import (
+  SETUP_FLAG_SOURCE_LABELS,
+  SETUP_FLAGS_PANEL_DESCRIPTION,
   SETUP_FLAGS_PANEL_DESCRIPTION_TRANSLATION_KEY,
-)
-from custom_components.pawcontrol.diagnostics import SETUP_FLAGS_PANEL_TITLE
-from custom_components.pawcontrol.diagnostics import (
+  SETUP_FLAGS_PANEL_TITLE,
   SETUP_FLAGS_PANEL_TITLE_TRANSLATION_KEY,
 )
 from custom_components.pawcontrol.types import SetupFlagsPanelPayload
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 @pytest.mark.asyncio

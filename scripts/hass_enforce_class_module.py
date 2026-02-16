@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from astroid import nodes
 from homeassistant.const import Platform
 from pylint.checkers import BaseChecker
@@ -80,28 +79,26 @@ _MODULES: dict[str, set[str]] = {
     "WeatherEntityDescription",
   },
 }
-_ENTITY_COMPONENTS: set[str] = {platform.value for platform in Platform}.union(
-  {
-    "alert",
-    "automation",
-    "counter",
-    "dominos",
-    "input_boolean",
-    "input_button",
-    "input_datetime",
-    "input_number",
-    "input_select",
-    "input_text",
-    "microsoft_face",
-    "person",
-    "plant",
-    "remember_the_milk",
-    "schedule",
-    "script",
-    "tag",
-    "timer",
-  }
-)
+_ENTITY_COMPONENTS: set[str] = {platform.value for platform in Platform}.union({
+  "alert",
+  "automation",
+  "counter",
+  "dominos",
+  "input_boolean",
+  "input_button",
+  "input_datetime",
+  "input_number",
+  "input_select",
+  "input_text",
+  "microsoft_face",
+  "person",
+  "plant",
+  "remember_the_milk",
+  "schedule",
+  "script",
+  "tag",
+  "timer",
+})
 
 
 _MODULE_CLASSES = {

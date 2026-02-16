@@ -2,28 +2,30 @@
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
-from types import MappingProxyType
-from types import SimpleNamespace
-from typing import Any
-from typing import cast
+from dataclasses import dataclass
+from types import MappingProxyType, SimpleNamespace
+from typing import Any, cast
 
 import pytest
+from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 from custom_components.pawcontrol.config_flow_external import (
   ExternalEntityConfigurationMixin,
 )
-from custom_components.pawcontrol.const import CONF_DOOR_SENSOR
-from custom_components.pawcontrol.const import CONF_GPS_SOURCE
-from custom_components.pawcontrol.const import CONF_NOTIFY_FALLBACK
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.types import DogConfigData
-from custom_components.pawcontrol.types import DogModulesConfig
-from custom_components.pawcontrol.types import ExternalEntityConfig
-from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
+from custom_components.pawcontrol.const import (
+  CONF_DOOR_SENSOR,
+  CONF_GPS_SOURCE,
+  CONF_NOTIFY_FALLBACK,
+  MODULE_GPS,
+  MODULE_NOTIFICATIONS,
+  MODULE_VISITOR,
+)
+from custom_components.pawcontrol.types import (
+  DogConfigData,
+  DogModulesConfig,
+  ExternalEntityConfig,
+)
 
 
 class _FakeStates(dict[str, SimpleNamespace]):
@@ -42,12 +44,12 @@ class _FakeServices:
     return self._services
 
 
+@dataclass(slots=True)
 class _FakeHomeAssistant:
   """Home Assistant stub exposing the state and service registries used in tests."""
 
-  def __init__(self, *, states: _FakeStates, services: _FakeServices) -> None:
-    self.states = states
-    self.services = services
+  states: _FakeStates
+  services: _FakeServices
 
 
 class _ExternalEntityFlow(ExternalEntityConfigurationMixin):
@@ -116,15 +118,13 @@ async def test_async_step_configure_external_entities_accepts_valid_payload() ->
   """The mixin persists validated entity selections into the shared mapping."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "device_tracker.main_phone": SimpleNamespace(state="home"),
-        "binary_sensor.back_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "door"},
-        ),
-      }
-    ),
+    states=_FakeStates({
+      "device_tracker.main_phone": SimpleNamespace(state="home"),
+      "binary_sensor.back_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "door"},
+      ),
+    }),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
   )
   modules = cast(
@@ -157,14 +157,12 @@ async def test_async_step_configure_external_entities_rejects_invalid_door_senso
   """Door sensor validation rejects entities with unsupported device classes."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "binary_sensor.back_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "motion"},
-        ),
-      }
-    ),
+    states=_FakeStates({
+      "binary_sensor.back_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "motion"},
+      ),
+    }),
     services=_FakeServices({"notify": {}}),
   )
   modules = cast(
@@ -189,15 +187,13 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
   """Invalid notify service selections surface the validation error in the form."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "device_tracker.main_phone": SimpleNamespace(state="home"),
-        "binary_sensor.back_door": SimpleNamespace(
-          state="on",
-          attributes={"device_class": "door"},
-        ),
-      }
-    ),
+    states=_FakeStates({
+      "device_tracker.main_phone": SimpleNamespace(state="home"),
+      "binary_sensor.back_door": SimpleNamespace(
+        state="on",
+        attributes={"device_class": "door"},
+      ),
+    }),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
   )
   modules = cast(
@@ -224,11 +220,9 @@ async def test_async_step_configure_external_entities_rejects_invalid_notify_for
   """Notify service formatting errors surface a field validation key."""
 
   hass = _FakeHomeAssistant(
-    states=_FakeStates(
-      {
-        "device_tracker.main_phone": SimpleNamespace(state="home"),
-      }
-    ),
+    states=_FakeStates({
+      "device_tracker.main_phone": SimpleNamespace(state="home"),
+    }),
     services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
   )
   modules = cast(

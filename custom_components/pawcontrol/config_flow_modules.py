@@ -21,44 +21,44 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
-import logging
 from collections.abc import Mapping
-from typing import cast
-from typing import Final
-from typing import Protocol
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Final, Protocol, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
-from .const import CONF_MODULES
-from .const import FEEDING_SCHEDULE_TYPES
-from .const import FOOD_TYPES
-from .const import MODULE_DASHBOARD
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import SPECIAL_DIET_OPTIONS
+from .const import (
+  CONF_MODULES,
+  FEEDING_SCHEDULE_TYPES,
+  FOOD_TYPES,
+  MODULE_DASHBOARD,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  SPECIAL_DIET_OPTIONS,
+)
 from .language import normalize_language
 from .selector_shim import selector
-from .types import ConfigFlowGlobalSettings
-from .types import ConfigFlowPlaceholders
-from .types import ConfigFlowUserInput
-from .types import DashboardConfigurationPlaceholders
-from .types import DashboardConfigurationStepInput
-from .types import DashboardMode
-from .types import DashboardSetupConfig
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import ExternalEntityConfig
-from .types import FeedingConfigurationPlaceholders
-from .types import FeedingConfigurationStepInput
-from .types import FeedingSetupConfig
-from .types import ModuleConfigurationPlaceholders
-from .types import ModuleConfigurationStepInput
-from .types import ModuleConfigurationSummary
-from .types import normalize_performance_mode
+from .types import (
+  ConfigFlowGlobalSettings,
+  ConfigFlowPlaceholders,
+  ConfigFlowUserInput,
+  DashboardConfigurationPlaceholders,
+  DashboardConfigurationStepInput,
+  DashboardMode,
+  DashboardSetupConfig,
+  DogConfigData,
+  DogModulesConfig,
+  ExternalEntityConfig,
+  FeedingConfigurationPlaceholders,
+  FeedingConfigurationStepInput,
+  FeedingSetupConfig,
+  ModuleConfigurationPlaceholders,
+  ModuleConfigurationStepInput,
+  ModuleConfigurationSummary,
+  normalize_performance_mode,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

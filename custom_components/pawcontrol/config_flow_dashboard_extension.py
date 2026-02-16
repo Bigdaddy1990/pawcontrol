@@ -11,42 +11,45 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 from collections.abc import Mapping
-from typing import cast
-from typing import Final
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
-from .config_flow_modules import normalize_dashboard_language
-from .config_flow_modules import translated_dashboard_feature
-from .const import CONF_MODULES
-from .const import DASHBOARD_MODE_SELECTOR_OPTIONS
-from .const import DEFAULT_DASHBOARD_AUTO_CREATE
-from .const import DEFAULT_DASHBOARD_MODE
-from .const import DEFAULT_DASHBOARD_THEME
-from .const import MODULE_GPS
+from .config_flow_modules import (
+  normalize_dashboard_language,
+  translated_dashboard_feature,
+)
+from .const import (
+  CONF_MODULES,
+  DASHBOARD_MODE_SELECTOR_OPTIONS,
+  DEFAULT_DASHBOARD_AUTO_CREATE,
+  DEFAULT_DASHBOARD_MODE,
+  DEFAULT_DASHBOARD_THEME,
+  MODULE_GPS,
+)
 from .selector_shim import selector
-from .types import clone_placeholders
-from .types import ConfigFlowPlaceholders
-from .types import ConfigFlowUserInput
-from .types import DASHBOARD_AUTO_CREATE_FIELD
-from .types import DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE
-from .types import DASHBOARD_ENABLED_FIELD
-from .types import DASHBOARD_MODE_FIELD
-from .types import DASHBOARD_PER_DOG_FIELD
-from .types import DASHBOARD_THEME_FIELD
-from .types import DashboardConfigurationStepInput
-from .types import DashboardMode
-from .types import DashboardSetupConfig
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import ExternalEntityConfig
-from .types import freeze_placeholders
-from .types import SHOW_MAPS_FIELD
-from .types import SHOW_STATISTICS_FIELD
+from .types import (
+  DASHBOARD_AUTO_CREATE_FIELD,
+  DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE,
+  DASHBOARD_ENABLED_FIELD,
+  DASHBOARD_MODE_FIELD,
+  DASHBOARD_PER_DOG_FIELD,
+  DASHBOARD_THEME_FIELD,
+  SHOW_MAPS_FIELD,
+  SHOW_STATISTICS_FIELD,
+  ConfigFlowPlaceholders,
+  ConfigFlowUserInput,
+  DashboardConfigurationStepInput,
+  DashboardMode,
+  DashboardSetupConfig,
+  DogConfigData,
+  DogModulesConfig,
+  ExternalEntityConfig,
+  clone_placeholders,
+  freeze_placeholders,
+)
 
 _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
   "auto_create": {

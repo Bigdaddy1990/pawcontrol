@@ -10,27 +10,25 @@ imported and exercised directly.
 
 from __future__ import annotations
 
-
+from enum import Enum, StrEnum
 import types
-from enum import Enum
-from enum import StrEnum
 
 import pytest
 
-from custom_components.pawcontrol.entity_factory import _MIN_OPERATION_DURATION
-from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_FACTOR
-from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_THRESHOLD
-from custom_components.pawcontrol.entity_factory import _RUNTIME_EXPAND_THRESHOLD
-from custom_components.pawcontrol.entity_factory import _RUNTIME_MAX_FLOOR
-from custom_components.pawcontrol.entity_factory import _RUNTIME_TARGET_RATIO
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
-from custom_components.pawcontrol.entity_factory import EntityEstimate
-from custom_components.pawcontrol.entity_factory import EntityFactory
-from tests.helpers.homeassistant_test_stubs import (
-  install_homeassistant_stubs,
+from custom_components.pawcontrol.entity_factory import (
+  _MIN_OPERATION_DURATION,
+  _RUNTIME_CONTRACT_FACTOR,
+  _RUNTIME_CONTRACT_THRESHOLD,
+  _RUNTIME_EXPAND_THRESHOLD,
+  _RUNTIME_MAX_FLOOR,
+  _RUNTIME_TARGET_RATIO,
+  ENTITY_PROFILES,
+  EntityEstimate,
+  EntityFactory,
 )
 from tests.helpers.homeassistant_test_stubs import (
   Platform as _Platform,
+  install_homeassistant_stubs,
 )
 
 

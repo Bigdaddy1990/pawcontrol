@@ -2,72 +2,72 @@
 
 from __future__ import annotations
 
-
+from collections.abc import Mapping, Sequence
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
-from typing import Any
-from typing import cast
-from typing import Protocol
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
-from .const import CONF_DOG_AGE
-from .const import CONF_DOG_BREED
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_SIZE
-from .const import CONF_DOG_WEIGHT
-from .const import CONF_DOGS
-from .const import CONF_DOOR_SENSOR
-from .const import DOG_SIZES
-from .const import DOOR_SENSOR_DEVICE_CLASSES
-from .const import MAX_DOG_AGE
-from .const import MAX_DOG_WEIGHT
-from .const import MAX_DOGS_PER_ENTRY
-from .const import MIN_DOG_AGE
-from .const import MIN_DOG_WEIGHT
-from .const import MODULE_FEEDING
-from .const import MODULE_GARDEN
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
+from .const import (
+  CONF_DOG_AGE,
+  CONF_DOG_BREED,
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOG_SIZE,
+  CONF_DOG_WEIGHT,
+  CONF_DOGS,
+  CONF_DOOR_SENSOR,
+  DOG_SIZES,
+  DOOR_SENSOR_DEVICE_CLASSES,
+  MAX_DOG_AGE,
+  MAX_DOG_WEIGHT,
+  MAX_DOGS_PER_ENTRY,
+  MIN_DOG_AGE,
+  MIN_DOG_WEIGHT,
+  MODULE_FEEDING,
+  MODULE_GARDEN,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_WALK,
+)
 from .exceptions import FlowValidationError
-from .flow_validation import validate_dog_setup_input
-from .flow_validation import validate_dog_update_input
+from .flow_validation import validate_dog_setup_input, validate_dog_update_input
 from .flows.garden import GardenModuleSelectorMixin
-from .flows.walk_schemas import build_auto_end_walks_field
-from .flows.walk_schemas import build_walk_timing_schema_fields
+from .flows.walk_schemas import (
+  build_auto_end_walks_field,
+  build_walk_timing_schema_fields,
+)
 from .grooming_translations import translated_grooming_label
 from .selector_shim import selector
 from .translation_helpers import async_preload_component_translations
-from .types import ConfigFlowPlaceholders
-from .types import DOG_AGE_FIELD
-from .types import DOG_BREED_FIELD
-from .types import DOG_ID_FIELD
-from .types import DOG_MODULES_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DOG_OPTIONS_FIELD
-from .types import DOG_SIZE_FIELD
-from .types import DOG_WEIGHT_FIELD
-from .types import DogConfigData
-from .types import DoorSensorSettingsConfig
-from .types import ensure_dog_config_data
-from .types import ensure_dog_modules_config
-from .types import ensure_dog_modules_mapping
-from .types import ensure_dog_options_entry
-from .types import freeze_placeholders
-from .types import JSONLikeMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import OptionsDogEditInput
-from .types import OptionsDogModulesInput
-from .types import OptionsDogRemovalInput
-from .types import OptionsDogSelectionInput
-from .types import OptionsDoorSensorInput
-from .types import OptionsMenuInput
+from .types import (
+  DOG_AGE_FIELD,
+  DOG_BREED_FIELD,
+  DOG_ID_FIELD,
+  DOG_MODULES_FIELD,
+  DOG_NAME_FIELD,
+  DOG_OPTIONS_FIELD,
+  DOG_SIZE_FIELD,
+  DOG_WEIGHT_FIELD,
+  ConfigFlowPlaceholders,
+  DogConfigData,
+  DoorSensorSettingsConfig,
+  JSONLikeMapping,
+  JSONMutableMapping,
+  JSONValue,
+  OptionsDogEditInput,
+  OptionsDogModulesInput,
+  OptionsDogRemovalInput,
+  OptionsDogSelectionInput,
+  OptionsDoorSensorInput,
+  OptionsMenuInput,
+  ensure_dog_config_data,
+  ensure_dog_modules_config,
+  ensure_dog_modules_mapping,
+  ensure_dog_options_entry,
+  freeze_placeholders,
+)
 
 if TYPE_CHECKING:
   from homeassistant.config_entries import ConfigEntry

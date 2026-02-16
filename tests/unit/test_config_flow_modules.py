@@ -2,50 +2,47 @@
 
 from __future__ import annotations
 
+from types import MappingProxyType, SimpleNamespace
+from typing import Any, cast
 
-from types import MappingProxyType
-from types import SimpleNamespace
-from typing import Any
-from typing import cast
-
-import pytest
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 
 from custom_components.pawcontrol.config_flow_modules import (
+  ModuleConfigurationMixin,
   _build_dashboard_placeholders,
-)
-from custom_components.pawcontrol.config_flow_modules import _build_feeding_placeholders
-from custom_components.pawcontrol.config_flow_modules import _build_module_placeholders
-from custom_components.pawcontrol.config_flow_modules import (
+  _build_feeding_placeholders,
+  _build_module_placeholders,
   _coerce_dashboard_configuration,
-)
-from custom_components.pawcontrol.config_flow_modules import (
   _coerce_feeding_configuration,
-)
-from custom_components.pawcontrol.config_flow_modules import (
   _coerce_module_global_settings,
 )
-from custom_components.pawcontrol.config_flow_modules import ModuleConfigurationMixin
-from custom_components.pawcontrol.const import MODULE_DASHBOARD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.schemas import GPS_DOG_CONFIG_JSON_SCHEMA
-from custom_components.pawcontrol.schemas import validate_json_schema_payload
-from custom_components.pawcontrol.types import ConfigFlowGlobalSettings
-from custom_components.pawcontrol.types import DashboardConfigurationStepInput
-from custom_components.pawcontrol.types import DashboardSetupConfig
-from custom_components.pawcontrol.types import dog_modules_from_flow_input
-from custom_components.pawcontrol.types import DogConfigData
-from custom_components.pawcontrol.types import DogModulesConfig
-from custom_components.pawcontrol.types import DogModuleSelectionInput
-from custom_components.pawcontrol.types import ExternalEntityConfig
-from custom_components.pawcontrol.types import FeedingConfigurationStepInput
-from custom_components.pawcontrol.types import FeedingSetupConfig
-from custom_components.pawcontrol.types import MODULE_TOGGLE_KEYS
-from custom_components.pawcontrol.types import ModuleConfigurationStepInput
-from custom_components.pawcontrol.types import ModuleConfigurationSummary
+from custom_components.pawcontrol.const import (
+  MODULE_DASHBOARD,
+  MODULE_FEEDING,
+  MODULE_GPS,
+  MODULE_HEALTH,
+)
+from custom_components.pawcontrol.schemas import (
+  GPS_DOG_CONFIG_JSON_SCHEMA,
+  validate_json_schema_payload,
+)
+from custom_components.pawcontrol.types import (
+  MODULE_TOGGLE_KEYS,
+  ConfigFlowGlobalSettings,
+  DashboardConfigurationStepInput,
+  DashboardSetupConfig,
+  DogConfigData,
+  DogModulesConfig,
+  DogModuleSelectionInput,
+  ExternalEntityConfig,
+  FeedingConfigurationStepInput,
+  FeedingSetupConfig,
+  ModuleConfigurationStepInput,
+  ModuleConfigurationSummary,
+  dog_modules_from_flow_input,
+)
 
 
 def test_coerce_module_global_settings_defaults() -> None:

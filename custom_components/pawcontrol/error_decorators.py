@@ -10,33 +10,29 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
 import asyncio
+from collections.abc import Awaitable, Callable
 import functools
 import inspect
 import logging
-from collections.abc import Awaitable
-from collections.abc import Callable
-from typing import Any
-from typing import cast
-from typing import ParamSpec
-from typing import TYPE_CHECKING
-from typing import TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 from homeassistant.helpers import issue_registry
 
-from .exceptions import DogNotFoundError
-from .exceptions import ErrorCategory
-from .exceptions import ErrorSeverity
-from .exceptions import FlowValidationError
-from .exceptions import GPSError
-from .exceptions import InvalidCoordinatesError
-from .exceptions import NetworkError
-from .exceptions import PawControlError
-from .exceptions import RateLimitError
-from .exceptions import StorageError
-from .exceptions import ValidationError
-from .exceptions import WalkError
+from .exceptions import (
+  DogNotFoundError,
+  ErrorCategory,
+  ErrorSeverity,
+  FlowValidationError,
+  GPSError,
+  InvalidCoordinatesError,
+  NetworkError,
+  PawControlError,
+  RateLimitError,
+  StorageError,
+  ValidationError,
+  WalkError,
+)
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant

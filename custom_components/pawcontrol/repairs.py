@@ -8,17 +8,11 @@ Platinum quality ambitions.
 
 from __future__ import annotations
 
-
+from collections.abc import Mapping, Sequence
+from inspect import isawaitable, signature
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
-from inspect import isawaitable
-from inspect import signature
-from typing import Any
-from typing import cast
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
-import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -26,40 +20,47 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import CONF_GPS_SOURCE
-from .const import CONFIG_ENTRY_VERSION
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_GARDEN
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_WALK
+from .const import (
+  CONF_DOG_ID,
+  CONF_DOG_NAME,
+  CONF_DOGS,
+  CONF_GPS_SOURCE,
+  CONFIG_ENTRY_VERSION,
+  DOMAIN,
+  MODULE_FEEDING,
+  MODULE_GARDEN,
+  MODULE_GPS,
+  MODULE_HEALTH,
+  MODULE_NOTIFICATIONS,
+  MODULE_WALK,
+)
 from .coordinator_support import ensure_cache_repair_aggregate
 from .error_classification import classify_error_reason
 from .exceptions import RepairRequiredError
 from .feeding_translations import async_build_feeding_compliance_summary
 from .push_router import get_entry_push_telemetry_snapshot
-from .runtime_data import describe_runtime_store_status
-from .runtime_data import require_runtime_data
-from .runtime_data import RuntimeDataUnavailableError
+from .runtime_data import (
+  RuntimeDataUnavailableError,
+  describe_runtime_store_status,
+  require_runtime_data,
+)
 from .telemetry import get_runtime_store_health
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import FeedingComplianceDisplayMapping
-from .types import FeedingComplianceEventPayload
-from .types import FeedingComplianceLocalizedSummary
-from .types import JSONLikeMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import ReconfigureTelemetry
-from .types import RuntimeStoreHealthLevel
-from .types import RuntimeStoreLevelDurationAlert
-from .types import ServiceContextMetadata
+from .types import (
+  DogConfigData,
+  DogModulesConfig,
+  FeedingComplianceDisplayMapping,
+  FeedingComplianceEventPayload,
+  FeedingComplianceLocalizedSummary,
+  JSONLikeMapping,
+  JSONMutableMapping,
+  JSONValue,
+  ReconfigureTelemetry,
+  RuntimeStoreHealthLevel,
+  RuntimeStoreLevelDurationAlert,
+  ServiceContextMetadata,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

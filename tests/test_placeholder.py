@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-
 import pytest
 
-from custom_components.pawcontrol.validation import InputValidator
-from custom_components.pawcontrol.validation import ValidationError
+from custom_components.pawcontrol.validation import InputValidator, ValidationError
 
 
 def test_validate_age_months_rejects_fractional_string() -> None:

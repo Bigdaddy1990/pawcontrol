@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-
-import logging
-import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import logging
+import time
 
-from .types import ConfigFlowOperationMetricsMap
-from .types import ConfigFlowPerformanceStats
+from .types import ConfigFlowOperationMetricsMap, ConfigFlowPerformanceStats
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -2,80 +2,81 @@
 
 from __future__ import annotations
 
-
-import logging
-from collections.abc import Callable
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from importlib import import_module
-from typing import Any
-from typing import cast
-from typing import Protocol
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+import voluptuous as vol
 
-from ..const import CONF_API_ENDPOINT
-from ..const import CONF_API_TOKEN
-from ..const import CONF_DASHBOARD_MODE
-from ..const import CONF_DOG_BREED
-from ..const import CONF_DOGS
-from ..const import CONF_EXTERNAL_INTEGRATIONS
-from ..const import CONF_MQTT_ENABLED
-from ..const import CONF_MQTT_TOPIC
-from ..const import CONF_PUSH_NONCE_TTL_SECONDS
-from ..const import CONF_PUSH_PAYLOAD_MAX_BYTES
-from ..const import CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE
-from ..const import CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE
-from ..const import CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE
-from ..const import CONF_RESET_TIME
-from ..const import CONF_WEATHER_ENTITY
-from ..const import CONF_WEBHOOK_ENABLED
-from ..const import CONF_WEBHOOK_REQUIRE_SIGNATURE
-from ..const import CONF_WEBHOOK_SECRET
-from ..const import DASHBOARD_MODE_SELECTOR_OPTIONS
-from ..const import DEFAULT_MQTT_ENABLED
-from ..const import DEFAULT_MQTT_TOPIC
-from ..const import DEFAULT_PUSH_NONCE_TTL_SECONDS
-from ..const import DEFAULT_PUSH_PAYLOAD_MAX_BYTES
-from ..const import DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE
-from ..const import DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE
-from ..const import DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE
-from ..const import DEFAULT_RESET_TIME
-from ..const import DEFAULT_RESILIENCE_BREAKER_THRESHOLD
-from ..const import DEFAULT_RESILIENCE_SKIP_THRESHOLD
-from ..const import DEFAULT_WEATHER_ALERTS
-from ..const import DEFAULT_WEATHER_HEALTH_MONITORING
-from ..const import DEFAULT_WEBHOOK_ENABLED
-from ..const import DEFAULT_WEBHOOK_REQUIRE_SIGNATURE
-from ..const import RESILIENCE_BREAKER_THRESHOLD_MAX
-from ..const import RESILIENCE_BREAKER_THRESHOLD_MIN
-from ..const import RESILIENCE_SKIP_THRESHOLD_MAX
-from ..const import RESILIENCE_SKIP_THRESHOLD_MIN
+from ..const import (
+  CONF_API_ENDPOINT,
+  CONF_API_TOKEN,
+  CONF_DASHBOARD_MODE,
+  CONF_DOG_BREED,
+  CONF_DOGS,
+  CONF_EXTERNAL_INTEGRATIONS,
+  CONF_MQTT_ENABLED,
+  CONF_MQTT_TOPIC,
+  CONF_PUSH_NONCE_TTL_SECONDS,
+  CONF_PUSH_PAYLOAD_MAX_BYTES,
+  CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+  CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+  CONF_RESET_TIME,
+  CONF_WEATHER_ENTITY,
+  CONF_WEBHOOK_ENABLED,
+  CONF_WEBHOOK_REQUIRE_SIGNATURE,
+  CONF_WEBHOOK_SECRET,
+  DASHBOARD_MODE_SELECTOR_OPTIONS,
+  DEFAULT_MQTT_ENABLED,
+  DEFAULT_MQTT_TOPIC,
+  DEFAULT_PUSH_NONCE_TTL_SECONDS,
+  DEFAULT_PUSH_PAYLOAD_MAX_BYTES,
+  DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+  DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+  DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+  DEFAULT_RESET_TIME,
+  DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+  DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+  DEFAULT_WEATHER_ALERTS,
+  DEFAULT_WEATHER_HEALTH_MONITORING,
+  DEFAULT_WEBHOOK_ENABLED,
+  DEFAULT_WEBHOOK_REQUIRE_SIGNATURE,
+  RESILIENCE_BREAKER_THRESHOLD_MAX,
+  RESILIENCE_BREAKER_THRESHOLD_MIN,
+  RESILIENCE_SKIP_THRESHOLD_MAX,
+  RESILIENCE_SKIP_THRESHOLD_MIN,
+)
 from ..device_api import validate_device_endpoint
 from ..exceptions import FlowValidationError  # noqa: F401
-from ..options_flow_shared import ADVANCED_SETTINGS_FIELD
-from ..options_flow_shared import SYSTEM_ENABLE_ANALYTICS_FIELD
-from ..options_flow_shared import SYSTEM_ENABLE_CLOUD_BACKUP_FIELD
+from ..options_flow_shared import (
+  ADVANCED_SETTINGS_FIELD,
+  SYSTEM_ENABLE_ANALYTICS_FIELD,
+  SYSTEM_ENABLE_CLOUD_BACKUP_FIELD,
+)
 from ..runtime_data import get_runtime_data as _get_runtime_data
 from ..selector_shim import selector
-from ..types import ConfigFlowPlaceholders
-from ..types import DogConfigData
-from ..types import ensure_dog_config_data
-from ..types import freeze_placeholders
-from ..types import JSONMutableMapping
-from ..types import JSONValue
-from ..types import normalize_performance_mode
-from ..types import OptionsAdvancedSettingsInput
-from ..types import OptionsDashboardSettingsInput
-from ..types import OptionsSystemSettingsInput
-from ..types import OptionsWeatherSettingsInput
-from ..types import PushSettingsInput
+from ..types import (
+  ConfigFlowPlaceholders,
+  DogConfigData,
+  JSONMutableMapping,
+  JSONValue,
+  OptionsAdvancedSettingsInput,
+  OptionsDashboardSettingsInput,
+  OptionsSystemSettingsInput,
+  OptionsWeatherSettingsInput,
+  PushSettingsInput,
+  ensure_dog_config_data,
+  freeze_placeholders,
+  normalize_performance_mode,
+)
 
 if TYPE_CHECKING:
-  from homeassistant.core import HomeAssistant
   from homeassistant.config_entries import ConfigEntry
+  from homeassistant.core import HomeAssistant
+
   from ..types import PawControlRuntimeData
 
   RuntimeDataGetter = Callable[
@@ -222,103 +223,99 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
 
       return self.async_create_entry(title="", data=cast(dict[str, Any], mutable))
 
-    schema = vol.Schema(
-      {
-        vol.Optional(
-          CONF_WEBHOOK_ENABLED,
-          default=bool(current.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)),
-        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
-        vol.Optional(
-          CONF_WEBHOOK_REQUIRE_SIGNATURE,
-          default=bool(
-            current.get(
-              CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE
-            )
-          ),
-        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
-        vol.Optional(
-          CONF_WEBHOOK_SECRET,
-          default=str(current.get(CONF_WEBHOOK_SECRET, ""))
-          if current.get(CONF_WEBHOOK_SECRET)
-          else "",
-        ): selector.TextSelector(
-          selector.TextSelectorConfig(
-            type=selector.TextSelectorType.PASSWORD, multiline=False
-          ),
+    schema = vol.Schema({
+      vol.Optional(
+        CONF_WEBHOOK_ENABLED,
+        default=bool(current.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)),
+      ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+      vol.Optional(
+        CONF_WEBHOOK_REQUIRE_SIGNATURE,
+        default=bool(
+          current.get(CONF_WEBHOOK_REQUIRE_SIGNATURE, DEFAULT_WEBHOOK_REQUIRE_SIGNATURE)
         ),
-        vol.Optional(
-          CONF_MQTT_ENABLED,
-          default=bool(current.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED)),
-        ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
-        vol.Optional(
-          CONF_MQTT_TOPIC,
-          default=str(current.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)),
-        ): selector.TextSelector(
-          selector.TextSelectorConfig(
-            type=selector.TextSelectorType.TEXT, multiline=False
-          ),
+      ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+      vol.Optional(
+        CONF_WEBHOOK_SECRET,
+        default=str(current.get(CONF_WEBHOOK_SECRET, ""))
+        if current.get(CONF_WEBHOOK_SECRET)
+        else "",
+      ): selector.TextSelector(
+        selector.TextSelectorConfig(
+          type=selector.TextSelectorType.PASSWORD, multiline=False
         ),
-        vol.Optional(
-          CONF_PUSH_PAYLOAD_MAX_BYTES,
-          default=int(
-            current.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1024, max=262144, mode=selector.NumberSelectorMode.BOX, step=256
-          ),
+      ),
+      vol.Optional(
+        CONF_MQTT_ENABLED,
+        default=bool(current.get(CONF_MQTT_ENABLED, DEFAULT_MQTT_ENABLED)),
+      ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
+      vol.Optional(
+        CONF_MQTT_TOPIC,
+        default=str(current.get(CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)),
+      ): selector.TextSelector(
+        selector.TextSelectorConfig(
+          type=selector.TextSelectorType.TEXT, multiline=False
         ),
-        vol.Optional(
-          CONF_PUSH_NONCE_TTL_SECONDS,
-          default=int(
-            current.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=60, max=86400, mode=selector.NumberSelectorMode.BOX, step=30
-          ),
+      ),
+      vol.Optional(
+        CONF_PUSH_PAYLOAD_MAX_BYTES,
+        default=int(
+          current.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)
         ),
-        vol.Optional(
-          CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
-          default=int(
-            current.get(
-              CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
-              DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
-            )
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
-          ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1024, max=262144, mode=selector.NumberSelectorMode.BOX, step=256
         ),
-        vol.Optional(
-          CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-          default=int(
-            current.get(
-              CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-              DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
-            )
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
-          ),
+      ),
+      vol.Optional(
+        CONF_PUSH_NONCE_TTL_SECONDS,
+        default=int(
+          current.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)
         ),
-        vol.Optional(
-          CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-          default=int(
-            current.get(
-              CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-              DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
-            )
-          ),
-        ): selector.NumberSelector(
-          selector.NumberSelectorConfig(
-            min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
-          ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=60, max=86400, mode=selector.NumberSelectorMode.BOX, step=30
         ),
-      }
-    )
+      ),
+      vol.Optional(
+        CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+        default=int(
+          current.get(
+            CONF_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+            DEFAULT_PUSH_RATE_LIMIT_WEBHOOK_PER_MINUTE,
+          )
+        ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
+        ),
+      ),
+      vol.Optional(
+        CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+        default=int(
+          current.get(
+            CONF_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+            DEFAULT_PUSH_RATE_LIMIT_MQTT_PER_MINUTE,
+          )
+        ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
+        ),
+      ),
+      vol.Optional(
+        CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+        default=int(
+          current.get(
+            CONF_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+            DEFAULT_PUSH_RATE_LIMIT_ENTITY_PER_MINUTE,
+          )
+        ),
+      ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+          min=1, max=600, mode=selector.NumberSelectorMode.BOX, step=1
+        ),
+      ),
+    })
     return self.async_show_form(step_id="push_settings", data_schema=schema)
 
   async def async_step_weather_settings(

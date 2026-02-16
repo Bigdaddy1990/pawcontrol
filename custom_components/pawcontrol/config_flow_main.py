@@ -2,22 +2,21 @@
 
 from __future__ import annotations
 
-
 __all__ = ["ConfigFlow", "PawControlConfigFlow"]
 
-import copy
-import logging
-import re
 from collections.abc import Awaitable, Mapping, Sequence
 from contextlib import suppress
+import copy
 from datetime import datetime
+import logging
+import re
 from typing import Any, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.core import callback
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
 from .config_flow_base import INTEGRATION_SCHEMA, PawControlBaseConfigFlow
 from .config_flow_dashboard_extension import DashboardFlowMixin
@@ -38,17 +37,15 @@ from .config_flow_profile import (
   validate_profile_selection,
 )
 from .config_flow_reauth import ReauthFlowMixin
-from .flow_steps.gps import DogGPSFlowMixin, GPSModuleDefaultsMixin
-from .flow_steps.health import DogHealthFlowMixin, HealthSummaryMixin
 from .config_flow_schemas import DOG_SCHEMA, MODULE_SELECTION_KEYS, MODULES_SCHEMA
 from .const import (
-  CONFIG_ENTRY_VERSION,
   CONF_DOG_OPTIONS,
   CONF_DOG_SIZE,
   CONF_DOG_WEIGHT,
   CONF_DOGS,
   CONF_MODULES,
   CONF_NAME,
+  CONFIG_ENTRY_VERSION,
   DEFAULT_DATA_RETENTION_DAYS,
   DEFAULT_PERFORMANCE_MODE,
   DOMAIN,
@@ -62,11 +59,14 @@ from .exceptions import (
   ReconfigureRequiredError,
   ValidationError,
 )
+from .flow_steps.gps import DogGPSFlowMixin, GPSModuleDefaultsMixin
+from .flow_steps.health import DogHealthFlowMixin, HealthSummaryMixin
 from .flow_validation import (
   is_dog_config_payload_valid,
   validate_dog_import_input,
   validate_dog_setup_input,
 )
+from .flow_validators import validate_flow_dog_name
 from .options_flow import PawControlOptionsFlow
 from .selector_shim import selector
 from .types import (
@@ -76,16 +76,17 @@ from .types import (
   MODULE_TOGGLE_FLAG_BY_KEY,
   MODULE_TOGGLE_KEYS,
   RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
+  AddAnotherDogInput,
   ConfigEntryDataPayload,
   ConfigEntryOptionsPayload,
   ConfigFlowDiscoveryData,
   ConfigFlowDiscoveryProperties,
   ConfigFlowDiscoverySource,
   ConfigFlowGlobalSettings,
-  ConfigFlowInputMapping,
   ConfigFlowImportData,
   ConfigFlowImportOptions,
   ConfigFlowImportResult,
+  ConfigFlowInputMapping,
   ConfigFlowPlaceholders,
   ConfigFlowUserInput,
   DiscoveryUpdatePayload,
@@ -98,8 +99,8 @@ from .types import (
   FinalSetupValidationResult,
   JSONMutableMapping,
   JSONValue,
-  ModuleToggleKey,
   ModuleConfigurationStepInput,
+  ModuleToggleKey,
   PerformanceMode,
   ProfileSelectionInput,
   ReconfigureCompatibilityResult,
@@ -108,7 +109,6 @@ from .types import (
   ReconfigureOptionsUpdates,
   ReconfigureProfileInput,
   ReconfigureTelemetry,
-  AddAnotherDogInput,
   clone_placeholders,
   coerce_dog_modules_config,
   dog_modules_from_flow_input,
@@ -117,7 +117,6 @@ from .types import (
   freeze_placeholders,
   normalize_performance_mode,
 )
-from .flow_validators import validate_flow_dog_name
 from .validation import InputCoercionError, normalize_dog_id
 
 _LOGGER = logging.getLogger(__name__)

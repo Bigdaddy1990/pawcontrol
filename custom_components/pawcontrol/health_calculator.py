@@ -6,31 +6,26 @@ recommendations for dogs.
 
 from __future__ import annotations
 
-
+from collections.abc import Iterable
+from dataclasses import dataclass, field
+from datetime import date, timedelta
+from enum import Enum
 import logging
 import re
-from collections.abc import Iterable
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import date
-from datetime import timedelta
-from enum import Enum
-from typing import cast
-from typing import ClassVar
-from typing import Literal
-from typing import TYPE_CHECKING
-from typing import TypedDict
+from typing import TYPE_CHECKING, ClassVar, Literal, TypedDict, cast
 
 from homeassistant.util import dt as dt_util
 
-from .types import DietValidationResult
-from .types import FeedingGoalSettings
-from .types import FeedingHistoryAnalysis
-from .types import FeedingHistoryEvent
-from .types import FeedingHistoryStatus
-from .types import HealthReport
-from .types import HealthReportStatus
-from .types import WeatherConditionsPayload
+from .types import (
+  DietValidationResult,
+  FeedingGoalSettings,
+  FeedingHistoryAnalysis,
+  FeedingHistoryEvent,
+  FeedingHistoryStatus,
+  HealthReport,
+  HealthReportStatus,
+  WeatherConditionsPayload,
+)
 from .utils import ensure_local_datetime
 
 # TYPE_CHECKING import for weather integration

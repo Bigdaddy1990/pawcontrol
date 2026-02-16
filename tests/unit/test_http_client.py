@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-
-import importlib.util
 from collections.abc import Coroutine
+import importlib.util
 from pathlib import Path
 from types import ModuleType
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 

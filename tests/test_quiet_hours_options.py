@@ -1,8 +1,7 @@
 from __future__ import annotations
+
+from datetime import UTC, datetime, timezone
 import sys
-from datetime import datetime
-from datetime import timezone
-from datetime import UTC
 from types import ModuleType
 
 from tests.helpers import install_homeassistant_stubs
@@ -87,6 +86,7 @@ def test_gps_settings_payload_clamps_ranges() -> None:
   """Ensure GPS options normalization clamps and defaults values."""
 
   _install_options_flow_dependencies()
+  from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
   from custom_components.pawcontrol.flow_helpers import coerce_bool
   from custom_components.pawcontrol.flow_steps.gps import GPSOptionsNormalizerMixin
   from custom_components.pawcontrol.types import (
@@ -98,7 +98,6 @@ def test_gps_settings_payload_clamps_ranges() -> None:
     ROUTE_HISTORY_DAYS_FIELD,
     ROUTE_RECORDING_FIELD,
   )
-  from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
 
   class _GPSNormalizer(GPSOptionsNormalizerMixin):
     @staticmethod

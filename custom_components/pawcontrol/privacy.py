@@ -10,12 +10,10 @@ Python: 3.13+
 
 from __future__ import annotations
 
-
+from collections.abc import Callable
+from dataclasses import dataclass, field
 import hashlib
 import re
-from collections.abc import Callable
-from dataclasses import dataclass
-from dataclasses import field
 from re import Pattern
 from typing import Any
 

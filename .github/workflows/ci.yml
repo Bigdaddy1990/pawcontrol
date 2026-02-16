@@ -3,47 +3,50 @@ name: CI
 on:
   push:
   pull_request:
-
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  pull-requests: write
-  actions: write
-  checks: write
-  statuses: read
 
 jobs:
   hassfest:
     name: Hassfest
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - uses: home-assistant/actions/hassfest@master
 
   hacs:
     name: HACS Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - uses: hacs/action@main
         with:
           category: integration
           ignore: brands
 
   tests:
-    name: Tests
+    name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.14"]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v6
+
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -53,34 +56,25 @@ jobs:
            python -m pip install --upgrade pip
            python -m pip install -r requirements_test.txt
            python -m pip install --upgrade ruff mypy pre-commit pytest-cov
-          
+
       # Update output format to enable automatic inline annotations.
       - name: Ruff lint
         run: ruff check --fix --exit-non-zero-on-fix --output-format=github .
 
       - name: Verify contributor guides
-        run: |
-          python -m scripts.sync_contributor_guides --check
+        run: python -m scripts.sync_contributor_guides --check
 
       - name: Check legacy exception syntax
-        run: |
-          python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
+        run: python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
 
-      - name: Run test requirements and localization sync
+      - name: Run policy scripts
         run: |
           python -m scripts.enforce_docstring_baseline --update
           python -m scripts.enforce_test_requirements
-          python -m scripts.sync_localization_flags \
-            --allowlist scripts/sync_localization_flags.allowlist \
-            --check
+          python -m scripts.sync_localization_flags --check
 
-      - name: Run Prek
-        run: |
-          prek install
-          prek run --hook-stage pre-merge-commit
-          prek run --hook-stage pre-commit
-          prek run --all-files --show-diff-on-failure
-          prek run --hook-stage manual python-typing-update --all-files --update
+      - name: Run pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
 
       - name: Run mypy
         run: mypy custom_components/pawcontrol --show-error-codes || true
@@ -88,24 +82,21 @@ jobs:
       - name: Run hassfest shim
         run: python -m scripts.hassfest --integration-path custom_components/pawcontrol
 
-      - name: Run pytest
+      - name: Run pytest with coverage
         run: |
           pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
-            --cov-report=term-missing
-
-      - name: Generate coverage report
-        run: |
-          pytest --cov=./ --cov-report=xml
-          pytest --cov --junitxml=junit.xml -o junit_family=legacy
-          pytest --cov --junitxml=testreport.junit.xml -o junit_family=legacy
-          codecovcli do-upload --report-type test_results --file <report_name>.junit.xml
-          codecovcli upload-process
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --junitxml=testreport.junit.xml
 
       - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
@@ -113,3 +104,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report-type: test_results
+          files: testreport.junit.xml
+          fail_ci_if_error: false

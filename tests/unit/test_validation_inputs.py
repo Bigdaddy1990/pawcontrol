@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-
+from dataclasses import dataclass
 from types import SimpleNamespace
 
 import pytest
 
 from custom_components.pawcontrol.exceptions import ValidationError
-from custom_components.pawcontrol.validation import validate_gps_source
-from custom_components.pawcontrol.validation import validate_notify_service
+from custom_components.pawcontrol.validation import (
+  validate_gps_source,
+  validate_notify_service,
+)
 
 
 class _FakeStates(dict[str, SimpleNamespace]):
@@ -26,12 +28,12 @@ class _FakeServices:
     return self._services
 
 
+@dataclass(slots=True)
 class _FakeHomeAssistant:
   """Minimal Home Assistant stub for validation tests."""
 
-  def __init__(self, *, states: _FakeStates, services: _FakeServices) -> None:
-    self.states = states
-    self.services = services
+  states: _FakeStates
+  services: _FakeServices
 
 
 def test_validate_gps_source_rejects_non_string() -> None:

@@ -7,12 +7,11 @@ change behaviour.
 
 from __future__ import annotations
 
-
 import asyncio
-import importlib
-import sys
 from collections.abc import Generator
+import importlib
 from pathlib import Path
+import sys
 
 
 class _DummyParser:

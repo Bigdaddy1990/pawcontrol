@@ -2,28 +2,26 @@
 
 from __future__ import annotations
 
-
-import logging
 from collections.abc import Mapping
-from typing import Any
-from typing import cast
-from typing import Protocol
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+import voluptuous as vol
 
 from .const import DOMAIN
 from .selector_shim import selector
-from .types import ConfigFlowDiscoveryData
-from .types import ConfigFlowDiscoveryProperties
-from .types import ConfigFlowDiscoverySource
-from .types import DiscoveryConfirmInput
-from .types import DiscoveryUpdatePayload
-from .types import freeze_placeholders
+from .types import (
+  ConfigFlowDiscoveryData,
+  ConfigFlowDiscoveryProperties,
+  ConfigFlowDiscoverySource,
+  DiscoveryConfirmInput,
+  DiscoveryUpdatePayload,
+  freeze_placeholders,
+)
 
 if TYPE_CHECKING:
   from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
