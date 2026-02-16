@@ -17,7 +17,7 @@ from homeassistant.core import Event
 from homeassistant.util import dt as dt_util, slugify as ha_slugify
 import pytest
 
-from custom_components.pawcontrol.const import (
+from custom_components.pawcontrol.const import (  # noqa: E111
   CACHE_TIMESTAMP_STALE_THRESHOLD,
   MODULE_FEEDING,
   MODULE_HEALTH,
@@ -54,9 +54,13 @@ if TYPE_CHECKING:
   from custom_components.pawcontrol.feeding_manager import FeedingManager  # noqa: E111
   from custom_components.pawcontrol.garden_manager import GardenManager  # noqa: E111
   from custom_components.pawcontrol.gps_manager import GPSGeofenceManager  # noqa: E111
-  from custom_components.pawcontrol.notifications import PawControlNotificationManager
+  from custom_components.pawcontrol.notifications import (  # noqa: E111
+    PawControlNotificationManager,  # noqa: E111
+  )
   from custom_components.pawcontrol.walk_manager import WalkManager  # noqa: E111
-  from custom_components.pawcontrol.weather_manager import WeatherHealthManager
+  from custom_components.pawcontrol.weather_manager import (  # noqa: E111
+    WeatherHealthManager,  # noqa: E111
+  )
 
 
 if hasattr(ha_slugify, "slugify"):

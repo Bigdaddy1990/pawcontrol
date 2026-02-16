@@ -121,7 +121,9 @@ def test_notification_rejection_metrics_summarises_services() -> None:
 def test_rejection_metrics_capture_failure_reasons() -> None:
   """Rejection metrics should surface aggregated failure reasons."""  # noqa: E111
 
-  from custom_components.pawcontrol.coordinator_tasks import derive_rejection_metrics
+  from custom_components.pawcontrol.coordinator_tasks import (  # noqa: E111
+    derive_rejection_metrics,  # noqa: E111
+  )
 
   summary = {  # noqa: E111
     "failure_reasons": {"auth_error": 2, "device_unreachable": 1},

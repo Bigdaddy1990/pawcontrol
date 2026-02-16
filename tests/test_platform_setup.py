@@ -82,7 +82,9 @@ def test_walk_and_garden_attributes_are_standardised(mock_coordinator) -> None:
     PawControlInSafeZoneBinarySensor,
     PawControlWalkInProgressBinarySensor,
   )
-  from custom_components.pawcontrol.sensor import PawControlGardenTimeTodaySensor
+  from custom_components.pawcontrol.sensor import (  # noqa: E111
+    PawControlGardenTimeTodaySensor,  # noqa: E111
+  )
 
   started_at = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)  # noqa: E111
   last_seen = datetime(2024, 1, 1, 12, 45, tzinfo=UTC)  # noqa: E111
