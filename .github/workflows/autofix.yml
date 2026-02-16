@@ -70,7 +70,7 @@ jobs:
           prek run --hook-stage manual python-typing-update --all-files
 
       - name: Auto-commit autofix changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "[pre-commit.ci] autofix"
           commit_user_name: pre-commit-ci[bot]
