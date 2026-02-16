@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from types import SimpleNamespace
@@ -49,11 +50,11 @@ class _FakeStates(dict[str, SimpleNamespace]):
   """Minimal state registry for validation tests."""
 
 
+@dataclass(slots=True)
 class _FakeHomeAssistant:
   """Minimal Home Assistant stub for validation tests."""
 
-  def __init__(self, states: _FakeStates) -> None:
-    self.states = states
+  states: _FakeStates
 
 
 class _NotificationChannel(Enum):

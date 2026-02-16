@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
@@ -731,9 +732,9 @@ def test_collect_resilience_diagnostics_defaults_unknown_state(monkeypatch) -> N
 def test_summarise_resilience_normalises_state_metadata() -> None:
   """State aggregation should coerce whitespace, enums, and hyphenated values."""
 
+  @dataclass(slots=True)
   class _EnumState:
-    def __init__(self, value: str) -> None:
-      self.value = value
+    value: str
 
   summary = tasks._summarise_resilience({
     "legacy": {"state": None, "breaker_id": "legacy"},

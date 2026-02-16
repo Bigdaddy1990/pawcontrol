@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import importlib.util
 from pathlib import Path
@@ -161,9 +162,9 @@ class _NumberSelectorMode:  # pragma: no cover - test stub
   BOX = "box"
 
 
+@dataclass(slots=True)
 class _NumberSelector:  # pragma: no cover - test stub
-  def __init__(self, config: _NumberSelectorConfig | None = None) -> None:
-    self.config = config
+  config: _NumberSelectorConfig | None = None
 
 
 ha_helpers_selector.NumberSelector = _NumberSelector

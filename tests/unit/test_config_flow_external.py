@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from types import MappingProxyType, SimpleNamespace
 from typing import Any, cast
 
@@ -43,12 +44,12 @@ class _FakeServices:
     return self._services
 
 
+@dataclass(slots=True)
 class _FakeHomeAssistant:
   """Home Assistant stub exposing the state and service registries used in tests."""
 
-  def __init__(self, *, states: _FakeStates, services: _FakeServices) -> None:
-    self.states = states
-    self.services = services
+  states: _FakeStates
+  services: _FakeServices
 
 
 class _ExternalEntityFlow(ExternalEntityConfigurationMixin):

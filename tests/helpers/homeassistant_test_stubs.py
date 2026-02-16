@@ -883,12 +883,12 @@ class DeviceEntry:
         setattr(self, key, value)
 
 
+@dataclass(slots=True)
 class DeviceRegistryEvent:
   """Event payload used by device registry listeners."""
 
-  def __init__(self, action: str, device_id: str) -> None:
-    self.action = action
-    self.device_id = device_id
+  action: str
+  device_id: str
 
 
 class DeviceRegistry:
@@ -1452,12 +1452,12 @@ class EntityRegistry:
         setattr(entry, key, value)
 
 
+@dataclass(slots=True)
 class EntityRegistryEvent:
   """Event payload used by entity registry listeners."""
 
-  def __init__(self, action: str, entity_id: str) -> None:
-    self.action = action
-    self.entity_id = entity_id
+  action: str
+  entity_id: str
 
 
 def _async_get_entity_registry(*args: object, **kwargs: object) -> EntityRegistry:
@@ -1918,9 +1918,9 @@ class CoordinatorEntity(Entity):
     return bool(getattr(self.coordinator, "available", True))
 
 
+@dataclass(slots=True)
 class _SelectorBase:
-  def __init__(self, config: object | None = None) -> None:
-    self.config = config
+  config: object | None = None
 
 
 class SelectSelectorMode(StrEnum):
