@@ -27,7 +27,10 @@ from .const import (
   MAX_DOG_NAME_LENGTH,
   MIN_DOG_NAME_LENGTH,
 )
-from .exceptions import ValidationError as PawControlValidationError
+from .exceptions import (
+  InvalidCoordinatesError,
+  ValidationError as PawControlValidationError,
+)
 
 if TYPE_CHECKING:
   from homeassistant.core import HomeAssistant
@@ -534,6 +537,8 @@ def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, floa
   try:
     return InputValidator.validate_gps_coordinates(latitude, longitude)
   except ValidationError as err:
+    from .exceptions import InvalidCoordinatesError
+
     raise InvalidCoordinatesError(latitude, longitude) from err
 
 
