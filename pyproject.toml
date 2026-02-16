@@ -133,7 +133,7 @@ check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
 disallow_untyped_defs = true
-enable_error_code = deprecated
+enable_error_code = "deprecated"
 explicit_package_bases = true
 # Imports von HA und anderen libs ignorieren, da oft untyped
 ignore_missing_imports = true
