@@ -29,6 +29,12 @@ repos:
           - --keep-updates
           - --force-exclude
         exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts*/)
+   - repo: https://github.com/pycqa/flake8
+     rev: 4.0.1
+     hooks:
+       - id: flake8
+         additional_dependencies:
+           - flake8-type-checking
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:
