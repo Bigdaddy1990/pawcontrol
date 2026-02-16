@@ -86,9 +86,8 @@ skip-magic-trailing-comma = false
 typing-extensions = false
 # Enable `from __future__ import annotations` imports
 
-
 [tool.ruff.lint.pydocstyle]
-convention = "pep257"
+convention = "google"
 
 [tool.ruff.lint.pep8-naming]
 extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
