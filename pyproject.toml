@@ -106,6 +106,7 @@ future-annotations = true
 "__init__.py" = ["F401", "F403", "E402"]
 "tests/**" = ["E402", "F401"]
 "scripts/**" = ["E402", "F401"]
+"tests/**/*.py" = ["E111"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
