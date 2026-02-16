@@ -54,9 +54,6 @@ if TYPE_CHECKING:
   from custom_components.pawcontrol.feeding_manager import FeedingManager  # noqa: E111
   from custom_components.pawcontrol.garden_manager import GardenManager  # noqa: E111
   from custom_components.pawcontrol.gps_manager import GPSGeofenceManager  # noqa: E111
-  from custom_components.pawcontrol.notifications import (  # noqa: E111
-    PawControlNotificationManager,  # noqa: E111
-  )
   from custom_components.pawcontrol.walk_manager import WalkManager  # noqa: E111
   from custom_components.pawcontrol.weather_manager import (  # noqa: E111
     WeatherHealthManager,  # noqa: E111
