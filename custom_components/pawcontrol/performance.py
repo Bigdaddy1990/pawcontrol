@@ -255,7 +255,7 @@ def track_performance(
     pass
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E112, E306
     pass
 
     @functools.wraps(func)

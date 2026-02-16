@@ -94,7 +94,7 @@ class QualityVerifier:
         )
 
       # Check for potential non-JSON-serializable returns
-      if has_extra_attrs:
+      if has_extra_attrs:  # noqa: SIM102
         # Look for direct datetime/timedelta returns without serialization
         if re.search(r"return\s+(?!_normalise|normalise).*datetime|timedelta", content):
           self.issues.append(
@@ -191,7 +191,7 @@ class QualityVerifier:
 
       # Check for validation functions outside validation modules
       for keyword in validation_keywords:
-        if keyword in content:
+        if keyword in content:  # noqa: SIM102
           # Check if it's using centralized validation or implementing its own
           if not (
             "from .validation import" in content

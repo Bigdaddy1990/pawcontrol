@@ -28,7 +28,7 @@ from .const import (
   MIN_DOG_NAME_LENGTH,
 )
 from .exceptions import (
-  InvalidCoordinatesError,
+  InvalidCoordinatesError,  # noqa: F401
   ValidationError as PawControlValidationError,
 )
 

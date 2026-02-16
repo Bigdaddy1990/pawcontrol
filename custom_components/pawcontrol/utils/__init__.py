@@ -7,7 +7,7 @@ while exposing focused utility submodules such as ``serialize``.
 from __future__ import annotations
 
 from . import _legacy as _legacy_utils
-from ._legacy import *  # noqa: F403
+from ._legacy import *
 from .serialize import (
   serialize_dataclass,
   serialize_datetime,

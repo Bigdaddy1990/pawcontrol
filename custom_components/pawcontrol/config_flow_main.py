@@ -5,7 +5,7 @@ from __future__ import annotations
 __all__ = ["ConfigFlow", "PawControlConfigFlow"]
 
 from collections.abc import Awaitable, Mapping, Sequence
-from contextlib import suppress
+from contextlib import suppress  # noqa: F401
 import copy
 from datetime import datetime
 import logging
