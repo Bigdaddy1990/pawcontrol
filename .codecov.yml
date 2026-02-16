@@ -7,7 +7,7 @@ codecov:
     wait_for_ci: false
   bot: <codecov-bot> #this is a username for Github/Gitlab/Bitbucket
   continue-on-error: true
-  
+
   coverage:
     status:
       project:
