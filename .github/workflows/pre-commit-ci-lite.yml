@@ -1,19 +1,22 @@
-name: pre-lite
+name: Pre-commit Lite
 
 on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
 jobs:
-  main:
+  pre-commit:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-python@v6.2.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
       - uses: pre-commit/action@v3.0.1
-
       - name: pre-commit-ci-lite
-        uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
+        uses: pre-commit-ci/lite-action@v1.1.0

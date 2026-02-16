@@ -1,8 +1,30 @@
-# pyproject.toml — nur Tooling für eine Home‑Assistant Custom‑Integration
+# pyproject.toml — Tooling für die PawControl Home-Assistant-Integration
 [build-system]
 requires = ["setuptools>=80", "wheel"]
-requires-python = ">=3.14"
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pawcontrol"
+description = "Platinum-grade PawControl integration for Home Assistant"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "PawControl Engineering" }]
+keywords = ["home assistant", "pawcontrol", "pets", "automation", "telemetry"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Framework :: AsyncIO",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Home Automation",
+  "Typing :: Typed",
+]
+dynamic = ["version", "dependencies", "optional-dependencies"]
+requires-python = ">=3.14"
+
+[project.urls]
+Homepage = "https://github.com/BigDaddy1990/pawcontrol"
+Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
+Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
 
 [tool.pytest.ini_options]
 addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-missing --cov-report=xml --cov-report=html --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=20"
@@ -11,67 +33,55 @@ markers = [
   "ci_only: mark a test to run only in CI",
   "benchmark: mark a test as benchmark/performance",
 ]
-testpaths = [
-    "tests"
-]
-python_files = [
-    "test_*.py",
-    "*_test.py",
-    "tests.py"
-]
-pythonpath = [
-  "."
-]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+pythonpath = ["."]
 asyncio_mode = "auto"
-filterwarnings = [
-    "error"
-]
+filterwarnings = ["error"]
 
 [tool.ruff]
 target-version = "py314"
 line-length = 88
-src = ["custom_components"]
+src = ["custom_components", "scripts", "tests"]
 cache-dir = "~/.cache/ruff"
 indent-width = 2
 show-fixes = true
 fix = true
 unsafe-fixes = true
 force-exclude = true
-# Exclude a variety of commonly ignored directories.
 exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".ipynb_checkpoints",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pyenv",
-    ".pytest_cache",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    ".vscode",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "site-packages",
-    "venv",
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".ipynb_checkpoints",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pyenv",
+  ".pytest_cache",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  ".vscode",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "site-packages",
+  "venv",
 ]
 
 [tool.ruff.analyze]
 detect-string-imports = true
 direction = "dependencies"
 string-imports-min-dots = 2
-# Exclude type-checking-only imports from the graph
 type-checking-imports = false
 
 [tool.ruff.format]
@@ -82,34 +92,14 @@ line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
-# Disable `typing_extensions` imports
-typing-extensions = false
-# Enable `from __future__ import annotations` imports
 
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.ruff.lint.pep8-naming]
-extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
-
-# The built‑in isort plugin of Ruff (`I001`) conflicts with the separate
-# `reorder-python-imports` pre-commit hook.  To avoid an endless cycle
-# where each tool reorders imports differently on every run, we ignore
-# Ruff’s import‑sorting rule and let the dedicated hook handle ordering.
 [tool.ruff.lint]
 preview = true
 select = ["E", "F", "I", "UP", "B", "SIM", "Q"]
-ignore = ["E501", "I001"]
-extend-ignore = [
-  "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
-]
+ignore = ["E501", "I001", "INP001"]
 fixable = ["ALL"]
-# Disable fix for unused imports (`F401`).
 unfixable = ["F401"]
 extend-unsafe-fixes = ["E", "F401"]
-extend-select = ["B", "Q"]
-extend-fixable = ["B"]
-# Enable `from __future__ import annotations` imports
 future-annotations = true
 
 [tool.ruff.lint.per-file-ignores]
@@ -117,181 +107,27 @@ future-annotations = true
 "tests/**" = ["E402", "F401"]
 "scripts/**" = ["E402", "F401"]
 
-[tool.setuptools.package-dir]
-"" = "."
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
-###############################################################################
-# Mypy configuration
-#
-# The integration targets Home Assistant's strict typing guidelines. We require
-# typed definitions and enforce strictness while tolerating missing imports from
-# third-party libraries that do not ship type hints.
-
-[tool.mypy]
-python_version = "3.14"
-check_untyped_defs = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
-disallow_untyped_defs = true
-enable_error_code = "deprecated"
-explicit_package_bases = true
-# Imports von HA und anderen libs ignorieren, da oft untyped
-ignore_missing_imports = true
-no_implicit_optional = true
-local_partial_types = true
-strict_equality = true
-warn_redundant_casts = true
-warn_return_any = true
-warn_unused_configs = true
-warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-# Tests dürfen etwas lockerer sein
-disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = ["custom_components.pawcontrol.*"]
-# ACTIVATED: Require function signatures
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-# ACTIVATED: No implicit Optional types
-no_implicit_optional = true
-# Still allow some flexibility during transition
-warn_return_any = false
-disable_error_code = [
-    # Still disabled during Phase 1.1 (will be enabled in Phase 1.2)
-    "abstract",
-    "arg-type",
-    "assignment",
-    "attr-defined",
-    "call-arg",
-    "call-overload",
-    "comparison-overlap",
-    "dict-item",
-    "func-returns-value",
-    "index",
-    "list-item",
-    "literal-required",
-    "misc",
-    "no-any-return",
-    "no-redef",
-    "operator",
-    "override",
-    "redundant-cast",
-    # "return-value",  # ENABLED: Must return correct type
-    "typeddict-item",
-    "union-attr",
-    "unused-ignore",
-    "valid-type",
-    "var-annotated",
-]
-
-[[tool.mypy.overrides]]
-module = ["annotatedyaml.*"]
-disable_error_code = [
-    "no-any-return",
-    "unused-ignore",
-]
-
-[mypy-testing.*]
-disallow_untyped_defs = false
-
-[mypy-tests.*]
-disallow_untyped_defs = false
-
-[tool.coverage.run]
-branch = true
-source = [
-    "custom_components/pawcontrol",
-]
-omit = [
-    "tests/*",
-    "*/__pycache__/*",
-]
-
-[tool.coverage.report]
-show_missing = true
-skip_covered = false
-precision = 2
-ignore_errors = true
-
-[tool.coverage.html]
-directory = "htmlcov"
-
-[tool.coverage.xml]
-output = "coverage.xml"
-
-[project]
-name = "pawcontrol"
-description = "Platinum-grade PawControl integration for Home Assistant"
-readme = "README.md"
-license = "MIT"
-license-files = ["LICENSE"]
-authors = [
-    { name = "PawControl Engineering" },
-]
-keywords = ["home assistant", "pawcontrol", "pets", "automation", "telemetry"]
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Framework :: AsyncIO",
-    "Programming Language :: Python :: 3.14",
-    "Topic :: Home Automation",
-    "Typing :: Typed",
-]
-dynamic = ["version", "dependencies", "optional-dependencies"]
-requires-python = ">=3.14"
-
-[project.urls]
-Homepage = "https://github.com/BigDaddy1990/pawcontrol"
-Documentation = "https://github.com/BigDaddy1990/pawcontrol/blob/main/README.md"
-Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
-
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.packages.find]
-include = ["homeassistant*"]
-
-[tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
-
-[tool.setuptools.dynamic.optional-dependencies]
-tests = { file = ["requirements_test.txt"] }
+[tool.ruff.lint.pep8-naming]
+extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
-known-first-party = ["homeassistant"]
+known-first-party = ["custom_components", "annotatedyaml"]
 combine-as-imports = true
 split-on-trailing-comma = false
 required-imports = ["from __future__ import annotations"]
-
-[flake8]
-max-line-length = 88
-max-complexity = 12
-type-checking-py314plus = true  # default false
-type-checking-strict = true  # default false
-type-checking-force-future-annotation = true  # default false
-type-checking-exempt-modules = typing_extensions  # default []
-ignore = E501
-# You can use 'extend-select' (new in flake8 v4):
-extend-select = TC, TC2
-# OR 'select':
-select = C,E,F..., TC, TC2  # or TC1
-# OR 'enable-extensions':
-enable-extensions = TC, TC2  # or TC1
 
 [tool.ruff.lint.flake8-builtins]
 strict-checking = true
 
 [tool.ruff.lint.flake8-copyright]
 author = "Ruff"
-# Avoid enforcing a header on files smaller than 1024 bytes.
 min-file-size = 1024
 
 [tool.ruff.lint.flake8-import-conventions]
-# Declare the banned `from` imports.
 banned-from = ["typing"]
 
 [tool.ruff.lint.flake8-quotes]
@@ -312,13 +148,100 @@ fixture-parentheses = true
 mark-parentheses = true
 parametrize-names-type = "list"
 parametrize-values-row-type = "list"
-parametrize-values-row-type = "list"
 parametrize-values-type = "list"
 
-[tool.pylint.TYPECHECK]
-ignored-classes = [
-  "_CountingAttr", # for attrs
+[tool.mypy]
+python_version = "3.14"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+enable_error_code = "deprecated"
+explicit_package_bases = true
+ignore_missing_imports = true
+no_implicit_optional = true
+local_partial_types = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["custom_components.pawcontrol.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_return_any = false
+disable_error_code = [
+  "abstract",
+  "arg-type",
+  "assignment",
+  "attr-defined",
+  "call-arg",
+  "call-overload",
+  "comparison-overlap",
+  "dict-item",
+  "func-returns-value",
+  "index",
+  "list-item",
+  "literal-required",
+  "misc",
+  "no-any-return",
+  "no-redef",
+  "operator",
+  "override",
+  "redundant-cast",
+  "typeddict-item",
+  "union-attr",
+  "unused-ignore",
+  "valid-type",
+  "var-annotated",
 ]
+
+[[tool.mypy.overrides]]
+module = ["annotatedyaml.*"]
+disable_error_code = ["no-any-return", "unused-ignore"]
+
+[tool.coverage.run]
+branch = true
+source = ["custom_components/pawcontrol"]
+omit = ["tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+precision = 2
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"" = "."
+
+[tool.setuptools.packages.find]
+include = ["custom_components*", "annotatedyaml*", "pytest_*"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.dynamic.optional-dependencies]
+tests = { file = ["requirements_test.txt"] }
+
+[tool.pylint.TYPECHECK]
+ignored-classes = ["_CountingAttr"]
 mixin-class-rgx = ".*[Mm]ix[Ii]n"
 
 [tool.pylint.BASIC]
