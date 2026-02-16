@@ -232,7 +232,7 @@ include-package-data = true
 "" = "."
 
 [tool.setuptools.packages.find]
-include = ["custom_components*", "annotatedyaml*", "pytest_*"]
+include = ["custom_components*", "pytest_*"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
