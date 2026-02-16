@@ -1,7 +1,5 @@
 """Tests for config/options flow validation helpers."""
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.const import (
@@ -20,7 +18,7 @@ from custom_components.pawcontrol.flow_validation import (
 
 
 def test_validate_dog_setup_input_success() -> None:
-  user_input = {
+  user_input = {  # noqa: E111
     CONF_DOG_ID: "buddy",
     CONF_DOG_NAME: "Buddy",
     CONF_DOG_WEIGHT: 20.5,
@@ -29,7 +27,7 @@ def test_validate_dog_setup_input_success() -> None:
     CONF_DOG_BREED: "Golden Retriever",
   }
 
-  result = validate_dog_setup_input(
+  result = validate_dog_setup_input(  # noqa: E111
     user_input,
     existing_ids=set(),
     existing_names=set(),
@@ -37,16 +35,16 @@ def test_validate_dog_setup_input_success() -> None:
     max_dogs=3,
   )
 
-  assert result[CONF_DOG_ID] == "buddy"
-  assert result[CONF_DOG_NAME] == "Buddy"
-  assert result[CONF_DOG_WEIGHT] == pytest.approx(20.5)
-  assert result[CONF_DOG_SIZE] == "medium"
-  assert result[CONF_DOG_AGE] == 4
-  assert result[CONF_DOG_BREED] == "Golden Retriever"
+  assert result[CONF_DOG_ID] == "buddy"  # noqa: E111
+  assert result[CONF_DOG_NAME] == "Buddy"  # noqa: E111
+  assert result[CONF_DOG_WEIGHT] == pytest.approx(20.5)  # noqa: E111
+  assert result[CONF_DOG_SIZE] == "medium"  # noqa: E111
+  assert result[CONF_DOG_AGE] == 4  # noqa: E111
+  assert result[CONF_DOG_BREED] == "Golden Retriever"  # noqa: E111
 
 
 def test_validate_dog_setup_input_reports_field_and_base_errors() -> None:
-  user_input = {
+  user_input = {  # noqa: E111
     CONF_DOG_ID: "1",
     CONF_DOG_NAME: "",
     CONF_DOG_WEIGHT: "bad",
@@ -54,7 +52,7 @@ def test_validate_dog_setup_input_reports_field_and_base_errors() -> None:
     CONF_DOG_AGE: "bad",
   }
 
-  with pytest.raises(FlowValidationError) as err:
+  with pytest.raises(FlowValidationError) as err:  # noqa: E111
     validate_dog_setup_input(
       user_input,
       existing_ids=set(),
@@ -63,16 +61,16 @@ def test_validate_dog_setup_input_reports_field_and_base_errors() -> None:
       max_dogs=3,
     )
 
-  assert err.value.field_errors[CONF_DOG_ID] == "dog_id_too_short"
-  assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_required"
-  assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"
-  assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"
-  assert err.value.field_errors[CONF_DOG_AGE] == "invalid_age_format"
-  assert "max_dogs_reached" in err.value.base_errors
+  assert err.value.field_errors[CONF_DOG_ID] == "dog_id_too_short"  # noqa: E111
+  assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_required"  # noqa: E111
+  assert err.value.field_errors[CONF_DOG_WEIGHT] == "invalid_weight_format"  # noqa: E111
+  assert err.value.field_errors[CONF_DOG_SIZE] == "invalid_dog_size"  # noqa: E111
+  assert err.value.field_errors[CONF_DOG_AGE] == "invalid_age_format"  # noqa: E111
+  assert "max_dogs_reached" in err.value.base_errors  # noqa: E111
 
 
 def test_validate_dog_setup_rejects_duplicate_name() -> None:
-  user_input = {
+  user_input = {  # noqa: E111
     CONF_DOG_ID: "luna",
     CONF_DOG_NAME: "Buddy",
     CONF_DOG_WEIGHT: 18.5,
@@ -80,7 +78,7 @@ def test_validate_dog_setup_rejects_duplicate_name() -> None:
     CONF_DOG_AGE: 4,
   }
 
-  with pytest.raises(FlowValidationError) as err:
+  with pytest.raises(FlowValidationError) as err:  # noqa: E111
     validate_dog_setup_input(
       user_input,
       existing_ids=set(),
@@ -89,11 +87,11 @@ def test_validate_dog_setup_rejects_duplicate_name() -> None:
       max_dogs=3,
     )
 
-  assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
+  assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"  # noqa: E111
 
 
 def test_validate_dog_setup_rejects_invalid_breed() -> None:
-  user_input = {
+  user_input = {  # noqa: E111
     CONF_DOG_ID: "luna",
     CONF_DOG_NAME: "Luna",
     CONF_DOG_WEIGHT: 21.0,
@@ -102,7 +100,7 @@ def test_validate_dog_setup_rejects_invalid_breed() -> None:
     CONF_DOG_BREED: "Husky!",
   }
 
-  with pytest.raises(FlowValidationError) as err:
+  with pytest.raises(FlowValidationError) as err:  # noqa: E111
     validate_dog_setup_input(
       user_input,
       existing_ids=set(),
@@ -111,11 +109,11 @@ def test_validate_dog_setup_rejects_invalid_breed() -> None:
       max_dogs=3,
     )
 
-  assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+  assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"  # noqa: E111
 
 
 def test_validate_dog_setup_rejects_weight_size_mismatch() -> None:
-  user_input = {
+  user_input = {  # noqa: E111
     CONF_DOG_ID: "tiny",
     CONF_DOG_NAME: "Tiny",
     CONF_DOG_WEIGHT: 50.0,
@@ -123,7 +121,7 @@ def test_validate_dog_setup_rejects_weight_size_mismatch() -> None:
     CONF_DOG_AGE: 3,
   }
 
-  with pytest.raises(FlowValidationError) as err:
+  with pytest.raises(FlowValidationError) as err:  # noqa: E111
     validate_dog_setup_input(
       user_input,
       existing_ids=set(),
@@ -132,44 +130,44 @@ def test_validate_dog_setup_rejects_weight_size_mismatch() -> None:
       max_dogs=3,
     )
 
-  assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"
+  assert err.value.field_errors[CONF_DOG_WEIGHT] == "weight_size_mismatch"  # noqa: E111
 
 
 def test_validate_dog_update_rejects_duplicate_name() -> None:
-  current_dog = {
+  current_dog = {  # noqa: E111
     CONF_DOG_NAME: "Rex",
     CONF_DOG_WEIGHT: 12.0,
     CONF_DOG_SIZE: "small",
   }
 
-  with pytest.raises(FlowValidationError) as err:
+  with pytest.raises(FlowValidationError) as err:  # noqa: E111
     validate_dog_update_input(
       current_dog,
       {CONF_DOG_NAME: "Buddy"},
       existing_names={"buddy"},
     )
 
-  assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"
+  assert err.value.field_errors[CONF_DOG_NAME] == "dog_name_already_exists"  # noqa: E111
 
 
 def test_validate_dog_update_rejects_invalid_breed() -> None:
-  current_dog = {
+  current_dog = {  # noqa: E111
     CONF_DOG_NAME: "Luna",
     CONF_DOG_WEIGHT: 20.0,
     CONF_DOG_SIZE: "medium",
   }
 
-  with pytest.raises(FlowValidationError) as err:
+  with pytest.raises(FlowValidationError) as err:  # noqa: E111
     validate_dog_update_input(
       current_dog,
       {CONF_DOG_BREED: "Husky!"},
     )
 
-  assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"
+  assert err.value.field_errors[CONF_DOG_BREED] == "invalid_dog_breed"  # noqa: E111
 
 
 def test_validate_dog_update_allows_removing_optional_fields() -> None:
-  current_dog = {
+  current_dog = {  # noqa: E111
     CONF_DOG_NAME: "Luna",
     CONF_DOG_WEIGHT: 20.0,
     CONF_DOG_SIZE: "medium",
@@ -177,7 +175,7 @@ def test_validate_dog_update_allows_removing_optional_fields() -> None:
     CONF_DOG_BREED: "Beagle",
   }
 
-  updated = validate_dog_update_input(
+  updated = validate_dog_update_input(  # noqa: E111
     current_dog,
     {
       CONF_DOG_AGE: None,
@@ -185,5 +183,5 @@ def test_validate_dog_update_allows_removing_optional_fields() -> None:
     },
   )
 
-  assert CONF_DOG_AGE not in updated
-  assert CONF_DOG_BREED not in updated
+  assert CONF_DOG_AGE not in updated  # noqa: E111
+  assert CONF_DOG_BREED not in updated  # noqa: E111

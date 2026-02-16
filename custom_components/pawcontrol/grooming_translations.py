@@ -1,7 +1,5 @@
 """Translation helpers for grooming workflows."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Final
 
@@ -29,7 +27,7 @@ GROOMING_TEMPLATE_TRANSLATION_KEYS: Final[Mapping[str, str]] = {
   "notification_title": "grooming_template_notification_title",
   "notification_message": "grooming_template_notification_message",
   "notification_with_groomer": "grooming_template_notification_with_groomer",
-  "notification_estimated_duration": "grooming_template_notification_estimated_duration",
+  "notification_estimated_duration": "grooming_template_notification_estimated_duration",  # noqa: E501
   "start_failure": "grooming_template_start_failure",
   "manual_session_notes": "grooming_template_manual_session_notes",
 }
@@ -41,15 +39,15 @@ def translated_grooming_label(
   key: str,
   **values: object,
 ) -> str:
-  """Return a localized grooming label."""
+  """Return a localized grooming label."""  # noqa: E111
 
-  translation_key = GROOMING_LABEL_TRANSLATION_KEYS.get(key)
-  if translation_key is None:
+  translation_key = GROOMING_LABEL_TRANSLATION_KEYS.get(key)  # noqa: E111
+  if translation_key is None:  # noqa: E111
     return key.format(**values) if values else key
 
-  if hass is None:
+  if hass is None:  # noqa: E111
     template = translation_key
-  else:
+  else:  # noqa: E111
     translations, fallback = get_cached_component_translation_lookup(
       hass,
       language,
@@ -61,9 +59,9 @@ def translated_grooming_label(
       default=key,
     )
 
-  if values:
+  if values:  # noqa: E111
     return template.format(**values)
-  return template
+  return template  # noqa: E111
 
 
 def translated_grooming_template(
@@ -72,15 +70,15 @@ def translated_grooming_template(
   key: str,
   **values: object,
 ) -> str:
-  """Return a localized grooming template string."""
+  """Return a localized grooming template string."""  # noqa: E111
 
-  translation_key = GROOMING_TEMPLATE_TRANSLATION_KEYS.get(key)
-  if translation_key is None:
+  translation_key = GROOMING_TEMPLATE_TRANSLATION_KEYS.get(key)  # noqa: E111
+  if translation_key is None:  # noqa: E111
     return key.format(**values)
 
-  if hass is None:
+  if hass is None:  # noqa: E111
     template = translation_key
-  else:
+  else:  # noqa: E111
     translations, fallback = get_cached_component_translation_lookup(
       hass,
       language,
@@ -91,7 +89,7 @@ def translated_grooming_template(
       translation_key,
       default=key,
     )
-  return template.format(**values)
+  return template.format(**values)  # noqa: E111
 
 
 __all__ = [

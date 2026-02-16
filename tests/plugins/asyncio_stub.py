@@ -1,7 +1,5 @@
 """Pytest plugin that provides a minimal asyncio event loop fixture."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Generator
 
@@ -13,9 +11,9 @@ _ORIGINAL_GET_EVENT_LOOP: Callable[[], asyncio.AbstractEventLoop] = (
 
 
 def _patched_get_event_loop() -> asyncio.AbstractEventLoop:
-  try:
+  try:  # noqa: E111
     return _ORIGINAL_GET_EVENT_LOOP()
-  except RuntimeError:
+  except RuntimeError:  # noqa: E111
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     return loop
@@ -25,58 +23,58 @@ asyncio.get_event_loop = _patched_get_event_loop  # type: ignore[assignment]
 
 
 def _ensure_main_thread_loop() -> asyncio.AbstractEventLoop | None:
-  """Return the existing loop or create a replacement when missing."""
+  """Return the existing loop or create a replacement when missing."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     return asyncio.get_event_loop()
-  except RuntimeError:
+  except RuntimeError:  # noqa: E111
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     return loop
 
 
 def pytest_configure(config: pytest.Config) -> None:
-  """Ensure a default event loop exists for plugins executed at import time."""
+  """Ensure a default event loop exists for plugins executed at import time."""  # noqa: E111
 
-  loop = _ensure_main_thread_loop()
-  if loop is not None:
+  loop = _ensure_main_thread_loop()  # noqa: E111
+  if loop is not None:  # noqa: E111
     config._pawcontrol_asyncio_loop = loop  # type: ignore[attr-defined]
 
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionstart(session: pytest.Session) -> None:
-  """Re-create the loop after other plugins tweak the event loop policy."""
+  """Re-create the loop after other plugins tweak the event loop policy."""  # noqa: E111
 
-  loop = _ensure_main_thread_loop()
-  if loop is not None:
+  loop = _ensure_main_thread_loop()  # noqa: E111
+  if loop is not None:  # noqa: E111
     # type: ignore[attr-defined]
     session.config._pawcontrol_asyncio_loop = loop
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
-  """Close the temporary loop created during :func:`pytest_configure`."""
+  """Close the temporary loop created during :func:`pytest_configure`."""  # noqa: E111
 
-  # type: ignore[assignment]
-  asyncio.get_event_loop = _ORIGINAL_GET_EVENT_LOOP
-  loop = getattr(config, "_pawcontrol_asyncio_loop", None)
-  if loop is not None and not loop.is_closed():
+  # type: ignore[assignment]  # noqa: E114
+  asyncio.get_event_loop = _ORIGINAL_GET_EVENT_LOOP  # noqa: E111
+  loop = getattr(config, "_pawcontrol_asyncio_loop", None)  # noqa: E111
+  if loop is not None and not loop.is_closed():  # noqa: E111
     loop.close()
 
 
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop]:
-  """Create an event loop for the session when pytest-asyncio is unavailable."""
+  """Create an event loop for the session when pytest-asyncio is unavailable."""  # noqa: E111
 
-  loop = asyncio.new_event_loop()
-  try:
+  loop = asyncio.new_event_loop()  # noqa: E111
+  try:  # noqa: E111
     yield loop
-  finally:
+  finally:  # noqa: E111
     if not loop.is_closed():
-      loop.close()
+      loop.close()  # noqa: E111
 
 
 @pytest.fixture(autouse=True)
 def enable_event_loop_debug() -> Generator[None]:
-  """Override the HACC debug fixture to avoid requiring a default loop."""
+  """Override the HACC debug fixture to avoid requiring a default loop."""  # noqa: E111
 
-  yield
+  yield  # noqa: E111

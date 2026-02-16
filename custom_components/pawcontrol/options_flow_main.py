@@ -13,8 +13,6 @@ P26.1.1++
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from datetime import UTC
@@ -84,29 +82,29 @@ def _resolve_setup_flag_supported_languages(
   translations_dir: Path,
   strings_path: Path,
 ) -> frozenset[str]:
-  """Return the supported translation languages for setup flag localization."""
+  """Return the supported translation languages for setup flag localization."""  # noqa: E111
 
-  languages = {path.stem for path in translations_dir.glob("*.json")}
-  if strings_path.exists():
+  languages = {path.stem for path in translations_dir.glob("*.json")}  # noqa: E111
+  if strings_path.exists():  # noqa: E111
     languages.add("en")
-  if not languages:
+  if not languages:  # noqa: E111
     languages.add("en")
-  return frozenset(languages)
+  return frozenset(languages)  # noqa: E111
 
 
 def _resolve_get_runtime_data() -> RuntimeDataGetter:
-  """Return the patched runtime data helper when available."""
+  """Return the patched runtime data helper when available."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     support_module = import_module(
       "custom_components.pawcontrol.options_flow_support",
     )
     patched = getattr(support_module, "get_runtime_data", None)
     if callable(patched):
-      return patched
-  except Exception:
+      return patched  # noqa: E111
+  except Exception:  # noqa: E111
     pass
-  return _get_runtime_data
+  return _get_runtime_data  # noqa: E111
 
 
 LAST_RECONFIGURE_FIELD: Final[Literal["last_reconfigure"]] = cast(
@@ -143,23 +141,23 @@ class PawControlOptionsFlow(
 
   UPDATED: Includes entity profile management for performance optimization
   ENHANCED: GPS and Geofencing configuration per requirements
-  """
+  """  # noqa: E111
 
-  _EXPORT_VERSION: ClassVar[int] = 1
-  _MANUAL_EVENT_FIELDS: ClassVar[tuple[ManualEventField, ...]] = (
+  _EXPORT_VERSION: ClassVar[int] = 1  # noqa: E111
+  _MANUAL_EVENT_FIELDS: ClassVar[tuple[ManualEventField, ...]] = (  # noqa: E111
     "manual_check_event",
     "manual_guard_event",
     "manual_breaker_event",
   )
-  _SETUP_FLAG_TRANSLATION_CACHE: ClassVar[dict[str, dict[str, str]]] = {}
-  _SETUP_FLAG_EN_TRANSLATIONS: ClassVar[dict[str, str] | None] = None
-  _SETUP_FLAG_PREFIXES: ClassVar[tuple[str, ...]] = (
+  _SETUP_FLAG_TRANSLATION_CACHE: ClassVar[dict[str, dict[str, str]]] = {}  # noqa: E111
+  _SETUP_FLAG_EN_TRANSLATIONS: ClassVar[dict[str, str] | None] = None  # noqa: E111
+  _SETUP_FLAG_PREFIXES: ClassVar[tuple[str, ...]] = (  # noqa: E111
     "setup_flags_panel_flag_",
     "setup_flags_panel_source_",
     "manual_event_source_badge_",
     "manual_event_source_help_",
   )
-  _SETUP_FLAG_SOURCE_LABEL_KEYS: ClassVar[dict[ManualEventSource, str]] = {
+  _SETUP_FLAG_SOURCE_LABEL_KEYS: ClassVar[dict[ManualEventSource, str]] = {  # noqa: E111
     "default": "setup_flags_panel_source_default",
     "system_settings": "setup_flags_panel_source_system_settings",
     "options": "setup_flags_panel_source_options",
@@ -167,7 +165,7 @@ class PawControlOptionsFlow(
     "blueprint": "setup_flags_panel_source_blueprint",
     "disabled": "setup_flags_panel_source_disabled",
   }
-  _MANUAL_SOURCE_BADGE_KEYS: ClassVar[dict[ManualEventSource, str]] = {
+  _MANUAL_SOURCE_BADGE_KEYS: ClassVar[dict[ManualEventSource, str]] = {  # noqa: E111
     "default": "manual_event_source_badge_default",
     "system_settings": "manual_event_source_badge_system_settings",
     "options": "manual_event_source_badge_options",
@@ -175,7 +173,7 @@ class PawControlOptionsFlow(
     "blueprint": "manual_event_source_badge_blueprint",
     "disabled": "manual_event_source_badge_disabled",
   }
-  _MANUAL_SOURCE_HELP_KEYS: ClassVar[dict[ManualEventSource, str]] = {
+  _MANUAL_SOURCE_HELP_KEYS: ClassVar[dict[ManualEventSource, str]] = {  # noqa: E111
     "default": "manual_event_source_help_default",
     "system_settings": "manual_event_source_help_system_settings",
     "options": "manual_event_source_help_options",
@@ -183,22 +181,22 @@ class PawControlOptionsFlow(
     "blueprint": "manual_event_source_help_blueprint",
     "disabled": "manual_event_source_help_disabled",
   }
-  _MANUAL_SOURCE_PRIORITY: ClassVar[tuple[ManualEventSource, ...]] = (
+  _MANUAL_SOURCE_PRIORITY: ClassVar[tuple[ManualEventSource, ...]] = (  # noqa: E111
     "system_settings",
     "options",
     "config_entry",
     "blueprint",
     "default",
   )
-  _STRINGS_PATH: ClassVar[Path] = Path(__file__).with_name("strings.json")
-  _TRANSLATIONS_DIR: ClassVar[Path] = Path(
+  _STRINGS_PATH: ClassVar[Path] = Path(__file__).with_name("strings.json")  # noqa: E111
+  _TRANSLATIONS_DIR: ClassVar[Path] = Path(  # noqa: E111
     __file__,
   ).with_name("translations")
-  _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = (
+  _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = (  # noqa: E111
     _resolve_setup_flag_supported_languages(_TRANSLATIONS_DIR, _STRINGS_PATH)
   )
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     """Initialize the options flow with enhanced state management."""
     super().__init__()
     self._entry = cast(ConfigEntry, None)
@@ -211,7 +209,7 @@ class PawControlOptionsFlow(
     self._profile_cache: dict[str, ConfigFlowPlaceholders] = {}
     self._entity_estimates_cache: dict[str, JSONMutableMapping] = {}
 
-  def initialize_from_config_entry(self, config_entry: ConfigEntry) -> None:
+  def initialize_from_config_entry(self, config_entry: ConfigEntry) -> None:  # noqa: E111
     """Attach the originating config entry to this options flow."""
 
     self._entry = config_entry
@@ -224,26 +222,26 @@ class PawControlOptionsFlow(
     )
     self._dogs = []
     for dog in dogs_iterable:
-      if not isinstance(dog, Mapping):
+      if not isinstance(dog, Mapping):  # noqa: E111
         continue
-      normalised = ensure_dog_config_data(
+      normalised = ensure_dog_config_data(  # noqa: E111
         cast(Mapping[str, JSONValue], dog),
       )
-      if normalised is not None:
+      if normalised is not None:  # noqa: E111
         self._dogs.append(normalised)
 
-  def _invalidate_profile_caches(self) -> None:
+  def _invalidate_profile_caches(self) -> None:  # noqa: E111
     """Clear cached profile data when configuration changes."""
 
     self._profile_cache.clear()
     self._entity_estimates_cache.clear()
 
-  def _current_options(self) -> Mapping[str, JSONValue]:
+  def _current_options(self) -> Mapping[str, JSONValue]:  # noqa: E111
     """Return the current config entry options as a typed mapping."""
 
     return cast(Mapping[str, JSONValue], self._entry.options)
 
-  def _clone_options(self) -> dict[str, JSONValue]:
+  def _clone_options(self) -> dict[str, JSONValue]:  # noqa: E111
     """Return a shallow copy of the current options for mutation."""
 
     return cast(
@@ -251,7 +249,7 @@ class PawControlOptionsFlow(
       dict(cast(Mapping[str, JSONValue], self._entry.options)),
     )
 
-  def _normalise_options_snapshot(
+  def _normalise_options_snapshot(  # noqa: E111
     self,
     options: Mapping[str, JSONValue] | JSONMutableMapping,
   ) -> Mapping[str, JSONValue]:
@@ -262,13 +260,13 @@ class PawControlOptionsFlow(
     self._normalise_gps_options_snapshot(mutable)
 
     if ADVANCED_SETTINGS_FIELD in mutable:
-      raw_advanced = mutable.get(ADVANCED_SETTINGS_FIELD)
-      advanced_source = (
+      raw_advanced = mutable.get(ADVANCED_SETTINGS_FIELD)  # noqa: E111
+      advanced_source = (  # noqa: E111
         cast(Mapping[str, JSONValue], raw_advanced)
         if isinstance(raw_advanced, Mapping)
         else {}
       )
-      mutable[ADVANCED_SETTINGS_FIELD] = cast(
+      mutable[ADVANCED_SETTINGS_FIELD] = cast(  # noqa: E111
         JSONValue,
         ensure_advanced_options(
           cast(JSONLikeMapping, dict(advanced_source)),
@@ -278,7 +276,7 @@ class PawControlOptionsFlow(
 
     return cast(Mapping[str, JSONValue], mutable)
 
-  def _normalise_entry_dogs(
+  def _normalise_entry_dogs(  # noqa: E111
     self,
     dogs: Sequence[Mapping[str, JSONValue]],
   ) -> list[DogConfigData]:
@@ -286,51 +284,51 @@ class PawControlOptionsFlow(
 
     typed_dogs: list[DogConfigData] = []
     for dog in dogs:
-      normalised = ensure_dog_config_data(
+      normalised = ensure_dog_config_data(  # noqa: E111
         cast(Mapping[str, JSONValue], dog),
       )
-      if normalised is None:
+      if normalised is None:  # noqa: E111
         raise FlowValidationError(base_errors=["invalid_dog_config"])
-      typed_dogs.append(normalised)
+      typed_dogs.append(normalised)  # noqa: E111
     return typed_dogs
 
-  def _last_reconfigure_timestamp(self) -> str | None:
+  def _last_reconfigure_timestamp(self) -> str | None:  # noqa: E111
     """Return the ISO timestamp recorded for the last reconfigure run."""
 
     value = self._entry.options.get(LAST_RECONFIGURE_FIELD)
     return str(value) if isinstance(value, str) and value else None
 
-  def _reconfigure_telemetry(self) -> ReconfigureTelemetry | None:
+  def _reconfigure_telemetry(self) -> ReconfigureTelemetry | None:  # noqa: E111
     """Return the stored reconfigure telemetry, if available."""
 
     telemetry = self._entry.options.get(RECONFIGURE_TELEMETRY_FIELD)
     if isinstance(telemetry, Mapping):
-      return cast(ReconfigureTelemetry, telemetry)
+      return cast(ReconfigureTelemetry, telemetry)  # noqa: E111
     return None
 
-  def _format_local_timestamp(self, timestamp: str | None) -> str:
+  def _format_local_timestamp(self, timestamp: str | None) -> str:  # noqa: E111
     """Return a human-friendly representation for an ISO timestamp."""
 
     if not timestamp:
-      return "Never reconfigured"
+      return "Never reconfigured"  # noqa: E111
 
     parsed = dt_util.parse_datetime(timestamp)
     if parsed is None:
-      return timestamp
+      return timestamp  # noqa: E111
 
     if parsed.tzinfo is None:
-      parsed = parsed.replace(tzinfo=UTC)
+      parsed = parsed.replace(tzinfo=UTC)  # noqa: E111
 
     local_dt = dt_util.as_local(parsed)
     return local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
 
-  def _summarise_health_summary(self, health: Any) -> str:
+  def _summarise_health_summary(self, health: Any) -> str:  # noqa: E111
     """Convert a health summary mapping into a user-facing string."""
 
     return summarise_health_summary(health)
 
-  @classmethod
-  def _load_setup_flag_translations_from_mapping(
+  @classmethod  # noqa: E111
+  def _load_setup_flag_translations_from_mapping(  # noqa: E111
     cls,
     mapping: Mapping[str, JSONValue],
   ) -> dict[str, str]:
@@ -345,18 +343,18 @@ class PawControlOptionsFlow(
       else None
     )
     if not isinstance(common, Mapping):
-      return {}
+      return {}  # noqa: E111
 
     translations: dict[str, str] = {}
     for key, value in common.items():
-      if not isinstance(key, str) or not isinstance(value, str):
+      if not isinstance(key, str) or not isinstance(value, str):  # noqa: E111
         continue
-      if any(key.startswith(prefix) for prefix in cls._SETUP_FLAG_PREFIXES):
+      if any(key.startswith(prefix) for prefix in cls._SETUP_FLAG_PREFIXES):  # noqa: E111
         translations[key] = value
     return translations
 
-  @classmethod
-  async def _load_setup_flag_translations_from_path(
+  @classmethod  # noqa: E111
+  async def _load_setup_flag_translations_from_path(  # noqa: E111
     cls,
     path: Path,
     hass: HomeAssistant,
@@ -364,47 +362,47 @@ class PawControlOptionsFlow(
     """Load setup flag translations from a JSON file if it exists."""
 
     try:
-      raw = await hass.async_add_executor_job(path.read_text, "utf-8")
-      content = json.loads(raw)
+      raw = await hass.async_add_executor_job(path.read_text, "utf-8")  # noqa: E111
+      content = json.loads(raw)  # noqa: E111
     except FileNotFoundError:
-      return {}
+      return {}  # noqa: E111
     except ValueError:  # pragma: no cover - defensive against malformed JSON
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Failed to parse setup flag translations from %s",
         path,
       )
-      return {}
+      return {}  # noqa: E111
 
     if not isinstance(content, Mapping):
-      return {}
+      return {}  # noqa: E111
 
     return cls._load_setup_flag_translations_from_mapping(content)
 
-  @classmethod
-  def _load_setup_flag_translations_from_path_sync(
+  @classmethod  # noqa: E111
+  def _load_setup_flag_translations_from_path_sync(  # noqa: E111
     cls,
     path: Path,
   ) -> dict[str, str]:
     """Synchronously load setup flag translations from a JSON file."""
 
     try:
-      content = json.loads(path.read_text(encoding="utf-8"))
+      content = json.loads(path.read_text(encoding="utf-8"))  # noqa: E111
     except FileNotFoundError:
-      return {}
+      return {}  # noqa: E111
     except ValueError:  # pragma: no cover - defensive against malformed JSON
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Failed to parse setup flag translations from %s",
         path,
       )
-      return {}
+      return {}  # noqa: E111
 
     if not isinstance(content, Mapping):
-      return {}
+      return {}  # noqa: E111
 
     return cls._load_setup_flag_translations_from_mapping(content)
 
-  @classmethod
-  async def _async_setup_flag_translations_for_language(
+  @classmethod  # noqa: E111
+  async def _async_setup_flag_translations_for_language(  # noqa: E111
     cls,
     language: str,
     hass: HomeAssistant,
@@ -412,7 +410,7 @@ class PawControlOptionsFlow(
     """Return setup flag translations for the provided language."""
 
     if cls._SETUP_FLAG_EN_TRANSLATIONS is None:
-      cls._SETUP_FLAG_EN_TRANSLATIONS = (
+      cls._SETUP_FLAG_EN_TRANSLATIONS = (  # noqa: E111
         await cls._load_setup_flag_translations_from_path(
           cls._STRINGS_PATH,
           hass=hass,
@@ -421,11 +419,11 @@ class PawControlOptionsFlow(
 
     base = cls._SETUP_FLAG_EN_TRANSLATIONS or {}
     if language == "en":
-      return base
+      return base  # noqa: E111
 
     cached = cls._SETUP_FLAG_TRANSLATION_CACHE.get(language)
     if cached is not None:
-      return cached
+      return cached  # noqa: E111
 
     translation_path = cls._TRANSLATIONS_DIR / f"{language}.json"
     overlay = await cls._load_setup_flag_translations_from_path(
@@ -437,22 +435,22 @@ class PawControlOptionsFlow(
     cls._SETUP_FLAG_TRANSLATION_CACHE[language] = merged
     return merged
 
-  @classmethod
-  def _setup_flag_translations_for_language(cls, language: str) -> dict[str, str]:
+  @classmethod  # noqa: E111
+  def _setup_flag_translations_for_language(cls, language: str) -> dict[str, str]:  # noqa: E111
     """Return setup flag translations for the provided language."""
 
     if cls._SETUP_FLAG_EN_TRANSLATIONS is None:
-      cls._SETUP_FLAG_EN_TRANSLATIONS = (
+      cls._SETUP_FLAG_EN_TRANSLATIONS = (  # noqa: E111
         cls._load_setup_flag_translations_from_path_sync(cls._STRINGS_PATH)
       )
 
     base = cls._SETUP_FLAG_EN_TRANSLATIONS or {}
     if language == "en":
-      return base
+      return base  # noqa: E111
 
     cached = cls._SETUP_FLAG_TRANSLATION_CACHE.get(language)
     if cached is not None:
-      return cached
+      return cached  # noqa: E111
 
     overlay = cls._load_setup_flag_translations_from_path_sync(
       cls._TRANSLATIONS_DIR / f"{language}.json",
@@ -462,14 +460,14 @@ class PawControlOptionsFlow(
     cls._SETUP_FLAG_TRANSLATION_CACHE[language] = merged
     return merged
 
-  def _determine_language(self) -> str:
+  def _determine_language(self) -> str:  # noqa: E111
     """Return the preferred language for localized labels."""
 
     hass = getattr(self, "hass", None)
     hass_language: str | None = None
     if hass is not None:
-      config = getattr(hass, "config", None)
-      if config is not None:
+      config = getattr(hass, "config", None)  # noqa: E111
+      if config is not None:  # noqa: E111
         hass_language = getattr(config, "language", None)
 
     return normalize_language(
@@ -478,31 +476,31 @@ class PawControlOptionsFlow(
       default="en",
     )
 
-  def _setup_flag_translation(self, key: str, *, language: str) -> str:
+  def _setup_flag_translation(self, key: str, *, language: str) -> str:  # noqa: E111
     """Return the localized string for the provided setup flag key."""
 
     translations = self._setup_flag_translations_for_language(language)
     return translations.get(key, key)
 
-  async def _async_prepare_setup_flag_translations(self) -> None:
+  async def _async_prepare_setup_flag_translations(self) -> None:  # noqa: E111
     """Preload setup flag translations without blocking the event loop."""
 
     language = self._determine_language()
     hass = getattr(self, "hass", None)
     if not isinstance(hass, HomeAssistant):
-      return
+      return  # noqa: E111
     await self._async_setup_flag_translations_for_language(language, hass)
 
-  @staticmethod
-  def _normalise_manual_event_value(value: Any) -> str | None:
+  @staticmethod  # noqa: E111
+  def _normalise_manual_event_value(value: Any) -> str | None:  # noqa: E111
     """Return a normalised manual event string."""
 
     if isinstance(value, str):
-      candidate = value.strip()
-      return candidate or None
+      candidate = value.strip()  # noqa: E111
+      return candidate or None  # noqa: E111
     return None
 
-  def _manual_event_defaults(
+  def _manual_event_defaults(  # noqa: E111
     self,
     current: SystemOptions,
   ) -> ManualEventDefaults:
@@ -515,15 +513,15 @@ class PawControlOptionsFlow(
     }
 
     for field in self._MANUAL_EVENT_FIELDS:
-      if field not in current:
+      if field not in current:  # noqa: E111
         continue
-      defaults[field] = self._normalise_manual_event_value(
+      defaults[field] = self._normalise_manual_event_value(  # noqa: E111
         current.get(field),
       )
 
     return defaults
 
-  def _manual_event_schema_defaults(
+  def _manual_event_schema_defaults(  # noqa: E111
     self,
     current: SystemOptions,
   ) -> ManualEventSchemaDefaults:
@@ -536,33 +534,33 @@ class PawControlOptionsFlow(
       "manual_breaker_event": defaults["manual_breaker_event"] or "",
     }
 
-  def _manual_events_snapshot(self) -> Mapping[str, JSONValue] | None:
+  def _manual_events_snapshot(self) -> Mapping[str, JSONValue] | None:  # noqa: E111
     """Return the current manual events snapshot from the script manager."""
 
     hass = getattr(self, "hass", None)
     if hass is None:
-      return None
+      return None  # noqa: E111
 
     runtime: Any | None = None
     with suppress(Exception):
-      runtime = _resolve_get_runtime_data()(hass, self._entry)
+      runtime = _resolve_get_runtime_data()(hass, self._entry)  # noqa: E111
     if runtime is None:
-      return None
+      return None  # noqa: E111
 
     script_manager = getattr(runtime, "script_manager", None)
     if script_manager is None:
-      return None
+      return None  # noqa: E111
 
     snapshot = script_manager.get_resilience_escalation_snapshot()
     if not isinstance(snapshot, Mapping):
-      return None
+      return None  # noqa: E111
 
     manual_section = snapshot.get("manual_events")
     if isinstance(manual_section, Mapping):
-      return cast(Mapping[str, JSONValue], manual_section)
+      return cast(Mapping[str, JSONValue], manual_section)  # noqa: E111
     return None
 
-  def _collect_manual_event_sources(
+  def _collect_manual_event_sources(  # noqa: E111
     self,
     field: ManualEventField,
     current: SystemOptions,
@@ -574,15 +572,15 @@ class PawControlOptionsFlow(
     sources: dict[str, set[ManualEventSource]] = {}
 
     def _register(value: Any, source: ManualEventSource) -> None:
-      normalised = self._normalise_manual_event_value(value)
-      if not normalised:
+      normalised = self._normalise_manual_event_value(value)  # noqa: E111
+      if not normalised:  # noqa: E111
         return
-      sources.setdefault(normalised, set()).add(source)
+      sources.setdefault(normalised, set()).add(source)  # noqa: E111
 
     def _as_manual_event_source(source: object) -> ManualEventSource | None:
-      if isinstance(source, str) and source in self._MANUAL_SOURCE_BADGE_KEYS:
+      if isinstance(source, str) and source in self._MANUAL_SOURCE_BADGE_KEYS:  # noqa: E111
         return cast(ManualEventSource, source)
-      return None
+      return None  # noqa: E111
 
     default_map = {
       "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
@@ -596,24 +594,24 @@ class PawControlOptionsFlow(
 
     options_settings = current_options.get("system_settings")
     if isinstance(options_settings, Mapping):
-      _register(options_settings.get(field), "system_settings")
+      _register(options_settings.get(field), "system_settings")  # noqa: E111
 
     _register(current.get(field), "system_settings")
 
     if manual_snapshot is None:
-      manual_snapshot = self._manual_events_snapshot()
+      manual_snapshot = self._manual_events_snapshot()  # noqa: E111
 
     if isinstance(manual_snapshot, Mapping):
-      configured_key_map = {
+      configured_key_map = {  # noqa: E111
         "manual_check_event": "configured_check_events",
         "manual_guard_event": "configured_guard_events",
         "manual_breaker_event": "configured_breaker_events",
       }
-      configured_values = manual_snapshot.get(configured_key_map[field])
-      for candidate in self._string_sequence(configured_values):
+      configured_values = manual_snapshot.get(configured_key_map[field])  # noqa: E111
+      for candidate in self._string_sequence(configured_values):  # noqa: E111
         _register(candidate, "blueprint")
 
-      if field != "manual_check_event":
+      if field != "manual_check_event":  # noqa: E111
         system_key_map = {
           "manual_guard_event": "system_guard_event",
           "manual_breaker_event": "system_breaker_event",
@@ -623,67 +621,67 @@ class PawControlOptionsFlow(
         )
         _register(system_value, "system_settings")
 
-      preferred = manual_snapshot.get("preferred_events")
-      if isinstance(preferred, Mapping):
+      preferred = manual_snapshot.get("preferred_events")  # noqa: E111
+      if isinstance(preferred, Mapping):  # noqa: E111
         preferred_value = self._normalise_manual_event_value(
           preferred.get(field),
         )
         if preferred_value and preferred_value != default_map[field]:
-          _register(preferred_value, "system_settings")
+          _register(preferred_value, "system_settings")  # noqa: E111
 
-      specific_preference = manual_snapshot.get(f"preferred_{field}")
-      specific_normalised = self._normalise_manual_event_value(
+      specific_preference = manual_snapshot.get(f"preferred_{field}")  # noqa: E111
+      specific_normalised = self._normalise_manual_event_value(  # noqa: E111
         specific_preference,
       )
-      if specific_normalised and specific_normalised != default_map[field]:
+      if specific_normalised and specific_normalised != default_map[field]:  # noqa: E111
         _register(specific_normalised, "system_settings")
 
-      listener_sources = manual_snapshot.get("listener_sources")
-      if isinstance(listener_sources, Mapping):
+      listener_sources = manual_snapshot.get("listener_sources")  # noqa: E111
+      if isinstance(listener_sources, Mapping):  # noqa: E111
         for event, raw_sources in listener_sources.items():
-          if not isinstance(event, str):
+          if not isinstance(event, str):  # noqa: E111
             continue
-          for raw_source in self._string_sequence(raw_sources):
+          for raw_source in self._string_sequence(raw_sources):  # noqa: E111
             mapped = MANUAL_EVENT_SOURCE_CANONICAL.get(
               raw_source,
               raw_source,
             )
             source = _as_manual_event_source(mapped)
             if source:
-              _register(event, source)
+              _register(event, source)  # noqa: E111
 
-      metadata = manual_snapshot.get("listener_metadata")
-      if isinstance(metadata, Mapping):
+      metadata = manual_snapshot.get("listener_metadata")  # noqa: E111
+      if isinstance(metadata, Mapping):  # noqa: E111
         for event, info in metadata.items():
-          if not isinstance(event, str) or not isinstance(info, Mapping):
+          if not isinstance(event, str) or not isinstance(info, Mapping):  # noqa: E111
             continue
-          canonical_sources = info.get("sources")
-          for canonical in self._string_sequence(canonical_sources):
+          canonical_sources = info.get("sources")  # noqa: E111
+          for canonical in self._string_sequence(canonical_sources):  # noqa: E111
             source = _as_manual_event_source(canonical)
             if source:
-              _register(event, source)
-          primary_source = info.get("primary_source")
-          source = _as_manual_event_source(primary_source)
-          if source:
+              _register(event, source)  # noqa: E111
+          primary_source = info.get("primary_source")  # noqa: E111
+          source = _as_manual_event_source(primary_source)  # noqa: E111
+          if source:  # noqa: E111
             _register(event, source)
 
     if default_value:
-      existing_sources = sources.get(default_value)
-      if existing_sources is None:
+      existing_sources = sources.get(default_value)  # noqa: E111
+      if existing_sources is None:  # noqa: E111
         sources[default_value] = {"default"}
-      elif (
+      elif (  # noqa: E111
         field == "manual_guard_event"
         and "blueprint" in existing_sources
         and not (existing_sources - {"blueprint"})
       ):
         # Blueprint-only defaults should not inherit the integration default tag.
         pass
-      else:
+      else:  # noqa: E111
         existing_sources.add("default")
 
     return sources
 
-  def _manual_event_choices(
+  def _manual_event_choices(  # noqa: E111
     self,
     field: ManualEventField,
     current: SystemOptions,
@@ -704,36 +702,36 @@ class PawControlOptionsFlow(
     )
 
     def _primary_source(source_set: set[ManualEventSource]) -> ManualEventSource | None:
-      for candidate in self._MANUAL_SOURCE_PRIORITY:
+      for candidate in self._MANUAL_SOURCE_PRIORITY:  # noqa: E111
         if candidate in source_set:
-          return candidate
-      if "disabled" in source_set:
+          return candidate  # noqa: E111
+      if "disabled" in source_set:  # noqa: E111
         return "disabled"
-      if source_set:
+      if source_set:  # noqa: E111
         return sorted(source_set)[0]
-      return None
+      return None  # noqa: E111
 
     def _source_badge(source: ManualEventSource | None) -> str | None:
-      if not source:
+      if not source:  # noqa: E111
         return None
-      translation_key = self._MANUAL_SOURCE_BADGE_KEYS.get(source)
-      if not translation_key:
+      translation_key = self._MANUAL_SOURCE_BADGE_KEYS.get(source)  # noqa: E111
+      if not translation_key:  # noqa: E111
         return None
-      return self._setup_flag_translation(translation_key, language=language)
+      return self._setup_flag_translation(translation_key, language=language)  # noqa: E111
 
     def _help_text(source_list: Sequence[str]) -> str | None:
-      help_segments: list[str] = []
-      for source_name in source_list:
+      help_segments: list[str] = []  # noqa: E111
+      for source_name in source_list:  # noqa: E111
         key = self._MANUAL_SOURCE_HELP_KEYS.get(
           cast(ManualEventSource, source_name),
         )
         if key:
-          help_segments.append(
+          help_segments.append(  # noqa: E111
             self._setup_flag_translation(key, language=language),
           )
-      if help_segments:
+      if help_segments:  # noqa: E111
         return " ".join(help_segments)
-      return None
+      return None  # noqa: E111
 
     disabled_sources: list[ManualEventSource] = ["disabled"]
     disabled_badge = _source_badge("disabled")
@@ -746,9 +744,9 @@ class PawControlOptionsFlow(
       "metadata_primary_source": "disabled",
     }
     if disabled_badge:
-      disabled_option["badge"] = disabled_badge
+      disabled_option["badge"] = disabled_badge  # noqa: E111
     if disabled_help:
-      disabled_option["help_text"] = disabled_help
+      disabled_option["help_text"] = disabled_help  # noqa: E111
 
     options: list[ManualEventOption] = [disabled_option]
 
@@ -763,54 +761,54 @@ class PawControlOptionsFlow(
     def _priority(
       item: tuple[str, set[ManualEventSource]],
     ) -> tuple[int, str]:
-      value, sources = item
-      if current_value and value == current_value:
+      value, sources = item  # noqa: E111
+      if current_value and value == current_value:  # noqa: E111
         return (0, value)
-      if "system_settings" in sources:
+      if "system_settings" in sources:  # noqa: E111
         return (1, value)
-      if "options" in sources:
+      if "options" in sources:  # noqa: E111
         return (2, value)
-      if "blueprint" in sources:
+      if "blueprint" in sources:  # noqa: E111
         return (3, value)
-      if "default" in sources:
+      if "default" in sources:  # noqa: E111
         return (4, value)
-      return (5, value)
+      return (5, value)  # noqa: E111
 
     for value, source_tags in sorted(event_sources.items(), key=_priority):
-      description_parts: list[str] = []
-      sorted_source_tags = sorted(source_tags)
-      sorted_sources = [str(source) for source in sorted_source_tags]
-      for source in sorted_sources:
+      description_parts: list[str] = []  # noqa: E111
+      sorted_source_tags = sorted(source_tags)  # noqa: E111
+      sorted_sources = [str(source) for source in sorted_source_tags]  # noqa: E111
+      for source in sorted_sources:  # noqa: E111
         if source == "default" and "blueprint" in source_tags:
-          # Blueprint suggestions inherit the integration default but should not
-          # surface that tag in the description list.
-          continue
+          # Blueprint suggestions inherit the integration default but should not  # noqa: E114, E501
+          # surface that tag in the description list.  # noqa: E114
+          continue  # noqa: E111
         key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(
           cast(ManualEventSource, source),
         )
         if key:
-          description_parts.append(
+          description_parts.append(  # noqa: E111
             self._setup_flag_translation(key, language=language),
           )
 
-      option: ManualEventOption = {"value": value, "label": value}
-      if description_parts:
+      option: ManualEventOption = {"value": value, "label": value}  # noqa: E111
+      if description_parts:  # noqa: E111
         option["description"] = ", ".join(description_parts)
-      primary_source = _primary_source(source_tags)
-      badge = _source_badge(primary_source)
-      if badge:
+      primary_source = _primary_source(source_tags)  # noqa: E111
+      badge = _source_badge(primary_source)  # noqa: E111
+      if badge:  # noqa: E111
         option["badge"] = badge
-      help_text = _help_text(sorted_sources)
-      if help_text:
+      help_text = _help_text(sorted_sources)  # noqa: E111
+      if help_text:  # noqa: E111
         option["help_text"] = help_text
-      option["metadata_sources"] = sorted_sources
-      if primary_source:
+      option["metadata_sources"] = sorted_sources  # noqa: E111
+      if primary_source:  # noqa: E111
         option["metadata_primary_source"] = str(primary_source)
-      options.append(option)
+      options.append(option)  # noqa: E111
 
     return options
 
-  def _resolve_manual_event_choices(self) -> dict[ManualEventField, list[str]]:
+  def _resolve_manual_event_choices(self) -> dict[ManualEventField, list[str]]:  # noqa: E111
     """Return configured manual event identifiers for blueprint helpers."""
 
     current_system = self._current_system_options()
@@ -818,18 +816,18 @@ class PawControlOptionsFlow(
 
     choices: dict[ManualEventField, list[str]] = {}
     for field in self._MANUAL_EVENT_FIELDS:
-      options = self._manual_event_choices(
+      options = self._manual_event_choices(  # noqa: E111
         field,
         current_system,
         manual_snapshot=manual_snapshot,
       )
-      values: list[str] = []
-      for option in options:
+      values: list[str] = []  # noqa: E111
+      for option in options:  # noqa: E111
         if not isinstance(option, Mapping):
-          continue
+          continue  # noqa: E111
         value = option.get("value")
         if isinstance(value, str) and value:
-          values.append(value)
-      choices[field] = values
+          values.append(value)  # noqa: E111
+      choices[field] = values  # noqa: E111
 
     return choices

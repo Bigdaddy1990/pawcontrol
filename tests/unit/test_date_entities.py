@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -24,34 +22,38 @@ from custom_components.pawcontrol.types import (
 
 @dataclass
 class _DummyEntry:
-  entry_id: str
+  entry_id: str  # noqa: E111
 
 
 class _DummyCoordinator:
-  """Minimal coordinator double tailored for date entity tests."""
+  """Minimal coordinator double tailored for date entity tests."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.data: dict[str, CoordinatorDogData] = {}
     self.config_entry = cast(PawControlConfigEntry, _DummyEntry("entry"))
     self.last_update_success = True
     self.runtime_managers = None
 
-  def async_add_listener(self, _callback):  # pragma: no cover - coordinator protocol
+  def async_add_listener(  # noqa: E111
+    self, _callback
+  ):  # pragma: no cover - coordinator protocol
     return lambda: None
 
-  async def async_request_refresh(self) -> None:  # pragma: no cover - protocol stub
+  async def async_request_refresh(  # noqa: E111
+    self,
+  ) -> None:  # pragma: no cover - protocol stub
     return None
 
-  def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
+  def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:  # noqa: E111
     return self.data.get(dog_id)
 
-  def get_enabled_modules(
+  def get_enabled_modules(  # noqa: E111
     self, dog_id: str
   ) -> frozenset[str]:  # pragma: no cover - unused
     return frozenset()
 
-  @property
-  def available(self) -> bool:  # pragma: no cover - compatibility helper
+  @property  # noqa: E111
+  def available(self) -> bool:  # pragma: no cover - compatibility helper  # noqa: E111
     return True
 
 
@@ -59,10 +61,10 @@ class _DummyCoordinator:
 async def test_birthdate_extra_attributes_typed(
   hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-  """Ensure birthdate entities expose structured, typed attributes."""
+  """Ensure birthdate entities expose structured, typed attributes."""  # noqa: E111
 
-  coordinator = _DummyCoordinator()
-  coordinator.data["dog-1"] = cast(
+  coordinator = _DummyCoordinator()  # noqa: E111
+  coordinator.data["dog-1"] = cast(  # noqa: E111
     CoordinatorDogData,
     {
       "dog_info": {"dog_id": "dog-1", "dog_name": "Buddy"},
@@ -72,48 +74,48 @@ async def test_birthdate_extra_attributes_typed(
     },
   )
 
-  entity = PawControlBirthdateDate(
+  entity = PawControlBirthdateDate(  # noqa: E111
     cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
   )
-  entity.hass = hass
+  entity.hass = hass  # noqa: E111
 
-  # Freeze time so the derived counters remain deterministic.
-  monkeypatch.setattr(
+  # Freeze time so the derived counters remain deterministic.  # noqa: E114
+  monkeypatch.setattr(  # noqa: E111
     "custom_components.pawcontrol.date.dt_util.now",
     lambda: datetime(2024, 5, 1, tzinfo=UTC),
   )
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     "custom_components.pawcontrol.date.dt_util.parse_date",
     lambda value: datetime.fromisoformat(str(value)).date(),
     raising=False,
   )
 
-  snapshot = cast(CoordinatorDogData, coordinator.data["dog-1"])
-  entity._current_value = entity._extract_date_from_dog_data(snapshot)
+  snapshot = cast(CoordinatorDogData, coordinator.data["dog-1"])  # noqa: E111
+  entity._current_value = entity._extract_date_from_dog_data(snapshot)  # noqa: E111
 
-  attrs = entity.extra_state_attributes
-  assert attrs["dog_id"] == "dog-1"
-  assert attrs["date_type"] == "birthdate"
-  assert attrs["iso_string"] == "2020-05-01"
+  attrs = entity.extra_state_attributes  # noqa: E111
+  assert attrs["dog_id"] == "dog-1"  # noqa: E111
+  assert attrs["date_type"] == "birthdate"  # noqa: E111
+  assert attrs["iso_string"] == "2020-05-01"  # noqa: E111
 
-  today = date(2024, 5, 1)
-  expected_days = (date(2020, 5, 1) - today).days
-  assert attrs["days_from_today"] == expected_days
-  assert attrs["is_past"] is True
-  assert attrs["is_future"] is False
-  assert attrs["age_days"] == abs(expected_days)
-  assert attrs["age_years"] == round(abs(expected_days) / 365.25, 2)
-  assert attrs["age_months"] == round((abs(expected_days) % 365.25) / 30.44, 1)
+  today = date(2024, 5, 1)  # noqa: E111
+  expected_days = (date(2020, 5, 1) - today).days  # noqa: E111
+  assert attrs["days_from_today"] == expected_days  # noqa: E111
+  assert attrs["is_past"] is True  # noqa: E111
+  assert attrs["is_future"] is False  # noqa: E111
+  assert attrs["age_days"] == abs(expected_days)  # noqa: E111
+  assert attrs["age_years"] == round(abs(expected_days) / 365.25, 2)  # noqa: E111
+  assert attrs["age_months"] == round((abs(expected_days) % 365.25) / 30.44, 1)  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_last_vet_visit_extracts_datetime(
   hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-  """Ensure health snapshots provide typed dates for vet visits."""
+  """Ensure health snapshots provide typed dates for vet visits."""  # noqa: E111
 
-  coordinator = _DummyCoordinator()
-  coordinator.data["dog-1"] = cast(
+  coordinator = _DummyCoordinator()  # noqa: E111
+  coordinator.data["dog-1"] = cast(  # noqa: E111
     CoordinatorDogData,
     {
       "dog_info": {"dog_id": "dog-1", "dog_name": "Buddy"},
@@ -126,26 +128,26 @@ async def test_last_vet_visit_extracts_datetime(
     },
   )
 
-  entity = PawControlLastVetVisitDate(
+  entity = PawControlLastVetVisitDate(  # noqa: E111
     cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
   )
-  entity.hass = hass
+  entity.hass = hass  # noqa: E111
 
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     "custom_components.pawcontrol.date.dt_util.now",
     lambda: datetime(2024, 5, 1, tzinfo=UTC),
   )
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     "custom_components.pawcontrol.date.dt_util.parse_date",
     lambda value: datetime.fromisoformat(str(value)).date(),
     raising=False,
   )
 
-  snapshot = cast(CoordinatorDogData, coordinator.data["dog-1"])
-  entity._current_value = entity._extract_date_from_dog_data(snapshot)
-  assert entity.native_value == date(2024, 4, 30)
+  snapshot = cast(CoordinatorDogData, coordinator.data["dog-1"])  # noqa: E111
+  entity._current_value = entity._extract_date_from_dog_data(snapshot)  # noqa: E111
+  assert entity.native_value == date(2024, 4, 30)  # noqa: E111
 
-  attrs = entity.extra_state_attributes
-  assert attrs["date_type"] == "last_vet_visit"
-  assert attrs["is_past"] is True
-  assert attrs["days_from_today"] == -1
+  attrs = entity.extra_state_attributes  # noqa: E111
+  assert attrs["date_type"] == "last_vet_visit"  # noqa: E111
+  assert attrs["is_past"] is True  # noqa: E111
+  assert attrs["days_from_today"] == -1  # noqa: E111

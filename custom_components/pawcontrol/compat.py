@@ -1,7 +1,5 @@
 """Compatibility helpers that keep the integration functional without Home Assistant."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
@@ -46,20 +44,20 @@ def _build_exception(
   doc: str,
   extra_attrs: dict[str, object] | None = None,
 ) -> type[Exception]:
-  """Create a lightweight exception class used when Home Assistant isn't available."""
+  """Create a lightweight exception class used when Home Assistant isn't available."""  # noqa: E111
 
-  namespace: dict[str, object] = {"__doc__": doc}
-  if extra_attrs:
+  namespace: dict[str, object] = {"__doc__": doc}  # noqa: E111
+  if extra_attrs:  # noqa: E111
     namespace.update(extra_attrs)
-  return type(name, (base,), namespace)
+  return type(name, (base,), namespace)  # noqa: E111
 
 
 def _import_optional(module_name: str) -> ModuleType | None:
-  """Import a module when available, returning ``None`` in fallback mode."""
+  """Import a module when available, returning ``None`` in fallback mode."""  # noqa: E111
 
-  try:
+  try:  # noqa: E111
     return __import__(module_name, fromlist=["*"])
-  except ImportError, ModuleNotFoundError:
+  except ImportError, ModuleNotFoundError:  # noqa: E111
     return None
 
 
@@ -69,18 +67,18 @@ _ha_core = _import_optional("homeassistant.core")
 _ha_const = _import_optional("homeassistant.const")
 
 if _ha_const is not None and hasattr(_ha_const, "UnitOfMass"):
-  UnitOfMass = _ha_const.UnitOfMass
-  _mass_grams = UnitOfMass.GRAMS
-  _mass_kilograms = UnitOfMass.KILOGRAMS
+  UnitOfMass = _ha_const.UnitOfMass  # noqa: E111
+  _mass_grams = UnitOfMass.GRAMS  # noqa: E111
+  _mass_kilograms = UnitOfMass.KILOGRAMS  # noqa: E111
 else:
 
-  class _FallbackUnitOfMass:
+  class _FallbackUnitOfMass:  # noqa: E111
     GRAMS = "g"
     KILOGRAMS = "kg"
 
-  UnitOfMass = _FallbackUnitOfMass
-  _mass_grams = UnitOfMass.GRAMS
-  _mass_kilograms = UnitOfMass.KILOGRAMS
+  UnitOfMass = _FallbackUnitOfMass  # noqa: E111
+  _mass_grams = UnitOfMass.GRAMS  # noqa: E111
+  _mass_kilograms = UnitOfMass.KILOGRAMS  # noqa: E111
 
 MASS_GRAMS: Final[str] = str(_mass_grams)
 MASS_KILOGRAMS: Final[str] = str(_mass_kilograms)
@@ -94,37 +92,37 @@ HANDLERS: dict[str, object] = {}
 
 
 async def support_entry_unload(hass: Any, domain: str) -> bool:
-  """Return ``True`` if the registered handler exposes an unload hook."""
+  """Return ``True`` if the registered handler exposes an unload hook."""  # noqa: E111
 
-  handler = HANDLERS.get(domain)
-  return bool(handler and hasattr(handler, "async_unload_entry"))
+  handler = HANDLERS.get(domain)  # noqa: E111
+  return bool(handler and hasattr(handler, "async_unload_entry"))  # noqa: E111
 
 
 async def support_remove_from_device(hass: Any, domain: str) -> bool:
-  """Return ``True`` if the handler exposes a remove-device hook."""
+  """Return ``True`` if the handler exposes a remove-device hook."""  # noqa: E111
 
-  handler = HANDLERS.get(domain)
-  return bool(handler and hasattr(handler, "async_remove_config_entry_device"))
+  handler = HANDLERS.get(domain)  # noqa: E111
+  return bool(handler and hasattr(handler, "async_remove_config_entry_device"))  # noqa: E111
 
 
 @dataclass(slots=True)
 class _BoundExceptionAlias:
-  """Container describing an installed exception alias binding."""
+  """Container describing an installed exception alias binding."""  # noqa: E111
 
-  source: str
-  module_name: str
-  target: str
-  combine_with_current: bool
-  callback: _ExceptionRebindCallback
+  source: str  # noqa: E111
+  module_name: str  # noqa: E111
+  target: str  # noqa: E111
+  combine_with_current: bool  # noqa: E111
+  callback: _ExceptionRebindCallback  # noqa: E111
 
 
 _BOUND_EXCEPTION_ALIASES: dict[tuple[str, str], _BoundExceptionAlias] = {}
 
 
 def _current_exception_mapping() -> dict[str, type[Exception]]:
-  """Return the latest Home Assistant exception bindings."""
+  """Return the latest Home Assistant exception bindings."""  # noqa: E111
 
-  return {
+  return {  # noqa: E111
     "HomeAssistantError": HomeAssistantError,
     "ConfigEntryError": ConfigEntryError,
     "ConfigEntryAuthFailed": ConfigEntryAuthFailed,
@@ -134,68 +132,68 @@ def _current_exception_mapping() -> dict[str, type[Exception]]:
 
 
 def _notify_exception_callbacks() -> None:
-  """Invoke registered callbacks with the refreshed exception mapping."""
+  """Invoke registered callbacks with the refreshed exception mapping."""  # noqa: E111
 
-  if not _EXCEPTION_REBIND_CALLBACKS:
+  if not _EXCEPTION_REBIND_CALLBACKS:  # noqa: E111
     return
 
-  mapping = _current_exception_mapping()
-  for callback in tuple(_EXCEPTION_REBIND_CALLBACKS):
+  mapping = _current_exception_mapping()  # noqa: E111
+  for callback in tuple(_EXCEPTION_REBIND_CALLBACKS):  # noqa: E111
     try:
-      callback(mapping)
+      callback(mapping)  # noqa: E111
     except Exception:  # pragma: no cover - defensive guard for test hooks
-      continue
+      continue  # noqa: E111
 
 
 def register_exception_rebind_callback(
   callback: _ExceptionRebindCallback,
 ) -> Callable[[], None]:
-  """Register a callback that fires whenever exception bindings change."""
+  """Register a callback that fires whenever exception bindings change."""  # noqa: E111
 
-  _EXCEPTION_REBIND_CALLBACKS.append(callback)
-  callback(_current_exception_mapping())
+  _EXCEPTION_REBIND_CALLBACKS.append(callback)  # noqa: E111
+  callback(_current_exception_mapping())  # noqa: E111
 
-  def _unregister() -> None:
+  def _unregister() -> None:  # noqa: E111
     with suppress(ValueError):  # pragma: no branch - suppress missing callback
-      _EXCEPTION_REBIND_CALLBACKS.remove(callback)
+      _EXCEPTION_REBIND_CALLBACKS.remove(callback)  # noqa: E111
 
-  return _unregister
+  return _unregister  # noqa: E111
 
 
 def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
-  """Return the module that should receive a rebound alias."""
+  """Return the module that should receive a rebound alias."""  # noqa: E111
 
-  if isinstance(module, ModuleType):
+  if isinstance(module, ModuleType):  # noqa: E111
     return module
 
-  if isinstance(module, str):
+  if isinstance(module, str):  # noqa: E111
     resolved = sys.modules.get(module)
     if resolved is None:
-      raise RuntimeError(
+      raise RuntimeError(  # noqa: E111
         f"bind_exception_alias could not locate module '{module}'",
       )
     return resolved
 
-  frame = None
-  try:
+  frame = None  # noqa: E111
+  try:  # noqa: E111
     frame = sys._getframe(2)
-  except ValueError as exc:  # pragma: no cover - extremely defensive
+  except ValueError as exc:  # pragma: no cover - extremely defensive  # noqa: E111
     raise RuntimeError(
       "bind_exception_alias could not determine the caller module",
     ) from exc
 
-  try:
+  try:  # noqa: E111
     while frame is not None:
-      module_name = frame.f_globals.get("__name__")
-      if module_name and module_name != __name__:
+      module_name = frame.f_globals.get("__name__")  # noqa: E111
+      if module_name and module_name != __name__:  # noqa: E111
         candidate = sys.modules.get(module_name)
         if candidate is not None:
-          return candidate
-      frame = frame.f_back
-  finally:
+          return candidate  # noqa: E111
+      frame = frame.f_back  # noqa: E111
+  finally:  # noqa: E111
     del frame
 
-  raise RuntimeError(
+  raise RuntimeError(  # noqa: E111
     "bind_exception_alias could not determine the caller module",
   )
 
@@ -207,80 +205,80 @@ def bind_exception_alias(
   attr: str | None = None,
   combine_with_current: bool = False,
 ) -> Callable[[], None]:
-  """Keep ``module.attr`` in sync with the active Home Assistant class."""
+  """Keep ``module.attr`` in sync with the active Home Assistant class."""  # noqa: E111
 
-  # ``module`` may be supplied as a module object, a module name, or omitted to
-  # infer the caller.  The binding survives module reloads by resolving fresh
-  # module objects from :data:`sys.modules` each time the callback fires.
+  # ``module`` may be supplied as a module object, a module name, or omitted to  # noqa: E114, E501
+  # infer the caller.  The binding survives module reloads by resolving fresh  # noqa: E114, E501
+  # module objects from :data:`sys.modules` each time the callback fires.  # noqa: E114
 
-  # Default to the caller's module so integration files can bind aliases
-  # without importing ``sys`` purely for ``sys.modules[__name__]``.
+  # Default to the caller's module so integration files can bind aliases  # noqa: E114
+  # without importing ``sys`` purely for ``sys.modules[__name__]``.  # noqa: E114
 
-  module_obj = _resolve_binding_module(module)
+  module_obj = _resolve_binding_module(module)  # noqa: E111
 
-  target = attr or name
-  module_name = getattr(module_obj, "__name__", None)
-  if not module_name:
+  target = attr or name  # noqa: E111
+  module_name = getattr(module_obj, "__name__", None)  # noqa: E111
+  if not module_name:  # noqa: E111
     raise RuntimeError("bind_exception_alias requires a named module")
 
-  key = (module_name, target)
+  key = (module_name, target)  # noqa: E111
 
-  previous = _BOUND_EXCEPTION_ALIASES.pop(key, None)
-  if previous is not None:
+  previous = _BOUND_EXCEPTION_ALIASES.pop(key, None)  # noqa: E111
+  if previous is not None:  # noqa: E111
     with suppress(ValueError):
-      _EXCEPTION_REBIND_CALLBACKS.remove(previous.callback)
+      _EXCEPTION_REBIND_CALLBACKS.remove(previous.callback)  # noqa: E111
 
-  bound: _BoundExceptionAlias | None = None
+  bound: _BoundExceptionAlias | None = None  # noqa: E111
 
-  def _unregister() -> None:
+  def _unregister() -> None:  # noqa: E111
     stored = _BOUND_EXCEPTION_ALIASES.get(key)
     if stored is bound:
-      _BOUND_EXCEPTION_ALIASES.pop(key, None)
+      _BOUND_EXCEPTION_ALIASES.pop(key, None)  # noqa: E111
     with suppress(ValueError):
-      _EXCEPTION_REBIND_CALLBACKS.remove(_apply)
+      _EXCEPTION_REBIND_CALLBACKS.remove(_apply)  # noqa: E111
 
-  def _apply(mapping: dict[str, type[Exception]]) -> None:
+  def _apply(mapping: dict[str, type[Exception]]) -> None:  # noqa: E111
     current_module = sys.modules.get(module_name)
     if not isinstance(current_module, ModuleType):
-      return
+      return  # noqa: E111
 
     namespace = current_module.__dict__
     candidate = mapping.get(name)
     if not isinstance(candidate, type) or not issubclass(candidate, Exception):
-      return
+      return  # noqa: E111
 
     if combine_with_current:
-      current = namespace.get(target)
-      if isinstance(current, type) and current is not candidate:
+      current = namespace.get(target)  # noqa: E111
+      if isinstance(current, type) and current is not candidate:  # noqa: E111
         if issubclass(candidate, current):
-          namespace[target] = candidate
-          return
+          namespace[target] = candidate  # noqa: E111
+          return  # noqa: E111
         if issubclass(current, candidate):
-          namespace[target] = current
-          return
+          namespace[target] = current  # noqa: E111
+          return  # noqa: E111
         try:
-          namespace[target] = type(
+          namespace[target] = type(  # noqa: E111
             f"PawControl{name}Alias",
             (candidate, current),
             {"__module__": module_name},
           )
         except TypeError:
-          namespace[target] = candidate
+          namespace[target] = candidate  # noqa: E111
         return
 
     namespace[target] = candidate
 
-  bound = _BoundExceptionAlias(
+  bound = _BoundExceptionAlias(  # noqa: E111
     name,
     module_name,
     target,
     combine_with_current,
     _apply,
   )
-  _BOUND_EXCEPTION_ALIASES[key] = bound
-  _apply(_current_exception_mapping())
-  _EXCEPTION_REBIND_CALLBACKS.append(_apply)
-  return _unregister
+  _BOUND_EXCEPTION_ALIASES[key] = bound  # noqa: E111
+  _apply(_current_exception_mapping())  # noqa: E111
+  _EXCEPTION_REBIND_CALLBACKS.append(_apply)  # noqa: E111
+  return _unregister  # noqa: E111
 
 
 def _get_exception(
@@ -288,21 +286,21 @@ def _get_exception(
   default_factory: Callable[[], type[Exception]],
   exceptions_module: ModuleType | None = None,
 ) -> type[Exception]:
-  """Return an exception class from Home Assistant or build a fallback."""
+  """Return an exception class from Home Assistant or build a fallback."""  # noqa: E111
 
-  module = exceptions_module if exceptions_module is not None else _ha_exceptions
-  if module is None:
+  module = exceptions_module if exceptions_module is not None else _ha_exceptions  # noqa: E111
+  if module is None:  # noqa: E111
     return default_factory()
 
-  attr = getattr(module, name, None)
-  if isinstance(attr, type) and issubclass(attr, Exception):
+  attr = getattr(module, name, None)  # noqa: E111
+  if isinstance(attr, type) and issubclass(attr, Exception):  # noqa: E111
     return cast(type[Exception], attr)
 
-  return default_factory()
+  return default_factory()  # noqa: E111
 
 
 class _FallbackHomeAssistantError(RuntimeError):
-  """Fallback base error used when Home Assistant isn't installed."""
+  """Fallback base error used when Home Assistant isn't installed."""  # noqa: E111
 
 
 HomeAssistantError: type[Exception] = _FallbackHomeAssistantError
@@ -320,8 +318,8 @@ ServiceValidationError: type[Exception]
 
 
 def _config_entry_error_factory() -> type[Exception]:
-  base = cast(type[Exception], HomeAssistantError)
-  return type(
+  base = cast(type[Exception], HomeAssistantError)  # noqa: E111
+  return type(  # noqa: E111
     "ConfigEntryError",
     (base,),
     {"__doc__": "Fallback ConfigEntry error used outside Home Assistant."},
@@ -329,9 +327,9 @@ def _config_entry_error_factory() -> type[Exception]:
 
 
 def _auth_failed_factory() -> type[Exception]:
-  base = cast(type[Exception], ConfigEntryError)
+  base = cast(type[Exception], ConfigEntryError)  # noqa: E111
 
-  def _init(
+  def _init(  # noqa: E111
     self: Any,
     message: str | None = None,
     *,
@@ -340,17 +338,17 @@ def _auth_failed_factory() -> type[Exception]:
     base.__init__(self, message)
     self.auth_migration = auth_migration
 
-  namespace = {
+  namespace = {  # noqa: E111
     "__doc__": "Fallback ConfigEntryAuthFailed stand-in.",
     "__slots__": ("auth_migration",),
     "__init__": _init,
   }
-  return type("ConfigEntryAuthFailed", (base,), namespace)
+  return type("ConfigEntryAuthFailed", (base,), namespace)  # noqa: E111
 
 
 def _not_ready_factory() -> type[Exception]:
-  base = cast(type[Exception], ConfigEntryError)
-  return type(
+  base = cast(type[Exception], ConfigEntryError)  # noqa: E111
+  return type(  # noqa: E111
     "ConfigEntryNotReady",
     (base,),
     {"__doc__": "Fallback ConfigEntryNotReady used when HA is unavailable."},
@@ -358,8 +356,8 @@ def _not_ready_factory() -> type[Exception]:
 
 
 def _service_validation_error_factory() -> type[Exception]:
-  base = cast(type[Exception], HomeAssistantError)
-  return type(
+  base = cast(type[Exception], HomeAssistantError)  # noqa: E111
+  return type(  # noqa: E111
     "ServiceValidationError",
     (base,),
     {"__doc__": "Fallback validation error raised for invalid service payloads."},
@@ -367,59 +365,59 @@ def _service_validation_error_factory() -> type[Exception]:
 
 
 def _refresh_exception_symbols(exceptions_module: ModuleType | None) -> None:
-  """Refresh exported exception classes when Home Assistant stubs appear."""
+  """Refresh exported exception classes when Home Assistant stubs appear."""  # noqa: E111
 
-  global _ha_exceptions
-  global HomeAssistantError
-  global _HOMEASSISTANT_ERROR_IS_FALLBACK
-  global ConfigEntryError
-  global ConfigEntryAuthFailed
-  global ConfigEntryNotReady
-  global ServiceValidationError
+  global _ha_exceptions  # noqa: E111
+  global HomeAssistantError  # noqa: E111
+  global _HOMEASSISTANT_ERROR_IS_FALLBACK  # noqa: E111
+  global ConfigEntryError  # noqa: E111
+  global ConfigEntryAuthFailed  # noqa: E111
+  global ConfigEntryNotReady  # noqa: E111
+  global ServiceValidationError  # noqa: E111
 
-  _ha_exceptions = exceptions_module
+  _ha_exceptions = exceptions_module  # noqa: E111
 
-  resolved_homeassistant_error: type[Exception] | None = None
-  if exceptions_module is not None:
+  resolved_homeassistant_error: type[Exception] | None = None  # noqa: E111
+  if exceptions_module is not None:  # noqa: E111
     candidate = getattr(exceptions_module, "HomeAssistantError", None)
     if isinstance(candidate, type) and issubclass(candidate, Exception):
-      resolved_homeassistant_error = cast(type[Exception], candidate)
+      resolved_homeassistant_error = cast(type[Exception], candidate)  # noqa: E111
 
-  if resolved_homeassistant_error is None:
+  if resolved_homeassistant_error is None:  # noqa: E111
     HomeAssistantError = _FallbackHomeAssistantError
     _HOMEASSISTANT_ERROR_IS_FALLBACK = True
-  else:
+  else:  # noqa: E111
     HomeAssistantError = resolved_homeassistant_error
     _HOMEASSISTANT_ERROR_IS_FALLBACK = False
 
-  ConfigEntryError = _get_exception(
+  ConfigEntryError = _get_exception(  # noqa: E111
     "ConfigEntryError",
     _config_entry_error_factory,
     exceptions_module,
   )
-  ConfigEntryAuthFailed = _get_exception(
+  ConfigEntryAuthFailed = _get_exception(  # noqa: E111
     "ConfigEntryAuthFailed",
     _auth_failed_factory,
     exceptions_module,
   )
-  ConfigEntryNotReady = _get_exception(
+  ConfigEntryNotReady = _get_exception(  # noqa: E111
     "ConfigEntryNotReady",
     _not_ready_factory,
     exceptions_module,
   )
-  ServiceValidationError = _get_exception(
+  ServiceValidationError = _get_exception(  # noqa: E111
     "ServiceValidationError",
     _service_validation_error_factory,
     exceptions_module,
   )
 
-  _notify_exception_callbacks()
+  _notify_exception_callbacks()  # noqa: E111
 
 
 def ensure_homeassistant_exception_symbols() -> None:
-  """Ensure exception exports mirror the active Home Assistant module."""
+  """Ensure exception exports mirror the active Home Assistant module."""  # noqa: E111
 
-  _refresh_exception_symbols(sys.modules.get("homeassistant.exceptions"))
+  _refresh_exception_symbols(sys.modules.get("homeassistant.exceptions"))  # noqa: E111
 
 
 ConfigEntryError = _config_entry_error_factory()
@@ -431,66 +429,66 @@ _refresh_exception_symbols(_ha_exceptions)
 
 
 def _utcnow() -> datetime:
-  """Return the current UTC time."""
+  """Return the current UTC time."""  # noqa: E111
 
-  return datetime.now(tz=UTC)
+  return datetime.now(tz=UTC)  # noqa: E111
 
 
 class ConfigEntryState(Enum):
-  """Minimal stand-in mirroring Home Assistant config entry states."""
+  """Minimal stand-in mirroring Home Assistant config entry states."""  # noqa: E111
 
-  NOT_LOADED = ("not_loaded", True)
-  LOADED = ("loaded", True)
-  SETUP_IN_PROGRESS = ("setup_in_progress", False)
-  SETUP_RETRY = ("setup_retry", True)
-  SETUP_ERROR = ("setup_error", True)
-  MIGRATION_ERROR = ("migration_error", False)
-  FAILED_UNLOAD = ("failed_unload", False)
-  UNLOAD_IN_PROGRESS = ("unload_in_progress", False)
+  NOT_LOADED = ("not_loaded", True)  # noqa: E111
+  LOADED = ("loaded", True)  # noqa: E111
+  SETUP_IN_PROGRESS = ("setup_in_progress", False)  # noqa: E111
+  SETUP_RETRY = ("setup_retry", True)  # noqa: E111
+  SETUP_ERROR = ("setup_error", True)  # noqa: E111
+  MIGRATION_ERROR = ("migration_error", False)  # noqa: E111
+  FAILED_UNLOAD = ("failed_unload", False)  # noqa: E111
+  UNLOAD_IN_PROGRESS = ("unload_in_progress", False)  # noqa: E111
 
-  def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
+  def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:  # noqa: E111
     """Create enum members that store the recoverability flag."""
 
     obj = object.__new__(cls)
     obj._value_ = value
     return obj
 
-  def __init__(self, _value: str, recoverable: bool) -> None:
+  def __init__(self, _value: str, recoverable: bool) -> None:  # noqa: E111
     """Store whether the state can be automatically recovered."""
 
     self._recoverable: bool = recoverable
 
-  @property
-  def recoverable(self) -> bool:
+  @property  # noqa: E111
+  def recoverable(self) -> bool:  # noqa: E111
     """Return whether the state can be recovered without user intervention."""
 
     return self._recoverable
 
-  @classmethod
-  def from_value(cls, value: str) -> ConfigEntryState:
+  @classmethod  # noqa: E111
+  def from_value(cls, value: str) -> ConfigEntryState:  # noqa: E111
     """Return the enum member matching ``value`` regardless of casing."""
 
     try:
-      return cls[value.upper()]
+      return cls[value.upper()]  # noqa: E111
     except KeyError:
-      for member in cls:
+      for member in cls:  # noqa: E111
         if member.value == value:
-          return member
+          return member  # noqa: E111
     raise ValueError(value)
 
 
 class ConfigEntryChange(Enum):
-  """Enum describing why a config entry update listener fired."""
+  """Enum describing why a config entry update listener fired."""  # noqa: E111
 
-  ADDED = "added"
-  REMOVED = "removed"
-  UPDATED = "updated"
+  ADDED = "added"  # noqa: E111
+  REMOVED = "removed"  # noqa: E111
+  UPDATED = "updated"  # noqa: E111
 
 
 class ConfigSubentry:
-  """Minimal compatibility stand-in for Home Assistant subentries."""
+  """Minimal compatibility stand-in for Home Assistant subentries."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     *,
     subentry_id: str,
@@ -509,10 +507,10 @@ class ConfigSubentry:
 def _build_subentries(
   subentries_data: Iterable[ConfigEntryDataMapping] | None,
 ) -> dict[str, ConfigSubentry]:
-  """Construct deterministic subentry placeholders."""
+  """Construct deterministic subentry placeholders."""  # noqa: E111
 
-  subentries: dict[str, ConfigSubentry] = {}
-  for index, subentry_data in enumerate(subentries_data or (), start=1):
+  subentries: dict[str, ConfigSubentry] = {}  # noqa: E111
+  for index, subentry_data in enumerate(subentries_data or (), start=1):  # noqa: E111
     subentry_id = (
       str(subentry_data.get("subentry_id"))
       if "subentry_id" in subentry_data
@@ -533,15 +531,15 @@ def _build_subentries(
       else None,
     )
 
-  return subentries
+  return subentries  # noqa: E111
 
 
 class ConfigEntry[RuntimeT]:  # type: ignore[override]
-  """Lightweight ConfigEntry implementation for test environments."""
+  """Lightweight ConfigEntry implementation for test environments."""  # noqa: E111
 
-  _id_source = count(1)
+  _id_source = count(1)  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     entry_id: str | None = None,
     *,
@@ -587,12 +585,12 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     self.pref_disable_discovery = pref_disable_discovery
     self.disabled_by = disabled_by
     if isinstance(state, str):
-      try:
+      try:  # noqa: E111
         self.state = ConfigEntryState.from_value(state)
-      except ValueError:
+      except ValueError:  # noqa: E111
         self.state = ConfigEntryState[state.upper()]
     else:
-      self.state = state
+      self.state = state  # noqa: E111
     self.discovery_keys = dict(discovery_keys or {})
     self.subentries = _build_subentries(subentries_data)
     self._supports_unload = supports_unload
@@ -622,8 +620,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     self.created_at: datetime = created_at or _utcnow()
     self.modified_at: datetime = modified_at or self.created_at
 
-  @property
-  def supports_options(self) -> bool:
+  @property  # noqa: E111
+  def supports_options(self) -> bool:  # noqa: E111
     """Return whether the entry exposes an options flow."""
 
     return self._resolve_supports_flag(
@@ -632,14 +630,14 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
       call_handler=True,
     )
 
-  @property
-  def supports_unload(self) -> bool:
+  @property  # noqa: E111
+  def supports_unload(self) -> bool:  # noqa: E111
     """Return whether the entry exposes an unload hook."""
 
     return self._resolve_supports_flag("_supports_unload", "async_unload_entry")
 
-  @property
-  def supports_remove_device(self) -> bool:
+  @property  # noqa: E111
+  def supports_remove_device(self) -> bool:  # noqa: E111
     """Return whether the entry exposes a remove-device hook."""
 
     return self._resolve_supports_flag(
@@ -647,8 +645,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
       "async_remove_config_entry_device",
     )
 
-  @property
-  def supports_reconfigure(self) -> bool:
+  @property  # noqa: E111
+  def supports_reconfigure(self) -> bool:  # noqa: E111
     """Return whether the entry exposes a reconfigure flow."""
 
     return self._resolve_supports_flag(
@@ -657,16 +655,16 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
       call_handler=True,
     )
 
-  @property
-  def supported_subentry_types(self) -> dict[str, dict[str, bool]]:
+  @property  # noqa: E111
+  def supported_subentry_types(self) -> dict[str, dict[str, bool]]:  # noqa: E111
     """Return the supported subentry types mapping."""
 
     if self._supported_subentry_types is not None:
-      return self._supported_subentry_types
+      return self._supported_subentry_types  # noqa: E111
 
     handler = HANDLERS.get(self.domain)
     if not handler or not hasattr(handler, "async_get_supported_subentry_types"):
-      return {}
+      return {}  # noqa: E111
 
     supported_flows = handler.async_get_supported_subentry_types(self)
     self._supported_subentry_types = {
@@ -680,7 +678,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     }
     return self._supported_subentry_types
 
-  def _resolve_supports_flag(
+  def _resolve_supports_flag(  # noqa: E111
     self,
     attr_name: str,
     handler_attribute: str,
@@ -689,17 +687,17 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
   ) -> bool:
     current = getattr(self, attr_name)
     if current is not None:
-      return current
+      return current  # noqa: E111
 
     handler = HANDLERS.get(self.domain)
     if not handler or not hasattr(handler, handler_attribute):
-      return False
+      return False  # noqa: E111
 
     current = bool(getattr(handler, handler_attribute)(self)) if call_handler else True
     setattr(self, attr_name, current)
     return current
 
-  def add_to_hass(self, hass: Any) -> None:
+  def add_to_hass(self, hass: Any) -> None:  # noqa: E111
     """Associate the entry with a Home Assistant instance."""
 
     self._hass = hass
@@ -709,9 +707,9 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
       None,
     )
     if isinstance(manager, dict):  # pragma: no branch - test helper hook
-      manager[self.entry_id] = self
+      manager[self.entry_id] = self  # noqa: E111
 
-  def add_update_listener(
+  def add_update_listener(  # noqa: E111
     self,
     listener: Callable[[Any, ConfigEntry[RuntimeT]], Awaitable[None] | None],
   ) -> Callable[[], None]:
@@ -720,12 +718,12 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     self.update_listeners.append(listener)
 
     def _remove() -> None:
-      if listener in self.update_listeners:
+      if listener in self.update_listeners:  # noqa: E111
         self.update_listeners.remove(listener)
 
     return _remove
 
-  def async_on_unload(
+  def async_on_unload(  # noqa: E111
     self,
     callback: Callable[[], Coroutine[Any, Any, None] | None],
   ) -> Callable[[], Coroutine[Any, Any, None] | None]:
@@ -734,84 +732,86 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     self._on_unload.append(callback)
     return callback
 
-  async def async_setup(self, hass: Any) -> bool:  # pragma: no cover - helper
+  async def async_setup(  # noqa: E111
+    self, hass: Any
+  ) -> bool:  # pragma: no cover - helper
     """Mark the entry as loaded when set up in tests."""
 
     self._hass = hass
     self.state = ConfigEntryState.LOADED
     return True
 
-  async def async_unload(self, hass: Any | None = None) -> bool:
+  async def async_unload(self, hass: Any | None = None) -> bool:  # noqa: E111
     """Mark the entry as not loaded and invoke unload callbacks."""
 
     self.state = ConfigEntryState.NOT_LOADED
     for callback in list(self._on_unload):
-      result = callback()
-      if hasattr(result, "__await__"):
+      result = callback()  # noqa: E111
+      if hasattr(result, "__await__"):  # noqa: E111
         await cast(Awaitable[Any], result)
     return True
 
 
 def _should_use_module_entry(entry_cls: Any) -> bool:
-  """Return ``True`` if the imported ConfigEntry already exposes HA semantics."""
+  """Return ``True`` if the imported ConfigEntry already exposes HA semantics."""  # noqa: E111
 
-  if not isinstance(entry_cls, type):
+  if not isinstance(entry_cls, type):  # noqa: E111
     return False
 
-  init = getattr(entry_cls, "__init__", None)
-  if init is None:
+  init = getattr(entry_cls, "__init__", None)  # noqa: E111
+  if init is None:  # noqa: E111
     return False
 
-  try:
+  try:  # noqa: E111
     signature = inspect.signature(init)  # type: ignore[arg-type]
-  except ValueError:  # pragma: no cover - signature unavailable
+  except ValueError:  # pragma: no cover - signature unavailable  # noqa: E111
     return False
-  except TypeError:  # pragma: no cover - signature unavailable
+  except TypeError:  # pragma: no cover - signature unavailable  # noqa: E111
     return False
 
-  parameter_names = {parameter.name for parameter in signature.parameters.values()}
-  return {"domain", "entry_id"}.issubset(parameter_names)
+  parameter_names = {parameter.name for parameter in signature.parameters.values()}  # noqa: E111
+  return {"domain", "entry_id"}.issubset(parameter_names)  # noqa: E111
 
 
 def _is_enum_type(value: Any) -> bool:
-  """Return ``True`` if ``value`` is an :class:`Enum` subclass."""
+  """Return ``True`` if ``value`` is an :class:`Enum` subclass."""  # noqa: E111
 
-  return isinstance(value, type) and issubclass(value, Enum)
+  return isinstance(value, type) and issubclass(value, Enum)  # noqa: E111
 
 
 def _sync_config_entry_symbols(
   config_entries_module: Any | None,
   core_module: Any | None,
 ) -> None:
-  """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""
+  """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""  # noqa: E111
 
-  # The compatibility layer needs to operate in two very different execution
-  # environments:
-  #
-  # 1. When the integration runs inside Home Assistant we should defer to the
-  #    real ``ConfigEntry`` implementation that ships with HA so that we do
-  #    not accidentally diverge from core behaviour.
-  # 2. When tests import PawControl without Home Assistant installed we fall
-  #    back to the lightweight shim defined in this module.  In that
-  #    situation multiple imports may race each other, so we patch both the
-  #    module globals and the ``homeassistant`` namespaces to ensure every
-  #    caller sees the same symbols.
-  #
-  # The branching below therefore checks whether a real Home Assistant
-  # implementation is available and, if not, injects the compatibility
-  # classes in the places the rest of the codebase expects to find them.
-  if config_entries_module is not None:
+  # The compatibility layer needs to operate in two very different execution  # noqa: E114, E501
+  # environments:  # noqa: E114
+  #  # noqa: E114
+  # 1. When the integration runs inside Home Assistant we should defer to the  # noqa: E114, E501
+  #    real ``ConfigEntry`` implementation that ships with HA so that we do  # noqa: E114, E501
+  #    not accidentally diverge from core behaviour.  # noqa: E114
+  # 2. When tests import PawControl without Home Assistant installed we fall  # noqa: E114, E501
+  #    back to the lightweight shim defined in this module.  In that  # noqa: E114
+  #    situation multiple imports may race each other, so we patch both the  # noqa: E114, E501
+  #    module globals and the ``homeassistant`` namespaces to ensure every  # noqa: E114
+  #    caller sees the same symbols.  # noqa: E114
+  #  # noqa: E114
+  # The branching below therefore checks whether a real Home Assistant  # noqa: E114
+  # implementation is available and, if not, injects the compatibility  # noqa: E114
+  # classes in the places the rest of the codebase expects to find them.  # noqa: E114
+  if config_entries_module is not None:  # noqa: E111
     module_entry_cls = getattr(config_entries_module, "ConfigEntry", None)
     if _should_use_module_entry(module_entry_cls):
-      globals()["ConfigEntry"] = cast(type[Any], module_entry_cls)
+      globals()["ConfigEntry"] = cast(type[Any], module_entry_cls)  # noqa: E111
     else:
-      config_entries_module.ConfigEntry = ConfigEntry
+      config_entries_module.ConfigEntry = ConfigEntry  # noqa: E111
 
     module_state = getattr(config_entries_module, "ConfigEntryState", None)
     if _is_enum_type(module_state):
-      globals()["ConfigEntryState"] = cast(type[Enum], module_state)
+      globals()["ConfigEntryState"] = cast(type[Enum], module_state)  # noqa: E111
     else:
-      config_entries_module.ConfigEntryState = ConfigEntryState
+      config_entries_module.ConfigEntryState = ConfigEntryState  # noqa: E111
 
     module_change = getattr(
       config_entries_module,
@@ -819,59 +819,59 @@ def _sync_config_entry_symbols(
       None,
     )
     if _is_enum_type(module_change):
-      globals()["ConfigEntryChange"] = cast(type[Enum], module_change)
+      globals()["ConfigEntryChange"] = cast(type[Enum], module_change)  # noqa: E111
     else:
-      config_entries_module.ConfigEntryChange = ConfigEntryChange
+      config_entries_module.ConfigEntryChange = ConfigEntryChange  # noqa: E111
 
-  if core_module is not None:
+  if core_module is not None:  # noqa: E111
     module_entry_cls = getattr(core_module, "ConfigEntry", None)
     if _should_use_module_entry(module_entry_cls):
-      globals()["ConfigEntry"] = cast(type[Any], module_entry_cls)
+      globals()["ConfigEntry"] = cast(type[Any], module_entry_cls)  # noqa: E111
     else:
-      core_module.ConfigEntry = ConfigEntry
+      core_module.ConfigEntry = ConfigEntry  # noqa: E111
 
     state_cls = getattr(core_module, "ConfigEntryState", None)
     if _is_enum_type(state_cls):
-      globals()["ConfigEntryState"] = cast(type[Enum], state_cls)
+      globals()["ConfigEntryState"] = cast(type[Enum], state_cls)  # noqa: E111
     else:
-      core_module.ConfigEntryState = ConfigEntryState
+      core_module.ConfigEntryState = ConfigEntryState  # noqa: E111
 
     change_cls = getattr(core_module, "ConfigEntryChange", None)
     if _is_enum_type(change_cls):
-      globals()["ConfigEntryChange"] = cast(type[Enum], change_cls)
+      globals()["ConfigEntryChange"] = cast(type[Enum], change_cls)  # noqa: E111
     else:
-      core_module.ConfigEntryChange = ConfigEntryChange
+      core_module.ConfigEntryChange = ConfigEntryChange  # noqa: E111
 
 
 _sync_config_entry_symbols(_ha_config_entries, _ha_core)
 
 
 def ensure_homeassistant_config_entry_symbols() -> None:
-  """Re-apply ConfigEntry exports when Home Assistant stubs are installed late."""
+  """Re-apply ConfigEntry exports when Home Assistant stubs are installed late."""  # noqa: E111
 
-  _sync_config_entry_symbols(
+  _sync_config_entry_symbols(  # noqa: E111
     sys.modules.get("homeassistant.config_entries"),
     sys.modules.get("homeassistant.core"),
   )
 
 
 def _fallback_service_registry() -> type[Any]:
-  if _ha_core is not None:
+  if _ha_core is not None:  # noqa: E111
     registry = getattr(_ha_core, "ServiceRegistry", None)
     if isinstance(registry, type):  # pragma: no cover - prefer HA implementation
-      return registry
+      return registry  # noqa: E111
 
-  @dataclass
-  class _ServiceCall:
+  @dataclass  # noqa: E111
+  class _ServiceCall:  # noqa: E111
     domain: str
     service: str
     data: JSONMapping
 
-  class ServiceRegistry:
+  class ServiceRegistry:  # noqa: E111
     """Simplified service registry for offline test environments."""
 
     def __init__(self) -> None:
-      self._services: dict[str, dict[str, Callable[..., Any]]] = {}
+      self._services: dict[str, dict[str, Callable[..., Any]]] = {}  # noqa: E111
 
     def async_register(
       self,
@@ -880,7 +880,7 @@ def _fallback_service_registry() -> type[Any]:
       handler: Callable[..., Any],
       schema: Any | None = None,
     ) -> None:
-      self._services.setdefault(domain, {})[service] = handler
+      self._services.setdefault(domain, {})[service] = handler  # noqa: E111
 
     async def async_call(
       self,
@@ -888,20 +888,20 @@ def _fallback_service_registry() -> type[Any]:
       service: str,
       data: JSONMapping | None = None,
     ) -> None:
-      handler = self._services.get(domain, {}).get(service)
-      if handler is None:
+      handler = self._services.get(domain, {}).get(service)  # noqa: E111
+      if handler is None:  # noqa: E111
         raise KeyError(f"Service {domain}.{service} not registered")
-      result = handler(_ServiceCall(domain, service, data or {}))
-      if hasattr(result, "__await__"):
+      result = handler(_ServiceCall(domain, service, data or {}))  # noqa: E111
+      if hasattr(result, "__await__"):  # noqa: E111
         await cast(Awaitable[Any], result)
 
     def async_services(self) -> dict[str, dict[str, Callable[..., Any]]]:
-      return self._services
+      return self._services  # noqa: E111
 
     def has_service(self, domain: str, service: str) -> bool:
-      return service in self._services.get(domain, {})
+      return service in self._services.get(domain, {})  # noqa: E111
 
-  return ServiceRegistry
+  return ServiceRegistry  # noqa: E111
 
 
 ServiceRegistry = _fallback_service_registry()

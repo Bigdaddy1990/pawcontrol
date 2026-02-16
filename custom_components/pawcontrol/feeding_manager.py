@@ -1,7 +1,5 @@
 """Feeding management with health-aware portions for PawControl."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import contextlib
@@ -45,7 +43,7 @@ from .utils import is_number
 
 # Support running as standalone module in tests
 try:  # pragma: no cover - fallback for direct test execution
-  from .health_calculator import (
+  from .health_calculator import (  # noqa: E111
     ActivityLevel,
     DietSafetyResult,
     HealthCalculator,
@@ -53,7 +51,7 @@ try:  # pragma: no cover - fallback for direct test execution
     LifeStage,
   )
 except ImportError:  # pragma: no cover
-  from custom_components.pawcontrol.health_calculator import (
+  from custom_components.pawcontrol.health_calculator import (  # noqa: E111
     ActivityLevel,
     DietSafetyResult,
     HealthCalculator,
@@ -75,142 +73,142 @@ MAX_PORTION_SAFETY_FACTOR = 0.6  # Maximum 60% of daily ration per portion
 
 
 class MealType(Enum):
-  """Meal type enumeration."""
+  """Meal type enumeration."""  # noqa: E111
 
-  BREAKFAST = "breakfast"
-  LUNCH = "lunch"
-  DINNER = "dinner"
-  SNACK = "snack"
-  TREAT = "treat"
-  SUPPLEMENT = "supplement"
+  BREAKFAST = "breakfast"  # noqa: E111
+  LUNCH = "lunch"  # noqa: E111
+  DINNER = "dinner"  # noqa: E111
+  SNACK = "snack"  # noqa: E111
+  TREAT = "treat"  # noqa: E111
+  SUPPLEMENT = "supplement"  # noqa: E111
 
 
 class FeedingScheduleType(Enum):
-  """Feeding schedule type enumeration."""
+  """Feeding schedule type enumeration."""  # noqa: E111
 
-  FLEXIBLE = "flexible"
-  STRICT = "strict"
-  CUSTOM = "custom"
+  FLEXIBLE = "flexible"  # noqa: E111
+  STRICT = "strict"  # noqa: E111
+  CUSTOM = "custom"  # noqa: E111
 
 
 class FeedingMedicationData(TypedDict, total=False):
-  """Optional medication context attached to scheduled feedings."""
+  """Optional medication context attached to scheduled feedings."""  # noqa: E111
 
-  name: str
-  dose: str
-  time: str
+  name: str  # noqa: E111
+  dose: str  # noqa: E111
+  time: str  # noqa: E111
 
 
 class FeedingBatchEntry(TypedDict, total=False):
-  """Batch-feeding payload accepted by ``async_batch_add_feedings``."""
+  """Batch-feeding payload accepted by ``async_batch_add_feedings``."""  # noqa: E111
 
-  dog_id: Required[str]
-  amount: float
-  meal_type: str | None
-  time: datetime | None
-  timestamp: datetime | None
-  notes: str | None
-  feeder: str | None
-  scheduled: bool
-  with_medication: bool
-  medication_name: str | None
-  medication_dose: str | None
-  medication_time: str | None
+  dog_id: Required[str]  # noqa: E111
+  amount: float  # noqa: E111
+  meal_type: str | None  # noqa: E111
+  time: datetime | None  # noqa: E111
+  timestamp: datetime | None  # noqa: E111
+  notes: str | None  # noqa: E111
+  feeder: str | None  # noqa: E111
+  scheduled: bool  # noqa: E111
+  with_medication: bool  # noqa: E111
+  medication_name: str | None  # noqa: E111
+  medication_dose: str | None  # noqa: E111
+  medication_time: str | None  # noqa: E111
 
 
 class FeedingAddParams(TypedDict, total=False):
-  """Keyword parameters forwarded to ``async_add_feeding``."""
+  """Keyword parameters forwarded to ``async_add_feeding``."""  # noqa: E111
 
-  amount: float
-  meal_type: str | None
-  time: datetime | None
-  timestamp: datetime | None
-  notes: str | None
-  feeder: str | None
-  scheduled: bool
-  with_medication: bool
-  medication_name: str | None
-  medication_dose: str | None
-  medication_time: str | None
+  amount: float  # noqa: E111
+  meal_type: str | None  # noqa: E111
+  time: datetime | None  # noqa: E111
+  timestamp: datetime | None  # noqa: E111
+  notes: str | None  # noqa: E111
+  feeder: str | None  # noqa: E111
+  scheduled: bool  # noqa: E111
+  with_medication: bool  # noqa: E111
+  medication_name: str | None  # noqa: E111
+  medication_dose: str | None  # noqa: E111
+  medication_time: str | None  # noqa: E111
 
 
 class FeedingHealthUpdatePayload(TypedDict, total=False):
-  """Incremental health-update payload consumed by the feeding manager."""
+  """Incremental health-update payload consumed by the feeding manager."""  # noqa: E111
 
-  weight: float | int
-  ideal_weight: float | int
-  age_months: int | float | None
-  activity_level: str
-  body_condition_score: float | int | None
-  health_conditions: list[str]
-  weight_goal: str
+  weight: float | int  # noqa: E111
+  ideal_weight: float | int  # noqa: E111
+  age_months: int | float | None  # noqa: E111
+  activity_level: str  # noqa: E111
+  body_condition_score: float | int | None  # noqa: E111
+  health_conditions: list[str]  # noqa: E111
+  weight_goal: str  # noqa: E111
 
 
 class FeedingDogMetadata(TypedDict, total=False):
-  """Cached dog metadata maintained for compatibility with legacy helpers."""
+  """Cached dog metadata maintained for compatibility with legacy helpers."""  # noqa: E111
 
-  dog_id: Required[str]
-  dog_name: str | None
-  weight: float
-  ideal_weight: float | None
-  activity_level: str | None
-  age_months: int | None
-  breed: str | None
-  breed_size: str
-  weight_goal: str | None
-  health_conditions: list[str]
-  feeding_config: JSONMutableMapping | JSONMapping
-  meals_per_day: int
-  diabetic_mode: bool
-  carb_limit_percent: int | None
+  dog_id: Required[str]  # noqa: E111
+  dog_name: str | None  # noqa: E111
+  weight: float  # noqa: E111
+  ideal_weight: float | None  # noqa: E111
+  activity_level: str | None  # noqa: E111
+  age_months: int | None  # noqa: E111
+  breed: str | None  # noqa: E111
+  breed_size: str  # noqa: E111
+  weight_goal: str | None  # noqa: E111
+  health_conditions: list[str]  # noqa: E111
+  feeding_config: JSONMutableMapping | JSONMapping  # noqa: E111
+  meals_per_day: int  # noqa: E111
+  diabetic_mode: bool  # noqa: E111
+  carb_limit_percent: int | None  # noqa: E111
 
 
 class FeedingEmergencyConfigSnapshot(TypedDict):
-  """Snapshot of configuration values adjusted during emergency feeding."""
+  """Snapshot of configuration values adjusted during emergency feeding."""  # noqa: E111
 
-  daily_food_amount: float
-  meals_per_day: int
-  schedule_type: FeedingScheduleType
-  food_type: str
+  daily_food_amount: float  # noqa: E111
+  meals_per_day: int  # noqa: E111
+  schedule_type: FeedingScheduleType  # noqa: E111
+  food_type: str  # noqa: E111
 
 
 class FeedingSpecialDietInfo(TypedDict, total=False):
-  """Structured special-diet metadata for dashboards and diagnostics."""
+  """Structured special-diet metadata for dashboards and diagnostics."""  # noqa: E111
 
-  has_special_diet: Required[bool]
-  requirements: list[str]
-  categories: dict[str, list[str]]
-  total_requirements: int
-  priority_level: Literal["high", "normal"]
-  validation: DietValidationResult | None
+  has_special_diet: Required[bool]  # noqa: E111
+  requirements: list[str]  # noqa: E111
+  categories: dict[str, list[str]]  # noqa: E111
+  total_requirements: int  # noqa: E111
+  priority_level: Literal["high", "normal"]  # noqa: E111
+  validation: DietValidationResult | None  # noqa: E111
 
 
 class FeedingDietValidationStatus(TypedDict):
-  """Diet-validation payload exported via ``async_get_diet_validation_status``."""
+  """Diet-validation payload exported via ``async_get_diet_validation_status``."""  # noqa: E111
 
-  validation_data: DietValidationResult
-  summary: FeedingDietValidationSummary
-  special_diets: list[str]
-  last_updated: str
+  validation_data: DietValidationResult  # noqa: E111
+  summary: FeedingDietValidationSummary  # noqa: E111
+  special_diets: list[str]  # noqa: E111
+  last_updated: str  # noqa: E111
 
 
 class FeedingPortionValidationSuccess(TypedDict):
-  """Successful portion-validation payload."""
+  """Successful portion-validation payload."""  # noqa: E111
 
-  portion: float
-  meal_type: str
-  safety_validation: DietSafetyResult
-  diet_validation_summary: FeedingDietValidationSummary | None
-  health_aware_calculation: bool
-  config_id: str
+  portion: float  # noqa: E111
+  meal_type: str  # noqa: E111
+  safety_validation: DietSafetyResult  # noqa: E111
+  diet_validation_summary: FeedingDietValidationSummary | None  # noqa: E111
+  health_aware_calculation: bool  # noqa: E111
+  config_id: str  # noqa: E111
 
 
 class FeedingPortionValidationError(TypedDict):
-  """Failed portion-validation payload."""
+  """Failed portion-validation payload."""  # noqa: E111
 
-  error: str
-  portion: float
-  meal_type: NotRequired[str]
+  error: str  # noqa: E111
+  portion: float  # noqa: E111
+  meal_type: NotRequired[str]  # noqa: E111
 
 
 FeedingPortionValidationResult = (
@@ -219,139 +217,139 @@ FeedingPortionValidationResult = (
 
 
 class FeedingRecalculationResult(TypedDict, total=False):
-  """Result payload returned by ``async_recalculate_health_portions``."""
+  """Result payload returned by ``async_recalculate_health_portions``."""  # noqa: E111
 
-  status: Required[str]
-  dog_id: Required[str]
-  new_portions: dict[str, float]
-  total_daily_amount: float
-  previous_daily_target: float
-  updated_schedules: int
-  health_metrics_used: dict[str, float | str | None]
-  recalculated_at: str
-  message: str
+  status: Required[str]  # noqa: E111
+  dog_id: Required[str]  # noqa: E111
+  new_portions: dict[str, float]  # noqa: E111
+  total_daily_amount: float  # noqa: E111
+  previous_daily_target: float  # noqa: E111
+  updated_schedules: int  # noqa: E111
+  health_metrics_used: dict[str, float | str | None]  # noqa: E111
+  recalculated_at: str  # noqa: E111
+  message: str  # noqa: E111
 
 
 class FeedingActivityAdjustmentResult(TypedDict, total=False):
-  """Result payload returned by ``async_adjust_calories_for_activity``."""
+  """Result payload returned by ``async_adjust_calories_for_activity``."""  # noqa: E111
 
-  status: Required[str]
-  dog_id: Required[str]
-  old_activity_level: str | None
-  new_activity_level: str
-  old_daily_calories: float | int | None
-  new_daily_calories: float | int | None
-  old_daily_amount_g: float
-  new_daily_amount_g: float
-  adjustment_percent: float
-  temporary: bool
-  duration_hours: int | None
-  adjusted_at: str
-  message: str
-  reversion_scheduled: NotRequired[bool]
+  status: Required[str]  # noqa: E111
+  dog_id: Required[str]  # noqa: E111
+  old_activity_level: str | None  # noqa: E111
+  new_activity_level: str  # noqa: E111
+  old_daily_calories: float | int | None  # noqa: E111
+  new_daily_calories: float | int | None  # noqa: E111
+  old_daily_amount_g: float  # noqa: E111
+  new_daily_amount_g: float  # noqa: E111
+  adjustment_percent: float  # noqa: E111
+  temporary: bool  # noqa: E111
+  duration_hours: int | None  # noqa: E111
+  adjusted_at: str  # noqa: E111
+  message: str  # noqa: E111
+  reversion_scheduled: NotRequired[bool]  # noqa: E111
 
 
 class FeedingDiabeticActivationResult(TypedDict, total=False):
-  """Result payload returned by ``async_activate_diabetic_feeding_mode``."""
+  """Result payload returned by ``async_activate_diabetic_feeding_mode``."""  # noqa: E111
 
-  status: Required[str]
-  dog_id: Required[str]
-  old_meals_per_day: int
-  new_meals_per_day: int
-  carb_limit_percent: int
-  monitor_blood_glucose: bool
-  schedule_type: str
-  meal_times: list[str]
-  portion_sizes: list[float]
-  special_diet_updated: list[str]
-  activated_at: str
+  status: Required[str]  # noqa: E111
+  dog_id: Required[str]  # noqa: E111
+  old_meals_per_day: int  # noqa: E111
+  new_meals_per_day: int  # noqa: E111
+  carb_limit_percent: int  # noqa: E111
+  monitor_blood_glucose: bool  # noqa: E111
+  schedule_type: str  # noqa: E111
+  meal_times: list[str]  # noqa: E111
+  portion_sizes: list[float]  # noqa: E111
+  special_diet_updated: list[str]  # noqa: E111
+  activated_at: str  # noqa: E111
 
 
 class FeedingEmergencyActivationResult(TypedDict, total=False):
-  """Result payload returned by ``async_activate_emergency_feeding_mode``."""
+  """Result payload returned by ``async_activate_emergency_feeding_mode``."""  # noqa: E111
 
-  status: Required[str]
-  dog_id: Required[str]
-  emergency_type: str
-  duration_days: int
-  portion_adjustment: float
-  old_daily_amount: float
-  new_daily_amount: float
-  old_meals_per_day: int
-  new_meals_per_day: int
-  food_type_recommendation: str
-  original_config: FeedingEmergencyConfigSnapshot
-  expires_at: str
-  activated_at: str
-  emergency_state: FeedingEmergencyState
-  restoration_scheduled: NotRequired[bool]
+  status: Required[str]  # noqa: E111
+  dog_id: Required[str]  # noqa: E111
+  emergency_type: str  # noqa: E111
+  duration_days: int  # noqa: E111
+  portion_adjustment: float  # noqa: E111
+  old_daily_amount: float  # noqa: E111
+  new_daily_amount: float  # noqa: E111
+  old_meals_per_day: int  # noqa: E111
+  new_meals_per_day: int  # noqa: E111
+  food_type_recommendation: str  # noqa: E111
+  original_config: FeedingEmergencyConfigSnapshot  # noqa: E111
+  expires_at: str  # noqa: E111
+  activated_at: str  # noqa: E111
+  emergency_state: FeedingEmergencyState  # noqa: E111
+  restoration_scheduled: NotRequired[bool]  # noqa: E111
 
 
 class FeedingTransitionResult(TypedDict, total=False):
-  """Result payload returned by ``async_start_diet_transition``."""
+  """Result payload returned by ``async_start_diet_transition``."""  # noqa: E111
 
-  status: Required[str]
-  dog_id: Required[str]
-  old_food_type: str
-  new_food_type: str
-  transition_days: int
-  gradual_increase_percent: int
-  transition_schedule: list[FeedingTransitionScheduleEntry]
-  expected_completion: str
-  started_at: str
-  message: str
+  status: Required[str]  # noqa: E111
+  dog_id: Required[str]  # noqa: E111
+  old_food_type: str  # noqa: E111
+  new_food_type: str  # noqa: E111
+  transition_days: int  # noqa: E111
+  gradual_increase_percent: int  # noqa: E111
+  transition_schedule: list[FeedingTransitionScheduleEntry]  # noqa: E111
+  expected_completion: str  # noqa: E111
+  started_at: str  # noqa: E111
+  message: str  # noqa: E111
 
 
 class FeedingPortionAdjustmentResult(TypedDict, total=False):
-  """Result payload returned by ``async_adjust_daily_portions``."""
+  """Result payload returned by ``async_adjust_daily_portions``."""  # noqa: E111
 
-  status: Required[str]
-  dog_id: Required[str]
-  adjustment_percent: int
-  original_daily_amount: float
-  new_daily_amount: float
-  absolute_change_g: float
-  updated_schedules: int
-  reason: str | None
-  temporary: bool
-  duration_days: int | None
-  adjusted_at: str
-  reversion_scheduled: bool
-  reversion_date: str
+  status: Required[str]  # noqa: E111
+  dog_id: Required[str]  # noqa: E111
+  adjustment_percent: int  # noqa: E111
+  original_daily_amount: float  # noqa: E111
+  new_daily_amount: float  # noqa: E111
+  absolute_change_g: float  # noqa: E111
+  updated_schedules: int  # noqa: E111
+  reason: str | None  # noqa: E111
+  temporary: bool  # noqa: E111
+  duration_days: int | None  # noqa: E111
+  adjusted_at: str  # noqa: E111
+  reversion_scheduled: bool  # noqa: E111
+  reversion_date: str  # noqa: E111
 
 
 class FeedingHealthSnackResult(TypedDict, total=False):
-  """Result payload returned by ``async_add_health_snack``."""
+  """Result payload returned by ``async_add_health_snack``."""  # noqa: E111
 
-  status: Required[str]
-  dog_id: Required[str]
-  snack_type: str
-  amount: float
-  health_benefit: str | None
-  feeding_event_id: str
-  notes: str | None
-  added_at: str
+  status: Required[str]  # noqa: E111
+  dog_id: Required[str]  # noqa: E111
+  snack_type: str  # noqa: E111
+  amount: float  # noqa: E111
+  health_benefit: str | None  # noqa: E111
+  feeding_event_id: str  # noqa: E111
+  notes: str | None  # noqa: E111
+  added_at: str  # noqa: E111
 
 
 @dataclass(slots=True, frozen=True)
 class FeedingEvent:
-  """Immutable feeding event for better caching."""
+  """Immutable feeding event for better caching."""  # noqa: E111
 
-  time: datetime
-  amount: float
-  meal_type: MealType | None = None
-  portion_size: float | None = None
-  food_type: str | None = None
-  notes: str | None = None
-  feeder: str | None = None
-  scheduled: bool = False
-  skipped: bool = False
-  with_medication: bool = False
-  medication_name: str | None = None
-  medication_dose: str | None = None
-  medication_time: str | None = None
+  time: datetime  # noqa: E111
+  amount: float  # noqa: E111
+  meal_type: MealType | None = None  # noqa: E111
+  portion_size: float | None = None  # noqa: E111
+  food_type: str | None = None  # noqa: E111
+  notes: str | None = None  # noqa: E111
+  feeder: str | None = None  # noqa: E111
+  scheduled: bool = False  # noqa: E111
+  skipped: bool = False  # noqa: E111
+  with_medication: bool = False  # noqa: E111
+  medication_name: str | None = None  # noqa: E111
+  medication_dose: str | None = None  # noqa: E111
+  medication_time: str | None = None  # noqa: E111
 
-  def to_dict(self) -> FeedingEventRecord:
+  def to_dict(self) -> FeedingEventRecord:  # noqa: E111
     """Convert to dictionary for storage."""
     return FeedingEventRecord(
       time=self.time.isoformat(),
@@ -372,40 +370,40 @@ class FeedingEvent:
 
 @dataclass(slots=True)
 class _DailyComplianceAccumulator:
-  """Internal accumulator for per-day compliance statistics."""
+  """Internal accumulator for per-day compliance statistics."""  # noqa: E111
 
-  date: str
-  feedings: list[FeedingEvent] = field(default_factory=list)
-  total_amount: float = 0.0
-  meal_types: set[str] = field(default_factory=set)
-  scheduled_feedings: int = 0
+  date: str  # noqa: E111
+  feedings: list[FeedingEvent] = field(default_factory=list)  # noqa: E111
+  total_amount: float = 0.0  # noqa: E111
+  meal_types: set[str] = field(default_factory=set)  # noqa: E111
+  scheduled_feedings: int = 0  # noqa: E111
 
 
 @dataclass(slots=True)
 class MealSchedule:
-  """Scheduled meal with configuration."""
+  """Scheduled meal with configuration."""  # noqa: E111
 
-  meal_type: MealType
-  scheduled_time: time
-  portion_size: float
-  enabled: bool = True
-  reminder_enabled: bool = True
-  reminder_minutes_before: int = 15
-  auto_log: bool = False
-  days_of_week: list[int] | None = None
+  meal_type: MealType  # noqa: E111
+  scheduled_time: time  # noqa: E111
+  portion_size: float  # noqa: E111
+  enabled: bool = True  # noqa: E111
+  reminder_enabled: bool = True  # noqa: E111
+  reminder_minutes_before: int = 15  # noqa: E111
+  auto_log: bool = False  # noqa: E111
+  days_of_week: list[int] | None = None  # noqa: E111
 
-  def is_due_today(self) -> bool:
+  def is_due_today(self) -> bool:  # noqa: E111
     """Check if meal is scheduled for today."""
     if not self.enabled:
-      return False
+      return False  # noqa: E111
 
     if self.days_of_week is None:
-      return True
+      return True  # noqa: E111
 
     today = dt_util.now().weekday()
     return today in self.days_of_week
 
-  def get_next_feeding_time(self) -> datetime:
+  def get_next_feeding_time(self) -> datetime:  # noqa: E111
     """Get next scheduled feeding time."""
     now = dt_util.now()
     today = now.date()
@@ -414,18 +412,18 @@ class MealSchedule:
     scheduled = dt_util.as_local(scheduled)
 
     if scheduled <= now:
-      scheduled += timedelta(days=1)
+      scheduled += timedelta(days=1)  # noqa: E111
 
     if self.days_of_week is not None:
-      while scheduled.weekday() not in self.days_of_week:
+      while scheduled.weekday() not in self.days_of_week:  # noqa: E111
         scheduled += timedelta(days=1)
 
     return scheduled
 
-  def get_reminder_time(self) -> datetime | None:
+  def get_reminder_time(self) -> datetime | None:  # noqa: E111
     """Get reminder time for this meal."""
     if not self.reminder_enabled:
-      return None
+      return None  # noqa: E111
 
     next_feeding = self.get_next_feeding_time()
     return next_feeding - timedelta(minutes=self.reminder_minutes_before)
@@ -434,137 +432,137 @@ class MealSchedule:
 def _normalise_health_override(
   data: JSONLikeMapping | None,
 ) -> HealthMetricsOverride | None:
-  """Coerce arbitrary mappings into ``HealthMetricsOverride`` payloads."""
+  """Coerce arbitrary mappings into ``HealthMetricsOverride`` payloads."""  # noqa: E111
 
-  if not data:
+  if not data:  # noqa: E111
     return None
 
-  override: HealthMetricsOverride = {}
+  override: HealthMetricsOverride = {}  # noqa: E111
 
-  if (weight := data.get("weight")) is not None and isinstance(
+  if (weight := data.get("weight")) is not None and isinstance(  # noqa: E111
     weight,
     int | float | str,
   ):
     override["weight"] = float(weight)
 
-  if (ideal_weight := data.get("ideal_weight")) is not None and isinstance(
+  if (ideal_weight := data.get("ideal_weight")) is not None and isinstance(  # noqa: E111
     ideal_weight,
     int | float | str,
   ):
     override["ideal_weight"] = float(ideal_weight)
 
-  if (age_months := data.get("age_months")) is not None and isinstance(
+  if (age_months := data.get("age_months")) is not None and isinstance(  # noqa: E111
     age_months,
     int | float | str,
   ):
     override["age_months"] = int(age_months)
 
-  conditions = data.get("health_conditions")
-  if isinstance(conditions, Sequence) and not isinstance(conditions, str | bytes):
+  conditions = data.get("health_conditions")  # noqa: E111
+  if isinstance(conditions, Sequence) and not isinstance(conditions, str | bytes):  # noqa: E111
     override["health_conditions"] = [
       condition for condition in conditions if isinstance(condition, str)
     ]
 
-  return override or None
+  return override or None  # noqa: E111
 
 
 class FeedingTransitionScheduleEntry(TypedDict):
-  """Daily transition ratios applied while changing diets."""
+  """Daily transition ratios applied while changing diets."""  # noqa: E111
 
-  day: int
-  old_food_percent: int
-  new_food_percent: int
-  date: str
+  day: int  # noqa: E111
+  old_food_percent: int  # noqa: E111
+  new_food_percent: int  # noqa: E111
+  date: str  # noqa: E111
 
 
 class FeedingTransitionData(TypedDict):
-  """Telemetry describing an in-progress feeding transition."""
+  """Telemetry describing an in-progress feeding transition."""  # noqa: E111
 
-  active: bool
-  start_date: str
-  old_food_type: str
-  new_food_type: str
-  transition_days: int
-  gradual_increase_percent: int
-  schedule: list[FeedingTransitionScheduleEntry]
-  current_day: int
+  active: bool  # noqa: E111
+  start_date: str  # noqa: E111
+  old_food_type: str  # noqa: E111
+  new_food_type: str  # noqa: E111
+  transition_days: int  # noqa: E111
+  gradual_increase_percent: int  # noqa: E111
+  schedule: list[FeedingTransitionScheduleEntry]  # noqa: E111
+  current_day: int  # noqa: E111
 
 
 class ComplianceIssue(TypedDict):
-  """Structured compliance issue telemetry."""
+  """Structured compliance issue telemetry."""  # noqa: E111
 
-  date: str
-  issues: list[str]
-  severity: str
+  date: str  # noqa: E111
+  issues: list[str]  # noqa: E111
+  severity: str  # noqa: E111
 
 
 class MissedMealEntry(TypedDict):
-  """Metadata describing a missed scheduled meal."""
+  """Metadata describing a missed scheduled meal."""  # noqa: E111
 
-  date: str
-  expected: int
-  actual: int
+  date: str  # noqa: E111
+  expected: int  # noqa: E111
+  actual: int  # noqa: E111
 
 
 class FeedingEventTelemetry(TypedDict, total=False):
-  """Serialized telemetry describing a recorded feeding event."""
+  """Serialized telemetry describing a recorded feeding event."""  # noqa: E111
 
-  time: str
-  amount: float
-  meal_type: str | None
-  portion_size: float | None
-  food_type: str | None
-  notes: str | None
-  feeder: str | None
-  scheduled: bool
-  skipped: bool
-  with_medication: bool
-  medication_name: str | None
-  medication_dose: str | None
-  medication_time: str | None
+  time: str  # noqa: E111
+  amount: float  # noqa: E111
+  meal_type: str | None  # noqa: E111
+  portion_size: float | None  # noqa: E111
+  food_type: str | None  # noqa: E111
+  notes: str | None  # noqa: E111
+  feeder: str | None  # noqa: E111
+  scheduled: bool  # noqa: E111
+  skipped: bool  # noqa: E111
+  with_medication: bool  # noqa: E111
+  medication_name: str | None  # noqa: E111
+  medication_dose: str | None  # noqa: E111
+  medication_time: str | None  # noqa: E111
 
 
 class DailyComplianceTelemetry(TypedDict):
-  """Telemetry summarising compliance statistics for a day."""
+  """Telemetry summarising compliance statistics for a day."""  # noqa: E111
 
-  date: str
-  feedings: list[FeedingEventTelemetry]
-  total_amount: float
-  meal_types: list[str]
-  scheduled_feedings: int
+  date: str  # noqa: E111
+  feedings: list[FeedingEventTelemetry]  # noqa: E111
+  total_amount: float  # noqa: E111
+  meal_types: list[str]  # noqa: E111
+  scheduled_feedings: int  # noqa: E111
 
 
 class FeedingComplianceSummary(TypedDict):
-  """Summary metrics for the compliance analysis window."""
+  """Summary metrics for the compliance analysis window."""  # noqa: E111
 
-  average_daily_amount: float
-  average_meals_per_day: float
-  expected_daily_amount: float
-  expected_meals_per_day: int
+  average_daily_amount: float  # noqa: E111
+  average_meals_per_day: float  # noqa: E111
+  expected_daily_amount: float  # noqa: E111
+  expected_meals_per_day: int  # noqa: E111
 
 
 class FeedingComplianceCompleted(TypedDict):
-  """Successful compliance analysis payload."""
+  """Successful compliance analysis payload."""  # noqa: E111
 
-  status: Literal["completed"]
-  dog_id: str
-  compliance_score: int
-  compliance_rate: float
-  days_analyzed: int
-  days_with_issues: int
-  compliance_issues: list[ComplianceIssue]
-  missed_meals: list[MissedMealEntry]
-  daily_analysis: dict[str, DailyComplianceTelemetry]
-  recommendations: list[str]
-  summary: FeedingComplianceSummary
-  checked_at: str
+  status: Literal["completed"]  # noqa: E111
+  dog_id: str  # noqa: E111
+  compliance_score: int  # noqa: E111
+  compliance_rate: float  # noqa: E111
+  days_analyzed: int  # noqa: E111
+  days_with_issues: int  # noqa: E111
+  compliance_issues: list[ComplianceIssue]  # noqa: E111
+  missed_meals: list[MissedMealEntry]  # noqa: E111
+  daily_analysis: dict[str, DailyComplianceTelemetry]  # noqa: E111
+  recommendations: list[str]  # noqa: E111
+  summary: FeedingComplianceSummary  # noqa: E111
+  checked_at: str  # noqa: E111
 
 
 class FeedingComplianceNoData(TypedDict):
-  """Compliance analysis result when insufficient telemetry exists."""
+  """Compliance analysis result when insufficient telemetry exists."""  # noqa: E111
 
-  status: Literal["no_data", "no_recent_data"]
-  message: str
+  status: Literal["no_data", "no_recent_data"]  # noqa: E111
+  message: str  # noqa: E111
 
 
 FeedingComplianceResult = FeedingComplianceCompleted | FeedingComplianceNoData
@@ -572,41 +570,41 @@ FeedingComplianceResult = FeedingComplianceCompleted | FeedingComplianceNoData
 
 @dataclass
 class FeedingConfig:
-  """Enhanced feeding configuration with health integration."""
+  """Enhanced feeding configuration with health integration."""  # noqa: E111
 
-  dog_id: str
-  meals_per_day: int = 2
-  daily_food_amount: float = 500.0
-  food_type: str = "dry_food"
-  special_diet: list[str] = field(default_factory=list)
-  schedule_type: FeedingScheduleType = FeedingScheduleType.FLEXIBLE
-  meal_schedules: list[MealSchedule] = field(default_factory=list)
-  treats_enabled: bool = True
-  max_treats_per_day: int = 3
-  water_tracking: bool = False
-  calorie_tracking: bool = False
-  calories_per_gram: float | None = None
-  portion_calculation_enabled: bool = True
-  medication_with_meals: bool = False
-  portion_tolerance: int = 10  # percentage
+  dog_id: str  # noqa: E111
+  meals_per_day: int = 2  # noqa: E111
+  daily_food_amount: float = 500.0  # noqa: E111
+  food_type: str = "dry_food"  # noqa: E111
+  special_diet: list[str] = field(default_factory=list)  # noqa: E111
+  schedule_type: FeedingScheduleType = FeedingScheduleType.FLEXIBLE  # noqa: E111
+  meal_schedules: list[MealSchedule] = field(default_factory=list)  # noqa: E111
+  treats_enabled: bool = True  # noqa: E111
+  max_treats_per_day: int = 3  # noqa: E111
+  water_tracking: bool = False  # noqa: E111
+  calorie_tracking: bool = False  # noqa: E111
+  calories_per_gram: float | None = None  # noqa: E111
+  portion_calculation_enabled: bool = True  # noqa: E111
+  medication_with_meals: bool = False  # noqa: E111
+  portion_tolerance: int = 10  # percentage  # noqa: E111
 
-  # Health integration fields
-  health_aware_portions: bool = True
-  dog_weight: float | None = None
-  ideal_weight: float | None = None
-  age_months: int | None = None
-  breed_size: str = "medium"
-  activity_level: str | None = None
-  body_condition_score: int | None = None
-  health_conditions: list[str] = field(default_factory=list)
-  weight_goal: str | None = None  # "maintain", "lose", "gain"
-  spayed_neutered: bool = True
+  # Health integration fields  # noqa: E114
+  health_aware_portions: bool = True  # noqa: E111
+  dog_weight: float | None = None  # noqa: E111
+  ideal_weight: float | None = None  # noqa: E111
+  age_months: int | None = None  # noqa: E111
+  breed_size: str = "medium"  # noqa: E111
+  activity_level: str | None = None  # noqa: E111
+  body_condition_score: int | None = None  # noqa: E111
+  health_conditions: list[str] = field(default_factory=list)  # noqa: E111
+  weight_goal: str | None = None  # "maintain", "lose", "gain"  # noqa: E111
+  spayed_neutered: bool = True  # noqa: E111
 
-  # Diet validation integration
-  diet_validation: DietValidationResult | None = None
-  transition_data: FeedingTransitionData | None = None
+  # Diet validation integration  # noqa: E114
+  diet_validation: DietValidationResult | None = None  # noqa: E111
+  transition_data: FeedingTransitionData | None = None  # noqa: E111
 
-  def calculate_portion_size(
+  def calculate_portion_size(  # noqa: E111
     self,
     meal_type: MealType | None = None,
     health_data: HealthMetricsOverride | None = None,
@@ -621,23 +619,23 @@ class FeedingConfig:
         Calculated portion size in grams
     """
     if self.meals_per_day <= 0:
-      return 0.0
+      return 0.0  # noqa: E111
 
     base_portion = self.daily_food_amount / self.meals_per_day
 
     if not self.portion_calculation_enabled:
-      return base_portion
+      return base_portion  # noqa: E111
 
     # Health-aware calculation if enabled
     if self.health_aware_portions:
-      try:
+      try:  # noqa: E111
         health_portion = self._calculate_health_aware_portion(
           meal_type,
           health_data,
         )
         if health_portion > 0:
-          return health_portion
-      except Exception as err:
+          return health_portion  # noqa: E111
+      except Exception as err:  # noqa: E111
         _LOGGER.warning(
           "Health-aware calculation failed for %s: %s",
           self.dog_id,
@@ -646,7 +644,7 @@ class FeedingConfig:
 
     # Fallback to basic meal-type calculation
     if not meal_type:
-      return base_portion
+      return base_portion  # noqa: E111
 
     # Meal-specific multipliers for better nutrition distribution
     meal_multipliers = {
@@ -663,15 +661,15 @@ class FeedingConfig:
 
     # Apply tolerance if configured
     if self.portion_tolerance > 0:
-      tolerance_factor = 1.0 + (self.portion_tolerance / 100.0)
-      calculated_portion = min(
+      tolerance_factor = 1.0 + (self.portion_tolerance / 100.0)  # noqa: E111
+      calculated_portion = min(  # noqa: E111
         calculated_portion * tolerance_factor,
         self.daily_food_amount * 0.6,
       )  # Max 60% in one meal
 
     return round(calculated_portion, 1)
 
-  def _calculate_health_aware_portion(
+  def _calculate_health_aware_portion(  # noqa: E111
     self,
     meal_type: MealType | None = None,
     health_data: HealthMetricsOverride | None = None,
@@ -689,8 +687,8 @@ class FeedingConfig:
     health_metrics = self._build_health_metrics(health_data)
 
     if not health_metrics.current_weight:
-      # No weight data - fall back to basic calculation
-      return 0.0
+      # No weight data - fall back to basic calculation  # noqa: E114
+      return 0.0  # noqa: E111
 
     # Calculate daily calorie requirement
     daily_calories = HealthCalculator.calculate_daily_calories(
@@ -705,13 +703,13 @@ class FeedingConfig:
     # Calculate portion adjustment factor with diet validation
     feeding_goals: FeedingGoalSettings = {}
     if self.weight_goal in {"maintain", "lose", "gain"}:
-      feeding_goals["weight_goal"] = cast(
+      feeding_goals["weight_goal"] = cast(  # noqa: E111
         Literal["maintain", "lose", "gain"],
         self.weight_goal,
       )
     if self.weight_goal == "lose":
-      # Could be configurable
-      feeding_goals["weight_loss_rate"] = "moderate"
+      # Could be configurable  # noqa: E114
+      feeding_goals["weight_loss_rate"] = "moderate"  # noqa: E111
 
     adjustment_factor = HealthCalculator.calculate_portion_adjustment_factor(
       health_metrics,
@@ -731,11 +729,11 @@ class FeedingConfig:
 
     # Apply meal-type distribution if specified
     if meal_type:
-      meal_distribution = self._get_meal_distribution()
-      meal_factor = meal_distribution.get(meal_type, 1.0)
-      portion = base_portion * meal_factor
+      meal_distribution = self._get_meal_distribution()  # noqa: E111
+      meal_factor = meal_distribution.get(meal_type, 1.0)  # noqa: E111
+      portion = base_portion * meal_factor  # noqa: E111
     else:
-      portion = base_portion
+      portion = base_portion  # noqa: E111
 
     # Apply safety limits
     min_portion = (
@@ -752,8 +750,8 @@ class FeedingConfig:
 
     # Log diet validation adjustments if applied
     if self.diet_validation:
-      validation_summary = self._get_diet_validation_summary()
-      if validation_summary.get("has_adjustments"):
+      validation_summary = self._get_diet_validation_summary()  # noqa: E111
+      if validation_summary.get("has_adjustments"):  # noqa: E111
         _LOGGER.info(
           "Diet validation adjustments applied to portion for %s: %s",
           self.dog_id,
@@ -762,14 +760,14 @@ class FeedingConfig:
 
     return round(portion, 1)
 
-  def _get_diet_validation_summary(self) -> FeedingDietValidationSummary:
+  def _get_diet_validation_summary(self) -> FeedingDietValidationSummary:  # noqa: E111
     """Get summary of diet validation adjustments."""
 
     total_diets = len(self.special_diet or [])
 
     validation = self.diet_validation
     if not validation:
-      return FeedingDietValidationSummary(
+      return FeedingDietValidationSummary(  # noqa: E111
         has_adjustments=False,
         adjustment_info="No validation data",
         conflict_count=0,
@@ -798,36 +796,36 @@ class FeedingConfig:
     )
 
     try:
-      validation_adjustment = HealthCalculator.calculate_diet_validation_adjustment(
+      validation_adjustment = HealthCalculator.calculate_diet_validation_adjustment(  # noqa: E111
         validation,
         self.special_diet,
       )
     except Exception as err:  # pragma: no cover - defensive logging
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Failed to calculate diet validation adjustment for %s: %s",
         self.dog_id,
         err,
       )
-      validation_adjustment = 1.0
+      validation_adjustment = 1.0  # noqa: E111
 
     percentage_adjustment = round((validation_adjustment - 1.0) * 100.0, 1)
 
     if percentage_adjustment > 0.5:
-      adjustment_direction = "increase"
+      adjustment_direction = "increase"  # noqa: E111
     elif percentage_adjustment < -0.5:
-      adjustment_direction = "decrease"
+      adjustment_direction = "decrease"  # noqa: E111
     else:
-      adjustment_direction = "none"
+      adjustment_direction = "none"  # noqa: E111
 
     safety_factor = "conservative" if validation_adjustment < 1.0 else "normal"
 
     adjustments: list[str] = []
     if conflicts:
-      adjustments.extend(
+      adjustments.extend(  # noqa: E111
         [f"Conflict: {conflict['type']}" for conflict in conflicts],
       )
     if warnings:
-      adjustments.extend(
+      adjustments.extend(  # noqa: E111
         [f"Warning: {warning['type']}" for warning in warnings],
       )
 
@@ -841,28 +839,28 @@ class FeedingConfig:
     compatibility_score = max(0, min(100, compatibility_score))
 
     if compatibility_score >= 85:
-      compatibility_level = "excellent"
+      compatibility_level = "excellent"  # noqa: E111
     elif compatibility_score >= 70:
-      compatibility_level = "good"
+      compatibility_level = "good"  # noqa: E111
     elif compatibility_score >= 55:
-      compatibility_level = "acceptable"
+      compatibility_level = "acceptable"  # noqa: E111
     elif compatibility_score >= 40:
-      compatibility_level = "concerning"
+      compatibility_level = "concerning"  # noqa: E111
     else:
-      compatibility_level = "poor"
+      compatibility_level = "poor"  # noqa: E111
 
     vet_recommended = bool(
       validation["recommended_vet_consultation"] or conflict_count > 0,
     )
 
     if conflict_count > 0:
-      consultation_urgency = "high"
+      consultation_urgency = "high"  # noqa: E111
     elif warning_count >= 2 or total_diets >= 5:
-      consultation_urgency = "medium"
+      consultation_urgency = "medium"  # noqa: E111
     elif warning_count > 0 or total_diets >= 4:
-      consultation_urgency = "low"
+      consultation_urgency = "low"  # noqa: E111
     else:
-      consultation_urgency = "none"
+      consultation_urgency = "none"  # noqa: E111
 
     has_adjustments = (
       bool(adjustments)
@@ -895,7 +893,7 @@ class FeedingConfig:
       warnings=cast(list[JSONMapping], warnings),
     )
 
-  def update_diet_validation(self, validation_data: DietValidationResult) -> None:
+  def update_diet_validation(self, validation_data: DietValidationResult) -> None:  # noqa: E111
     """Update diet validation data and trigger portion recalculation.
 
     Args:
@@ -906,13 +904,13 @@ class FeedingConfig:
     # Log validation update
     validation_summary = self._get_diet_validation_summary()
     if validation_summary.get("has_adjustments"):
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Diet validation updated for %s: %s",
         self.dog_id,
         validation_summary["adjustment_info"],
       )
 
-  def _build_health_metrics(
+  def _build_health_metrics(  # noqa: E111
     self,
     override_data: HealthMetricsOverride | None = None,
   ) -> HealthMetrics:
@@ -932,25 +930,25 @@ class FeedingConfig:
 
     # Apply overrides if provided
     if override_data:
-      if (override_weight := override_data.get("weight")) is not None:
+      if (override_weight := override_data.get("weight")) is not None:  # noqa: E111
         current_weight = float(override_weight)
-      if (override_ideal := override_data.get("ideal_weight")) is not None:
+      if (override_ideal := override_data.get("ideal_weight")) is not None:  # noqa: E111
         ideal_weight = float(override_ideal)
-      if (override_age := override_data.get("age_months")) is not None:
+      if (override_age := override_data.get("age_months")) is not None:  # noqa: E111
         age_months = int(override_age)
-      additional_conditions = override_data.get("health_conditions")
-      if additional_conditions:
+      additional_conditions = override_data.get("health_conditions")  # noqa: E111
+      if additional_conditions:  # noqa: E111
         health_conditions.extend(additional_conditions)
 
     # Determine life stage
     life_stage = None
     if age_months is not None:
-      try:
+      try:  # noqa: E111
         life_stage = HealthCalculator.calculate_life_stage(
           age_months,
           self.breed_size,
         )
-      except ValueError:
+      except ValueError:  # noqa: E111
         _LOGGER.warning(
           "Received invalid age_months=%s for %s; skipping life stage determination",
           age_months,
@@ -960,9 +958,9 @@ class FeedingConfig:
     # Parse activity level
     activity_level = None
     if self.activity_level:
-      try:
+      try:  # noqa: E111
         activity_level = ActivityLevel(self.activity_level)
-      except ValueError:
+      except ValueError:  # noqa: E111
         _LOGGER.warning(
           "Invalid activity level: %s",
           self.activity_level,
@@ -971,7 +969,7 @@ class FeedingConfig:
     # Parse body condition score
     body_condition_score = None
     if self.body_condition_score is not None:
-      body_condition_score = HealthCalculator.estimate_body_condition_score(
+      body_condition_score = HealthCalculator.estimate_body_condition_score(  # noqa: E111
         current_weight or 20.0,  # Default weight if missing
         ideal_weight,
         self.body_condition_score,
@@ -988,7 +986,7 @@ class FeedingConfig:
       special_diet=list(self.special_diet),
     )
 
-  def _estimate_calories_per_gram(self) -> float:
+  def _estimate_calories_per_gram(self) -> float:  # noqa: E111
     """Estimate calories per gram based on food type.
 
     Returns:
@@ -1005,7 +1003,7 @@ class FeedingConfig:
 
     return calorie_densities.get(self.food_type, 3.5)
 
-  def _get_meal_distribution(self) -> dict[MealType, float]:
+  def _get_meal_distribution(self) -> dict[MealType, float]:  # noqa: E111
     """Get meal distribution factors for health-optimized feeding.
 
     Returns:
@@ -1021,7 +1019,7 @@ class FeedingConfig:
       MealType.SUPPLEMENT: 0.05,  # Tiny supplements
     }
 
-  def get_health_summary(self) -> FeedingHealthSummary:
+  def get_health_summary(self) -> FeedingHealthSummary:  # noqa: E111
     """Get summary of health-related feeding configuration."""
 
     health_metrics = self._build_health_metrics()
@@ -1029,7 +1027,7 @@ class FeedingConfig:
     # Calculate daily calorie requirement if possible
     daily_calories = None
     if health_metrics.current_weight:
-      try:
+      try:  # noqa: E111
         daily_calories = HealthCalculator.calculate_daily_calories(
           weight=health_metrics.current_weight,
           life_stage=health_metrics.life_stage or LifeStage.ADULT,
@@ -1038,7 +1036,7 @@ class FeedingConfig:
           health_conditions=health_metrics.health_conditions,
           spayed_neutered=self.spayed_neutered,
         )
-      except Exception as err:
+      except Exception as err:  # noqa: E111
         _LOGGER.warning("Calorie calculation failed: %s", err)
 
     return FeedingHealthSummary(
@@ -1060,14 +1058,14 @@ class FeedingConfig:
       diet_validation_applied=self.diet_validation is not None,
     )
 
-  def get_special_diet_info(self) -> FeedingSpecialDietInfo:
+  def get_special_diet_info(self) -> FeedingSpecialDietInfo:  # noqa: E111
     """Get information about special diet requirements.
 
     Returns:
         Dictionary with special diet information
     """
     if not self.special_diet:
-      return {"has_special_diet": False, "requirements": [], "validation": None}
+      return {"has_special_diet": False, "requirements": [], "validation": None}  # noqa: E111
 
     # Categorize special diet requirements
     health_related = [
@@ -1100,21 +1098,21 @@ class FeedingConfig:
       validation=self.diet_validation,
     )
 
-  def get_active_schedules(self) -> list[MealSchedule]:
+  def get_active_schedules(self) -> list[MealSchedule]:  # noqa: E111
     """Get enabled meal schedules."""
     return [s for s in self.meal_schedules if s.enabled]
 
-  def get_todays_schedules(self) -> list[MealSchedule]:
+  def get_todays_schedules(self) -> list[MealSchedule]:  # noqa: E111
     """Get schedules due today."""
     return [s for s in self.meal_schedules if s.is_due_today()]
 
 
 class FeedingManager:
-  """Optimized feeding management with event-based reminders and caching."""
+  """Optimized feeding management with event-based reminders and caching."""  # noqa: E111
 
-  _MAX_SINGLE_FEEDING_GRAMS = 5000.0
+  _MAX_SINGLE_FEEDING_GRAMS = 5000.0  # noqa: E111
 
-  def __init__(self, hass: HomeAssistant, max_history: int = 100) -> None:
+  def __init__(self, hass: HomeAssistant, max_history: int = 100) -> None:  # noqa: E111
     """Initialize with configurable history limit.
 
     Args:
@@ -1158,7 +1156,7 @@ class FeedingManager:
     self._stats_cache_time: dict[str, datetime] = {}
     self._stats_cache_ttl = timedelta(minutes=5)
 
-  async def _offload_blocking(
+  async def _offload_blocking(  # noqa: E111
     self,
     description: str,
     func: Callable[..., T],
@@ -1169,18 +1167,18 @@ class FeedingManager:
 
     start = perf_counter()
     if kwargs:
-      func = partial(func, **kwargs)
+      func = partial(func, **kwargs)  # noqa: E111
     result = await self.hass.async_add_executor_job(func, *args)
     duration = perf_counter() - start
     if duration >= self._profile_threshold:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Async dependency audit: %s completed in %.3fs off the event loop",
         description,
         duration,
       )
     return result
 
-  def _apply_emergency_restoration(
+  def _apply_emergency_restoration(  # noqa: E111
     self,
     config: FeedingConfig,
     original_config: FeedingEmergencyConfigSnapshot,
@@ -1195,7 +1193,7 @@ class FeedingManager:
 
     self._invalidate_cache(dog_id)
 
-  async def async_initialize(
+  async def async_initialize(  # noqa: E111
     self,
     dogs: Sequence[FeedingManagerDogSetupPayload | JSONLikeMapping],
   ) -> None:
@@ -1206,50 +1204,50 @@ class FeedingManager:
             compatible with ``FeedingManagerDogSetupPayload``
     """
     async with self._lock:
-      # Reset caches so repeated initialisation (common in tests) does not
-      # leak previous dog metadata or reminder tasks.
-      for task in self._reminder_tasks.values():
+      # Reset caches so repeated initialisation (common in tests) does not  # noqa: E114
+      # leak previous dog metadata or reminder tasks.  # noqa: E114
+      for task in self._reminder_tasks.values():  # noqa: E111
         task.cancel()
-      self._reminder_tasks.clear()
-      self._reminder_events.clear()
-      self._next_reminders.clear()
-      self._feedings.clear()
-      self._configs.clear()
-      self._dogs.clear()
-      self._data_cache.clear()
-      self._cache_time.clear()
-      self._stats_cache.clear()
-      self._stats_cache_time.clear()
+      self._reminder_tasks.clear()  # noqa: E111
+      self._reminder_events.clear()  # noqa: E111
+      self._next_reminders.clear()  # noqa: E111
+      self._feedings.clear()  # noqa: E111
+      self._configs.clear()  # noqa: E111
+      self._dogs.clear()  # noqa: E111
+      self._data_cache.clear()  # noqa: E111
+      self._cache_time.clear()  # noqa: E111
+      self._stats_cache.clear()  # noqa: E111
+      self._stats_cache_time.clear()  # noqa: E111
 
-      batch_configs: dict[str, FeedingConfig] = {}
-      batch_dogs: dict[str, FeedingDogMetadata] = {}
+      batch_configs: dict[str, FeedingConfig] = {}  # noqa: E111
+      batch_dogs: dict[str, FeedingDogMetadata] = {}  # noqa: E111
 
-      for dog in dogs:
+      for dog in dogs:  # noqa: E111
         dog_id_raw = dog.get("dog_id")
         if not isinstance(dog_id_raw, str) or not dog_id_raw:
-          continue
+          continue  # noqa: E111
 
         dog_id = dog_id_raw
 
         weight = dog.get("weight")
         if not isinstance(weight, int | float | str):
-          raise ValueError(
+          raise ValueError(  # noqa: E111
             f"Invalid feeding configuration for {dog_id}: weight is required",
           )
 
         try:
-          parsed_weight = float(weight)
+          parsed_weight = float(weight)  # noqa: E111
         except ValueError:
-          raise ValueError(
+          raise ValueError(  # noqa: E111
             f"Invalid feeding configuration for {dog_id}: weight is required",
           ) from None
         except TypeError:
-          raise ValueError(
+          raise ValueError(  # noqa: E111
             f"Invalid feeding configuration for {dog_id}: weight is required",
           ) from None
 
         if parsed_weight <= 0:
-          raise ValueError(
+          raise ValueError(  # noqa: E111
             f"Invalid feeding configuration for {dog_id}: weight is required",
           )
 
@@ -1269,15 +1267,15 @@ class FeedingManager:
           ideal_weight,
           int | float | str,
         ):
-          try:
+          try:  # noqa: E111
             config.ideal_weight = float(ideal_weight)
-          except ValueError:  # pragma: no cover - defensive
+          except ValueError:  # pragma: no cover - defensive  # noqa: E111
             _LOGGER.debug(
               "Invalid ideal weight %s for %s; keeping existing value",
               ideal_weight,
               dog_id,
             )
-          except TypeError:  # pragma: no cover - defensive
+          except TypeError:  # pragma: no cover - defensive  # noqa: E111
             _LOGGER.debug(
               "Invalid ideal weight %s for %s; keeping existing value",
               ideal_weight,
@@ -1287,24 +1285,24 @@ class FeedingManager:
           age_months,
           int | float | str,
         ):
-          config.age_months = int(age_months)
+          config.age_months = int(age_months)  # noqa: E111
         if (activity := dog.get("activity_level")) and isinstance(
           activity,
           str,
         ):
-          config.activity_level = activity
+          config.activity_level = activity  # noqa: E111
         health_conditions = dog.get("health_conditions")
         if isinstance(health_conditions, Sequence) and not isinstance(
           health_conditions,
           str | bytes,
         ):
-          config.health_conditions = [
+          config.health_conditions = [  # noqa: E111
             condition for condition in health_conditions if isinstance(condition, str)
           ]
         if isinstance(weight_goal := dog.get("weight_goal"), str):
-          config.weight_goal = weight_goal
+          config.weight_goal = weight_goal  # noqa: E111
         if (special_diet := dog.get("special_diet")) is not None:
-          config.special_diet = self._normalize_special_diet(
+          config.special_diet = self._normalize_special_diet(  # noqa: E111
             special_diet,
           )
 
@@ -1328,16 +1326,16 @@ class FeedingManager:
           carb_limit_percent=None,
         )
 
-      # OPTIMIZATION: Batch update configs
-      self._configs.update(batch_configs)
-      self._dogs.update(batch_dogs)
+      # OPTIMIZATION: Batch update configs  # noqa: E114
+      self._configs.update(batch_configs)  # noqa: E111
+      self._dogs.update(batch_dogs)  # noqa: E111
 
-      # Setup reminders for all dogs with schedules
-      for dog_id, config in batch_configs.items():
+      # Setup reminders for all dogs with schedules  # noqa: E114
+      for dog_id, config in batch_configs.items():  # noqa: E111
         if config.schedule_type != FeedingScheduleType.FLEXIBLE:
-          await self._setup_reminder(dog_id)
+          await self._setup_reminder(dog_id)  # noqa: E111
 
-  async def _create_feeding_config(
+  async def _create_feeding_config(  # noqa: E111
     self,
     dog_id: str,
     config_data: JSONLikeMapping,
@@ -1501,7 +1499,7 @@ class FeedingManager:
     diet_validation_raw = config_data.get("diet_validation")
     diet_validation: DietValidationResult | None = None
     if isinstance(diet_validation_raw, Mapping):
-      diet_validation = cast(
+      diet_validation = cast(  # noqa: E111
         DietValidationResult,
         {k: v for k, v in diet_validation_raw.items() if isinstance(k, str)},
       )
@@ -1543,8 +1541,8 @@ class FeedingManager:
       ("lunch_time", MealType.LUNCH),
       ("dinner_time", MealType.DINNER),
     ]:
-      meal_time_raw = config_data.get(meal_name)
-      if isinstance(meal_time_raw, str | time) and (
+      meal_time_raw = config_data.get(meal_name)  # noqa: E111
+      if isinstance(meal_time_raw, str | time) and (  # noqa: E111
         parsed_time := self._parse_time(meal_time_raw)
       ):
         portion_size_raw = config_data.get(
@@ -1589,11 +1587,11 @@ class FeedingManager:
       snack_times_raw,
       str | bytes,
     ):
-      for snack_time_str in snack_times_raw:
+      for snack_time_str in snack_times_raw:  # noqa: E111
         if not isinstance(snack_time_str, str | time):
-          continue
+          continue  # noqa: E111
         if parsed_time := self._parse_time(snack_time_str):
-          meal_schedules.append(
+          meal_schedules.append(  # noqa: E111
             MealSchedule(
               meal_type=MealType.SNACK,
               scheduled_time=parsed_time,
@@ -1605,77 +1603,77 @@ class FeedingManager:
     config.meal_schedules = meal_schedules
     return config
 
-  def _parse_time(self, time_str: str | time) -> time | None:
+  def _parse_time(self, time_str: str | time) -> time | None:  # noqa: E111
     """Parse time string to time object."""
     if isinstance(time_str, time):
-      return time_str
+      return time_str  # noqa: E111
 
     try:
-      parts = time_str.split(":")
-      if len(parts) == 2:
+      parts = time_str.split(":")  # noqa: E111
+      if len(parts) == 2:  # noqa: E111
         return time(int(parts[0]), int(parts[1]))
-      if len(parts) == 3:
+      if len(parts) == 3:  # noqa: E111
         return time(int(parts[0]), int(parts[1]), int(parts[2]))
     except ValueError, AttributeError:
-      _LOGGER.warning("Failed to parse time: %s", time_str)
+      _LOGGER.warning("Failed to parse time: %s", time_str)  # noqa: E111
 
     return None
 
-  def _normalize_special_diet(self, raw_value: Any) -> list[str]:
+  def _normalize_special_diet(self, raw_value: Any) -> list[str]:  # noqa: E111
     """Normalize special diet configuration values into a list of strings."""
 
     if raw_value is None:
-      return []
+      return []  # noqa: E111
 
     if isinstance(raw_value, str):
-      stripped_value = raw_value.strip()
-      return [stripped_value] if stripped_value else []
+      stripped_value = raw_value.strip()  # noqa: E111
+      return [stripped_value] if stripped_value else []  # noqa: E111
 
     if isinstance(raw_value, Iterable) and not isinstance(raw_value, bytes | str):
-      normalized: list[str] = []
-      for item in raw_value:
+      normalized: list[str] = []  # noqa: E111
+      for item in raw_value:  # noqa: E111
         if not isinstance(item, str):
-          _LOGGER.debug(
+          _LOGGER.debug(  # noqa: E111
             "Ignoring non-string special diet entry for %s: %s",
             type(item).__name__,
             item,
           )
-          continue
+          continue  # noqa: E111
 
         stripped_item = item.strip()
         if stripped_item:
-          normalized.append(stripped_item)
+          normalized.append(stripped_item)  # noqa: E111
 
-      return normalized
+      return normalized  # noqa: E111
 
     _LOGGER.debug("Unsupported special diet format: %s", raw_value)
     return []
 
-  def _require_config(self, dog_id: str) -> FeedingConfig:
+  def _require_config(self, dog_id: str) -> FeedingConfig:  # noqa: E111
     """Return the FeedingConfig for ``dog_id`` or raise KeyError."""
 
     config = self._configs.get(dog_id)
     if config is None:
-      raise KeyError(dog_id)
+      raise KeyError(dog_id)  # noqa: E111
     return config
 
-  def _require_dog_record(self, dog_id: str) -> FeedingDogMetadata:
+  def _require_dog_record(self, dog_id: str) -> FeedingDogMetadata:  # noqa: E111
     """Return the cached dog metadata for ``dog_id``."""
 
     try:
-      return self._dogs[dog_id]
+      return self._dogs[dog_id]  # noqa: E111
     except KeyError as err:  # pragma: no cover - defensive
-      raise KeyError(dog_id) from err
+      raise KeyError(dog_id) from err  # noqa: E111
 
-  def _calculate_rer(self, weight: float, *, adjusted: bool = True) -> float:
+  def _calculate_rer(self, weight: float, *, adjusted: bool = True) -> float:  # noqa: E111
     """Calculate resting energy requirement for ``weight`` in kilograms."""
 
     if not is_number(weight):
-      raise ValueError("Weight must be a number")
+      raise ValueError("Weight must be a number")  # noqa: E111
 
     weight_value = float(weight)
     if weight_value <= 0:
-      raise ValueError("Weight must be greater than zero")
+      raise ValueError("Weight must be greater than zero")  # noqa: E111
 
     effective_weight = (
       weight_value - 7 if adjusted and weight_value > 7 else weight_value
@@ -1684,7 +1682,7 @@ class FeedingManager:
 
     return 70.0 * (effective_weight**0.75)
 
-  def calculate_daily_calories(self, dog_id: str) -> float:
+  def calculate_daily_calories(self, dog_id: str) -> float:  # noqa: E111
     """Return the daily calorie recommendation for ``dog_id``."""
 
     dog = self._require_dog_record(dog_id)
@@ -1692,44 +1690,44 @@ class FeedingManager:
 
     weight = dog.get("weight") or config.dog_weight
     if weight is None:
-      raise ValueError("Dog weight is required for calorie calculation")
+      raise ValueError("Dog weight is required for calorie calculation")  # noqa: E111
 
     weight_value = float(weight)
     target_weight = config.ideal_weight
     if config.weight_goal in {"lose", "gain"} and target_weight:
-      with contextlib.suppress(TypeError, ValueError):
+      with contextlib.suppress(TypeError, ValueError):  # noqa: E111
         weight_value = float(target_weight)
 
     age_months = dog.get("age_months") or config.age_months or 24
     breed_size = dog.get("breed_size") or config.breed_size or "medium"
 
     with contextlib.suppress(ValueError, TypeError):
-      HealthCalculator.calculate_life_stage(int(age_months), breed_size)
+      HealthCalculator.calculate_life_stage(int(age_months), breed_size)  # noqa: E111
 
     activity_source = (
       config.activity_level or dog.get("activity_level") or ActivityLevel.MODERATE.value
     )
     try:
-      activity_level = ActivityLevel(activity_source)
+      activity_level = ActivityLevel(activity_source)  # noqa: E111
     except ValueError:
-      activity_level = ActivityLevel.MODERATE
+      activity_level = ActivityLevel.MODERATE  # noqa: E111
 
     base_weight = weight_value
     adjusted_rer = True
     if config.weight_goal == "lose" and config.ideal_weight:
-      try:
+      try:  # noqa: E111
         base_weight = float(config.ideal_weight)
         adjusted_rer = False
-      except ValueError:  # pragma: no cover - defensive
+      except ValueError:  # pragma: no cover - defensive  # noqa: E111
         base_weight = weight_value
-      except TypeError:  # pragma: no cover - defensive
+      except TypeError:  # pragma: no cover - defensive  # noqa: E111
         base_weight = weight_value
     elif config.weight_goal == "gain" and config.ideal_weight:
-      try:
+      try:  # noqa: E111
         base_weight = float(config.ideal_weight)
-      except ValueError:
+      except ValueError:  # noqa: E111
         base_weight = weight_value
-      except TypeError:
+      except TypeError:  # noqa: E111
         base_weight = weight_value
 
     rer = self._calculate_rer(base_weight, adjusted=adjusted_rer)
@@ -1745,7 +1743,7 @@ class FeedingManager:
 
     return round(rer * multiplier, 1)
 
-  def calculate_portion(self, dog_id: str, meal_type: str | None = None) -> float:
+  def calculate_portion(self, dog_id: str, meal_type: str | None = None) -> float:  # noqa: E111
     """Return the suggested portion size for ``dog_id`` and ``meal_type``."""
 
     config = self._require_config(dog_id)
@@ -1763,7 +1761,7 @@ class FeedingManager:
     portion = daily_grams / meals
     return round(portion, 1)
 
-  async def _setup_reminder(self, dog_id: str) -> None:
+  async def _setup_reminder(self, dog_id: str) -> None:  # noqa: E111
     """Setup event-based reminder for a dog.
 
     OPTIMIZATION: Uses events instead of sleep loops.
@@ -1773,7 +1771,7 @@ class FeedingManager:
     """
     # Cancel existing reminder
     if dog_id in self._reminder_tasks:
-      self._reminder_tasks[dog_id].cancel()
+      self._reminder_tasks[dog_id].cancel()  # noqa: E111
 
     # Create event for reminder updates
     self._reminder_events[dog_id] = asyncio.Event()
@@ -1783,7 +1781,7 @@ class FeedingManager:
       self._reminder_handler(dog_id),
     )
 
-  async def _reminder_handler(self, dog_id: str) -> None:
+  async def _reminder_handler(self, dog_id: str) -> None:  # noqa: E111
     """Event-based reminder handler.
 
     OPTIMIZATION: Uses events to wake up instead of continuous sleeping.
@@ -1794,35 +1792,35 @@ class FeedingManager:
     event = self._reminder_events[dog_id]
 
     while True:
-      try:
+      try:  # noqa: E111
         config = self._configs.get(dog_id)
         if not config:
-          break
+          break  # noqa: E111
 
         # Calculate next reminder
         next_reminder = await self._calculate_next_reminder(config)
 
         if next_reminder:
-          self._next_reminders[dog_id] = next_reminder
+          self._next_reminders[dog_id] = next_reminder  # noqa: E111
 
-          # Wait until reminder time or event signal
-          now = dt_util.now()
-          if next_reminder > now:
+          # Wait until reminder time or event signal  # noqa: E114
+          now = dt_util.now()  # noqa: E111
+          if next_reminder > now:  # noqa: E111
             wait_seconds = (next_reminder - now).total_seconds()
 
             # Wait for timeout or event signal
             try:
-              await asyncio.wait_for(event.wait(), timeout=wait_seconds)
-              # Event was set - recalculate
-              event.clear()
-              continue
+              await asyncio.wait_for(event.wait(), timeout=wait_seconds)  # noqa: E111
+              # Event was set - recalculate  # noqa: E114
+              event.clear()  # noqa: E111
+              continue  # noqa: E111
             except TimeoutError:
-              # Time to send reminder
-              schedule = await self._get_reminder_schedule(
+              # Time to send reminder  # noqa: E114
+              schedule = await self._get_reminder_schedule(  # noqa: E111
                 config,
                 next_reminder,
               )
-              if schedule:
+              if schedule:  # noqa: E111
                 _LOGGER.info(
                   "Feeding reminder for %s: %s in %d minutes",
                   dog_id,
@@ -1830,13 +1828,13 @@ class FeedingManager:
                   schedule.reminder_minutes_before,
                 )
         else:
-          # No reminders - wait for event signal
-          await event.wait()
-          event.clear()
+          # No reminders - wait for event signal  # noqa: E114
+          await event.wait()  # noqa: E111
+          event.clear()  # noqa: E111
 
-      except asyncio.CancelledError:
+      except asyncio.CancelledError:  # noqa: E111
         break
-      except Exception as err:
+      except Exception as err:  # noqa: E111
         _LOGGER.error(
           "Error in reminder handler for %s: %s",
           dog_id,
@@ -1844,7 +1842,7 @@ class FeedingManager:
         )
         await asyncio.sleep(60)  # Error recovery
 
-  async def _calculate_next_reminder(self, config: FeedingConfig) -> datetime | None:
+  async def _calculate_next_reminder(self, config: FeedingConfig) -> datetime | None:  # noqa: E111
     """Calculate next reminder time for a config.
 
     Args:
@@ -1856,8 +1854,8 @@ class FeedingManager:
     next_reminder = None
 
     for schedule in config.get_todays_schedules():
-      reminder_time = schedule.get_reminder_time()
-      if (
+      reminder_time = schedule.get_reminder_time()  # noqa: E111
+      if (  # noqa: E111
         reminder_time
         and reminder_time > dt_util.now()
         and (next_reminder is None or reminder_time < next_reminder)
@@ -1866,21 +1864,21 @@ class FeedingManager:
 
     # If no reminders today, check tomorrow
     if next_reminder is None:
-      tomorrow = dt_util.now() + timedelta(days=1)
-      tomorrow_start = tomorrow.replace(hour=0, minute=0, second=0)
+      tomorrow = dt_util.now() + timedelta(days=1)  # noqa: E111
+      tomorrow_start = tomorrow.replace(hour=0, minute=0, second=0)  # noqa: E111
 
-      for schedule in config.get_active_schedules():
+      for schedule in config.get_active_schedules():  # noqa: E111
         reminder_time = schedule.get_reminder_time()
         if (
           reminder_time
           and reminder_time >= tomorrow_start
           and (next_reminder is None or reminder_time < next_reminder)
         ):
-          next_reminder = reminder_time
+          next_reminder = reminder_time  # noqa: E111
 
     return next_reminder
 
-  async def _get_reminder_schedule(
+  async def _get_reminder_schedule(  # noqa: E111
     self,
     config: FeedingConfig,
     reminder_time: datetime,
@@ -1895,11 +1893,11 @@ class FeedingManager:
         Meal schedule or None
     """
     for schedule in config.get_active_schedules():
-      if schedule.get_reminder_time() == reminder_time:
+      if schedule.get_reminder_time() == reminder_time:  # noqa: E111
         return schedule
     return None
 
-  async def async_add_feeding(
+  async def async_add_feeding(  # noqa: E111
     self,
     dog_id: str,
     amount: float,
@@ -1931,60 +1929,60 @@ class FeedingManager:
         Created FeedingEvent
     """
     if not is_number(amount):
-      raise ValueError("Feeding amount must be a numeric value in grams")
+      raise ValueError("Feeding amount must be a numeric value in grams")  # noqa: E111
 
     amount_value = float(amount)
     if not (0 < amount_value <= self._MAX_SINGLE_FEEDING_GRAMS):
-      raise ValueError(
+      raise ValueError(  # noqa: E111
         f"Feeding amount must be between 0 and {self._MAX_SINGLE_FEEDING_GRAMS} grams",
       )
 
     if timestamp is not None:
-      time = timestamp
+      time = timestamp  # noqa: E111
 
     async with self._lock:
-      if dog_id not in self._configs:
+      if dog_id not in self._configs:  # noqa: E111
         raise KeyError(dog_id)
 
-      event_time = time or dt_util.now()
-      if event_time.tzinfo is None:
+      event_time = time or dt_util.now()  # noqa: E111
+      if event_time.tzinfo is None:  # noqa: E111
         event_time = dt_util.as_local(dt_util.as_utc(event_time))
-      else:
+      else:  # noqa: E111
         event_time = dt_util.as_local(event_time)
 
-      meal_type_enum = None
-      is_medication_meal = False
-      if meal_type:
+      meal_type_enum = None  # noqa: E111
+      is_medication_meal = False  # noqa: E111
+      if meal_type:  # noqa: E111
         normalized_meal = meal_type.lower()
         try:
-          meal_type_enum = MealType(normalized_meal)
+          meal_type_enum = MealType(normalized_meal)  # noqa: E111
         except ValueError:
-          if normalized_meal == "medication":
+          if normalized_meal == "medication":  # noqa: E111
             is_medication_meal = True
-          else:
+          else:  # noqa: E111
             _LOGGER.warning("Invalid meal type: %s", meal_type)
 
-      if is_medication_meal and not with_medication:
+      if is_medication_meal and not with_medication:  # noqa: E111
         with_medication = True
 
-      config = self._configs.get(dog_id)
-      portion_size = None
+      config = self._configs.get(dog_id)  # noqa: E111
+      portion_size = None  # noqa: E111
 
-      if config and meal_type_enum:
+      if config and meal_type_enum:  # noqa: E111
         # Use health-aware portion calculation if enabled
         if config.portion_calculation_enabled:
-          portion_size = config.calculate_portion_size(
+          portion_size = config.calculate_portion_size(  # noqa: E111
             meal_type_enum,
             health_data=None,  # Could pass real-time health data here
           )
         else:
-          # Fall back to schedule-based portion size
-          for schedule in config.meal_schedules:
+          # Fall back to schedule-based portion size  # noqa: E114
+          for schedule in config.meal_schedules:  # noqa: E111
             if schedule.meal_type == meal_type_enum:
-              portion_size = schedule.portion_size
-              break
+              portion_size = schedule.portion_size  # noqa: E111
+              break  # noqa: E111
 
-      event = FeedingEvent(
+      event = FeedingEvent(  # noqa: E111
         time=event_time,
         amount=amount_value,
         meal_type=meal_type_enum,
@@ -1999,22 +1997,22 @@ class FeedingManager:
         medication_time=medication_time,
       )
 
-      self._feedings.setdefault(dog_id, []).append(event)
+      self._feedings.setdefault(dog_id, []).append(event)  # noqa: E111
 
-      # OPTIMIZATION: Maintain history limit
-      if len(self._feedings[dog_id]) > self._max_history:
+      # OPTIMIZATION: Maintain history limit  # noqa: E114
+      if len(self._feedings[dog_id]) > self._max_history:  # noqa: E111
         self._feedings[dog_id] = self._feedings[dog_id][-self._max_history :]
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      # Signal reminder update if scheduled feeding
-      if scheduled and dog_id in self._reminder_events:
+      # Signal reminder update if scheduled feeding  # noqa: E114
+      if scheduled and dog_id in self._reminder_events:  # noqa: E111
         self._reminder_events[dog_id].set()
 
-      return event
+      return event  # noqa: E111
 
-  async def async_add_feeding_with_medication(
+  async def async_add_feeding_with_medication(  # noqa: E111
     self,
     dog_id: str,
     amount: float,
@@ -2040,8 +2038,8 @@ class FeedingManager:
     """
     config = self._configs.get(dog_id)
     if not config or not config.medication_with_meals:
-      # If medication linking is disabled, just record normal feeding
-      return await self.async_add_feeding(
+      # If medication linking is disabled, just record normal feeding  # noqa: E114
+      return await self.async_add_feeding(  # noqa: E111
         dog_id=dog_id,
         amount=amount,
         meal_type=meal_type,
@@ -2058,17 +2056,17 @@ class FeedingManager:
     # Combine feeding notes with medication info
     combined_notes = notes or ""
     if medication_data:
-      med_name = medication_data.get("name", "Unknown")
-      med_dose = medication_data.get("dose", "")
-      med_time = medication_data.get("time", "with meal")
+      med_name = medication_data.get("name", "Unknown")  # noqa: E111
+      med_dose = medication_data.get("dose", "")  # noqa: E111
+      med_time = medication_data.get("time", "with meal")  # noqa: E111
 
-      med_note = f"Medication: {med_name}"
-      if med_dose:
+      med_note = f"Medication: {med_name}"  # noqa: E111
+      if med_dose:  # noqa: E111
         med_note += f" ({med_dose})"
-      if med_time != "with meal":
+      if med_time != "with meal":  # noqa: E111
         med_note += f" at {med_time}"
 
-      combined_notes = f"{combined_notes}\n{med_note}" if combined_notes else med_note
+      combined_notes = f"{combined_notes}\n{med_note}" if combined_notes else med_note  # noqa: E111
 
     # Record feeding with medication info
     return await self.async_add_feeding(
@@ -2097,7 +2095,7 @@ class FeedingManager:
       else None,
     )
 
-  async def async_batch_add_feedings(
+  async def async_batch_add_feedings(  # noqa: E111
     self,
     feedings: Sequence[FeedingBatchEntry],
   ) -> list[FeedingEvent]:
@@ -2112,7 +2110,7 @@ class FeedingManager:
     events = []
 
     async with self._lock:
-      for raw_data in feedings:
+      for raw_data in feedings:  # noqa: E111
         batch_payload = dict(raw_data)
         dog_id = cast(str, batch_payload.pop("dog_id"))
         params = cast(FeedingAddParams, batch_payload)
@@ -2121,7 +2119,7 @@ class FeedingManager:
 
     return events
 
-  async def async_get_feedings(
+  async def async_get_feedings(  # noqa: E111
     self,
     dog_id: str,
     since: datetime | None = None,
@@ -2136,22 +2134,22 @@ class FeedingManager:
         List of feeding events
     """
     async with self._lock:
-      feedings = self._feedings.get(dog_id, [])
+      feedings = self._feedings.get(dog_id, [])  # noqa: E111
 
-      if since:
+      if since:  # noqa: E111
         # OPTIMIZATION: Binary search for efficiency with large lists
         left, right = 0, len(feedings)
         while left < right:
-          mid = (left + right) // 2
-          if feedings[mid].time < since:
+          mid = (left + right) // 2  # noqa: E111
+          if feedings[mid].time < since:  # noqa: E111
             left = mid + 1
-          else:
+          else:  # noqa: E111
             right = mid
         feedings = feedings[left:]
 
-      return list(feedings)
+      return list(feedings)  # noqa: E111
 
-  async def async_get_feeding_data(self, dog_id: str) -> FeedingSnapshot:
+  async def async_get_feeding_data(self, dog_id: str) -> FeedingSnapshot:  # noqa: E111
     """Get comprehensive feeding data with caching.
 
     OPTIMIZATION: Caches feeding data for 10 seconds.
@@ -2163,28 +2161,28 @@ class FeedingManager:
         Dictionary with feeding statistics
     """
     async with self._lock:
-      if dog_id not in self._configs and dog_id not in self._feedings:
+      if dog_id not in self._configs and dog_id not in self._feedings:  # noqa: E111
         empty_snapshot = self._empty_feeding_data(None)
         self._data_cache[dog_id] = empty_snapshot
         self._cache_time[dog_id] = dt_util.now()
         return empty_snapshot
 
-      # Check cache
-      if dog_id in self._data_cache:
+      # Check cache  # noqa: E114
+      if dog_id in self._data_cache:  # noqa: E111
         cache_time = self._cache_time.get(dog_id)
         if cache_time and (dt_util.now() - cache_time) < self._cache_ttl:
-          return self._data_cache[dog_id]
+          return self._data_cache[dog_id]  # noqa: E111
 
-      # Calculate feeding data
-      data = self._build_feeding_snapshot(dog_id)
+      # Calculate feeding data  # noqa: E114
+      data = self._build_feeding_snapshot(dog_id)  # noqa: E111
 
-      # Cache result
-      self._data_cache[dog_id] = data
-      self._cache_time[dog_id] = dt_util.now()
+      # Cache result  # noqa: E114
+      self._data_cache[dog_id] = data  # noqa: E111
+      self._cache_time[dog_id] = dt_util.now()  # noqa: E111
 
-      return data
+      return data  # noqa: E111
 
-  def get_feeding_data(self, dog_id: str) -> FeedingSnapshot:
+  def get_feeding_data(self, dog_id: str) -> FeedingSnapshot:  # noqa: E111
     """Synchronously return the feeding snapshot for ``dog_id``.
 
     Legacy tests and diagnostics relied on a synchronous accessor.  The
@@ -2193,15 +2191,15 @@ class FeedingManager:
     """
 
     if dog_id not in self._configs and dog_id not in self._feedings:
-      snapshot = self._empty_feeding_data(None)
-      self._data_cache[dog_id] = snapshot
-      self._cache_time[dog_id] = dt_util.now()
-      return snapshot
+      snapshot = self._empty_feeding_data(None)  # noqa: E111
+      self._data_cache[dog_id] = snapshot  # noqa: E111
+      self._cache_time[dog_id] = dt_util.now()  # noqa: E111
+      return snapshot  # noqa: E111
 
     cache_time = self._cache_time.get(dog_id)
     if cache_time and (dt_util.now() - cache_time) < self._cache_ttl:
-      cached = self._data_cache.get(dog_id)
-      if cached is not None:
+      cached = self._data_cache.get(dog_id)  # noqa: E111
+      if cached is not None:  # noqa: E111
         return cached
 
     data = self._build_feeding_snapshot(dog_id)
@@ -2209,7 +2207,7 @@ class FeedingManager:
     self._cache_time[dog_id] = dt_util.now()
     return data
 
-  def get_daily_stats(self, dog_id: str) -> FeedingDailyStats:
+  def get_daily_stats(self, dog_id: str) -> FeedingDailyStats:  # noqa: E111
     """Return today's feeding statistics for the given dog."""
 
     data = self.get_feeding_data(dog_id)
@@ -2244,28 +2242,28 @@ class FeedingManager:
       remaining_calories=remaining_calories,
     )
 
-  def get_feeding_config(self, dog_id: str) -> FeedingConfig | None:
+  def get_feeding_config(self, dog_id: str) -> FeedingConfig | None:  # noqa: E111
     """Return feeding configuration for a dog if available."""
 
     return self._configs.get(dog_id)
 
-  def get_active_emergency(self, dog_id: str) -> FeedingEmergencyState | None:
+  def get_active_emergency(self, dog_id: str) -> FeedingEmergencyState | None:  # noqa: E111
     """Return active or most recent emergency feeding state for a dog."""
 
     emergency = self._active_emergencies.get(dog_id)
     if not emergency:
-      return None
+      return None  # noqa: E111
 
     return FeedingEmergencyState(**emergency)
 
-  def _build_feeding_snapshot(self, dog_id: str) -> FeedingSnapshot:
+  def _build_feeding_snapshot(self, dog_id: str) -> FeedingSnapshot:  # noqa: E111
     """Calculate feeding data without cache."""
 
     feedings = self._feedings.get(dog_id, [])
     config = self._configs.get(dog_id)
 
     if not feedings:
-      return self._empty_feeding_data(config)
+      return self._empty_feeding_data(config)  # noqa: E111
 
     now = dt_util.now()
     today = now.date()
@@ -2275,30 +2273,30 @@ class FeedingManager:
     last_feeding: FeedingEvent | None = None
 
     for event in reversed(feedings):
-      if event.time.date() == today and not event.skipped:
+      if event.time.date() == today and not event.skipped:  # noqa: E111
         meal = event.meal_type.value if event.meal_type else "unknown"
         feedings_today[meal] = feedings_today.get(meal, 0) + 1
         daily_amount += float(event.amount)
 
-      if last_feeding is None and not event.skipped:
+      if last_feeding is None and not event.skipped:  # noqa: E111
         last_feeding = event
 
     last_hours: float | None = None
     if last_feeding:
-      last_hours = (now - last_feeding.time).total_seconds() / 3600
+      last_hours = (now - last_feeding.time).total_seconds() / 3600  # noqa: E111
 
     adherence = 100
     missed_feedings: list[FeedingMissedMeal] = []
 
     if config and config.schedule_type != FeedingScheduleType.FLEXIBLE:
-      todays_schedules = config.get_todays_schedules()
-      expected = len(todays_schedules)
-      if expected > 0:
+      todays_schedules = config.get_todays_schedules()  # noqa: E111
+      expected = len(todays_schedules)  # noqa: E111
+      if expected > 0:  # noqa: E111
         for schedule in todays_schedules:
-          scheduled_datetime = dt_util.as_local(
+          scheduled_datetime = dt_util.as_local(  # noqa: E111
             datetime.combine(today, schedule.scheduled_time),
           )
-          if (
+          if (  # noqa: E111
             scheduled_datetime <= now and schedule.meal_type.value not in feedings_today
           ):
             missed_feedings.append(
@@ -2320,11 +2318,11 @@ class FeedingManager:
     next_feeding: datetime | None = None
     next_type: str | None = None
     if config:
-      for schedule in config.get_active_schedules():
+      for schedule in config.get_active_schedules():  # noqa: E111
         candidate = schedule.get_next_feeding_time()
         if next_feeding is None or candidate < next_feeding:
-          next_feeding = candidate
-          next_type = schedule.meal_type.value
+          next_feeding = candidate  # noqa: E111
+          next_type = schedule.meal_type.value  # noqa: E111
 
     daily_amount_target = (
       float(
@@ -2340,19 +2338,19 @@ class FeedingManager:
     health_summary: FeedingHealthSummary | None = None
     calories_per_gram: float | None = None
     if config:
-      health_summary = config.get_health_summary()
-      calories_per_gram = health_summary.get("calories_per_gram")
-      if calories_per_gram is None:
+      health_summary = config.get_health_summary()  # noqa: E111
+      calories_per_gram = health_summary.get("calories_per_gram")  # noqa: E111
+      if calories_per_gram is None:  # noqa: E111
         calories_per_gram = config._estimate_calories_per_gram()
 
     daily_calorie_target: float | None = None
     if health_summary:
-      daily_calorie_target = cast(
+      daily_calorie_target = cast(  # noqa: E111
         float | None,
         health_summary.get("daily_calorie_requirement"),
       )
     if daily_calorie_target is None and config and calories_per_gram is not None:
-      daily_calorie_target = round(
+      daily_calorie_target = round(  # noqa: E111
         float(config.daily_food_amount) * float(calories_per_gram),
         1,
       )
@@ -2360,25 +2358,25 @@ class FeedingManager:
     total_calories_today: float | None = None
     calorie_goal_progress: float | None = None
     if calories_per_gram is not None and daily_amount:
-      total_calories_today = round(
+      total_calories_today = round(  # noqa: E111
         daily_amount * float(calories_per_gram),
         1,
       )
-      if daily_calorie_target:
+      if daily_calorie_target:  # noqa: E111
         try:
-          progress = (total_calories_today / daily_calorie_target) * 100
+          progress = (total_calories_today / daily_calorie_target) * 100  # noqa: E111
         except TypeError, ZeroDivisionError:
-          calorie_goal_progress = 0.0
+          calorie_goal_progress = 0.0  # noqa: E111
         else:
-          calorie_goal_progress = round(min(progress, 150.0), 1)
+          calorie_goal_progress = round(min(progress, 150.0), 1)  # noqa: E111
 
     portion_adjustment: float | None = None
     if config:
-      try:
+      try:  # noqa: E111
         health_metrics = config._build_health_metrics()
         feeding_goals: FeedingGoalSettings = {}
         if config.weight_goal in {"maintain", "lose", "gain"}:
-          feeding_goals["weight_goal"] = cast(
+          feeding_goals["weight_goal"] = cast(  # noqa: E111
             Literal["maintain", "lose", "gain"],
             config.weight_goal,
           )
@@ -2387,7 +2385,7 @@ class FeedingManager:
           feeding_goals if feeding_goals else None,
           config.diet_validation,
         )
-      except Exception as err:
+      except Exception as err:  # noqa: E111
         _LOGGER.debug(
           "Failed to calculate portion adjustment factor for %s: %s",
           dog_id,
@@ -2396,91 +2394,91 @@ class FeedingManager:
 
     diet_summary: FeedingDietValidationSummary | None = None
     if config and config.diet_validation:
-      diet_summary = config._get_diet_validation_summary()
+      diet_summary = config._get_diet_validation_summary()  # noqa: E111
 
     health_conditions: list[str] = []
     if health_summary:
-      health_conditions = list(
+      health_conditions = list(  # noqa: E111
         health_summary.get("health_conditions", []),
       )
     if config and config.health_conditions:
-      seen: set[str] = set(health_conditions)
-      for condition in config.health_conditions:
+      seen: set[str] = set(health_conditions)  # noqa: E111
+      for condition in config.health_conditions:  # noqa: E111
         if condition not in seen:
-          health_conditions.append(condition)
-          seen.add(condition)
+          health_conditions.append(condition)  # noqa: E111
+          seen.add(condition)  # noqa: E111
 
     daily_activity_level: str | None = None
     if health_summary and health_summary.get("activity_level"):
-      daily_activity_level = cast(
+      daily_activity_level = cast(  # noqa: E111
         str | None,
         health_summary.get("activity_level"),
       )
 
     weight_goal_progress: float | None = None
     if config and health_summary:
-      current_weight = health_summary.get("current_weight")
-      ideal_weight = health_summary.get("ideal_weight")
-      if is_number(current_weight) and is_number(ideal_weight):
+      current_weight = health_summary.get("current_weight")  # noqa: E111
+      ideal_weight = health_summary.get("ideal_weight")  # noqa: E111
+      if is_number(current_weight) and is_number(ideal_weight):  # noqa: E111
         current = float(current_weight)
         ideal = float(ideal_weight)
         try:
-          if config.weight_goal == "lose":
+          if config.weight_goal == "lose":  # noqa: E111
             ratio = ideal / current if current else 0
             weight_goal_progress = max(
               0.0,
               min(ratio * 100, 100.0),
             )
-          elif config.weight_goal == "gain":
+          elif config.weight_goal == "gain":  # noqa: E111
             ratio = current / ideal if ideal else 0
             weight_goal_progress = max(
               0.0,
               min(ratio * 100, 100.0),
             )
-          else:
+          else:  # noqa: E111
             diff = abs(current - ideal)
             weight_goal_progress = max(
               0.0,
               min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
             )
         except TypeError, ZeroDivisionError:
-          weight_goal_progress = None
+          weight_goal_progress = None  # noqa: E111
 
     emergency_mode: FeedingEmergencyState | None = None
     health_emergency = False
     emergency_state = self._active_emergencies.get(dog_id)
     if emergency_state:
-      emergency_copy = cast(FeedingEmergencyState, dict(emergency_state))
-      expires_at = emergency_copy.get("expires_at")
-      if expires_at:
+      emergency_copy = cast(FeedingEmergencyState, dict(emergency_state))  # noqa: E111
+      expires_at = emergency_copy.get("expires_at")  # noqa: E111
+      if expires_at:  # noqa: E111
         expires_dt = dt_util.parse_datetime(expires_at)
         if expires_dt and expires_dt < dt_util.utcnow():
-          emergency_copy["active"] = False
-          emergency_copy["status"] = emergency_copy.get(
+          emergency_copy["active"] = False  # noqa: E111
+          emergency_copy["status"] = emergency_copy.get(  # noqa: E111
             "status",
             "resolved",
           )
-      health_emergency = bool(emergency_copy.get("active", True))
-      emergency_mode = emergency_copy
+      health_emergency = bool(emergency_copy.get("active", True))  # noqa: E111
+      emergency_mode = emergency_copy  # noqa: E111
 
     meals_today = sum(feedings_today.values())
     remaining_calories: float | None = None
     if daily_calorie_target is not None and total_calories_today is not None:
-      remaining_calories = max(
+      remaining_calories = max(  # noqa: E111
         0.0,
         daily_calorie_target - total_calories_today,
       )
     elif calories_per_gram is not None:
-      try:
+      try:  # noqa: E111
         target_calories = daily_amount_target * float(calories_per_gram)
         consumed_calories = daily_amount * float(calories_per_gram)
         remaining_calories = max(
           0.0,
           target_calories - consumed_calories,
         )
-      except ValueError:  # pragma: no cover - defensive
+      except ValueError:  # pragma: no cover - defensive  # noqa: E111
         remaining_calories = None
-      except TypeError:  # pragma: no cover - defensive
+      except TypeError:  # pragma: no cover - defensive  # noqa: E111
         remaining_calories = None
 
     daily_stats = FeedingDailyStats(
@@ -2493,21 +2491,21 @@ class FeedingManager:
 
     health_status: FeedingHealthStatus = "insufficient_data"
     if health_emergency:
-      health_status = "emergency"
+      health_status = "emergency"  # noqa: E111
     elif total_calories_today is not None and daily_calorie_target:
-      try:
+      try:  # noqa: E111
         ratio = total_calories_today / daily_calorie_target
-      except TypeError, ZeroDivisionError:
+      except TypeError, ZeroDivisionError:  # noqa: E111
         health_status = "unknown"
-      else:
+      else:  # noqa: E111
         if ratio < 0.85:
-          health_status = "underfed"
+          health_status = "underfed"  # noqa: E111
         elif ratio > 1.15:
-          health_status = "overfed"
+          health_status = "overfed"  # noqa: E111
         else:
-          health_status = "on_track"
+          health_status = "on_track"  # noqa: E111
     elif portion_adjustment is not None:
-      health_status = "monitoring"
+      health_status = "monitoring"  # noqa: E111
 
     snapshot: FeedingSnapshot = FeedingSnapshot(
       status="ready",
@@ -2544,38 +2542,38 @@ class FeedingManager:
     )
 
     if config:
-      snapshot["config"] = {
+      snapshot["config"] = {  # noqa: E111
         "meals_per_day": config.meals_per_day,
         "food_type": config.food_type,
         "schedule_type": config.schedule_type.value,
       }
 
     if calories_per_gram is not None:
-      snapshot["calories_per_gram"] = round(float(calories_per_gram), 2)
+      snapshot["calories_per_gram"] = round(float(calories_per_gram), 2)  # noqa: E111
     if daily_calorie_target is not None:
-      snapshot["daily_calorie_target"] = daily_calorie_target
+      snapshot["daily_calorie_target"] = daily_calorie_target  # noqa: E111
     if total_calories_today is not None:
-      snapshot["total_calories_today"] = total_calories_today
+      snapshot["total_calories_today"] = total_calories_today  # noqa: E111
     if calorie_goal_progress is not None:
-      snapshot["calorie_goal_progress"] = calorie_goal_progress
+      snapshot["calorie_goal_progress"] = calorie_goal_progress  # noqa: E111
     if portion_adjustment is not None:
-      snapshot["portion_adjustment_factor"] = portion_adjustment
+      snapshot["portion_adjustment_factor"] = portion_adjustment  # noqa: E111
     snapshot["diet_validation_summary"] = diet_summary
 
     if health_conditions:
-      snapshot["health_conditions"] = health_conditions
+      snapshot["health_conditions"] = health_conditions  # noqa: E111
     if daily_activity_level is not None:
-      snapshot["daily_activity_level"] = daily_activity_level
+      snapshot["daily_activity_level"] = daily_activity_level  # noqa: E111
     if health_summary is not None and (
       portion_adjustment is not None or daily_activity_level is not None
     ):
-      snapshot["health_summary"] = health_summary
+      snapshot["health_summary"] = health_summary  # noqa: E111
     if weight_goal_progress is not None:
-      snapshot["weight_goal_progress"] = round(weight_goal_progress, 1)
+      snapshot["weight_goal_progress"] = round(weight_goal_progress, 1)  # noqa: E111
 
     return snapshot
 
-  def _empty_feeding_data(self, config: FeedingConfig | None) -> FeedingSnapshot:
+  def _empty_feeding_data(self, config: FeedingConfig | None) -> FeedingSnapshot:  # noqa: E111
     """Generate an empty feeding snapshot structure."""
 
     calories_per_gram = config._estimate_calories_per_gram() if config else None
@@ -2590,11 +2588,11 @@ class FeedingManager:
     remaining_calories: float | None = None
     daily_calorie_target: float | None = None
     if calories_per_gram is not None:
-      daily_calorie_target = round(
+      daily_calorie_target = round(  # noqa: E111
         daily_amount_target * float(calories_per_gram),
         1,
       )
-      remaining_calories = daily_calorie_target
+      remaining_calories = daily_calorie_target  # noqa: E111
 
     snapshot: FeedingSnapshot = FeedingSnapshot(
       status="no_data",
@@ -2633,19 +2631,19 @@ class FeedingManager:
     )
 
     if config and config.health_conditions:
-      snapshot["health_conditions"] = list(config.health_conditions)
+      snapshot["health_conditions"] = list(config.health_conditions)  # noqa: E111
     snapshot["diet_validation_summary"] = None
     snapshot["daily_activity_level"] = None
 
     if calories_per_gram is not None:
-      snapshot["calories_per_gram"] = round(float(calories_per_gram), 2)
+      snapshot["calories_per_gram"] = round(float(calories_per_gram), 2)  # noqa: E111
     if daily_calorie_target is not None:
-      snapshot["daily_calorie_target"] = daily_calorie_target
-      snapshot["total_calories_today"] = 0.0
+      snapshot["daily_calorie_target"] = daily_calorie_target  # noqa: E111
+      snapshot["total_calories_today"] = 0.0  # noqa: E111
 
     return snapshot
 
-  def _invalidate_cache(self, dog_id: str) -> None:
+  def _invalidate_cache(self, dog_id: str) -> None:  # noqa: E111
     """Invalidate caches for a dog.
 
     Args:
@@ -2657,10 +2655,10 @@ class FeedingManager:
     # Clear stats cache entries
     keys_to_remove = [key for key in self._stats_cache if key.startswith(f"{dog_id}_")]
     for key in keys_to_remove:
-      self._stats_cache.pop(key, None)
-      self._stats_cache_time.pop(key, None)
+      self._stats_cache.pop(key, None)  # noqa: E111
+      self._stats_cache_time.pop(key, None)  # noqa: E111
 
-  async def async_update_config(
+  async def async_update_config(  # noqa: E111
     self,
     dog_id: str,
     config_data: JSONLikeMapping,
@@ -2672,16 +2670,16 @@ class FeedingManager:
         config_data: New configuration data
     """
     async with self._lock:
-      config = await self._create_feeding_config(dog_id, config_data)
-      self._configs[dog_id] = config
+      config = await self._create_feeding_config(dog_id, config_data)  # noqa: E111
+      self._configs[dog_id] = config  # noqa: E111
 
-      dog_record = self._dogs.get(dog_id)
-      if dog_record is not None:
+      dog_record = self._dogs.get(dog_id)  # noqa: E111
+      if dog_record is not None:  # noqa: E111
         if (weight := dog_record.get("weight")) is not None:
-          with contextlib.suppress(TypeError, ValueError):
+          with contextlib.suppress(TypeError, ValueError):  # noqa: E111
             config.dog_weight = float(weight)
         if (ideal_weight := dog_record.get("ideal_weight")) is not None:
-          with contextlib.suppress(TypeError, ValueError):
+          with contextlib.suppress(TypeError, ValueError):  # noqa: E111
             config.ideal_weight = float(ideal_weight)
 
         dog_record.update(
@@ -2694,20 +2692,20 @@ class FeedingManager:
           },
         )
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      await self._refresh_reminder_schedule(dog_id, config)
+      await self._refresh_reminder_schedule(dog_id, config)  # noqa: E111
 
-  async def async_refresh_reminder(self, dog_id: str) -> None:
+  async def async_refresh_reminder(self, dog_id: str) -> None:  # noqa: E111
     """Refresh reminder scheduling for ``dog_id``."""
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if config is None:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if config is None:  # noqa: E111
         return
-      await self._refresh_reminder_schedule(dog_id, config)
+      await self._refresh_reminder_schedule(dog_id, config)  # noqa: E111
 
-  async def _refresh_reminder_schedule(
+  async def _refresh_reminder_schedule(  # noqa: E111
     self,
     dog_id: str,
     config: FeedingConfig,
@@ -2715,18 +2713,18 @@ class FeedingManager:
     """Update reminder tasks for ``dog_id`` based on ``config``."""
     # Update reminders
     if config.schedule_type != FeedingScheduleType.FLEXIBLE:
-      await self._setup_reminder(dog_id)
+      await self._setup_reminder(dog_id)  # noqa: E111
     elif dog_id in self._reminder_tasks:
-      self._reminder_tasks[dog_id].cancel()
-      del self._reminder_tasks[dog_id]
-      del self._reminder_events[dog_id]
-      self._next_reminders.pop(dog_id, None)
+      self._reminder_tasks[dog_id].cancel()  # noqa: E111
+      del self._reminder_tasks[dog_id]  # noqa: E111
+      del self._reminder_events[dog_id]  # noqa: E111
+      self._next_reminders.pop(dog_id, None)  # noqa: E111
 
     # Signal reminder update
     if dog_id in self._reminder_events:
-      self._reminder_events[dog_id].set()
+      self._reminder_events[dog_id].set()  # noqa: E111
 
-  async def async_get_statistics(
+  async def async_get_statistics(  # noqa: E111
     self,
     dog_id: str,
     days: int = 30,
@@ -2745,22 +2743,22 @@ class FeedingManager:
     cache_key = f"{dog_id}_{days}"
 
     async with self._lock:
-      # Check cache
-      if cache_key in self._stats_cache:
+      # Check cache  # noqa: E114
+      if cache_key in self._stats_cache:  # noqa: E111
         cache_time = self._stats_cache_time.get(cache_key)
         if cache_time and (dt_util.now() - cache_time) < self._stats_cache_ttl:
-          return self._stats_cache[cache_key]
+          return self._stats_cache[cache_key]  # noqa: E111
 
-      # Calculate statistics
-      stats = await self._calculate_statistics(dog_id, days)
+      # Calculate statistics  # noqa: E114
+      stats = await self._calculate_statistics(dog_id, days)  # noqa: E111
 
-      # Cache result
-      self._stats_cache[cache_key] = stats
-      self._stats_cache_time[cache_key] = dt_util.now()
+      # Cache result  # noqa: E114
+      self._stats_cache[cache_key] = stats  # noqa: E111
+      self._stats_cache_time[cache_key] = dt_util.now()  # noqa: E111
 
-      return stats
+      return stats  # noqa: E111
 
-  async def _calculate_statistics(
+  async def _calculate_statistics(  # noqa: E111
     self,
     dog_id: str,
     days: int,
@@ -2784,16 +2782,16 @@ class FeedingManager:
     # OPTIMIZATION: Binary search for start position
     left, right = 0, len(feedings)
     while left < right:
-      mid = (left + right) // 2
-      if feedings[mid].time < since:
+      mid = (left + right) // 2  # noqa: E111
+      if feedings[mid].time < since:  # noqa: E111
         left = mid + 1
-      else:
+      else:  # noqa: E111
         right = mid
 
     recent_feedings = feedings[left:]
 
     if not recent_feedings:
-      return FeedingStatisticsSnapshot(
+      return FeedingStatisticsSnapshot(  # noqa: E111
         period_days=days,
         total_feedings=0,
         average_daily_feedings=0,
@@ -2813,14 +2811,14 @@ class FeedingManager:
     meal_counts: dict[str, int] = {}
 
     for feeding in recent_feedings:
-      if feeding.skipped:
+      if feeding.skipped:  # noqa: E111
         continue
 
-      date = feeding.time.date()
-      daily_counts[date] = daily_counts.get(date, 0) + 1
-      daily_amounts[date] = daily_amounts.get(date, 0.0) + feeding.amount
+      date = feeding.time.date()  # noqa: E111
+      daily_counts[date] = daily_counts.get(date, 0) + 1  # noqa: E111
+      daily_amounts[date] = daily_amounts.get(date, 0.0) + feeding.amount  # noqa: E111
 
-      if feeding.meal_type:
+      if feeding.meal_type:  # noqa: E111
         meal = feeding.meal_type.value
         meal_counts[meal] = meal_counts.get(meal, 0) + 1
 
@@ -2839,8 +2837,8 @@ class FeedingManager:
     # Calculate adherence
     adherence = 100
     if config and config.schedule_type != FeedingScheduleType.FLEXIBLE:
-      expected_daily = len(config.get_active_schedules())
-      if expected_daily > 0:
+      expected_daily = len(config.get_active_schedules())  # noqa: E111
+      if expected_daily > 0:  # noqa: E111
         adherence = min(
           100,
           int((avg_daily_feedings / expected_daily) * 100),
@@ -2860,16 +2858,16 @@ class FeedingManager:
       ),
     )
 
-  async def async_get_reminders(self) -> dict[str, datetime]:
+  async def async_get_reminders(self) -> dict[str, datetime]:  # noqa: E111
     """Get all next reminder times.
 
     Returns:
         Dictionary mapping dog_id to next reminder time
     """
     async with self._lock:
-      return dict(self._next_reminders)
+      return dict(self._next_reminders)  # noqa: E111
 
-  async def async_calculate_health_aware_portion(
+  async def async_calculate_health_aware_portion(  # noqa: E111
     self,
     dog_id: str,
     meal_type: str,
@@ -2886,17 +2884,17 @@ class FeedingManager:
         Calculated portion size in grams or None if not possible
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config or not config.health_aware_portions:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config or not config.health_aware_portions:  # noqa: E111
         return None
 
-      try:
+      try:  # noqa: E111
         meal_type_enum = MealType(meal_type)
         return config.calculate_portion_size(
           meal_type_enum,
           _normalise_health_override(health_data),
         )
-      except (ValueError, Exception) as err:
+      except (ValueError, Exception) as err:  # noqa: E111
         _LOGGER.warning(
           "Health-aware portion calculation failed for %s: %s",
           dog_id,
@@ -2904,7 +2902,7 @@ class FeedingManager:
         )
         return None
 
-  async def async_analyze_feeding_health(
+  async def async_analyze_feeding_health(  # noqa: E111
     self,
     dog_id: str,
     days: int = 7,
@@ -2919,21 +2917,21 @@ class FeedingManager:
         Health analysis of feeding patterns
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      feedings = self._feedings.get(dog_id, [])
+      config = self._configs.get(dog_id)  # noqa: E111
+      feedings = self._feedings.get(dog_id, [])  # noqa: E111
 
-      if not config or not feedings:
+      if not config or not feedings:  # noqa: E111
         return FeedingHistoryAnalysis(
           status="insufficient_data",
           message="Need feeding configuration and history",
         )
 
-      # Get recent feeding events
-      since = dt_util.now() - timedelta(days=days)
-      recent_events: list[FeedingHistoryEvent] = []
-      for event in feedings:
+      # Get recent feeding events  # noqa: E114
+      since = dt_util.now() - timedelta(days=days)  # noqa: E111
+      recent_events: list[FeedingHistoryEvent] = []  # noqa: E111
+      for event in feedings:  # noqa: E111
         if event.time <= since or event.skipped:
-          continue
+          continue  # noqa: E111
         recent_events.append(
           FeedingHistoryEvent(
             time=event.time,
@@ -2942,54 +2940,54 @@ class FeedingManager:
           ),
         )
 
-      if not recent_events:
+      if not recent_events:  # noqa: E111
         return FeedingHistoryAnalysis(
           status="no_recent_data",
           message=f"No feeding data in last {days} days",
         )
 
-      # Get health summary for target calories
-      health_summary = config.get_health_summary()
-      target_calories = health_summary.get("daily_calorie_requirement")
+      # Get health summary for target calories  # noqa: E114
+      health_summary = config.get_health_summary()  # noqa: E111
+      target_calories = health_summary.get("daily_calorie_requirement")  # noqa: E111
 
-      if not target_calories:
+      if not target_calories:  # noqa: E111
         return FeedingHistoryAnalysis(
           status="no_health_data",
           message="Insufficient health data for analysis",
         )
 
-      # Use health calculator to analyze patterns
-      calories_per_gram = health_summary.get("calories_per_gram", 3.5)
+      # Use health calculator to analyze patterns  # noqa: E114
+      calories_per_gram = health_summary.get("calories_per_gram", 3.5)  # noqa: E111
 
-      analysis = HealthCalculator.analyze_feeding_history(
+      analysis = HealthCalculator.analyze_feeding_history(  # noqa: E111
         recent_events,
         target_calories,
         calories_per_gram,
       )
 
-      # Add health-specific recommendations
-      health_context: FeedingHealthContext = {}
-      if config.weight_goal is not None:
+      # Add health-specific recommendations  # noqa: E114
+      health_context: FeedingHealthContext = {}  # noqa: E111
+      if config.weight_goal is not None:  # noqa: E111
         health_context["weight_goal"] = config.weight_goal
-      if (bcs := health_summary.get("body_condition_score")) is not None:
+      if (bcs := health_summary.get("body_condition_score")) is not None:  # noqa: E111
         health_context["body_condition_score"] = cast(float | int, bcs)
-      if (life_stage := health_summary.get("life_stage")) is not None:
+      if (life_stage := health_summary.get("life_stage")) is not None:  # noqa: E111
         health_context["life_stage"] = cast(str, life_stage)
-      if (activity := health_summary.get("activity_level")) is not None:
+      if (activity := health_summary.get("activity_level")) is not None:  # noqa: E111
         health_context["activity_level"] = cast(str, activity)
-      if (conditions := health_summary.get("health_conditions")) is not None:
+      if (conditions := health_summary.get("health_conditions")) is not None:  # noqa: E111
         health_context["health_conditions"] = cast(
           list[str],
           conditions,
         )
-      if (diet := health_summary.get("special_diet")) is not None:
+      if (diet := health_summary.get("special_diet")) is not None:  # noqa: E111
         health_context["special_diet"] = cast(list[str], diet)
-      if health_context:
+      if health_context:  # noqa: E111
         analysis["health_context"] = health_context
 
-      return analysis
+      return analysis  # noqa: E111
 
-  async def async_generate_health_report(self, dog_id: str) -> HealthReport | None:
+  async def async_generate_health_report(self, dog_id: str) -> HealthReport | None:  # noqa: E111
     """Generate comprehensive health report for a dog.
 
     Args:
@@ -2999,11 +2997,11 @@ class FeedingManager:
         Health report or None if insufficient data
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config or not config.health_aware_portions:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config or not config.health_aware_portions:  # noqa: E111
         return None
 
-      try:
+      try:  # noqa: E111
         # Build health metrics
         health_metrics = config._build_health_metrics()
 
@@ -3016,7 +3014,7 @@ class FeedingManager:
         health_summary = config.get_health_summary()
         feeding_goal_settings: FeedingGoalSettings = {}
         if config.weight_goal in {"maintain", "lose", "gain"}:
-          feeding_goal_settings["weight_goal"] = cast(
+          feeding_goal_settings["weight_goal"] = cast(  # noqa: E111
             Literal["maintain", "lose", "gain"],
             config.weight_goal,
           )
@@ -3047,11 +3045,11 @@ class FeedingManager:
         # Add recent feeding analysis
         feeding_analysis = await self.async_analyze_feeding_health(dog_id, 14)
         if feeding_analysis.get("status") == "good":
-          report["recent_feeding_performance"] = feeding_analysis
+          report["recent_feeding_performance"] = feeding_analysis  # noqa: E111
 
         return report
 
-      except Exception as err:
+      except Exception as err:  # noqa: E111
         _LOGGER.error(
           "Health report generation failed for %s: %s",
           dog_id,
@@ -3059,7 +3057,7 @@ class FeedingManager:
         )
         return None
 
-  def _recommend_meal_frequency(self, health_metrics: HealthMetrics) -> int:
+  def _recommend_meal_frequency(self, health_metrics: HealthMetrics) -> int:  # noqa: E111
     """Recommend optimal meal frequency based on health metrics.
 
     Args:
@@ -3070,9 +3068,9 @@ class FeedingManager:
     """
     # Base recommendation on life stage and health conditions
     if health_metrics.life_stage == LifeStage.PUPPY:
-      if health_metrics.age_months and health_metrics.age_months < 6:
+      if health_metrics.age_months and health_metrics.age_months < 6:  # noqa: E111
         return 4  # Very young puppies need frequent meals
-      return 3  # Older puppies
+      return 3  # Older puppies  # noqa: E111
 
     # Check for health conditions requiring frequent meals
     frequent_meal_conditions = [
@@ -3084,16 +3082,16 @@ class FeedingManager:
       condition in health_metrics.health_conditions
       for condition in frequent_meal_conditions
     ):
-      return 3
+      return 3  # noqa: E111
 
     # Senior dogs often benefit from smaller, frequent meals
     if health_metrics.life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]:
-      return 3
+      return 3  # noqa: E111
 
     # Default for healthy adult dogs
     return 2
 
-  def _recommend_food_type(self, health_metrics: HealthMetrics) -> str:
+  def _recommend_food_type(self, health_metrics: HealthMetrics) -> str:  # noqa: E111
     """Recommend food type based on health metrics.
 
     Args:
@@ -3104,35 +3102,35 @@ class FeedingManager:
     """
     # Check for specific health conditions
     if "kidney_disease" in health_metrics.health_conditions:
-      return "prescription"  # Requires prescription diet
+      return "prescription"  # Requires prescription diet  # noqa: E111
 
     if "diabetes" in health_metrics.health_conditions:
-      return "prescription"  # Requires controlled diet
+      return "prescription"  # Requires controlled diet  # noqa: E111
 
     if "digestive_issues" in health_metrics.health_conditions:
-      return "wet_food"  # Easier to digest
+      return "wet_food"  # Easier to digest  # noqa: E111
 
     # Age-based recommendations
     if health_metrics.life_stage == LifeStage.PUPPY:
-      return "puppy_formula"
+      return "puppy_formula"  # noqa: E111
 
     if (
       health_metrics.life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]
       and health_metrics.activity_level == ActivityLevel.VERY_LOW
     ):
-      return "senior_formula"
+      return "senior_formula"  # noqa: E111
 
     # Weight management
     if (
       health_metrics.body_condition_score
       and health_metrics.body_condition_score.value >= 7
     ):
-      return "weight_control"
+      return "weight_control"  # noqa: E111
 
     # Default recommendation
     return "dry_food"
 
-  async def async_update_health_data(
+  async def async_update_health_data(  # noqa: E111
     self,
     dog_id: str,
     health_data: FeedingHealthUpdatePayload,
@@ -3147,32 +3145,32 @@ class FeedingManager:
         True if update successful
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         return False
 
-      try:
+      try:  # noqa: E111
         # Update health-related fields
         if "weight" in health_data:
-          config.dog_weight = health_data["weight"]
+          config.dog_weight = health_data["weight"]  # noqa: E111
         if "ideal_weight" in health_data:
-          config.ideal_weight = health_data["ideal_weight"]
+          config.ideal_weight = health_data["ideal_weight"]  # noqa: E111
         if "age_months" in health_data:
-          age_months_value = health_data["age_months"]
-          config.age_months = (
+          age_months_value = health_data["age_months"]  # noqa: E111
+          config.age_months = (  # noqa: E111
             int(age_months_value) if age_months_value is not None else None
           )
         if "activity_level" in health_data:
-          config.activity_level = health_data["activity_level"]
+          config.activity_level = health_data["activity_level"]  # noqa: E111
         if "body_condition_score" in health_data:
-          body_condition_value = health_data["body_condition_score"]
-          config.body_condition_score = (
+          body_condition_value = health_data["body_condition_score"]  # noqa: E111
+          config.body_condition_score = (  # noqa: E111
             int(body_condition_value) if body_condition_value is not None else None
           )
         if "health_conditions" in health_data:
-          config.health_conditions = health_data["health_conditions"]
+          config.health_conditions = health_data["health_conditions"]  # noqa: E111
         if "weight_goal" in health_data:
-          config.weight_goal = health_data["weight_goal"]
+          config.weight_goal = health_data["weight_goal"]  # noqa: E111
 
         # Invalidate caches to force recalculation
         self._invalidate_cache(dog_id)
@@ -3180,7 +3178,7 @@ class FeedingManager:
         _LOGGER.info("Updated health data for dog %s", dog_id)
         return True
 
-      except Exception as err:
+      except Exception as err:  # noqa: E111
         _LOGGER.error(
           "Failed to update health data for %s: %s",
           dog_id,
@@ -3188,7 +3186,7 @@ class FeedingManager:
         )
         return False
 
-  async def async_update_diet_validation(
+  async def async_update_diet_validation(  # noqa: E111
     self,
     dog_id: str,
     validation_data: DietValidationResult,
@@ -3203,12 +3201,12 @@ class FeedingManager:
         True if update successful
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         _LOGGER.warning("No config found for dog %s", dog_id)
         return False
 
-      try:
+      try:  # noqa: E111
         # Update diet validation in config
         config.update_diet_validation(validation_data)
 
@@ -3223,7 +3221,7 @@ class FeedingManager:
         )
         return True
 
-      except Exception as err:
+      except Exception as err:  # noqa: E111
         _LOGGER.error(
           "Failed to update diet validation for %s: %s",
           dog_id,
@@ -3231,7 +3229,7 @@ class FeedingManager:
         )
         return False
 
-  async def async_get_diet_validation_status(
+  async def async_get_diet_validation_status(  # noqa: E111
     self,
     dog_id: str,
   ) -> FeedingDietValidationStatus | None:
@@ -3244,18 +3242,18 @@ class FeedingManager:
         Diet validation status or None if not available
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config or not config.diet_validation:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config or not config.diet_validation:  # noqa: E111
         return None
 
-      return FeedingDietValidationStatus(
+      return FeedingDietValidationStatus(  # noqa: E111
         validation_data=config.diet_validation,
         summary=config._get_diet_validation_summary(),
         special_diets=list(config.special_diet),
         last_updated=dt_util.now().isoformat(),
       )
 
-  async def async_validate_portion_with_diet(
+  async def async_validate_portion_with_diet(  # noqa: E111
     self,
     dog_id: str,
     meal_type: str,
@@ -3272,14 +3270,14 @@ class FeedingManager:
         Dictionary with portion calculation and validation results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         return FeedingPortionValidationError(
           error="No configuration found",
           portion=0.0,
         )
 
-      try:
+      try:  # noqa: E111
         # Calculate health-aware portion
         meal_type_enum = MealType(meal_type)
         portion = config.calculate_portion_size(
@@ -3295,7 +3293,7 @@ class FeedingManager:
           _normalise_health_override(override_health_data),
         )
         if health_metrics.life_stage == LifeStage.PUPPY:
-          portion = max(
+          portion = max(  # noqa: E111
             portion,
             base_unadjusted * PUPPY_PORTION_SAFEGUARD_FACTOR,
           )
@@ -3308,12 +3306,12 @@ class FeedingManager:
           and config.dog_weight
           and config.dog_weight <= 10
         ):
-          portion = max(portion, 7 * config.dog_weight)
+          portion = max(portion, 7 * config.dog_weight)  # noqa: E111
 
         # Validate portion safety with diet considerations
         safety_result: DietSafetyResult
         if config.dog_weight and portion > 0:
-          safety_result = HealthCalculator.validate_portion_safety(
+          safety_result = HealthCalculator.validate_portion_safety(  # noqa: E111
             calculated_portion=portion,
             dog_weight=config.dog_weight,
             life_stage=HealthCalculator.calculate_life_stage(
@@ -3324,7 +3322,7 @@ class FeedingManager:
             diet_validation=config.diet_validation,
           )
         else:
-          safety_result = {
+          safety_result = {  # noqa: E111
             "safe": True,
             "warnings": [],
             "recommendations": [],
@@ -3345,7 +3343,7 @@ class FeedingManager:
           config_id=dog_id,
         )
 
-      except Exception as err:
+      except Exception as err:  # noqa: E111
         _LOGGER.error(
           "Portion validation failed for %s: %s",
           dog_id,
@@ -3357,7 +3355,7 @@ class FeedingManager:
           meal_type=meal_type,
         )
 
-  async def async_recalculate_health_portions(
+  async def async_recalculate_health_portions(  # noqa: E111
     self,
     dog_id: str,
     force_recalculation: bool = False,
@@ -3374,13 +3372,13 @@ class FeedingManager:
         Dictionary with recalculation results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      if not config.health_aware_portions:
+      if not config.health_aware_portions:  # noqa: E111
         return FeedingRecalculationResult(
           status="disabled",
           dog_id=dog_id,
@@ -3393,13 +3391,13 @@ class FeedingManager:
           message="Health-aware portions are disabled for this dog",
         )
 
-      # Build current health metrics
-      health_metrics = await self._offload_blocking(
+      # Build current health metrics  # noqa: E114
+      health_metrics = await self._offload_blocking(  # noqa: E111
         f"build health metrics for {dog_id}",
         config._build_health_metrics,
       )
 
-      if not health_metrics.current_weight:
+      if not health_metrics.current_weight:  # noqa: E111
         return FeedingRecalculationResult(
           status="insufficient_data",
           dog_id=dog_id,
@@ -3412,11 +3410,11 @@ class FeedingManager:
           message="Weight data required for health-aware portion calculation",
         )
 
-      # Calculate new portions for all meal types
-      new_portions = {}
-      total_daily_calculated = 0.0
+      # Calculate new portions for all meal types  # noqa: E114
+      new_portions = {}  # noqa: E111
+      total_daily_calculated = 0.0  # noqa: E111
 
-      for meal_type in [
+      for meal_type in [  # noqa: E111
         MealType.BREAKFAST,
         MealType.LUNCH,
         MealType.DINNER,
@@ -3426,22 +3424,22 @@ class FeedingManager:
         new_portions[meal_type.value] = portion
 
         if meal_type != MealType.SNACK:  # Don't count snacks in daily total
-          total_daily_calculated += portion
+          total_daily_calculated += portion  # noqa: E111
 
-      # Update meal schedules if requested
-      updated_schedules = 0
-      if update_feeding_schedule and config.meal_schedules:
+      # Update meal schedules if requested  # noqa: E114
+      updated_schedules = 0  # noqa: E111
+      if update_feeding_schedule and config.meal_schedules:  # noqa: E111
         for schedule in config.meal_schedules:
-          if schedule.meal_type in new_portions:
+          if schedule.meal_type in new_portions:  # noqa: E111
             old_portion = schedule.portion_size
             schedule.portion_size = new_portions[schedule.meal_type.value]
             if abs(old_portion - schedule.portion_size) > 1.0:  # Significant change
-              updated_schedules += 1
+              updated_schedules += 1  # noqa: E111
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      result = FeedingRecalculationResult(
+      result = FeedingRecalculationResult(  # noqa: E111
         status="success",
         dog_id=dog_id,
         new_portions=new_portions,
@@ -3463,15 +3461,15 @@ class FeedingManager:
         recalculated_at=dt_util.now().isoformat(),
       )
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Recalculated health portions for %s: %s",
         dog_id,
         {k: v for k, v in new_portions.items() if k != "snack"},
       )
 
-      return result
+      return result  # noqa: E111
 
-  async def async_adjust_calories_for_activity(
+  async def async_adjust_calories_for_activity(  # noqa: E111
     self,
     dog_id: str,
     activity_level: str,
@@ -3490,34 +3488,34 @@ class FeedingManager:
         Dictionary with adjustment results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      try:
+      try:  # noqa: E111
         from .health_calculator import ActivityLevel
 
         activity_enum = ActivityLevel(activity_level)
-      except (ImportError, ValueError) as err:
+      except (ImportError, ValueError) as err:  # noqa: E111
         raise ValueError(
           f"Invalid activity level '{activity_level}'",
         ) from err
 
-      # Store original activity level if temporary
-      original_activity = config.activity_level
+      # Store original activity level if temporary  # noqa: E114
+      original_activity = config.activity_level  # noqa: E111
 
-      # Update activity level
-      config.activity_level = activity_level
+      # Update activity level  # noqa: E114
+      config.activity_level = activity_level  # noqa: E111
 
-      # Recalculate portions with new activity level
-      health_metrics = await self._offload_blocking(
+      # Recalculate portions with new activity level  # noqa: E114
+      health_metrics = await self._offload_blocking(  # noqa: E111
         f"build health metrics for {dog_id}",
         config._build_health_metrics,
       )
 
-      if not health_metrics.current_weight:
+      if not health_metrics.current_weight:  # noqa: E111
         return FeedingActivityAdjustmentResult(
           status="insufficient_data",
           dog_id=dog_id,
@@ -3534,8 +3532,8 @@ class FeedingManager:
           message="Weight data required for calorie adjustment",
         )
 
-      # Calculate new daily calorie requirement
-      try:
+      # Calculate new daily calorie requirement  # noqa: E114
+      try:  # noqa: E111
         from .health_calculator import HealthCalculator, LifeStage
 
         new_daily_calories = await self._offload_blocking(
@@ -3548,24 +3546,24 @@ class FeedingManager:
           health_conditions=health_metrics.health_conditions,
           spayed_neutered=config.spayed_neutered,
         )
-      except ImportError as err:
+      except ImportError as err:  # noqa: E111
         raise ValueError("Health calculator not available") from err
 
-      # Convert calories to food amount
-      calories_per_gram = await self._offload_blocking(
+      # Convert calories to food amount  # noqa: E114
+      calories_per_gram = await self._offload_blocking(  # noqa: E111
         f"estimate calories per gram for {dog_id}",
         config._estimate_calories_per_gram,
       )
-      new_daily_amount = new_daily_calories / calories_per_gram
+      new_daily_amount = new_daily_calories / calories_per_gram  # noqa: E111
 
-      # Update daily food amount
-      old_daily_amount = config.daily_food_amount
-      config.daily_food_amount = round(new_daily_amount, 1)
+      # Update daily food amount  # noqa: E114
+      old_daily_amount = config.daily_food_amount  # noqa: E111
+      config.daily_food_amount = round(new_daily_amount, 1)  # noqa: E111
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      result = FeedingActivityAdjustmentResult(
+      result = FeedingActivityAdjustmentResult(  # noqa: E111
         status="success",
         dog_id=dog_id,
         old_activity_level=original_activity,
@@ -3586,7 +3584,7 @@ class FeedingManager:
         adjusted_at=dt_util.now().isoformat(),
       )
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Adjusted calories for %s: %s activity level, %.0fg daily (was %.0fg)",
         dog_id,
         activity_level,
@@ -3594,42 +3592,42 @@ class FeedingManager:
         old_daily_amount,
       )
 
-      # Schedule reversion if temporary
-      if temporary and duration_hours and original_activity:
+      # Schedule reversion if temporary  # noqa: E114
+      if temporary and duration_hours and original_activity:  # noqa: E111
         if existing_task := self._activity_reversion_tasks.pop(dog_id, None):
-          existing_task.cancel()
+          existing_task.cancel()  # noqa: E111
 
         async def _revert_activity() -> None:
-          try:
+          try:  # noqa: E111
             await asyncio.sleep(duration_hours * 3600)
             try:
-              await self.async_adjust_calories_for_activity(
+              await self.async_adjust_calories_for_activity(  # noqa: E111
                 dog_id,
                 original_activity,
                 None,
                 False,
               )
-              _LOGGER.info(
+              _LOGGER.info(  # noqa: E111
                 "Reverted activity level for %s back to %s",
                 dog_id,
                 original_activity,
               )
             except Exception as err:  # pragma: no cover - logging only
-              _LOGGER.error(
+              _LOGGER.error(  # noqa: E111
                 "Failed to revert activity level for %s: %s",
                 dog_id,
                 err,
               )
-          finally:
+          finally:  # noqa: E111
             self._activity_reversion_tasks.pop(dog_id, None)
 
         revert_task = asyncio.create_task(_revert_activity())
         self._activity_reversion_tasks[dog_id] = revert_task
         result["reversion_scheduled"] = True
 
-      return result
+      return result  # noqa: E111
 
-  async def async_activate_diabetic_feeding_mode(
+  async def async_activate_diabetic_feeding_mode(  # noqa: E111
     self,
     dog_id: str,
     meal_frequency: int = 4,
@@ -3648,51 +3646,51 @@ class FeedingManager:
         Dictionary with activation results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      # Validate parameters
-      if not 3 <= meal_frequency <= 6:
+      # Validate parameters  # noqa: E114
+      if not 3 <= meal_frequency <= 6:  # noqa: E111
         raise ValueError("Meal frequency must be between 3 and 6")
-      if not 5 <= carb_limit_percent <= 30:
+      if not 5 <= carb_limit_percent <= 30:  # noqa: E111
         raise ValueError("Carb limit must be between 5% and 30%")
 
-      # Add diabetes to health conditions if not present
-      if "diabetes" not in config.health_conditions:
+      # Add diabetes to health conditions if not present  # noqa: E114
+      if "diabetes" not in config.health_conditions:  # noqa: E111
         config.health_conditions.append("diabetes")
 
-      # Update special diet requirements
-      if "diabetic" not in config.special_diet:
+      # Update special diet requirements  # noqa: E114
+      if "diabetic" not in config.special_diet:  # noqa: E111
         config.special_diet.append("diabetic")
-      if "low_carb" not in config.special_diet:
+      if "low_carb" not in config.special_diet:  # noqa: E111
         config.special_diet.append("low_carb")
 
-      # Update feeding configuration
-      old_meals_per_day = config.meals_per_day
-      config.meals_per_day = meal_frequency
+      # Update feeding configuration  # noqa: E114
+      old_meals_per_day = config.meals_per_day  # noqa: E111
+      config.meals_per_day = meal_frequency  # noqa: E111
 
-      # Create diabetic feeding schedule
-      diabetic_schedules = self._create_diabetic_meal_schedule(
+      # Create diabetic feeding schedule  # noqa: E114
+      diabetic_schedules = self._create_diabetic_meal_schedule(  # noqa: E111
         meal_frequency,
         config.daily_food_amount,
       )
 
-      # Replace existing schedules with diabetic schedule
-      config.meal_schedules = diabetic_schedules
+      # Replace existing schedules with diabetic schedule  # noqa: E114
+      config.meal_schedules = diabetic_schedules  # noqa: E111
 
-      # Enable strict scheduling for diabetes management
-      config.schedule_type = FeedingScheduleType.STRICT
+      # Enable strict scheduling for diabetes management  # noqa: E114
+      config.schedule_type = FeedingScheduleType.STRICT  # noqa: E111
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      # Setup reminders if needed
-      await self._setup_reminder(dog_id)
+      # Setup reminders if needed  # noqa: E114
+      await self._setup_reminder(dog_id)  # noqa: E111
 
-      result = FeedingDiabeticActivationResult(
+      result = FeedingDiabeticActivationResult(  # noqa: E111
         status="activated",
         dog_id=dog_id,
         old_meals_per_day=old_meals_per_day,
@@ -3710,21 +3708,21 @@ class FeedingManager:
         activated_at=dt_util.now().isoformat(),
       )
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Activated diabetic feeding mode for %s: %d meals/day, %d%% carb limit",
         dog_id,
         meal_frequency,
         carb_limit_percent,
       )
 
-      if dog_id in self._dogs:
+      if dog_id in self._dogs:  # noqa: E111
         self._dogs[dog_id]["diabetic_mode"] = True
         self._dogs[dog_id]["carb_limit_percent"] = carb_limit_percent
         self._dogs[dog_id]["meals_per_day"] = meal_frequency
 
-      return result
+      return result  # noqa: E111
 
-  def _create_diabetic_meal_schedule(
+  def _create_diabetic_meal_schedule(  # noqa: E111
     self,
     meal_frequency: int,
     daily_amount: float,
@@ -3758,13 +3756,13 @@ class FeedingManager:
 
     schedules = []
     for i, meal_time in enumerate(times):
-      meal_type = (
+      meal_type = (  # noqa: E111
         MealType.BREAKFAST
         if i == 0
         else (MealType.DINNER if i == len(times) - 1 else MealType.LUNCH)
       )
 
-      schedules.append(
+      schedules.append(  # noqa: E111
         MealSchedule(
           meal_type=meal_type,
           scheduled_time=meal_time,
@@ -3778,7 +3776,7 @@ class FeedingManager:
 
     return schedules
 
-  async def async_activate_emergency_feeding_mode(
+  async def async_activate_emergency_feeding_mode(  # noqa: E111
     self,
     dog_id: str,
     emergency_type: str,
@@ -3797,68 +3795,68 @@ class FeedingManager:
         Dictionary with activation results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      # Validate parameters
-      if not 0.5 <= portion_adjustment <= 1.2:
+      # Validate parameters  # noqa: E114
+      if not 0.5 <= portion_adjustment <= 1.2:  # noqa: E111
         raise ValueError(
           "Portion adjustment must be between 0.5 and 1.2",
         )
 
-      valid_emergency_types = [
+      valid_emergency_types = [  # noqa: E111
         "illness",
         "surgery_recovery",
         "digestive_upset",
         "medication_reaction",
       ]
-      if emergency_type not in valid_emergency_types:
+      if emergency_type not in valid_emergency_types:  # noqa: E111
         raise ValueError(
           f"Emergency type must be one of: {valid_emergency_types}",
         )
 
-      # Cancel any existing restoration for this dog
-      if dog_id in self._emergency_restore_tasks:
+      # Cancel any existing restoration for this dog  # noqa: E114
+      if dog_id in self._emergency_restore_tasks:  # noqa: E111
         self._emergency_restore_tasks[dog_id].cancel()
         self._emergency_restore_tasks.pop(dog_id, None)
 
-      # Store original configuration for restoration
-      original_config = FeedingEmergencyConfigSnapshot(
+      # Store original configuration for restoration  # noqa: E114
+      original_config = FeedingEmergencyConfigSnapshot(  # noqa: E111
         daily_food_amount=config.daily_food_amount,
         meals_per_day=config.meals_per_day,
         schedule_type=config.schedule_type,
         food_type=config.food_type,
       )
 
-      # Adjust daily amount
-      old_daily_amount = config.daily_food_amount
-      config.daily_food_amount = round(
+      # Adjust daily amount  # noqa: E114
+      old_daily_amount = config.daily_food_amount  # noqa: E111
+      config.daily_food_amount = round(  # noqa: E111
         old_daily_amount * portion_adjustment,
         1,
       )
 
-      # Increase meal frequency for better digestion during recovery
-      if emergency_type in ["illness", "digestive_upset", "medication_reaction"]:
+      # Increase meal frequency for better digestion during recovery  # noqa: E114
+      if emergency_type in ["illness", "digestive_upset", "medication_reaction"]:  # noqa: E111
         config.meals_per_day = min(config.meals_per_day + 1, 4)
         # Recommend wet food for easier digestion
         if emergency_type == "digestive_upset":
-          config.food_type = "wet_food"
+          config.food_type = "wet_food"  # noqa: E111
 
-      # Create gentle feeding schedule
-      if emergency_type == "surgery_recovery":
+      # Create gentle feeding schedule  # noqa: E114
+      if emergency_type == "surgery_recovery":  # noqa: E111
         # Smaller, more frequent meals for post-surgery
         config.meals_per_day = min(config.meals_per_day + 2, 5)
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      activated_at_dt = dt_util.now()
-      expires_at_dt = activated_at_dt + timedelta(days=duration_days)
+      activated_at_dt = dt_util.now()  # noqa: E111
+      expires_at_dt = activated_at_dt + timedelta(days=duration_days)  # noqa: E111
 
-      result = FeedingEmergencyActivationResult(
+      result = FeedingEmergencyActivationResult(  # noqa: E111
         status="activated",
         dog_id=dog_id,
         emergency_type=emergency_type,
@@ -3884,9 +3882,9 @@ class FeedingManager:
         ),
       )
 
-      self._active_emergencies[dog_id] = result["emergency_state"]
+      self._active_emergencies[dog_id] = result["emergency_state"]  # noqa: E111
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",
         dog_id,
         emergency_type,
@@ -3894,35 +3892,35 @@ class FeedingManager:
         portion_adjustment * 100,
       )
 
-      # Schedule automatic restoration
-      async def _restore_normal_feeding() -> None:
+      # Schedule automatic restoration  # noqa: E114
+      async def _restore_normal_feeding() -> None:  # noqa: E111
         await asyncio.sleep(
           duration_days * 24 * 3600,
         )  # Convert days to seconds
         try:
-          self._apply_emergency_restoration(
+          self._apply_emergency_restoration(  # noqa: E111
             config,
             original_config,
             dog_id,
           )
 
-          _LOGGER.info(
+          _LOGGER.info(  # noqa: E111
             "Restored normal feeding mode for %s after %d days",
             dog_id,
             duration_days,
           )
         except Exception as err:
-          _LOGGER.error(
+          _LOGGER.error(  # noqa: E111
             "Failed to restore normal feeding for %s: %s",
             dog_id,
             err,
           )
 
-      async def _restore_wrapper() -> None:
+      async def _restore_wrapper() -> None:  # noqa: E111
         try:
-          await _restore_normal_feeding()
-          emergency_details = self._active_emergencies.get(dog_id)
-          if emergency_details:
+          await _restore_normal_feeding()  # noqa: E111
+          emergency_details = self._active_emergencies.get(dog_id)  # noqa: E111
+          if emergency_details:  # noqa: E111
             emergency_details["active"] = False
             emergency_details["status"] = emergency_details.get(
               "status",
@@ -3930,15 +3928,15 @@ class FeedingManager:
             )
             emergency_details["resolved_at"] = dt_util.utcnow().isoformat()
         finally:
-          self._emergency_restore_tasks.pop(dog_id, None)
+          self._emergency_restore_tasks.pop(dog_id, None)  # noqa: E111
 
-      restore_task = asyncio.create_task(_restore_wrapper())
-      self._emergency_restore_tasks[dog_id] = restore_task
-      result["restoration_scheduled"] = True
+      restore_task = asyncio.create_task(_restore_wrapper())  # noqa: E111
+      self._emergency_restore_tasks[dog_id] = restore_task  # noqa: E111
+      result["restoration_scheduled"] = True  # noqa: E111
 
-      return result
+      return result  # noqa: E111
 
-  async def async_start_diet_transition(
+  async def async_start_diet_transition(  # noqa: E111
     self,
     dog_id: str,
     new_food_type: str,
@@ -3957,22 +3955,22 @@ class FeedingManager:
         Dictionary with transition plan and results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      # Validate parameters
-      if not 3 <= transition_days <= 14:
+      # Validate parameters  # noqa: E114
+      if not 3 <= transition_days <= 14:  # noqa: E111
         raise ValueError("Transition days must be between 3 and 14")
-      if not 10 <= gradual_increase_percent <= 50:
+      if not 10 <= gradual_increase_percent <= 50:  # noqa: E111
         raise ValueError(
           "Gradual increase must be between 10% and 50%",
         )
 
-      old_food_type = config.food_type
-      if old_food_type == new_food_type:
+      old_food_type = config.food_type  # noqa: E111
+      if old_food_type == new_food_type:  # noqa: E111
         now = dt_util.now()
         return FeedingTransitionResult(
           status="no_change",
@@ -3987,14 +3985,14 @@ class FeedingManager:
           message=f"Dog is already on {new_food_type} diet",
         )
 
-      # Create transition schedule
-      transition_schedule = self._create_transition_schedule(
+      # Create transition schedule  # noqa: E114
+      transition_schedule = self._create_transition_schedule(  # noqa: E111
         transition_days,
         gradual_increase_percent,
       )
 
-      # Store transition info in config
-      transition_data: FeedingTransitionData = {
+      # Store transition info in config  # noqa: E114
+      transition_data: FeedingTransitionData = {  # noqa: E111
         "active": True,
         "start_date": dt_util.now().date().isoformat(),
         "old_food_type": old_food_type,
@@ -4005,20 +4003,20 @@ class FeedingManager:
         "current_day": 1,
       }
 
-      # Add to health conditions temporarily
-      if "diet_transition" not in config.health_conditions:
+      # Add to health conditions temporarily  # noqa: E114
+      if "diet_transition" not in config.health_conditions:  # noqa: E111
         config.health_conditions.append("diet_transition")
 
-      # Store transition data (would normally be in a separate storage)
-      config.transition_data = transition_data
+      # Store transition data (would normally be in a separate storage)  # noqa: E114
+      config.transition_data = transition_data  # noqa: E111
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      started_at = dt_util.now()
-      expected_completion = (started_at + timedelta(days=transition_days)).date()
+      started_at = dt_util.now()  # noqa: E111
+      expected_completion = (started_at + timedelta(days=transition_days)).date()  # noqa: E111
 
-      result = FeedingTransitionResult(
+      result = FeedingTransitionResult(  # noqa: E111
         status="started",
         dog_id=dog_id,
         old_food_type=old_food_type,
@@ -4030,7 +4028,7 @@ class FeedingManager:
         started_at=started_at.isoformat(),
       )
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Started diet transition for %s from %s to %s over %d days",
         dog_id,
         old_food_type,
@@ -4038,9 +4036,9 @@ class FeedingManager:
         transition_days,
       )
 
-      return result
+      return result  # noqa: E111
 
-  def _create_transition_schedule(
+  def _create_transition_schedule(  # noqa: E111
     self,
     transition_days: int,
     increase_percent: int,
@@ -4057,17 +4055,17 @@ class FeedingManager:
     schedule: list[FeedingTransitionScheduleEntry] = []
 
     for day in range(1, transition_days + 1):
-      if day == 1:
+      if day == 1:  # noqa: E111
         new_food_percent = increase_percent
-      elif day == transition_days:
+      elif day == transition_days:  # noqa: E111
         new_food_percent = 100
-      else:
+      else:  # noqa: E111
         # Gradual increase each day
         new_food_percent = min(100, day * increase_percent)
 
-      old_food_percent = 100 - new_food_percent
+      old_food_percent = 100 - new_food_percent  # noqa: E111
 
-      schedule.append(
+      schedule.append(  # noqa: E111
         FeedingTransitionScheduleEntry(
           day=day,
           old_food_percent=old_food_percent,
@@ -4078,7 +4076,7 @@ class FeedingManager:
 
     return schedule
 
-  async def async_check_feeding_compliance(
+  async def async_check_feeding_compliance(  # noqa: E111
     self,
     dog_id: str,
     days_to_check: int = 7,
@@ -4095,57 +4093,57 @@ class FeedingManager:
         Dictionary with compliance analysis
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      feedings = self._feedings.get(dog_id, [])
-      if not feedings:
+      feedings = self._feedings.get(dog_id, [])  # noqa: E111
+      if not feedings:  # noqa: E111
         return FeedingComplianceNoData(
           status="no_data",
           message="No feeding history available",
         )
 
-      # Get recent feedings
-      since = dt_util.now() - timedelta(days=days_to_check)
-      recent_feedings = [
+      # Get recent feedings  # noqa: E114
+      since = dt_util.now() - timedelta(days=days_to_check)  # noqa: E111
+      recent_feedings = [  # noqa: E111
         event for event in feedings if event.time > since and not event.skipped
       ]
 
-      if not recent_feedings:
+      if not recent_feedings:  # noqa: E111
         return FeedingComplianceNoData(
           status="no_recent_data",
           message=f"No feeding data in last {days_to_check} days",
         )
 
-      # Analyze compliance
-      compliance_issues: list[ComplianceIssue] = []
-      daily_accumulators: dict[str, _DailyComplianceAccumulator] = {}
-      missed_meals: list[MissedMealEntry] = []
+      # Analyze compliance  # noqa: E114
+      compliance_issues: list[ComplianceIssue] = []  # noqa: E111
+      daily_accumulators: dict[str, _DailyComplianceAccumulator] = {}  # noqa: E111
+      missed_meals: list[MissedMealEntry] = []  # noqa: E111
 
-      # Group feedings by date
-      for event in recent_feedings:
+      # Group feedings by date  # noqa: E114
+      for event in recent_feedings:  # noqa: E111
         date_str = event.time.date().isoformat()
         accumulator = daily_accumulators.get(date_str)
         if accumulator is None:
-          accumulator = _DailyComplianceAccumulator(date=date_str)
-          daily_accumulators[date_str] = accumulator
+          accumulator = _DailyComplianceAccumulator(date=date_str)  # noqa: E111
+          daily_accumulators[date_str] = accumulator  # noqa: E111
 
         accumulator.feedings.append(event)
         accumulator.total_amount += event.amount
         if event.meal_type:
-          accumulator.meal_types.add(event.meal_type.value)
+          accumulator.meal_types.add(event.meal_type.value)  # noqa: E111
         if event.scheduled:
-          accumulator.scheduled_feedings += 1
+          accumulator.scheduled_feedings += 1  # noqa: E111
 
-      # Check each day for compliance issues
-      expected_daily_amount = config.daily_food_amount
-      expected_meals_per_day = config.meals_per_day
-      tolerance_percent = config.portion_tolerance
+      # Check each day for compliance issues  # noqa: E114
+      expected_daily_amount = config.daily_food_amount  # noqa: E111
+      expected_meals_per_day = config.meals_per_day  # noqa: E111
+      tolerance_percent = config.portion_tolerance  # noqa: E111
 
-      for date_str, accumulator in daily_accumulators.items():
+      for date_str, accumulator in daily_accumulators.items():  # noqa: E111
         day_issues: list[str] = []
 
         # Check daily amount
@@ -4157,22 +4155,22 @@ class FeedingManager:
           else 0.0
         )
         if amount_deviation > tolerance_percent:
-          if accumulator.total_amount < expected_daily_amount:
+          if accumulator.total_amount < expected_daily_amount:  # noqa: E111
             day_issues.append(
-              f"Underfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",
+              f"Underfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",  # noqa: E501
             )
-          else:
+          else:  # noqa: E111
             day_issues.append(
-              f"Overfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",
+              f"Overfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)",  # noqa: E501
             )
 
         # Check meal frequency
         actual_meals = len(accumulator.feedings)
         if actual_meals < expected_meals_per_day:
-          day_issues.append(
+          day_issues.append(  # noqa: E111
             f"Too few meals: {actual_meals} vs expected {expected_meals_per_day}",
           )
-          missed_meals.append(
+          missed_meals.append(  # noqa: E111
             MissedMealEntry(
               date=date_str,
               expected=expected_meals_per_day,
@@ -4180,27 +4178,27 @@ class FeedingManager:
             ),
           )
         elif actual_meals > expected_meals_per_day + 2:  # Allow some flexibility
-          day_issues.append(
+          day_issues.append(  # noqa: E111
             f"Too many meals: {actual_meals} vs expected {expected_meals_per_day}",
           )
 
         # Check schedule adherence if strict scheduling
         if config.schedule_type == FeedingScheduleType.STRICT:
-          expected_scheduled = len(
+          expected_scheduled = len(  # noqa: E111
             [s for s in config.get_active_schedules() if s.is_due_today()],
           )
-          if accumulator.scheduled_feedings < expected_scheduled:
+          if accumulator.scheduled_feedings < expected_scheduled:  # noqa: E111
             day_issues.append(
-              f"Missed scheduled feedings: {accumulator.scheduled_feedings} vs {expected_scheduled}",
+              f"Missed scheduled feedings: {accumulator.scheduled_feedings} vs {expected_scheduled}",  # noqa: E501
             )
 
         if day_issues:
-          severity = (
+          severity = (  # noqa: E111
             "high"
             if any("Overfed" in issue or "Underfed" in issue for issue in day_issues)
             else "medium"
           )
-          compliance_issues.append(
+          compliance_issues.append(  # noqa: E111
             ComplianceIssue(
               date=date_str,
               issues=day_issues,
@@ -4208,27 +4206,27 @@ class FeedingManager:
             ),
           )
 
-      # Calculate overall compliance score
-      total_days = len(daily_accumulators)
-      days_with_issues = len(compliance_issues)
-      expected_feedings = expected_meals_per_day * total_days
-      actual_feedings = sum(len(acc.feedings) for acc in daily_accumulators.values())
-      if expected_feedings > 0:
+      # Calculate overall compliance score  # noqa: E114
+      total_days = len(daily_accumulators)  # noqa: E111
+      days_with_issues = len(compliance_issues)  # noqa: E111
+      expected_feedings = expected_meals_per_day * total_days  # noqa: E111
+      actual_feedings = sum(len(acc.feedings) for acc in daily_accumulators.values())  # noqa: E111
+      if expected_feedings > 0:  # noqa: E111
         compliance_rate = round(
           (actual_feedings / expected_feedings) * 100,
           1,
         )
-      else:
+      else:  # noqa: E111
         compliance_rate = 100.0
 
-      compliance_score = int(min(100, max(0, compliance_rate)))
+      compliance_score = int(min(100, max(0, compliance_rate)))  # noqa: E111
 
-      # Generate recommendations
-      recommendations: list[str] = []
-      if compliance_score < 80:
+      # Generate recommendations  # noqa: E114
+      recommendations: list[str] = []  # noqa: E111
+      if compliance_score < 80:  # noqa: E111
         recommendations.append("Consider setting up feeding reminders")
         recommendations.append("Review portion sizes and meal timing")
-      if any(
+      if any(  # noqa: E111
         "Overfed" in entry or "Underfed" in entry
         for issue in compliance_issues
         for entry in issue["issues"]
@@ -4236,7 +4234,7 @@ class FeedingManager:
         recommendations.append(
           "Reduce portion sizes to prevent weight gain",
         )
-      if any(
+      if any(  # noqa: E111
         "schedule" in entry.lower()
         for issue in compliance_issues
         for entry in issue["issues"]
@@ -4245,7 +4243,7 @@ class FeedingManager:
           "Enable automatic reminders for scheduled meals",
         )
 
-      daily_analysis_payload: dict[str, DailyComplianceTelemetry] = {
+      daily_analysis_payload: dict[str, DailyComplianceTelemetry] = {  # noqa: E111
         date: {
           "date": accumulator.date,
           "feedings": [
@@ -4259,18 +4257,18 @@ class FeedingManager:
         for date, accumulator in sorted(daily_accumulators.items())
       }
 
-      average_daily_amount = (
+      average_daily_amount = (  # noqa: E111
         sum(acc.total_amount for acc in daily_accumulators.values()) / total_days
         if total_days > 0
         else 0.0
       )
-      average_meals_per_day = (
+      average_meals_per_day = (  # noqa: E111
         sum(len(acc.feedings) for acc in daily_accumulators.values()) / total_days
         if total_days > 0
         else 0.0
       )
 
-      result: FeedingComplianceCompleted = {
+      result: FeedingComplianceCompleted = {  # noqa: E111
         "status": "completed",
         "dog_id": dog_id,
         "compliance_score": compliance_score,
@@ -4290,16 +4288,16 @@ class FeedingManager:
         "checked_at": dt_util.now().isoformat(),
       }
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Feeding compliance check for %s: %d%% compliant over %d days",
         dog_id,
         compliance_score,
         total_days,
       )
 
-      return result
+      return result  # noqa: E111
 
-  async def async_adjust_daily_portions(
+  async def async_adjust_daily_portions(  # noqa: E111
     self,
     dog_id: str,
     adjustment_percent: int,
@@ -4320,37 +4318,37 @@ class FeedingManager:
         Dictionary with adjustment results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      # Validate adjustment range
-      if not -50 <= adjustment_percent <= 50:
+      # Validate adjustment range  # noqa: E114
+      if not -50 <= adjustment_percent <= 50:  # noqa: E111
         raise ValueError(
           "Adjustment percent must be between -50 and +50",
         )
 
-      # Store original amount for temporary adjustments
-      original_amount = config.daily_food_amount
+      # Store original amount for temporary adjustments  # noqa: E114
+      original_amount = config.daily_food_amount  # noqa: E111
 
-      # Calculate new amount
-      adjustment_factor = 1.0 + (adjustment_percent / 100.0)
-      new_amount = round(original_amount * adjustment_factor, 1)
+      # Calculate new amount  # noqa: E114
+      adjustment_factor = 1.0 + (adjustment_percent / 100.0)  # noqa: E111
+      new_amount = round(original_amount * adjustment_factor, 1)  # noqa: E111
 
-      # Safety check - don't allow extremely small portions
-      if new_amount < 50.0:  # Minimum 50g per day
+      # Safety check - don't allow extremely small portions  # noqa: E114
+      if new_amount < 50.0:  # Minimum 50g per day  # noqa: E111
         raise ValueError(
           "Adjustment would result in dangerously low portions",
         )
 
-      # Update daily amount
-      config.daily_food_amount = new_amount
+      # Update daily amount  # noqa: E114
+      config.daily_food_amount = new_amount  # noqa: E111
 
-      # Update meal schedules proportionally
-      updated_schedules = 0
-      for schedule in config.meal_schedules:
+      # Update meal schedules proportionally  # noqa: E114
+      updated_schedules = 0  # noqa: E111
+      for schedule in config.meal_schedules:  # noqa: E111
         old_portion = schedule.portion_size
         schedule.portion_size = round(
           old_portion * adjustment_factor,
@@ -4358,10 +4356,10 @@ class FeedingManager:
         )
         updated_schedules += 1
 
-      # Invalidate caches
-      self._invalidate_cache(dog_id)
+      # Invalidate caches  # noqa: E114
+      self._invalidate_cache(dog_id)  # noqa: E111
 
-      result = FeedingPortionAdjustmentResult(
+      result = FeedingPortionAdjustmentResult(  # noqa: E111
         status="adjusted",
         dog_id=dog_id,
         adjustment_percent=adjustment_percent,
@@ -4375,7 +4373,7 @@ class FeedingManager:
         adjusted_at=dt_util.now().isoformat(),
       )
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Adjusted daily portions for %s by %+d%% (%.0fg -> %.0fg) - %s",
         dog_id,
         adjustment_percent,
@@ -4384,41 +4382,41 @@ class FeedingManager:
         reason or "no reason given",
       )
 
-      # Schedule reversion if temporary
-      if temporary and duration_days:
+      # Schedule reversion if temporary  # noqa: E114
+      if temporary and duration_days:  # noqa: E111
         if existing_task := self._portion_reversion_tasks.pop(dog_id, None):
-          existing_task.cancel()
+          existing_task.cancel()  # noqa: E111
 
         async def _revert_adjustment() -> None:
-          try:
+          try:  # noqa: E111
             await asyncio.sleep(duration_days * 24 * 3600)
             try:
-              # Restore original amount
-              config.daily_food_amount = original_amount
+              # Restore original amount  # noqa: E114
+              config.daily_food_amount = original_amount  # noqa: E111
 
-              # Restore meal schedules
-              revert_factor = 1.0 / adjustment_factor
-              for schedule in config.meal_schedules:
+              # Restore meal schedules  # noqa: E114
+              revert_factor = 1.0 / adjustment_factor  # noqa: E111
+              for schedule in config.meal_schedules:  # noqa: E111
                 schedule.portion_size = round(
                   schedule.portion_size * revert_factor,
                   1,
                 )
 
-              self._invalidate_cache(dog_id)
+              self._invalidate_cache(dog_id)  # noqa: E111
 
-              _LOGGER.info(
+              _LOGGER.info(  # noqa: E111
                 "Reverted portion adjustment for %s back to %.0fg after %d days",
                 dog_id,
                 original_amount,
                 duration_days,
               )
             except Exception as err:  # pragma: no cover - logging only
-              _LOGGER.error(
+              _LOGGER.error(  # noqa: E111
                 "Failed to revert portion adjustment for %s: %s",
                 dog_id,
                 err,
               )
-          finally:
+          finally:  # noqa: E111
             self._portion_reversion_tasks.pop(dog_id, None)
 
         revert_task = asyncio.create_task(_revert_adjustment())
@@ -4428,9 +4426,9 @@ class FeedingManager:
           dt_util.now() + timedelta(days=duration_days)
         ).isoformat()
 
-      return result
+      return result  # noqa: E111
 
-  async def async_add_health_snack(
+  async def async_add_health_snack(  # noqa: E111
     self,
     dog_id: str,
     snack_type: str,
@@ -4451,21 +4449,21 @@ class FeedingManager:
         Dictionary with snack addition results
     """
     async with self._lock:
-      config = self._configs.get(dog_id)
-      if not config:
+      config = self._configs.get(dog_id)  # noqa: E111
+      if not config:  # noqa: E111
         raise ValueError(
           f"No feeding configuration found for dog {dog_id}",
         )
 
-      # Validate amount
-      if amount <= 0 or amount > 100:  # Reasonable limit for snacks
+      # Validate amount  # noqa: E114
+      if amount <= 0 or amount > 100:  # Reasonable limit for snacks  # noqa: E111
         raise ValueError(
           "Snack amount must be between 0 and 100 grams",
         )
 
-      # Build enhanced notes with health benefit info
-      enhanced_notes = notes or ""
-      if health_benefit:
+      # Build enhanced notes with health benefit info  # noqa: E114
+      enhanced_notes = notes or ""  # noqa: E111
+      if health_benefit:  # noqa: E111
         benefit_descriptions = {
           "digestive": "Supports digestive health",
           "dental": "Promotes dental health",
@@ -4482,8 +4480,8 @@ class FeedingManager:
           f"{benefit_desc}. {enhanced_notes}" if enhanced_notes else benefit_desc
         )
 
-      # Add as feeding event
-      feeding_event = await self.async_add_feeding(
+      # Add as feeding event  # noqa: E114
+      feeding_event = await self.async_add_feeding(  # noqa: E111
         dog_id=dog_id,
         amount=amount,
         meal_type="snack",  # Use snack meal type
@@ -4491,8 +4489,8 @@ class FeedingManager:
         scheduled=False,  # Health snacks are typically unscheduled
       )
 
-      # Track health snack in daily stats (don't count towards meal requirements)
-      result = FeedingHealthSnackResult(
+      # Track health snack in daily stats (don't count towards meal requirements)  # noqa: E114, E501
+      result = FeedingHealthSnackResult(  # noqa: E111
         status="added",
         dog_id=dog_id,
         snack_type=snack_type,
@@ -4503,7 +4501,7 @@ class FeedingManager:
         added_at=dt_util.now().isoformat(),
       )
 
-      _LOGGER.info(
+      _LOGGER.info(  # noqa: E111
         "Added health snack for %s: %.1fg %s (%s)",
         dog_id,
         amount,
@@ -4511,16 +4509,16 @@ class FeedingManager:
         health_benefit or "general health",
       )
 
-      return result
+      return result  # noqa: E111
 
-  async def async_shutdown(self) -> None:
+  async def async_shutdown(self) -> None:  # noqa: E111
     """Clean shutdown of feeding manager."""
     # Cancel all reminder tasks
     for task in self._reminder_tasks.values():
-      task.cancel()
+      task.cancel()  # noqa: E111
 
     if self._reminder_tasks:
-      await asyncio.gather(*self._reminder_tasks.values(), return_exceptions=True)
+      await asyncio.gather(*self._reminder_tasks.values(), return_exceptions=True)  # noqa: E111
 
     # Clear all data
     self._reminder_tasks.clear()

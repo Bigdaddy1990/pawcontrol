@@ -11,8 +11,6 @@ Python: 3.14+
 HA: 2025.9.3+
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import timedelta
 from enum import StrEnum
@@ -21,29 +19,29 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
-  from homeassistant.const import Platform
+  from homeassistant.const import Platform  # noqa: E111
 
-  NumberSelectorType = Any
+  NumberSelectorType = Any  # noqa: E111
 else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
-  try:
+  try:  # noqa: E111
     from homeassistant.const import Platform
-  except ModuleNotFoundError:
+  except ModuleNotFoundError:  # noqa: E111
 
     class Platform(StrEnum):  # type: ignore[misc]
-      """Minimal Platform enum used when Home Assistant isn't installed."""
+      """Minimal Platform enum used when Home Assistant isn't installed."""  # noqa: E111
 
-      SENSOR = "sensor"
-      BINARY_SENSOR = "binary_sensor"
-      BUTTON = "button"
-      SWITCH = "switch"
-      NUMBER = "number"
-      SELECT = "select"
-      TEXT = "text"
-      DEVICE_TRACKER = "device_tracker"
-      DATE = "date"
-      DATETIME = "datetime"
+      SENSOR = "sensor"  # noqa: E111
+      BINARY_SENSOR = "binary_sensor"  # noqa: E111
+      BUTTON = "button"  # noqa: E111
+      SWITCH = "switch"  # noqa: E111
+      NUMBER = "number"  # noqa: E111
+      SELECT = "select"  # noqa: E111
+      TEXT = "text"  # noqa: E111
+      DEVICE_TRACKER = "device_tracker"  # noqa: E111
+      DATE = "date"  # noqa: E111
+      DATETIME = "datetime"  # noqa: E111
 
-  NumberSelectorType = Any
+  NumberSelectorType = Any  # noqa: E111
 
 
 from .selector_shim import selector

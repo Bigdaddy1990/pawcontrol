@@ -8,8 +8,6 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -18,7 +16,7 @@ import logging
 import random
 import time
 from types import TracebackType
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 from .exceptions import NetworkError, RateLimitError, ServiceUnavailableError
 
@@ -30,11 +28,11 @@ T = TypeVar("T")
 
 
 class CircuitState(Enum):
-  """Circuit breaker states."""
+  """Circuit breaker states."""  # noqa: E111
 
-  CLOSED = "closed"  # Normal operation
-  OPEN = "open"  # Failure threshold exceeded, blocking calls
-  HALF_OPEN = "half_open"  # Testing if service recovered
+  CLOSED = "closed"  # Normal operation  # noqa: E111
+  OPEN = "open"  # Failure threshold exceeded, blocking calls  # noqa: E111
+  HALF_OPEN = "half_open"  # Testing if service recovered  # noqa: E111
 
 
 @dataclass
@@ -46,12 +44,12 @@ class CircuitBreakerConfig:
       success_threshold: Number of successes to close from half-open
       timeout_seconds: Time to wait before half-open attempt
       excluded_exceptions: Exception types that don't count as failures
-  """
+  """  # noqa: E111
 
-  failure_threshold: int = 5
-  success_threshold: int = 2
-  timeout_seconds: float = 60.0
-  excluded_exceptions: tuple[type[Exception], ...] = (RateLimitError,)
+  failure_threshold: int = 5  # noqa: E111
+  success_threshold: int = 2  # noqa: E111
+  timeout_seconds: float = 60.0  # noqa: E111
+  excluded_exceptions: tuple[type[Exception], ...] = (RateLimitError,)  # noqa: E111
 
 
 @dataclass
@@ -66,17 +64,17 @@ class CircuitBreakerStats:
       total_calls: Total calls attempted
       total_failures: Total failures
       total_successes: Total successes
-  """
+  """  # noqa: E111
 
-  state: CircuitState = CircuitState.CLOSED
-  failure_count: int = 0
-  success_count: int = 0
-  last_failure_time: float | None = None
-  total_calls: int = 0
-  total_failures: int = 0
-  total_successes: int = 0
+  state: CircuitState = CircuitState.CLOSED  # noqa: E111
+  failure_count: int = 0  # noqa: E111
+  success_count: int = 0  # noqa: E111
+  last_failure_time: float | None = None  # noqa: E111
+  total_calls: int = 0  # noqa: E111
+  total_failures: int = 0  # noqa: E111
+  total_successes: int = 0  # noqa: E111
 
-  def to_dict(self) -> dict[str, Any]:
+  def to_dict(self) -> dict[str, Any]:  # noqa: E111
     """Convert to dictionary."""
     return {
       "state": self.state.value,
@@ -106,9 +104,9 @@ class CircuitBreaker:
       >>> breaker = CircuitBreaker("api_client")
       >>> async with breaker:
       ...   await api.call()
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     name: str,
     *,
@@ -125,34 +123,34 @@ class CircuitBreaker:
     self._stats = CircuitBreakerStats()
     self._lock = asyncio.Lock()
 
-  @property
-  def name(self) -> str:
+  @property  # noqa: E111
+  def name(self) -> str:  # noqa: E111
     """Return circuit breaker name."""
     return self._name
 
-  @property
-  def state(self) -> CircuitState:
+  @property  # noqa: E111
+  def state(self) -> CircuitState:  # noqa: E111
     """Return current state."""
     return self._stats.state
 
-  @property
-  def is_closed(self) -> bool:
+  @property  # noqa: E111
+  def is_closed(self) -> bool:  # noqa: E111
     """Return True if circuit is closed."""
     return self._stats.state == CircuitState.CLOSED
 
-  @property
-  def is_open(self) -> bool:
+  @property  # noqa: E111
+  def is_open(self) -> bool:  # noqa: E111
     """Return True if circuit is open."""
     return self._stats.state == CircuitState.OPEN
 
-  @property
-  def is_half_open(self) -> bool:
+  @property  # noqa: E111
+  def is_half_open(self) -> bool:  # noqa: E111
     """Return True if circuit is half-open."""
     return self._stats.state == CircuitState.HALF_OPEN
 
-  async def call(
+  async def call(  # noqa: E111
     self,
-    func: Callable[P, T],
+    func: Callable[P, Awaitable[T]],
     *args: P.args,
     **kwargs: P.kwargs,
   ) -> T:
@@ -170,55 +168,55 @@ class CircuitBreaker:
         ServiceUnavailableError: If circuit is open
     """
     async with self._lock:
-      # Check if circuit should transition to half-open
-      if self._stats.state == CircuitState.OPEN and self._should_attempt_reset():
+      # Check if circuit should transition to half-open  # noqa: E114
+      if self._stats.state == CircuitState.OPEN and self._should_attempt_reset():  # noqa: E111
         _LOGGER.info("Circuit breaker %s: OPEN → HALF_OPEN", self._name)
         self._stats.state = CircuitState.HALF_OPEN
         self._stats.success_count = 0
 
-      # Block calls if open
-      if self._stats.state == CircuitState.OPEN:
+      # Block calls if open  # noqa: E114
+      if self._stats.state == CircuitState.OPEN:  # noqa: E111
         self._stats.total_calls += 1
         raise ServiceUnavailableError(f"Circuit breaker {self._name} is OPEN")
 
     # Execute call
     try:
-      self._stats.total_calls += 1
-      result = await func(*args, **kwargs)
-      await self._record_success()
-      return result
+      self._stats.total_calls += 1  # noqa: E111
+      result = await func(*args, **kwargs)  # noqa: E111
+      await self._record_success()  # noqa: E111
+      return result  # noqa: E111
     except Exception as e:
-      # Check if exception should be excluded
-      if isinstance(e, self._config.excluded_exceptions):
+      # Check if exception should be excluded  # noqa: E114
+      if isinstance(e, self._config.excluded_exceptions):  # noqa: E111
         raise
 
-      await self._record_failure()
-      raise
+      await self._record_failure()  # noqa: E111
+      raise  # noqa: E111
 
-  async def _record_success(self) -> None:
+  async def _record_success(self) -> None:  # noqa: E111
     """Record successful call."""
     async with self._lock:
-      self._stats.total_successes += 1
+      self._stats.total_successes += 1  # noqa: E111
 
-      if self._stats.state == CircuitState.HALF_OPEN:
+      if self._stats.state == CircuitState.HALF_OPEN:  # noqa: E111
         self._stats.success_count += 1
         if self._stats.success_count >= self._config.success_threshold:
-          _LOGGER.info("Circuit breaker %s: HALF_OPEN → CLOSED", self._name)
-          self._stats.state = CircuitState.CLOSED
-          self._stats.failure_count = 0
-          self._stats.success_count = 0
+          _LOGGER.info("Circuit breaker %s: HALF_OPEN → CLOSED", self._name)  # noqa: E111
+          self._stats.state = CircuitState.CLOSED  # noqa: E111
+          self._stats.failure_count = 0  # noqa: E111
+          self._stats.success_count = 0  # noqa: E111
 
-      elif self._stats.state == CircuitState.CLOSED:
+      elif self._stats.state == CircuitState.CLOSED:  # noqa: E111
         self._stats.failure_count = 0
 
-  async def _record_failure(self) -> None:
+  async def _record_failure(self) -> None:  # noqa: E111
     """Record failed call."""
     async with self._lock:
-      self._stats.total_failures += 1
-      self._stats.failure_count += 1
-      self._stats.last_failure_time = time.time()
+      self._stats.total_failures += 1  # noqa: E111
+      self._stats.failure_count += 1  # noqa: E111
+      self._stats.last_failure_time = time.time()  # noqa: E111
 
-      if self._stats.state == CircuitState.HALF_OPEN:
+      if self._stats.state == CircuitState.HALF_OPEN:  # noqa: E111
         _LOGGER.warning(
           "Circuit breaker %s: HALF_OPEN → OPEN (recovery failed)",
           self._name,
@@ -226,36 +224,36 @@ class CircuitBreaker:
         self._stats.state = CircuitState.OPEN
         self._stats.success_count = 0
 
-      elif self._stats.state == CircuitState.CLOSED:
+      elif self._stats.state == CircuitState.CLOSED:  # noqa: E111
         if self._stats.failure_count >= self._config.failure_threshold:
-          _LOGGER.warning(
+          _LOGGER.warning(  # noqa: E111
             "Circuit breaker %s: CLOSED → OPEN (%d failures)",
             self._name,
             self._stats.failure_count,
           )
-          self._stats.state = CircuitState.OPEN
+          self._stats.state = CircuitState.OPEN  # noqa: E111
 
-  def _should_attempt_reset(self) -> bool:
+  def _should_attempt_reset(self) -> bool:  # noqa: E111
     """Check if enough time has passed to attempt reset."""
     if self._stats.last_failure_time is None:
-      return True
+      return True  # noqa: E111
 
     time_since_failure = time.time() - self._stats.last_failure_time
     return time_since_failure >= self._config.timeout_seconds
 
-  async def __aenter__(self) -> CircuitBreaker:
+  async def __aenter__(self) -> CircuitBreaker:  # noqa: E111
     """Enter async context."""
     # Check state before allowing entry
     if self._stats.state == CircuitState.OPEN:
-      if not self._should_attempt_reset():
+      if not self._should_attempt_reset():  # noqa: E111
         raise ServiceUnavailableError(f"Circuit breaker {self._name} is OPEN")
-      async with self._lock:
+      async with self._lock:  # noqa: E111
         self._stats.state = CircuitState.HALF_OPEN
         self._stats.success_count = 0
 
     return self
 
-  async def __aexit__(
+  async def __aexit__(  # noqa: E111
     self,
     exc_type: type[BaseException] | None,
     exc_val: BaseException | None,
@@ -263,15 +261,15 @@ class CircuitBreaker:
   ) -> None:
     """Exit async context."""
     if exc_type is None:
-      await self._record_success()
+      await self._record_success()  # noqa: E111
     elif not isinstance(exc_val, self._config.excluded_exceptions):
-      await self._record_failure()
+      await self._record_failure()  # noqa: E111
 
-  def get_stats(self) -> CircuitBreakerStats:
+  def get_stats(self) -> CircuitBreakerStats:  # noqa: E111
     """Return circuit breaker statistics."""
     return self._stats
 
-  def reset(self) -> None:
+  def reset(self) -> None:  # noqa: E111
     """Manually reset circuit breaker to closed state."""
     self._stats = CircuitBreakerStats()
     _LOGGER.info("Circuit breaker %s manually reset", self._name)
@@ -288,14 +286,14 @@ class RetryConfig:
       exponential_base: Base for exponential backoff
       jitter: Add random jitter (boolean enables default 10%)
       retryable_exceptions: Exception types to retry
-  """
+  """  # noqa: E111
 
-  max_attempts: int = 3
-  initial_delay: float = 1.0
-  max_delay: float = 60.0
-  exponential_base: float = 2.0
-  jitter: bool | float = 0.1
-  retryable_exceptions: tuple[type[Exception], ...] = (
+  max_attempts: int = 3  # noqa: E111
+  initial_delay: float = 1.0  # noqa: E111
+  max_delay: float = 60.0  # noqa: E111
+  exponential_base: float = 2.0  # noqa: E111
+  jitter: bool | float = 0.1  # noqa: E111
+  retryable_exceptions: tuple[type[Exception], ...] = (  # noqa: E111
     NetworkError,
     ServiceUnavailableError,
   )
@@ -307,9 +305,9 @@ class RetryStrategy:
   Examples:
       >>> strategy = RetryStrategy()
       >>> result = await strategy.execute(api_call, arg1, arg2)
-  """
+  """  # noqa: E111
 
-  def __init__(self, config: RetryConfig | None = None) -> None:
+  def __init__(self, config: RetryConfig | None = None) -> None:  # noqa: E111
     """Initialize retry strategy.
 
     Args:
@@ -317,9 +315,9 @@ class RetryStrategy:
     """
     self._config = config or RetryConfig()
 
-  async def execute(
+  async def execute(  # noqa: E111
     self,
-    func: Callable[P, T],
+    func: Callable[P, Awaitable[T]],
     *args: P.args,
     **kwargs: P.kwargs,
   ) -> T:
@@ -339,18 +337,18 @@ class RetryStrategy:
     last_exception: Exception | None = None
 
     for attempt in range(self._config.max_attempts):
-      try:
+      try:  # noqa: E111
         return await func(*args, **kwargs)
-      except Exception as e:
+      except Exception as e:  # noqa: E111
         last_exception = e
 
         # Check if exception is retryable
         if not isinstance(e, self._config.retryable_exceptions):
-          raise
+          raise  # noqa: E111
 
         # Don't retry on last attempt
         if attempt == self._config.max_attempts - 1:
-          raise
+          raise  # noqa: E111
 
         # Calculate delay
         delay = self._calculate_delay(attempt)
@@ -367,10 +365,10 @@ class RetryStrategy:
 
     # Should never reach here, but satisfy type checker
     if last_exception:
-      raise last_exception
+      raise last_exception  # noqa: E111
     raise RuntimeError("Retry logic failed unexpectedly")
 
-  def _calculate_delay(self, attempt: int) -> float:
+  def _calculate_delay(self, attempt: int) -> float:  # noqa: E111
     """Calculate delay for retry attempt.
 
     Args:
@@ -388,13 +386,13 @@ class RetryStrategy:
     # Add jitter
     jitter_factor: float
     if isinstance(self._config.jitter, bool):
-      jitter_factor = 0.1 if self._config.jitter else 0.0
+      jitter_factor = 0.1 if self._config.jitter else 0.0  # noqa: E111
     else:
-      jitter_factor = max(0.0, self._config.jitter)
+      jitter_factor = max(0.0, self._config.jitter)  # noqa: E111
 
     if jitter_factor > 0:
-      jitter_amount = delay * jitter_factor
-      delay += _SECURE_RANDOM.uniform(-jitter_amount, jitter_amount)
+      jitter_amount = delay * jitter_factor  # noqa: E111
+      delay += _SECURE_RANDOM.uniform(-jitter_amount, jitter_amount)  # noqa: E111
 
     return max(0.0, delay)
 
@@ -408,13 +406,13 @@ class FallbackStrategy:
   Examples:
       >>> fallback = FallbackStrategy(default_value={})
       >>> result = await fallback.execute_with_fallback(fetch_data)
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     *,
     default_value: Any = None,
-    fallback_func: Callable[..., Any] | None = None,
+    fallback_func: Callable[..., Awaitable[Any]] | None = None,
   ) -> None:
     """Initialize fallback strategy.
 
@@ -425,9 +423,9 @@ class FallbackStrategy:
     self._default_value = default_value
     self._fallback_func = fallback_func
 
-  async def execute_with_fallback(
+  async def execute_with_fallback(  # noqa: E111
     self,
-    func: Callable[P, T],
+    func: Callable[P, Awaitable[T]],
     *args: P.args,
     **kwargs: P.kwargs,
   ) -> T | Any:
@@ -442,53 +440,53 @@ class FallbackStrategy:
         Primary result, fallback result, or default value
     """
     try:
-      return await func(*args, **kwargs)
+      return await func(*args, **kwargs)  # noqa: E111
     except Exception as e:
-      _LOGGER.warning("Primary operation failed: %s", e)
+      _LOGGER.warning("Primary operation failed: %s", e)  # noqa: E111
 
-      # Try fallback function
-      if self._fallback_func:
+      # Try fallback function  # noqa: E114
+      if self._fallback_func:  # noqa: E111
         try:
-          _LOGGER.info("Attempting fallback function")
-          return await self._fallback_func(*args, **kwargs)
+          _LOGGER.info("Attempting fallback function")  # noqa: E111
+          return await self._fallback_func(*args, **kwargs)  # noqa: E111
         except Exception as fallback_error:
-          _LOGGER.error("Fallback function failed: %s", fallback_error)
+          _LOGGER.error("Fallback function failed: %s", fallback_error)  # noqa: E111
 
-      # Return default value
-      _LOGGER.info("Returning default value")
-      return self._default_value
+      # Return default value  # noqa: E114
+      _LOGGER.info("Returning default value")  # noqa: E111
+      return self._default_value  # noqa: E111
 
 
 class ResilienceManager:
-  """High-level facade that composes circuit breaker and retry behaviour."""
+  """High-level facade that composes circuit breaker and retry behaviour."""  # noqa: E111
 
-  def __init__(self, hass: object | None = None) -> None:
+  def __init__(self, hass: object | None = None) -> None:  # noqa: E111
     """Initialise the resilience manager."""
     self._hass = hass
 
-  async def execute_with_resilience(
+  async def execute_with_resilience(  # noqa: E111
     self,
-    func: Callable[P, Awaitable[T]],
-    *args: P.args,
+    func: Callable[..., Awaitable[T]],
+    *args: Any,
     circuit_breaker_name: str | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: P.kwargs,
+    **kwargs: Any,
   ) -> T:
     """Execute ``func`` with optional circuit breaker and retry protection."""
 
     async def _invoke() -> T:
-      return await func(*args, **kwargs)
+      return await func(*args, **kwargs)  # noqa: E111
 
     wrapped_call: Callable[[], Any]
     if circuit_breaker_name:
-      breaker = get_circuit_breaker(circuit_breaker_name)
+      breaker = get_circuit_breaker(circuit_breaker_name)  # noqa: E111
 
-      async def _invoke_with_breaker() -> T:
+      async def _invoke_with_breaker() -> T:  # noqa: E111
         return await breaker.call(_invoke)
 
-      wrapped_call = _invoke_with_breaker
+      wrapped_call = _invoke_with_breaker  # noqa: E111
     else:
-      wrapped_call = _invoke
+      wrapped_call = _invoke  # noqa: E111
 
     strategy = RetryStrategy(retry_config or RetryConfig())
     return await strategy.execute(wrapped_call)
@@ -517,10 +515,10 @@ def get_circuit_breaker(
       >>> breaker = get_circuit_breaker("api_client")
       >>> async with breaker:
       ...   await api.call()
-  """
-  if name not in _circuit_breakers:
+  """  # noqa: E111
+  if name not in _circuit_breakers:  # noqa: E111
     _circuit_breakers[name] = CircuitBreaker(name, config=config)
-  return _circuit_breakers[name]
+  return _circuit_breakers[name]  # noqa: E111
 
 
 def get_all_circuit_breakers() -> dict[str, CircuitBreaker]:
@@ -528,15 +526,15 @@ def get_all_circuit_breakers() -> dict[str, CircuitBreaker]:
 
   Returns:
       Dictionary of circuit breakers
-  """
-  return dict(_circuit_breakers)
+  """  # noqa: E111
+  return dict(_circuit_breakers)  # noqa: E111
 
 
 def reset_all_circuit_breakers() -> None:
-  """Reset all circuit breakers."""
-  for breaker in _circuit_breakers.values():
+  """Reset all circuit breakers."""  # noqa: E111
+  for breaker in _circuit_breakers.values():  # noqa: E111
     breaker.reset()
-  _LOGGER.info("All circuit breakers reset")
+  _LOGGER.info("All circuit breakers reset")  # noqa: E111
 
 
 # Resilience decorators
@@ -546,7 +544,7 @@ def with_circuit_breaker(
   name: str,
   *,
   config: CircuitBreakerConfig | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
   """Decorator to protect function with circuit breaker.
 
   Args:
@@ -560,21 +558,21 @@ def with_circuit_breaker(
       >>> @with_circuit_breaker("api_client")
       ... async def fetch_data():
       ...   return await api.get_data()
-  """
-  breaker = get_circuit_breaker(name, config=config)
+  """  # noqa: E111
+  breaker = get_circuit_breaker(name, config=config)  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:  # noqa: E111
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      return await breaker.call(func, *args, **kwargs)
+      return await breaker.call(func, *args, **kwargs)  # noqa: E111
 
-    return wrapper  # type: ignore[return-value]
+    return wrapper
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def with_retry(
   config: RetryConfig | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
   """Decorator to add retry logic to function.
 
   Args:
@@ -587,22 +585,22 @@ def with_retry(
       >>> @with_retry(RetryConfig(max_attempts=3))
       ... async def fetch_data():
       ...   return await api.get_data()
-  """
-  strategy = RetryStrategy(config)
+  """  # noqa: E111
+  strategy = RetryStrategy(config)  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:  # noqa: E111
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      return await strategy.execute(func, *args, **kwargs)
+      return await strategy.execute(func, *args, **kwargs)  # noqa: E111
 
-    return wrapper  # type: ignore[return-value]
+    return wrapper
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def with_fallback(
   default_value: Any = None,
-  fallback_func: Callable[..., Any] | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+  fallback_func: Callable[..., Awaitable[Any]] | None = None,
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | Any]]]:
   """Decorator to add fallback to function.
 
   Args:
@@ -616,16 +614,16 @@ def with_fallback(
       >>> @with_fallback(default_value={})
       ... async def fetch_data():
       ...   return await api.get_data()
-  """
-  strategy = FallbackStrategy(
+  """  # noqa: E111
+  strategy = FallbackStrategy(  # noqa: E111
     default_value=default_value,
     fallback_func=fallback_func,
   )
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | Any]]:  # noqa: E111
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | Any:
-      return await strategy.execute_with_fallback(func, *args, **kwargs)
+      return await strategy.execute_with_fallback(func, *args, **kwargs)  # noqa: E111
 
-    return wrapper  # type: ignore[return-value]
+    return cast(Callable[P, Awaitable[T | Any]], wrapper)
 
-  return decorator
+  return decorator  # noqa: E111

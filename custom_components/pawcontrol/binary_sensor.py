@@ -8,8 +8,6 @@ with full type annotations, async operations, and robust error handling.
 OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code duplication.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from inspect import isawaitable
@@ -64,7 +62,7 @@ from .types import (
 from .utils import ensure_utc_datetime, normalise_entity_attributes
 
 if TYPE_CHECKING:
-  from .garden_manager import GardenManager
+  from .garden_manager import GardenManager  # noqa: E111
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,55 +77,55 @@ type SafeZoneName = Literal["home", "park", "vet", "friend_house"]
 
 
 def _coerce_bool_flag(value: object) -> bool | None:
-  """Return a strict boolean for 0/1 sentinel payloads."""
+  """Return a strict boolean for 0/1 sentinel payloads."""  # noqa: E111
 
-  if isinstance(value, bool):
+  if isinstance(value, bool):  # noqa: E111
     return value
 
-  if isinstance(value, int | float) and value in (0, 1):
+  if isinstance(value, int | float) and value in (0, 1):  # noqa: E111
     return bool(value)
 
-  return None
+  return None  # noqa: E111
 
 
 def _as_local(dt_value: datetime) -> datetime:
-  """Return a timezone-aware datetime in the local timezone."""
+  """Return a timezone-aware datetime in the local timezone."""  # noqa: E111
 
-  if hasattr(dt_util, "as_local"):
+  if hasattr(dt_util, "as_local"):  # noqa: E111
     return dt_util.as_local(dt_value)
 
-  target = dt_value
-  if target.tzinfo is None:
+  target = dt_value  # noqa: E111
+  if target.tzinfo is None:  # noqa: E111
     target = target.replace(tzinfo=UTC)
 
-  local_tz = getattr(dt_util, "DEFAULT_TIME_ZONE", None)
-  if local_tz is None:
+  local_tz = getattr(dt_util, "DEFAULT_TIME_ZONE", None)  # noqa: E111
+  if local_tz is None:  # noqa: E111
     return target
 
-  try:
+  try:  # noqa: E111
     return target.astimezone(local_tz)
-  except Exception:  # pragma: no cover - defensive fallback
+  except Exception:  # pragma: no cover - defensive fallback  # noqa: E111
     return target
 
 
 def _normalise_attributes(
   attrs: Mapping[str, object],
 ) -> JSONMutableMapping:
-  """Return JSON-serialisable attributes for entity state."""
+  """Return JSON-serialisable attributes for entity state."""  # noqa: E111
 
-  return normalise_entity_attributes(attrs)
+  return normalise_entity_attributes(attrs)  # noqa: E111
 
 
 def _coerce_timestamp(value: object | None) -> datetime | None:
-  """Return a UTC datetime for supported timestamp values."""
+  """Return a UTC datetime for supported timestamp values."""  # noqa: E111
 
-  if value is None:
+  if value is None:  # noqa: E111
     return None
 
-  if isinstance(value, datetime | date | str | int | float):
+  if isinstance(value, datetime | date | str | int | float):  # noqa: E111
     return ensure_utc_datetime(value)
 
-  return None
+  return None  # noqa: E111
 
 
 def _apply_standard_timing_attributes(
@@ -137,16 +135,16 @@ def _apply_standard_timing_attributes(
   duration_minutes: object | None,
   last_seen: object | None,
 ) -> None:
-  """Populate standardized timing attributes on the attribute mapping."""
+  """Populate standardized timing attributes on the attribute mapping."""  # noqa: E111
 
-  attrs["started_at"] = _coerce_timestamp(started_at)
+  attrs["started_at"] = _coerce_timestamp(started_at)  # noqa: E111
 
-  if isinstance(duration_minutes, int | float):
+  if isinstance(duration_minutes, int | float):  # noqa: E111
     attrs["duration_minutes"] = float(duration_minutes)
-  else:
+  else:  # noqa: E111
     attrs["duration_minutes"] = None
 
-  attrs["last_seen"] = _coerce_timestamp(last_seen)
+  attrs["last_seen"] = _coerce_timestamp(last_seen)  # noqa: E111
 
 
 # Home Assistant platform configuration
@@ -161,10 +159,10 @@ WALK_MODULE = cast(CoordinatorTypedModuleName, MODULE_WALK)
 
 # OPTIMIZED: Shared logic patterns to reduce code duplication
 class BinarySensorLogicMixin:
-  """Mixin providing shared logic patterns for binary sensors."""
+  """Mixin providing shared logic patterns for binary sensors."""  # noqa: E111
 
-  @staticmethod
-  def _calculate_time_based_status(
+  @staticmethod  # noqa: E111
+  def _calculate_time_based_status(  # noqa: E111
     timestamp_value: str | datetime | None,
     threshold_hours: float,
     default_if_none: bool = False,
@@ -180,17 +178,17 @@ class BinarySensorLogicMixin:
         True if within threshold, False otherwise
     """
     if not timestamp_value:
-      return default_if_none
+      return default_if_none  # noqa: E111
 
     timestamp = ensure_utc_datetime(timestamp_value)
     if timestamp is None:
-      return default_if_none
+      return default_if_none  # noqa: E111
 
     time_diff = dt_util.utcnow() - timestamp
     return time_diff < timedelta(hours=threshold_hours)
 
-  @staticmethod
-  def _evaluate_threshold(
+  @staticmethod  # noqa: E111
+  def _evaluate_threshold(  # noqa: E111
     value: float | int | None,
     threshold: float,
     comparison: str = "greater",
@@ -208,34 +206,34 @@ class BinarySensorLogicMixin:
         Comparison result
     """
     if value is None:
-      return default_if_none
+      return default_if_none  # noqa: E111
 
     try:
-      num_value = float(value)
-      if comparison == "greater":
+      num_value = float(value)  # noqa: E111
+      if comparison == "greater":  # noqa: E111
         return num_value > threshold
-      if comparison == "less":
+      if comparison == "less":  # noqa: E111
         return num_value < threshold
-      if comparison == "greater_equal":
+      if comparison == "greater_equal":  # noqa: E111
         return num_value >= threshold
-      if comparison == "less_equal":
+      if comparison == "less_equal":  # noqa: E111
         return num_value <= threshold
-      raise ValueError(f"Unknown comparison: {comparison}")
+      raise ValueError(f"Unknown comparison: {comparison}")  # noqa: E111
 
     except ValueError:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Failed to compare non-numeric value '%s' against threshold %s",
         value,
         threshold,
       )
-      return default_if_none
+      return default_if_none  # noqa: E111
     except TypeError:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Failed to compare value of unsupported type %s against threshold %s",
         type(value).__name__,
         threshold,
       )
-      return default_if_none
+      return default_if_none  # noqa: E111
 
 
 async def async_setup_entry(
@@ -243,33 +241,33 @@ async def async_setup_entry(
   entry: PawControlConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up Paw Control binary sensor platform."""
+  """Set up Paw Control binary sensor platform."""  # noqa: E111
 
-  # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
-  runtime_data = get_runtime_data(hass, entry)
-  if runtime_data is None:
+  # OPTIMIZED: Consistent runtime_data usage for Platinum readiness  # noqa: E114
+  runtime_data = get_runtime_data(hass, entry)  # noqa: E111
+  if runtime_data is None:  # noqa: E111
     _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
     return
-  coordinator = runtime_data.coordinator
-  raw_dogs = getattr(runtime_data, "dogs", [])
-  dog_configs: list[DogConfigData] = []
-  for raw_dog in raw_dogs:
+  coordinator = runtime_data.coordinator  # noqa: E111
+  raw_dogs = getattr(runtime_data, "dogs", [])  # noqa: E111
+  dog_configs: list[DogConfigData] = []  # noqa: E111
+  for raw_dog in raw_dogs:  # noqa: E111
     if not isinstance(raw_dog, Mapping):
-      continue
+      continue  # noqa: E111
 
     normalised = ensure_dog_config_data(cast(JSONMapping, raw_dog))
     if normalised is None:
-      continue
+      continue  # noqa: E111
 
     dog_configs.append(normalised)
 
-  if not dog_configs:
+  if not dog_configs:  # noqa: E111
     return
 
-  entities: list[PawControlBinarySensorBase] = []
+  entities: list[PawControlBinarySensorBase] = []  # noqa: E111
 
-  # Create binary sensors for each configured dog
-  for dog in dog_configs:
+  # Create binary sensors for each configured dog  # noqa: E114
+  for dog in dog_configs:  # noqa: E111
     dog_id: str = dog[DOG_ID_FIELD]
     dog_name: str = dog[DOG_NAME_FIELD]
     modules = ensure_dog_modules_mapping(dog)
@@ -285,12 +283,12 @@ async def async_setup_entry(
 
     # Module-specific binary sensors
     if modules.get(MODULE_FEEDING, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_feeding_binary_sensors(coordinator, dog_id, dog_name),
       )
 
     if modules.get(MODULE_WALK, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_walk_binary_sensors(
           coordinator,
           dog_id,
@@ -299,7 +297,7 @@ async def async_setup_entry(
       )
 
     if modules.get(MODULE_GPS, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_gps_binary_sensors(
           coordinator,
           dog_id,
@@ -308,19 +306,19 @@ async def async_setup_entry(
       )
 
     if modules.get(MODULE_HEALTH, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_health_binary_sensors(coordinator, dog_id, dog_name),
       )
 
     if modules.get(MODULE_GARDEN, False):
-      entities.extend(
+      entities.extend(  # noqa: E111
         _create_garden_binary_sensors(coordinator, dog_id, dog_name),
       )
 
-  if entities:
+  if entities:  # noqa: E111
     add_result = async_add_entities(entities)
     if isawaitable(add_result):
-      await add_result
+      await add_result  # noqa: E111
 
 
 def _create_base_binary_sensors(
@@ -337,8 +335,8 @@ def _create_base_binary_sensors(
 
   Returns:
       List of base binary sensor entities
-  """
-  return [
+  """  # noqa: E111
+  return [  # noqa: E111
     PawControlOnlineBinarySensor(coordinator, dog_id, dog_name),
     PawControlAttentionNeededBinarySensor(coordinator, dog_id, dog_name),
     PawControlVisitorModeBinarySensor(coordinator, dog_id, dog_name),
@@ -350,8 +348,8 @@ def _create_feeding_binary_sensors(
   dog_id: str,
   dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
-  """Create feeding-related binary sensors for a dog."""
-  return [
+  """Create feeding-related binary sensors for a dog."""  # noqa: E111
+  return [  # noqa: E111
     PawControlIsHungryBinarySensor(coordinator, dog_id, dog_name),
     PawControlFeedingDueBinarySensor(coordinator, dog_id, dog_name),
     PawControlFeedingScheduleOnTrackBinarySensor(
@@ -372,8 +370,8 @@ def _create_walk_binary_sensors(
   dog_id: str,
   dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
-  """Create walk-related binary sensors for a dog."""
-  return [
+  """Create walk-related binary sensors for a dog."""  # noqa: E111
+  return [  # noqa: E111
     PawControlWalkInProgressBinarySensor(coordinator, dog_id, dog_name),
     PawControlNeedsWalkBinarySensor(coordinator, dog_id, dog_name),
     PawControlWalkGoalMetBinarySensor(coordinator, dog_id, dog_name),
@@ -386,8 +384,8 @@ def _create_gps_binary_sensors(
   dog_id: str,
   dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
-  """Create GPS and location-related binary sensors for a dog."""
-  return [
+  """Create GPS and location-related binary sensors for a dog."""  # noqa: E111
+  return [  # noqa: E111
     PawControlIsHomeBinarySensor(coordinator, dog_id, dog_name),
     PawControlInSafeZoneBinarySensor(coordinator, dog_id, dog_name),
     PawControlGPSAccuratelyTrackedBinarySensor(
@@ -406,8 +404,8 @@ def _create_health_binary_sensors(
   dog_id: str,
   dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
-  """Create health and medical-related binary sensors for a dog."""
-  return [
+  """Create health and medical-related binary sensors for a dog."""  # noqa: E111
+  return [  # noqa: E111
     PawControlHealthAlertBinarySensor(coordinator, dog_id, dog_name),
     PawControlWeightAlertBinarySensor(coordinator, dog_id, dog_name),
     PawControlMedicationDueBinarySensor(coordinator, dog_id, dog_name),
@@ -437,9 +435,9 @@ def _create_garden_binary_sensors(
   dog_id: str,
   dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
-  """Create garden-related binary sensors for a dog."""
+  """Create garden-related binary sensors for a dog."""  # noqa: E111
 
-  return [
+  return [  # noqa: E111
     PawControlGardenSessionActiveBinarySensor(
       coordinator,
       dog_id,
@@ -458,9 +456,9 @@ class PawControlBinarySensorBase(
   """Base class for all Paw Control binary sensor entities.
 
   OPTIMIZED: Thread-safe caching, shared logic patterns, improved performance.
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -498,59 +496,59 @@ class PawControlBinarySensorBase(
 
     self._set_cache_ttl(30.0)
 
-  @property
-  def is_on(self) -> bool:
+  @property  # noqa: E111
+  def is_on(self) -> bool:  # noqa: E111
     """Return the sensor's state, allowing for test overrides."""
     if hasattr(self, "_test_is_on"):
-      return self._test_is_on
+      return self._test_is_on  # noqa: E111
     return self._get_is_on_state()
 
-  @is_on.setter
-  def is_on(self, value: bool) -> None:
+  @is_on.setter  # noqa: E111
+  def is_on(self, value: bool) -> None:  # noqa: E111
     """Set the sensor's state for testing."""
     if "PYTEST_CURRENT_TEST" not in os.environ:
-      raise AttributeError("is_on is read-only")
+      raise AttributeError("is_on is read-only")  # noqa: E111
     self._test_is_on = value
 
-  @is_on.deleter
-  def is_on(self) -> None:
+  @is_on.deleter  # noqa: E111
+  def is_on(self) -> None:  # noqa: E111
     """Delete the test override for the sensor's state."""
     if hasattr(self, "_test_is_on"):
-      del self._test_is_on
+      del self._test_is_on  # noqa: E111
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return the actual state of the sensor. Subclasses should override."""
     return False
 
-  def _inherit_extra_attributes(self) -> AttributeDict:
+  def _inherit_extra_attributes(self) -> AttributeDict:  # noqa: E111
     """Return a mutable copy of inherited attributes."""
 
     return cast(
       AttributeDict, normalise_entity_attributes(super().extra_state_attributes)
     )
 
-  @property
-  def icon(self) -> str | None:
+  @property  # noqa: E111
+  def icon(self) -> str | None:  # noqa: E111
     """Return the icon to use in the frontend."""
     if self.is_on and self._icon_on:
-      return self._icon_on
+      return self._icon_on  # noqa: E111
     if not self.is_on and self._icon_off:
-      return self._icon_off
+      return self._icon_off  # noqa: E111
     return "mdi:information-outline"
 
-  @property
-  def device_class(self) -> BinarySensorDeviceClass | None:
+  @property  # noqa: E111
+  def device_class(self) -> BinarySensorDeviceClass | None:  # noqa: E111
     """Expose the configured device class for test doubles."""
 
     return getattr(self, "_attr_device_class", None)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional state attributes for the binary sensor."""
     attrs = self._build_entity_attributes(self._extra_state_attributes())
     return self._finalize_entity_attributes(attrs)
 
-  def _extra_state_attributes(self) -> Mapping[str, object] | None:
+  def _extra_state_attributes(self) -> Mapping[str, object] | None:  # noqa: E111
     """Return additional attributes shared by binary sensors."""
 
     return {
@@ -558,38 +556,38 @@ class PawControlBinarySensorBase(
       "sensor_type": self._sensor_type,
     }
 
-  def _get_feeding_payload(self) -> FeedingModulePayload | None:
+  def _get_feeding_payload(self) -> FeedingModulePayload | None:  # noqa: E111
     """Return the structured feeding payload when available."""
 
     module_state = self._get_module_data(FEEDING_MODULE)
     return cast(FeedingModulePayload, module_state) if module_state else None
 
-  def _get_walk_payload(self) -> WalkModulePayload | None:
+  def _get_walk_payload(self) -> WalkModulePayload | None:  # noqa: E111
     """Return the structured walk payload when available."""
 
     module_state = self._get_module_data(WALK_MODULE)
     return cast(WalkModulePayload, module_state) if module_state else None
 
-  def _get_gps_payload(self) -> GPSModulePayload | None:
+  def _get_gps_payload(self) -> GPSModulePayload | None:  # noqa: E111
     """Return the structured GPS payload when available."""
 
     module_state = self._get_module_data(GPS_MODULE)
     return cast(GPSModulePayload, module_state) if module_state else None
 
-  def _get_health_payload(self) -> HealthModulePayload | None:
+  def _get_health_payload(self) -> HealthModulePayload | None:  # noqa: E111
     """Return the structured health payload when available."""
 
     module_state = self._get_module_data(HEALTH_MODULE)
     return cast(HealthModulePayload, module_state) if module_state else None
 
-  def _get_garden_payload(self) -> GardenModulePayload | None:
+  def _get_garden_payload(self) -> GardenModulePayload | None:  # noqa: E111
     """Return the structured garden payload when available."""
 
     module_state = self._get_module_data(GARDEN_MODULE)
     return cast(GardenModulePayload, module_state) if module_state else None
 
-  @property
-  def available(self) -> bool:
+  @property  # noqa: E111
+  def available(self) -> bool:  # noqa: E111
     """Return if the binary sensor is available."""
     return self.coordinator.available and self._get_dog_data_cached() is not None
 
@@ -598,23 +596,23 @@ class PawControlBinarySensorBase(
 
 
 class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
-  """Base class for garden binary sensors."""
+  """Base class for garden binary sensors."""  # noqa: E111
 
-  def _apply_garden_common_attributes(self, attrs: AttributeDict) -> None:
+  def _apply_garden_common_attributes(self, attrs: AttributeDict) -> None:  # noqa: E111
     """Populate common garden telemetry attributes for garden sensors."""
 
     data = self._get_garden_data()
     garden_status = data.get("status")
     if garden_status is not None:
-      attrs["garden_status"] = garden_status
+      attrs["garden_status"] = garden_status  # noqa: E111
 
     sessions_today = data.get("sessions_today")
     if sessions_today is not None:
-      attrs["sessions_today"] = sessions_today
+      attrs["sessions_today"] = sessions_today  # noqa: E111
 
     pending_confirmations = data.get("pending_confirmations")
     if pending_confirmations is not None:
-      attrs["pending_confirmations"] = cast(JSONValue, pending_confirmations)
+      attrs["pending_confirmations"] = cast(JSONValue, pending_confirmations)  # noqa: E111
 
     active_session = data.get("active_session")
     last_session = data.get("last_session")
@@ -622,14 +620,14 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
     duration_minutes = None
     last_seen = None
     if isinstance(active_session, Mapping):
-      started_at = active_session.get("start_time")
-      duration_minutes = active_session.get("duration_minutes")
+      started_at = active_session.get("start_time")  # noqa: E111
+      duration_minutes = active_session.get("duration_minutes")  # noqa: E111
     if started_at is None and isinstance(last_session, Mapping):
-      started_at = last_session.get("start_time")
+      started_at = last_session.get("start_time")  # noqa: E111
     if duration_minutes is None and isinstance(last_session, Mapping):
-      duration_minutes = last_session.get("duration_minutes")
+      duration_minutes = last_session.get("duration_minutes")  # noqa: E111
     if isinstance(last_session, Mapping):
-      last_seen = last_session.get("end_time")
+      last_seen = last_session.get("end_time")  # noqa: E111
 
     _apply_standard_timing_attributes(
       attrs,
@@ -638,23 +636,23 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
       last_seen=last_seen,
     )
 
-  def _get_garden_manager(self) -> GardenManager | None:
+  def _get_garden_manager(self) -> GardenManager | None:  # noqa: E111
     """Return the configured garden manager when available."""
 
     return self._get_runtime_managers().garden_manager
 
-  def _get_garden_data(self) -> GardenModulePayload:
+  def _get_garden_data(self) -> GardenModulePayload:  # noqa: E111
     """Return garden snapshot data for the dog."""
 
     payload = self._get_garden_payload()
     if payload:
-      return payload
+      return payload  # noqa: E111
 
     garden_manager = self._get_garden_manager()
     if garden_manager is not None:
-      try:
+      try:  # noqa: E111
         return garden_manager.build_garden_snapshot(self._dog_id)
-      except Exception as err:  # pragma: no cover - defensive logging
+      except Exception as err:  # pragma: no cover - defensive logging  # noqa: E111
         _LOGGER.debug(
           "Garden snapshot fallback failed for %s: %s",
           self._dog_id,
@@ -663,8 +661,8 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
 
     return cast(GardenModulePayload, {})
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Expose the latest garden telemetry for diagnostics dashboards."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     self._apply_garden_common_attributes(attrs)
@@ -673,9 +671,9 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
 
 # Base binary sensors
 class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if the dog monitoring system is online."""
+  """Binary sensor indicating if the dog monitoring system is online."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -692,11 +690,11 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:close-network",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if the dog monitoring system is online."""
     dog_data = self._get_dog_data_cached()
     if not dog_data:
-      return False
+      return False  # noqa: E111
 
     last_update = dog_data.get("last_update")
     return self._calculate_time_based_status(
@@ -705,34 +703,34 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
       False,
     )  # 10 minutes
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional attributes for the online sensor."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     dog_data = self._get_dog_data_cached()
 
     if dog_data:
-      last_update = dog_data.get("last_update")
-      if isinstance(last_update, datetime):
+      last_update = dog_data.get("last_update")  # noqa: E111
+      if isinstance(last_update, datetime):  # noqa: E111
         attrs["last_update"] = _as_local(last_update).isoformat()
-      elif isinstance(last_update, str):
+      elif isinstance(last_update, str):  # noqa: E111
         attrs["last_update"] = last_update
 
-      attrs["status"] = dog_data.get("status", STATE_UNKNOWN)
-      enabled_modules = sorted(
+      attrs["status"] = dog_data.get("status", STATE_UNKNOWN)  # noqa: E111
+      enabled_modules = sorted(  # noqa: E111
         self.coordinator.get_enabled_modules(self._dog_id),
       )
-      if enabled_modules:
+      if enabled_modules:  # noqa: E111
         attrs["enabled_modules"] = list(enabled_modules)
-      attrs["system_health"] = "healthy" if self.is_on else "disconnected"
+      attrs["system_health"] = "healthy" if self.is_on else "disconnected"  # noqa: E111
 
     return _normalise_attributes(attrs)
 
 
 class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if the dog needs immediate attention."""
+  """Binary sensor indicating if the dog needs immediate attention."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -749,107 +747,107 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:check-circle",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if the dog needs immediate attention."""
     attention_reasons: list[str] = []
 
     feeding_data = self._get_feeding_payload()
     if feeding_data and bool(feeding_data.get("is_hungry", False)):
-      last_feeding_hours = feeding_data.get("last_feeding_hours")
-      if isinstance(last_feeding_hours, int | float) and float(last_feeding_hours) > 12:
+      last_feeding_hours = feeding_data.get("last_feeding_hours")  # noqa: E111
+      if isinstance(last_feeding_hours, int | float) and float(last_feeding_hours) > 12:  # noqa: E111
         attention_reasons.append("critically_hungry")
-      else:
+      else:  # noqa: E111
         attention_reasons.append("hungry")
 
     walk_data = self._get_walk_payload()
     if walk_data and bool(walk_data.get("needs_walk", False)):
-      last_walk_hours = walk_data.get("last_walk_hours")
-      if isinstance(last_walk_hours, int | float) and float(last_walk_hours) > 12:
+      last_walk_hours = walk_data.get("last_walk_hours")  # noqa: E111
+      if isinstance(last_walk_hours, int | float) and float(last_walk_hours) > 12:  # noqa: E111
         attention_reasons.append("urgent_walk_needed")
-      else:
+      else:  # noqa: E111
         attention_reasons.append("needs_walk")
 
     health_data = self._get_health_payload()
     if health_data:
-      health_alerts = health_data.get("health_alerts", [])
-      if isinstance(health_alerts, Sequence) and health_alerts:
+      health_alerts = health_data.get("health_alerts", [])  # noqa: E111
+      if isinstance(health_alerts, Sequence) and health_alerts:  # noqa: E111
         attention_reasons.append("health_alert")
 
     status_snapshot = self._get_status_snapshot()
     if status_snapshot is not None:
-      if not bool(status_snapshot.get("in_safe_zone", True)):
+      if not bool(status_snapshot.get("in_safe_zone", True)):  # noqa: E111
         attention_reasons.append("outside_safe_zone")
     else:
-      gps_data = self._get_gps_payload()
-      if gps_data is not None:
+      gps_data = self._get_gps_payload()  # noqa: E111
+      if gps_data is not None:  # noqa: E111
         geofence_status = gps_data.get("geofence_status")
         in_safe_zone = True
         if isinstance(geofence_status, Mapping):
-          in_safe_zone = bool(
+          in_safe_zone = bool(  # noqa: E111
             geofence_status.get("in_safe_zone", True),
           )
         if not in_safe_zone:
-          attention_reasons.append("outside_safe_zone")
+          attention_reasons.append("outside_safe_zone")  # noqa: E111
 
     self._attention_reasons = attention_reasons
 
     return bool(attention_reasons)
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional attributes explaining why attention is needed."""
     attrs: AttributeDict = self._inherit_extra_attributes()
 
     if hasattr(self, "_attention_reasons"):
-      attrs["attention_reasons"] = self._attention_reasons
-      attrs["urgency_level"] = self._calculate_urgency_level()
-      attrs["recommended_actions"] = self._get_recommended_actions()
+      attrs["attention_reasons"] = self._attention_reasons  # noqa: E111
+      attrs["urgency_level"] = self._calculate_urgency_level()  # noqa: E111
+      attrs["recommended_actions"] = self._get_recommended_actions()  # noqa: E111
 
     return _normalise_attributes(attrs)
 
-  def _calculate_urgency_level(self) -> str:
+  def _calculate_urgency_level(self) -> str:  # noqa: E111
     """Calculate the urgency level based on attention reasons."""
     if not hasattr(self, "_attention_reasons"):
-      return "none"
+      return "none"  # noqa: E111
 
     urgent_conditions = ["critically_hungry", "health_alert"]
 
     if any(reason in urgent_conditions for reason in self._attention_reasons):
-      return "high"
+      return "high"  # noqa: E111
     if len(self._attention_reasons) > 2:
-      return "medium"
+      return "medium"  # noqa: E111
     if len(self._attention_reasons) > 0:
-      return "low"
+      return "low"  # noqa: E111
     return "none"
 
-  def _get_recommended_actions(self) -> list[str]:
+  def _get_recommended_actions(self) -> list[str]:  # noqa: E111
     """Get recommended actions based on attention reasons."""
     if not hasattr(self, "_attention_reasons"):
-      return []
+      return []  # noqa: E111
 
     actions = []
 
     if "critically_hungry" in self._attention_reasons:
-      actions.append("Feed immediately")
+      actions.append("Feed immediately")  # noqa: E111
     elif "hungry" in self._attention_reasons:
-      actions.append("Consider feeding")
+      actions.append("Consider feeding")  # noqa: E111
 
     if "urgent_walk_needed" in self._attention_reasons:
-      actions.append("Take for walk immediately")
+      actions.append("Take for walk immediately")  # noqa: E111
 
     if "health_alert" in self._attention_reasons:
-      actions.append("Check health status")
+      actions.append("Check health status")  # noqa: E111
 
     if "outside_safe_zone" in self._attention_reasons:
-      actions.append("Check location and safety")
+      actions.append("Check location and safety")  # noqa: E111
 
     return actions
 
 
 class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if visitor mode is active."""
+  """Binary sensor indicating if visitor mode is active."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -865,38 +863,38 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:home",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if visitor mode is active."""
     dog_data = self._get_dog_data_cached()
     if not dog_data:
-      return False
+      return False  # noqa: E111
 
     return bool(dog_data.get(VISITOR_MODE_ACTIVE_FIELD, False))
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional attributes for visitor mode."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     dog_data = self._get_dog_data_cached()
 
     if dog_data:
-      visitor_settings = cast(
+      visitor_settings = cast(  # noqa: E111
         JSONMapping,
         dog_data.get("visitor_mode_settings", {}),
       )
-      visitor_mode_started = dog_data.get("visitor_mode_started")
-      visitor_name = cast(str | None, dog_data.get("visitor_name"))
-      if isinstance(visitor_mode_started, datetime):
+      visitor_mode_started = dog_data.get("visitor_mode_started")  # noqa: E111
+      visitor_name = cast(str | None, dog_data.get("visitor_name"))  # noqa: E111
+      if isinstance(visitor_mode_started, datetime):  # noqa: E111
         attrs["visitor_mode_started"] = _as_local(
           visitor_mode_started,
         ).isoformat()
-      elif isinstance(visitor_mode_started, str) or visitor_mode_started is None:
+      elif isinstance(visitor_mode_started, str) or visitor_mode_started is None:  # noqa: E111
         attrs["visitor_mode_started"] = visitor_mode_started
-      attrs["visitor_name"] = visitor_name
-      attrs["modified_notifications"] = bool(
+      attrs["visitor_name"] = visitor_name  # noqa: E111
+      attrs["modified_notifications"] = bool(  # noqa: E111
         visitor_settings.get("modified_notifications", True),
       )
-      attrs["reduced_alerts"] = bool(
+      attrs["reduced_alerts"] = bool(  # noqa: E111
         visitor_settings.get("reduced_alerts", True),
       )
 
@@ -905,9 +903,9 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
 
 # Feeding binary sensors
 class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if the dog is hungry."""
+  """Binary sensor indicating if the dog is hungry."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -923,67 +921,67 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:food-drumstick",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if the dog is hungry."""
     feeding_data = self._get_feeding_payload()
     if not feeding_data:
-      return False
+      return False  # noqa: E111
 
     return bool(feeding_data.get("is_hungry", False))
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional feeding status attributes."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     feeding_data = self._get_feeding_payload()
 
     if not feeding_data:
-      return _normalise_attributes(attrs)
+      return _normalise_attributes(attrs)  # noqa: E111
 
     last_feeding = feeding_data.get("last_feeding")
     if isinstance(last_feeding, datetime):
-      attrs["last_feeding"] = _as_local(last_feeding).isoformat()
+      attrs["last_feeding"] = _as_local(last_feeding).isoformat()  # noqa: E111
     elif isinstance(last_feeding, str) or last_feeding is None:
-      attrs["last_feeding"] = last_feeding
+      attrs["last_feeding"] = last_feeding  # noqa: E111
 
     last_feeding_hours = feeding_data.get("last_feeding_hours")
     if isinstance(last_feeding_hours, int | float):
-      attrs["last_feeding_hours"] = float(last_feeding_hours)
+      attrs["last_feeding_hours"] = float(last_feeding_hours)  # noqa: E111
     elif last_feeding_hours is None:
-      attrs["last_feeding_hours"] = None
+      attrs["last_feeding_hours"] = None  # noqa: E111
 
     next_feeding_due = feeding_data.get("next_feeding_due")
     if isinstance(next_feeding_due, datetime):
-      attrs["next_feeding_due"] = _as_local(next_feeding_due).isoformat()
+      attrs["next_feeding_due"] = _as_local(next_feeding_due).isoformat()  # noqa: E111
     elif isinstance(next_feeding_due, str) or next_feeding_due is None:
-      attrs["next_feeding_due"] = next_feeding_due
+      attrs["next_feeding_due"] = next_feeding_due  # noqa: E111
 
     attrs["hunger_level"] = self._calculate_hunger_level(feeding_data)
 
     return _normalise_attributes(attrs)
 
-  def _calculate_hunger_level(self, feeding_data: FeedingModulePayload) -> str:
+  def _calculate_hunger_level(self, feeding_data: FeedingModulePayload) -> str:  # noqa: E111
     """Calculate hunger level based on time since last feeding."""
     last_feeding_hours = feeding_data.get("last_feeding_hours")
 
     if not isinstance(last_feeding_hours, int | float):
-      return STATE_UNKNOWN
+      return STATE_UNKNOWN  # noqa: E111
 
     hours_since_feeding = float(last_feeding_hours)
 
     if hours_since_feeding > 12:
-      return "very_hungry"
+      return "very_hungry"  # noqa: E111
     if hours_since_feeding >= 8:
-      return "hungry"
+      return "hungry"  # noqa: E111
     if hours_since_feeding >= 6:
-      return "somewhat_hungry"
+      return "somewhat_hungry"  # noqa: E111
     return "satisfied"
 
 
 class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if a feeding is due based on schedule."""
+  """Binary sensor indicating if a feeding is due based on schedule."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -999,27 +997,27 @@ class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:clock-check",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if a feeding is due according to schedule."""
     feeding_data = self._get_feeding_payload()
     if not feeding_data:
-      return False
+      return False  # noqa: E111
 
     next_feeding_due = feeding_data.get("next_feeding_due")
     if not isinstance(next_feeding_due, str):
-      return False
+      return False  # noqa: E111
 
     due_time = ensure_utc_datetime(next_feeding_due)
     if due_time is None:
-      return False
+      return False  # noqa: E111
 
     return dt_util.utcnow() >= due_time
 
 
 class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if feeding schedule is being followed."""
+  """Binary sensor indicating if feeding schedule is being followed."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1035,22 +1033,22 @@ class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:calendar-alert",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if feeding schedule adherence is good."""
     feeding_data = self._get_feeding_payload()
     if not feeding_data:
-      return True  # Assume on track if no data
+      return True  # Assume on track if no data  # noqa: E111
 
     adherence = feeding_data.get("feeding_schedule_adherence", 100.0)
     if not isinstance(adherence, int | float):
-      return True
+      return True  # noqa: E111
     return self._evaluate_threshold(float(adherence), 80.0, "greater_equal", True)
 
 
 class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if daily feeding goals are met."""
+  """Binary sensor indicating if daily feeding goals are met."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1066,20 +1064,20 @@ class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:target-variant",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if daily feeding goals are met."""
     feeding_data = self._get_feeding_payload()
     if not feeding_data:
-      return False
+      return False  # noqa: E111
 
     return bool(feeding_data.get("daily_target_met", False))
 
 
 # Walk binary sensors
 class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if a walk is currently in progress."""
+  """Binary sensor indicating if a walk is currently in progress."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1096,31 +1094,31 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:home",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if a walk is currently in progress."""
     status_snapshot = self._get_status_snapshot()
     if status_snapshot is not None:
-      return bool(status_snapshot.get("on_walk", False))
+      return bool(status_snapshot.get("on_walk", False))  # noqa: E111
 
     walk_data = self._get_walk_payload()
     if not walk_data:
-      return False
+      return False  # noqa: E111
 
     return bool(walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional walk progress attributes."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     walk_data = self._get_walk_payload()
 
     if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
-      current_walk = walk_data.get("current_walk")
-      started_at: object | None = None
-      duration_minutes = walk_data.get("current_walk_duration")
-      distance_meters = walk_data.get("current_walk_distance")
+      current_walk = walk_data.get("current_walk")  # noqa: E111
+      started_at: object | None = None  # noqa: E111
+      duration_minutes = walk_data.get("current_walk_duration")  # noqa: E111
+      distance_meters = walk_data.get("current_walk_distance")  # noqa: E111
 
-      if isinstance(current_walk, Mapping):
+      if isinstance(current_walk, Mapping):  # noqa: E111
         started_at = current_walk.get("start_time")
         duration_minutes = current_walk.get(
           "current_duration",
@@ -1131,30 +1129,30 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
           current_walk.get("distance"),
         )
 
-      started_at = started_at or walk_data.get("current_walk_start")
+      started_at = started_at or walk_data.get("current_walk_start")  # noqa: E111
 
-      gps_data = self._get_gps_payload()
-      last_seen = None
-      if gps_data is not None:
+      gps_data = self._get_gps_payload()  # noqa: E111
+      last_seen = None  # noqa: E111
+      if gps_data is not None:  # noqa: E111
         last_seen = gps_data.get("last_seen")
 
-      _apply_standard_timing_attributes(
+      _apply_standard_timing_attributes(  # noqa: E111
         attrs,
         started_at=started_at,
         duration_minutes=duration_minutes,
         last_seen=last_seen,
       )
 
-      if isinstance(distance_meters, int | float):
+      if isinstance(distance_meters, int | float):  # noqa: E111
         attrs["distance_meters"] = float(distance_meters)
 
-      estimated_remaining = self._estimate_remaining_time(walk_data)
-      if estimated_remaining is not None:
+      estimated_remaining = self._estimate_remaining_time(walk_data)  # noqa: E111
+      if estimated_remaining is not None:  # noqa: E111
         attrs["estimated_remaining"] = estimated_remaining
 
     return _normalise_attributes(attrs)
 
-  def _estimate_remaining_time(self, walk_data: WalkModulePayload) -> int | None:
+  def _estimate_remaining_time(self, walk_data: WalkModulePayload) -> int | None:  # noqa: E111
     """Estimate remaining walk time based on typical patterns."""
     current_duration_value = walk_data.get("current_walk_duration")
     average_duration_value = walk_data.get("average_walk_duration")
@@ -1164,15 +1162,15 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
       and isinstance(average_duration_value, int | float)
       and current_duration_value < average_duration_value
     ):
-      return int(average_duration_value - current_duration_value)
+      return int(average_duration_value - current_duration_value)  # noqa: E111
 
     return None
 
 
 class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if the dog needs a walk."""
+  """Binary sensor indicating if the dog needs a walk."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1188,63 +1186,63 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:sleep",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if the dog needs a walk."""
     status_snapshot = self._get_status_snapshot()
     if status_snapshot is not None:
-      return bool(status_snapshot.get("needs_walk", False))
+      return bool(status_snapshot.get("needs_walk", False))  # noqa: E111
 
     walk_data = self._get_walk_payload()
     if not walk_data:
-      return False
+      return False  # noqa: E111
 
     return bool(walk_data.get("needs_walk", False))
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional walk need attributes."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     walk_data = self._get_walk_payload()
 
     if walk_data:
-      last_walk = walk_data.get("last_walk")
-      if isinstance(last_walk, datetime):
+      last_walk = walk_data.get("last_walk")  # noqa: E111
+      if isinstance(last_walk, datetime):  # noqa: E111
         attrs["last_walk"] = _as_local(last_walk).isoformat()
-      elif isinstance(last_walk, str):
+      elif isinstance(last_walk, str):  # noqa: E111
         attrs["last_walk"] = last_walk
 
-      last_walk_hours = walk_data.get("last_walk_hours")
-      if isinstance(last_walk_hours, int | float):
+      last_walk_hours = walk_data.get("last_walk_hours")  # noqa: E111
+      if isinstance(last_walk_hours, int | float):  # noqa: E111
         attrs["last_walk_hours"] = float(last_walk_hours)
 
-      walks_today = walk_data.get("walks_today")
-      if isinstance(walks_today, int):
+      walks_today = walk_data.get("walks_today")  # noqa: E111
+      if isinstance(walks_today, int):  # noqa: E111
         attrs["walks_today"] = walks_today
 
-      attrs["urgency_level"] = self._calculate_walk_urgency(walk_data)
+      attrs["urgency_level"] = self._calculate_walk_urgency(walk_data)  # noqa: E111
 
     return _normalise_attributes(attrs)
 
-  def _calculate_walk_urgency(self, walk_data: WalkModulePayload) -> str:
+  def _calculate_walk_urgency(self, walk_data: WalkModulePayload) -> str:  # noqa: E111
     """Calculate walk urgency level."""
     last_walk_hours = walk_data.get("last_walk_hours")
 
     if not isinstance(last_walk_hours, int | float):
-      return STATE_UNKNOWN
+      return STATE_UNKNOWN  # noqa: E111
 
     if last_walk_hours > 12:
-      return "urgent"
+      return "urgent"  # noqa: E111
     if last_walk_hours > 8:
-      return "high"
+      return "high"  # noqa: E111
     if last_walk_hours > 6:
-      return "medium"
+      return "medium"  # noqa: E111
     return "low"
 
 
 class PawControlWalkGoalMetBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if daily walk goals are met."""
+  """Binary sensor indicating if daily walk goals are met."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1260,19 +1258,19 @@ class PawControlWalkGoalMetBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:trophy-outline",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if daily walk goals are met."""
     walk_data = self._get_walk_payload()
     if not walk_data:
-      return False
+      return False  # noqa: E111
 
     return bool(walk_data.get("walk_goal_met", False))
 
 
 class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if a longer walk is overdue."""
+  """Binary sensor indicating if a longer walk is overdue."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1288,16 +1286,16 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:timer-check",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if a longer walk is overdue."""
     walk_data = self._get_walk_payload()
     if not walk_data:
-      return False
+      return False  # noqa: E111
 
     # Check if last long walk (>30 min) was more than 2 days ago
     last_long_walk = walk_data.get("last_long_walk")
     if isinstance(last_long_walk, str | datetime):
-      return not self._calculate_time_based_status(
+      return not self._calculate_time_based_status(  # noqa: E111
         last_long_walk,
         48,
         False,
@@ -1308,9 +1306,9 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
 
 # GPS binary sensors
 class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if the dog is at home."""
+  """Binary sensor indicating if the dog is at home."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1327,24 +1325,24 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:home-outline",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if the dog is at home."""
     gps_data = self._get_gps_payload()
     if not gps_data:
-      return True  # Assume home if no GPS data
+      return True  # Assume home if no GPS data  # noqa: E111
 
     current_zone = gps_data.get("zone")
     return isinstance(current_zone, str) and current_zone == "home"
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return additional location attributes."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     gps_data = self._get_gps_payload()
 
     if gps_data:
-      current_zone = gps_data.get("zone")
-      attrs["current_zone"] = (
+      current_zone = gps_data.get("zone")  # noqa: E111
+      attrs["current_zone"] = (  # noqa: E111
         current_zone
         if isinstance(
           current_zone,
@@ -1353,27 +1351,27 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
         else STATE_UNKNOWN
       )
 
-      distance_from_home = gps_data.get("distance_from_home")
-      if isinstance(distance_from_home, int | float):
+      distance_from_home = gps_data.get("distance_from_home")  # noqa: E111
+      if isinstance(distance_from_home, int | float):  # noqa: E111
         attrs["distance_from_home"] = float(distance_from_home)
 
-      last_seen_value = gps_data.get("last_seen")
-      if isinstance(last_seen_value, datetime):
+      last_seen_value = gps_data.get("last_seen")  # noqa: E111
+      if isinstance(last_seen_value, datetime):  # noqa: E111
         attrs["last_seen"] = last_seen_value.isoformat()
-      elif isinstance(last_seen_value, str):
+      elif isinstance(last_seen_value, str):  # noqa: E111
         attrs["last_seen"] = last_seen_value
 
-      accuracy = gps_data.get("accuracy")
-      if isinstance(accuracy, int | float):
+      accuracy = gps_data.get("accuracy")  # noqa: E111
+      if isinstance(accuracy, int | float):  # noqa: E111
         attrs["accuracy"] = float(accuracy)
 
     return _normalise_attributes(attrs)
 
 
 class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if the dog is in a safe zone."""
+  """Binary sensor indicating if the dog is in a safe zone."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1390,15 +1388,15 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:shield-alert",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if the dog is in a safe zone."""
     status_snapshot = self._get_status_snapshot()
     if status_snapshot is not None:
-      return bool(status_snapshot.get("in_safe_zone", True))
+      return bool(status_snapshot.get("in_safe_zone", True))  # noqa: E111
 
     gps_data = self._get_gps_payload()
     if not gps_data:
-      return True  # Assume safe if no GPS data
+      return True  # Assume safe if no GPS data  # noqa: E111
 
     # Check if in home zone or other defined safe zones
     current_zone = gps_data.get("zone")
@@ -1411,14 +1409,14 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
 
     return isinstance(current_zone, str) and current_zone in safe_zones
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return standardized timing attributes for safe zone status."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     gps_data = self._get_gps_payload()
     last_seen = None
     if gps_data is not None:
-      last_seen = gps_data.get("last_seen")
+      last_seen = gps_data.get("last_seen")  # noqa: E111
 
     _apply_standard_timing_attributes(
       attrs,
@@ -1430,9 +1428,9 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
 
 
 class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if GPS tracking is accurate."""
+  """Binary sensor indicating if GPS tracking is accurate."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1449,11 +1447,11 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:crosshairs-question",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if GPS tracking is accurate."""
     gps_data = self._get_gps_payload()
     if not gps_data:
-      return False
+      return False  # noqa: E111
 
     accuracy = gps_data.get("accuracy")
     accuracy_value: float | None
@@ -1487,9 +1485,9 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
 
 
 class PawControlMovingBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if the dog is currently moving."""
+  """Binary sensor indicating if the dog is currently moving."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1506,11 +1504,11 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:sleep",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if the dog is currently moving."""
     gps_data = self._get_gps_payload()
     if not gps_data:
-      return False
+      return False  # noqa: E111
 
     speed = gps_data.get("speed")
     numeric_speed = float(speed) if isinstance(speed, int | float) else 0.0
@@ -1523,9 +1521,9 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
 
 
 class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if there's a geofence alert."""
+  """Binary sensor indicating if there's a geofence alert."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1542,23 +1540,23 @@ class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:map-marker-check",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if there's an active geofence alert."""
     gps_data = self._get_gps_payload()
     if not gps_data:
-      return False
+      return False  # noqa: E111
 
     flag = _coerce_bool_flag(gps_data.get("geofence_alert"))
     if flag is not None:
-      return flag
+      return flag  # noqa: E111
 
     return False
 
 
 class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if GPS device battery is low."""
+  """Binary sensor indicating if GPS device battery is low."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1575,15 +1573,15 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:battery",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if GPS device battery is low."""
     gps_data = self._get_gps_payload()
     if not gps_data:
-      return False
+      return False  # noqa: E111
 
     battery_level = gps_data.get("battery_level")
     if not isinstance(battery_level, int | float):
-      return False
+      return False  # noqa: E111
     return self._evaluate_threshold(
       float(battery_level),
       20,
@@ -1594,9 +1592,9 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
 
 # Health binary sensors
 class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if there's a health alert."""
+  """Binary sensor indicating if there's a health alert."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1613,46 +1611,46 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:heart",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if there are active health alerts."""
     health_data = self._get_health_payload()
     if not health_data:
-      return False
+      return False  # noqa: E111
 
     health_alerts = health_data.get("health_alerts", [])
     if isinstance(health_alerts, Sequence):
-      return len(health_alerts) > 0
+      return len(health_alerts) > 0  # noqa: E111
 
     return False
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return health alert details."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     health_data = self._get_health_payload()
 
     if not health_data:
-      return _normalise_attributes(attrs)
+      return _normalise_attributes(attrs)  # noqa: E111
 
     health_alerts = health_data.get("health_alerts")
     if isinstance(health_alerts, list):
-      attrs["health_alerts"] = cast(JSONValue, health_alerts)
-      attrs["alert_count"] = len(health_alerts)
+      attrs["health_alerts"] = cast(JSONValue, health_alerts)  # noqa: E111
+      attrs["alert_count"] = len(health_alerts)  # noqa: E111
 
     health_status = health_data.get("health_status")
     if isinstance(health_status, str) or health_status is None:
-      attrs["health_status"] = health_status or "good"
+      attrs["health_status"] = health_status or "good"  # noqa: E111
 
     if "alert_count" not in attrs:
-      attrs["alert_count"] = 0
+      attrs["alert_count"] = 0  # noqa: E111
 
     return _normalise_attributes(attrs)
 
 
 class PawControlWeightAlertBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if there's a weight-related alert."""
+  """Binary sensor indicating if there's a weight-related alert."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1669,22 +1667,22 @@ class PawControlWeightAlertBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:scale-balanced",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if there's a weight alert."""
     health_data = self._get_health_payload()
     if not health_data:
-      return False
+      return False  # noqa: E111
 
     weight_change_percent = health_data.get("weight_change_percent", 0)
     if not isinstance(weight_change_percent, int | float):
-      return False
+      return False  # noqa: E111
     return abs(weight_change_percent) > 10  # 10% weight change threshold
 
 
 class PawControlMedicationDueBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if medication is due."""
+  """Binary sensor indicating if medication is due."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1700,23 +1698,23 @@ class PawControlMedicationDueBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:pill-off",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if medication is due."""
     health_data = self._get_health_payload()
     if not health_data:
-      return False
+      return False  # noqa: E111
 
     medications_due = health_data.get("medications_due", [])
     if isinstance(medications_due, Sequence):
-      return len(medications_due) > 0
+      return len(medications_due) > 0  # noqa: E111
 
     return False
 
 
 class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if vet checkup is due."""
+  """Binary sensor indicating if vet checkup is due."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1732,27 +1730,27 @@ class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:calendar-check",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if vet checkup is due."""
     health_data = self._get_health_payload()
     if not health_data:
-      return False
+      return False  # noqa: E111
 
     next_checkup = health_data.get("next_checkup_due")
     if not isinstance(next_checkup, str):
-      return False
+      return False  # noqa: E111
 
     checkup_dt = ensure_utc_datetime(next_checkup)
     if checkup_dt is None:
-      return False
+      return False  # noqa: E111
 
     return dt_util.utcnow().date() >= _as_local(checkup_dt).date()
 
 
 class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if grooming is due."""
+  """Binary sensor indicating if grooming is due."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1768,19 +1766,19 @@ class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:check",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if grooming is due."""
     health_data = self._get_health_payload()
     if not health_data:
-      return False
+      return False  # noqa: E111
 
     return bool(health_data.get("grooming_due", False))
 
 
 class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if there's concern about activity level."""
+  """Binary sensor indicating if there's concern about activity level."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1797,57 +1795,57 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:check-circle",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     """Return True if there's concern about activity level."""
     health_data = self._get_health_payload()
     if not health_data:
-      return False
+      return False  # noqa: E111
 
     activity_level = health_data.get("activity_level", "normal")
     concerning_levels = ["very_low", "very_high"]
 
     return activity_level in concerning_levels
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return activity level concern details."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     health_data = self._get_health_payload()
 
     if health_data:
-      activity_level_value = health_data.get("activity_level")
-      activity_level = (
+      activity_level_value = health_data.get("activity_level")  # noqa: E111
+      activity_level = (  # noqa: E111
         activity_level_value if isinstance(activity_level_value, str) else "normal"
       )
-      attrs["current_activity_level"] = activity_level
-      attrs["concern_reason"] = self._get_concern_reason(activity_level)
-      attrs["recommended_action"] = self._get_recommended_action(
+      attrs["current_activity_level"] = activity_level  # noqa: E111
+      attrs["concern_reason"] = self._get_concern_reason(activity_level)  # noqa: E111
+      attrs["recommended_action"] = self._get_recommended_action(  # noqa: E111
         activity_level,
       )
 
     return _normalise_attributes(attrs)
 
-  def _get_concern_reason(self, activity_level: str) -> str:
+  def _get_concern_reason(self, activity_level: str) -> str:  # noqa: E111
     """Get reason for activity level concern."""
     if activity_level == "very_low":
-      return "Activity level is unusually low"
+      return "Activity level is unusually low"  # noqa: E111
     if activity_level == "very_high":
-      return "Activity level is unusually high"
+      return "Activity level is unusually high"  # noqa: E111
     return "No concern"
 
-  def _get_recommended_action(self, activity_level: str) -> str:
+  def _get_recommended_action(self, activity_level: str) -> str:  # noqa: E111
     """Get recommended action for activity level concern."""
     if activity_level == "very_low":
-      return "Consider vet consultation or encouraging more activity"
+      return "Consider vet consultation or encouraging more activity"  # noqa: E111
     if activity_level == "very_high":
-      return "Monitor for signs of distress or illness"
+      return "Monitor for signs of distress or illness"  # noqa: E111
     return "Continue normal monitoring"
 
 
 class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor showing if health-aware feeding mode is active."""
+  """Binary sensor showing if health-aware feeding mode is active."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1864,44 +1862,44 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
       entity_category=EntityCategory.DIAGNOSTIC,
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     feeding_data = self._get_feeding_payload()
     if not feeding_data:
-      return False
+      return False  # noqa: E111
     return bool(feeding_data.get("health_aware_feeding", False))
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Return health-aware feeding metadata for the caregiver UI."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     feeding_data = self._get_feeding_payload()
 
     if feeding_data is None:
-      attrs["health_conditions"] = []
-      return _normalise_attributes(attrs)
+      attrs["health_conditions"] = []  # noqa: E111
+      return _normalise_attributes(attrs)  # noqa: E111
 
     portion_adjustment_factor = feeding_data.get(
       "portion_adjustment_factor",
     )
     if isinstance(portion_adjustment_factor, int | float):
-      attrs["portion_adjustment_factor"] = float(
+      attrs["portion_adjustment_factor"] = float(  # noqa: E111
         portion_adjustment_factor,
       )
     elif portion_adjustment_factor is None:
-      attrs["portion_adjustment_factor"] = None
+      attrs["portion_adjustment_factor"] = None  # noqa: E111
 
     raw_conditions = feeding_data.get("health_conditions")
     if isinstance(raw_conditions, list):
-      attrs["health_conditions"] = [str(condition) for condition in raw_conditions]
+      attrs["health_conditions"] = [str(condition) for condition in raw_conditions]  # noqa: E111
     else:
-      attrs["health_conditions"] = []
+      attrs["health_conditions"] = []  # noqa: E111
     return _normalise_attributes(attrs)
 
 
 class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating if medication should be given with meals."""
+  """Binary sensor indicating if medication should be given with meals."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1918,20 +1916,20 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
       entity_category=EntityCategory.DIAGNOSTIC,
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     feeding_data = self._get_feeding_payload()
     if not feeding_data:
-      return False
+      return False  # noqa: E111
     return bool(feeding_data.get("medication_with_meals", False))
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Report which health conditions require medication with meals."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     feeding_data = self._get_feeding_payload()
     if feeding_data:
-      raw_conditions = feeding_data.get("health_conditions")
-      if isinstance(raw_conditions, list):
+      raw_conditions = feeding_data.get("health_conditions")  # noqa: E111
+      if isinstance(raw_conditions, list):  # noqa: E111
         attrs["health_conditions"] = [str(condition) for condition in raw_conditions]
         return _normalise_attributes(attrs)
 
@@ -1940,9 +1938,9 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
 
 
 class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
-  """Binary sensor indicating an active health emergency."""
+  """Binary sensor indicating an active health emergency."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -1959,19 +1957,19 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
       icon_off="mdi:check-decagram",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     feeding_data = self._get_feeding_payload()
     if not feeding_data:
-      return False
+      return False  # noqa: E111
 
     flag = _coerce_bool_flag(feeding_data.get("health_emergency"))
     if flag is not None:
-      return flag
+      return flag  # noqa: E111
 
     return False
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Expose emergency context such as type, timing, and status."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     feeding_data = self._get_feeding_payload()
@@ -1984,38 +1982,38 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
     )
 
     if isinstance(emergency_payload, Mapping):
-      emergency = cast(FeedingEmergencyState, emergency_payload)
+      emergency = cast(FeedingEmergencyState, emergency_payload)  # noqa: E111
 
-      emergency_type = emergency.get("emergency_type")
-      if isinstance(emergency_type, str):
+      emergency_type = emergency.get("emergency_type")  # noqa: E111
+      if isinstance(emergency_type, str):  # noqa: E111
         attrs["emergency_type"] = emergency_type
 
-      portion_adjustment = emergency.get("portion_adjustment")
-      if isinstance(portion_adjustment, int | float):
+      portion_adjustment = emergency.get("portion_adjustment")  # noqa: E111
+      if isinstance(portion_adjustment, int | float):  # noqa: E111
         attrs["portion_adjustment"] = float(portion_adjustment)
 
-      activated_at = emergency.get("activated_at")
-      if isinstance(activated_at, datetime):
+      activated_at = emergency.get("activated_at")  # noqa: E111
+      if isinstance(activated_at, datetime):  # noqa: E111
         attrs["activated_at"] = _as_local(activated_at).isoformat()
-      elif isinstance(activated_at, str):
+      elif isinstance(activated_at, str):  # noqa: E111
         attrs["activated_at"] = activated_at
 
-      expires_at = emergency.get("expires_at")
-      if isinstance(expires_at, datetime):
+      expires_at = emergency.get("expires_at")  # noqa: E111
+      if isinstance(expires_at, datetime):  # noqa: E111
         attrs["expires_at"] = _as_local(expires_at).isoformat()
-      elif isinstance(expires_at, str) or expires_at is None:
+      elif isinstance(expires_at, str) or expires_at is None:  # noqa: E111
         attrs["expires_at"] = expires_at
 
-      status = emergency.get("status")
-      if isinstance(status, str):
+      status = emergency.get("status")  # noqa: E111
+      if isinstance(status, str):  # noqa: E111
         attrs["status"] = status
     return _normalise_attributes(attrs)
 
 
 class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase):
-  """Binary sensor indicating an active garden session."""
+  """Binary sensor indicating an active garden session."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2031,23 +2029,23 @@ class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase
       icon_off="mdi:flower-outline",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     data = self._get_garden_data()
     status = data.get("status")
     if isinstance(status, str) and status == "active":
-      return True
+      return True  # noqa: E111
 
     garden_manager = self._get_garden_manager()
     if garden_manager is not None:
-      return garden_manager.is_dog_in_garden(self._dog_id)
+      return garden_manager.is_dog_in_garden(self._dog_id)  # noqa: E111
 
     return False
 
 
 class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
-  """Binary sensor indicating whether the dog is currently in the garden."""
+  """Binary sensor indicating whether the dog is currently in the garden."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2063,10 +2061,10 @@ class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
       icon_off="mdi:pine-tree-variant-outline",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     garden_manager = self._get_garden_manager()
     if garden_manager is not None:
-      return garden_manager.is_dog_in_garden(self._dog_id)
+      return garden_manager.is_dog_in_garden(self._dog_id)  # noqa: E111
 
     data = self._get_garden_data()
     status = data.get("status")
@@ -2074,9 +2072,9 @@ class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
 
 
 class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
-  """Binary sensor indicating pending garden poop confirmation."""
+  """Binary sensor indicating pending garden poop confirmation."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -2092,24 +2090,24 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
       icon_off="mdi:check-circle-outline",
     )
 
-  def _get_is_on_state(self) -> bool:
+  def _get_is_on_state(self) -> bool:  # noqa: E111
     garden_manager = self._get_garden_manager()
     if garden_manager is not None:
-      return garden_manager.has_pending_confirmation(self._dog_id)
+      return garden_manager.has_pending_confirmation(self._dog_id)  # noqa: E111
 
     data = self._get_garden_data()
     pending = data.get("pending_confirmations")
     return isinstance(pending, Sequence) and len(pending) > 0
 
-  @property
-  def extra_state_attributes(self) -> JSONMutableMapping:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
     """Expose how many confirmation prompts are outstanding."""
     attrs: AttributeDict = self._inherit_extra_attributes()
     self._apply_garden_common_attributes(attrs)
     pending = self._get_garden_data().get("pending_confirmations")
     if isinstance(pending, list):
-      attrs["pending_confirmations"] = cast(JSONValue, pending)
-      attrs["pending_confirmation_count"] = len(pending)
+      attrs["pending_confirmations"] = cast(JSONValue, pending)  # noqa: E111
+      attrs["pending_confirmation_count"] = len(pending)  # noqa: E111
     else:
-      attrs["pending_confirmation_count"] = 0
+      attrs["pending_confirmation_count"] = 0  # noqa: E111
     return _normalise_attributes(attrs)

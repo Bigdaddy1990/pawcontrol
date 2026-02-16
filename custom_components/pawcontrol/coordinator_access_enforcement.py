@@ -9,15 +9,13 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 import functools
 import logging
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 if TYPE_CHECKING:
-  from .coordinator import PawControlCoordinator
+  from .coordinator import PawControlCoordinator  # noqa: E111
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,9 +24,9 @@ T = TypeVar("T")
 
 
 class CoordinatorAccessViolation(RuntimeError):
-  """Raised when data access bypasses the coordinator."""
+  """Raised when data access bypasses the coordinator."""  # noqa: E111
 
-  def __init__(self, message: str, *, entity_id: str | None = None) -> None:
+  def __init__(self, message: str, *, entity_id: str | None = None) -> None:  # noqa: E111
     """Initialize the exception.
 
     Args:
@@ -57,12 +55,12 @@ def require_coordinator[**P, T](
       >>> @require_coordinator
       ... def get_dog_status(self):
       ...   return self.coordinator.data[self.dog_id]
-  """
+  """  # noqa: E111
 
-  @functools.wraps(func)
-  def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+  @functools.wraps(func)  # noqa: E111
+  def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:  # noqa: E111
     if not args:
-      raise CoordinatorAccessViolation(
+      raise CoordinatorAccessViolation(  # noqa: E111
         "Function requires self parameter with coordinator access"
       )
 
@@ -70,21 +68,21 @@ def require_coordinator[**P, T](
     entity_id = getattr(instance, "entity_id", None)
 
     if not hasattr(instance, "coordinator"):
-      raise CoordinatorAccessViolation(
+      raise CoordinatorAccessViolation(  # noqa: E111
         "Instance must have coordinator attribute",
         entity_id=entity_id,
       )
 
     coordinator = instance.coordinator
     if coordinator is None:
-      raise CoordinatorAccessViolation(
+      raise CoordinatorAccessViolation(  # noqa: E111
         "Coordinator is None - cannot access data",
         entity_id=entity_id,
       )
 
     return func(*args, **kwargs)
 
-  return wrapper
+  return wrapper  # noqa: E111
 
 
 def require_coordinator_data(
@@ -109,52 +107,52 @@ def require_coordinator_data(
       ... def extra_state_attributes(self):
       ...   # self.coordinator.data[self.dog_id] is guaranteed
       ...   return self.coordinator.data[self.dog_id]["gps"]
-  """
+  """  # noqa: E111
 
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      if not args:
+      if not args:  # noqa: E111
         raise CoordinatorAccessViolation(
           "Function requires self parameter with coordinator access"
         )
 
-      instance = args[0]
-      entity_id = getattr(instance, "entity_id", None)
+      instance = args[0]  # noqa: E111
+      entity_id = getattr(instance, "entity_id", None)  # noqa: E111
 
-      if not hasattr(instance, "coordinator"):
+      if not hasattr(instance, "coordinator"):  # noqa: E111
         raise CoordinatorAccessViolation(
           "Instance must have coordinator attribute",
           entity_id=entity_id,
         )
 
-      coordinator = instance.coordinator
-      if coordinator is None:
+      coordinator = instance.coordinator  # noqa: E111
+      if coordinator is None:  # noqa: E111
         raise CoordinatorAccessViolation(
           "Coordinator is None",
           entity_id=entity_id,
         )
 
-      # Get dog_id from instance
-      dog_id = getattr(instance, dog_id_attr, None)
-      if dog_id is None:
+      # Get dog_id from instance  # noqa: E114
+      dog_id = getattr(instance, dog_id_attr, None)  # noqa: E111
+      if dog_id is None:  # noqa: E111
         raise CoordinatorAccessViolation(
           f"Instance has no {dog_id_attr} attribute",
           entity_id=entity_id,
         )
 
-      # Check if data exists for this dog
-      if not allow_missing and dog_id not in coordinator.data:
+      # Check if data exists for this dog  # noqa: E114
+      if not allow_missing and dog_id not in coordinator.data:  # noqa: E111
         raise CoordinatorAccessViolation(
           f"Coordinator has no data for dog '{dog_id}'",
           entity_id=entity_id,
         )
 
-      return func(*args, **kwargs)
+      return func(*args, **kwargs)  # noqa: E111
 
     return wrapper
 
-  return decorator
+  return decorator  # noqa: E111
 
 
 def coordinator_only_property[T](
@@ -172,14 +170,14 @@ def coordinator_only_property[T](
       >>> @coordinator_only_property
       ... def current_location(self):
       ...   return self.coordinator.data[self.dog_id]["gps"]["location"]
-  """
+  """  # noqa: E111
 
-  @functools.wraps(func)
-  @require_coordinator
-  def wrapper(self: Any) -> T:
+  @functools.wraps(func)  # noqa: E111
+  @require_coordinator  # noqa: E111
+  def wrapper(self: Any) -> T:  # noqa: E111
     return func(self)
 
-  return property(wrapper)
+  return property(wrapper)  # noqa: E111
 
 
 def log_direct_access_warning(
@@ -201,16 +199,16 @@ def log_direct_access_warning(
       ...   "self._local_cache",
       ...   coordinator_method="coordinator.get_dog_data()",
       ... )
-  """
-  message = (
+  """  # noqa: E111
+  message = (  # noqa: E111
     f"Entity {entity_id} accessed {attribute} directly. "
     "This bypasses the coordinator and should be avoided."
   )
 
-  if coordinator_method:
+  if coordinator_method:  # noqa: E111
     message += f" Use {coordinator_method} instead."
 
-  _LOGGER.warning(message)
+  _LOGGER.warning(message)  # noqa: E111
 
 
 class CoordinatorDataProxy:
@@ -222,9 +220,9 @@ class CoordinatorDataProxy:
   Examples:
       >>> proxy = CoordinatorDataProxy(coordinator.data, "sensor.buddy_gps")
       >>> location = proxy["buddy"]["gps"]["location"]  # Logged
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     data: dict[str, Any],
     accessor_id: str,
@@ -243,7 +241,7 @@ class CoordinatorDataProxy:
     self._log_access = log_access
     self._access_count = 0
 
-  def __getitem__(self, key: str) -> Any:
+  def __getitem__(self, key: str) -> Any:  # noqa: E111
     """Get item from data with access logging.
 
     Args:
@@ -253,7 +251,7 @@ class CoordinatorDataProxy:
         Data value
     """
     if self._log_access:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Data accessed: %s read key '%s' (access_count=%d)",
         self._accessor_id,
         key,
@@ -262,7 +260,7 @@ class CoordinatorDataProxy:
     self._access_count += 1
     return self._data[key]
 
-  def __contains__(self, key: str) -> bool:
+  def __contains__(self, key: str) -> bool:  # noqa: E111
     """Check if key exists in data.
 
     Args:
@@ -273,7 +271,7 @@ class CoordinatorDataProxy:
     """
     return key in self._data
 
-  def get(self, key: str, default: Any = None) -> Any:
+  def get(self, key: str, default: Any = None) -> Any:  # noqa: E111
     """Get item from data with default.
 
     Args:
@@ -284,7 +282,7 @@ class CoordinatorDataProxy:
         Data value or default
     """
     if self._log_access:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Data accessed: %s read key '%s' with default (access_count=%d)",
         self._accessor_id,
         key,
@@ -293,8 +291,8 @@ class CoordinatorDataProxy:
     self._access_count += 1
     return self._data.get(key, default)
 
-  @property
-  def access_count(self) -> int:
+  @property  # noqa: E111
+  def access_count(self) -> int:  # noqa: E111
     """Return number of times data was accessed."""
     return self._access_count
 
@@ -317,34 +315,34 @@ def validate_coordinator_usage(
       >>> results = validate_coordinator_usage(coordinator)
       >>> if results["has_issues"]:
       ...   print(f"Found {results['issue_count']} issues")
-  """
-  issues: list[str] = []
+  """  # noqa: E111
+  issues: list[str] = []  # noqa: E111
 
-  # Check if data is being accessed properly
-  if coordinator.data is None:
+  # Check if data is being accessed properly  # noqa: E114
+  if coordinator.data is None:  # noqa: E111
     issues.append("Coordinator data is None")
 
-  # Check if managers are attached
-  runtime_managers = coordinator.runtime_managers
-  if runtime_managers.data_manager is None:
+  # Check if managers are attached  # noqa: E114
+  runtime_managers = coordinator.runtime_managers  # noqa: E111
+  if runtime_managers.data_manager is None:  # noqa: E111
     issues.append("Data manager not attached")
 
-  if runtime_managers.feeding_manager is None and log_warnings:
+  if runtime_managers.feeding_manager is None and log_warnings:  # noqa: E111
     _LOGGER.debug("Feeding manager not attached (may be intentional)")
 
-  # Check if adaptive polling is working
-  if hasattr(coordinator, "_adaptive_polling"):
+  # Check if adaptive polling is working  # noqa: E114
+  if hasattr(coordinator, "_adaptive_polling"):  # noqa: E111
     adaptive = coordinator._adaptive_polling
     if hasattr(adaptive, "as_diagnostics"):
-      diagnostics = adaptive.as_diagnostics()
-      if diagnostics.get("saturation", 0) > 0.9 and log_warnings:
+      diagnostics = adaptive.as_diagnostics()  # noqa: E111
+      if diagnostics.get("saturation", 0) > 0.9 and log_warnings:  # noqa: E111
         _LOGGER.warning(
           "Coordinator entity saturation is high (%.1f%%) - "
           "consider reducing entity count",
           diagnostics["saturation"] * 100,
         )
 
-  return {
+  return {  # noqa: E111
     "has_issues": len(issues) > 0,
     "issue_count": len(issues),
     "issues": issues,
@@ -368,13 +366,13 @@ def create_coordinator_access_guard(
   Examples:
       >>> guard = create_coordinator_access_guard(coordinator, strict_mode=True)
       >>> data = guard["buddy"]  # Logged and validated
-  """
-  if strict_mode:
+  """  # noqa: E111
+  if strict_mode:  # noqa: E111
     _LOGGER.info("Coordinator access guard enabled in STRICT mode")
-  else:
+  else:  # noqa: E111
     _LOGGER.debug("Coordinator access guard enabled in monitoring mode")
 
-  return CoordinatorDataProxy(
+  return CoordinatorDataProxy(  # noqa: E111
     coordinator.data,
     accessor_id="coordinator_access_guard",
     log_access=True,
@@ -420,5 +418,5 @@ Best Practices:
 
 
 def print_access_guidelines() -> None:
-  """Print coordinator access guidelines to log."""
-  _LOGGER.info(COORDINATOR_ACCESS_GUIDELINES)
+  """Print coordinator access guidelines to log."""  # noqa: E111
+  _LOGGER.info(COORDINATOR_ACCESS_GUIDELINES)  # noqa: E111

@@ -13,8 +13,6 @@ Exit codes:
     2: Critical failures, deployment blocked
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import json
 import os
@@ -26,19 +24,19 @@ from typing import Any
 
 @dataclass
 class CheckResult:
-  """Result of a validation check."""
+  """Result of a validation check."""  # noqa: E111
 
-  name: str
-  passed: bool
-  message: str
-  severity: str = "error"  # error, warning, info
-  details: dict[str, Any] | None = None
+  name: str  # noqa: E111
+  passed: bool  # noqa: E111
+  message: str  # noqa: E111
+  severity: str = "error"  # error, warning, info  # noqa: E111
+  details: dict[str, Any] | None = None  # noqa: E111
 
 
 class DeploymentValidator:
-  """Validates deployment readiness."""
+  """Validates deployment readiness."""  # noqa: E111
 
-  def __init__(self, root_path: Path):
+  def __init__(self, root_path: Path):  # noqa: E111
     """Initialize validator.
 
     Args:
@@ -47,7 +45,7 @@ class DeploymentValidator:
     self.root_path = root_path
     self.results: list[CheckResult] = []
 
-  def run_command(self, cmd: list[str]) -> tuple[int, str, str]:
+  def run_command(self, cmd: list[str]) -> tuple[int, str, str]:  # noqa: E111
     """Run a shell command.
 
     Args:
@@ -64,18 +62,18 @@ class DeploymentValidator:
     )
     return result.returncode, result.stdout, result.stderr
 
-  def check_manifest(self) -> CheckResult:
+  def check_manifest(self) -> CheckResult:  # noqa: E111
     """Validate manifest.json."""
     manifest_path = (
       self.root_path / "custom_components" / "pawcontrol" / "manifest.json"
     )
 
     try:
-      with open(manifest_path) as f:
+      with open(manifest_path) as f:  # noqa: E111
         manifest = json.load(f)
 
-      # Required fields
-      required = [
+      # Required fields  # noqa: E114
+      required = [  # noqa: E111
         "domain",
         "name",
         "version",
@@ -84,9 +82,9 @@ class DeploymentValidator:
         "codeowners",
       ]
 
-      missing = [field for field in required if field not in manifest]
+      missing = [field for field in required if field not in manifest]  # noqa: E111
 
-      if missing:
+      if missing:  # noqa: E111
         return CheckResult(
           name="Manifest Validation",
           passed=False,
@@ -94,7 +92,7 @@ class DeploymentValidator:
           severity="error",
         )
 
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Manifest Validation",
         passed=True,
         message=f"Valid manifest v{manifest['version']}",
@@ -102,14 +100,14 @@ class DeploymentValidator:
       )
 
     except Exception as e:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Manifest Validation",
         passed=False,
         message=f"Error reading manifest: {e}",
         severity="error",
       )
 
-  def check_mypy(self) -> CheckResult:
+  def check_mypy(self) -> CheckResult:  # noqa: E111
     """Run MyPy type checking."""
     returncode, stdout, stderr = self.run_command([
       "mypy",
@@ -119,7 +117,7 @@ class DeploymentValidator:
     ])
 
     if returncode == 0:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="MyPy Type Check",
         passed=True,
         message="No type errors found",
@@ -136,7 +134,7 @@ class DeploymentValidator:
       details={"errors": error_lines[:5]},  # First 5 errors
     )
 
-  def check_ruff(self) -> CheckResult:
+  def check_ruff(self) -> CheckResult:  # noqa: E111
     """Run Ruff linting."""
     returncode, stdout, stderr = self.run_command([
       "ruff",
@@ -146,15 +144,15 @@ class DeploymentValidator:
     ])
 
     if returncode == 0:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Ruff Linting",
         passed=True,
         message="No linting errors found",
       )
 
     try:
-      errors = json.loads(stdout) if stdout else []
-      return CheckResult(
+      errors = json.loads(stdout) if stdout else []  # noqa: E111
+      return CheckResult(  # noqa: E111
         name="Ruff Linting",
         passed=False,
         message=f"{len(errors)} linting errors found",
@@ -162,14 +160,14 @@ class DeploymentValidator:
         details={"error_count": len(errors)},
       )
     except json.JSONDecodeError:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Ruff Linting",
         passed=False,
         message="Linting failed",
         severity="error",
       )
 
-  def check_tests(self) -> CheckResult:
+  def check_tests(self) -> CheckResult:  # noqa: E111
     """Run test suite."""
     returncode, stdout, stderr = self.run_command([
       "pytest",
@@ -180,9 +178,9 @@ class DeploymentValidator:
     ])
 
     if returncode == 0:
-      # Count tests
-      passed_count = stdout.count(" PASSED")
-      return CheckResult(
+      # Count tests  # noqa: E114
+      passed_count = stdout.count(" PASSED")  # noqa: E111
+      return CheckResult(  # noqa: E111
         name="Test Suite",
         passed=True,
         message=f"{passed_count} tests passed",
@@ -198,7 +196,7 @@ class DeploymentValidator:
       details={"failed": failed_count},
     )
 
-  def check_security(self) -> CheckResult:
+  def check_security(self) -> CheckResult:  # noqa: E111
     """Run security scan with Bandit."""
     returncode, stdout, stderr = self.run_command([
       "bandit",
@@ -210,24 +208,24 @@ class DeploymentValidator:
     ])
 
     try:
-      result = json.loads(stdout) if stdout else {}
-      results = result.get("results", [])
+      result = json.loads(stdout) if stdout else {}  # noqa: E111
+      results = result.get("results", [])  # noqa: E111
 
-      if not results:
+      if not results:  # noqa: E111
         return CheckResult(
           name="Security Scan",
           passed=True,
           message="No security issues found",
         )
 
-      high_severity = [r for r in results if r["issue_severity"] == "HIGH"]
-      medium_severity = [r for r in results if r["issue_severity"] == "MEDIUM"]
+      high_severity = [r for r in results if r["issue_severity"] == "HIGH"]  # noqa: E111
+      medium_severity = [r for r in results if r["issue_severity"] == "MEDIUM"]  # noqa: E111
 
-      severity = "error" if high_severity else "warning"
-      return CheckResult(
+      severity = "error" if high_severity else "warning"  # noqa: E111
+      return CheckResult(  # noqa: E111
         name="Security Scan",
         passed=len(high_severity) == 0,
-        message=f"{len(high_severity)} high, {len(medium_severity)} medium severity issues",
+        message=f"{len(high_severity)} high, {len(medium_severity)} medium severity issues",  # noqa: E501
         severity=severity,
         details={
           "high": len(high_severity),
@@ -236,14 +234,14 @@ class DeploymentValidator:
       )
 
     except json.JSONDecodeError, KeyError:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Security Scan",
         passed=True,
         message="Security scan completed (no parse)",
         severity="info",
       )
 
-  def check_documentation(self) -> CheckResult:
+  def check_documentation(self) -> CheckResult:  # noqa: E111
     """Check documentation exists."""
     required_docs = [
       "docs/getting_started.md",
@@ -254,11 +252,11 @@ class DeploymentValidator:
 
     missing = []
     for doc in required_docs:
-      if not (self.root_path / doc).exists():
+      if not (self.root_path / doc).exists():  # noqa: E111
         missing.append(doc)
 
     if missing:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Documentation",
         passed=False,
         message=f"Missing documentation: {missing}",
@@ -271,7 +269,7 @@ class DeploymentValidator:
       message="All required documentation exists",
     )
 
-  def check_version_consistency(self) -> CheckResult:
+  def check_version_consistency(self) -> CheckResult:  # noqa: E111
     """Check version is consistent across files."""
     # Read manifest version
     manifest_path = (
@@ -279,11 +277,11 @@ class DeploymentValidator:
     )
 
     try:
-      with open(manifest_path) as f:
+      with open(manifest_path) as f:  # noqa: E111
         manifest = json.load(f)
-      version = manifest["version"]
+      version = manifest["version"]  # noqa: E111
 
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Version Consistency",
         passed=True,
         message=f"Version: {version}",
@@ -291,14 +289,14 @@ class DeploymentValidator:
       )
 
     except Exception as e:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Version Consistency",
         passed=False,
         message=f"Error checking version: {e}",
         severity="error",
       )
 
-  def check_no_hardcoded_secrets(self) -> CheckResult:
+  def check_no_hardcoded_secrets(self) -> CheckResult:  # noqa: E111
     """Check for hardcoded secrets."""
     patterns = [
       "password =",
@@ -310,17 +308,17 @@ class DeploymentValidator:
 
     found_secrets = []
     for py_file in (self.root_path / "custom_components" / "pawcontrol").rglob("*.py"):
-      with open(py_file) as f:
+      with open(py_file) as f:  # noqa: E111
         content = f.read()
         for pattern in patterns:
-          if pattern.lower() in content.lower():
+          if pattern.lower() in content.lower():  # noqa: E111
             # Check if it's not a comment or docstring
             for line in content.split("\n"):
-              if pattern.lower() in line.lower() and not line.strip().startswith("#"):
+              if pattern.lower() in line.lower() and not line.strip().startswith("#"):  # noqa: E111
                 found_secrets.append(f"{py_file.name}: {line.strip()[:80]}")
 
     if found_secrets:
-      return CheckResult(
+      return CheckResult(  # noqa: E111
         name="Hardcoded Secrets Check",
         passed=False,
         message=f"{len(found_secrets)} potential secrets found",
@@ -334,7 +332,7 @@ class DeploymentValidator:
       message="No hardcoded secrets detected",
     )
 
-  def run_all_checks(self) -> list[CheckResult]:
+  def run_all_checks(self) -> list[CheckResult]:  # noqa: E111
     """Run all validation checks.
 
     Returns:
@@ -354,22 +352,22 @@ class DeploymentValidator:
     ]
 
     for name, check_func in checks:
-      print(f"Running {name} check...", end=" ", flush=True)
-      try:
+      print(f"Running {name} check...", end=" ", flush=True)  # noqa: E111
+      try:  # noqa: E111
         result = check_func()
         self.results.append(result)
 
         if result.passed:
-          print(f"✅ {result.message}")
+          print(f"✅ {result.message}")  # noqa: E111
         else:
-          symbol = "⚠️" if result.severity == "warning" else "❌"
-          print(f"{symbol} {result.message}")
+          symbol = "⚠️" if result.severity == "warning" else "❌"  # noqa: E111
+          print(f"{symbol} {result.message}")  # noqa: E111
 
         if result.details:
-          for key, value in result.details.items():
+          for key, value in result.details.items():  # noqa: E111
             print(f"   {key}: {value}")
 
-      except Exception as e:
+      except Exception as e:  # noqa: E111
         error_result = CheckResult(
           name=name,
           passed=False,
@@ -381,7 +379,7 @@ class DeploymentValidator:
 
     return self.results
 
-  def print_summary(self) -> int:
+  def print_summary(self) -> int:  # noqa: E111
     """Print summary and return exit code.
 
     Returns:
@@ -402,44 +400,44 @@ class DeploymentValidator:
     print(f"❌ Errors: {len(errors)}")
 
     if errors:
-      print("\n🚫 CRITICAL FAILURES - DEPLOYMENT BLOCKED")
-      for error in errors:
+      print("\n🚫 CRITICAL FAILURES - DEPLOYMENT BLOCKED")  # noqa: E111
+      for error in errors:  # noqa: E111
         print(f"  ❌ {error.name}: {error.message}")
-      return 2
+      return 2  # noqa: E111
 
     if warnings:
-      print("\n⚠️  WARNINGS - REVIEW RECOMMENDED")
-      for warning in warnings:
+      print("\n⚠️  WARNINGS - REVIEW RECOMMENDED")  # noqa: E111
+      for warning in warnings:  # noqa: E111
         print(f"  ⚠️  {warning.name}: {warning.message}")
-      return 1
+      return 1  # noqa: E111
 
     print("\n✅ ALL CHECKS PASSED - READY FOR DEPLOYMENT")
     return 0
 
 
 def main() -> int:
-  """Main entry point."""
-  # Find project root
-  script_path = Path(__file__).resolve()
-  root_path = script_path.parent.parent
+  """Main entry point."""  # noqa: E111
+  # Find project root  # noqa: E114
+  script_path = Path(__file__).resolve()  # noqa: E111
+  root_path = script_path.parent.parent  # noqa: E111
 
-  # Run validation
-  validator = DeploymentValidator(root_path)
-  validator.run_all_checks()
-  exit_code = validator.print_summary()
+  # Run validation  # noqa: E114
+  validator = DeploymentValidator(root_path)  # noqa: E111
+  validator.run_all_checks()  # noqa: E111
+  exit_code = validator.print_summary()  # noqa: E111
 
-  if exit_code == 0:
+  if exit_code == 0:  # noqa: E111
     print("\n🚀 Deployment validation successful!")
     print("   You may proceed with deployment.")
-  elif exit_code == 1:
+  elif exit_code == 1:  # noqa: E111
     print("\n⚠️  Deployment validation completed with warnings.")
     print("   Review warnings before deploying.")
-  else:
+  else:  # noqa: E111
     print("\n🚫 Deployment validation failed!")
     print("   Fix critical errors before deploying.")
 
-  return exit_code
+  return exit_code  # noqa: E111
 
 
 if __name__ == "__main__":
-  sys.exit(main())
+  sys.exit(main())  # noqa: E111

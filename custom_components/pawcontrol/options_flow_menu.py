@@ -1,7 +1,5 @@
 """Main menu step for the PawControl options flow."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Protocol
 
 from homeassistant.config_entries import ConfigFlowResult
@@ -14,7 +12,7 @@ from .types import (
 
 if TYPE_CHECKING:
 
-  class MenuOptionsHost(Protocol):
+  class MenuOptionsHost(Protocol):  # noqa: E111
     def async_show_menu(
       self,
       *,
@@ -23,11 +21,11 @@ if TYPE_CHECKING:
     ) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-  MenuOptionsHost = object
+  MenuOptionsHost = object  # noqa: E111
 
 
 class MenuOptionsMixin(MenuOptionsHost):
-  async def async_step_init(
+  async def async_step_init(  # noqa: E111
     self,
     user_input: OptionsMainMenuInput | None = None,
   ) -> ConfigFlowResult:
@@ -62,4 +60,4 @@ class MenuOptionsMixin(MenuOptionsHost):
       ],
     )
 
-  # NEW: Geofencing configuration step per requirements
+  # NEW: Geofencing configuration step per requirements  # noqa: E114

@@ -1,7 +1,5 @@
 """Device actions for PawControl."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import logging
 from typing import Final, cast
@@ -33,9 +31,9 @@ CONF_SAVE_ROUTE = "save_route"
 
 @dataclass(frozen=True, slots=True)
 class ActionDefinition:
-  """Definition for a device action."""
+  """Definition for a device action."""  # noqa: E111
 
-  type: str
+  type: str  # noqa: E111
 
 
 ACTION_DEFINITIONS: Final[tuple[ActionDefinition, ...]] = (
@@ -64,13 +62,13 @@ async def async_get_actions(
   hass: HomeAssistant,
   device_id: str,
 ) -> list[DeviceActionPayload]:
-  """List device actions for PawControl devices."""
+  """List device actions for PawControl devices."""  # noqa: E111
 
-  context = resolve_device_context(hass, device_id)
-  if context.dog_id is None:
+  context = resolve_device_context(hass, device_id)  # noqa: E111
+  if context.dog_id is None:  # noqa: E111
     return []
 
-  return [
+  return [  # noqa: E111
     {
       CONF_DEVICE_ID: device_id,
       CONF_DOMAIN: DOMAIN,
@@ -85,10 +83,10 @@ async def async_get_action_capabilities(
   hass: HomeAssistant,
   config: dict[str, str],
 ) -> dict[str, vol.Schema]:
-  """Return action capability schemas."""
+  """Return action capability schemas."""  # noqa: E111
 
-  action_type = config.get(CONF_TYPE)
-  if action_type == "log_feeding":
+  action_type = config.get(CONF_TYPE)  # noqa: E111
+  if action_type == "log_feeding":  # noqa: E111
     return {
       "fields": vol.Schema(
         {
@@ -100,7 +98,7 @@ async def async_get_action_capabilities(
       ),
     }
 
-  if action_type == "start_walk":
+  if action_type == "start_walk":  # noqa: E111
     return {
       "fields": vol.Schema(
         {
@@ -109,7 +107,7 @@ async def async_get_action_capabilities(
       ),
     }
 
-  if action_type == "end_walk":
+  if action_type == "end_walk":  # noqa: E111
     return {
       "fields": vol.Schema(
         {
@@ -119,7 +117,7 @@ async def async_get_action_capabilities(
       ),
     }
 
-  return {}
+  return {}  # noqa: E111
 
 
 async def async_call_action(
@@ -128,23 +126,23 @@ async def async_call_action(
   variables: dict[str, object],
   context: object | None = None,
 ) -> None:
-  """Execute a PawControl device action."""
+  """Execute a PawControl device action."""  # noqa: E111
 
-  validated = ACTION_SCHEMA(config)
-  context_data = resolve_device_context(hass, validated[CONF_DEVICE_ID])
+  validated = ACTION_SCHEMA(config)  # noqa: E111
+  context_data = resolve_device_context(hass, validated[CONF_DEVICE_ID])  # noqa: E111
 
-  dog_id = context_data.dog_id
-  runtime_data = context_data.runtime_data
+  dog_id = context_data.dog_id  # noqa: E111
+  runtime_data = context_data.runtime_data  # noqa: E111
 
-  if dog_id is None or runtime_data is None:
+  if dog_id is None or runtime_data is None:  # noqa: E111
     raise HomeAssistantError("PawControl device runtime data not available")
 
-  action_type = validated[CONF_TYPE]
+  action_type = validated[CONF_TYPE]  # noqa: E111
 
-  if action_type == "log_feeding":
+  if action_type == "log_feeding":  # noqa: E111
     amount = validated.get(CONF_AMOUNT)
     if amount is None:
-      raise HomeAssistantError("Feeding amount is required for log_feeding")
+      raise HomeAssistantError("Feeding amount is required for log_feeding")  # noqa: E111
 
     await runtime_data.feeding_manager.async_add_feeding(
       dog_id,
@@ -155,14 +153,14 @@ async def async_call_action(
     )
     return
 
-  if action_type == "start_walk":
+  if action_type == "start_walk":  # noqa: E111
     await runtime_data.walk_manager.async_start_walk(
       dog_id,
       validated.get(CONF_WALK_TYPE, "manual"),
     )
     return
 
-  if action_type == "end_walk":
+  if action_type == "end_walk":  # noqa: E111
     await runtime_data.walk_manager.async_end_walk(
       dog_id,
       notes=validated.get(CONF_WALK_NOTES),
@@ -170,4 +168,4 @@ async def async_call_action(
     )
     return
 
-  _LOGGER.debug("Unhandled PawControl device action: %s", action_type)
+  _LOGGER.debug("Unhandled PawControl device action: %s", action_type)  # noqa: E111

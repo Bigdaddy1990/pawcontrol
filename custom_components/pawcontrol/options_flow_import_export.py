@@ -1,7 +1,5 @@
 """Import/export steps for the PawControl options flow."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 import json
 import logging
@@ -25,14 +23,14 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-  from homeassistant.config_entries import ConfigEntry
+  from homeassistant.config_entries import ConfigEntry  # noqa: E111
 
 _LOGGER = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
 
-  class ImportExportOptionsHost(Protocol):
+  class ImportExportOptionsHost(Protocol):  # noqa: E111
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
 
@@ -44,21 +42,21 @@ if TYPE_CHECKING:
     def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-  ImportExportOptionsHost = object
+  ImportExportOptionsHost = object  # noqa: E111
 
 
 class ImportExportOptionsMixin(ImportExportOptionsHost):
-  _current_dog: DogConfigData | None
-  _dogs: list[DogConfigData]
+  _current_dog: DogConfigData | None  # noqa: E111
+  _dogs: list[DogConfigData]  # noqa: E111
 
-  async def async_step_import_export(
+  async def async_step_import_export(  # noqa: E111
     self,
     user_input: OptionsImportExportInput | None = None,
   ) -> ConfigFlowResult:
     """Handle selection for the import/export utilities."""
 
     if user_input is None:
-      return self.async_show_form(
+      return self.async_show_form(  # noqa: E111
         step_id="import_export",
         data_schema=self._get_import_export_menu_schema(),
         description_placeholders=dict(
@@ -76,9 +74,9 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
 
     action = user_input.get("action")
     if action == "export":
-      return await self.async_step_import_export_export()
+      return await self.async_step_import_export_export()  # noqa: E111
     if action == "import":
-      return await self.async_step_import_export_import()
+      return await self.async_step_import_export_import()  # noqa: E111
 
     return self.async_show_form(
       step_id="import_export",
@@ -86,14 +84,14 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
       errors={"action": "invalid_action"},
     )
 
-  async def async_step_import_export_export(
+  async def async_step_import_export_export(  # noqa: E111
     self,
     user_input: OptionsExportDisplayInput | None = None,
   ) -> ConfigFlowResult:
     """Surface a JSON export of the current configuration."""
 
     if user_input is not None:
-      return await self.async_step_init()
+      return await self.async_step_init()  # noqa: E111
 
     payload = self._build_export_payload()
     export_blob = json.dumps(payload, indent=2, sort_keys=True)
@@ -123,7 +121,7 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
       ),
     )
 
-  async def async_step_import_export_import(
+  async def async_step_import_export_import(  # noqa: E111
     self,
     user_input: OptionsImportPayloadInput | None = None,
   ) -> ConfigFlowResult:
@@ -133,35 +131,35 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
     payload_text = ""
 
     if user_input is not None:
-      payload_text = str(user_input.get("payload", "")).strip()
-      if not payload_text:
+      payload_text = str(user_input.get("payload", "")).strip()  # noqa: E111
+      if not payload_text:  # noqa: E111
         errors["payload"] = "invalid_payload"
-      else:
+      else:  # noqa: E111
         try:
-          parsed = json.loads(payload_text)
+          parsed = json.loads(payload_text)  # noqa: E111
         except json.JSONDecodeError:
-          errors["payload"] = "invalid_json"
+          errors["payload"] = "invalid_json"  # noqa: E111
         else:
-          try:
+          try:  # noqa: E111
             validated = self._validate_import_payload(parsed)
-          except FlowValidationError as err:
+          except FlowValidationError as err:  # noqa: E111
             _LOGGER.debug(
               "Import payload validation failed: %s",
               err,
             )
             errors.update(err.as_form_errors())
-          else:
+          else:  # noqa: E111
             new_options = self._normalise_options_snapshot(
               validated["options"],
             )
             new_dogs: list[DogConfigData] = []
             for dog in validated.get("dogs", []):
-              if not isinstance(dog, Mapping):
+              if not isinstance(dog, Mapping):  # noqa: E111
                 continue
-              normalised = ensure_dog_config_data(
+              normalised = ensure_dog_config_data(  # noqa: E111
                 cast(Mapping[str, JSONValue], dog),
               )
-              if normalised is not None:
+              if normalised is not None:  # noqa: E111
                 new_dogs.append(normalised)
 
             new_data = {**self._entry.data, CONF_DOGS: new_dogs}
@@ -181,7 +179,7 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
       errors=errors,
     )
 
-  def _get_import_export_menu_schema(self) -> vol.Schema:
+  def _get_import_export_menu_schema(self) -> vol.Schema:  # noqa: E111
     """Return the schema for selecting an import/export action."""
 
     return vol.Schema(
@@ -196,7 +194,7 @@ class ImportExportOptionsMixin(ImportExportOptionsHost):
       },
     )
 
-  def _get_import_export_import_schema(self, default_payload: str) -> vol.Schema:
+  def _get_import_export_import_schema(self, default_payload: str) -> vol.Schema:  # noqa: E111
     """Return the schema for the import form."""
 
     return vol.Schema(

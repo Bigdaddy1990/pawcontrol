@@ -8,8 +8,6 @@ P26.1.1++
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections import OrderedDict
 from collections.abc import Iterator, Mapping
@@ -35,8 +33,8 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-  from .coordinator import PawControlCoordinator
-  from .types import PawControlRuntimeData
+  from .coordinator import PawControlCoordinator  # noqa: E111
+  from .types import PawControlRuntimeData  # noqa: E111
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,43 +85,43 @@ type EntityCreationValue = (
 
 @dataclass(slots=True, frozen=True)
 class EntityCreationConfig(Mapping[str, EntityCreationValue]):
-  """Immutable mapping describing an entity creation payload."""
+  """Immutable mapping describing an entity creation payload."""  # noqa: E111
 
-  dog_id: str
-  entity_type: str
-  module: str
-  profile: str
-  priority: int
-  coordinator: PawControlCoordinator | None
-  platform: Platform
-  performance_impact: EntityPerformanceImpact
-  extras: Mapping[str, EntityCreationValue] = field(default_factory=dict)
+  dog_id: str  # noqa: E111
+  entity_type: str  # noqa: E111
+  module: str  # noqa: E111
+  profile: str  # noqa: E111
+  priority: int  # noqa: E111
+  coordinator: PawControlCoordinator | None  # noqa: E111
+  platform: Platform  # noqa: E111
+  performance_impact: EntityPerformanceImpact  # noqa: E111
+  extras: Mapping[str, EntityCreationValue] = field(default_factory=dict)  # noqa: E111
 
-  def __getitem__(self, key: str) -> EntityCreationValue:
+  def __getitem__(self, key: str) -> EntityCreationValue:  # noqa: E111
     """Return the requested creation attribute for mapping compatibility."""
 
     match key:
-      case "dog_id":
+      case "dog_id":  # noqa: E111
         return self.dog_id
-      case "entity_type":
+      case "entity_type":  # noqa: E111
         return self.entity_type
-      case "module":
+      case "module":  # noqa: E111
         return self.module
-      case "profile":
+      case "profile":  # noqa: E111
         return self.profile
-      case "priority":
+      case "priority":  # noqa: E111
         return self.priority
-      case "coordinator":
+      case "coordinator":  # noqa: E111
         return self.coordinator
-      case "platform":
+      case "platform":  # noqa: E111
         return self.platform
-      case "performance_impact":
+      case "performance_impact":  # noqa: E111
         return self.performance_impact
     if key in self.extras:
-      return self.extras[key]
+      return self.extras[key]  # noqa: E111
     raise KeyError(key)  # pragma: no cover - defensive
 
-  def __iter__(self) -> Iterator[str]:
+  def __iter__(self) -> Iterator[str]:  # noqa: E111
     """Yield entity creation keys to mimic mapping iteration."""
 
     yield from (
@@ -138,12 +136,12 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
     )
     yield from self.extras
 
-  def __len__(self) -> int:
+  def __len__(self) -> int:  # noqa: E111
     """Return the number of defined creation attributes."""
 
     return 8 + len(self.extras)
 
-  def as_dict(self) -> dict[str, EntityCreationValue]:
+  def as_dict(self) -> dict[str, EntityCreationValue]:  # noqa: E111
     """Return a standard mutable mapping copy."""
 
     payload: dict[str, EntityCreationValue] = {
@@ -172,40 +170,40 @@ type EntityProfileValue = (
 
 @dataclass(slots=True, frozen=True)
 class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
-  """Strongly typed entity profile metadata container."""
+  """Strongly typed entity profile metadata container."""  # noqa: E111
 
-  name: str
-  description: str
-  max_entities: int
-  performance_impact: EntityPerformanceImpact
-  recommended_for: str
-  platforms: tuple[Platform, ...]
-  priority_threshold: int
-  preferred_modules: tuple[str, ...] = ()
+  name: str  # noqa: E111
+  description: str  # noqa: E111
+  max_entities: int  # noqa: E111
+  performance_impact: EntityPerformanceImpact  # noqa: E111
+  recommended_for: str  # noqa: E111
+  platforms: tuple[Platform, ...]  # noqa: E111
+  priority_threshold: int  # noqa: E111
+  preferred_modules: tuple[str, ...] = ()  # noqa: E111
 
-  def __getitem__(self, key: str) -> EntityProfileValue:
+  def __getitem__(self, key: str) -> EntityProfileValue:  # noqa: E111
     """Return the requested profile metadata attribute."""
 
     match key:
-      case "name":
+      case "name":  # noqa: E111
         return self.name
-      case "description":
+      case "description":  # noqa: E111
         return self.description
-      case "max_entities":
+      case "max_entities":  # noqa: E111
         return self.max_entities
-      case "performance_impact":
+      case "performance_impact":  # noqa: E111
         return self.performance_impact
-      case "recommended_for":
+      case "recommended_for":  # noqa: E111
         return self.recommended_for
-      case "platforms":
+      case "platforms":  # noqa: E111
         return self.platforms
-      case "priority_threshold":
+      case "priority_threshold":  # noqa: E111
         return self.priority_threshold
-      case "preferred_modules":
+      case "preferred_modules":  # noqa: E111
         return self.preferred_modules
     raise KeyError(key)  # pragma: no cover - defensive
 
-  def __iter__(self) -> Iterator[str]:
+  def __iter__(self) -> Iterator[str]:  # noqa: E111
     """Yield profile attribute keys in canonical order."""
 
     yield from (
@@ -219,7 +217,7 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
       "preferred_modules",
     )
 
-  def __len__(self) -> int:
+  def __len__(self) -> int:  # noqa: E111
     """Return the number of profile attributes."""
 
     return 8
@@ -230,37 +228,37 @@ type EntityProfilesTable = Mapping[str, EntityProfileDefinition]
 
 @dataclass(slots=True, frozen=True)
 class EntityPerformanceMetrics(Mapping[str, float | int | str]):
-  """Immutable performance metrics emitted by :meth:`EntityFactory`."""
+  """Immutable performance metrics emitted by :meth:`EntityFactory`."""  # noqa: E111
 
-  profile: str
-  estimated_entities: int
-  max_entities: int
-  performance_impact: EntityPerformanceImpact
-  utilization_percentage: float
-  enabled_modules: int
-  total_modules: int
+  profile: str  # noqa: E111
+  estimated_entities: int  # noqa: E111
+  max_entities: int  # noqa: E111
+  performance_impact: EntityPerformanceImpact  # noqa: E111
+  utilization_percentage: float  # noqa: E111
+  enabled_modules: int  # noqa: E111
+  total_modules: int  # noqa: E111
 
-  def __getitem__(self, key: str) -> float | int | str:
+  def __getitem__(self, key: str) -> float | int | str:  # noqa: E111
     """Return the requested performance metric value."""
 
     match key:
-      case "profile":
+      case "profile":  # noqa: E111
         return self.profile
-      case "estimated_entities":
+      case "estimated_entities":  # noqa: E111
         return self.estimated_entities
-      case "max_entities":
+      case "max_entities":  # noqa: E111
         return self.max_entities
-      case "performance_impact":
+      case "performance_impact":  # noqa: E111
         return self.performance_impact
-      case "utilization_percentage":
+      case "utilization_percentage":  # noqa: E111
         return self.utilization_percentage
-      case "enabled_modules":
+      case "enabled_modules":  # noqa: E111
         return self.enabled_modules
-      case "total_modules":
+      case "total_modules":  # noqa: E111
         return self.total_modules
     raise KeyError(key)  # pragma: no cover - defensive
 
-  def __iter__(self) -> Iterator[str]:
+  def __iter__(self) -> Iterator[str]:  # noqa: E111
     """Yield metric keys in deterministic order."""
 
     yield from (
@@ -273,12 +271,12 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
       "total_modules",
     )
 
-  def __len__(self) -> int:
+  def __len__(self) -> int:  # noqa: E111
     """Return the number of metrics tracked."""
 
     return 7
 
-  def as_dict(self) -> dict[str, float | int | str]:
+  def as_dict(self) -> dict[str, float | int | str]:  # noqa: E111
     """Return a standard mapping representation for diagnostics/logging."""
 
     return {
@@ -537,63 +535,63 @@ _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
 
 @dataclass(slots=True, frozen=True)
 class EntityEstimate:
-  """Container for cached entity estimation results."""
+  """Container for cached entity estimation results."""  # noqa: E111
 
-  profile: str
-  final_count: int
-  raw_total: int
-  capacity: int
-  enabled_modules: int
-  total_modules: int
-  module_signature: tuple[tuple[str, bool], ...]
+  profile: str  # noqa: E111
+  final_count: int  # noqa: E111
+  raw_total: int  # noqa: E111
+  capacity: int  # noqa: E111
+  enabled_modules: int  # noqa: E111
+  total_modules: int  # noqa: E111
+  module_signature: tuple[tuple[str, bool], ...]  # noqa: E111
 
 
 @dataclass(slots=True)
 class EntityBudget:
-  """Track entity allocation against a profile budget."""
+  """Track entity allocation against a profile budget."""  # noqa: E111
 
-  dog_id: str
-  profile: str
-  capacity: int
-  base_allocation: int = 0
-  dynamic_allocation: int = 0
-  requested_entities: list[str] = field(default_factory=list)
-  denied_requests: list[str] = field(default_factory=list)
+  dog_id: str  # noqa: E111
+  profile: str  # noqa: E111
+  capacity: int  # noqa: E111
+  base_allocation: int = 0  # noqa: E111
+  dynamic_allocation: int = 0  # noqa: E111
+  requested_entities: list[str] = field(default_factory=list)  # noqa: E111
+  denied_requests: list[str] = field(default_factory=list)  # noqa: E111
 
-  def __post_init__(self) -> None:
+  def __post_init__(self) -> None:  # noqa: E111
     """Normalize base allocation to remain within the capacity."""
 
     if self.base_allocation > self.capacity:
-      _LOGGER.warning(
-        "Base allocation %d exceeds capacity %d for %s/%s",  # pragma: no cover - log only
+      _LOGGER.warning(  # noqa: E111
+        "Base allocation %d exceeds capacity %d for %s/%s",  # pragma: no cover - log only  # noqa: E501
         self.base_allocation,
         self.capacity,
         self.dog_id,
         self.profile,
       )
-      self.base_allocation = self.capacity
+      self.base_allocation = self.capacity  # noqa: E111
 
-  @property
-  def remaining(self) -> int:
+  @property  # noqa: E111
+  def remaining(self) -> int:  # noqa: E111
     """Return remaining entity slots in the budget."""
 
     return max(self.capacity - self.base_allocation - self.dynamic_allocation, 0)
 
-  def reserve(self, identifier: str, *, priority: int, weight: int = 1) -> bool:
+  def reserve(self, identifier: str, *, priority: int, weight: int = 1) -> bool:  # noqa: E111
     """Reserve capacity for an entity request."""
 
     if weight <= 0:
-      weight = 1
+      weight = 1  # noqa: E111
 
     if self.remaining < weight:
-      self.denied_requests.append(f"{identifier}|p{priority}")
-      return False
+      self.denied_requests.append(f"{identifier}|p{priority}")  # noqa: E111
+      return False  # noqa: E111
 
     self.dynamic_allocation += weight
     self.requested_entities.append(f"{identifier}|p{priority}")
     return True
 
-  def snapshot(self) -> EntityBudgetSnapshot:
+  def snapshot(self) -> EntityBudgetSnapshot:  # noqa: E111
     """Create a snapshot for diagnostics and coordinator reporting."""
 
     return EntityBudgetSnapshot(
@@ -613,9 +611,9 @@ class EntityFactory:
 
   Provides centralized entity creation with performance optimization
   based on selected profile and module configuration.
-  """
+  """  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     coordinator: PawControlCoordinator | None,
     *,
@@ -663,27 +661,27 @@ class EntityFactory:
     self._loop_supports_callbacks: bool | None = None
     self._ensure_loop_state()
     if prewarm:
-      self._prewarm_caches()
+      self._prewarm_caches()  # noqa: E111
     if self._runtime_guard_floor < _MIN_OPERATION_DURATION:
-      self._runtime_guard_floor = _MIN_OPERATION_DURATION
+      self._runtime_guard_floor = _MIN_OPERATION_DURATION  # noqa: E111
 
-  def _prewarm_caches(self) -> None:
+  def _prewarm_caches(self) -> None:  # noqa: E111
     """Warm up internal caches for consistent performance."""
 
     original_runtime_floor = self._runtime_guard_floor
 
     try:
-      default_modules = self._get_default_modules()
-      default_estimate = self._get_entity_estimate(
+      default_modules = self._get_default_modules()  # noqa: E111
+      default_estimate = self._get_entity_estimate(  # noqa: E111
         "standard",
         default_modules,
         log_invalid_inputs=False,
       )
 
-      default_module_dict = dict(default_modules)
-      self.estimate_entity_count("standard", default_module_dict)
-      self.get_performance_metrics("standard", default_module_dict)
-      for priority in (3, 5, 7, 9):
+      default_module_dict = dict(default_modules)  # noqa: E111
+      self.estimate_entity_count("standard", default_module_dict)  # noqa: E111
+      self.get_performance_metrics("standard", default_module_dict)  # noqa: E111
+      for priority in (3, 5, 7, 9):  # noqa: E111
         self.should_create_entity(
           "standard",
           "sensor",
@@ -691,7 +689,7 @@ class EntityFactory:
           priority,
         )
 
-      for profile, modules in _COMMON_PROFILE_PRESETS:
+      for profile, modules in _COMMON_PROFILE_PRESETS:  # noqa: E111
         module_dict = dict(modules)
         self._get_entity_estimate(
           profile,
@@ -701,41 +699,41 @@ class EntityFactory:
         self.estimate_entity_count(profile, module_dict)
         self.get_performance_metrics(profile, module_dict)
         for priority in (3, 5, 7, 9):
-          self.should_create_entity(
+          self.should_create_entity(  # noqa: E111
             profile,
             "sensor",
             "feeding",
             priority,
           )
     finally:
-      self._runtime_guard_floor = original_runtime_floor
-      coordinator = self.coordinator
-      if coordinator is not None:
+      self._runtime_guard_floor = original_runtime_floor  # noqa: E111
+      coordinator = self.coordinator  # noqa: E111
+      if coordinator is not None:  # noqa: E111
         runtime_data = getattr(
           getattr(coordinator, "config_entry", None),
           "runtime_data",
           None,
         )
         if runtime_data is not None:
-          performance_stats = getattr(runtime_data, "performance_stats", None)
-          if isinstance(performance_stats, dict):
+          performance_stats = getattr(runtime_data, "performance_stats", None)  # noqa: E111
+          if isinstance(performance_stats, dict):  # noqa: E111
             metrics = performance_stats.get("entity_factory_guard_metrics")
             if isinstance(metrics, dict):
-              runtime_floor = max(original_runtime_floor, _MIN_OPERATION_DURATION)
-              baseline_floor = max(
+              runtime_floor = max(original_runtime_floor, _MIN_OPERATION_DURATION)  # noqa: E111
+              baseline_floor = max(  # noqa: E111
                 float(metrics.get("baseline_floor", _MIN_OPERATION_DURATION)),
                 _MIN_OPERATION_DURATION,
               )
-              metrics["baseline_floor"] = baseline_floor
-              metrics["runtime_floor"] = runtime_floor
-              metrics["runtime_floor_delta"] = max(
+              metrics["baseline_floor"] = baseline_floor  # noqa: E111
+              metrics["runtime_floor"] = runtime_floor  # noqa: E111
+              metrics["runtime_floor_delta"] = max(  # noqa: E111
                 runtime_floor - baseline_floor,
                 0.0,
               )
-              metrics["last_floor_change"] = 0.0
-              metrics["last_floor_change_ratio"] = 0.0
-              lowest_runtime_floor = metrics.get("lowest_runtime_floor")
-              if (
+              metrics["last_floor_change"] = 0.0  # noqa: E111
+              metrics["last_floor_change_ratio"] = 0.0  # noqa: E111
+              lowest_runtime_floor = metrics.get("lowest_runtime_floor")  # noqa: E111
+              if (  # noqa: E111
                 isinstance(lowest_runtime_floor, int | float)
                 and lowest_runtime_floor > 0
               ):
@@ -743,10 +741,10 @@ class EntityFactory:
                   baseline_floor,
                   min(float(lowest_runtime_floor), runtime_floor),
                 )
-              else:
+              else:  # noqa: E111
                 metrics["lowest_runtime_floor"] = max(baseline_floor, runtime_floor)
-              samples = int(metrics.get("samples", 0) or 0)
-              if samples > 0:
+              samples = int(metrics.get("samples", 0) or 0)  # noqa: E111
+              if samples > 0:  # noqa: E111
                 metrics["expansions"] = 0
                 metrics["contractions"] = 0
                 metrics["stable_samples"] = samples
@@ -762,7 +760,7 @@ class EntityFactory:
     # Ensure the default combination remains the active baseline after warming
     self._update_last_estimate_state(default_estimate)
 
-  def _update_last_estimate_state(self, estimate: EntityEstimate) -> None:
+  def _update_last_estimate_state(self, estimate: EntityEstimate) -> None:  # noqa: E111
     """Cache metadata derived from the most recent estimate."""
 
     if (
@@ -770,7 +768,7 @@ class EntityFactory:
       and self._last_estimate_key[0] == estimate.profile
       and self._last_estimate_key[1] == estimate.module_signature
     ):
-      return
+      return  # noqa: E111
 
     module_weights = {
       module: index + 1
@@ -791,7 +789,7 @@ class EntityFactory:
       for a, b, c in combinations(module_weights, 3)
     )
 
-  def begin_budget(
+  def begin_budget(  # noqa: E111
     self,
     dog_id: str,
     profile: str,
@@ -811,81 +809,81 @@ class EntityFactory:
     self._active_budgets[(dog_id, profile)] = budget
     return budget
 
-  def get_budget(self, dog_id: str, profile: str) -> EntityBudget | None:
+  def get_budget(self, dog_id: str, profile: str) -> EntityBudget | None:  # noqa: E111
     """Return the active budget for the provided dog and profile."""
 
     return self._active_budgets.get((dog_id, profile))
 
-  def finalize_budget(self, dog_id: str, profile: str) -> EntityBudgetSnapshot | None:
+  def finalize_budget(self, dog_id: str, profile: str) -> EntityBudgetSnapshot | None:  # noqa: E111
     """Finalize and report the entity budget for a dog/profile."""
 
     key = (dog_id, profile)
     budget = self._active_budgets.pop(key, None)
     if budget is None:
-      return None
+      return None  # noqa: E111
 
     snapshot = budget.snapshot()
     self._last_budget_snapshots[dog_id] = snapshot
 
     if self.coordinator is not None:
-      try:
+      try:  # noqa: E111
         self.coordinator.report_entity_budget(snapshot)
-      except AttributeError:  # pragma: no cover - defensive guard
+      except AttributeError:  # pragma: no cover - defensive guard  # noqa: E111
         _LOGGER.debug(
-          "Coordinator does not support entity budget reporting",  # pragma: no cover - log only
+          "Coordinator does not support entity budget reporting",  # pragma: no cover - log only  # noqa: E501
         )
 
     return snapshot
 
-  def get_budget_snapshot(self, dog_id: str) -> EntityBudgetSnapshot | None:
+  def get_budget_snapshot(self, dog_id: str) -> EntityBudgetSnapshot | None:  # noqa: E111
     """Return the most recent budget snapshot for a dog."""
 
     return self._last_budget_snapshots.get(dog_id)
 
-  def _enforce_metrics_runtime(self) -> None:
+  def _enforce_metrics_runtime(self) -> None:  # noqa: E111
     """Yield control to the event loop after intensive calculations."""
 
     self._ensure_loop_state()
     if not self._loop_supports_callbacks or self._loop_ref is None:
-      return
+      return  # noqa: E111
 
     try:
-      self._loop_ref.call_soon(self._yield_control)
+      self._loop_ref.call_soon(self._yield_control)  # noqa: E111
     except RuntimeError:
-      self._loop_ref = None
-      self._loop_supports_callbacks = False
+      self._loop_ref = None  # noqa: E111
+      self._loop_supports_callbacks = False  # noqa: E111
 
-  def _ensure_loop_state(self) -> None:
+  def _ensure_loop_state(self) -> None:  # noqa: E111
     """Refresh cached event loop information when necessary."""
 
     if self._loop_supports_callbacks is False:
-      return
+      return  # noqa: E111
 
     if self._loop_supports_callbacks and self._loop_ref is not None:
-      return
+      return  # noqa: E111
 
     try:
-      loop = asyncio.get_running_loop()
+      loop = asyncio.get_running_loop()  # noqa: E111
     except RuntimeError:
-      self._loop_ref = None
-      self._loop_supports_callbacks = False
-      return
+      self._loop_ref = None  # noqa: E111
+      self._loop_supports_callbacks = False  # noqa: E111
+      return  # noqa: E111
 
     if not loop.is_running():
-      self._loop_ref = None
-      self._loop_supports_callbacks = False
-      return
+      self._loop_ref = None  # noqa: E111
+      self._loop_supports_callbacks = False  # noqa: E111
+      return  # noqa: E111
 
     self._loop_ref = loop
     self._loop_supports_callbacks = True
 
-  @staticmethod
-  def _yield_control() -> None:
+  @staticmethod  # noqa: E111
+  def _yield_control() -> None:  # noqa: E111
     """No-op callback scheduled to allow the event loop to run."""
 
     return
 
-  def _get_entity_estimate(
+  def _get_entity_estimate(  # noqa: E111
     self,
     profile: str,
     modules: Mapping[str, bool] | None,
@@ -911,9 +909,9 @@ class EntityFactory:
 
     cached_estimate = self._estimate_cache.get(cache_key)
     if cached_estimate is not None:
-      # Move the cached entry to the end to maintain LRU semantics
-      self._estimate_cache.move_to_end(cache_key)
-      return cached_estimate
+      # Move the cached entry to the end to maintain LRU semantics  # noqa: E114
+      self._estimate_cache.move_to_end(cache_key)  # noqa: E111
+      return cached_estimate  # noqa: E111
 
     estimate = self._compute_entity_estimate(
       normalized_profile,
@@ -923,22 +921,22 @@ class EntityFactory:
     self._estimate_cache[cache_key] = estimate
 
     if len(self._estimate_cache) > _ESTIMATE_CACHE_MAX_SIZE:
-      self._estimate_cache.popitem(last=False)
+      self._estimate_cache.popitem(last=False)  # noqa: E111
 
     return estimate
 
-  def _normalize_profile(self, profile: str, *, log: bool) -> str:
+  def _normalize_profile(self, profile: str, *, log: bool) -> str:  # noqa: E111
     """Normalize profile name and optionally log when invalid."""
 
     if self._validate_profile(profile):
-      return profile
+      return profile  # noqa: E111
 
     if log:
-      _LOGGER.warning("Invalid profile %s, using standard", profile)
+      _LOGGER.warning("Invalid profile %s, using standard", profile)  # noqa: E111
 
     return "standard"
 
-  def _normalize_modules(
+  def _normalize_modules(  # noqa: E111
     self,
     modules: Mapping[str, bool] | None,
     *,
@@ -947,23 +945,23 @@ class EntityFactory:
     """Normalize module configuration and optionally log when invalid."""
 
     if modules is None or not isinstance(modules, Mapping):
-      if log:
+      if log:  # noqa: E111
         _LOGGER.warning(
           "Invalid modules configuration, using defaults",
         )
-      return self._get_default_modules()
+      return self._get_default_modules()  # noqa: E111
 
     module_dict = dict(modules)
     if not self._validate_modules(module_dict):
-      if log:
+      if log:  # noqa: E111
         _LOGGER.warning(
           "Invalid modules configuration, using defaults",
         )
-      return self._get_default_modules()
+      return self._get_default_modules()  # noqa: E111
 
     return module_dict
 
-  def _compute_entity_estimate(
+  def _compute_entity_estimate(  # noqa: E111
     self,
     profile: str,
     modules: dict[str, bool],
@@ -976,15 +974,15 @@ class EntityFactory:
     enabled_modules = 0
 
     for module, enabled in modules.items():
-      if not enabled:
+      if not enabled:  # noqa: E111
         continue
 
-      enabled_modules += 1
-      profile_estimates = MODULE_ENTITY_ESTIMATES.get(module)
-      if not profile_estimates:
+      enabled_modules += 1  # noqa: E111
+      profile_estimates = MODULE_ENTITY_ESTIMATES.get(module)  # noqa: E111
+      if not profile_estimates:  # noqa: E111
         continue
 
-      module_entities += profile_estimates.get(
+      module_entities += profile_estimates.get(  # noqa: E111
         profile,
         profile_estimates.get("standard", 2),
       )
@@ -1004,7 +1002,7 @@ class EntityFactory:
       module_signature=module_signature,
     )
 
-  def estimate_entity_count(self, profile: str, modules: Mapping[str, bool]) -> int:
+  def estimate_entity_count(self, profile: str, modules: Mapping[str, bool]) -> int:  # noqa: E111
     """Estimate entity count for a profile and module configuration.
 
     Args:
@@ -1022,8 +1020,8 @@ class EntityFactory:
       log_invalid_inputs=True,
     )
     if estimate.raw_total > estimate.capacity:
-      _LOGGER.debug(
-        "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
+      _LOGGER.debug(  # noqa: E111
+        "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only  # noqa: E501
         estimate.raw_total,
         estimate.capacity,
         estimate.profile,
@@ -1034,7 +1032,7 @@ class EntityFactory:
     self._ensure_min_runtime(started_at)
     return result
 
-  async def estimate_entity_count_async(
+  async def estimate_entity_count_async(  # noqa: E111
     self,
     profile: str,
     modules: Mapping[str, bool],
@@ -1048,8 +1046,8 @@ class EntityFactory:
       log_invalid_inputs=True,
     )
     if estimate.raw_total > estimate.capacity:
-      _LOGGER.debug(
-        "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
+      _LOGGER.debug(  # noqa: E111
+        "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only  # noqa: E501
         estimate.raw_total,
         estimate.capacity,
         estimate.profile,
@@ -1060,7 +1058,7 @@ class EntityFactory:
     await self._ensure_min_runtime_async(started_at)
     return result
 
-  def should_create_entity(
+  def should_create_entity(  # noqa: E111
     self,
     profile: str,
     entity_type: str | Enum,
@@ -1095,40 +1093,40 @@ class EntityFactory:
 
     cached = self._should_create_cache.get(cache_key)
     if cached is not None:
-      self._should_create_hits += 1
-      self._ensure_min_runtime(started_at)
-      return cached
+      self._should_create_hits += 1  # noqa: E111
+      self._ensure_min_runtime(started_at)  # noqa: E111
+      return cached  # noqa: E111
 
     if not self._validate_profile(profile):
-      profile = "standard"
+      profile = "standard"  # noqa: E111
 
     platform = self._resolve_platform(entity_type)
     if platform is None:
-      _LOGGER.warning("Invalid entity type: %s", entity_type)
-      self._ensure_min_runtime(started_at)
-      return False
+      _LOGGER.warning("Invalid entity type: %s", entity_type)  # noqa: E111
+      self._ensure_min_runtime(started_at)  # noqa: E111
+      return False  # noqa: E111
 
     if module not in KNOWN_MODULES:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Unknown module '%s' requested platform '%s'",
         module,
         platform.value,
       )
-      self._ensure_min_runtime(started_at)
-      return False
+      self._ensure_min_runtime(started_at)  # noqa: E111
+      return False  # noqa: E111
 
     profile_config = ENTITY_PROFILES[profile]
     priority_threshold = profile_config.priority_threshold
 
     # Critical entities always created (priority >= 9)
     if priority >= 9:
-      self._ensure_min_runtime(started_at)
-      return True
+      self._ensure_min_runtime(started_at)  # noqa: E111
+      return True  # noqa: E111
 
     # Apply priority threshold
     if priority < priority_threshold:
-      self._ensure_min_runtime(started_at)
-      return False
+      self._ensure_min_runtime(started_at)  # noqa: E111
+      return False  # noqa: E111
 
     # Profile-specific entity filtering
     result = self._apply_profile_specific_rules(
@@ -1141,12 +1139,12 @@ class EntityFactory:
     self._should_create_misses += 1
     self._should_create_cache[cache_key] = result
     if len(self._should_create_cache) > _ESTIMATE_CACHE_MAX_SIZE:
-      self._should_create_cache.popitem(last=False)
+      self._should_create_cache.popitem(last=False)  # noqa: E111
 
     self._ensure_min_runtime(started_at)
     return result
 
-  async def should_create_entity_async(
+  async def should_create_entity_async(  # noqa: E111
     self,
     profile: str,
     entity_type: str | Enum,
@@ -1172,40 +1170,40 @@ class EntityFactory:
 
     cached = self._should_create_cache.get(cache_key)
     if cached is not None:
-      self._should_create_hits += 1
-      await self._ensure_min_runtime_async(started_at)
-      return cached
+      self._should_create_hits += 1  # noqa: E111
+      await self._ensure_min_runtime_async(started_at)  # noqa: E111
+      return cached  # noqa: E111
 
     if not self._validate_profile(profile):
-      profile = "standard"
+      profile = "standard"  # noqa: E111
 
     platform = self._resolve_platform(entity_type)
     if platform is None:
-      _LOGGER.warning("Invalid entity type: %s", entity_type)
-      await self._ensure_min_runtime_async(started_at)
-      return False
+      _LOGGER.warning("Invalid entity type: %s", entity_type)  # noqa: E111
+      await self._ensure_min_runtime_async(started_at)  # noqa: E111
+      return False  # noqa: E111
 
     if module not in KNOWN_MODULES:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Unknown module '%s' requested platform '%s'",
         module,
         platform.value,
       )
-      await self._ensure_min_runtime_async(started_at)
-      return False
+      await self._ensure_min_runtime_async(started_at)  # noqa: E111
+      return False  # noqa: E111
 
     profile_config = ENTITY_PROFILES[profile]
     priority_threshold = profile_config.priority_threshold
 
     # Critical entities always created (priority >= 9)
     if priority >= 9:
-      await self._ensure_min_runtime_async(started_at)
-      return True
+      await self._ensure_min_runtime_async(started_at)  # noqa: E111
+      return True  # noqa: E111
 
     # Apply priority threshold
     if priority < priority_threshold:
-      await self._ensure_min_runtime_async(started_at)
-      return False
+      await self._ensure_min_runtime_async(started_at)  # noqa: E111
+      return False  # noqa: E111
 
     # Profile-specific entity filtering
     result = self._apply_profile_specific_rules(
@@ -1218,24 +1216,24 @@ class EntityFactory:
     self._should_create_misses += 1
     self._should_create_cache[cache_key] = result
     if len(self._should_create_cache) > _ESTIMATE_CACHE_MAX_SIZE:
-      self._should_create_cache.popitem(last=False)
+      self._should_create_cache.popitem(last=False)  # noqa: E111
 
     await self._ensure_min_runtime_async(started_at)
     return result
 
-  def _ensure_min_runtime(self, started_at: float) -> None:
+  def _ensure_min_runtime(self, started_at: float) -> None:  # noqa: E111
     """Record runtime guard metrics for the completed operation."""
 
     actual_duration = max(time.perf_counter() - started_at, 0.0)
     self._recalibrate_runtime_floor(actual_duration)
 
-  async def _ensure_min_runtime_async(self, started_at: float) -> None:
+  async def _ensure_min_runtime_async(self, started_at: float) -> None:  # noqa: E111
     """Record runtime guard metrics without blocking the event loop."""
 
     actual_duration = max(time.perf_counter() - started_at, 0.0)
     self._recalibrate_runtime_floor(actual_duration)
 
-  def _record_runtime_guard_calibration(
+  def _record_runtime_guard_calibration(  # noqa: E111
     self,
     event: EntityFactoryGuardEvent,
     actual_duration: float,
@@ -1244,12 +1242,12 @@ class EntityFactory:
 
     coordinator = self.coordinator
     if coordinator is None:
-      return
+      return  # noqa: E111
 
     config_entry = getattr(coordinator, "config_entry", None)
     runtime_data = None
     if config_entry is not None:
-      runtime_data = cast(
+      runtime_data = cast(  # noqa: E111
         "PawControlRuntimeData | None",
         getattr(config_entry, "runtime_data", None),
       )
@@ -1264,96 +1262,96 @@ class EntityFactory:
       enforce_min_runtime=self._enforce_min_runtime,
     )
 
-  def _recalibrate_runtime_floor(self, actual_duration: float) -> None:
+  def _recalibrate_runtime_floor(self, actual_duration: float) -> None:  # noqa: E111
     """Adapt the runtime guard to smooth jitter in busy environments."""
 
     if not self._enforce_min_runtime:
-      self._record_runtime_guard_calibration("disabled", actual_duration)
-      return
+      self._record_runtime_guard_calibration("disabled", actual_duration)  # noqa: E111
+      return  # noqa: E111
 
     runtime_floor = self._runtime_guard_floor
     event: EntityFactoryGuardEvent = "stable"
 
     if actual_duration >= runtime_floor * _RUNTIME_EXPAND_THRESHOLD:
-      boosted = min(
+      boosted = min(  # noqa: E111
         _RUNTIME_MAX_FLOOR,
         actual_duration / _RUNTIME_TARGET_RATIO,
       )
-      if boosted > runtime_floor:
+      if boosted > runtime_floor:  # noqa: E111
         self._runtime_guard_floor = boosted
         event = "expand"
-      self._record_runtime_guard_calibration(event, actual_duration)
-      return
+      self._record_runtime_guard_calibration(event, actual_duration)  # noqa: E111
+      return  # noqa: E111
 
     if runtime_floor <= _MIN_OPERATION_DURATION:
-      self._record_runtime_guard_calibration(event, actual_duration)
-      return
+      self._record_runtime_guard_calibration(event, actual_duration)  # noqa: E111
+      return  # noqa: E111
 
     if actual_duration <= runtime_floor * _RUNTIME_CONTRACT_THRESHOLD:
-      contracted = runtime_floor * _RUNTIME_CONTRACT_FACTOR
-      if contracted <= _MIN_OPERATION_DURATION:
+      contracted = runtime_floor * _RUNTIME_CONTRACT_FACTOR  # noqa: E111
+      if contracted <= _MIN_OPERATION_DURATION:  # noqa: E111
         self._runtime_guard_floor = _MIN_OPERATION_DURATION
-      else:
+      else:  # noqa: E111
         self._runtime_guard_floor = contracted
         event = "contract"
 
     self._record_runtime_guard_calibration(event, actual_duration)
 
-  @staticmethod
-  def _resolve_platform(entity_type: str | Enum) -> Platform | None:
+  @staticmethod  # noqa: E111
+  def _resolve_platform(entity_type: str | Enum) -> Platform | None:  # noqa: E111
     """Return the Home Assistant platform for the provided entity type."""
 
     for candidate in EntityFactory._iter_platform_candidates(entity_type):
-      if isinstance(candidate, Platform):
+      if isinstance(candidate, Platform):  # noqa: E111
         return candidate
 
-      if isinstance(candidate, str):
+      if isinstance(candidate, str):  # noqa: E111
         resolved = _ENTITY_TYPE_TO_PLATFORM.get(candidate.lower())
         if resolved is not None:
-          return resolved
+          return resolved  # noqa: E111
 
     return None
 
-  @staticmethod
-  def _iter_platform_candidates(
+  @staticmethod  # noqa: E111
+  def _iter_platform_candidates(  # noqa: E111
     value: str | Enum | Platform | None,
   ) -> Iterator[str | Platform]:
     """Yield potential platform identifiers from enums or strings."""
 
     if value is None:
-      return
+      return  # noqa: E111
 
     stack: list[str | Platform | Enum] = [value]
     seen: set[int] = set()
 
     while stack:
-      current = stack.pop()
+      current = stack.pop()  # noqa: E111
 
-      if isinstance(current, Platform):
+      if isinstance(current, Platform):  # noqa: E111
         yield current
         continue
 
-      if isinstance(current, str):
+      if isinstance(current, str):  # noqa: E111
         yield current
         continue
 
-      if isinstance(current, Enum):
+      if isinstance(current, Enum):  # noqa: E111
         identifier = id(current)
         if identifier in seen:
-          continue
+          continue  # noqa: E111
 
         seen.add(identifier)
 
         enum_name = getattr(current, "name", None)
         if isinstance(enum_name, str):
-          yield enum_name
+          yield enum_name  # noqa: E111
 
         enum_value = getattr(current, "value", None)
         if enum_value is not None:
-          stack.append(enum_value)
+          stack.append(enum_value)  # noqa: E111
 
-  @staticmethod
-  def _enum_contains_platform(enum_value: Enum, resolved: Platform) -> bool:
+  @staticmethod  # noqa: E111
+  def _enum_contains_platform(enum_value: Enum, resolved: Platform) -> bool:  # noqa: E111
     """Return ``True`` if the enum contains the resolved platform value."""
 
     resolved_value = getattr(resolved, "value", None)
@@ -1363,28 +1361,28 @@ class EntityFactory:
     seen: set[int] = set()
 
     while stack:
-      current = stack.pop()
+      current = stack.pop()  # noqa: E111
 
-      if isinstance(current, Platform):
+      if isinstance(current, Platform):  # noqa: E111
         if current == resolved:
-          return True
+          return True  # noqa: E111
         continue
 
-      if isinstance(current, str):
+      if isinstance(current, str):  # noqa: E111
         if target_value is not None and current.lower() == target_value:
-          return True
+          return True  # noqa: E111
         continue
 
-      if isinstance(current, Enum):
+      if isinstance(current, Enum):  # noqa: E111
         identifier = id(current)
         if identifier in seen:
-          continue
+          continue  # noqa: E111
 
         seen.add(identifier)
 
         enum_inner_value = getattr(current, "value", None)
         if enum_inner_value is not None:
-          stack.append(enum_inner_value)
+          stack.append(enum_inner_value)  # noqa: E111
 
         enum_inner_name = getattr(current, "name", None)
         if (
@@ -1392,12 +1390,12 @@ class EntityFactory:
           and target_value is not None
           and enum_inner_name.lower() == target_value
         ):
-          return True
+          return True  # noqa: E111
 
     return False
 
-  @staticmethod
-  def _coerce_platform_output(
+  @staticmethod  # noqa: E111
+  def _coerce_platform_output(  # noqa: E111
     requested: str | Enum,
     resolved: Platform,
   ) -> Platform | Enum:
@@ -1407,14 +1405,14 @@ class EntityFactory:
       requested,
       resolved,
     ):
-      return requested
+      return requested  # noqa: E111
 
     if isinstance(requested, str):
-      return resolved
+      return resolved  # noqa: E111
 
     return resolved
 
-  def _apply_profile_specific_rules(
+  def _apply_profile_specific_rules(  # noqa: E111
     self,
     profile: str,
     platform: Platform,
@@ -1435,53 +1433,53 @@ class EntityFactory:
     profile_config = ENTITY_PROFILES[profile]
 
     if platform not in profile_config.platforms:
-      return False
+      return False  # noqa: E111
 
     if profile == "basic":
-      # Only essential entities
-      essential_types = {
+      # Only essential entities  # noqa: E114
+      essential_types = {  # noqa: E111
         Platform.SENSOR,
         Platform.BUTTON,
         Platform.BINARY_SENSOR,
         Platform.SWITCH,
       }
-      essential_modules = {"feeding", "health", "walk"}
-      return (
+      essential_modules = {"feeding", "health", "walk"}  # noqa: E111
+      return (  # noqa: E111
         platform in essential_types and module in essential_modules and priority >= 5
       )
 
     if profile == "gps_focus":
-      # GPS-related entities prioritized
-      preferred_modules = profile_config.preferred_modules
-      gps_types = {
+      # GPS-related entities prioritized  # noqa: E114
+      preferred_modules = profile_config.preferred_modules  # noqa: E111
+      gps_types = {  # noqa: E111
         Platform.DEVICE_TRACKER,
         Platform.SENSOR,
         Platform.BINARY_SENSOR,
         Platform.NUMBER,
       }
-      return platform in gps_types and (module in preferred_modules or priority >= 7)
+      return platform in gps_types and (module in preferred_modules or priority >= 7)  # noqa: E111
 
     if profile == "health_focus":
-      # Health-related entities prioritized
-      preferred_modules = profile_config.preferred_modules
-      health_types = {
+      # Health-related entities prioritized  # noqa: E114
+      preferred_modules = profile_config.preferred_modules  # noqa: E111
+      health_types = {  # noqa: E111
         Platform.SENSOR,
         Platform.NUMBER,
         Platform.DATE,
         Platform.TEXT,
         Platform.BINARY_SENSOR,
       }
-      return platform in health_types and (module in preferred_modules or priority >= 7)
+      return platform in health_types and (module in preferred_modules or priority >= 7)  # noqa: E111
 
     if profile == "advanced":
-      # Almost all entities created, minimal filtering
-      return priority >= 3
+      # Almost all entities created, minimal filtering  # noqa: E114
+      return priority >= 3  # noqa: E111
 
     # standard profile
     # Balanced approach with moderate filtering
     return priority >= 4
 
-  def get_platform_priority(self, platform: Platform, profile: str) -> int:
+  def get_platform_priority(self, platform: Platform, profile: str) -> int:  # noqa: E111
     """Get platform loading priority based on profile.
 
     Args:
@@ -1492,7 +1490,7 @@ class EntityFactory:
         Priority (1-10, lower = load first)
     """
     if not self._validate_profile(profile):
-      profile = "standard"
+      profile = "standard"  # noqa: E111
 
     priority_maps = {
       "basic": {
@@ -1545,7 +1543,7 @@ class EntityFactory:
     # Default to lowest priority
     return profile_priorities.get(platform, 99)
 
-  def create_entity_config(
+  def create_entity_config(  # noqa: E111
     self,
     dog_id: str,
     entity_type: str | Enum,
@@ -1574,30 +1572,30 @@ class EntityFactory:
 
     # Validate inputs
     if not dog_id or not entity_type or not module:
-      _LOGGER.error(
+      _LOGGER.error(  # noqa: E111
         "Missing required parameters: dog_id=%s, entity_type=%s, module=%s",
         dog_id,
         entity_type,
         module,
       )
-      return None
+      return None  # noqa: E111
 
     platform = self._resolve_platform(entity_type)
     if platform is None:
-      _LOGGER.error(
+      _LOGGER.error(  # noqa: E111
         "Unsupported entity type for config creation: %s",
         entity_type,
       )
-      return None
+      return None  # noqa: E111
 
     normalized_type = platform.value
 
     if module not in KNOWN_MODULES:
-      _LOGGER.error("Unsupported module for config creation: %s", module)
-      return None
+      _LOGGER.error("Unsupported module for config creation: %s", module)  # noqa: E111
+      return None  # noqa: E111
 
     if not self.should_create_entity(profile, platform, module, resolved_priority):
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Skipping %s entity for %s/%s (profile: %s, priority: %d)",
         normalized_type,
         dog_id,
@@ -1605,15 +1603,15 @@ class EntityFactory:
         profile,
         resolved_priority,
       )
-      return None
+      return None  # noqa: E111
 
     budget = self.get_budget(dog_id, profile)
     if budget is not None:
-      identifier_parts = [module, normalized_type]
-      if entity_key is not None:
+      identifier_parts = [module, normalized_type]  # noqa: E111
+      if entity_key is not None:  # noqa: E111
         identifier_parts.append(str(entity_key))
-      identifier = ":".join(identifier_parts)
-      if not budget.reserve(identifier, priority=resolved_priority):
+      identifier = ":".join(identifier_parts)  # noqa: E111
+      if not budget.reserve(identifier, priority=resolved_priority):  # noqa: E111
         _LOGGER.debug(
           "Entity budget exhausted for %s/%s (identifier: %s)",
           dog_id,
@@ -1626,7 +1624,7 @@ class EntityFactory:
       key: cast(EntityCreationValue, value) for key, value in overrides.items()
     }
     if entity_key is not None:
-      extras["entity_key"] = entity_key
+      extras["entity_key"] = entity_key  # noqa: E111
 
     profile_config = ENTITY_PROFILES.get(
       profile,
@@ -1648,7 +1646,7 @@ class EntityFactory:
       extras=extras_mapping,
     )
 
-  def get_profile_info(self, profile: str) -> EntityProfileDefinition:
+  def get_profile_info(self, profile: str) -> EntityProfileDefinition:  # noqa: E111
     """Get information about an entity profile.
 
     Args:
@@ -1658,15 +1656,15 @@ class EntityFactory:
         Profile information dictionary
     """
     if profile in self._profile_cache:
-      return self._profile_cache[profile]
+      return self._profile_cache[profile]  # noqa: E111
 
     info = ENTITY_PROFILES.get(profile)
     if info is None:
-      info = ENTITY_PROFILES["standard"]
+      info = ENTITY_PROFILES["standard"]  # noqa: E111
     self._profile_cache[profile] = info
     return info
 
-  def get_available_profiles(self) -> list[str]:
+  def get_available_profiles(self) -> list[str]:  # noqa: E111
     """Get list of available entity profiles.
 
     Returns:
@@ -1694,7 +1692,7 @@ class EntityFactory:
       ),
     )
 
-  def validate_profile_for_modules(
+  def validate_profile_for_modules(  # noqa: E111
     self,
     profile: str,
     modules: Mapping[str, object] | DogModulesProjection,
@@ -1712,43 +1710,43 @@ class EntityFactory:
 
     original_modules: Mapping[str, object] | None = None
     if isinstance(modules, DogModulesProjection):
-      original_modules = modules.mapping
+      original_modules = modules.mapping  # noqa: E111
     elif isinstance(modules, Mapping):
-      nested_modules = modules.get(DOG_MODULES_FIELD)
-      if isinstance(nested_modules, Mapping):
+      nested_modules = modules.get(DOG_MODULES_FIELD)  # noqa: E111
+      if isinstance(nested_modules, Mapping):  # noqa: E111
         original_modules = nested_modules
-      else:
+      else:  # noqa: E111
         original_modules = modules
 
     if original_modules is not None:
-      unknown_modules = [
+      unknown_modules = [  # noqa: E111
         str(module) for module in original_modules if module not in KNOWN_MODULES
       ]
-      if unknown_modules:
+      if unknown_modules:  # noqa: E111
         return False
 
     if not self._validate_profile(profile) or not self._validate_modules(
       modules_mapping,
     ):
-      return False
+      return False  # noqa: E111
 
     profile_config = ENTITY_PROFILES[profile]
 
     # Check for preferred modules alignment
     preferred_modules = profile_config.preferred_modules
     if preferred_modules:
-      enabled_preferred = sum(
+      enabled_preferred = sum(  # noqa: E111
         1 for mod in preferred_modules if modules_mapping.get(mod, False)
       )
-      enabled_total = sum(1 for enabled in modules_mapping.values() if enabled)
+      enabled_total = sum(1 for enabled in modules_mapping.values() if enabled)  # noqa: E111
 
-      # At least 50% of enabled modules should align with preferred modules
-      if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:
+      # At least 50% of enabled modules should align with preferred modules  # noqa: E114, E501
+      if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:  # noqa: E111
         return False
 
     return True
 
-  def _validate_profile(self, profile: str) -> bool:
+  def _validate_profile(self, profile: str) -> bool:  # noqa: E111
     """Validate profile name.
 
     Args:
@@ -1759,7 +1757,7 @@ class EntityFactory:
     """
     return isinstance(profile, str) and profile in ENTITY_PROFILES
 
-  def _validate_modules(self, modules: Mapping[str, bool]) -> bool:
+  def _validate_modules(self, modules: Mapping[str, bool]) -> bool:  # noqa: E111
     """Validate modules configuration.
 
     Args:
@@ -1769,20 +1767,20 @@ class EntityFactory:
         True if modules configuration is valid
     """
     if not isinstance(modules, Mapping):
-      return False
+      return False  # noqa: E111
 
     unknown_modules = [module for module in modules if module not in KNOWN_MODULES]
     if unknown_modules:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Ignoring unknown modules in configuration: %s",
         ", ".join(sorted(unknown_modules)),
       )
-      return False
+      return False  # noqa: E111
 
     # Check that all values are boolean
     return all(isinstance(enabled, bool) for enabled in modules.values())
 
-  def _get_default_modules(self) -> dict[str, bool]:
+  def _get_default_modules(self) -> dict[str, bool]:  # noqa: E111
     """Get default modules configuration.
 
     Returns:
@@ -1797,7 +1795,7 @@ class EntityFactory:
       "gps": False,
     }
 
-  def get_performance_metrics(
+  def get_performance_metrics(  # noqa: E111
     self,
     profile: str,
     modules: Mapping[str, object] | DogModulesProjection,
@@ -1823,10 +1821,10 @@ class EntityFactory:
 
     cached_metrics = self._performance_metrics_cache.get(cache_key)
     if cached_metrics is not None:
-      self._performance_metrics_cache.move_to_end(cache_key)
-      self._enforce_metrics_runtime()
-      self._ensure_min_runtime(started_at)
-      return cached_metrics
+      self._performance_metrics_cache.move_to_end(cache_key)  # noqa: E111
+      self._enforce_metrics_runtime()  # noqa: E111
+      self._ensure_min_runtime(started_at)  # noqa: E111
+      return cached_metrics  # noqa: E111
 
     profile_config = ENTITY_PROFILES[estimate.profile]
 
@@ -1834,20 +1832,20 @@ class EntityFactory:
     utilization = 0.0 if capacity <= 0 else (estimate.final_count / capacity) * 100
 
     if self._last_estimate_key == cache_key and self._last_module_weights:
-      module_weights = dict(self._last_module_weights)
-      synergy_score = self._last_synergy_score
-      triad_score = self._last_triad_score
+      module_weights = dict(self._last_module_weights)  # noqa: E111
+      synergy_score = self._last_synergy_score  # noqa: E111
+      triad_score = self._last_triad_score  # noqa: E111
     else:
-      module_weights = {
+      module_weights = {  # noqa: E111
         module: index + 1
         for index, (module, enabled) in enumerate(estimate.module_signature)
         if enabled
       }
-      synergy_score = sum(
+      synergy_score = sum(  # noqa: E111
         module_weights[a] + module_weights[b]
         for a, b in combinations(module_weights, 2)
       )
-      triad_score = sum(
+      triad_score = sum(  # noqa: E111
         module_weights[a] + module_weights[b] + module_weights[c]
         for a, b, c in combinations(module_weights, 3)
       )
@@ -1855,16 +1853,16 @@ class EntityFactory:
     complexity_score = sum(module_weights.values())
 
     if estimate.raw_total > capacity and capacity > 0:
-      overflow = estimate.raw_total - capacity
-      penalty = min(30.0, (overflow / capacity) * 100)
-      if complexity_score:
+      overflow = estimate.raw_total - capacity  # noqa: E111
+      penalty = min(30.0, (overflow / capacity) * 100)  # noqa: E111
+      if complexity_score:  # noqa: E111
         penalty *= min(1.5, 1 + complexity_score / (10 * capacity))
-      if synergy_score:
+      if synergy_score:  # noqa: E111
         penalty *= min(1.4, 1 + synergy_score / (75 * capacity))
-      if triad_score:
+      if triad_score:  # noqa: E111
         penalty *= min(1.3, 1 + triad_score / (120 * capacity))
-      penalty = min(penalty, 45.0)
-      utilization = max(0.0, utilization - penalty)
+      penalty = min(penalty, 45.0)  # noqa: E111
+      utilization = max(0.0, utilization - penalty)  # noqa: E111
 
     utilization = max(0.0, min(utilization, 100.0))
 
@@ -1880,7 +1878,7 @@ class EntityFactory:
 
     self._performance_metrics_cache[cache_key] = metrics
     if len(self._performance_metrics_cache) > _ESTIMATE_CACHE_MAX_SIZE:
-      self._performance_metrics_cache.popitem(last=False)
+      self._performance_metrics_cache.popitem(last=False)  # noqa: E111
 
     self._enforce_metrics_runtime()
     self._ensure_min_runtime(started_at)

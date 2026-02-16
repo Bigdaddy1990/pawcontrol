@@ -1,18 +1,16 @@
 """Plugin to check decorators."""
 
-from __future__ import annotations
-
 from astroid import nodes
 from pylint.checkers import BaseChecker
 from pylint.lint import PyLinter
 
 
 class HassDecoratorChecker(BaseChecker):
-  """Checker for decorators."""
+  """Checker for decorators."""  # noqa: E111
 
-  name = "hass_decorator"
-  priority = -1
-  msgs = {
+  name = "hass_decorator"  # noqa: E111
+  priority = -1  # noqa: E111
+  msgs = {  # noqa: E111
     "W7471": (
       "A coroutine function should not be decorated with @callback",
       "hass-async-callback-decorator",
@@ -25,9 +23,9 @@ class HassDecoratorChecker(BaseChecker):
     ),
   }
 
-  def _get_pytest_fixture_node(self, node: nodes.FunctionDef) -> nodes.Call | None:
+  def _get_pytest_fixture_node(self, node: nodes.FunctionDef) -> nodes.Call | None:  # noqa: E111
     for decorator in node.decorators.nodes:
-      if (
+      if (  # noqa: E111
         isinstance(decorator, nodes.Call)
         and decorator.func.as_string() == "pytest.fixture"
       ):
@@ -35,16 +33,16 @@ class HassDecoratorChecker(BaseChecker):
 
     return None
 
-  def _get_pytest_fixture_node_keyword(
+  def _get_pytest_fixture_node_keyword(  # noqa: E111
     self, decorator: nodes.Call, search_arg: str
   ) -> nodes.Keyword | None:
     for keyword in decorator.keywords:
-      if keyword.arg == search_arg:
+      if keyword.arg == search_arg:  # noqa: E111
         return keyword
 
     return None
 
-  def _check_pytest_fixture(
+  def _check_pytest_fixture(  # noqa: E111
     self, node: nodes.FunctionDef, decoratornames: set[str]
   ) -> None:
     if (
@@ -57,22 +55,22 @@ class HassDecoratorChecker(BaseChecker):
       or not isinstance(scope_keyword.value, nodes.Const)
       or not (scope := scope_keyword.value.value)
     ):
-      return
+      return  # noqa: E111
 
     parts = root_name.split(".")
     test_component: str | None = None
     if root_name.startswith("tests.components.") and parts[2] != "conftest":
-      test_component = parts[2]
+      test_component = parts[2]  # noqa: E111
 
     if scope == "session":
-      if test_component:
+      if test_component:  # noqa: E111
         self.add_message(
           "hass-pytest-fixture-decorator",
           node=decorator,
           args=("scope `session`", "use `package` or lower"),
         )
         return
-      if not (
+      if not (  # noqa: E111
         autouse_keyword := self._get_pytest_fixture_node_keyword(decorator, "autouse")
       ) or (
         isinstance(autouse_keyword.value, nodes.Const)
@@ -86,30 +84,30 @@ class HassDecoratorChecker(BaseChecker):
             "set `autouse=True` or reduce scope",
           ),
         )
-      return
+      return  # noqa: E111
 
     test_module = parts[3] if len(parts) > 3 else ""
 
     if test_component and scope == "package" and test_module != "conftest":
-      self.add_message(
+      self.add_message(  # noqa: E111
         "hass-pytest-fixture-decorator",
         node=decorator,
         args=("scope `package`", "use `module` or lower"),
       )
 
-  def visit_asyncfunctiondef(self, node: nodes.AsyncFunctionDef) -> None:
+  def visit_asyncfunctiondef(self, node: nodes.AsyncFunctionDef) -> None:  # noqa: E111
     """Apply checks on an AsyncFunctionDef node."""
     if decoratornames := node.decoratornames():
-      if "homeassistant.core.callback" in decoratornames:
+      if "homeassistant.core.callback" in decoratornames:  # noqa: E111
         self.add_message("hass-async-callback-decorator", node=node)
-      self._check_pytest_fixture(node, decoratornames)
+      self._check_pytest_fixture(node, decoratornames)  # noqa: E111
 
-  def visit_functiondef(self, node: nodes.FunctionDef) -> None:
+  def visit_functiondef(self, node: nodes.FunctionDef) -> None:  # noqa: E111
     """Apply checks on an AsyncFunctionDef node."""
     if decoratornames := node.decoratornames():
-      self._check_pytest_fixture(node, decoratornames)
+      self._check_pytest_fixture(node, decoratornames)  # noqa: E111
 
 
 def register(linter: PyLinter) -> None:
-  """Register the checker."""
-  linter.register_checker(HassDecoratorChecker(linter))
+  """Register the checker."""  # noqa: E111
+  linter.register_checker(HassDecoratorChecker(linter))  # noqa: E111

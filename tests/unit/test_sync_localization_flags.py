@@ -1,7 +1,5 @@
 """Tests for the localization flag synchronization helpers."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
@@ -11,17 +9,17 @@ from scripts import sync_localization_flags
 def _build_translations(
   label_en: str, label_de: str
 ) -> dict[str, dict[str, dict[str, str]]]:
-  return {
+  return {  # noqa: E111
     "en": {"common": {"setup_flags_panel_flag_test": label_en}},
     "de": {"common": {"setup_flags_panel_flag_test": label_de}},
   }
 
 
 def test_update_markdown_table_writes_expected_rows(tmp_path: Path) -> None:
-  """The Markdown helper should replace the setup-flags table in-place."""
+  """The Markdown helper should replace the setup-flags table in-place."""  # noqa: E111
 
-  markdown = tmp_path / "diagnostics.md"
-  markdown.write_text(
+  markdown = tmp_path / "diagnostics.md"  # noqa: E111
+  markdown.write_text(  # noqa: E111
     "\n".join([
       "Intro",
       sync_localization_flags.TABLE_START_MARKER,
@@ -35,7 +33,7 @@ def test_update_markdown_table_writes_expected_rows(tmp_path: Path) -> None:
     encoding="utf-8",
   )
 
-  updated = sync_localization_flags._update_markdown_table(
+  updated = sync_localization_flags._update_markdown_table(  # noqa: E111
     markdown,
     ["setup_flags_panel_flag_test"],
     _build_translations("English", "Deutsch"),
@@ -43,19 +41,19 @@ def test_update_markdown_table_writes_expected_rows(tmp_path: Path) -> None:
     check_only=False,
   )
 
-  assert updated is True
-  content = markdown.read_text(encoding="utf-8")
-  assert (
+  assert updated is True  # noqa: E111
+  content = markdown.read_text(encoding="utf-8")  # noqa: E111
+  assert (  # noqa: E111
     "| component.pawcontrol.common.setup_flags_panel_flag_test | English | Deutsch |"
     in content
   )
 
 
 def test_update_markdown_table_check_mode_detects_drift(tmp_path: Path) -> None:
-  """Check-only runs should fail when the Markdown table differs."""
+  """Check-only runs should fail when the Markdown table differs."""  # noqa: E111
 
-  markdown = tmp_path / "diagnostics.md"
-  markdown.write_text(
+  markdown = tmp_path / "diagnostics.md"  # noqa: E111
+  markdown.write_text(  # noqa: E111
     "\n".join([
       "Intro",
       sync_localization_flags.TABLE_START_MARKER,
@@ -68,7 +66,7 @@ def test_update_markdown_table_check_mode_detects_drift(tmp_path: Path) -> None:
     encoding="utf-8",
   )
 
-  with pytest.raises(SystemExit):
+  with pytest.raises(SystemExit):  # noqa: E111
     sync_localization_flags._update_markdown_table(
       markdown,
       ["setup_flags_panel_flag_test"],

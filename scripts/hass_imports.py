@@ -1,7 +1,5 @@
 """Plugin for checking imports."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import re
 
@@ -12,10 +10,10 @@ from pylint.lint import PyLinter
 
 @dataclass
 class ObsoleteImportMatch:
-  """Class for pattern matching."""
+  """Class for pattern matching."""  # noqa: E111
 
-  constant: re.Pattern[str]
-  reason: str
+  constant: re.Pattern[str]  # noqa: E111
+  reason: str  # noqa: E111
 
 
 _OBSOLETE_IMPORT: dict[str, list[ObsoleteImportMatch]] = {
@@ -154,10 +152,10 @@ _IGNORE_ROOT_IMPORT = (
 # Blacklist of imports that should be using the namespace
 @dataclass
 class NamespaceAlias:
-  """Class for namespace imports."""
+  """Class for namespace imports."""  # noqa: E111
 
-  alias: str
-  names: set[str]  # function names
+  alias: str  # noqa: E111
+  names: set[str]  # function names  # noqa: E111
 
 
 _FORCE_NAMESPACE_IMPORT: dict[str, NamespaceAlias] = {
@@ -184,11 +182,11 @@ _FORCE_NAMESPACE_IMPORT: dict[str, NamespaceAlias] = {
 
 
 class HassImportsFormatChecker(BaseChecker):
-  """Checker for imports."""
+  """Checker for imports."""  # noqa: E111
 
-  name = "hass_imports"
-  priority = -1
-  msgs = {
+  name = "hass_imports"  # noqa: E111
+  priority = -1  # noqa: E111
+  msgs = {  # noqa: E111
     "W7421": (
       "Relative import should be used",
       "hass-relative-import",
@@ -226,40 +224,40 @@ class HassImportsFormatChecker(BaseChecker):
       "Used when a constant alias is unnecessary",
     ),
   }
-  options = ()
+  options = ()  # noqa: E111
 
-  def __init__(self, linter: PyLinter) -> None:
+  def __init__(self, linter: PyLinter) -> None:  # noqa: E111
     """Initialize the HassImportsFormatChecker."""
     super().__init__(linter)
     self.current_package: str | None = None
 
-  def visit_module(self, node: nodes.Module) -> None:
+  def visit_module(self, node: nodes.Module) -> None:  # noqa: E111
     """Determine current package."""
     if node.package:
-      self.current_package = node.name
+      self.current_package = node.name  # noqa: E111
     else:
-      # Strip name of the current module
-      self.current_package = node.name[: node.name.rfind(".")]
+      # Strip name of the current module  # noqa: E114
+      self.current_package = node.name[: node.name.rfind(".")]  # noqa: E111
 
-  def visit_import(self, node: nodes.Import) -> None:
+  def visit_import(self, node: nodes.Import) -> None:  # noqa: E111
     """Check for improper `import _` invocations."""
     if self.current_package is None:
-      return
+      return  # noqa: E111
     for module, _alias in node.names:
-      if module.startswith(f"{self.current_package}."):
+      if module.startswith(f"{self.current_package}."):  # noqa: E111
         self.add_message("hass-relative-import", node=node)
         continue
-      if module.startswith("homeassistant.components.") and len(module.split(".")) > 3:
+      if module.startswith("homeassistant.components.") and len(module.split(".")) > 3:  # noqa: E111
         if (
           self.current_package.startswith("tests.components.")
           and self.current_package.split(".")[2] == module.split(".")[2]
         ):
-          # Ignore check if the component being tested matches
-          # the component being imported from
-          continue
+          # Ignore check if the component being tested matches  # noqa: E114
+          # the component being imported from  # noqa: E114
+          continue  # noqa: E111
         self.add_message("hass-component-root-import", node=node)
 
-  def _visit_importfrom_relative(
+  def _visit_importfrom_relative(  # noqa: E111
     self, current_package: str, node: nodes.ImportFrom
   ) -> None:
     """Check for improper 'from ._ import _' invocations."""
@@ -267,7 +265,7 @@ class HassImportsFormatChecker(BaseChecker):
       "homeassistant.components.",
       "tests.components.",
     )):
-      return
+      return  # noqa: E111
 
     split_package = current_package.split(".")
     current_component = split_package[2]
@@ -275,20 +273,20 @@ class HassImportsFormatChecker(BaseChecker):
     self._check_for_constant_alias(node, current_component, current_component)
 
     if node.level <= 1:
-      # No need to check relative import
-      return
+      # No need to check relative import  # noqa: E114
+      return  # noqa: E111
 
     if not node.modname and len(split_package) == node.level + 1:
-      for name in node.names:
+      for name in node.names:  # noqa: E111
         # Allow relative import to component root
         if name[0] != current_component:
-          self.add_message("hass-absolute-import", node=node)
-          return
-      return
+          self.add_message("hass-absolute-import", node=node)  # noqa: E111
+          return  # noqa: E111
+      return  # noqa: E111
     if len(split_package) < node.level + 2:
-      self.add_message("hass-absolute-import", node=node)
+      self.add_message("hass-absolute-import", node=node)  # noqa: E111
 
-  def _check_for_constant_alias(
+  def _check_for_constant_alias(  # noqa: E111
     self,
     node: nodes.ImportFrom,
     current_component: str | None,
@@ -296,20 +294,20 @@ class HassImportsFormatChecker(BaseChecker):
   ) -> bool:
     """Check for hass-import-constant-alias."""
     if current_component == imported_component:
-      # Check for `from homeassistant.components.self import DOMAIN as XYZ`
-      for name, alias in node.names:
+      # Check for `from homeassistant.components.self import DOMAIN as XYZ`  # noqa: E114, E501
+      for name, alias in node.names:  # noqa: E111
         if name == "DOMAIN" and (alias is not None and alias != "DOMAIN"):
-          self.add_message(
+          self.add_message(  # noqa: E111
             "hass-import-constant-unnecessary-alias",
             node=node,
             args=(alias, "DOMAIN"),
           )
-          return False
-      return True
+          return False  # noqa: E111
+      return True  # noqa: E111
 
     # Check for `from homeassistant.components.other import DOMAIN`
     for name, alias in node.names:
-      if name == "DOMAIN" and (alias is None or alias == "DOMAIN"):
+      if name == "DOMAIN" and (alias is None or alias == "DOMAIN"):  # noqa: E111
         self.add_message(
           "hass-import-constant-alias",
           node=node,
@@ -323,7 +321,7 @@ class HassImportsFormatChecker(BaseChecker):
 
     return True
 
-  def _check_for_component_root_import(
+  def _check_for_component_root_import(  # noqa: E111
     self,
     node: nodes.ImportFrom,
     current_component: str | None,
@@ -335,22 +333,22 @@ class HassImportsFormatChecker(BaseChecker):
       current_component == imported_component
       or imported_component in _IGNORE_ROOT_IMPORT
     ):
-      return True
+      return True  # noqa: E111
 
     # Check for `from homeassistant.components.other.module import something`
     if len(imported_parts) > 3:
-      self.add_message("hass-component-root-import", node=node)
-      return False
+      self.add_message("hass-component-root-import", node=node)  # noqa: E111
+      return False  # noqa: E111
 
     # Check for `from homeassistant.components.other import const`
     for name, _ in node.names:
-      if name == "const":
+      if name == "const":  # noqa: E111
         self.add_message("hass-component-root-import", node=node)
         return False
 
     return True
 
-  def _check_for_relative_import(
+  def _check_for_relative_import(  # noqa: E111
     self,
     current_package: str,
     node: nodes.ImportFrom,
@@ -360,63 +358,63 @@ class HassImportsFormatChecker(BaseChecker):
     if node.modname == current_package or node.modname.startswith(
       f"{current_package}."
     ):
-      self.add_message("hass-relative-import", node=node)
-      return False
+      self.add_message("hass-relative-import", node=node)  # noqa: E111
+      return False  # noqa: E111
 
     for root in ("homeassistant", "tests"):
-      if current_package.startswith(f"{root}.components."):
+      if current_package.startswith(f"{root}.components."):  # noqa: E111
         if node.modname == f"{root}.components":
-          for name in node.names:
+          for name in node.names:  # noqa: E111
             if name[0] == current_component:
-              self.add_message("hass-relative-import", node=node)
-              return False
+              self.add_message("hass-relative-import", node=node)  # noqa: E111
+              return False  # noqa: E111
         elif node.modname.startswith(f"{root}.components.{current_component}."):
-          self.add_message("hass-relative-import", node=node)
-          return False
+          self.add_message("hass-relative-import", node=node)  # noqa: E111
+          return False  # noqa: E111
 
     return True
 
-  def visit_importfrom(self, node: nodes.ImportFrom) -> None:
+  def visit_importfrom(self, node: nodes.ImportFrom) -> None:  # noqa: E111
     """Check for improper 'from _ import _' invocations."""
     if not self.current_package:
-      return
+      return  # noqa: E111
     if node.level is not None:
-      self._visit_importfrom_relative(self.current_package, node)
-      return
+      self._visit_importfrom_relative(self.current_package, node)  # noqa: E111
+      return  # noqa: E111
 
     # Cache current component
     current_component: str | None = None
     for root in ("homeassistant", "tests"):
-      if self.current_package.startswith(f"{root}.components."):
+      if self.current_package.startswith(f"{root}.components."):  # noqa: E111
         current_component = self.current_package.split(".")[2]
 
     # Checks for hass-relative-import
     if not self._check_for_relative_import(
       self.current_package, node, current_component
     ):
-      return
+      return  # noqa: E111
 
     if node.modname.startswith("homeassistant.components."):
-      imported_parts = node.modname.split(".")
-      imported_component = imported_parts[2]
+      imported_parts = node.modname.split(".")  # noqa: E111
+      imported_component = imported_parts[2]  # noqa: E111
 
-      # Checks for hass-component-root-import
-      if not self._check_for_component_root_import(
+      # Checks for hass-component-root-import  # noqa: E114
+      if not self._check_for_component_root_import(  # noqa: E111
         node, current_component, imported_parts, imported_component
       ):
         return
 
-      # Checks for hass-import-constant-alias
-      if not self._check_for_constant_alias(
+      # Checks for hass-import-constant-alias  # noqa: E114
+      if not self._check_for_constant_alias(  # noqa: E111
         node, current_component, imported_component
       ):
         return
 
     # Checks for hass-deprecated-import
     if obsolete_imports := _OBSOLETE_IMPORT.get(node.modname):
-      for name_tuple in node.names:
+      for name_tuple in node.names:  # noqa: E111
         for obsolete_import in obsolete_imports:
-          if import_match := obsolete_import.constant.match(name_tuple[0]):
+          if import_match := obsolete_import.constant.match(name_tuple[0]):  # noqa: E111
             self.add_message(
               "hass-deprecated-import",
               node=node,
@@ -425,9 +423,9 @@ class HassImportsFormatChecker(BaseChecker):
 
     # Checks for hass-helper-namespace-import
     if namespace_alias := _FORCE_NAMESPACE_IMPORT.get(node.modname):
-      for name in node.names:
+      for name in node.names:  # noqa: E111
         if name[0] in namespace_alias.names:
-          self.add_message(
+          self.add_message(  # noqa: E111
             "hass-helper-namespace-import",
             node=node,
             args=(
@@ -441,5 +439,5 @@ class HassImportsFormatChecker(BaseChecker):
 
 
 def register(linter: PyLinter) -> None:
-  """Register the checker."""
-  linter.register_checker(HassImportsFormatChecker(linter))
+  """Register the checker."""  # noqa: E111
+  linter.register_checker(HassImportsFormatChecker(linter))  # noqa: E111

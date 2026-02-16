@@ -4,8 +4,6 @@ Tests base manager classes, lifecycle management, error handling,
 and manager registration system.
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest
@@ -23,31 +21,31 @@ from custom_components.pawcontrol.base_manager import (
 
 
 class DummyManager(BaseManager):
-  """Test manager implementation."""
+  """Test manager implementation."""  # noqa: E111
 
-  MANAGER_NAME = "DummyManager"
-  MANAGER_VERSION = "1.0.0"
+  MANAGER_NAME = "DummyManager"  # noqa: E111
+  MANAGER_VERSION = "1.0.0"  # noqa: E111
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args, **kwargs):  # noqa: E111
     super().__init__(*args, **kwargs)
     self.setup_called = False
     self.shutdown_called = False
     self.setup_should_fail = False
     self.shutdown_should_fail = False
 
-  async def async_setup(self) -> None:
+  async def async_setup(self) -> None:  # noqa: E111
     """Set up the test manager."""
     if self.setup_should_fail:
-      raise RuntimeError("Setup failed")
+      raise RuntimeError("Setup failed")  # noqa: E111
     self.setup_called = True
 
-  async def async_shutdown(self) -> None:
+  async def async_shutdown(self) -> None:  # noqa: E111
     """Shut down the test manager."""
     if self.shutdown_should_fail:
-      raise RuntimeError("Shutdown failed")
+      raise RuntimeError("Shutdown failed")  # noqa: E111
     self.shutdown_called = True
 
-  def get_diagnostics(self) -> dict:
+  def get_diagnostics(self) -> dict:  # noqa: E111
     """Return diagnostics."""
     return {
       "setup_called": self.setup_called,
@@ -56,9 +54,9 @@ class DummyManager(BaseManager):
 
 
 class TestBaseManager:
-  """Test BaseManager class."""
+  """Test BaseManager class."""  # noqa: E111
 
-  def test_base_manager_initialization(self) -> None:
+  def test_base_manager_initialization(self) -> None:  # noqa: E111
     """Test manager initialization."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -68,7 +66,7 @@ class TestBaseManager:
     assert not manager.is_shutdown
     assert not manager.is_ready
 
-  def test_base_manager_with_coordinator(self) -> None:
+  def test_base_manager_with_coordinator(self) -> None:  # noqa: E111
     """Test manager with coordinator."""
     mock_hass = MagicMock()
     mock_coordinator = MagicMock()
@@ -76,8 +74,8 @@ class TestBaseManager:
 
     assert manager.coordinator == mock_coordinator
 
-  @pytest.mark.asyncio
-  async def test_manager_lifecycle(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_manager_lifecycle(self) -> None:  # noqa: E111
     """Test manager lifecycle."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -97,8 +95,8 @@ class TestBaseManager:
     assert manager.is_shutdown
     assert manager.shutdown_called
 
-  @pytest.mark.asyncio
-  async def test_manager_double_setup_raises(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_manager_double_setup_raises(self) -> None:  # noqa: E111
     """Test that double setup raises error."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -106,12 +104,12 @@ class TestBaseManager:
     await manager.async_initialize()
 
     with pytest.raises(ManagerLifecycleError) as exc_info:
-      await manager.async_initialize()
+      await manager.async_initialize()  # noqa: E111
 
     assert "already set up" in str(exc_info.value).lower()
 
-  @pytest.mark.asyncio
-  async def test_manager_double_shutdown_is_safe(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_manager_double_shutdown_is_safe(self) -> None:  # noqa: E111
     """Test that double shutdown is safe."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -122,21 +120,21 @@ class TestBaseManager:
 
     assert manager.is_shutdown
 
-  @pytest.mark.asyncio
-  async def test_manager_setup_failure(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_manager_setup_failure(self) -> None:  # noqa: E111
     """Test manager setup failure handling."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
     manager.setup_should_fail = True
 
     with pytest.raises(ManagerLifecycleError) as exc_info:
-      await manager.async_initialize()
+      await manager.async_initialize()  # noqa: E111
 
     assert "setup failed" in str(exc_info.value).lower()
     assert not manager.is_setup
 
-  @pytest.mark.asyncio
-  async def test_manager_shutdown_failure(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_manager_shutdown_failure(self) -> None:  # noqa: E111
     """Test manager shutdown failure handling."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -145,20 +143,20 @@ class TestBaseManager:
     await manager.async_initialize()
 
     with pytest.raises(ManagerLifecycleError) as exc_info:
-      await manager.async_teardown()
+      await manager.async_teardown()  # noqa: E111
 
     assert "shutdown failed" in str(exc_info.value).lower()
 
-  def test_require_ready_before_setup(self) -> None:
+  def test_require_ready_before_setup(self) -> None:  # noqa: E111
     """Test require_ready raises before setup."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
 
     with pytest.raises(ManagerLifecycleError):
-      manager._require_ready()
+      manager._require_ready()  # noqa: E111
 
-  @pytest.mark.asyncio
-  async def test_require_ready_after_setup(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_require_ready_after_setup(self) -> None:  # noqa: E111
     """Test require_ready works after setup."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -166,8 +164,8 @@ class TestBaseManager:
     await manager.async_initialize()
     manager._require_ready()  # Should not raise
 
-  @pytest.mark.asyncio
-  async def test_require_ready_after_shutdown(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_require_ready_after_shutdown(self) -> None:  # noqa: E111
     """Test require_ready raises after shutdown."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -176,9 +174,9 @@ class TestBaseManager:
     await manager.async_teardown()
 
     with pytest.raises(ManagerLifecycleError):
-      manager._require_ready()
+      manager._require_ready()  # noqa: E111
 
-  def test_require_coordinator_with_coordinator(self) -> None:
+  def test_require_coordinator_with_coordinator(self) -> None:  # noqa: E111
     """Test require_coordinator with coordinator present."""
     mock_hass = MagicMock()
     mock_coordinator = MagicMock()
@@ -187,15 +185,15 @@ class TestBaseManager:
     coordinator = manager._require_coordinator()
     assert coordinator == mock_coordinator
 
-  def test_require_coordinator_without_coordinator(self) -> None:
+  def test_require_coordinator_without_coordinator(self) -> None:  # noqa: E111
     """Test require_coordinator without coordinator."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
 
     with pytest.raises(ManagerLifecycleError):
-      manager._require_coordinator()
+      manager._require_coordinator()  # noqa: E111
 
-  def test_get_lifecycle_diagnostics(self) -> None:
+  def test_get_lifecycle_diagnostics(self) -> None:  # noqa: E111
     """Test lifecycle diagnostics."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -208,7 +206,7 @@ class TestBaseManager:
     assert diagnostics["is_shutdown"] is False
     assert diagnostics["is_ready"] is False
 
-  def test_manager_repr(self) -> None:
+  def test_manager_repr(self) -> None:  # noqa: E111
     """Test manager string representation."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -220,37 +218,37 @@ class TestBaseManager:
 
 
 class DummyDataManager(DataManager):
-  """Concrete DataManager used by tests."""
+  """Concrete DataManager used by tests."""  # noqa: E111
 
-  async def async_setup(self) -> None:
+  async def async_setup(self) -> None:  # noqa: E111
     """Set up the dummy data manager."""
 
-  async def async_shutdown(self) -> None:
+  async def async_shutdown(self) -> None:  # noqa: E111
     """Shut down the dummy data manager."""
 
-  def get_diagnostics(self) -> dict:
+  def get_diagnostics(self) -> dict:  # noqa: E111
     """Return diagnostics for tests."""
     return {}
 
 
 class DummyEventManager(EventManager):
-  """Concrete EventManager used by tests."""
+  """Concrete EventManager used by tests."""  # noqa: E111
 
-  async def async_setup(self) -> None:
+  async def async_setup(self) -> None:  # noqa: E111
     """Set up the dummy event manager."""
 
-  async def async_shutdown(self) -> None:
+  async def async_shutdown(self) -> None:  # noqa: E111
     """Shut down the dummy event manager."""
 
-  def get_diagnostics(self) -> dict:
+  def get_diagnostics(self) -> dict:  # noqa: E111
     """Return diagnostics for tests."""
     return {}
 
 
 class TestDataManager:
-  """Test DataManager class."""
+  """Test DataManager class."""  # noqa: E111
 
-  def test_data_manager_initialization(self) -> None:
+  def test_data_manager_initialization(self) -> None:  # noqa: E111
     """Test data manager initialization."""
     mock_hass = MagicMock()
     manager = DummyDataManager(mock_hass)
@@ -258,7 +256,7 @@ class TestDataManager:
     assert manager.MANAGER_NAME == "DataManager"
     assert manager.get_cache_size() == 0
 
-  def test_data_manager_cache(self) -> None:
+  def test_data_manager_cache(self) -> None:  # noqa: E111
     """Test data manager cache operations."""
     mock_hass = MagicMock()
     manager = DummyDataManager(mock_hass)
@@ -275,9 +273,9 @@ class TestDataManager:
 
 
 class TestEventManager:
-  """Test EventManager class."""
+  """Test EventManager class."""  # noqa: E111
 
-  def test_event_manager_initialization(self) -> None:
+  def test_event_manager_initialization(self) -> None:  # noqa: E111
     """Test event manager initialization."""
     mock_hass = MagicMock()
     manager = DummyEventManager(mock_hass)
@@ -285,7 +283,7 @@ class TestEventManager:
     assert manager.MANAGER_NAME == "EventManager"
     assert len(manager._listeners) == 0
 
-  def test_event_manager_register_listener(self) -> None:
+  def test_event_manager_register_listener(self) -> None:  # noqa: E111
     """Test registering event listeners."""
     mock_hass = MagicMock()
     manager = DummyEventManager(mock_hass)
@@ -296,7 +294,7 @@ class TestEventManager:
     assert "test_event" in manager._listeners
     assert callback in manager._listeners["test_event"]
 
-  def test_event_manager_unregister_listener(self) -> None:
+  def test_event_manager_unregister_listener(self) -> None:  # noqa: E111
     """Test unregistering event listeners."""
     mock_hass = MagicMock()
     manager = DummyEventManager(mock_hass)
@@ -307,7 +305,7 @@ class TestEventManager:
 
     assert len(manager._listeners["test_event"]) == 0
 
-  def test_event_manager_multiple_listeners(self) -> None:
+  def test_event_manager_multiple_listeners(self) -> None:  # noqa: E111
     """Test multiple listeners for same event."""
     mock_hass = MagicMock()
     manager = DummyEventManager(mock_hass)
@@ -322,29 +320,29 @@ class TestEventManager:
 
 
 class TestManagerRegistration:
-  """Test manager registration system."""
+  """Test manager registration system."""  # noqa: E111
 
-  def test_register_manager(self) -> None:
+  def test_register_manager(self) -> None:  # noqa: E111
     """Test registering a manager."""
 
     @register_manager
     class CustomManager(BaseManager):
-      MANAGER_NAME = "CustomManager"
+      MANAGER_NAME = "CustomManager"  # noqa: E111
 
-      async def async_setup(self) -> None:
+      async def async_setup(self) -> None:  # noqa: E111
         pass
 
-      async def async_shutdown(self) -> None:
+      async def async_shutdown(self) -> None:  # noqa: E111
         pass
 
-      def get_diagnostics(self) -> dict:
+      def get_diagnostics(self) -> dict:  # noqa: E111
         return {}
 
     managers = get_registered_managers()
     assert "CustomManager" in managers
     assert managers["CustomManager"] == CustomManager
 
-  def test_get_registered_managers(self) -> None:
+  def test_get_registered_managers(self) -> None:  # noqa: E111
     """Test getting registered managers."""
     managers = get_registered_managers()
     assert isinstance(managers, dict)
@@ -353,10 +351,10 @@ class TestManagerRegistration:
 
 
 class TestBatchOperations:
-  """Test batch manager operations."""
+  """Test batch manager operations."""  # noqa: E111
 
-  @pytest.mark.asyncio
-  async def test_setup_managers_success(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_setup_managers_success(self) -> None:  # noqa: E111
     """Test setting up multiple managers."""
     mock_hass = MagicMock()
     manager1 = DummyManager(mock_hass)
@@ -367,8 +365,8 @@ class TestBatchOperations:
     assert len(managers) == 2
     assert all(m.is_ready for m in managers)
 
-  @pytest.mark.asyncio
-  async def test_setup_managers_with_failure(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_setup_managers_with_failure(self) -> None:  # noqa: E111
     """Test setup with one manager failing."""
     mock_hass = MagicMock()
     manager1 = DummyManager(mock_hass)
@@ -379,8 +377,8 @@ class TestBatchOperations:
     managers = await setup_managers(manager1, manager2, stop_on_error=False)
     assert len(managers) == 1  # Only successful manager
 
-  @pytest.mark.asyncio
-  async def test_setup_managers_stop_on_error(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_setup_managers_stop_on_error(self) -> None:  # noqa: E111
     """Test setup stops on error."""
     mock_hass = MagicMock()
     manager1 = DummyManager(mock_hass)
@@ -388,13 +386,13 @@ class TestBatchOperations:
     manager2.setup_should_fail = True
 
     with pytest.raises(ManagerLifecycleError):
-      await setup_managers(manager1, manager2, stop_on_error=True)
+      await setup_managers(manager1, manager2, stop_on_error=True)  # noqa: E111
 
     # Manager1 should be cleaned up
     assert manager1.is_shutdown
 
-  @pytest.mark.asyncio
-  async def test_shutdown_managers(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_shutdown_managers(self) -> None:  # noqa: E111
     """Test shutting down multiple managers."""
     mock_hass = MagicMock()
     manager1 = DummyManager(mock_hass)
@@ -408,8 +406,8 @@ class TestBatchOperations:
     assert manager1.is_shutdown
     assert manager2.is_shutdown
 
-  @pytest.mark.asyncio
-  async def test_shutdown_managers_ignore_errors(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_shutdown_managers_ignore_errors(self) -> None:  # noqa: E111
     """Test shutdown ignores errors by default."""
     mock_hass = MagicMock()
     manager1 = DummyManager(mock_hass)
@@ -424,8 +422,8 @@ class TestBatchOperations:
 
     assert manager2.is_shutdown
 
-  @pytest.mark.asyncio
-  async def test_shutdown_managers_raise_errors(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_shutdown_managers_raise_errors(self) -> None:  # noqa: E111
     """Test shutdown raises errors when configured."""
     mock_hass = MagicMock()
     manager1 = DummyManager(mock_hass)
@@ -434,14 +432,14 @@ class TestBatchOperations:
     await manager1.async_initialize()
 
     with pytest.raises(ManagerLifecycleError):
-      await shutdown_managers(manager1, ignore_errors=False)
+      await shutdown_managers(manager1, ignore_errors=False)  # noqa: E111
 
 
 class TestEdgeCases:
-  """Test edge cases and error conditions."""
+  """Test edge cases and error conditions."""  # noqa: E111
 
-  @pytest.mark.asyncio
-  async def test_manager_diagnostics_after_setup(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_manager_diagnostics_after_setup(self) -> None:  # noqa: E111
     """Test diagnostics after setup."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -451,8 +449,8 @@ class TestEdgeCases:
     diagnostics = manager.get_diagnostics()
     assert diagnostics["setup_called"] is True
 
-  @pytest.mark.asyncio
-  async def test_manager_diagnostics_after_shutdown(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_manager_diagnostics_after_shutdown(self) -> None:  # noqa: E111
     """Test diagnostics after shutdown."""
     mock_hass = MagicMock()
     manager = DummyManager(mock_hass)
@@ -463,7 +461,7 @@ class TestEdgeCases:
     diagnostics = manager.get_diagnostics()
     assert diagnostics["shutdown_called"] is True
 
-  def test_manager_lifecycle_error_attributes(self) -> None:
+  def test_manager_lifecycle_error_attributes(self) -> None:  # noqa: E111
     """Test ManagerLifecycleError attributes."""
     error = ManagerLifecycleError("DummyManager", "setup", "Test reason")
 
@@ -473,21 +471,21 @@ class TestEdgeCases:
     assert "DummyManager" in str(error)
     assert "setup" in str(error)
 
-  @pytest.mark.asyncio
-  async def test_empty_setup_managers(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_empty_setup_managers(self) -> None:  # noqa: E111
     """Test setup_managers with no managers."""
     managers = await setup_managers()
     assert len(managers) == 0
 
-  @pytest.mark.asyncio
-  async def test_empty_shutdown_managers(self) -> None:
+  @pytest.mark.asyncio  # noqa: E111
+  async def test_empty_shutdown_managers(self) -> None:  # noqa: E111
     """Test shutdown_managers with no managers."""
     await shutdown_managers()  # Should not raise
 
-  def test_data_manager_extends_base_manager(self) -> None:
+  def test_data_manager_extends_base_manager(self) -> None:  # noqa: E111
     """Test DataManager extends BaseManager."""
     assert issubclass(DataManager, BaseManager)
 
-  def test_event_manager_extends_base_manager(self) -> None:
+  def test_event_manager_extends_base_manager(self) -> None:  # noqa: E111
     """Test EventManager extends BaseManager."""
     assert issubclass(EventManager, BaseManager)

@@ -9,8 +9,6 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
@@ -182,13 +180,13 @@ def _format_breaker_list(
   entries: Sequence[str],
   translation_lookup: TranslationLookup,
 ) -> str:
-  """Return a human readable summary for breaker identifier lists."""
+  """Return a human readable summary for breaker identifier lists."""  # noqa: E111
 
-  if entries:
+  if entries:  # noqa: E111
     return ", ".join(entries)
 
-  translations, fallback = translation_lookup
-  return resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  return resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     "dashboard_statistics_empty_list",
@@ -200,9 +198,9 @@ def _format_guard_reasons(
   reasons: Mapping[str, int],
   translation_lookup: TranslationLookup,
 ) -> list[str]:
-  """Return formatted guard skip reasons for summary output."""
+  """Return formatted guard skip reasons for summary output."""  # noqa: E111
 
-  if not reasons:
+  if not reasons:  # noqa: E111
     default_value = _format_breaker_list((), translation_lookup)
     fallback = _translated_statistics_fallback(
       translation_lookup,
@@ -211,12 +209,12 @@ def _format_guard_reasons(
     )
     return [fallback]
 
-  sorted_reasons = sorted(
+  sorted_reasons = sorted(  # noqa: E111
     ((reason, count) for reason, count in reasons.items()),
     key=lambda item: (-item[1], item[0]),
   )
 
-  return [f"{reason}: {count}" for reason, count in sorted_reasons]
+  return [f"{reason}: {count}" for reason, count in sorted_reasons]  # noqa: E111
 
 
 def _format_guard_results(
@@ -225,12 +223,12 @@ def _format_guard_results(
   *,
   limit: int = 5,
 ) -> list[str]:
-  """Return formatted guard result summaries for the statistics markdown."""
+  """Return formatted guard result summaries for the statistics markdown."""  # noqa: E111
 
-  formatted: list[str] = []
-  for entry in list(results)[:limit]:
+  formatted: list[str] = []  # noqa: E111
+  for entry in list(results)[:limit]:  # noqa: E111
     if not isinstance(entry, Mapping):
-      continue
+      continue  # noqa: E111
 
     domain = str(entry.get("domain", "unknown"))
     service = str(entry.get("service", "unknown"))
@@ -241,73 +239,73 @@ def _format_guard_results(
 
     reason = entry.get("reason")
     if isinstance(reason, str) and reason:
-      reason_label = _translated_statistics_label(
+      reason_label = _translated_statistics_label(  # noqa: E111
         translation_lookup,
         "guard_result_reason",
       )
-      outcome_label = f"{outcome_label} ({reason_label}: {reason})"
+      outcome_label = f"{outcome_label} ({reason_label}: {reason})"  # noqa: E111
 
     description = entry.get("description")
     if isinstance(description, str) and description:
-      outcome_label = f"{outcome_label} - {description}"
+      outcome_label = f"{outcome_label} - {description}"  # noqa: E111
 
     formatted.append(f"{domain}.{service}: {outcome_label}")
 
-  if formatted:
+  if formatted:  # noqa: E111
     return formatted
 
-  default_value = _format_breaker_list((), translation_lookup)
-  fallback = _translated_statistics_fallback(
+  default_value = _format_breaker_list((), translation_lookup)  # noqa: E111
+  fallback = _translated_statistics_fallback(  # noqa: E111
     translation_lookup,
     "no_guard_results",
     default_value,
   )
-  return [fallback]
+  return [fallback]  # noqa: E111
 
 
 class WeatherThemeConfig(TypedDict):
-  """Color palette for weather dashboards."""
+  """Color palette for weather dashboards."""  # noqa: E111
 
-  primary_color: str
-  accent_color: str
-  success_color: str
-  warning_color: str
-  danger_color: str
+  primary_color: str  # noqa: E111
+  accent_color: str  # noqa: E111
+  success_color: str  # noqa: E111
+  warning_color: str  # noqa: E111
+  danger_color: str  # noqa: E111
 
 
 class ThemeIconStyle(TypedDict, total=False):
-  """Icon styling flags used by themed dashboards."""
+  """Icon styling flags used by themed dashboards."""  # noqa: E111
 
-  style: str
-  animated: bool
-  bounce: bool
-  glow: bool
+  style: str  # noqa: E111
+  animated: bool  # noqa: E111
+  bounce: bool  # noqa: E111
+  glow: bool  # noqa: E111
 
 
 class ThemeColorPalette(TypedDict):
-  """Named colors exposed to templates and helper methods."""
+  """Named colors exposed to templates and helper methods."""  # noqa: E111
 
-  primary: str
-  accent: str
-  background: str
-  text: str
+  primary: str  # noqa: E111
+  accent: str  # noqa: E111
+  background: str  # noqa: E111
+  text: str  # noqa: E111
 
 
 class ThemeStyles(TypedDict):
-  """Theme metadata applied to generated card templates."""
+  """Theme metadata applied to generated card templates."""  # noqa: E111
 
-  colors: ThemeColorPalette
-  card_mod: NotRequired[CardModConfig]
-  icons: NotRequired[ThemeIconStyle]
+  colors: ThemeColorPalette  # noqa: E111
+  card_mod: NotRequired[CardModConfig]  # noqa: E111
+  icons: NotRequired[ThemeIconStyle]  # noqa: E111
 
 
 class MapCardOptions(TypedDict, total=False):
-  """Options that adjust the generated map card template."""
+  """Options that adjust the generated map card template."""  # noqa: E111
 
-  zoom: int
-  default_zoom: int
-  dark_mode: bool
-  hours_to_show: int
+  zoom: int  # noqa: E111
+  default_zoom: int  # noqa: E111
+  dark_mode: bool  # noqa: E111
+  hours_to_show: int  # noqa: E111
 
 
 type _MapOptionPairs = Iterable[tuple[str, object]]
@@ -323,37 +321,37 @@ type MapOptionsInput = (
 
 
 class NotificationLastEvent(TypedDict, total=False):
-  """Details about the most recent notification sent for a dog."""
+  """Details about the most recent notification sent for a dog."""  # noqa: E111
 
-  type: str
-  priority: str
-  sent_at: str
-  title: str
-  message: str
-  channel: str
-  status: str
+  type: str  # noqa: E111
+  priority: str  # noqa: E111
+  sent_at: str  # noqa: E111
+  title: str  # noqa: E111
+  message: str  # noqa: E111
+  channel: str  # noqa: E111
+  status: str  # noqa: E111
 
 
 class NotificationDogOverview(TypedDict, total=False):
-  """Per-dog delivery metrics tracked by the notifications dashboard."""
+  """Per-dog delivery metrics tracked by the notifications dashboard."""  # noqa: E111
 
-  sent_today: int
-  quiet_hours_active: bool
-  channels: list[str]
-  last_notification: NotRequired[NotificationLastEvent]
+  sent_today: int  # noqa: E111
+  quiet_hours_active: bool  # noqa: E111
+  channels: list[str]  # noqa: E111
+  last_notification: NotRequired[NotificationLastEvent]  # noqa: E111
 
 
 class NotificationPerformanceMetrics(TypedDict, total=False):
-  """High-level delivery metrics exported by the notifications sensor."""
+  """High-level delivery metrics exported by the notifications sensor."""  # noqa: E111
 
-  notifications_failed: int
+  notifications_failed: int  # noqa: E111
 
 
 class NotificationOverviewAttributes(TypedDict, total=False):
-  """Attributes exposed by ``sensor.pawcontrol_notifications``."""
+  """Attributes exposed by ``sensor.pawcontrol_notifications``."""  # noqa: E111
 
-  performance_metrics: NotificationPerformanceMetrics
-  per_dog: dict[str, NotificationDogOverview]
+  performance_metrics: NotificationPerformanceMetrics  # noqa: E111
+  per_dog: dict[str, NotificationDogOverview]  # noqa: E111
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -364,10 +362,10 @@ def _translated_statistics_fallback(
   label: str,
   default: str,
 ) -> str:
-  """Return a localized fallback string for statistics summaries."""
+  """Return a localized fallback string for statistics summaries."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  return resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  return resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_statistics_fallback_{label}",
@@ -379,10 +377,10 @@ def _translated_statistics_label(
   translation_lookup: TranslationLookup,
   label: str,
 ) -> str:
-  """Return a localized statistics label for the configured language."""
+  """Return a localized statistics label for the configured language."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  return resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  return resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_statistics_label_{label}",
@@ -394,10 +392,10 @@ def _translated_notification_label(
   translation_lookup: TranslationLookup,
   label: str,
 ) -> str:
-  """Return a localized notification dashboard label."""
+  """Return a localized notification dashboard label."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  return resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  return resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_notification_label_{label}",
@@ -410,16 +408,16 @@ def _translated_notification_template(
   template: str,
   **values: str,
 ) -> str:
-  """Return a formatted notification dashboard template string."""
+  """Return a formatted notification dashboard template string."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  template_value = resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  template_value = resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_notification_template_{template}",
     default=template,
   )
-  return template_value.format(**values)
+  return template_value.format(**values)  # noqa: E111
 
 
 def _translated_notification_fallback(
@@ -427,10 +425,10 @@ def _translated_notification_fallback(
   label: str,
   default: str,
 ) -> str:
-  """Return a localized fallback string for notification dashboards."""
+  """Return a localized fallback string for notification dashboards."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  return resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  return resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_notification_fallback_{label}",
@@ -442,10 +440,10 @@ def _translated_feeding_label(
   translation_lookup: TranslationLookup,
   label: str,
 ) -> str:
-  """Return a localized feeding dashboard label."""
+  """Return a localized feeding dashboard label."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  return resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  return resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_feeding_label_{label}",
@@ -457,10 +455,10 @@ def _translated_health_label(
   translation_lookup: TranslationLookup,
   label: str,
 ) -> str:
-  """Return a localized health dashboard label."""
+  """Return a localized health dashboard label."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  return resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  return resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_health_label_{label}",
@@ -473,16 +471,16 @@ def _translated_health_template(
   template: str,
   **values: object,
 ) -> str:
-  """Return a localized health dashboard template string."""
+  """Return a localized health dashboard template string."""  # noqa: E111
 
-  translations, fallback = translation_lookup
-  template_value = resolve_component_translation(
+  translations, fallback = translation_lookup  # noqa: E111
+  template_value = resolve_component_translation(  # noqa: E111
     translations,
     fallback,
     f"dashboard_health_template_{template}",
     default=template,
   )
-  return template_value.format(**values)
+  return template_value.format(**values)  # noqa: E111
 
 
 # Weather dashboard constants
@@ -550,11 +548,11 @@ PayloadT = TypeVar("PayloadT", bound=CardTemplatePayload)
 
 
 def _clone_template[PayloadT: CardTemplatePayload](template: PayloadT) -> PayloadT:
-  """Return a shallow copy of a cached template payload."""
+  """Return a shallow copy of a cached template payload."""  # noqa: E111
 
-  if isinstance(template, list):
+  if isinstance(template, list):  # noqa: E111
     return cast(PayloadT, [card.copy() for card in template])
-  return cast(PayloadT, template.copy())
+  return cast(PayloadT, template.copy())  # noqa: E111
 
 
 class TemplateCache[PayloadT: CardTemplatePayload]:
@@ -562,9 +560,9 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
 
   Provides memory-efficient caching of dashboard card templates with
   automatic expiration and memory management.
-  """
+  """  # noqa: E111
 
-  def __init__(self, maxsize: int = TEMPLATE_CACHE_SIZE) -> None:
+  def __init__(self, maxsize: int = TEMPLATE_CACHE_SIZE) -> None:  # noqa: E111
     """Initialize template cache.
 
     Args:
@@ -578,7 +576,7 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
     self._evictions = 0
     self._lock = asyncio.Lock()
 
-  async def get(self, key: str) -> PayloadT | None:
+  async def get(self, key: str) -> PayloadT | None:  # noqa: E111
     """Get template from cache.
 
     Args:
@@ -588,26 +586,26 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
         Cached template or None if not found/expired
     """
     async with self._lock:
-      current_time = dt_util.utcnow().timestamp()
+      current_time = dt_util.utcnow().timestamp()  # noqa: E111
 
-      if key not in self._cache:
+      if key not in self._cache:  # noqa: E111
         self._misses += 1
         return None
 
-      # Check TTL
-      if current_time - self._access_times[key] > TEMPLATE_TTL_SECONDS:
+      # Check TTL  # noqa: E114
+      if current_time - self._access_times[key] > TEMPLATE_TTL_SECONDS:  # noqa: E111
         del self._cache[key]
         del self._access_times[key]
         self._misses += 1
         return None
 
-      # Update access time
-      self._access_times[key] = current_time
-      self._hits += 1
+      # Update access time  # noqa: E114
+      self._access_times[key] = current_time  # noqa: E111
+      self._hits += 1  # noqa: E111
 
-      return _clone_template(self._cache[key])
+      return _clone_template(self._cache[key])  # noqa: E111
 
-  async def set(self, key: str, template: PayloadT) -> None:
+  async def set(self, key: str, template: PayloadT) -> None:  # noqa: E111
     """Store template in cache.
 
     Args:
@@ -615,9 +613,9 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
         template: Template to cache
     """
     async with self._lock:
-      # Check template size to prevent memory bloat
-      template_size = len(json.dumps(template, separators=(",", ":")))
-      if template_size > MAX_TEMPLATE_SIZE:
+      # Check template size to prevent memory bloat  # noqa: E114
+      template_size = len(json.dumps(template, separators=(",", ":")))  # noqa: E111
+      if template_size > MAX_TEMPLATE_SIZE:  # noqa: E111
         _LOGGER.warning(
           "Template %s too large (%d bytes), not caching",
           key,
@@ -625,19 +623,19 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
         )
         return
 
-      current_time = dt_util.utcnow().timestamp()
+      current_time = dt_util.utcnow().timestamp()  # noqa: E111
 
-      # Evict LRU items if needed
-      while len(self._cache) >= self._maxsize:
+      # Evict LRU items if needed  # noqa: E114
+      while len(self._cache) >= self._maxsize:  # noqa: E111
         await self._evict_lru()
 
-      self._cache[key] = _clone_template(template)
-      self._access_times[key] = current_time
+      self._cache[key] = _clone_template(template)  # noqa: E111
+      self._access_times[key] = current_time  # noqa: E111
 
-  async def _evict_lru(self) -> None:
+  async def _evict_lru(self) -> None:  # noqa: E111
     """Evict least recently used template."""
     if not self._access_times:
-      return
+      return  # noqa: E111
 
     lru_key = min(
       self._access_times,
@@ -647,17 +645,17 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
     del self._access_times[lru_key]
     self._evictions += 1
 
-  async def clear(self) -> None:
+  async def clear(self) -> None:  # noqa: E111
     """Clear all cached templates."""
     async with self._lock:
-      self._cache.clear()
-      self._access_times.clear()
-      self._hits = 0
-      self._misses = 0
-      self._evictions = 0
+      self._cache.clear()  # noqa: E111
+      self._access_times.clear()  # noqa: E111
+      self._hits = 0  # noqa: E111
+      self._misses = 0  # noqa: E111
+      self._evictions = 0  # noqa: E111
 
-  @callback
-  def get_stats(self) -> TemplateCacheStats:
+  @callback  # noqa: E111
+  def get_stats(self) -> TemplateCacheStats:  # noqa: E111
     """Get cache statistics."""
     total = self._hits + self._misses
     hit_rate = (self._hits / total * 100.0) if total > 0 else 0.0
@@ -673,8 +671,8 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
 
     return stats
 
-  @callback
-  def get_metadata(self) -> TemplateCacheDiagnosticsMetadata:
+  @callback  # noqa: E111
+  def get_metadata(self) -> TemplateCacheDiagnosticsMetadata:  # noqa: E111
     """Return metadata describing cache configuration."""
 
     metadata: TemplateCacheDiagnosticsMetadata = {
@@ -686,8 +684,8 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
 
     return metadata
 
-  @callback
-  def coordinator_snapshot(self) -> TemplateCacheSnapshot:
+  @callback  # noqa: E111
+  def coordinator_snapshot(self) -> TemplateCacheSnapshot:  # noqa: E111
     """Return a snapshot suitable for diagnostics collectors."""
 
     return TemplateCacheSnapshot(
@@ -701,9 +699,9 @@ class DashboardTemplates:
 
   Provides efficient template generation and caching for dashboard cards
   with automatic optimization based on usage patterns and multiple visual themes.
-  """
+  """  # noqa: E111
 
-  def __init__(self, hass: HomeAssistant) -> None:
+  def __init__(self, hass: HomeAssistant) -> None:  # noqa: E111
     """Initialize template manager.
 
     Args:
@@ -712,9 +710,9 @@ class DashboardTemplates:
     self.hass = hass
     self._cache: TemplateCache[CardTemplatePayload] = TemplateCache()
 
-  @staticmethod
-  @lru_cache(maxsize=64)
-  def _get_base_card_template(card_type: str) -> CardConfig:
+  @staticmethod  # noqa: E111
+  @lru_cache(maxsize=64)  # noqa: E111
+  def _get_base_card_template(card_type: str) -> CardConfig:  # noqa: E111
     """Get base template for card type with LRU caching.
 
     Args:
@@ -797,11 +795,11 @@ class DashboardTemplates:
 
     template = base_templates.get(card_type)
     if template is None:
-      return {"type": card_type}
+      return {"type": card_type}  # noqa: E111
 
     return template.copy()
 
-  def _get_theme_styles(self, theme: str = "modern") -> ThemeStyles:
+  def _get_theme_styles(self, theme: str = "modern") -> ThemeStyles:  # noqa: E111
     """Get theme-specific styling options.
 
     Args:
@@ -824,7 +822,7 @@ class DashboardTemplates:
                             transform: translateY(-2px);
                             box-shadow: 0 8px 30px rgba(0,0,0,0.12);
                         }
-                    """,
+                    """,  # noqa: E501
         },
         "colors": {
           "primary": "#2196F3",
@@ -853,7 +851,7 @@ class DashboardTemplates:
                             50% { transform: translateY(-10px); }
                             100% { transform: translateY(0px); }
                         }
-                    """,
+                    """,  # noqa: E501
         },
         "colors": {
           "primary": "#FF6B6B",
@@ -898,7 +896,7 @@ class DashboardTemplates:
                             border: 1px solid rgba(255,255,255,0.1);
                             box-shadow: 0 8px 32px rgba(0,0,0,0.4);
                         }
-                    """,
+                    """,  # noqa: E501
         },
         "colors": {
           "primary": "#0F3460",
@@ -916,15 +914,15 @@ class DashboardTemplates:
 
     return themes.get(theme, themes["modern"])
 
-  def _card_mod(self, theme_styles: ThemeStyles) -> CardModConfig:
+  def _card_mod(self, theme_styles: ThemeStyles) -> CardModConfig:  # noqa: E111
     """Return a mutable card-mod payload for template assembly."""
 
     card_mod = theme_styles.get("card_mod")
     if card_mod is None:
-      return cast(CardModConfig, {})
+      return cast(CardModConfig, {})  # noqa: E111
     return cast(CardModConfig, card_mod.copy())
 
-  def _ensure_card_mod(
+  def _ensure_card_mod(  # noqa: E111
     self,
     template: CardConfig,
     theme_styles: ThemeStyles,
@@ -933,86 +931,86 @@ class DashboardTemplates:
 
     existing = template.get("card_mod")
     if isinstance(existing, dict):
-      return cast(CardModConfig, existing)
+      return cast(CardModConfig, existing)  # noqa: E111
 
     card_mod = self._card_mod(theme_styles)
     template["card_mod"] = card_mod
     return card_mod
 
-  @staticmethod
-  def _parse_int(value: object, *, default: int = 0) -> int:
+  @staticmethod  # noqa: E111
+  def _parse_int(value: object, *, default: int = 0) -> int:  # noqa: E111
     """Return an integer coerced from ``value`` with ``default`` fallback."""
 
     if isinstance(value, bool):
-      return int(value)
+      return int(value)  # noqa: E111
     if isinstance(value, int):
-      return value
+      return value  # noqa: E111
     if isinstance(value, float):
-      return int(value)
+      return int(value)  # noqa: E111
     if isinstance(value, str):
-      try:
+      try:  # noqa: E111
         return int(float(value))
-      except ValueError:
+      except ValueError:  # noqa: E111
         return default
     return default
 
-  @staticmethod
-  def _parse_bool(value: object) -> bool:
+  @staticmethod  # noqa: E111
+  def _parse_bool(value: object) -> bool:  # noqa: E111
     """Return a boolean coerced from arbitrary payloads."""
 
     if isinstance(value, bool):
-      return value
+      return value  # noqa: E111
     if isinstance(value, int | float):
-      return value != 0
+      return value != 0  # noqa: E111
     if isinstance(value, str):
-      return value.strip().lower() in {"1", "true", "yes", "on"}
+      return value.strip().lower() in {"1", "true", "yes", "on"}  # noqa: E111
     return False
 
-  @staticmethod
-  def _parse_channels(value: object) -> list[str]:
+  @staticmethod  # noqa: E111
+  def _parse_channels(value: object) -> list[str]:  # noqa: E111
     """Return a list of channel labels extracted from ``value``."""
 
     if isinstance(value, str):
-      return [chunk for chunk in (part.strip() for part in value.split(",")) if chunk]
+      return [chunk for chunk in (part.strip() for part in value.split(",")) if chunk]  # noqa: E111
 
     if isinstance(value, Sequence) and not isinstance(
       value,
       str | bytes | bytearray,
     ):
-      channels: list[str] = []
-      for item in value:
+      channels: list[str] = []  # noqa: E111
+      for item in value:  # noqa: E111
         candidate = item.strip() if isinstance(item, str) else str(item).strip()
         if candidate:
-          channels.append(candidate)
-      return channels
+          channels.append(candidate)  # noqa: E111
+      return channels  # noqa: E111
 
     return []
 
-  @staticmethod
-  def _parse_last_notification(value: object) -> NotificationLastEvent | None:
+  @staticmethod  # noqa: E111
+  def _parse_last_notification(value: object) -> NotificationLastEvent | None:  # noqa: E111
     """Return a structured notification payload extracted from ``value``."""
 
     if not isinstance(value, Mapping):
-      return None
+      return None  # noqa: E111
 
     event: NotificationLastEvent = {}
 
     for key in ("type", "priority", "title", "message", "channel", "status"):
-      raw = value.get(key)
-      if raw is None:
+      raw = value.get(key)  # noqa: E111
+      if raw is None:  # noqa: E111
         continue
-      event[key] = str(raw)
+      event[key] = str(raw)  # noqa: E111
 
     sent_at = value.get("sent_at")
     if isinstance(sent_at, str):
-      event["sent_at"] = sent_at
+      event["sent_at"] = sent_at  # noqa: E111
     elif sent_at is not None:
-      event["sent_at"] = str(sent_at)
+      event["sent_at"] = str(sent_at)  # noqa: E111
 
     return event or None
 
-  @staticmethod
-  def _normalise_notifications_state(
+  @staticmethod  # noqa: E111
+  def _normalise_notifications_state(  # noqa: E111
     state: State | None,
   ) -> tuple[NotificationPerformanceMetrics, dict[str, NotificationDogOverview]]:
     """Return typed metrics extracted from ``sensor.pawcontrol_notifications``."""
@@ -1021,24 +1019,24 @@ class DashboardTemplates:
     per_dog: dict[str, NotificationDogOverview] = {}
 
     if state is None:
-      return metrics, per_dog
+      return metrics, per_dog  # noqa: E111
 
     attributes = getattr(state, "attributes", None)
     if not isinstance(attributes, Mapping):
-      return metrics, per_dog
+      return metrics, per_dog  # noqa: E111
 
     raw_metrics = attributes.get("performance_metrics")
     if isinstance(raw_metrics, Mapping):
-      metrics["notifications_failed"] = DashboardTemplates._parse_int(
+      metrics["notifications_failed"] = DashboardTemplates._parse_int(  # noqa: E111
         raw_metrics.get("notifications_failed"),
         default=0,
       )
 
     raw_per_dog = attributes.get("per_dog")
     if isinstance(raw_per_dog, Mapping):
-      for dog_id, raw_stats in raw_per_dog.items():
+      for dog_id, raw_stats in raw_per_dog.items():  # noqa: E111
         if not isinstance(dog_id, str) or not isinstance(raw_stats, Mapping):
-          continue
+          continue  # noqa: E111
 
         dog_overview: NotificationDogOverview = {
           "sent_today": DashboardTemplates._parse_int(
@@ -1057,13 +1055,13 @@ class DashboardTemplates:
           raw_stats.get("last_notification"),
         )
         if last_notification is not None:
-          dog_overview["last_notification"] = last_notification
+          dog_overview["last_notification"] = last_notification  # noqa: E111
 
         per_dog[dog_id] = dog_overview
 
     return metrics, per_dog
 
-  async def get_dog_status_card_template(
+  async def get_dog_status_card_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -1086,7 +1084,7 @@ class DashboardTemplates:
     # Try cache first
     cached = await self._cache.get(cache_key)
     if isinstance(cached, dict):
-      return cached
+      return cached  # noqa: E111
 
     # Generate template
     template = await self._generate_dog_status_template(
@@ -1101,7 +1099,7 @@ class DashboardTemplates:
 
     return template
 
-  async def _generate_dog_status_template(
+  async def _generate_dog_status_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -1130,7 +1128,7 @@ class DashboardTemplates:
 
     # Add module-specific entities
     if modules.get("feeding"):
-      entities.extend(
+      entities.extend(  # noqa: E111
         [
           f"sensor.{dog_id}_last_fed",
           f"sensor.{dog_id}_meals_today",
@@ -1139,7 +1137,7 @@ class DashboardTemplates:
       )
 
     if modules.get("walk"):
-      entities.extend(
+      entities.extend(  # noqa: E111
         [
           f"binary_sensor.{dog_id}_is_walking",
           f"sensor.{dog_id}_last_walk",
@@ -1148,7 +1146,7 @@ class DashboardTemplates:
       )
 
     if modules.get("health"):
-      entities.extend(
+      entities.extend(  # noqa: E111
         [
           f"sensor.{dog_id}_weight",
           f"sensor.{dog_id}_health_status",
@@ -1157,7 +1155,7 @@ class DashboardTemplates:
       )
 
     if modules.get("gps"):
-      entities.extend(
+      entities.extend(  # noqa: E111
         [
           f"device_tracker.{dog_id}_location",
           f"sensor.{dog_id}_distance_from_home",
@@ -1176,15 +1174,15 @@ class DashboardTemplates:
 
     # Add theme-specific enhancements
     if theme == "playful":
-      template["icon"] = "mdi:dog-side"
-      template["icon_color"] = theme_styles["colors"]["primary"]
+      template["icon"] = "mdi:dog-side"  # noqa: E111
+      template["icon_color"] = theme_styles["colors"]["primary"]  # noqa: E111
     elif theme == "modern":
-      template["show_state"] = True
-      template["state_color"] = True
+      template["show_state"] = True  # noqa: E111
+      template["state_color"] = True  # noqa: E111
 
     return template
 
-  def _get_dog_emoji(self, theme: str) -> str:
+  def _get_dog_emoji(self, theme: str) -> str:  # noqa: E111
     """Get theme-appropriate dog emoji.
 
     Args:
@@ -1201,7 +1199,7 @@ class DashboardTemplates:
     }
     return emojis.get(theme, "🐕")
 
-  async def get_action_buttons_template(
+  async def get_action_buttons_template(  # noqa: E111
     self,
     dog_id: str,
     modules: DogModulesConfig,
@@ -1215,7 +1213,7 @@ class DashboardTemplates:
 
     cached = await self._cache.get(cache_key)
     if isinstance(cached, list):
-      return cached
+      return cached  # noqa: E111
 
     base_button = self._get_base_card_template("button")
     theme_styles = self._get_theme_styles(theme)
@@ -1223,7 +1221,7 @@ class DashboardTemplates:
 
     buttons: CardCollection = []
     if modules.get("feeding"):
-      buttons.append(
+      buttons.append(  # noqa: E111
         self._create_feeding_button(
           dog_id,
           base_button,
@@ -1234,7 +1232,7 @@ class DashboardTemplates:
       )
 
     if modules.get("walk"):
-      buttons.extend(
+      buttons.extend(  # noqa: E111
         self._create_walk_buttons(
           dog_id,
           base_button,
@@ -1245,7 +1243,7 @@ class DashboardTemplates:
       )
 
     if modules.get("health"):
-      buttons.append(
+      buttons.append(  # noqa: E111
         self._create_health_button(
           dog_id,
           base_button,
@@ -1257,12 +1255,12 @@ class DashboardTemplates:
 
     result = self._wrap_buttons_layout(buttons, layout)
     if result is None:
-      result = buttons
+      result = buttons  # noqa: E111
 
     await self._cache.set(cache_key, result)
     return result
 
-  def _gradient_style(self, primary: str, secondary: str) -> CardConfig:
+  def _gradient_style(self, primary: str, secondary: str) -> CardConfig:  # noqa: E111
     """Return gradient card_mod style with provided colors."""
     return {
       "card_mod": {
@@ -1276,16 +1274,16 @@ class DashboardTemplates:
                     ha-card:hover {{
                         transform: scale(1.05);
                     }}
-                """,
+                """,  # noqa: E501
       },
     }
 
-  def _get_button_style(self, theme: str) -> CardConfig:
+  def _get_button_style(self, theme: str) -> CardConfig:  # noqa: E111
     """Return card style based on theme."""
     if theme == "modern":
-      return self._gradient_style("#667eea", "#764ba2")
+      return self._gradient_style("#667eea", "#764ba2")  # noqa: E111
     if theme == "playful":
-      return {
+      return {  # noqa: E111
         "card_mod": {
           "style": """
                         ha-card {
@@ -1299,12 +1297,12 @@ class DashboardTemplates:
                             70% { box-shadow: 0 0 0 10px rgba(245,87,108,0); }
                             100% { box-shadow: 0 0 0 0 rgba(245,87,108,0); }
                         }
-                    """,
+                    """,  # noqa: E501
         },
       }
     return {}
 
-  def _create_feeding_button(
+  def _create_feeding_button(  # noqa: E111
     self,
     dog_id: str,
     base_button: CardConfig,
@@ -1330,7 +1328,7 @@ class DashboardTemplates:
       },
     }
 
-  def _create_walk_buttons(
+  def _create_walk_buttons(  # noqa: E111
     self,
     dog_id: str,
     base_button: CardConfig,
@@ -1393,7 +1391,7 @@ class DashboardTemplates:
 
     return cards
 
-  def _create_health_button(
+  def _create_health_button(  # noqa: E111
     self,
     dog_id: str,
     base_button: CardConfig,
@@ -1427,20 +1425,20 @@ class DashboardTemplates:
       },
     }
 
-  def _wrap_buttons_layout(
+  def _wrap_buttons_layout(  # noqa: E111
     self,
     buttons: CardCollection,
     layout: str,
   ) -> CardCollection | None:
     """Wrap buttons in layout-specific containers."""
     if layout == "grid":
-      return [{"type": "grid", "columns": 3, "cards": buttons}]
+      return [{"type": "grid", "columns": 3, "cards": buttons}]  # noqa: E111
     if layout == "panels":
-      return [{"type": "horizontal-stack", "cards": buttons[:3]}]
+      return [{"type": "horizontal-stack", "cards": buttons[:3]}]  # noqa: E111
     return None
 
-  @staticmethod
-  def _normalise_map_options(
+  @staticmethod  # noqa: E111
+  def _normalise_map_options(  # noqa: E111
     options: MapOptionsInput,
   ) -> MapCardOptions:
     """Return a typed ``MapCardOptions`` payload extracted from ``options``."""
@@ -1452,171 +1450,171 @@ class DashboardTemplates:
     }
 
     if not options:
-      return resolved
+      return resolved  # noqa: E111
 
     options_mapping: Mapping[str, object]
 
     if isinstance(options, Mapping):
-      filtered_options: dict[str, object] = {}
-      for key, value in options.items():
+      filtered_options: dict[str, object] = {}  # noqa: E111
+      for key, value in options.items():  # noqa: E111
         if not isinstance(key, str):
-          _LOGGER.debug(
+          _LOGGER.debug(  # noqa: E111
             "Skipping map option entry with non-string key from mapping: %r",
             key,
           )
-          continue
+          continue  # noqa: E111
 
         if key not in MAP_OPTION_KEYS:
-          _LOGGER.debug(
+          _LOGGER.debug(  # noqa: E111
             "Ignoring unsupported map option key '%s' from mapping payload",
             key,
           )
-          continue
+          continue  # noqa: E111
 
         filtered_options[key] = value
 
-      if not filtered_options:
+      if not filtered_options:  # noqa: E111
         _LOGGER.debug(
           "Ignoring map options mapping payload without supported entries: %s",
           type(options).__name__,
         )
         return resolved
 
-      options_mapping = filtered_options
+      options_mapping = filtered_options  # noqa: E111
     elif isinstance(options, Iterable) and not isinstance(options, str | bytes):
-      candidate_pairs: list[tuple[str, object]] = []
-      for item in options:
+      candidate_pairs: list[tuple[str, object]] = []  # noqa: E111
+      for item in options:  # noqa: E111
         if isinstance(item, Mapping):
-          for key, value in item.items():
+          for key, value in item.items():  # noqa: E111
             if not isinstance(key, str):
-              _LOGGER.debug(
+              _LOGGER.debug(  # noqa: E111
                 "Skipping map option entry with non-string key from mapping: %r",
                 key,
               )
-              continue
+              continue  # noqa: E111
 
             if key not in MAP_OPTION_KEYS:
-              _LOGGER.debug(
+              _LOGGER.debug(  # noqa: E111
                 "Ignoring unsupported map option key '%s' from iterable mapping",
                 key,
               )
-              continue
+              continue  # noqa: E111
 
             candidate_pairs.append((key, value))
-          continue
+          continue  # noqa: E111
 
         if (
           isinstance(item, Sequence)
           and not isinstance(item, str | bytes)
           and len(item) == 2
         ):
-          key, value = item
-          if isinstance(key, str):
+          key, value = item  # noqa: E111
+          if isinstance(key, str):  # noqa: E111
             if key not in MAP_OPTION_KEYS:
-              _LOGGER.debug(
+              _LOGGER.debug(  # noqa: E111
                 "Ignoring unsupported map option key '%s' from iterable pair",
                 key,
               )
-              continue
+              continue  # noqa: E111
 
             candidate_pairs.append((key, value))
-          else:
+          else:  # noqa: E111
             _LOGGER.debug(
               "Skipping map option entry with non-string key: %r",
               key,
             )
         else:
-          _LOGGER.debug(
+          _LOGGER.debug(  # noqa: E111
             "Skipping unsupported map option entry: %s",
             type(
               item,
             ).__name__,
           )
 
-      if not candidate_pairs:
+      if not candidate_pairs:  # noqa: E111
         _LOGGER.debug(
           "Ignoring map options iterable payload without usable entries: %s",
           type(options).__name__,
         )
         return resolved
 
-      options_mapping = dict(candidate_pairs)
+      options_mapping = dict(candidate_pairs)  # noqa: E111
     else:
-      _LOGGER.debug(
+      _LOGGER.debug(  # noqa: E111
         "Ignoring map options payload with unsupported type: %s",
         type(options).__name__,
       )
-      return resolved
+      return resolved  # noqa: E111
 
     def _coerce_int(candidate: object | None) -> int | None:
-      """Convert ``candidate`` to ``int`` when possible."""
+      """Convert ``candidate`` to ``int`` when possible."""  # noqa: E111
 
-      if candidate is None:
+      if candidate is None:  # noqa: E111
         return None
-      if isinstance(candidate, bool):
+      if isinstance(candidate, bool):  # noqa: E111
         return None
-      if isinstance(candidate, int):
+      if isinstance(candidate, int):  # noqa: E111
         return candidate
-      if isinstance(candidate, float):
+      if isinstance(candidate, float):  # noqa: E111
         if not isfinite(candidate):
-          return None
+          return None  # noqa: E111
         return int(candidate)
-      if isinstance(candidate, str):
+      if isinstance(candidate, str):  # noqa: E111
         stripped = candidate.strip()
         if not stripped:
-          return None
+          return None  # noqa: E111
         try:
-          numeric = float(stripped)
+          numeric = float(stripped)  # noqa: E111
         except ValueError:
-          return None
+          return None  # noqa: E111
         if not isfinite(numeric):
-          return None
+          return None  # noqa: E111
         return int(numeric)
-      return None
+      return None  # noqa: E111
 
     zoom_candidate = options_mapping.get("zoom")
     zoom_value = _coerce_int(zoom_candidate)
     if zoom_value is not None:
-      resolved_zoom = max(MAP_ZOOM_MIN, min(MAP_ZOOM_MAX, zoom_value))
-      resolved["zoom"] = resolved_zoom
+      resolved_zoom = max(MAP_ZOOM_MIN, min(MAP_ZOOM_MAX, zoom_value))  # noqa: E111
+      resolved["zoom"] = resolved_zoom  # noqa: E111
 
     default_zoom_candidate = options_mapping.get("default_zoom")
     default_zoom_value = _coerce_int(default_zoom_candidate)
     if default_zoom_value is not None:
-      resolved_default_zoom = max(
+      resolved_default_zoom = max(  # noqa: E111
         MAP_ZOOM_MIN,
         min(MAP_ZOOM_MAX, default_zoom_value),
       )
-      resolved["default_zoom"] = resolved_default_zoom
-      if zoom_value is None:
+      resolved["default_zoom"] = resolved_default_zoom  # noqa: E111
+      if zoom_value is None:  # noqa: E111
         resolved["zoom"] = resolved_default_zoom
     elif zoom_value is not None:
-      # Mirror the explicitly provided zoom when no default override exists.
-      resolved["default_zoom"] = resolved["zoom"]
+      # Mirror the explicitly provided zoom when no default override exists.  # noqa: E114, E501
+      resolved["default_zoom"] = resolved["zoom"]  # noqa: E111
 
     dark_mode = options_mapping.get("dark_mode")
     if isinstance(dark_mode, bool):
-      resolved["dark_mode"] = dark_mode
+      resolved["dark_mode"] = dark_mode  # noqa: E111
     elif isinstance(dark_mode, int | float):
-      resolved["dark_mode"] = bool(dark_mode)
+      resolved["dark_mode"] = bool(dark_mode)  # noqa: E111
     elif isinstance(dark_mode, str):
-      lowered = dark_mode.strip().casefold()
-      if lowered in {"1", "true", "yes", "on"}:
+      lowered = dark_mode.strip().casefold()  # noqa: E111
+      if lowered in {"1", "true", "yes", "on"}:  # noqa: E111
         resolved["dark_mode"] = True
-      elif lowered in {"0", "false", "no", "off"}:
+      elif lowered in {"0", "false", "no", "off"}:  # noqa: E111
         resolved["dark_mode"] = False
 
     hours_candidate = options_mapping.get("hours_to_show")
     hours_value = _coerce_int(hours_candidate)
     if hours_value is not None:
-      resolved["hours_to_show"] = max(
+      resolved["hours_to_show"] = max(  # noqa: E111
         MAP_HISTORY_MIN_HOURS,
         min(MAP_HISTORY_MAX_HOURS, hours_value),
       )
 
     return resolved
 
-  async def get_map_card_template(
+  async def get_map_card_template(  # noqa: E111
     self,
     dog_id: str,
     options: MapOptionsInput = None,
@@ -1639,9 +1637,9 @@ class DashboardTemplates:
     resolved_default_zoom = resolved_options.get("default_zoom")
 
     if resolved_zoom is None and resolved_default_zoom is not None:
-      resolved_zoom = resolved_default_zoom
+      resolved_zoom = resolved_default_zoom  # noqa: E111
     elif resolved_zoom is not None and resolved_default_zoom is None:
-      resolved_default_zoom = resolved_zoom
+      resolved_default_zoom = resolved_zoom  # noqa: E111
 
     final_zoom = resolved_zoom if resolved_zoom is not None else DEFAULT_MAP_ZOOM
     final_default_zoom = (
@@ -1667,7 +1665,7 @@ class DashboardTemplates:
 
     # Add theme-specific map styling
     if theme == "modern":
-      card_mod = CardModConfig(
+      card_mod = CardModConfig(  # noqa: E111
         style="""
                     ha-card {
                         border-radius: 16px;
@@ -1675,9 +1673,9 @@ class DashboardTemplates:
                     }
                 """,
       )
-      template["card_mod"] = card_mod
+      template["card_mod"] = card_mod  # noqa: E111
     elif theme == "playful":
-      card_mod = CardModConfig(
+      card_mod = CardModConfig(  # noqa: E111
         style="""
                     ha-card {
                         border-radius: 24px;
@@ -1685,11 +1683,11 @@ class DashboardTemplates:
                     }
                 """,
       )
-      template["card_mod"] = card_mod
+      template["card_mod"] = card_mod  # noqa: E111
 
     return template
 
-  async def get_statistics_card_template(
+  async def get_statistics_card_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -1723,7 +1721,7 @@ class DashboardTemplates:
 - **Today's Meals**: {{{{ states('sensor.{dog_id}_meals_today') }}}}
 - **Daily Amount**: {{{{ states('sensor.{dog_id}_daily_food_consumed') }}}}g
 - **Schedule Adherence**: {{{{ states('sensor.{dog_id}_feeding_schedule_adherence') }}}}%
-"""
+"""  # noqa: E111, E501
 
     if modules.get("walk"):
       stats_content += f"""
@@ -1731,10 +1729,10 @@ class DashboardTemplates:
 - **Daily Walk Time**: {{{{ states('sensor.{dog_id}_daily_walk_time') }}}} min
 - **Daily Distance**: {{{{ states('sensor.{dog_id}_daily_walk_distance') }}}} km
 - **Walk Goal**: {{{{ states('sensor.{dog_id}_walk_goal_progress') }}}}%
-"""
+"""  # noqa: E111
 
     if modules.get("health"):
-      stats_content += _translated_health_template(
+      stats_content += _translated_health_template(  # noqa: E111
         translation_lookup,
         "statistics_health_section",
         dog_id=dog_id,
@@ -1749,7 +1747,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_statistics_graph_template(
+  async def get_statistics_graph_template(  # noqa: E111
     self,
     title: str,
     entities: Sequence[str],
@@ -1761,7 +1759,7 @@ class DashboardTemplates:
     """Return a typed statistics-graph card for analytics dashboards."""
 
     if not entities:
-      return None
+      return None  # noqa: E111
 
     theme_styles = self._get_theme_styles(theme)
     card_mod = self._card_mod(theme_styles)
@@ -1775,11 +1773,11 @@ class DashboardTemplates:
     }
 
     if card_mod:
-      template["card_mod"] = card_mod
+      template["card_mod"] = card_mod  # noqa: E111
 
     return template
 
-  def get_statistics_summary_template(
+  def get_statistics_summary_template(  # noqa: E111
     self,
     dogs: Sequence[RawDogConfig],
     theme: str = "modern",
@@ -1801,10 +1799,10 @@ class DashboardTemplates:
     }
 
     for dog in typed_dogs:
-      modules = coerce_dog_modules_config(dog.get("modules"))
-      for module_name in module_counts:
+      modules = coerce_dog_modules_config(dog.get("modules"))  # noqa: E111
+      for module_name in module_counts:  # noqa: E111
         if modules.get(module_name):
-          module_counts[module_name] += 1
+          module_counts[module_name] += 1  # noqa: E111
 
     hass_language: str | None = getattr(self.hass.config, "language", None)
     translation_lookup = get_cached_component_translation_lookup(
@@ -1851,7 +1849,7 @@ class DashboardTemplates:
     ]
 
     for module_name, count in module_counts.items():
-      content_lines.append(f"- {module_labels[module_name]}: {count}")
+      content_lines.append(f"- {module_labels[module_name]}: {count}")  # noqa: E111
 
     content_lines.extend(
       [
@@ -1863,10 +1861,10 @@ class DashboardTemplates:
     def _coerce_rejection_metrics(
       payload: JSONMapping | CoordinatorRejectionMetrics | None,
     ) -> CoordinatorRejectionMetrics | None:
-      if payload is None:
+      if payload is None:  # noqa: E111
         return None
 
-      if isinstance(payload, Mapping):
+      if isinstance(payload, Mapping):  # noqa: E111
         nested = payload.get("rejection_metrics")
         metrics_source = (
           nested
@@ -1881,34 +1879,34 @@ class DashboardTemplates:
         merge_rejection_metric_values(metrics, metrics_source)
         return metrics
 
-      return None
+      return None  # noqa: E111
 
     def _coerce_guard_metrics(
       payload: JSONMapping | HelperManagerGuardMetrics | None,
     ) -> HelperManagerGuardMetrics | None:
-      if payload is None:
+      if payload is None:  # noqa: E111
         return None
 
-      if isinstance(payload, Mapping):
+      if isinstance(payload, Mapping):  # noqa: E111
 
         def _int_value(value: JSONValue | object) -> int:
-          if isinstance(value, bool):
+          if isinstance(value, bool):  # noqa: E111
             return int(value)
-          if isinstance(value, int):
+          if isinstance(value, int):  # noqa: E111
             return value
-          if isinstance(value, float):
+          if isinstance(value, float):  # noqa: E111
             return int(value)
-          if isinstance(value, str):
+          if isinstance(value, str):  # noqa: E111
             try:
-              return int(float(value))
+              return int(float(value))  # noqa: E111
             except ValueError:
-              return 0
-          return 0
+              return 0  # noqa: E111
+          return 0  # noqa: E111
 
         reasons_payload: dict[str, int] = {}
         raw_reasons = payload.get("reasons")
         if isinstance(raw_reasons, Mapping):
-          reasons_payload = {
+          reasons_payload = {  # noqa: E111
             str(key): _int_value(value)
             for key, value in raw_reasons.items()
             if isinstance(key, str)
@@ -1926,12 +1924,12 @@ class DashboardTemplates:
           "last_results": last_results_payload,
         }
 
-      return None
+      return None  # noqa: E111
 
     coordinator_metrics: CoordinatorRejectionMetrics | None = None
     if isinstance(coordinator_statistics, Mapping):
-      raw_metrics = coordinator_statistics.get("rejection_metrics")
-      if isinstance(raw_metrics, Mapping):
+      raw_metrics = coordinator_statistics.get("rejection_metrics")  # noqa: E111
+      if isinstance(raw_metrics, Mapping):  # noqa: E111
         metrics_source = cast(
           JSONMapping | CoordinatorResilienceSummary | None,
           raw_metrics,
@@ -1946,45 +1944,45 @@ class DashboardTemplates:
       *,
       guard_payload: HelperManagerGuardMetrics | None = None,
     ) -> list[str]:
-      lines: list[str] = []
+      lines: list[str] = []  # noqa: E111
 
-      last_rejection_value = metrics_payload["last_rejection_time"]
-      has_rejection_history = (
+      last_rejection_value = metrics_payload["last_rejection_time"]  # noqa: E111
+      has_rejection_history = (  # noqa: E111
         metrics_payload["rejected_call_count"] > 0
         or metrics_payload["rejection_breaker_count"] > 0
         or last_rejection_value is not None
       )
 
-      rejection_rate = metrics_payload["rejection_rate"]
-      if (
+      rejection_rate = metrics_payload["rejection_rate"]  # noqa: E111
+      if (  # noqa: E111
         has_rejection_history
         and rejection_rate is not None
         and isfinite(rejection_rate)
       ):
         rate_display = f"{rejection_rate * 100:.2f}%"
-      else:
+      else:  # noqa: E111
         rate_display = _translated_statistics_fallback(
           translation_lookup,
           "no_rejection_rate",
           "n/a",
         )
 
-      if last_rejection_value is not None:
+      if last_rejection_value is not None:  # noqa: E111
         try:
-          last_rejection_iso = datetime.fromtimestamp(
+          last_rejection_iso = datetime.fromtimestamp(  # noqa: E111
             float(last_rejection_value),
             tz=UTC,
           ).isoformat()
         except Exception:  # pragma: no cover - defensive guard
-          last_rejection_iso = str(last_rejection_value)
-      else:
+          last_rejection_iso = str(last_rejection_value)  # noqa: E111
+      else:  # noqa: E111
         last_rejection_iso = _translated_statistics_fallback(
           translation_lookup,
           "no_last_rejection",
           "never",
         )
 
-      lines.extend(
+      lines.extend(  # noqa: E111
         [
           (
             "- "
@@ -2012,11 +2010,11 @@ class DashboardTemplates:
         ],
       )
 
-      breaker_label_value = (
+      breaker_label_value = (  # noqa: E111
         metrics_payload["last_rejection_breaker_name"]
         or metrics_payload["last_rejection_breaker_id"]
       )
-      if breaker_label_value:
+      if breaker_label_value:  # noqa: E111
         lines.append(
           "- "
           + _translated_statistics_label(
@@ -2026,7 +2024,7 @@ class DashboardTemplates:
           + f": {breaker_label_value}",
         )
 
-      breaker_name_lists = {
+      breaker_name_lists = {  # noqa: E111
         _translated_statistics_label(
           translation_lookup,
           "open_breaker_names",
@@ -2045,12 +2043,12 @@ class DashboardTemplates:
         ): metrics_payload["rejection_breakers"],
       }
 
-      for label, breaker_names in breaker_name_lists.items():
+      for label, breaker_names in breaker_name_lists.items():  # noqa: E111
         lines.append(
           f"- {label}: {_format_breaker_list(breaker_names, translation_lookup)}",
         )
 
-      breaker_lists = {
+      breaker_lists = {  # noqa: E111
         _translated_statistics_label(
           translation_lookup,
           "open_breaker_ids",
@@ -2069,12 +2067,12 @@ class DashboardTemplates:
         ): metrics_payload["rejection_breaker_ids"],
       }
 
-      for label, breaker_ids in breaker_lists.items():
+      for label, breaker_ids in breaker_lists.items():  # noqa: E111
         lines.append(
           f"- {label}: {_format_breaker_list(breaker_ids, translation_lookup)}",
         )
 
-      if guard_payload is not None:
+      if guard_payload is not None:  # noqa: E111
         guard_header = _translated_statistics_label(
           translation_lookup,
           "guard_metrics_header",
@@ -2123,7 +2121,7 @@ class DashboardTemplates:
           )
         )
 
-      return lines
+      return lines  # noqa: E111
 
     metrics_sections: list[
       tuple[
@@ -2133,27 +2131,27 @@ class DashboardTemplates:
       ]
     ] = []
     if coordinator_metrics is not None:
-      metrics_sections.append(
+      metrics_sections.append(  # noqa: E111
         ("coordinator_resilience_label", coordinator_metrics, None),
       )
     if service_metrics is not None:
-      metrics_sections.append(
+      metrics_sections.append(  # noqa: E111
         ("service_resilience_label", service_metrics, guard_metrics),
       )
 
     if metrics_sections:
-      resilience_header = _translated_statistics_label(
+      resilience_header = _translated_statistics_label(  # noqa: E111
         translation_lookup,
         "resilience_metrics_header",
       )
-      content_lines.append("")
-      content_lines.append(f"### {resilience_header}")
+      content_lines.append("")  # noqa: E111
+      content_lines.append(f"### {resilience_header}")  # noqa: E111
 
-      for index, (label_key, metrics_payload, guard_payload) in enumerate(
+      for index, (label_key, metrics_payload, guard_payload) in enumerate(  # noqa: E111
         metrics_sections,
       ):
         if index > 0:
-          content_lines.append("")
+          content_lines.append("")  # noqa: E111
         section_label = _translated_statistics_label(
           translation_lookup,
           label_key,
@@ -2183,7 +2181,7 @@ class DashboardTemplates:
 
     return template
 
-  def get_diagnostics_guard_metrics_card_template(
+  def get_diagnostics_guard_metrics_card_template(  # noqa: E111
     self,
     theme: str = "modern",
   ) -> CardConfig:
@@ -2212,7 +2210,7 @@ class DashboardTemplates:
 
     return template
 
-  def get_notification_rejection_metrics_card_template(
+  def get_notification_rejection_metrics_card_template(  # noqa: E111
     self,
     theme: str = "modern",
   ) -> CardConfig:
@@ -2243,7 +2241,7 @@ class DashboardTemplates:
 
     return template
 
-  def get_guard_notification_error_metrics_card_template(
+  def get_guard_notification_error_metrics_card_template(  # noqa: E111
     self,
     theme: str = "modern",
   ) -> CardConfig:
@@ -2275,7 +2273,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_notification_settings_card_template(
+  async def get_notification_settings_card_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -2285,7 +2283,7 @@ class DashboardTemplates:
     """Return the notification control entities card."""
 
     if not entities:
-      return None
+      return None  # noqa: E111
 
     theme_styles = self._get_theme_styles(theme)
     hass_language: str | None = getattr(self.hass.config, "language", None)
@@ -2310,7 +2308,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_notifications_overview_card_template(
+  async def get_notifications_overview_card_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -2376,9 +2374,9 @@ class DashboardTemplates:
     ]
 
     if channels:
-      content_lines.extend(f"• {channel.capitalize()}" for channel in channels)
+      content_lines.extend(f"• {channel.capitalize()}" for channel in channels)  # noqa: E111
     else:
-      content_lines.append(
+      content_lines.append(  # noqa: E111
         "• "
         + _translated_notification_fallback(
           translation_lookup,
@@ -2393,8 +2391,8 @@ class DashboardTemplates:
       + _translated_notification_label(translation_lookup, "recent_notification"),
     )
     if last_notification:
-      notification_type_raw = last_notification.get("type")
-      notification_type = (
+      notification_type_raw = last_notification.get("type")  # noqa: E111
+      notification_type = (  # noqa: E111
         str(notification_type_raw)
         if notification_type_raw not in (None, "")
         else _translated_notification_fallback(
@@ -2403,8 +2401,8 @@ class DashboardTemplates:
           "unknown",
         )
       )
-      priority_raw = last_notification.get("priority", "normal")
-      priority = (
+      priority_raw = last_notification.get("priority", "normal")  # noqa: E111
+      priority = (  # noqa: E111
         str(priority_raw).capitalize()
         if priority_raw not in (None, "")
         else _translated_notification_fallback(
@@ -2413,8 +2411,8 @@ class DashboardTemplates:
           "Normal",
         )
       )
-      sent_at_raw = last_notification.get("sent_at", "unknown")
-      sent_at = (
+      sent_at_raw = last_notification.get("sent_at", "unknown")  # noqa: E111
+      sent_at = (  # noqa: E111
         str(sent_at_raw)
         if sent_at_raw not in (None, "")
         else _translated_notification_fallback(
@@ -2424,7 +2422,7 @@ class DashboardTemplates:
         )
       )
 
-      content_lines.extend(
+      content_lines.extend(  # noqa: E111
         [
           (
             "- **"
@@ -2444,7 +2442,7 @@ class DashboardTemplates:
         ],
       )
     else:
-      content_lines.append(
+      content_lines.append(  # noqa: E111
         _translated_notification_fallback(
           translation_lookup,
           "no_notifications",
@@ -2460,7 +2458,7 @@ class DashboardTemplates:
       "card_mod": card_mod,
     }
 
-  async def get_notifications_actions_card_template(
+  async def get_notifications_actions_card_template(  # noqa: E111
     self,
     dog_id: str,
     theme: str = "modern",
@@ -2532,7 +2530,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_feeding_schedule_template(
+  async def get_feeding_schedule_template(  # noqa: E111
     self,
     dog_id: str,
     theme: str = "modern",
@@ -2559,9 +2557,9 @@ class DashboardTemplates:
 
     template: CardConfig
     if theme == "modern":
-      # Use a clean timeline view
-      card_mod = self._card_mod(theme_styles)
-      template = {
+      # Use a clean timeline view  # noqa: E114
+      card_mod = self._card_mod(theme_styles)  # noqa: E111
+      template = {  # noqa: E111
         "type": "custom:scheduler-card",
         "title": f"🍽️ {schedule_label}",
         "discover_existing": False,
@@ -2570,11 +2568,11 @@ class DashboardTemplates:
         "card_mod": card_mod,
       }
     elif theme == "playful":
-      # Use colorful meal buttons
-      template = await self.get_feeding_controls_template(dog_id, theme)
+      # Use colorful meal buttons  # noqa: E114
+      template = await self.get_feeding_controls_template(dog_id, theme)  # noqa: E111
     else:
-      # Minimal text-based schedule
-      template = {
+      # Minimal text-based schedule  # noqa: E114
+      template = {  # noqa: E111
         "type": "entities",
         "title": schedule_label,
         "entities": [
@@ -2586,7 +2584,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_feeding_controls_template(
+  async def get_feeding_controls_template(  # noqa: E111
     self,
     dog_id: str,
     theme: str = "modern",
@@ -2637,9 +2635,9 @@ class DashboardTemplates:
 
     buttons: CardCollection = []
     for meal_type, name, icon, color in meal_types:
-      button_style = {}
+      button_style = {}  # noqa: E111
 
-      if theme == "modern":
+      if theme == "modern":  # noqa: E111
         button_style = {
           "card_mod": {
             "style": f"""
@@ -2648,10 +2646,10 @@ class DashboardTemplates:
                                 color: white;
                                 border-radius: 12px;
                             }}
-                        """,
+                        """,  # noqa: E501
           },
         }
-      elif theme == "playful":
+      elif theme == "playful":  # noqa: E111
         button_style = {
           "card_mod": {
             "style": f"""
@@ -2671,7 +2669,7 @@ class DashboardTemplates:
           },
         }
 
-      buttons.append(
+      buttons.append(  # noqa: E111
         {
           **base_button,
           **button_style,
@@ -2691,16 +2689,16 @@ class DashboardTemplates:
 
     # Group buttons based on theme
     if theme == "playful":
-      # Circular arrangement
-      return {
+      # Circular arrangement  # noqa: E114
+      return {  # noqa: E111
         "type": "horizontal-stack",
         "cards": buttons,
       }
     # Grid arrangement
     grouped_buttons: CardCollection = []
     for i in range(0, len(buttons), 2):
-      button_pair = buttons[i : i + 2]
-      grouped_buttons.append(
+      button_pair = buttons[i : i + 2]  # noqa: E111
+      grouped_buttons.append(  # noqa: E111
         {
           "type": "horizontal-stack",
           "cards": button_pair,
@@ -2712,7 +2710,7 @@ class DashboardTemplates:
       "cards": grouped_buttons,
     }
 
-  async def get_health_charts_template(
+  async def get_health_charts_template(  # noqa: E111
     self,
     dog_id: str,
     theme: str = "modern",
@@ -2735,9 +2733,9 @@ class DashboardTemplates:
 
     template: CardConfig
     if theme in ["modern", "dark"]:
-      # Use advanced graph card
-      card_mod = self._card_mod(theme_styles)
-      template = {
+      # Use advanced graph card  # noqa: E114
+      card_mod = self._card_mod(theme_styles)  # noqa: E111
+      template = {  # noqa: E111
         "type": "custom:mini-graph-card",
         "name": _translated_health_label(translation_lookup, "health_metrics"),
         "entities": [
@@ -2767,8 +2765,8 @@ class DashboardTemplates:
         "card_mod": card_mod,
       }
     elif theme == "playful":
-      # Use colorful gauge cards
-      template = {
+      # Use colorful gauge cards  # noqa: E114
+      template = {  # noqa: E111
         "type": "horizontal-stack",
         "cards": [
           {
@@ -2788,7 +2786,7 @@ class DashboardTemplates:
                                     background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
                                     border-radius: 50%;
                                 }
-                            """,
+                            """,  # noqa: E501
             },
           },
           {
@@ -2808,14 +2806,14 @@ class DashboardTemplates:
                                     background: linear-gradient(45deg, #4ECDC4, #FFE66D);
                                     border-radius: 50%;
                                 }
-                            """,
+                            """,  # noqa: E501
             },
           },
         ],
       }
     else:
-      # Minimal line graph
-      template = {
+      # Minimal line graph  # noqa: E114
+      template = {  # noqa: E111
         "type": "history-graph",
         "title": _translated_health_label(translation_lookup, "health_trends"),
         "entities": [
@@ -2827,7 +2825,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_timeline_template(
+  async def get_timeline_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -2864,7 +2862,7 @@ class DashboardTemplates:
 - **Last Fed**: {{{{ states('sensor.{dog_id}_last_fed') }}}}
 - **Last Walk**: {{{{ states('sensor.{dog_id}_last_walk') }}}}
 - **{last_health_label}**: {{{{ states('sensor.{dog_id}_last_health_check') }}}}
-"""
+"""  # noqa: E501
 
     card_mod = self._card_mod(theme_styles)
     template: CardConfig = {
@@ -2875,7 +2873,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_weather_status_card_template(
+  async def get_weather_status_card_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -2896,7 +2894,7 @@ class DashboardTemplates:
     cache_key = f"weather_status_{dog_id}_{theme}_{compact}"
     cached = await self._cache.get(cache_key)
     if isinstance(cached, dict):
-      return cached
+      return cached  # noqa: E111
 
     theme_styles = self._get_theme_styles(theme)
     weather_icon = self._get_weather_icon(theme)
@@ -2908,9 +2906,9 @@ class DashboardTemplates:
 
     template: CardConfig
     if compact:
-      # Compact card for mobile/small spaces
-      card_mod = self._card_mod(theme_styles)
-      template = {
+      # Compact card for mobile/small spaces  # noqa: E114
+      card_mod = self._card_mod(theme_styles)  # noqa: E111
+      template = {  # noqa: E111
         "type": "custom:mushroom-entity",
         "entity": f"sensor.{dog_id}_weather_health_score",
         "name": _translated_health_template(
@@ -2927,8 +2925,8 @@ class DashboardTemplates:
         "card_mod": card_mod,
       }
     else:
-      # Full weather status card
-      entities = [
+      # Full weather status card  # noqa: E114
+      entities = [  # noqa: E111
         {
           "entity": f"sensor.{dog_id}_weather_health_score",
           "name": _translated_health_label(
@@ -2954,8 +2952,8 @@ class DashboardTemplates:
         },
       ]
 
-      card_mod = self._card_mod(theme_styles)
-      template = {
+      card_mod = self._card_mod(theme_styles)  # noqa: E111
+      template = {  # noqa: E111
         "type": "entities",
         "title": _translated_health_template(
           translation_lookup,
@@ -2969,8 +2967,8 @@ class DashboardTemplates:
         "card_mod": card_mod,
       }
 
-      # Add theme-specific styling
-      if theme == "modern":
+      # Add theme-specific styling  # noqa: E114
+      if theme == "modern":  # noqa: E111
         style = card_mod.get("style", "")
         style += """
                     .card-header {
@@ -2980,7 +2978,7 @@ class DashboardTemplates:
                     }
                 """
         card_mod["style"] = style
-      elif theme == "playful":
+      elif theme == "playful":  # noqa: E111
         style = card_mod.get("style", "")
         style += """
                     .card-header {
@@ -3000,7 +2998,7 @@ class DashboardTemplates:
     await self._cache.set(cache_key, template)
     return template
 
-  async def get_weather_alerts_card_template(
+  async def get_weather_alerts_card_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -3044,7 +3042,7 @@ class DashboardTemplates:
 {{%- endif -%}}
 
 **Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}
-"""
+"""  # noqa: E501
 
     # Conditional styling based on alert severity
     if theme == "modern":
@@ -3064,7 +3062,7 @@ class DashboardTemplates:
                             #4CAF50
                         {% endif %};
                 }
-            """.replace("{dog_id}", dog_id)
+            """.replace("{dog_id}", dog_id)  # noqa: E111
     elif theme == "playful":
       card_mod_style = """
                 ha-card {
@@ -3081,9 +3079,9 @@ class DashboardTemplates:
                     50% { transform: scale(1.02); }
                     100% { transform: scale(1); }
                 }
-            """.replace("{dog_id}", dog_id)
+            """.replace("{dog_id}", dog_id)  # noqa: E111, E501
     else:
-      card_mod_style = self._card_mod(theme_styles).get("style", "")
+      card_mod_style = self._card_mod(theme_styles).get("style", "")  # noqa: E111
 
     template: CardConfig = {
       "type": "markdown",
@@ -3095,7 +3093,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_weather_recommendations_card_template(
+  async def get_weather_recommendations_card_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -3124,13 +3122,13 @@ class DashboardTemplates:
 
     bullet_lines: list[str] = []
     if recommendations:
-      for item in recommendations:
+      for item in recommendations:  # noqa: E111
         entry = item.strip()
         if entry:
-          bullet_lines.append(f"• {entry}")
+          bullet_lines.append(f"• {entry}")  # noqa: E111
 
     if not bullet_lines:
-      bullet_lines.extend(
+      bullet_lines.extend(  # noqa: E111
         [
           "• Perfect weather for normal activities!",
           "• Maintain regular exercise schedule",
@@ -3139,16 +3137,16 @@ class DashboardTemplates:
       )
 
     if overflow_recommendations > 0:
-      bullet_lines.append(
+      bullet_lines.append(  # noqa: E111
         f"*... and {overflow_recommendations} more recommendations*",
       )
 
     breed_section: list[str] = []
     if include_breed_specific:
-      breed_section = [
+      breed_section = [  # noqa: E111
         "### 🐕 Breed-Specific Advice",
         "{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}",
-        "{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}",
+        "{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}",  # noqa: E501
       ]
 
     lines = [
@@ -3156,14 +3154,14 @@ class DashboardTemplates:
       "",
       "### 🌡️ Temperature Guidance",
       f"**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C",
-      f"**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}",
+      f"**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}",  # noqa: E501
       "",
       "### 🚶 Activity Suggestions",
       *bullet_lines,
     ]
 
     if breed_section:
-      lines.extend(["", *breed_section])
+      lines.extend(["", *breed_section])  # noqa: E111
 
     lines.extend(
       [
@@ -3186,7 +3184,7 @@ class DashboardTemplates:
     }
 
     if theme == "modern":
-      style = card_mod.get("style", "")
+      style = card_mod.get("style", "")  # noqa: E111
       style += """
                 .card-content {
                     padding-bottom: 60px;
@@ -3204,12 +3202,12 @@ class DashboardTemplates:
                     align-items: center;
                     justify-content: center;
                 }
-            """
-      card_mod["style"] = style
+            """  # noqa: E111
+      card_mod["style"] = style  # noqa: E111
 
     return template
 
-  async def get_weather_chart_template(
+  async def get_weather_chart_template(  # noqa: E111
     self,
     dog_id: str,
     chart_type: str = "health_score",
@@ -3244,7 +3242,7 @@ class DashboardTemplates:
     entities: list[JSONMutableMapping]
 
     if chart_type == "health_score":
-      entities = [
+      entities = [  # noqa: E111
         {
           "entity": f"sensor.{dog_id}_weather_health_score",
           "name": _translated_health_label(
@@ -3260,12 +3258,12 @@ class DashboardTemplates:
           "y_axis": "secondary",
         },
       ]
-      chart_title = _translated_health_template(
+      chart_title = _translated_health_template(  # noqa: E111
         translation_lookup,
         "weather_health_chart_title",
       )
     elif chart_type == "temperature":
-      entities = [
+      entities = [  # noqa: E111
         {
           "entity": f"sensor.{dog_id}_outdoor_temperature",
           "name": "Temperature",
@@ -3283,9 +3281,9 @@ class DashboardTemplates:
           "show_fill": True,
         },
       ]
-      chart_title = "Temperature Trends"
+      chart_title = "Temperature Trends"  # noqa: E111
     else:  # activity
-      entities = [
+      entities = [  # noqa: E111
         {
           "entity": f"sensor.{dog_id}_weather_activity_level",
           "name": "Recommended Activity",
@@ -3297,12 +3295,12 @@ class DashboardTemplates:
           "color": theme_styles["colors"]["accent"],
         },
       ]
-      chart_title = "Activity vs Weather"
+      chart_title = "Activity vs Weather"  # noqa: E111
 
     template: CardConfig
     if theme in ["modern", "dark"]:
-      card_mod = self._card_mod(theme_styles)
-      template = {
+      card_mod = self._card_mod(theme_styles)  # noqa: E111
+      template = {  # noqa: E111
         "type": "custom:mini-graph-card",
         "name": chart_title,
         "entities": entities,
@@ -3326,9 +3324,9 @@ class DashboardTemplates:
         "card_mod": card_mod,
       }
     else:
-      # Fallback to simple history graph
-      card_mod = self._card_mod(theme_styles)
-      template = {
+      # Fallback to simple history graph  # noqa: E114
+      card_mod = self._card_mod(theme_styles)  # noqa: E111
+      template = {  # noqa: E111
         "type": "history-graph",
         "title": chart_title,
         "entities": [entity["entity"] for entity in entities],
@@ -3338,7 +3336,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_weather_breed_advisory_template(
+  async def get_weather_breed_advisory_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -3392,15 +3390,15 @@ class DashboardTemplates:
 **Special Considerations:** {{ breed_advice.special_considerations | default('Standard care applies') }}
 
 **Breed Profile Last Updated:** {{{{ states('sensor.{dog_id}_breed_profile_updated') }}}}
-"""
+"""  # noqa: E501
 
     breed_advice_state = self.hass.states.get(
       f"sensor.{dog_id}_breed_weather_advice",
     )
     breed_advice_attrs: Mapping[str, object] = {}
     if breed_advice_state is not None:
-      attrs = getattr(breed_advice_state, "attributes", {})
-      if isinstance(attrs, Mapping):
+      attrs = getattr(breed_advice_state, "attributes", {})  # noqa: E111
+      if isinstance(attrs, Mapping):  # noqa: E111
         breed_advice_attrs = attrs
 
     comfort_range_obj = breed_advice_attrs.get("comfort_range", {})
@@ -3408,21 +3406,21 @@ class DashboardTemplates:
     comfort_range = comfort_range_obj if isinstance(comfort_range_obj, Mapping) else {}
 
     def _coerce_temperature(value: object, fallback: float) -> float:
-      if isinstance(value, int | float):
+      if isinstance(value, int | float):  # noqa: E111
         return float(value)
-      if isinstance(value, str):
+      if isinstance(value, str):  # noqa: E111
         try:
-          return float(value)
+          return float(value)  # noqa: E111
         except ValueError:
-          return fallback
-      return fallback
+          return fallback  # noqa: E111
+      return fallback  # noqa: E111
 
     comfort_min_value = _coerce_temperature(comfort_range.get("min"), 10.0)
     comfort_max_value = _coerce_temperature(comfort_range.get("max"), 25.0)
 
     # Breed-specific styling
     if theme == "modern":
-      card_style = (
+      card_style = (  # noqa: E111
         """
                 ha-card {
                     background: linear-gradient(135deg,
@@ -3443,13 +3441,13 @@ class DashboardTemplates:
                             #4CAF50
                         {% endif %};
                 }
-            """
+            """  # noqa: E501
         .replace("{dog_id}", dog_id)
         .replace("breed_comfort_min", str(comfort_min_value))
         .replace("breed_comfort_max", str(comfort_max_value))
       )
     else:
-      card_style = self._card_mod(theme_styles).get("style", "")
+      card_style = self._card_mod(theme_styles).get("style", "")  # noqa: E111
 
     template: CardConfig = {
       "type": "markdown",
@@ -3461,7 +3459,7 @@ class DashboardTemplates:
 
     return template
 
-  async def get_weather_action_buttons_template(
+  async def get_weather_action_buttons_template(  # noqa: E111
     self,
     dog_id: str,
     theme: str = "modern",
@@ -3536,8 +3534,8 @@ class DashboardTemplates:
 
     # Apply theme styling to buttons
     if theme == "modern":
-      colors = ["#2196F3", "#FF9800", "#4CAF50"]
-      for index, button in enumerate(buttons):
+      colors = ["#2196F3", "#FF9800", "#4CAF50"]  # noqa: E111
+      for index, button in enumerate(buttons):  # noqa: E111
         card_mod = CardModConfig(
           style=f"""
                         ha-card {{
@@ -3550,11 +3548,11 @@ class DashboardTemplates:
                             transform: translateY(-2px);
                             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
                         }}
-                    """,
+                    """,  # noqa: E501
         )
         button["card_mod"] = card_mod
     elif theme == "playful":
-      playful_card_mod = CardModConfig(
+      playful_card_mod = CardModConfig(  # noqa: E111
         style="""
                     ha-card {
                         background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
@@ -3569,17 +3567,17 @@ class DashboardTemplates:
                     }
                 """,
       )
-      for button in buttons:
+      for button in buttons:  # noqa: E111
         button["card_mod"] = playful_card_mod
 
     # Layout buttons according to specified layout
     if layout == "vertical":
-      return {
+      return {  # noqa: E111
         "type": "vertical-stack",
         "cards": buttons,
       }
     if layout == "grid":
-      return {
+      return {  # noqa: E111
         "type": "grid",
         "columns": 3,
         "cards": buttons,
@@ -3590,7 +3588,7 @@ class DashboardTemplates:
       "cards": buttons,
     }
 
-  def _get_weather_icon(self, theme: str) -> str:
+  def _get_weather_icon(self, theme: str) -> str:  # noqa: E111
     """Get theme-appropriate weather icon.
 
     Args:
@@ -3607,7 +3605,7 @@ class DashboardTemplates:
     }
     return icons.get(theme, "🌤️")
 
-  def _get_weather_color_by_score(self, theme: str) -> str:
+  def _get_weather_color_by_score(self, theme: str) -> str:  # noqa: E111
     """Get weather health score color by theme.
 
     Args:
@@ -3619,7 +3617,7 @@ class DashboardTemplates:
     theme_styles = self._get_theme_styles(theme)
     return theme_styles["colors"]["primary"]
 
-  def _get_breed_emoji(self, breed: str, theme: str) -> str:
+  def _get_breed_emoji(self, breed: str, theme: str) -> str:  # noqa: E111
     """Get breed-specific emoji.
 
     Args:
@@ -3630,7 +3628,7 @@ class DashboardTemplates:
         Breed-appropriate emoji
     """
     if theme != "playful":
-      return "🐕"
+      return "🐕"  # noqa: E111
 
     # Breed-specific emojis for playful theme
     breed_emojis = {
@@ -3646,12 +3644,12 @@ class DashboardTemplates:
 
     breed_lower = breed.lower().strip()
     for breed_key, emoji in breed_emojis.items():
-      if breed_key in breed_lower:
+      if breed_key in breed_lower:  # noqa: E111
         return emoji
 
     return "🐶"  # Default playful dog emoji
 
-  async def get_history_graph_template(
+  async def get_history_graph_template(  # noqa: E111
     self,
     entities: list[str],
     title: str,
@@ -3673,8 +3671,8 @@ class DashboardTemplates:
     valid_entities = await self._filter_valid_entities(entities)
 
     if not valid_entities:
-      # Return empty markdown card if no valid entities
-      return {
+      # Return empty markdown card if no valid entities  # noqa: E114
+      return {  # noqa: E111
         "type": "markdown",
         "content": f"**{title}**\n\nNo data available",
       }
@@ -3692,7 +3690,7 @@ class DashboardTemplates:
 
     return template
 
-  async def _filter_valid_entities(self, entities: list[str]) -> list[str]:
+  async def _filter_valid_entities(self, entities: list[str]) -> list[str]:  # noqa: E111
     """Filter entities to only include those that exist.
 
     Args:
@@ -3704,17 +3702,17 @@ class DashboardTemplates:
     valid_entities = []
 
     for entity_id in entities:
-      state = self.hass.states.get(entity_id)
-      if state and state.state != STATE_UNKNOWN:
+      state = self.hass.states.get(entity_id)  # noqa: E111
+      if state and state.state != STATE_UNKNOWN:  # noqa: E111
         valid_entities.append(entity_id)
 
     return valid_entities
 
-  async def cleanup(self) -> None:
+  async def cleanup(self) -> None:  # noqa: E111
     """Clean up template cache and resources."""
     await self._cache.clear()
 
-  async def get_weather_dashboard_layout_template(
+  async def get_weather_dashboard_layout_template(  # noqa: E111
     self,
     dog_id: str,
     dog_name: str,
@@ -3735,8 +3733,8 @@ class DashboardTemplates:
         Complete weather dashboard layout
     """
     if layout == "compact":
-      # Compact layout for smaller screens
-      compact_cards: CardCollection = [
+      # Compact layout for smaller screens  # noqa: E114
+      compact_cards: CardCollection = [  # noqa: E111
         await self.get_weather_status_card_template(
           dog_id,
           dog_name,
@@ -3756,14 +3754,14 @@ class DashboardTemplates:
         ),
       ]
 
-      return {
+      return {  # noqa: E111
         "type": "vertical-stack",
         "cards": compact_cards,
       }
 
     if layout == "mobile":
-      # Mobile-optimized layout
-      mobile_cards: CardCollection = [
+      # Mobile-optimized layout  # noqa: E114
+      mobile_cards: CardCollection = [  # noqa: E111
         await self.get_weather_status_card_template(
           dog_id,
           dog_name,
@@ -3783,7 +3781,7 @@ class DashboardTemplates:
         ),
       ]
 
-      return {
+      return {  # noqa: E111
         "type": "vertical-stack",
         "cards": mobile_cards,
       }
@@ -3855,13 +3853,13 @@ class DashboardTemplates:
       "cards": full_cards,
     }
 
-  @callback
-  def get_cache_stats(self) -> TemplateCacheStats:
+  @callback  # noqa: E111
+  def get_cache_stats(self) -> TemplateCacheStats:  # noqa: E111
     """Get template cache statistics."""
     return self._cache.get_stats()
 
-  @callback
-  def get_cache_snapshot(self) -> TemplateCacheSnapshot:
+  @callback  # noqa: E111
+  def get_cache_snapshot(self) -> TemplateCacheSnapshot:  # noqa: E111
     """Return a diagnostics snapshot of the template cache."""
 
     return self._cache.coordinator_snapshot()

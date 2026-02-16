@@ -4,18 +4,16 @@ This document shows how to integrate the new serialize utilities
 into existing entity platforms for JSON-safe state attributes.
 """
 
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 from typing import Any
 
 
 # ❌ VORHER (Nicht JSON-serializable):
 class OldSensorExample:
-  """Old implementation without serialization."""
+  """Old implementation without serialization."""  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> dict[str, Any]:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
     """Return entity state attributes (BROKEN!)."""
     return {
       "last_update": datetime.now(),  # ❌ Not JSON-serializable!
@@ -29,10 +27,10 @@ from custom_components.pawcontrol.utils.serialize import serialize_entity_attrib
 
 
 class NewSensorExample:
-  """New implementation with serialization."""
+  """New implementation with serialization."""  # noqa: E111
 
-  @property
-  def extra_state_attributes(self) -> dict[str, Any]:
+  @property  # noqa: E111
+  def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
     """Return entity state attributes (FIXED!)."""
     raw_attrs = {
       "last_update": self._last_update,  # datetime
@@ -46,7 +44,7 @@ class NewSensorExample:
 # 📋 MIGRATION CHECKLIST für Entity Platforms:
 #
 # 1. Import serialize_entity_attributes:
-#    from custom_components.pawcontrol.utils.serialize import serialize_entity_attributes
+#    from custom_components.pawcontrol.utils.serialize import serialize_entity_attributes  # noqa: E501
 #
 # 2. Update extra_state_attributes property:
 #    - Sammle raw attributes in dict
@@ -76,7 +74,7 @@ class PawControlWalkDurationSensor(CoordinatorEntity):
             "duration_minutes": self._duration.total_seconds() / 60,  # Manual conversion
             "last_seen": self._last_seen,  # datetime - BROKEN!
         }
-"""
+"""  # noqa: E501
 
 # ✅ NEW VERSION (sensor.py - Updated):
 """

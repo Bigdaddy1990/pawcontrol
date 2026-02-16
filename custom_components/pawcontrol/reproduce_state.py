@@ -1,7 +1,5 @@
 """Shared helpers for reproducing platform states."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable, Sequence
 import logging
 from typing import TypeVar
@@ -26,28 +24,28 @@ async def async_reproduce_platform_states[T](
   *,
   context: Context | None = None,
 ) -> None:
-  """Iterate over states and call a handler for each valid one."""
-  for state in states:
+  """Iterate over states and call a handler for each valid one."""  # noqa: E111
+  for state in states:  # noqa: E111
     if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "Cannot reproduce %s state for %s: %s",
         platform_name,
         state.entity_id,
         state.state,
       )
-      continue
+      continue  # noqa: E111
 
     processed = preprocess(state)
     if processed is None:
-      continue
+      continue  # noqa: E111
 
     current_state = hass.states.get(state.entity_id)
     if current_state is None:
-      _LOGGER.warning(
+      _LOGGER.warning(  # noqa: E111
         "%s entity %s not found for state reproduction",
         platform_name.capitalize(),
         state.entity_id,
       )
-      continue
+      continue  # noqa: E111
 
     await handler(hass, state, current_state, processed, context)

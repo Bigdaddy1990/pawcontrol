@@ -1,7 +1,5 @@
 """Unit tests for the PawControl services helpers."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 import json
@@ -42,44 +40,44 @@ from custom_components.pawcontrol.types import (
 from custom_components.pawcontrol.utils import async_call_hass_service_if_available
 
 try:  # pragma: no cover - runtime fallback for stubbed environments
-  from homeassistant.core import Context
+  from homeassistant.core import Context  # noqa: E111
 except ImportError:  # pragma: no cover - ensure stubs are available for tests
   from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 
-  install_homeassistant_stubs()
-  from homeassistant.core import Context
+  install_homeassistant_stubs()  # noqa: E111
+  from homeassistant.core import Context  # noqa: E111
 
 
 def test_service_validation_error_uses_homeassistant_class() -> None:
-  """``_service_validation_error`` should emit ServiceValidationError."""
+  """``_service_validation_error`` should emit ServiceValidationError."""  # noqa: E111
 
-  error = services._service_validation_error("boom")
+  error = services._service_validation_error("boom")  # noqa: E111
 
-  assert isinstance(error, ServiceValidationError)
-  assert str(error) == "boom"
+  assert isinstance(error, ServiceValidationError)  # noqa: E111
+  assert str(error) == "boom"  # noqa: E111
 
 
 def test_service_validation_error_rejects_blank_message() -> None:
-  """Blank messages should be rejected to preserve telemetry detail."""
+  """Blank messages should be rejected to preserve telemetry detail."""  # noqa: E111
 
-  with pytest.raises(AssertionError):
+  with pytest.raises(AssertionError):  # noqa: E111
     services._service_validation_error("   ")
 
 
 def test_service_validation_error_trims_whitespace() -> None:
-  """Messages should be trimmed before instantiating the service error."""
+  """Messages should be trimmed before instantiating the service error."""  # noqa: E111
 
-  error = services._service_validation_error("  trimmed  ")
+  error = services._service_validation_error("  trimmed  ")  # noqa: E111
 
-  assert isinstance(error, ServiceValidationError)
-  assert str(error) == "trimmed"
+  assert isinstance(error, ServiceValidationError)  # noqa: E111
+  assert str(error) == "trimmed"  # noqa: E111
 
 
 @pytest.mark.unit
 def test_coerce_service_details_value_handles_nested_payloads() -> None:
-  """``_coerce_service_details_value`` should return JSON-safe structures."""
+  """``_coerce_service_details_value`` should return JSON-safe structures."""  # noqa: E111
 
-  payload = {
+  payload = {  # noqa: E111
     "timestamp": datetime(2024, 1, 1, tzinfo=UTC),
     "details": {
       1: {
@@ -96,30 +94,30 @@ def test_coerce_service_details_value_handles_nested_payloads() -> None:
     "none": None,
   }
 
-  result = services._coerce_service_details_value(payload)
+  result = services._coerce_service_details_value(payload)  # noqa: E111
 
-  assert result["timestamp"] == "2024-01-01 00:00:00+00:00"
+  assert result["timestamp"] == "2024-01-01 00:00:00+00:00"  # noqa: E111
 
-  nested = result["details"]["1"]
-  assert nested["tuple"] == ["alpha", "beta"]
-  assert sorted(nested["set_values"]) == [1, 2]
-  assert nested["proxy"]["('zone', 1)"]["value"] == 5.0
-  assert nested["namespace"].startswith("namespace(flag=")
+  nested = result["details"]["1"]  # noqa: E111
+  assert nested["tuple"] == ["alpha", "beta"]  # noqa: E111
+  assert sorted(nested["set_values"]) == [1, 2]  # noqa: E111
+  assert nested["proxy"]["('zone', 1)"]["value"] == 5.0  # noqa: E111
+  assert nested["namespace"].startswith("namespace(flag=")  # noqa: E111
 
-  sequence = result["sequence"]
-  assert sequence[0] == "first"
-  assert sequence[1]["second"].startswith("namespace(extra=")
+  sequence = result["sequence"]  # noqa: E111
+  assert sequence[0] == "first"  # noqa: E111
+  assert sequence[1]["second"].startswith("namespace(extra=")  # noqa: E111
 
-  assert result["none"] is None
+  assert result["none"] is None  # noqa: E111
 
-  # Ensure the coerced payload serialises to JSON without raising errors.
-  json.dumps(result)
+  # Ensure the coerced payload serialises to JSON without raising errors.  # noqa: E114
+  json.dumps(result)  # noqa: E111
 
 
 def test_record_service_result_merges_rejection_metrics() -> None:
-  """Service telemetry should reuse the rejection metrics helper."""
+  """Service telemetry should reuse the rejection metrics helper."""  # noqa: E111
 
-  resilience_summary: dict[str, object] = {
+  resilience_summary: dict[str, object] = {  # noqa: E111
     "total_breakers": 1,
     "states": {
       "closed": 0,
@@ -158,35 +156,35 @@ def test_record_service_result_merges_rejection_metrics() -> None:
     "rejection_breaker_ids": ["api"],
   }
 
-  runtime_data = SimpleNamespace(
+  runtime_data = SimpleNamespace(  # noqa: E111
     performance_stats={"resilience_summary": resilience_summary}
   )
 
-  services._record_service_result(
+  services._record_service_result(  # noqa: E111
     runtime_data,
     service="notify.test",
     status="error",
   )
 
-  metrics = runtime_data.performance_stats["rejection_metrics"]
-  assert metrics["rejected_call_count"] == 2
-  assert metrics["rejection_breaker_count"] == 1
-  assert metrics["open_breakers"] == ["api"]
+  metrics = runtime_data.performance_stats["rejection_metrics"]  # noqa: E111
+  assert metrics["rejected_call_count"] == 2  # noqa: E111
+  assert metrics["rejection_breaker_count"] == 1  # noqa: E111
+  assert metrics["open_breakers"] == ["api"]  # noqa: E111
 
-  last_result = runtime_data.performance_stats["last_service_result"]
-  resilience_details = last_result["details"]["resilience"]
-  assert resilience_details["rejected_call_count"] == 2
-  assert resilience_details["rejection_breaker_count"] == 1
+  last_result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  resilience_details = last_result["details"]["resilience"]  # noqa: E111
+  assert resilience_details["rejected_call_count"] == 2  # noqa: E111
+  assert resilience_details["rejection_breaker_count"] == 1  # noqa: E111
 
-  diagnostics_payload = last_result["diagnostics"]
-  assert diagnostics_payload["rejection_metrics"]["open_breakers"] == ["api"]
-  assert runtime_data.performance_stats["service_results"][-1] is last_result
+  diagnostics_payload = last_result["diagnostics"]  # noqa: E111
+  assert diagnostics_payload["rejection_metrics"]["open_breakers"] == ["api"]  # noqa: E111
+  assert runtime_data.performance_stats["service_results"][-1] is last_result  # noqa: E111
 
 
 def test_record_service_result_defaults_rejection_metrics_without_breakers() -> None:
-  """Circuit recovery snapshots should keep rejection metrics at defaults."""
+  """Circuit recovery snapshots should keep rejection metrics at defaults."""  # noqa: E111
 
-  resilience_summary: dict[str, object] = {
+  resilience_summary: dict[str, object] = {  # noqa: E111
     "rejected_call_count": 0,
     "rejection_breaker_count": 0,
     "rejection_rate": 0.0,
@@ -206,45 +204,45 @@ def test_record_service_result_defaults_rejection_metrics_without_breakers() -> 
     "rejection_breakers": [],
   }
 
-  runtime_data = SimpleNamespace(
+  runtime_data = SimpleNamespace(  # noqa: E111
     performance_stats={"resilience_summary": resilience_summary}
   )
 
-  services._record_service_result(
+  services._record_service_result(  # noqa: E111
     runtime_data,
     service="notify.test",
     status="success",
   )
 
-  defaults = default_rejection_metrics()
+  defaults = default_rejection_metrics()  # noqa: E111
 
-  metrics = runtime_data.performance_stats["rejection_metrics"]
-  assert metrics == defaults
+  metrics = runtime_data.performance_stats["rejection_metrics"]  # noqa: E111
+  assert metrics == defaults  # noqa: E111
 
-  last_result = runtime_data.performance_stats["last_service_result"]
-  assert "details" not in last_result or "resilience" not in last_result["details"]
+  last_result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert "details" not in last_result or "resilience" not in last_result["details"]  # noqa: E111
 
-  diagnostics_payload = last_result["diagnostics"]
-  assert diagnostics_payload["rejection_metrics"] == defaults
+  diagnostics_payload = last_result["diagnostics"]  # noqa: E111
+  assert diagnostics_payload["rejection_metrics"] == defaults  # noqa: E111
 
 
 def test_classify_error_reason_detects_notification_failures() -> None:
-  """Error classification should bucket auth and reachability failures."""
+  """Error classification should bucket auth and reachability failures."""  # noqa: E111
 
   from custom_components.pawcontrol.error_classification import classify_error_reason
 
-  assert classify_error_reason("missing_notify_service") == "missing_service"
-  assert classify_error_reason("exception", error="Unauthorized device") == "auth_error"
-  assert (
+  assert classify_error_reason("missing_notify_service") == "missing_service"  # noqa: E111
+  assert classify_error_reason("exception", error="Unauthorized device") == "auth_error"  # noqa: E111
+  assert (  # noqa: E111
     classify_error_reason("exception", error="Device unreachable")
     == "device_unreachable"
   )
 
 
 class _DummyCoordinator:
-  """Coordinator stub that records refresh requests."""
+  """Coordinator stub that records refresh requests."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     *,
     fail: bool = False,
@@ -256,41 +254,41 @@ class _DummyCoordinator:
     self._error = error or RuntimeError("refresh-failed")
     self.config_entry = SimpleNamespace(options=options or {})
 
-  async def async_request_refresh(self) -> None:
+  async def async_request_refresh(self) -> None:  # noqa: E111
     if self._fail:
-      raise self._error
+      raise self._error  # noqa: E111
     self.refresh_called = True
 
 
 class _DummyWalkManager:
-  """Walk manager stub recording cleanup calls."""
+  """Walk manager stub recording cleanup calls."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.cleaned = False
 
-  async def async_cleanup(self) -> None:
+  async def async_cleanup(self) -> None:  # noqa: E111
     self.cleaned = True
 
 
 class _DummyNotificationManager:
-  """Notification manager stub recording cleanup calls."""
+  """Notification manager stub recording cleanup calls."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.cleaned = False
     self.cleaned_count = 2
 
-  async def async_cleanup_expired_notifications(self) -> int:
+  async def async_cleanup_expired_notifications(self) -> int:  # noqa: E111
     self.cleaned = True
     return self.cleaned_count
 
 
 class _BusStub:
-  """Capture Home Assistant bus events for verification."""
+  """Capture Home Assistant bus events for verification."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.fired: list[dict[str, object]] = []
 
-  async def async_fire(
+  async def async_fire(  # noqa: E111
     self,
     event_type: str,
     event_data: object | None = None,
@@ -304,68 +302,68 @@ class _BusStub:
 
 
 class _DummyDataManager:
-  """Expose deterministic cache diagnostics payloads for tests."""
+  """Expose deterministic cache diagnostics payloads for tests."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     payload: dict[str, dict[str, object]],
     summary: CacheRepairAggregate | None = None,
   ) -> None:
     self._payload = payload
     if summary is not None and not isinstance(summary, CacheRepairAggregate):
-      raise TypeError("summary must be CacheRepairAggregate or None")
+      raise TypeError("summary must be CacheRepairAggregate or None")  # noqa: E111
     self._summary = summary
 
-  def cache_snapshots(self) -> dict[str, dict[str, object]]:
+  def cache_snapshots(self) -> dict[str, dict[str, object]]:  # noqa: E111
     return self._payload
 
-  def cache_repair_summary(
+  def cache_repair_summary(  # noqa: E111
     self, snapshots: dict[str, object] | None = None
   ) -> CacheRepairAggregate | None:
     if snapshots is not None:
-      self._last_snapshots = snapshots
-      normalised: dict[str, object] = {}
-      for key, payload in snapshots.items():
+      self._last_snapshots = snapshots  # noqa: E111
+      normalised: dict[str, object] = {}  # noqa: E111
+      for key, payload in snapshots.items():  # noqa: E111
         if hasattr(payload, "to_mapping"):
-          try:
+          try:  # noqa: E111
             candidate = payload.to_mapping()  # type: ignore[call-arg]
-          except Exception:
+          except Exception:  # noqa: E111
             candidate = None
-          else:
+          else:  # noqa: E111
             if isinstance(candidate, Mapping):
-              normalised[key] = dict(candidate)
-              continue
+              normalised[key] = dict(candidate)  # noqa: E111
+              continue  # noqa: E111
         if isinstance(payload, Mapping):
-          normalised[key] = dict(payload)
+          normalised[key] = dict(payload)  # noqa: E111
         else:
-          normalised[key] = payload
-      self._normalised_payload = normalised
-      assert normalised == self._payload
+          normalised[key] = payload  # noqa: E111
+      self._normalised_payload = normalised  # noqa: E111
+      assert normalised == self._payload  # noqa: E111
     return self._summary
 
 
 class _ComplianceCheckCall(TypedDict):
-  """Typed payload recorded for feeding compliance checks."""
+  """Typed payload recorded for feeding compliance checks."""  # noqa: E111
 
-  dog_id: str
-  days_to_check: int
-  notify_on_issues: bool
+  dog_id: str  # noqa: E111
+  days_to_check: int  # noqa: E111
+  notify_on_issues: bool  # noqa: E111
 
 
 class _HealthSnackCall(TypedDict):
-  """Typed payload captured for health snack submissions."""
+  """Typed payload captured for health snack submissions."""  # noqa: E111
 
-  dog_id: str
-  snack_type: str
-  amount: float
-  health_benefit: object | None
-  notes: object | None
+  dog_id: str  # noqa: E111
+  snack_type: str  # noqa: E111
+  amount: float  # noqa: E111
+  health_benefit: object | None  # noqa: E111
+  notes: object | None  # noqa: E111
 
 
 class _FeedingManagerStub:
-  """Provide deterministic behaviour for health snack telemetry tests."""
+  """Provide deterministic behaviour for health snack telemetry tests."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.calls: list[_HealthSnackCall] = []
     self.fail_with: Exception | None = None
     self.compliance_calls: list[_ComplianceCheckCall] = []
@@ -375,7 +373,7 @@ class _FeedingManagerStub:
     }
     self.compliance_error: Exception | None = None
 
-  async def async_add_health_snack(
+  async def async_add_health_snack(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -385,7 +383,7 @@ class _FeedingManagerStub:
     notes: object | None,
   ) -> None:
     if self.fail_with:
-      raise self.fail_with
+      raise self.fail_with  # noqa: E111
 
     call: _HealthSnackCall = {
       "dog_id": dog_id,
@@ -396,7 +394,7 @@ class _FeedingManagerStub:
     }
     self.calls.append(call)
 
-  async def async_check_feeding_compliance(
+  async def async_check_feeding_compliance(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -404,7 +402,7 @@ class _FeedingManagerStub:
     notify_on_issues: bool,
   ) -> FeedingComplianceResult:
     if self.compliance_error:
-      raise self.compliance_error
+      raise self.compliance_error  # noqa: E111
 
     self.compliance_calls.append({
       "dog_id": dog_id,
@@ -415,37 +413,37 @@ class _FeedingManagerStub:
 
 
 class _DataManagerStub:
-  """Simulate grooming and poop logging calls for telemetry coverage."""
+  """Simulate grooming and poop logging calls for telemetry coverage."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.poop_calls: list[dict[str, object]] = []
     self.groom_calls: list[dict[str, object]] = []
     self.fail_log: Exception | None = None
     self.fail_groom: Exception | None = None
     self.next_session_id = "groom-session-1"
 
-  async def async_log_poop_data(
+  async def async_log_poop_data(  # noqa: E111
     self, *, dog_id: str, poop_data: dict[str, object]
   ) -> None:
     if self.fail_log:
-      raise self.fail_log
+      raise self.fail_log  # noqa: E111
 
     self.poop_calls.append({"dog_id": dog_id, "poop_data": dict(poop_data)})
 
-  async def async_start_grooming_session(
+  async def async_start_grooming_session(  # noqa: E111
     self, *, dog_id: str, grooming_data: dict[str, object]
   ) -> str:
     if self.fail_groom:
-      raise self.fail_groom
+      raise self.fail_groom  # noqa: E111
 
     self.groom_calls.append({"dog_id": dog_id, "grooming_data": dict(grooming_data)})
     return self.next_session_id
 
 
 class _GardenManagerStub:
-  """Stub the garden manager API for service telemetry assertions."""
+  """Stub the garden manager API for service telemetry assertions."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.start_calls: list[dict[str, object]] = []
     self.end_calls: list[dict[str, object]] = []
     self.activity_calls: list[dict[str, object]] = []
@@ -464,7 +462,7 @@ class _GardenManagerStub:
       poop_count=1,
     )
 
-  async def async_start_garden_session(
+  async def async_start_garden_session(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -474,7 +472,7 @@ class _GardenManagerStub:
     temperature: object | None,
   ) -> str:
     if self.fail_start:
-      raise self.fail_start
+      raise self.fail_start  # noqa: E111
 
     self.start_calls.append({
       "dog_id": dog_id,
@@ -485,7 +483,7 @@ class _GardenManagerStub:
     })
     return self.next_session_id
 
-  async def async_end_garden_session(
+  async def async_end_garden_session(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -493,12 +491,12 @@ class _GardenManagerStub:
     activities: Sequence[GardenActivityInputPayload] | None,
   ) -> object | None:
     if self.fail_end:
-      raise self.fail_end
+      raise self.fail_end  # noqa: E111
 
     self.end_calls.append({"dog_id": dog_id, "notes": notes, "activities": activities})
     return self.next_end_session
 
-  async def async_add_activity(
+  async def async_add_activity(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -509,7 +507,7 @@ class _GardenManagerStub:
     confirmed: bool,
   ) -> bool:
     if self.fail_activity:
-      raise self.fail_activity
+      raise self.fail_activity  # noqa: E111
 
     self.activity_calls.append({
       "dog_id": dog_id,
@@ -521,10 +519,10 @@ class _GardenManagerStub:
     })
     return self.activity_success
 
-  def has_pending_confirmation(self, dog_id: str) -> bool:
+  def has_pending_confirmation(self, dog_id: str) -> bool:  # noqa: E111
     return self.pending_confirmation
 
-  async def async_handle_poop_confirmation(
+  async def async_handle_poop_confirmation(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -534,7 +532,7 @@ class _GardenManagerStub:
     location: object | None,
   ) -> None:
     if self.fail_confirm:
-      raise self.fail_confirm
+      raise self.fail_confirm  # noqa: E111
 
     self.confirm_calls.append({
       "dog_id": dog_id,
@@ -546,12 +544,12 @@ class _GardenManagerStub:
 
 
 class _ServiceRegistryStub:
-  """Record service registrations during setup."""
+  """Record service registrations during setup."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.handlers: dict[str, Callable[..., Awaitable[None]]] = {}
 
-  def async_register(
+  def async_register(  # noqa: E111
     self,
     domain: str,
     service: str,
@@ -562,32 +560,32 @@ class _ServiceRegistryStub:
 
 
 class _ResolverStub:
-  """Minimal coordinator resolver for service tests."""
+  """Minimal coordinator resolver for service tests."""  # noqa: E111
 
-  def __init__(self, coordinator: object) -> None:
+  def __init__(self, coordinator: object) -> None:  # noqa: E111
     self._coordinator = coordinator
 
-  def invalidate(
+  def invalidate(  # noqa: E111
     self, *, entry_id: str | None = None
   ) -> None:  # pragma: no cover - noop
     return None
 
-  def resolve(self) -> object:
+  def resolve(self) -> object:  # noqa: E111
     return self._coordinator
 
 
 class _ComplianceNotificationCall(TypedDict):
-  """Typed payload recorded for compliance notification requests."""
+  """Typed payload recorded for compliance notification requests."""  # noqa: E111
 
-  dog_id: str
-  dog_name: str | None
-  compliance: FeedingComplianceResult
+  dog_id: str  # noqa: E111
+  dog_name: str | None  # noqa: E111
+  compliance: FeedingComplianceResult  # noqa: E111
 
 
 class _NotificationManagerStub:
-  """Provide deterministic notification behaviour for telemetry tests."""
+  """Provide deterministic notification behaviour for telemetry tests."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.fail_send = False
     self.fail_ack = False
     self.ack_exists = True
@@ -595,24 +593,24 @@ class _NotificationManagerStub:
     self.compliance_calls: list[_ComplianceNotificationCall] = []
     self.fail_compliance = False
 
-  async def async_send_notification(self, **kwargs: object) -> str:
+  async def async_send_notification(self, **kwargs: object) -> str:  # noqa: E111
     if self.fail_send:
-      raise services.HomeAssistantError("send failed")
+      raise services.HomeAssistantError("send failed")  # noqa: E111
     notification_type = kwargs.get("notification_type")
     assert isinstance(notification_type, NotificationType)
 
     priority = kwargs.get("priority")
     if priority is not None:
-      assert isinstance(priority, NotificationPriority)
+      assert isinstance(priority, NotificationPriority)  # noqa: E111
 
     force_channels = kwargs.get("force_channels")
     if force_channels is not None:
-      assert isinstance(force_channels, list)
-      assert all(isinstance(channel, NotificationChannel) for channel in force_channels)
+      assert isinstance(force_channels, list)  # noqa: E111
+      assert all(isinstance(channel, NotificationChannel) for channel in force_channels)  # noqa: E111
     self.sent.append(kwargs)
     return "notif-1"
 
-  async def async_send_feeding_compliance_summary(
+  async def async_send_feeding_compliance_summary(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -620,18 +618,18 @@ class _NotificationManagerStub:
     compliance: FeedingComplianceResult,
   ) -> str | None:
     if self.fail_compliance:
-      raise services.HomeAssistantError("compliance failed")
+      raise services.HomeAssistantError("compliance failed")  # noqa: E111
 
     status = compliance["status"]
     if status == "completed":
-      completed = cast(FeedingComplianceCompleted, compliance)
-      has_issues = bool(
+      completed = cast(FeedingComplianceCompleted, compliance)  # noqa: E111
+      has_issues = bool(  # noqa: E111
         completed["days_with_issues"]
         or completed["compliance_issues"]
         or completed["missed_meals"]
         or completed["compliance_score"] < 100
       )
-      if not has_issues:
+      if not has_issues:  # noqa: E111
         return None
 
     self.compliance_calls.append({
@@ -641,23 +639,25 @@ class _NotificationManagerStub:
     })
     return "compliance-1"
 
-  async def async_acknowledge_notification(self, notification_id: str) -> bool:
+  async def async_acknowledge_notification(self, notification_id: str) -> bool:  # noqa: E111
     if self.fail_ack:
-      raise services.HomeAssistantError("ack failed")
+      raise services.HomeAssistantError("ack failed")  # noqa: E111
     return self.ack_exists
 
-  async def async_cleanup_expired_notifications(self) -> None:  # pragma: no cover
+  async def async_cleanup_expired_notifications(  # noqa: E111
+    self,
+  ) -> None:  # pragma: no cover
     return None
 
 
 class _GuardSkippingNotificationManager(_NotificationManagerStub):
-  """Notification manager stub that exercises guard skip telemetry."""
+  """Notification manager stub that exercises guard skip telemetry."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     super().__init__()
     self.calls = 0
 
-  async def async_send_notification(self, **kwargs: object) -> str:
+  async def async_send_notification(self, **kwargs: object) -> str:  # noqa: E111
     self.calls += 1
     await async_call_hass_service_if_available(
       None,
@@ -671,9 +671,9 @@ class _GuardSkippingNotificationManager(_NotificationManagerStub):
 
 
 class _GPSManagerStub:
-  """Emulate GPS configuration calls for automation service tests."""
+  """Emulate GPS configuration calls for automation service tests."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.fail_configure = False
     self.fail_safe_zone = False
     self.last_config: dict[str, object] | None = None
@@ -682,14 +682,14 @@ class _GPSManagerStub:
     self.export_result: GPSRouteExportPayload | None = None
     self.export_calls: list[dict[str, object]] = []
 
-  async def async_configure_dog_gps(
+  async def async_configure_dog_gps(  # noqa: E111
     self, *, dog_id: str, config: GPSTrackingConfigInput
   ) -> None:
     if self.fail_configure:
-      raise services.HomeAssistantError("configure failed")
+      raise services.HomeAssistantError("configure failed")  # noqa: E111
     self.last_config = {"dog_id": dog_id, "config": dict(config)}
 
-  async def async_setup_safe_zone(
+  async def async_setup_safe_zone(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -699,7 +699,7 @@ class _GPSManagerStub:
     notifications_enabled: bool,
   ) -> None:
     if self.fail_safe_zone:
-      raise services.HomeAssistantError("safe zone failed")
+      raise services.HomeAssistantError("safe zone failed")  # noqa: E111
     self.safe_zone = {
       "dog_id": dog_id,
       "center_lat": center_lat,
@@ -708,7 +708,7 @@ class _GPSManagerStub:
       "notifications": notifications_enabled,
     }
 
-  async def async_export_routes(
+  async def async_export_routes(  # noqa: E111
     self,
     *,
     dog_id: str,
@@ -716,7 +716,7 @@ class _GPSManagerStub:
     last_n_routes: int,
   ) -> GPSRouteExportPayload | None:
     if self.fail_export:
-      raise self.fail_export
+      raise self.fail_export  # noqa: E111
     call: dict[str, object] = {
       "dog_id": dog_id,
       "export_format": export_format,
@@ -727,9 +727,9 @@ class _GPSManagerStub:
 
 
 class _CoordinatorStub:
-  """Coordinator providing managers required for service telemetry tests."""
+  """Coordinator providing managers required for service telemetry tests."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     hass: object,
     *,
@@ -759,24 +759,24 @@ class _CoordinatorStub:
       garden_manager=garden_manager,
     )
 
-  async def async_request_refresh(self) -> None:
+  async def async_request_refresh(self) -> None:  # noqa: E111
     self.refresh_called = True
 
-  def register_dog(self, dog_id: str, *, name: str | None = None) -> None:
+  def register_dog(self, dog_id: str, *, name: str | None = None) -> None:  # noqa: E111
     config = self._dogs.setdefault(dog_id, {})
     if name is not None:
-      config.setdefault("name", name)
+      config.setdefault("name", name)  # noqa: E111
 
-  def get_dog_config(self, dog_id: str) -> dict[str, object] | None:
+  def get_dog_config(self, dog_id: str) -> dict[str, object] | None:  # noqa: E111
     return self._dogs.get(dog_id)
 
-  def get_configured_dog_ids(self) -> list[str]:
+  def get_configured_dog_ids(self) -> list[str]:  # noqa: E111
     return list(self._dogs.keys())
 
-  def get_configured_dog_name(self, dog_id: str) -> str | None:
+  def get_configured_dog_name(self, dog_id: str) -> str | None:  # noqa: E111
     config = self._dogs.get(dog_id)
     if not config:
-      return None
+      return None  # noqa: E111
     name = config.get("name")
     return name if isinstance(name, str) else None
 
@@ -786,31 +786,31 @@ async def _setup_service_environment(
   coordinator: _CoordinatorStub,
   runtime_data: SimpleNamespace,
 ) -> SimpleNamespace:
-  """Register PawControl services against a stub Home Assistant instance."""
+  """Register PawControl services against a stub Home Assistant instance."""  # noqa: E111
 
-  hass = SimpleNamespace(
+  hass = SimpleNamespace(  # noqa: E111
     services=_ServiceRegistryStub(),
     data={},
     config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
     bus=_BusStub(),
   )
-  hass.config_entries = SimpleNamespace(async_entries=lambda domain: [])
-  coordinator.hass = hass
+  hass.config_entries = SimpleNamespace(async_entries=lambda domain: [])  # noqa: E111
+  coordinator.hass = hass  # noqa: E111
 
-  resolver = _ResolverStub(coordinator)
-  monkeypatch.setattr(services, "_coordinator_resolver", lambda hass_instance: resolver)
-  monkeypatch.setattr(
+  resolver = _ResolverStub(coordinator)  # noqa: E111
+  monkeypatch.setattr(services, "_coordinator_resolver", lambda hass_instance: resolver)  # noqa: E111
+  monkeypatch.setattr(  # noqa: E111
     services, "async_dispatcher_connect", lambda *args, **kwargs: lambda: None
   )
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     services, "async_track_time_change", lambda *args, **kwargs: lambda: None
   )
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     services, "get_runtime_data", lambda hass_instance, entry: runtime_data
   )
 
-  await services.async_setup_services(hass)  # type: ignore[arg-type]
-  return hass
+  await services.async_setup_services(hass)  # type: ignore[arg-type]  # noqa: E111
+  return hass  # noqa: E111
 
 
 @pytest.mark.unit
@@ -818,14 +818,14 @@ async def _setup_service_environment(
 async def test_async_setup_services_registers_expected_services(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Service setup should register the documented set and skip legacy entries."""
+  """Service setup should register the documented set and skip legacy entries."""  # noqa: E111
 
-  coordinator = _CoordinatorStub(SimpleNamespace())
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator = _CoordinatorStub(SimpleNamespace())  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
 
-  expected_services = {
+  expected_services = {  # noqa: E111
     services.SERVICE_ADD_FEEDING,
     services.SERVICE_ADD_GPS_POINT,
     services.SERVICE_UPDATE_HEALTH,
@@ -865,27 +865,27 @@ async def test_async_setup_services_registers_expected_services(
     services.SERVICE_GET_WEATHER_RECOMMENDATIONS,
   }
 
-  assert set(hass.services.handlers) == expected_services
+  assert set(hass.services.handlers) == expected_services  # noqa: E111
 
-  assert "gps_generate_diagnostics" not in hass.services.handlers
-  assert "garden_generate_diagnostics" not in hass.services.handlers
-  assert "garden_history_purge" not in hass.services.handlers
-  assert "recalculate_garden_stats" not in hass.services.handlers
-  assert "archive_old_garden_sessions" not in hass.services.handlers
+  assert "gps_generate_diagnostics" not in hass.services.handlers  # noqa: E111
+  assert "garden_generate_diagnostics" not in hass.services.handlers  # noqa: E111
+  assert "garden_history_purge" not in hass.services.handlers  # noqa: E111
+  assert "recalculate_garden_stats" not in hass.services.handlers  # noqa: E111
+  assert "archive_old_garden_sessions" not in hass.services.handlers  # noqa: E111
 
 
 @pytest.mark.unit
 def test_capture_cache_diagnostics_returns_snapshot() -> None:
-  """Helper should normalise diagnostics payloads provided by the data manager."""
+  """Helper should normalise diagnostics payloads provided by the data manager."""  # noqa: E111
 
-  payload = {
+  payload = {  # noqa: E111
     "coordinator_modules": {
       "stats": {"entries": 3, "hits": 5, "misses": 1},
       "diagnostics": {"per_module": {"feeding": {"hits": 2, "misses": 0}}},
     }
   }
 
-  summary_payload = {
+  summary_payload = {  # noqa: E111
     "total_caches": 1,
     "anomaly_count": 0,
     "severity": "info",
@@ -902,23 +902,23 @@ def test_capture_cache_diagnostics_returns_snapshot() -> None:
     },
   }
 
-  summary = CacheRepairAggregate.from_mapping(summary_payload)
+  summary = CacheRepairAggregate.from_mapping(summary_payload)  # noqa: E111
 
-  runtime_data = SimpleNamespace(data_manager=_DummyDataManager(payload, summary))
+  runtime_data = SimpleNamespace(data_manager=_DummyDataManager(payload, summary))  # noqa: E111
 
-  diagnostics = services._capture_cache_diagnostics(runtime_data)
+  diagnostics = services._capture_cache_diagnostics(runtime_data)  # noqa: E111
 
-  assert diagnostics is not None
-  snapshots = diagnostics["snapshots"]
-  assert "coordinator_modules" in snapshots
-  coordinator_snapshot = snapshots["coordinator_modules"]
-  assert hasattr(coordinator_snapshot, "to_mapping")
-  assert coordinator_snapshot.to_mapping() == payload["coordinator_modules"]
+  assert diagnostics is not None  # noqa: E111
+  snapshots = diagnostics["snapshots"]  # noqa: E111
+  assert "coordinator_modules" in snapshots  # noqa: E111
+  coordinator_snapshot = snapshots["coordinator_modules"]  # noqa: E111
+  assert hasattr(coordinator_snapshot, "to_mapping")  # noqa: E111
+  assert coordinator_snapshot.to_mapping() == payload["coordinator_modules"]  # noqa: E111
 
-  summary_obj = diagnostics.get("repair_summary")
-  assert summary_obj is not None
-  assert hasattr(summary_obj, "to_mapping")
-  assert summary_obj.to_mapping() == summary_payload
+  summary_obj = diagnostics.get("repair_summary")  # noqa: E111
+  assert summary_obj is not None  # noqa: E111
+  assert hasattr(summary_obj, "to_mapping")  # noqa: E111
+  assert summary_obj.to_mapping() == summary_payload  # noqa: E111
 
 
 @pytest.mark.unit
@@ -926,16 +926,16 @@ def test_capture_cache_diagnostics_returns_snapshot() -> None:
 async def test_perform_daily_reset_records_cache_diagnostics(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Daily reset should persist the latest cache diagnostics snapshot."""
+  """Daily reset should persist the latest cache diagnostics snapshot."""  # noqa: E111
 
-  payload = {
+  payload = {  # noqa: E111
     "coordinator_modules": {
       "stats": {"entries": 1, "hits": 1, "misses": 0, "hit_rate": 100.0},
       "diagnostics": {"per_module": {"walk": {"hits": 1, "misses": 0}}},
     }
   }
 
-  summary_payload = {
+  summary_payload = {  # noqa: E111
     "total_caches": 1,
     "anomaly_count": 0,
     "severity": "info",
@@ -953,9 +953,9 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     },
   }
 
-  summary = CacheRepairAggregate.from_mapping(summary_payload)
+  summary = CacheRepairAggregate.from_mapping(summary_payload)  # noqa: E111
 
-  telemetry = {
+  telemetry = {  # noqa: E111
     "requested_profile": "advanced",
     "previous_profile": "standard",
     "dogs_count": 2,
@@ -966,8 +966,8 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     "health_summary": {"healthy": True, "issues": [], "warnings": []},
   }
 
-  coordinator = _DummyCoordinator(options={"reconfigure_telemetry": telemetry})
-  runtime_data = SimpleNamespace(
+  coordinator = _DummyCoordinator(options={"reconfigure_telemetry": telemetry})  # noqa: E111
+  runtime_data = SimpleNamespace(  # noqa: E111
     coordinator=coordinator,
     walk_manager=_DummyWalkManager(),
     notification_manager=_DummyNotificationManager(),
@@ -975,93 +975,93 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     performance_stats={},
   )
 
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     services,
     "get_runtime_data",
     lambda hass, entry: runtime_data,
   )
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="test-entry")
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="test-entry")  # noqa: E111
 
-  await services._perform_daily_reset(hass, entry)
+  await services._perform_daily_reset(hass, entry)  # noqa: E111
 
-  assert coordinator.refresh_called
-  assert runtime_data.walk_manager.cleaned
-  assert runtime_data.notification_manager.cleaned
-  buckets = runtime_data.performance_stats["performance_buckets"]
-  assert "daily_reset_metrics" in buckets
-  bucket_snapshot = buckets["daily_reset_metrics"]
-  assert bucket_snapshot["runs"] == 1
-  assert bucket_snapshot["failures"] == 0
-  assert bucket_snapshot["durations_ms"]
-  assert runtime_data.performance_stats["daily_resets"] == 1
-  last_cache_capture = runtime_data.performance_stats["last_cache_diagnostics"]
-  snapshots = last_cache_capture["snapshots"]
-  assert hasattr(snapshots["coordinator_modules"], "to_mapping")
-  assert snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]
-  summary_obj = last_cache_capture.get("repair_summary")
-  assert summary_obj is not None
-  assert hasattr(summary_obj, "to_mapping")
-  assert summary_obj.to_mapping() == summary_payload
-  assert runtime_data.performance_stats["reconfigure_summary"]["warning_count"] == 1
-  last_result = runtime_data.performance_stats["last_service_result"]
-  assert last_result["service"] == SERVICE_DAILY_RESET
-  assert last_result["status"] == "success"
-  diagnostics = last_result.get("diagnostics")
-  assert diagnostics is not None
-  cache_capture = diagnostics.get("cache")
-  assert cache_capture is not None
-  snapshots = cache_capture["snapshots"]
-  assert hasattr(snapshots["coordinator_modules"], "to_mapping")
-  assert snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]
-  summary_obj = cache_capture.get("repair_summary")
-  assert summary_obj is not None
-  assert hasattr(summary_obj, "to_mapping")
-  assert summary_obj.to_mapping() == summary_payload
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None
-  assert metadata["refresh_requested"] is True
-  assert metadata["reconfigure"]["requested_profile"] == "advanced"
-  assert metadata["reconfigure"]["warning_count"] == 1
-  assert metadata["reconfigure"]["merge_note_count"] == 0
-  assert metadata["reconfigure"]["merge_notes"] == []
-  assert last_result.get("details") == {
+  assert coordinator.refresh_called  # noqa: E111
+  assert runtime_data.walk_manager.cleaned  # noqa: E111
+  assert runtime_data.notification_manager.cleaned  # noqa: E111
+  buckets = runtime_data.performance_stats["performance_buckets"]  # noqa: E111
+  assert "daily_reset_metrics" in buckets  # noqa: E111
+  bucket_snapshot = buckets["daily_reset_metrics"]  # noqa: E111
+  assert bucket_snapshot["runs"] == 1  # noqa: E111
+  assert bucket_snapshot["failures"] == 0  # noqa: E111
+  assert bucket_snapshot["durations_ms"]  # noqa: E111
+  assert runtime_data.performance_stats["daily_resets"] == 1  # noqa: E111
+  last_cache_capture = runtime_data.performance_stats["last_cache_diagnostics"]  # noqa: E111
+  snapshots = last_cache_capture["snapshots"]  # noqa: E111
+  assert hasattr(snapshots["coordinator_modules"], "to_mapping")  # noqa: E111
+  assert snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]  # noqa: E111
+  summary_obj = last_cache_capture.get("repair_summary")  # noqa: E111
+  assert summary_obj is not None  # noqa: E111
+  assert hasattr(summary_obj, "to_mapping")  # noqa: E111
+  assert summary_obj.to_mapping() == summary_payload  # noqa: E111
+  assert runtime_data.performance_stats["reconfigure_summary"]["warning_count"] == 1  # noqa: E111
+  last_result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert last_result["service"] == SERVICE_DAILY_RESET  # noqa: E111
+  assert last_result["status"] == "success"  # noqa: E111
+  diagnostics = last_result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  cache_capture = diagnostics.get("cache")  # noqa: E111
+  assert cache_capture is not None  # noqa: E111
+  snapshots = cache_capture["snapshots"]  # noqa: E111
+  assert hasattr(snapshots["coordinator_modules"], "to_mapping")  # noqa: E111
+  assert snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]  # noqa: E111
+  summary_obj = cache_capture.get("repair_summary")  # noqa: E111
+  assert summary_obj is not None  # noqa: E111
+  assert hasattr(summary_obj, "to_mapping")  # noqa: E111
+  assert summary_obj.to_mapping() == summary_payload  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["refresh_requested"] is True  # noqa: E111
+  assert metadata["reconfigure"]["requested_profile"] == "advanced"  # noqa: E111
+  assert metadata["reconfigure"]["warning_count"] == 1  # noqa: E111
+  assert metadata["reconfigure"]["merge_note_count"] == 0  # noqa: E111
+  assert metadata["reconfigure"]["merge_notes"] == []  # noqa: E111
+  assert last_result.get("details") == {  # noqa: E111
     "walk_cleanup_performed": True,
     "notifications_cleaned": 2,
     "cache_snapshot": True,
   }
 
-  service_results = runtime_data.performance_stats["service_results"]
-  assert service_results[-1] is last_result
+  service_results = runtime_data.performance_stats["service_results"]  # noqa: E111
+  assert service_results[-1] is last_result  # noqa: E111
 
-  maintenance_results = runtime_data.performance_stats["maintenance_results"]
-  assert maintenance_results
-  maintenance_last = runtime_data.performance_stats["last_maintenance_result"]
-  assert maintenance_last in maintenance_results
-  assert maintenance_last["task"] == "daily_reset"
-  assert maintenance_last["status"] == "success"
-  assert maintenance_last["details"] == {
+  maintenance_results = runtime_data.performance_stats["maintenance_results"]  # noqa: E111
+  assert maintenance_results  # noqa: E111
+  maintenance_last = runtime_data.performance_stats["last_maintenance_result"]  # noqa: E111
+  assert maintenance_last in maintenance_results  # noqa: E111
+  assert maintenance_last["task"] == "daily_reset"  # noqa: E111
+  assert maintenance_last["status"] == "success"  # noqa: E111
+  assert maintenance_last["details"] == {  # noqa: E111
     "walk_cleanup_performed": True,
     "notifications_cleaned": 2,
     "cache_snapshot": True,
   }
-  cache_metrics = maintenance_last["diagnostics"]["cache"]
-  assert hasattr(cache_metrics["snapshots"]["coordinator_modules"], "to_mapping")
-  assert (
+  cache_metrics = maintenance_last["diagnostics"]["cache"]  # noqa: E111
+  assert hasattr(cache_metrics["snapshots"]["coordinator_modules"], "to_mapping")  # noqa: E111
+  assert (  # noqa: E111
     cache_metrics["snapshots"]["coordinator_modules"].to_mapping()
     == payload["coordinator_modules"]
   )
-  repair_summary = cache_metrics.get("repair_summary")
-  assert repair_summary is not None
-  assert hasattr(repair_summary, "to_mapping")
-  assert repair_summary.to_mapping() == summary_payload
-  maintenance_metadata = maintenance_last["diagnostics"]["metadata"]
-  assert maintenance_metadata["refresh_requested"] is True
-  assert maintenance_metadata["reconfigure"]["requested_profile"] == "advanced"
-  assert maintenance_metadata["reconfigure"]["merge_note_count"] == 0
-  assert maintenance_metadata["reconfigure"]["merge_notes"] == []
-  assert isinstance(maintenance_last["recorded_at"], str)
+  repair_summary = cache_metrics.get("repair_summary")  # noqa: E111
+  assert repair_summary is not None  # noqa: E111
+  assert hasattr(repair_summary, "to_mapping")  # noqa: E111
+  assert repair_summary.to_mapping() == summary_payload  # noqa: E111
+  maintenance_metadata = maintenance_last["diagnostics"]["metadata"]  # noqa: E111
+  assert maintenance_metadata["refresh_requested"] is True  # noqa: E111
+  assert maintenance_metadata["reconfigure"]["requested_profile"] == "advanced"  # noqa: E111
+  assert maintenance_metadata["reconfigure"]["merge_note_count"] == 0  # noqa: E111
+  assert maintenance_metadata["reconfigure"]["merge_notes"] == []  # noqa: E111
+  assert isinstance(maintenance_last["recorded_at"], str)  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1069,9 +1069,9 @@ async def test_perform_daily_reset_records_cache_diagnostics(
 async def test_perform_daily_reset_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Daily reset should capture failures in the service result log."""
+  """Daily reset should capture failures in the service result log."""  # noqa: E111
 
-  telemetry = {
+  telemetry = {  # noqa: E111
     "requested_profile": "advanced",
     "previous_profile": "standard",
     "dogs_count": 2,
@@ -1082,7 +1082,7 @@ async def test_perform_daily_reset_records_failure(
     "health_summary": {"healthy": True, "issues": [], "warnings": []},
   }
 
-  runtime_data = SimpleNamespace(
+  runtime_data = SimpleNamespace(  # noqa: E111
     coordinator=_DummyCoordinator(
       fail=True,
       error=RuntimeError("coordinator unavailable"),
@@ -1094,45 +1094,45 @@ async def test_perform_daily_reset_records_failure(
     performance_stats={},
   )
 
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     services,
     "get_runtime_data",
     lambda hass, entry: runtime_data,
   )
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="test-entry")
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="test-entry")  # noqa: E111
 
-  with pytest.raises(RuntimeError, match="coordinator unavailable"):
+  with pytest.raises(RuntimeError, match="coordinator unavailable"):  # noqa: E111
     await services._perform_daily_reset(hass, entry)
 
-  last_result = runtime_data.performance_stats["last_service_result"]
-  assert last_result["service"] == SERVICE_DAILY_RESET
-  assert last_result["status"] == "error"
-  assert "coordinator unavailable" in last_result.get("message", "")
-  assert last_result.get("details") == {
+  last_result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert last_result["service"] == SERVICE_DAILY_RESET  # noqa: E111
+  assert last_result["status"] == "error"  # noqa: E111
+  assert "coordinator unavailable" in last_result.get("message", "")  # noqa: E111
+  assert last_result.get("details") == {  # noqa: E111
     "walk_cleanup_performed": True,
     "notifications_cleaned": 2,
     "cache_snapshot": False,
   }
-  metadata = last_result.get("diagnostics", {}).get("metadata")
-  assert metadata is not None
-  assert metadata["refresh_requested"] is False
-  assert metadata["reconfigure"]["requested_profile"] == "advanced"
-  assert runtime_data.performance_stats.get("daily_resets", 0) == 0
+  metadata = last_result.get("diagnostics", {}).get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["refresh_requested"] is False  # noqa: E111
+  assert metadata["reconfigure"]["requested_profile"] == "advanced"  # noqa: E111
+  assert runtime_data.performance_stats.get("daily_resets", 0) == 0  # noqa: E111
 
-  maintenance_last = runtime_data.performance_stats["last_maintenance_result"]
-  assert maintenance_last["task"] == "daily_reset"
-  assert maintenance_last["status"] == "error"
-  assert maintenance_last["details"] == {
+  maintenance_last = runtime_data.performance_stats["last_maintenance_result"]  # noqa: E111
+  assert maintenance_last["task"] == "daily_reset"  # noqa: E111
+  assert maintenance_last["status"] == "error"  # noqa: E111
+  assert maintenance_last["details"] == {  # noqa: E111
     "walk_cleanup_performed": True,
     "notifications_cleaned": 2,
     "cache_snapshot": False,
   }
-  failure_metadata = maintenance_last["diagnostics"]["metadata"]
-  assert failure_metadata["refresh_requested"] is False
-  assert failure_metadata["reconfigure"]["requested_profile"] == "advanced"
-  assert (
+  failure_metadata = maintenance_last["diagnostics"]["metadata"]  # noqa: E111
+  assert failure_metadata["refresh_requested"] is False  # noqa: E111
+  assert failure_metadata["reconfigure"]["requested_profile"] == "advanced"  # noqa: E111
+  assert (  # noqa: E111
     runtime_data.performance_stats["reconfigure_summary"]["requested_profile"]
     == "advanced"
   )
@@ -1143,9 +1143,9 @@ async def test_perform_daily_reset_records_failure(
 async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Daily reset metadata should remain JSON-safe for complex summaries."""
+  """Daily reset metadata should remain JSON-safe for complex summaries."""  # noqa: E111
 
-  complex_summary = {
+  complex_summary = {  # noqa: E111
     "timestamp": datetime(2024, 3, 15, tzinfo=UTC),
     "warnings": {"critical": ("gps", "walk")},
     "note_sequence": (
@@ -1161,47 +1161,47 @@ async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
     }),
   }
 
-  coordinator = _DummyCoordinator()
-  runtime_data = SimpleNamespace(
+  coordinator = _DummyCoordinator()  # noqa: E111
+  runtime_data = SimpleNamespace(  # noqa: E111
     coordinator=coordinator,
     walk_manager=_DummyWalkManager(),
     notification_manager=_DummyNotificationManager(),
     performance_stats={},
   )
 
-  monkeypatch.setattr(services, "_capture_cache_diagnostics", lambda _: None)
+  monkeypatch.setattr(services, "_capture_cache_diagnostics", lambda _: None)  # noqa: E111
 
-  def fake_update(runtime: SimpleNamespace) -> Mapping[str, object]:
+  def fake_update(runtime: SimpleNamespace) -> Mapping[str, object]:  # noqa: E111
     runtime.performance_stats["reconfigure_summary"] = complex_summary
     return complex_summary
 
-  monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
-  monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)
+  monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)  # noqa: E111
+  monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="test-entry")
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="test-entry")  # noqa: E111
 
-  await services._perform_daily_reset(hass, entry)
+  await services._perform_daily_reset(hass, entry)  # noqa: E111
 
-  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][  # noqa: E111
     "metadata"
   ]
-  reconfigure = metadata["reconfigure"]
+  reconfigure = metadata["reconfigure"]  # noqa: E111
 
-  assert reconfigure["timestamp"] == "2024-03-15 00:00:00+00:00"
-  assert reconfigure["warnings"]["critical"] == ["gps", "walk"]
-  assert reconfigure["note_sequence"][1].startswith("namespace(code='501'")
-  overrides = reconfigure["overrides"]["1"]
-  assert overrides["threshold"] == 5.5
-  assert overrides["scheduled_at"] == "2024-03-15 00:00:00+00:00"
-  assert sorted(overrides["set"]) == [1, 2]
+  assert reconfigure["timestamp"] == "2024-03-15 00:00:00+00:00"  # noqa: E111
+  assert reconfigure["warnings"]["critical"] == ["gps", "walk"]  # noqa: E111
+  assert reconfigure["note_sequence"][1].startswith("namespace(code='501'")  # noqa: E111
+  overrides = reconfigure["overrides"]["1"]  # noqa: E111
+  assert overrides["threshold"] == 5.5  # noqa: E111
+  assert overrides["scheduled_at"] == "2024-03-15 00:00:00+00:00"  # noqa: E111
+  assert sorted(overrides["set"]) == [1, 2]  # noqa: E111
 
-  maintenance_metadata = runtime_data.performance_stats["last_maintenance_result"][
+  maintenance_metadata = runtime_data.performance_stats["last_maintenance_result"][  # noqa: E111
     "diagnostics"
   ]["metadata"]["reconfigure"]
-  assert maintenance_metadata == reconfigure
+  assert maintenance_metadata == reconfigure  # noqa: E111
 
-  json.dumps(reconfigure)
+  json.dumps(reconfigure)  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1209,9 +1209,9 @@ async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
 async def test_perform_daily_reset_failure_normalises_complex_metadata(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Failure telemetry should also coerce complex metadata payloads."""
+  """Failure telemetry should also coerce complex metadata payloads."""  # noqa: E111
 
-  complex_summary = {
+  complex_summary = {  # noqa: E111
     "timestamp": datetime(2024, 4, 1, tzinfo=UTC),
     "categories": {1: {"issues": {"primary": {"ids": {42, 43}}}}},
     "notes": SimpleNamespace(message="Reset failed"),
@@ -1221,47 +1221,47 @@ async def test_perform_daily_reset_failure_normalises_complex_metadata(
     ),
   }
 
-  coordinator = _DummyCoordinator(fail=True, error=RuntimeError("boom"))
-  runtime_data = SimpleNamespace(
+  coordinator = _DummyCoordinator(fail=True, error=RuntimeError("boom"))  # noqa: E111
+  runtime_data = SimpleNamespace(  # noqa: E111
     coordinator=coordinator,
     walk_manager=_DummyWalkManager(),
     notification_manager=_DummyNotificationManager(),
     performance_stats={},
   )
 
-  monkeypatch.setattr(services, "_capture_cache_diagnostics", lambda _: None)
+  monkeypatch.setattr(services, "_capture_cache_diagnostics", lambda _: None)  # noqa: E111
 
-  def fake_update(runtime: SimpleNamespace) -> Mapping[str, object]:
+  def fake_update(runtime: SimpleNamespace) -> Mapping[str, object]:  # noqa: E111
     runtime.performance_stats["reconfigure_summary"] = complex_summary
     return complex_summary
 
-  monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
-  monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)
+  monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)  # noqa: E111
+  monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)  # noqa: E111
 
-  hass = SimpleNamespace()
-  entry = SimpleNamespace(entry_id="test-entry")
+  hass = SimpleNamespace()  # noqa: E111
+  entry = SimpleNamespace(entry_id="test-entry")  # noqa: E111
 
-  with pytest.raises(RuntimeError):
+  with pytest.raises(RuntimeError):  # noqa: E111
     await services._perform_daily_reset(hass, entry)
 
-  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][  # noqa: E111
     "metadata"
   ]
-  reconfigure = metadata["reconfigure"]
+  reconfigure = metadata["reconfigure"]  # noqa: E111
 
-  assert reconfigure["timestamp"] == "2024-04-01 00:00:00+00:00"
-  categories = reconfigure["categories"]["1"]["issues"]["primary"]
-  assert sorted(categories["ids"]) == [42, 43]
-  assert reconfigure["notes"].startswith("namespace(message='Reset failed'")
-  assert reconfigure["history"][0] == {"attempt": 1, "status": False}
-  assert reconfigure["history"][1].startswith("namespace(code='retry'")
+  assert reconfigure["timestamp"] == "2024-04-01 00:00:00+00:00"  # noqa: E111
+  categories = reconfigure["categories"]["1"]["issues"]["primary"]  # noqa: E111
+  assert sorted(categories["ids"]) == [42, 43]  # noqa: E111
+  assert reconfigure["notes"].startswith("namespace(message='Reset failed'")  # noqa: E111
+  assert reconfigure["history"][0] == {"attempt": 1, "status": False}  # noqa: E111
+  assert reconfigure["history"][1].startswith("namespace(code='retry'")  # noqa: E111
 
-  maintenance_metadata = runtime_data.performance_stats["last_maintenance_result"][
+  maintenance_metadata = runtime_data.performance_stats["last_maintenance_result"][  # noqa: E111
     "diagnostics"
   ]["metadata"]["reconfigure"]
-  assert maintenance_metadata == reconfigure
+  assert maintenance_metadata == reconfigure  # noqa: E111
 
-  json.dumps(reconfigure)
+  json.dumps(reconfigure)  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1269,18 +1269,18 @@ async def test_perform_daily_reset_failure_normalises_complex_metadata(
 async def test_send_notification_service_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Notification services should record successful telemetry snapshots."""
+  """Notification services should record successful telemetry snapshots."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "title": "Status",
@@ -1293,13 +1293,13 @@ async def test_send_notification_service_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SEND_NOTIFICATION
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None
-  assert details["priority"] == "normal"
-  assert runtime_data.performance_stats["service_results"][-1] is result
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SEND_NOTIFICATION  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["priority"] == "normal"  # noqa: E111
+  assert runtime_data.performance_stats["service_results"][-1] is result  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1308,18 +1308,18 @@ async def test_send_notification_service_recovers_from_invalid_payloads(
   monkeypatch: pytest.MonkeyPatch,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
-  """Notification service should fall back to defaults for invalid inputs."""
+  """Notification service should fall back to defaults for invalid inputs."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  with caplog.at_level(logging.WARNING):
+  with caplog.at_level(logging.WARNING):  # noqa: E111
     await handler(
       SimpleNamespace(
         data={
@@ -1332,25 +1332,25 @@ async def test_send_notification_service_recovers_from_invalid_payloads(
       )
     )
 
-  assert "Unknown notification type" in caplog.text
-  assert "Unknown notification priority" in caplog.text
-  assert "Ignoring unsupported notification channel" in caplog.text
+  assert "Unknown notification type" in caplog.text  # noqa: E111
+  assert "Unknown notification priority" in caplog.text  # noqa: E111
+  assert "Ignoring unsupported notification channel" in caplog.text  # noqa: E111
 
-  assert notification_manager.sent, "notification manager should receive a call"
-  sent_payload = notification_manager.sent[-1]
-  assert sent_payload["notification_type"] is NotificationType.SYSTEM_INFO
-  assert sent_payload["priority"] is NotificationPriority.NORMAL
-  force_channels = sent_payload["force_channels"]
-  assert isinstance(force_channels, list)
-  assert force_channels == [NotificationChannel.MOBILE]
+  assert notification_manager.sent, "notification manager should receive a call"  # noqa: E111
+  sent_payload = notification_manager.sent[-1]  # noqa: E111
+  assert sent_payload["notification_type"] is NotificationType.SYSTEM_INFO  # noqa: E111
+  assert sent_payload["priority"] is NotificationPriority.NORMAL  # noqa: E111
+  force_channels = sent_payload["force_channels"]  # noqa: E111
+  assert isinstance(force_channels, list)  # noqa: E111
+  assert force_channels == [NotificationChannel.MOBILE]  # noqa: E111
 
-  result = runtime_data.performance_stats["last_service_result"]
-  details = result.get("details")
-  assert details is not None
-  assert details["notification_type"] == NotificationType.SYSTEM_INFO.value
-  assert details["priority"] == NotificationPriority.NORMAL.value
-  assert details["channels"] == [NotificationChannel.MOBILE.value]
-  assert details["ignored_channels"] == ["pager"]
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["notification_type"] == NotificationType.SYSTEM_INFO.value  # noqa: E111
+  assert details["priority"] == NotificationPriority.NORMAL.value  # noqa: E111
+  assert details["channels"] == [NotificationChannel.MOBILE.value]  # noqa: E111
+  assert details["ignored_channels"] == ["pager"]  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1358,18 +1358,18 @@ async def test_send_notification_service_recovers_from_invalid_payloads(
 async def test_send_notification_service_records_guard_skip(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Guard skips should be captured in service telemetry summaries."""
+  """Guard skips should be captured in service telemetry summaries."""  # noqa: E111
 
-  notification_manager = _GuardSkippingNotificationManager()
-  coordinator = _CoordinatorStub(
+  notification_manager = _GuardSkippingNotificationManager()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "title": "Alert",
@@ -1378,23 +1378,23 @@ async def test_send_notification_service_records_guard_skip(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  guard_summary = result.get("guard")
-  assert guard_summary is not None
-  assert guard_summary["executed"] == 0
-  assert guard_summary["skipped"] == 1
-  assert guard_summary["reasons"]["missing_instance"] == 1
-  guard_results = guard_summary["results"]
-  assert isinstance(guard_results, list)
-  assert guard_results and guard_results[-1]["executed"] is False
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  guard_summary = result.get("guard")  # noqa: E111
+  assert guard_summary is not None  # noqa: E111
+  assert guard_summary["executed"] == 0  # noqa: E111
+  assert guard_summary["skipped"] == 1  # noqa: E111
+  assert guard_summary["reasons"]["missing_instance"] == 1  # noqa: E111
+  guard_results = guard_summary["results"]  # noqa: E111
+  assert isinstance(guard_results, list)  # noqa: E111
+  assert guard_results and guard_results[-1]["executed"] is False  # noqa: E111
 
-  guard_metrics = runtime_data.performance_stats["service_guard_metrics"]
-  assert guard_metrics["executed"] == 0
-  assert guard_metrics["skipped"] == 1
-  assert guard_metrics["reasons"]["missing_instance"] == 1
-  last_results = guard_metrics["last_results"]
-  assert isinstance(last_results, list)
-  assert last_results and last_results[-1]["description"] == "guard-test"
+  guard_metrics = runtime_data.performance_stats["service_guard_metrics"]  # noqa: E111
+  assert guard_metrics["executed"] == 0  # noqa: E111
+  assert guard_metrics["skipped"] == 1  # noqa: E111
+  assert guard_metrics["reasons"]["missing_instance"] == 1  # noqa: E111
+  last_results = guard_metrics["last_results"]  # noqa: E111
+  assert isinstance(last_results, list)  # noqa: E111
+  assert last_results and last_results[-1]["description"] == "guard-test"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1402,18 +1402,18 @@ async def test_send_notification_service_records_guard_skip(
 async def test_send_notification_service_accepts_enum_inputs(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Notification service should accept enum values directly."""
+  """Notification service should accept enum values directly."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "title": "Status",
@@ -1425,17 +1425,17 @@ async def test_send_notification_service_accepts_enum_inputs(
     )
   )
 
-  sent_payload = notification_manager.sent[-1]
-  assert sent_payload["notification_type"] is NotificationType.SYSTEM_INFO
-  assert sent_payload["priority"] is NotificationPriority.HIGH
-  force_channels = sent_payload["force_channels"]
-  assert force_channels == [NotificationChannel.MOBILE, NotificationChannel.DISCORD]
+  sent_payload = notification_manager.sent[-1]  # noqa: E111
+  assert sent_payload["notification_type"] is NotificationType.SYSTEM_INFO  # noqa: E111
+  assert sent_payload["priority"] is NotificationPriority.HIGH  # noqa: E111
+  force_channels = sent_payload["force_channels"]  # noqa: E111
+  assert force_channels == [NotificationChannel.MOBILE, NotificationChannel.DISCORD]  # noqa: E111
 
-  details = runtime_data.performance_stats["last_service_result"]["details"]
-  assert details is not None
-  assert details["notification_type"] == NotificationType.SYSTEM_INFO.value
-  assert details["priority"] == NotificationPriority.HIGH.value
-  assert details["channels"] == [
+  details = runtime_data.performance_stats["last_service_result"]["details"]  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["notification_type"] == NotificationType.SYSTEM_INFO.value  # noqa: E111
+  assert details["priority"] == NotificationPriority.HIGH.value  # noqa: E111
+  assert details["channels"] == [  # noqa: E111
     NotificationChannel.MOBILE.value,
     NotificationChannel.DISCORD.value,
   ]
@@ -1446,18 +1446,18 @@ async def test_send_notification_service_accepts_enum_inputs(
 async def test_send_notification_service_accepts_string_channel(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Single string channel inputs should normalise to enum lists."""
+  """Single string channel inputs should normalise to enum lists."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "title": "Update",
@@ -1469,8 +1469,8 @@ async def test_send_notification_service_accepts_string_channel(
     )
   )
 
-  sent_payload = notification_manager.sent[-1]
-  assert sent_payload["force_channels"] == [NotificationChannel.MOBILE]
+  sent_payload = notification_manager.sent[-1]  # noqa: E111
+  assert sent_payload["force_channels"] == [NotificationChannel.MOBILE]  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1479,18 +1479,18 @@ async def test_send_notification_service_deduplicates_channels(
   monkeypatch: pytest.MonkeyPatch,
   caplog: pytest.LogCaptureFixture,
 ) -> None:
-  """Duplicate channel inputs should collapse to a single entry."""
+  """Duplicate channel inputs should collapse to a single entry."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  with caplog.at_level(logging.WARNING):
+  with caplog.at_level(logging.WARNING):  # noqa: E111
     await handler(
       SimpleNamespace(
         data={
@@ -1509,22 +1509,22 @@ async def test_send_notification_service_deduplicates_channels(
       )
     )
 
-  sent_payload = notification_manager.sent[-1]
-  assert sent_payload["force_channels"] == [
+  sent_payload = notification_manager.sent[-1]  # noqa: E111
+  assert sent_payload["force_channels"] == [  # noqa: E111
     NotificationChannel.MOBILE,
     NotificationChannel.DISCORD,
   ]
 
-  # Invalid channels are still reported once for diagnostics
-  assert "Ignoring unsupported notification channel(s): pager" in caplog.text
+  # Invalid channels are still reported once for diagnostics  # noqa: E114
+  assert "Ignoring unsupported notification channel(s): pager" in caplog.text  # noqa: E111
 
-  details = runtime_data.performance_stats["last_service_result"]["details"]
-  assert details is not None
-  assert details["channels"] == [
+  details = runtime_data.performance_stats["last_service_result"]["details"]  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["channels"] == [  # noqa: E111
     NotificationChannel.MOBILE.value,
     NotificationChannel.DISCORD.value,
   ]
-  assert details["ignored_channels"] == ["pager"]
+  assert details["ignored_channels"] == ["pager"]  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1532,18 +1532,18 @@ async def test_send_notification_service_deduplicates_channels(
 async def test_send_notification_service_rejects_invalid_expiry(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Invalid expiry overrides should raise service validation errors."""
+  """Invalid expiry overrides should raise service validation errors."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match="expires_in_hours must be a number",
   ):
@@ -1557,10 +1557,10 @@ async def test_send_notification_service_rejects_invalid_expiry(
       )
     )
 
-  assert notification_manager.sent == []
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["status"] == "error"
-  assert result["message"] == "expires_in_hours must be a number"
+  assert notification_manager.sent == []  # noqa: E111
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result["message"] == "expires_in_hours must be a number"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1568,18 +1568,18 @@ async def test_send_notification_service_rejects_invalid_expiry(
 async def test_send_notification_service_rejects_non_positive_expiry(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Non-positive expiry overrides should raise service validation errors."""
+  """Non-positive expiry overrides should raise service validation errors."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match="expires_in_hours must be greater than 0",
   ):
@@ -1593,10 +1593,10 @@ async def test_send_notification_service_rejects_non_positive_expiry(
       )
     )
 
-  assert notification_manager.sent == []
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["status"] == "error"
-  assert result["message"] == "expires_in_hours must be greater than 0"
+  assert notification_manager.sent == []  # noqa: E111
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result["message"] == "expires_in_hours must be greater than 0"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1604,18 +1604,18 @@ async def test_send_notification_service_rejects_non_positive_expiry(
 async def test_send_notification_service_rejects_blank_title(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Blank titles should raise service validation errors."""
+  """Blank titles should raise service validation errors."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match="title must be a non-empty string",
   ):
@@ -1628,10 +1628,10 @@ async def test_send_notification_service_rejects_blank_title(
       )
     )
 
-  assert notification_manager.sent == []
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["status"] == "error"
-  assert result["message"] == "title must be a non-empty string"
+  assert notification_manager.sent == []  # noqa: E111
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result["message"] == "title must be a non-empty string"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1639,18 +1639,18 @@ async def test_send_notification_service_rejects_blank_title(
 async def test_send_notification_service_accepts_valid_expiry(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Valid expiry overrides should be converted to timedeltas."""
+  """Valid expiry overrides should be converted to timedeltas."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "title": "Expires soon",
@@ -1660,14 +1660,14 @@ async def test_send_notification_service_accepts_valid_expiry(
     )
   )
 
-  sent_payload = notification_manager.sent[-1]
-  expires_in = sent_payload["expires_in"]
-  assert isinstance(expires_in, timedelta)
-  assert expires_in == timedelta(hours=1.5)
+  sent_payload = notification_manager.sent[-1]  # noqa: E111
+  expires_in = sent_payload["expires_in"]  # noqa: E111
+  assert isinstance(expires_in, timedelta)  # noqa: E111
+  assert expires_in == timedelta(hours=1.5)  # noqa: E111
 
-  details = runtime_data.performance_stats["last_service_result"]["details"]
-  assert details is not None
-  assert details["expires_in_hours"] == pytest.approx(1.5)
+  details = runtime_data.performance_stats["last_service_result"]["details"]  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["expires_in_hours"] == pytest.approx(1.5)  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1675,19 +1675,19 @@ async def test_send_notification_service_accepts_valid_expiry(
 async def test_send_notification_service_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Notification telemetry should capture errors when sends fail."""
+  """Notification telemetry should capture errors when sends fail."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  notification_manager.fail_send = True
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  notification_manager.fail_send = True  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]  # noqa: E111
 
-  with pytest.raises(services.HomeAssistantError, match="send failed"):
+  with pytest.raises(services.HomeAssistantError, match="send failed"):  # noqa: E111
     await handler(
       SimpleNamespace(
         data={
@@ -1699,10 +1699,10 @@ async def test_send_notification_service_records_failure(
       )
     )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SEND_NOTIFICATION
-  assert result["status"] == "error"
-  assert result.get("message") == "send failed"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SEND_NOTIFICATION  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result.get("message") == "send failed"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1710,25 +1710,25 @@ async def test_send_notification_service_records_failure(
 async def test_acknowledge_notification_service_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Acknowledging notifications should append success telemetry."""
+  """Acknowledging notifications should append success telemetry."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]  # noqa: E111
 
-  await handler(SimpleNamespace(data={"notification_id": "notif-1"}))
+  await handler(SimpleNamespace(data={"notification_id": "notif-1"}))  # noqa: E111
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_ACKNOWLEDGE_NOTIFICATION
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None and details.get("acknowledged") is True
-  assert coordinator.refresh_called
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_ACKNOWLEDGE_NOTIFICATION  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None and details.get("acknowledged") is True  # noqa: E111
+  assert coordinator.refresh_called  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1736,27 +1736,27 @@ async def test_acknowledge_notification_service_records_success(
 async def test_acknowledge_notification_records_not_found(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Telemetry should capture missing notifications when acknowledgements fail."""
+  """Telemetry should capture missing notifications when acknowledgements fail."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  notification_manager.ack_exists = False
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  notification_manager.ack_exists = False  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(), notification_manager=notification_manager
   )
-  runtime_data = SimpleNamespace(performance_stats={})
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_ACKNOWLEDGE_NOTIFICATION]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     services.HomeAssistantError, match="No PawControl notification with ID"
   ):
     await handler(SimpleNamespace(data={"notification_id": "missing"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_ACKNOWLEDGE_NOTIFICATION
-  assert result["status"] == "error"
-  assert "No PawControl notification" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_ACKNOWLEDGE_NOTIFICATION  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "No PawControl notification" in result.get("message", "")  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1764,26 +1764,26 @@ async def test_acknowledge_notification_records_not_found(
 async def test_gps_start_walk_service_rejects_invalid_boolean_toggle(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """GPS walk start should reject non-boolean toggle values."""
+  """GPS walk start should reject non-boolean toggle values."""  # noqa: E111
 
-  gps_manager = _GPSManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)  # noqa: E111
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match=r"track_route must be a boolean \(got str\)",
   ):
     await handler(SimpleNamespace(data={"dog_id": "fido", "track_route": "maybe"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_GPS_START_WALK
-  assert result["status"] == "error"
-  assert "track_route must be a boolean (got str)" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_GPS_START_WALK  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "track_route must be a boolean (got str)" in result.get("message", "")  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1802,19 +1802,19 @@ async def test_gps_start_walk_service_coerces_common_boolean_inputs(
   service_value: object,
   expected: bool,
 ) -> None:
-  """GPS walk start should accept common Home Assistant boolean shapes."""
+  """GPS walk start should accept common Home Assistant boolean shapes."""  # noqa: E111
 
-  gps_manager = _GPSManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), gps_manager=gps_manager)  # noqa: E111
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_GPS_START_WALK]  # noqa: E111
 
-  await handler(SimpleNamespace(data={"dog_id": "fido", "track_route": service_value}))
+  await handler(SimpleNamespace(data={"dog_id": "fido", "track_route": service_value}))  # noqa: E111
 
-  assert gps_manager.last_start_tracking["track_route"] is expected
+  assert gps_manager.last_start_tracking["track_route"] is expected  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1822,22 +1822,22 @@ async def test_gps_start_walk_service_coerces_common_boolean_inputs(
 async def test_setup_automatic_gps_service_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Automation services should capture configuration telemetry."""
+  """Automation services should capture configuration telemetry."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "fido",
@@ -1853,13 +1853,13 @@ async def test_setup_automatic_gps_service_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None
-  assert details["safe_zone_radius"] == 75
-  assert gps_manager.last_config is not None
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["safe_zone_radius"] == 75  # noqa: E111
+  assert gps_manager.last_config is not None  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1867,22 +1867,22 @@ async def test_setup_automatic_gps_service_records_success(
 async def test_setup_automatic_gps_service_rejects_invalid_interval(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """GPS setup should reject invalid update intervals with clear errors."""
+  """GPS setup should reject invalid update intervals with clear errors."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match="update_interval_seconds must be a whole number",
   ):
@@ -1890,10 +1890,10 @@ async def test_setup_automatic_gps_service_rejects_invalid_interval(
       SimpleNamespace(data={"dog_id": "fido", "update_interval_seconds": "fast"})
     )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
-  assert result["status"] == "error"
-  assert "update_interval_seconds must be a whole number" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "update_interval_seconds must be a whole number" in result.get("message", "")  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1901,31 +1901,31 @@ async def test_setup_automatic_gps_service_rejects_invalid_interval(
 async def test_setup_automatic_gps_service_rejects_invalid_safe_zone_radius(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """GPS setup should route safe-zone validation through shared validators."""
+  """GPS setup should route safe-zone validation through shared validators."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match="safe_zone_radius must be a number",
   ):
     await handler(SimpleNamespace(data={"dog_id": "fido", "safe_zone_radius": "wide"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
-  assert result["status"] == "error"
-  assert "safe_zone_radius must be a number" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "safe_zone_radius must be a number" in result.get("message", "")  # noqa: E111
 
 
 @pytest.mark.unit
@@ -1933,31 +1933,31 @@ async def test_setup_automatic_gps_service_rejects_invalid_safe_zone_radius(
 async def test_setup_automatic_gps_service_rejects_out_of_range_safe_zone_radius(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """GPS setup should reject safe-zone radius values outside allowed bounds."""
+  """GPS setup should reject safe-zone radius values outside allowed bounds."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match="safe_zone_radius must be between 10.0 and 10000.0 m",
   ):
     await handler(SimpleNamespace(data={"dog_id": "fido", "safe_zone_radius": 1}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
-  assert result["status"] == "error"
-  assert "safe_zone_radius must be between 10.0 and 10000.0 m" in result.get(
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "safe_zone_radius must be between 10.0 and 10000.0 m" in result.get(  # noqa: E111
     "message", ""
   )
 
@@ -1967,22 +1967,22 @@ async def test_setup_automatic_gps_service_rejects_out_of_range_safe_zone_radius
 async def test_setup_automatic_gps_service_rejects_invalid_boolean_toggle(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """GPS setup should reject non-boolean toggle values."""
+  """GPS setup should reject non-boolean toggle values."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]  # noqa: E111
 
-  with pytest.raises(
+  with pytest.raises(  # noqa: E111
     ServiceValidationError,
     match=r"auto_start_walk must be a boolean \(got str\)",
   ):
@@ -1990,38 +1990,38 @@ async def test_setup_automatic_gps_service_rejects_invalid_boolean_toggle(
       SimpleNamespace(data={"dog_id": "fido", "auto_start_walk": "perhaps"})
     )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
-  assert result["status"] == "error"
-  assert "auto_start_walk must be a boolean (got str)" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "auto_start_walk must be a boolean (got str)" in result.get("message", "")  # noqa: E111
 
 
 async def test_setup_automatic_gps_service_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Automation telemetry should note failures when configuration raises."""
+  """Automation telemetry should note failures when configuration raises."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  gps_manager.fail_configure = True
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  gps_manager.fail_configure = True  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_SETUP_AUTOMATIC_GPS]  # noqa: E111
 
-  with pytest.raises(services.HomeAssistantError, match="configure failed"):
+  with pytest.raises(services.HomeAssistantError, match="configure failed"):  # noqa: E111
     await handler(SimpleNamespace(data={"dog_id": "fido"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
-  assert result["status"] == "error"
-  assert result.get("message") == "configure failed"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result.get("message") == "configure failed"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2029,11 +2029,11 @@ async def test_setup_automatic_gps_service_records_failure(
 async def test_gps_export_route_service_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """GPS export service should notify and log telemetry for multi-route payloads."""
+  """GPS export service should notify and log telemetry for multi-route payloads."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  export_payload: GPSRouteExportJSONPayload = {
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  export_payload: GPSRouteExportJSONPayload = {  # noqa: E111
     "format": "json",
     "filename": "fido_routes.json",
     "routes_count": 2,
@@ -2088,44 +2088,44 @@ async def test_gps_export_route_service_records_success(
       ],
     },
   }
-  gps_manager.export_result = export_payload
-  coordinator = _CoordinatorStub(
+  gps_manager.export_result = export_payload  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("fido", name="Fido")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("fido", name="Fido")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(data={"dog_id": "fido", "format": "json", "last_n_walks": 3})
   )
 
-  assert gps_manager.export_calls == [
+  assert gps_manager.export_calls == [  # noqa: E111
     {
       "dog_id": "fido",
       "export_format": "json",
       "last_n_routes": 3,
     }
   ]
-  assert len(notification_manager.sent) == 1
-  notification_payload = notification_manager.sent[0]
-  assert notification_payload["title"] == "Route Export Complete"
-  assert notification_payload["dog_id"] == "fido"
-  assert (
+  assert len(notification_manager.sent) == 1  # noqa: E111
+  notification_payload = notification_manager.sent[0]  # noqa: E111
+  assert notification_payload["title"] == "Route Export Complete"  # noqa: E111
+  assert notification_payload["dog_id"] == "fido"  # noqa: E111
+  assert (  # noqa: E111
     notification_payload["message"] == "Exported 2 route(s) for fido in json format"
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None
-  assert details["routes_count"] == 2
-  assert details["result"] == "exported"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["routes_count"] == 2  # noqa: E111
+  assert details["result"] == "exported"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2133,40 +2133,40 @@ async def test_gps_export_route_service_records_success(
 async def test_gps_export_route_service_records_no_routes(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """GPS export service should log telemetry when no history is present."""
+  """GPS export service should log telemetry when no history is present."""  # noqa: E111
 
-  notification_manager = _NotificationManagerStub()
-  gps_manager = _GPSManagerStub()
-  gps_manager.export_result = None
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  gps_manager = _GPSManagerStub()  # noqa: E111
+  gps_manager.export_result = None  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     gps_manager=gps_manager,
   )
-  coordinator.register_dog("luna")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("luna")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]  # noqa: E111
 
-  await handler(SimpleNamespace(data={"dog_id": "luna"}))
+  await handler(SimpleNamespace(data={"dog_id": "luna"}))  # noqa: E111
 
-  assert gps_manager.export_calls == [
+  assert gps_manager.export_calls == [  # noqa: E111
     {
       "dog_id": "luna",
       "export_format": "gpx",
       "last_n_routes": 1,
     }
   ]
-  assert notification_manager.sent == []
+  assert notification_manager.sent == []  # noqa: E111
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None
-  assert details["routes_count"] == 0
-  assert details["result"] == "no_routes"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None  # noqa: E111
+  assert details["routes_count"] == 0  # noqa: E111
+  assert details["result"] == "no_routes"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2174,17 +2174,17 @@ async def test_gps_export_route_service_records_no_routes(
 async def test_add_health_snack_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Health snack service should append success telemetry with details."""
+  """Health snack service should append success telemetry with details."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), feeding_manager=feeding_manager)
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), feeding_manager=feeding_manager)  # noqa: E111
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2196,12 +2196,12 @@ async def test_add_health_snack_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_ADD_HEALTH_SNACK
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None and details["snack_type"] == "carrot"
-  assert feeding_manager.calls and feeding_manager.calls[0]["dog_id"] == "buddy"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_ADD_HEALTH_SNACK  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None and details["snack_type"] == "carrot"  # noqa: E111
+  assert feeding_manager.calls and feeding_manager.calls[0]["dog_id"] == "buddy"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2209,26 +2209,26 @@ async def test_add_health_snack_records_success(
 async def test_add_health_snack_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Health snack telemetry should capture Home Assistant errors."""
+  """Health snack telemetry should capture Home Assistant errors."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.fail_with = services.HomeAssistantError("snack failed")
-  coordinator = _CoordinatorStub(SimpleNamespace(), feeding_manager=feeding_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.fail_with = services.HomeAssistantError("snack failed")  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), feeding_manager=feeding_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_ADD_HEALTH_SNACK]  # noqa: E111
 
-  with pytest.raises(services.HomeAssistantError, match="snack failed"):
+  with pytest.raises(services.HomeAssistantError, match="snack failed"):  # noqa: E111
     await handler(
       SimpleNamespace(data={"dog_id": "buddy", "snack_type": "carrot", "amount": 1.0})
     )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_ADD_HEALTH_SNACK
-  assert result["status"] == "error"
-  assert result.get("message") == "snack failed"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_ADD_HEALTH_SNACK  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result.get("message") == "snack failed"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2236,10 +2236,10 @@ async def test_add_health_snack_records_failure(
 async def test_check_feeding_compliance_notifies_on_issues(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Compliance service should forward typed payloads to notifications."""
+  """Compliance service should forward typed payloads to notifications."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.compliance_result = {
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.compliance_result = {  # noqa: E111
     "status": "completed",
     "dog_id": "buddy",
     "compliance_score": 72,
@@ -2281,21 +2281,21 @@ async def test_check_feeding_compliance_notifies_on_issues(
     "checked_at": "2024-05-03T10:00:00+00:00",
   }
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     feeding_manager=feeding_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]  # noqa: E111
 
-  context = Context(user_id="user-1", parent_id="parent-1", context_id="ctx-1")
+  context = Context(user_id="user-1", parent_id="parent-1", context_id="ctx-1")  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2306,59 +2306,59 @@ async def test_check_feeding_compliance_notifies_on_issues(
     )
   )
 
-  assert feeding_manager.compliance_calls == [
+  assert feeding_manager.compliance_calls == [  # noqa: E111
     {"dog_id": "buddy", "days_to_check": 3, "notify_on_issues": True}
   ]
-  assert notification_manager.compliance_calls
-  compliance_payload = notification_manager.compliance_calls[0]
-  assert compliance_payload["dog_id"] == "buddy"
-  assert compliance_payload["dog_name"] == "Buddy"
-  compliance_result = cast(FeedingComplianceCompleted, compliance_payload["compliance"])
-  assert compliance_result["status"] == "completed"
+  assert notification_manager.compliance_calls  # noqa: E111
+  compliance_payload = notification_manager.compliance_calls[0]  # noqa: E111
+  assert compliance_payload["dog_id"] == "buddy"  # noqa: E111
+  assert compliance_payload["dog_name"] == "Buddy"  # noqa: E111
+  compliance_result = cast(FeedingComplianceCompleted, compliance_payload["compliance"])  # noqa: E111
+  assert compliance_result["status"] == "completed"  # noqa: E111
 
-  fired_events = hass.bus.fired
-  assert len(fired_events) == 1
-  event = fired_events[0]
-  assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
-  event_data = cast(FeedingComplianceEventPayload, event["event_data"])
-  assert event_data["dog_id"] == "buddy"
-  assert event_data["dog_name"] == "Buddy"
-  assert event_data["notification_sent"] is True
-  assert event_data["result"] is not feeding_manager.compliance_result
-  assert event_data["result"]["compliance_score"] == 72
-  summary = event_data.get("localized_summary")
-  assert summary is not None
-  assert summary["title"].startswith("🍽️ Feeding compliance alert")
-  assert summary["score_line"].startswith("Score: 72")
-  assert summary["issues"] == ["2024-05-01: Underfed by 20%"]
-  assert summary["missed_meals"] == ["2024-05-01: 1/2 meals"]
-  kwargs = event["kwargs"]
-  assert kwargs.get("context") is context
-  time_fired = kwargs.get("time_fired")
-  assert isinstance(time_fired, datetime)
-  assert time_fired.tzinfo is not None
-  assert event_data["context_id"] == context.id
-  assert event_data["parent_id"] == context.parent_id
-  assert event_data["user_id"] == context.user_id
+  fired_events = hass.bus.fired  # noqa: E111
+  assert len(fired_events) == 1  # noqa: E111
+  event = fired_events[0]  # noqa: E111
+  assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED  # noqa: E111
+  event_data = cast(FeedingComplianceEventPayload, event["event_data"])  # noqa: E111
+  assert event_data["dog_id"] == "buddy"  # noqa: E111
+  assert event_data["dog_name"] == "Buddy"  # noqa: E111
+  assert event_data["notification_sent"] is True  # noqa: E111
+  assert event_data["result"] is not feeding_manager.compliance_result  # noqa: E111
+  assert event_data["result"]["compliance_score"] == 72  # noqa: E111
+  summary = event_data.get("localized_summary")  # noqa: E111
+  assert summary is not None  # noqa: E111
+  assert summary["title"].startswith("🍽️ Feeding compliance alert")  # noqa: E111
+  assert summary["score_line"].startswith("Score: 72")  # noqa: E111
+  assert summary["issues"] == ["2024-05-01: Underfed by 20%"]  # noqa: E111
+  assert summary["missed_meals"] == ["2024-05-01: 1/2 meals"]  # noqa: E111
+  kwargs = event["kwargs"]  # noqa: E111
+  assert kwargs.get("context") is context  # noqa: E111
+  time_fired = kwargs.get("time_fired")  # noqa: E111
+  assert isinstance(time_fired, datetime)  # noqa: E111
+  assert time_fired.tzinfo is not None  # noqa: E111
+  assert event_data["context_id"] == context.id  # noqa: E111
+  assert event_data["parent_id"] == context.parent_id  # noqa: E111
+  assert event_data["user_id"] == context.user_id  # noqa: E111
 
-  last_result = runtime_data.performance_stats["last_service_result"]
-  assert last_result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
-  assert last_result["status"] == "success"
-  details = last_result["details"]
-  assert details["score"] == 72
-  details_summary = details.get("localized_summary")
-  assert details_summary is not None
-  assert details_summary["title"] == summary["title"]
-  assert details_summary["issues"] == summary["issues"]
-  diagnostics = last_result.get("diagnostics")
-  assert diagnostics is not None
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None
-  assert metadata["notification_sent"] is True
-  assert metadata["days_to_check"] == 3
-  assert metadata["context_id"] == context.id
-  assert metadata["parent_id"] == context.parent_id
-  assert metadata["user_id"] == context.user_id
+  last_result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert last_result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE  # noqa: E111
+  assert last_result["status"] == "success"  # noqa: E111
+  details = last_result["details"]  # noqa: E111
+  assert details["score"] == 72  # noqa: E111
+  details_summary = details.get("localized_summary")  # noqa: E111
+  assert details_summary is not None  # noqa: E111
+  assert details_summary["title"] == summary["title"]  # noqa: E111
+  assert details_summary["issues"] == summary["issues"]  # noqa: E111
+  diagnostics = last_result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["notification_sent"] is True  # noqa: E111
+  assert metadata["days_to_check"] == 3  # noqa: E111
+  assert metadata["context_id"] == context.id  # noqa: E111
+  assert metadata["parent_id"] == context.parent_id  # noqa: E111
+  assert metadata["user_id"] == context.user_id  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2366,10 +2366,10 @@ async def test_check_feeding_compliance_notifies_on_issues(
 async def test_check_feeding_compliance_skips_when_clean(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Clean compliance results should not trigger notifications."""
+  """Clean compliance results should not trigger notifications."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.compliance_result = {
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.compliance_result = {  # noqa: E111
     "status": "completed",
     "dog_id": "buddy",
     "compliance_score": 100,
@@ -2389,19 +2389,19 @@ async def test_check_feeding_compliance_skips_when_clean(
     "checked_at": "2024-05-03T12:00:00+00:00",
   }
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     feeding_manager=feeding_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2411,30 +2411,30 @@ async def test_check_feeding_compliance_skips_when_clean(
     )
   )
 
-  assert notification_manager.compliance_calls == []
+  assert notification_manager.compliance_calls == []  # noqa: E111
 
-  fired_events = hass.bus.fired
-  assert len(fired_events) == 1
-  event = fired_events[0]
-  assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
-  event_data = cast(FeedingComplianceEventPayload, event["event_data"])
-  assert isinstance(event_data, dict)
-  assert event_data["dog_id"] == "buddy"
-  assert event_data["notification_sent"] is False
-  assert event_data["result"]["compliance_score"] == 100
-  summary = event_data.get("localized_summary")
-  assert summary is not None
-  assert summary["score_line"].startswith("Score: 100")
-  assert summary["issues"] == []
-  assert summary["missed_meals"] == []
+  fired_events = hass.bus.fired  # noqa: E111
+  assert len(fired_events) == 1  # noqa: E111
+  event = fired_events[0]  # noqa: E111
+  assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED  # noqa: E111
+  event_data = cast(FeedingComplianceEventPayload, event["event_data"])  # noqa: E111
+  assert isinstance(event_data, dict)  # noqa: E111
+  assert event_data["dog_id"] == "buddy"  # noqa: E111
+  assert event_data["notification_sent"] is False  # noqa: E111
+  assert event_data["result"]["compliance_score"] == 100  # noqa: E111
+  summary = event_data.get("localized_summary")  # noqa: E111
+  assert summary is not None  # noqa: E111
+  assert summary["score_line"].startswith("Score: 100")  # noqa: E111
+  assert summary["issues"] == []  # noqa: E111
+  assert summary["missed_meals"] == []  # noqa: E111
 
-  last_result = runtime_data.performance_stats["last_service_result"]
-  assert last_result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
-  assert last_result["status"] == "success"
-  details_summary = last_result["details"].get("localized_summary")
-  assert details_summary is not None
-  assert details_summary["score_line"].startswith("Score: 100")
-  assert last_result["details"]["score"] == 100
+  last_result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert last_result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE  # noqa: E111
+  assert last_result["status"] == "success"  # noqa: E111
+  details_summary = last_result["details"].get("localized_summary")  # noqa: E111
+  assert details_summary is not None  # noqa: E111
+  assert details_summary["score_line"].startswith("Score: 100")  # noqa: E111
+  assert last_result["details"]["score"] == 100  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2442,10 +2442,10 @@ async def test_check_feeding_compliance_skips_when_clean(
 async def test_check_feeding_compliance_respects_notify_toggle(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Notifications are skipped when notify_on_issues is False."""
+  """Notifications are skipped when notify_on_issues is False."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.compliance_result = {
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.compliance_result = {  # noqa: E111
     "status": "completed",
     "dog_id": "buddy",
     "compliance_score": 50,
@@ -2471,19 +2471,19 @@ async def test_check_feeding_compliance_respects_notify_toggle(
     "checked_at": "2024-05-03T15:00:00+00:00",
   }
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     feeding_manager=feeding_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2493,23 +2493,23 @@ async def test_check_feeding_compliance_respects_notify_toggle(
     )
   )
 
-  assert notification_manager.compliance_calls == []
+  assert notification_manager.compliance_calls == []  # noqa: E111
 
-  fired_events = hass.bus.fired
-  assert len(fired_events) == 1
-  event = fired_events[0]
-  assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
-  event_data = cast(FeedingComplianceEventPayload, event["event_data"])
-  assert isinstance(event_data, dict)
-  assert event_data["notify_on_issues"] is False
-  assert event_data["notification_sent"] is False
+  fired_events = hass.bus.fired  # noqa: E111
+  assert len(fired_events) == 1  # noqa: E111
+  event = fired_events[0]  # noqa: E111
+  assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED  # noqa: E111
+  event_data = cast(FeedingComplianceEventPayload, event["event_data"])  # noqa: E111
+  assert isinstance(event_data, dict)  # noqa: E111
+  assert event_data["notify_on_issues"] is False  # noqa: E111
+  assert event_data["notification_sent"] is False  # noqa: E111
 
-  last_result = runtime_data.performance_stats["last_service_result"]
-  assert last_result["status"] == "success"
-  diagnostics = last_result.get("diagnostics")
-  assert diagnostics is not None
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None and metadata["notify_on_issues"] is False
+  last_result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert last_result["status"] == "success"  # noqa: E111
+  diagnostics = last_result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None and metadata["notify_on_issues"] is False  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2517,26 +2517,26 @@ async def test_check_feeding_compliance_respects_notify_toggle(
 async def test_check_feeding_compliance_sanitises_structured_messages(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Structured compliance messages should be normalised to readable text."""
+  """Structured compliance messages should be normalised to readable text."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.compliance_result = {
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.compliance_result = {  # noqa: E111
     "status": "no_data",
     "message": {"description": "Telemetry offline", "code": 503},
   }
 
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     feeding_manager=feeding_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  published_payloads: list[FeedingComplianceEventPayload] = []
+  published_payloads: list[FeedingComplianceEventPayload] = []  # noqa: E111
 
-  async def _capture_publish(
+  async def _capture_publish(  # noqa: E111
     hass: object,
     entry: object,
     payload: FeedingComplianceEventPayload,
@@ -2545,16 +2545,16 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
   ) -> None:
     published_payloads.append(payload)
 
-  monkeypatch.setattr(
+  monkeypatch.setattr(  # noqa: E111
     services,
     "async_publish_feeding_compliance_issue",
     _capture_publish,
   )
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2564,67 +2564,67 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
     )
   )
 
-  assert notification_manager.compliance_calls
-  assert published_payloads
+  assert notification_manager.compliance_calls  # noqa: E111
+  assert published_payloads  # noqa: E111
 
-  event = hass.bus.fired[0]
-  event_data = cast(FeedingComplianceEventPayload, event["event_data"])
-  assert event_data["result"]["message"] == "Telemetry offline"
+  event = hass.bus.fired[0]  # noqa: E111
+  event_data = cast(FeedingComplianceEventPayload, event["event_data"])  # noqa: E111
+  assert event_data["result"]["message"] == "Telemetry offline"  # noqa: E111
 
-  summary = event_data["localized_summary"]
-  assert summary["message"] == "Telemetry offline"
+  summary = event_data["localized_summary"]  # noqa: E111
+  assert summary["message"] == "Telemetry offline"  # noqa: E111
 
-  recorded = runtime_data.performance_stats["last_service_result"]
-  details = recorded["details"]
-  assert details["message"] == "Telemetry offline"
-  assert details["localized_summary"]["message"] == "Telemetry offline"
+  recorded = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  details = recorded["details"]  # noqa: E111
+  assert details["message"] == "Telemetry offline"  # noqa: E111
+  assert details["localized_summary"]["message"] == "Telemetry offline"  # noqa: E111
 
-  published = published_payloads[0]
-  published_result = cast(FeedingComplianceNoData, published["result"])
-  assert published_result["message"] == "Telemetry offline"
+  published = published_payloads[0]  # noqa: E111
+  published_result = cast(FeedingComplianceNoData, published["result"])  # noqa: E111
+  assert published_result["message"] == "Telemetry offline"  # noqa: E111
 
 
 @pytest.mark.unit
 def test_merge_service_context_metadata_respects_include_none() -> None:
-  """Helper should optionally persist ``None`` metadata values."""
+  """Helper should optionally persist ``None`` metadata values."""  # noqa: E111
 
-  target: dict[str, object] = {"existing": True}
-  metadata = {"context_id": None, "parent_id": "parent-123"}
+  target: dict[str, object] = {"existing": True}  # noqa: E111
+  metadata = {"context_id": None, "parent_id": "parent-123"}  # noqa: E111
 
-  services._merge_service_context_metadata(target, metadata)
+  services._merge_service_context_metadata(target, metadata)  # noqa: E111
 
-  assert "context_id" not in target
-  assert target["parent_id"] == "parent-123"
+  assert "context_id" not in target  # noqa: E111
+  assert target["parent_id"] == "parent-123"  # noqa: E111
 
-  services._merge_service_context_metadata(target, metadata, include_none=True)
+  services._merge_service_context_metadata(target, metadata, include_none=True)  # noqa: E111
 
-  assert target["context_id"] is None
-  assert target["parent_id"] == "parent-123"
+  assert target["context_id"] is None  # noqa: E111
+  assert target["parent_id"] == "parent-123"  # noqa: E111
 
 
 @pytest.mark.unit
 def test_merge_service_context_metadata_preserves_additional_keys() -> None:
-  """Additional context metadata should be forwarded unchanged."""
+  """Additional context metadata should be forwarded unchanged."""  # noqa: E111
 
-  target: dict[str, object] = {}
-  metadata = {"context_id": "ctx-123", "source": "stub"}
+  target: dict[str, object] = {}  # noqa: E111
+  metadata = {"context_id": "ctx-123", "source": "stub"}  # noqa: E111
 
-  services._merge_service_context_metadata(target, metadata)
+  services._merge_service_context_metadata(target, metadata)  # noqa: E111
 
-  assert target["context_id"] == "ctx-123"
-  assert target["source"] == "stub"
+  assert target["context_id"] == "ctx-123"  # noqa: E111
+  assert target["source"] == "stub"  # noqa: E111
 
 
 @pytest.mark.unit
 def test_merge_service_context_metadata_ignores_non_string_keys() -> None:
-  """Non-string metadata keys are ignored for safety."""
+  """Non-string metadata keys are ignored for safety."""  # noqa: E111
 
-  target: dict[str, object] = {}
-  metadata = {"context_id": "ctx-123", 42: "skip-me"}
+  target: dict[str, object] = {}  # noqa: E111
+  metadata = {"context_id": "ctx-123", 42: "skip-me"}  # noqa: E111
 
-  services._merge_service_context_metadata(target, metadata)
+  services._merge_service_context_metadata(target, metadata)  # noqa: E111
 
-  assert target == {"context_id": "ctx-123"}
+  assert target == {"context_id": "ctx-123"}  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2632,10 +2632,10 @@ def test_merge_service_context_metadata_ignores_non_string_keys() -> None:
 async def test_check_feeding_compliance_builds_context_from_stub(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Context metadata should be normalised when Home Assistant provides stubs."""
+  """Context metadata should be normalised when Home Assistant provides stubs."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.compliance_result = {
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.compliance_result = {  # noqa: E111
     "status": "completed",
     "dog_id": "buddy",
     "compliance_score": 82,
@@ -2655,24 +2655,24 @@ async def test_check_feeding_compliance_builds_context_from_stub(
     "checked_at": "2024-05-04T09:00:00+00:00",
   }
 
-  coordinator = _CoordinatorStub(
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=_NotificationManagerStub(),
     feeding_manager=feeding_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]  # noqa: E111
 
-  context_stub = SimpleNamespace(
+  context_stub = SimpleNamespace(  # noqa: E111
     id="ctx-stub",
     parent_id="parent-stub",
     user_id="user-stub",
   )
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2683,25 +2683,25 @@ async def test_check_feeding_compliance_builds_context_from_stub(
     )
   )
 
-  event = hass.bus.fired[0]
-  kwargs = event["kwargs"]
-  event_context = kwargs.get("context")
-  assert event_context is not context_stub
-  assert getattr(event_context, "id", None) == "ctx-stub"
-  assert getattr(event_context, "parent_id", None) == "parent-stub"
-  assert getattr(event_context, "user_id", None) == "user-stub"
+  event = hass.bus.fired[0]  # noqa: E111
+  kwargs = event["kwargs"]  # noqa: E111
+  event_context = kwargs.get("context")  # noqa: E111
+  assert event_context is not context_stub  # noqa: E111
+  assert getattr(event_context, "id", None) == "ctx-stub"  # noqa: E111
+  assert getattr(event_context, "parent_id", None) == "parent-stub"  # noqa: E111
+  assert getattr(event_context, "user_id", None) == "user-stub"  # noqa: E111
 
-  event_data = cast(FeedingComplianceEventPayload, event["event_data"])
-  assert event_data["context_id"] == "ctx-stub"
-  assert event_data["parent_id"] == "parent-stub"
-  assert event_data["user_id"] == "user-stub"
+  event_data = cast(FeedingComplianceEventPayload, event["event_data"])  # noqa: E111
+  assert event_data["context_id"] == "ctx-stub"  # noqa: E111
+  assert event_data["parent_id"] == "parent-stub"  # noqa: E111
+  assert event_data["user_id"] == "user-stub"  # noqa: E111
 
-  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][  # noqa: E111
     "metadata"
   ]
-  assert metadata["context_id"] == "ctx-stub"
-  assert metadata["parent_id"] == "parent-stub"
-  assert metadata["user_id"] == "user-stub"
+  assert metadata["context_id"] == "ctx-stub"  # noqa: E111
+  assert metadata["parent_id"] == "parent-stub"  # noqa: E111
+  assert metadata["user_id"] == "user-stub"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2709,10 +2709,10 @@ async def test_check_feeding_compliance_builds_context_from_stub(
 async def test_check_feeding_compliance_builds_context_from_mapping(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Mapping-based service contexts should be normalised for telemetry."""
+  """Mapping-based service contexts should be normalised for telemetry."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.compliance_result = {
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.compliance_result = {  # noqa: E111
     "status": "completed",
     "dog_id": "buddy",
     "compliance_score": 92,
@@ -2732,24 +2732,24 @@ async def test_check_feeding_compliance_builds_context_from_mapping(
     "checked_at": "2024-05-05T11:00:00+00:00",
   }
 
-  coordinator = _CoordinatorStub(
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=_NotificationManagerStub(),
     feeding_manager=feeding_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]  # noqa: E111
 
-  context_mapping = {
+  context_mapping = {  # noqa: E111
     "context_id": "ctx-mapping",
     "parent_id": "parent-mapping",
     "user_id": "user-mapping",
   }
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2760,25 +2760,25 @@ async def test_check_feeding_compliance_builds_context_from_mapping(
     )
   )
 
-  event = hass.bus.fired[0]
-  kwargs = event["kwargs"]
-  event_context = kwargs.get("context")
-  assert event_context is not None
-  assert getattr(event_context, "id", None) == "ctx-mapping"
-  assert getattr(event_context, "parent_id", None) == "parent-mapping"
-  assert getattr(event_context, "user_id", None) == "user-mapping"
+  event = hass.bus.fired[0]  # noqa: E111
+  kwargs = event["kwargs"]  # noqa: E111
+  event_context = kwargs.get("context")  # noqa: E111
+  assert event_context is not None  # noqa: E111
+  assert getattr(event_context, "id", None) == "ctx-mapping"  # noqa: E111
+  assert getattr(event_context, "parent_id", None) == "parent-mapping"  # noqa: E111
+  assert getattr(event_context, "user_id", None) == "user-mapping"  # noqa: E111
 
-  event_data = cast(FeedingComplianceEventPayload, event["event_data"])
-  assert event_data["context_id"] == "ctx-mapping"
-  assert event_data["parent_id"] == "parent-mapping"
-  assert event_data["user_id"] == "user-mapping"
+  event_data = cast(FeedingComplianceEventPayload, event["event_data"])  # noqa: E111
+  assert event_data["context_id"] == "ctx-mapping"  # noqa: E111
+  assert event_data["parent_id"] == "parent-mapping"  # noqa: E111
+  assert event_data["user_id"] == "user-mapping"  # noqa: E111
 
-  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+  metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][  # noqa: E111
     "metadata"
   ]
-  assert metadata["context_id"] == "ctx-mapping"
-  assert metadata["parent_id"] == "parent-mapping"
-  assert metadata["user_id"] == "user-mapping"
+  assert metadata["context_id"] == "ctx-mapping"  # noqa: E111
+  assert metadata["parent_id"] == "parent-mapping"  # noqa: E111
+  assert metadata["user_id"] == "user-mapping"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2786,23 +2786,23 @@ async def test_check_feeding_compliance_builds_context_from_mapping(
 async def test_check_feeding_compliance_records_errors(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Service should capture telemetry when compliance checks fail."""
+  """Service should capture telemetry when compliance checks fail."""  # noqa: E111
 
-  feeding_manager = _FeedingManagerStub()
-  feeding_manager.compliance_error = services.HomeAssistantError("compliance failed")
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  feeding_manager = _FeedingManagerStub()  # noqa: E111
+  feeding_manager.compliance_error = services.HomeAssistantError("compliance failed")  # noqa: E111
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     feeding_manager=feeding_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]  # noqa: E111
 
-  with pytest.raises(services.HomeAssistantError, match="compliance failed"):
+  with pytest.raises(services.HomeAssistantError, match="compliance failed"):  # noqa: E111
     await handler(
       SimpleNamespace(
         data={
@@ -2813,35 +2813,35 @@ async def test_check_feeding_compliance_records_errors(
       )
     )
 
-  assert hass.bus.fired == []
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
-  assert result["status"] == "error"
-  assert result["message"] == "compliance failed"
-  diagnostics = result.get("diagnostics")
-  assert diagnostics is not None
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None
-  assert metadata["days_to_check"] == 3
-  assert metadata["notify_on_issues"] is True
-  assert "context_id" not in metadata
+  assert hass.bus.fired == []  # noqa: E111
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result["message"] == "compliance failed"  # noqa: E111
+  diagnostics = result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["days_to_check"] == 3  # noqa: E111
+  assert metadata["notify_on_issues"] is True  # noqa: E111
+  assert "context_id" not in metadata  # noqa: E111
 
 
 async def test_log_poop_service_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Poop logging should emit success telemetry with timestamp details."""
+  """Poop logging should emit success telemetry with timestamp details."""  # noqa: E111
 
-  data_manager = _DataManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
-  timestamp = datetime(2024, 1, 1, tzinfo=UTC)
+  data_manager = _DataManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
+  timestamp = datetime(2024, 1, 1, tzinfo=UTC)  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_LOG_POOP]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_LOG_POOP]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2853,12 +2853,12 @@ async def test_log_poop_service_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_LOG_POOP
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None and details["timestamp"].startswith("2024-01-01T00:00:00")
-  assert data_manager.poop_calls and data_manager.poop_calls[0]["dog_id"] == "buddy"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_LOG_POOP  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None and details["timestamp"].startswith("2024-01-01T00:00:00")  # noqa: E111
+  assert data_manager.poop_calls and data_manager.poop_calls[0]["dog_id"] == "buddy"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2866,24 +2866,24 @@ async def test_log_poop_service_records_success(
 async def test_log_poop_service_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Poop logging telemetry should capture Home Assistant errors."""
+  """Poop logging telemetry should capture Home Assistant errors."""  # noqa: E111
 
-  data_manager = _DataManagerStub()
-  data_manager.fail_log = services.HomeAssistantError("poop failed")
-  coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  data_manager = _DataManagerStub()  # noqa: E111
+  data_manager.fail_log = services.HomeAssistantError("poop failed")  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_LOG_POOP]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_LOG_POOP]  # noqa: E111
 
-  with pytest.raises(services.HomeAssistantError, match="poop failed"):
+  with pytest.raises(services.HomeAssistantError, match="poop failed"):  # noqa: E111
     await handler(SimpleNamespace(data={"dog_id": "buddy"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_LOG_POOP
-  assert result["status"] == "error"
-  assert result.get("message") == "poop failed"
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_LOG_POOP  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result.get("message") == "poop failed"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2891,23 +2891,23 @@ async def test_log_poop_service_records_failure(
 async def test_start_grooming_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Grooming service should store telemetry for successful sessions."""
+  """Grooming service should store telemetry for successful sessions."""  # noqa: E111
 
-  reminder_sent_at = datetime.now(UTC)
-  data_manager = _DataManagerStub()
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  reminder_sent_at = datetime.now(UTC)  # noqa: E111
+  data_manager = _DataManagerStub()  # noqa: E111
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     data_manager=data_manager,
   )
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GROOMING]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_START_GROOMING]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2922,28 +2922,28 @@ async def test_start_grooming_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_START_GROOMING
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None and details["session_id"] == data_manager.next_session_id
-  assert details["reminder_attached"] is True
-  reminder_details = details.get("reminder")
-  assert reminder_details is not None
-  assert reminder_details["id"] == "rem-123"
-  assert reminder_details["type"] == "auto_schedule"
-  expected_iso = reminder_sent_at.astimezone(UTC).isoformat()
-  assert reminder_details["sent_at"] == expected_iso
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_START_GROOMING  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None and details["session_id"] == data_manager.next_session_id  # noqa: E111
+  assert details["reminder_attached"] is True  # noqa: E111
+  reminder_details = details.get("reminder")  # noqa: E111
+  assert reminder_details is not None  # noqa: E111
+  assert reminder_details["id"] == "rem-123"  # noqa: E111
+  assert reminder_details["type"] == "auto_schedule"  # noqa: E111
+  expected_iso = reminder_sent_at.astimezone(UTC).isoformat()  # noqa: E111
+  assert reminder_details["sent_at"] == expected_iso  # noqa: E111
 
-  diagnostics = result.get("diagnostics")
-  assert diagnostics is not None
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None
-  assert metadata["reminder_attached"] is True
-  assert metadata["reminder_id"] == "rem-123"
-  assert metadata["reminder_type"] == "auto_schedule"
-  assert metadata["reminder_sent_at"] == expected_iso
-  assert data_manager.groom_calls and data_manager.groom_calls[0]["dog_id"] == "buddy"
+  diagnostics = result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["reminder_attached"] is True  # noqa: E111
+  assert metadata["reminder_id"] == "rem-123"  # noqa: E111
+  assert metadata["reminder_type"] == "auto_schedule"  # noqa: E111
+  assert metadata["reminder_sent_at"] == expected_iso  # noqa: E111
+  assert data_manager.groom_calls and data_manager.groom_calls[0]["dog_id"] == "buddy"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2951,24 +2951,24 @@ async def test_start_grooming_records_success(
 async def test_start_grooming_localizes_notification(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Grooming notifications should respect the active Home Assistant language."""
+  """Grooming notifications should respect the active Home Assistant language."""  # noqa: E111
 
-  data_manager = _DataManagerStub()
-  notification_manager = _NotificationManagerStub()
-  coordinator = _CoordinatorStub(
+  data_manager = _DataManagerStub()  # noqa: E111
+  notification_manager = _NotificationManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(  # noqa: E111
     SimpleNamespace(),
     notification_manager=notification_manager,
     data_manager=data_manager,
   )
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  hass.config.language = "de"
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  hass.config.language = "de"  # noqa: E111
 
-  handler = hass.services.handlers[services.SERVICE_START_GROOMING]
+  handler = hass.services.handlers[services.SERVICE_START_GROOMING]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -2979,10 +2979,10 @@ async def test_start_grooming_localizes_notification(
     )
   )
 
-  assert notification_manager.sent, "Expected localized grooming notification"
-  payload = notification_manager.sent[0]
-  assert payload["title"] == "🛁 Pflege gestartet: Buddy"
-  assert payload["message"] == "Gestartet bath für Buddy mit Jamie (ca. 45 Min.)"
+  assert notification_manager.sent, "Expected localized grooming notification"  # noqa: E111
+  payload = notification_manager.sent[0]  # noqa: E111
+  assert payload["title"] == "🛁 Pflege gestartet: Buddy"  # noqa: E111
+  assert payload["message"] == "Gestartet bath für Buddy mit Jamie (ca. 45 Min.)"  # noqa: E111
 
 
 @pytest.mark.unit
@@ -2990,29 +2990,29 @@ async def test_start_grooming_localizes_notification(
 async def test_start_grooming_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Grooming telemetry should track Home Assistant errors."""
+  """Grooming telemetry should track Home Assistant errors."""  # noqa: E111
 
-  data_manager = _DataManagerStub()
-  data_manager.fail_groom = services.HomeAssistantError("groom failed")
-  coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  data_manager = _DataManagerStub()  # noqa: E111
+  data_manager.fail_groom = services.HomeAssistantError("groom failed")  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), data_manager=data_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GROOMING]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_START_GROOMING]  # noqa: E111
 
-  with pytest.raises(services.HomeAssistantError, match="groom failed"):
+  with pytest.raises(services.HomeAssistantError, match="groom failed"):  # noqa: E111
     await handler(SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_START_GROOMING
-  assert result["status"] == "error"
-  assert result.get("message") == "groom failed"
-  diagnostics = result.get("diagnostics")
-  assert diagnostics is not None
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None
-  assert metadata["reminder_attached"] is False
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_START_GROOMING  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result.get("message") == "groom failed"  # noqa: E111
+  diagnostics = result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["reminder_attached"] is False  # noqa: E111
 
 
 @pytest.mark.unit
@@ -3020,17 +3020,17 @@ async def test_start_grooming_records_failure(
 async def test_start_garden_session_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Garden session start should log telemetry with detection metadata."""
+  """Garden session start should log telemetry with detection metadata."""  # noqa: E111
 
-  garden_manager = _GardenManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
-  coordinator.register_dog("buddy", name="Buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  garden_manager = _GardenManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)  # noqa: E111
+  coordinator.register_dog("buddy", name="Buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GARDEN]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_START_GARDEN]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -3044,22 +3044,22 @@ async def test_start_garden_session_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_START_GARDEN
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None and details["detection_method"] == "door_sensor"
-  assert details["automation_fallback"] is True
-  assert details["fallback_reason"] == "door_sensor_offline"
-  assert details["automation_source"] == "garden_automation"
-  diagnostics = result.get("diagnostics")
-  assert diagnostics is not None
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None
-  assert metadata["automation_fallback"] is True
-  assert metadata["fallback_reason"] == "door_sensor_offline"
-  assert metadata["automation_source"] == "garden_automation"
-  assert (
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_START_GARDEN  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None and details["detection_method"] == "door_sensor"  # noqa: E111
+  assert details["automation_fallback"] is True  # noqa: E111
+  assert details["fallback_reason"] == "door_sensor_offline"  # noqa: E111
+  assert details["automation_source"] == "garden_automation"  # noqa: E111
+  diagnostics = result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["automation_fallback"] is True  # noqa: E111
+  assert metadata["fallback_reason"] == "door_sensor_offline"  # noqa: E111
+  assert metadata["automation_source"] == "garden_automation"  # noqa: E111
+  assert (  # noqa: E111
     garden_manager.start_calls and garden_manager.start_calls[0]["dog_id"] == "buddy"
   )
 
@@ -3069,29 +3069,29 @@ async def test_start_garden_session_records_success(
 async def test_start_garden_session_records_failure(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Garden session telemetry should capture Home Assistant errors."""
+  """Garden session telemetry should capture Home Assistant errors."""  # noqa: E111
 
-  garden_manager = _GardenManagerStub()
-  garden_manager.fail_start = services.HomeAssistantError("start failed")
-  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  garden_manager = _GardenManagerStub()  # noqa: E111
+  garden_manager.fail_start = services.HomeAssistantError("start failed")  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_START_GARDEN]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_START_GARDEN]  # noqa: E111
 
-  with pytest.raises(services.HomeAssistantError, match="start failed"):
+  with pytest.raises(services.HomeAssistantError, match="start failed"):  # noqa: E111
     await handler(SimpleNamespace(data={"dog_id": "buddy"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_START_GARDEN
-  assert result["status"] == "error"
-  assert result.get("message") == "start failed"
-  diagnostics = result.get("diagnostics")
-  assert diagnostics is not None
-  metadata = diagnostics.get("metadata")
-  assert metadata is not None
-  assert metadata["automation_fallback"] is False
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_START_GARDEN  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert result.get("message") == "start failed"  # noqa: E111
+  diagnostics = result.get("diagnostics")  # noqa: E111
+  assert diagnostics is not None  # noqa: E111
+  metadata = diagnostics.get("metadata")  # noqa: E111
+  assert metadata is not None  # noqa: E111
+  assert metadata["automation_fallback"] is False  # noqa: E111
 
 
 @pytest.mark.unit
@@ -3099,24 +3099,24 @@ async def test_start_garden_session_records_failure(
 async def test_end_garden_session_records_validation_error(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Ending a non-existent garden session should record validation telemetry."""
+  """Ending a non-existent garden session should record validation telemetry."""  # noqa: E111
 
-  garden_manager = _GardenManagerStub()
-  garden_manager.next_end_session = None
-  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  garden_manager = _GardenManagerStub()  # noqa: E111
+  garden_manager.next_end_session = None  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_END_GARDEN]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_END_GARDEN]  # noqa: E111
 
-  with pytest.raises(Exception, match="No active garden session is currently running"):
+  with pytest.raises(Exception, match="No active garden session is currently running"):  # noqa: E111
     await handler(SimpleNamespace(data={"dog_id": "buddy"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_END_GARDEN
-  assert result["status"] == "error"
-  assert "No active garden session" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_END_GARDEN  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "No active garden session" in result.get("message", "")  # noqa: E111
 
 
 @pytest.mark.unit
@@ -3124,17 +3124,17 @@ async def test_end_garden_session_records_validation_error(
 async def test_add_garden_activity_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Garden activity service should capture success telemetry."""
+  """Garden activity service should capture success telemetry."""  # noqa: E111
 
-  garden_manager = _GardenManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  garden_manager = _GardenManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -3145,12 +3145,12 @@ async def test_add_garden_activity_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_ADD_GARDEN_ACTIVITY
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None and details["activity_type"] == "play"
-  assert (
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_ADD_GARDEN_ACTIVITY  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None and details["activity_type"] == "play"  # noqa: E111
+  assert (  # noqa: E111
     garden_manager.activity_calls
     and garden_manager.activity_calls[0]["dog_id"] == "buddy"
   )
@@ -3161,24 +3161,24 @@ async def test_add_garden_activity_records_success(
 async def test_add_garden_activity_records_validation_error(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Garden activity telemetry should note validation failures."""
+  """Garden activity telemetry should note validation failures."""  # noqa: E111
 
-  garden_manager = _GardenManagerStub()
-  garden_manager.activity_success = False
-  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  garden_manager = _GardenManagerStub()  # noqa: E111
+  garden_manager.activity_success = False  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]  # noqa: E111
 
-  with pytest.raises(Exception, match="No active garden session is currently running"):
+  with pytest.raises(Exception, match="No active garden session is currently running"):  # noqa: E111
     await handler(SimpleNamespace(data={"dog_id": "buddy", "activity_type": "play"}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_ADD_GARDEN_ACTIVITY
-  assert result["status"] == "error"
-  assert "Start a garden session" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_ADD_GARDEN_ACTIVITY  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "Start a garden session" in result.get("message", "")  # noqa: E111
 
 
 @pytest.mark.unit
@@ -3186,17 +3186,17 @@ async def test_add_garden_activity_records_validation_error(
 async def test_confirm_garden_poop_records_success(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Garden poop confirmations should capture telemetry on success."""
+  """Garden poop confirmations should capture telemetry on success."""  # noqa: E111
 
-  garden_manager = _GardenManagerStub()
-  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  garden_manager = _GardenManagerStub()  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_CONFIRM_POOP]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_CONFIRM_POOP]  # noqa: E111
 
-  await handler(
+  await handler(  # noqa: E111
     SimpleNamespace(
       data={
         "dog_id": "buddy",
@@ -3208,12 +3208,12 @@ async def test_confirm_garden_poop_records_success(
     )
   )
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_CONFIRM_POOP
-  assert result["status"] == "success"
-  details = result.get("details")
-  assert details is not None and details["confirmed"] is True
-  assert (
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_CONFIRM_POOP  # noqa: E111
+  assert result["status"] == "success"  # noqa: E111
+  details = result.get("details")  # noqa: E111
+  assert details is not None and details["confirmed"] is True  # noqa: E111
+  assert (  # noqa: E111
     garden_manager.confirm_calls
     and garden_manager.confirm_calls[0]["dog_id"] == "buddy"
   )
@@ -3224,21 +3224,21 @@ async def test_confirm_garden_poop_records_success(
 async def test_confirm_garden_poop_records_missing_pending(
   monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-  """Telemetry should record validation errors when no confirmation is pending."""
+  """Telemetry should record validation errors when no confirmation is pending."""  # noqa: E111
 
-  garden_manager = _GardenManagerStub()
-  garden_manager.pending_confirmation = False
-  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)
-  coordinator.register_dog("buddy")
-  runtime_data = SimpleNamespace(performance_stats={})
+  garden_manager = _GardenManagerStub()  # noqa: E111
+  garden_manager.pending_confirmation = False  # noqa: E111
+  coordinator = _CoordinatorStub(SimpleNamespace(), garden_manager=garden_manager)  # noqa: E111
+  coordinator.register_dog("buddy")  # noqa: E111
+  runtime_data = SimpleNamespace(performance_stats={})  # noqa: E111
 
-  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
-  handler = hass.services.handlers[services.SERVICE_CONFIRM_POOP]
+  hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)  # noqa: E111
+  handler = hass.services.handlers[services.SERVICE_CONFIRM_POOP]  # noqa: E111
 
-  with pytest.raises(Exception, match="No pending garden poop confirmation"):
+  with pytest.raises(Exception, match="No pending garden poop confirmation"):  # noqa: E111
     await handler(SimpleNamespace(data={"dog_id": "buddy", "confirmed": True}))
 
-  result = runtime_data.performance_stats["last_service_result"]
-  assert result["service"] == services.SERVICE_CONFIRM_POOP
-  assert result["status"] == "error"
-  assert "No pending garden poop" in result.get("message", "")
+  result = runtime_data.performance_stats["last_service_result"]  # noqa: E111
+  assert result["service"] == services.SERVICE_CONFIRM_POOP  # noqa: E111
+  assert result["status"] == "error"  # noqa: E111
+  assert "No pending garden poop" in result.get("message", "")  # noqa: E111

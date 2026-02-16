@@ -1,7 +1,5 @@
 """Notification helper utilities for Paw Control flows."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, cast
@@ -26,10 +24,10 @@ def _bool_default(
   field: NotificationOptionsField,
   fallback: bool,
 ) -> bool:
-  """Return a boolean default extracted from a notification payload."""
+  """Return a boolean default extracted from a notification payload."""  # noqa: E111
 
-  value = current.get(field, fallback)
-  return value if isinstance(value, bool) else fallback
+  value = current.get(field, fallback)  # noqa: E111
+  return value if isinstance(value, bool) else fallback  # noqa: E111
 
 
 def _string_default(
@@ -37,37 +35,37 @@ def _string_default(
   field: NotificationOptionsField,
   fallback: str,
 ) -> str:
-  """Return a string default extracted from a notification payload."""
+  """Return a string default extracted from a notification payload."""  # noqa: E111
 
-  value = current.get(field, fallback)
-  return value if isinstance(value, str) else fallback
+  value = current.get(field, fallback)  # noqa: E111
+  return value if isinstance(value, str) else fallback  # noqa: E111
 
 
 def _validate_time_input(value: Any, field: NotificationOptionsField) -> None:
-  """Validate optional quiet-hour time input."""
+  """Validate optional quiet-hour time input."""  # noqa: E111
 
-  if value is None:
+  if value is None:  # noqa: E111
     return
 
-  if isinstance(value, datetime):
+  if isinstance(value, datetime):  # noqa: E111
     return
 
-  if isinstance(value, int | float) and value == 0:
+  if isinstance(value, int | float) and value == 0:  # noqa: E111
     return
 
-  candidate = str(value).strip()
-  if not candidate:
+  candidate = str(value).strip()  # noqa: E111
+  if not candidate:  # noqa: E111
     return
 
-  formats = ("%H:%M:%S", "%H:%M")
-  for fmt in formats:
+  formats = ("%H:%M:%S", "%H:%M")  # noqa: E111
+  for fmt in formats:  # noqa: E111
     try:
-      datetime.strptime(candidate, fmt)
-      return
+      datetime.strptime(candidate, fmt)  # noqa: E111
+      return  # noqa: E111
     except ValueError:
-      continue
+      continue  # noqa: E111
 
-  raise FlowValidationError(field_errors={field: f"{field}_invalid"})
+  raise FlowValidationError(field_errors={field: f"{field}_invalid"})  # noqa: E111
 
 
 def build_notification_settings_payload(
@@ -77,18 +75,18 @@ def build_notification_settings_payload(
   coerce_bool: Callable[[Any, bool], bool],
   coerce_time_string: Callable[[Any, str], str],
 ) -> NotificationOptions:
-  """Create a typed notification payload from submitted form data."""
+  """Create a typed notification payload from submitted form data."""  # noqa: E111
 
-  _validate_time_input(
+  _validate_time_input(  # noqa: E111
     user_input.get(NOTIFICATION_QUIET_START_FIELD),
     NOTIFICATION_QUIET_START_FIELD,
   )
-  _validate_time_input(
+  _validate_time_input(  # noqa: E111
     user_input.get(NOTIFICATION_QUIET_END_FIELD),
     NOTIFICATION_QUIET_END_FIELD,
   )
 
-  try:
+  try:  # noqa: E111
     reminder_repeat = validate_int_range(
       user_input.get(NOTIFICATION_REMINDER_REPEAT_FIELD),
       field=NOTIFICATION_REMINDER_REPEAT_FIELD,
@@ -99,14 +97,14 @@ def build_notification_settings_payload(
       not_numeric_constraint="invalid_configuration",
       out_of_range_constraint="invalid_configuration",
     )
-  except ValidationError as err:
+  except ValidationError as err:  # noqa: E111
     raise FlowValidationError(
       field_errors={
         NOTIFICATION_REMINDER_REPEAT_FIELD: err.constraint or "invalid_configuration"
       }
     ) from err
 
-  return cast(
+  return cast(  # noqa: E111
     NotificationOptions,
     {
       NOTIFICATION_QUIET_HOURS_FIELD: coerce_bool(

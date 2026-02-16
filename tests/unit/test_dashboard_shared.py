@@ -1,7 +1,5 @@
 """Unit tests for the dashboard shared helpers."""
 
-from __future__ import annotations
-
 import asyncio
 import logging
 
@@ -23,30 +21,30 @@ from custom_components.pawcontrol.types import DogModulesProjection
 
 @pytest.fixture(name="test_logger")
 def fixture_test_logger() -> logging.Logger:
-  """Return a dedicated logger for test assertions."""
+  """Return a dedicated logger for test assertions."""  # noqa: E111
 
-  logger = logging.getLogger("tests.pawcontrol.dashboard_shared")
-  return logger
+  logger = logging.getLogger("tests.pawcontrol.dashboard_shared")  # noqa: E111
+  return logger  # noqa: E111
 
 
 def test_unwrap_async_result_returns_success_payload(
   test_logger: logging.Logger,
 ) -> None:
-  """Ensure successful gather results are returned unchanged."""
+  """Ensure successful gather results are returned unchanged."""  # noqa: E111
 
-  payload = {"card": "overview"}
+  payload = {"card": "overview"}  # noqa: E111
 
-  assert unwrap_async_result(payload, context="overview", logger=test_logger) == payload
+  assert unwrap_async_result(payload, context="overview", logger=test_logger) == payload  # noqa: E111
 
 
 def test_unwrap_async_result_logs_exceptions(
   caplog: pytest.LogCaptureFixture, test_logger: logging.Logger
 ) -> None:
-  """Gather exceptions should be logged and converted to ``None``."""
+  """Gather exceptions should be logged and converted to ``None``."""  # noqa: E111
 
-  failure = RuntimeError("boom")
+  failure = RuntimeError("boom")  # noqa: E111
 
-  with caplog.at_level(logging.WARNING):
+  with caplog.at_level(logging.WARNING):  # noqa: E111
     assert (
       unwrap_async_result(
         failure,
@@ -56,8 +54,8 @@ def test_unwrap_async_result_logs_exceptions(
       is None
     )
 
-  assert "card generation" in caplog.text
-  assert "boom" in caplog.text
+  assert "card generation" in caplog.text  # noqa: E111
+  assert "boom" in caplog.text  # noqa: E111
 
 
 @pytest.mark.parametrize("suppress", [False, True])
@@ -66,13 +64,13 @@ def test_unwrap_async_result_cancelled_behaviour(
   suppress: bool,
   test_logger: logging.Logger,
 ) -> None:
-  """Verify cancellation handling honours the suppression flag."""
+  """Verify cancellation handling honours the suppression flag."""  # noqa: E111
 
-  cancelled = asyncio.CancelledError()
+  cancelled = asyncio.CancelledError()  # noqa: E111
 
-  if suppress:
+  if suppress:  # noqa: E111
     with caplog.at_level(logging.DEBUG):
-      assert (
+      assert (  # noqa: E111
         unwrap_async_result(
           cancelled,
           context="renderer job",
@@ -86,7 +84,7 @@ def test_unwrap_async_result_cancelled_behaviour(
     assert "task cancelled" in caplog.text
     return
 
-  with pytest.raises(asyncio.CancelledError):
+  with pytest.raises(asyncio.CancelledError):  # noqa: E111
     unwrap_async_result(
       cancelled,
       context="renderer job",
@@ -95,40 +93,40 @@ def test_unwrap_async_result_cancelled_behaviour(
 
 
 def test_coerce_dog_config_returns_typed_payload() -> None:
-  """Raw dog dictionaries should be converted into typed configs."""
+  """Raw dog dictionaries should be converted into typed configs."""  # noqa: E111
 
-  raw_config = {
+  raw_config = {  # noqa: E111
     CONF_DOG_ID: "alpha",
     CONF_DOG_NAME: "Alpha",
     "modules": {MODULE_WALK: True},
   }
 
-  typed = coerce_dog_config(raw_config)
+  typed = coerce_dog_config(raw_config)  # noqa: E111
 
-  assert typed is not None
-  assert typed[CONF_DOG_ID] == "alpha"
-  modules = typed["modules"]
-  assert modules[MODULE_WALK] is True
+  assert typed is not None  # noqa: E111
+  assert typed[CONF_DOG_ID] == "alpha"  # noqa: E111
+  modules = typed["modules"]  # noqa: E111
+  assert modules[MODULE_WALK] is True  # noqa: E111
 
 
 def test_coerce_dog_configs_filters_invalid_payloads() -> None:
-  """Helper should ignore payloads missing identifiers."""
+  """Helper should ignore payloads missing identifiers."""  # noqa: E111
 
-  valid = {
+  valid = {  # noqa: E111
     CONF_DOG_ID: "bravo",
     CONF_DOG_NAME: "Bravo",
   }
 
-  typed = coerce_dog_configs([valid, {CONF_DOG_NAME: "No ID"}, object()])
+  typed = coerce_dog_configs([valid, {CONF_DOG_NAME: "No ID"}, object()])  # noqa: E111
 
-  assert len(typed) == 1
-  assert typed[0][CONF_DOG_ID] == "bravo"
+  assert len(typed) == 1  # noqa: E111
+  assert typed[0][CONF_DOG_ID] == "bravo"  # noqa: E111
 
 
 def test_coerce_dog_config_preserves_profile_metadata() -> None:
-  """Optional profile metadata should survive repeated coercion."""
+  """Optional profile metadata should survive repeated coercion."""  # noqa: E111
 
-  raw_config = {
+  raw_config = {  # noqa: E111
     CONF_DOG_ID: "charlie",
     CONF_DOG_NAME: "Charlie",
     CONF_DOG_COLOR: "golden",
@@ -137,36 +135,36 @@ def test_coerce_dog_config_preserves_profile_metadata() -> None:
     "emergency_contact": "555-0101",
   }
 
-  first_pass = coerce_dog_config(raw_config)
-  assert first_pass is not None
-  assert first_pass[CONF_DOG_COLOR] == "golden"
-  assert first_pass["microchip_id"] == "ABC123"
-  assert first_pass["vet_contact"] == "Dr. Smith"
-  assert first_pass["emergency_contact"] == "555-0101"
+  first_pass = coerce_dog_config(raw_config)  # noqa: E111
+  assert first_pass is not None  # noqa: E111
+  assert first_pass[CONF_DOG_COLOR] == "golden"  # noqa: E111
+  assert first_pass["microchip_id"] == "ABC123"  # noqa: E111
+  assert first_pass["vet_contact"] == "Dr. Smith"  # noqa: E111
+  assert first_pass["emergency_contact"] == "555-0101"  # noqa: E111
 
-  second_pass = coerce_dog_config(first_pass)
-  assert second_pass is not None
-  # The optional metadata should still be present after re-coercion.
-  assert second_pass[CONF_DOG_COLOR] == "golden"
-  assert second_pass["microchip_id"] == "ABC123"
-  assert second_pass["vet_contact"] == "Dr. Smith"
-  assert second_pass["emergency_contact"] == "555-0101"
+  second_pass = coerce_dog_config(first_pass)  # noqa: E111
+  assert second_pass is not None  # noqa: E111
+  # The optional metadata should still be present after re-coercion.  # noqa: E114
+  assert second_pass[CONF_DOG_COLOR] == "golden"  # noqa: E111
+  assert second_pass["microchip_id"] == "ABC123"  # noqa: E111
+  assert second_pass["vet_contact"] == "Dr. Smith"  # noqa: E111
+  assert second_pass["emergency_contact"] == "555-0101"  # noqa: E111
 
 
 def test_coerce_dog_config_accepts_module_projection() -> None:
-  """Dog module projections should retain toggles during coercion."""
+  """Dog module projections should retain toggles during coercion."""  # noqa: E111
 
-  projection = DogModulesProjection(
+  projection = DogModulesProjection(  # noqa: E111
     config={MODULE_WALK: True}, mapping={MODULE_WALK: True}
   )
 
-  raw_config = {
+  raw_config = {  # noqa: E111
     CONF_DOG_ID: "delta",
     CONF_DOG_NAME: "Delta",
     "modules": projection,
   }
 
-  typed = coerce_dog_config(raw_config)
-  assert typed is not None
-  modules = typed["modules"]
-  assert modules[MODULE_WALK] is True
+  typed = coerce_dog_config(raw_config)  # noqa: E111
+  assert typed is not None  # noqa: E111
+  modules = typed["modules"]  # noqa: E111
+  assert modules[MODULE_WALK] is True  # noqa: E111

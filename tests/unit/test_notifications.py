@@ -7,8 +7,6 @@ Quality Scale: Platinum target
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 from dataclasses import dataclass
@@ -35,23 +33,23 @@ from custom_components.pawcontrol.types import (
 
 
 class _RecorderRegistrar(CacheMonitorRegistrar):
-  """Capture cache monitor registrations for assertions."""
+  """Capture cache monitor registrations for assertions."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.caches: dict[str, object] = {}
 
-  def register_cache_monitor(self, name: str, cache: object) -> None:
+  def register_cache_monitor(self, name: str, cache: object) -> None:  # noqa: E111
     self.caches[name] = cache
 
 
 class _StubPersonManager:
-  """Expose register_cache_monitors compatible with the registrar protocol."""
+  """Expose register_cache_monitors compatible with the registrar protocol."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.registered_with: CacheMonitorRegistrar | None = None
     self.prefix: str | None = None
 
-  def register_cache_monitors(
+  def register_cache_monitors(  # noqa: E111
     self, registrar: CacheMonitorRegistrar, *, prefix: str = "person_entity"
   ) -> None:
     self.registered_with = registrar
@@ -59,29 +57,29 @@ class _StubPersonManager:
 
 
 class _NoTargetsPersonManager:
-  """Return no dynamic targets so static fallbacks are exercised."""
+  """Return no dynamic targets so static fallbacks are exercised."""  # noqa: E111
 
-  def __init__(self) -> None:
+  def __init__(self) -> None:  # noqa: E111
     self.requests: list[tuple[bool, str]] = []
 
-  def register_cache_monitors(
+  def register_cache_monitors(  # noqa: E111
     self, registrar: CacheMonitorRegistrar, *, prefix: str = "person_entity"
   ) -> None:
     registrar.register_cache_monitor(prefix, {})
 
-  def get_notification_targets(
+  def get_notification_targets(  # noqa: E111
     self, *, include_away: bool, cache_key: str
   ) -> list[str]:
     self.requests.append((include_away, cache_key))
     return []
 
-  def get_home_persons(self) -> list[object]:
+  def get_home_persons(self) -> list[object]:  # noqa: E111
     return []
 
-  def get_all_persons(self) -> list[object]:
+  def get_all_persons(self) -> list[object]:  # noqa: E111
     return []
 
-  def get_notification_context(self) -> PersonNotificationContext:
+  def get_notification_context(self) -> PersonNotificationContext:  # noqa: E111
     return {
       "home_person_names": [],
       "away_person_names": [],
@@ -92,7 +90,7 @@ class _NoTargetsPersonManager:
       "everyone_away": False,
     }
 
-  def get_statistics(self) -> PersonEntityStats:
+  def get_statistics(self) -> PersonEntityStats:  # noqa: E111
     return {
       "persons_discovered": 0,
       "notifications_targeted": 0,
@@ -119,16 +117,16 @@ class _NoTargetsPersonManager:
 
 @dataclass(slots=True)
 class _StubPersonEntity:
-  """Minimal person payload mirroring PersonEntityInfo attributes used by tests."""
+  """Minimal person payload mirroring PersonEntityInfo attributes used by tests."""  # noqa: E111
 
-  entity_id: str
-  name: str
+  entity_id: str  # noqa: E111
+  name: str  # noqa: E111
 
 
 class _DynamicPersonManager:
-  """Expose configurable home/away personas and dynamic notification targets."""
+  """Expose configurable home/away personas and dynamic notification targets."""  # noqa: E111
 
-  def __init__(
+  def __init__(  # noqa: E111
     self,
     *,
     home_persons: list[_StubPersonEntity],
@@ -143,32 +141,32 @@ class _DynamicPersonManager:
     self._away_services = away_services
     self.requests: list[tuple[bool, str]] = []
     if context is None:
-      self._context_override: PersonNotificationContext | None = None
+      self._context_override: PersonNotificationContext | None = None  # noqa: E111
     else:
-      self._context_override = cast(PersonNotificationContext, dict(context))
+      self._context_override = cast(PersonNotificationContext, dict(context))  # noqa: E111
 
-  def register_cache_monitors(
+  def register_cache_monitors(  # noqa: E111
     self, registrar: CacheMonitorRegistrar, *, prefix: str = "person_entity"
   ) -> None:
     registrar.register_cache_monitor(prefix, {})
 
-  def get_notification_targets(
+  def get_notification_targets(  # noqa: E111
     self, *, include_away: bool, cache_key: str
   ) -> list[str]:
     self.requests.append((include_away, cache_key))
     if include_away:
-      return [*self._home_services, *self._away_services]
+      return [*self._home_services, *self._away_services]  # noqa: E111
     return list(self._home_services)
 
-  def get_home_persons(self) -> list[_StubPersonEntity]:
+  def get_home_persons(self) -> list[_StubPersonEntity]:  # noqa: E111
     return list(self._home_persons)
 
-  def get_all_persons(self) -> list[_StubPersonEntity]:
+  def get_all_persons(self) -> list[_StubPersonEntity]:  # noqa: E111
     return [*self._home_persons, *self._away_persons]
 
-  def get_notification_context(self) -> PersonNotificationContext:
+  def get_notification_context(self) -> PersonNotificationContext:  # noqa: E111
     if self._context_override is not None:
-      return cast(PersonNotificationContext, dict(self._context_override))
+      return cast(PersonNotificationContext, dict(self._context_override))  # noqa: E111
 
     return {
       "home_person_names": [person.name for person in self._home_persons],
@@ -180,7 +178,7 @@ class _DynamicPersonManager:
       "everyone_away": not self._home_persons and bool(self._away_persons),
     }
 
-  def get_statistics(self) -> PersonEntityStats:
+  def get_statistics(self) -> PersonEntityStats:  # noqa: E111
     total_persons = len(self._home_persons) + len(self._away_persons)
     return {
       "persons_discovered": total_persons,
@@ -209,9 +207,9 @@ class _DynamicPersonManager:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestNotificationManagerInitialization:
-  """Test notification manager initialization."""
+  """Test notification manager initialization."""  # noqa: E111
 
-  async def test_initialization_basic(self, mock_hass, mock_session):
+  async def test_initialization_basic(self, mock_hass, mock_session):  # noqa: E111
     """Test basic notification manager initialization."""
     manager = PawControlNotificationManager(
       mock_hass, "test_entry", session=mock_session
@@ -222,7 +220,7 @@ class TestNotificationManagerInitialization:
     assert len(manager._notifications) == 0
     assert len(manager._configs) == 0
 
-  async def test_initialization_with_configs(self, mock_hass, mock_session):
+  async def test_initialization_with_configs(self, mock_hass, mock_session):  # noqa: E111
     """Test initialization with notification configs."""
     manager = PawControlNotificationManager(
       mock_hass, "test_entry", session=mock_session
@@ -241,7 +239,7 @@ class TestNotificationManagerInitialization:
     assert "test_dog" in manager._configs
     assert manager._configs["test_dog"].enabled is True
 
-  async def test_initialization_reuses_session(self, mock_hass, session_factory):
+  async def test_initialization_reuses_session(self, mock_hass, session_factory):  # noqa: E111
     """Providing a session should be honoured and reused."""
 
     custom_session = session_factory()
@@ -252,15 +250,15 @@ class TestNotificationManagerInitialization:
 
     assert manager.session is custom_session
 
-  async def test_initialization_rejects_missing_session(self, mock_hass):
+  async def test_initialization_rejects_missing_session(self, mock_hass):  # noqa: E111
     """Fail loudly when no session is provided."""
 
     with pytest.raises(ValueError):
-      PawControlNotificationManager(  # type: ignore[arg-type]
+      PawControlNotificationManager(  # type: ignore[arg-type]  # noqa: E111
         mock_hass, "test_entry", session=None
       )
 
-  async def test_initialization_rejects_closed_session(
+  async def test_initialization_rejects_closed_session(  # noqa: E111
     self, mock_hass, session_factory
   ):
     """Fail loudly when the session has been disposed."""
@@ -268,9 +266,9 @@ class TestNotificationManagerInitialization:
     closed_session = session_factory(closed=True)
 
     with pytest.raises(ValueError):
-      PawControlNotificationManager(mock_hass, "test_entry", session=closed_session)
+      PawControlNotificationManager(mock_hass, "test_entry", session=closed_session)  # noqa: E111
 
-  async def test_register_cache_monitors_registers_person_cache(
+  async def test_register_cache_monitors_registers_person_cache(  # noqa: E111
     self, mock_hass, mock_session
   ) -> None:
     """Cache registration should wire notification and person caches."""
@@ -293,9 +291,9 @@ class TestNotificationManagerInitialization:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestNotificationWebhooks:
-  """Ensure webhook delivery honours the shared session."""
+  """Ensure webhook delivery honours the shared session."""  # noqa: E111
 
-  async def test_webhook_uses_injected_session(self, mock_hass, session_factory):
+  async def test_webhook_uses_injected_session(self, mock_hass, session_factory):  # noqa: E111
     """Injected session should be used for webhook HTTP calls."""
 
     custom_session = session_factory()
@@ -330,7 +328,7 @@ class TestNotificationWebhooks:
     called_kwargs = custom_session.post.call_args.kwargs
     assert called_kwargs["timeout"].total == pytest.approx(10.0)
 
-  async def test_webhook_releases_direct_response(self, mock_hass, session_factory):
+  async def test_webhook_releases_direct_response(self, mock_hass, session_factory):  # noqa: E111
     """Direct ClientResponse objects should be released after validation."""
 
     custom_session = session_factory()
@@ -362,7 +360,7 @@ class TestNotificationWebhooks:
 
     response.release.assert_awaited()
 
-  async def test_webhook_closes_response_without_release(
+  async def test_webhook_closes_response_without_release(  # noqa: E111
     self, mock_hass, session_factory
   ):
     """Responses lacking release should still close the transport."""
@@ -397,7 +395,7 @@ class TestNotificationWebhooks:
 
     response.close.assert_called_once()
 
-  async def test_initialization_validates_channels(self, mock_hass, mock_session):
+  async def test_initialization_validates_channels(self, mock_hass, mock_session):  # noqa: E111
     """Test that initialization validates channel names."""
     manager = PawControlNotificationManager(
       mock_hass, "test_entry", session=mock_session
@@ -420,9 +418,9 @@ class TestNotificationWebhooks:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestBasicNotificationSending:
-  """Test basic notification sending."""
+  """Test basic notification sending."""  # noqa: E111
 
-  async def test_send_notification_basic(self, mock_notification_manager):
+  async def test_send_notification_basic(self, mock_notification_manager):  # noqa: E111
     """Test sending basic notification."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.SYSTEM_INFO,
@@ -433,7 +431,7 @@ class TestBasicNotificationSending:
     assert notification_id is not None
     assert notification_id in mock_notification_manager._notifications
 
-  async def test_send_notification_with_dog_id(self, mock_notification_manager):
+  async def test_send_notification_with_dog_id(self, mock_notification_manager):  # noqa: E111
     """Test sending notification for specific dog."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.FEEDING_REMINDER,
@@ -446,7 +444,7 @@ class TestBasicNotificationSending:
 
     assert notification.dog_id == "buddy"
 
-  async def test_send_notification_with_priority(self, mock_notification_manager):
+  async def test_send_notification_with_priority(self, mock_notification_manager):  # noqa: E111
     """Test sending notification with specific priority."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.HEALTH_ALERT,
@@ -459,7 +457,7 @@ class TestBasicNotificationSending:
 
     assert notification.priority == NotificationPriority.URGENT
 
-  async def test_send_notification_with_data(self, mock_notification_manager):
+  async def test_send_notification_with_data(self, mock_notification_manager):  # noqa: E111
     """Test sending notification with additional data."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.WALK_REMINDER,
@@ -477,9 +475,9 @@ class TestBasicNotificationSending:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestNotificationConfig:
-  """Test notification configuration."""
+  """Test notification configuration."""  # noqa: E111
 
-  async def test_notification_disabled_prevents_sending(self, mock_hass, mock_session):
+  async def test_notification_disabled_prevents_sending(self, mock_hass, mock_session):  # noqa: E111
     """Test that disabled notifications are not sent."""
     manager = PawControlNotificationManager(
       mock_hass, "test_entry", session=mock_session
@@ -509,9 +507,9 @@ class TestNotificationConfig:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestWebhookSecurityStatus:
-  """Test webhook security status aggregation."""
+  """Test webhook security status aggregation."""  # noqa: E111
 
-  async def test_secure_webhook_configs(self, mock_notification_manager):
+  async def test_secure_webhook_configs(self, mock_notification_manager):  # noqa: E111
     """Secure webhooks should report pass status."""
 
     mock_notification_manager._configs["dog1"] = NotificationConfig(
@@ -526,7 +524,7 @@ class TestWebhookSecurityStatus:
     assert status["hmac_ready"] is True
     assert status["insecure_configs"] == ()
 
-  async def test_insecure_webhook_configs(self, mock_notification_manager):
+  async def test_insecure_webhook_configs(self, mock_notification_manager):  # noqa: E111
     """Missing secrets should be flagged as insecure."""
 
     mock_notification_manager._configs["dog1"] = NotificationConfig(
@@ -544,7 +542,7 @@ class TestWebhookSecurityStatus:
     assert status["hmac_ready"] is False
     assert status["insecure_configs"] == ("dog1",)
 
-  async def test_priority_threshold_filters_low_priority(self, mock_hass, mock_session):
+  async def test_priority_threshold_filters_low_priority(self, mock_hass, mock_session):  # noqa: E111
     """Test that priority threshold filters notifications."""
     manager = PawControlNotificationManager(
       mock_hass, "test_entry", session=mock_session
@@ -571,7 +569,7 @@ class TestWebhookSecurityStatus:
     notification = manager._notifications.get(notification_id)
     assert notification is None or len(notification.sent_to) == 0
 
-  async def test_set_priority_threshold(self, mock_notification_manager):
+  async def test_set_priority_threshold(self, mock_notification_manager):  # noqa: E111
     """Test setting priority threshold."""
     await mock_notification_manager.async_set_priority_threshold(
       "test_dog", NotificationPriority.HIGH
@@ -585,9 +583,9 @@ class TestWebhookSecurityStatus:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestQuietHours:
-  """Test quiet hours functionality."""
+  """Test quiet hours functionality."""  # noqa: E111
 
-  async def test_quiet_hours_suppresses_normal_notifications(
+  async def test_quiet_hours_suppresses_normal_notifications(  # noqa: E111
     self, mock_hass, mock_session
   ):
     """Test that quiet hours suppress normal priority notifications."""
@@ -607,10 +605,10 @@ class TestQuietHours:
 
     # Mock current time to be in quiet hours (e.g., 23:00)
     with pytest.MonkeyPatch.context() as mp:
-      mock_now = datetime.now(UTC).replace(hour=23, minute=0, second=0, microsecond=0)
-      mp.setattr("homeassistant.util.dt.utcnow", lambda: mock_now)
+      mock_now = datetime.now(UTC).replace(hour=23, minute=0, second=0, microsecond=0)  # noqa: E111
+      mp.setattr("homeassistant.util.dt.utcnow", lambda: mock_now)  # noqa: E111
 
-      notification_id = await manager.async_send_notification(
+      notification_id = await manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.FEEDING_REMINDER,
         title="Quiet Time Test",
         message="Should be suppressed",
@@ -618,11 +616,11 @@ class TestQuietHours:
         priority=NotificationPriority.NORMAL,
       )
 
-      # Should be suppressed
-      notification = manager._notifications.get(notification_id)
-      assert notification is None or len(notification.sent_to) == 0
+      # Should be suppressed  # noqa: E114
+      notification = manager._notifications.get(notification_id)  # noqa: E111
+      assert notification is None or len(notification.sent_to) == 0  # noqa: E111
 
-  async def test_quiet_hours_allows_urgent_notifications(self, mock_hass, mock_session):
+  async def test_quiet_hours_allows_urgent_notifications(self, mock_hass, mock_session):  # noqa: E111
     """Test that urgent notifications bypass quiet hours."""
     manager = PawControlNotificationManager(
       mock_hass, "test_entry", session=mock_session
@@ -650,7 +648,7 @@ class TestQuietHours:
     # Should be sent despite quiet hours
     assert notification is not None
 
-  async def test_quiet_hours_cache_ttl_and_recompute(
+  async def test_quiet_hours_cache_ttl_and_recompute(  # noqa: E111
     self, mock_hass, mock_session
   ) -> None:
     """Quiet-hours cache should suppress within TTL and recompute after expiry."""
@@ -672,13 +670,13 @@ class TestQuietHours:
     base_time = datetime(2024, 5, 1, 6, 58, tzinfo=UTC)
 
     def _patch_times(monkeypatch: pytest.MonkeyPatch, now: datetime) -> None:
-      monkeypatch.setattr("homeassistant.util.dt.now", lambda: now)
-      monkeypatch.setattr("homeassistant.util.dt.utcnow", lambda: now)
+      monkeypatch.setattr("homeassistant.util.dt.now", lambda: now)  # noqa: E111
+      monkeypatch.setattr("homeassistant.util.dt.utcnow", lambda: now)  # noqa: E111
 
     # First evaluation occurs during quiet hours and should be cached
     with pytest.MonkeyPatch.context() as mp:
-      _patch_times(mp, base_time)
-      first_id = await manager.async_send_notification(
+      _patch_times(mp, base_time)  # noqa: E111
+      first_id = await manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.FEEDING_REMINDER,
         title="Quiet cache",  # suppressed via quiet hours
         message="No delivery",
@@ -686,16 +684,16 @@ class TestQuietHours:
         priority=NotificationPriority.NORMAL,
       )
 
-      is_cached, cached_value = manager._cache.is_quiet_time_cached(quiet_key)
-      assert is_cached is True
-      assert cached_value is True
+      is_cached, cached_value = manager._cache.is_quiet_time_cached(quiet_key)  # noqa: E111
+      assert is_cached is True  # noqa: E111
+      assert cached_value is True  # noqa: E111
 
     assert manager._notifications.get(first_id) is None
 
     # Within cache TTL the quiet decision is reused even after quiet hours end
     with pytest.MonkeyPatch.context() as mp:
-      _patch_times(mp, base_time + timedelta(minutes=4))
-      second_id = await manager.async_send_notification(
+      _patch_times(mp, base_time + timedelta(minutes=4))  # noqa: E111
+      second_id = await manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.FEEDING_REMINDER,
         title="Cache hit",
         message="Still suppressed",
@@ -712,8 +710,8 @@ class TestQuietHours:
     )
 
     with pytest.MonkeyPatch.context() as mp:
-      _patch_times(mp, base_time + timedelta(minutes=6))
-      third_id = await manager.async_send_notification(
+      _patch_times(mp, base_time + timedelta(minutes=6))  # noqa: E111
+      third_id = await manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.FEEDING_REMINDER,
         title="Cache miss",
         message="Should deliver",
@@ -721,8 +719,8 @@ class TestQuietHours:
         priority=NotificationPriority.NORMAL,
       )
 
-      cached = manager._cache.is_quiet_time_cached(quiet_key)
-      assert cached == (True, False)
+      cached = manager._cache.is_quiet_time_cached(quiet_key)  # noqa: E111
+      assert cached == (True, False)  # noqa: E111
 
     delivered = manager._notifications.get(third_id)
     assert delivered is not None
@@ -731,9 +729,9 @@ class TestQuietHours:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestChannelDelivery:
-  """Test multi-channel notification delivery."""
+  """Test multi-channel notification delivery."""  # noqa: E111
 
-  async def test_send_to_persistent_channel(self, mock_notification_manager, mock_hass):
+  async def test_send_to_persistent_channel(self, mock_notification_manager, mock_hass):  # noqa: E111
     """Test sending to persistent notification channel."""
     mock_hass.services.async_call = AsyncMock()
 
@@ -751,7 +749,7 @@ class TestChannelDelivery:
     calls = mock_hass.services.async_call.call_args_list
     assert any(mock_call[0][0] == "persistent_notification" for mock_call in calls)
 
-  async def test_send_to_multiple_channels(self, mock_notification_manager):
+  async def test_send_to_multiple_channels(self, mock_notification_manager):  # noqa: E111
     """Test sending to multiple channels."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.FEEDING_REMINDER,
@@ -769,7 +767,7 @@ class TestChannelDelivery:
     assert NotificationChannel.PERSISTENT in notification.channels
     assert NotificationChannel.MOBILE in notification.channels
 
-  async def test_failed_channel_recorded(self, mock_notification_manager, mock_hass):
+  async def test_failed_channel_recorded(self, mock_notification_manager, mock_hass):  # noqa: E111
     """Test that failed channels are recorded."""
     # Mock service call to fail
     mock_hass.services.async_call = AsyncMock(side_effect=Exception("Send failed"))
@@ -790,13 +788,13 @@ class TestChannelDelivery:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestBatchProcessing:
-  """Test notification batching."""
+  """Test notification batching."""  # noqa: E111
 
-  async def test_batch_similar_notifications(self, mock_notification_manager):
+  async def test_batch_similar_notifications(self, mock_notification_manager):  # noqa: E111
     """Test that similar notifications are batched."""
     # Send multiple similar notifications
     for i in range(5):
-      await mock_notification_manager.async_send_notification(
+      await mock_notification_manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.FEEDING_REMINDER,
         title=f"Feeding {i}",
         message=f"Time to feed {i}",
@@ -807,7 +805,7 @@ class TestBatchProcessing:
     # Check that they're queued for batching
     assert len(mock_notification_manager._batch_queue) >= 3
 
-  async def test_urgent_notifications_not_batched(self, mock_notification_manager):
+  async def test_urgent_notifications_not_batched(self, mock_notification_manager):  # noqa: E111
     """Test that urgent notifications are not batched."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.HEALTH_ALERT,
@@ -822,11 +820,11 @@ class TestBatchProcessing:
     # Should be sent immediately, not batched
     assert len(notification.grouped_with) == 0
 
-  async def test_batch_size_limit(self, mock_notification_manager):
+  async def test_batch_size_limit(self, mock_notification_manager):  # noqa: E111
     """Test that batches respect size limits."""
     # Add many notifications to batch queue
     for i in range(20):
-      await mock_notification_manager.async_send_notification(
+      await mock_notification_manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.FEEDING_REMINDER,
         title=f"Feed {i}",
         message=f"Feeding {i}",
@@ -837,7 +835,7 @@ class TestBatchProcessing:
     # Batch queue should have reasonable size
     assert len(mock_notification_manager._batch_queue) < 25
 
-  async def test_background_batch_flushes_pending_notifications(
+  async def test_background_batch_flushes_pending_notifications(  # noqa: E111
     self, mock_notification_manager, monkeypatch
   ) -> None:
     """Background task should flush aged batches through _send_batch."""
@@ -845,13 +843,13 @@ class TestBatchProcessing:
     manager = mock_notification_manager
 
     for task_attr in ("_batch_task", "_retry_task", "_cleanup_task"):
-      task = getattr(manager, task_attr)
-      if task is None:
+      task = getattr(manager, task_attr)  # noqa: E111
+      if task is None:  # noqa: E111
         continue
-      task.cancel()
-      with contextlib.suppress(asyncio.CancelledError):
+      task.cancel()  # noqa: E111
+      with contextlib.suppress(asyncio.CancelledError):  # noqa: E111
         await task
-      setattr(manager, task_attr, None)
+      setattr(manager, task_attr, None)  # noqa: E111
 
     config = NotificationConfig(
       channels=[NotificationChannel.PERSISTENT],
@@ -864,7 +862,7 @@ class TestBatchProcessing:
     current_time = base_time
 
     def fake_now() -> datetime:
-      return current_time
+      return current_time  # noqa: E111
 
     monkeypatch.setattr(
       "custom_components.pawcontrol.notifications.dt_util.now",
@@ -874,12 +872,12 @@ class TestBatchProcessing:
     send_event = asyncio.Event()
 
     async def record_send(notification: NotificationEvent) -> None:
-      send_event.set()
+      send_event.set()  # noqa: E111
 
     manager._send_to_channels = AsyncMock(side_effect=record_send)
 
     for index in range(2):
-      await manager.async_send_notification(
+      await manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.FEEDING_REMINDER,
         title=f"Batch {index}",
         message="Queued",
@@ -895,7 +893,7 @@ class TestBatchProcessing:
     real_sleep = asyncio.sleep
 
     async def immediate_sleep(_: float) -> None:
-      await real_sleep(0)
+      await real_sleep(0)  # noqa: E111
 
     monkeypatch.setattr(
       "custom_components.pawcontrol.notifications.asyncio.sleep",
@@ -908,7 +906,7 @@ class TestBatchProcessing:
 
     process_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
-      await process_task
+      await process_task  # noqa: E111
 
     assert "batch_dog_feeding_reminder" not in manager._pending_batches
     assert manager._performance_metrics["batch_operations"] >= 1
@@ -925,9 +923,9 @@ class TestBatchProcessing:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestRateLimiting:
-  """Test rate limiting functionality."""
+  """Test rate limiting functionality."""  # noqa: E111
 
-  async def test_rate_limit_blocks_excessive_notifications(
+  async def test_rate_limit_blocks_excessive_notifications(  # noqa: E111
     self, mock_hass, mock_session
   ):
     """Test that rate limiting blocks excessive notifications."""
@@ -972,9 +970,9 @@ class TestRateLimiting:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestTemplates:
-  """Test notification templates."""
+  """Test notification templates."""  # noqa: E111
 
-  async def test_template_formatting(self, mock_notification_manager):
+  async def test_template_formatting(self, mock_notification_manager):  # noqa: E111
     """Test that templates are applied to notifications."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.FEEDING_REMINDER,
@@ -988,7 +986,7 @@ class TestTemplates:
     # Check that template was applied
     assert notification.template_used is not None
 
-  async def test_custom_template_override(self, mock_hass, mock_session):
+  async def test_custom_template_override(self, mock_hass, mock_session):  # noqa: E111
     """Test custom template overrides."""
     manager = PawControlNotificationManager(
       mock_hass, "test_entry", session=mock_session
@@ -1021,9 +1019,9 @@ class TestTemplates:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestNotificationAcknowledgment:
-  """Test notification acknowledgment."""
+  """Test notification acknowledgment."""  # noqa: E111
 
-  async def test_acknowledge_notification(self, mock_notification_manager):
+  async def test_acknowledge_notification(self, mock_notification_manager):  # noqa: E111
     """Test acknowledging a notification."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.FEEDING_REMINDER,
@@ -1041,7 +1039,7 @@ class TestNotificationAcknowledgment:
     assert notification.acknowledged is True
     assert notification.acknowledged_at is not None
 
-  async def test_acknowledge_notification_without_services(
+  async def test_acknowledge_notification_without_services(  # noqa: E111
     self, mock_notification_manager
   ) -> None:
     """Notification acknowledgment should short-circuit when hass services missing."""
@@ -1062,7 +1060,7 @@ class TestNotificationAcknowledgment:
 
     assert success is True
 
-  async def test_acknowledge_nonexistent_notification(self, mock_notification_manager):
+  async def test_acknowledge_nonexistent_notification(self, mock_notification_manager):  # noqa: E111
     """Test acknowledging non-existent notification."""
     success = await mock_notification_manager.async_acknowledge_notification(
       "nonexistent_id"
@@ -1070,7 +1068,7 @@ class TestNotificationAcknowledgment:
 
     assert success is False
 
-  async def test_acknowledged_notifications_excluded_from_batch(
+  async def test_acknowledged_notifications_excluded_from_batch(  # noqa: E111
     self, mock_notification_manager
   ):
     """Test that acknowledged notifications are not batched."""
@@ -1103,9 +1101,9 @@ class TestNotificationAcknowledgment:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestPersonTargeting:
-  """Ensure person-targeting integrations fall back correctly."""
+  """Ensure person-targeting integrations fall back correctly."""  # noqa: E111
 
-  async def test_person_targeting_falls_back_to_static_services(
+  async def test_person_targeting_falls_back_to_static_services(  # noqa: E111
     self, mock_notification_manager
   ) -> None:
     """Static mobile services should be reused when no dynamic targets exist."""
@@ -1126,7 +1124,7 @@ class TestPersonTargeting:
     captured: dict[str, NotificationEvent] = {}
 
     async def capture_send(notification: NotificationEvent) -> None:
-      captured[notification.id] = notification
+      captured[notification.id] = notification  # noqa: E111
 
     manager._send_to_channels = AsyncMock(side_effect=capture_send)
 
@@ -1146,7 +1144,7 @@ class TestPersonTargeting:
     assert manager._performance_metrics["static_fallback_notifications"] == 1
     assert manager._performance_metrics["person_targeted_notifications"] == 0
 
-  async def test_person_targeting_includes_away_persons_when_enabled(
+  async def test_person_targeting_includes_away_persons_when_enabled(  # noqa: E111
     self, mock_notification_manager
   ) -> None:
     """Dynamic person targeting should include away personas when configured."""
@@ -1176,7 +1174,7 @@ class TestPersonTargeting:
     recorded: dict[str, NotificationEvent] = {}
 
     async def capture(notification: NotificationEvent) -> None:
-      recorded[notification.id] = notification
+      recorded[notification.id] = notification  # noqa: E111
 
     manager._send_to_channels = AsyncMock(side_effect=capture)
 
@@ -1203,7 +1201,7 @@ class TestPersonTargeting:
     assert person_manager.requests == [(True, "person_targets_family_True")]
     assert manager._performance_metrics["person_targeted_notifications"] == 1
 
-  async def test_person_targeting_enriches_template_context(
+  async def test_person_targeting_enriches_template_context(  # noqa: E111
     self, mock_notification_manager
   ) -> None:
     """Person context should populate template variables for overrides."""
@@ -1236,7 +1234,7 @@ class TestPersonTargeting:
     recorded: dict[str, NotificationEvent] = {}
 
     async def capture(notification: NotificationEvent) -> None:
-      recorded[notification.id] = notification
+      recorded[notification.id] = notification  # noqa: E111
 
     manager._send_to_channels = AsyncMock(side_effect=capture)
 
@@ -1259,9 +1257,9 @@ class TestPersonTargeting:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestNotificationRetries:
-  """Validate retry telemetry and delivery behaviour."""
+  """Validate retry telemetry and delivery behaviour."""  # noqa: E111
 
-  async def test_retry_metrics_recorded_for_mobile_failures(
+  async def test_retry_metrics_recorded_for_mobile_failures(  # noqa: E111
     self, mock_notification_manager, monkeypatch
   ) -> None:
     """Failed mobile delivery should reschedule and record telemetry."""
@@ -1269,12 +1267,12 @@ class TestNotificationRetries:
     manager = mock_notification_manager
 
     for task_attr in ("_batch_task", "_retry_task", "_cleanup_task"):
-      task = getattr(manager, task_attr)
-      if task is not None:
+      task = getattr(manager, task_attr)  # noqa: E111
+      if task is not None:  # noqa: E111
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
-          await task
-      setattr(manager, task_attr, None)
+          await task  # noqa: E111
+      setattr(manager, task_attr, None)  # noqa: E111
 
     config = NotificationConfig(
       channels=[NotificationChannel.MOBILE],
@@ -1288,10 +1286,10 @@ class TestNotificationRetries:
     retry_event = asyncio.Event()
 
     async def failing_handler(notification: NotificationEvent) -> None:
-      attempts.append(notification.retry_count)
-      if len(attempts) == 1:
+      attempts.append(notification.retry_count)  # noqa: E111
+      if len(attempts) == 1:  # noqa: E111
         raise RuntimeError("mobile send failed")
-      retry_event.set()
+      retry_event.set()  # noqa: E111
 
     manager._handlers[NotificationChannel.MOBILE] = (
       manager._wrap_handler_with_monitoring(failing_handler, NotificationChannel.MOBILE)
@@ -1301,7 +1299,7 @@ class TestNotificationRetries:
     current_time = base_time
 
     def fake_now() -> datetime:
-      return current_time
+      return current_time  # noqa: E111
 
     monkeypatch.setattr(
       "custom_components.pawcontrol.notifications.dt_util.now",
@@ -1311,7 +1309,7 @@ class TestNotificationRetries:
     real_sleep = asyncio.sleep
 
     async def immediate_sleep(_: float) -> None:
-      await real_sleep(0)
+      await real_sleep(0)  # noqa: E111
 
     monkeypatch.setattr(
       "custom_components.pawcontrol.notifications.asyncio.sleep",
@@ -1345,9 +1343,9 @@ class TestNotificationRetries:
     assert notification.send_attempts[NotificationChannel.MOBILE.value] == 1
 
     for _ in range(5):
-      if manager._performance_metrics["retry_successes"]:
+      if manager._performance_metrics["retry_successes"]:  # noqa: E111
         break
-      await real_sleep(0)
+      await real_sleep(0)  # noqa: E111
 
     assert manager._performance_metrics["retry_reschedules"] == 1
     assert manager._performance_metrics["retry_successes"] == 1
@@ -1355,16 +1353,16 @@ class TestNotificationRetries:
 
     retry_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
-      await retry_task
+      await retry_task  # noqa: E111
     manager._retry_task = None
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestNotificationCleanup:
-  """Test notification cleanup and expiration."""
+  """Test notification cleanup and expiration."""  # noqa: E111
 
-  async def test_expired_notifications_cleaned(self, mock_notification_manager):
+  async def test_expired_notifications_cleaned(self, mock_notification_manager):  # noqa: E111
     """Test that expired notifications are cleaned up."""
     # Create notification with short expiration
     await mock_notification_manager.async_send_notification(
@@ -1385,7 +1383,7 @@ class TestNotificationCleanup:
     # Notification should be cleaned
     assert cleaned >= 0
 
-  async def test_old_acknowledged_notifications_cleaned(
+  async def test_old_acknowledged_notifications_cleaned(  # noqa: E111
     self, mock_notification_manager
   ):
     """Test that old acknowledged notifications are cleaned."""
@@ -1405,7 +1403,7 @@ class TestNotificationCleanup:
 
     assert cleaned >= 1
 
-  async def test_quiet_hours_cache_cleanup(self, mock_notification_manager) -> None:
+  async def test_quiet_hours_cache_cleanup(self, mock_notification_manager) -> None:  # noqa: E111
     """Cache cleanup should evict stale quiet-hour entries."""
 
     quiet_key = "test_dog"
@@ -1428,9 +1426,9 @@ class TestNotificationCleanup:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestPerformanceStatistics:
-  """Test performance monitoring."""
+  """Test performance monitoring."""  # noqa: E111
 
-  async def test_get_performance_statistics(self, mock_notification_manager):
+  async def test_get_performance_statistics(self, mock_notification_manager):  # noqa: E111
     """Test retrieving performance statistics."""
     stats = await mock_notification_manager.async_get_performance_statistics()
 
@@ -1439,7 +1437,7 @@ class TestPerformanceStatistics:
     assert "performance_metrics" in stats
     assert "cache_stats" in stats
 
-  async def test_statistics_track_sent_notifications(self, mock_notification_manager):
+  async def test_statistics_track_sent_notifications(self, mock_notification_manager):  # noqa: E111
     """Test that statistics track sent notifications."""
     initial_stats = await mock_notification_manager.async_get_performance_statistics()
     initial_sent = initial_stats["performance_metrics"]["notifications_sent"]
@@ -1455,7 +1453,7 @@ class TestPerformanceStatistics:
     # Should have incremented (or stayed same if not actually sent)
     assert final_stats["performance_metrics"]["notifications_sent"] >= initial_sent
 
-  async def test_statistics_track_failed_notifications(
+  async def test_statistics_track_failed_notifications(  # noqa: E111
     self, mock_notification_manager, mock_hass
   ):
     """Test that statistics track failed notifications."""
@@ -1481,9 +1479,9 @@ class TestPerformanceStatistics:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestConvenienceMethods:
-  """Test convenience methods for specific notification types."""
+  """Test convenience methods for specific notification types."""  # noqa: E111
 
-  async def test_send_feeding_reminder(self, mock_notification_manager):
+  async def test_send_feeding_reminder(self, mock_notification_manager):  # noqa: E111
     """Test feeding reminder convenience method."""
     notification_id = await mock_notification_manager.async_send_feeding_reminder(
       dog_id="buddy",
@@ -1498,7 +1496,7 @@ class TestConvenienceMethods:
     assert notification.notification_type == NotificationType.FEEDING_REMINDER
     assert notification.dog_id == "buddy"
 
-  async def test_send_walk_reminder(self, mock_notification_manager):
+  async def test_send_walk_reminder(self, mock_notification_manager):  # noqa: E111
     """Test walk reminder convenience method."""
     notification_id = await mock_notification_manager.async_send_walk_reminder(
       dog_id="buddy",
@@ -1510,7 +1508,7 @@ class TestConvenienceMethods:
     notification = mock_notification_manager._notifications[notification_id]
     assert notification.notification_type == NotificationType.WALK_REMINDER
 
-  async def test_send_health_alert(self, mock_notification_manager):
+  async def test_send_health_alert(self, mock_notification_manager):  # noqa: E111
     """Test health alert convenience method."""
     notification_id = await mock_notification_manager.async_send_health_alert(
       dog_id="buddy",
@@ -1529,9 +1527,9 @@ class TestConvenienceMethods:
 @pytest.mark.unit
 @pytest.mark.asyncio
 class TestEdgeCases:
-  """Test edge cases and error handling."""
+  """Test edge cases and error handling."""  # noqa: E111
 
-  async def test_send_notification_with_empty_title(self, mock_notification_manager):
+  async def test_send_notification_with_empty_title(self, mock_notification_manager):  # noqa: E111
     """Test sending notification with empty title."""
     notification_id = await mock_notification_manager.async_send_notification(
       notification_type=NotificationType.SYSTEM_INFO,
@@ -1542,7 +1540,7 @@ class TestEdgeCases:
     # Should handle gracefully
     assert notification_id is not None
 
-  async def test_send_notification_with_very_long_message(
+  async def test_send_notification_with_very_long_message(  # noqa: E111
     self, mock_notification_manager
   ):
     """Test notification with very long message."""
@@ -1557,12 +1555,12 @@ class TestEdgeCases:
     # Should handle gracefully (may truncate)
     assert notification_id is not None
 
-  async def test_concurrent_notification_sends(self, mock_notification_manager):
+  async def test_concurrent_notification_sends(self, mock_notification_manager):  # noqa: E111
     """Test concurrent notification sending."""
     import asyncio
 
     async def send_notification(i: int):
-      return await mock_notification_manager.async_send_notification(
+      return await mock_notification_manager.async_send_notification(  # noqa: E111
         notification_type=NotificationType.SYSTEM_INFO,
         title=f"Concurrent {i}",
         message=f"Message {i}",
@@ -1575,7 +1573,7 @@ class TestEdgeCases:
     assert len(ids) == 10
     assert all(id is not None for id in ids)
 
-  async def test_shutdown_cancels_background_tasks(self, mock_notification_manager):
+  async def test_shutdown_cancels_background_tasks(self, mock_notification_manager):  # noqa: E111
     """Test that shutdown cancels background tasks."""
     await mock_notification_manager.async_shutdown()
 
