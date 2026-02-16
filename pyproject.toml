@@ -1,6 +1,7 @@
 # pyproject.toml — nur Tooling für eine Home‑Assistant Custom‑Integration
 [build-system]
 requires = ["setuptools>=80", "wheel"]
+requires-python = ">=3.14"
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
@@ -30,23 +31,61 @@ filterwarnings = [
 target-version = "py314"
 line-length = 88
 src = ["custom_components"]
+cache-dir = "~/.cache/ruff"
 indent-width = 2
 show-fixes = true
 fix = true
 unsafe-fixes = true
+force-exclude = true
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
 
 [tool.ruff.analyze]
 detect-string-imports = true
 direction = "dependencies"
 string-imports-min-dots = 2
-type-checking-imports = true
+# Exclude type-checking-only imports from the graph
+type-checking-imports = false
 
 [tool.ruff.format]
+preview = true
 quote-style = "double"
 indent-style = "space"
-line-ending = "lf"
+line-ending = "auto"
 docstring-code-format = true
+docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
+# Disable `typing_extensions` imports
+typing-extensions = false
+# Enable `from __future__ import annotations` imports
+
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
@@ -59,14 +98,20 @@ extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 # where each tool reorders imports differently on every run, we ignore
 # Ruff’s import‑sorting rule and let the dedicated hook handle ordering.
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+preview = true
+select = ["E", "F", "I", "UP", "B", "SIM", "Q"]
 ignore = ["E501", "I001"]
 extend-ignore = [
   "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
 ]
 fixable = ["ALL"]
-unfixable = []
+# Disable fix for unused imports (`F401`).
+unfixable = ["F401"]
 extend-unsafe-fixes = ["E", "F401"]
+extend-select = ["B", "Q"]
+extend-fixable = ["B"]
+# Enable `from __future__ import annotations` imports
+future-annotations = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
@@ -238,10 +283,38 @@ select = C,E,F..., TC, TC2  # or TC1
 # OR 'enable-extensions':
 enable-extensions = TC, TC2  # or TC1
 
+[tool.ruff.lint.flake8-builtins]
+strict-checking = true
+
+[tool.ruff.lint.flake8-copyright]
+author = "Ruff"
+# Avoid enforcing a header on files smaller than 1024 bytes.
+min-file-size = 1024
+
+[tool.ruff.lint.flake8-import-conventions]
+# Declare the banned `from` imports.
+banned-from = ["typing"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = ["typing", "typing_extensions"]
+
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "async_timeout".msg = "use asyncio.timeout instead"
 "pytz".msg = "use zoneinfo instead"
 "tests".msg = "You should not import tests"
+"cgi".msg = "The cgi module is deprecated, see https://peps.python.org/pep-0594/#cgi."
+"typing.TypedDict".msg = "Use typing_extensions.TypedDict instead."
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+parametrize-names-type = "list"
+parametrize-values-row-type = "list"
+parametrize-values-row-type = "list"
+parametrize-values-type = "list"
 
 [tool.pylint.TYPECHECK]
 ignored-classes = [
