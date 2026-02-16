@@ -909,6 +909,8 @@ def _build_guard_summary(
       reasons[reason_key] = _coerce_int(count, default=0)
   reasons.setdefault("missing_instance", 0)
 
+  reasons.setdefault("missing_instance", 0)
+
   sorted_reasons = sorted(
     reasons.items(),
     key=lambda item: (-item[1], item[0]),

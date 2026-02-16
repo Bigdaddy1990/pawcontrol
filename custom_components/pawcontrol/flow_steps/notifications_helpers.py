@@ -50,10 +50,13 @@ def _validate_time_input(value: Any, field: NotificationOptionsField) -> None:
   if value is None:
     return
 
-  if not isinstance(value, str):
+  if isinstance(value, datetime):
     return
 
-  candidate = value.strip()
+  if isinstance(value, int | float) and value == 0:
+    return
+
+  candidate = str(value).strip()
   if not candidate:
     return
 

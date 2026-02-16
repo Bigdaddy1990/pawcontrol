@@ -23,6 +23,7 @@ from hypothesis import strategies as st
 from custom_components.pawcontrol.coordinator_diffing import compute_coordinator_diff
 from custom_components.pawcontrol.coordinator_diffing import compute_data_diff
 from custom_components.pawcontrol.coordinator_diffing import compute_dog_diff
+from custom_components.pawcontrol.const import MAX_DOG_NAME_LENGTH
 from custom_components.pawcontrol.exceptions import InvalidCoordinatesError
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.validation import validate_dog_name
@@ -53,7 +54,7 @@ def dog_name_strategy(draw):
       String dog name
   """
   # Valid names: 2-50 characters, letters/spaces/hyphens
-  length = draw(st.integers(min_value=2, max_value=50))
+  length = draw(st.integers(min_value=2, max_value=MAX_DOG_NAME_LENGTH))
   characters = st.characters(
     whitelist_categories=("Lu", "Ll"),
     whitelist_characters=" -",
@@ -192,18 +193,18 @@ class TestDogNameValidationProperties:
 
     Property: Names matching criteria should always be valid.
     """
-    if 2 <= len(name.strip()) <= 50:
+    if 2 <= len(name.strip()) <= MAX_DOG_NAME_LENGTH:
       # Should not raise
       validate_dog_name(name)
 
-  @given(st.text(min_size=51, max_size=100))
+  @given(st.text(min_size=MAX_DOG_NAME_LENGTH + 1, max_size=100))
   @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
   def test_long_names_rejected(self, long_name):
     """Test that overly long names are rejected.
 
-    Property: Names longer than 50 characters should be invalid.
+    Property: Names longer than the configured limit should be invalid.
     """
-    if len(long_name) > 50:
+    if len(long_name) > MAX_DOG_NAME_LENGTH:
       with pytest.raises(ValidationError):
         validate_dog_name(long_name)
 

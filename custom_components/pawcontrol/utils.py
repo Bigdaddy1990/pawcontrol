@@ -1796,6 +1796,8 @@ def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:
   elif isinstance(value, str):
     if not value:
       return None
+    if not any(character.isdigit() for character in value):
+      return None
     parsed_value = _parse_datetime_string(value)
     if parsed_value is None:
       return None

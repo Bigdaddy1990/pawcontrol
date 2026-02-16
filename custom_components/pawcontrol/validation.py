@@ -66,8 +66,8 @@ MAX_TEMPERATURE_CELSIUS: Final[float] = 42.0
 MIN_DURATION_MINUTES: Final[int] = 1
 MAX_DURATION_MINUTES: Final[int] = 480
 
-MIN_GEOFENCE_RADIUS: Final[float] = 5.0
-MAX_GEOFENCE_RADIUS: Final[float] = 5000.0
+MIN_GEOFENCE_RADIUS: Final[float] = 10.0
+MAX_GEOFENCE_RADIUS: Final[float] = 10000.0
 
 TNotificationTarget = TypeVar("TNotificationTarget", bound=Enum)
 
