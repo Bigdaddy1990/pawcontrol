@@ -115,7 +115,7 @@ extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
-known-first-party = ["custom_components", "annotatedyaml"]
+known-first-party = ["custom_components", "pytest_"]
 combine-as-imports = true
 split-on-trailing-comma = false
 required-imports = ["from __future__ import annotations"]
