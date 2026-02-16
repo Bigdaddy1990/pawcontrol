@@ -4,8 +4,6 @@ Provides the small subset of plugin behavior exercised by the PawControl
 test suite without requiring the real pytest-asyncio dependency.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Generator
 import contextlib

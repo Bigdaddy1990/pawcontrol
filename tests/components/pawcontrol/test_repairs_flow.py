@@ -1,7 +1,5 @@
 """Tests for PawControl repairs flow routing."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 
 from homeassistant.helpers import issue_registry as ir

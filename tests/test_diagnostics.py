@@ -1,7 +1,5 @@
 """Unit tests for diagnostics redaction helpers."""
 
-from __future__ import annotations
-
 import ast
 import asyncio
 from dataclasses import dataclass, is_dataclass

@@ -1,7 +1,5 @@
 """Unit tests for runtime store telemetry helpers."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast

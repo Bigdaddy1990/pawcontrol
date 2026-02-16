@@ -1,7 +1,5 @@
 """Unit tests for the GPS cache helpers in the walk manager."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 
 import pytest

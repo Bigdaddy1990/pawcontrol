@@ -4,8 +4,6 @@ OPTIMIZED VERSION with async performance improvements, batch operations,
 and memory-efficient data management for Platinum quality ambitions.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections import deque
 from collections.abc import Awaitable, Callable, Mapping, Sized

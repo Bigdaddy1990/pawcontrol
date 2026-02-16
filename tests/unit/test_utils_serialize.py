@@ -3,8 +3,6 @@
 Tests JSON serialization utilities for entity attributes.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 

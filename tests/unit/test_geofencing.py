@@ -1,7 +1,5 @@
 """Typed storage and notification coverage for the geofencing subsystem."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock

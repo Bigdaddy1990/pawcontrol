@@ -7,8 +7,6 @@ package. It validates manifest structure, required keys, and translation
 presence for the PawControl integration.
 """
 
-from __future__ import annotations
-
 from argparse import ArgumentParser
 from collections.abc import Iterable
 import json

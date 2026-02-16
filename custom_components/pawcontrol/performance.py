@@ -9,7 +9,6 @@ Python: 3.13+
 """
 
 # ruff: noqa: E111
-from __future__ import annotations
 
 import asyncio
 from collections import deque

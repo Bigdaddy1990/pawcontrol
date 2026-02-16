@@ -1,7 +1,5 @@
 """Helpers for PawControl device automations."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 import logging

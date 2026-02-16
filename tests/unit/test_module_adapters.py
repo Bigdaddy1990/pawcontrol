@@ -1,7 +1,5 @@
 """Unit tests for the lightweight parts of module_adapters."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import UTC, datetime, timedelta, timezone
 import importlib

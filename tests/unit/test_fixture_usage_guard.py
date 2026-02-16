@@ -1,7 +1,5 @@
 """Ensure Pytest fixtures are not called directly inside the test suite."""
 
-from __future__ import annotations
-
 import ast
 from pathlib import Path
 from typing import Final, TypeAlias

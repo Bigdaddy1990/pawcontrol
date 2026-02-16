@@ -1,7 +1,5 @@
 """Tests for the discovery helpers."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 

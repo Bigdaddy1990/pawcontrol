@@ -11,8 +11,6 @@ Python: 3.14+
 HA: 2025.9.3+
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import timedelta
 from enum import StrEnum

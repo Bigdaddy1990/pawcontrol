@@ -1,7 +1,5 @@
 """Tests for weather translation resolution and fallbacks."""
 
-from __future__ import annotations
-
 from typing import cast
 from unittest.mock import MagicMock
 

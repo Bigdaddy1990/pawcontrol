@@ -1,7 +1,5 @@
 """Tests for the vendored PyYAML monitoring helper."""
 
-from __future__ import annotations
-
 import argparse
 
 from pip._vendor.packaging.version import Version

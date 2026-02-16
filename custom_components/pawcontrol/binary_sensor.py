@@ -8,8 +8,6 @@ with full type annotations, async operations, and robust error handling.
 OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code duplication.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from inspect import isawaitable

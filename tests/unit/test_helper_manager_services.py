@@ -1,7 +1,5 @@
 """Regression tests for helper service payload construction."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from typing import Any, NotRequired, TypedDict, cast
 

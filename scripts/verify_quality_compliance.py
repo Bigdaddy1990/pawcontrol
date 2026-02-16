@@ -12,8 +12,6 @@ Quality Scale: Platinum
 Python: 3.14+
 """
 
-from __future__ import annotations
-
 import ast
 from dataclasses import dataclass
 import logging

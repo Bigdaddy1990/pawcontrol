@@ -9,7 +9,6 @@ diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
 
 # ruff: noqa: E111
-from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable

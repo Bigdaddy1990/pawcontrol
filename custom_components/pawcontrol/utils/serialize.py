@@ -8,7 +8,6 @@ Python: 3.14+
 """
 
 # ruff: noqa: E111
-from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass

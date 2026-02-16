@@ -6,8 +6,6 @@ clear and well documented implementation that focuses on correctness,
 maintainability, and graceful error handling.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping, Sequence

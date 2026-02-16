@@ -1,7 +1,5 @@
 """Config entry migrations for the PawControl integration."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 import logging
 from typing import Any, Final, cast
