@@ -16,6 +16,10 @@ repos:
     hooks:
       - id: pyupgrade
         args:
+          - --py39-plus
+          - --py310-plus
+          - --py311-plus
+          - --py313-plus
           - --py314-plus
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.8.1
@@ -23,11 +27,13 @@ repos:
       - id: python-typing-update
         stages: [manual]
         args:
+          - --py3-plus
+          - --py36-plus
+          - --py39-plus
           - --py314-plus
           - --full-reorder
           - --keep-updates
           - --force-exclude
-
    - repo: https://github.com/pycqa/flake8
      rev: 4.0.1
      hooks:
