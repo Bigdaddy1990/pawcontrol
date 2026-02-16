@@ -226,8 +226,9 @@ class BinarySensorLogicMixin:
 
     except ValueError:
       _LOGGER.debug(
-        "ValueError converting '%s' to a number for threshold comparison",
+        "ValueError converting '%s' to a number for threshold comparison (threshold=%s)",
         value,
+        threshold,
       )
       return default_if_none
     except TypeError:

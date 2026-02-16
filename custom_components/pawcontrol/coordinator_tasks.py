@@ -963,20 +963,20 @@ def _coerce_int(value: Any) -> int:
 
   try:
     return int(value)
-  except ValueError:
-    return _coerce_int_fallback(value)
-  except TypeError:
+  except (ValueError, TypeError):
     return _coerce_int_fallback(value)
 
 
 def _coerce_int_fallback(value: Any) -> int:
-  """Return ``value`` coerced via float conversion for integer fallbacks."""
+  """Return ``value`` coerced via ``float`` for integer fallback handling.
+
+  If ``int(float(value))`` cannot coerce the incoming value, return ``0`` so
+  diagnostics payloads always contain serialisable integer counters.
+  """
 
   try:
     return int(float(value))
-  except ValueError:
-    return 0
-  except TypeError:
+  except (ValueError, TypeError):
     return 0
 
 
