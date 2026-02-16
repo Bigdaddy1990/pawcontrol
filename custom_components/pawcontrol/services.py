@@ -246,13 +246,6 @@ def _format_numeric_value(value: object) -> str:
 def _format_expires_in_hours_error(error: ValidationError) -> str:
   """Format expiry validation errors for service responses."""
 
-  def _fmt(value: float | int | None) -> str:
-    if value is None:
-      return ""
-    if isinstance(value, float) and value.is_integer():
-      return str(int(value))
-    return str(value)
-
   field = error.field
   constraint = error.constraint
 
