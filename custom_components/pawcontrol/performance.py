@@ -256,6 +256,11 @@ def track_performance(
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E112, E306
 
+  def decorator(
+    func: Callable[P, T] | Callable[P, Awaitable[T]],
+  ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
+    metric_name = name or func.__name__
+
     @functools.wraps(func)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
       start = time.perf_counter()
