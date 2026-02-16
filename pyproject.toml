@@ -82,8 +82,6 @@ line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
-# Disable `typing_extensions` imports
-typing-extensions = false
 # Enable `from __future__ import annotations` imports
 
 [tool.ruff.lint.pydocstyle]
@@ -109,8 +107,6 @@ unfixable = ["F401"]
 extend-unsafe-fixes = ["E", "F401"]
 extend-select = ["B", "Q"]
 extend-fixable = ["B"]
-# Enable `from __future__ import annotations` imports
-future-annotations = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403", "E402"]
@@ -195,10 +191,12 @@ disable_error_code = [
     "unused-ignore",
 ]
 
-[mypy-testing.*]
+[[tool.mypy.overrides]]
+module = ["testing.*"]
 disallow_untyped_defs = false
 
-[mypy-tests.*]
+[[tool.mypy.overrides]]
+module = ["tests.*"]
 disallow_untyped_defs = false
 
 [tool.coverage.run]
@@ -273,14 +271,14 @@ max-complexity = 12
 type-checking-py314plus = true  # default false
 type-checking-strict = true  # default false
 type-checking-force-future-annotation = true  # default false
-type-checking-exempt-modules = typing_extensions  # default []
-ignore = E501
+type-checking-exempt-modules = ["typing_extensions"]  # default []
+ignore = ["E501"]
 # You can use 'extend-select' (new in flake8 v4):
-extend-select = TC, TC2
+extend-select = ["TC", "TC2"]
 # OR 'select':
-select = C,E,F..., TC, TC2  # or TC1
+select = ["C", "E", "F", "TC", "TC2"]  # or TC1
 # OR 'enable-extensions':
-enable-extensions = TC, TC2  # or TC1
+enable-extensions = ["TC", "TC2"]  # or TC1
 
 [tool.ruff.lint.flake8-builtins]
 strict-checking = true
@@ -311,7 +309,6 @@ exempt-modules = ["typing", "typing_extensions"]
 fixture-parentheses = true
 mark-parentheses = true
 parametrize-names-type = "list"
-parametrize-values-row-type = "list"
 parametrize-values-row-type = "list"
 parametrize-values-type = "list"
 
