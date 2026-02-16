@@ -177,31 +177,10 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
-warn_return_any = false
+# PLATINUM COMPLIANCE: Only minimal exceptions, fix errors instead of suppressing
+warn_return_any = false  # Unavoidable with HA's dynamic typing
 disable_error_code = [
-  "abstract",
-  "arg-type",
-  "assignment",
-  "attr-defined",
-  "call-arg",
-  "call-overload",
-  "comparison-overlap",
-  "dict-item",
-  "func-returns-value",
-  "index",
-  "list-item",
-  "literal-required",
-  "misc",
-  "no-any-return",
-  "no-redef",
-  "operator",
-  "override",
-  "redundant-cast",
-  "typeddict-item",
-  "union-attr",
-  "unused-ignore",
-  "valid-type",
-  "var-annotated",
+  "no-any-return",  # HA core returns Any in many places
 ]
 
 [[tool.mypy.overrides]]
