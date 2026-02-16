@@ -12,6 +12,7 @@ from __future__ import annotations
 
 
 import asyncio
+import inspect
 import functools
 import logging
 import time
@@ -21,6 +22,8 @@ from collections.abc import Callable
 from collections.abc import Mapping
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime
+from datetime import UTC
 from typing import Any
 from typing import ParamSpec
 from typing import TypeVar
@@ -292,7 +295,7 @@ def track_performance(
           )
 
     # Return appropriate wrapper
-    if asyncio.iscoroutinefunction(func):
+    if inspect.iscoroutinefunction(func):
       return async_wrapper  # type: ignore[return-value]
     return sync_wrapper  # type: ignore[return-value]
 
@@ -505,6 +508,27 @@ def capture_cache_diagnostics(runtime_data: object | None) -> dict[str, Any] | N
     return None
 
   diagnostics: dict[str, Any] = {}
+
+  data_manager = getattr(runtime_data, "data_manager", None)
+  snapshots = getattr(data_manager, "cache_snapshots", None)
+  if callable(snapshots):
+    try:
+      snapshot_payload = snapshots()
+    except Exception:  # pragma: no cover - defensive telemetry collection
+      snapshot_payload = None
+    if isinstance(snapshot_payload, Mapping):
+      diagnostics["snapshots"] = {
+        str(name): payload for name, payload in snapshot_payload.items() if isinstance(name, str)
+      }
+
+      repair_summary_factory = getattr(data_manager, "cache_repair_summary", None)
+      if callable(repair_summary_factory):
+        try:
+          repair_summary = repair_summary_factory(snapshot_payload)
+        except Exception:  # pragma: no cover - defensive telemetry collection
+          repair_summary = None
+        if repair_summary is not None:
+          diagnostics["repair_summary"] = repair_summary
   for attr_name in ("cache", "_cache", "caches", "_caches"):
     cache = getattr(runtime_data, attr_name, None)
     if isinstance(cache, dict):
@@ -567,6 +591,22 @@ def performance_tracker(
   finally:
     duration_ms = (time.perf_counter() - context.started_at) * 1000.0
     store = _ensure_runtime_performance_store(runtime_data)
+    buckets = store.setdefault("performance_buckets", {})
+    if isinstance(buckets, dict):
+      bucket = buckets.setdefault(
+        metric_name,
+        {"runs": 0, "failures": 0, "durations_ms": []},
+      )
+      if isinstance(bucket, dict):
+        bucket["runs"] = int(bucket.get("runs", 0) or 0) + 1
+        if context.failure is not None:
+          bucket["failures"] = int(bucket.get("failures", 0) or 0) + 1
+        durations = bucket.setdefault("durations_ms", [])
+        if isinstance(durations, list):
+          durations.append(round(duration_ms, 2))
+          if len(durations) > max_samples:
+            del durations[:-max_samples]
+
     history = store.setdefault(metric_name, [])
     if isinstance(history, list):
       history.append(
@@ -598,11 +638,16 @@ def record_maintenance_result(
   if not isinstance(history, list):
     history = []
     store["maintenance_history"] = history
+  results = store.setdefault("maintenance_results", [])
+  if not isinstance(results, list):
+    results = []
+    store["maintenance_results"] = results
 
   entry: dict[str, Any] = {
     "task": task,
     "status": status,
     "timestamp": time.time(),
+    "recorded_at": datetime.now(tz=UTC).isoformat(),
   }
   if message is not None:
     entry["message"] = message
@@ -614,5 +659,7 @@ def record_maintenance_result(
     entry["details"] = dict(details)
 
   history.append(entry)
+  results.append(entry)
+  store["last_maintenance_result"] = entry
   if len(history) > max_entries:
     del history[:-max_entries]

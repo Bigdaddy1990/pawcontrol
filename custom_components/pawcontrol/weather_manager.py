@@ -55,9 +55,9 @@ from homeassistant.util import dt as dt_util
 
 from .resilience import ResilienceManager
 from .resilience import RetryConfig
-from .weather_translations import async_get_weather_translations
 from .weather_translations import DEFAULT_LANGUAGE
 from .weather_translations import empty_weather_translations
+from .weather_translations import get_weather_translations as _get_weather_translations
 from .weather_translations import SUPPORTED_LANGUAGES
 from .weather_translations import WEATHER_ALERT_KEY_SET
 from .weather_translations import WEATHER_RECOMMENDATION_KEY_SET
@@ -119,6 +119,12 @@ PRIMARY_ACTIVITIES: Final[
 ] = ("walk", "play", "exercise")
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def get_weather_translations(language: str) -> WeatherTranslations:
+  """Backward-compatible wrapper for weather translation loading."""
+
+  return _get_weather_translations(language)
 
 
 class WeatherSeverity(Enum):
@@ -467,17 +473,11 @@ class WeatherHealthManager:
           "Weather translations for %s not available, using English fallback",
           language,
         )
-      self._translations = await async_get_weather_translations(
-        self.hass,
-        language,
-      )
+      self._translations = get_weather_translations(language)
       if language == DEFAULT_LANGUAGE:
         self._english_translations = self._translations
       else:
-        self._english_translations = await async_get_weather_translations(
-          self.hass,
-          DEFAULT_LANGUAGE,
-        )
+        self._english_translations = get_weather_translations(DEFAULT_LANGUAGE)
       _LOGGER.debug(
         "Loaded weather translations for language: %s",
         language,

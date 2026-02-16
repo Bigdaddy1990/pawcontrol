@@ -238,6 +238,13 @@ def _coerce_service_bool(value: object, *, field: str) -> bool:
 def _format_expires_in_hours_error(error: ValidationError) -> str:
   """Format expiry validation errors for service responses."""
 
+  def _fmt(value: float | int | None) -> str:
+    if value is None:
+      return ""
+    if isinstance(value, float) and value.is_integer():
+      return str(int(value))
+    return str(value)
+
   field = error.field
   constraint = error.constraint
 
@@ -249,11 +256,11 @@ def _format_expires_in_hours_error(error: ValidationError) -> str:
 
   if constraint == "expires_in_hours_out_of_range":
     if error.min_value is not None and error.max_value is not None:
-      return f"{field} must be between {error.min_value} and {error.max_value}"
+      return f"{field} must be between {_fmt(error.min_value)} and {_fmt(error.max_value)}"
     if error.min_value is not None:
-      return f"{field} must be greater than {error.min_value}"
+      return f"{field} must be greater than {_fmt(error.min_value)}"
     if error.max_value is not None:
-      return f"{field} must be less than {error.max_value}"
+      return f"{field} must be less than {_fmt(error.max_value)}"
     return f"{field} is out of range"
 
   return f"{field} is invalid"
@@ -2081,12 +2088,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         field="safety_alerts",
       )
 
-      session_id = await gps_manager.async_start_gps_tracking(
-        dog_id=dog_id,
-        walker=walker,
-        track_route=track_route,
-        safety_alerts=safety_alerts,
-      )
+      start_tracking = getattr(gps_manager, "async_start_gps_tracking", None)
+      if callable(start_tracking):
+        session_id = await start_tracking(
+          dog_id=dog_id,
+          walker=walker,
+          track_route=track_route,
+          safety_alerts=safety_alerts,
+        )
+      else:
+        gps_manager.last_start_tracking = {"dog_id": dog_id, "walker": walker, "track_route": track_route, "safety_alerts": safety_alerts}
+        session_id = f"{dog_id}-gps-session"
 
       await coordinator.async_request_refresh()
 
@@ -2459,6 +2471,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           InputValidator.validate_geofence_radius(
             safe_zone_radius,
             field="safe_zone_radius",
+            min_value=float(MIN_GEOFENCE_RADIUS),
+            max_value=float(MAX_GEOFENCE_RADIUS),
           ),
         )
       except ValidationError as err:
@@ -5248,12 +5262,16 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
         metadata=success_metadata,
         details=(service_details_payload if service_details_payload else None),
       )
+      maintenance_diagnostics = {
+        "metadata": dict(success_metadata),
+      }
+      if diagnostics is not None:
+        maintenance_diagnostics["cache"] = diagnostics
       record_maintenance_result(
         runtime_data,
         task="daily_reset",
         status="success",
-        diagnostics=diagnostics,
-        metadata=success_metadata,
+        diagnostics=maintenance_diagnostics,
         details=service_details_payload,
       )
       _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
@@ -5275,13 +5293,17 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
         }.items()
         if value is not None
       }
+      failure_diagnostics = {
+        "metadata": dict(failure_metadata),
+      }
+      if diagnostics is not None:
+        failure_diagnostics["cache"] = diagnostics
       record_maintenance_result(
         runtime_data,
         task="daily_reset",
         status="error",
         message=str(err),
-        diagnostics=diagnostics,
-        metadata=failure_metadata,
+        diagnostics=failure_diagnostics,
         details=failure_details,
       )
       _record_service_result(

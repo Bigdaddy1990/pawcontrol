@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextvars
 import functools
+import inspect
 import logging
 import traceback
 from collections import defaultdict
@@ -504,9 +505,8 @@ def log_calls(
         raise
 
     # Return appropriate wrapper
-    import asyncio
 
-    if asyncio.iscoroutinefunction(func):
+    if inspect.iscoroutinefunction(func):
       return async_wrapper  # type: ignore[return-value]
     return sync_wrapper  # type: ignore[return-value]
 
