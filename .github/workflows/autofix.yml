@@ -2,8 +2,6 @@ name: pre-commit-autofix
 
 on:
   push:
-    branches:
-      - "**"
   pull_request:
   workflow_dispatch:
 
@@ -21,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       UV_SYSTEM_PYTHON: "1"
+      PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.14' }}
 
     steps:
       - uses: actions/checkout@v6.0.2
@@ -29,7 +28,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v6.2.0
         with:
-          python-version: "3.14"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv (with cache)
         uses: astral-sh/setup-uv@v7
@@ -40,7 +39,7 @@ jobs:
         run: |
             uv pip install --system -r requirements.txt
             uv pip install --system -r requirements_test.txt --prerelease=allow
-            uv pip install --system --upgrade pre-commit ruff pyupgrade flake8-type-checking
+            uv pip install --system --upgrade pre-commit ruff pyupgrade flake8-type-checking reorder-python-imports
             uv cache prune --ci
 
       - name: Run pre-commit with fixes
@@ -51,6 +50,7 @@ jobs:
          ruff check . --add-noqa || true
          ruff check . --extend-select RUF100 --fix || true
          ruff check . --preview || true
+         ruff check . --output-format=github || true
          ruff format
          python scripts/enforce_docstring_baseline.py --update
          pre-commit run --all-files || true
