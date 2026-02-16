@@ -8,6 +8,7 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
+# ruff: noqa: E111
 from __future__ import annotations
 
 import asyncio
@@ -20,7 +21,7 @@ import functools
 import inspect
 import logging
 import time
-from typing import Any, ParamSpec, TypeVar, cast, overload
+from typing import Any, ParamSpec, TypeVar, cast
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -250,13 +251,7 @@ def track_performance(
       ...   return sum(range(1000))
   """  # noqa: E111
 
-  @overload  # noqa: E111
-  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:  # noqa: E111
-    ...
-
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111, E112, E306
-
-  def decorator(  # noqa: E111, E112
+  def decorator(
     func: Callable[P, T] | Callable[P, Awaitable[T]],
   ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
     metric_name = name or func.__name__
@@ -284,7 +279,8 @@ def track_performance(
     def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
       start = time.perf_counter()  # noqa: E111
       try:  # noqa: E111
-        return func(*args, **kwargs)
+        sync_func = cast(Callable[P, T], func)
+        return sync_func(*args, **kwargs)
       finally:  # noqa: E111
         duration_ms = (time.perf_counter() - start) * 1000
         _performance_monitor.record(metric_name, duration_ms)
@@ -297,47 +293,8 @@ def track_performance(
             slow_threshold_ms,
           )
 
-    # Return appropriate wrapper
     if inspect.iscoroutinefunction(func):
-      start = time.perf_counter()  # noqa: E111
-      try:  # noqa: E111
-        async_func = cast(Callable[P, Awaitable[T]], func)
-        result = await async_func(*args, **kwargs)
-        return result
-      finally:  # noqa: E111
-        duration_ms = (time.perf_counter() - start) * 1000
-        _performance_monitor.record(metric_name, duration_ms)
-      return cast(Callable[P, T], async_wrapper)  # noqa: E111
-        if log_slow and duration_ms > slow_threshold_ms:  # noqa: E113
-          _LOGGER.warning(  # noqa: E111
-            "Slow operation: %s took %.2fms (threshold: %.2fms)",
-            metric_name,
-            duration_ms,
-            slow_threshold_ms,
-          )
-
-    @functools.wraps(func)
-    def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-      start = time.perf_counter()  # noqa: E111
-      try:  # noqa: E111
-        return func(*args, **kwargs)
-      finally:  # noqa: E111
-        duration_ms = (time.perf_counter() - start) * 1000
-        _performance_monitor.record(metric_name, duration_ms)
-
-        if log_slow and duration_ms > slow_threshold_ms:
-          _LOGGER.warning(  # noqa: E111
-            "Slow operation: %s took %.2fms (threshold: %.2fms)",
-            metric_name,
-            duration_ms,
-            slow_threshold_ms,
-          )
-
-    # Return appropriate wrapper
-    if inspect.iscoroutinefunction(func):
-      return cast(Callable[P, T], async_wrapper)  # noqa: E111
-    return sync_wrapper
-
+      return cast(Callable[P, Awaitable[T]], async_wrapper)
     return sync_wrapper
 
   return decorator  # noqa: E111

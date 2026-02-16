@@ -1,3 +1,4 @@
+# ruff: noqa: E111
 """Sensor platform for the PawControl integration."""
 
 from collections.abc import Callable, Mapping
@@ -66,7 +67,9 @@ if TYPE_CHECKING:
     _attr_should_poll: bool
 
 else:
-  from homeassistant.components.sensor import SensorEntity as SensorEntityProtocol
+  from homeassistant.components.sensor import (
+    SensorEntity as SensorEntityProtocol,  # noqa: E111
+  )
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -10,6 +10,9 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
+# ruff: noqa: E111
+from __future__ import annotations
+
 import asyncio
 from collections.abc import Awaitable, Callable, Mapping
 import importlib
@@ -244,7 +247,9 @@ def _build_module_setup_placeholders(
 
 
 if TYPE_CHECKING:
-  from .config_flow_base import PawControlBaseConfigFlow as DogManagementMixinBase
+  from .config_flow_base import (
+    PawControlBaseConfigFlow as DogManagementMixinBase,  # noqa: E111
+  )
 else:
 
   class DogManagementMixinBase:  # pragma: no cover - runtime shim  # noqa: E111

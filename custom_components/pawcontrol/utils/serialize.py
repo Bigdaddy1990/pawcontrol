@@ -7,6 +7,7 @@ Quality Scale: Platinum
 Python: 3.14+
 """
 
+# ruff: noqa: E111
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -80,10 +81,13 @@ def serialize_dataclass(obj: Any) -> dict[str, Any]:
       >>> serialize_dataclass(dog)
       {'name': 'Buddy', 'age': 5}
   """  # noqa: E111
-if not is_dataclass(obj):  # noqa: E305
+  if not is_dataclass(obj):
     raise TypeError(f"Expected dataclass instance, got {type(obj).__name__}")
-if isinstance(obj, type):
-    raise TypeError(f"Expected dataclass instance, but received a class. Did you mean to instantiate it?")  # noqa: E501
+  if isinstance(obj, type):
+    raise TypeError(
+      "Expected dataclass instance, but received a class. "
+      "Did you mean to instantiate it?",
+    )
   return asdict(obj)
 
 
