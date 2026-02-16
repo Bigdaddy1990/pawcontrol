@@ -365,8 +365,8 @@ def validate_dog_name(
       "dog_name_invalid",
     )
 
-trimmed = name.strip()  # noqa: E305
-  if len(trimmed) > max_length:  # noqa: E113
+  trimmed = name.strip()
+  if len(trimmed) > max_length:
     raise ValidationError(
       field,
       name,
@@ -374,7 +374,6 @@ trimmed = name.strip()  # noqa: E305
       max_value=max_length,
     )
 
-  trimmed = name.strip()
   if not trimmed:
     if required:
       raise ValidationError(
