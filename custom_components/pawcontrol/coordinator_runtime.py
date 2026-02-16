@@ -1,7 +1,5 @@
 """Runtime helpers that keep :mod:`coordinator` focused on orchestration."""
 
-from __future__ import annotations
-
 import asyncio
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping, Sequence

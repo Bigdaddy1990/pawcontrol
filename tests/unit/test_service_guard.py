@@ -1,7 +1,5 @@
 """Unit tests for service guard telemetry models."""
 
-from __future__ import annotations
-
 import pytest
 
 from custom_components.pawcontrol.service_guard import (

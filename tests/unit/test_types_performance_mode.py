@@ -1,7 +1,5 @@
 """Tests for performance mode normalization helpers."""
 
-from __future__ import annotations
-
 from custom_components.pawcontrol.const import (
   DEFAULT_PERFORMANCE_MODE,
   PERFORMANCE_MODES,

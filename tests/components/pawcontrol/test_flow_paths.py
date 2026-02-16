@@ -1,7 +1,5 @@
 """Component-level flow path tests for PawControl."""
 
-from __future__ import annotations
-
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest

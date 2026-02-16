@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 
 from custom_components.pawcontrol.types import GPSRouteBuffer, GPSRoutePoint

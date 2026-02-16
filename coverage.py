@@ -1,7 +1,5 @@
 """Coverage shim used for PawControl's isolated test environment."""
 
-from __future__ import annotations
-
 from collections import defaultdict
 from collections.abc import Iterable
 from functools import lru_cache

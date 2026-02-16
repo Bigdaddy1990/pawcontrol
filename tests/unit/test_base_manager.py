@@ -4,8 +4,6 @@ Tests base manager classes, lifecycle management, error handling,
 and manager registration system.
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import pytest

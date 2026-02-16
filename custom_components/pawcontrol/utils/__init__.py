@@ -4,8 +4,6 @@ This package keeps ``custom_components.pawcontrol.utils`` backward compatible
 while exposing focused utility submodules such as ``serialize``.
 """
 
-from __future__ import annotations
-
 from . import _legacy as _legacy_utils
 from .serialize import (
   serialize_dataclass,

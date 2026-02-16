@@ -1,7 +1,5 @@
 """Tests for PawControl device automations."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, Mock
 
 from homeassistant.config_entries import ConfigEntry

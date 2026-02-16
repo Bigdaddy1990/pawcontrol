@@ -1,7 +1,5 @@
 """Localised templates for feeding compliance notifications."""
 
-from __future__ import annotations
-
 from collections import UserString
 from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from itertools import islice

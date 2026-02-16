@@ -1,7 +1,5 @@
 """Unit tests for the PawControl services helpers."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 import json

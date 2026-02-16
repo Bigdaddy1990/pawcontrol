@@ -1,7 +1,5 @@
 """Unit tests for API validation helpers."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock
 
 import pytest

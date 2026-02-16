@@ -1,7 +1,5 @@
 """Door sensor configuration steps for the PawControl options flow."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import asdict
 from importlib import import_module

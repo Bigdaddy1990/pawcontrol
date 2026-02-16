@@ -1,7 +1,5 @@
 """Tests for PawControl datetime updates and persistence."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 

@@ -1,7 +1,5 @@
 """Regression coverage for Home Assistant compatibility stubs."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Callable, MutableMapping
 from datetime import UTC, datetime

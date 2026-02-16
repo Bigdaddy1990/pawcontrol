@@ -1,7 +1,5 @@
 """Unit tests for coordinator observability helpers."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timezone
 from typing import Any, cast
 

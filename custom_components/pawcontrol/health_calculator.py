@@ -4,8 +4,6 @@ Provides body condition scoring, calorie calculations and weight management
 recommendations for dogs.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, timedelta

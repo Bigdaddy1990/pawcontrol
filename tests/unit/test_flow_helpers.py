@@ -4,8 +4,6 @@ Tests all utility functions for config and options flows including type coercion
 form rendering, error handling, schema building, and flow state management.
 """
 
-from __future__ import annotations
-
 from typing import Any
 from unittest.mock import MagicMock
 

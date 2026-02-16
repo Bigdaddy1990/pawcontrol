@@ -1,7 +1,5 @@
 """Tests for PawControl diagnostics payload defaults."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import json

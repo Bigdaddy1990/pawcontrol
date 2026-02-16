@@ -1,7 +1,5 @@
 """Unit coverage for the PawControl data manager instrumentation."""
 
-from __future__ import annotations
-
 import asyncio
 from collections import deque
 from collections.abc import Callable, Mapping

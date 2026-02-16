@@ -1,7 +1,5 @@
 """Utility functions for JSON normalization."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping, Set as ABCSet
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime, time, timedelta

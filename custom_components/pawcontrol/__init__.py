@@ -7,8 +7,6 @@ Original: 1660+ lines
 Refactored: ~300 lines (80% reduction)
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 import importlib

@@ -17,8 +17,6 @@ Exit codes:
 - 1: Errors found
 """
 
-from __future__ import annotations
-
 import ast
 from pathlib import Path
 import sys

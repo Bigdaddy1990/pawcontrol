@@ -1,7 +1,5 @@
 """Unit tests for input validation helpers."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from types import SimpleNamespace
 

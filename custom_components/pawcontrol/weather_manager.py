@@ -8,8 +8,6 @@ Home Assistant: 2025.9.4+
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta

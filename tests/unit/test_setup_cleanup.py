@@ -3,8 +3,6 @@
 Tests cleanup logic extracted from __init__.py
 """
 
-from __future__ import annotations
-
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 

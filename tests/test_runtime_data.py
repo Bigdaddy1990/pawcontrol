@@ -1,7 +1,5 @@
 """Unit tests for runtime data helpers."""
 
-from __future__ import annotations
-
 from dataclasses import field, fields, make_dataclass
 import importlib.util
 from pathlib import Path

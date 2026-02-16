@@ -1,7 +1,5 @@
 """Tests for the AdaptiveCache used by the PawControl data manager."""
 
-from __future__ import annotations
-
 import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta

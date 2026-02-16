@@ -1,7 +1,5 @@
 """Tests for the Home Assistant push guard migration script."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 from urllib.error import URLError

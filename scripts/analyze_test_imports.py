@@ -5,8 +5,6 @@ This script scans all test files for imports from custom_components.pawcontrol
 that reference internal functions moved to setup modules.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 import re
 from typing import NamedTuple

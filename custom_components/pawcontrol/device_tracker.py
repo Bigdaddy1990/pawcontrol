@@ -14,8 +14,6 @@ typing rules. All other functionality—GPS tracking, route recording, geofence
 integration, and export utilities—remains unchanged.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 import logging

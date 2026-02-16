@@ -13,8 +13,6 @@ P26.1.1++
 Python: 3.13+
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from datetime import UTC

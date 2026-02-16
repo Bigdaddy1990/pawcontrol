@@ -7,8 +7,6 @@ redacting sensitive fields so support tooling and the bundled dashboard can
 ingest the data without custom adapters.
 """
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 import importlib
 import logging

@@ -1,8 +1,6 @@
 # ruff: noqa: E111
 """Sensor platform for the PawControl integration."""
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping
 import contextlib
 from datetime import date, datetime, timedelta

@@ -6,8 +6,6 @@ independently and maintains system health. Designed to meet Home Assistant's
 Platinum quality ambitions.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
 from inspect import isawaitable, signature
 import logging

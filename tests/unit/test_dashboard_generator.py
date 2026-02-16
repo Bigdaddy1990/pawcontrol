@@ -1,7 +1,5 @@
 """Unit tests for the dashboard generator metadata exports."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Sequence
 import contextlib

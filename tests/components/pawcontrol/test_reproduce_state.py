@@ -1,7 +1,5 @@
 """Tests for PawControl reproduce state support."""
 
-from __future__ import annotations
-
 import pytest
 
 pytest.importorskip("homeassistant")

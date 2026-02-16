@@ -1,7 +1,5 @@
 """Regression tests for the shared config flow helpers."""
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 from homeassistant.const import CONF_NAME

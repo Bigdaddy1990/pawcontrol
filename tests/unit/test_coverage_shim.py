@@ -1,7 +1,5 @@
 """Tests for the PawControl coverage shim runtime instrumentation."""
 
-from __future__ import annotations
-
 import contextlib
 from functools import lru_cache
 import importlib.util
