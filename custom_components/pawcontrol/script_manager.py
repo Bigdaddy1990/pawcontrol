@@ -1665,7 +1665,7 @@ class PawControlScriptManager:
     reasons: list[str] = []
     if isinstance(configured_role, str) and configured_role:
       reasons.append(  # noqa: E111
-        "guard", "breaker"], configured_role,
+        cast(Literal["guard", "breaker"], configured_role),
       )
     if reasons:
       record["reasons"] = reasons  # noqa: E111

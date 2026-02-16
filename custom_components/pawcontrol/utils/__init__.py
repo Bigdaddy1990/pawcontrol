@@ -5,6 +5,28 @@ while exposing focused utility submodules such as ``serialize``.
 """
 
 from . import _legacy as _legacy_utils
+from ._legacy import (
+  DateTimeConvertible,
+  ErrorContext,
+  JSONMappingLike,
+  JSONMutableMapping,
+  Number,
+  PawControlDeviceLinkMixin,
+  _coerce_json_mutable,
+  async_call_add_entities,
+  async_call_hass_service_if_available,
+  async_capture_service_guard_results,
+  async_fire_event,
+  build_error_context,
+  deep_merge_dicts,
+  ensure_local_datetime,
+  ensure_utc_datetime,
+  is_number,
+  normalise_entity_attributes,
+  normalize_value,
+  resolve_default_feeding_amount,
+  sanitize_dog_id,
+)
 from .serialize import (
   serialize_dataclass,
   serialize_datetime,
@@ -21,6 +43,29 @@ _SERIALIZE_SYMBOLS = (
 
 _SERIALIZE_EXPORTS = {symbol.__name__ for symbol in _SERIALIZE_SYMBOLS}
 
+_EXPLICIT_LEGACY_EXPORTS = {
+  "ErrorContext",
+  "DateTimeConvertible",
+  "JSONMutableMapping",
+  "JSONMappingLike",
+  "Number",
+  "PawControlDeviceLinkMixin",
+  "_coerce_json_mutable",
+  "async_call_add_entities",
+  "async_call_hass_service_if_available",
+  "async_capture_service_guard_results",
+  "async_fire_event",
+  "build_error_context",
+  "deep_merge_dicts",
+  "ensure_local_datetime",
+  "ensure_utc_datetime",
+  "is_number",
+  "normalise_entity_attributes",
+  "normalize_value",
+  "resolve_default_feeding_amount",
+  "sanitize_dog_id",
+}
+
 _LEGACY_EXPORTS = {name for name in vars(_legacy_utils) if not name.startswith("_")}
 
 # Populate this module's namespace with the legacy public symbols explicitly,
@@ -28,4 +73,4 @@ _LEGACY_EXPORTS = {name for name in vars(_legacy_utils) if not name.startswith("
 for _name in _LEGACY_EXPORTS:
   globals()[_name] = getattr(_legacy_utils, _name)  # noqa: E111
 
-__all__ = sorted(_LEGACY_EXPORTS | _SERIALIZE_EXPORTS)
+__all__ = sorted(_LEGACY_EXPORTS | _SERIALIZE_EXPORTS | _EXPLICIT_LEGACY_EXPORTS)

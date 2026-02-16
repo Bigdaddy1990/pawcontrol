@@ -296,7 +296,7 @@ def track_performance(
       return cast(Callable[P, Awaitable[T]], async_wrapper)
     return sync_wrapper
 
-  return decorator  # noqa: E111
+  return cast(Callable[[Callable[P, T]], Callable[P, T]], decorator)  # noqa: E111
 
 
 def debounce(

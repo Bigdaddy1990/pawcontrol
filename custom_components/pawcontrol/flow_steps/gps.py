@@ -546,7 +546,7 @@ class GPSOptionsMixin(GPSOptionsHost):
         with suppress(ValueError):
           current[GPS_DISTANCE_FILTER_FIELD] = float(distance)  # noqa: E111
 
-    return self._normalise_gps_settings(current)
+    return self._normalise_gps_settings(cast(Mapping[str, JSONValue], current))
 
   def _current_geofence_options(self, dog_id: str) -> GeofenceOptions:  # noqa: E111
     """Fetch the stored geofence configuration as a typed mapping."""
@@ -821,11 +821,14 @@ class GPSOptionsMixin(GPSOptionsHost):
           errors=errors,
         )
 
-      geofence_radius_m = int(round(geofence_radius))  # noqa: E111
-      if geofence_radius_m != geofence_radius:  # noqa: E111
+      geofence_radius_value = (  # noqa: E111
+        float(geofence_radius) if geofence_radius is not None else 100.0
+      )
+      geofence_radius_m = int(round(geofence_radius_value))  # noqa: E111
+      if geofence_radius_m != geofence_radius_value:  # noqa: E111
         _LOGGER.debug(
           "Geofence radius %.3f normalized to integer %d for options schema",
-          geofence_radius,
+          geofence_radius_value,
           geofence_radius_m,
         )
 
@@ -1106,7 +1109,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
         for raw_id, raw_entry in raw_dog_options.items():
           dog_id = str(raw_id)  # noqa: E111
           entry_source = (  # noqa: E111
-            JSONValue], raw_entry
+            raw_entry
             if isinstance(raw_entry, Mapping)
             else {}
           )
@@ -1129,7 +1132,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
       raw_gps_settings = mutable.get(GPS_SETTINGS_FIELD)  # noqa: E111
       if isinstance(raw_gps_settings, Mapping):  # noqa: E111
         gps_settings = self._normalise_gps_settings(
-          JSONValue], raw_gps_settings,
+          raw_gps_settings,
         )
         mutable[GPS_SETTINGS_FIELD] = cast(JSONValue, gps_settings)
 

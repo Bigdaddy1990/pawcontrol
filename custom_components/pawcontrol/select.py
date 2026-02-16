@@ -440,7 +440,7 @@ def _merge_json_mappings(
 
   base_payload: dict[str, JSONValue] = dict(base) if base is not None else {}  # noqa: E111
   merged = deep_merge_dicts(base_payload, dict(updates))  # noqa: E111
-  return cast(JSONMutableMapping, merged)  # noqa: E111
+  return merged  # noqa: E111
 
 
 async def _async_add_entities_in_batches(

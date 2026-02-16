@@ -132,7 +132,7 @@ class ReauthFlowMixin(ReauthFlowHost):
   @staticmethod  # noqa: E111
   def _is_dog_config_valid_for_reauth(dog: Mapping[str, object]) -> bool:  # noqa: E111
     return is_dog_config_payload_valid(
-      object], dog,
+      cast(Mapping[str, JSONValue], dog),
     )
 
   def _build_reauth_updates(  # noqa: E111

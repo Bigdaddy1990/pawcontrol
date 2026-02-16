@@ -356,10 +356,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         if validation_result["valid"]:
           # Create dog configuration with enhanced defaults  # noqa: E114
-          validated_input = cast(  # noqa: E111
-            DogSetupStepInput,
-            validation_result.get("validated_input", user_input),
-          )
+          validated_input = validation_result.get("validated_input", user_input)
           dog_config = await self._create_dog_config(validated_input)  # noqa: E111
 
           # Store temporarily for module configuration  # noqa: E114

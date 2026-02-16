@@ -158,7 +158,7 @@ class PIIRedactor:
         >>> redactor.redact_dict({"email": "user@example.com"})
         {'email': '[EMAIL]'}
     """
-    redacted = {}
+    redacted: dict[str, Any] = {}
 
     for key, value in data.items():
       # Check if field should be redacted by name  # noqa: E114

@@ -215,7 +215,7 @@ class PawControlOptionsFlow(
     self._entry = config_entry
     dogs_data_raw = config_entry.data.get(CONF_DOGS, [])
     dogs_iterable: Sequence[JSONLikeMapping] = (
-      cast(Sequence[JSONLikeMapping], dogs_data_raw)
+      dogs_data_raw
       if isinstance(dogs_data_raw, Sequence)
       and not isinstance(dogs_data_raw, bytes | str)
       else ()
@@ -225,7 +225,7 @@ class PawControlOptionsFlow(
       if not isinstance(dog, Mapping):  # noqa: E111
         continue
       normalised = ensure_dog_config_data(  # noqa: E111
-        JSONValue], dog,
+        dog,
       )
       if normalised is not None:  # noqa: E111
         self._dogs.append(normalised)
@@ -262,7 +262,7 @@ class PawControlOptionsFlow(
     if ADVANCED_SETTINGS_FIELD in mutable:
       raw_advanced = mutable.get(ADVANCED_SETTINGS_FIELD)  # noqa: E111
       advanced_source = (  # noqa: E111
-        JSONValue], raw_advanced
+        raw_advanced
         if isinstance(raw_advanced, Mapping)
         else {}
       )
@@ -285,7 +285,7 @@ class PawControlOptionsFlow(
     typed_dogs: list[DogConfigData] = []
     for dog in dogs:
       normalised = ensure_dog_config_data(  # noqa: E111
-        JSONValue], dog,
+        dog,
       )
       if normalised is None:  # noqa: E111
         raise FlowValidationError(base_errors=["invalid_dog_config"])

@@ -23,8 +23,9 @@ from .const import (
   DEFAULT_WEBHOOK_REQUIRE_SIGNATURE,
   DOMAIN,
 )
+from .exceptions import AuthenticationError
 from .push_router import async_process_gps_push
-from .webhook_security import WebhookSecurityManager
+from .webhook_security import WebhookAuthenticator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -180,12 +181,20 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
         {"ok": False, "error": "webhook_not_configured"}, status=400
       )
 
-    manager = WebhookSecurityManager(secret)
-    signature = manager.extract_signature(headers)
-    if signature is None:
+    signature = headers.get("X-PawControl-Signature")
+    timestamp_header = headers.get("X-PawControl-Timestamp")
+    if signature is None or timestamp_header is None:
       return _json_response({"ok": False, "error": "missing_signature"}, status=401)  # noqa: E111
 
-    if not manager.verify(raw, signature):
+    try:  # noqa: E111
+      timestamp = float(timestamp_header)  # noqa: E111
+    except ValueError:  # noqa: E111
+      return _json_response({"ok": False, "error": "invalid_signature"}, status=401)  # noqa: E111
+
+    authenticator = WebhookAuthenticator(secret=secret)
+    try:  # noqa: E111
+      authenticator.verify_signature(raw, signature, timestamp)  # noqa: E111
+    except AuthenticationError:  # noqa: E111
       return _json_response({"ok": False, "error": "invalid_signature"}, status=401)  # noqa: E111
 
   try:  # noqa: E111

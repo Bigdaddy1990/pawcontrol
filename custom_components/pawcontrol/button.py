@@ -237,6 +237,15 @@ PROFILE_BUTTON_LIMITS: Final[dict[ProfileButtonKey, int]] = {
   "health_focus": 7,  # Health + essential buttons
 }
 
+
+def _resolve_profile_button_limit(profile: str) -> int:  # noqa: E111
+  """Return the configured button limit for a profile with safe fallback."""  # noqa: E111
+
+  if profile in PROFILE_BUTTON_LIMITS:  # noqa: E111
+    return PROFILE_BUTTON_LIMITS[cast(ProfileButtonKey, profile)]
+  return 6  # noqa: E111
+
+
 # Button priorities (1=highest, 4=lowest) for profile-based selection
 BUTTON_PRIORITIES = {
   # Core buttons (always included)
@@ -294,7 +303,7 @@ class ProfileAwareButtonFactory:
     """
     self.coordinator = coordinator
     self.profile = profile
-    self.max_buttons = PROFILE_BUTTON_LIMITS.get(profile, 6)
+    self.max_buttons = _resolve_profile_button_limit(profile)
 
     # OPTIMIZED: Pre-calculate button rules for performance
     self._button_rules_cache: dict[str, list[ButtonRule]] = {}
@@ -782,7 +791,7 @@ async def async_setup_entry(
     )
 
   # Log profile statistics  # noqa: E114
-  max_possible = PROFILE_BUTTON_LIMITS.get(profile, 6)  # noqa: E111
+  max_possible = _resolve_profile_button_limit(profile)  # noqa: E111
   efficiency = (  # noqa: E111
     (max_possible * len(dog_configs) - total_buttons_created)
     / (max_possible * len(dog_configs))

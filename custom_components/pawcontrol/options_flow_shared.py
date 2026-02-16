@@ -82,13 +82,9 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = cast(
-  Literal["enable_analytics"],
-  "enable_analytics",
-)
-SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal["enable_cloud_backup"]] = cast(
-  Literal["enable_cloud_backup"],
-  "enable_cloud_backup",
+SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = "enable_analytics"
+SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal["enable_cloud_backup"]] = (
+  "enable_cloud_backup"
 )
 WEATHER_ENTITY_FIELD: Final[Literal["weather_entity"]] = cast(
   Literal["weather_entity"],
@@ -295,8 +291,8 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
     dogs_payload: list[DogConfigData] = []
     dogs_raw = self._entry.data.get(CONF_DOGS, [])
-    dogs_iterable: Sequence[JSONLikeMapping] = (
-      cast(Sequence[JSONLikeMapping], dogs_raw)
+    dogs_iterable: Sequence[object] = (
+      dogs_raw
       if isinstance(dogs_raw, Sequence) and not isinstance(dogs_raw, bytes | str)
       else ()
     )

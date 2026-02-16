@@ -5,6 +5,7 @@ Handles platform forwarding, helper creation, and script generation.
 """
 
 import asyncio
+from collections.abc import Collection, Mapping
 import logging
 import time
 from typing import TYPE_CHECKING
@@ -26,6 +27,21 @@ _HELPER_CREATION_TIMEOUT: int = 20  # seconds
 _SCRIPT_CREATION_TIMEOUT: int = 20  # seconds
 
 
+def _resolve_enabled_modules(
+  options: object | None,
+) -> Collection[str] | Mapping[str, bool]:
+  """Return enabled module data in the shape expected by managers."""  # noqa: E111
+
+  if not isinstance(options, Mapping):  # noqa: E111
+    return frozenset()
+  raw: object = options.get("enabled_modules", frozenset())  # noqa: E111
+  if isinstance(raw, Mapping):  # noqa: E111
+    return {str(key): bool(value) for key, value in raw.items()}
+  if isinstance(raw, Collection) and not isinstance(raw, str | bytes):  # noqa: E111
+    return frozenset(str(item) for item in raw)
+  return frozenset()  # noqa: E111
+
+
 async def async_setup_platforms(
   hass: HomeAssistant,
   entry: PawControlConfigEntry,
@@ -45,7 +61,8 @@ async def async_setup_platforms(
   await _async_forward_platforms(hass, entry)  # noqa: E111
 
   # Create helpers and scripts if not skipped  # noqa: E114
-  skip_optional = runtime_data.config_entry_options.get("skip_optional_setup", False)  # noqa: E111
+  options = runtime_data.config_entry_options  # noqa: E111
+  skip_optional = bool(options.get("skip_optional_setup", False)) if options else False  # noqa: E111
   if not skip_optional:  # noqa: E111
     await _async_setup_helpers(hass, entry, runtime_data)
     await _async_setup_scripts(hass, entry, runtime_data)
@@ -135,9 +152,7 @@ async def _async_setup_helpers(
     return
 
   dogs_config = runtime_data.dogs  # noqa: E111
-  enabled_modules = runtime_data.config_entry_options.get(  # noqa: E111
-    "enabled_modules", frozenset()
-  )
+  enabled_modules = _resolve_enabled_modules(runtime_data.config_entry_options)  # noqa: E111
 
   helpers_start = time.monotonic()  # noqa: E111
 
@@ -221,9 +236,7 @@ async def _async_setup_scripts(
     return
 
   dogs_config = runtime_data.dogs  # noqa: E111
-  enabled_modules = runtime_data.config_entry_options.get(  # noqa: E111
-    "enabled_modules", frozenset()
-  )
+  enabled_modules = _resolve_enabled_modules(runtime_data.config_entry_options)  # noqa: E111
 
   scripts_start = time.monotonic()  # noqa: E111
 

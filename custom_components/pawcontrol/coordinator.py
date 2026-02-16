@@ -70,7 +70,6 @@ from .types import (
   JSONMutableMapping,
   JSONValue,
   PawControlConfigEntry,
-  PawControlRuntimeData,
   WebhookSecurityStatus,
 )
 from .utils import deep_merge_dicts
@@ -555,7 +554,7 @@ class PawControlCoordinator(
 
     existing_module = dog_payload.get(module)
     base_payload: JSONMutableMapping = (
-      dict(JSONValue], existing_module)
+      dict(existing_module)
       if isinstance(existing_module, Mapping)
       else {}
     )
@@ -582,8 +581,9 @@ class PawControlCoordinator(
     for dog_id, dog_payload in data.items():
       if not isinstance(dog_payload, Mapping):  # noqa: E111
         continue
+      mutable_payload = dict(dog_payload)  # noqa: E111
 
-      walk_state = dog_payload.get(MODULE_WALK)  # noqa: E111
+      walk_state = mutable_payload.get(MODULE_WALK)  # noqa: E111
       walk_active = False  # noqa: E111
       if isinstance(walk_state, Mapping):  # noqa: E111
         walk_active = bool(walk_state.get("walk_in_progress"))
@@ -600,10 +600,11 @@ class PawControlCoordinator(
         notes="Paused due to active walk",
         suppress_notifications=True,
       )
-      dog_payload[GARDEN_MODULE_FIELD] = cast(  # noqa: E111
+      mutable_payload[GARDEN_MODULE_FIELD] = cast(  # noqa: E111
         CoordinatorModuleState,
         garden_manager.build_garden_snapshot(dog_id),
       )
+      data[dog_id] = cast(CoordinatorDogData, mutable_payload)  # noqa: E111
 
   @property  # noqa: E111
   def available(self) -> bool:  # noqa: E111
@@ -662,7 +663,7 @@ class PawControlCoordinator(
 
     runtime_data = getattr(self.config_entry, "runtime_data", None)
     performance_stats_payload = get_runtime_performance_stats(
-      cast(PawControlRuntimeData | None, runtime_data),
+      runtime_data,
     )
     guard_metrics = resolve_service_guard_metrics(
       performance_stats_payload,
