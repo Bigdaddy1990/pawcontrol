@@ -39,18 +39,18 @@ jobs:
         run: |
             uv pip install --system -r requirements.txt
             uv pip install --system -r requirements_test.txt --prerelease=allow
+            uv pip install --system --upgrade pre-commit ruff pyupgrade flake8-type-checking
             uv cache prune --ci
 
       - name: Run pre-commit with fixes
         run: |
-         uv pip install --system --upgrade pre-commit ruff pyupgrade
-         pre-commit run --hook-stage manual python-typing-update --all-files || true
          ruff check . --fix || true
          ruff check . --fix --unsafe-fixes || true
          ruff check . --add-noqa || true
          ruff check . --extend-select RUF100 --fix || true
          python scripts/enforce_docstring_baseline.py --update
          pre-commit run --all-files || true
+         pre-commit run --hook-stage manual python-typing-update --all-files || true
 
       - name: Verify contributor guides
         run: |
@@ -68,14 +68,6 @@ jobs:
           prek install
           prek run --all-files
           prek run --hook-stage manual python-typing-update --all-files
-
-      - name: Auto-commit autofix changes
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "[pre-commit.ci] autofix"
-          commit_user_name: pre-commit-ci[bot]
-          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          commit_author: pre-commit-ci[bot] <41898282+github-actions[bot]@users.noreply.github.com>
 
       - name: pre-commit-ci-lite
         uses: pre-commit-ci/lite-action@v1.1.0
