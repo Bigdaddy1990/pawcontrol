@@ -145,8 +145,8 @@ class GeofenceZone:
   zone_type: str = "safe_zone"  # safe_zone, danger_zone, activity_zone  # noqa: E111
   enabled: bool = True  # noqa: E111
   notifications_enabled: bool = True  # noqa: E111
-  breach_timeout_minutes: int = (
-    15  # Time outside zone before breach alert  # noqa: E111
+  breach_timeout_minutes: int = (  # noqa: E111
+    15  # Time outside zone before breach alert
   )
   created_at: datetime = field(default_factory=dt_util.utcnow)  # noqa: E111
 
@@ -690,7 +690,7 @@ class GPSGeofenceManager:
           self._enforce_route_history_limit(dog_id)  # noqa: E111
 
       # Ensure history never grows beyond the configured limit even when a  # noqa: E114
-      # route is discarded (for example, when no GPS points were recorded).  # noqa: E114
+      # route is discarded (for example, when no GPS points were recorded).  # noqa: E114, E501
       self._enforce_route_history_limit(dog_id)  # noqa: E111
 
       # Remove from active routes  # noqa: E114

@@ -148,7 +148,7 @@ def test_expiring_cache_handles_hits_and_expiration(
   cache.set("max", {"meals": 1})  # noqa: E111
   dt_stub.advance(timedelta(seconds=31))  # noqa: E111
 
-  # Entry for "buddy" was accessed before expiration, so the metrics track a hit.  # noqa: E114
+  # Entry for "buddy" was accessed before expiration, so the metrics track a hit.  # noqa: E114, E501
   metrics = cache.metrics()  # noqa: E111
   assert metrics.hits == 1  # noqa: E111
   assert metrics.misses == 0  # noqa: E111

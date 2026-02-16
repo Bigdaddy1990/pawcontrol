@@ -35,7 +35,7 @@ def _load_module() -> ModuleType:
   ]
   sys.modules.setdefault("custom_components.pawcontrol", pawcontrol_pkg)  # noqa: E111
 
-  # ``module_adapters`` depends on Home Assistant time helpers; provide a shim  # noqa: E114
+  # ``module_adapters`` depends on Home Assistant time helpers; provide a shim  # noqa: E114, E501
   # that mirrors the API surface the cache relies upon.  # noqa: E114
   ha_pkg = ModuleType("homeassistant")  # noqa: E111
   ha_pkg.__path__ = []  # noqa: E111
@@ -61,9 +61,9 @@ def _load_module() -> ModuleType:
     "custom_components.pawcontrol.module_adapters",
     MODULE_PATH,
   )
-  if (
+  if (  # noqa: E111
     spec is None or spec.loader is None
-  ):  # pragma: no cover - defensive guard  # noqa: E111
+  ):  # pragma: no cover - defensive guard
     raise RuntimeError("Unable to load module_adapters for testing")
 
   module = importlib.util.module_from_spec(spec)  # noqa: E111

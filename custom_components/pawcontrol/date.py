@@ -414,7 +414,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     """
 
     async def _apply_value() -> None:
-      # Validate date value early so we can return a consistent error message.  # noqa: E114
+      # Validate date value early so we can return a consistent error message.  # noqa: E114, E501
       if not isinstance(value, date):  # noqa: E111
         raise ValidationError(
           field="date_value",

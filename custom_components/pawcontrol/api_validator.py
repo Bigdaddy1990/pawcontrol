@@ -463,7 +463,7 @@ class APIValidator:
   async def async_close(self) -> None:  # noqa: E111
     """Close the API validator and cleanup resources."""
     if not self._session.closed:
-      # The validator never owns the session; leave lifecycle management to  # noqa: E114
+      # The validator never owns the session; leave lifecycle management to  # noqa: E114, E501
       # Home Assistant to avoid closing the shared pool.  # noqa: E114
       return  # noqa: E111
 

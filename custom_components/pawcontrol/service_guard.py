@@ -36,9 +36,9 @@ class ServiceGuardResult:
 
     return payload
 
-  def __bool__(
+  def __bool__(  # noqa: E111
     self,
-  ) -> bool:  # pragma: no cover - bool protocol passthrough  # noqa: E111
+  ) -> bool:  # pragma: no cover - bool protocol passthrough
     """Allow guard results to be treated as booleans in guard checks."""
 
     return self.executed

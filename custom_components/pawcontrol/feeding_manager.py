@@ -4491,7 +4491,7 @@ class FeedingManager:
         scheduled=False,  # Health snacks are typically unscheduled
       )
 
-      # Track health snack in daily stats (don't count towards meal requirements)  # noqa: E114
+      # Track health snack in daily stats (don't count towards meal requirements)  # noqa: E114, E501
       result = FeedingHealthSnackResult(  # noqa: E111
         status="added",
         dog_id=dog_id,

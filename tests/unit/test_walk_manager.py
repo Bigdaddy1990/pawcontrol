@@ -537,9 +537,9 @@ class TestWalkHistoryManagement:
 
       import asyncio  # noqa: E111
 
-      await asyncio.sleep(
+      await asyncio.sleep(  # noqa: E111
         0.1
-      )  # Small delay to ensure different timestamps  # noqa: E111
+      )  # Small delay to ensure different timestamps
 
       await mock_walk_manager.async_end_walk(  # noqa: E111
         dog_id="test_dog",

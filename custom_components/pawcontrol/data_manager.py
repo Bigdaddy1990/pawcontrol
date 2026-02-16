@@ -1363,9 +1363,9 @@ class PawControlDataManager:
     def _try_register(name: str, cache: Any) -> None:
       try:  # noqa: E111
         self.register_cache_monitor(name, cache)
-      except (
+      except (  # noqa: E111
         ValueError
-      ):  # pragma: no cover - invalid names guarded earlier  # noqa: E111
+      ):  # pragma: no cover - invalid names guarded earlier
         _LOGGER.debug(
           "Rejected cache monitor %s due to invalid name",
           name,

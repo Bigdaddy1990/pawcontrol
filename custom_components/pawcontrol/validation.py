@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 
 class PawControlValidationError(ServiceValidationError):
-  """Base validation error for PawControl."""
+  """Base validation error for PawControl."""  # noqa: E111
 
 
 ValidationError = PawControlValidationError

@@ -1591,7 +1591,7 @@ class DashboardTemplates:
       if zoom_value is None:  # noqa: E111
         resolved["zoom"] = resolved_default_zoom
     elif zoom_value is not None:
-      # Mirror the explicitly provided zoom when no default override exists.  # noqa: E114
+      # Mirror the explicitly provided zoom when no default override exists.  # noqa: E114, E501
       resolved["default_zoom"] = resolved["zoom"]  # noqa: E111
 
     dark_mode = options_mapping.get("dark_mode")

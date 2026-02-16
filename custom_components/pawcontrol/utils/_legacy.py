@@ -74,9 +74,9 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
     from homeassistant.helpers.entity import Entity
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
     from homeassistant.util import dt as dt_util
-  except (
+  except (  # noqa: E111
     ModuleNotFoundError
-  ):  # pragma: no cover - compatibility shim for tests  # noqa: E111
+  ):  # pragma: no cover - compatibility shim for tests
 
     class Context:  # type: ignore[override]
       """Placeholder for Home Assistant's request context."""  # noqa: E111

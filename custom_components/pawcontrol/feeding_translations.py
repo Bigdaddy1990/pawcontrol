@@ -709,9 +709,9 @@ class _BoundedSequenceSnapshot(Sequence[T]):
     return len(self._cache)
 
   @overload  # noqa: E111
-  def __getitem__(
+  def __getitem__(  # noqa: E111
     self, index: int, /
-  ) -> T:  # pragma: no cover - defensive  # noqa: E111
+  ) -> T:  # pragma: no cover - defensive
     """Return the cached item at ``index``."""
 
   @overload  # noqa: E111

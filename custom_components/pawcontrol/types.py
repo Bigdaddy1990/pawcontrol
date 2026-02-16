@@ -1208,9 +1208,9 @@ def _record_bool_coercion(
 
   try:  # noqa: E111
     from .telemetry import record_bool_coercion_event
-  except (
+  except (  # noqa: E111
     Exception
-  ):  # pragma: no cover - telemetry import guarded for safety  # noqa: E111
+  ):  # pragma: no cover - telemetry import guarded for safety
     return
 
   try:  # noqa: E111
@@ -1220,9 +1220,9 @@ def _record_bool_coercion(
       result=result,
       reason=reason,
     )
-  except (
+  except (  # noqa: E111
     Exception
-  ):  # pragma: no cover - telemetry failures must not break coercion  # noqa: E111
+  ):  # pragma: no cover - telemetry failures must not break coercion
     return
 
 
@@ -7257,7 +7257,7 @@ class PawControlRuntimeData:
   manual_event_history: deque[ManualResilienceEventRecord] = field(  # noqa: E111
     default_factory=lambda: deque(maxlen=5),
   )
-  # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener  # noqa: E114
+  # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener  # noqa: E114, E501
   daily_reset_unsub: Any = field(default=None)  # noqa: E111
   reload_unsub: Callable[[], Any] | None = None  # noqa: E111
   schema_created_version: int = DOMAIN_RUNTIME_STORE_VERSION  # noqa: E111

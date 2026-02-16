@@ -782,7 +782,7 @@ class PawControlOptionsFlow(
       sorted_sources = [str(source) for source in sorted_source_tags]  # noqa: E111
       for source in sorted_sources:  # noqa: E111
         if source == "default" and "blueprint" in source_tags:
-          # Blueprint suggestions inherit the integration default but should not  # noqa: E114
+          # Blueprint suggestions inherit the integration default but should not  # noqa: E114, E501
           # surface that tag in the description list.  # noqa: E114
           continue  # noqa: E111
         key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(

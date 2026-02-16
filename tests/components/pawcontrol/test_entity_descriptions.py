@@ -40,14 +40,14 @@ class _DummyCoordinator:
     self.last_update_success_time = None
     self.runtime_managers = None
 
-  def async_add_listener(
+  def async_add_listener(  # noqa: E111
     self, _callback
-  ):  # pragma: no cover - protocol stub  # noqa: E111
+  ):  # pragma: no cover - protocol stub
     return lambda: None
 
-  async def async_request_refresh(
+  async def async_request_refresh(  # noqa: E111
     self,
-  ) -> None:  # pragma: no cover - protocol stub  # noqa: E111
+  ) -> None:  # pragma: no cover - protocol stub
     return None
 
   def get_dog_data(self, dog_id: str):  # noqa: E111

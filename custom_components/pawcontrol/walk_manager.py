@@ -1412,7 +1412,7 @@ class WalkManager:
       }
       return snapshot  # noqa: E111
 
-  # OPTIMIZE: Keep existing methods for compatibility but optimize internal calls  # noqa: E114
+  # OPTIMIZE: Keep existing methods for compatibility but optimize internal calls  # noqa: E114, E501
   async def async_get_current_walk(self, dog_id: str) -> WalkSessionSnapshot | None:  # noqa: E111
     """Get current walk data for a dog."""
     async with self._data_lock:

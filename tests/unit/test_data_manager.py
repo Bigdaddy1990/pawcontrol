@@ -314,8 +314,8 @@ def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
 
   summary = diagnostics["summary"]  # noqa: E111
   assert summary["error"] == "tracker summary failed"  # noqa: E111
-  summary["extra"] = (
-    True  # ensure mapping is mutable for downstream updates  # noqa: E111
+  summary["extra"] = (  # noqa: E111
+    True  # ensure mapping is mutable for downstream updates
   )
   assert summary["extra"] is True  # noqa: E111
 

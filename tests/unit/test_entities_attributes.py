@@ -28,22 +28,22 @@ class _DummyCoordinator:
     self.last_update_success = True
     self.runtime_managers = None
 
-  def async_add_listener(
+  def async_add_listener(  # noqa: E111
     self, _callback
-  ):  # pragma: no cover - protocol stub  # noqa: E111
+  ):  # pragma: no cover - protocol stub
     return lambda: None
 
-  async def async_request_refresh(
+  async def async_request_refresh(  # noqa: E111
     self,
-  ) -> None:  # pragma: no cover - stub  # noqa: E111
+  ) -> None:  # pragma: no cover - stub
     return None
 
   def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:  # noqa: E111
     return self.data.get(dog_id)
 
-  def get_enabled_modules(
+  def get_enabled_modules(  # noqa: E111
     self, dog_id: str
-  ) -> frozenset[str]:  # pragma: no cover  # noqa: E111
+  ) -> frozenset[str]:  # pragma: no cover
     return frozenset()
 
   @property  # noqa: E111

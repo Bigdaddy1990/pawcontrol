@@ -1742,7 +1742,7 @@ class EntityFactory:
       )
       enabled_total = sum(1 for enabled in modules_mapping.values() if enabled)  # noqa: E111
 
-      # At least 50% of enabled modules should align with preferred modules  # noqa: E114
+      # At least 50% of enabled modules should align with preferred modules  # noqa: E114, E501
       if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:  # noqa: E111
         return False
 

@@ -588,7 +588,7 @@ class HealthCalculator:
 
     # Veterinary consultation recommendation adjustment
     if diet_validation["recommended_vet_consultation"]:
-      # When vet consultation is recommended, use more conservative portions  # noqa: E114
+      # When vet consultation is recommended, use more conservative portions  # noqa: E114, E501
       adjustment *= 0.95  # noqa: E111
       _LOGGER.info(  # noqa: E111
         "Veterinary consultation recommended: applying 5%% conservative portion adjustment",  # noqa: E501
@@ -1235,9 +1235,9 @@ class HealthCalculator:
       elif temp < -10:  # Extreme cold  # noqa: E111
         if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
           adjusted_level = ActivityLevel.MODERATE  # noqa: E111
-      elif (
+      elif (  # noqa: E111
         temp < 0 and adjusted_level == ActivityLevel.VERY_HIGH
-      ):  # High cold  # noqa: E111
+      ):  # High cold
         adjusted_level = ActivityLevel.HIGH
 
     # Breed-specific weather adjustments
@@ -1346,8 +1346,8 @@ class HealthCalculator:
       )
     ):
       # If activity is reduced due to weather, slightly reduce portions  # noqa: E114
-      adjustment_factor *= (
-        0.95  # 5% reduction for weather-limited activity  # noqa: E111
+      adjustment_factor *= (  # noqa: E111
+        0.95  # 5% reduction for weather-limited activity
       )
 
     return round(base_portion * adjustment_factor, 1)

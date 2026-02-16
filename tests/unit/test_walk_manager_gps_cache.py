@@ -18,7 +18,7 @@ def test_gps_cache_stats_and_snapshot() -> None:
 
   cache: GPSCache[CachedGPSLocation] = GPSCache(max_size=2)  # noqa: E111
 
-  # First lookup misses, then populate and retrieve the entry to record a hit.  # noqa: E114
+  # First lookup misses, then populate and retrieve the entry to record a hit.  # noqa: E114, E501
   assert cache.get_location("luna") is None  # noqa: E111
 
   now = datetime.now(UTC)  # noqa: E111

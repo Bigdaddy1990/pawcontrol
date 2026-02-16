@@ -646,9 +646,9 @@ class _NotificationManagerStub:
       raise services.HomeAssistantError("ack failed")  # noqa: E111
     return self.ack_exists
 
-  async def async_cleanup_expired_notifications(
+  async def async_cleanup_expired_notifications(  # noqa: E111
     self,
-  ) -> None:  # pragma: no cover  # noqa: E111
+  ) -> None:  # pragma: no cover
     return None
 
 

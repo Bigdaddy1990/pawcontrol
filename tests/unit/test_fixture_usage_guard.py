@@ -674,9 +674,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
         matched_fixture, _ = self._match_fixture(slice_node.value)
         if matched_fixture is not None:
           return matched_fixture  # noqa: E111
-      if isinstance(
+      if isinstance(  # noqa: E111
         slice_node, ast.Index
-      ):  # pragma: no cover - py311 compat  # noqa: E111
+      ):  # pragma: no cover - py311 compat
         index_value = slice_node.value
         if isinstance(index_value, ast.Constant) and isinstance(index_value.value, str):
           alias_target = self._alias_map.get(index_value.value)  # noqa: E111
@@ -1841,9 +1841,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
       self._dynamic_attribute_aliases[node.attr] = fixture  # noqa: E111
     elif isinstance(node, ast.Subscript):
       key_node = node.slice  # noqa: E111
-      if isinstance(
+      if isinstance(  # noqa: E111
         key_node, ast.Index
-      ):  # pragma: no cover - py311 compat  # noqa: E111
+      ):  # pragma: no cover - py311 compat
         key_node = key_node.value
       if not isinstance(key_node, ast.Constant) or not isinstance(key_node.value, str):  # noqa: E111
         return

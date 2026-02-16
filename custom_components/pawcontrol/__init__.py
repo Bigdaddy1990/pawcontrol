@@ -471,7 +471,7 @@ async def async_unload_entry(
   # Remove from runtime storage  # noqa: E114
   pop_runtime_data(hass, entry)  # noqa: E111
 
-  # Platform selection cache depends on active dog modules/profile snapshots.  # noqa: E114
+  # Platform selection cache depends on active dog modules/profile snapshots.  # noqa: E114, E501
   _PLATFORM_CACHE.clear()  # noqa: E111
 
   # Cleanup service manager if last entry  # noqa: E114

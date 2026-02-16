@@ -330,7 +330,7 @@ class _CoordinatorResolver:
       and self._cached_entry_id is not None
       and entry_id != self._cached_entry_id
     ):
-      # An unrelated config entry changed state; keep the cached coordinator.  # noqa: E114
+      # An unrelated config entry changed state; keep the cached coordinator.  # noqa: E114, E501
       return  # noqa: E111
 
     self._cached_coordinator = None
@@ -347,7 +347,7 @@ class _CoordinatorResolver:
       return None  # noqa: E111
 
     if getattr(coordinator, "hass", None) is not self._hass:
-      # The coordinator was created for a different Home Assistant instance.  # noqa: E114
+      # The coordinator was created for a different Home Assistant instance.  # noqa: E114, E501
       self.invalidate()  # noqa: E111
       return None  # noqa: E111
 
@@ -1341,7 +1341,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
   domain_data = hass.data.setdefault(DOMAIN, {})  # noqa: E111
 
-  # Replace any previous listener so duplicate registrations do not accumulate.  # noqa: E114
+  # Replace any previous listener so duplicate registrations do not accumulate.  # noqa: E114, E501
   remove_listener = domain_data.pop("_service_coordinator_listener", None)  # noqa: E111
   if callable(remove_listener):  # noqa: E111
     remove_listener()

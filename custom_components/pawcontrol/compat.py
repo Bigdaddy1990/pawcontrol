@@ -209,8 +209,8 @@ def bind_exception_alias(
 ) -> Callable[[], None]:
   """Keep ``module.attr`` in sync with the active Home Assistant class."""  # noqa: E111
 
-  # ``module`` may be supplied as a module object, a module name, or omitted to  # noqa: E114
-  # infer the caller.  The binding survives module reloads by resolving fresh  # noqa: E114
+  # ``module`` may be supplied as a module object, a module name, or omitted to  # noqa: E114, E501
+  # infer the caller.  The binding survives module reloads by resolving fresh  # noqa: E114, E501
   # module objects from :data:`sys.modules` each time the callback fires.  # noqa: E114
 
   # Default to the caller's module so integration files can bind aliases  # noqa: E114
@@ -734,9 +734,9 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
     self._on_unload.append(callback)
     return callback
 
-  async def async_setup(
+  async def async_setup(  # noqa: E111
     self, hass: Any
-  ) -> bool:  # pragma: no cover - helper  # noqa: E111
+  ) -> bool:  # pragma: no cover - helper
     """Mark the entry as loaded when set up in tests."""
 
     self._hass = hass
@@ -787,15 +787,15 @@ def _sync_config_entry_symbols(
 ) -> None:
   """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""  # noqa: E111
 
-  # The compatibility layer needs to operate in two very different execution  # noqa: E114
+  # The compatibility layer needs to operate in two very different execution  # noqa: E114, E501
   # environments:  # noqa: E114
   #  # noqa: E114
-  # 1. When the integration runs inside Home Assistant we should defer to the  # noqa: E114
-  #    real ``ConfigEntry`` implementation that ships with HA so that we do  # noqa: E114
+  # 1. When the integration runs inside Home Assistant we should defer to the  # noqa: E114, E501
+  #    real ``ConfigEntry`` implementation that ships with HA so that we do  # noqa: E114, E501
   #    not accidentally diverge from core behaviour.  # noqa: E114
-  # 2. When tests import PawControl without Home Assistant installed we fall  # noqa: E114
+  # 2. When tests import PawControl without Home Assistant installed we fall  # noqa: E114, E501
   #    back to the lightweight shim defined in this module.  In that  # noqa: E114
-  #    situation multiple imports may race each other, so we patch both the  # noqa: E114
+  #    situation multiple imports may race each other, so we patch both the  # noqa: E114, E501
   #    module globals and the ``homeassistant`` namespaces to ensure every  # noqa: E114
   #    caller sees the same symbols.  # noqa: E114
   #  # noqa: E114

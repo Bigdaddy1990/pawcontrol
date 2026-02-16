@@ -1156,7 +1156,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         "Conflicting diet combinations detected: %s",
         validation_result["conflicts"],
       )
-      # Log conflicts but don't prevent configuration - user might have vet guidance  # noqa: E114
+      # Log conflicts but don't prevent configuration - user might have vet guidance  # noqa: E114, E501
 
     _LOGGER.debug(
       "Collected special diet requirements: %s from input: %s",
@@ -1374,7 +1374,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         debug_logging=bool(user_input.get("debug_logging", False)),
       )
 
-      # UPDATED: Redirect to entity profile selection for performance optimization  # noqa: E114
+      # UPDATED: Redirect to entity profile selection for performance optimization  # noqa: E114, E501
       _LOGGER.info(  # noqa: E111
         "Global modules configured for %d dogs, proceeding to entity profile selection",
         len(self._dogs),

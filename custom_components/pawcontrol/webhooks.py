@@ -106,7 +106,7 @@ async def async_register_entry_webhook(
   if not isinstance(webhook_id, str) or not webhook_id:  # noqa: E111
     return
 
-  # Idempotency: unregister first if it exists (safe no-op if not registered).  # noqa: E114
+  # Idempotency: unregister first if it exists (safe no-op if not registered).  # noqa: E114, E501
   try:  # noqa: E111, SIM105
     async_unregister(hass, webhook_id)
   except Exception:  # pragma: no cover  # noqa: E111

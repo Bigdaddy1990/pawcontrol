@@ -175,9 +175,9 @@ else:
     """
 
     def __init__(self, config: ConfigT | None = None) -> None:
-      # Normalise ``None`` to an empty mapping while preserving the specific  # noqa: E114
+      # Normalise ``None`` to an empty mapping while preserving the specific  # noqa: E114, E501
       # TypedDict type advertised by ``ConfigT``. The cast is safe because  # noqa: E114
-      # TypedDicts accept missing keys when ``total=False`` and the runtime  # noqa: E114
+      # TypedDicts accept missing keys when ``total=False`` and the runtime  # noqa: E114, E501
       # helpers perform the same normalisation before storing configs.  # noqa: E114
       default_config: ConfigT = (  # noqa: E111
         cast(

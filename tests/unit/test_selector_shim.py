@@ -50,9 +50,9 @@ def test_select_selector_accepts_typed_dict_sequence() -> None:
 def test_fallback_does_not_expose_legacy_select_option() -> None:
   """Ensure the shim drops the legacy ``SelectOption`` dataclass."""  # noqa: E111
 
-  if (
+  if (  # noqa: E111
     selector_shim.ha_selector is not None
-  ):  # pragma: no cover - passthrough env  # noqa: E111
+  ):  # pragma: no cover - passthrough env
     pytest.skip("Home Assistant selector module is available")
 
   assert not hasattr(selector, "SelectOption")  # noqa: E111

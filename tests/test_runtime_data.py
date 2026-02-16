@@ -195,11 +195,11 @@ def test_get_runtime_data_with_unexpected_container_type(
   )
 
   assert get_runtime_data(hass, "legacy") is None  # noqa: E111
-  # The invalid container should be cleaned up entirely so future lookups do  # noqa: E114
+  # The invalid container should be cleaned up entirely so future lookups do  # noqa: E114, E501
   # not keep encountering the bad structure.  # noqa: E114
   assert DOMAIN not in hass.data  # noqa: E111
 
-  # After storing data the invalid container should be replaced with a mapping.  # noqa: E114
+  # After storing data the invalid container should be replaced with a mapping.  # noqa: E114, E501
   store_runtime_data(hass, entry, runtime_data)  # noqa: E111
   assert DOMAIN in hass.data  # noqa: E111
   assert get_runtime_data(hass, entry.entry_id) is runtime_data  # noqa: E111

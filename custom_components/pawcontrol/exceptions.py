@@ -46,8 +46,8 @@ class ErrorSeverity(Enum):
   LOW = "low"  # Minor issues, degraded functionality  # noqa: E111
   MEDIUM = "medium"  # Significant issues, some features unavailable  # noqa: E111
   HIGH = "high"  # Major issues, core functionality affected  # noqa: E111
-  CRITICAL = (
-    "critical"  # System-breaking issues, immediate attention needed  # noqa: E111
+  CRITICAL = (  # noqa: E111
+    "critical"  # System-breaking issues, immediate attention needed
   )
 
 
@@ -58,8 +58,8 @@ class ErrorCategory(Enum):
   DATA = "data"  # Data validation and processing errors  # noqa: E111
   NETWORK = "network"  # Network and connectivity errors  # noqa: E111
   GPS = "gps"  # GPS and location errors  # noqa: E111
-  AUTHENTICATION = (
-    "authentication"  # Authentication and authorization errors  # noqa: E111
+  AUTHENTICATION = (  # noqa: E111
+    "authentication"  # Authentication and authorization errors
   )
   RATE_LIMIT = "rate_limit"  # Rate limiting errors  # noqa: E111
   STORAGE = "storage"  # Storage and persistence errors  # noqa: E111

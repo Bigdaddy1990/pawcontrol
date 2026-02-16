@@ -107,7 +107,7 @@ def main() -> int:
   if args.check and not translations_dir.exists():  # noqa: E111
     raise SystemExit(f"Missing translations directory at {translations_dir}")
 
-  # Ensure translations directory exists, especially for seeding new languages.  # noqa: E114
+  # Ensure translations directory exists, especially for seeding new languages.  # noqa: E114, E501
   translations_dir.mkdir(parents=True, exist_ok=True)  # noqa: E111
 
   strings_data = _load_json(strings_path)  # noqa: E111

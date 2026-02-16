@@ -195,7 +195,7 @@ def test_resilience_snapshot_serialises_manual_payload() -> None:
   assert history[0]["event_type"] == "manual.guard"  # noqa: E111
   assert isinstance(history[0]["time_fired"], str)  # noqa: E111
 
-  # The manual payload must be JSON serialisable so diagnostics remain stable.  # noqa: E114
+  # The manual payload must be JSON serialisable so diagnostics remain stable.  # noqa: E114, E501
   json.dumps(snapshot["manual_events"])  # noqa: E111
 
   thresholds = snapshot["thresholds"]  # noqa: E111

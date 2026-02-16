@@ -324,9 +324,9 @@ class EnhancedHealthCalculator:
     if age_months < 6:
       # Every 2 weeks until 6 months  # noqa: E114
       weeks_since_birth = (current_date - birth_date).days // 7  # noqa: E111
-      for week in range(
+      for week in range(  # noqa: E111
         2, min(weeks_since_birth + 8, 26), 2
-      ):  # Every 2 weeks  # noqa: E111
+      ):  # Every 2 weeks
         due_date = birth_date + timedelta(weeks=week)
         # Only next 2 months
         if due_date <= current_date + timedelta(days=60):

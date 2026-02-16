@@ -1508,7 +1508,7 @@ class PawControlDashboardGenerator:
         err,
         exc_info=True,
       )
-      # Don't raise - metadata save failure shouldn't break dashboard creation  # noqa: E114
+      # Don't raise - metadata save failure shouldn't break dashboard creation  # noqa: E114, E501
 
   async def _update_performance_metrics(  # noqa: E111
     self,

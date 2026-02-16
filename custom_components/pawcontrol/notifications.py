@@ -1961,10 +1961,10 @@ class PawControlNotificationManager:
         )
       try:  # noqa: E111
         return int(raw_status)
-      except (
+      except (  # noqa: E111
         TypeError,
         ValueError,
-      ) as err:  # pragma: no cover - defensive guard  # noqa: E111
+      ) as err:  # pragma: no cover - defensive guard
         raise WebhookSecurityError(
           f"Webhook delivery failed: invalid status {raw_status!r}",
         ) from err
@@ -2053,7 +2053,7 @@ class PawControlNotificationManager:
         f"Webhook delivery failed: {err}",
       ) from err
 
-  # OPTIMIZE: Enhanced notification handlers with better error handling and features  # noqa: E114
+  # OPTIMIZE: Enhanced notification handlers with better error handling and features  # noqa: E114, E501
   async def _send_persistent_notification(  # noqa: E111
     self,
     notification: NotificationEvent,

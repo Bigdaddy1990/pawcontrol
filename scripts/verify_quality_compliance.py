@@ -74,7 +74,7 @@ class QualityVerifier:
 
       content = file_path.read_text(encoding="utf-8")  # noqa: E111
 
-      # Check if normalise_entity_attributes or _normalise_attributes is used  # noqa: E114
+      # Check if normalise_entity_attributes or _normalise_attributes is used  # noqa: E114, E501
       uses_normalise = (  # noqa: E111
         "normalise_entity_attributes" in content or "_normalise_attributes" in content
       )
@@ -191,7 +191,7 @@ class QualityVerifier:
       # Check for validation functions outside validation modules  # noqa: E114
       for keyword in validation_keywords:  # noqa: E111
         if keyword in content:
-          # Check if it's using centralized validation or implementing its own  # noqa: E114
+          # Check if it's using centralized validation or implementing its own  # noqa: E114, E501
           matches = re.finditer(rf"def {keyword}\w+\(", content)  # noqa: E111
           for match in matches:  # noqa: E111
             line_no = content[: match.start()].count("\n") + 1

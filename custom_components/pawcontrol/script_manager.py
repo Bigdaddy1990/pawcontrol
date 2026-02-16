@@ -1841,8 +1841,8 @@ class PawControlScriptManager:
 
     component = self._get_component()
     if component is None:
-      # ``_get_component`` raises when the script integration is missing, but keep  # noqa: E114
-      # the guard so the type checker understands ``component`` is non-null.  # noqa: E114
+      # ``_get_component`` raises when the script integration is missing, but keep  # noqa: E114, E501
+      # the guard so the type checker understands ``component`` is non-null.  # noqa: E114, E501
       return {}  # noqa: E111
     registry = er.async_get(self._hass)
     created: dict[str, list[str]] = {}
@@ -1917,7 +1917,7 @@ class PawControlScriptManager:
             config_entry_id=self._entry.entry_id,
           )
 
-      # Remove scripts that are no longer needed for this dog (e.g. module disabled)  # noqa: E114
+      # Remove scripts that are no longer needed for this dog (e.g. module disabled)  # noqa: E114, E501
       obsolete = existing_for_dog - set(new_for_dog)  # noqa: E111
       for entity_id in obsolete:  # noqa: E111
         await self._async_remove_script_entity(entity_id)

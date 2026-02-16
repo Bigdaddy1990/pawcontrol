@@ -697,7 +697,7 @@ async def async_get_config_entry_diagnostics(
     entry.entry_id,
   )
 
-  # Get runtime data using the shared helper (runtime adoption still being proven)  # noqa: E114
+  # Get runtime data using the shared helper (runtime adoption still being proven)  # noqa: E114, E501
   runtime_data = get_runtime_data(hass, entry)  # noqa: E111
   coordinator = runtime_data.coordinator if runtime_data else None  # noqa: E111
 
