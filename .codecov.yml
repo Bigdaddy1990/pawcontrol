@@ -11,47 +11,47 @@ codecov:
   coverage:
     status:
       project:
-       default:   # default is the status check's name, not default settings
-        target: auto
-        threshold: 1%
-        base: auto
-        flags:
-          - unit
-        paths:
-          - custom_components/pawcontrol
-       # advanced settings
-        branches:
-          - main
-        if_not_found: success
-        if_ci_failed: error #success, failure, error, ignore
-        informational: true
-        only_pulls: false
-      tests:  # declare a new status context "tests"
-        target: 100%  # we always want 100% coverage here
-        paths: "tests/"  # only include coverage in "tests/" folder
-      app:  # declare a new status context "app"
-        paths: "!tests/"  # remove all files in "tests/"
+        default: # default is the status check's name, not default settings
+          target: auto
+          threshold: 1%
+          base: auto
+          flags:
+            - unit
+          paths:
+            - custom_components/pawcontrol
+          # advanced settings
+          branches:
+            - main
+          if_not_found: success
+          if_ci_failed: error #success, failure, error, ignore
+          informational: true
+          only_pulls: false
+      tests: # declare a new status context "tests"
+        target: 100% # we always want 100% coverage here
+        paths: "tests/" # only include coverage in "tests/" folder
+      app: # declare a new status context "app"
+        paths: "!tests/" # remove all files in "tests/"
       patch:
         default:
-         target: 90%
-         threshold: 1%
-         base: auto
-         branches:
-           - master
-         if_not_found: success
-         if_ci_failed: error
-         informational: true
-         only_pulls: false
-         flags:
-           - "unit"
-         paths:
-           - "src"
+          target: 90%
+          threshold: 1%
+          base: auto
+          branches:
+            - master
+          if_not_found: success
+          if_ci_failed: error
+          informational: true
+          only_pulls: false
+          flags:
+            - "unit"
+          paths:
+            - "src"
     changes: false
   precision: 2
   round: down
   range:
-  - 70.0
-  - 100.0
+    - 70.0
+    - 100.0
 
 parsers:
   gcov:

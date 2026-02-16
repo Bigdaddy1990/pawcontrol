@@ -1,10 +1,9 @@
-
 name: Generate Changelog
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build_changelog:
