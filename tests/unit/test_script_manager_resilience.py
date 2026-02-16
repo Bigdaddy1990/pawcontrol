@@ -1,4 +1,5 @@
 """Regression tests for the resilience escalation diagnostics snapshot."""
+from __future__ import annotations
 
 
 import json

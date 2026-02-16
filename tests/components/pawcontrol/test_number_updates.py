@@ -1,3 +1,4 @@
+from __future__ import annotations
 from custom_components.pawcontrol.types import (
     CoordinatorRuntimeManagers,
     DOG_FEEDING_CONFIG_FIELD,

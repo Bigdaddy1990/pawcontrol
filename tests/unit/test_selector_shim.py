@@ -1,4 +1,5 @@
 """Regression tests for the Home Assistant selector compatibility shim."""
+from __future__ import annotations
 
 
 import pytest

@@ -1,4 +1,5 @@
 """Tests for platform selection helpers."""
+from __future__ import annotations
 
 
 from collections.abc import Mapping

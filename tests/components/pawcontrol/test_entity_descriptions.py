@@ -1,3 +1,4 @@
+from __future__ import annotations
 from custom_components.pawcontrol.types import PawControlConfigEntry
 from custom_components.pawcontrol.text import PawControlDogNotesText
 from custom_components.pawcontrol.switch import PawControlMainPowerSwitch

@@ -12,6 +12,7 @@ Exit codes:
     1: Some checks failed, review required
     2: Critical failures, deployment blocked
 """
+from __future__ import annotations
 
 
 import json

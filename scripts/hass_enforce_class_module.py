@@ -1,4 +1,5 @@
 """Plugin for checking if class is in correct module."""
+from __future__ import annotations
 
 
 from astroid import nodes

@@ -1,4 +1,5 @@
 """Tests for the AdaptiveCache used by the PawControl data manager."""
+from __future__ import annotations
 
 
 import asyncio

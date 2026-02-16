@@ -1,3 +1,4 @@
+from __future__ import annotations
 from custom_components.pawcontrol.types import CoordinatorDogData, PawControlConfigEntry
 from custom_components.pawcontrol.sensor import PawControlGardenTimeTodaySensor
 from custom_components.pawcontrol.entity import PawControlDogEntityBase

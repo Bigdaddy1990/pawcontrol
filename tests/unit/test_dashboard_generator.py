@@ -1,4 +1,5 @@
 """Unit tests for the dashboard generator metadata exports."""
+from __future__ import annotations
 
 
 import asyncio

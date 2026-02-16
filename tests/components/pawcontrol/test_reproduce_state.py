@@ -1,4 +1,5 @@
 """Tests for PawControl reproduce state support."""
+from __future__ import annotations
 
 
 from custom_components.pawcontrol import text as pawcontrol_text

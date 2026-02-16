@@ -9,6 +9,7 @@ Usage:
 Returns:
     Exit code 0 if all checks pass, 1 otherwise
 """
+from __future__ import annotations
 
 
 import ast

@@ -1,4 +1,5 @@
 """Coverage tests for coordinator observability helpers."""
+from __future__ import annotations
 
 
 from custom_components.pawcontrol.types import (  # isort:skip

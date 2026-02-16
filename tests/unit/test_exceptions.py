@@ -1,4 +1,5 @@
 """Tests for the enhanced PawControl error helpers."""
+from __future__ import annotations
 
 
 from datetime import datetime

@@ -1,4 +1,5 @@
 """Tests for the OptimizedDataCache helper."""
+from __future__ import annotations
 
 
 from custom_components.pawcontrol.helpers import OptimizedDataCache

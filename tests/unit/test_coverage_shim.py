@@ -1,4 +1,5 @@
 """Tests for the PawControl coverage shim runtime instrumentation."""
+from __future__ import annotations
 
 
 from homeassistant import util as ha_util

@@ -1,4 +1,5 @@
 """Tests for health summary helpers in the config flow."""
+from __future__ import annotations
 
 
 from typing import Any

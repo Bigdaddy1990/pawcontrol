@@ -1,4 +1,5 @@
 """Test helpers for weather module compatibility."""
+from __future__ import annotations
 
 
 from enum import StrEnum

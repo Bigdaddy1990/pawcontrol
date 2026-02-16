@@ -1,4 +1,5 @@
 """Tests for PawControl datetime updates and persistence."""
+from __future__ import annotations
 
 
 from datetime import datetime

@@ -1,4 +1,5 @@
 """Unit tests for flow validation normalization helpers."""
+from __future__ import annotations
 
 
 import pytest

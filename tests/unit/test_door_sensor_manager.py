@@ -1,4 +1,5 @@
 """Door sensor manager helper normalisation tests."""
+from __future__ import annotations
 
 
 from typing import cast

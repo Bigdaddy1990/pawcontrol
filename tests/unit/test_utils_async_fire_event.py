@@ -1,4 +1,5 @@
 """Tests for the async_fire_event helper."""
+from __future__ import annotations
 
 
 import inspect

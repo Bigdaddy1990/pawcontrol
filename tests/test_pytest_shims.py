@@ -4,6 +4,7 @@ These tests guarantee that the lightweight plugin shims keep importing without
 third-party dependencies, preventing regressions when upstream pytest plugins
 change behaviour.
 """
+from __future__ import annotations
 
 
 import asyncio

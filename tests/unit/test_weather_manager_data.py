@@ -3,6 +3,7 @@
 Quality Scale: Platinum target
 Python: 3.13+
 """
+from __future__ import annotations
 
 
 from custom_components.pawcontrol.weather_manager import (

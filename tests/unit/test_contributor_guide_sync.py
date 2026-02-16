@@ -1,4 +1,5 @@
 """Ensure assistant contributor guides stay aligned with the canonical content."""
+from __future__ import annotations
 
 
 from pathlib import Path

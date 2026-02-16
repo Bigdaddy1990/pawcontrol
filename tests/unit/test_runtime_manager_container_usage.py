@@ -1,4 +1,5 @@
 """Regression tests covering runtime manager container access patterns."""
+from __future__ import annotations
 
 
 from datetime import date as date_cls

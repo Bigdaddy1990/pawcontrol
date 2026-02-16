@@ -2,6 +2,7 @@
 
 Tests configuration validation logic extracted from __init__.py
 """
+from __future__ import annotations
 
 
 from collections.abc import Mapping

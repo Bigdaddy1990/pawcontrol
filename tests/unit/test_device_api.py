@@ -1,4 +1,5 @@
 """Session reuse safeguards for the device API client."""
+from __future__ import annotations
 
 
 import asyncio

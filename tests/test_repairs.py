@@ -5,6 +5,7 @@ kata-style repository.  We provide focused coverage for the repair helpers to
 ensure they gracefully handle unexpected severity values even without the real
 Home Assistant runtime.
 """
+from __future__ import annotations
 
 
 import asyncio

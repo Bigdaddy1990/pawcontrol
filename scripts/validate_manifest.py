@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validate Paw Control manifest.json file."""
+from __future__ import annotations
 
 
 import json

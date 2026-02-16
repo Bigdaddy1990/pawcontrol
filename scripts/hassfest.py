@@ -6,6 +6,7 @@ repository can run guard checks without pulling in the full Home Assistant
 package. It validates manifest structure, required keys, and translation
 presence for the PawControl integration.
 """
+from __future__ import annotations
 
 
 import json

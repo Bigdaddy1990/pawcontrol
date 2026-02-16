@@ -3,6 +3,7 @@
 This guard prevents regressions like ``except TypeError, ValueError:`` that break
 Python 3 AST parsing and hassfest validation.
 """
+from __future__ import annotations
 
 
 import argparse

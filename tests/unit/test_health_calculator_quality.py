@@ -1,4 +1,5 @@
 """High-signal unit tests for the health calculator helpers."""
+from __future__ import annotations
 
 
 from datetime import datetime

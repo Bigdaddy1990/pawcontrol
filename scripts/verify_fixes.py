@@ -11,6 +11,7 @@ Run this after applying fixes to ensure everything is correct.
 Usage:
     python scripts/verify_fixes.py
 """
+from __future__ import annotations
 
 
 import re

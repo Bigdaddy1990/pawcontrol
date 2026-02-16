@@ -12,6 +12,7 @@ Usage:
     # With monitoring
     python scripts/test_dev_improvements.py --monitor 24h
 """
+from __future__ import annotations
 
 
 import argparse

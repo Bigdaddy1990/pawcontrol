@@ -1,4 +1,5 @@
 """Unit tests for the shared aiohttp session helper."""
+from __future__ import annotations
 
 
 import importlib.util

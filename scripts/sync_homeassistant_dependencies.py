@@ -1,4 +1,5 @@
 """Synchronise dependencies with the upstream Home Assistant repository."""
+from __future__ import annotations
 
 
 import argparse
