@@ -537,6 +537,8 @@ def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, floa
   try:
     return InputValidator.validate_gps_coordinates(latitude, longitude)
   except ValidationError as err:
+    from .exceptions import InvalidCoordinatesError
+
     raise InvalidCoordinatesError(latitude, longitude) from err
 
 
