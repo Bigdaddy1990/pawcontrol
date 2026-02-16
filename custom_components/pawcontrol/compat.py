@@ -59,7 +59,7 @@ def _import_optional(module_name: str) -> ModuleType | None:
 
   try:
     return __import__(module_name, fromlist=["*"])
-  except (ImportError, ModuleNotFoundError):
+  except ImportError, ModuleNotFoundError:
     return None
 
 
