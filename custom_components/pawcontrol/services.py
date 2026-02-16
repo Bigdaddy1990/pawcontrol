@@ -77,12 +77,7 @@ from .performance import (
 )
 from .repairs import async_publish_feeding_compliance_issue
 from .runtime_data import get_runtime_data
-from .service_guard import (
-  ServiceGuardMetricsSnapshot,
-  ServiceGuardResult,
-  ServiceGuardSnapshot,
-  ServiceGuardSummary,
-)
+from .service_guard import ServiceGuardResult, ServiceGuardSnapshot, ServiceGuardSummary
 from .telemetry import (
   ensure_runtime_performance_stats,
   get_runtime_performance_stats,
@@ -611,12 +606,9 @@ def _record_service_result(
       diagnostics_payload = {}  # noqa: E111
     diagnostics_payload.setdefault("guard", guard_summary)
 
-    guard_metrics = cast(
-      ServiceGuardMetricsSnapshot,
-      performance_stats.setdefault(
-        "service_guard_metrics",
-        ServiceGuardSnapshot.zero_metrics(),
-      ),
+    guard_metrics = performance_stats.setdefault(
+      "service_guard_metrics",
+      ServiceGuardSnapshot.zero_metrics(),
     )
     guard_metrics["executed"] = (
       int(guard_metrics.get("executed", 0) or 0) + guard_snapshot.executed
@@ -630,12 +622,9 @@ def _record_service_result(
     guard_metrics["last_results"] = guard_snapshot.history()
 
   if rejection_snapshot is not None:  # noqa: E111
-    stored_metrics = cast(
-      CoordinatorRejectionMetrics,
-      performance_stats.setdefault(
-        "rejection_metrics",
-        default_rejection_metrics(),
-      ),
+    stored_metrics = performance_stats.setdefault(
+      "rejection_metrics",
+      default_rejection_metrics(),
     )
     merge_rejection_metric_values(stored_metrics, rejection_snapshot)
 
@@ -2100,7 +2089,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
           "track_route": track_route,
           "safety_alerts": safety_alerts,
         }
-        gps_manager.last_start_tracking = legacy_payload
+        cast(Any, gps_manager).last_start_tracking = legacy_payload
         session_id = "legacy"
 
       await coordinator.async_request_refresh()  # noqa: E111
@@ -5158,7 +5147,7 @@ class PawControlServiceManager:
     """Initialize the service manager and register services when needed."""
 
     self._hass = hass
-    self._services_task: asyncio.Task | None = None
+    self._services_task: asyncio.Task[None] | None = None
 
     domain_data = hass.data.setdefault(DOMAIN, {})
     existing: PawControlServiceManager | None = domain_data.get(
@@ -5265,7 +5254,7 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
         metadata=success_metadata,
         details=(service_details_payload if service_details_payload else None),
       )
-      maintenance_diagnostics = {  # noqa: E111
+      maintenance_diagnostics: dict[str, Any] = {  # noqa: E111
         "metadata": dict(success_metadata),
       }
       if diagnostics is not None:  # noqa: E111
@@ -5296,7 +5285,7 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
         }.items()
         if value is not None
       }
-      failure_diagnostics = {  # noqa: E111
+      failure_diagnostics: dict[str, Any] = {  # noqa: E111
         "metadata": dict(failure_metadata),
       }
       if diagnostics is not None:  # noqa: E111

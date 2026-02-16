@@ -372,7 +372,7 @@ class WalkManager:
       str,
       list[tuple[float, float, datetime]],
     ] = {}
-    self._batch_analysis_task: asyncio.Task | None = None
+    self._batch_analysis_task: asyncio.Task[None] | None = None
 
     _LOGGER.debug("WalkManager initialized with optimizations")
 
@@ -1569,14 +1569,10 @@ class WalkManager:
       "total_duration_today": stats["total_duration_today"],
       "total_distance_today": stats["total_distance_today"],
       "average_duration": (
-        stats["average_duration"]
-        if "average_duration" in stats
-        else None
+        stats.get("average_duration", None)
       ),
       "average_distance": (
-        stats["average_distance"]
-        if "average_distance" in stats
-        else None
+        stats.get("average_distance", None)
       ),
       "energy_level": stats["energy_level"],
     }

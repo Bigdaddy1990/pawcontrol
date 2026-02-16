@@ -188,7 +188,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
 
     raw_notifications = mutable.get(CONF_NOTIFICATIONS)
     notifications_source = (
-      JSONValue], raw_notifications
+      raw_notifications
       if isinstance(raw_notifications, Mapping)
       else {}
     )
@@ -203,7 +203,7 @@ class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
       for raw_id, entry_source in raw_dog_options.items():  # noqa: E111
         dog_id = str(raw_id)
         entry_payload = (
-          JSONValue], entry_source
+          entry_source
           if isinstance(entry_source, Mapping)
           else {}
         )

@@ -18,7 +18,7 @@ import inspect
 import logging
 import traceback
 from types import TracebackType
-from typing import Any, ParamSpec, TypeVar, cast, overload
+from typing import Any, ParamSpec, TypeVar, cast
 from uuid import uuid4
 
 _LOGGER = logging.getLogger(__name__)
@@ -398,7 +398,10 @@ def log_calls(
   log_args: bool = True,
   log_result: bool = False,
   log_duration: bool = True,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[
+  [Callable[P, T] | Callable[P, Awaitable[T]]],
+  Callable[P, T] | Callable[P, Awaitable[T]],
+]:
   """Decorator to log function calls.
 
   Args:
@@ -416,16 +419,12 @@ def log_calls(
       ...   return await api.get(dog_id)
   """  # noqa: E111
 
-  @overload  # noqa: E111
-  def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:  # noqa: E111
-    """Overload for async callables."""
+  def decorator(  # noqa: E111
+    func: Callable[P, T] | Callable[P, Awaitable[T]],
+  ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
+    """Decorate sync and async callables with structured call logging."""
 
-  @overload  # noqa: E111
-  def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: E111
-    """Overload for sync callables."""
-
-    if logger is None:  # noqa: F823
-      logger = StructuredLogger(func.__module__)  # noqa: E111
+    active_logger = logger if logger is not None else StructuredLogger(func.__module__)
 
     @functools.wraps(func)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -437,7 +436,7 @@ def log_calls(
         context["args"] = str(args)
         context["kwargs"] = str(kwargs)
 
-      logger.debug(f"Calling {func.__name__}", **context)  # noqa: E111
+      active_logger.debug(f"Calling {func.__name__}", **context)  # noqa: E111
 
       # Execute  # noqa: E114
       start = time.time()  # noqa: E111
@@ -453,12 +452,12 @@ def log_calls(
         if log_result:
           result_context["result"] = str(result)  # noqa: E111
 
-        logger.debug(f"{func.__name__} completed", **result_context)
+        active_logger.debug(f"{func.__name__} completed", **result_context)
 
         return result
 
       except Exception as e:  # noqa: E111
-        logger.error(
+        active_logger.error(
           f"{func.__name__} failed",
           exc_info=True,
           error=str(e),
@@ -476,12 +475,13 @@ def log_calls(
         context["args"] = str(args)
         context["kwargs"] = str(kwargs)
 
-      logger.debug(f"Calling {func.__name__}", **context)  # noqa: E111
+      active_logger.debug(f"Calling {func.__name__}", **context)  # noqa: E111
 
       # Execute  # noqa: E114
       start = time.time()  # noqa: E111
       try:  # noqa: E111
-        result = func(*args, **kwargs)
+        sync_func = cast(Callable[P, T], func)
+        result = sync_func(*args, **kwargs)
 
         # Log result
         result_context: dict[str, Any] = {}
@@ -491,12 +491,12 @@ def log_calls(
         if log_result:
           result_context["result"] = str(result)  # noqa: E111
 
-        logger.debug(f"{func.__name__} completed", **result_context)
+        active_logger.debug(f"{func.__name__} completed", **result_context)
 
         return result
 
       except Exception as e:  # noqa: E111
-        logger.error(
+        active_logger.error(
           f"{func.__name__} failed",
           exc_info=True,
           error=str(e),
@@ -506,9 +506,9 @@ def log_calls(
 
     # Return appropriate wrapper
 
-    if inspect.iscoroutinefunction(func):
-      return cast(Callable[P, T], async_wrapper)  # noqa: E111
-    return sync_wrapper
+    if inspect.iscoroutinefunction(func):  # noqa: E111
+      return async_wrapper  # noqa: E111
+    return sync_wrapper  # noqa: E111
 
   return decorator  # noqa: E111
 

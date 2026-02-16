@@ -628,7 +628,7 @@ class DoorSensorManager:
     self._sensor_configs: dict[str, DoorSensorConfig] = {}
     self._detection_states: dict[str, WalkDetectionState] = {}
     self._state_listeners: list[CALLBACK_TYPE] = []
-    self._cleanup_task: asyncio.Task | None = None
+    self._cleanup_task: asyncio.Task[None] | None = None
     self._background_tasks: set[asyncio.Task[object]] = set()
     self._last_activity: datetime | None = None
 
@@ -1590,6 +1590,15 @@ class DoorSensorManager:
         Dictionary mapping dog_id to sensor entity_id
     """
     return {dog_id: config.entity_id for dog_id, config in self._sensor_configs.items()}
+
+  def get_configured_dogs(self) -> list[str]:  # noqa: E111
+    """Return dog IDs that have door sensor monitoring configured.
+
+    This compatibility helper keeps older setup/diagnostics call sites working
+    while `get_configured_sensors()` provides the richer mapping payload.
+    """
+
+    return list(self._sensor_configs)
 
   def is_dog_on_walk(self, dog_id: str) -> bool:  # noqa: E111
     """Check if dog is currently on a detected walk.

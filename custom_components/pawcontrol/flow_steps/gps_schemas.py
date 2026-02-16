@@ -139,6 +139,10 @@ def build_geofence_settings_schema(current_options: GeofenceOptions) -> vol.Sche
 
   geofence_latitude = current_options.get(GEOFENCE_LAT_FIELD) or "52.5200"  # noqa: E111
   geofence_longitude = current_options.get(GEOFENCE_LON_FIELD) or "13.4050"  # noqa: E111
+  radius_default = current_options.get(GEOFENCE_RADIUS_FIELD, 100)  # noqa: E111
+  geofence_radius_default = (  # noqa: E111
+    int(radius_default) if isinstance(radius_default, int | float) else 100
+  )
 
   return vol.Schema(  # noqa: E111
     {
@@ -152,7 +156,7 @@ def build_geofence_settings_schema(current_options: GeofenceOptions) -> vol.Sche
       ): selector({"boolean": {}}),
       vol.Optional(
         GEOFENCE_RADIUS_FIELD,
-        default=int(current_options.get(GEOFENCE_RADIUS_FIELD, 100)),
+        default=geofence_radius_default,
       ): selector(
         {
           "number": {

@@ -362,7 +362,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
               dog_id,
             )
 
-          if not errors:  # noqa: E111
+          if not errors and normalised_dog is not None:  # noqa: E111
             dog_index = next(
               (
                 i for i, dog in enumerate(self._dogs) if dog.get(DOG_ID_FIELD) == dog_id

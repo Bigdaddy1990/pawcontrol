@@ -46,7 +46,7 @@ from .utils import (
   async_call_hass_service_if_available,
   build_error_context,
 )
-from .webhook_security import WebhookSecurityError, WebhookSecurityManager
+from .webhook_security import WebhookAuthenticator, WebhookSecurityError
 
 
 def _dt_now() -> datetime:
@@ -60,11 +60,7 @@ def _dt_now() -> datetime:
 
 
 if TYPE_CHECKING:
-  from .feeding_manager import (  # noqa: E111
-    FeedingComplianceCompleted,
-    FeedingComplianceNoData,
-    FeedingComplianceResult,
-  )
+  from .feeding_manager import FeedingComplianceResult  # noqa: E111
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -392,6 +388,10 @@ class NotificationEvent:
       and not self.acknowledged
       and not other.acknowledged
     )
+
+
+type NotificationChannelHandler = Callable[[NotificationEvent], Awaitable[None]]
+"""Callable signature for a channel-specific delivery handler."""
 
 
 class NotificationCacheDiagnosticsMetadata(TypedDict):
@@ -797,7 +797,7 @@ class PawControlNotificationManager:
     self._entry_id = entry_id
     self._notifications: dict[str, NotificationEvent] = {}
     self._configs: dict[str, NotificationConfig] = {}
-    self._handlers: dict[NotificationChannel, Callable] = {}
+    self._handlers: dict[NotificationChannel, NotificationChannelHandler] = {}
     self._lock = asyncio.Lock()
     self._session = ensure_shared_client_session(
       session,
@@ -816,9 +816,9 @@ class PawControlNotificationManager:
     )
 
     # OPTIMIZE: Enhanced background tasks
-    self._retry_task: asyncio.Task | None = None
-    self._cleanup_task: asyncio.Task | None = None
-    self._batch_task: asyncio.Task | None = None
+    self._retry_task: asyncio.Task[None] | None = None
+    self._cleanup_task: asyncio.Task[None] | None = None
+    self._batch_task: asyncio.Task[None] | None = None
 
     # Lightweight runtime state
     self._rate_limit_last_sent: dict[str, dict[str, float]] = {}
@@ -997,9 +997,9 @@ class PawControlNotificationManager:
 
   def _wrap_handler_with_monitoring(  # noqa: E111
     self,
-    handler: Callable,
+    handler: NotificationChannelHandler,
     channel: NotificationChannel,
-  ) -> Callable:
+  ) -> NotificationChannelHandler:
     """Wrap handler with performance monitoring.
 
     Args:
@@ -1078,10 +1078,7 @@ class PawControlNotificationManager:
           # Parse quiet hours  # noqa: E114
           quiet_hours = None  # noqa: E111
           if "quiet_hours" in config_data:  # noqa: E111
-            quiet_config = cast(
-              NotificationQuietHoursConfig,
-              config_data["quiet_hours"],
-            )
+            quiet_config = config_data["quiet_hours"]
             quiet_start = quiet_config.get("start", 22)
             quiet_end = quiet_config.get("end", 7)
             quiet_hours = (quiet_start, quiet_end)
@@ -1089,29 +1086,20 @@ class PawControlNotificationManager:
           # Parse rate limits  # noqa: E114
           rate_limit: NotificationRateLimitConfig  # noqa: E111
           if "rate_limit" in config_data:  # noqa: E111
-            rate_limit = cast(
-              NotificationRateLimitConfig,
-              config_data["rate_limit"],
-            )
+            rate_limit = config_data["rate_limit"]
           else:  # noqa: E111
-            rate_limit = cast(NotificationRateLimitConfig, {})
+            rate_limit = _empty_rate_limit_config()
 
           # Parse template overrides  # noqa: E114
           if "template_overrides" in config_data:  # noqa: E111
-            template_overrides = cast(
-              NotificationTemplateOverrides,
-              config_data["template_overrides"],
-            )
+            template_overrides = config_data["template_overrides"]
           else:  # noqa: E111
             template_overrides = {}
 
           if "custom_settings" in config_data:  # noqa: E111
-            custom_settings = cast(
-              NotificationCustomSettings,
-              config_data["custom_settings"],
-            )
+            custom_settings = config_data["custom_settings"]
           else:  # noqa: E111
-            custom_settings = cast(NotificationCustomSettings, {})
+            custom_settings = _empty_custom_settings()
 
           config = NotificationConfig(  # noqa: E111
             enabled=config_data.get("enabled", True),
@@ -1834,7 +1822,7 @@ class PawControlNotificationManager:
     self,
     notification: NotificationEvent,
     channel: NotificationChannel,
-    handler: Callable,
+    handler: NotificationChannelHandler,
   ) -> None:
     """Send to a single channel with error handling and circuit breaker.
 
@@ -1924,23 +1912,17 @@ class PawControlNotificationManager:
         "webhook_algorithm",
         "sha256",
       )
-      tolerance = int(  # noqa: E111
-        config.custom_settings.get(
-          "webhook_tolerance_seconds",
-          WebhookSecurityManager.DEFAULT_TOLERANCE_SECONDS,
-        ),
+      timestamp = int(time.time())  # noqa: E111
+      authenticator = WebhookAuthenticator(  # noqa: E111
+        secret=secret,
+        algorithm=str(algorithm),
       )
-      manager = WebhookSecurityManager(  # noqa: E111
-        secret,
-        algorithm=algorithm,
-        tolerance_seconds=tolerance,
+      signature, signed_timestamp = authenticator.generate_signature(  # noqa: E111
+        payload_bytes,
+        timestamp=timestamp,
       )
-      headers.update(  # noqa: E111
-        manager.build_headers(
-          payload_bytes,
-          header_prefix=header_prefix,
-        ),
-      )
+      headers[f"{header_prefix}-Signature"] = signature  # noqa: E111
+      headers[f"{header_prefix}-Timestamp"] = str(signed_timestamp)  # noqa: E111
 
     timeout_seconds = float(
       config.custom_settings.get("webhook_timeout", 10),
@@ -2915,10 +2897,7 @@ class PawControlNotificationManager:
         Discovery results
     """
     if self._person_manager:
-      return cast(  # noqa: E111
-        PersonDiscoveryResult,
-        await self._person_manager.async_force_discovery(),
-      )
+      return await self._person_manager.async_force_discovery()  # noqa: E111
     return {"error": "Person manager not available"}
 
   def get_person_notification_context(self) -> PersonNotificationContext:  # noqa: E111

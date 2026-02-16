@@ -12,7 +12,6 @@ from homeassistant.util import dt as dt_util
 from .coordinator import PawControlCoordinator
 from .sensor import PawControlSensorBase, register_sensor
 from .types import (
-  DogConfigData,
   FeedingModuleTelemetry,
   HealthModulePayload,
   JSONMutableMapping,
@@ -271,12 +270,9 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
           {
             "walks_today": int(walk_data.get("walks_today", 0)),
             "total_walk_minutes_today": float(
-              cast(
-                float,
-                walk_data.get(
-                  "total_duration_today",
-                  0.0,
-                ),
+              walk_data.get(
+                "total_duration_today",
+                0.0,
               ),
             ),
             "last_walk_hours_ago": calculate_hours_since(last_walk),
@@ -284,10 +280,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
         )
 
     if health_data:
-      activity_level = cast(  # noqa: E111
-        str | None,
-        health_data.get("activity_level"),
-      )
+      activity_level = health_data.get("activity_level")  # noqa: E111
       attrs["health_activity_level"] = activity_level  # noqa: E111
       attrs["activity_source"] = "health_data" if activity_level else "calculated"  # noqa: E111
 
@@ -418,13 +411,9 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
       return _normalise_attributes(attrs)  # noqa: E111
 
     with contextlib.suppress(TypeError, ValueError):
-      last_feeding = cast(  # noqa: E111
-        DateTimeConvertible | None,
-        feeding_data.get("last_feeding"),
-      )
-      feedings_today = cast(  # noqa: E111
-        int,
-        feeding_data.get("total_feedings_today", 0),
+      last_feeding = feeding_data.get("last_feeding")  # noqa: E111
+      feedings_today = int(  # noqa: E111
+        feeding_data.get("total_feedings_today", 0) or 0,
       )
       serialized_last_feeding: str | float | int | None  # noqa: E111
       if isinstance(last_feeding, datetime):  # noqa: E111
@@ -452,10 +441,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     self,
     feeding_data: ModuleSnapshot[FeedingModuleTelemetry],
   ) -> bool:
-    last_feeding = cast(
-      DateTimeConvertible | None,
-      feeding_data.get("last_feeding") if feeding_data else None,
-    )
+    last_feeding = feeding_data.get("last_feeding") if feeding_data else None
     hours_since = calculate_hours_since(last_feeding)
     if hours_since is None:
       return False  # noqa: E111

@@ -70,14 +70,8 @@ def _parse_datetime_or_none(value: str | None) -> datetime | None:
 def _stats_from_payload(payload: GardenStatsPayload) -> GardenStats:
   """Convert persisted statistics into a :class:`GardenStats` instance."""  # noqa: E111
 
-  favorite_activities = cast(  # noqa: E111
-    list[GardenFavoriteActivity],
-    payload.get("favorite_activities", []),
-  )
-  weekly_summary = cast(  # noqa: E111
-    GardenWeeklySummary,
-    payload.get("weekly_summary", {}) or {},
-  )
+  favorite_activities = payload.get("favorite_activities", [])  # noqa: E111
+  weekly_summary = payload.get("weekly_summary", {}) or {}  # noqa: E111
   return GardenStats(  # noqa: E111
     total_sessions=payload.get("total_sessions", 0),
     total_time_minutes=payload.get("total_time_minutes", 0.0),
@@ -392,8 +386,8 @@ class GardenManager:
     self._confirmation_required = True
 
     # Background tasks
-    self._cleanup_task: asyncio.Task | None = None
-    self._stats_update_task: asyncio.Task | None = None
+    self._cleanup_task: asyncio.Task[None] | None = None
+    self._stats_update_task: asyncio.Task[None] | None = None
 
     # Dependencies (injected during initialization)
     self._notification_manager: Any | None = None

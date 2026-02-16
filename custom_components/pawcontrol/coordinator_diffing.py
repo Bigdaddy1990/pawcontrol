@@ -8,7 +8,7 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
-from collections.abc import Mapping, Set
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 import logging
 from typing import Any, TypeVar
@@ -226,8 +226,8 @@ def compute_data_diff(
 
   # Check for modifications in common keys  # noqa: E114
   common_keys = old_keys & new_keys  # noqa: E111
-  modified: Set[str] = set()  # noqa: E111
-  unchanged: Set[str] = set()  # noqa: E111
+  modified: set[str] = set()  # noqa: E111
+  unchanged: set[str] = set()  # noqa: E111
 
   for key in common_keys:  # noqa: E111
     if not _compare_values(old_data[key], new_data[key]):

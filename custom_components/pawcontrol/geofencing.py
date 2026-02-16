@@ -332,8 +332,8 @@ class PawControlGeofencing:
     self._notification_manager: PawControlNotificationManager | None = None
 
     # Background task management
-    self._update_task: asyncio.Task | None = None
-    self._cleanup_task: asyncio.Task | None = None
+    self._update_task: asyncio.Task[None] | None = None
+    self._cleanup_task: asyncio.Task[None] | None = None
     self._lock = asyncio.Lock()
 
   def set_notification_manager(  # noqa: E111

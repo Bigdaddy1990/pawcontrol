@@ -79,13 +79,13 @@ from .types import (
   ConfigFlowDiscoveryData,
   ConfigFlowDiscoveryProperties,
   ConfigFlowDiscoverySource,
-  ConfigFlowGlobalSettings,
   ConfigFlowImportData,
   ConfigFlowImportOptions,
   ConfigFlowImportResult,
   ConfigFlowInputMapping,
   ConfigFlowPlaceholders,
   ConfigFlowUserInput,
+  DashboardConfigurationStepInput,
   DiscoveryUpdatePayload,
   DogConfigData,
   DogModulesConfig,
@@ -661,10 +661,7 @@ class PawControlConfigFlow(
       if isinstance(existing_info_raw, Mapping):  # noqa: E111
         normalised_existing = self._normalise_discovery_metadata(
           existing_info_raw,
-          source=cast(
-            ConfigFlowDiscoverySource | None,
-            existing_info_raw.get("source"),
-          ),
+          source=existing_info_raw.get("source"),
           include_last_seen=False,
         )
       else:  # noqa: E111
@@ -743,14 +740,8 @@ class PawControlConfigFlow(
     normalised = self._normalise_discovery_metadata(payload, source=source)
     comparison = self._strip_dynamic_discovery_fields(normalised)
 
-    discovery_info: ConfigFlowDiscoveryData = cast(
-      ConfigFlowDiscoveryData,
-      copy.deepcopy(normalised),
-    )
-    self._discovery_info = cast(
-      ConfigFlowDiscoveryData,
-      copy.deepcopy(normalised),
-    )
+    discovery_info: ConfigFlowDiscoveryData = copy.deepcopy(normalised)
+    self._discovery_info = copy.deepcopy(normalised)
 
     updates: DiscoveryUpdatePayload = {
       "discovery_info": copy.deepcopy(normalised),
@@ -799,7 +790,7 @@ class PawControlConfigFlow(
         True if valid
     """
     return is_dog_config_payload_valid(
-      object], dog,
+      cast(Mapping[str, JSONValue], dog),
     )
 
   async def async_step_add_dog(  # noqa: E111
@@ -1101,10 +1092,7 @@ class PawControlConfigFlow(
     current_dog = self._dogs[-1]
 
     if user_input is not None:
-      existing_modules = cast(  # noqa: E111
-        DogModulesConfig | None,
-        current_dog.get(DOG_MODULES_FIELD),
-      )
+      existing_modules = current_dog.get(DOG_MODULES_FIELD)  # noqa: E111
       mapping_candidate: DogModulesConfig  # noqa: E111
       raw_mapping: DogModuleSelectionInput = {}  # noqa: E111
 
@@ -1669,7 +1657,7 @@ class PawControlConfigFlow(
 
   async def async_step_configure_dashboard(  # noqa: E111
     self,
-    user_input: ConfigFlowUserInput | None = None,
+    user_input: DashboardConfigurationStepInput | None = None,
   ) -> ConfigFlowResult:
     """Delegate dashboard configuration to the dashboard mixin implementation.
 
