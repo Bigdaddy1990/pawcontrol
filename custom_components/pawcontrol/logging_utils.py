@@ -422,7 +422,8 @@ def log_calls(
   def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]: ...
 
   @overload
-  def decorator(func: Callable[P, T]) -> Callable[P, T]: ...
+  def decorator(func: Callable[P, T]) -> Callable[P, T]:
+    pass
 
   def decorator(func: Callable[P, T]) -> Callable[P, T]:
     nonlocal logger
