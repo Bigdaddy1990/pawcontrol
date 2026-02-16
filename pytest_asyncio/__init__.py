@@ -108,7 +108,8 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
     loop, close_loop = _resolve_event_loop(pyfuncitem._request)
     argnames = getattr(pyfuncitem, "_fixtureinfo", None)
     if argnames is not None:
-      requested = set(pyfuncitem._fixtureinfo.argnames)  # type: ignore[attr-defined]
+      # type: ignore[attr-defined]
+      requested = set(pyfuncitem._fixtureinfo.argnames)
     else:
       requested = set(pyfuncitem.funcargs)
     kwargs = {name: pyfuncitem.funcargs[name] for name in requested}

@@ -600,7 +600,9 @@ def performance_tracker(
       buckets = {}
       store["performance_buckets"] = buckets
 
-    bucket = buckets.setdefault(metric_name, {"runs": 0, "failures": 0, "durations_ms": []})
+    bucket = buckets.setdefault(
+      metric_name, {"runs": 0, "failures": 0, "durations_ms": []}
+    )
     if not isinstance(bucket, dict):
       bucket = {"runs": 0, "failures": 0, "durations_ms": []}
       buckets[metric_name] = bucket

@@ -82,7 +82,6 @@ line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 skip-magic-trailing-comma = false
-# Enable `from __future__ import annotations` imports
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -265,7 +264,7 @@ combine-as-imports = true
 split-on-trailing-comma = false
 required-imports = ["from __future__ import annotations"]
 
-[flake8]
+[tool.flake8]
 max-line-length = 88
 max-complexity = 12
 type-checking-py314plus = true  # default false

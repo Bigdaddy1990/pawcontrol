@@ -31,9 +31,11 @@ if TYPE_CHECKING:  # pragma: no cover
     from homeassistant.helpers.condition import ConditionCheckerType
   except ImportError:
     try:
-      from homeassistant.helpers.typing import ConditionCheckerType  # type: ignore[attr-defined]
+      # type: ignore[attr-defined]
+      from homeassistant.helpers.typing import ConditionCheckerType
     except ImportError:
-      ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]
+      # type: ignore[assignment]
+      ConditionCheckerType = Callable[..., bool]
 else:
   ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]
 

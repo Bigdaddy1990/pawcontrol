@@ -963,7 +963,7 @@ def _coerce_int(value: Any) -> int:
 
   try:
     return int(value)
-  except (ValueError, TypeError):
+  except ValueError, TypeError:
     return _coerce_int_fallback(value)
 
 
@@ -976,7 +976,7 @@ def _coerce_int_fallback(value: Any) -> int:
 
   try:
     return int(float(value))
-  except (ValueError, TypeError):
+  except ValueError, TypeError:
     return 0
 
 

@@ -143,7 +143,8 @@ else:
     EMAIL = "email"
     MONTH = "month"
     NUMBER = "number"
-    PASSWORD = "password"  # nosec B105 - HTML input type constant, not a secret.
+    # nosec B105 - HTML input type constant, not a secret.
+    PASSWORD = "password"
     SEARCH = "search"
     TEL = "tel"
     TEXT = "text"
