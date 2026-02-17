@@ -28,7 +28,7 @@ def _load_bundled_component_translations(language: str) -> dict[str, str]:
 
     try:  # noqa: E111
         payload = json.loads(translations_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):  # noqa: E111
+    except OSError, json.JSONDecodeError:  # noqa: E111
         _LOGGER.debug("Failed to parse bundled translations: %s", translations_path)
         return {}
 

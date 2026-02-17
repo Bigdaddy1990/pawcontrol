@@ -1026,7 +1026,7 @@ def _timestamp_from_datetime(value: datetime) -> float | None:
     if callable(convert):  # noqa: E111
         try:
             return float(convert(value))  # noqa: E111
-        except (TypeError, ValueError, OverflowError):
+        except TypeError, ValueError, OverflowError:
             return None  # noqa: E111
 
     as_utc = getattr(dt_util, "as_utc", None)  # noqa: E111
@@ -1044,7 +1044,7 @@ def _timestamp_from_datetime(value: datetime) -> float | None:
 
     try:  # noqa: E111
         return float(aware.timestamp())
-    except (OverflowError, OSError, ValueError):  # noqa: E111
+    except OverflowError, OSError, ValueError:  # noqa: E111
         return None
 
 
@@ -1063,7 +1063,7 @@ def _coerce_float(value: Any) -> float | None:
     if isinstance(value, date) and not isinstance(value, datetime):  # noqa: E111
         try:
             start_of_day = dt_util.start_of_local_day(value)  # noqa: E111
-        except (TypeError, ValueError, AttributeError):
+        except TypeError, ValueError, AttributeError:
             # ``start_of_local_day`` may be unavailable in some compat paths.  # noqa: E114
             start_of_day = datetime(  # noqa: E111
                 value.year,

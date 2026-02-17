@@ -14,7 +14,7 @@ from .exceptions import ConfigEntryAuthFailed, UpdateFailed
 
 try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
     from homeassistant.util import dt as dt_util  # noqa: E111
-except (ImportError, ModuleNotFoundError):
+except ImportError, ModuleNotFoundError:
 
     class _DateTimeModule:  # noqa: E111
         """Minimal subset of :mod:`homeassistant.util.dt` used in tests."""

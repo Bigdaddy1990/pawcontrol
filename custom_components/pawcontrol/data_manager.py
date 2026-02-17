@@ -2048,7 +2048,7 @@ class PawControlDataManager:
             if isinstance(raw_value, int | float):  # noqa: E111
                 try:
                     iso = datetime.fromtimestamp(float(raw_value)).isoformat()  # noqa: E111
-                except (OverflowError, ValueError):
+                except OverflowError, ValueError:
                     iso = ""  # noqa: E111
                 return (0, iso)
             if isinstance(raw_value, str):  # noqa: E111
