@@ -12,9 +12,9 @@ type DummyPayload = dict[str, JSONValue]
 
 
 class DummyResponse:
-    """Minimal async context manager used to emulate aiohttp responses."""  # noqa: E111
+    """Minimal async context manager used to emulate aiohttp responses."""
 
-    def __init__(  # noqa: E111
+    def __init__(
         self,
         status: int,
         payload: DummyPayload | None = None,
@@ -25,10 +25,10 @@ class DummyResponse:
         self._payload: DummyPayload = payload or {}
         self._json_error = json_error
 
-    async def __aenter__(self) -> DummyResponse:  # noqa: E111
+    async def __aenter__(self) -> DummyResponse:
         return self
 
-    async def __aexit__(  # noqa: E111
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
@@ -36,28 +36,28 @@ class DummyResponse:
     ) -> bool:
         return False
 
-    async def json(self) -> DummyPayload:  # noqa: E111
+    async def json(self) -> DummyPayload:
         if self._json_error is not None:
-            raise self._json_error  # noqa: E111
+            raise self._json_error
         return self._payload
 
 
 class DummyRequestContext:
-    """Awaitable context manager matching aiohttp's request API."""  # noqa: E111
+    """Awaitable context manager matching aiohttp's request API."""
 
-    def __init__(self, response: DummyResponse) -> None:  # noqa: E111
+    def __init__(self, response: DummyResponse) -> None:
         self._response = response
 
-    def __await__(self) -> Generator[DummyResponse, None, DummyResponse]:  # noqa: E111
+    def __await__(self) -> Generator[DummyResponse, None, DummyResponse]:
         async def _inner() -> DummyResponse:
-            return self._response  # noqa: E111
+            return self._response
 
         return _inner().__await__()
 
-    async def __aenter__(self) -> DummyResponse:  # noqa: E111
+    async def __aenter__(self) -> DummyResponse:
         return await self._response.__aenter__()
 
-    async def __aexit__(  # noqa: E111
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
@@ -67,21 +67,21 @@ class DummyRequestContext:
 
 
 class DummySession:
-    """Session stub accepted by :func:`ensure_shared_client_session`."""  # noqa: E111
+    """Session stub accepted by :func:`ensure_shared_client_session`."""
 
-    closed = False  # noqa: E111
+    closed = False
 
-    def __init__(self, responses: Iterable[DummyResponse]) -> None:  # noqa: E111
+    def __init__(self, responses: Iterable[DummyResponse]) -> None:
         self._responses: list[DummyResponse] = list(responses)
         self._index: int = 0
 
-    async def request(self, *args: object, **kwargs: object) -> DummyResponse:  # noqa: E111
+    async def request(self, *args: object, **kwargs: object) -> DummyResponse:
         context = self.get(*args, **kwargs)
         return await context
 
-    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:  # noqa: E111
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
         if self._index >= len(self._responses):
-            raise AssertionError(  # noqa: E111
+            raise AssertionError(
                 "DummySession received more get() calls than configured responses"
             )
         response = self._responses[self._index]
@@ -93,32 +93,32 @@ class DummySession:
 async def test_async_validate_api_connection_filters_capabilities(
     hass: HomeAssistant,
 ) -> None:
-    """Only string capabilities from the JSON payload should be exposed."""  # noqa: E111
+    """Only string capabilities from the JSON payload should be exposed."""
 
-    session = DummySession([  # noqa: E111
+    session = DummySession([
         DummyResponse(200),
         DummyResponse(
             200, {"version": "1.2.3", "capabilities": ["status", 42, "metrics"]}
         ),
     ])
-    validator = APIValidator(hass, cast(ClientSession, session))  # noqa: E111
+    validator = APIValidator(hass, cast(ClientSession, session))
 
-    result = await validator.async_validate_api_connection(  # noqa: E111
+    result = await validator.async_validate_api_connection(
         "https://example.test", "secret-token"
     )
 
-    assert result.valid is True  # noqa: E111
-    assert result.api_version == "1.2.3"  # noqa: E111
-    assert result.capabilities == ["status", "metrics"]  # noqa: E111
+    assert result.valid is True
+    assert result.api_version == "1.2.3"
+    assert result.capabilities == ["status", "metrics"]
 
 
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_accepts_tuple_capabilities(
     hass: HomeAssistant,
 ) -> None:
-    """Tuple-based capability payloads should normalise to list[str]."""  # noqa: E111
+    """Tuple-based capability payloads should normalise to list[str]."""
 
-    session = DummySession([  # noqa: E111
+    session = DummySession([
         DummyResponse(200),
         DummyResponse(
             200,
@@ -128,77 +128,77 @@ async def test_async_validate_api_connection_accepts_tuple_capabilities(
             },
         ),
     ])
-    validator = APIValidator(hass, cast(ClientSession, session))  # noqa: E111
+    validator = APIValidator(hass, cast(ClientSession, session))
 
-    result = await validator.async_validate_api_connection(  # noqa: E111
+    result = await validator.async_validate_api_connection(
         "https://example.test", "secret-token"
     )
 
-    assert result.valid is True  # noqa: E111
-    assert result.capabilities == ["status", "insights"]  # noqa: E111
+    assert result.valid is True
+    assert result.capabilities == ["status", "insights"]
 
 
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_handles_json_failure(
     hass: HomeAssistant,
 ) -> None:
-    """Successful authentication without JSON keeps optional fields ``None``."""  # noqa: E111
+    """Successful authentication without JSON keeps optional fields ``None``."""
 
-    session = DummySession([  # noqa: E111
+    session = DummySession([
         DummyResponse(200),
         DummyResponse(200, json_error=ValueError("boom")),
     ])
-    validator = APIValidator(hass, cast(ClientSession, session))  # noqa: E111
+    validator = APIValidator(hass, cast(ClientSession, session))
 
-    result = await validator.async_validate_api_connection(  # noqa: E111
+    result = await validator.async_validate_api_connection(
         "https://example.test", "secret-token"
     )
 
-    assert result.valid is True  # noqa: E111
-    assert result.api_version is None  # noqa: E111
-    assert result.capabilities is None  # noqa: E111
+    assert result.valid is True
+    assert result.api_version is None
+    assert result.capabilities is None
 
 
 @pytest.mark.asyncio
 async def test_async_validate_api_connection_supports_empty_capabilities(
     hass: HomeAssistant,
 ) -> None:
-    """An empty capabilities array should normalise to an empty list."""  # noqa: E111
+    """An empty capabilities array should normalise to an empty list."""
 
-    session = DummySession([  # noqa: E111
+    session = DummySession([
         DummyResponse(200),
         DummyResponse(200, {"version": "2.0.0", "capabilities": []}),
     ])
-    validator = APIValidator(hass, cast(ClientSession, session))  # noqa: E111
+    validator = APIValidator(hass, cast(ClientSession, session))
 
-    result = await validator.async_validate_api_connection(  # noqa: E111
+    result = await validator.async_validate_api_connection(
         "https://example.test", "secret-token"
     )
 
-    assert result.valid is True  # noqa: E111
-    assert result.capabilities == []  # noqa: E111
+    assert result.valid is True
+    assert result.capabilities == []
 
 
 @pytest.mark.asyncio
 async def test_async_test_api_health_authentication_failure(
     hass: HomeAssistant,
 ) -> None:
-    """Authentication errors should surface a dedicated health status."""  # noqa: E111
+    """Authentication errors should surface a dedicated health status."""
 
-    session = DummySession([  # noqa: E111
+    session = DummySession([
         DummyResponse(200),
         DummyResponse(401),
         DummyResponse(401),
         DummyResponse(401),
         DummyResponse(401),
     ])
-    validator = APIValidator(hass, cast(ClientSession, session))  # noqa: E111
+    validator = APIValidator(hass, cast(ClientSession, session))
 
     health = await validator.async_test_api_health(
         "https://example.test", "secret-token"
-    )  # noqa: E111
+    )
 
-    assert health["healthy"] is False  # noqa: E111
-    assert health["reachable"] is True  # noqa: E111
-    assert health["status"] == "authentication_failed"  # noqa: E111
-    assert health["capabilities"] is None  # noqa: E111
+    assert health["healthy"] is False
+    assert health["reachable"] is True
+    assert health["status"] == "authentication_failed"
+    assert health["capabilities"] is None

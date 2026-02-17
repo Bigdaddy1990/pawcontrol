@@ -19,20 +19,20 @@ from custom_components.pawcontrol.coordinator_runtime import (
 async def test_initialisation_builds_registry(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """The registry should expose configured dog identifiers."""  # noqa: E111
+    """The registry should expose configured dog identifiers."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
-    assert coordinator.registry.ids() == ["test_dog"]  # noqa: E111
-    assert coordinator.get_dog_ids() == ["test_dog"]  # noqa: E111
-    assert coordinator.get_dog_config("test_dog")["dog_name"] == "Buddy"  # noqa: E111
+    assert coordinator.registry.ids() == ["test_dog"]
+    assert coordinator.get_dog_ids() == ["test_dog"]
+    assert coordinator.get_dog_config("test_dog")["dog_name"] == "Buddy"
 
 
 @pytest.mark.unit
 def test_initialisation_rejects_missing_session(mock_hass, mock_config_entry) -> None:
-    """A helpful error should be raised when no session is provided."""  # noqa: E111
+    """A helpful error should be raised when no session is provided."""
 
-    with pytest.raises(ValueError):  # noqa: E111
+    with pytest.raises(ValueError):
         PawControlCoordinator(  # type: ignore[arg-type]
             mock_hass,
             mock_config_entry,
@@ -44,11 +44,11 @@ def test_initialisation_rejects_missing_session(mock_hass, mock_config_entry) ->
 def test_initialisation_rejects_closed_session(
     mock_hass, mock_config_entry, session_factory
 ) -> None:
-    """Closed sessions must be rejected at construction time."""  # noqa: E111
+    """Closed sessions must be rejected at construction time."""
 
-    closed_session = session_factory(closed=True)  # noqa: E111
+    closed_session = session_factory(closed=True)
 
-    with pytest.raises(ValueError):  # noqa: E111
+    with pytest.raises(ValueError):
         PawControlCoordinator(
             mock_hass,
             mock_config_entry,
@@ -61,10 +61,10 @@ def test_initialisation_rejects_closed_session(
 async def test_async_update_data_uses_runtime(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """Runtime results should be surfaced as coordinator data and adjust polling."""  # noqa: E111
+    """Runtime results should be surfaced as coordinator data and adjust polling."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
-    runtime_cycle = RuntimeCycleInfo(  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    runtime_cycle = RuntimeCycleInfo(
         dog_count=1,
         errors=0,
         success_rate=1.0,
@@ -73,15 +73,15 @@ async def test_async_update_data_uses_runtime(
         error_ratio=0.0,
         success=True,
     )
-    coordinator._runtime.execute_cycle = AsyncMock(  # noqa: E111
+    coordinator._runtime.execute_cycle = AsyncMock(
         return_value=({"test_dog": {"status": "online"}}, runtime_cycle)
     )
 
-    data = await coordinator._async_update_data()  # noqa: E111
+    data = await coordinator._async_update_data()
 
-    assert data == {"test_dog": {"status": "online"}}  # noqa: E111
-    assert coordinator.data == data  # noqa: E111
-    assert coordinator.update_interval.total_seconds() == pytest.approx(1.5)  # noqa: E111
+    assert data == {"test_dog": {"status": "online"}}
+    assert coordinator.data == data
+    assert coordinator.update_interval.total_seconds() == pytest.approx(1.5)
 
 
 @pytest.mark.unit
@@ -95,10 +95,10 @@ async def test_async_update_data_does_not_call_set_updated_data_directly(
     _async_update_data to all listeners.  Calling async_set_updated_data inside
     _async_update_data caused a double notification (and double recorder writes)
     every refresh cycle.  This test verifies the fix is intact.
-    """  # noqa: E111
+    """
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
-    runtime_cycle = RuntimeCycleInfo(  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    runtime_cycle = RuntimeCycleInfo(
         dog_count=1,
         errors=0,
         success_rate=1.0,
@@ -107,20 +107,20 @@ async def test_async_update_data_does_not_call_set_updated_data_directly(
         error_ratio=0.0,
         success=True,
     )
-    coordinator._runtime.execute_cycle = AsyncMock(  # noqa: E111
+    coordinator._runtime.execute_cycle = AsyncMock(
         return_value=({"test_dog": {"status": "online"}}, runtime_cycle)
     )
 
     # Spy: async_set_updated_data must NOT be called from within _async_update_data.
-    async_setter = AsyncMock()  # noqa: E111
-    coordinator.async_set_updated_data = async_setter  # type: ignore[assignment]  # noqa: E111
+    async_setter = AsyncMock()
+    coordinator.async_set_updated_data = async_setter  # type: ignore[assignment]
 
-    result = await coordinator._async_update_data()  # noqa: E111
+    result = await coordinator._async_update_data()
 
     # The method must return the data dict so the base class can broadcast it.
-    assert result == {"test_dog": {"status": "online"}}  # noqa: E111
+    assert result == {"test_dog": {"status": "online"}}
     # The manual call that caused double-broadcasting must be gone.
-    async_setter.assert_not_called()  # noqa: E111
+    async_setter.assert_not_called()
 
 
 @pytest.mark.unit
@@ -128,23 +128,23 @@ async def test_async_update_data_does_not_call_set_updated_data_directly(
 async def test_async_apply_module_updates_merges_data(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """Module updates should merge into the coordinator cache."""  # noqa: E111
+    """Module updates should merge into the coordinator cache."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
-    coordinator._data = {  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator._data = {
         "test_dog": {
             "feeding": {"mode": "manual", "config": {"portion": 1}},
         }
     }
 
-    await coordinator.async_apply_module_updates(  # noqa: E111
+    await coordinator.async_apply_module_updates(
         "test_dog",
         "feeding",
         {"mode": "scheduled", "config": {"portion": 2, "note": "evening"}},
     )
 
-    assert coordinator.data["test_dog"]["feeding"]["mode"] == "scheduled"  # noqa: E111
-    assert coordinator.data["test_dog"]["feeding"]["config"] == {  # noqa: E111
+    assert coordinator.data["test_dog"]["feeding"]["mode"] == "scheduled"
+    assert coordinator.data["test_dog"]["feeding"]["config"] == {
         "portion": 2,
         "note": "evening",
     }
@@ -155,12 +155,12 @@ async def test_async_apply_module_updates_merges_data(
 async def test_async_update_data_without_dogs(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """When no dogs are configured the coordinator should return an empty payload."""  # noqa: E111
+    """When no dogs are configured the coordinator should return an empty payload."""
 
-    mock_config_entry.data = {"dogs": []}  # noqa: E111
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
+    mock_config_entry.data = {"dogs": []}
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
-    assert await coordinator._async_update_data() == {}  # noqa: E111
+    assert await coordinator._async_update_data() == {}
 
 
 @pytest.mark.unit
@@ -168,15 +168,15 @@ async def test_async_update_data_without_dogs(
 async def test_report_entity_budget_updates_snapshot(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """Entity budget snapshots feed the performance snapshot."""  # noqa: E111
+    """Entity budget snapshots feed the performance snapshot."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
-    coordinator._metrics.update_count = 2  # noqa: E111
-    coordinator._metrics.failed_cycles = 1  # noqa: E111
-    coordinator.last_update_success = True  # noqa: E111
-    coordinator.last_update_time = datetime(2024, 1, 1, 12, 0, 0)  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator._metrics.update_count = 2
+    coordinator._metrics.failed_cycles = 1
+    coordinator.last_update_success = True
+    coordinator.last_update_time = datetime(2024, 1, 1, 12, 0, 0)
 
-    snapshot = EntityBudgetSnapshot(  # noqa: E111
+    snapshot = EntityBudgetSnapshot(
         dog_id="test_dog",
         profile="standard",
         capacity=10,
@@ -187,9 +187,9 @@ async def test_report_entity_budget_updates_snapshot(
         recorded_at=datetime(2024, 1, 1, 12, 0, 0),
     )
 
-    controller_cls = type(coordinator._adaptive_polling)  # noqa: E111
-    expected_saturation = snapshot.saturation  # noqa: E111
-    with patch.object(  # noqa: E111
+    controller_cls = type(coordinator._adaptive_polling)
+    expected_saturation = snapshot.saturation
+    with patch.object(
         controller_cls,
         "update_entity_saturation",
         autospec=True,
@@ -200,22 +200,22 @@ async def test_report_entity_budget_updates_snapshot(
             coordinator._adaptive_polling, expected_saturation
         )
 
-    performance = coordinator.get_performance_snapshot()  # noqa: E111
+    performance = coordinator.get_performance_snapshot()
 
-    assert performance["entity_budget"]["active_dogs"] == 1  # noqa: E111
-    assert performance["performance_metrics"]["last_update_success"] is True  # noqa: E111
-    assert performance["update_counts"]["failed"] == 1  # noqa: E111
+    assert performance["entity_budget"]["active_dogs"] == 1
+    assert performance["performance_metrics"]["last_update_success"] is True
+    assert performance["update_counts"]["failed"] == 1
 
 
 @pytest.mark.unit
 def test_performance_snapshot_includes_guard_metrics(
     mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Service execution metrics mirror the runtime guard telemetry."""  # noqa: E111
+    """Service execution metrics mirror the runtime guard telemetry."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
-    raw_guard_metrics = {  # noqa: E111
+    raw_guard_metrics = {
         "service_guard_metrics": {
             "executed": 2,
             "skipped": 1,
@@ -232,10 +232,10 @@ def test_performance_snapshot_includes_guard_metrics(
         }
     }
 
-    runtime_data = SimpleNamespace(performance_stats=raw_guard_metrics)  # noqa: E111
-    mock_config_entry.runtime_data = runtime_data  # noqa: E111
+    runtime_data = SimpleNamespace(performance_stats=raw_guard_metrics)
+    mock_config_entry.runtime_data = runtime_data
 
-    resilience_summary = {  # noqa: E111
+    resilience_summary = {
         "summary": {
             "rejected_call_count": 1,
             "rejection_breaker_count": 1,
@@ -244,20 +244,20 @@ def test_performance_snapshot_includes_guard_metrics(
             "open_breaker_ids": ["automation"],
         }
     }
-    monkeypatch.setattr(  # noqa: E111
+    monkeypatch.setattr(
         coordinator_module,
         "collect_resilience_diagnostics",
         lambda *_: resilience_summary,
     )
 
-    snapshot = coordinator.get_performance_snapshot()  # noqa: E111
+    snapshot = coordinator.get_performance_snapshot()
 
-    service_execution = snapshot["service_execution"]  # noqa: E111
-    guard_metrics = service_execution["guard_metrics"]  # noqa: E111
-    assert guard_metrics["executed"] == 2  # noqa: E111
-    assert guard_metrics["skipped"] == 1  # noqa: E111
-    assert guard_metrics["reasons"] == {"missing_instance": 1}  # noqa: E111
-    assert guard_metrics["last_results"] == [  # noqa: E111
+    service_execution = snapshot["service_execution"]
+    guard_metrics = service_execution["guard_metrics"]
+    assert guard_metrics["executed"] == 2
+    assert guard_metrics["skipped"] == 1
+    assert guard_metrics["reasons"] == {"missing_instance": 1}
+    assert guard_metrics["last_results"] == [
         {
             "domain": "notify",
             "service": "send",
@@ -266,15 +266,15 @@ def test_performance_snapshot_includes_guard_metrics(
         }
     ]
 
-    rejection_metrics = service_execution["rejection_metrics"]  # noqa: E111
-    assert rejection_metrics is snapshot["rejection_metrics"]  # noqa: E111
-    assert rejection_metrics["rejected_call_count"] == 1  # noqa: E111
-    assert rejection_metrics["rejection_breaker_count"] == 1  # noqa: E111
-    assert rejection_metrics["open_breakers"] == ["automation"]  # noqa: E111
+    rejection_metrics = service_execution["rejection_metrics"]
+    assert rejection_metrics is snapshot["rejection_metrics"]
+    assert rejection_metrics["rejected_call_count"] == 1
+    assert rejection_metrics["rejection_breaker_count"] == 1
+    assert rejection_metrics["open_breakers"] == ["automation"]
 
-    sanitised_metrics = runtime_data.performance_stats["service_guard_metrics"]  # noqa: E111
-    assert sanitised_metrics["reasons"] == {"missing_instance": 1}  # noqa: E111
-    assert sanitised_metrics["last_results"] == guard_metrics["last_results"]  # noqa: E111
+    sanitised_metrics = runtime_data.performance_stats["service_guard_metrics"]
+    assert sanitised_metrics["reasons"] == {"missing_instance": 1}
+    assert sanitised_metrics["last_results"] == guard_metrics["last_results"]
 
 
 @pytest.mark.unit
@@ -282,52 +282,52 @@ def test_performance_snapshot_includes_guard_metrics(
 async def test_security_scorecard_detects_insecure_webhooks(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """Insecure webhook configurations should fail the scorecard."""  # noqa: E111
+    """Insecure webhook configurations should fail the scorecard."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
-    class InsecureWebhookManager:  # noqa: E111
+    class InsecureWebhookManager:
         @staticmethod
         def webhook_security_status() -> dict[str, object]:
-            return {  # noqa: E111
+            return {
                 "configured": True,
                 "secure": False,
                 "hmac_ready": False,
                 "insecure_configs": ("dog1",),
             }
 
-    coordinator.notification_manager = InsecureWebhookManager()  # noqa: E111
+    coordinator.notification_manager = InsecureWebhookManager()
 
-    scorecard = coordinator.get_security_scorecard()  # noqa: E111
+    scorecard = coordinator.get_security_scorecard()
 
-    assert scorecard["status"] == "fail"  # noqa: E111
-    assert scorecard["checks"]["webhooks"]["pass"] is False  # noqa: E111
-    assert "dog1" in scorecard["checks"]["webhooks"]["insecure_configs"]  # noqa: E111
+    assert scorecard["status"] == "fail"
+    assert scorecard["checks"]["webhooks"]["pass"] is False
+    assert "dog1" in scorecard["checks"]["webhooks"]["insecure_configs"]
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_manager_lifecycle(mock_hass, mock_config_entry, mock_session) -> None:
-    """Managers can be attached and cleared without leaking references."""  # noqa: E111
+    """Managers can be attached and cleared without leaking references."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
 
-    managers = {  # noqa: E111
+    managers = {
         "data_manager": Mock(),
         "feeding_manager": Mock(),
         "walk_manager": Mock(),
         "notification_manager": Mock(),
     }
 
-    coordinator.attach_runtime_managers(**managers)  # noqa: E111
-    container = coordinator.runtime_managers  # noqa: E111
-    assert container.data_manager is managers["data_manager"]  # noqa: E111
-    assert container.notification_manager is managers["notification_manager"]  # noqa: E111
+    coordinator.attach_runtime_managers(**managers)
+    container = coordinator.runtime_managers
+    assert container.data_manager is managers["data_manager"]
+    assert container.notification_manager is managers["notification_manager"]
 
-    coordinator.clear_runtime_managers()  # noqa: E111
-    empty_container = coordinator.runtime_managers  # noqa: E111
-    assert empty_container.data_manager is None  # noqa: E111
-    assert empty_container.notification_manager is None  # noqa: E111
+    coordinator.clear_runtime_managers()
+    empty_container = coordinator.runtime_managers
+    assert empty_container.data_manager is None
+    assert empty_container.notification_manager is None
 
 
 @pytest.mark.unit
@@ -335,16 +335,16 @@ async def test_manager_lifecycle(mock_hass, mock_config_entry, mock_session) -> 
 async def test_availability_threshold(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """Availability respects the consecutive error guardrail."""  # noqa: E111
+    """Availability respects the consecutive error guardrail."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
-    coordinator.last_update_success = True  # noqa: E111
-    coordinator._metrics.consecutive_errors = 5  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator.last_update_success = True
+    coordinator._metrics.consecutive_errors = 5
 
-    assert coordinator.available is False  # noqa: E111
+    assert coordinator.available is False
 
-    coordinator._metrics.consecutive_errors = 1  # noqa: E111
-    assert coordinator.available is True  # noqa: E111
+    coordinator._metrics.consecutive_errors = 1
+    assert coordinator.available is True
 
 
 @pytest.mark.unit
@@ -352,18 +352,18 @@ async def test_availability_threshold(
 async def test_get_statistics_records_runtime(
     mock_hass, mock_config_entry, mock_session
 ) -> None:
-    """Generating statistics should capture and expose timing samples."""  # noqa: E111
+    """Generating statistics should capture and expose timing samples."""
 
-    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
-    coordinator._metrics.update_count = 2  # noqa: E111
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator._metrics.update_count = 2
 
-    with patch.object(coordinator.logger, "debug") as debug_mock:  # noqa: E111
+    with patch.object(coordinator.logger, "debug") as debug_mock:
         stats = coordinator.get_statistics()
 
-    assert "update_counts" in stats  # noqa: E111
-    assert coordinator._metrics.statistics_timings  # noqa: E111
-    # The diagnostics helpers build nested statistics payloads which can take  # noqa: E114, E501
-    # tens of milliseconds on slower CI runners. Keep the assertion generous so  # noqa: E114, E501
-    # we still catch pathological slowdowns without flaking due to instrumentation.  # noqa: E114, E501
-    assert coordinator._metrics.average_statistics_runtime_ms < 100.0  # noqa: E111
-    debug_mock.assert_called()  # noqa: E111
+    assert "update_counts" in stats
+    assert coordinator._metrics.statistics_timings
+    # The diagnostics helpers build nested statistics payloads which can take  # noqa: E501
+    # tens of milliseconds on slower CI runners. Keep the assertion generous so  # noqa: E501
+    # we still catch pathological slowdowns without flaking due to instrumentation.  # noqa: E501
+    assert coordinator._metrics.average_statistics_runtime_ms < 100.0
+    debug_mock.assert_called()

@@ -305,6 +305,8 @@ def _coerce_runtime_store_assessment_event(
         event["current_level_duration_seconds"] = current_duration
 
     return event
+
+
 def _normalise_runtime_store_assessment_events(
     source: object,
 ) -> list[RuntimeStoreAssessmentEvent]:
@@ -320,6 +322,8 @@ def _normalise_runtime_store_assessment_events(
                 events.append(event)
 
     return events
+
+
 def _calculate_percentile_value(
     sorted_values: Sequence[float],
     percentile: float,
@@ -340,6 +344,8 @@ def _calculate_percentile_value(
     upper_value = sorted_values[upper_index]
     weight = position - lower_index
     return lower_value + (upper_value - lower_value) * weight
+
+
 def _calculate_duration_percentiles(
     durations: Sequence[float],
 ) -> RuntimeStoreLevelDurationPercentiles:
@@ -371,6 +377,8 @@ def _calculate_duration_percentiles(
         percentiles["p95"] = percentile_p95
 
     return percentiles
+
+
 def _summarise_runtime_store_assessment_events(
     events: Sequence[RuntimeStoreAssessmentEvent],
 ) -> RuntimeStoreAssessmentTimelineSummary:
@@ -651,6 +659,8 @@ def _summarise_runtime_store_assessment_events(
     }
 
     return summary
+
+
 def _build_runtime_store_assessment_segments(
     events: Sequence[RuntimeStoreAssessmentEvent],
 ) -> list[RuntimeStoreAssessmentTimelineSegment]:
@@ -735,6 +745,8 @@ def _build_runtime_store_assessment_segments(
         segments.append(segment)
 
     return segments
+
+
 def _resolve_runtime_store_assessment_timeline_summary(
     history: Mapping[str, object],
     events: Sequence[RuntimeStoreAssessmentEvent],
@@ -748,6 +760,8 @@ def _resolve_runtime_store_assessment_timeline_summary(
         )
 
     return _summarise_runtime_store_assessment_events(events)
+
+
 def _record_runtime_store_assessment_event(
     history: RuntimeStoreHealthHistory,
     assessment: RuntimeStoreHealthAssessment,
@@ -912,6 +926,8 @@ def _record_runtime_store_assessment_event(
     )
 
     return history_events, timeline_summary
+
+
 def _safe_repr(value: Any, *, limit: int = 80) -> str:
     """Return a short, exception-safe representation of ``value``."""
     if value is None:
@@ -925,6 +941,8 @@ def _safe_repr(value: Any, *, limit: int = 80) -> str:
     if len(rendered) > limit:
         return f"{rendered[: limit - 1]}…"
     return rendered
+
+
 def _calculate_active_window_seconds(
     first_seen: str | None,
     last_seen: str | None,
@@ -942,6 +960,8 @@ def _calculate_active_window_seconds(
     if window < 0:
         return 0.0
     return window
+
+
 def get_runtime_performance_stats(
     runtime_data: PawControlRuntimeData | None,
 ) -> RuntimePerformanceStats | None:
@@ -954,6 +974,8 @@ def get_runtime_performance_stats(
         return None
 
     return cast(RuntimePerformanceStats, performance_stats)
+
+
 def ensure_runtime_performance_stats(
     runtime_data: PawControlRuntimeData,
 ) -> RuntimePerformanceStats:
@@ -964,6 +986,8 @@ def ensure_runtime_performance_stats(
 
     runtime_data.performance_stats = cast(RuntimePerformanceStats, {})
     return runtime_data.performance_stats
+
+
 def get_runtime_entity_factory_guard_metrics(
     runtime_data: PawControlRuntimeData | None,
 ) -> EntityFactoryGuardMetrics | None:
@@ -977,6 +1001,8 @@ def get_runtime_entity_factory_guard_metrics(
         return None
 
     return cast(EntityFactoryGuardMetrics, metrics)
+
+
 def get_runtime_store_health(
     runtime_data: PawControlRuntimeData | None,
 ) -> RuntimeStoreHealthHistory | None:
@@ -990,6 +1016,8 @@ def get_runtime_store_health(
         return None
 
     return cast(RuntimeStoreHealthHistory, history)
+
+
 def update_runtime_store_health(
     runtime_data: PawControlRuntimeData | None,
     snapshot: RuntimeStoreCompatibilitySnapshot,
@@ -1086,6 +1114,8 @@ def update_runtime_store_health(
     assessment["timeline_segments"] = list(segments)
     history["assessment"] = assessment
     return history
+
+
 def _build_runtime_store_assessment(
     snapshot: RuntimeStoreCompatibilitySnapshot,
     history: RuntimeStoreHealthHistory,
@@ -1286,6 +1316,8 @@ def _build_runtime_store_assessment(
     }
 
     return assessment
+
+
 def update_runtime_entity_factory_guard_metrics(
     runtime_data: PawControlRuntimeData | None,
     *,
@@ -1544,6 +1576,8 @@ def update_runtime_entity_factory_guard_metrics(
 
     metrics["stability_trend"] = trend
     return metrics
+
+
 def record_bool_coercion_event(
     *,
     value: Any,
@@ -1589,6 +1623,8 @@ def record_bool_coercion_event(
     metrics["last_value_repr"] = value_repr
     metrics["last_result"] = bool(result)
     metrics["last_default"] = bool(default)
+
+
 def get_bool_coercion_metrics() -> BoolCoercionMetrics:
     """Return a defensive copy of the collected bool coercion metrics."""
     first_seen = _BOOL_COERCION_METRICS.get("first_seen")
@@ -1624,6 +1660,8 @@ def get_bool_coercion_metrics() -> BoolCoercionMetrics:
         "last_default": _BOOL_COERCION_METRICS.get("last_default"),
     }
     return snapshot
+
+
 def reset_bool_coercion_metrics() -> None:
     """Reset collected bool coercion metrics (primarily for testing)."""
     reset_count = int(_BOOL_COERCION_METRICS.get("reset_count", 0)) + 1
@@ -1644,6 +1682,8 @@ def reset_bool_coercion_metrics() -> None:
     _BOOL_COERCION_METRICS["last_value_repr"] = None
     _BOOL_COERCION_METRICS["last_result"] = None
     _BOOL_COERCION_METRICS["last_default"] = None
+
+
 def summarise_bool_coercion_metrics(*, sample_limit: int = 5) -> BoolCoercionSummary:
     """Return a condensed bool coercion snapshot for observability exports."""
     metrics = get_bool_coercion_metrics()
@@ -1698,6 +1738,8 @@ def summarise_bool_coercion_metrics(*, sample_limit: int = 5) -> BoolCoercionSum
     }
 
     return summary
+
+
 def get_runtime_bool_coercion_summary(
     runtime_data: PawControlRuntimeData | None,
 ) -> BoolCoercionSummary | None:
@@ -1711,6 +1753,8 @@ def get_runtime_bool_coercion_summary(
         return None
 
     return cast(BoolCoercionSummary, dict(summary))
+
+
 def update_runtime_bool_coercion_summary(
     runtime_data: PawControlRuntimeData | None,
     *,
@@ -1725,6 +1769,8 @@ def update_runtime_bool_coercion_summary(
             dict(summary),
         )
     return summary
+
+
 def _as_int(value: Any) -> int:
     """Return ``value`` coerced to an integer when possible."""
     try:
@@ -1744,6 +1790,8 @@ def _as_list(value: Any) -> list[str]:
     if value is None:
         return []
     return [str(value)]
+
+
 def summarise_reconfigure_options(
     options: ConfigEntryOptionsPayload
     | ReconfigureOptionsUpdates
@@ -1801,6 +1849,8 @@ def summarise_reconfigure_options(
     }
 
     return summary
+
+
 def get_runtime_reconfigure_summary(
     runtime_data: PawControlRuntimeData,
 ) -> ReconfigureTelemetrySummary | None:
@@ -1814,6 +1864,8 @@ def get_runtime_reconfigure_summary(
         return None
 
     return cast(ReconfigureTelemetrySummary, dict(summary))
+
+
 def update_runtime_reconfigure_summary(
     runtime_data: PawControlRuntimeData,
 ) -> ReconfigureTelemetrySummary | None:
@@ -1829,6 +1881,8 @@ def update_runtime_reconfigure_summary(
 
     performance_stats["reconfigure_summary"] = summary
     return summary
+
+
 def get_runtime_resilience_summary(
     runtime_data: PawControlRuntimeData,
 ) -> CoordinatorResilienceSummary | None:
@@ -1842,6 +1896,8 @@ def get_runtime_resilience_summary(
         return None
 
     return cast(CoordinatorResilienceSummary, dict(summary))
+
+
 def get_runtime_resilience_diagnostics(
     runtime_data: PawControlRuntimeData,
 ) -> CoordinatorResilienceDiagnostics | None:
@@ -1871,6 +1927,8 @@ def get_runtime_resilience_diagnostics(
         return None
 
     return payload
+
+
 def update_runtime_resilience_summary(
     runtime_data: PawControlRuntimeData,
     summary: CoordinatorResilienceSummary | None,
@@ -1908,6 +1966,8 @@ def update_runtime_resilience_summary(
     diagnostics_payload["summary"] = stored_summary
     performance_stats["resilience_diagnostics"] = diagnostics_payload
     return stored_summary
+
+
 def update_runtime_resilience_diagnostics(
     runtime_data: PawControlRuntimeData,
     diagnostics: CoordinatorResilienceDiagnostics | None,
@@ -1938,6 +1998,8 @@ def update_runtime_resilience_diagnostics(
 
     performance_stats["resilience_diagnostics"] = payload
     return payload
+
+
 def record_door_sensor_persistence_failure(
     runtime_data: PawControlRuntimeData | None,
     *,

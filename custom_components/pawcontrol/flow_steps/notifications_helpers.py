@@ -27,6 +27,8 @@ def _bool_default(
     """Return a boolean default extracted from a notification payload."""
     value = current.get(field, fallback)
     return value if isinstance(value, bool) else fallback
+
+
 def _string_default(
     current: NotificationOptions,
     field: NotificationOptionsField,
@@ -35,6 +37,8 @@ def _string_default(
     """Return a string default extracted from a notification payload."""
     value = current.get(field, fallback)
     return value if isinstance(value, str) else fallback
+
+
 def _validate_time_input(value: Any, field: NotificationOptionsField) -> None:
     """Validate optional quiet-hour time input."""
     if value is None:
@@ -58,6 +62,8 @@ def _validate_time_input(value: Any, field: NotificationOptionsField) -> None:
         except ValueError:
             continue
     raise FlowValidationError(field_errors={field: f"{field}_invalid"})
+
+
 def build_notification_settings_payload(
     user_input: NotificationSettingsInput,
     current: NotificationOptions,

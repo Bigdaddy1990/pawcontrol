@@ -49,11 +49,14 @@ class PushResult(TypedDict, total=False):
     status: int
     error: str
     dog_id: str
+
+
 @dataclass(slots=True)
 class _RateLimiter:
     window_seconds: int
     max_events: int
     events: deque[float]
+
     def allow(self, now: float) -> bool:
         cutoff = now - self.window_seconds
         while self.events and self.events[0] < cutoff:
@@ -70,6 +73,8 @@ def _store(hass: HomeAssistant) -> dict[str, Any]:
         hass.data[DOMAIN] = {}
         store = hass.data[DOMAIN]
     return cast(dict[str, Any], store)
+
+
 def _entry_store(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
     domain_store = _store(hass)
     router_store = domain_store.setdefault(_PUSH_STORE_KEY, {})
@@ -96,6 +101,8 @@ def _entry_store(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
     entry.setdefault("nonces", {})
     entry.setdefault("limiters", {})
     return entry
+
+
 def _dog_telemetry(telemetry: dict[str, Any], dog_id: str) -> dict[str, Any]:
     dogs = telemetry.setdefault("dogs", {})
     if not isinstance(dogs, dict):
@@ -115,6 +122,8 @@ def _dog_telemetry(telemetry: dict[str, Any], dog_id: str) -> dict[str, Any]:
     dog.setdefault("by_source_accepted", {})
     dog.setdefault("by_source_rejected", {})
     return dog
+
+
 def _bump_reason(dog_tel: dict[str, Any], reason: str) -> None:
     by_reason = dog_tel.get("by_reason")
     if not isinstance(by_reason, dict):
@@ -125,6 +134,8 @@ def _bump_reason(dog_tel: dict[str, Any], reason: str) -> None:
         items = sorted(by_reason.items(), key=lambda kv: kv[1])
         for key, _ in items[: len(by_reason) - _MAX_REASONS]:
             by_reason.pop(key, None)
+
+
 def get_entry_push_telemetry_snapshot(
     hass: HomeAssistant, entry_id: str
 ) -> dict[str, Any]:
@@ -133,7 +144,7 @@ def get_entry_push_telemetry_snapshot(
     telemetry = entry.get("telemetry")
     if not isinstance(telemetry, dict):
         return {}
-    # shallow copy (nested dicts intentionally shared but non-sensitive)  # noqa: E114
+    # shallow copy (nested dicts intentionally shared but non-sensitive)
     return {
         "created_at": telemetry.get("created_at"),
         "accepted_total": telemetry.get("accepted_total", 0),
@@ -158,6 +169,8 @@ def _dog_expected_source(entry: ConfigEntry, dog_id: str) -> str | None:
         raw = item.get(CONF_GPS_SOURCE)
         return raw.strip() if isinstance(raw, str) else None
     return None
+
+
 def _payload_limit(entry: ConfigEntry) -> int:
     raw = entry.options.get(CONF_PUSH_PAYLOAD_MAX_BYTES, DEFAULT_PUSH_PAYLOAD_MAX_BYTES)
     try:
@@ -169,6 +182,8 @@ def _payload_limit(entry: ConfigEntry) -> int:
     if value is None:
         return DEFAULT_PUSH_PAYLOAD_MAX_BYTES
     return max(1024, min(256 * 1024, value))
+
+
 def _nonce_ttl(entry: ConfigEntry) -> int:
     raw = entry.options.get(CONF_PUSH_NONCE_TTL_SECONDS, DEFAULT_PUSH_NONCE_TTL_SECONDS)
     try:
@@ -180,6 +195,8 @@ def _nonce_ttl(entry: ConfigEntry) -> int:
     if value is None:
         return DEFAULT_PUSH_NONCE_TTL_SECONDS
     return max(60, min(24 * 3600, value))
+
+
 def _rate_limit(entry: ConfigEntry, source: PushSource) -> int:
     if source == "webhook":
         raw = entry.options.get(
@@ -205,6 +222,8 @@ def _rate_limit(entry: ConfigEntry, source: PushSource) -> int:
     if value is None:
         value = 60
     return max(1, min(600, value))
+
+
 def _check_nonce(
     entry_store: dict[str, Any], entry: ConfigEntry, nonce: str, now: float
 ) -> bool:
@@ -221,6 +240,8 @@ def _check_nonce(
         return False
     nonces[nonce] = now
     return True
+
+
 def _limiter(
     entry_store: dict[str, Any], dog_id: str, source: PushSource, max_per_minute: int
 ) -> _RateLimiter:
@@ -235,6 +256,8 @@ def _limiter(
     limiter = _RateLimiter(window_seconds=60, max_events=max_per_minute, events=deque())
     limiters[key] = limiter
     return limiter
+
+
 def _accept(
     telemetry: dict[str, Any], dog_id: str, source: PushSource, now_iso: str
 ) -> None:
@@ -247,6 +270,8 @@ def _accept(
         by_src = {}
         dog_tel["by_source_accepted"] = by_src
     by_src[source] = int(by_src.get(source, 0)) + 1
+
+
 def _reject(
     telemetry: dict[str, Any],
     dog_id: str,
@@ -267,6 +292,8 @@ def _reject(
         dog_tel["by_source_rejected"] = by_src
     by_src[source] = int(by_src.get(source, 0)) + 1
     return PushResult(ok=False, status=status, error=reason, dog_id=dog_id)
+
+
 async def async_process_gps_push(
     hass: HomeAssistant,
     entry: ConfigEntry,

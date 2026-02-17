@@ -104,24 +104,33 @@ _MODULE_HISTORY_ATTRS: Final[dict[str, tuple[str, str]]] = {
 
 if __name__ not in sys.modules and "pawcontrol_data_manager" in sys.modules:
     sys.modules[__name__] = sys.modules["pawcontrol_data_manager"]
+
+
 class AdaptiveCacheEntry(TypedDict, total=False):
     """Metadata stored for each AdaptiveCache entry."""
+
     expiry: NotRequired[datetime | None]
     created_at: NotRequired[datetime]
     ttl: NotRequired[int]
     override_applied: NotRequired[bool]
+
+
 class AdaptiveCacheStats(TypedDict):
     """Statistics payload returned by :meth:`AdaptiveCache.get_stats`."""
+
     size: int
     hits: int
     misses: int
     hit_rate: float
     memory_mb: float
+
+
 ValueT = TypeVar("ValueT")
 
 
 class AdaptiveCache[ValueT]:
     """Simple asynchronous cache used by legacy tests."""
+
     def __init__(self, default_ttl: int = 300) -> None:
         """Initialise the cache with the provided default TTL."""
 
@@ -168,6 +177,7 @@ class AdaptiveCache[ValueT]:
 
             self._hits += 1
             return self._data[key], True
+
     async def set(self, key: str, value: ValueT, base_ttl: int = 300) -> None:
         """Store ``value`` for ``key`` honouring ``base_ttl`` when positive."""
 
@@ -245,6 +255,7 @@ class AdaptiveCache[ValueT]:
             )
 
             return len(expired)
+
     def get_stats(self) -> AdaptiveCacheStats:
         """Return basic cache statistics used by diagnostics."""
 
@@ -320,7 +331,9 @@ class AdaptiveCache[ValueT]:
 
 class _EntityBudgetMonitor:
     """Expose entity budget tracker internals to the data manager monitor."""
+
     __slots__ = ("_tracker",)
+
     def __init__(self, tracker: Any) -> None:
         self._tracker = tracker
 
@@ -426,7 +439,9 @@ class _EntityBudgetMonitor:
 
 class _CoordinatorModuleCacheMonitor:
     """Wrap coordinator module caches for diagnostics consumption."""
+
     __slots__ = ("_modules",)
+
     def __init__(self, modules: CoordinatorModuleAdapter) -> None:
         self._modules: CoordinatorModuleAdapter = modules
 
@@ -541,6 +556,8 @@ def _estimate_namespace_entries(payload: Any) -> int:
         return len(payload)
 
     return 1 if payload not in (None, "", (), [], {}) else 0
+
+
 def _find_namespace_timestamp(payload: Any) -> str | None:
     """Return the first ISO timestamp discovered in ``payload``."""
     if isinstance(payload, Mapping):
@@ -561,6 +578,8 @@ def _find_namespace_timestamp(payload: Any) -> str | None:
             if found is not None:
                 return found
     return None
+
+
 def _namespace_has_timestamp_field(payload: Any) -> bool:
     """Return ``True`` if ``payload`` exposes a timestamp-like field."""
     if isinstance(payload, Mapping):
@@ -574,9 +593,13 @@ def _namespace_has_timestamp_field(payload: Any) -> bool:
     ):
         return any(_namespace_has_timestamp_field(item) for item in payload)
     return False
+
+
 class _StorageNamespaceCacheMonitor:
     """Expose persisted namespace state for coordinator diagnostics."""
+
     __slots__ = ("_label", "_manager", "_namespace")
+
     def __init__(
         self,
         manager: PawControlDataManager,
@@ -677,6 +700,8 @@ def _serialize_datetime(value: datetime | None) -> str | None:
     if value is None:
         return None
     return dt_util.as_utc(value).isoformat()
+
+
 def _deserialize_datetime(value: Any) -> datetime | None:
     """Decode ISO formatted datetimes from JSON payloads."""
     if value is None:
@@ -687,6 +712,8 @@ def _deserialize_datetime(value: Any) -> datetime | None:
     if parsed is None:
         return None
     return dt_util.as_utc(parsed)
+
+
 def _utcnow() -> datetime:
     """Return the current UTC time honoring patched Home Assistant helpers."""
     module = sys.modules.get("homeassistant.util.dt")
@@ -697,6 +724,8 @@ def _utcnow() -> datetime:
             if isinstance(result, datetime):
                 return result
     return dt_util.utcnow()
+
+
 def _serialize_timestamp(value: Any | None) -> str:
     """Return an ISO timestamp for ``value`` or ``utcnow`` when missing."""
     if isinstance(value, datetime):
@@ -706,6 +735,8 @@ def _serialize_timestamp(value: Any | None) -> str:
         if parsed:
             return parsed.isoformat()
     return _utcnow().isoformat()
+
+
 def _coerce_mapping(value: JSONLikeMapping | None) -> JSONMutableMapping:
     """Return a shallow copy of ``value`` ensuring a mutable mapping."""
     if value is None:
@@ -713,6 +744,8 @@ def _coerce_mapping(value: JSONLikeMapping | None) -> JSONMutableMapping:
     if isinstance(value, dict):
         return cast(JSONMutableMapping, dict(value))
     return {key: item for key, item in value.items()}
+
+
 def _merge_dicts(
     base: JSONLikeMapping | None,
     updates: JSONLikeMapping | None,
@@ -735,6 +768,8 @@ def _merge_dicts(
         else:
             merged[key] = value
     return merged
+
+
 def _limit_entries(
     entries: list[JSONMutableMapping],
     *,
@@ -744,6 +779,8 @@ def _limit_entries(
     if limit is None or limit <= 0:
         return entries
     return list(islice(entries, max(len(entries) - limit, 0), None))
+
+
 def _coerce_health_payload(data: HealthData | JSONLikeMapping) -> JSONMutableMapping:
     """Return a dict payload from ``data`` regardless of the input type."""
     if isinstance(data, HealthData):
@@ -773,6 +810,8 @@ def _coerce_health_payload(data: HealthData | JSONLikeMapping) -> JSONMutableMap
 
     payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
     return payload
+
+
 def _coerce_medication_payload(data: JSONLikeMapping) -> JSONMutableMapping:
     """Return normalised medication data for persistence."""
     payload = _coerce_json_mutable(
@@ -783,6 +822,8 @@ def _coerce_medication_payload(data: JSONLikeMapping) -> JSONMutableMapping:
     )
     payload.setdefault("logged_at", _utcnow().isoformat())
     return payload
+
+
 def _normalise_history_entries(entries: object) -> list[JSONMutableMapping]:
     """Convert ``entries`` into JSON-compatible mutable mappings."""
     if not isinstance(entries, Iterable) or isinstance(entries, bytes | str):
@@ -805,10 +846,14 @@ def _normalise_history_entries(entries: object) -> list[JSONMutableMapping]:
 def _default_session_id_generator() -> str:
     """Generate a unique identifier for grooming sessions."""
     from uuid import uuid4
+
     return uuid4().hex
+
+
 @dataclass
 class DogProfile:
     """Representation of all stored data for a single dog."""
+
     config: DogConfigData
     daily_stats: DailyStats
     feeding_history: list[JSONMutableMapping] = field(default_factory=list)
@@ -818,6 +863,7 @@ class DogProfile:
     poop_history: list[JSONMutableMapping] = field(default_factory=list)
     grooming_sessions: list[JSONMutableMapping] = field(default_factory=list)
     current_walk: WalkData | None = None
+
     @classmethod
     def from_storage(
         cls,
@@ -942,8 +988,11 @@ def _history_sort_key(entry: Mapping[str, JSONValue], field: str) -> str:
     """Return a sortable key for history entries based on ``field``."""
     value = entry.get(field)
     return value if isinstance(value, str) else ""
+
+
 class PawControlDataManager:
     """Store and retrieve dog related data for the integration."""
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -1019,6 +1068,7 @@ class PawControlDataManager:
             return get_runtime_data(self.hass, entry_id)
         except Exception:  # pragma: no cover - runtime retrieval errors
             return None
+
     def _get_namespace_lock(self, namespace: str) -> asyncio.Lock:
         """Return a lock used to guard namespace updates."""
 
@@ -1051,6 +1101,7 @@ class PawControlDataManager:
                 data[dog_id] = updated
             await self._save_namespace(namespace, data)
             return updated
+
     def _ensure_profile(self, dog_id: str) -> DogProfile:
         """Return the profile for ``dog_id`` or raise ``HomeAssistantError``."""
 
@@ -1092,6 +1143,7 @@ class PawControlDataManager:
             self._visitor_timings: deque[float] = deque(maxlen=50)
         if not hasattr(self, "_metrics_sink"):
             self._metrics_sink: CoordinatorMetrics | None = None
+
     def _increment_metric(self, key: str, *, increment: int = 1) -> None:
         """Increment a numeric metric stored in ``_metrics`` safely."""
 
@@ -1283,16 +1335,12 @@ class PawControlDataManager:
         def _try_register(name: str, cache: Any) -> None:
             try:
                 self.register_cache_monitor(name, cache)
-            except (
-                ValueError
-            ):  # pragma: no cover - invalid names guarded earlier
+            except ValueError:  # pragma: no cover - invalid names guarded earlier
                 _LOGGER.debug(
                     "Rejected cache monitor %s due to invalid name",
                     name,
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover - diagnostics guard
+            except Exception as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
                     "Failed to register cache monitor %s: %s",
                     name,
@@ -1333,6 +1381,7 @@ class PawControlDataManager:
 
         for name, monitor in storage_monitors.items():
             _try_register(name, monitor)
+
     def _register_manager_cache_monitors(
         self,
         manager: Any,
@@ -1369,6 +1418,7 @@ class PawControlDataManager:
         else:
             self._cache_registrar_ids.add(registrar_id)
             _LOGGER.debug("Registered cache monitors for %s", label)
+
     def _register_runtime_cache_monitors_internal(self, runtime: Any | None) -> None:
         """Register cache monitors exposed by runtime data containers."""
 
@@ -1414,9 +1464,7 @@ class PawControlDataManager:
                         modules,
                     ),
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover - diagnostics guard
+            except Exception as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
                     "Failed to register coordinator module cache monitor: %s",
                     err,
@@ -1429,9 +1477,7 @@ class PawControlDataManager:
                     "entity_budget_tracker",
                     _EntityBudgetMonitor(tracker),
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover - diagnostics guard
+            except Exception as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
                     "Failed to register entity budget cache monitor: %s",
                     err,
@@ -1527,9 +1573,7 @@ class PawControlDataManager:
                     stats=stats_payload,
                     diagnostics=diagnostics_payload,
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover - diagnostics guard
+            except Exception as err:  # pragma: no cover - diagnostics guard
                 return CacheDiagnosticsSnapshot(error=str(err))
 
         self._cache_monitors[name] = _snapshot
@@ -1541,9 +1585,7 @@ class PawControlDataManager:
         for name, provider in self._cache_monitors.items():
             try:
                 snapshots[name] = provider()
-            except (
-                Exception
-            ) as err:  # pragma: no cover - defensive fallback
+            except Exception as err:  # pragma: no cover - defensive fallback
                 snapshots[name] = CacheDiagnosticsSnapshot(error=str(err))
         return snapshots
 
@@ -1584,6 +1626,7 @@ class PawControlDataManager:
                 return 0
 
             return int(number)
+
         def _as_float(value: Any) -> float:
             number: float | None
             if is_number(value):
@@ -1600,6 +1643,7 @@ class PawControlDataManager:
                 return 0.0
 
             return number
+
         for name, payload in snapshots.items():
             if not isinstance(name, str) or not name:
                 continue
@@ -1778,6 +1822,7 @@ class PawControlDataManager:
         sink = getattr(self, "_metrics_sink", None)
         if sink is not None:
             sink.record_visitor_timing(max(duration, 0.0))
+
     def get_daily_feeding_stats(self, dog_id: str) -> JSONMutableMapping | None:
         """Return aggregated feeding information for today."""
 
@@ -1918,6 +1963,7 @@ class PawControlDataManager:
                 continue
 
             prepared.append((timestamp, normalised_payload))
+
         def _sort_key(
             item: tuple[datetime | None, JSONMutableMapping],
         ) -> tuple[int, str]:
@@ -1937,6 +1983,7 @@ class PawControlDataManager:
             if isinstance(raw_value, str):
                 return (0, raw_value)
             return (0, "")
+
         prepared.sort(key=_sort_key, reverse=True)
 
         ordered = [payload for _timestamp, payload in prepared]
@@ -1953,6 +2000,7 @@ class PawControlDataManager:
             payload["main_power"] = bool(enabled)
             payload.setdefault("updated_at", _utcnow().isoformat())
             return payload
+
         await self._update_namespace_for_dog("module_state", dog_id, updater)
 
     async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:
@@ -1970,6 +2018,7 @@ class PawControlDataManager:
             gps_state["updated_at"] = _utcnow().isoformat()
             payload["gps"] = gps_state
             return payload
+
         await self._update_namespace_for_dog("module_state", dog_id, updater)
 
     async def async_log_poop_data(
@@ -2213,6 +2262,7 @@ class PawControlDataManager:
             if ts is None:
                 return False
             return report_window_start <= ts <= report_window_end
+
         if "feeding" in sections:
             feedings: list[JSONMutableMapping] = []
             total_portion = 0.0
@@ -2312,7 +2362,7 @@ class PawControlDataManager:
                     await notification_manager.async_send_notification(
                         notification_type=NotificationType.REPORT_READY,
                         title=(
-                            f"{profile.config.get('dog_name', dog_id)} {report_type} report"
+                            f"{profile.config.get('dog_name', dog_id)} {report_type} report"  # noqa: E501
                         ),
                         message="Your PawControl report is ready for review.",
                         priority=NotificationPriority.NORMAL,
@@ -2454,6 +2504,7 @@ class PawControlDataManager:
                     f"{self.entry_id}_{dog_id}_routes_{timestamp}.{export_format}"
                 )
             export_path = export_dir / filename
+
             def _route_payload_from_content(content: object) -> JSONValue:
                 if isinstance(content, Mapping):
                     return content
@@ -2468,6 +2519,7 @@ class PawControlDataManager:
                     return cast(JSONValue, json.loads(str(content)))
                 except json.JSONDecodeError:
                     return {"raw_content": str(content)}
+
             def _write_route_export() -> None:
                 content = export_payload.get("content")
                 if export_format == "json":
@@ -2484,6 +2536,7 @@ class PawControlDataManager:
 
             await self._async_add_executor_job(_write_route_export)
             return export_path
+
         async def _export_single(export_type: str) -> Path:
             if export_type == "garden":
                 return await _export_garden_sessions()
@@ -2546,12 +2599,10 @@ class PawControlDataManager:
                 normalized_format = "json"
 
             extension = "md" if normalized_format == "markdown" else normalized_format
-            filename = (
-                f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}".replace(
-                    " ",
-                    "_",
-                )
+            raw_filename = (
+                f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}"
             )
+            filename = raw_filename.replace(" ", "_")
             export_path = export_dir / filename
             if normalized_format == "csv":
                 if entries:
@@ -2560,6 +2611,7 @@ class PawControlDataManager:
                     )
                 else:
                     fieldnames = []
+
                 def _write_csv() -> None:
                     with open(export_path, "w", newline="", encoding="utf-8") as handle:
                         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -2569,6 +2621,7 @@ class PawControlDataManager:
 
                 await self._async_add_executor_job(_write_csv)
             elif normalized_format in {"markdown", "md", "txt"}:
+
                 def _write_markdown() -> None:
                     lines = [
                         f"# {export_type.title()} export for {dog_id}",
@@ -2579,8 +2632,10 @@ class PawControlDataManager:
                         for entry in entries
                     )
                     export_path.write_text("\n".join(lines), encoding="utf-8")
+
                 await self._async_add_executor_job(_write_markdown)
             else:
+
                 def _write_json() -> None:
                     payload = cast(
                         JSONMutableMapping,
@@ -2601,6 +2656,7 @@ class PawControlDataManager:
                 await self._async_add_executor_job(_write_json)
 
             return export_path
+
         if normalized_type == "garden":
             return await _export_garden_sessions()
         if normalized_type == "routes":
@@ -3185,6 +3241,7 @@ class PawControlDataManager:
             return None
         with path.open(encoding="utf-8") as handle:
             return json.load(handle)
+
     def _write_storage(self, payload: JSONMutableMapping) -> None:
         """Write data to the JSON storage file."""
 
@@ -3192,6 +3249,7 @@ class PawControlDataManager:
             self._create_backup()
         with open(self._storage_path, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
+
     def _create_backup(self) -> None:
         """Create a best-effort backup copy of the current data file."""
 

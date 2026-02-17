@@ -61,6 +61,7 @@ def validate_dog_exists(
         ...     # dog_id is guaranteed to exist
         ...     return self.coordinator.data[dog_id]
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -72,7 +73,7 @@ def validate_dog_exists(
                     constraint="Dog ID is required",
                 )
 
-            # Get coordinator from self (first arg)  # noqa: E114
+            # Get coordinator from self (first arg)
             if not args:
                 raise PawControlError(
                     "Decorator requires instance method with coordinator access",
@@ -90,9 +91,12 @@ def validate_dog_exists(
                 raise DogNotFoundError(dog_id, available_dogs)
 
             return func(*args, **kwargs)
+
         return wrapper
 
     return decorator
+
+
 def validate_gps_coordinates(
     latitude_param: str = "latitude",
     longitude_param: str = "longitude",
@@ -112,6 +116,7 @@ def validate_gps_coordinates(
         ...     # Coordinates are guaranteed valid
         ...     self.location = (latitude, longitude)
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -121,7 +126,7 @@ def validate_gps_coordinates(
             if latitude is None or longitude is None:
                 raise InvalidCoordinatesError()
 
-            # Validate ranges  # noqa: E114
+            # Validate ranges
             if not isinstance(latitude, (int, float)) or not isinstance(
                 longitude,
                 (int, float),
@@ -135,9 +140,12 @@ def validate_gps_coordinates(
                 raise InvalidCoordinatesError(latitude, longitude)
 
             return func(*args, **kwargs)
+
         return wrapper
 
     return decorator
+
+
 def validate_range(
     param: str,
     min_value: float | int,
@@ -161,6 +169,7 @@ def validate_range(
         ... def set_weight(self, weight: float):
         ...     self.weight = weight
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -189,9 +198,12 @@ def validate_range(
                 )
 
             return func(*args, **kwargs)
+
         return wrapper
 
     return decorator
+
+
 # Error handling decorators
 
 
@@ -219,6 +231,7 @@ def handle_errors(
         ...     # Errors are logged and critical ones re-raised
         ...     return await self.api.get_data()
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -314,6 +327,8 @@ def handle_errors(
         return cast(Callable[P, T], sync_wrapper)
 
     return decorator
+
+
 def map_to_repair_issue(
     issue_id: str,
     *,
@@ -334,6 +349,7 @@ def map_to_repair_issue(
         ...     # GPSUnavailableError creates repair issue
         ...     return await self.gps.get_location()
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -353,7 +369,7 @@ def map_to_repair_issue(
                         hass = instance.coordinator.hass
 
                 if hass is not None:
-                    # Create repair issue  # noqa: E114
+                    # Create repair issue
 
                     issue_registry.async_create_issue(
                         hass,
@@ -404,6 +420,8 @@ def map_to_repair_issue(
         return cast(Callable[P, T], sync_wrapper)
 
     return decorator
+
+
 def retry_on_error(
     *,
     max_attempts: int = 3,
@@ -428,6 +446,7 @@ def retry_on_error(
         ...     # Retries up to 3 times on network errors
         ...     return await self.api.fetch()
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -464,6 +483,7 @@ def retry_on_error(
                 raise last_exception
 
             return cast(T, None)
+
         @functools.wraps(func)
         def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             current_delay = delay
@@ -498,13 +518,17 @@ def retry_on_error(
                 raise last_exception
 
             return cast(T, None)
+
         if inspect.iscoroutinefunction(func):
             return cast(Callable[P, T], async_wrapper)
         return cast(Callable[P, T], sync_wrapper)
 
     return decorator
+
+
 def require_coordinator(func: Callable[..., Any]) -> Callable[..., Any]:
     """Ensure decorated instance methods expose ``self.coordinator``."""
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         if not args:
@@ -516,6 +540,8 @@ def require_coordinator(func: Callable[..., Any]) -> Callable[..., Any]:
         return func(*args, **kwargs)
 
     return wrapper
+
+
 def require_coordinator_data(
     *,
     allow_partial: bool = False,
@@ -534,6 +560,7 @@ def require_coordinator_data(
         ...     # coordinator.data is guaranteed to be populated
         ...     return list(self.coordinator.data.keys())
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -571,9 +598,12 @@ def require_coordinator_data(
                 )
 
             return func(*args, **kwargs)
+
         return wrapper
 
     return decorator
+
+
 # Combined decorators for common patterns
 
 
@@ -603,6 +633,7 @@ def validate_and_handle(
         ...     # Dog exists, coordinates valid, errors handled
         ...     await self.api.update_location(dog_id, latitude, longitude)
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         # Apply decorators in order
         decorated = func
@@ -619,6 +650,8 @@ def validate_and_handle(
         return decorated
 
     return decorator
+
+
 # Exception mapping utilities
 
 
@@ -652,6 +685,8 @@ def get_repair_issue_id(exception: PawControlError) -> str | None:
         if isinstance(exception, exc_type):
             return issue_id
     return None
+
+
 async def create_repair_issue_from_exception(
     hass: HomeAssistant,
     exception: PawControlError,

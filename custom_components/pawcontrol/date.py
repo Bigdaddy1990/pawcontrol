@@ -84,7 +84,7 @@ async def _async_add_entities_in_batches(
         batch_size,
     )
 
-    # Process entities in batches  # noqa: E114
+    # Process entities in batches
     for i in range(0, total_entities, batch_size):
         batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
@@ -107,6 +107,8 @@ async def _async_add_entities_in_batches(
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
             await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -285,6 +287,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     Provides common functionality for all date entities including state
     restoration, device association, and consistent attribute handling.
     """
+
     _SET_VALUE_MONITOR = cast(
         Callable[
             [Callable[["PawControlDateBase", date], Awaitable[None]]],
@@ -356,7 +359,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
             attributes["is_today"] = days_diff == 0
             attributes["is_future"] = days_diff > 0
             attributes["iso_string"] = self._current_value.isoformat()
-            # Add age calculation for birthdate  # noqa: E114
+            # Add age calculation for birthdate
             if self._date_type == "birthdate" and days_diff < 0:
                 age_days = abs(days_diff)
                 attributes["age_days"] = age_days
@@ -405,7 +408,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
         """
 
         async def _apply_value() -> None:
-            # Validate date value early so we can return a consistent error message.  # noqa: E114, E501
+            # Validate date value early so we can return a consistent error message.  # noqa: E501
             if not isinstance(value, date):
                 raise ValidationError(
                     field="date_value",
@@ -460,6 +463,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
             finally:
                 if self._active_update_token is update_token:
                     self._active_update_token = None
+
         monitored = cast(
             Callable[[], Awaitable[None]],
             performance_monitor(timeout=5.0)(_apply_value),
@@ -485,7 +489,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
         Updates entity state based on fresh data from the coordinator.
         """
         try:
-            # Get dog-specific data from coordinator  # noqa: E114
+            # Get dog-specific data from coordinator
             dog_data = self.coordinator.get_dog_data(self._dog_id)
             if dog_data:
                 # Update entity state based on coordinator data
@@ -528,6 +532,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
 
 class PawControlBirthdateDate(PawControlDateBase):
     """Date entity for dog birthdate."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -570,8 +575,11 @@ class PawControlBirthdateDate(PawControlDateBase):
         except Exception as err:
             _LOGGER.debug("Could not update dog profile: %s", err)
             raise
+
+
 class PawControlAdoptionDate(PawControlDateBase):
     """Date entity for adoption date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -618,6 +626,7 @@ class PawControlAdoptionDate(PawControlDateBase):
 
 class PawControlLastVetVisitDate(PawControlDateBase):
     """Date entity for last vet visit."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -641,7 +650,7 @@ class PawControlLastVetVisitDate(PawControlDateBase):
             vet_visit_str = health_payload.get("last_vet_visit")
             if vet_visit_str:
                 with suppress(ValueError, TypeError):
-                    # Handle both date and datetime strings  # noqa: E114
+                    # Handle both date and datetime strings
                     if parsed_dt := dt_util.parse_datetime(vet_visit_str):
                         return parsed_dt.date()
 
@@ -672,8 +681,11 @@ class PawControlLastVetVisitDate(PawControlDateBase):
         except Exception as err:
             _LOGGER.debug("Could not log vet visit: %s", err)
             raise
+
+
 class PawControlNextVetAppointmentDate(PawControlDateBase):
     """Date entity for next vet appointment."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -711,6 +723,7 @@ class PawControlNextVetAppointmentDate(PawControlDateBase):
 
 class PawControlLastGroomingDate(PawControlDateBase):
     """Date entity for last grooming session."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -744,6 +757,7 @@ class PawControlLastGroomingDate(PawControlDateBase):
 
 class PawControlNextGroomingDate(PawControlDateBase):
     """Date entity for next grooming appointment."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -762,6 +776,7 @@ class PawControlNextGroomingDate(PawControlDateBase):
 
 class PawControlVaccinationDate(PawControlDateBase):
     """Date entity for vaccination dates."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -800,8 +815,11 @@ class PawControlVaccinationDate(PawControlDateBase):
         except Exception as err:
             _LOGGER.debug("Could not log vaccination: %s", err)
             raise
+
+
 class PawControlNextVaccinationDate(PawControlDateBase):
     """Date entity for next vaccination due date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -820,6 +838,7 @@ class PawControlNextVaccinationDate(PawControlDateBase):
 
 class PawControlDewormingDate(PawControlDateBase):
     """Date entity for deworming dates."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -844,7 +863,7 @@ class PawControlDewormingDate(PawControlDateBase):
                 "log_health_data",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "note": f"Deworming treatment recorded for {value.strftime('%Y-%m-%d')}",
+                    "note": f"Deworming treatment recorded for {value.strftime('%Y-%m-%d')}",  # noqa: E501
                     "health_status": "treated",
                 },
             ):
@@ -852,8 +871,11 @@ class PawControlDewormingDate(PawControlDateBase):
         except Exception as err:
             _LOGGER.debug("Could not log deworming: %s", err)
             raise
+
+
 class PawControlNextDewormingDate(PawControlDateBase):
     """Date entity for next deworming due date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -875,6 +897,7 @@ class PawControlNextDewormingDate(PawControlDateBase):
 
 class PawControlDietStartDate(PawControlDateBase):
     """Date entity for diet start date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -891,6 +914,7 @@ class PawControlDietStartDate(PawControlDateBase):
 
 class PawControlDietEndDate(PawControlDateBase):
     """Date entity for diet end date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -912,6 +936,7 @@ class PawControlDietEndDate(PawControlDateBase):
 
 class PawControlTrainingStartDate(PawControlDateBase):
     """Date entity for training program start date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -930,6 +955,7 @@ class PawControlTrainingStartDate(PawControlDateBase):
 
 class PawControlNextTrainingDate(PawControlDateBase):
     """Date entity for next training session date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,

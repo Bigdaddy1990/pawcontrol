@@ -59,6 +59,8 @@ def _dt_now() -> datetime:
     except ImportError:
         return datetime.now()
     return dt_util_module.now()
+
+
 if TYPE_CHECKING:
     from .feeding_manager import FeedingComplianceResult
 _LOGGER = logging.getLogger(__name__)
@@ -76,6 +78,7 @@ RATE_LIMIT_RETENTION_SECONDS = 7 * 24 * 3600
 
 class NotificationType(Enum):
     """Types of notifications with priority hints."""
+
     FEEDING_REMINDER = "feeding_reminder"
     FEEDING_OVERDUE = "feeding_overdue"
     WALK_REMINDER = "walk_reminder"
@@ -91,12 +94,16 @@ class NotificationType(Enum):
     BATTERY_LOW = "battery_low"  # OPTIMIZE: Added battery alerts
     FEEDING_COMPLIANCE = "feeding_compliance"
     REPORT_READY = "report_ready"
+
+
 class NotificationPriority(Enum):
     """Notification priority levels with numeric values for comparison."""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
     URGENT = "urgent"
+
     @property
     def value_numeric(self) -> int:
         """Get numeric value for priority comparison."""
@@ -111,6 +118,7 @@ class NotificationPriority(Enum):
 
 class NotificationChannel(Enum):
     """Available notification channels."""
+
     PERSISTENT = "persistent"  # Home Assistant persistent notifications
     MOBILE = "mobile"  # Mobile app notifications
     EMAIL = "email"  # Email notifications
@@ -120,12 +128,18 @@ class NotificationChannel(Enum):
     MEDIA_PLAYER = "media_player"  # Media player announcements
     SLACK = "slack"  # OPTIMIZE: Added Slack notifications
     DISCORD = "discord"  # OPTIMIZE: Added Discord notifications
+
+
 class NotificationQuietHoursConfig(TypedDict, total=False):
     """Raw quiet-hours payload accepted by the notification manager."""
+
     start: int
     end: int
+
+
 class NotificationCustomSettings(TypedDict, total=False):
     """Channel-specific overrides applied during notification delivery."""
+
     mobile_service: str
     mobile_services: list[str]
     webhook_url: str
@@ -141,8 +155,11 @@ class NotificationCustomSettings(TypedDict, total=False):
     slack_channel: str
     discord_service: str
     discord_channel: str | None
+
+
 class NotificationRateLimitConfig(TypedDict, total=False):
     """Per-channel rate limit definitions in minutes."""
+
     persistent_limit_minutes: int
     mobile_limit_minutes: int
     email_limit_minutes: int
@@ -152,6 +169,8 @@ class NotificationRateLimitConfig(TypedDict, total=False):
     media_player_limit_minutes: int
     slack_limit_minutes: int
     discord_limit_minutes: int
+
+
 type NotificationTemplateOverrides = dict[str, str]
 """Template override mapping keyed by template identifier."""
 
@@ -171,11 +190,16 @@ type NotificationServicePayload = JSONMutableMapping
 def _empty_custom_settings() -> NotificationCustomSettings:
     """Return a freshly typed custom settings mapping."""
     return cast(NotificationCustomSettings, {})
+
+
 def _empty_rate_limit_config() -> NotificationRateLimitConfig:
     """Return a freshly typed rate-limit configuration mapping."""
     return cast(NotificationRateLimitConfig, {})
+
+
 class NotificationEventSerialized(TypedDict):
     """Serialized notification payload stored for diagnostics."""
+
     id: str
     dog_id: str | None
     notification_type: str
@@ -197,9 +221,12 @@ class NotificationEventSerialized(TypedDict):
     targeted_persons: list[str]
     notification_services: list[str]
     failed_notification_services: list[str]
+
+
 @dataclass
 class NotificationDeliveryStatus:
     """Snapshot of delivery status for a notification service."""
+
     last_success_at: datetime | None = None
     last_failure_at: datetime | None = None
     consecutive_failures: int = 0
@@ -207,13 +234,19 @@ class NotificationDeliveryStatus:
     total_successes: int = 0
     last_error: str | None = None
     last_error_reason: str | None = None
+
+
 class NotificationDeliveryDiagnostics(TypedDict):
     """Diagnostics payload for notification delivery outcomes."""
+
     total_services: int
     failed_services: list[str]
     services: dict[str, JSONMutableMapping]
+
+
 class NotificationWebhookPayload(TypedDict):
     """Payload dispatched to webhook listeners."""
+
     id: str
     title: str
     message: str
@@ -225,8 +258,11 @@ class NotificationWebhookPayload(TypedDict):
     expires_at: str | None
     data: NotificationTemplateData
     targeted_persons: list[str]
+
+
 class PersonDiscoveryResult(TypedDict):
     """Result payload returned by person discovery routines."""
+
     previous_count: int
     current_count: int
     persons_added: int
@@ -234,12 +270,18 @@ class PersonDiscoveryResult(TypedDict):
     home_persons: int
     away_persons: int
     discovery_time: str
+
+
 class PersonDiscoveryError(TypedDict):
     """Fallback payload returned when discovery is unavailable."""
+
     error: str
+
+
 @dataclass
 class NotificationConfig:
     """Enhanced configuration for notification delivery."""
+
     enabled: bool = True
     channels: list[NotificationChannel] = field(
         default_factory=lambda: [NotificationChannel.PERSISTENT],
@@ -257,13 +299,16 @@ class NotificationConfig:
     template_overrides: NotificationTemplateOverrides = field(
         default_factory=dict,
     )  # OPTIMIZE: Custom templates
-    # NEW: Person entity targeting  # noqa: E114
+    # NEW: Person entity targeting
     use_person_entities: bool = True  # Dynamic person targeting
     include_away_persons: bool = False  # Send to away persons
     fallback_to_static: bool = True  # Fallback if no persons found
+
+
 @dataclass
 class NotificationEvent:
     """Enhanced individual notification event."""
+
     id: str
     dog_id: str | None
     notification_type: NotificationType
@@ -279,7 +324,7 @@ class NotificationEvent:
     retry_count: int = 0
     acknowledged: bool = False
     acknowledged_at: datetime | None = None
-    # OPTIMIZE: Enhanced metadata  # noqa: E114
+    # OPTIMIZE: Enhanced metadata
     grouped_with: list[str] = field(
         default_factory=list,
     )  # For batched notifications
@@ -288,7 +333,7 @@ class NotificationEvent:
         default_factory=dict,
     )  # Per-channel attempts
 
-    # NEW: Person targeting metadata  # noqa: E114
+    # NEW: Person targeting metadata
     targeted_persons: list[str] = field(
         default_factory=list,
     )  # Person entity IDs
@@ -296,6 +341,7 @@ class NotificationEvent:
         default_factory=list,
     )  # Actual services used
     failed_notification_services: list[str] = field(default_factory=list)
+
     def to_dict(self) -> NotificationEventSerialized:
         """Convert to dictionary for storage."""
         return {
@@ -348,11 +394,15 @@ type NotificationChannelHandler = Callable[[NotificationEvent], Awaitable[None]]
 
 class NotificationCacheDiagnosticsMetadata(TypedDict):
     """Internal diagnostics metadata maintained by :class:`NotificationCache`."""
+
     cleanup_runs: int
     last_cleanup: datetime | None
     last_removed_entries: int
+
+
 class NotificationCacheDiagnostics(TypedDict):
     """Diagnostics payload surfaced through coordinator snapshots."""
+
     cleanup_runs: int
     last_cleanup: str | None
     last_removed_entries: int
@@ -360,19 +410,28 @@ class NotificationCacheDiagnostics(TypedDict):
     quiet_time_keys: list[str]
     person_targeting_keys: list[str]
     rate_limit_keys: dict[str, int]
+
+
 class NotificationCacheStats(TypedDict):
     """Primary statistics exported by :class:`NotificationCache`."""
+
     config_entries: int
     quiet_time_entries: int
     rate_limit_entries: int
     person_targeting_entries: int
     cache_utilization: float
+
+
 class NotificationCacheSnapshot(TypedDict):
     """Snapshot consumed by cache monitor diagnostics."""
+
     stats: NotificationCacheStats
     diagnostics: NotificationCacheDiagnostics
+
+
 class NotificationPerformanceMetrics(TypedDict):
     """Structured performance metrics tracked by the manager."""
+
     notifications_sent: int
     notifications_failed: int
     batch_operations: int
@@ -385,8 +444,11 @@ class NotificationPerformanceMetrics(TypedDict):
     config_updates: int
     retry_reschedules: int
     retry_successes: int
+
+
 class NotificationManagerStats(TypedDict):
     """Telemetry payload returned by ``async_get_performance_statistics``."""
+
     total_notifications: int
     active_notifications: int
     configured_dogs: int
@@ -399,14 +461,20 @@ class NotificationManagerStats(TypedDict):
     available_channels: list[str]
     handlers_registered: int
     person_entity_stats: PersonEntityStats | None
+
+
 class WebhookSecurityStatus(TypedDict):
     """Aggregated HMAC webhook security information."""
+
     configured: bool
     secure: bool
     hmac_ready: bool
     insecure_configs: tuple[str, ...]
+
+
 class NotificationConfigInput(TypedDict, total=False):
     """Raw configuration payload accepted by ``async_initialize``."""
+
     enabled: bool
     channels: list[str]
     priority_threshold: str
@@ -419,6 +487,8 @@ class NotificationConfigInput(TypedDict, total=False):
     use_person_entities: bool
     include_away_persons: bool
     fallback_to_static: bool
+
+
 type NotificationConfigInputMap = Mapping[str, NotificationConfigInput]
 """Mapping of configuration identifiers to raw notification payloads."""
 
@@ -428,6 +498,7 @@ ConfigT = TypeVar("ConfigT", bound=NotificationConfig)
 
 class NotificationCache[ConfigT: NotificationConfig]:
     """OPTIMIZE: Advanced caching system for notification configurations and state."""
+
     def __init__(self, max_size: int = CONFIG_CACHE_SIZE_LIMIT) -> None:
         """Initialize notification cache.
 
@@ -461,7 +532,7 @@ class NotificationCache[ConfigT: NotificationConfig]:
         """
         if config_key in self._config_cache:
             config, _monotonic, _timestamp = self._config_cache[config_key]
-            # Update access order for LRU  # noqa: E114
+            # Update access order for LRU
             if config_key in self._access_order:
                 self._access_order.remove(config_key)
             self._access_order.append(config_key)
@@ -707,7 +778,7 @@ class PawControlNotificationManager:
 
     OPTIMIZE: Enhanced with batch processing, advanced caching, rate limiting,
     person entity integration, and comprehensive performance monitoring for Platinum-targeted quality.
-    """  # noqa: E111, E501
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -961,6 +1032,7 @@ class PawControlNotificationManager:
                         current_avg * (total_sent - 1) + delivery_time_ms
                     ) / total_sent
                     self._performance_metrics["average_delivery_time_ms"] = new_avg
+
         return wrapped_handler
 
     async def async_initialize(
@@ -985,7 +1057,7 @@ class PawControlNotificationManager:
 
             for config_id, config_data in configs.items():
                 try:
-                    # Parse channels with validation  # noqa: E114
+                    # Parse channels with validation
                     channels: list[NotificationChannel] = []
                     raw_channels = config_data.get("channels", ["persistent"])
                     for channel_str in cast(Sequence[str], raw_channels):
@@ -997,12 +1069,12 @@ class PawControlNotificationManager:
                                 channel_str,
                             )
 
-                    # Parse priority threshold  # noqa: E114
+                    # Parse priority threshold
                     priority_threshold = NotificationPriority(
                         config_data.get("priority_threshold", "normal"),
                     )
 
-                    # Parse quiet hours  # noqa: E114
+                    # Parse quiet hours
                     quiet_hours = None
                     if "quiet_hours" in config_data:
                         quiet_config = config_data["quiet_hours"]
@@ -1010,14 +1082,14 @@ class PawControlNotificationManager:
                         quiet_end = quiet_config.get("end", 7)
                         quiet_hours = (quiet_start, quiet_end)
 
-                    # Parse rate limits  # noqa: E114
+                    # Parse rate limits
                     rate_limit: NotificationRateLimitConfig
                     if "rate_limit" in config_data:
                         rate_limit = config_data["rate_limit"]
                     else:
                         rate_limit = _empty_rate_limit_config()
 
-                    # Parse template overrides  # noqa: E114
+                    # Parse template overrides
                     if "template_overrides" in config_data:
                         template_overrides = config_data["template_overrides"]
                     else:
@@ -1082,7 +1154,7 @@ class PawControlNotificationManager:
                 self._entry_id,
             )
 
-            # Use provided config or defaults  # noqa: E114
+            # Use provided config or defaults
             person_config: PersonEntityConfigInput
             if config is None:
                 person_config = {
@@ -1107,6 +1179,7 @@ class PawControlNotificationManager:
                 err,
             )
             self._person_manager = None
+
     async def _start_background_tasks(self) -> None:
         """Start background processing tasks."""
         # Start retry task
@@ -1187,17 +1260,17 @@ class PawControlNotificationManager:
             Notification ID
         """  # noqa: E501
         async with self._lock:
-            # Generate notification ID  # noqa: E114
+            # Generate notification ID
             notification_id = f"{notification_type.value}_{uuid4().hex}"
-            # Determine configuration to use  # noqa: E114
+            # Determine configuration to use
             config_key = dog_id if dog_id else "system"
             config = await self._get_config_cached(config_key)
-            # Check if notifications are enabled  # noqa: E114
+            # Check if notifications are enabled
             if not config.enabled:
                 _LOGGER.debug("Notifications disabled for %s", config_key)
                 return notification_id
 
-            # Check priority threshold with optimized comparison  # noqa: E114
+            # Check priority threshold with optimized comparison
             if priority.value_numeric < config.priority_threshold.value_numeric:
                 _LOGGER.debug(
                     "Notification priority %s below threshold %s",
@@ -1206,12 +1279,12 @@ class PawControlNotificationManager:
                 )
                 return notification_id
 
-            # OPTIMIZE: Check quiet hours with caching  # noqa: E114
+            # OPTIMIZE: Check quiet hours with caching
             if await self._is_quiet_time_cached(config_key, config, priority):
                 _LOGGER.debug("Notification suppressed due to quiet hours")
                 return notification_id
 
-            # NEW: Determine notification targets using person entities  # noqa: E114
+            # NEW: Determine notification targets using person entities
             channels = force_channels if force_channels else config.channels
             targeted_persons = []
             notification_services = []
@@ -1243,7 +1316,7 @@ class PawControlNotificationManager:
                         len(targeted_persons),
                     )
                 elif config.fallback_to_static:
-                    # Fallback to static configuration  # noqa: E114
+                    # Fallback to static configuration
                     notification_services.extend(
                         config.custom_settings.get(
                             "mobile_services",
@@ -1255,7 +1328,7 @@ class PawControlNotificationManager:
                         "Using static fallback for mobile notifications",
                     )
 
-            # OPTIMIZE: Check rate limits  # noqa: E114
+            # OPTIMIZE: Check rate limits
             allowed_channels = []
             for channel in channels:
                 rate_limit_key = f"{channel.value}_limit_minutes"
@@ -1282,7 +1355,7 @@ class PawControlNotificationManager:
                 _LOGGER.warning("All channels rate limited for %s", config_key)
                 return notification_id
 
-            # Apply template if available with person context  # noqa: E114
+            # Apply template if available with person context
             template_data: NotificationTemplateData = (
                 cast(NotificationTemplateData, dict(data))
                 if data is not None
@@ -1311,7 +1384,7 @@ class PawControlNotificationManager:
                 template_data,
             )
 
-            # Calculate expiration  # noqa: E114
+            # Calculate expiration
             expires_at = None
             if expires_in:
                 expires_at = dt_util.now() + expires_in
@@ -1323,7 +1396,7 @@ class PawControlNotificationManager:
                 # Auto-expire reminders after 24 hours
                 expires_at = dt_util.now() + timedelta(hours=NOTIFICATION_EXPIRE_HOURS)
 
-            # Create notification event  # noqa: E114
+            # Create notification event
             notification = NotificationEvent(
                 id=notification_id,
                 dog_id=dog_id,
@@ -1340,9 +1413,9 @@ class PawControlNotificationManager:
                 notification_services=notification_services,
             )
 
-            # Store notification  # noqa: E114
+            # Store notification
             self._notifications[notification_id] = notification
-            # OPTIMIZE: Handle batching for eligible notifications  # noqa: E114
+            # OPTIMIZE: Handle batching for eligible notifications
             if (
                 allow_batching
                 and config.batch_enabled
@@ -1367,6 +1440,7 @@ class PawControlNotificationManager:
                 )
 
             return notification_id
+
     async def _get_person_notification_targets(
         self,
         config_key: str,
@@ -1502,7 +1576,7 @@ class PawControlNotificationManager:
         if not template:
             return title, message
         try:
-            # Prepare template variables  # noqa: E114
+            # Prepare template variables
             template_vars = {
                 "title": title,
                 "message": message,
@@ -1510,7 +1584,7 @@ class PawControlNotificationManager:
             }
 
             formatted = template.format(**template_vars)
-            # Split back into title and message if template contains both  # noqa: E114
+            # Split back into title and message if template contains both
             if "\n" in formatted:
                 parts = formatted.split("\n", 1)
                 return parts[0], parts[1]
@@ -1522,6 +1596,7 @@ class PawControlNotificationManager:
                 err,
             )
             return title, message
+
     def _get_template_name(self, notification_type: NotificationType) -> str:
         """Get template name for notification type.
 
@@ -1569,6 +1644,7 @@ class PawControlNotificationManager:
             if batch_key not in self._pending_batches:
                 self._pending_batches[batch_key] = []
             self._pending_batches[batch_key].append(notification)
+
     async def _process_batch_notifications(self) -> None:
         """Background task to process batch notifications.
 
@@ -1582,17 +1658,17 @@ class PawControlNotificationManager:
                     if not self._pending_batches:
                         continue
 
-                    # Process each batch  # noqa: E114
+                    # Process each batch
                     batches_to_send = {}
                     for batch_key, notifications in list(self._pending_batches.items()):
                         if len(notifications) >= BATCH_PROCESSING_SIZE:
                             batches_to_send[batch_key] = notifications[
                                 :BATCH_PROCESSING_SIZE
                             ]
-                            # Remove processed notifications  # noqa: E114
+                            # Remove processed notifications
                             del self._pending_batches[batch_key]
                         elif notifications:
-                            # Check if oldest notification is older than 5 minutes  # noqa: E114
+                            # Check if oldest notification is older than 5 minutes  # noqa: E501
                             oldest = min(
                                 notifications,
                                 key=lambda n: n.created_at,
@@ -1602,7 +1678,7 @@ class PawControlNotificationManager:
                                 batches_to_send[batch_key] = notifications
                                 del self._pending_batches[batch_key]
 
-                    # Send batches  # noqa: E114
+                    # Send batches
                     for notifications in batches_to_send.values():
                         await self._send_batch(notifications)
                         self._performance_metrics["batch_operations"] += 1
@@ -1636,7 +1712,7 @@ class PawControlNotificationManager:
         for notification in notifications[1:]:
             common_channels &= set(notification.channels)
         if not common_channels:
-            # Fall back to individual sends if no common channels  # noqa: E114
+            # Fall back to individual sends if no common channels
             for notification in notifications:
                 await self._send_to_channels(notification)
             return
@@ -1679,7 +1755,7 @@ class PawControlNotificationManager:
         await self._send_to_channels(batch_notification)
 
         _LOGGER.info(
-            "Sent batch notification with %d individual notifications for %s [%d targets]",
+            "Sent batch notification with %d individual notifications for %s [%d targets]",  # noqa: E501
             len(notifications),
             dog_name,
             len(unique_services),
@@ -1708,14 +1784,14 @@ class PawControlNotificationManager:
                 notification.failed_channels.append(channel)
 
         if send_tasks:
-            # Execute all sends in parallel  # noqa: E114
+            # Execute all sends in parallel
             results = await asyncio.gather(*send_tasks, return_exceptions=True)
-            # Process results using shared gather guard  # noqa: E114
+            # Process results using shared gather guard
             for channel, result in zip(task_channels, results, strict=True):
                 _unwrap_async_result(
                     result,
                     context=(
-                        f"Failed to send notification {notification.id} to channel {channel.value}"
+                        f"Failed to send notification {notification.id} to channel {channel.value}"  # noqa: E501
                     ),
                     level=logging.ERROR,
                 )
@@ -1734,7 +1810,7 @@ class PawControlNotificationManager:
             handler: Channel handler function
         """
         try:
-            # RESILIENCE: Wrap handler call with circuit breaker  # noqa: E114
+            # RESILIENCE: Wrap handler call with circuit breaker
             circuit_name = f"notification_channel_{channel.value}"
             await self.resilience_manager.execute_with_resilience(
                 handler,
@@ -1742,7 +1818,7 @@ class PawControlNotificationManager:
                 circuit_breaker_name=circuit_name,
             )
             notification.sent_to.append(channel)
-            # Track send attempts  # noqa: E114
+            # Track send attempts
             channel_key = channel.value
             notification.send_attempts[channel_key] = (
                 notification.send_attempts.get(channel_key, 0) + 1
@@ -1764,6 +1840,7 @@ class PawControlNotificationManager:
             if channel not in notification.failed_channels:
                 notification.failed_channels.append(channel)
             raise
+
     def _build_webhook_payload(
         self,
         notification: NotificationEvent,
@@ -1831,6 +1908,7 @@ class PawControlNotificationManager:
             if inspect.isawaitable(value):
                 return await value
             return value
+
         async def _response_status(response: Any) -> int:
             raw_status = await _maybe_await(getattr(response, "status", None))
             if raw_status is None:
@@ -1854,6 +1932,7 @@ class PawControlNotificationManager:
             text_result = text_attr() if callable(text_attr) else text_attr
             text_payload = await _maybe_await(text_result)
             return "" if text_payload is None else str(text_payload)
+
         async def _validate_response(response: Any) -> None:
             status_code = await _response_status(response)
             if status_code >= 400:
@@ -1930,7 +2009,7 @@ class PawControlNotificationManager:
                 f"Webhook delivery failed: {err}",
             ) from err
 
-    # OPTIMIZE: Enhanced notification handlers with better error handling and features  # noqa: E114, E501
+    # OPTIMIZE: Enhanced notification handlers with better error handling and features  # noqa: E501
     async def _send_persistent_notification(
         self,
         notification: NotificationEvent,
@@ -1956,7 +2035,7 @@ class PawControlNotificationManager:
         failed_services: list[str] = []
         # NEW: Use person-targeted services if available
         if notification.notification_services:
-            # Send to each targeted service  # noqa: E114
+            # Send to each targeted service
             for service_name in notification.notification_services:
                 try:
                     if not self._notify_service_available(service_name):
@@ -1983,7 +2062,7 @@ class PawControlNotificationManager:
                         },
                     }
 
-                    # Add actions for interactive notifications  # noqa: E114
+                    # Add actions for interactive notifications
                     if notification.notification_type in [
                         NotificationType.FEEDING_REMINDER,
                         NotificationType.WALK_REMINDER,
@@ -2051,7 +2130,7 @@ class PawControlNotificationManager:
                     )
 
         else:
-            # Fallback to original behavior  # noqa: E114
+            # Fallback to original behavior
             config_key = notification.dog_id if notification.dog_id else "system"
             config = await self._get_config_cached(config_key)
             mobile_service = config.custom_settings.get(
@@ -2136,6 +2215,7 @@ class PawControlNotificationManager:
             )
         else:
             notification.failed_notification_services.clear()
+
     async def _send_tts_notification(self, notification: NotificationEvent) -> None:
         """Send text-to-speech notification."""
         config_key = notification.dog_id if notification.dog_id else "system"
@@ -2276,7 +2356,7 @@ class PawControlNotificationManager:
         }
         return colors.get(priority, 0x3498DB)
 
-    # OPTIMIZE: Enhanced cleanup and maintenance  # noqa: E114
+    # OPTIMIZE: Enhanced cleanup and maintenance
     async def _cleanup_expired_notifications(self) -> None:
         """Background task to clean up expired notifications and cache."""
         while True:
@@ -2284,7 +2364,7 @@ class PawControlNotificationManager:
                 await asyncio.sleep(CACHE_CLEANUP_INTERVAL)
 
                 async with self._lock:
-                    # Clean expired notifications  # noqa: E114
+                    # Clean expired notifications
                     expired_count = await self.async_cleanup_expired_notifications()
                     if expired_count > 0:
                         _LOGGER.debug(
@@ -2306,7 +2386,7 @@ class PawControlNotificationManager:
         expired_ids = []
 
         for notification_id, notification in self._notifications.items():
-            # Remove if expired or very old acknowledged notifications  # noqa: E114
+            # Remove if expired or very old acknowledged notifications
             expires_at = notification.expires_at
             if expires_at and expires_at.tzinfo is None:
                 expires_at = dt_util.as_utc(expires_at)
@@ -2333,7 +2413,7 @@ class PawControlNotificationManager:
 
         return len(expired_ids)
 
-    # Keep existing public interface methods with optimizations  # noqa: E114
+    # Keep existing public interface methods with optimizations
     async def async_acknowledge_notification(self, notification_id: str) -> bool:
         """Acknowledge a notification with enhanced cleanup."""
         async with self._lock:
@@ -2343,7 +2423,7 @@ class PawControlNotificationManager:
 
             notification.acknowledged = True
             notification.acknowledged_at = dt_util.now()
-            # Dismiss persistent notification if it exists  # noqa: E114
+            # Dismiss persistent notification if it exists
             if NotificationChannel.PERSISTENT in notification.sent_to:
                 try:
                     executed = await async_call_hass_service_if_available(
@@ -2364,6 +2444,7 @@ class PawControlNotificationManager:
 
             _LOGGER.info("Acknowledged notification %s", notification_id)
             return True
+
     def _cache_stats_snapshot(self) -> NotificationCacheStats:
         """Return lightweight runtime stats for notification state maps.
 
@@ -2414,7 +2495,7 @@ class PawControlNotificationManager:
                 ],
             )
 
-            # Calculate type and priority distribution  # noqa: E114
+            # Calculate type and priority distribution
             type_counts: dict[str, int] = {}
             priority_counts: dict[str, int] = {}
             for notification in self._notifications.values():
@@ -2430,7 +2511,7 @@ class PawControlNotificationManager:
                     + 1
                 )
 
-            # NEW: Person targeting statistics  # noqa: E114
+            # NEW: Person targeting statistics
             person_stats: PersonEntityStats | None = None
             if self._person_manager:
                 person_stats = self._person_manager.get_statistics()
@@ -2454,6 +2535,7 @@ class PawControlNotificationManager:
                 "person_entity_stats": person_stats,
             }
             return stats
+
     def register_cache_monitors(self, registrar: CacheMonitorRegistrar) -> None:
         """Register notification-centric caches with the provided registrar."""
 
@@ -2537,7 +2619,7 @@ class PawControlNotificationManager:
         self._batch_queue.clear()
         self._pending_batches.clear()
 
-    # Keep existing methods for backward compatibility  # noqa: E114
+    # Keep existing methods for backward compatibility
     async def _retry_failed_notifications(self) -> None:
         """Background task to retry failed notifications."""
         while True:
@@ -2684,7 +2766,7 @@ class PawControlNotificationManager:
             allow_batching=False,
         )
 
-    # Additional convenience methods for specific notification types  # noqa: E114
+    # Additional convenience methods for specific notification types
     async def async_send_feeding_reminder(
         self,
         dog_id: str,
@@ -2722,9 +2804,7 @@ class PawControlNotificationManager:
         title = f"🚶 Walk Time for {dog_id.title()}"
 
         if last_walk_hours:
-            message = (
-                f"{dog_id} hasn't been walked in {last_walk_hours:.1f} hours. Time for a walk!"
-            )
+            message = f"{dog_id} hasn't been walked in {last_walk_hours:.1f} hours. Time for a walk!"  # noqa: E501
         else:
             message = f"It's time to take {dog_id} for a walk!"
         return await self.async_send_notification(
@@ -2756,7 +2836,7 @@ class PawControlNotificationManager:
             data={"alert_type": alert_type, "details": details},
         )
 
-    # NEW: Person entity management methods  # noqa: E114
+    # NEW: Person entity management methods
     async def async_update_person_entity_config(
         self,
         config: Mapping[str, object],

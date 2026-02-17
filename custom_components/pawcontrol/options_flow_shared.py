@@ -113,9 +113,12 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     OptionsFlowSharedHost = object
+
+
 class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
+
     @staticmethod
     def _string_sequence(value: Any) -> list[str]:
         """Return ``value`` as a list of non-empty strings.
@@ -728,6 +731,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             return coerce_int("options_flow", value)
         except InputCoercionError:
             return default
+
     @staticmethod
     def _coerce_time_string(value: Any, default: str) -> str:
         """Normalise selector values into Home Assistant time strings."""
@@ -751,6 +755,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             return coerce_float("options_flow", value)
         except InputCoercionError:
             return default
+
     def _coerce_clamped_float(
         self,
         value: Any,

@@ -44,9 +44,12 @@ type JSONSequence = Sequence[JSONValue]
 
 class APIAuthenticationResult(TypedDict):
     """Structured authentication probe response."""
+
     authenticated: bool
     api_version: str | None
     capabilities: CapabilityList | None
+
+
 type HealthStatus = Literal[
     "healthy",
     "degraded",
@@ -59,6 +62,7 @@ type HealthStatus = Literal[
 
 class APIHealthStatus(TypedDict):
     """Structured payload returned by :meth:`async_test_api_health`."""
+
     healthy: bool
     reachable: bool
     authenticated: bool
@@ -67,17 +71,26 @@ class APIHealthStatus(TypedDict):
     status: HealthStatus
     api_version: str | None
     capabilities: CapabilityList | None
+
+
 class _APIAuthPayload(TypedDict, total=False):
     """Subset of fields returned by PawControl API authentication endpoints."""
+
     version: str
     capabilities: NotRequired[JSONSequence]
+
+
 class _RequestOptions(TypedDict, total=False):
     """Subset of aiohttp request keyword arguments used by the validator."""
+
     allow_redirects: bool
     ssl: bool
+
+
 @dataclass
 class APIValidationResult:
     """Results from API validation check."""
+
     valid: bool
     reachable: bool
     authenticated: bool
@@ -85,8 +98,11 @@ class APIValidationResult:
     error_message: str | None
     api_version: str | None
     capabilities: CapabilityList | None
+
+
 class APIValidator:
     """Validates API connections and credentials for PawControl."""
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -110,10 +126,11 @@ class APIValidator:
         )
         self._ssl_override: bool | None = None
         if not verify_ssl:
-            # aiohttp accepts ``ssl=False`` to bypass certificate validation.  # noqa: E114
-            # We only store the override when explicitly requested so production  # noqa: E114
-            # systems keep the secure defaults provided by Home Assistant.  # noqa: E114
+            # aiohttp accepts ``ssl=False`` to bypass certificate validation.  # noqa: E501
+            # We only store the override when explicitly requested so production  # noqa: E501
+            # systems keep the secure defaults provided by Home Assistant.
             self._ssl_override = False
+
     @property
     def session(self) -> aiohttp.ClientSession:
         """Return the HTTP session leveraged for validation calls."""
@@ -141,7 +158,7 @@ class APIValidator:
         start_time = time.monotonic()
 
         try:
-            # Validate endpoint format  # noqa: E114
+            # Validate endpoint format
             if not self._validate_endpoint_format(api_endpoint):
                 return APIValidationResult(
                     valid=False,
@@ -153,7 +170,7 @@ class APIValidator:
                     capabilities=None,
                 )
 
-            # Test connection reachability  # noqa: E114
+            # Test connection reachability
             async with asyncio.timeout(API_CONNECTION_TIMEOUT):
                 reachable = await self._test_endpoint_reachability(api_endpoint)
 
@@ -168,7 +185,7 @@ class APIValidator:
                     capabilities=None,
                 )
 
-            # Test authentication if token provided  # noqa: E114
+            # Test authentication if token provided
             authenticated = False
             api_version: str | None = None
             capabilities: CapabilityList | None = None
@@ -193,7 +210,7 @@ class APIValidator:
                         capabilities=None,
                     )
 
-            # Calculate response time  # noqa: E114
+            # Calculate response time
             response_time_ms = (time.monotonic() - start_time) * 1000
             return APIValidationResult(
                 valid=True,
@@ -246,10 +263,12 @@ class APIValidator:
         # Basic URL validation
         try:
             from urllib.parse import urlparse
+
             result = urlparse(endpoint)
             return bool(result.scheme and result.netloc)
         except Exception:
             return False
+
     async def _test_endpoint_reachability(self, endpoint: str) -> bool:
         """Test if endpoint is reachable.
 
@@ -281,6 +300,7 @@ class APIValidator:
         except Exception as err:
             _LOGGER.debug("Unexpected error testing reachability: %s", err)
             return False
+
     async def _test_authentication(
         self,
         endpoint: str,
@@ -297,9 +317,9 @@ class APIValidator:
         """
         try:
             session = self._session
-            # Construct auth endpoint (common patterns)  # noqa: E114
-            # Try the most common validation endpoints before falling back to  # noqa: E114
-            # the base URL with an auth header.  # noqa: E114
+            # Construct auth endpoint (common patterns)
+            # Try the most common validation endpoints before falling back to  # noqa: E501
+            # the base URL with an auth header.
             auth_endpoints: tuple[str, ...] = (
                 f"{endpoint}/auth/validate",
                 f"{endpoint}/api/auth",
@@ -316,7 +336,7 @@ class APIValidator:
             request_kwargs = (
                 {} if self._ssl_override is None else {"ssl": self._ssl_override}
             )
-            # Try each endpoint until one works  # noqa: E114
+            # Try each endpoint until one works
             for auth_endpoint in auth_endpoints:
                 try:
                     async with session.get(
@@ -325,7 +345,7 @@ class APIValidator:
                         **request_kwargs,
                     ) as response:
                         if response.status in AUTH_SUCCESS_STATUS_CODES:
-                            # Try to parse response for additional info  # noqa: E114
+                            # Try to parse response for additional info
                             try:
                                 data = await response.json()
                             except Exception:
@@ -349,7 +369,7 @@ class APIValidator:
 
                 except aiohttp.ClientError:
                     continue
-            # No endpoint accepted the token  # noqa: E114
+            # No endpoint accepted the token
             return APIAuthenticationResult(
                 authenticated=False,
                 api_version=None,
@@ -432,9 +452,11 @@ class APIValidator:
     async def async_close(self) -> None:
         """Close the API validator and cleanup resources."""
         if not self._session.closed:
-            # The validator never owns the session; leave lifecycle management to  # noqa: E114, E501
-            # Home Assistant to avoid closing the shared pool.  # noqa: E114
+            # The validator never owns the session; leave lifecycle management to  # noqa: E501
+            # Home Assistant to avoid closing the shared pool.
             return
+
+
 def _extract_api_version(data: JSONMapping | _APIAuthPayload) -> str | None:
     """Return the reported API version when present."""
     if isinstance(data, Mapping):
@@ -442,6 +464,8 @@ def _extract_api_version(data: JSONMapping | _APIAuthPayload) -> str | None:
         if isinstance(version, str):
             return version
     return None
+
+
 def _extract_capabilities(data: JSONMapping | _APIAuthPayload) -> CapabilityList | None:
     """Return normalised capability data from a JSON payload."""
     if not isinstance(data, Mapping):

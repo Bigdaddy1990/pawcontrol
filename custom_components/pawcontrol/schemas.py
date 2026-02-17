@@ -51,9 +51,12 @@ from .validation import (
 @dataclass(frozen=True, slots=True)
 class SchemaViolation:
     """Describe a JSON schema validation issue."""
+
     field: str
     value: Any
     constraint: str
+
+
 GPS_DOG_CONFIG_JSON_SCHEMA: Final[dict[str, Any]] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -185,6 +188,8 @@ def validate_json_schema_payload(
         violations.extend(_validate_schema_property(key, value, properties[key]))
 
     return violations
+
+
 def _validate_schema_property(
     key: str,
     value: Any,
@@ -234,6 +239,8 @@ def _validate_schema_property(
             )
 
     return violations
+
+
 def _matches_type(value: Any, expected: Any) -> bool:
     if isinstance(expected, list):
         return any(_matches_type(value, entry) for entry in expected)
@@ -248,7 +255,11 @@ def _matches_type(value: Any, expected: Any) -> bool:
     if expected == "null":
         return value is None
     return False
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, Real) and not isinstance(value, bool)
+
+
 def _is_integer(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)

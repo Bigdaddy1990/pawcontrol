@@ -15,10 +15,10 @@ from custom_components.pawcontrol.health_enhancements import (
 
 
 def test_update_health_status_generates_typed_entries() -> None:
-    """Health status snapshots should expose fully typed telemetry."""  # noqa: E111
+    """Health status snapshots should expose fully typed telemetry."""
 
-    now = dt_util.now()  # noqa: E111
-    profile = EnhancedHealthProfile(  # noqa: E111
+    now = dt_util.now()
+    profile = EnhancedHealthProfile(
         current_weight=22.5,
         vaccinations=[
             VaccinationRecord(
@@ -47,41 +47,41 @@ def test_update_health_status_generates_typed_entries() -> None:
         last_checkup_date=now - timedelta(days=400),
     )
 
-    snapshot = EnhancedHealthCalculator.update_health_status(profile)  # noqa: E111
+    snapshot = EnhancedHealthCalculator.update_health_status(profile)
 
-    assert snapshot["overall_score"] < 100  # noqa: E111
-    assert isinstance(snapshot["last_updated"], str)  # noqa: E111
+    assert snapshot["overall_score"] < 100
+    assert isinstance(snapshot["last_updated"], str)
 
-    alerts = snapshot["priority_alerts"]  # noqa: E111
-    assert alerts, "Expected at least one priority alert"  # noqa: E111
-    for alert in alerts:  # noqa: E111
+    alerts = snapshot["priority_alerts"]
+    assert alerts, "Expected at least one priority alert"
+    for alert in alerts:
         assert alert["type"] in {"vaccination_overdue", "medication_due"}
         assert isinstance(alert["message"], str)
         assert isinstance(alert["action_required"], bool)
 
-    upcoming = snapshot["upcoming_care"]  # noqa: E111
-    assert any(entry["type"] == "vaccination_due" for entry in upcoming)  # noqa: E111
-    assert all("priority" in entry for entry in upcoming)  # noqa: E111
+    upcoming = snapshot["upcoming_care"]
+    assert any(entry["type"] == "vaccination_due" for entry in upcoming)
+    assert all("priority" in entry for entry in upcoming)
 
-    recommendations = snapshot["recommendations"]  # noqa: E111
-    assert any("Annual checkup" in rec for rec in recommendations)  # noqa: E111
+    recommendations = snapshot["recommendations"]
+    assert any("Annual checkup" in rec for rec in recommendations)
 
 
 def test_calculate_next_appointment_recommendation_structured() -> None:
-    """Appointment recommendations should map to the typed contract."""  # noqa: E111
+    """Appointment recommendations should map to the typed contract."""
 
-    now = dt_util.now()  # noqa: E111
-    profile = EnhancedHealthProfile(  # noqa: E111
+    now = dt_util.now()
+    profile = EnhancedHealthProfile(
         current_weight=18.2,
         chronic_conditions=["diabetes"],
         last_checkup_date=now - timedelta(days=200),
     )
 
-    recommendation = EnhancedHealthCalculator.calculate_next_appointment_recommendation(  # noqa: E111
+    recommendation = EnhancedHealthCalculator.calculate_next_appointment_recommendation(
         profile, dog_age_months=96
     )
 
-    assert recommendation["appointment_type"] == "diabetes_monitoring"  # noqa: E111
-    assert recommendation["urgency"] in {"high", "normal"}  # noqa: E111
-    assert "health conditions" in recommendation["reason"]  # noqa: E111
-    assert isinstance(recommendation["next_appointment_date"], str)  # noqa: E111
+    assert recommendation["appointment_type"] == "diabetes_monitoring"
+    assert recommendation["urgency"] in {"high", "normal"}
+    assert "health conditions" in recommendation["reason"]
+    assert isinstance(recommendation["next_appointment_date"], str)

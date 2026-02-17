@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     MenuOptionsHost = object
+
+
 class MenuOptionsMixin(MenuOptionsHost):
     async def async_step_init(
         self,
@@ -45,7 +47,7 @@ class MenuOptionsMixin(MenuOptionsHost):
                 "manage_dogs",
                 "performance_settings",  # NEW: Performance & profiles
                 "gps_settings",
-                PUSH_SETTINGS_MENU_ACTION,  # NEW: Push ingestion settings (webhook/MQTT)
+                PUSH_SETTINGS_MENU_ACTION,  # NEW: Push ingestion settings (webhook/MQTT)  # noqa: E501
                 "geofence_settings",  # NEW: Geofencing configuration
                 "weather_settings",  # NEW: Weather configuration
                 "notifications",
@@ -58,4 +60,4 @@ class MenuOptionsMixin(MenuOptionsHost):
             ],
         )
 
-    # NEW: Geofencing configuration step per requirements  # noqa: E114
+    # NEW: Geofencing configuration step per requirements

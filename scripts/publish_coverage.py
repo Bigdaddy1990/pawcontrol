@@ -16,30 +16,30 @@ import urllib.request
 import xml.etree.ElementTree as StdlibET
 
 if importlib.util.find_spec("defusedxml") is not None:
-    ET = importlib.import_module("defusedxml.ElementTree")  # noqa: E111
+    ET = importlib.import_module("defusedxml.ElementTree")
 else:
-    ET = StdlibET  # noqa: E111
+    ET = StdlibET
 
 
 class PublishError(RuntimeError):
-    """Raised when publishing coverage artifacts fails."""  # noqa: E111
+    """Raised when publishing coverage artifacts fails."""
 
 
 @dataclass(slots=True)
 class PublishResult:
-    published: bool  # noqa: E111
-    archive_path: Path  # noqa: E111
-    url: str | None = None  # noqa: E111
-    removed_runs: list[str] | None = None  # noqa: E111
+    published: bool
+    archive_path: Path
+    url: str | None = None
+    removed_runs: list[str] | None = None
 
 
 def ensure_allowed_github_api_url(url: str) -> None:
-    """Validate that a GitHub API URL is safe to request."""  # noqa: E111
+    """Validate that a GitHub API URL is safe to request."""
 
-    parsed = urllib.parse.urlparse(url)  # noqa: E111
-    if parsed.scheme != "https":  # noqa: E111
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https":
         raise PublishError("GitHub API URL must use HTTPS")
-    if parsed.netloc != "api.github.com":  # noqa: E111
+    if parsed.netloc != "api.github.com":
         raise PublishError("GitHub API URL must target api.github.com")
 
 
@@ -48,46 +48,46 @@ def _open_github_api_request(
     *,
     timeout: int = 30,
 ) -> urllib.response.addinfourl:
-    """Open a GitHub API request after validating the URL."""  # noqa: E111
+    """Open a GitHub API request after validating the URL."""
 
-    ensure_allowed_github_api_url(request.full_url)  # noqa: E111
-    return urllib.request.urlopen(request, timeout=timeout)  # nosec B310  # noqa: E111
+    ensure_allowed_github_api_url(request.full_url)
+    return urllib.request.urlopen(request, timeout=timeout)  # nosec B310
 
 
 def build_cli() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)  # noqa: E111
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--coverage-xml", type=Path, required=True)  # noqa: E111
-    parser.add_argument("--coverage-html-index", type=Path, required=True)  # noqa: E111
-    parser.add_argument("--artifact-directory", type=Path, required=True)  # noqa: E111
+    parser.add_argument("--coverage-xml", type=Path, required=True)
+    parser.add_argument("--coverage-html-index", type=Path, required=True)
+    parser.add_argument("--artifact-directory", type=Path, required=True)
 
-    parser.add_argument("--mode", choices={"pages", "artifact"}, default="artifact")  # noqa: E111
-    parser.add_argument("--pages-branch", default="gh-pages")  # noqa: E111
-    parser.add_argument("--pages-prefix", default="coverage")  # noqa: E111
-    parser.add_argument(  # noqa: E111
+    parser.add_argument("--mode", choices={"pages", "artifact"}, default="artifact")
+    parser.add_argument("--pages-branch", default="gh-pages")
+    parser.add_argument("--pages-prefix", default="coverage")
+    parser.add_argument(
         "--pages-prefix-template",
         action="append",
         default=[],
         help="Format templates for pages prefixes.",
     )
 
-    parser.add_argument("--run-id", default="")  # noqa: E111
-    parser.add_argument("--run-attempt", default="")  # noqa: E111
-    parser.add_argument("--commit-sha", default="")  # noqa: E111
-    parser.add_argument("--ref", default="")  # noqa: E111
+    parser.add_argument("--run-id", default="")
+    parser.add_argument("--run-attempt", default="")
+    parser.add_argument("--commit-sha", default="")
+    parser.add_argument("--ref", default="")
 
-    parser.add_argument("--prune-expired-runs", action="store_true")  # noqa: E111
-    parser.add_argument("--prune-max-age-days", type=int, default=30)  # noqa: E111
+    parser.add_argument("--prune-expired-runs", action="store_true")
+    parser.add_argument("--prune-max-age-days", type=int, default=30)
 
-    return parser  # noqa: E111
+    return parser
 
 
 def _parse_coverage_percent(coverage_xml: Path) -> float:
-    root = ET.parse(coverage_xml).getroot()  # noqa: E111
-    line_rate = root.attrib.get("line-rate")  # noqa: E111
-    try:  # noqa: E111
+    root = ET.parse(coverage_xml).getroot()
+    line_rate = root.attrib.get("line-rate")
+    try:
         return float(line_rate) * 100.0
-    except TypeError, ValueError:  # noqa: E111
+    except TypeError, ValueError:
         return 0.0
 
 
@@ -99,7 +99,7 @@ def _build_summary(
     commit_sha: str,
     ref: str,
 ) -> dict[str, object]:
-    return {  # noqa: E111
+    return {
         "generated_at": datetime.now(UTC).isoformat(),
         "coverage_percent": coverage_percent,
         "run": {
@@ -112,7 +112,7 @@ def _build_summary(
 
 
 def _build_shields_payload(coverage_percent: float) -> dict[str, object]:
-    return {  # noqa: E111
+    return {
         "schemaVersion": 1,
         "label": "coverage",
         "message": f"{coverage_percent:.2f}%",
@@ -129,11 +129,11 @@ def _render_prefixes(
     commit_sha: str,
     ref: str,
 ) -> list[str]:
-    resolved: list[str] = []  # noqa: E111
-    if not templates:  # noqa: E111
+    resolved: list[str] = []
+    if not templates:
         templates = ("{prefix}/latest",)
 
-    for template in templates:  # noqa: E111
+    for template in templates:
         resolved.append(
             template.format(
                 prefix=prefix,
@@ -143,7 +143,7 @@ def _render_prefixes(
                 ref=ref,
             )
         )
-    return resolved  # noqa: E111
+    return resolved
 
 
 def _write_bundle(
@@ -155,30 +155,30 @@ def _write_bundle(
     summary: dict[str, object],
     shields: dict[str, object],
 ) -> None:
-    for prefix in prefixes:  # noqa: E111
+    for prefix in prefixes:
         target_root = bundle_root / prefix
         target_root.mkdir(parents=True, exist_ok=True)
         for item in html_dir.iterdir():
-            target_path = target_root / item.name  # noqa: E111
-            if item.is_dir():  # noqa: E111
+            target_path = target_root / item.name
+            if item.is_dir():
                 if target_path.exists():
-                    for child in target_path.iterdir():  # noqa: E111
+                    for child in target_path.iterdir():
                         if child.is_dir():
-                            pass  # noqa: E111
+                            pass
                 if target_path.exists():
-                    for child in list(target_path.iterdir()):  # noqa: E111
+                    for child in list(target_path.iterdir()):
                         if child.is_dir():
-                            child.rmdir()  # noqa: E111
+                            child.rmdir()
                 if target_path.exists():
-                    for child in list(target_path.iterdir()):  # noqa: E111
+                    for child in list(target_path.iterdir()):
                         child.unlink()
                 target_path.mkdir(parents=True, exist_ok=True)
                 for child in item.iterdir():
-                    if child.is_file():  # noqa: E111
+                    if child.is_file():
                         (target_path / child.name).write_text(
                             child.read_text(encoding="utf-8"), encoding="utf-8"
                         )
-            elif item.is_file():  # noqa: E111
+            elif item.is_file():
                 target_path.write_text(
                     item.read_text(encoding="utf-8"), encoding="utf-8"
                 )
@@ -202,20 +202,20 @@ def _create_archive(
     run_id: str,
     bundle_root: Path,
 ) -> Path:
-    artifact_dir.mkdir(parents=True, exist_ok=True)  # noqa: E111
-    archive_name = f"coverage-{run_id or 'bundle'}.tar.gz"  # noqa: E111
-    archive_path = artifact_dir / archive_name  # noqa: E111
-    with tarfile.open(archive_path, "w:gz") as archive:  # noqa: E111
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    archive_name = f"coverage-{run_id or 'bundle'}.tar.gz"
+    archive_path = artifact_dir / archive_name
+    with tarfile.open(archive_path, "w:gz") as archive:
         for path in bundle_root.rglob("*"):
-            if path.is_file():  # noqa: E111
+            if path.is_file():
                 archive.add(path, arcname=str(path.relative_to(bundle_root)))
-    return archive_path  # noqa: E111
+    return archive_path
 
 
 class GitHubPagesPublisher:
-    """Publish coverage bundles to GitHub Pages using the GitHub API."""  # noqa: E111
+    """Publish coverage bundles to GitHub Pages using the GitHub API."""
 
-    def __init__(  # noqa: E111
+    def __init__(
         self,
         token: str,
         repository: str,
@@ -228,7 +228,7 @@ class GitHubPagesPublisher:
         self._branch = branch
         self._api_base = api_base.rstrip("/")
 
-    def _request_json(  # noqa: E111
+    def _request_json(
         self,
         method: str,
         url: str,
@@ -241,11 +241,11 @@ class GitHubPagesPublisher:
         request.add_header("Authorization", f"Bearer {self._token}")
         request.add_header("Accept", "application/vnd.github+json")
         if data is not None:
-            request.add_header("Content-Type", "application/json")  # noqa: E111
+            request.add_header("Content-Type", "application/json")
         with _open_github_api_request(request, timeout=30) as response:
-            return json.loads(response.read())  # noqa: E111
+            return json.loads(response.read())
 
-    def publish(  # noqa: E111
+    def publish(
         self,
         *_: object,
         **__: object,
@@ -254,7 +254,7 @@ class GitHubPagesPublisher:
 
         return f"https://github.com/{self._repository}"
 
-    def prune_expired_runs(  # noqa: E111
+    def prune_expired_runs(
         self,
         prefix: str,
         max_age: timedelta,
@@ -268,40 +268,40 @@ class GitHubPagesPublisher:
         removed: list[str] = []
 
         if not isinstance(entries, list):
-            return removed  # noqa: E111
+            return removed
 
         for entry in entries:
-            if not isinstance(entry, dict):  # noqa: E111
+            if not isinstance(entry, dict):
                 continue
-            if entry.get("type") != "dir":  # noqa: E111
+            if entry.get("type") != "dir":
                 continue
-            name = entry.get("name")  # noqa: E111
-            if not isinstance(name, str) or name == "latest":  # noqa: E111
+            name = entry.get("name")
+            if not isinstance(name, str) or name == "latest":
                 continue
-            summary_url = (  # noqa: E111
+            summary_url = (
                 f"{base_url}/contents/{prefix}/{name}/summary.json?ref={self._branch}"
             )
-            summary_payload = self._request_json("GET", summary_url)  # noqa: E111
-            if not isinstance(summary_payload, dict):  # noqa: E111
+            summary_payload = self._request_json("GET", summary_url)
+            if not isinstance(summary_payload, dict):
                 continue
-            if summary_payload.get("encoding") != "base64":  # noqa: E111
+            if summary_payload.get("encoding") != "base64":
                 continue
-            content = summary_payload.get("content")  # noqa: E111
-            if not isinstance(content, str):  # noqa: E111
+            content = summary_payload.get("content")
+            if not isinstance(content, str):
                 continue
-            decoded = json.loads(base64.b64decode(content).decode("utf-8"))  # noqa: E111
-            generated_at = decoded.get("generated_at")  # noqa: E111
-            if not isinstance(generated_at, str):  # noqa: E111
+            decoded = json.loads(base64.b64decode(content).decode("utf-8"))
+            generated_at = decoded.get("generated_at")
+            if not isinstance(generated_at, str):
                 continue
-            try:  # noqa: E111
+            try:
                 generated_dt = datetime.fromisoformat(generated_at)
-            except ValueError:  # noqa: E111
+            except ValueError:
                 continue
-            if now - generated_dt > max_age:  # noqa: E111
+            if now - generated_dt > max_age:
                 removed.append(f"{prefix}/{name}")
 
         if not removed:
-            return []  # noqa: E111
+            return []
 
         ref_url = f"{base_url}/git/refs/heads/{self._branch}"
         ref_payload = self._request_json("GET", ref_url)
@@ -311,7 +311,7 @@ class GitHubPagesPublisher:
             else None
         )
         if not base_sha:
-            return []  # noqa: E111
+            return []
 
         tree_payload = {
             "base_tree": base_sha,
@@ -330,7 +330,7 @@ class GitHubPagesPublisher:
         )
         tree_sha = tree_response.get("sha") if isinstance(tree_response, dict) else None
         if not tree_sha:
-            return removed  # noqa: E111
+            return removed
 
         commit_payload = {
             "message": "Prune expired coverage runs",
@@ -344,7 +344,7 @@ class GitHubPagesPublisher:
             commit_response.get("sha") if isinstance(commit_response, dict) else None
         )
         if not commit_sha:
-            return removed  # noqa: E111
+            return removed
 
         self._request_json(
             "PATCH",
@@ -356,26 +356,26 @@ class GitHubPagesPublisher:
 
 
 def publish(args: argparse.Namespace) -> PublishResult:
-    coverage_xml = args.coverage_xml  # noqa: E111
-    html_index = args.coverage_html_index  # noqa: E111
+    coverage_xml = args.coverage_xml
+    html_index = args.coverage_html_index
 
-    if not coverage_xml.exists():  # noqa: E111
+    if not coverage_xml.exists():
         raise SystemExit(f"coverage xml not found: {coverage_xml}")
-    if not html_index.exists():  # noqa: E111
+    if not html_index.exists():
         raise SystemExit(f"coverage html index not found: {html_index}")
 
-    html_dir = html_index.parent  # noqa: E111
-    coverage_percent = _parse_coverage_percent(coverage_xml)  # noqa: E111
-    summary = _build_summary(  # noqa: E111
+    html_dir = html_index.parent
+    coverage_percent = _parse_coverage_percent(coverage_xml)
+    summary = _build_summary(
         coverage_percent=coverage_percent,
         run_id=args.run_id,
         run_attempt=args.run_attempt,
         commit_sha=args.commit_sha,
         ref=args.ref,
     )
-    shields = _build_shields_payload(coverage_percent)  # noqa: E111
+    shields = _build_shields_payload(coverage_percent)
 
-    prefixes = _render_prefixes(  # noqa: E111
+    prefixes = _render_prefixes(
         prefix=args.pages_prefix,
         templates=args.pages_prefix_template,
         run_id=args.run_id,
@@ -384,15 +384,15 @@ def publish(args: argparse.Namespace) -> PublishResult:
         ref=args.ref,
     )
 
-    bundle_root = args.artifact_directory / "bundle"  # noqa: E111
-    if bundle_root.exists():  # noqa: E111
+    bundle_root = args.artifact_directory / "bundle"
+    if bundle_root.exists():
         for child in sorted(bundle_root.rglob("*"), reverse=True):
-            if child.is_file():  # noqa: E111
+            if child.is_file():
                 child.unlink()
-            elif child.is_dir():  # noqa: E111
+            elif child.is_dir():
                 child.rmdir()
-    bundle_root.mkdir(parents=True, exist_ok=True)  # noqa: E111
-    _write_bundle(  # noqa: E111
+    bundle_root.mkdir(parents=True, exist_ok=True)
+    _write_bundle(
         bundle_root=bundle_root,
         prefixes=prefixes,
         html_dir=html_dir,
@@ -401,34 +401,34 @@ def publish(args: argparse.Namespace) -> PublishResult:
         shields=shields,
     )
 
-    archive_path = _create_archive(  # noqa: E111
+    archive_path = _create_archive(
         artifact_dir=args.artifact_directory,
         run_id=args.run_id or "bundle",
         bundle_root=bundle_root,
     )
 
-    published = False  # noqa: E111
-    url: str | None = None  # noqa: E111
-    removed_runs: list[str] | None = None  # noqa: E111
+    published = False
+    url: str | None = None
+    removed_runs: list[str] | None = None
 
-    if args.mode == "pages":  # noqa: E111
+    if args.mode == "pages":
         token = os.getenv("GITHUB_TOKEN")
         repository = os.getenv("GITHUB_REPOSITORY")
         if token and repository:
-            try:  # noqa: E111
+            try:
                 publisher = GitHubPagesPublisher(token, repository, args.pages_branch)
                 url = publisher.publish()
                 published = True
                 if args.prune_expired_runs:
-                    removed_runs = publisher.prune_expired_runs(  # noqa: E111
+                    removed_runs = publisher.prune_expired_runs(
                         args.pages_prefix,
                         timedelta(days=args.prune_max_age_days),
                     )
-            except PublishError, urllib.error.URLError:  # noqa: E111
+            except PublishError, urllib.error.URLError:
                 published = False
                 url = None
 
-    return PublishResult(  # noqa: E111
+    return PublishResult(
         published=published,
         archive_path=archive_path,
         url=url,
@@ -437,11 +437,11 @@ def publish(args: argparse.Namespace) -> PublishResult:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_cli()  # noqa: E111
-    args = parser.parse_args(argv)  # noqa: E111
-    publish(args)  # noqa: E111
-    return 0  # noqa: E111
+    parser = build_cli()
+    args = parser.parse_args(argv)
+    publish(args)
+    return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())  # noqa: E111
+    raise SystemExit(main())

@@ -39,11 +39,11 @@ async def async_validate_entry_config(
         >>> profile
         'standard'
     """
-    # Validate dogs configuration  # noqa: E114
+    # Validate dogs configuration
     dogs_config = await _async_validate_dogs_config(entry)
-    # Validate and normalize profile  # noqa: E114
+    # Validate and normalize profile
     profile = _validate_profile(entry)
-    # Extract enabled modules  # noqa: E114
+    # Extract enabled modules
     enabled_modules = _extract_enabled_modules(dogs_config)
     _LOGGER.debug(
         "Config validation complete: %d dogs, profile='%s', %d modules enabled",
@@ -53,6 +53,8 @@ async def async_validate_entry_config(
     )
 
     return dogs_config, profile, enabled_modules
+
+
 async def _async_validate_dogs_config(
     entry: PawControlConfigEntry,
 ) -> list[DogConfigData]:
@@ -106,6 +108,8 @@ async def _async_validate_dogs_config(
         )
 
     return dogs_config
+
+
 def _validate_profile(entry: PawControlConfigEntry) -> str:
     """Validate and normalize entity profile.
 
@@ -125,6 +129,8 @@ def _validate_profile(entry: PawControlConfigEntry) -> str:
         profile = "standard"
 
     return profile
+
+
 def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[str]:
     """Extract enabled modules from dogs configuration.
 
@@ -135,6 +141,7 @@ def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[
         Set of enabled module names
     """
     from ..const import ALL_MODULES
+
     enabled_modules: set[str] = set()
     unknown_modules: set[str] = set()
     for dog in dogs_config:

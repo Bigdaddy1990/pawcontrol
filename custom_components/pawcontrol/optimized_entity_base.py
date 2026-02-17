@@ -114,23 +114,35 @@ MEMORY_OPTIMIZATION: Final[OptimizedEntityMemoryConfig] = {
 @dataclass(slots=True)
 class _StateCacheEntry:
     """State cache entry storing payload snapshots and coordinator status."""
+
     payload: OptimizedEntityStateCachePayload
     timestamp: float
     coordinator_available: bool | None = None
+
+
 @dataclass(slots=True)
 class _AttributesCacheEntry:
     """Attribute cache entry storing generated attributes and timestamp."""
+
     attributes: OptimizedEntityAttributesPayload
     timestamp: float
+
+
 @dataclass(slots=True)
 class _AvailabilityCacheEntry:
     """Availability cache entry tracking coordinator state transitions."""
+
     available: bool
     timestamp: float
     coordinator_available: bool
+
+
 class _TimestampedEntry(Protocol):
     """Protocol describing timestamped cache entries."""
+
     timestamp: float
+
+
 _STATE_CACHE: dict[str, _StateCacheEntry] = {}
 _ATTRIBUTES_CACHE: dict[str, _AttributesCacheEntry] = {}
 _AVAILABILITY_CACHE: dict[str, _AvailabilityCacheEntry] = {}
@@ -145,6 +157,8 @@ _PERFORMANCE_METRICS: dict[str, list[float]] = {}
 def _utcnow_timestamp() -> float:
     """Return a UTC timestamp that honours patched Home Assistant helpers."""
     return dt_util.utcnow().timestamp()
+
+
 def _normalize_cache_timestamp(
     cache_time: float,
     now: float,
@@ -173,6 +187,8 @@ def _normalize_cache_timestamp(
         now,
     )
     return now, True
+
+
 def _coordinator_is_available(coordinator: Any) -> bool:
     """Return True if the coordinator exposes an available flag set to truthy."""
     if coordinator is None:
@@ -219,8 +235,11 @@ def _call_coordinator_method(
         return None
 
     return result
+
+
 class PerformanceTracker:
     """Advanced performance tracking for entity operations."""
+
     __slots__ = (
         "_cache_hits",
         "_cache_misses",
@@ -314,10 +333,11 @@ class OptimizedEntityBase(
     All PawControl entities should inherit from this base class to ensure
     consistent high performance and maintain Platinum quality ambitions.
     """
-    # Class-level performance tracking  # noqa: E114
+
+    # Class-level performance tracking
     _performance_registry: ClassVar[dict[str, PerformanceTracker]] = {}
     _last_cache_cleanup: ClassVar[float] = 0
-    # Essential attributes for optimal memory usage  # noqa: E114
+    # Essential attributes for optimal memory usage
     __slots__ = (
         "_attr_device_class",
         "_attr_entity_category",
@@ -516,6 +536,7 @@ class OptimizedEntityBase(
         if now - type(self)._last_cache_cleanup > cleanup_interval:
             type(self)._last_cache_cleanup = now
             _cleanup_global_caches()
+
     def __getattribute__(self, name: str) -> Any:
         """Wrap patched async_update calls so error tracking remains accurate."""
 
@@ -531,6 +552,7 @@ class OptimizedEntityBase(
                 except Exception:  # pragma: no cover - defensive
                     self._performance_tracker.record_error()
                     raise
+
             return _wrapped_async_update
         return attr
 
@@ -540,9 +562,9 @@ class OptimizedEntityBase(
 
         try:
             await super().async_added_to_hass()
-            # Restore previous state if available  # noqa: E114
+            # Restore previous state if available
             await self._async_restore_state()
-            # Record successful initialization  # noqa: E114
+            # Record successful initialization
             operation_time = (dt_util.utcnow() - start_time).total_seconds()
             self._performance_tracker.record_operation_time(operation_time)
             _LOGGER.debug(
@@ -559,6 +581,7 @@ class OptimizedEntityBase(
                 err,
             )
             raise
+
     async def _async_restore_state(self) -> None:
         """Restore entity state with enhanced error handling."""
         if not (last_state := await self.async_get_last_state()):
@@ -696,10 +719,10 @@ class OptimizedEntityBase(
                 self._generate_state_attributes(),
             )
 
-            # Record performance  # noqa: E114
+            # Record performance
             operation_time = (dt_util.utcnow() - start_time).total_seconds()
             self._performance_tracker.record_operation_time(operation_time)
-            # Cache result  # noqa: E114
+            # Cache result
             _ATTRIBUTES_CACHE[cache_key] = _AttributesCacheEntry(
                 attributes=cast(
                     OptimizedEntityAttributesPayload,
@@ -717,6 +740,7 @@ class OptimizedEntityBase(
                 err,
             )
             return _normalise_attributes(self._get_fallback_attributes())
+
     def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         """Generate state attributes - can be overridden in subclasses.
 
@@ -989,9 +1013,9 @@ class OptimizedEntityBase(
 
         try:
             await self._async_request_refresh()
-            # Clear relevant caches after update  # noqa: E114
+            # Clear relevant caches after update
             await self._async_invalidate_caches()
-            # Record performance  # noqa: E114
+            # Record performance
             operation_time = (dt_util.utcnow() - start_time).total_seconds()
             self._performance_tracker.record_operation_time(operation_time)
         except Exception as err:
@@ -1002,6 +1026,7 @@ class OptimizedEntityBase(
                 err,
             )
             raise
+
     async def _async_request_refresh(self) -> None:
         """Request a data refresh from the coordinator or parent class."""
 
@@ -1051,6 +1076,7 @@ class OptimizedEntityBase(
             _STATE_CACHE.pop(cache_key, None)
             _ATTRIBUTES_CACHE.pop(cache_key, None)
             _AVAILABILITY_CACHE.pop(cache_key, None)
+
     def get_performance_metrics(self) -> OptimizedEntityPerformanceMetrics:
         """Get comprehensive performance metrics for this entity.
 
@@ -1115,6 +1141,7 @@ class OptimizedSensorBase(OptimizedEntityBase):
     Provides sensor-specific optimizations including value caching,
     state class management, and device class handling.
     """
+
     __slots__ = (
         "_attr_native_unit_of_measurement",
         "_attr_native_value",
@@ -1176,7 +1203,9 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
     Provides binary sensor-specific optimizations including boolean state
     management, icon handling, and device class support.
     """
+
     __slots__ = ("_attr_is_on", "_icon_off", "_icon_on")
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1241,7 +1270,9 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
     Provides switch-specific optimizations including state restoration,
     turn on/off operations, and enhanced error handling.
     """
+
     __slots__ = ("_attr_is_on", "_last_changed")
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1316,6 +1347,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
                 err,
             )
             raise HomeAssistantError("Failed to turn on switch") from err
+
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn switch off with performance tracking."""
         start_time = dt_util.utcnow()
@@ -1339,6 +1371,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
                 err,
             )
             raise HomeAssistantError("Failed to turn off switch") from err
+
     async def _async_turn_on_implementation(self, **kwargs: Any) -> None:
         """Implement turn on logic - override in subclasses."""
         pass
@@ -1371,7 +1404,9 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
 
 class EntityRegistry:
     """Container that exposes only live weak references during iteration."""
+
     __slots__ = ("_refs", "_sentinel")
+
     def __init__(self) -> None:
         """Initialize an empty registry without any tracked entities."""
 
@@ -1518,8 +1553,11 @@ def _register_entity(entity: OptimizedEntityBase) -> None:
         _ENTITY_REGISTRY.discard(reference)
 
     _ENTITY_REGISTRY.add(weakref.ref(entity, _remove))
+
+
 class _RegistrySentinelCoordinator:
     """Minimal coordinator stub that keeps the registry warm."""
+
     __slots__ = (
         "_listeners",
         "available",
@@ -1549,11 +1587,13 @@ class _RegistrySentinelCoordinator:
 
         def _remove() -> None:
             self._listeners.discard(update_callback)
+
         return _remove
 
     def async_update_listeners(self) -> None:
         for listener in tuple(self._listeners):
             listener()
+
     def async_remove_listener(self, update_callback: Callable[[], None]) -> None:
         self._listeners.discard(update_callback)
 
@@ -1576,8 +1616,10 @@ class _RegistrySentinelCoordinator:
 
 class _RegistrySentinelEntity(OptimizedEntityBase):
     """Entity instance that keeps the global registry populated."""
+
     __slots__ = ()
     is_registry_sentinel: ClassVar[bool] = True
+
     def __init__(self, coordinator: _RegistrySentinelCoordinator) -> None:
         super().__init__(
             coordinator=coordinator,
@@ -1606,6 +1648,8 @@ def clear_global_entity_registry() -> None:
     """Reset the global entity registry while keeping the sentinel active."""
     _ENTITY_REGISTRY.clear()
     _ENTITY_REGISTRY.set_sentinel(_REGISTRY_SENTINEL_ENTITY)
+
+
 async def create_optimized_entities_batched(
     entities: list[OptimizedEntityBase],
     async_add_entities_callback: Any,

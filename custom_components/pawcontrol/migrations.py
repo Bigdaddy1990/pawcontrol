@@ -51,6 +51,8 @@ def _coerce_legacy_toggle(value: Any) -> bool:
             return False
         return text in {"1", "true", "yes", "y", "on", "enabled"}
     return bool(value)
+
+
 def _coerce_modules_payload(payload: Any) -> DogModulesConfig | None:
     """Coerce legacy module payloads into a config mapping."""
     if isinstance(payload, Mapping):
@@ -90,6 +92,8 @@ def _coerce_modules_payload(payload: Any) -> DogModulesConfig | None:
         return modules or None
 
     return None
+
+
 def _resolve_dog_identifier(
     candidate: Mapping[str, object],
     fallback_id: str | None,
@@ -113,6 +117,8 @@ def _resolve_dog_identifier(
         return normalized_fallback or fallback_id.strip()
 
     return None
+
+
 def _normalize_dog_entry(
     raw: Any,
     *,
@@ -150,6 +156,8 @@ def _normalize_dog_entry(
         candidate.pop(DOG_MODULES_FIELD, None)
 
     return cast(DogConfigData, candidate)
+
+
 def _normalize_dog_options(
     payload: Any,
 ) -> dict[str, DogOptionsEntry]:
@@ -189,6 +197,8 @@ def _normalize_dog_options(
                 normalized[entry["dog_id"]] = entry
 
     return normalized
+
+
 def _migrate_v1_to_v2(
     data: dict[str, Any],
     options: dict[str, Any],
@@ -227,6 +237,8 @@ def _migrate_v1_to_v2(
         options[CONF_DOG_OPTIONS] = merged_options
 
     return data, options
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: Any) -> bool:
     """Migrate old entries to new versions."""
     if entry.version > CONFIG_ENTRY_VERSION:

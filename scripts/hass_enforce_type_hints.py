@@ -12,9 +12,9 @@ from pylint.checkers import BaseChecker
 from pylint.lint import PyLinter
 
 if TYPE_CHECKING:
-    # InferenceResult is available only from astroid >= 2.12.0  # noqa: E114
-    # pre-commit should still work on out of date environments  # noqa: E114
-    from astroid.typing import InferenceResult  # noqa: E111
+    # InferenceResult is available only from astroid >= 2.12.0
+    # pre-commit should still work on out of date environments
+    from astroid.typing import InferenceResult
 
 _COMMON_ARGUMENTS: dict[str, list[str]] = {
     "hass": ["HomeAssistant", "HomeAssistant | None"]
@@ -29,29 +29,29 @@ _FORCE_ANNOTATION_PLATFORMS = ["config_flow"]
 
 
 class _Special(Enum):
-    """Sentinel values."""  # noqa: E111
+    """Sentinel values."""
 
-    UNDEFINED = 1  # noqa: E111
+    UNDEFINED = 1
 
 
 @dataclass
 class TypeHintMatch:
-    """Class for pattern matching."""  # noqa: E111
+    """Class for pattern matching."""
 
-    function_name: str  # noqa: E111
-    return_type: list[str | _Special | None] | str | _Special | None  # noqa: E111
-    arg_types: dict[int, str] | None = None  # noqa: E111
-    """arg_types is for positional arguments"""  # noqa: E111
-    named_arg_types: dict[str, str] | None = None  # noqa: E111
-    """named_arg_types is for named or keyword arguments"""  # noqa: E111
-    kwargs_type: str | None = None  # noqa: E111
-    """kwargs_type is for the special case `**kwargs`"""  # noqa: E111
-    has_async_counterpart: bool = False  # noqa: E111
-    """`function_name` and `async_function_name` share arguments and return type"""  # noqa: E111
-    mandatory: bool = False  # noqa: E111
-    """bypass ignore_missing_annotations"""  # noqa: E111
+    function_name: str
+    return_type: list[str | _Special | None] | str | _Special | None
+    arg_types: dict[int, str] | None = None
+    """arg_types is for positional arguments"""
+    named_arg_types: dict[str, str] | None = None
+    """named_arg_types is for named or keyword arguments"""
+    kwargs_type: str | None = None
+    """kwargs_type is for the special case `**kwargs`"""
+    has_async_counterpart: bool = False
+    """`function_name` and `async_function_name` share arguments and return type"""
+    mandatory: bool = False
+    """bypass ignore_missing_annotations"""
 
-    def need_to_check_function(self, node: nodes.FunctionDef) -> bool:  # noqa: E111
+    def need_to_check_function(self, node: nodes.FunctionDef) -> bool:
         """Confirm if function should be checked."""
         return (
             self.function_name == node.name
@@ -68,11 +68,11 @@ class TypeHintMatch:
 
 @dataclass(kw_only=True)
 class ClassTypeHintMatch:
-    """Class for pattern matching."""  # noqa: E111
+    """Class for pattern matching."""
 
-    base_class: str  # noqa: E111
-    exclude_base_classes: set[str] | None = None  # noqa: E111
-    matches: list[TypeHintMatch]  # noqa: E111
+    base_class: str
+    exclude_base_classes: set[str] | None = None
+    matches: list[TypeHintMatch]
 
 
 _INNER_MATCH = r"((?:[\w\| ]+)|(?:\.{3})|(?:\w+\[.+\])|(?:\[\]))"
@@ -3030,40 +3030,40 @@ def _is_valid_type(
     node: nodes.NodeNG,
     in_return: bool = False,
 ) -> bool:
-    """Check the argument node against the expected type."""  # noqa: E111
-    if expected_type is _Special.UNDEFINED:  # noqa: E111
+    """Check the argument node against the expected type."""
+    if expected_type is _Special.UNDEFINED:
         return True
 
-    if isinstance(expected_type, list):  # noqa: E111
+    if isinstance(expected_type, list):
         for expected_type_item in expected_type:
-            if _is_valid_type(expected_type_item, node, in_return):  # noqa: E111
+            if _is_valid_type(expected_type_item, node, in_return):
                 return True
         return False
 
-    # Const occurs when the type is None  # noqa: E114
-    if expected_type is None or expected_type == "None":  # noqa: E111
+    # Const occurs when the type is None
+    if expected_type is None or expected_type == "None":
         return isinstance(node, nodes.Const) and node.value is None
 
-    assert isinstance(expected_type, str)  # noqa: E111
+    assert isinstance(expected_type, str)
 
-    # Const occurs when the type is an Ellipsis  # noqa: E114
-    if expected_type == "...":  # noqa: E111
+    # Const occurs when the type is an Ellipsis
+    if expected_type == "...":
         return isinstance(node, nodes.Const) and node.value == Ellipsis
 
-    # Special case for an empty list, such as Callable[[], TestServer]  # noqa: E114
-    if expected_type == "[]":  # noqa: E111
+    # Special case for an empty list, such as Callable[[], TestServer]
+    if expected_type == "[]":
         return isinstance(node, nodes.List) and not node.elts
 
-    # Special case for `xxx | yyy`  # noqa: E114
-    if match := _TYPE_HINT_MATCHERS["a_or_b"].match(expected_type):  # noqa: E111
+    # Special case for `xxx | yyy`
+    if match := _TYPE_HINT_MATCHERS["a_or_b"].match(expected_type):
         return (
             isinstance(node, nodes.BinOp)
             and _is_valid_type(match.group(1), node.left)
             and _is_valid_type(match.group(2), node.right)
         )
 
-    # Special case for `xxx[aaa, bbb, ccc, ...]  # noqa: E114
-    if (  # noqa: E111
+    # Special case for `xxx[aaa, bbb, ccc, ...]
+    if (
         isinstance(node, nodes.Subscript)
         and isinstance(node.slice, nodes.Tuple)
         and (
@@ -3080,7 +3080,7 @@ def _is_valid_type(
             and match.group(1) == "Mapping"
             and match.group(3) == "Any"
         ):
-            return (  # noqa: E111
+            return (
                 isinstance(node.value, nodes.Name)
                 # We accept dict when Mapping is needed
                 and node.value.name in ("Mapping", "dict")
@@ -3100,16 +3100,16 @@ def _is_valid_type(
             )
         )
 
-    # Special case for xxx[yyy]  # noqa: E114
-    if match := _TYPE_HINT_MATCHERS["x_of_y_1"].match(expected_type):  # noqa: E111
+    # Special case for xxx[yyy]
+    if match := _TYPE_HINT_MATCHERS["x_of_y_1"].match(expected_type):
         return (
             isinstance(node, nodes.Subscript)
             and _is_valid_type(match.group(1), node.value)
             and _is_valid_type(match.group(2), node.slice)
         )
 
-    # Special case for float in return type  # noqa: E114
-    if (  # noqa: E111
+    # Special case for float in return type
+    if (
         expected_type == "float"
         and in_return
         and isinstance(node, nodes.Name)
@@ -3117,8 +3117,8 @@ def _is_valid_type(
     ):
         return True
 
-    # Special case for int in argument type  # noqa: E114
-    if (  # noqa: E111
+    # Special case for int in argument type
+    if (
         expected_type == "int"
         and not in_return
         and isinstance(node, nodes.Name)
@@ -3126,8 +3126,8 @@ def _is_valid_type(
     ):
         return True
 
-    # Allow subscripts or type aliases for generic types  # noqa: E114
-    if (  # noqa: E111
+    # Allow subscripts or type aliases for generic types
+    if (
         isinstance(node, nodes.Subscript)
         and isinstance(node.value, nodes.Name)
         and node.value.name in _KNOWN_GENERIC_TYPES
@@ -3136,108 +3136,108 @@ def _is_valid_type(
     ):
         return True
 
-    # Name occurs when a namespace is not used, eg. "HomeAssistant"  # noqa: E114
-    if isinstance(node, nodes.Name) and node.name == expected_type:  # noqa: E111
+    # Name occurs when a namespace is not used, eg. "HomeAssistant"
+    if isinstance(node, nodes.Name) and node.name == expected_type:
         return True
 
-    # Attribute occurs when a namespace is used, eg. "core.HomeAssistant"  # noqa: E114
-    return isinstance(node, nodes.Attribute) and (  # noqa: E111
+    # Attribute occurs when a namespace is used, eg. "core.HomeAssistant"
+    return isinstance(node, nodes.Attribute) and (
         node.attrname == expected_type or node.as_string() == expected_type
     )
 
 
 def _is_valid_return_type(match: TypeHintMatch, node: nodes.NodeNG) -> bool:
-    if _is_valid_type(match.return_type, node, True):  # noqa: E111
+    if _is_valid_type(match.return_type, node, True):
         return True
 
-    if isinstance(node, nodes.BinOp):  # noqa: E111
+    if isinstance(node, nodes.BinOp):
         return _is_valid_return_type(match, node.left) and _is_valid_return_type(
             match, node.right
         )
 
-    if isinstance(match.return_type, (str, list)) and isinstance(node, nodes.Name):  # noqa: E111
+    if isinstance(match.return_type, (str, list)) and isinstance(node, nodes.Name):
         if isinstance(match.return_type, str):
-            valid_types = {match.return_type}  # noqa: E111
+            valid_types = {match.return_type}
         else:
-            valid_types = {el for el in match.return_type if isinstance(el, str)}  # noqa: E111
+            valid_types = {el for el in match.return_type if isinstance(el, str)}
         if "Mapping[str, Any]" in valid_types:
-            valid_types.add("TypedDict")  # noqa: E111
+            valid_types.add("TypedDict")
 
         try:
-            for infer_node in node.infer():  # noqa: E111
+            for infer_node in node.infer():
                 if _check_ancestry(infer_node, valid_types):
-                    return True  # noqa: E111
+                    return True
         except NameInferenceError:
-            for class_node in node.root().nodes_of_class(nodes.ClassDef):  # noqa: E111
+            for class_node in node.root().nodes_of_class(nodes.ClassDef):
                 if class_node.name != node.name:
-                    continue  # noqa: E111
+                    continue
                 for infer_node in class_node.infer():
-                    if _check_ancestry(infer_node, valid_types):  # noqa: E111
+                    if _check_ancestry(infer_node, valid_types):
                         return True
 
-    return False  # noqa: E111
+    return False
 
 
 def _check_ancestry(infer_node: InferenceResult, valid_types: set[str]) -> bool:
-    if isinstance(infer_node, nodes.ClassDef):  # noqa: E111
+    if isinstance(infer_node, nodes.ClassDef):
         if infer_node.name in valid_types:
-            return True  # noqa: E111
+            return True
         for ancestor in infer_node.ancestors():
-            if ancestor.name in valid_types:  # noqa: E111
+            if ancestor.name in valid_types:
                 return True
-    return False  # noqa: E111
+    return False
 
 
 def _get_all_annotations(node: nodes.FunctionDef) -> list[nodes.NodeNG | None]:
-    args = node.args  # noqa: E111
-    annotations: list[nodes.NodeNG | None] = (  # noqa: E111
+    args = node.args
+    annotations: list[nodes.NodeNG | None] = (
         args.posonlyargs_annotations + args.annotations + args.kwonlyargs_annotations
     )
-    if args.vararg is not None:  # noqa: E111
+    if args.vararg is not None:
         annotations.append(args.varargannotation)
-    if args.kwarg is not None:  # noqa: E111
+    if args.kwarg is not None:
         annotations.append(args.kwargannotation)
-    return annotations  # noqa: E111
+    return annotations
 
 
 def _get_named_annotation(
     node: nodes.FunctionDef, key: str
 ) -> tuple[nodes.NodeNG, nodes.NodeNG] | tuple[None, None]:
-    args = node.args  # noqa: E111
-    for index, arg_node in enumerate(args.args):  # noqa: E111
+    args = node.args
+    for index, arg_node in enumerate(args.args):
         if key == arg_node.name:
-            return arg_node, args.annotations[index]  # noqa: E111
+            return arg_node, args.annotations[index]
 
-    for index, arg_node in enumerate(args.kwonlyargs):  # noqa: E111
+    for index, arg_node in enumerate(args.kwonlyargs):
         if key == arg_node.name:
-            return arg_node, args.kwonlyargs_annotations[index]  # noqa: E111
+            return arg_node, args.kwonlyargs_annotations[index]
 
-    return None, None  # noqa: E111
+    return None, None
 
 
 def _has_valid_annotations(
     annotations: list[nodes.NodeNG | None],
 ) -> bool:
-    return any(annotation is not None for annotation in annotations)  # noqa: E111
+    return any(annotation is not None for annotation in annotations)
 
 
 def _get_module_platform(module_name: str) -> str | None:
-    """Return the platform for the module name."""  # noqa: E111
-    if not (module_match := _MODULE_REGEX.match(module_name)):  # noqa: E111
+    """Return the platform for the module name."""
+    if not (module_match := _MODULE_REGEX.match(module_name)):
         # Ensure `homeassistant.components.<component>`
         # Or `homeassistant.components.<component>.<platform>`
         return None
 
-    platform = module_match.group(1)  # noqa: E111
-    return platform.lstrip(".") if platform else "__init__"  # noqa: E111
+    platform = module_match.group(1)
+    return platform.lstrip(".") if platform else "__init__"
 
 
 class HassTypeHintChecker(BaseChecker):
-    """Checker for setup type hints."""  # noqa: E111
+    """Checker for setup type hints."""
 
-    name = "hass_enforce_type_hints"  # noqa: E111
-    priority = -1  # noqa: E111
-    msgs = {  # noqa: E111
+    name = "hass_enforce_type_hints"
+    priority = -1
+    msgs = {
         "W7431": (
             "Argument %s should be of type %s in %s",
             "hass-argument-type",
@@ -3255,7 +3255,7 @@ class HassTypeHintChecker(BaseChecker):
             "Used when an argument type is None and could be a fixture",
         ),
     }
-    options = (  # noqa: E111
+    options = (
         (
             "ignore-missing-annotations",
             {
@@ -3268,13 +3268,13 @@ class HassTypeHintChecker(BaseChecker):
         ),
     )
 
-    _class_matchers: list[ClassTypeHintMatch]  # noqa: E111
-    _function_matchers: list[TypeHintMatch]  # noqa: E111
-    _module_node: nodes.Module  # noqa: E111
-    _module_platform: str | None  # noqa: E111
-    _in_test_module: bool  # noqa: E111
+    _class_matchers: list[ClassTypeHintMatch]
+    _function_matchers: list[TypeHintMatch]
+    _module_node: nodes.Module
+    _module_platform: str | None
+    _in_test_module: bool
 
-    def visit_module(self, node: nodes.Module) -> None:  # noqa: E111
+    def visit_module(self, node: nodes.Module) -> None:
         """Populate matchers for a Module node."""
         self._class_matchers = []
         self._function_matchers = []
@@ -3283,23 +3283,23 @@ class HassTypeHintChecker(BaseChecker):
         self._in_test_module = node.name.startswith("tests.")
 
         if self._in_test_module or self._module_platform is None:
-            return  # noqa: E111
+            return
 
         if self._module_platform in _PLATFORMS:
-            self._function_matchers.extend(_FUNCTION_MATCH["__any_platform__"])  # noqa: E111
+            self._function_matchers.extend(_FUNCTION_MATCH["__any_platform__"])
 
         if function_matches := _FUNCTION_MATCH.get(self._module_platform):
-            self._function_matchers.extend(function_matches)  # noqa: E111
+            self._function_matchers.extend(function_matches)
 
         if class_matches := _CLASS_MATCH.get(self._module_platform):
-            self._class_matchers.extend(class_matches)  # noqa: E111
+            self._class_matchers.extend(class_matches)
 
         if property_matches := _INHERITANCE_MATCH.get(self._module_platform):
-            self._class_matchers.extend(property_matches)  # noqa: E111
+            self._class_matchers.extend(property_matches)
 
         self._class_matchers.reverse()
 
-    def _ignore_function_match(  # noqa: E111
+    def _ignore_function_match(
         self,
         node: nodes.FunctionDef,
         annotations: list[nodes.NodeNG | None],
@@ -3319,27 +3319,27 @@ class HassTypeHintChecker(BaseChecker):
             and not _has_valid_annotations(annotations)
         )
 
-    def visit_classdef(self, node: nodes.ClassDef) -> None:  # noqa: E111
+    def visit_classdef(self, node: nodes.ClassDef) -> None:
         """Apply relevant type hint checks on a ClassDef node."""
         ancestor: nodes.ClassDef
         checked_class_methods: set[str] = set()
         ancestors = list(node.ancestors())  # cache result for inside loop
         for class_matcher in self._class_matchers:
-            skip_matcher = False  # noqa: E111
-            if exclude_base_classes := class_matcher.exclude_base_classes:  # noqa: E111
+            skip_matcher = False
+            if exclude_base_classes := class_matcher.exclude_base_classes:
                 for ancestor in ancestors:
-                    if ancestor.name in exclude_base_classes:  # noqa: E111
+                    if ancestor.name in exclude_base_classes:
                         skip_matcher = True
                         break
-            if skip_matcher:  # noqa: E111
+            if skip_matcher:
                 continue
-            for ancestor in ancestors:  # noqa: E111
+            for ancestor in ancestors:
                 if ancestor.name == class_matcher.base_class:
-                    self._visit_class_functions(  # noqa: E111
+                    self._visit_class_functions(
                         node, class_matcher.matches, checked_class_methods
                     )
 
-    def _visit_class_functions(  # noqa: E111
+    def _visit_class_functions(
         self,
         node: nodes.ClassDef,
         matches: list[TypeHintMatch],
@@ -3347,84 +3347,84 @@ class HassTypeHintChecker(BaseChecker):
     ) -> None:
         cached_methods: list[nodes.FunctionDef] = list(node.mymethods())
         for match in matches:
-            for function_node in cached_methods:  # noqa: E111
+            for function_node in cached_methods:
                 if (
                     function_node.name in checked_class_methods
                     or not match.need_to_check_function(function_node)
                 ):
-                    continue  # noqa: E111
+                    continue
 
                 annotations = _get_all_annotations(function_node)
                 if self._ignore_function_match(function_node, annotations, match):
-                    continue  # noqa: E111
+                    continue
 
                 self._check_function(function_node, match, annotations)
                 checked_class_methods.add(function_node.name)
 
-    def visit_functiondef(self, node: nodes.FunctionDef) -> None:  # noqa: E111
+    def visit_functiondef(self, node: nodes.FunctionDef) -> None:
         """Apply relevant type hint checks on a FunctionDef node."""
         annotations = _get_all_annotations(node)
 
         # Check method or function matchers.
         if node.is_method():
-            matchers = _METHOD_MATCH  # noqa: E111
+            matchers = _METHOD_MATCH
         else:
-            if self._in_test_module and node.parent is self._module_node:  # noqa: E111
+            if self._in_test_module and node.parent is self._module_node:
                 if node.name.startswith("test_"):
-                    self._check_test_function(node, False)  # noqa: E111
-                    return  # noqa: E111
+                    self._check_test_function(node, False)
+                    return
                 if (decoratornames := node.decoratornames()) and (
                     # `@pytest.fixture`
                     "_pytest.fixtures.fixture" in decoratornames
                     # `@pytest.fixture(...)`
                     or "_pytest.fixtures.FixtureFunctionMarker" in decoratornames
                 ):
-                    self._check_test_function(node, True)  # noqa: E111
-                    return  # noqa: E111
-            matchers = self._function_matchers  # noqa: E111
+                    self._check_test_function(node, True)
+                    return
+            matchers = self._function_matchers
 
         # Check that common arguments are correctly typed.
         if not self.linter.config.ignore_missing_annotations:
-            for arg_name, expected_type in _COMMON_ARGUMENTS.items():  # noqa: E111
+            for arg_name, expected_type in _COMMON_ARGUMENTS.items():
                 arg_node, annotation = _get_named_annotation(node, arg_name)
                 if arg_node and not _is_valid_type(expected_type, annotation):
-                    self.add_message(  # noqa: E111
+                    self.add_message(
                         "hass-argument-type",
                         node=arg_node,
                         args=(arg_name, expected_type, node.name),
                     )
 
         for match in matchers:
-            if not match.need_to_check_function(node):  # noqa: E111
+            if not match.need_to_check_function(node):
                 continue
-            self._check_function(node, match, annotations)  # noqa: E111
+            self._check_function(node, match, annotations)
 
-    visit_asyncfunctiondef = visit_functiondef  # noqa: E111
+    visit_asyncfunctiondef = visit_functiondef
 
-    def _check_function(  # noqa: E111
+    def _check_function(
         self,
         node: nodes.FunctionDef,
         match: TypeHintMatch,
         annotations: list[nodes.NodeNG | None],
     ) -> None:
         if self._ignore_function_match(node, annotations, match):
-            return  # noqa: E111
+            return
         # Check that all positional arguments are correctly annotated.
         if match.arg_types:
-            for key, expected_type in match.arg_types.items():  # noqa: E111
+            for key, expected_type in match.arg_types.items():
                 if key > len(node.args.args) - 1:
-                    # The number of arguments is less than expected  # noqa: E114
-                    self.add_message(  # noqa: E111
+                    # The number of arguments is less than expected
+                    self.add_message(
                         "hass-argument-type",
                         node=node,
                         args=(key + 1, expected_type, node.name),
                     )
-                    continue  # noqa: E111
+                    continue
                 if node.args.args[key].name in _COMMON_ARGUMENTS:
-                    # It has already been checked, avoid double-message  # noqa: E114
-                    continue  # noqa: E111
+                    # It has already been checked, avoid double-message
+                    continue
                 if not _is_valid_type(expected_type, annotations[key]):
-                    self.add_message(  # noqa: E111
+                    self.add_message(
                         "hass-argument-type",
                         node=node.args.args[key],
                         args=(key + 1, expected_type, node.name),
@@ -3432,13 +3432,13 @@ class HassTypeHintChecker(BaseChecker):
 
         # Check that all keyword arguments are correctly annotated.
         if match.named_arg_types is not None:
-            for arg_name, expected_type in match.named_arg_types.items():  # noqa: E111
+            for arg_name, expected_type in match.named_arg_types.items():
                 if arg_name in _COMMON_ARGUMENTS:
-                    # It has already been checked, avoid double-message  # noqa: E114
-                    continue  # noqa: E111
+                    # It has already been checked, avoid double-message
+                    continue
                 arg_node, annotation = _get_named_annotation(node, arg_name)
                 if arg_node and not _is_valid_type(expected_type, annotation):
-                    self.add_message(  # noqa: E111
+                    self.add_message(
                         "hass-argument-type",
                         node=arg_node,
                         args=(arg_name, expected_type, node.name),
@@ -3448,7 +3448,7 @@ class HassTypeHintChecker(BaseChecker):
         if match.kwargs_type and not _is_valid_type(
             match.kwargs_type, node.args.kwargannotation
         ):
-            self.add_message(  # noqa: E111
+            self.add_message(
                 "hass-argument-type",
                 node=node,
                 args=(node.args.kwarg, match.kwargs_type, node.name),
@@ -3456,30 +3456,30 @@ class HassTypeHintChecker(BaseChecker):
 
         # Check the return type.
         if not _is_valid_return_type(match, node.returns):
-            self.add_message(  # noqa: E111
+            self.add_message(
                 "hass-return-type",
                 node=node,
                 args=(match.return_type or "None", node.name),
             )
 
-    def _check_test_function(self, node: nodes.FunctionDef, is_fixture: bool) -> None:  # noqa: E111
+    def _check_test_function(self, node: nodes.FunctionDef, is_fixture: bool) -> None:
         # Check the return type, should always be `None` for test_*** functions.
         if not is_fixture and not _is_valid_type(None, node.returns, True):
-            self.add_message(  # noqa: E111
+            self.add_message(
                 "hass-return-type",
                 node=node,
                 args=("None", node.name),
             )
         # Check that all positional arguments are correctly annotated.
         for arg_name, expected_type in _TEST_FIXTURES.items():
-            arg_node, annotation = _get_named_annotation(node, arg_name)  # noqa: E111
-            if arg_node and expected_type == "None" and not is_fixture:  # noqa: E111
+            arg_node, annotation = _get_named_annotation(node, arg_name)
+            if arg_node and expected_type == "None" and not is_fixture:
                 self.add_message(
                     "hass-consider-usefixtures-decorator",
                     node=arg_node,
                     args=(arg_name, expected_type, node.name),
                 )
-            if arg_node and not _is_valid_type(expected_type, annotation):  # noqa: E111
+            if arg_node and not _is_valid_type(expected_type, annotation):
                 self.add_message(
                     "hass-argument-type",
                     node=arg_node,
@@ -3488,5 +3488,5 @@ class HassTypeHintChecker(BaseChecker):
 
 
 def register(linter: PyLinter) -> None:
-    """Register the checker."""  # noqa: E111
-    linter.register_checker(HassTypeHintChecker(linter))  # noqa: E111
+    """Register the checker."""
+    linter.register_checker(HassTypeHintChecker(linter))

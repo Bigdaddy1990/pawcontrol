@@ -18,8 +18,11 @@ _DEFAULT_TIMEOUT = ClientTimeout(total=15.0)
 @dataclass(slots=True)
 class DeviceEndpoint:
     """Descriptor for a Paw Control hardware endpoint."""
+
     base_url: URL
     api_key: str | None = None
+
+
 def validate_device_endpoint(endpoint: str) -> URL:
     """Validate and normalize the configured device endpoint."""
     if not endpoint:
@@ -36,8 +39,11 @@ def validate_device_endpoint(endpoint: str) -> URL:
         raise ValueError("endpoint must include a valid hostname")
 
     return base_url
+
+
 class PawControlDeviceClient:
     """Optional fallback client for Paw Control companion hardware."""
+
     def __init__(
         self,
         session: ClientSession,
@@ -101,7 +107,7 @@ class PawControlDeviceClient:
             payload = await response.json()
         except (ContentTypeError, ValueError) as err:  # pragma: no cover - defensive
             raise NetworkError(
-                "Device API returned a non-JSON response. Check the configured endpoint.",
+                "Device API returned a non-JSON response. Check the configured endpoint.",  # noqa: E501
             ) from err
         return _coerce_json_mutable(payload)
 

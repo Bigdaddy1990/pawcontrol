@@ -25,96 +25,96 @@ from custom_components.pawcontrol.weather_translations import (
 
 @pytest.fixture
 def weather_manager() -> WeatherHealthManager:
-    """Create a weather manager with deterministic translations."""  # noqa: E111
+    """Create a weather manager with deterministic translations."""
 
-    manager = WeatherHealthManager(MagicMock(spec=HomeAssistant))  # noqa: E111
-    manager._english_translations = get_weather_translations(DEFAULT_LANGUAGE)  # noqa: E111
-    return manager  # noqa: E111
+    manager = WeatherHealthManager(MagicMock(spec=HomeAssistant))
+    manager._english_translations = get_weather_translations(DEFAULT_LANGUAGE)
+    return manager
 
 
 def test_get_translation_returns_localized_text(
     weather_manager: WeatherHealthManager,
 ) -> None:
-    """Localized translations should resolve from the active catalog."""  # noqa: E111
+    """Localized translations should resolve from the active catalog."""
 
-    weather_manager._translations = get_weather_translations("de")  # noqa: E111
+    weather_manager._translations = get_weather_translations("de")
 
-    title = weather_manager._get_translation(  # noqa: E111
+    title = weather_manager._get_translation(
         "weather.alerts.extreme_heat_warning.title",
     )
-    message = weather_manager._get_translation(  # noqa: E111
+    message = weather_manager._get_translation(
         "weather.alerts.extreme_heat_warning.message",
         temperature=32,
         feels_like=35,
     )
 
-    assert title == "🔥 Warnung vor extremer Hitze"  # noqa: E111
-    assert "Temperatur 32°C" in message  # noqa: E111
-    assert "gefühlte 35°C" in message  # noqa: E111
+    assert title == "🔥 Warnung vor extremer Hitze"
+    assert "Temperatur 32°C" in message
+    assert "gefühlte 35°C" in message
 
 
 def test_get_translation_uses_english_fallback_when_missing_local_entry(
     weather_manager: WeatherHealthManager,
 ) -> None:
-    """Missing localized entries should fall back to the English catalog."""  # noqa: E111
+    """Missing localized entries should fall back to the English catalog."""
 
-    translations = get_weather_translations("de")  # noqa: E111
-    translations["alerts"].pop("extreme_heat_warning")  # noqa: E111
-    weather_manager._translations = translations  # noqa: E111
+    translations = get_weather_translations("de")
+    translations["alerts"].pop("extreme_heat_warning")
+    weather_manager._translations = translations
 
-    fallback = weather_manager._get_translation(  # noqa: E111
+    fallback = weather_manager._get_translation(
         "weather.alerts.extreme_heat_warning.title",
     )
 
-    assert fallback == "🔥 Extreme Heat Warning"  # noqa: E111
+    assert fallback == "🔥 Extreme Heat Warning"
 
 
 def test_get_translation_returns_original_key_when_fallback_missing(
     weather_manager: WeatherHealthManager,
 ) -> None:
-    """If neither catalog has a key the original dotted key should be returned."""  # noqa: E111
+    """If neither catalog has a key the original dotted key should be returned."""
 
-    weather_manager._translations = get_weather_translations("de")  # noqa: E111
+    weather_manager._translations = get_weather_translations("de")
 
-    result = weather_manager._get_translation("weather.alerts.unknown.key")  # noqa: E111
+    result = weather_manager._get_translation("weather.alerts.unknown.key")
 
-    assert result == "weather.alerts.unknown.key"  # noqa: E111
+    assert result == "weather.alerts.unknown.key"
 
 
 def test_get_translation_handles_format_errors_in_fallback(
     weather_manager: WeatherHealthManager,
 ) -> None:
-    """Fallback formatting errors should yield the template text without substitution."""  # noqa: E111
+    """Fallback formatting errors should yield the template text without substitution."""  # noqa: E501
 
-    translations = get_weather_translations("de")  # noqa: E111
-    translations["alerts"].pop("extreme_heat_warning")  # noqa: E111
-    weather_manager._translations = translations  # noqa: E111
+    translations = get_weather_translations("de")
+    translations["alerts"].pop("extreme_heat_warning")
+    weather_manager._translations = translations
 
-    template = weather_manager._get_translation(  # noqa: E111
+    template = weather_manager._get_translation(
         "weather.alerts.extreme_heat_warning.message",
         temperature=30,
     )
 
-    assert template.startswith("Temperature {temperature}°C")  # noqa: E111
-    assert "{feels_like}" in template  # noqa: E111
+    assert template.startswith("Temperature {temperature}°C")
+    assert "{feels_like}" in template
 
 
 def test_get_translation_handles_non_string_local_entries(
     weather_manager: WeatherHealthManager,
 ) -> None:
-    """Mappings at localized leaves should fall back to English strings."""  # noqa: E111
+    """Mappings at localized leaves should fall back to English strings."""
 
-    translations = get_weather_translations("de")  # noqa: E111
-    cast(dict[str, object], translations["alerts"]["extreme_heat_warning"])["title"] = {  # noqa: E111
+    translations = get_weather_translations("de")
+    cast(dict[str, object], translations["alerts"]["extreme_heat_warning"])["title"] = {
         "value": "mapping"
     }
-    weather_manager._translations = translations  # noqa: E111
+    weather_manager._translations = translations
 
-    fallback = weather_manager._get_translation(  # noqa: E111
+    fallback = weather_manager._get_translation(
         "weather.alerts.extreme_heat_warning.title",
     )
 
-    assert fallback == "🔥 Extreme Heat Warning"  # noqa: E111
+    assert fallback == "🔥 Extreme Heat Warning"
 
 
 @pytest.mark.parametrize(
@@ -133,26 +133,26 @@ def test_get_translation_handles_non_string_local_entries(
 def test_resolve_translation_value_retrieves_values(
     parts: WeatherTranslationParts, expected: str | None
 ) -> None:
-    """The resolver should return strings or None for missing leaves."""  # noqa: E111
+    """The resolver should return strings or None for missing leaves."""
 
-    catalog = get_weather_translations(DEFAULT_LANGUAGE)  # noqa: E111
+    catalog = get_weather_translations(DEFAULT_LANGUAGE)
 
-    assert WeatherHealthManager._resolve_translation_value(catalog, parts) == expected  # noqa: E111
+    assert WeatherHealthManager._resolve_translation_value(catalog, parts) == expected
 
 
 def test_resolve_translation_value_returns_none_for_missing_alert() -> None:
-    """Missing alert entries should return None to trigger fallbacks."""  # noqa: E111
+    """Missing alert entries should return None to trigger fallbacks."""
 
-    catalog = get_weather_translations(DEFAULT_LANGUAGE)  # noqa: E111
-    catalog["alerts"].pop("extreme_heat_warning")  # noqa: E111
+    catalog = get_weather_translations(DEFAULT_LANGUAGE)
+    catalog["alerts"].pop("extreme_heat_warning")
 
-    parts: AlertTranslationParts = (  # noqa: E111
+    parts: AlertTranslationParts = (
         "alerts",
         "extreme_heat_warning",
         "title",
     )
 
-    assert WeatherHealthManager._resolve_translation_value(catalog, parts) is None  # noqa: E111
+    assert WeatherHealthManager._resolve_translation_value(catalog, parts) is None
 
 
 @pytest.mark.parametrize(
@@ -164,44 +164,44 @@ def test_resolve_translation_value_returns_none_for_missing_alert() -> None:
     ],
 )
 def test_parse_translation_key_rejects_invalid_paths(key: str) -> None:
-    """Invalid keys should return None so callers can fall back."""  # noqa: E111
+    """Invalid keys should return None so callers can fall back."""
 
-    assert WeatherHealthManager._parse_translation_key(key) is None  # noqa: E111
+    assert WeatherHealthManager._parse_translation_key(key) is None
 
 
 def test_parse_translation_key_allows_weather_prefix() -> None:
-    """Keys with the leading weather prefix should parse correctly."""  # noqa: E111
+    """Keys with the leading weather prefix should parse correctly."""
 
-    parts = WeatherHealthManager._parse_translation_key(  # noqa: E111
+    parts = WeatherHealthManager._parse_translation_key(
         "weather.alerts.extreme_heat_warning.title"
     )
 
-    assert parts == ("alerts", "extreme_heat_warning", "title")  # noqa: E111
+    assert parts == ("alerts", "extreme_heat_warning", "title")
 
 
 def test_resolve_translation_value_rejects_unknown_section() -> None:
-    """Unknown sections must raise ValueError for guard-rails."""  # noqa: E111
+    """Unknown sections must raise ValueError for guard-rails."""
 
-    catalog = get_weather_translations(DEFAULT_LANGUAGE)  # noqa: E111
+    catalog = get_weather_translations(DEFAULT_LANGUAGE)
 
-    with pytest.raises(ValueError):  # noqa: E111
+    with pytest.raises(ValueError):
         WeatherHealthManager._resolve_translation_value(
             catalog, cast(WeatherTranslationParts, ("unknown",))
         )
 
 
 def test_translation_catalog_keys_match_literal_definitions() -> None:
-    """Every catalog must provide entries for all declared translation keys."""  # noqa: E111
+    """Every catalog must provide entries for all declared translation keys."""
 
-    for language in SUPPORTED_LANGUAGES:  # noqa: E111
+    for language in SUPPORTED_LANGUAGES:
         catalog = get_weather_translations(language)
 
         assert frozenset(catalog["alerts"]) == WEATHER_ALERT_KEY_SET
         assert frozenset(catalog["recommendations"]) == WEATHER_RECOMMENDATION_KEY_SET
 
         for translation in catalog["alerts"].values():
-            assert isinstance(translation["title"], str)  # noqa: E111
-            assert isinstance(translation["message"], str)  # noqa: E111
+            assert isinstance(translation["title"], str)
+            assert isinstance(translation["message"], str)
 
         for recommendation in catalog["recommendations"].values():
-            assert isinstance(recommendation, str)  # noqa: E111
+            assert isinstance(recommendation, str)

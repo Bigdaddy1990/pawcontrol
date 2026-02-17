@@ -197,6 +197,8 @@ def build_dog_health_schema(
         )
 
     return vol.Schema(schema_dict)
+
+
 def build_health_settings_schema(
     current_health: HealthOptions,
     user_input: OptionsHealthSettingsInput | None = None,

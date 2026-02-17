@@ -64,6 +64,7 @@ _STATUS_DEFAULT_MODULES: frozenset[str] = frozenset(
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
     from .data_manager import PawControlDataManager
     from .feeding_manager import FeedingManager
     from .garden_manager import GardenManager
@@ -72,14 +73,18 @@ if TYPE_CHECKING:
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
     from .weather_manager import WeatherHealthManager
+
+
 class SupportsCoordinatorSnapshot(Protocol):
     """Protocol for caches that expose coordinator diagnostics snapshots."""
+
     def coordinator_snapshot(self) -> Mapping[str, object]:
         """Return a diagnostics snapshot consumable by coordinators."""
 
 
 class SupportsCacheTelemetry(Protocol):
     """Protocol for caches exposing discrete stats/diagnostics callables."""
+
     def get_stats(self) -> Mapping[str, object]:
         """Return cache statistics used by diagnostics exporters."""
 
@@ -140,6 +145,8 @@ def _build_repair_telemetry(
         telemetry["caches_with_low_hit_rate"] = low_hit_rate_count
 
     return telemetry
+
+
 def ensure_cache_repair_aggregate(
     summary: Any,
 ) -> CacheRepairAggregate | None:
@@ -162,9 +169,12 @@ def ensure_cache_repair_aggregate(
         if isinstance(summary, candidate):
             return summary
     return None
+
+
 @runtime_checkable
 class CacheMonitorRegistrar(Protocol):
     """Objects that can register cache diagnostics providers."""
+
     def register_cache_monitor(self, name: str, cache: CacheMonitorTarget) -> None:
         """Expose ``cache`` under ``name`` for coordinator diagnostics."""
 
@@ -172,6 +182,7 @@ class CacheMonitorRegistrar(Protocol):
 @runtime_checkable
 class CoordinatorBindingTarget(Protocol):
     """Coordinator interface required for runtime manager binding."""
+
     hass: HomeAssistant
     config_entry: PawControlConfigEntry
     data_manager: PawControlDataManager | None
@@ -182,9 +193,12 @@ class CoordinatorBindingTarget(Protocol):
     geofencing_manager: PawControlGeofencing | None
     weather_health_manager: WeatherHealthManager | None
     garden_manager: GardenManager | None
+
+
 @runtime_checkable
 class CoordinatorModuleAdapter(Protocol):
     """Protocol describing the coordinator module adapter surface."""
+
     def attach_managers(
         self,
         *,
@@ -220,9 +234,11 @@ class CoordinatorModuleAdapter(Protocol):
 @dataclass(slots=True)
 class DogConfigRegistry:
     """Normalised view onto the configured dogs."""
+
     configs: list[DogConfigData]
     _by_id: dict[str, DogConfigData] = field(init=False, default_factory=dict)
     _ids: list[str] = field(init=False, default_factory=list)
+
     def __post_init__(self) -> None:
         """Normalise the provided dog configuration list."""
         cleaned: list[DogConfigData] = []
@@ -359,7 +375,7 @@ class DogConfigRegistry:
             webhook_enabled = bool(
                 options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED)
             )
-            # When GPS is driven by webhook push, keep periodic polling low and rely on push events.  # noqa: E114, E501
+            # When GPS is driven by webhook push, keep periodic polling low and rely on push events.  # noqa: E501
             if gps_source == "webhook" and webhook_enabled:
                 baseline = UPDATE_INTERVALS.get("minimal", 300)
                 if validated_interval is not None:
@@ -427,9 +443,7 @@ class DogConfigRegistry:
                 )
             try:
                 value = int(candidate)
-            except (
-                ValueError
-            ) as err:  # pragma: no cover - defensive casting
+            except ValueError as err:  # pragma: no cover - defensive casting
                 raise ValidationError(
                     "gps_update_interval",
                     value,
@@ -456,6 +470,7 @@ class DogConfigRegistry:
 @dataclass(slots=True)
 class CoordinatorMetrics:
     """Tracks coordinator level metrics for diagnostics."""
+
     update_count: int = 0
     failed_cycles: int = 0
     consecutive_errors: int = 0
@@ -655,6 +670,8 @@ def bind_runtime_managers(
         )
         if callable(register_method):
             register_method(data_manager)
+
+
 def clear_runtime_managers(
     coordinator: CoordinatorBindingTarget,
     modules: CoordinatorModuleAdapter,

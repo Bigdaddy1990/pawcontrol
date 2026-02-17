@@ -125,6 +125,8 @@ def _normalize_dog_configs(
         normalized_configs.append(typed_config)
 
     return normalized_configs
+
+
 async def _async_add_entities_in_batches(
     async_add_entities_func: AddEntitiesCallback,
     entities: Sequence[PawControlTextBase],
@@ -174,6 +176,8 @@ async def _async_add_entities_in_batches(
 
         if delay_between_batches > 0 and batch_index + 1 < total_batches:
             await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -276,8 +280,8 @@ async def async_setup_entry(
                 ),
             )
 
-    # Add entities in smaller batches to prevent Entity Registry overload  # noqa: E114
-    # With 24+ text entities (2 dogs), batching prevents Registry flooding  # noqa: E114
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 24+ text entities (2 dogs), batching prevents Registry flooding
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=8)
     _LOGGER.info(
         "Created %d text entities for %d dogs using batched approach",
@@ -305,6 +309,8 @@ async def async_reproduce_state(
 
 def _preprocess_text_state(state: State) -> str:
     return state.state
+
+
 async def _async_reproduce_text_state(
     hass: HomeAssistant,
     state: State,
@@ -326,6 +332,7 @@ async def _async_reproduce_text_state(
 
 class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
     """Base class for Paw Control text entities."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -772,6 +779,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
                 )
         elif metadata_to_apply is not None:
             self._set_metadata_fields(metadata_to_apply)
+
     async def async_set_value(self, value: str) -> None:
         """Set new value."""
         clamped_value = self._clamp_value(value)
@@ -799,6 +807,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
 class PawControlDogNotesText(PawControlTextBase):
     """Text entity for general dog notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -831,8 +840,11 @@ class PawControlDogNotesText(PawControlTextBase):
             },
         ):
             return
+
+
 class PawControlCustomLabelText(PawControlTextBase):
     """Text entity for custom dog label."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -846,6 +858,7 @@ class PawControlCustomLabelText(PawControlTextBase):
 
 class PawControlWalkNotesText(PawControlTextBase):
     """Text entity for walk notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -871,8 +884,11 @@ class PawControlWalkNotesText(PawControlTextBase):
         dog_data = self.coordinator.get_dog_data(self._dog_id)
         if dog_data and dog_data.get("walk", {}).get("walk_in_progress", False):
             _LOGGER.debug("Added notes to active walk for %s", self._dog_name)
+
+
 class PawControlCurrentWalkLabelText(PawControlTextBase):
     """Text entity for current walk label."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -901,6 +917,7 @@ class PawControlCurrentWalkLabelText(PawControlTextBase):
 
 class PawControlHealthNotesText(PawControlTextBase):
     """Text entity for health notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -933,8 +950,11 @@ class PawControlHealthNotesText(PawControlTextBase):
             },
         ):
             return
+
+
 class PawControlMedicationNotesText(PawControlTextBase):
     """Text entity for medication notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -972,8 +992,11 @@ class PawControlMedicationNotesText(PawControlTextBase):
             )
         ):
             return
+
+
 class PawControlVetNotesText(PawControlTextBase):
     """Text entity for veterinary notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1006,8 +1029,11 @@ class PawControlVetNotesText(PawControlTextBase):
             },
         ):
             return
+
+
 class PawControlGroomingNotesText(PawControlTextBase):
     """Text entity for grooming notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1045,8 +1071,11 @@ class PawControlGroomingNotesText(PawControlTextBase):
             )
         ):
             return
+
+
 class PawControlCustomMessageText(PawControlTextBase):
     """Text entity for custom notification message."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1097,6 +1126,7 @@ class PawControlCustomMessageText(PawControlTextBase):
 
 class PawControlEmergencyContactText(PawControlTextBase):
     """Text entity for emergency contact information."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1117,6 +1147,7 @@ class PawControlEmergencyContactText(PawControlTextBase):
 
 class PawControlMicrochipText(PawControlTextBase):
     """Text entity for microchip number."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1131,6 +1162,7 @@ class PawControlMicrochipText(PawControlTextBase):
 
 class PawControlBreederInfoText(PawControlTextBase):
     """Text entity for breeder information."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1151,6 +1183,7 @@ class PawControlBreederInfoText(PawControlTextBase):
 
 class PawControlRegistrationText(PawControlTextBase):
     """Text entity for registration information."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1164,6 +1197,7 @@ class PawControlRegistrationText(PawControlTextBase):
 
 class PawControlInsuranceText(PawControlTextBase):
     """Text entity for insurance information."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1184,6 +1218,7 @@ class PawControlInsuranceText(PawControlTextBase):
 
 class PawControlAllergiesText(PawControlTextBase):
     """Text entity for allergies and restrictions."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1216,8 +1251,11 @@ class PawControlAllergiesText(PawControlTextBase):
             },
         ):
             return
+
+
 class PawControlTrainingNotesText(PawControlTextBase):
     """Text entity for training notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1238,6 +1276,7 @@ class PawControlTrainingNotesText(PawControlTextBase):
 
 class PawControlBehaviorNotesText(PawControlTextBase):
     """Text entity for behavior notes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1274,8 +1313,11 @@ class PawControlBehaviorNotesText(PawControlTextBase):
             )
         ):
             return
+
+
 class PawControlLocationDescriptionText(PawControlTextBase):
     """Text entity for custom location description."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,

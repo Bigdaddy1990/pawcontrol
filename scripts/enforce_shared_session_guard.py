@@ -12,69 +12,69 @@ ALLOWED_FILES = {
 
 
 def _iter_python_sources() -> Iterable[Path]:
-    for path in INTEGRATION_ROOT.rglob("*.py"):  # noqa: E111
+    for path in INTEGRATION_ROOT.rglob("*.py"):
         if path.name == "__init__.py":
-            continue  # noqa: E111
+            continue
         if path in ALLOWED_FILES:
-            # ``http_client.py`` provides helpers that validate the shared  # noqa: E114
-            # session and therefore needs to reference ``ClientSession``  # noqa: E114
-            # directly. All other modules should rely on Home Assistant's  # noqa: E114
-            # managed session.  # noqa: E114
-            continue  # noqa: E111
+            # ``http_client.py`` provides helpers that validate the shared
+            # session and therefore needs to reference ``ClientSession``
+            # directly. All other modules should rely on Home Assistant's
+            # managed session.
+            continue
         yield path
 
 
 def _is_client_session_constructor(node: ast.AST) -> bool:
-    if isinstance(node, ast.Name):  # noqa: E111
+    if isinstance(node, ast.Name):
         return node.id == "ClientSession"
 
-    if isinstance(node, ast.Attribute):  # noqa: E111
+    if isinstance(node, ast.Attribute):
         parts: list[str] = []
         current: ast.AST | None = node
         while isinstance(current, ast.Attribute):
-            parts.append(current.attr)  # noqa: E111
-            current = current.value  # noqa: E111
+            parts.append(current.attr)
+            current = current.value
         if isinstance(current, ast.Name):
-            parts.append(current.id)  # noqa: E111
+            parts.append(current.id)
         dotted = ".".join(reversed(parts))
         return dotted.endswith("ClientSession")
 
-    return False  # noqa: E111
+    return False
 
 
 def _find_violations(path: Path) -> list[str]:
-    violations: list[str] = []  # noqa: E111
-    source = path.read_text(encoding="utf-8")  # noqa: E111
-    tree = ast.parse(source, filename=str(path))  # noqa: E111
+    violations: list[str] = []
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(path))
 
-    for node in ast.walk(tree):  # noqa: E111
+    for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
-            continue  # noqa: E111
+            continue
         if not _is_client_session_constructor(node.func):
-            continue  # noqa: E111
+            continue
         violations.append(f"{path}:{node.lineno}:{node.col_offset + 1}")
 
-    return violations  # noqa: E111
+    return violations
 
 
 def main() -> int:
-    violations: list[str] = []  # noqa: E111
+    violations: list[str] = []
 
-    for path in _iter_python_sources():  # noqa: E111
+    for path in _iter_python_sources():
         violations.extend(_find_violations(path))
 
-    if violations:  # noqa: E111
+    if violations:
         print(
             "Detected aiohttp.ClientSession instantiations. "
             "Use hass.helpers.aiohttp_client.async_get_clientsession instead:",
         )
         for violation in violations:
-            print(f"  - {violation}")  # noqa: E111
+            print(f"  - {violation}")
         return 1
 
-    print("Shared session guard passed; no ClientSession constructors detected.")  # noqa: E111
-    return 0  # noqa: E111
+    print("Shared session guard passed; no ClientSession constructors detected.")
+    return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())  # noqa: E111
+    raise SystemExit(main())

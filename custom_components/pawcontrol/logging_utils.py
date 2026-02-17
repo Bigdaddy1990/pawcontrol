@@ -19,25 +19,23 @@ from typing import Any
 # Sensitive key registry — extend here when new credential fields are added.
 # Keys are lower-cased for case-insensitive matching.
 # ---------------------------------------------------------------------------
-_SENSITIVE_KEYS: frozenset[str] = frozenset(
-    {
-        "api_key",
-        "api_token",
-        "auth_token",
-        "bearer",
-        "password",
-        "secret",
-        "token",
-        "webhook_secret",
-        # Const-value equivalents (keep in sync with const.py)
-        "api_endpoint_token",
-        "conf_api_token",
-        "conf_webhook_secret",
-        "private_key",
-        "access_token",
-        "refresh_token",
-    }
-)
+_SENSITIVE_KEYS: frozenset[str] = frozenset({
+    "api_key",
+    "api_token",
+    "auth_token",
+    "bearer",
+    "password",
+    "secret",
+    "token",
+    "webhook_secret",
+    # Const-value equivalents (keep in sync with const.py)
+    "api_endpoint_token",
+    "conf_api_token",
+    "conf_webhook_secret",
+    "private_key",
+    "access_token",
+    "refresh_token",
+})
 
 _REDACTED = "***REDACTED***"
 
@@ -91,6 +89,7 @@ def redact_value(key: str, value: Any) -> Any:
 # ---------------------------------------------------------------------------
 # Module-level logger helpers
 # ---------------------------------------------------------------------------
+
 
 def get_logger(name: str) -> logging.Logger:
     """Return a logger prefixed with the integration domain.
@@ -168,12 +167,12 @@ def _strip_url_credentials(url: str) -> str:
     """
     try:
         # yarl is available in the HA environment
-        from yarl import URL  # noqa: PLC0415
+        from yarl import URL
 
         parsed = URL(url)
         if parsed.user or parsed.password:
             return str(parsed.with_user(None))
-    except Exception:  # noqa: BLE001 — best-effort sanitization
+    except Exception:
         pass
     return url
 

@@ -105,11 +105,11 @@ _MODULE_CLASSES = {
 
 
 class HassEnforceClassModule(BaseChecker):
-    """Checker for class in correct module."""  # noqa: E111
+    """Checker for class in correct module."""
 
-    name = "hass_enforce_class_module"  # noqa: E111
-    priority = -1  # noqa: E111
-    msgs = {  # noqa: E111
+    name = "hass_enforce_class_module"
+    priority = -1
+    msgs = {
         "C7461": (
             "Derived %s is recommended to be placed in the '%s' module",
             "hass-enforce-class-module",
@@ -117,13 +117,13 @@ class HassEnforceClassModule(BaseChecker):
         ),
     }
 
-    def visit_classdef(self, node: nodes.ClassDef) -> None:  # noqa: E111
+    def visit_classdef(self, node: nodes.ClassDef) -> None:
         """Check if derived class is placed in its own module."""
         root_name = node.root().name
 
         # we only want to check components
         if not root_name.startswith("homeassistant.components."):
-            return  # noqa: E111
+            return
         parts = root_name.split(".")
         current_integration = parts[2]
         current_module = parts[3] if len(parts) > 3 else ""
@@ -131,33 +131,33 @@ class HassEnforceClassModule(BaseChecker):
         ancestors = list(node.ancestors())
 
         if current_module != "entity" and current_integration not in _ENTITY_COMPONENTS:
-            top_level_ancestors = list(node.ancestors(recurs=False))  # noqa: E111
+            top_level_ancestors = list(node.ancestors(recurs=False))
 
-            for ancestor in top_level_ancestors:  # noqa: E111
+            for ancestor in top_level_ancestors:
                 if ancestor.name in _BASE_ENTITY_MODULES and not any(
                     parent.name in _MODULE_CLASSES for parent in ancestors
                 ):
-                    self.add_message(  # noqa: E111
+                    self.add_message(
                         "hass-enforce-class-module",
                         node=node,
                         args=(ancestor.name, "entity"),
                     )
-                    return  # noqa: E111
+                    return
 
         for expected_module, classes in _MODULES.items():
-            if expected_module in (current_module, current_integration):  # noqa: E111
+            if expected_module in (current_module, current_integration):
                 continue
 
-            for ancestor in ancestors:  # noqa: E111
+            for ancestor in ancestors:
                 if ancestor.name in classes:
-                    self.add_message(  # noqa: E111
+                    self.add_message(
                         "hass-enforce-class-module",
                         node=node,
                         args=(ancestor.name, expected_module),
                     )
-                    return  # noqa: E111
+                    return
 
 
 def register(linter: PyLinter) -> None:
-    """Register the checker."""  # noqa: E111
-    linter.register_checker(HassEnforceClassModule(linter))  # noqa: E111
+    """Register the checker."""
+    linter.register_checker(HassEnforceClassModule(linter))

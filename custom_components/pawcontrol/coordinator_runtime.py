@@ -22,6 +22,7 @@ except ImportError, ModuleNotFoundError:
         @staticmethod
         def utcnow() -> datetime:
             return datetime.now(UTC)
+
     dt_util = _DateTimeModule()
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .dog_status import build_dog_status_snapshot
@@ -54,6 +55,7 @@ API_TIMEOUT = 30.0
 @dataclass(slots=True)
 class EntityBudgetSnapshot:
     """Snapshot of entity budget utilisation for a single dog."""
+
     dog_id: str
     profile: str
     capacity: int
@@ -62,6 +64,7 @@ class EntityBudgetSnapshot:
     requested_entities: tuple[str, ...]
     denied_requests: tuple[str, ...]
     recorded_at: datetime
+
     @property
     def total_allocated(self) -> int:
         """Return the total number of allocated entities."""
@@ -85,6 +88,7 @@ class EntityBudgetSnapshot:
 
 class AdaptivePollingController:
     """Manage dynamic polling intervals based on runtime performance."""
+
     __slots__ = (
         "_current_interval",
         "_entity_saturation",
@@ -167,7 +171,7 @@ class AdaptivePollingController:
         if success and (error_ratio > 0.01 or self._entity_saturation > 0.3):
             self._last_activity = now
         if not success:
-            # Back off quickly when consecutive errors occur.  # noqa: E114
+            # Back off quickly when consecutive errors occur.
             penalty_factor = 1.0 + min(0.5, 0.15 * self._error_streak + error_ratio)
             next_interval = min(
                 self._max_interval,
@@ -241,6 +245,7 @@ class AdaptivePollingController:
 @dataclass(slots=True)
 class RuntimeCycleInfo:
     """Summary of a coordinator update cycle."""
+
     dog_count: int
     errors: int
     success_rate: float
@@ -248,6 +253,7 @@ class RuntimeCycleInfo:
     new_interval: float
     error_ratio: float
     success: bool
+
     def to_dict(self) -> CoordinatorRuntimeCycleSnapshot:
         """Return a serialisable representation of the cycle."""
 
@@ -299,8 +305,11 @@ def summarize_entity_budgets(
         "denied_requests": denied_requests,
     }
     return summary
+
+
 class CoordinatorRuntime:
     """Encapsulates the heavy lifting of coordinator update cycles."""
+
     def __init__(
         self,
         *,
@@ -486,7 +495,7 @@ class CoordinatorRuntime:
                         },
                     )
                 elif isinstance(result, RateLimitError):
-                    # Surface rate limits with retry hints for UI  # noqa: E114
+                    # Surface rate limits with retry hints for UI
                     self._logger.warning(
                         "Rate limit fetching %s data for %s: %s",
                         module_name,

@@ -44,11 +44,11 @@ from custom_components.pawcontrol.types import (
 
 
 def test_coerce_module_global_settings_defaults() -> None:
-    """Default module settings payload normalises to balanced analytics off."""  # noqa: E111
+    """Default module settings payload normalises to balanced analytics off."""
 
-    payload = _coerce_module_global_settings(ModuleConfigurationStepInput())  # noqa: E111
+    payload = _coerce_module_global_settings(ModuleConfigurationStepInput())
 
-    assert payload == {  # noqa: E111
+    assert payload == {
         "performance_mode": "balanced",
         "enable_analytics": False,
         "enable_cloud_backup": False,
@@ -58,19 +58,19 @@ def test_coerce_module_global_settings_defaults() -> None:
 
 
 def test_coerce_module_global_settings_normalises_alias() -> None:
-    """Performance mode aliases are normalised via the shared helper."""  # noqa: E111
+    """Performance mode aliases are normalised via the shared helper."""
 
-    payload = _coerce_module_global_settings(  # noqa: E111
+    payload = _coerce_module_global_settings(
         ModuleConfigurationStepInput(performance_mode="Full ")
     )
 
-    assert payload["performance_mode"] == "full"  # noqa: E111
+    assert payload["performance_mode"] == "full"
 
 
 def test_coerce_dashboard_configuration_defaults() -> None:
-    """Dashboard defaults honour context flags for maps and layout."""  # noqa: E111
+    """Dashboard defaults honour context flags for maps and layout."""
 
-    payload = _coerce_dashboard_configuration(  # noqa: E111
+    payload = _coerce_dashboard_configuration(
         DashboardConfigurationStepInput(),
         has_gps=True,
         has_health=False,
@@ -79,17 +79,17 @@ def test_coerce_dashboard_configuration_defaults() -> None:
         mode_default="cards",
     )
 
-    assert payload["dashboard_enabled"] is True  # noqa: E111
-    assert payload["dashboard_per_dog"] is True  # noqa: E111
-    assert payload["show_maps"] is True  # noqa: E111
-    assert payload["dashboard_mode"] == "cards"  # noqa: E111
-    assert payload["show_health_charts"] is False  # noqa: E111
+    assert payload["dashboard_enabled"] is True
+    assert payload["dashboard_per_dog"] is True
+    assert payload["show_maps"] is True
+    assert payload["dashboard_mode"] == "cards"
+    assert payload["show_health_charts"] is False
 
 
 def test_coerce_dashboard_configuration_overrides() -> None:
-    """Explicit dashboard form values are preserved."""  # noqa: E111
+    """Explicit dashboard form values are preserved."""
 
-    payload = _coerce_dashboard_configuration(  # noqa: E111
+    payload = _coerce_dashboard_configuration(
         DashboardConfigurationStepInput(
             dashboard_theme="minimal",
             dashboard_template="panels",
@@ -106,30 +106,30 @@ def test_coerce_dashboard_configuration_overrides() -> None:
         mode_default="cards",
     )
 
-    assert payload["dashboard_theme"] == "minimal"  # noqa: E111
-    assert payload["dashboard_template"] == "panels"  # noqa: E111
-    assert payload["dashboard_mode"] == "full"  # noqa: E111
-    assert payload["show_maps"] is False  # noqa: E111
-    assert payload["auto_refresh"] is False  # noqa: E111
-    assert payload["refresh_interval"] == 180  # noqa: E111
+    assert payload["dashboard_theme"] == "minimal"
+    assert payload["dashboard_template"] == "panels"
+    assert payload["dashboard_mode"] == "full"
+    assert payload["show_maps"] is False
+    assert payload["auto_refresh"] is False
+    assert payload["refresh_interval"] == 180
 
 
 def test_coerce_feeding_configuration_defaults() -> None:
-    """Feeding configuration defaults to flexible scheduling with reminders."""  # noqa: E111
+    """Feeding configuration defaults to flexible scheduling with reminders."""
 
-    payload = _coerce_feeding_configuration(FeedingConfigurationStepInput())  # noqa: E111
+    payload = _coerce_feeding_configuration(FeedingConfigurationStepInput())
 
-    assert payload["default_daily_food_amount"] == 500.0  # noqa: E111
-    assert payload["default_meals_per_day"] == 2  # noqa: E111
-    assert payload["default_special_diet"] == []  # noqa: E111
-    assert payload["auto_portion_calculation"] is True  # noqa: E111
-    assert payload["medication_with_meals"] is False  # noqa: E111
+    assert payload["default_daily_food_amount"] == 500.0
+    assert payload["default_meals_per_day"] == 2
+    assert payload["default_special_diet"] == []
+    assert payload["auto_portion_calculation"] is True
+    assert payload["medication_with_meals"] is False
 
 
 def test_build_module_placeholders() -> None:
-    """Module placeholders expose summary metrics for the UI."""  # noqa: E111
+    """Module placeholders expose summary metrics for the UI."""
 
-    summary: ModuleConfigurationSummary = {  # noqa: E111
+    summary: ModuleConfigurationSummary = {
         "gps_dogs": 2,
         "health_dogs": 1,
         "feeding_dogs": 1,
@@ -138,9 +138,9 @@ def test_build_module_placeholders() -> None:
         "description": "2 dogs with GPS, 1 with health",
     }
 
-    placeholders = _build_module_placeholders(summary=summary, dog_count=3)  # noqa: E111
+    placeholders = _build_module_placeholders(summary=summary, dog_count=3)
 
-    assert placeholders == {  # noqa: E111
+    assert placeholders == {
         "dog_count": 3,
         "module_summary": "2 dogs with GPS, 1 with health",
         "total_modules": 4,
@@ -150,27 +150,27 @@ def test_build_module_placeholders() -> None:
 
 
 def test_build_dashboard_and_feeding_placeholders() -> None:
-    """Dashboard and feeding placeholders render typed values."""  # noqa: E111
+    """Dashboard and feeding placeholders render typed values."""
 
-    dashboard = _build_dashboard_placeholders(  # noqa: E111
+    dashboard = _build_dashboard_placeholders(
         dog_count=2,
         dashboard_info="Standard setup",
         features="status_cards, quick_actions",
     )
-    feeding = _build_feeding_placeholders(dog_count=1, summary="Doggo")  # noqa: E111
+    feeding = _build_feeding_placeholders(dog_count=1, summary="Doggo")
 
-    assert dashboard == {  # noqa: E111
+    assert dashboard == {
         "dog_count": 2,
         "dashboard_info": "Standard setup",
         "features": "status_cards, quick_actions",
     }
-    assert feeding == {"dog_count": 1, "feeding_summary": "Doggo"}  # noqa: E111
+    assert feeding == {"dog_count": 1, "feeding_summary": "Doggo"}
 
 
 def test_gps_config_schema_accepts_payload() -> None:
-    """GPS schema should accept typed configuration payloads."""  # noqa: E111
+    """GPS schema should accept typed configuration payloads."""
 
-    payload = {  # noqa: E111
+    payload = {
         "gps_source": "manual",
         "gps_update_interval": 120,
         "gps_accuracy_filter": 30.0,
@@ -178,44 +178,44 @@ def test_gps_config_schema_accepts_payload() -> None:
         "home_zone_radius": 100.0,
     }
 
-    assert validate_json_schema_payload(payload, GPS_DOG_CONFIG_JSON_SCHEMA) == []  # noqa: E111
+    assert validate_json_schema_payload(payload, GPS_DOG_CONFIG_JSON_SCHEMA) == []
 
 
 def test_dog_modules_from_flow_input_flags() -> None:
-    """Config-flow flag payloads normalise into module configs."""  # noqa: E111
+    """Config-flow flag payloads normalise into module configs."""
 
-    selection = DogModuleSelectionInput(enable_feeding=True, enable_gps=False)  # noqa: E111
+    selection = DogModuleSelectionInput(enable_feeding=True, enable_gps=False)
 
-    modules = dog_modules_from_flow_input(selection)  # noqa: E111
+    modules = dog_modules_from_flow_input(selection)
 
-    assert set(modules) == set(MODULE_TOGGLE_KEYS)  # noqa: E111
-    assert modules["feeding"] is True  # noqa: E111
-    assert modules["gps"] is False  # noqa: E111
-    assert all(isinstance(value, bool) for value in modules.values())  # noqa: E111
+    assert set(modules) == set(MODULE_TOGGLE_KEYS)
+    assert modules["feeding"] is True
+    assert modules["gps"] is False
+    assert all(isinstance(value, bool) for value in modules.values())
 
 
 def test_dog_modules_from_flow_input_merges_existing_defaults() -> None:
-    """Existing module toggles persist when flow payload omits them."""  # noqa: E111
+    """Existing module toggles persist when flow payload omits them."""
 
-    existing: DogModulesConfig = {  # noqa: E111
+    existing: DogModulesConfig = {
         "walk": True,
         "notifications": True,
         "garden": False,
     }
-    selection = DogModuleSelectionInput()  # noqa: E111
+    selection = DogModuleSelectionInput()
 
-    modules = dog_modules_from_flow_input(selection, existing=existing)  # noqa: E111
+    modules = dog_modules_from_flow_input(selection, existing=existing)
 
-    assert set(modules) == set(MODULE_TOGGLE_KEYS)  # noqa: E111
-    assert modules["walk"] is True  # noqa: E111
-    assert modules["notifications"] is True  # noqa: E111
-    assert modules["garden"] is False  # noqa: E111
+    assert set(modules) == set(MODULE_TOGGLE_KEYS)
+    assert modules["walk"] is True
+    assert modules["notifications"] is True
+    assert modules["garden"] is False
 
 
 class _ModuleFlowHarness(ModuleConfigurationMixin):
-    """Harness exposing module configuration steps for UI regression tests."""  # noqa: E111
+    """Harness exposing module configuration steps for UI regression tests."""
 
-    def __init__(self, *, dogs: list[DogConfigData], language: str = "en") -> None:  # noqa: E111
+    def __init__(self, *, dogs: list[DogConfigData], language: str = "en") -> None:
         self._dogs = dogs
         self._global_settings = cast(ConfigFlowGlobalSettings, {})
         self._dashboard_config = cast(DashboardSetupConfig, {})
@@ -226,7 +226,7 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
         self.forms: list[ConfigFlowResult] = []
         self.transitions: list[str] = []
 
-    async def async_step_configure_external_entities(  # noqa: E111
+    async def async_step_configure_external_entities(
         self, user_input: dict[str, object] | None = None
     ) -> ConfigFlowResult:
         self.transitions.append("external_entities")
@@ -235,7 +235,7 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
             "step_id": "configure_external_entities",
         }
 
-    async def async_step_final_setup(  # noqa: E111
+    async def async_step_final_setup(
         self, user_input: dict[str, object] | None = None
     ) -> ConfigFlowResult:
         self.transitions.append("final_setup")
@@ -244,7 +244,7 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
             "data": user_input or {},
         }
 
-    def async_show_form(  # noqa: E111
+    def async_show_form(
         self,
         *,
         step_id: str,
@@ -270,9 +270,9 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
 
 @pytest.mark.asyncio
 async def test_async_step_configure_modules_routes_to_dashboard_form() -> None:
-    """Module configuration stores typed settings and exposes dashboard form."""  # noqa: E111
+    """Module configuration stores typed settings and exposes dashboard form."""
 
-    dogs = [  # noqa: E111
+    dogs = [
         cast(
             DogConfigData,
             {
@@ -307,20 +307,20 @@ async def test_async_step_configure_modules_routes_to_dashboard_form() -> None:
         ),
     ]
 
-    flow = _ModuleFlowHarness(dogs=dogs)  # noqa: E111
+    flow = _ModuleFlowHarness(dogs=dogs)
 
-    module_form = await flow.async_step_configure_modules()  # noqa: E111
-    assert module_form["type"] == "form"  # noqa: E111
-    placeholders = module_form["description_placeholders"]  # noqa: E111
-    assert isinstance(placeholders, dict)  # noqa: E111
-    assert placeholders["dog_count"] == 2  # noqa: E111
-    assert placeholders["total_modules"] == 4  # noqa: E111
-    assert placeholders["module_summary"] == (  # noqa: E111
+    module_form = await flow.async_step_configure_modules()
+    assert module_form["type"] == "form"
+    placeholders = module_form["description_placeholders"]
+    assert isinstance(placeholders, dict)
+    assert placeholders["dog_count"] == 2
+    assert placeholders["total_modules"] == 4
+    assert placeholders["module_summary"] == (
         "1 dogs with health monitoring, 1 dogs with feeding tracking"
     )
-    assert placeholders["gps_dogs"] == 0  # noqa: E111
+    assert placeholders["gps_dogs"] == 0
 
-    result = await flow.async_step_configure_modules(  # noqa: E111
+    result = await flow.async_step_configure_modules(
         cast(
             ModuleConfigurationStepInput,
             {
@@ -333,9 +333,9 @@ async def test_async_step_configure_modules_routes_to_dashboard_form() -> None:
         )
     )
 
-    assert result["type"] == "form"  # noqa: E111
-    assert result["step_id"] == "configure_dashboard"  # noqa: E111
-    assert flow._global_settings == {  # noqa: E111
+    assert result["type"] == "form"
+    assert result["step_id"] == "configure_dashboard"
+    assert flow._global_settings == {
         "performance_mode": "full",
         "enable_analytics": True,
         "enable_cloud_backup": False,
@@ -346,9 +346,9 @@ async def test_async_step_configure_modules_routes_to_dashboard_form() -> None:
 
 @pytest.mark.asyncio
 async def test_async_step_configure_dashboard_handles_payload() -> None:
-    """Dashboard step exposes localized placeholders and persists settings."""  # noqa: E111
+    """Dashboard step exposes localized placeholders and persists settings."""
 
-    dogs = [  # noqa: E111
+    dogs = [
         cast(
             DogConfigData,
             {
@@ -383,17 +383,17 @@ async def test_async_step_configure_dashboard_handles_payload() -> None:
         ),
     ]
 
-    flow = _ModuleFlowHarness(dogs=dogs, language="de")  # noqa: E111
+    flow = _ModuleFlowHarness(dogs=dogs, language="de")
 
-    form_result = await flow.async_step_configure_dashboard()  # noqa: E111
-    assert form_result["type"] == "form"  # noqa: E111
-    placeholders = form_result["description_placeholders"]  # noqa: E111
-    assert isinstance(placeholders, dict)  # noqa: E111
-    assert placeholders["dog_count"] == 2  # noqa: E111
-    assert placeholders["dashboard_info"].startswith("Das Dashboard enthält")  # noqa: E111
-    assert "Standortkarten" in placeholders["features"]  # noqa: E111
+    form_result = await flow.async_step_configure_dashboard()
+    assert form_result["type"] == "form"
+    placeholders = form_result["description_placeholders"]
+    assert isinstance(placeholders, dict)
+    assert placeholders["dog_count"] == 2
+    assert placeholders["dashboard_info"].startswith("Das Dashboard enthält")
+    assert "Standortkarten" in placeholders["features"]
 
-    transition = await flow.async_step_configure_dashboard(  # noqa: E111
+    transition = await flow.async_step_configure_dashboard(
         cast(
             DashboardConfigurationStepInput,
             {
@@ -414,9 +414,9 @@ async def test_async_step_configure_dashboard_handles_payload() -> None:
         )
     )
 
-    assert transition["step_id"] == "configure_external_entities"  # noqa: E111
-    assert flow.transitions[-1] == "external_entities"  # noqa: E111
-    assert flow._dashboard_config == {  # noqa: E111
+    assert transition["step_id"] == "configure_external_entities"
+    assert flow.transitions[-1] == "external_entities"
+    assert flow._dashboard_config == {
         "dashboard_enabled": True,
         "dashboard_auto_create": False,
         "dashboard_per_dog": True,
@@ -436,9 +436,9 @@ async def test_async_step_configure_dashboard_handles_payload() -> None:
 
 @pytest.mark.asyncio
 async def test_async_step_configure_feeding_details_roundtrip() -> None:
-    """Feeding configuration captures typed payloads and reaches final step."""  # noqa: E111
+    """Feeding configuration captures typed payloads and reaches final step."""
 
-    dogs = [  # noqa: E111
+    dogs = [
         cast(
             DogConfigData,
             {
@@ -457,19 +457,19 @@ async def test_async_step_configure_feeding_details_roundtrip() -> None:
         )
     ]
 
-    flow = _ModuleFlowHarness(dogs=dogs)  # noqa: E111
+    flow = _ModuleFlowHarness(dogs=dogs)
 
-    feeding_form = await flow.async_step_configure_modules(  # noqa: E111
+    feeding_form = await flow.async_step_configure_modules(
         cast(ModuleConfigurationStepInput, {})
     )
-    assert feeding_form["type"] == "form"  # noqa: E111
-    assert feeding_form["step_id"] == "configure_feeding_details"  # noqa: E111
-    placeholders = feeding_form["description_placeholders"]  # noqa: E111
-    assert isinstance(placeholders, dict)  # noqa: E111
-    assert placeholders["dog_count"] == 1  # noqa: E111
-    assert placeholders["feeding_summary"].startswith("Feeding configuration for")  # noqa: E111
+    assert feeding_form["type"] == "form"
+    assert feeding_form["step_id"] == "configure_feeding_details"
+    placeholders = feeding_form["description_placeholders"]
+    assert isinstance(placeholders, dict)
+    assert placeholders["dog_count"] == 1
+    assert placeholders["feeding_summary"].startswith("Feeding configuration for")
 
-    final_result = await flow.async_step_configure_feeding_details(  # noqa: E111
+    final_result = await flow.async_step_configure_feeding_details(
         cast(
             FeedingConfigurationStepInput,
             {
@@ -486,9 +486,9 @@ async def test_async_step_configure_feeding_details_roundtrip() -> None:
         )
     )
 
-    assert final_result["type"] == "create_entry"  # noqa: E111
-    assert flow.transitions[-1] == "final_setup"  # noqa: E111
-    assert flow._feeding_config == {  # noqa: E111
+    assert final_result["type"] == "create_entry"
+    assert flow.transitions[-1] == "final_setup"
+    assert flow._feeding_config == {
         "default_daily_food_amount": 350.0,
         "default_meals_per_day": 3,
         "default_food_type": "wet_food",

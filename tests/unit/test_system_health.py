@@ -11,9 +11,9 @@ from custom_components.pawcontrol.types import DomainRuntimeStoreEntry
 
 
 class _Coordinator:
-    """Coordinator stub returning update statistics."""  # noqa: E111
+    """Coordinator stub returning update statistics."""
 
-    def __init__(  # noqa: E111
+    def __init__(
         self,
         stats: dict[str, object],
         *,
@@ -24,7 +24,7 @@ class _Coordinator:
         self.last_update_success = last_update_success
         self.use_external_api = use_external_api
 
-    def get_update_statistics(self) -> dict[str, object]:  # noqa: E111
+    def get_update_statistics(self) -> dict[str, object]:
         """Return the stored statistics payload."""
 
         return self._stats
@@ -43,19 +43,19 @@ def _make_runtime_data(
     coordinator: _Coordinator,
     script_manager: object | None = None,
 ) -> Any:
-    """Return a runtime data stub that passes runtime_data validation."""  # noqa: E111
+    """Return a runtime data stub that passes runtime_data validation."""
 
-    runtime_data = _FakeRuntimeData()  # noqa: E111
-    runtime_data.performance_stats = performance_stats  # noqa: E111
-    runtime_data.coordinator = coordinator  # noqa: E111
-    runtime_data.script_manager = script_manager  # noqa: E111
-    return runtime_data  # noqa: E111
+    runtime_data = _FakeRuntimeData()
+    runtime_data.performance_stats = performance_stats
+    runtime_data.coordinator = coordinator
+    runtime_data.script_manager = script_manager
+    return runtime_data
 
 
 def _install_entry(hass: Any, entry: ConfigEntry) -> None:
-    """Install a config entry into the Home Assistant stub."""  # noqa: E111
+    """Install a config entry into the Home Assistant stub."""
 
-    hass.config_entries.async_entries = lambda domain=None: (  # noqa: E111
+    hass.config_entries.async_entries = lambda domain=None: (
         [entry] if domain == DOMAIN else []
     )
 
@@ -64,15 +64,15 @@ def _install_entry(hass: Any, entry: ConfigEntry) -> None:
 async def test_system_health_info_reports_guard_breaker_runtime_store(
     hass: Any,
 ) -> None:
-    """System health should expose guard, breaker, and runtime store telemetry."""  # noqa: E111
+    """System health should expose guard, breaker, and runtime store telemetry."""
 
-    entry = ConfigEntry(  # noqa: E111
+    entry = ConfigEntry(
         domain=DOMAIN,
         data={},
         options={"external_api_quota": 10},
     )
-    coordinator = _Coordinator({"performance_metrics": {"api_calls": "5"}})  # noqa: E111
-    performance_stats = {  # noqa: E111
+    coordinator = _Coordinator({"performance_metrics": {"api_calls": "5"}})
+    performance_stats = {
         "service_guard_metrics": {
             "executed": "4",
             "skipped": "2",
@@ -109,46 +109,46 @@ async def test_system_health_info_reports_guard_breaker_runtime_store(
             },
         },
     }
-    runtime_data = _make_runtime_data(  # noqa: E111
+    runtime_data = _make_runtime_data(
         performance_stats=performance_stats,
         coordinator=coordinator,
     )
-    entry.runtime_data = runtime_data  # noqa: E111
-    _install_entry(hass, entry)  # noqa: E111
-    hass.data[DOMAIN] = {  # noqa: E111
+    entry.runtime_data = runtime_data
+    _install_entry(hass, entry)
+    hass.data[DOMAIN] = {
         entry.entry_id: DomainRuntimeStoreEntry(runtime_data=runtime_data),
     }
 
-    info = await system_health_info(hass)  # noqa: E111
+    info = await system_health_info(hass)
 
-    assert info["remaining_quota"] == 5  # noqa: E111
-    guard_summary = info["service_execution"]["guard_summary"]  # noqa: E111
-    assert guard_summary["executed"] == 4  # noqa: E111
-    assert guard_summary["skipped"] == 2  # noqa: E111
-    assert guard_summary["total_calls"] == 6  # noqa: E111
-    assert guard_summary["indicator"]["level"] == "warning"  # noqa: E111
-    assert guard_summary["top_reasons"][0]["reason"] == "missing_instance"  # noqa: E111
-    assert guard_summary["top_reasons"][0]["count"] == 2  # noqa: E111
+    assert info["remaining_quota"] == 5
+    guard_summary = info["service_execution"]["guard_summary"]
+    assert guard_summary["executed"] == 4
+    assert guard_summary["skipped"] == 2
+    assert guard_summary["total_calls"] == 6
+    assert guard_summary["indicator"]["level"] == "warning"
+    assert guard_summary["top_reasons"][0]["reason"] == "missing_instance"
+    assert guard_summary["top_reasons"][0]["count"] == 2
 
-    breaker_overview = info["service_execution"]["breaker_overview"]  # noqa: E111
-    assert breaker_overview["status"] == "open"  # noqa: E111
-    assert breaker_overview["open_breaker_count"] == 1  # noqa: E111
-    assert breaker_overview["indicator"]["level"] == "warning"  # noqa: E111
+    breaker_overview = info["service_execution"]["breaker_overview"]
+    assert breaker_overview["status"] == "open"
+    assert breaker_overview["open_breaker_count"] == 1
+    assert breaker_overview["indicator"]["level"] == "warning"
 
-    runtime_store = info["runtime_store"]  # noqa: E111
-    assert runtime_store["status"] == "current"  # noqa: E111
-    assert info["runtime_store_assessment"]["level"] == "watch"  # noqa: E111
-    assert info["runtime_store_timeline_summary"]["total_events"] == 1  # noqa: E111
+    runtime_store = info["runtime_store"]
+    assert runtime_store["status"] == "current"
+    assert info["runtime_store_assessment"]["level"] == "watch"
+    assert info["runtime_store_timeline_summary"]["total_events"] == 1
 
 
 @pytest.mark.asyncio
 async def test_system_health_info_coerces_unexpected_types(hass: Any) -> None:
-    """System health should coerce malformed telemetry safely."""  # noqa: E111
+    """System health should coerce malformed telemetry safely."""
 
-    entry = ConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    coordinator = _Coordinator({"performance_metrics": {"api_calls": None}})  # noqa: E111
-    coordinator.use_external_api = False  # noqa: E111
-    performance_stats = {  # noqa: E111
+    entry = ConfigEntry(domain=DOMAIN, data={}, options={})
+    coordinator = _Coordinator({"performance_metrics": {"api_calls": None}})
+    coordinator.use_external_api = False
+    performance_stats = {
         "service_guard_metrics": {
             "executed": "bad",
             "skipped": None,
@@ -162,26 +162,26 @@ async def test_system_health_info_coerces_unexpected_types(hass: Any) -> None:
             "rejection_rate": "0.1",
         },
     }
-    runtime_data = _make_runtime_data(  # noqa: E111
+    runtime_data = _make_runtime_data(
         performance_stats=performance_stats,
         coordinator=coordinator,
     )
-    entry.runtime_data = runtime_data  # noqa: E111
-    _install_entry(hass, entry)  # noqa: E111
-    hass.data[DOMAIN] = {  # noqa: E111
+    entry.runtime_data = runtime_data
+    _install_entry(hass, entry)
+    hass.data[DOMAIN] = {
         entry.entry_id: DomainRuntimeStoreEntry(runtime_data=runtime_data),
     }
 
-    info = await system_health_info(hass)  # noqa: E111
+    info = await system_health_info(hass)
 
-    assert info["remaining_quota"] == "unlimited"  # noqa: E111
-    guard_summary = info["service_execution"]["guard_summary"]  # noqa: E111
-    assert guard_summary["executed"] == 0  # noqa: E111
-    assert guard_summary["skipped"] == 0  # noqa: E111
-    assert guard_summary["reasons"]["missing_instance"] == 0  # noqa: E111
+    assert info["remaining_quota"] == "unlimited"
+    guard_summary = info["service_execution"]["guard_summary"]
+    assert guard_summary["executed"] == 0
+    assert guard_summary["skipped"] == 0
+    assert guard_summary["reasons"]["missing_instance"] == 0
 
-    breaker_overview = info["service_execution"]["breaker_overview"]  # noqa: E111
-    assert breaker_overview["open_breaker_count"] == 0  # noqa: E111
-    assert breaker_overview["half_open_breaker_count"] == 0  # noqa: E111
-    assert breaker_overview["rejection_breaker_count"] == 2  # noqa: E111
-    assert breaker_overview["status"] == "monitoring"  # noqa: E111
+    breaker_overview = info["service_execution"]["breaker_overview"]
+    assert breaker_overview["open_breaker_count"] == 0
+    assert breaker_overview["half_open_breaker_count"] == 0
+    assert breaker_overview["rejection_breaker_count"] == 2
+    assert breaker_overview["status"] == "monitoring"

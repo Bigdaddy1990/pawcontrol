@@ -75,7 +75,9 @@ class PawControlCoordinator(
     DataUpdateCoordinator[paw_types.CoordinatorDataPayload],
 ):
     """Central orchestrator that keeps runtime logic in dedicated helpers."""
+
     _options: paw_types.ConfigEntryOptionsPayload
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -189,6 +191,7 @@ class PawControlCoordinator(
         except ValidationError as err:
             _LOGGER.warning("Invalid update interval configuration: %s", err)
             return UPDATE_INTERVALS.get("balanced", 120)
+
     def _build_api_client(
         self,
         *,
@@ -262,6 +265,7 @@ class PawControlCoordinator(
 
         if hasattr(data_manager, "set_metrics_sink"):
             data_manager.set_metrics_sink(self._metrics)
+
     def clear_runtime_managers(self) -> None:
         """Detach runtime managers during teardown or reload."""
         coordinator_support.clear_runtime_managers(self, self._modules)
@@ -301,13 +305,13 @@ class PawControlCoordinator(
         try:
             data, _cycle = await self._execute_cycle(dog_ids)
         except ConfigEntryAuthFailed:
-            # Propagate configuration auth failures directly.  # noqa: E114
+            # Propagate configuration auth failures directly.
             raise
         except UpdateFailed:
-            # Propagate known update failures  # noqa: E114
+            # Propagate known update failures
             raise
         except Exception as err:
-            # Log and wrap unknown exceptions into CoordinatorUpdateFailed  # noqa: E114
+            # Log and wrap unknown exceptions into CoordinatorUpdateFailed
             _LOGGER.error(
                 "Unhandled error during coordinator update: %s (%s)",
                 err,
@@ -520,6 +524,7 @@ class PawControlCoordinator(
                 await result
         else:  # pragma: no cover - exercised via lightweight test stubs
             self.data = updated_payload
+
     async def _synchronize_module_states(
         self, data: paw_types.CoordinatorDataPayload
     ) -> None:
@@ -554,6 +559,7 @@ class PawControlCoordinator(
                 garden_manager.build_garden_snapshot(dog_id),
             )
             data[dog_id] = cast(paw_types.CoordinatorDogData, mutable_payload)
+
     @property
     def available(self) -> bool:
         """Return True if the coordinator considers itself healthy."""

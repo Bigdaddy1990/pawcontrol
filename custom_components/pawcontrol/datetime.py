@@ -47,6 +47,8 @@ _LOGGER = logging.getLogger(__name__)
 def _dt_now() -> datetime:
     """Return the current datetime using available Home Assistant helpers."""
     return dt_util.now() if hasattr(dt_util, "now") else dt_util.utcnow()
+
+
 # Date/time helpers write settings back to Paw Control. The coordinator
 # serialises writes, so we lift the entity-level cap and let Home Assistant run
 # updates in parallel when possible.
@@ -77,7 +79,7 @@ async def _async_add_entities_in_batches(
         batch_size,
     )
 
-    # Process entities in batches  # noqa: E114
+    # Process entities in batches
     for i in range(0, total_entities, batch_size):
         batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
@@ -100,6 +102,8 @@ async def _async_add_entities_in_batches(
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
             await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -205,8 +209,8 @@ async def async_setup_entry(
                 ],
             )
 
-    # Add entities in smaller batches to prevent Entity Registry overload  # noqa: E114
-    # With 48+ datetime entities (2 dogs), batching prevents Registry flooding  # noqa: E114, E501
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 48+ datetime entities (2 dogs), batching prevents Registry flooding  # noqa: E501
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
     _LOGGER.info(
         "Created %d datetime entities for %d dogs using batched approach",
@@ -217,6 +221,7 @@ async def async_setup_entry(
 
 class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEntity):
     """Base class for Paw Control datetime entities."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -260,6 +265,7 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
             last_state := await self.async_get_last_state()
         ) is not None and last_state.state not in ("unknown", "unavailable"):
             self._current_value = ensure_utc_datetime(last_state.state)
+
     async def async_set_value(self, value: datetime) -> None:
         """Set new datetime value."""
         self._current_value = value
@@ -274,6 +280,7 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
 
 class PawControlBirthdateDateTime(PawControlDateTimeBase):
     """DateTime entity for dog birthdate."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -302,6 +309,7 @@ class PawControlBirthdateDateTime(PawControlDateTimeBase):
 
 class PawControlAdoptionDateDateTime(PawControlDateTimeBase):
     """DateTime entity for adoption date."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -315,6 +323,7 @@ class PawControlAdoptionDateDateTime(PawControlDateTimeBase):
 
 class PawControlBreakfastTimeDateTime(PawControlDateTimeBase):
     """DateTime entity for breakfast time."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -333,6 +342,7 @@ class PawControlBreakfastTimeDateTime(PawControlDateTimeBase):
 
 class PawControlLunchTimeDateTime(PawControlDateTimeBase):
     """DateTime entity for lunch time."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -351,6 +361,7 @@ class PawControlLunchTimeDateTime(PawControlDateTimeBase):
 
 class PawControlDinnerTimeDateTime(PawControlDateTimeBase):
     """DateTime entity for dinner time."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -369,6 +380,7 @@ class PawControlDinnerTimeDateTime(PawControlDateTimeBase):
 
 class PawControlLastFeedingDateTime(PawControlDateTimeBase):
     """DateTime entity for last feeding (read-only)."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -413,8 +425,11 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
             },
         ):
             return
+
+
 class PawControlNextFeedingDateTime(PawControlDateTimeBase):
     """DateTime entity for next feeding reminder."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -471,6 +486,7 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
 
 class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
     """DateTime entity for last vet visit."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -509,8 +525,11 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
             },
         ):
             return
+
+
 class PawControlNextVetAppointmentDateTime(PawControlDateTimeBase):
     """DateTime entity for next vet appointment."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -535,6 +554,7 @@ class PawControlNextVetAppointmentDateTime(PawControlDateTimeBase):
 
 class PawControlLastGroomingDateTime(PawControlDateTimeBase):
     """DateTime entity for last grooming session."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -583,8 +603,11 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
             },
         ):
             return
+
+
 class PawControlNextGroomingDateTime(PawControlDateTimeBase):
     """DateTime entity for next grooming appointment."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -598,6 +621,7 @@ class PawControlNextGroomingDateTime(PawControlDateTimeBase):
 
 class PawControlLastMedicationDateTime(PawControlDateTimeBase):
     """DateTime entity for last medication."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -623,8 +647,11 @@ class PawControlLastMedicationDateTime(PawControlDateTimeBase):
             },
         ):
             return
+
+
 class PawControlNextMedicationDateTime(PawControlDateTimeBase):
     """DateTime entity for next medication reminder."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -649,6 +676,7 @@ class PawControlNextMedicationDateTime(PawControlDateTimeBase):
 
 class PawControlLastWalkDateTime(PawControlDateTimeBase):
     """DateTime entity for last walk."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -691,8 +719,11 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
             {ATTR_DOG_ID: self._dog_id},
         ):
             return
+
+
 class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
     """DateTime entity for next walk reminder."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -717,6 +748,7 @@ class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
 
 class PawControlVaccinationDateDateTime(PawControlDateTimeBase):
     """DateTime entity for vaccination dates."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -741,8 +773,11 @@ class PawControlVaccinationDateDateTime(PawControlDateTimeBase):
             },
         ):
             return
+
+
 class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
     """DateTime entity for training sessions."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -767,8 +802,11 @@ class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
             },
         ):
             return
+
+
 class PawControlEmergencyDateTime(PawControlDateTimeBase):
     """DateTime entity for emergency events."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -789,7 +827,7 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
             "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                "note": f"EMERGENCY EVENT recorded for {value.strftime('%Y-%m-%d %H:%M')}",
+                "note": f"EMERGENCY EVENT recorded for {value.strftime('%Y-%m-%d %H:%M')}",  # noqa: E501
             },
         ):
             return
