@@ -1599,7 +1599,7 @@ class PawControlScriptManager:
 
     return self.get_last_manual_event_snapshot()
 
-  @callback  # noqa: E111
+  @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
   def _handle_manual_event(self, event: Event) -> None:  # noqa: E111
     """Capture metadata for manual resilience triggers."""
 

@@ -169,7 +169,7 @@ async def async_setup_external_bindings(
     if dog_id_str in bindings:
       continue  # noqa: E111
 
-    @callback
+    @callback  # type: ignore[untyped-decorator,misc]
     def _on_change(
       event: Event,
       dog_id: str = dog_id_str,

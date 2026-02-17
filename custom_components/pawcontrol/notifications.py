@@ -31,7 +31,7 @@ from .coordinator_tasks import default_rejection_metrics
 from .dashboard_shared import unwrap_async_result
 from .feeding_translations import async_build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
-from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
+from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager  # type: ignore[attr-defined]
 from .resilience import CircuitBreakerConfig, ResilienceManager
 from .runtime_data import get_runtime_data
 from .telemetry import ensure_runtime_performance_stats

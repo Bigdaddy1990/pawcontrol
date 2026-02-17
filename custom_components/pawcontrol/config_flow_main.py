@@ -2669,7 +2669,7 @@ class PawControlConfigFlow(
     return "Current configuration supports all profiles"
 
   @staticmethod  # noqa: E111
-  @callback  # noqa: E111
+  @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
   def async_get_options_flow(config_entry: ConfigEntry) -> PawControlOptionsFlow:  # noqa: E111
     """Create options flow.
 

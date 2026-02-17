@@ -669,6 +669,9 @@ class WalkManager:
   ) -> str | None:
     """Start a walk with optimized data structure.
 
+    Public entry point: acquires the data lock, then delegates to the
+    lock-free helper ``_start_walk_locked``.
+
     OPTIMIZE: Enhanced with better initial data structure and validation.
 
     Args:
@@ -682,135 +685,171 @@ class WalkManager:
         Walk ID if successful, None otherwise
     """
     async with self._data_lock:
-      if dog_id not in self._walk_data:  # noqa: E111
-        _LOGGER.warning(
-          "Dog %s not initialized for walk tracking",
-          dog_id,
-        )
-        raise KeyError(dog_id)
-
-      if dog_id in self._current_walks:  # noqa: E111
-        _LOGGER.info(
-          "Walk already in progress for %s - ending existing session",
-          dog_id,
-        )
-        await self._finalize_walk_locked(dog_id)
-
-      now = dt_util.utcnow()  # noqa: E111
-      counter = self._session_counters.get(dog_id, 0) + 1  # noqa: E111
-      self._session_counters[dog_id] = counter  # noqa: E111
-      walk_id = f"{dog_id}_{int(now.timestamp())}_{counter}"  # noqa: E111
-
-      weather_condition: WeatherCondition | None = None  # noqa: E111
-      if isinstance(weather, WeatherCondition):  # noqa: E111
-        weather_condition = weather
-      elif isinstance(weather, str):  # noqa: E111
-        try:
-          weather_condition = WeatherCondition(weather)  # noqa: E111
-        except ValueError:
-          _LOGGER.warning(  # noqa: E111
-            "Ignoring unknown weather condition '%s' for %s",
-            weather,
-            dog_id,
-          )
-
-      leash_flag = True if leash_used is None else bool(leash_used)  # noqa: E111
-
-      confidence_value: float | None = None  # noqa: E111
-      if detection_confidence is not None:  # noqa: E111
-        try:
-          confidence_value = max(  # noqa: E111
-            0.0,
-            min(float(detection_confidence), 1.0),
-          )
-        except ValueError:
-          confidence_value = None  # noqa: E111
-        except TypeError:
-          confidence_value = None  # noqa: E111
-
-      detection_payload: WalkDetectionMutableMetadata | None = None  # noqa: E111
-      if detection_metadata:  # noqa: E111
-        try:
-          detection_payload = cast(  # noqa: E111
-            WalkDetectionMutableMetadata,
-            {
-              str(key): value
-              for key, value in dict(detection_metadata).items()
-            },
-          )
-        except Exception:  # pragma: no cover - defensive
-          detection_payload = None  # noqa: E111
-
-      # OPTIMIZE: Get current location from cache first  # noqa: E114
-      start_location = None  # noqa: E111
-      cached_location = self._gps_cache.get_location(dog_id)  # noqa: E111
-      if cached_location is not None:  # noqa: E111
-        start_location = cast(
-          WalkLocationSnapshot,
-          {
-            "latitude": cached_location[0],
-            "longitude": cached_location[1],
-            "accuracy": self._gps_data[dog_id].get("accuracy"),
-            "timestamp": cached_location[2].isoformat(),
-          },
-        )
-      elif dog_id in self._gps_data and self._gps_data[dog_id]["available"]:  # noqa: E111
-        start_location = cast(
-          WalkLocationSnapshot,
-          {
-            "latitude": self._gps_data[dog_id]["latitude"],
-            "longitude": self._gps_data[dog_id]["longitude"],
-            "accuracy": self._gps_data[dog_id]["accuracy"],
-            "timestamp": now.isoformat(),
-          },
-        )
-
-      # OPTIMIZE: Pre-allocate path with capacity limit  # noqa: E114
-      session = WalkSession(  # noqa: E111
-        walk_id=walk_id,
-        dog_id=dog_id,
-        walk_type=walk_type,
-        start_time=now,
+      return await self._start_walk_locked(  # noqa: E111
+        dog_id,
+        walk_type,
         walker=walker,
-        leash_used=leash_flag,
-        weather=weather_condition,
+        leash_used=leash_used,
+        weather=weather,
         track_route=track_route,
         safety_alerts=safety_alerts,
-        start_location=start_location,
-        detection_confidence=confidence_value,
+        detection_confidence=detection_confidence,
         door_sensor=door_sensor,
-        detection_metadata=detection_payload,
+        detection_metadata=detection_metadata,
       )
 
-      walk_data: WalkSessionSnapshot = session.as_dict()  # noqa: E111
-      walk_data["path_optimization_applied"] = False  # noqa: E111
-      walk_data["track_route"] = track_route  # noqa: E111
-      walk_data["safety_alerts"] = safety_alerts  # noqa: E111
-      if confidence_value is not None:  # noqa: E111
-        walk_data["detection_confidence"] = confidence_value
-      if door_sensor is not None:  # noqa: E111
-        walk_data["door_sensor"] = door_sensor
-      if detection_payload is not None:  # noqa: E111
-        walk_data["detection_metadata"] = detection_payload
+  async def _start_walk_locked(  # noqa: E111
+    self,
+    dog_id: str,
+    walk_type: str = "manual",
+    *,
+    walker: str | None = None,
+    leash_used: bool | None = None,
+    weather: WeatherCondition | str | None = None,
+    track_route: bool = True,
+    safety_alerts: bool = True,
+    detection_confidence: float | None = None,
+    door_sensor: str | None = None,
+    detection_metadata: (
+      WalkDetectionMetadata | WalkDetectionMutableMetadata | None
+    ) = None,
+  ) -> str | None:
+    """Start a walk while the data lock is already held by the caller.
 
-      self._current_walks[dog_id] = walk_data  # noqa: E111
+    BUG FIX: Extracted from async_start_walk so that callers that already
+    hold self._data_lock (e.g. _process_walk_detection_optimized, called from
+    inside async_update_gps_data) can start a walk without trying to re-acquire
+    the non-reentrant asyncio.Lock, which would deadlock indefinitely.
 
-      # Update walk status  # noqa: E114
-      self._walk_data[dog_id]["walk_in_progress"] = True  # noqa: E111
-      self._walk_data[dog_id]["current_walk"] = walk_data  # noqa: E111
-      self._update_dog_container(dog_id)  # noqa: E111
-      self._dogs[dog_id]["active_walk"] = walk_data  # noqa: E111
-
-      _LOGGER.info(  # noqa: E111
-        "Started %s walk for %s (ID: %s, walker: %s, weather: %s, leash_used: %s)",
-        walk_type,
+    Must only be called while self._data_lock is held.
+    """
+    if dog_id not in self._walk_data:  # noqa: E111
+      _LOGGER.warning(
+        "Dog %s not initialized for walk tracking",
         dog_id,
-        walk_id,
-        walker or "unknown",
-        weather_condition.value if weather_condition else "unspecified",
-        "yes" if leash_flag else "no",
       )
-      return walk_id  # noqa: E111
+      raise KeyError(dog_id)
+
+    if dog_id in self._current_walks:  # noqa: E111
+      _LOGGER.info(
+        "Walk already in progress for %s - ending existing session",
+        dog_id,
+      )
+      await self._finalize_walk_locked(dog_id)
+
+    now = dt_util.utcnow()  # noqa: E111
+    counter = self._session_counters.get(dog_id, 0) + 1  # noqa: E111
+    self._session_counters[dog_id] = counter  # noqa: E111
+    walk_id = f"{dog_id}_{int(now.timestamp())}_{counter}"  # noqa: E111
+
+    weather_condition: WeatherCondition | None = None  # noqa: E111
+    if isinstance(weather, WeatherCondition):  # noqa: E111
+      weather_condition = weather
+    elif isinstance(weather, str):  # noqa: E111
+      try:
+        weather_condition = WeatherCondition(weather)  # noqa: E111
+      except ValueError:
+        _LOGGER.warning(  # noqa: E111
+          "Ignoring unknown weather condition '%s' for %s",
+          weather,
+          dog_id,
+        )
+
+    leash_flag = True if leash_used is None else bool(leash_used)  # noqa: E111
+
+    confidence_value: float | None = None  # noqa: E111
+    if detection_confidence is not None:  # noqa: E111
+      try:
+        confidence_value = max(  # noqa: E111
+          0.0,
+          min(float(detection_confidence), 1.0),
+        )
+      except (ValueError, TypeError):
+        confidence_value = None  # noqa: E111
+
+    detection_payload: WalkDetectionMutableMetadata | None = None  # noqa: E111
+    if detection_metadata:  # noqa: E111
+      try:
+        detection_payload = cast(  # noqa: E111
+          WalkDetectionMutableMetadata,
+          {
+            str(key): value
+            for key, value in dict(detection_metadata).items()
+          },
+        )
+      except Exception:  # pragma: no cover - defensive
+        detection_payload = None  # noqa: E111
+
+    # OPTIMIZE: Get current location from cache first  # noqa: E114
+    start_location = None  # noqa: E111
+    cached_location = self._gps_cache.get_location(dog_id)  # noqa: E111
+    if cached_location is not None:  # noqa: E111
+      start_location = cast(
+        WalkLocationSnapshot,
+        {
+          "latitude": cached_location[0],
+          "longitude": cached_location[1],
+          "accuracy": self._gps_data[dog_id].get("accuracy"),
+          "timestamp": cached_location[2].isoformat(),
+        },
+      )
+    elif dog_id in self._gps_data and self._gps_data[dog_id]["available"]:  # noqa: E111
+      start_location = cast(
+        WalkLocationSnapshot,
+        {
+          "latitude": self._gps_data[dog_id]["latitude"],
+          "longitude": self._gps_data[dog_id]["longitude"],
+          "accuracy": self._gps_data[dog_id]["accuracy"],
+          "timestamp": now.isoformat(),
+        },
+      )
+
+    # OPTIMIZE: Pre-allocate path with capacity limit  # noqa: E114
+    session = WalkSession(  # noqa: E111
+      walk_id=walk_id,
+      dog_id=dog_id,
+      walk_type=walk_type,
+      start_time=now,
+      walker=walker,
+      leash_used=leash_flag,
+      weather=weather_condition,
+      track_route=track_route,
+      safety_alerts=safety_alerts,
+      start_location=start_location,
+      detection_confidence=confidence_value,
+      door_sensor=door_sensor,
+      detection_metadata=detection_payload,
+    )
+
+    walk_data: WalkSessionSnapshot = session.as_dict()  # noqa: E111
+    walk_data["path_optimization_applied"] = False  # noqa: E111
+    walk_data["track_route"] = track_route  # noqa: E111
+    walk_data["safety_alerts"] = safety_alerts  # noqa: E111
+    if confidence_value is not None:  # noqa: E111
+      walk_data["detection_confidence"] = confidence_value
+    if door_sensor is not None:  # noqa: E111
+      walk_data["door_sensor"] = door_sensor
+    if detection_payload is not None:  # noqa: E111
+      walk_data["detection_metadata"] = detection_payload
+
+    self._current_walks[dog_id] = walk_data  # noqa: E111
+
+    # Update walk status  # noqa: E114
+    self._walk_data[dog_id]["walk_in_progress"] = True  # noqa: E111
+    self._walk_data[dog_id]["current_walk"] = walk_data  # noqa: E111
+    self._update_dog_container(dog_id)  # noqa: E111
+    self._dogs[dog_id]["active_walk"] = walk_data  # noqa: E111
+
+    _LOGGER.info(  # noqa: E111
+      "Started %s walk for %s (ID: %s, walker: %s, weather: %s, leash_used: %s)",
+      walk_type,
+      dog_id,
+      walk_id,
+      walker or "unknown",
+      weather_condition.value if weather_condition else "unspecified",
+      "yes" if leash_flag else "no",
+    )
+    return walk_id  # noqa: E111
 
   async def _finalize_walk_locked(  # noqa: E111
     self,
@@ -1031,7 +1070,12 @@ class WalkManager:
 
     # Check if movement indicates start of walk
     if movement_threshold_met and speed_threshold_met and not_already_walking:
-      await self.async_start_walk(dog_id, "auto_detected")  # noqa: E111
+      # BUG FIX: async_start_walk acquires self._data_lock, but this method is
+      # called from inside async_update_gps_data which already holds that lock.
+      # asyncio.Lock is NOT reentrant → calling async_start_walk here caused a
+      # deadlock on every auto-detected walk start, hanging the entire integration.
+      # Fix: use the lock-free internal helper _start_walk_locked instead.
+      await self._start_walk_locked(dog_id, "auto_detected")  # noqa: E111
       _LOGGER.debug(  # noqa: E111
         "Auto-detected walk start for %s: distance=%.1fm, speed=%.1fkm/h",
         dog_id,

@@ -238,7 +238,7 @@ def _migrate_v1_to_v2(
   if modules_config:  # noqa: E111
     for dog in normalized_dogs:
       if DOG_MODULES_FIELD not in dog:  # noqa: E111
-        dog[DOG_MODULES_FIELD] = dict(modules_config)
+        dog[DOG_MODULES_FIELD] = dict(modules_config)  # type: ignore[typeddict-item]
 
   data_dog_options = data.pop(CONF_DOG_OPTIONS, None)  # noqa: E111
   merged_options = _normalize_dog_options(data_dog_options)  # noqa: E111

@@ -146,7 +146,7 @@ def _issue_registry_supports_kwarg(
   """Return True when the issue registry supports a keyword argument."""  # noqa: E111
 
   try:  # noqa: E111
-    params = signature(create_issue).parameters.values()
+    params = signature(create_issue).parameters.values()  # type: ignore[arg-type]
   except ValueError:  # noqa: E111
     return False
   except TypeError:  # noqa: E111
@@ -1191,7 +1191,7 @@ async def _check_notification_delivery_errors(
       if callable(delete_issue):  # noqa: E111
         await delete_issue(hass, DOMAIN, definition["issue_id"])
       continue  # noqa: E111
-    issue_data: JSONMutableMapping = {
+    issue_data: JSONMutableMapping = {  # type: ignore[no-redef]
       "classification": classification,
       "services": ", ".join(sorted(services_list)),
       "service_count": len(services_list),

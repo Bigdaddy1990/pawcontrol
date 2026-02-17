@@ -281,7 +281,7 @@ class ReauthFlowMixin(ReauthFlowHost):
     for dog in dogs:
       try:  # noqa: E111
         validate_dog_config_payload(
-          cast(Mapping[str, object], dog),
+          cast(Mapping[str, object], dog),  # type: ignore[arg-type]
           existing_ids=None,
           existing_names=None,
         )
@@ -348,7 +348,7 @@ class ReauthFlowMixin(ReauthFlowHost):
 
             try:
               async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):  # noqa: E111
-                summary = cast(
+                summary = cast(  # type: ignore[redundant-cast]
                   ReauthHealthSummary,
                   await self._check_config_health_enhanced(
                     self.reauth_entry,
@@ -441,7 +441,7 @@ class ReauthFlowMixin(ReauthFlowHost):
     if summary is None:
       try:  # noqa: E111
         async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
-          summary = cast(  # noqa: E111
+          summary = cast(  # type: ignore[redundant-cast]    # noqa: E111
             ReauthHealthSummary,
             await self._check_config_health_enhanced(self.reauth_entry),
           )
@@ -586,7 +586,7 @@ class ReauthFlowMixin(ReauthFlowHost):
 
     try:
       async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):  # noqa: E111
-        summary = cast(
+        summary = cast(  # type: ignore[redundant-cast]
           ReauthHealthSummary,
           await self._check_config_health_enhanced(entry),
         )

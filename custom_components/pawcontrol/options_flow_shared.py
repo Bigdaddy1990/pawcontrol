@@ -344,7 +344,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
     )
 
     merged_candidate = cast(ConfigEntryOptionsPayload, dict(self._clone_options()))
-    merged_candidate.update(sanitised_options)
+    merged_candidate.update(sanitised_options)  # type: ignore[typeddict-item]
     merged_options = self._normalise_options_snapshot(merged_candidate)
 
     dogs_raw = payload.get("dogs", [])
@@ -362,7 +362,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
       )
       try:  # noqa: E111
         validated = validate_dog_config_payload(
-          cast(Mapping[str, object], normalised),
+          cast(Mapping[str, object], normalised),  # type: ignore[arg-type]
           existing_ids=seen_ids,
           existing_names=None,
         )
@@ -370,7 +370,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         raise FlowValidationError(
           field_errors={"payload": self._map_import_payload_error(err)},
         ) from err
-      dog_id = validated[CONF_DOG_ID]  # noqa: E111
+      dog_id = validated[CONF_DOG_ID]  # type: ignore[literal-required]    # noqa: E111
       seen_ids.add(dog_id)  # noqa: E111
       dogs_payload.append(validated)  # noqa: E111
 

@@ -130,7 +130,7 @@ class PawControlOptionsFlow(
   GPSOptionsMixin,
   FeedingOptionsMixin,
   HealthOptionsMixin,
-  OptionsFlow,
+  OptionsFlow,  # type: ignore[misc]
 ):
   """Handle options flow for Paw Control integration with Platinum UX goals.
 

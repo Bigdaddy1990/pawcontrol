@@ -380,7 +380,7 @@ class _CoordinatorResolver:
     )
 
 
-@callback
+@callback  # type: ignore[untyped-decorator,misc]
 def _coordinator_resolver(hass: HomeAssistant) -> _CoordinatorResolver:
   """Return a coordinator resolver stored within Home Assistant data."""  # noqa: E111
 
@@ -1333,7 +1333,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
   if callable(remove_listener):  # noqa: E111
     remove_listener()
 
-  @callback  # noqa: E111
+  @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
   def _handle_config_entry_state(  # noqa: E111
     change: ConfigEntryChange,
     entry: ConfigEntry,
@@ -5346,7 +5346,7 @@ async def async_setup_daily_reset_scheduler(
   async def _async_run_reset() -> None:  # noqa: E111
     await _perform_daily_reset(hass, entry)
 
-  @callback  # noqa: E111
+  @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
   def _scheduled_reset(_: datetime | None = None) -> None:  # noqa: E111
     hass.async_create_task(_async_run_reset())
 

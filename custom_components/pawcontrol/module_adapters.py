@@ -688,7 +688,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
             for stored_alert in stored_alerts:
               if isinstance(stored_alert, dict):  # noqa: E111
                 health_alerts.append(
-                  cast(
+                  cast(  # type: ignore[redundant-cast]
                     HealthAlertEntry,
                     _normalise_health_alert(stored_alert),
                   ),

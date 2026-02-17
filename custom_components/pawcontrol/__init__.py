@@ -154,7 +154,11 @@ def get_platforms_for_profile_and_modules(
         active_modules.add(module_name)
 
   cache_key = (len(dogs), profile, frozenset(active_modules))  # noqa: E111
-  now = time.time()  # noqa: E111
+  # BUG FIX: _cleanup_platform_cache() uses time.monotonic() for expiry checks.
+  # Using time.time() here made the timestamps incompatible, so entries stored
+  # with time.time() were never expired by _cleanup_platform_cache (which
+  # compares against monotonic values).  Both must use the same clock.
+  now = time.monotonic()  # noqa: E111
   cached = _PLATFORM_CACHE.get(cache_key)  # noqa: E111
   if cached and now - cached[1] <= _CACHE_TTL_SECONDS:  # noqa: E111
     return cached[0]

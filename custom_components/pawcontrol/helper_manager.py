@@ -1053,7 +1053,7 @@ class PawControlHelperManager:
     if reset_time is None:
       return  # noqa: E111
 
-    @callback
+    @callback  # type: ignore[untyped-decorator,misc]
     def _daily_reset(_: datetime | None = None) -> None:
       """Reset feeding toggles daily."""  # noqa: E111
       self._hass.async_create_task(self._async_reset_feeding_toggles())  # noqa: E111

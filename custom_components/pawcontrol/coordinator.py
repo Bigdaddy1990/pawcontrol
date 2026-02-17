@@ -368,20 +368,15 @@ class PawControlCoordinator(
       )
 
     self._data = data
-    # Keep the DataUpdateCoordinator state in sync when callers invoke the
-    # private helper directly during tests.  Home Assistant normally calls
-    # :meth:`async_set_updated_data` after awaiting ``_async_update_data``
-    # but the focused unit tests exercise the method in isolation.  Updating
-    # the coordinator here ensures ``coordinator.data`` mirrors the most
-    # recent payload even when the surrounding refresh workflow is bypassed.
-    updated_payload = dict(self._data)
-    setter = getattr(self, "async_set_updated_data", None)
-    if callable(setter):
-      result = setter(updated_payload)  # noqa: E111
-      if isawaitable(result):  # noqa: E111
-        await result
-    else:  # pragma: no cover - exercised via the lightweight test stubs
-      self.data = updated_payload  # noqa: E111
+    # BUG FIX: Do NOT call async_set_updated_data here.
+    # DataUpdateCoordinator._async_refresh already sets self.data from the
+    # return value of _async_update_data and notifies all listeners.
+    # Calling async_set_updated_data manually caused a DOUBLE notification:
+    #   1) premature broadcast inside this method
+    #   2) second broadcast by the base class after we return
+    # This doubled every entity state-write and recorder write each cycle.
+    # Tests that call _async_update_data() directly should patch the method or
+    # invoke coordinator.async_request_refresh() through the full HA harness.
     return self._data
 
   async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:  # noqa: E111
@@ -694,7 +689,7 @@ class PawControlCoordinator(
       webhook_status=webhook_status,
     )
 
-  @callback  # noqa: E111
+  @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
   def async_start_background_tasks(self) -> None:  # noqa: E111
     """Start recurring background maintenance tasks."""
     ensure_background_task(self, MAINTENANCE_INTERVAL)

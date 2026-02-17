@@ -461,7 +461,7 @@ class _DoorSensorManagerCacheMonitor:
 
     stats_payload_typed = cast(DetectionStatistics, dict(stats_payload))
     stats: DoorSensorManagerStats = {
-      **stats_payload_typed,
+      **stats_payload_typed,  # type: ignore[typeddict-item]
       "configured_sensors": len(per_dog),
       "active_detections": active_detections,
     }
@@ -962,11 +962,15 @@ class DoorSensorManager:
       return  # noqa: E111
 
     # Find which dog this sensor belongs to
+    # BUG FIX: dog_id was initialised to None and never assigned inside the
+    # loop, so the guard below always triggered and every door-sensor event was
+    # silently dropped — walk detection was completely non-functional.
     dog_id: str | None = None
     config = None
     for cfg in self._sensor_configs.values():
       if cfg.entity_id == entity_id:  # noqa: E111
         config = cfg
+        dog_id = cfg.dog_id  # BUG FIX: assign dog_id from the matched config
         break
 
     if dog_id is None or not config or not config.enabled:

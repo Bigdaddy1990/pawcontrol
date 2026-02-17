@@ -466,6 +466,10 @@ def _normalise_health_override(
   return override or None  # noqa: E111
 
 
+# NOTE: FeedingTransitionScheduleEntry and FeedingTransitionData are intentionally
+# defined HERE — before FeedingTransitionResult — because TypedDict annotations are
+# evaluated at class-creation time (no `from __future__ import annotations`).
+# Moving them after FeedingTransitionResult caused a NameError on import.  [BUG FIX]
 class FeedingTransitionScheduleEntry(TypedDict):
   """Daily transition ratios applied while changing diets."""  # noqa: E111
 
@@ -1614,7 +1618,7 @@ class FeedingManager:
         return time(int(parts[0]), int(parts[1]))
       if len(parts) == 3:  # noqa: E111
         return time(int(parts[0]), int(parts[1]), int(parts[2]))
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
       _LOGGER.warning("Failed to parse time: %s", time_str)  # noqa: E111
 
     return None
@@ -2345,7 +2349,7 @@ class FeedingManager:
 
     daily_calorie_target: float | None = None
     if health_summary:
-      daily_calorie_target = cast(  # noqa: E111
+      daily_calorie_target = cast(  # type: ignore[redundant-cast]    # noqa: E111
         float | None,
         health_summary.get("daily_calorie_requirement"),
       )
@@ -2365,7 +2369,7 @@ class FeedingManager:
       if daily_calorie_target:  # noqa: E111
         try:
           progress = (total_calories_today / daily_calorie_target) * 100  # noqa: E111
-        except TypeError, ZeroDivisionError:
+        except (TypeError, ZeroDivisionError):
           calorie_goal_progress = 0.0  # noqa: E111
         else:
           calorie_goal_progress = round(min(progress, 150.0), 1)  # noqa: E111
@@ -2410,7 +2414,7 @@ class FeedingManager:
 
     daily_activity_level: str | None = None
     if health_summary and health_summary.get("activity_level"):
-      daily_activity_level = cast(  # noqa: E111
+      daily_activity_level = cast(  # type: ignore[redundant-cast]    # noqa: E111
         str | None,
         health_summary.get("activity_level"),
       )
@@ -2441,7 +2445,7 @@ class FeedingManager:
               0.0,
               min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
             )
-        except TypeError, ZeroDivisionError:
+        except (TypeError, ZeroDivisionError):
           weight_goal_progress = None  # noqa: E111
 
     emergency_mode: FeedingEmergencyState | None = None
@@ -2495,7 +2499,7 @@ class FeedingManager:
     elif total_calories_today is not None and daily_calorie_target:
       try:  # noqa: E111
         ratio = total_calories_today / daily_calorie_target
-      except TypeError, ZeroDivisionError:  # noqa: E111
+      except (TypeError, ZeroDivisionError):  # noqa: E111
         health_status = "unknown"
       else:  # noqa: E111
         if ratio < 0.85:
@@ -2976,7 +2980,7 @@ class FeedingManager:
       if (activity := health_summary.get("activity_level")) is not None:  # noqa: E111
         health_context["activity_level"] = activity
       if (conditions := health_summary.get("health_conditions")) is not None:  # noqa: E111
-        health_context["health_conditions"] = cast(
+        health_context["health_conditions"] = cast(  # type: ignore[redundant-cast]
           list[str],
           conditions,
         )
@@ -3026,7 +3030,7 @@ class FeedingManager:
         )
 
         feeding_insights: HealthFeedingInsights = HealthFeedingInsights(
-          daily_calorie_target=cast(
+          daily_calorie_target=cast(  # type: ignore[redundant-cast]
             float | None,
             health_summary.get(
               "daily_calorie_requirement",
@@ -3430,7 +3434,7 @@ class FeedingManager:
       updated_schedules = 0  # noqa: E111
       if update_feeding_schedule and config.meal_schedules:  # noqa: E111
         for schedule in config.meal_schedules:
-          if schedule.meal_type in new_portions:  # noqa: E111
+          if schedule.meal_type.value in new_portions:  # type: ignore[comparison-overlap]    # noqa: E111
             old_portion = schedule.portion_size
             schedule.portion_size = new_portions[schedule.meal_type.value]
             if abs(old_portion - schedule.portion_size) > 1.0:  # Significant change

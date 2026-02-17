@@ -81,7 +81,7 @@ from .types import (
   WalkRoutePoint,
   ensure_dog_config_data,
 )
-from .utils import (
+from .utils import (  # type: ignore[attr-defined]
   JSONMappingLike,
   Number,
   _coerce_json_mutable,
@@ -934,7 +934,7 @@ class DogProfile:
 
     try:
       daily_stats = DailyStats.from_dict(  # noqa: E111
-        cast(
+        cast(  # type: ignore[redundant-cast]
           JSONMappingLike | JSONMutableMapping,
           daily_stats_payload or {},
         ),
@@ -1142,7 +1142,7 @@ class PawControlDataManager:
     raw_config = cast(JSONMutableMapping, _coerce_json_mutable(profile.config))
     for section, payload in raw_config.items():
       if section not in typed_config:  # noqa: E111
-        typed_config[section] = payload
+        typed_config[section] = payload  # type: ignore[literal-required]
 
     profile.config = typed_config
     self._dogs_config[dog_id] = typed_config
@@ -1297,7 +1297,7 @@ class PawControlDataManager:
     payload = _coerce_json_mutable(
       cast(JSONMappingLike | JSONMutableMapping, payload),
     )
-    raw_timestamp = payload.pop("timestamp", None)
+    raw_timestamp = payload.pop("timestamp", None)  # type: ignore[union-attr]
     timestamp_value: Any
     timestamp_value = _utcnow() if raw_timestamp is None else raw_timestamp
     serialized_timestamp = _serialize_timestamp(timestamp_value)
@@ -2018,7 +2018,7 @@ class PawControlDataManager:
       if isinstance(raw_value, int | float):  # noqa: E111
         try:
           iso = datetime.fromtimestamp(float(raw_value)).isoformat()  # noqa: E111
-        except OverflowError, ValueError:
+        except (OverflowError, ValueError):
           iso = ""  # noqa: E111
         return (0, iso)
       if isinstance(raw_value, str):  # noqa: E111
@@ -2998,7 +2998,7 @@ class PawControlDataManager:
 
       for section, payload in config.items():  # noqa: E111
         if section not in typed_config:
-          typed_config[section] = payload  # noqa: E111
+          typed_config[section] = payload  # type: ignore[literal-required]    # noqa: E111
 
       profile.config = typed_config  # noqa: E111
       self._dogs_config[dog_id] = typed_config  # noqa: E111

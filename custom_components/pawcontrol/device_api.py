@@ -10,7 +10,7 @@ from .exceptions import ConfigEntryAuthFailed, NetworkError, RateLimitError
 from .http_client import ensure_shared_client_session
 from .resilience import ResilienceManager, RetryConfig
 from .types import JSONMutableMapping
-from .utils import _coerce_json_mutable
+from .utils import _coerce_json_mutable  # type: ignore[attr-defined]
 
 _DEFAULT_TIMEOUT = ClientTimeout(total=15.0)
 
