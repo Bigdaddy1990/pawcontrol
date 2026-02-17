@@ -48,6 +48,23 @@ python -m scripts.hassfest \
 python -m scripts.sync_contributor_guides           # Refresh assistant copies
 ```
 
+### Python modernization CI path (required)
+
+When touching typing upgrades, syntax migrations, or hook configuration, keep
+`.github/workflows/python-modernization.yml` green. The workflow is the
+required PR gate and must run these commands in order:
+
+```bash
+pre-commit run --all-files
+pre-commit run --hook-stage manual python-typing-update --all-files
+python -m mypy custom_components/pawcontrol
+```
+
+For automated branch remediation we also maintain
+`.github/workflows/python-modernization-autofix.yml`. It is intentionally
+limited to pushes where the branch head commit is bot-authored so that PR
+checks remain strict and never auto-commit reviewer-facing changes.
+
 ## Bot policy (strict)
 
 All automated assistants, bots, and code generation tools **must** follow the

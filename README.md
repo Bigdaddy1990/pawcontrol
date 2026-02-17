@@ -1287,6 +1287,24 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
    localization flag sync check to block outdated translations before review.
 6. **Submit PR**: Detailed description with test results
 
+### Verbindlicher Python-Modernisierungs-Pfad (CI)
+
+Für Typing-Upgrades und Python-Modernisierungen ist der Workflow
+`.github/workflows/python-modernization.yml` verpflichtend. Er läuft auf
+`pull_request` (und optional manuell via `workflow_dispatch`) und führt exakt
+diese Schritte aus:
+
+1. Checkout + Python-Setup 3.14
+2. Installation von `pre-commit` sowie Projektabhängigkeiten
+3. `pre-commit run --all-files`
+4. `pre-commit run --hook-stage manual python-typing-update --all-files`
+5. `python -m mypy custom_components/pawcontrol`
+
+Ergänzend steht `.github/workflows/python-modernization-autofix.yml` als
+separater Auto-Fix-Workflow bereit. Dieser darf nur bei bot-authored
+Branch-Commits Änderungen zurückschreiben; PR-Checks bleiben strikt und
+schlagen bei Verstößen weiterhin fehl.
+
 #### Adding new PawControl languages
 
 Follow this checklist when onboarding a new locale so diagnostics, tests, and
