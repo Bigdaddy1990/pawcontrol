@@ -1,0 +1,44 @@
+name: Python Modernization
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-modernization-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  modernization-check:
+    name: Modernization checks (Python 3.14)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements_test.txt
+          python -m pip install --upgrade pre-commit mypy
+
+      - name: Run full pre-commit suite
+        run: pre-commit run --all-files
+
+      - name: Run targeted typing modernization hook
+        run: pre-commit run --hook-stage manual python-typing-update --all-files
+
+      - name: Run mypy on integration package
+        run: python -m mypy custom_components/pawcontrol
