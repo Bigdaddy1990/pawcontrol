@@ -44,39 +44,11 @@ target-version = "py314"
 line-length = 88
 src = ["custom_components", "scripts", "tests"]
 cache-dir = "~/.cache/ruff"
-indent-width = 2
+indent-width = 4
 show-fixes = true
 fix = true
 unsafe-fixes = true
 force-exclude = true
-exclude = [
-  ".bzr",
-  ".direnv",
-  ".eggs",
-  ".git",
-  ".git-rewrite",
-  ".hg",
-  ".ipynb_checkpoints",
-  ".mypy_cache",
-  ".nox",
-  ".pants.d",
-  ".pyenv",
-  ".pytest_cache",
-  ".pytype",
-  ".ruff_cache",
-  ".svn",
-  ".tox",
-  ".venv",
-  ".vscode",
-  "__pypackages__",
-  "_build",
-  "buck-out",
-  "build",
-  "dist",
-  "node_modules",
-  "site-packages",
-  "venv",
-]
 
 [tool.ruff.analyze]
 detect-string-imports = true
