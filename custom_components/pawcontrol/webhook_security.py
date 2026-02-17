@@ -421,7 +421,7 @@ class WebhookValidator:
                 )
 
             # Parse JSON — imported locally to keep module-level imports minimal.
-            import json  # noqa: PLC0415
+            import json
 
             try:
                 data = json.loads(payload)
