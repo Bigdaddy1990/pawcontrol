@@ -61,11 +61,10 @@ class InputSanitizer:
         re.compile(r"(;.*\bUPDATE\b.*\bSET\b)", re.IGNORECASE),
     ]
 
-    XSS_PATTERNS = [  # noqa: E111
-        re.compile(r"<script[^>]*>.*?</script>", re.IGNORECASE | re.DOTALL),
-        re.compile(r"javascript:", re.IGNORECASE),
-        re.compile(r"on\w+\s*=", re.IGNORECASE),  # Event handlers
-    ]
+    # NOTE:
+    # We intentionally avoid regex-based HTML sanitization patterns here.
+    # Filtering HTML with regular expressions is fragile and can lead to false
+    # negatives/positives. `sanitize_html` uses `html.escape` for safe output.
 
     PATH_TRAVERSAL_PATTERNS = [  # noqa: E111
         re.compile(r"\.\./"),
