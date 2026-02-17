@@ -1287,43 +1287,31 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
    localization flag sync check to block outdated translations before review.
 6. **Submit PR**: Detailed description with test results
 
-### Verbindlicher Actions-Ablauf im Repository (CI)
+### Required repository Actions workflow (CI)
 
-Alle Quality-Workflows im Repository folgen einem einheitlichen Ablauf: erst prüfen, dann (nur bei Push + bot-authored Commit) automatisch fixen, committen und danach erneut vollständig prüfen. Auf Pull Requests bleiben alle Checks strikt fehlschlagend ohne Auto-Writeback.
+All repository quality workflows follow one sequence: run checks first, then (only for push events on bot-authored commits) apply automated fixes, commit, and re-run the full gate. Pull requests remain strict and fail without any automatic write-back.
 
-Diese Orchestrierung gilt für den Haupt-Workflow (`ci.yml`), den
-Modernisierungs-Workflow (`python-modernization.yml`), den wiederverwendbaren
-Pytest-Workflow (`reusable-python-tests.yml`) sowie den manuellen
-`ruff-baseline.yml`-Lauf.
+This orchestration applies to the main workflow (`ci.yml`), the modernization workflow (`python-modernization.yml`), the reusable pytest workflow (`reusable-python-tests.yml`), and the manual `ruff-baseline.yml` run.
 
-Duplizierte Aufgaben wurden entfernt: Coverage-Uploads laufen über die
-zentralen Test-Workflows, und Release-Paket/Changelog laufen über
-`release.yml` als einzigen Tag-Release-Workflow.
+Duplicate responsibilities were removed: coverage uploads run through the central test workflows, and release packaging/changelog publication run through `release.yml` as the single tag-release workflow.
 
-Für Home-Assistant-Kompatibilität verwenden die Test-/Smoke-Workflows
-standardmäßig die neueste verfügbare Home-Assistant-Version, sofern keine
-temporäre Override-Variable gesetzt ist.
+For Home Assistant compatibility, test and smoke workflows default to the latest available Home Assistant version unless a temporary override variable is set.
 
-### Verbindlicher Python-Modernisierungs-Pfad (CI)
+### Required Python modernization path (CI)
 
-Für Typing-Upgrades und Python-Modernisierungen ist der Workflow
-`.github/workflows/python-modernization.yml` verpflichtend. Er läuft auf
-`pull_request` und optional manuell via `workflow_dispatch`.
+For typing upgrades and Python modernization updates, `.github/workflows/python-modernization.yml` is required. It runs on `pull_request` and can also be started manually with `workflow_dispatch`.
 
-Ablauf (verbindlich und sequentiell):
+Required sequential flow:
 
-1. Checkout + Python-Setup 3.14
-2. Installation von `pre-commit` sowie Projektabhängigkeiten
+1. Checkout + Python setup 3.14
+2. Install `pre-commit` and project dependencies
 3. `pre-commit run --all-files`
 4. `pre-commit run --hook-stage manual python-typing-update --all-files`
 5. `python -m mypy custom_components/pawcontrol`
 
-Wenn der erste Lauf fehlschlägt, greift derselbe Workflow (nur auf Push-Events
-mit bot-authored Head-Commit) automatisch ein: Fixes werden angewandt,
-committet und danach dieselben Prüfungen erneut ausgeführt.
+If the initial run fails, the same workflow may auto-remediate only on push events with a bot-authored head commit: fixes are applied, committed, and then the same checks are run again.
 
-Auf Pull Requests bleiben Checks strikt: keine Auto-Commits, Fehler führen
-verbindlich zu einem fehlschlagenden Check nach Home-Assistant-CI-Prinzip.
+On pull requests, checks stay strict: no auto-commits, and failures remain blocking in line with Home Assistant CI expectations.
 
 #### Adding new PawControl languages
 

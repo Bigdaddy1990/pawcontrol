@@ -154,7 +154,6 @@ jobs:
 
       - name: Enforce test requirements and localization flags
         run: |
-          python -m scripts.homeassistant_push_guard --check
           python -m scripts.enforce_test_requirements
           python -m scripts.sync_localization_flags
 
@@ -165,6 +164,7 @@ jobs:
           PYTHONPATH: .
         run: |
           set -e
+          python -m scripts.homeassistant_push_guard --check
           ruff check --output-format=github .
           python -m pytest \
             --cov=custom_components/pawcontrol \
@@ -221,6 +221,7 @@ jobs:
           PYTHONPATH: .
         run: |
           set -e
+          python -m scripts.homeassistant_push_guard --check
           ruff check --output-format=github .
           python -m pytest \
             --cov=custom_components/pawcontrol \
@@ -331,8 +332,8 @@ jobs:
             --pages-prefix "${{ env.PAGES_PREFIX }}" \
             --run-id "${{ github.run_id }}" \
             --run-attempt "${{ github.run_attempt }}" \
-            --commit-sha "${{ github.sha }}" \
-            --ref "${{ github.ref }}"
+            --commit-sha "$(git rev-parse HEAD)" \
+            --ref "$(git symbolic-ref --quiet --short HEAD || echo "${{ github.ref }}")"
 
       - name: Upload GitHub Pages bundle
         if: inputs.publish-pages == true && (steps.initial_gate.outcome == 'success' || (steps.initial_gate.outcome == 'failure' && steps.reusable_autofix_guard.outputs.allow_autofix == 'true'))
