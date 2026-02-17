@@ -39,11 +39,28 @@ python -m scripts.hassfest \
 python -m scripts.sync_contributor_guides           # Refresh assistant copies
 ```
 
+### Repository actions orchestration (required)
+
+All repository quality workflows follow the same sequencing rule: run checks first, and only when a run is both push-triggered and bot-authored may CI apply fixes, commit, and re-run the full gate. Pull requests remain strict failing checks with no write-back.
+
+This policy applies to `.github/workflows/ci.yml`,
+`.github/workflows/python-modernization.yml`,
+`.github/workflows/reusable-python-tests.yml`, and the manual
+`.github/workflows/ruff-baseline.yml` fixer flow.
+
+Avoid duplicate workflow responsibilities. Coverage uploads are handled by CI
+and reusable test workflows, and release packaging/changelog publication are
+handled by `release.yml` as the single tag-release flow.
+
+When possible, prefer the latest Home Assistant package in CI by leaving
+`home-assistant-spec` empty unless a temporary pinned override is required via
+repository variables.
+
 ### Python modernization CI path (required)
 
 When touching typing upgrades, syntax migrations, or hook configuration, keep
-`.github/workflows/python-modernization.yml` green. The workflow is the
-required PR gate and must run these commands in order:
+`.github/workflows/python-modernization.yml` green. This is the single required
+modernization gate and runs these commands in order:
 
 ```bash
 pre-commit run --all-files
@@ -51,10 +68,10 @@ pre-commit run --hook-stage manual python-typing-update --all-files
 python -m mypy custom_components/pawcontrol
 ```
 
-For automated branch remediation we also maintain
-`.github/workflows/python-modernization-autofix.yml`. It is intentionally
-limited to pushes where the branch head commit is bot-authored so that PR
-checks remain strict and never auto-commit reviewer-facing changes.
+The workflow is intentionally sequential: if the initial checks fail, it may
+apply modernization fixes, commit, and re-run the same checks. Auto-commit is
+restricted to push events whose branch head commit is bot-authored; pull
+requests remain strict failing checks without write-back.
 
 ## Bot policy (strict)
 

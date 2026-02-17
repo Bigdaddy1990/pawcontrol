@@ -21,15 +21,35 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: python -m pip install --upgrade pip ruff
 
-      - run: |
-          ruff check . --fix || true
-          ruff check . --fix --unsafe-fixes || true
-          ruff check . --add-noqa || true
-          ruff check . --extend-select RUF100 --fix || true
-          ruff check . --output-format=github || true
+      - name: Initial baseline check
+        id: baseline_check
+        continue-on-error: true
+        run: ruff check . --output-format=github
+
+      - name: Apply baseline fixes when needed
+        if: steps.baseline_check.outcome == 'failure'
+        run: |
+          ruff check . --fix
+          ruff check . --fix --unsafe-fixes
+          ruff check . --add-noqa
+          ruff check . --extend-select RUF100 --fix
           ruff format
 
+      - name: Re-run baseline check
+        if: steps.baseline_check.outcome == 'failure'
+        run: ruff check . --output-format=github
+
+      - name: Skip PR when baseline already clean
+        id: skip_pr
+        run: |
+          if git diff --quiet; then
+            echo "create_pr=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "create_pr=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: peter-evans/create-pull-request@v8
+        if: steps.skip_pr.outputs.create_pr == 'true'
         with:
           branch: chore/ruff-baseline
           title: "chore: ruff baseline (format+fix+noqa)"

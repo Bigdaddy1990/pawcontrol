@@ -36,7 +36,7 @@ jobs:
   tests:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
@@ -55,41 +55,98 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
           python -m pip install -r requirements_test.txt
           python -m pip install --upgrade ruff mypy pre-commit pytest-cov
 
-      # Update output format to enable automatic inline annotations.
-      - name: Ruff lint
-        run: ruff check --fix --exit-non-zero-on-fix --output-format=github .
-
-      - name: Verify contributor guides
-        run: python -m scripts.sync_contributor_guides --check
-
-      - name: Check legacy exception syntax
-        run: python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
-
-      - name: Run policy scripts
+      - name: Initial CI quality gate
+        id: initial_gate
+        continue-on-error: true
         run: |
+          set -e
+          python -m scripts.homeassistant_push_guard --check
+          ruff check --fix --exit-non-zero-on-fix --output-format=github .
+          python -m scripts.sync_contributor_guides --check
+          python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
           python -m scripts.enforce_docstring_baseline --update
           python -m scripts.enforce_test_requirements
           python -m scripts.sync_localization_flags --check
-
-      - name: Run pre-commit
-        run: pre-commit run --all-files --show-diff-on-failure
-
-      - name: Run mypy
-        run: mypy custom_components/pawcontrol --show-error-codes || true
-
-      - name: Run hassfest shim
-        run: python -m scripts.hassfest --integration-path custom_components/pawcontrol
-
-      - name: Run pytest with coverage
-        run: |
+          pre-commit run --all-files --show-diff-on-failure
+          pre-commit run --hook-stage manual python-typing-update --all-files
+          mypy custom_components/pawcontrol --show-error-codes
+          python -m scripts.hassfest --integration-path custom_components/pawcontrol
           pytest -q --disable-warnings --maxfail=20 \
             --cov=custom_components/pawcontrol \
             --cov-report=term-missing \
             --cov-report=xml \
             --junitxml=testreport.junit.xml
+
+      - name: Determine repository auto-fix eligibility
+        if: steps.initial_gate.outcome == 'failure'
+        id: repo_autofix_guard
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          AUTHOR_EMAIL="$(git log -1 --pretty=%ae)"
+          AUTHOR_NAME="$(git log -1 --pretty=%an)"
+          if [[ "$EVENT_NAME" == "push" && ("$AUTHOR_NAME" == *"[bot]"* || "$AUTHOR_EMAIL" == *"[bot]"*) ]]; then
+            echo "allow_autofix=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "allow_autofix=false" >> "$GITHUB_OUTPUT"
+            echo "Auto-fix disabled for this run (strict failure mode)."
+          fi
+
+      - name: Apply repository auto-fixes
+        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix == 'true'
+        run: |
+          python -m scripts.homeassistant_push_guard --fix || true
+          ruff check . --fix || true
+          ruff format . || true
+          pre-commit run --all-files || true
+          pre-commit run --hook-stage manual python-typing-update --all-files || true
+          python -m scripts.enforce_docstring_baseline --update || true
+          python -m scripts.sync_contributor_guides || true
+          python -m scripts.sync_localization_flags \
+            --allowlist scripts/sync_localization_flags.allowlist || true
+
+      - name: Commit and push repository auto-fixes
+        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix == 'true'
+        run: |
+          if git diff --quiet; then
+            echo "No repository auto-fix changes generated."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(ci): apply repository quality auto-fixes"
+          git push
+
+      - name: Re-run CI quality gate after fixes
+        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix == 'true'
+        run: |
+          set -e
+          ruff check --output-format=github .
+          python -m scripts.sync_contributor_guides --check
+          python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
+          python -m scripts.enforce_docstring_baseline --update
+          python -m scripts.enforce_test_requirements
+          python -m scripts.sync_localization_flags --check
+          pre-commit run --all-files --show-diff-on-failure
+          pre-commit run --hook-stage manual python-typing-update --all-files
+          mypy custom_components/pawcontrol --show-error-codes
+          python -m scripts.hassfest --integration-path custom_components/pawcontrol
+          pytest -q --disable-warnings --maxfail=20 \
+            --cov=custom_components/pawcontrol \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --junitxml=testreport.junit.xml
+
+      - name: Enforce strict failure when unresolved
+        if: steps.initial_gate.outcome == 'failure' && steps.repo_autofix_guard.outputs.allow_autofix != 'true'
+        run: |
+          echo "CI quality gate failed and auto-fix was not permitted for this run."
+          exit 1
 
       - name: Upload (test) coverage to Codecov
         if: ${{ !cancelled() }}
