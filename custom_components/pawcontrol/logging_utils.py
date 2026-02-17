@@ -365,8 +365,13 @@ def _strip_url_credentials(url: str) -> str:
         parsed = URL(url)
         if parsed.user or parsed.password:
             return str(parsed.with_user(None))
-    except Exception:
-        pass
+    except Exception as exc:
+        # Best-effort sanitization only: on failure, keep original URL but log
+        # at DEBUG so we can diagnose parsing issues without exposing secrets.
+        logging.getLogger(__name__).debug(
+            "Failed to strip credentials from PawControl URL: %s",
+            exc.__class__.__name__,
+        )
     return url
 
 
