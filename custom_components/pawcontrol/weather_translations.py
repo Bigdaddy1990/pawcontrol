@@ -166,7 +166,7 @@ def _load_static_common_translations(language: str) -> dict[str, str]:
             return {}  # noqa: E111
         try:
             data = json.loads(file_path.read_text(encoding="utf-8"))  # noqa: E111
-        except OSError, ValueError:
+        except (OSError, ValueError):
             return {}  # noqa: E111
         common = data.get("common", {})
         return common if isinstance(common, dict) else {}
