@@ -86,10 +86,16 @@ async def test_async_update_data_uses_runtime(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_update_data_awaits_set_updated_data(
+async def test_async_update_data_does_not_call_set_updated_data_directly(
   mock_hass, mock_config_entry, mock_session
 ):
-  """The coordinator should await async_set_updated_data when available."""  # noqa: E111
+  """_async_update_data must NOT call async_set_updated_data manually.
+
+  DataUpdateCoordinator._async_refresh already broadcasts the return value of
+  _async_update_data to all listeners.  Calling async_set_updated_data inside
+  _async_update_data caused a double notification (and double recorder writes)
+  every refresh cycle.  This test verifies the fix is intact.
+  """  # noqa: E111
 
   coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)  # noqa: E111
   runtime_cycle = RuntimeCycleInfo(  # noqa: E111
@@ -105,15 +111,16 @@ async def test_async_update_data_awaits_set_updated_data(
     return_value=({"test_dog": {"status": "online"}}, runtime_cycle)
   )
 
+  # Spy: async_set_updated_data must NOT be called from within _async_update_data.
   async_setter = AsyncMock()  # noqa: E111
   coordinator.async_set_updated_data = async_setter  # type: ignore[assignment]  # noqa: E111
 
-  await coordinator._async_update_data()  # noqa: E111
+  result = await coordinator._async_update_data()  # noqa: E111
 
-  async_setter.assert_awaited_once()  # noqa: E111
-  args, kwargs = async_setter.await_args  # noqa: E111
-  assert args[0] == {"test_dog": {"status": "online"}}  # noqa: E111
-  assert kwargs == {}  # noqa: E111
+  # The method must return the data dict so the base class can broadcast it.
+  assert result == {"test_dog": {"status": "online"}}  # noqa: E111
+  # The manual call that caused double-broadcasting must be gone.
+  async_setter.assert_not_called()  # noqa: E111
 
 
 @pytest.mark.unit
