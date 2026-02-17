@@ -356,7 +356,7 @@ def resolve_default_feeding_amount(
 ) -> float:
     """Resolve a default feeding amount for the specified dog."""  # noqa: E111
 
-    from .runtime_data import get_runtime_data  # noqa: E111
+    from ..runtime_data import get_runtime_data  # noqa: E111
 
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)  # noqa: E111
     if runtime_data is None:  # noqa: E111
@@ -379,7 +379,7 @@ def resolve_default_feeding_amount(
 
     meal_enum = None  # noqa: E111
     if isinstance(meal_type, str):  # noqa: E111
-        from .feeding_manager import MealType
+        from ..feeding_manager import MealType
 
         try:
             meal_enum = MealType(meal_type)  # noqa: E111
