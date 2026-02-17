@@ -4,7 +4,9 @@ name: Lint
 on: # yamllint disable-line rule:truthy
   push: null
   pull_request: null
-
+concurrency:
+  group: superlinter-${{ github.ref }}
+  cancel-in-progress: true
 permissions: {}
 
 jobs:
