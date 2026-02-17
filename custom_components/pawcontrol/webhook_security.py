@@ -26,528 +26,530 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class WebhookSecurityError(ValidationError):
-  """Error raised when webhook payload validation fails."""  # noqa: E111
+    """Error raised when webhook payload validation fails."""  # noqa: E111
 
-  def __init__(self, message: str) -> None:  # noqa: E111
-    """Initialize webhook security error."""
-    super().__init__(
-      "webhook",
-      value=None,
-      constraint=message,
-    )
+    def __init__(self, message: str) -> None:  # noqa: E111
+        """Initialize webhook security error."""
+        super().__init__(
+            "webhook",
+            value=None,
+            constraint=message,
+        )
 
 
 @dataclass
 class WebhookRequest:
-  """Represents a webhook request.
+    """Represents a webhook request.
 
-  Attributes:
-      payload: Request payload
-      signature: HMAC signature from headers
-      timestamp: Request timestamp
-      source_ip: Source IP address
-      headers: Request headers
-  """  # noqa: E111
+    Attributes:
+        payload: Request payload
+        signature: HMAC signature from headers
+        timestamp: Request timestamp
+        source_ip: Source IP address
+        headers: Request headers
+    """  # noqa: E111
 
-  payload: bytes  # noqa: E111
-  signature: str | None  # noqa: E111
-  timestamp: float  # noqa: E111
-  source_ip: str | None = None  # noqa: E111
-  headers: dict[str, str] = field(default_factory=dict)  # noqa: E111
+    payload: bytes  # noqa: E111
+    signature: str | None  # noqa: E111
+    timestamp: float  # noqa: E111
+    source_ip: str | None = None  # noqa: E111
+    headers: dict[str, str] = field(default_factory=dict)  # noqa: E111
 
 
 @dataclass
 class RateLimitConfig:
-  """Rate limit configuration.
+    """Rate limit configuration.
 
-  Attributes:
-      requests_per_minute: Maximum requests per minute
-      requests_per_hour: Maximum requests per hour
-      burst_size: Maximum burst size
-      ban_duration_seconds: Ban duration after limit exceeded
-  """  # noqa: E111
+    Attributes:
+        requests_per_minute: Maximum requests per minute
+        requests_per_hour: Maximum requests per hour
+        burst_size: Maximum burst size
+        ban_duration_seconds: Ban duration after limit exceeded
+    """  # noqa: E111
 
-  requests_per_minute: int = 60  # noqa: E111
-  requests_per_hour: int = 1000  # noqa: E111
-  burst_size: int = 10  # noqa: E111
-  ban_duration_seconds: float = 300.0  # 5 minutes  # noqa: E111
+    requests_per_minute: int = 60  # noqa: E111
+    requests_per_hour: int = 1000  # noqa: E111
+    burst_size: int = 10  # noqa: E111
+    ban_duration_seconds: float = 300.0  # 5 minutes  # noqa: E111
 
 
 @dataclass
 class RateLimitState:
-  """Rate limit state for a source.
+    """Rate limit state for a source.
 
-  Attributes:
-      source: Source identifier (IP or user)
-      requests_minute: Requests in last minute
-      requests_hour: Requests in last hour
-      banned_until: Ban expiration timestamp
-      total_requests: Total requests from this source
-  """  # noqa: E111
+    Attributes:
+        source: Source identifier (IP or user)
+        requests_minute: Requests in last minute
+        requests_hour: Requests in last hour
+        banned_until: Ban expiration timestamp
+        total_requests: Total requests from this source
+    """  # noqa: E111
 
-  source: str  # noqa: E111
-  requests_minute: deque[float] = field(default_factory=lambda: deque(maxlen=100))  # noqa: E111
-  requests_hour: deque[float] = field(default_factory=lambda: deque(maxlen=1000))  # noqa: E111
-  banned_until: float | None = None  # noqa: E111
-  total_requests: int = 0  # noqa: E111
+    source: str  # noqa: E111
+    requests_minute: deque[float] = field(default_factory=lambda: deque(maxlen=100))  # noqa: E111
+    requests_hour: deque[float] = field(default_factory=lambda: deque(maxlen=1000))  # noqa: E111
+    banned_until: float | None = None  # noqa: E111
+    total_requests: int = 0  # noqa: E111
 
-  def is_banned(self) -> bool:  # noqa: E111
-    """Check if source is currently banned."""
-    if self.banned_until is None:
-      return False  # noqa: E111
-    return time.time() < self.banned_until
+    def is_banned(self) -> bool:  # noqa: E111
+        """Check if source is currently banned."""
+        if self.banned_until is None:
+            return False  # noqa: E111
+        return time.time() < self.banned_until
 
-  def add_request(self, timestamp: float | None = None) -> None:  # noqa: E111
-    """Record a request."""
-    if timestamp is None:
-      timestamp = time.time()  # noqa: E111
-    self.requests_minute.append(timestamp)
-    self.requests_hour.append(timestamp)
-    self.total_requests += 1
+    def add_request(self, timestamp: float | None = None) -> None:  # noqa: E111
+        """Record a request."""
+        if timestamp is None:
+            timestamp = time.time()  # noqa: E111
+        self.requests_minute.append(timestamp)
+        self.requests_hour.append(timestamp)
+        self.total_requests += 1
 
-  def get_minute_count(self) -> int:  # noqa: E111
-    """Get request count in last minute."""
-    cutoff = time.time() - 60
-    return sum(1 for ts in self.requests_minute if ts > cutoff)
+    def get_minute_count(self) -> int:  # noqa: E111
+        """Get request count in last minute."""
+        cutoff = time.time() - 60
+        return sum(1 for ts in self.requests_minute if ts > cutoff)
 
-  def get_hour_count(self) -> int:  # noqa: E111
-    """Get request count in last hour."""
-    cutoff = time.time() - 3600
-    return sum(1 for ts in self.requests_hour if ts > cutoff)
+    def get_hour_count(self) -> int:  # noqa: E111
+        """Get request count in last hour."""
+        cutoff = time.time() - 3600
+        return sum(1 for ts in self.requests_hour if ts > cutoff)
 
 
 class WebhookAuthenticator:
-  """HMAC-based webhook authentication.
+    """HMAC-based webhook authentication.
 
-  Verifies webhook requests using HMAC signatures to prevent
-  unauthorized access and replay attacks.
-
-  Examples:
-      >>> auth = WebhookAuthenticator(secret="my_secret")
-      >>> is_valid = auth.verify_signature(payload, signature)
-  """  # noqa: E111
-
-  def __init__(  # noqa: E111
-    self,
-    secret: str,
-    *,
-    algorithm: str = "sha256",
-    max_timestamp_diff: float = 300.0,
-  ) -> None:
-    """Initialize webhook authenticator.
-
-    Args:
-        secret: Shared secret for HMAC
-        algorithm: Hash algorithm (sha256, sha512)
-        max_timestamp_diff: Maximum timestamp difference in seconds
-    """
-    self._secret = secret.encode() if isinstance(secret, str) else secret
-    self._algorithm = algorithm
-    self._max_timestamp_diff = max_timestamp_diff
-    self._logger = StructuredLogger(__name__)
-
-  def generate_signature(  # noqa: E111
-    self,
-    payload: bytes,
-    timestamp: float | None = None,
-  ) -> tuple[str, float]:
-    """Generate HMAC signature for payload.
-
-    Args:
-        payload: Request payload
-        timestamp: Optional timestamp (uses current time if None)
-
-    Returns:
-        Tuple of (signature, timestamp)
+    Verifies webhook requests using HMAC signatures to prevent
+    unauthorized access and replay attacks.
 
     Examples:
-        >>> signature, ts = auth.generate_signature(b"payload")
-    """
-    if timestamp is None:
-      timestamp = time.time()  # noqa: E111
+        >>> auth = WebhookAuthenticator(secret="my_secret")
+        >>> is_valid = auth.verify_signature(payload, signature)
+    """  # noqa: E111
 
-    # Combine payload with timestamp
-    message = f"{timestamp}:{payload.decode()}".encode()
+    def __init__(  # noqa: E111
+        self,
+        secret: str,
+        *,
+        algorithm: str = "sha256",
+        max_timestamp_diff: float = 300.0,
+    ) -> None:
+        """Initialize webhook authenticator.
 
-    # Generate HMAC
-    signature = hmac.new(
-      self._secret,
-      message,
-      getattr(hashlib, self._algorithm),
-    ).hexdigest()
+        Args:
+            secret: Shared secret for HMAC
+            algorithm: Hash algorithm (sha256, sha512)
+            max_timestamp_diff: Maximum timestamp difference in seconds
+        """
+        self._secret = secret.encode() if isinstance(secret, str) else secret
+        self._algorithm = algorithm
+        self._max_timestamp_diff = max_timestamp_diff
+        self._logger = StructuredLogger(__name__)
 
-    return signature, timestamp
+    def generate_signature(  # noqa: E111
+        self,
+        payload: bytes,
+        timestamp: float | None = None,
+    ) -> tuple[str, float]:
+        """Generate HMAC signature for payload.
 
-  def verify_signature(  # noqa: E111
-    self,
-    payload: bytes,
-    signature: str,
-    timestamp: float,
-  ) -> bool:
-    """Verify HMAC signature.
+        Args:
+            payload: Request payload
+            timestamp: Optional timestamp (uses current time if None)
 
-    Args:
-        payload: Request payload
-        signature: Provided signature
-        timestamp: Request timestamp
+        Returns:
+            Tuple of (signature, timestamp)
 
-    Returns:
-        True if signature is valid
+        Examples:
+            >>> signature, ts = auth.generate_signature(b"payload")
+        """
+        if timestamp is None:
+            timestamp = time.time()  # noqa: E111
 
-    Raises:
-        AuthenticationError: If verification fails
-    """
-    # Check timestamp is recent
-    current_time = time.time()
-    time_diff = abs(current_time - timestamp)
+        # Combine payload with timestamp
+        message = f"{timestamp}:{payload.decode()}".encode()
 
-    if time_diff > self._max_timestamp_diff:
-      self._logger.warning(  # noqa: E111
-        "Webhook timestamp too old",
-        timestamp=timestamp,
-        current_time=current_time,
-        diff=time_diff,
-      )
-      raise AuthenticationError(f"Timestamp difference too large: {time_diff:.1f}s")  # noqa: E111
+        # Generate HMAC
+        signature = hmac.new(
+            self._secret,
+            message,
+            getattr(hashlib, self._algorithm),
+        ).hexdigest()
 
-    # Generate expected signature
-    expected_signature, _ = self.generate_signature(payload, timestamp)
+        return signature, timestamp
 
-    # Constant-time comparison
-    if not hmac.compare_digest(signature, expected_signature):
-      self._logger.error(  # noqa: E111
-        "Webhook signature verification failed",
-        provided_signature=signature[:16] + "...",
-      )
-      raise AuthenticationError("Invalid signature")  # noqa: E111
+    def verify_signature(  # noqa: E111
+        self,
+        payload: bytes,
+        signature: str,
+        timestamp: float,
+    ) -> bool:
+        """Verify HMAC signature.
 
-    return True
+        Args:
+            payload: Request payload
+            signature: Provided signature
+            timestamp: Request timestamp
 
-  def verify_request(self, request: WebhookRequest) -> bool:  # noqa: E111
-    """Verify complete webhook request.
+        Returns:
+            True if signature is valid
 
-    Args:
-        request: Webhook request to verify
+        Raises:
+            AuthenticationError: If verification fails
+        """
+        # Check timestamp is recent
+        current_time = time.time()
+        time_diff = abs(current_time - timestamp)
 
-    Returns:
-        True if request is valid
+        if time_diff > self._max_timestamp_diff:
+            self._logger.warning(  # noqa: E111
+                "Webhook timestamp too old",
+                timestamp=timestamp,
+                current_time=current_time,
+                diff=time_diff,
+            )
+            raise AuthenticationError(
+                f"Timestamp difference too large: {time_diff:.1f}s"
+            )  # noqa: E111
 
-    Raises:
-        AuthenticationError: If verification fails
-    """
-    if request.signature is None:
-      raise AuthenticationError("Missing signature")  # noqa: E111
+        # Generate expected signature
+        expected_signature, _ = self.generate_signature(payload, timestamp)
 
-    return self.verify_signature(
-      request.payload,
-      request.signature,
-      request.timestamp,
-    )
+        # Constant-time comparison
+        if not hmac.compare_digest(signature, expected_signature):
+            self._logger.error(  # noqa: E111
+                "Webhook signature verification failed",
+                provided_signature=signature[:16] + "...",
+            )
+            raise AuthenticationError("Invalid signature")  # noqa: E111
+
+        return True
+
+    def verify_request(self, request: WebhookRequest) -> bool:  # noqa: E111
+        """Verify complete webhook request.
+
+        Args:
+            request: Webhook request to verify
+
+        Returns:
+            True if request is valid
+
+        Raises:
+            AuthenticationError: If verification fails
+        """
+        if request.signature is None:
+            raise AuthenticationError("Missing signature")  # noqa: E111
+
+        return self.verify_signature(
+            request.payload,
+            request.signature,
+            request.timestamp,
+        )
 
 
 class WebhookRateLimiter:
-  """Rate limiter for webhook endpoints.
+    """Rate limiter for webhook endpoints.
 
-  Prevents abuse by limiting request rate per source (IP address).
+    Prevents abuse by limiting request rate per source (IP address).
 
-  Examples:
-      >>> limiter = WebhookRateLimiter(config)
-      >>> limiter.check_limit("192.168.1.1")
-  """  # noqa: E111
+    Examples:
+        >>> limiter = WebhookRateLimiter(config)
+        >>> limiter.check_limit("192.168.1.1")
+    """  # noqa: E111
 
-  def __init__(self, config: RateLimitConfig | None = None) -> None:  # noqa: E111
-    """Initialize rate limiter.
+    def __init__(self, config: RateLimitConfig | None = None) -> None:  # noqa: E111
+        """Initialize rate limiter.
 
-    Args:
-        config: Rate limit configuration
-    """
-    self._config = config or RateLimitConfig()
-    self._states: dict[str, RateLimitState] = defaultdict(
-      lambda: RateLimitState(source="unknown")
-    )
-    self._logger = StructuredLogger(__name__)
+        Args:
+            config: Rate limit configuration
+        """
+        self._config = config or RateLimitConfig()
+        self._states: dict[str, RateLimitState] = defaultdict(
+            lambda: RateLimitState(source="unknown")
+        )
+        self._logger = StructuredLogger(__name__)
 
-  def check_limit(self, source: str) -> None:  # noqa: E111
-    """Check if source is within rate limits.
+    def check_limit(self, source: str) -> None:  # noqa: E111
+        """Check if source is within rate limits.
 
-    Args:
-        source: Source identifier (IP address)
+        Args:
+            source: Source identifier (IP address)
 
-    Raises:
-        RateLimitError: If rate limit exceeded
-    """
-    state = self._states[source]
-    state.source = source
+        Raises:
+            RateLimitError: If rate limit exceeded
+        """
+        state = self._states[source]
+        state.source = source
 
-    # Check if banned
-    if state.is_banned():
-      remaining = state.banned_until - time.time() if state.banned_until else 0  # noqa: E111
-      self._logger.warning(  # noqa: E111
-        "Blocked request from banned source",
-        source=source,
-        remaining_seconds=remaining,
-      )
-      raise RateLimitError(  # noqa: E111
-        f"Source banned for {remaining:.0f}s more",
-        retry_after=max(int(remaining), 0),
-      )
+        # Check if banned
+        if state.is_banned():
+            remaining = state.banned_until - time.time() if state.banned_until else 0  # noqa: E111
+            self._logger.warning(  # noqa: E111
+                "Blocked request from banned source",
+                source=source,
+                remaining_seconds=remaining,
+            )
+            raise RateLimitError(  # noqa: E111
+                f"Source banned for {remaining:.0f}s more",
+                retry_after=max(int(remaining), 0),
+            )
 
-    # Record request
-    state.add_request()
+        # Record request
+        state.add_request()
 
-    # Check minute limit
-    minute_count = state.get_minute_count()
-    if minute_count > self._config.requests_per_minute:
-      self._ban_source(state)  # noqa: E111
-      raise RateLimitError(  # noqa: E111
-        f"Rate limit exceeded: {minute_count} requests/minute",
-        retry_after=int(self._config.ban_duration_seconds),
-      )
+        # Check minute limit
+        minute_count = state.get_minute_count()
+        if minute_count > self._config.requests_per_minute:
+            self._ban_source(state)  # noqa: E111
+            raise RateLimitError(  # noqa: E111
+                f"Rate limit exceeded: {minute_count} requests/minute",
+                retry_after=int(self._config.ban_duration_seconds),
+            )
 
-    # Check hour limit
-    hour_count = state.get_hour_count()
-    if hour_count > self._config.requests_per_hour:
-      self._ban_source(state)  # noqa: E111
-      raise RateLimitError(  # noqa: E111
-        f"Rate limit exceeded: {hour_count} requests/hour",
-        retry_after=int(self._config.ban_duration_seconds),
-      )
+        # Check hour limit
+        hour_count = state.get_hour_count()
+        if hour_count > self._config.requests_per_hour:
+            self._ban_source(state)  # noqa: E111
+            raise RateLimitError(  # noqa: E111
+                f"Rate limit exceeded: {hour_count} requests/hour",
+                retry_after=int(self._config.ban_duration_seconds),
+            )
 
-    # Log if approaching limit
-    if minute_count > self._config.requests_per_minute * 0.8:
-      self._logger.warning(  # noqa: E111
-        "Source approaching rate limit",
-        source=source,
-        minute_count=minute_count,
-        limit=self._config.requests_per_minute,
-      )
+        # Log if approaching limit
+        if minute_count > self._config.requests_per_minute * 0.8:
+            self._logger.warning(  # noqa: E111
+                "Source approaching rate limit",
+                source=source,
+                minute_count=minute_count,
+                limit=self._config.requests_per_minute,
+            )
 
-  def _ban_source(self, state: RateLimitState) -> None:  # noqa: E111
-    """Ban a source temporarily.
+    def _ban_source(self, state: RateLimitState) -> None:  # noqa: E111
+        """Ban a source temporarily.
 
-    Args:
-        state: Rate limit state
-    """
-    state.banned_until = time.time() + self._config.ban_duration_seconds
-    self._logger.warning(
-      "Banned source for rate limit violation",
-      source=state.source,
-      duration=self._config.ban_duration_seconds,
-      total_requests=state.total_requests,
-    )
+        Args:
+            state: Rate limit state
+        """
+        state.banned_until = time.time() + self._config.ban_duration_seconds
+        self._logger.warning(
+            "Banned source for rate limit violation",
+            source=state.source,
+            duration=self._config.ban_duration_seconds,
+            total_requests=state.total_requests,
+        )
 
-  def get_stats(self) -> dict[str, Any]:  # noqa: E111
-    """Get rate limiter statistics.
+    def get_stats(self) -> dict[str, Any]:  # noqa: E111
+        """Get rate limiter statistics.
 
-    Returns:
-        Statistics dictionary
-    """
-    total_requests = sum(s.total_requests for s in self._states.values())
-    banned_sources = sum(1 for s in self._states.values() if s.is_banned())
+        Returns:
+            Statistics dictionary
+        """
+        total_requests = sum(s.total_requests for s in self._states.values())
+        banned_sources = sum(1 for s in self._states.values() if s.is_banned())
 
-    return {
-      "total_sources": len(self._states),
-      "total_requests": total_requests,
-      "banned_sources": banned_sources,
-      "config": {
-        "requests_per_minute": self._config.requests_per_minute,
-        "requests_per_hour": self._config.requests_per_hour,
-        "ban_duration": self._config.ban_duration_seconds,
-      },
-    }
+        return {
+            "total_sources": len(self._states),
+            "total_requests": total_requests,
+            "banned_sources": banned_sources,
+            "config": {
+                "requests_per_minute": self._config.requests_per_minute,
+                "requests_per_hour": self._config.requests_per_hour,
+                "ban_duration": self._config.ban_duration_seconds,
+            },
+        }
 
-  def reset_source(self, source: str) -> None:  # noqa: E111
-    """Reset rate limit for a source.
+    def reset_source(self, source: str) -> None:  # noqa: E111
+        """Reset rate limit for a source.
 
-    Args:
-        source: Source identifier
-    """
-    if source in self._states:
-      del self._states[source]  # noqa: E111
-      self._logger.info("Reset rate limit for source", source=source)  # noqa: E111
+        Args:
+            source: Source identifier
+        """
+        if source in self._states:
+            del self._states[source]  # noqa: E111
+            self._logger.info("Reset rate limit for source", source=source)  # noqa: E111
 
 
 class WebhookValidator:
-  """Validates webhook payloads.
+    """Validates webhook payloads.
 
-  Ensures webhook payloads conform to expected schema and
-  contain required fields.
+    Ensures webhook payloads conform to expected schema and
+    contain required fields.
 
-  Examples:
-      >>> validator = WebhookValidator(required_fields=["dog_id", "event"])
-      >>> validator.validate_payload(payload)
-  """  # noqa: E111
+    Examples:
+        >>> validator = WebhookValidator(required_fields=["dog_id", "event"])
+        >>> validator.validate_payload(payload)
+    """  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    *,
-    required_fields: list[str] | None = None,
-    max_payload_size: int = 1024 * 100,  # 100KB
-  ) -> None:
-    """Initialize webhook validator.
+    def __init__(  # noqa: E111
+        self,
+        *,
+        required_fields: list[str] | None = None,
+        max_payload_size: int = 1024 * 100,  # 100KB
+    ) -> None:
+        """Initialize webhook validator.
 
-    Args:
-        required_fields: Required payload fields
-        max_payload_size: Maximum payload size in bytes
-    """
-    self._required_fields = required_fields or []
-    self._max_payload_size = max_payload_size
-    self._logger = StructuredLogger(__name__)
+        Args:
+            required_fields: Required payload fields
+            max_payload_size: Maximum payload size in bytes
+        """
+        self._required_fields = required_fields or []
+        self._max_payload_size = max_payload_size
+        self._logger = StructuredLogger(__name__)
 
-  def validate_payload(self, payload: bytes | dict[str, Any]) -> dict[str, Any]:  # noqa: E111
-    """Validate webhook payload.
+    def validate_payload(self, payload: bytes | dict[str, Any]) -> dict[str, Any]:  # noqa: E111
+        """Validate webhook payload.
 
-    Args:
-        payload: Payload to validate
+        Args:
+            payload: Payload to validate
 
-    Returns:
-        Validated payload as dictionary
+        Returns:
+            Validated payload as dictionary
 
-    Raises:
-        ValidationError: If validation fails
-    """
-    # Check size
-    if isinstance(payload, bytes):
-      if len(payload) > self._max_payload_size:  # noqa: E111
-        raise ValidationError(
-          f"Payload too large: {len(payload)} bytes (max: {self._max_payload_size})"
-        )
+        Raises:
+            ValidationError: If validation fails
+        """
+        # Check size
+        if isinstance(payload, bytes):
+            if len(payload) > self._max_payload_size:  # noqa: E111
+                raise ValidationError(
+                    f"Payload too large: {len(payload)} bytes (max: {self._max_payload_size})"
+                )
 
-      # Parse JSON  # noqa: E114
-      import json  # noqa: E111
+            # Parse JSON  # noqa: E114
+            import json  # noqa: E111
 
-      try:  # noqa: E111
-        data = json.loads(payload)
-      except json.JSONDecodeError as e:  # noqa: E111
-        self._logger.error("Invalid JSON payload", error=str(e))
-        raise ValidationError(f"Invalid JSON: {e}") from e
-    else:
-      data = payload  # noqa: E111
+            try:  # noqa: E111
+                data = json.loads(payload)
+            except json.JSONDecodeError as e:  # noqa: E111
+                self._logger.error("Invalid JSON payload", error=str(e))
+                raise ValidationError(f"Invalid JSON: {e}") from e
+        else:
+            data = payload  # noqa: E111
 
-    # Validate type
-    if not isinstance(data, dict):
-      raise ValidationError(f"Payload must be a dictionary, got {type(data)}")  # noqa: E111
+        # Validate type
+        if not isinstance(data, dict):
+            raise ValidationError(f"Payload must be a dictionary, got {type(data)}")  # noqa: E111
 
-    # Check required fields
-    missing_fields = [f for f in self._required_fields if f not in data]
-    if missing_fields:
-      raise ValidationError(f"Missing required fields: {missing_fields}")  # noqa: E111
+        # Check required fields
+        missing_fields = [f for f in self._required_fields if f not in data]
+        if missing_fields:
+            raise ValidationError(f"Missing required fields: {missing_fields}")  # noqa: E111
 
-    # Sanitize strings
-    sanitized = self._sanitize_payload(data)
+        # Sanitize strings
+        sanitized = self._sanitize_payload(data)
 
-    return sanitized
+        return sanitized
 
-  def _sanitize_payload(self, data: dict[str, Any]) -> dict[str, Any]:  # noqa: E111
-    """Sanitize payload data.
+    def _sanitize_payload(self, data: dict[str, Any]) -> dict[str, Any]:  # noqa: E111
+        """Sanitize payload data.
 
-    Args:
-        data: Raw payload data
+        Args:
+            data: Raw payload data
 
-    Returns:
-        Sanitized payload
-    """
-    sanitized: dict[str, Any] = {}
+        Returns:
+            Sanitized payload
+        """
+        sanitized: dict[str, Any] = {}
 
-    for key, value in data.items():
-      # Sanitize key  # noqa: E114
-      clean_key = str(key).strip()  # noqa: E111
+        for key, value in data.items():
+            # Sanitize key  # noqa: E114
+            clean_key = str(key).strip()  # noqa: E111
 
-      # Sanitize value  # noqa: E114
-      if isinstance(value, str):  # noqa: E111
-        # Remove control characters
-        clean_value = "".join(
-          char for char in value if ord(char) >= 32 or char in "\n\r\t"
-        )
-        sanitized[clean_key] = clean_value.strip()
-      elif isinstance(value, dict):  # noqa: E111
-        sanitized[clean_key] = self._sanitize_payload(value)
-      elif isinstance(value, list):  # noqa: E111
-        sanitized[clean_key] = [
-          self._sanitize_payload(item) if isinstance(item, dict) else item
-          for item in value
-        ]
-      else:  # noqa: E111
-        sanitized[clean_key] = value
+            # Sanitize value  # noqa: E114
+            if isinstance(value, str):  # noqa: E111
+                # Remove control characters
+                clean_value = "".join(
+                    char for char in value if ord(char) >= 32 or char in "\n\r\t"
+                )
+                sanitized[clean_key] = clean_value.strip()
+            elif isinstance(value, dict):  # noqa: E111
+                sanitized[clean_key] = self._sanitize_payload(value)
+            elif isinstance(value, list):  # noqa: E111
+                sanitized[clean_key] = [
+                    self._sanitize_payload(item) if isinstance(item, dict) else item
+                    for item in value
+                ]
+            else:  # noqa: E111
+                sanitized[clean_key] = value
 
-    return sanitized
+        return sanitized
 
 
 class WebhookSecurityManager:
-  """Manages webhook security.
+    """Manages webhook security.
 
-  Combines authentication, rate limiting, and validation for
-  comprehensive webhook security.
+    Combines authentication, rate limiting, and validation for
+    comprehensive webhook security.
 
-  Examples:
-      >>> manager = WebhookSecurityManager(hass, secret="my_secret")
-      >>> await manager.async_process_webhook(request)
-  """  # noqa: E111
+    Examples:
+        >>> manager = WebhookSecurityManager(hass, secret="my_secret")
+        >>> await manager.async_process_webhook(request)
+    """  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    hass: HomeAssistant,
-    *,
-    secret: str,
-    rate_limit_config: RateLimitConfig | None = None,
-    required_fields: list[str] | None = None,
-  ) -> None:
-    """Initialize webhook security manager.
+    def __init__(  # noqa: E111
+        self,
+        hass: HomeAssistant,
+        *,
+        secret: str,
+        rate_limit_config: RateLimitConfig | None = None,
+        required_fields: list[str] | None = None,
+    ) -> None:
+        """Initialize webhook security manager.
 
-    Args:
-        hass: Home Assistant instance
-        secret: Shared secret for HMAC
-        rate_limit_config: Rate limit configuration
-        required_fields: Required payload fields
-    """
-    self._hass = hass
-    self._authenticator = WebhookAuthenticator(secret)
-    self._rate_limiter = WebhookRateLimiter(rate_limit_config)
-    self._validator = WebhookValidator(required_fields=required_fields)
-    self._logger = StructuredLogger(__name__)
+        Args:
+            hass: Home Assistant instance
+            secret: Shared secret for HMAC
+            rate_limit_config: Rate limit configuration
+            required_fields: Required payload fields
+        """
+        self._hass = hass
+        self._authenticator = WebhookAuthenticator(secret)
+        self._rate_limiter = WebhookRateLimiter(rate_limit_config)
+        self._validator = WebhookValidator(required_fields=required_fields)
+        self._logger = StructuredLogger(__name__)
 
-  async def async_process_webhook(  # noqa: E111
-    self,
-    request: WebhookRequest,
-  ) -> dict[str, Any]:
-    """Process webhook with security checks.
+    async def async_process_webhook(  # noqa: E111
+        self,
+        request: WebhookRequest,
+    ) -> dict[str, Any]:
+        """Process webhook with security checks.
 
-    Args:
-        request: Webhook request
+        Args:
+            request: Webhook request
 
-    Returns:
-        Validated payload
+        Returns:
+            Validated payload
 
-    Raises:
-        AuthenticationError: If authentication fails
-        RateLimitError: If rate limit exceeded
-        ValidationError: If validation fails
-    """
-    # Check rate limit
-    if request.source_ip:
-      self._rate_limiter.check_limit(request.source_ip)  # noqa: E111
+        Raises:
+            AuthenticationError: If authentication fails
+            RateLimitError: If rate limit exceeded
+            ValidationError: If validation fails
+        """
+        # Check rate limit
+        if request.source_ip:
+            self._rate_limiter.check_limit(request.source_ip)  # noqa: E111
 
-    # Verify signature
-    self._authenticator.verify_request(request)
+        # Verify signature
+        self._authenticator.verify_request(request)
 
-    # Validate payload
-    validated_payload = self._validator.validate_payload(request.payload)
+        # Validate payload
+        validated_payload = self._validator.validate_payload(request.payload)
 
-    self._logger.info(
-      "Webhook processed successfully",
-      source_ip=request.source_ip,
-      payload_size=len(request.payload),
-    )
+        self._logger.info(
+            "Webhook processed successfully",
+            source_ip=request.source_ip,
+            payload_size=len(request.payload),
+        )
 
-    return validated_payload
+        return validated_payload
 
-  def get_security_stats(self) -> dict[str, Any]:  # noqa: E111
-    """Get security statistics.
+    def get_security_stats(self) -> dict[str, Any]:  # noqa: E111
+        """Get security statistics.
 
-    Returns:
-        Statistics dictionary
-    """
-    return {
-      "rate_limiter": self._rate_limiter.get_stats(),
-      "timestamp": datetime.now().isoformat(),
-    }
+        Returns:
+            Statistics dictionary
+        """
+        return {
+            "rate_limiter": self._rate_limiter.get_stats(),
+            "timestamp": datetime.now().isoformat(),
+        }

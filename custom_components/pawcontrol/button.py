@@ -15,20 +15,20 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 import logging
 from typing import (
-  Any,
-  ClassVar,
-  Final,
-  Literal,
-  Protocol,
-  TypedDict,
-  cast,
-  runtime_checkable,
+    Any,
+    ClassVar,
+    Final,
+    Literal,
+    Protocol,
+    TypedDict,
+    cast,
+    runtime_checkable,
 )
 
 from homeassistant.components.button import (
-  ButtonDeviceClass,
-  ButtonEntity,
-  ButtonEntityDescription,
+    ButtonDeviceClass,
+    ButtonEntity,
+    ButtonEntityDescription,
 )
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import Context, HomeAssistant, ServiceRegistry
@@ -38,2279 +38,2289 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-  ATTR_DOG_ID,
-  DEFAULT_MODEL,
-  DEFAULT_SW_VERSION,
-  MODULE_FEEDING,
-  MODULE_GARDEN,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_WALK,
-  SERVICE_ADD_FEEDING,
-  SERVICE_ADD_GARDEN_ACTIVITY,
-  SERVICE_CONFIRM_GARDEN_POOP,
-  SERVICE_END_GARDEN_SESSION,
-  SERVICE_GPS_END_WALK,
-  SERVICE_GPS_EXPORT_ROUTE,
-  SERVICE_GPS_START_WALK,
-  SERVICE_LOG_HEALTH,
-  SERVICE_LOG_MEDICATION,
-  SERVICE_NOTIFY_TEST,
-  SERVICE_SEND_NOTIFICATION,
-  SERVICE_START_GARDEN_SESSION,
-  SERVICE_START_GROOMING,
+    ATTR_DOG_ID,
+    DEFAULT_MODEL,
+    DEFAULT_SW_VERSION,
+    MODULE_FEEDING,
+    MODULE_GARDEN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    SERVICE_ADD_FEEDING,
+    SERVICE_ADD_GARDEN_ACTIVITY,
+    SERVICE_CONFIRM_GARDEN_POOP,
+    SERVICE_END_GARDEN_SESSION,
+    SERVICE_GPS_END_WALK,
+    SERVICE_GPS_EXPORT_ROUTE,
+    SERVICE_GPS_START_WALK,
+    SERVICE_LOG_HEALTH,
+    SERVICE_LOG_MEDICATION,
+    SERVICE_NOTIFY_TEST,
+    SERVICE_SEND_NOTIFICATION,
+    SERVICE_START_GARDEN_SESSION,
+    SERVICE_START_GROOMING,
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlDogEntityBase
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
-  translated_grooming_label,
-  translated_grooming_template,
+    translated_grooming_label,
+    translated_grooming_template,
 )
 from .runtime_data import get_runtime_data
 from .types import (
-  DOG_ID_FIELD,
-  DOG_MODULES_FIELD,
-  DOG_NAME_FIELD,
-  WALK_IN_PROGRESS_FIELD,
-  DogConfigData,
-  GardenModulePayload,
-  GPSModulePayload,
-  HealthModulePayload,
-  JSONLikeMapping,
-  JSONMapping,
-  JSONMutableMapping,
-  PawControlConfigEntry,
-  WalkModulePayload,
-  ensure_dog_config_data,
-  ensure_dog_modules_projection,
-  ensure_json_mapping,
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    WALK_IN_PROGRESS_FIELD,
+    DogConfigData,
+    GardenModulePayload,
+    GPSModulePayload,
+    HealthModulePayload,
+    JSONLikeMapping,
+    JSONMapping,
+    JSONMutableMapping,
+    PawControlConfigEntry,
+    WalkModulePayload,
+    ensure_dog_config_data,
+    ensure_dog_modules_projection,
+    ensure_json_mapping,
 )
 from .utils import (
-  async_call_add_entities,
-  normalise_entity_attributes,
-  normalize_value,
-  resolve_default_feeding_amount,
+    async_call_add_entities,
+    normalise_entity_attributes,
+    normalize_value,
+    resolve_default_feeding_amount,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 _UPDATE_DEVICE_CLASS = cast(
-  ButtonDeviceClass,
-  getattr(ButtonDeviceClass, "UPDATE", "update"),
+    ButtonDeviceClass,
+    getattr(ButtonDeviceClass, "UPDATE", "update"),
 )
 
 
 def _normalise_attributes(
-  attrs: JSONLikeMapping,
+    attrs: JSONLikeMapping,
 ) -> JSONMutableMapping:
-  """Return JSON-serialisable attributes for button entities."""  # noqa: E111
+    """Return JSON-serialisable attributes for button entities."""  # noqa: E111
 
-  return normalise_entity_attributes(attrs)  # noqa: E111
+    return normalise_entity_attributes(attrs)  # noqa: E111
 
 
 @runtime_checkable
 class ServiceRegistryLike(Protocol):
-  """Protocol describing the Home Assistant service registry surface."""  # noqa: E111
+    """Protocol describing the Home Assistant service registry surface."""  # noqa: E111
 
-  async def async_call(  # noqa: E111
-    self,
-    domain: str,
-    service: str,
-    service_data: JSONLikeMapping | None = None,
-    blocking: bool = False,
-    context: Context | None = None,
-  ) -> None:
-    """Invoke a Home Assistant service call."""
+    async def async_call(  # noqa: E111
+        self,
+        domain: str,
+        service: str,
+        service_data: JSONLikeMapping | None = None,
+        blocking: bool = False,
+        context: Context | None = None,
+    ) -> None:
+        """Invoke a Home Assistant service call."""
 
 
 type ServiceRegistryType = ServiceRegistry | ServiceRegistryLike
 
 
 class ButtonRule(TypedDict, total=False):
-  """Typed metadata describing how to build a button for a module."""  # noqa: E111
+    """Typed metadata describing how to build a button for a module."""  # noqa: E111
 
-  factory: type[PawControlButtonBase]  # noqa: E111
-  type: str  # noqa: E111
-  priority: int  # noqa: E111
-  profiles: Sequence[str]  # noqa: E111
-  args: Sequence[str]  # noqa: E111
+    factory: type[PawControlButtonBase]  # noqa: E111
+    type: str  # noqa: E111
+    priority: int  # noqa: E111
+    profiles: Sequence[str]  # noqa: E111
+    args: Sequence[str]  # noqa: E111
 
 
 class ButtonCandidate(TypedDict):
-  """Candidate button produced by a rule before profile filtering."""  # noqa: E111
+    """Candidate button produced by a rule before profile filtering."""  # noqa: E111
 
-  button: PawControlButtonBase  # noqa: E111
-  type: str  # noqa: E111
-  priority: int  # noqa: E111
+    button: PawControlButtonBase  # noqa: E111
+    type: str  # noqa: E111
+    priority: int  # noqa: E111
 
 
 class _ServiceRegistryProxy(ServiceRegistryLike):
-  """Proxy around Home Assistant's service registry to allow patching."""  # noqa: E111
+    """Proxy around Home Assistant's service registry to allow patching."""  # noqa: E111
 
-  def __init__(self, registry: ServiceRegistryType) -> None:  # noqa: E111
-    self._registry = registry
+    def __init__(self, registry: ServiceRegistryType) -> None:  # noqa: E111
+        self._registry = registry
 
-  async def async_call(  # noqa: E111
-    self,
-    domain: str,
-    service: str,
-    service_data: JSONLikeMapping | None = None,
-    blocking: bool = False,
-    context: Context | None = None,
-  ) -> None:
-    await self._registry.async_call(
-      domain,
-      service,
-      service_data,
-      blocking,
-      context,
-    )
+    async def async_call(  # noqa: E111
+        self,
+        domain: str,
+        service: str,
+        service_data: JSONLikeMapping | None = None,
+        blocking: bool = False,
+        context: Context | None = None,
+    ) -> None:
+        await self._registry.async_call(
+            domain,
+            service,
+            service_data,
+            blocking,
+            context,
+        )
 
-  def __getattr__(self, item: str) -> Any:  # noqa: E111
-    return getattr(self._registry, item)
+    def __getattr__(self, item: str) -> Any:  # noqa: E111
+        return getattr(self._registry, item)
 
 
 def _prepare_service_proxy(
-  hass: HomeAssistant,
+    hass: HomeAssistant,
 ) -> ServiceRegistryLike | None:
-  """Ensure the hass instance exposes a patchable services object."""  # noqa: E111
+    """Ensure the hass instance exposes a patchable services object."""  # noqa: E111
 
-  services = getattr(hass, "services", None)  # noqa: E111
+    services = getattr(hass, "services", None)  # noqa: E111
 
-  if services is None:  # noqa: E111
-    return None
+    if services is None:  # noqa: E111
+        return None
 
-  if isinstance(services, _ServiceRegistryProxy):  # noqa: E111
-    return services
+    if isinstance(services, _ServiceRegistryProxy):  # noqa: E111
+        return services
 
-  if isinstance(services, ServiceRegistry):  # noqa: E111
-    proxy = hass.data.get("_pawcontrol_service_proxy")
-    if not isinstance(proxy, _ServiceRegistryProxy) or proxy._registry is not services:
-      proxy = _ServiceRegistryProxy(services)  # noqa: E111
-      hass.data["_pawcontrol_service_proxy"] = proxy  # noqa: E111
-    hass.services = proxy
-    return proxy
+    if isinstance(services, ServiceRegistry):  # noqa: E111
+        proxy = hass.data.get("_pawcontrol_service_proxy")
+        if (
+            not isinstance(proxy, _ServiceRegistryProxy)
+            or proxy._registry is not services
+        ):
+            proxy = _ServiceRegistryProxy(services)  # noqa: E111
+            hass.data["_pawcontrol_service_proxy"] = proxy  # noqa: E111
+        hass.services = proxy
+        return proxy
 
-  if isinstance(services, ServiceRegistryLike):  # noqa: E111
-    return services
+    if isinstance(services, ServiceRegistryLike):  # noqa: E111
+        return services
 
-  return None  # noqa: E111
+    return None  # noqa: E111
 
 
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
 
 _TRUTHY_FLAG_VALUES: set[str] = {
-  "true",
-  "1",
-  "yes",
-  "y",
-  "on",
-  "active",
+    "true",
+    "1",
+    "yes",
+    "y",
+    "on",
+    "active",
 }
 _FALSY_FLAG_VALUES: set[str] = {
-  "false",
-  "0",
-  "no",
-  "n",
-  "off",
-  "inactive",
-  "",
+    "false",
+    "0",
+    "no",
+    "n",
+    "off",
+    "inactive",
+    "",
 }
 
 # OPTIMIZATION: Profile-based entity reduction
 type ProfileButtonKey = Literal[
-  "basic",
-  "standard",
-  "advanced",
-  "gps_focus",
-  "health_focus",
+    "basic",
+    "standard",
+    "advanced",
+    "gps_focus",
+    "health_focus",
 ]
 
 
 PROFILE_BUTTON_LIMITS: Final[dict[ProfileButtonKey, int]] = {
-  "basic": 3,  # Essential buttons only: test_notification, reset_stats, mark_fed
-  "standard": 8,  # Include walk controls alongside feed/data management buttons
-  "advanced": 12,  # Full button set
-  "gps_focus": 8,  # GPS + essential buttons
-  "health_focus": 7,  # Health + essential buttons
+    "basic": 3,  # Essential buttons only: test_notification, reset_stats, mark_fed
+    "standard": 8,  # Include walk controls alongside feed/data management buttons
+    "advanced": 12,  # Full button set
+    "gps_focus": 8,  # GPS + essential buttons
+    "health_focus": 7,  # Health + essential buttons
 }
 
 
 def _resolve_profile_button_limit(profile: str) -> int:  # noqa: E111
-  """Return the configured button limit for a profile with safe fallback."""  # noqa: E111
+    """Return the configured button limit for a profile with safe fallback."""  # noqa: E111
 
-  if profile in PROFILE_BUTTON_LIMITS:  # noqa: E111
-    return PROFILE_BUTTON_LIMITS[cast(ProfileButtonKey, profile)]
-  return 6  # noqa: E111
+    if profile in PROFILE_BUTTON_LIMITS:  # noqa: E111
+        return PROFILE_BUTTON_LIMITS[cast(ProfileButtonKey, profile)]
+    return 6  # noqa: E111
 
 
 # Button priorities (1=highest, 4=lowest) for profile-based selection
 BUTTON_PRIORITIES = {
-  # Core buttons (always included)
-  "test_notification": 1,
-  "reset_daily_stats": 1,
-  # Essential module buttons
-  "feed_now": 1,
-  "mark_fed": 2,
-  "refresh_data": 2,
-  "sync_data": 2,
-  "start_walk": 2,
-  "end_walk": 2,
-  "start_garden_session": 2,
-  "end_garden_session": 2,
-  "refresh_location": 2,
-  "log_weight": 2,
-  # Advanced module buttons
-  "feed_breakfast": 3,
-  "feed_dinner": 3,
-  "quick_walk": 3,
-  "log_medication": 3,
-  "start_grooming": 3,
-  "log_garden_activity": 3,
-  "center_map": 3,
-  # Detailed buttons (lowest priority)
-  "feed_lunch": 4,
-  "feed_snack": 4,
-  "log_walk_manually": 4,
-  "toggle_visitor_mode": 2,
-  "log_custom_feeding": 2,
-  "confirm_garden_poop": 3,
-  "export_route": 4,
-  "call_dog": 4,
-  "schedule_vet": 4,
-  "health_check": 4,
+    # Core buttons (always included)
+    "test_notification": 1,
+    "reset_daily_stats": 1,
+    # Essential module buttons
+    "feed_now": 1,
+    "mark_fed": 2,
+    "refresh_data": 2,
+    "sync_data": 2,
+    "start_walk": 2,
+    "end_walk": 2,
+    "start_garden_session": 2,
+    "end_garden_session": 2,
+    "refresh_location": 2,
+    "log_weight": 2,
+    # Advanced module buttons
+    "feed_breakfast": 3,
+    "feed_dinner": 3,
+    "quick_walk": 3,
+    "log_medication": 3,
+    "start_grooming": 3,
+    "log_garden_activity": 3,
+    "center_map": 3,
+    # Detailed buttons (lowest priority)
+    "feed_lunch": 4,
+    "feed_snack": 4,
+    "log_walk_manually": 4,
+    "toggle_visitor_mode": 2,
+    "log_custom_feeding": 2,
+    "confirm_garden_poop": 3,
+    "export_route": 4,
+    "call_dog": 4,
+    "schedule_vet": 4,
+    "health_check": 4,
 }
 
 
 class ProfileAwareButtonFactory:
-  """Factory for creating profile-aware buttons with optimized performance.
+    """Factory for creating profile-aware buttons with optimized performance.
 
-  OPTIMIZED: Reduced redundant calls, improved caching, thread-safe operations.
-  """  # noqa: E111
+    OPTIMIZED: Reduced redundant calls, improved caching, thread-safe operations.
+    """  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    profile: str = "standard",
-  ) -> None:
-    """Initialize button factory with profile.
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        profile: str = "standard",
+    ) -> None:
+        """Initialize button factory with profile.
 
-    Args:
-        coordinator: Data coordinator
-        profile: Entity profile for button selection
-    """
-    self.coordinator = coordinator
-    self.profile = profile
-    self.max_buttons = _resolve_profile_button_limit(profile)
+        Args:
+            coordinator: Data coordinator
+            profile: Entity profile for button selection
+        """
+        self.coordinator = coordinator
+        self.profile = profile
+        self.max_buttons = _resolve_profile_button_limit(profile)
 
-    # OPTIMIZED: Pre-calculate button rules for performance
-    self._button_rules_cache: dict[str, list[ButtonRule]] = {}
-    self._initialize_button_rules()
+        # OPTIMIZED: Pre-calculate button rules for performance
+        self._button_rules_cache: dict[str, list[ButtonRule]] = {}
+        self._initialize_button_rules()
 
-    _LOGGER.debug(
-      "Initialized ProfileAwareButtonFactory with profile '%s' (max: %d buttons)",
-      profile,
-      self.max_buttons,
-    )
+        _LOGGER.debug(
+            "Initialized ProfileAwareButtonFactory with profile '%s' (max: %d buttons)",
+            profile,
+            self.max_buttons,
+        )
 
-  def _initialize_button_rules(self) -> None:  # noqa: E111
-    """Pre-calculate button creation rules for each module to improve performance."""
-    self._button_rules_cache = {
-      MODULE_FEEDING: self._get_feeding_button_rules(),
-      MODULE_WALK: self._get_walk_button_rules(),
-      MODULE_GPS: self._get_gps_button_rules(),
-      MODULE_HEALTH: self._get_health_button_rules(),
-      MODULE_GARDEN: self._get_garden_button_rules(),
-    }
+    def _initialize_button_rules(self) -> None:  # noqa: E111
+        """Pre-calculate button creation rules for each module to improve performance."""
+        self._button_rules_cache = {
+            MODULE_FEEDING: self._get_feeding_button_rules(),
+            MODULE_WALK: self._get_walk_button_rules(),
+            MODULE_GPS: self._get_gps_button_rules(),
+            MODULE_HEALTH: self._get_health_button_rules(),
+            MODULE_GARDEN: self._get_garden_button_rules(),
+        }
 
-  def _get_feeding_button_rules(self) -> list[ButtonRule]:  # noqa: E111
-    """Get feeding button creation rules based on profile."""
-    rules: list[ButtonRule] = [
-      {
-        "factory": PawControlFeedNowButton,
-        "type": "feed_now",
-        "priority": BUTTON_PRIORITIES["feed_now"],
-        "profiles": ["basic", "standard", "advanced", "health_focus"],
-      },
-      {
-        "factory": PawControlMarkFedButton,
-        "type": "mark_fed",
-        "priority": BUTTON_PRIORITIES["mark_fed"],
-        "profiles": ["basic", "standard", "advanced", "health_focus"],
-      },
-    ]
-
-    if self.profile in ["standard", "advanced", "health_focus"]:
-      rules.extend(  # noqa: E111
-        [
-          {
-            "factory": PawControlFeedMealButton,
-            "type": "feed_breakfast",
-            "priority": BUTTON_PRIORITIES["feed_breakfast"],
-            "profiles": ["standard", "advanced", "health_focus"],
-            "args": ("breakfast",),
-          },
-          {
-            "factory": PawControlFeedMealButton,
-            "type": "feed_dinner",
-            "priority": BUTTON_PRIORITIES["feed_dinner"],
-            "profiles": ["standard", "advanced", "health_focus"],
-            "args": ("dinner",),
-          },
-        ],
-      )
-
-    if self.profile == "advanced":
-      rules.extend(  # noqa: E111
-        [
-          {
-            "factory": PawControlFeedMealButton,
-            "type": "feed_lunch",
-            "priority": BUTTON_PRIORITIES["feed_lunch"],
-            "profiles": ["advanced"],
-            "args": ("lunch",),
-          },
-          {
-            "factory": PawControlLogCustomFeedingButton,
-            "type": "log_custom_feeding",
-            "priority": BUTTON_PRIORITIES["log_custom_feeding"],
-            "profiles": ["advanced"],
-          },
-        ],
-      )
-
-    return [rule for rule in rules if self.profile in rule["profiles"]]
-
-  def _get_walk_button_rules(self) -> list[ButtonRule]:  # noqa: E111
-    """Get walk button creation rules based on profile."""
-    rules: list[ButtonRule] = [
-      {
-        "factory": PawControlStartWalkButton,
-        "type": "start_walk",
-        "priority": BUTTON_PRIORITIES["start_walk"],
-        "profiles": ["basic", "standard", "advanced", "gps_focus"],
-      },
-      {
-        "factory": PawControlEndWalkButton,
-        "type": "end_walk",
-        "priority": BUTTON_PRIORITIES["end_walk"],
-        "profiles": ["basic", "standard", "advanced", "gps_focus"],
-      },
-    ]
-
-    if self.profile in ["standard", "advanced", "gps_focus"]:
-      rules.append(  # noqa: E111
-        {
-          "factory": PawControlQuickWalkButton,
-          "type": "quick_walk",
-          "priority": BUTTON_PRIORITIES["quick_walk"],
-          "profiles": ["standard", "advanced", "gps_focus"],
-        },
-      )
-
-    if self.profile == "advanced":
-      rules.append(  # noqa: E111
-        {
-          "factory": PawControlLogWalkManuallyButton,
-          "type": "log_walk_manually",
-          "priority": BUTTON_PRIORITIES["log_walk_manually"],
-          "profiles": ["advanced"],
-        },
-      )
-
-    return [rule for rule in rules if self.profile in rule["profiles"]]
-
-  def _get_gps_button_rules(self) -> list[ButtonRule]:  # noqa: E111
-    """Get GPS button creation rules based on profile."""
-    rules: list[ButtonRule] = [
-      {
-        "factory": PawControlRefreshLocationButton,
-        "type": "refresh_location",
-        "priority": BUTTON_PRIORITIES["refresh_location"],
-        "profiles": ["basic", "standard", "advanced", "gps_focus"],
-      },
-    ]
-
-    if self.profile in ["standard", "advanced", "gps_focus"]:
-      rules.append(  # noqa: E111
-        {
-          "factory": PawControlCenterMapButton,
-          "type": "center_map",
-          "priority": BUTTON_PRIORITIES["center_map"],
-          "profiles": ["standard", "advanced", "gps_focus"],
-        },
-      )
-
-    if self.profile in ["advanced", "gps_focus"]:
-      rules.extend(  # noqa: E111
-        [
-          {
-            "factory": PawControlExportRouteButton,
-            "type": "export_route",
-            "priority": BUTTON_PRIORITIES["export_route"],
-            "profiles": ["advanced", "gps_focus"],
-          },
-          {
-            "factory": PawControlCallDogButton,
-            "type": "call_dog",
-            "priority": BUTTON_PRIORITIES["call_dog"],
-            "profiles": ["advanced", "gps_focus"],
-          },
-        ],
-      )
-
-    return [rule for rule in rules if self.profile in rule["profiles"]]
-
-  def _get_health_button_rules(self) -> list[ButtonRule]:  # noqa: E111
-    """Get health button creation rules based on profile."""
-    rules: list[ButtonRule] = [
-      {
-        "factory": PawControlLogWeightButton,
-        "type": "log_weight",
-        "priority": BUTTON_PRIORITIES["log_weight"],
-        "profiles": ["basic", "standard", "advanced", "health_focus"],
-      },
-    ]
-
-    if self.profile in ["standard", "advanced", "health_focus"]:
-      rules.append(  # noqa: E111
-        {
-          "factory": PawControlLogMedicationButton,
-          "type": "log_medication",
-          "priority": BUTTON_PRIORITIES["log_medication"],
-          "profiles": ["standard", "advanced", "health_focus"],
-        },
-      )
-
-    if self.profile in ["advanced", "health_focus"]:
-      rules.extend(  # noqa: E111
-        [
-          {
-            "factory": PawControlStartGroomingButton,
-            "type": "start_grooming",
-            "priority": BUTTON_PRIORITIES["start_grooming"],
-            "profiles": ["advanced", "health_focus"],
-          },
-          {
-            "factory": PawControlScheduleVetButton,
-            "type": "schedule_vet",
-            "priority": BUTTON_PRIORITIES["schedule_vet"],
-            "profiles": ["advanced", "health_focus"],
-          },
-        ],
-      )
-
-    if self.profile == "advanced":
-      rules.append(  # noqa: E111
-        {
-          "factory": PawControlHealthCheckButton,
-          "type": "health_check",
-          "priority": BUTTON_PRIORITIES["health_check"],
-          "profiles": ["advanced"],
-        },
-      )
-
-    return [rule for rule in rules if self.profile in rule["profiles"]]
-
-  def _get_garden_button_rules(self) -> list[ButtonRule]:  # noqa: E111
-    """Get garden button creation rules based on profile."""
-
-    rules: list[ButtonRule] = [
-      {
-        "factory": PawControlStartGardenSessionButton,
-        "type": "start_garden_session",
-        "priority": BUTTON_PRIORITIES["start_garden_session"],
-        "profiles": [
-          "basic",
-          "standard",
-          "advanced",
-          "gps_focus",
-          "health_focus",
-        ],
-      },
-      {
-        "factory": PawControlEndGardenSessionButton,
-        "type": "end_garden_session",
-        "priority": BUTTON_PRIORITIES["end_garden_session"],
-        "profiles": [
-          "basic",
-          "standard",
-          "advanced",
-          "gps_focus",
-          "health_focus",
-        ],
-      },
-    ]
-
-    if self.profile in ["standard", "advanced", "gps_focus", "health_focus"]:
-      rules.append(  # noqa: E111
-        {
-          "factory": PawControlLogGardenActivityButton,
-          "type": "log_garden_activity",
-          "priority": BUTTON_PRIORITIES["log_garden_activity"],
-          "profiles": ["standard", "advanced", "gps_focus", "health_focus"],
-        },
-      )
-
-    if self.profile in ["advanced", "health_focus"]:
-      rules.append(  # noqa: E111
-        {
-          "factory": PawControlConfirmGardenPoopButton,
-          "type": "confirm_garden_poop",
-          "priority": BUTTON_PRIORITIES["confirm_garden_poop"],
-          "profiles": ["advanced", "health_focus"],
-        },
-      )
-
-    return [rule for rule in rules if self.profile in rule["profiles"]]
-
-  def create_buttons_for_dog(self, dog: DogConfigData) -> list[PawControlButtonBase]:  # noqa: E111
-    """Create profile-optimized buttons for ``dog`` with strict typing."""
-
-    dog_id = dog[DOG_ID_FIELD]
-    dog_name = dog[DOG_NAME_FIELD]
-
-    modules_projection = ensure_dog_modules_projection(dog)
-    modules_mapping = modules_projection.mapping
-
-    # Create all possible button candidates using pre-calculated rules
-    button_candidates: list[ButtonCandidate] = []
-
-    # Core buttons (always created)
-    button_candidates.extend(
-      [
-        {
-          "button": PawControlTestNotificationButton(
-            self.coordinator,
-            dog_id,
-            dog_name,
-          ),
-          "type": "test_notification",
-          "priority": BUTTON_PRIORITIES["test_notification"],
-        },
-        {
-          "button": PawControlResetDailyStatsButton(
-            self.coordinator,
-            dog_id,
-            dog_name,
-          ),
-          "type": "reset_daily_stats",
-          "priority": BUTTON_PRIORITIES["reset_daily_stats"],
-        },
-        {
-          "button": PawControlRefreshDataButton(
-            self.coordinator,
-            dog_id,
-            dog_name,
-          ),
-          "type": "refresh_data",
-          "priority": BUTTON_PRIORITIES["refresh_data"],
-        },
-        {
-          "button": PawControlSyncDataButton(
-            self.coordinator,
-            dog_id,
-            dog_name,
-          ),
-          "type": "sync_data",
-          "priority": BUTTON_PRIORITIES["sync_data"],
-        },
-      ],
-    )
-
-    # OPTIMIZED: Use pre-calculated rules instead of creating them on-demand
-    for module, enabled in modules_mapping.items():
-      if not enabled or module not in self._button_rules_cache:  # noqa: E111
-        continue
-
-      module_rules = self._button_rules_cache[module]  # noqa: E111
-      for rule in module_rules:  # noqa: E111
-        try:
-          button_class = rule["factory"]  # noqa: E111
-          args = tuple(rule.get("args", ()))  # noqa: E111
-
-          button = button_class(  # noqa: E111
-            self.coordinator,
-            dog_id,
-            dog_name,
-            *args,
-          )
-
-          button_candidates.append(  # noqa: E111
+    def _get_feeding_button_rules(self) -> list[ButtonRule]:  # noqa: E111
+        """Get feeding button creation rules based on profile."""
+        rules: list[ButtonRule] = [
             {
-              "button": button,
-              "type": rule["type"],
-              "priority": rule["priority"],
+                "factory": PawControlFeedNowButton,
+                "type": "feed_now",
+                "priority": BUTTON_PRIORITIES["feed_now"],
+                "profiles": ["basic", "standard", "advanced", "health_focus"],
             },
-          )
-        except Exception as err:
-          _LOGGER.warning(  # noqa: E111
-            "Failed to create button %s for %s: %s",
-            rule["type"],
+            {
+                "factory": PawControlMarkFedButton,
+                "type": "mark_fed",
+                "priority": BUTTON_PRIORITIES["mark_fed"],
+                "profiles": ["basic", "standard", "advanced", "health_focus"],
+            },
+        ]
+
+        if self.profile in ["standard", "advanced", "health_focus"]:
+            rules.extend(  # noqa: E111
+                [
+                    {
+                        "factory": PawControlFeedMealButton,
+                        "type": "feed_breakfast",
+                        "priority": BUTTON_PRIORITIES["feed_breakfast"],
+                        "profiles": ["standard", "advanced", "health_focus"],
+                        "args": ("breakfast",),
+                    },
+                    {
+                        "factory": PawControlFeedMealButton,
+                        "type": "feed_dinner",
+                        "priority": BUTTON_PRIORITIES["feed_dinner"],
+                        "profiles": ["standard", "advanced", "health_focus"],
+                        "args": ("dinner",),
+                    },
+                ],
+            )
+
+        if self.profile == "advanced":
+            rules.extend(  # noqa: E111
+                [
+                    {
+                        "factory": PawControlFeedMealButton,
+                        "type": "feed_lunch",
+                        "priority": BUTTON_PRIORITIES["feed_lunch"],
+                        "profiles": ["advanced"],
+                        "args": ("lunch",),
+                    },
+                    {
+                        "factory": PawControlLogCustomFeedingButton,
+                        "type": "log_custom_feeding",
+                        "priority": BUTTON_PRIORITIES["log_custom_feeding"],
+                        "profiles": ["advanced"],
+                    },
+                ],
+            )
+
+        return [rule for rule in rules if self.profile in rule["profiles"]]
+
+    def _get_walk_button_rules(self) -> list[ButtonRule]:  # noqa: E111
+        """Get walk button creation rules based on profile."""
+        rules: list[ButtonRule] = [
+            {
+                "factory": PawControlStartWalkButton,
+                "type": "start_walk",
+                "priority": BUTTON_PRIORITIES["start_walk"],
+                "profiles": ["basic", "standard", "advanced", "gps_focus"],
+            },
+            {
+                "factory": PawControlEndWalkButton,
+                "type": "end_walk",
+                "priority": BUTTON_PRIORITIES["end_walk"],
+                "profiles": ["basic", "standard", "advanced", "gps_focus"],
+            },
+        ]
+
+        if self.profile in ["standard", "advanced", "gps_focus"]:
+            rules.append(  # noqa: E111
+                {
+                    "factory": PawControlQuickWalkButton,
+                    "type": "quick_walk",
+                    "priority": BUTTON_PRIORITIES["quick_walk"],
+                    "profiles": ["standard", "advanced", "gps_focus"],
+                },
+            )
+
+        if self.profile == "advanced":
+            rules.append(  # noqa: E111
+                {
+                    "factory": PawControlLogWalkManuallyButton,
+                    "type": "log_walk_manually",
+                    "priority": BUTTON_PRIORITIES["log_walk_manually"],
+                    "profiles": ["advanced"],
+                },
+            )
+
+        return [rule for rule in rules if self.profile in rule["profiles"]]
+
+    def _get_gps_button_rules(self) -> list[ButtonRule]:  # noqa: E111
+        """Get GPS button creation rules based on profile."""
+        rules: list[ButtonRule] = [
+            {
+                "factory": PawControlRefreshLocationButton,
+                "type": "refresh_location",
+                "priority": BUTTON_PRIORITIES["refresh_location"],
+                "profiles": ["basic", "standard", "advanced", "gps_focus"],
+            },
+        ]
+
+        if self.profile in ["standard", "advanced", "gps_focus"]:
+            rules.append(  # noqa: E111
+                {
+                    "factory": PawControlCenterMapButton,
+                    "type": "center_map",
+                    "priority": BUTTON_PRIORITIES["center_map"],
+                    "profiles": ["standard", "advanced", "gps_focus"],
+                },
+            )
+
+        if self.profile in ["advanced", "gps_focus"]:
+            rules.extend(  # noqa: E111
+                [
+                    {
+                        "factory": PawControlExportRouteButton,
+                        "type": "export_route",
+                        "priority": BUTTON_PRIORITIES["export_route"],
+                        "profiles": ["advanced", "gps_focus"],
+                    },
+                    {
+                        "factory": PawControlCallDogButton,
+                        "type": "call_dog",
+                        "priority": BUTTON_PRIORITIES["call_dog"],
+                        "profiles": ["advanced", "gps_focus"],
+                    },
+                ],
+            )
+
+        return [rule for rule in rules if self.profile in rule["profiles"]]
+
+    def _get_health_button_rules(self) -> list[ButtonRule]:  # noqa: E111
+        """Get health button creation rules based on profile."""
+        rules: list[ButtonRule] = [
+            {
+                "factory": PawControlLogWeightButton,
+                "type": "log_weight",
+                "priority": BUTTON_PRIORITIES["log_weight"],
+                "profiles": ["basic", "standard", "advanced", "health_focus"],
+            },
+        ]
+
+        if self.profile in ["standard", "advanced", "health_focus"]:
+            rules.append(  # noqa: E111
+                {
+                    "factory": PawControlLogMedicationButton,
+                    "type": "log_medication",
+                    "priority": BUTTON_PRIORITIES["log_medication"],
+                    "profiles": ["standard", "advanced", "health_focus"],
+                },
+            )
+
+        if self.profile in ["advanced", "health_focus"]:
+            rules.extend(  # noqa: E111
+                [
+                    {
+                        "factory": PawControlStartGroomingButton,
+                        "type": "start_grooming",
+                        "priority": BUTTON_PRIORITIES["start_grooming"],
+                        "profiles": ["advanced", "health_focus"],
+                    },
+                    {
+                        "factory": PawControlScheduleVetButton,
+                        "type": "schedule_vet",
+                        "priority": BUTTON_PRIORITIES["schedule_vet"],
+                        "profiles": ["advanced", "health_focus"],
+                    },
+                ],
+            )
+
+        if self.profile == "advanced":
+            rules.append(  # noqa: E111
+                {
+                    "factory": PawControlHealthCheckButton,
+                    "type": "health_check",
+                    "priority": BUTTON_PRIORITIES["health_check"],
+                    "profiles": ["advanced"],
+                },
+            )
+
+        return [rule for rule in rules if self.profile in rule["profiles"]]
+
+    def _get_garden_button_rules(self) -> list[ButtonRule]:  # noqa: E111
+        """Get garden button creation rules based on profile."""
+
+        rules: list[ButtonRule] = [
+            {
+                "factory": PawControlStartGardenSessionButton,
+                "type": "start_garden_session",
+                "priority": BUTTON_PRIORITIES["start_garden_session"],
+                "profiles": [
+                    "basic",
+                    "standard",
+                    "advanced",
+                    "gps_focus",
+                    "health_focus",
+                ],
+            },
+            {
+                "factory": PawControlEndGardenSessionButton,
+                "type": "end_garden_session",
+                "priority": BUTTON_PRIORITIES["end_garden_session"],
+                "profiles": [
+                    "basic",
+                    "standard",
+                    "advanced",
+                    "gps_focus",
+                    "health_focus",
+                ],
+            },
+        ]
+
+        if self.profile in ["standard", "advanced", "gps_focus", "health_focus"]:
+            rules.append(  # noqa: E111
+                {
+                    "factory": PawControlLogGardenActivityButton,
+                    "type": "log_garden_activity",
+                    "priority": BUTTON_PRIORITIES["log_garden_activity"],
+                    "profiles": ["standard", "advanced", "gps_focus", "health_focus"],
+                },
+            )
+
+        if self.profile in ["advanced", "health_focus"]:
+            rules.append(  # noqa: E111
+                {
+                    "factory": PawControlConfirmGardenPoopButton,
+                    "type": "confirm_garden_poop",
+                    "priority": BUTTON_PRIORITIES["confirm_garden_poop"],
+                    "profiles": ["advanced", "health_focus"],
+                },
+            )
+
+        return [rule for rule in rules if self.profile in rule["profiles"]]
+
+    def create_buttons_for_dog(self, dog: DogConfigData) -> list[PawControlButtonBase]:  # noqa: E111
+        """Create profile-optimized buttons for ``dog`` with strict typing."""
+
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+
+        modules_projection = ensure_dog_modules_projection(dog)
+        modules_mapping = modules_projection.mapping
+
+        # Create all possible button candidates using pre-calculated rules
+        button_candidates: list[ButtonCandidate] = []
+
+        # Core buttons (always created)
+        button_candidates.extend(
+            [
+                {
+                    "button": PawControlTestNotificationButton(
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
+                    ),
+                    "type": "test_notification",
+                    "priority": BUTTON_PRIORITIES["test_notification"],
+                },
+                {
+                    "button": PawControlResetDailyStatsButton(
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
+                    ),
+                    "type": "reset_daily_stats",
+                    "priority": BUTTON_PRIORITIES["reset_daily_stats"],
+                },
+                {
+                    "button": PawControlRefreshDataButton(
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
+                    ),
+                    "type": "refresh_data",
+                    "priority": BUTTON_PRIORITIES["refresh_data"],
+                },
+                {
+                    "button": PawControlSyncDataButton(
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
+                    ),
+                    "type": "sync_data",
+                    "priority": BUTTON_PRIORITIES["sync_data"],
+                },
+            ],
+        )
+
+        # OPTIMIZED: Use pre-calculated rules instead of creating them on-demand
+        for module, enabled in modules_mapping.items():
+            if not enabled or module not in self._button_rules_cache:  # noqa: E111
+                continue
+
+            module_rules = self._button_rules_cache[module]  # noqa: E111
+            for rule in module_rules:  # noqa: E111
+                try:
+                    button_class = rule["factory"]  # noqa: E111
+                    args = tuple(rule.get("args", ()))  # noqa: E111
+
+                    button = button_class(  # noqa: E111
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
+                        *args,
+                    )
+
+                    button_candidates.append(  # noqa: E111
+                        {
+                            "button": button,
+                            "type": rule["type"],
+                            "priority": rule["priority"],
+                        },
+                    )
+                except Exception as err:
+                    _LOGGER.warning(  # noqa: E111
+                        "Failed to create button %s for %s: %s",
+                        rule["type"],
+                        dog_name,
+                        err,
+                    )
+
+        # Profile-specific additional buttons
+        if self.profile in ["advanced", "gps_focus"]:
+            button_candidates.append(  # noqa: E111
+                {
+                    "button": PawControlToggleVisitorModeButton(
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
+                    ),
+                    "type": "toggle_visitor_mode",
+                    "priority": BUTTON_PRIORITIES["toggle_visitor_mode"],
+                },
+            )
+
+        # Sort by priority and apply profile limit
+        button_candidates.sort(key=lambda x: x["priority"])
+        selected_candidates = button_candidates[: self.max_buttons]
+
+        # Extract button entities
+        buttons = [candidate["button"] for candidate in selected_candidates]
+        selected_types = [candidate["type"] for candidate in selected_candidates]
+
+        _LOGGER.info(
+            "Created %d/%d buttons for %s (profile: %s): %s",
+            len(buttons),
+            len(button_candidates),
             dog_name,
-            err,
-          )
+            self.profile,
+            ", ".join(selected_types),
+        )
 
-    # Profile-specific additional buttons
-    if self.profile in ["advanced", "gps_focus"]:
-      button_candidates.append(  # noqa: E111
-        {
-          "button": PawControlToggleVisitorModeButton(
-            self.coordinator,
-            dog_id,
-            dog_name,
-          ),
-          "type": "toggle_visitor_mode",
-          "priority": BUTTON_PRIORITIES["toggle_visitor_mode"],
-        },
-      )
-
-    # Sort by priority and apply profile limit
-    button_candidates.sort(key=lambda x: x["priority"])
-    selected_candidates = button_candidates[: self.max_buttons]
-
-    # Extract button entities
-    buttons = [candidate["button"] for candidate in selected_candidates]
-    selected_types = [candidate["type"] for candidate in selected_candidates]
-
-    _LOGGER.info(
-      "Created %d/%d buttons for %s (profile: %s): %s",
-      len(buttons),
-      len(button_candidates),
-      dog_name,
-      self.profile,
-      ", ".join(selected_types),
-    )
-
-    return buttons
+        return buttons
 
 
 async def async_setup_entry(
-  hass: HomeAssistant,
-  entry: PawControlConfigEntry,
-  async_add_entities: AddEntitiesCallback,
+    hass: HomeAssistant,
+    entry: PawControlConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up PawControl button platform with profile-based optimization."""  # noqa: E111
+    """Set up PawControl button platform with profile-based optimization."""  # noqa: E111
 
-  # OPTIMIZED: Consistent runtime_data usage for Platinum readiness  # noqa: E114
-  runtime_data = get_runtime_data(hass, entry)  # noqa: E111
-  if runtime_data is None:  # noqa: E111
-    _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
-    return
-  coordinator = runtime_data.coordinator  # noqa: E111
-  raw_dogs = getattr(runtime_data, "dogs", [])  # noqa: E111
-  dog_configs: list[DogConfigData] = []  # noqa: E111
-  for raw_dog in raw_dogs:  # noqa: E111
-    if not isinstance(raw_dog, Mapping):
-      continue  # noqa: E111
+    # OPTIMIZED: Consistent runtime_data usage for Platinum readiness  # noqa: E114
+    runtime_data = get_runtime_data(hass, entry)  # noqa: E111
+    if runtime_data is None:  # noqa: E111
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
+    coordinator = runtime_data.coordinator  # noqa: E111
+    raw_dogs = getattr(runtime_data, "dogs", [])  # noqa: E111
+    dog_configs: list[DogConfigData] = []  # noqa: E111
+    for raw_dog in raw_dogs:  # noqa: E111
+        if not isinstance(raw_dog, Mapping):
+            continue  # noqa: E111
 
-    normalised = ensure_dog_config_data(cast(JSONMapping, raw_dog))
-    if normalised is None:
-      continue  # noqa: E111
+        normalised = ensure_dog_config_data(cast(JSONMapping, raw_dog))
+        if normalised is None:
+            continue  # noqa: E111
 
-    modules_projection = ensure_dog_modules_projection(normalised)
-    normalised[DOG_MODULES_FIELD] = modules_projection.config
-    dog_configs.append(normalised)
+        modules_projection = ensure_dog_modules_projection(normalised)
+        normalised[DOG_MODULES_FIELD] = modules_projection.config
+        dog_configs.append(normalised)
 
-  if not dog_configs:  # noqa: E111
-    _LOGGER.warning("No dogs configured for button platform")
-    return
+    if not dog_configs:  # noqa: E111
+        _LOGGER.warning("No dogs configured for button platform")
+        return
 
-  # Get profile from runtime data (consistent with other platforms)  # noqa: E114
-  profile = runtime_data.entity_profile  # noqa: E111
+    # Get profile from runtime data (consistent with other platforms)  # noqa: E114
+    profile = runtime_data.entity_profile  # noqa: E111
 
-  _LOGGER.info(  # noqa: E111
-    "Setting up buttons with profile '%s' for %d dogs",
-    profile,
-    len(
-      dog_configs,
-    ),
-  )
-
-  # Initialize profile-aware factory  # noqa: E114
-  button_factory = ProfileAwareButtonFactory(coordinator, profile)  # noqa: E111
-
-  # Create profile-optimized entities  # noqa: E114
-  all_entities: list[PawControlButtonBase] = []  # noqa: E111
-  total_buttons_created = 0  # noqa: E111
-
-  for dog in dog_configs:  # noqa: E111
-    dog_id = dog[DOG_ID_FIELD]
-    dog_name = dog[DOG_NAME_FIELD]
-
-    dog_buttons = button_factory.create_buttons_for_dog(dog)
-    all_entities.extend(dog_buttons)
-    total_buttons_created += len(dog_buttons)
-
-    _LOGGER.info(
-      "Created %d buttons for dog: %s (%s) with profile '%s'",
-      len(dog_buttons),
-      dog_name,
-      dog_id,
-      profile,
+    _LOGGER.info(  # noqa: E111
+        "Setting up buttons with profile '%s' for %d dogs",
+        profile,
+        len(
+            dog_configs,
+        ),
     )
 
-  # OPTIMIZATION: Smart batching based on reduced button count  # noqa: E114
-  batch_size = 15  # Increased batch size for fewer entities  # noqa: E111
+    # Initialize profile-aware factory  # noqa: E114
+    button_factory = ProfileAwareButtonFactory(coordinator, profile)  # noqa: E111
 
-  if total_buttons_created <= batch_size:  # noqa: E111
-    # Small setup: Add all at once
-    await async_call_add_entities(
-      async_add_entities,
-      all_entities,
-      update_before_add=False,
-    )
-    _LOGGER.info(
-      "Created %d button entities (single batch) - profile-optimized count",
-      total_buttons_created,
-    )
-  else:  # noqa: E111
-    # Large setup: Efficient batching
-    # Create and execute batches concurrently while still awaiting helpers
-    batches = [
-      all_entities[i : i + batch_size] for i in range(0, len(all_entities), batch_size)
-    ]
+    # Create profile-optimized entities  # noqa: E114
+    all_entities: list[PawControlButtonBase] = []  # noqa: E111
+    total_buttons_created = 0  # noqa: E111
 
-    await asyncio.gather(
-      *(
-        async_call_add_entities(
-          async_add_entities,
-          batch,
-          update_before_add=False,
+    for dog in dog_configs:  # noqa: E111
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+
+        dog_buttons = button_factory.create_buttons_for_dog(dog)
+        all_entities.extend(dog_buttons)
+        total_buttons_created += len(dog_buttons)
+
+        _LOGGER.info(
+            "Created %d buttons for dog: %s (%s) with profile '%s'",
+            len(dog_buttons),
+            dog_name,
+            dog_id,
+            profile,
         )
-        for batch in batches
-      ),
+
+    # OPTIMIZATION: Smart batching based on reduced button count  # noqa: E114
+    batch_size = 15  # Increased batch size for fewer entities  # noqa: E111
+
+    if total_buttons_created <= batch_size:  # noqa: E111
+        # Small setup: Add all at once
+        await async_call_add_entities(
+            async_add_entities,
+            all_entities,
+            update_before_add=False,
+        )
+        _LOGGER.info(
+            "Created %d button entities (single batch) - profile-optimized count",
+            total_buttons_created,
+        )
+    else:  # noqa: E111
+        # Large setup: Efficient batching
+        # Create and execute batches concurrently while still awaiting helpers
+        batches = [
+            all_entities[i : i + batch_size]
+            for i in range(0, len(all_entities), batch_size)
+        ]
+
+        await asyncio.gather(
+            *(
+                async_call_add_entities(
+                    async_add_entities,
+                    batch,
+                    update_before_add=False,
+                )
+                for batch in batches
+            ),
+        )
+
+        _LOGGER.info(
+            "Created %d button entities for %d dogs (profile-based batching)",
+            total_buttons_created,
+            len(dog_configs),
+        )
+
+    # Log profile statistics  # noqa: E114
+    max_possible = _resolve_profile_button_limit(profile)  # noqa: E111
+    efficiency = (  # noqa: E111
+        (max_possible * len(dog_configs) - total_buttons_created)
+        / (max_possible * len(dog_configs))
+        * 100
+        if max_possible * len(dog_configs) > 0
+        else 0
     )
 
-    _LOGGER.info(
-      "Created %d button entities for %d dogs (profile-based batching)",
-      total_buttons_created,
-      len(dog_configs),
+    _LOGGER.info(  # noqa: E111
+        "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",
+        profile,
+        total_buttons_created / len(dog_configs),
+        max_possible,
+        efficiency,
     )
-
-  # Log profile statistics  # noqa: E114
-  max_possible = _resolve_profile_button_limit(profile)  # noqa: E111
-  efficiency = (  # noqa: E111
-    (max_possible * len(dog_configs) - total_buttons_created)
-    / (max_possible * len(dog_configs))
-    * 100
-    if max_possible * len(dog_configs) > 0
-    else 0
-  )
-
-  _LOGGER.info(  # noqa: E111
-    "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",
-    profile,
-    total_buttons_created / len(dog_configs),
-    max_possible,
-    efficiency,
-  )
 
 
 class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
-  """Optimized base button class with thread-safe caching and improved performance."""  # noqa: E111
+    """Optimized base button class with thread-safe caching and improved performance."""  # noqa: E111
 
-  _attr_should_poll = False  # noqa: E111
-  _attr_has_entity_name = True  # noqa: E111
-  _attr_device_class: ButtonDeviceClass | None  # noqa: E111
-  _attr_icon: str | None  # noqa: E111
-  _attr_entity_category: EntityCategory | None  # noqa: E111
-  _attr_name: str | None  # noqa: E111
-  _attr_translation_key: str | None  # noqa: E111
-  _attr_unique_id: str  # noqa: E111
-  _action_description: str | None  # noqa: E111
-  _button_type: str  # noqa: E111
-  _last_pressed: str | None  # noqa: E111
+    _attr_should_poll = False  # noqa: E111
+    _attr_has_entity_name = True  # noqa: E111
+    _attr_device_class: ButtonDeviceClass | None  # noqa: E111
+    _attr_icon: str | None  # noqa: E111
+    _attr_entity_category: EntityCategory | None  # noqa: E111
+    _attr_name: str | None  # noqa: E111
+    _attr_translation_key: str | None  # noqa: E111
+    _attr_unique_id: str  # noqa: E111
+    _action_description: str | None  # noqa: E111
+    _button_type: str  # noqa: E111
+    _last_pressed: str | None  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-    button_type: str,
-    *,
-    device_class: ButtonDeviceClass | None = None,
-    icon: str | None = None,
-    entity_category: EntityCategory | None = None,
-    action_description: str | None = None,
-  ) -> None:
-    """Initialize optimized button entity with thread-safe caching."""
-    super().__init__(coordinator, dog_id, dog_name)
-    self._button_type = button_type
-    self._action_description = action_description
-    self._last_pressed = None
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+        button_type: str,
+        *,
+        device_class: ButtonDeviceClass | None = None,
+        icon: str | None = None,
+        entity_category: EntityCategory | None = None,
+        action_description: str | None = None,
+    ) -> None:
+        """Initialize optimized button entity with thread-safe caching."""
+        super().__init__(coordinator, dog_id, dog_name)
+        self._button_type = button_type
+        self._action_description = action_description
+        self._last_pressed = None
 
-    # Entity configuration
-    self._attr_unique_id = f"pawcontrol_{dog_id}_{button_type}"
-    self._attr_translation_key = button_type
-    self._attr_device_class = device_class
-    self._attr_icon = icon
-    self._attr_entity_category = entity_category
-    self.entity_description = ButtonEntityDescription(
-      key=button_type,
-      translation_key=button_type,
-      device_class=device_class,
-      entity_category=entity_category,
-      icon=icon,
-    )
+        # Entity configuration
+        self._attr_unique_id = f"pawcontrol_{dog_id}_{button_type}"
+        self._attr_translation_key = button_type
+        self._attr_device_class = device_class
+        self._attr_icon = icon
+        self._attr_entity_category = entity_category
+        self.entity_description = ButtonEntityDescription(
+            key=button_type,
+            translation_key=button_type,
+            device_class=device_class,
+            entity_category=entity_category,
+            icon=icon,
+        )
 
-    # Link to virtual PawControl device for the dog
-    self.update_device_metadata(
-      model=DEFAULT_MODEL,
-      sw_version=DEFAULT_SW_VERSION,
-    )
+        # Link to virtual PawControl device for the dog
+        self.update_device_metadata(
+            model=DEFAULT_MODEL,
+            sw_version=DEFAULT_SW_VERSION,
+        )
 
-    self._set_cache_ttl(2.0)
+        self._set_cache_ttl(2.0)
 
-  def __setattr__(self, name: str, value: Any) -> None:  # noqa: E111
-    """Intercept hass assignment to prepare a patch-friendly registry."""
+    def __setattr__(self, name: str, value: Any) -> None:  # noqa: E111
+        """Intercept hass assignment to prepare a patch-friendly registry."""
 
-    if name == "hass" and value is not None and isinstance(value, HomeAssistant):
-      _prepare_service_proxy(value)  # noqa: E111
+        if name == "hass" and value is not None and isinstance(value, HomeAssistant):
+            _prepare_service_proxy(value)  # noqa: E111
 
-    super().__setattr__(name, value)
+        super().__setattr__(name, value)
 
-  @property  # noqa: E111
-  def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
-    """Return attributes with optimized caching."""
+    @property  # noqa: E111
+    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+        """Return attributes with optimized caching."""
 
-    attrs = self._build_entity_attributes(
-      {
-        "button_type": self._button_type,
-        "last_pressed": cast(str | None, getattr(self, "_last_pressed", None)),
-      },
-    )
+        attrs = self._build_entity_attributes(
+            {
+                "button_type": self._button_type,
+                "last_pressed": cast(str | None, getattr(self, "_last_pressed", None)),
+            },
+        )
 
-    if self._action_description:
-      attrs["action_description"] = self._action_description  # noqa: E111
+        if self._action_description:
+            attrs["action_description"] = self._action_description  # noqa: E111
 
-    return _normalise_attributes(attrs)
+        return _normalise_attributes(attrs)
 
-  def _get_walk_payload(self) -> WalkModulePayload | None:  # noqa: E111
-    """Return the walk module payload if available."""
+    def _get_walk_payload(self) -> WalkModulePayload | None:  # noqa: E111
+        """Return the walk module payload if available."""
 
-    walk_data = self._get_module_data(MODULE_WALK)
-    return cast(WalkModulePayload, walk_data) if walk_data is not None else None
+        walk_data = self._get_module_data(MODULE_WALK)
+        return cast(WalkModulePayload, walk_data) if walk_data is not None else None
 
-  def _get_gps_payload(self) -> GPSModulePayload | None:  # noqa: E111
-    """Return the GPS module payload if available."""
+    def _get_gps_payload(self) -> GPSModulePayload | None:  # noqa: E111
+        """Return the GPS module payload if available."""
 
-    gps_data = self._get_module_data(MODULE_GPS)
-    return cast(GPSModulePayload, gps_data) if gps_data is not None else None
+        gps_data = self._get_module_data(MODULE_GPS)
+        return cast(GPSModulePayload, gps_data) if gps_data is not None else None
 
-  def _get_garden_payload(self) -> GardenModulePayload | None:  # noqa: E111
-    """Return the garden module payload if available."""
+    def _get_garden_payload(self) -> GardenModulePayload | None:  # noqa: E111
+        """Return the garden module payload if available."""
 
-    garden_data = self._get_module_data(MODULE_GARDEN)
-    return (
-      cast(
-        GardenModulePayload,
-        garden_data,
-      )
-      if garden_data is not None
-      else None
-    )
+        garden_data = self._get_module_data(MODULE_GARDEN)
+        return (
+            cast(
+                GardenModulePayload,
+                garden_data,
+            )
+            if garden_data is not None
+            else None
+        )
 
-  @staticmethod  # noqa: E111
-  def _normalize_module_flag(value: Any, field: str) -> bool:  # noqa: E111
-    """Normalise boolean-like flags reported by module payloads."""
+    @staticmethod  # noqa: E111
+    def _normalize_module_flag(value: Any, field: str) -> bool:  # noqa: E111
+        """Normalise boolean-like flags reported by module payloads."""
 
-    if isinstance(value, bool):
-      return value  # noqa: E111
+        if isinstance(value, bool):
+            return value  # noqa: E111
 
-    if isinstance(value, int | float) and value in {0, 1}:
-      return bool(value)  # noqa: E111
+        if isinstance(value, int | float) and value in {0, 1}:
+            return bool(value)  # noqa: E111
 
-    if isinstance(value, str):
-      normalized = value.strip().lower()  # noqa: E111
-      if normalized in _TRUTHY_FLAG_VALUES:  # noqa: E111
-        return True
-      if normalized in _FALSY_FLAG_VALUES:  # noqa: E111
+        if isinstance(value, str):
+            normalized = value.strip().lower()  # noqa: E111
+            if normalized in _TRUTHY_FLAG_VALUES:  # noqa: E111
+                return True
+            if normalized in _FALSY_FLAG_VALUES:  # noqa: E111
+                return False
+
+        if value is not None:
+            _LOGGER.debug(  # noqa: E111
+                "Unhandled boolean flag for %s: %r (%s); treating as False",
+                field,
+                value,
+                type(value).__name__,
+            )
+
         return False
 
-    if value is not None:
-      _LOGGER.debug(  # noqa: E111
-        "Unhandled boolean flag for %s: %r (%s); treating as False",
-        field,
-        value,
-        type(value).__name__,
-      )
+    @staticmethod  # noqa: E111
+    def _parse_datetime(value: Any) -> datetime | None:  # noqa: E111
+        """Parse ISO-formatted datetime strings into aware datetimes."""
 
-    return False
+        if isinstance(value, datetime):
+            return value  # noqa: E111
 
-  @staticmethod  # noqa: E111
-  def _parse_datetime(value: Any) -> datetime | None:  # noqa: E111
-    """Parse ISO-formatted datetime strings into aware datetimes."""
+        if isinstance(value, str):
+            parsed = dt_util.parse_datetime(value)  # noqa: E111
+            if parsed is not None:  # noqa: E111
+                return parsed
 
-    if isinstance(value, datetime):
-      return value  # noqa: E111
+        return None
 
-    if isinstance(value, str):
-      parsed = dt_util.parse_datetime(value)  # noqa: E111
-      if parsed is not None:  # noqa: E111
-        return parsed
+    @property  # noqa: E111
+    def available(self) -> bool:  # noqa: E111
+        """Check availability with optimized cache."""
+        return self.coordinator.available and self._get_dog_data_cached() is not None
 
-    return None
+    def _ensure_patchable_services(  # noqa: E111
+        self,
+    ) -> ServiceRegistryLike | None:
+        """Return a service registry object that supports attribute patching."""
 
-  @property  # noqa: E111
-  def available(self) -> bool:  # noqa: E111
-    """Check availability with optimized cache."""
-    return self.coordinator.available and self._get_dog_data_cached() is not None
+        if self.hass is None:
+            services = getattr(HomeAssistant, "services", None)  # noqa: E111
+            if isinstance(services, ServiceRegistryLike):  # noqa: E111
+                return services
+            return None  # noqa: E111
 
-  def _ensure_patchable_services(  # noqa: E111
-    self,
-  ) -> ServiceRegistryLike | None:
-    """Return a service registry object that supports attribute patching."""
+        proxy = _prepare_service_proxy(self.hass)
+        if proxy is not None:
+            return proxy  # noqa: E111
 
-    if self.hass is None:
-      services = getattr(HomeAssistant, "services", None)  # noqa: E111
-      if isinstance(services, ServiceRegistryLike):  # noqa: E111
-        return services
-      return None  # noqa: E111
+        services = getattr(self.hass, "services", None)
+        if isinstance(services, ServiceRegistryLike):
+            return services  # noqa: E111
+        return None
 
-    proxy = _prepare_service_proxy(self.hass)
-    if proxy is not None:
-      return proxy  # noqa: E111
+    async def _async_service_call(  # noqa: E111
+        self,
+        domain: str,
+        service: str,
+        data: JSONLikeMapping,
+        **kwargs: Any,
+    ) -> None:
+        """Call a Home Assistant service via a patch-friendly proxy."""
 
-    services = getattr(self.hass, "services", None)
-    if isinstance(services, ServiceRegistryLike):
-      return services  # noqa: E111
-    return None
+        registry = self._ensure_patchable_services()
+        if registry is None:
+            _LOGGER.debug(  # noqa: E111
+                "Service registry unavailable; skipping %s.%s call for %s",
+                domain,
+                service,
+                self._dog_id,
+            )
+            return  # noqa: E111
 
-  async def _async_service_call(  # noqa: E111
-    self,
-    domain: str,
-    service: str,
-    data: JSONLikeMapping,
-    **kwargs: Any,
-  ) -> None:
-    """Call a Home Assistant service via a patch-friendly proxy."""
+        raw_payload = ensure_json_mapping(data)
+        payload = cast(JSONMutableMapping, normalize_value(raw_payload))
+        if payload != raw_payload:
+            raw_keys = set(raw_payload)  # noqa: E111
+            normalized_keys = set(payload)  # noqa: E111
+            if raw_keys != normalized_keys:  # noqa: E111
+                _LOGGER.warning(
+                    "Service payload normalization altered keys for %s.%s on %s",
+                    domain,
+                    service,
+                    self._dog_id,
+                )
+            else:  # noqa: E111
+                changed_keys = sorted(
+                    key
+                    for key in raw_payload
+                    if raw_payload.get(key) != payload.get(key)
+                )
+                _LOGGER.warning(
+                    "Service payload normalization altered values for %s.%s on %s: %s",
+                    domain,
+                    service,
+                    self._dog_id,
+                    ", ".join(changed_keys) if changed_keys else "unknown keys",
+                )
+        await registry.async_call(domain, service, payload, **kwargs)
 
-    registry = self._ensure_patchable_services()
-    if registry is None:
-      _LOGGER.debug(  # noqa: E111
-        "Service registry unavailable; skipping %s.%s call for %s",
-        domain,
-        service,
-        self._dog_id,
-      )
-      return  # noqa: E111
+    async def _async_press_service(  # noqa: E111
+        self,
+        domain: str,
+        service: str,
+        data: JSONLikeMapping,
+        *,
+        error_message: str,
+        **kwargs: Any,
+    ) -> None:
+        """Run a service call and surface consistent errors."""
 
-    raw_payload = ensure_json_mapping(data)
-    payload = cast(JSONMutableMapping, normalize_value(raw_payload))
-    if payload != raw_payload:
-      raw_keys = set(raw_payload)  # noqa: E111
-      normalized_keys = set(payload)  # noqa: E111
-      if raw_keys != normalized_keys:  # noqa: E111
-        _LOGGER.warning(
-          "Service payload normalization altered keys for %s.%s on %s",
-          domain,
-          service,
-          self._dog_id,
+        try:
+            await self._async_service_call(domain, service, data, **kwargs)  # noqa: E111
+        except Exception as err:
+            _LOGGER.error("%s: %s", error_message, err)  # noqa: E111
+            raise HomeAssistantError(f"{error_message}: {err}") from err  # noqa: E111
+
+    async def async_press(self) -> None:  # noqa: E111
+        """Handle button press with timestamp tracking."""
+        self._last_pressed = dt_util.utcnow().isoformat()
+        _LOGGER.debug(
+            "Button pressed: %s for %s",
+            self._button_type,
+            self._dog_name,
         )
-      else:  # noqa: E111
-        changed_keys = sorted(
-          key for key in raw_payload if raw_payload.get(key) != payload.get(key)
-        )
-        _LOGGER.warning(
-          "Service payload normalization altered values for %s.%s on %s: %s",
-          domain,
-          service,
-          self._dog_id,
-          ", ".join(changed_keys) if changed_keys else "unknown keys",
-        )
-    await registry.async_call(domain, service, payload, **kwargs)
-
-  async def _async_press_service(  # noqa: E111
-    self,
-    domain: str,
-    service: str,
-    data: JSONLikeMapping,
-    *,
-    error_message: str,
-    **kwargs: Any,
-  ) -> None:
-    """Run a service call and surface consistent errors."""
-
-    try:
-      await self._async_service_call(domain, service, data, **kwargs)  # noqa: E111
-    except Exception as err:
-      _LOGGER.error("%s: %s", error_message, err)  # noqa: E111
-      raise HomeAssistantError(f"{error_message}: {err}") from err  # noqa: E111
-
-  async def async_press(self) -> None:  # noqa: E111
-    """Handle button press with timestamp tracking."""
-    self._last_pressed = dt_util.utcnow().isoformat()
-    _LOGGER.debug(
-      "Button pressed: %s for %s",
-      self._button_type,
-      self._dog_name,
-    )
 
 
 # Core button implementations
 
 
 class PawControlTestNotificationButton(PawControlButtonBase):
-  """Button to send test notification."""  # noqa: E111
+    """Button to send test notification."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the test-notification button."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "test_notification",
-      icon="mdi:message-alert",
-      action_description="Send a test notification",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the test-notification button."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "test_notification",
+            icon="mdi:message-alert",
+            action_description="Send a test notification",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Send test notification."""
-    await super().async_press()
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_NOTIFY_TEST,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "message": f"Test notification for {self._dog_name}",
-      },
-      error_message="Failed to send test notification",
-      blocking=False,
-    )
+    async def async_press(self) -> None:  # noqa: E111
+        """Send test notification."""
+        await super().async_press()
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_NOTIFY_TEST,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "message": f"Test notification for {self._dog_name}",
+            },
+            error_message="Failed to send test notification",
+            blocking=False,
+        )
 
 
 class PawControlResetDailyStatsButton(PawControlButtonBase):
-  """Button to reset daily statistics."""  # noqa: E111
+    """Button to reset daily statistics."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the daily statistics reset control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "reset_daily_stats",
-      device_class=ButtonDeviceClass.RESTART,
-      icon="mdi:refresh",
-      action_description="Reset daily statistics",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the daily statistics reset control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "reset_daily_stats",
+            device_class=ButtonDeviceClass.RESTART,
+            icon="mdi:refresh",
+            action_description="Reset daily statistics",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Reset daily stats."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Reset daily stats."""
+        await super().async_press()
 
-    try:
-      runtime_data = get_runtime_data(  # noqa: E111
-        self.hass,
-        self.coordinator.config_entry,
-      )
-      if runtime_data is None:  # noqa: E111
-        raise HomeAssistantError("Runtime data not available")
+        try:
+            runtime_data = get_runtime_data(  # noqa: E111
+                self.hass,
+                self.coordinator.config_entry,
+            )
+            if runtime_data is None:  # noqa: E111
+                raise HomeAssistantError("Runtime data not available")
 
-      managers = runtime_data.runtime_managers  # noqa: E111
-      data_manager = managers.data_manager or getattr(  # noqa: E111
-        runtime_data,
-        "data_manager",
-        None,
-      )
-      if data_manager is None:  # noqa: E111
-        raise HomeAssistantError("Data manager not available")
+            managers = runtime_data.runtime_managers  # noqa: E111
+            data_manager = managers.data_manager or getattr(  # noqa: E111
+                runtime_data,
+                "data_manager",
+                None,
+            )
+            if data_manager is None:  # noqa: E111
+                raise HomeAssistantError("Data manager not available")
 
-      await data_manager.async_reset_dog_daily_stats(self._dog_id)  # noqa: E111
-      await self.coordinator.async_request_selective_refresh(  # noqa: E111
-        [self._dog_id],
-        priority=8,
-      )
+            await data_manager.async_reset_dog_daily_stats(self._dog_id)  # noqa: E111
+            await self.coordinator.async_request_selective_refresh(  # noqa: E111
+                [self._dog_id],
+                priority=8,
+            )
 
-    except Exception as err:
-      _LOGGER.error("Failed to reset daily stats: %s", err)  # noqa: E111
-      raise HomeAssistantError(  # noqa: E111
-        f"Failed to reset statistics: {err}",
-      ) from err
+        except Exception as err:
+            _LOGGER.error("Failed to reset daily stats: %s", err)  # noqa: E111
+            raise HomeAssistantError(  # noqa: E111
+                f"Failed to reset statistics: {err}",
+            ) from err
 
 
 class PawControlRefreshDataButton(PawControlButtonBase):
-  """Button to trigger a coordinator refresh."""  # noqa: E111
+    """Button to trigger a coordinator refresh."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialize the manual refresh control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "refresh_data",
-      device_class=_UPDATE_DEVICE_CLASS,
-      icon="mdi:database-refresh",
-      action_description="Refresh integration data",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialize the manual refresh control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "refresh_data",
+            device_class=_UPDATE_DEVICE_CLASS,
+            icon="mdi:database-refresh",
+            action_description="Refresh integration data",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Request a full coordinator refresh."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Request a full coordinator refresh."""
+        await super().async_press()
 
-    try:
-      await self.coordinator.async_request_refresh()  # noqa: E111
-    except Exception as err:
-      _LOGGER.error("Failed to refresh coordinator data: %s", err)  # noqa: E111
-      raise HomeAssistantError(f"Failed to refresh data: {err}") from err  # noqa: E111
+        try:
+            await self.coordinator.async_request_refresh()  # noqa: E111
+        except Exception as err:
+            _LOGGER.error("Failed to refresh coordinator data: %s", err)  # noqa: E111
+            raise HomeAssistantError(f"Failed to refresh data: {err}") from err  # noqa: E111
 
 
 class PawControlSyncDataButton(PawControlButtonBase):
-  """Button to request a high-priority selective refresh."""  # noqa: E111
+    """Button to request a high-priority selective refresh."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialize the high-priority sync control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "sync_data",
-      device_class=_UPDATE_DEVICE_CLASS,
-      icon="mdi:database-sync",
-      action_description="Synchronize dog data",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialize the high-priority sync control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "sync_data",
+            device_class=_UPDATE_DEVICE_CLASS,
+            icon="mdi:database-sync",
+            action_description="Synchronize dog data",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Trigger a selective refresh with elevated priority."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Trigger a selective refresh with elevated priority."""
+        await super().async_press()
 
-    try:
-      await self.coordinator.async_request_selective_refresh(  # noqa: E111
-        [self._dog_id],
-        priority=10,
-      )
-    except Exception as err:
-      _LOGGER.error("Failed to sync data: %s", err)  # noqa: E111
-      raise HomeAssistantError(f"Failed to sync data: {err}") from err  # noqa: E111
+        try:
+            await self.coordinator.async_request_selective_refresh(  # noqa: E111
+                [self._dog_id],
+                priority=10,
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to sync data: %s", err)  # noqa: E111
+            raise HomeAssistantError(f"Failed to sync data: {err}") from err  # noqa: E111
 
 
 class PawControlToggleVisitorModeButton(PawControlButtonBase):
-  """Button to toggle visitor mode."""  # noqa: E111
+    """Button to toggle visitor mode."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the visitor mode toggle control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "toggle_visitor_mode",
-      icon="mdi:account-switch",
-      action_description="Toggle visitor mode",
-    )
-
-  async def async_press(self) -> None:  # noqa: E111
-    """Toggle visitor mode."""
-    await super().async_press()
-
-    try:
-      dog_data = self._get_dog_data_cached()  # noqa: E111
-      current_mode = (  # noqa: E111
-        dog_data.get(
-          "visitor_mode_active",
-          False,
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the visitor mode toggle control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "toggle_visitor_mode",
+            icon="mdi:account-switch",
+            action_description="Toggle visitor mode",
         )
-        if dog_data
-        else False
-      )
 
-      await self._async_service_call(  # noqa: E111
-        "pawcontrol",
-        "set_visitor_mode",
-        {
-          ATTR_DOG_ID: self._dog_id,
-          "enabled": not current_mode,
-          "visitor_name": "Manual Toggle",
-        },
-        blocking=False,
-      )
+    async def async_press(self) -> None:  # noqa: E111
+        """Toggle visitor mode."""
+        await super().async_press()
 
-    except Exception as err:
-      _LOGGER.error("Failed to toggle visitor mode: %s", err)  # noqa: E111
-      raise HomeAssistantError(  # noqa: E111
-        f"Failed to toggle visitor mode: {err}",
-      ) from err
+        try:
+            dog_data = self._get_dog_data_cached()  # noqa: E111
+            current_mode = (  # noqa: E111
+                dog_data.get(
+                    "visitor_mode_active",
+                    False,
+                )
+                if dog_data
+                else False
+            )
+
+            await self._async_service_call(  # noqa: E111
+                "pawcontrol",
+                "set_visitor_mode",
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "enabled": not current_mode,
+                    "visitor_name": "Manual Toggle",
+                },
+                blocking=False,
+            )
+
+        except Exception as err:
+            _LOGGER.error("Failed to toggle visitor mode: %s", err)  # noqa: E111
+            raise HomeAssistantError(  # noqa: E111
+                f"Failed to toggle visitor mode: {err}",
+            ) from err
 
 
 class PawControlMarkFedButton(PawControlButtonBase):
-  """Button to mark dog as fed with optimized meal type detection."""  # noqa: E111
+    """Button to mark dog as fed with optimized meal type detection."""  # noqa: E111
 
-  # OPTIMIZATION: Pre-calculated meal schedule lookup table  # noqa: E114
-  _meal_schedule: ClassVar[dict[range, str]] = {  # noqa: E111
-    range(5, 11): "breakfast",
-    range(11, 16): "lunch",
-    range(16, 22): "dinner",
-  }
+    # OPTIMIZATION: Pre-calculated meal schedule lookup table  # noqa: E114
+    _meal_schedule: ClassVar[dict[range, str]] = {  # noqa: E111
+        range(5, 11): "breakfast",
+        range(11, 16): "lunch",
+        range(16, 22): "dinner",
+    }
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the smart feeding acknowledgement control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "mark_fed",
-      icon="mdi:food-drumstick",
-      action_description="Mark dog as fed",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the smart feeding acknowledgement control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "mark_fed",
+            icon="mdi:food-drumstick",
+            action_description="Mark dog as fed",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Mark as fed with optimized meal type detection."""
-    await super().async_press()
-    # OPTIMIZATION: Faster meal type lookup using pre-calculated ranges
-    hour = dt_util.now().hour
-    meal_type = "snack"  # Default
+    async def async_press(self) -> None:  # noqa: E111
+        """Mark as fed with optimized meal type detection."""
+        await super().async_press()
+        # OPTIMIZATION: Faster meal type lookup using pre-calculated ranges
+        hour = dt_util.now().hour
+        meal_type = "snack"  # Default
 
-    for time_range, meal in self._meal_schedule.items():
-      if hour in time_range:  # noqa: E111
-        meal_type = meal
-        break
+        for time_range, meal in self._meal_schedule.items():
+            if hour in time_range:  # noqa: E111
+                meal_type = meal
+                break
 
-    amount = resolve_default_feeding_amount(
-      self.coordinator,
-      self._dog_id,
-      meal_type,
-    )
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_ADD_FEEDING,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "meal_type": meal_type,
-        "amount": amount,
-      },
-      error_message="Failed to mark as fed",
-      blocking=False,
-    )
+        amount = resolve_default_feeding_amount(
+            self.coordinator,
+            self._dog_id,
+            meal_type,
+        )
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_ADD_FEEDING,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": meal_type,
+                "amount": amount,
+            },
+            error_message="Failed to mark as fed",
+            blocking=False,
+        )
 
 
 class PawControlFeedNowButton(PawControlButtonBase):
-  """Immediate feeding button for quick manual feedings."""  # noqa: E111
+    """Immediate feeding button for quick manual feedings."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the immediate feeding control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "feed_now",
-      device_class=ButtonDeviceClass.IDENTIFY,
-      icon="mdi:food-turkey",
-      action_description="Feed dog immediately",
-    )
-    self._attr_name = f"{dog_name} Feed Now"
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the immediate feeding control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "feed_now",
+            device_class=ButtonDeviceClass.IDENTIFY,
+            icon="mdi:food-turkey",
+            action_description="Feed dog immediately",
+        )
+        self._attr_name = f"{dog_name} Feed Now"
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Trigger an immediate feeding service call."""
+    async def async_press(self) -> None:  # noqa: E111
+        """Trigger an immediate feeding service call."""
 
-    await super().async_press()
-    amount = resolve_default_feeding_amount(
-      self.coordinator,
-      self._dog_id,
-      "immediate",
-    )
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_ADD_FEEDING,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "meal_type": "immediate",
-        "amount": amount,
-      },
-      error_message="Failed to feed now",
-      blocking=False,
-    )
+        await super().async_press()
+        amount = resolve_default_feeding_amount(
+            self.coordinator,
+            self._dog_id,
+            "immediate",
+        )
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_ADD_FEEDING,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": "immediate",
+                "amount": amount,
+            },
+            error_message="Failed to feed now",
+            blocking=False,
+        )
 
 
 class PawControlFeedMealButton(PawControlButtonBase):
-  """Button for specific meal type."""  # noqa: E111
+    """Button for specific meal type."""  # noqa: E111
 
-  _meal_type: str  # noqa: E111
+    _meal_type: str  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-    meal_type: str,
-  ) -> None:
-    """Initialise a shortcut button for a specific meal."""
-    self._meal_type = meal_type
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      f"feed_{meal_type}",
-      icon="mdi:food",
-      action_description=f"Log {meal_type} feeding",
-    )
-    self._attr_name = f"{dog_name} Feed {meal_type.title()}"
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+        meal_type: str,
+    ) -> None:
+        """Initialise a shortcut button for a specific meal."""
+        self._meal_type = meal_type
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            f"feed_{meal_type}",
+            icon="mdi:food",
+            action_description=f"Log {meal_type} feeding",
+        )
+        self._attr_name = f"{dog_name} Feed {meal_type.title()}"
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Feed specific meal."""
-    await super().async_press()
-    amount = resolve_default_feeding_amount(
-      self.coordinator,
-      self._dog_id,
-      self._meal_type,
-    )
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_ADD_FEEDING,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "meal_type": self._meal_type,
-        "amount": amount,
-      },
-      error_message=f"Failed to feed {self._meal_type}",
-      blocking=False,
-    )
+    async def async_press(self) -> None:  # noqa: E111
+        """Feed specific meal."""
+        await super().async_press()
+        amount = resolve_default_feeding_amount(
+            self.coordinator,
+            self._dog_id,
+            self._meal_type,
+        )
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_ADD_FEEDING,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": self._meal_type,
+                "amount": amount,
+            },
+            error_message=f"Failed to feed {self._meal_type}",
+            blocking=False,
+        )
 
 
 class PawControlLogCustomFeedingButton(PawControlButtonBase):
-  """Button for custom feeding."""  # noqa: E111
+    """Button for custom feeding."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the custom feeding logging control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "log_custom_feeding",
-      icon="mdi:food-variant",
-      action_description="Log custom feeding",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the custom feeding logging control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "log_custom_feeding",
+            icon="mdi:food-variant",
+            action_description="Log custom feeding",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Log custom feeding."""
-    await super().async_press()
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_ADD_FEEDING,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "meal_type": "snack",
-        "amount": 75,
-        "notes": "Custom feeding via button",
-      },
-      error_message="Failed to log custom feeding",
-      blocking=False,
-    )
+    async def async_press(self) -> None:  # noqa: E111
+        """Log custom feeding."""
+        await super().async_press()
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_ADD_FEEDING,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": "snack",
+                "amount": 75,
+                "notes": "Custom feeding via button",
+            },
+            error_message="Failed to log custom feeding",
+            blocking=False,
+        )
 
 
 class PawControlStartWalkButton(PawControlButtonBase):
-  """Button to start walk with enhanced error handling."""  # noqa: E111
+    """Button to start walk with enhanced error handling."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the walk start control with validation hooks."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "start_walk",
-      device_class=ButtonDeviceClass.IDENTIFY,
-      icon="mdi:walk",
-      action_description="Start tracking a walk",
-    )
-
-  async def async_press(self) -> None:  # noqa: E111
-    """Start walk with validation."""
-    await super().async_press()
-
-    try:
-      walk_data = self._get_walk_payload()  # noqa: E111
-      if walk_data and self._normalize_module_flag(  # noqa: E111
-        walk_data.get(WALK_IN_PROGRESS_FIELD),
-        WALK_IN_PROGRESS_FIELD,
-      ):
-        walk_id = walk_data.get("current_walk_id", STATE_UNKNOWN)
-        if not isinstance(walk_id, str):
-          walk_id = STATE_UNKNOWN  # noqa: E111
-        start_time = self._parse_datetime(
-          walk_data.get("current_walk_start"),
-        )
-        raise WalkAlreadyInProgressError(
-          dog_id=self._dog_id,
-          walk_id=walk_id,
-          start_time=start_time,
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the walk start control with validation hooks."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "start_walk",
+            device_class=ButtonDeviceClass.IDENTIFY,
+            icon="mdi:walk",
+            action_description="Start tracking a walk",
         )
 
-      await self._async_service_call(  # noqa: E111
-        "pawcontrol",
-        SERVICE_GPS_START_WALK,
-        {
-          ATTR_DOG_ID: self._dog_id,
-          "walker": "Manual walk",
-          "leash_used": True,
-        },
-        blocking=False,
-      )
+    async def async_press(self) -> None:  # noqa: E111
+        """Start walk with validation."""
+        await super().async_press()
 
-    except ServiceValidationError as err:
-      raise HomeAssistantError(str(err)) from err  # noqa: E111
-    except Exception as err:
-      _LOGGER.error("Failed to start walk: %s", err)  # noqa: E111
-      raise HomeAssistantError(f"Failed to start walk: {err}") from err  # noqa: E111
+        try:
+            walk_data = self._get_walk_payload()  # noqa: E111
+            if walk_data and self._normalize_module_flag(  # noqa: E111
+                walk_data.get(WALK_IN_PROGRESS_FIELD),
+                WALK_IN_PROGRESS_FIELD,
+            ):
+                walk_id = walk_data.get("current_walk_id", STATE_UNKNOWN)
+                if not isinstance(walk_id, str):
+                    walk_id = STATE_UNKNOWN  # noqa: E111
+                start_time = self._parse_datetime(
+                    walk_data.get("current_walk_start"),
+                )
+                raise WalkAlreadyInProgressError(
+                    dog_id=self._dog_id,
+                    walk_id=walk_id,
+                    start_time=start_time,
+                )
 
-  @property  # noqa: E111
-  def available(self) -> bool:  # noqa: E111
-    """Available if no walk in progress."""
-    if not super().available:
-      return False  # noqa: E111
+            await self._async_service_call(  # noqa: E111
+                "pawcontrol",
+                SERVICE_GPS_START_WALK,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "walker": "Manual walk",
+                    "leash_used": True,
+                },
+                blocking=False,
+            )
 
-    walk_data = self._get_walk_payload()
-    if walk_data is None:
-      return True  # noqa: E111
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err  # noqa: E111
+        except Exception as err:
+            _LOGGER.error("Failed to start walk: %s", err)  # noqa: E111
+            raise HomeAssistantError(f"Failed to start walk: {err}") from err  # noqa: E111
 
-    return not self._normalize_module_flag(
-      walk_data.get(WALK_IN_PROGRESS_FIELD),
-      WALK_IN_PROGRESS_FIELD,
-    )
+    @property  # noqa: E111
+    def available(self) -> bool:  # noqa: E111
+        """Available if no walk in progress."""
+        if not super().available:
+            return False  # noqa: E111
+
+        walk_data = self._get_walk_payload()
+        if walk_data is None:
+            return True  # noqa: E111
+
+        return not self._normalize_module_flag(
+            walk_data.get(WALK_IN_PROGRESS_FIELD),
+            WALK_IN_PROGRESS_FIELD,
+        )
 
 
 class PawControlEndWalkButton(PawControlButtonBase):
-  """Button to end walk with enhanced validation."""  # noqa: E111
+    """Button to end walk with enhanced validation."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the walk completion control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "end_walk",
-      device_class=ButtonDeviceClass.IDENTIFY,
-      icon="mdi:stop",
-      action_description="End current walk",
-    )
-
-  async def async_press(self) -> None:  # noqa: E111
-    """End walk with validation."""
-    await super().async_press()
-
-    try:
-      walk_data = self._get_walk_payload()  # noqa: E111
-      if not walk_data or not self._normalize_module_flag(  # noqa: E111
-        walk_data.get(WALK_IN_PROGRESS_FIELD),
-        WALK_IN_PROGRESS_FIELD,
-      ):
-        last_walk_time = (
-          self._parse_datetime(walk_data.get("last_walk")) if walk_data else None
-        )
-        raise WalkNotInProgressError(
-          dog_id=self._dog_id,
-          last_walk_time=last_walk_time,
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the walk completion control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "end_walk",
+            device_class=ButtonDeviceClass.IDENTIFY,
+            icon="mdi:stop",
+            action_description="End current walk",
         )
 
-      await self._async_service_call(  # noqa: E111
-        "pawcontrol",
-        SERVICE_GPS_END_WALK,
-        {ATTR_DOG_ID: self._dog_id},
-        blocking=False,
-      )
+    async def async_press(self) -> None:  # noqa: E111
+        """End walk with validation."""
+        await super().async_press()
 
-    except ServiceValidationError as err:
-      raise HomeAssistantError(str(err)) from err  # noqa: E111
-    except Exception as err:
-      _LOGGER.error("Failed to end walk: %s", err)  # noqa: E111
-      raise HomeAssistantError(f"Failed to end walk: {err}") from err  # noqa: E111
+        try:
+            walk_data = self._get_walk_payload()  # noqa: E111
+            if not walk_data or not self._normalize_module_flag(  # noqa: E111
+                walk_data.get(WALK_IN_PROGRESS_FIELD),
+                WALK_IN_PROGRESS_FIELD,
+            ):
+                last_walk_time = (
+                    self._parse_datetime(walk_data.get("last_walk"))
+                    if walk_data
+                    else None
+                )
+                raise WalkNotInProgressError(
+                    dog_id=self._dog_id,
+                    last_walk_time=last_walk_time,
+                )
 
-  @property  # noqa: E111
-  def available(self) -> bool:  # noqa: E111
-    """Available if walk in progress."""
-    if not super().available:
-      return False  # noqa: E111
+            await self._async_service_call(  # noqa: E111
+                "pawcontrol",
+                SERVICE_GPS_END_WALK,
+                {ATTR_DOG_ID: self._dog_id},
+                blocking=False,
+            )
 
-    walk_data = self._get_walk_payload()
-    if walk_data is None:
-      return False  # noqa: E111
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err  # noqa: E111
+        except Exception as err:
+            _LOGGER.error("Failed to end walk: %s", err)  # noqa: E111
+            raise HomeAssistantError(f"Failed to end walk: {err}") from err  # noqa: E111
 
-    return self._normalize_module_flag(
-      walk_data.get(WALK_IN_PROGRESS_FIELD),
-      WALK_IN_PROGRESS_FIELD,
-    )
+    @property  # noqa: E111
+    def available(self) -> bool:  # noqa: E111
+        """Available if walk in progress."""
+        if not super().available:
+            return False  # noqa: E111
+
+        walk_data = self._get_walk_payload()
+        if walk_data is None:
+            return False  # noqa: E111
+
+        return self._normalize_module_flag(
+            walk_data.get(WALK_IN_PROGRESS_FIELD),
+            WALK_IN_PROGRESS_FIELD,
+        )
 
 
 class PawControlQuickWalkButton(PawControlButtonBase):
-  """Button for quick walk with atomic operation."""  # noqa: E111
+    """Button for quick walk with atomic operation."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the quick-walk logging control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "quick_walk",
-      device_class=ButtonDeviceClass.IDENTIFY,
-      icon="mdi:run-fast",
-      action_description="Log quick 10-minute walk",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the quick-walk logging control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "quick_walk",
+            device_class=ButtonDeviceClass.IDENTIFY,
+            icon="mdi:run-fast",
+            action_description="Log quick 10-minute walk",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Log quick walk as atomic operation."""
-    await super().async_press()
-    # Start and immediately end walk atomically
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_GPS_START_WALK,
-      data={
-        ATTR_DOG_ID: self._dog_id,
-        "walker": "Quick walk",
-        "leash_used": True,
-      },
-      error_message="Failed to start quick walk",
-      blocking=True,
-    )
+    async def async_press(self) -> None:  # noqa: E111
+        """Log quick walk as atomic operation."""
+        await super().async_press()
+        # Start and immediately end walk atomically
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_GPS_START_WALK,
+            data={
+                ATTR_DOG_ID: self._dog_id,
+                "walker": "Quick walk",
+                "leash_used": True,
+            },
+            error_message="Failed to start quick walk",
+            blocking=True,
+        )
 
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_GPS_END_WALK,
-      data={
-        ATTR_DOG_ID: self._dog_id,
-        "notes": "Quick walk",
-      },
-      error_message="Failed to end quick walk",
-      blocking=True,
-    )
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_GPS_END_WALK,
+            data={
+                ATTR_DOG_ID: self._dog_id,
+                "notes": "Quick walk",
+            },
+            error_message="Failed to end quick walk",
+            blocking=True,
+        )
 
 
 class PawControlLogWalkManuallyButton(PawControlButtonBase):
-  """Button for manual walk logging."""  # noqa: E111
+    """Button for manual walk logging."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the manual walk logging control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "log_walk_manually",
-      device_class=ButtonDeviceClass.IDENTIFY,
-      icon="mdi:pencil",
-      action_description="Manually log a walk",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the manual walk logging control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "log_walk_manually",
+            device_class=ButtonDeviceClass.IDENTIFY,
+            icon="mdi:pencil",
+            action_description="Manually log a walk",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Log manual walk."""
-    await super().async_press()
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_GPS_START_WALK,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "walker": "Manual entry",
-        "leash_used": True,
-      },
-      error_message="Failed to start manual walk",
-      blocking=True,
-    )
+    async def async_press(self) -> None:  # noqa: E111
+        """Log manual walk."""
+        await super().async_press()
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_GPS_START_WALK,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "walker": "Manual entry",
+                "leash_used": True,
+            },
+            error_message="Failed to start manual walk",
+            blocking=True,
+        )
 
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_GPS_END_WALK,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "notes": "Manually logged walk",
-      },
-      error_message="Failed to end manual walk",
-      blocking=True,
-    )
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_GPS_END_WALK,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "notes": "Manually logged walk",
+            },
+            error_message="Failed to end manual walk",
+            blocking=True,
+        )
 
 
 class PawControlRefreshLocationButton(PawControlButtonBase):
-  """Button to refresh GPS location."""  # noqa: E111
+    """Button to refresh GPS location."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the GPS refresh control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "refresh_location",
-      device_class=_UPDATE_DEVICE_CLASS,
-      icon="mdi:crosshairs-gps",
-      action_description="Request GPS update",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the GPS refresh control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "refresh_location",
+            device_class=_UPDATE_DEVICE_CLASS,
+            icon="mdi:crosshairs-gps",
+            action_description="Request GPS update",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Refresh location with high priority."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Refresh location with high priority."""
+        await super().async_press()
 
-    try:
-      await self.coordinator.async_request_selective_refresh(  # noqa: E111
-        [self._dog_id],
-        priority=9,
-      )
-    except Exception as err:
-      _LOGGER.error("Failed to refresh location: %s", err)  # noqa: E111
-      raise HomeAssistantError(  # noqa: E111
-        f"Failed to refresh location: {err}",
-      ) from err
+        try:
+            await self.coordinator.async_request_selective_refresh(  # noqa: E111
+                [self._dog_id],
+                priority=9,
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to refresh location: %s", err)  # noqa: E111
+            raise HomeAssistantError(  # noqa: E111
+                f"Failed to refresh location: {err}",
+            ) from err
 
 
 class PawControlUpdateLocationButton(PawControlRefreshLocationButton):
-  """Alias button for update location functionality used in tests."""  # noqa: E111
+    """Alias button for update location functionality used in tests."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the update-location alias control for tests."""
-    super().__init__(coordinator, dog_id, dog_name)
-    self._button_type = "update_location"
-    self._attr_unique_id = f"pawcontrol_{dog_id}_update_location"
-    self._attr_name = f"{dog_name} Update Location"
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the update-location alias control for tests."""
+        super().__init__(coordinator, dog_id, dog_name)
+        self._button_type = "update_location"
+        self._attr_unique_id = f"pawcontrol_{dog_id}_update_location"
+        self._attr_name = f"{dog_name} Update Location"
 
 
 class PawControlExportRouteButton(PawControlButtonBase):
-  """Button to export route data."""  # noqa: E111
+    """Button to export route data."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the route export control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "export_route",
-      icon="mdi:export",
-      action_description="Export walk route as GPX",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the route export control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "export_route",
+            icon="mdi:export",
+            action_description="Export walk route as GPX",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Export route data."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Export route data."""
+        await super().async_press()
 
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_GPS_EXPORT_ROUTE,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "format": "gpx",
-      },
-      error_message="Failed to export route",
-      blocking=False,
-    )
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_GPS_EXPORT_ROUTE,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "format": "gpx",
+            },
+            error_message="Failed to export route",
+            blocking=False,
+        )
 
 
 class PawControlCenterMapButton(PawControlButtonBase):
-  """Button to center map on dog location."""  # noqa: E111
+    """Button to center map on dog location."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the map centring control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "center_map",
-      icon="mdi:map-marker",
-      action_description="Center map on dog",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the map centring control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "center_map",
+            icon="mdi:map-marker",
+            action_description="Center map on dog",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Center map on dog."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Center map on dog."""
+        await super().async_press()
 
-    gps_data = self._get_gps_payload()
-    if not gps_data:
-      raise HomeAssistantError("No GPS data available")  # noqa: E111
+        gps_data = self._get_gps_payload()
+        if not gps_data:
+            raise HomeAssistantError("No GPS data available")  # noqa: E111
 
-    _LOGGER.info("Map centering requested for %s", self._dog_name)
+        _LOGGER.info("Map centering requested for %s", self._dog_name)
 
 
 class PawControlCallDogButton(PawControlButtonBase):
-  """Button to call GPS tracker."""  # noqa: E111
+    """Button to call GPS tracker."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the tracker call control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "call_dog",
-      icon="mdi:volume-high",
-      action_description="Activate tracker sound",
-    )
-
-  async def async_press(self) -> None:  # noqa: E111
-    """Call GPS tracker."""
-    await super().async_press()
-
-    try:
-      gps_data = self._get_gps_payload()  # noqa: E111
-      if not gps_data or gps_data.get("source") in ["none", "manual"]:  # noqa: E111
-        raise HomeAssistantError(
-          f"GPS tracker not available for {self._dog_id}",
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the tracker call control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "call_dog",
+            icon="mdi:volume-high",
+            action_description="Activate tracker sound",
         )
 
-      # Log call request  # noqa: E114
-      _LOGGER.info("GPS tracker call requested for %s", self._dog_name)  # noqa: E111
+    async def async_press(self) -> None:  # noqa: E111
+        """Call GPS tracker."""
+        await super().async_press()
 
-    except Exception as err:
-      _LOGGER.error("Failed to call tracker: %s", err)  # noqa: E111
-      raise HomeAssistantError(f"Failed to call tracker: {err}") from err  # noqa: E111
+        try:
+            gps_data = self._get_gps_payload()  # noqa: E111
+            if not gps_data or gps_data.get("source") in ["none", "manual"]:  # noqa: E111
+                raise HomeAssistantError(
+                    f"GPS tracker not available for {self._dog_id}",
+                )
+
+            # Log call request  # noqa: E114
+            _LOGGER.info("GPS tracker call requested for %s", self._dog_name)  # noqa: E111
+
+        except Exception as err:
+            _LOGGER.error("Failed to call tracker: %s", err)  # noqa: E111
+            raise HomeAssistantError(f"Failed to call tracker: {err}") from err  # noqa: E111
 
 
 class PawControlLogWeightButton(PawControlButtonBase):
-  """Button to log weight measurement."""  # noqa: E111
+    """Button to log weight measurement."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the quick weight logging control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "log_weight",
-      icon="mdi:scale",
-      action_description="Log weight measurement",
-    )
-
-  async def async_press(self) -> None:  # noqa: E111
-    """Log weight measurement."""
-    await super().async_press()
-
-    try:
-      health_data = self._get_module_data(MODULE_HEALTH)  # noqa: E111
-      weight_payload = None  # noqa: E111
-      if isinstance(health_data, Mapping):  # noqa: E111
-        weight_value = health_data.get("weight")
-        if isinstance(weight_value, int | float):
-          weight_payload = float(weight_value)  # noqa: E111
-
-      if weight_payload is None:  # noqa: E111
-        raise HomeAssistantError(
-          "No valid weight found in health data. Update the health profile.",
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the quick weight logging control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "log_weight",
+            icon="mdi:scale",
+            action_description="Log weight measurement",
         )
 
-      payload: JSONMutableMapping = {  # noqa: E111
-        ATTR_DOG_ID: self._dog_id,
-        "notes": "Weight logged via button",
-      }
-      if weight_payload is not None:  # noqa: E111
-        payload["weight"] = weight_payload
+    async def async_press(self) -> None:  # noqa: E111
+        """Log weight measurement."""
+        await super().async_press()
 
-      await self._async_press_service(  # noqa: E111
-        "pawcontrol",
-        SERVICE_LOG_HEALTH,
-        payload,
-        error_message="Failed to log weight",
-        blocking=False,
-      )
-    except Exception as err:
-      if isinstance(err, HomeAssistantError):  # noqa: E111
-        raise
-      _LOGGER.error("Failed to log weight: %s", err)  # noqa: E111
-      raise HomeAssistantError(f"Failed to log weight: {err}") from err  # noqa: E111
+        try:
+            health_data = self._get_module_data(MODULE_HEALTH)  # noqa: E111
+            weight_payload = None  # noqa: E111
+            if isinstance(health_data, Mapping):  # noqa: E111
+                weight_value = health_data.get("weight")
+                if isinstance(weight_value, int | float):
+                    weight_payload = float(weight_value)  # noqa: E111
+
+            if weight_payload is None:  # noqa: E111
+                raise HomeAssistantError(
+                    "No valid weight found in health data. Update the health profile.",
+                )
+
+            payload: JSONMutableMapping = {  # noqa: E111
+                ATTR_DOG_ID: self._dog_id,
+                "notes": "Weight logged via button",
+            }
+            if weight_payload is not None:  # noqa: E111
+                payload["weight"] = weight_payload
+
+            await self._async_press_service(  # noqa: E111
+                "pawcontrol",
+                SERVICE_LOG_HEALTH,
+                payload,
+                error_message="Failed to log weight",
+                blocking=False,
+            )
+        except Exception as err:
+            if isinstance(err, HomeAssistantError):  # noqa: E111
+                raise
+            _LOGGER.error("Failed to log weight: %s", err)  # noqa: E111
+            raise HomeAssistantError(f"Failed to log weight: {err}") from err  # noqa: E111
 
 
 class PawControlLogMedicationButton(PawControlButtonBase):
-  """Button to log medication administration."""  # noqa: E111
+    """Button to log medication administration."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the medication logging shortcut."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "log_medication",
-      icon="mdi:pill",
-      action_description="Log medication",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the medication logging shortcut."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "log_medication",
+            icon="mdi:pill",
+            action_description="Log medication",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Log medication administration."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Log medication administration."""
+        await super().async_press()
 
-    health_data = self._get_module_data(MODULE_HEALTH)
-    medication_name: str | None = None
-    dose: str | None = None
-    if isinstance(health_data, Mapping):
-      medications = health_data.get("medications", [])  # noqa: E111
-      if isinstance(medications, Sequence) and medications:  # noqa: E111
-        medication = medications[0]
-        if isinstance(medication, Mapping):
-          name_value = medication.get("name")  # noqa: E111
-          if isinstance(name_value, str):  # noqa: E111
-            medication_name = name_value
-          dose_value = medication.get("dosage")  # noqa: E111
-          if isinstance(dose_value, str):  # noqa: E111
-            dose = dose_value
+        health_data = self._get_module_data(MODULE_HEALTH)
+        medication_name: str | None = None
+        dose: str | None = None
+        if isinstance(health_data, Mapping):
+            medications = health_data.get("medications", [])  # noqa: E111
+            if isinstance(medications, Sequence) and medications:  # noqa: E111
+                medication = medications[0]
+                if isinstance(medication, Mapping):
+                    name_value = medication.get("name")  # noqa: E111
+                    if isinstance(name_value, str):  # noqa: E111
+                        medication_name = name_value
+                    dose_value = medication.get("dosage")  # noqa: E111
+                    if isinstance(dose_value, str):  # noqa: E111
+                        dose = dose_value
 
-    if not medication_name:
-      raise HomeAssistantError(  # noqa: E111
-        "No medication schedule available to log. Update the health profile.",
-      )
+        if not medication_name:
+            raise HomeAssistantError(  # noqa: E111
+                "No medication schedule available to log. Update the health profile.",
+            )
 
-    if not dose:
-      dose = "1 dose"  # noqa: E111
+        if not dose:
+            dose = "1 dose"  # noqa: E111
 
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_LOG_MEDICATION,
-      {
-        ATTR_DOG_ID: self._dog_id,
-        "medication_name": medication_name,
-        "dose": dose,
-        "notes": "Logged via medication button",
-      },
-      error_message="Failed to log medication",
-      blocking=False,
-    )
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_LOG_MEDICATION,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "medication_name": medication_name,
+                "dose": dose,
+                "notes": "Logged via medication button",
+            },
+            error_message="Failed to log medication",
+            blocking=False,
+        )
 
 
 class PawControlStartGroomingButton(PawControlButtonBase):
-  """Button to start grooming session."""  # noqa: E111
+    """Button to start grooming session."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the grooming session starter."""
-    hass_obj = getattr(coordinator, "hass", None)
-    language_config = (
-      getattr(
-        hass_obj,
-        "config",
-        None,
-      )
-      if hass_obj
-      else None
-    )
-    hass_language: str | None = None
-    if language_config is not None:
-      hass_language = getattr(language_config, "language", None)  # noqa: E111
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "start_grooming",
-      icon="mdi:content-cut",
-      action_description=translated_grooming_label(
-        hass_obj,
-        hass_language,
-        "button_action",
-      ),
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the grooming session starter."""
+        hass_obj = getattr(coordinator, "hass", None)
+        language_config = (
+            getattr(
+                hass_obj,
+                "config",
+                None,
+            )
+            if hass_obj
+            else None
+        )
+        hass_language: str | None = None
+        if language_config is not None:
+            hass_language = getattr(language_config, "language", None)  # noqa: E111
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "start_grooming",
+            icon="mdi:content-cut",
+            action_description=translated_grooming_label(
+                hass_obj,
+                hass_language,
+                "button_action",
+            ),
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Start grooming session."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Start grooming session."""
+        await super().async_press()
 
-    config_obj = getattr(self.hass, "config", None)
-    hass_language: str | None = None
-    if config_obj is not None:
-      hass_language = getattr(config_obj, "language", None)  # noqa: E111
+        config_obj = getattr(self.hass, "config", None)
+        hass_language: str | None = None
+        if config_obj is not None:
+            hass_language = getattr(config_obj, "language", None)  # noqa: E111
 
-    try:
-      await self._async_service_call(  # noqa: E111
-        "pawcontrol",
-        SERVICE_START_GROOMING,
-        {
-          ATTR_DOG_ID: self._dog_id,
-          "type": "general",
-          "notes": translated_grooming_label(
-            self.hass,
-            hass_language,
-            "button_notes",
-          ),
-        },
-        blocking=False,
-      )
-    except Exception as err:
-      _LOGGER.error("Failed to start grooming: %s", err)  # noqa: E111
-      error_message = translated_grooming_template(  # noqa: E111
-        self.hass,
-        hass_language,
-        "button_error",
-        error=str(err),
-      )
-      raise HomeAssistantError(error_message) from err  # noqa: E111
+        try:
+            await self._async_service_call(  # noqa: E111
+                "pawcontrol",
+                SERVICE_START_GROOMING,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "type": "general",
+                    "notes": translated_grooming_label(
+                        self.hass,
+                        hass_language,
+                        "button_notes",
+                    ),
+                },
+                blocking=False,
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to start grooming: %s", err)  # noqa: E111
+            error_message = translated_grooming_template(  # noqa: E111
+                self.hass,
+                hass_language,
+                "button_error",
+                error=str(err),
+            )
+            raise HomeAssistantError(error_message) from err  # noqa: E111
 
 
 class PawControlScheduleVetButton(PawControlButtonBase):
-  """Button to schedule veterinary appointment."""  # noqa: E111
+    """Button to schedule veterinary appointment."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the vet scheduling shortcut."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "schedule_vet",
-      icon="mdi:calendar-plus",
-      action_description="Schedule vet appointment",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the vet scheduling shortcut."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "schedule_vet",
+            icon="mdi:calendar-plus",
+            action_description="Schedule vet appointment",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Schedule veterinary appointment."""
-    await super().async_press()
-    await self._async_press_service(
-      "pawcontrol",
-      SERVICE_SEND_NOTIFICATION,
-      {
-        "title": f"Vet appointment for {self._dog_name}",
-        "message": (f"Schedule the next veterinary appointment for {self._dog_name}."),
-        "dog_id": self._dog_id,
-        "notification_type": "veterinary_appointment",
-      },
-      error_message="Failed to schedule vet appointment",
-      blocking=False,
-    )
+    async def async_press(self) -> None:  # noqa: E111
+        """Schedule veterinary appointment."""
+        await super().async_press()
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_SEND_NOTIFICATION,
+            {
+                "title": f"Vet appointment for {self._dog_name}",
+                "message": (
+                    f"Schedule the next veterinary appointment for {self._dog_name}."
+                ),
+                "dog_id": self._dog_id,
+                "notification_type": "veterinary_appointment",
+            },
+            error_message="Failed to schedule vet appointment",
+            blocking=False,
+        )
 
 
 class PawControlHealthCheckButton(PawControlButtonBase):
-  """Button for comprehensive health check."""  # noqa: E111
+    """Button for comprehensive health check."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the comprehensive health check control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "health_check",
-      device_class=_UPDATE_DEVICE_CLASS,
-      icon="mdi:heart-pulse",
-      action_description="Perform health check",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the comprehensive health check control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_check",
+            device_class=_UPDATE_DEVICE_CLASS,
+            icon="mdi:heart-pulse",
+            action_description="Perform health check",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Perform comprehensive health check."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Perform comprehensive health check."""
+        await super().async_press()
 
-    health_data_raw = self._get_module_data(MODULE_HEALTH)
-    health_data = (
-      cast(HealthModulePayload, health_data_raw)
-      if health_data_raw is not None
-      else None
-    )
-    if health_data:
-      status = health_data.get("health_status", STATE_UNKNOWN)  # noqa: E111
-      alerts = health_data.get("health_alerts", [])  # noqa: E111
-      alert_count = len(alerts) if isinstance(alerts, Sequence) else 0  # noqa: E111
-      _LOGGER.info(  # noqa: E111
-        "Health check for %s: Status=%s, Alerts=%d",
-        self._dog_name,
-        status,
-        alert_count,
-      )
+        health_data_raw = self._get_module_data(MODULE_HEALTH)
+        health_data = (
+            cast(HealthModulePayload, health_data_raw)
+            if health_data_raw is not None
+            else None
+        )
+        if health_data:
+            status = health_data.get("health_status", STATE_UNKNOWN)  # noqa: E111
+            alerts = health_data.get("health_alerts", [])  # noqa: E111
+            alert_count = len(alerts) if isinstance(alerts, Sequence) else 0  # noqa: E111
+            _LOGGER.info(  # noqa: E111
+                "Health check for %s: Status=%s, Alerts=%d",
+                self._dog_name,
+                status,
+                alert_count,
+            )
 
 
 class PawControlStartGardenSessionButton(PawControlButtonBase):
-  """Button to start a garden session."""  # noqa: E111
+    """Button to start a garden session."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialise the garden session start control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "start_garden_session",
-      icon="mdi:flower",
-      action_description="Start a garden session",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialise the garden session start control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "start_garden_session",
+            icon="mdi:flower",
+            action_description="Start a garden session",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Start a new garden session via the service layer."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Start a new garden session via the service layer."""
+        await super().async_press()
 
-    garden_data = self._get_garden_payload()
-    if garden_data and garden_data.get("status") == "active":
-      raise HomeAssistantError("Garden session is already active")  # noqa: E111
+        garden_data = self._get_garden_payload()
+        if garden_data and garden_data.get("status") == "active":
+            raise HomeAssistantError("Garden session is already active")  # noqa: E111
 
-    try:
-      await self._async_service_call(  # noqa: E111
-        "pawcontrol",
-        SERVICE_START_GARDEN_SESSION,
-        {ATTR_DOG_ID: self._dog_id, "detection_method": "manual"},
-        blocking=False,
-      )
-    except ServiceValidationError as err:
-      raise HomeAssistantError(str(err)) from err  # noqa: E111
-    except Exception as err:  # pragma: no cover - defensive logging
-      _LOGGER.error("Failed to start garden session: %s", err)  # noqa: E111
-      raise HomeAssistantError(  # noqa: E111
-        f"Failed to start garden session: {err}",
-      ) from err
+        try:
+            await self._async_service_call(  # noqa: E111
+                "pawcontrol",
+                SERVICE_START_GARDEN_SESSION,
+                {ATTR_DOG_ID: self._dog_id, "detection_method": "manual"},
+                blocking=False,
+            )
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err  # noqa: E111
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to start garden session: %s", err)  # noqa: E111
+            raise HomeAssistantError(  # noqa: E111
+                f"Failed to start garden session: {err}",
+            ) from err
 
-  @property  # noqa: E111
-  def available(self) -> bool:  # noqa: E111
-    """Return True when a garden session can be started."""
-    if not super().available:
-      return False  # noqa: E111
-    garden_data = self._get_garden_payload()
-    return garden_data is None or garden_data.get("status") != "active"
+    @property  # noqa: E111
+    def available(self) -> bool:  # noqa: E111
+        """Return True when a garden session can be started."""
+        if not super().available:
+            return False  # noqa: E111
+        garden_data = self._get_garden_payload()
+        return garden_data is None or garden_data.get("status") != "active"
 
 
 class PawControlEndGardenSessionButton(PawControlButtonBase):
-  """Button to end a garden session."""  # noqa: E111
+    """Button to end a garden session."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialize the end-garden-session control."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "end_garden_session",
-      icon="mdi:flower-off",
-      action_description="End the active garden session",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialize the end-garden-session control."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "end_garden_session",
+            icon="mdi:flower-off",
+            action_description="End the active garden session",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Trigger the integration service to end the active session."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Trigger the integration service to end the active session."""
+        await super().async_press()
 
-    garden_data = self._get_garden_payload()
-    if not garden_data or garden_data.get("status") != "active":
-      raise HomeAssistantError("No active garden session to end")  # noqa: E111
+        garden_data = self._get_garden_payload()
+        if not garden_data or garden_data.get("status") != "active":
+            raise HomeAssistantError("No active garden session to end")  # noqa: E111
 
-    try:
-      await self._async_service_call(  # noqa: E111
-        "pawcontrol",
-        SERVICE_END_GARDEN_SESSION,
-        {ATTR_DOG_ID: self._dog_id},
-        blocking=False,
-      )
-    except ServiceValidationError as err:
-      raise HomeAssistantError(str(err)) from err  # noqa: E111
-    except Exception as err:  # pragma: no cover - defensive logging
-      _LOGGER.error("Failed to end garden session: %s", err)  # noqa: E111
-      raise HomeAssistantError(  # noqa: E111
-        f"Failed to end garden session: {err}",
-      ) from err
+        try:
+            await self._async_service_call(  # noqa: E111
+                "pawcontrol",
+                SERVICE_END_GARDEN_SESSION,
+                {ATTR_DOG_ID: self._dog_id},
+                blocking=False,
+            )
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err  # noqa: E111
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to end garden session: %s", err)  # noqa: E111
+            raise HomeAssistantError(  # noqa: E111
+                f"Failed to end garden session: {err}",
+            ) from err
 
-  @property  # noqa: E111
-  def available(self) -> bool:  # noqa: E111
-    """Return True only while a session is active."""
-    if not super().available:
-      return False  # noqa: E111
-    garden_data = self._get_garden_payload()
-    return bool(garden_data and garden_data.get("status") == "active")
+    @property  # noqa: E111
+    def available(self) -> bool:  # noqa: E111
+        """Return True only while a session is active."""
+        if not super().available:
+            return False  # noqa: E111
+        garden_data = self._get_garden_payload()
+        return bool(garden_data and garden_data.get("status") == "active")
 
 
 class PawControlLogGardenActivityButton(PawControlButtonBase):
-  """Button to log a general garden activity."""  # noqa: E111
+    """Button to log a general garden activity."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialize the generic garden activity logger button."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "log_garden_activity",
-      icon="mdi:leaf",
-      action_description="Log garden activity",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialize the generic garden activity logger button."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "log_garden_activity",
+            icon="mdi:leaf",
+            action_description="Log garden activity",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Log a generic garden activity via the integration service."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Log a generic garden activity via the integration service."""
+        await super().async_press()
 
-    garden_data = self._get_garden_payload()
-    if not garden_data or garden_data.get("status") != "active":
-      raise HomeAssistantError(  # noqa: E111
-        "Start a garden session before logging activity",
-      )
+        garden_data = self._get_garden_payload()
+        if not garden_data or garden_data.get("status") != "active":
+            raise HomeAssistantError(  # noqa: E111
+                "Start a garden session before logging activity",
+            )
 
-    try:
-      await self._async_service_call(  # noqa: E111
-        "pawcontrol",
-        SERVICE_ADD_GARDEN_ACTIVITY,
-        {
-          ATTR_DOG_ID: self._dog_id,
-          "activity_type": "general",
-          "notes": "Logged via garden activity button",
-          "confirmed": True,
-        },
-        blocking=False,
-      )
-    except ServiceValidationError as err:
-      raise HomeAssistantError(str(err)) from err  # noqa: E111
-    except Exception as err:  # pragma: no cover - defensive logging
-      _LOGGER.error("Failed to log garden activity: %s", err)  # noqa: E111
-      raise HomeAssistantError(  # noqa: E111
-        f"Failed to log garden activity: {err}",
-      ) from err
+        try:
+            await self._async_service_call(  # noqa: E111
+                "pawcontrol",
+                SERVICE_ADD_GARDEN_ACTIVITY,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "activity_type": "general",
+                    "notes": "Logged via garden activity button",
+                    "confirmed": True,
+                },
+                blocking=False,
+            )
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err  # noqa: E111
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to log garden activity: %s", err)  # noqa: E111
+            raise HomeAssistantError(  # noqa: E111
+                f"Failed to log garden activity: {err}",
+            ) from err
 
-  @property  # noqa: E111
-  def available(self) -> bool:  # noqa: E111
-    """Return True while a garden session is running."""
-    if not super().available:
-      return False  # noqa: E111
-    garden_data = self._get_garden_payload()
-    return bool(garden_data and garden_data.get("status") == "active")
+    @property  # noqa: E111
+    def available(self) -> bool:  # noqa: E111
+        """Return True while a garden session is running."""
+        if not super().available:
+            return False  # noqa: E111
+        garden_data = self._get_garden_payload()
+        return bool(garden_data and garden_data.get("status") == "active")
 
 
 class PawControlConfirmGardenPoopButton(PawControlButtonBase):
-  """Button to confirm a garden poop event."""  # noqa: E111
+    """Button to confirm a garden poop event."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    coordinator: PawControlCoordinator,
-    dog_id: str,
-    dog_name: str,
-  ) -> None:
-    """Initialize the confirmation control for garden poop events."""
-    super().__init__(
-      coordinator,
-      dog_id,
-      dog_name,
-      "confirm_garden_poop",
-      icon="mdi:emoticon-poop",
-      action_description="Confirm garden poop",
-    )
+    def __init__(  # noqa: E111
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+    ) -> None:
+        """Initialize the confirmation control for garden poop events."""
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "confirm_garden_poop",
+            icon="mdi:emoticon-poop",
+            action_description="Confirm garden poop",
+        )
 
-  async def async_press(self) -> None:  # noqa: E111
-    """Mark the most recent garden poop confirmation as complete."""
-    await super().async_press()
+    async def async_press(self) -> None:  # noqa: E111
+        """Mark the most recent garden poop confirmation as complete."""
+        await super().async_press()
 
-    try:
-      if not await self._async_call_hass_service(  # noqa: E111
-        "pawcontrol",
-        SERVICE_CONFIRM_GARDEN_POOP,
-        {
-          ATTR_DOG_ID: self._dog_id,
-          "confirmed": True,
-          "quality": "normal",
-          "size": "normal",
-        },
-        blocking=False,
-      ):
-        return
-    except ServiceValidationError as err:
-      raise HomeAssistantError(str(err)) from err  # noqa: E111
-    except Exception as err:  # pragma: no cover - defensive logging
-      _LOGGER.error("Failed to confirm garden poop: %s", err)  # noqa: E111
-      raise HomeAssistantError(  # noqa: E111
-        f"Failed to confirm garden poop: {err}",
-      ) from err
+        try:
+            if not await self._async_call_hass_service(  # noqa: E111
+                "pawcontrol",
+                SERVICE_CONFIRM_GARDEN_POOP,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "confirmed": True,
+                    "quality": "normal",
+                    "size": "normal",
+                },
+                blocking=False,
+            ):
+                return
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err  # noqa: E111
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to confirm garden poop: %s", err)  # noqa: E111
+            raise HomeAssistantError(  # noqa: E111
+                f"Failed to confirm garden poop: {err}",
+            ) from err
 
-  @property  # noqa: E111
-  def available(self) -> bool:  # noqa: E111
-    """Return True when pending garden poop confirmations exist."""
-    if not super().available:
-      return False  # noqa: E111
-    garden_data = self._get_garden_payload()
-    pending = (
-      garden_data.get(
-        "pending_confirmations",
-      )
-      if garden_data
-      else None
-    )
-    return bool(pending)
+    @property  # noqa: E111
+    def available(self) -> bool:  # noqa: E111
+        """Return True when pending garden poop confirmations exist."""
+        if not super().available:
+            return False  # noqa: E111
+        garden_data = self._get_garden_payload()
+        pending = (
+            garden_data.get(
+                "pending_confirmations",
+            )
+            if garden_data
+            else None
+        )
+        return bool(pending)

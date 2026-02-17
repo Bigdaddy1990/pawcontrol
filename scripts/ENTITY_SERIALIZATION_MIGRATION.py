@@ -10,16 +10,16 @@ from typing import Any
 
 # ❌ VORHER (Nicht JSON-serializable):
 class OldSensorExample:
-  """Old implementation without serialization."""  # noqa: E111
+    """Old implementation without serialization."""  # noqa: E111
 
-  @property  # noqa: E111
-  def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
-    """Return entity state attributes (BROKEN!)."""
-    return {
-      "last_update": datetime.now(),  # ❌ Not JSON-serializable!
-      "duration": timedelta(minutes=30),  # ❌ Not JSON-serializable!
-      "session_data": self._session,  # ❌ Dataclass not serializable!
-    }
+    @property  # noqa: E111
+    def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
+        """Return entity state attributes (BROKEN!)."""
+        return {
+            "last_update": datetime.now(),  # ❌ Not JSON-serializable!
+            "duration": timedelta(minutes=30),  # ❌ Not JSON-serializable!
+            "session_data": self._session,  # ❌ Dataclass not serializable!
+        }
 
 
 # ✅ NACHHER (JSON-serializable):
@@ -27,18 +27,18 @@ from custom_components.pawcontrol.utils.serialize import serialize_entity_attrib
 
 
 class NewSensorExample:
-  """New implementation with serialization."""  # noqa: E111
+    """New implementation with serialization."""  # noqa: E111
 
-  @property  # noqa: E111
-  def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
-    """Return entity state attributes (FIXED!)."""
-    raw_attrs = {
-      "last_update": self._last_update,  # datetime
-      "duration": self._duration,  # timedelta
-      "session_data": self._session,  # dataclass
-    }
-    # ✅ Automatically converts to JSON-safe format
-    return serialize_entity_attributes(raw_attrs)
+    @property  # noqa: E111
+    def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
+        """Return entity state attributes (FIXED!)."""
+        raw_attrs = {
+            "last_update": self._last_update,  # datetime
+            "duration": self._duration,  # timedelta
+            "session_data": self._session,  # dataclass
+        }
+        # ✅ Automatically converts to JSON-safe format
+        return serialize_entity_attributes(raw_attrs)
 
 
 # 📋 MIGRATION CHECKLIST für Entity Platforms:
@@ -114,16 +114,16 @@ class PawControlWalkDurationSensor(CoordinatorEntity):
 # 📝 TODO: Update these files:
 
 TODO_FILES = [
-  "custom_components/pawcontrol/sensor.py",
-  "custom_components/pawcontrol/binary_sensor.py",
-  "custom_components/pawcontrol/device_tracker.py",
-  "custom_components/pawcontrol/switch.py",
-  "custom_components/pawcontrol/button.py",
-  "custom_components/pawcontrol/select.py",
-  "custom_components/pawcontrol/number.py",
-  "custom_components/pawcontrol/date.py",
-  "custom_components/pawcontrol/datetime.py",
-  "custom_components/pawcontrol/text.py",
+    "custom_components/pawcontrol/sensor.py",
+    "custom_components/pawcontrol/binary_sensor.py",
+    "custom_components/pawcontrol/device_tracker.py",
+    "custom_components/pawcontrol/switch.py",
+    "custom_components/pawcontrol/button.py",
+    "custom_components/pawcontrol/select.py",
+    "custom_components/pawcontrol/number.py",
+    "custom_components/pawcontrol/date.py",
+    "custom_components/pawcontrol/datetime.py",
+    "custom_components/pawcontrol/text.py",
 ]
 
 # Estimated effort: ~30 minutes (5 min per file)

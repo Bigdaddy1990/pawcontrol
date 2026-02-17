@@ -9,256 +9,258 @@ import pytest
 from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 from custom_components.pawcontrol.config_flow_external import (
-  ExternalEntityConfigurationMixin,
+    ExternalEntityConfigurationMixin,
 )
 from custom_components.pawcontrol.const import (
-  CONF_DOOR_SENSOR,
-  CONF_GPS_SOURCE,
-  CONF_NOTIFY_FALLBACK,
-  MODULE_GPS,
-  MODULE_NOTIFICATIONS,
-  MODULE_VISITOR,
+    CONF_DOOR_SENSOR,
+    CONF_GPS_SOURCE,
+    CONF_NOTIFY_FALLBACK,
+    MODULE_GPS,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
 )
 from custom_components.pawcontrol.types import (
-  DogConfigData,
-  DogModulesConfig,
-  ExternalEntityConfig,
+    DogConfigData,
+    DogModulesConfig,
+    ExternalEntityConfig,
 )
 
 
 class _FakeStates(dict[str, SimpleNamespace]):
-  """Minimal state registry used by the mixin while validating entities."""  # noqa: E111
+    """Minimal state registry used by the mixin while validating entities."""  # noqa: E111
 
 
 class _FakeServices:
-  """Minimal service registry used by the mixin while validating notify services."""  # noqa: E111
+    """Minimal service registry used by the mixin while validating notify services."""  # noqa: E111
 
-  def __init__(self, services: dict[str, dict[str, object]]) -> None:  # noqa: E111
-    self._services = services
+    def __init__(self, services: dict[str, dict[str, object]]) -> None:  # noqa: E111
+        self._services = services
 
-  def async_services(  # noqa: E111
-    self,
-  ) -> dict[str, dict[str, object]]:  # pragma: no cover - passthrough
-    return self._services
+    def async_services(  # noqa: E111
+        self,
+    ) -> dict[str, dict[str, object]]:  # pragma: no cover - passthrough
+        return self._services
 
 
 @dataclass(slots=True)
 class _FakeHomeAssistant:
-  """Home Assistant stub exposing the state and service registries used in tests."""  # noqa: E111
+    """Home Assistant stub exposing the state and service registries used in tests."""  # noqa: E111
 
-  states: _FakeStates  # noqa: E111
-  services: _FakeServices  # noqa: E111
+    states: _FakeStates  # noqa: E111
+    services: _FakeServices  # noqa: E111
 
 
 class _ExternalEntityFlow(ExternalEntityConfigurationMixin):
-  """Harness exposing the protected helpers from the mixin for validation tests."""  # noqa: E111
+    """Harness exposing the protected helpers from the mixin for validation tests."""  # noqa: E111
 
-  def __init__(  # noqa: E111
-    self,
-    hass: _FakeHomeAssistant,
-    *,
-    modules: DogModulesConfig,
-    external_entities: ExternalEntityConfig | None = None,
-  ) -> None:
-    self.hass = hass
-    self._enabled_modules = modules
-    self._external_entities = external_entities or ExternalEntityConfig()
-    self._dogs: list[DogConfigData] = []
-    self.shown_forms: list[MutableFlowResultDict] = []
-    self.finalised: list[ExternalEntityConfig | None] = []
+    def __init__(  # noqa: E111
+        self,
+        hass: _FakeHomeAssistant,
+        *,
+        modules: DogModulesConfig,
+        external_entities: ExternalEntityConfig | None = None,
+    ) -> None:
+        self.hass = hass
+        self._enabled_modules = modules
+        self._external_entities = external_entities or ExternalEntityConfig()
+        self._dogs: list[DogConfigData] = []
+        self.shown_forms: list[MutableFlowResultDict] = []
+        self.finalised: list[ExternalEntityConfig | None] = []
 
-  async def async_step_final_setup(  # noqa: E111
-    self, user_input: ExternalEntityConfig | None = None
-  ) -> MutableFlowResultDict:
-    self.finalised.append(user_input)
-    return cast(
-      MutableFlowResultDict,
-      {"type": "create_entry", "data": user_input},
-    )
+    async def async_step_final_setup(  # noqa: E111
+        self, user_input: ExternalEntityConfig | None = None
+    ) -> MutableFlowResultDict:
+        self.finalised.append(user_input)
+        return cast(
+            MutableFlowResultDict,
+            {"type": "create_entry", "data": user_input},
+        )
 
-  def async_show_form(  # noqa: E111
-    self,
-    *,
-    step_id: str,
-    data_schema: Any,
-    description_placeholders: Mapping[str, object] | None = None,
-    errors: dict[str, str] | None = None,
-  ) -> MutableFlowResultDict:
-    form_record = cast(
-      MutableFlowResultDict,
-      {
-        "step_id": step_id,
-        "schema": data_schema,
-        "description_placeholders": (
-          description_placeholders if description_placeholders is not None else {}
-        ),
-        "errors": errors or {},
-      },
-    )
-    self.shown_forms.append(form_record)
-    return cast(MutableFlowResultDict, {"type": "form", **form_record})
+    def async_show_form(  # noqa: E111
+        self,
+        *,
+        step_id: str,
+        data_schema: Any,
+        description_placeholders: Mapping[str, object] | None = None,
+        errors: dict[str, str] | None = None,
+    ) -> MutableFlowResultDict:
+        form_record = cast(
+            MutableFlowResultDict,
+            {
+                "step_id": step_id,
+                "schema": data_schema,
+                "description_placeholders": (
+                    description_placeholders
+                    if description_placeholders is not None
+                    else {}
+                ),
+                "errors": errors or {},
+            },
+        )
+        self.shown_forms.append(form_record)
+        return cast(MutableFlowResultDict, {"type": "form", **form_record})
 
-  def _get_available_device_trackers(self) -> dict[str, str]:  # noqa: E111
-    return {"device_tracker.main_phone": "Main phone"}
+    def _get_available_device_trackers(self) -> dict[str, str]:  # noqa: E111
+        return {"device_tracker.main_phone": "Main phone"}
 
-  def _get_available_person_entities(self) -> dict[str, str]:  # noqa: E111
-    return {"person.dog_walker": "Dog Walker"}
+    def _get_available_person_entities(self) -> dict[str, str]:  # noqa: E111
+        return {"person.dog_walker": "Dog Walker"}
 
-  def _get_available_door_sensors(self) -> dict[str, str]:  # noqa: E111
-    return {"binary_sensor.back_door": "Back door"}
+    def _get_available_door_sensors(self) -> dict[str, str]:  # noqa: E111
+        return {"binary_sensor.back_door": "Back door"}
 
-  def _get_available_notify_services(self) -> dict[str, str]:  # noqa: E111
-    return {"notify.mobile_app_main_phone": "Main phone"}
+    def _get_available_notify_services(self) -> dict[str, str]:  # noqa: E111
+        return {"notify.mobile_app_main_phone": "Main phone"}
 
 
 @pytest.mark.asyncio
 async def test_async_step_configure_external_entities_accepts_valid_payload() -> None:
-  """The mixin persists validated entity selections into the shared mapping."""  # noqa: E111
+    """The mixin persists validated entity selections into the shared mapping."""  # noqa: E111
 
-  hass = _FakeHomeAssistant(  # noqa: E111
-    states=_FakeStates({
-      "device_tracker.main_phone": SimpleNamespace(state="home"),
-      "binary_sensor.back_door": SimpleNamespace(
-        state="on",
-        attributes={"device_class": "door"},
-      ),
-    }),
-    services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
-  )
-  modules = cast(  # noqa: E111
-    DogModulesConfig,
-    {MODULE_GPS: True, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
-  )
-  flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
-
-  result = await flow.async_step_configure_external_entities(  # noqa: E111
-    ExternalEntityConfig(
-      gps_source="device_tracker.main_phone",
-      door_sensor="binary_sensor.back_door",
-      notify_fallback="notify.mobile_app_main_phone",
+    hass = _FakeHomeAssistant(  # noqa: E111
+        states=_FakeStates({
+            "device_tracker.main_phone": SimpleNamespace(state="home"),
+            "binary_sensor.back_door": SimpleNamespace(
+                state="on",
+                attributes={"device_class": "door"},
+            ),
+        }),
+        services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
     )
-  )
+    modules = cast(  # noqa: E111
+        DogModulesConfig,
+        {MODULE_GPS: True, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
+    )
+    flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
 
-  assert result["type"] == "create_entry"  # noqa: E111
-  assert flow._external_entities == {  # noqa: E111
-    CONF_GPS_SOURCE: "device_tracker.main_phone",
-    CONF_DOOR_SENSOR: "binary_sensor.back_door",
-    CONF_NOTIFY_FALLBACK: "notify.mobile_app_main_phone",
-  }
-  assert flow.finalised == [None]  # noqa: E111
+    result = await flow.async_step_configure_external_entities(  # noqa: E111
+        ExternalEntityConfig(
+            gps_source="device_tracker.main_phone",
+            door_sensor="binary_sensor.back_door",
+            notify_fallback="notify.mobile_app_main_phone",
+        )
+    )
+
+    assert result["type"] == "create_entry"  # noqa: E111
+    assert flow._external_entities == {  # noqa: E111
+        CONF_GPS_SOURCE: "device_tracker.main_phone",
+        CONF_DOOR_SENSOR: "binary_sensor.back_door",
+        CONF_NOTIFY_FALLBACK: "notify.mobile_app_main_phone",
+    }
+    assert flow.finalised == [None]  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_async_step_configure_external_entities_rejects_invalid_door_sensor() -> (
-  None
+    None
 ):
-  """Door sensor validation rejects entities with unsupported device classes."""  # noqa: E111
+    """Door sensor validation rejects entities with unsupported device classes."""  # noqa: E111
 
-  hass = _FakeHomeAssistant(  # noqa: E111
-    states=_FakeStates({
-      "binary_sensor.back_door": SimpleNamespace(
-        state="on",
-        attributes={"device_class": "motion"},
-      ),
-    }),
-    services=_FakeServices({"notify": {}}),
-  )
-  modules = cast(  # noqa: E111
-    DogModulesConfig,
-    {MODULE_GPS: False, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: False},
-  )
-  flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
+    hass = _FakeHomeAssistant(  # noqa: E111
+        states=_FakeStates({
+            "binary_sensor.back_door": SimpleNamespace(
+                state="on",
+                attributes={"device_class": "motion"},
+            ),
+        }),
+        services=_FakeServices({"notify": {}}),
+    )
+    modules = cast(  # noqa: E111
+        DogModulesConfig,
+        {MODULE_GPS: False, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: False},
+    )
+    flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
 
-  result = await flow.async_step_configure_external_entities(  # noqa: E111
-    ExternalEntityConfig(door_sensor="binary_sensor.back_door")
-  )
+    result = await flow.async_step_configure_external_entities(  # noqa: E111
+        ExternalEntityConfig(door_sensor="binary_sensor.back_door")
+    )
 
-  assert result["type"] == "form"  # noqa: E111
-  assert flow.shown_forms[0]["errors"][CONF_DOOR_SENSOR] == "door_sensor_not_found"  # noqa: E111
-  assert flow._external_entities == {}  # noqa: E111
+    assert result["type"] == "form"  # noqa: E111
+    assert flow.shown_forms[0]["errors"][CONF_DOOR_SENSOR] == "door_sensor_not_found"  # noqa: E111
+    assert flow._external_entities == {}  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_async_step_configure_external_entities_rejects_unknown_notify_service() -> (  # noqa: E501
-  None
+    None
 ):
-  """Invalid notify service selections surface the validation error in the form."""  # noqa: E111
+    """Invalid notify service selections surface the validation error in the form."""  # noqa: E111
 
-  hass = _FakeHomeAssistant(  # noqa: E111
-    states=_FakeStates({
-      "device_tracker.main_phone": SimpleNamespace(state="home"),
-      "binary_sensor.back_door": SimpleNamespace(
-        state="on",
-        attributes={"device_class": "door"},
-      ),
-    }),
-    services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
-  )
-  modules = cast(  # noqa: E111
-    DogModulesConfig,
-    {MODULE_GPS: True, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
-  )
-  flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
+    hass = _FakeHomeAssistant(  # noqa: E111
+        states=_FakeStates({
+            "device_tracker.main_phone": SimpleNamespace(state="home"),
+            "binary_sensor.back_door": SimpleNamespace(
+                state="on",
+                attributes={"device_class": "door"},
+            ),
+        }),
+        services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
+    )
+    modules = cast(  # noqa: E111
+        DogModulesConfig,
+        {MODULE_GPS: True, MODULE_VISITOR: True, MODULE_NOTIFICATIONS: True},
+    )
+    flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
 
-  result = await flow.async_step_configure_external_entities(  # noqa: E111
-    ExternalEntityConfig(notify_fallback="notify.unknown_service")
-  )
+    result = await flow.async_step_configure_external_entities(  # noqa: E111
+        ExternalEntityConfig(notify_fallback="notify.unknown_service")
+    )
 
-  assert result["type"] == "form"  # noqa: E111
-  assert flow.shown_forms[0]["errors"]["base"] == (  # noqa: E111
-    "Notification service unknown_service not found"
-  )
-  assert flow._external_entities == {}  # noqa: E111
+    assert result["type"] == "form"  # noqa: E111
+    assert flow.shown_forms[0]["errors"]["base"] == (  # noqa: E111
+        "Notification service unknown_service not found"
+    )
+    assert flow._external_entities == {}  # noqa: E111
 
 
 @pytest.mark.asyncio
 async def test_async_step_configure_external_entities_rejects_invalid_notify_format() -> (  # noqa: E501
-  None
+    None
 ):
-  """Notify service formatting errors surface a field validation key."""  # noqa: E111
+    """Notify service formatting errors surface a field validation key."""  # noqa: E111
 
-  hass = _FakeHomeAssistant(  # noqa: E111
-    states=_FakeStates({
-      "device_tracker.main_phone": SimpleNamespace(state="home"),
-    }),
-    services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
-  )
-  modules = cast(  # noqa: E111
-    DogModulesConfig,
-    {MODULE_GPS: False, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: True},
-  )
-  flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
+    hass = _FakeHomeAssistant(  # noqa: E111
+        states=_FakeStates({
+            "device_tracker.main_phone": SimpleNamespace(state="home"),
+        }),
+        services=_FakeServices({"notify": {"mobile_app_main_phone": object()}}),
+    )
+    modules = cast(  # noqa: E111
+        DogModulesConfig,
+        {MODULE_GPS: False, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: True},
+    )
+    flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
 
-  result = await flow.async_step_configure_external_entities(  # noqa: E111
-    ExternalEntityConfig(notify_fallback="invalid-service")
-  )
+    result = await flow.async_step_configure_external_entities(  # noqa: E111
+        ExternalEntityConfig(notify_fallback="invalid-service")
+    )
 
-  assert result["type"] == "form"  # noqa: E111
-  assert (  # noqa: E111
-    flow.shown_forms[0]["errors"][CONF_NOTIFY_FALLBACK]
-    == "invalid_notification_service"
-  )
+    assert result["type"] == "form"  # noqa: E111
+    assert (  # noqa: E111
+        flow.shown_forms[0]["errors"][CONF_NOTIFY_FALLBACK]
+        == "invalid_notification_service"
+    )
 
 
 @pytest.mark.asyncio
 async def test_async_step_configure_external_entities_exposes_placeholders() -> None:
-  """The mixin should expose immutable placeholders for the configuration form."""  # noqa: E111
+    """The mixin should expose immutable placeholders for the configuration form."""  # noqa: E111
 
-  hass = _FakeHomeAssistant(  # noqa: E111
-    states=_FakeStates({}),
-    services=_FakeServices({"notify": {}}),
-  )
-  modules = cast(  # noqa: E111
-    DogModulesConfig,
-    {MODULE_GPS: True, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: False},
-  )
-  flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
+    hass = _FakeHomeAssistant(  # noqa: E111
+        states=_FakeStates({}),
+        services=_FakeServices({"notify": {}}),
+    )
+    modules = cast(  # noqa: E111
+        DogModulesConfig,
+        {MODULE_GPS: True, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: False},
+    )
+    flow = _ExternalEntityFlow(hass, modules=modules)  # noqa: E111
 
-  result = await flow.async_step_configure_external_entities()  # noqa: E111
+    result = await flow.async_step_configure_external_entities()  # noqa: E111
 
-  assert result["type"] == "form"  # noqa: E111
-  placeholders = result["description_placeholders"]  # noqa: E111
-  assert isinstance(placeholders, MappingProxyType)  # noqa: E111
-  assert placeholders["gps_enabled"] is True  # noqa: E111
-  assert placeholders["visitor_enabled"] is False  # noqa: E111
-  assert placeholders["dog_count"] == 0  # noqa: E111
+    assert result["type"] == "form"  # noqa: E111
+    placeholders = result["description_placeholders"]  # noqa: E111
+    assert isinstance(placeholders, MappingProxyType)  # noqa: E111
+    assert placeholders["gps_enabled"] is True  # noqa: E111
+    assert placeholders["visitor_enabled"] is False  # noqa: E111
+    assert placeholders["dog_count"] == 0  # noqa: E111

@@ -13,190 +13,190 @@ from custom_components.pawcontrol.script_manager import PawControlScriptManager
 
 @pytest.mark.unit
 def test_resilience_snapshot_requires_definition() -> None:
-  """The resilience snapshot should be unavailable without a definition."""  # noqa: E111
+    """The resilience snapshot should be unavailable without a definition."""  # noqa: E111
 
-  hass = SimpleNamespace(  # noqa: E111
-    data={DOMAIN: {}},
-    states={},
-    config_entries=SimpleNamespace(async_entries=lambda domain: []),
-    bus=SimpleNamespace(async_listen=lambda event_type, callback: None),
-  )
-  entry = SimpleNamespace(  # noqa: E111
-    entry_id="entry",
-    data={},
-    options={},
-    runtime_data={},
-    title="PawControl Test",
-  )
+    hass = SimpleNamespace(  # noqa: E111
+        data={DOMAIN: {}},
+        states={},
+        config_entries=SimpleNamespace(async_entries=lambda domain: []),
+        bus=SimpleNamespace(async_listen=lambda event_type, callback: None),
+    )
+    entry = SimpleNamespace(  # noqa: E111
+        entry_id="entry",
+        data={},
+        options={},
+        runtime_data={},
+        title="PawControl Test",
+    )
 
-  manager = PawControlScriptManager(hass, entry)  # noqa: E111
+    manager = PawControlScriptManager(hass, entry)  # noqa: E111
 
-  assert manager.get_resilience_escalation_snapshot() is None  # noqa: E111
+    assert manager.get_resilience_escalation_snapshot() is None  # noqa: E111
 
 
 @pytest.mark.unit
 def test_resilience_snapshot_serialises_manual_payload() -> None:
-  """The resilience snapshot should expose JSON-safe manual event payloads."""  # noqa: E111
+    """The resilience snapshot should expose JSON-safe manual event payloads."""  # noqa: E111
 
-  now = dt_util.utcnow()  # noqa: E111
-  hass = SimpleNamespace(  # noqa: E111
-    data={DOMAIN: {}},
-    states={},
-    config_entries=SimpleNamespace(async_entries=lambda domain: []),
-    bus=SimpleNamespace(async_listen=lambda event_type, callback: None),
-  )
-  entry = SimpleNamespace(  # noqa: E111
-    entry_id="entry",
-    data={},
-    options={},
-    runtime_data={},
-    title="Buddy",
-  )
+    now = dt_util.utcnow()  # noqa: E111
+    hass = SimpleNamespace(  # noqa: E111
+        data={DOMAIN: {}},
+        states={},
+        config_entries=SimpleNamespace(async_entries=lambda domain: []),
+        bus=SimpleNamespace(async_listen=lambda event_type, callback: None),
+    )
+    entry = SimpleNamespace(  # noqa: E111
+        entry_id="entry",
+        data={},
+        options={},
+        runtime_data={},
+        title="Buddy",
+    )
 
-  manager = PawControlScriptManager(hass, entry)  # noqa: E111
-  manager._resilience_escalation_definition = {  # type: ignore[attr-defined]  # noqa: E111
-    "object_id": "pawcontrol_buddy_resilience_escalation",
-    "alias": "Buddy resilience escalation",
-    "description": "Escalates guard and breaker events",
-    "field_defaults": {
-      "skip_threshold": 3,
-      "breaker_threshold": 2,
-      "followup_script": "script.followup",
-      "statistics_entity_id": "sensor.pawcontrol_statistics",
-      "escalation_service": "persistent_notification.create",
-    },
-  }
-  manager._entry_scripts = [  # type: ignore[attr-defined]  # noqa: E111
-    "script.pawcontrol_buddy_resilience_escalation"
-  ]
-  manager._last_generation = now - timedelta(minutes=5)  # type: ignore[attr-defined]  # noqa: E111
-
-  manual_record = {  # noqa: E111
-    "event_type": "manual.guard",
-    "preference_key": "manual_guard_event",
-    "configured_role": "guard",
-    "time_fired": now - timedelta(minutes=2, seconds=30),
-    "received_at": now - timedelta(minutes=2),
-    "recorded_at": now - timedelta(minutes=2),
-    "data": {"skip_count": 4},
-    "sources": ("automation.resilience",),
-    "reasons": ["guard"],
-  }
-  manager._manual_event_history.clear()  # type: ignore[attr-defined]  # noqa: E111
-  manager._manual_event_history.append(manual_record)  # type: ignore[attr-defined]  # noqa: E111
-  manager._manual_event_counters = {  # type: ignore[attr-defined]  # noqa: E111
-    "manual.guard": 2,
-    "manual.breaker": 1,
-  }
-  manager._manual_event_sources = {  # type: ignore[attr-defined]  # noqa: E111
-    "manual.guard": {
-      "preference_key": "manual_guard_event",
-      "configured_role": "guard",
+    manager = PawControlScriptManager(hass, entry)  # noqa: E111
+    manager._resilience_escalation_definition = {  # type: ignore[attr-defined]  # noqa: E111
+        "object_id": "pawcontrol_buddy_resilience_escalation",
+        "alias": "Buddy resilience escalation",
+        "description": "Escalates guard and breaker events",
+        "field_defaults": {
+            "skip_threshold": 3,
+            "breaker_threshold": 2,
+            "followup_script": "script.followup",
+            "statistics_entity_id": "sensor.pawcontrol_statistics",
+            "escalation_service": "persistent_notification.create",
+        },
     }
-  }
+    manager._entry_scripts = [  # type: ignore[attr-defined]  # noqa: E111
+        "script.pawcontrol_buddy_resilience_escalation"
+    ]
+    manager._last_generation = now - timedelta(minutes=5)  # type: ignore[attr-defined]  # noqa: E111
 
-  manual_events_payload = {  # noqa: E111
-    "available": True,
-    "automations": [
-      {
-        "config_entry_id": "automation-entry",
-        "title": "Resilience automation",
+    manual_record = {  # noqa: E111
+        "event_type": "manual.guard",
+        "preference_key": "manual_guard_event",
+        "configured_role": "guard",
+        "time_fired": now - timedelta(minutes=2, seconds=30),
+        "received_at": now - timedelta(minutes=2),
+        "recorded_at": now - timedelta(minutes=2),
+        "data": {"skip_count": 4},
+        "sources": ("automation.resilience",),
+        "reasons": ["guard"],
+    }
+    manager._manual_event_history.clear()  # type: ignore[attr-defined]  # noqa: E111
+    manager._manual_event_history.append(manual_record)  # type: ignore[attr-defined]  # noqa: E111
+    manager._manual_event_counters = {  # type: ignore[attr-defined]  # noqa: E111
+        "manual.guard": 2,
+        "manual.breaker": 1,
+    }
+    manager._manual_event_sources = {  # type: ignore[attr-defined]  # noqa: E111
+        "manual.guard": {
+            "preference_key": "manual_guard_event",
+            "configured_role": "guard",
+        }
+    }
+
+    manual_events_payload = {  # noqa: E111
+        "available": True,
+        "automations": [
+            {
+                "config_entry_id": "automation-entry",
+                "title": "Resilience automation",
+                "manual_guard_event": "manual.guard",
+                "manual_breaker_event": "manual.breaker",
+            }
+        ],
+        "configured_guard_events": ["manual.guard"],
+        "configured_breaker_events": ["manual.breaker"],
+        "configured_check_events": [],
+        "system_guard_event": "manual.guard",
+        "system_breaker_event": "manual.breaker",
+        "listener_events": {
+            "manual.guard": ["guard"],
+            "manual.breaker": ["breaker"],
+        },
+        "listener_sources": {
+            "manual.guard": ["automation.resilience"],
+        },
+        "listener_metadata": {
+            "manual.guard": {
+                "sources": ["automation.resilience"],
+                "primary_source": "automation.resilience",
+            }
+        },
+        "event_history": [],
+        "last_event": None,
+        "last_trigger": None,
+        "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
+        "active_listeners": [],
+    }
+    manual_preferences = {  # noqa: E111
         "manual_guard_event": "manual.guard",
         "manual_breaker_event": "manual.breaker",
-      }
-    ],
-    "configured_guard_events": ["manual.guard"],
-    "configured_breaker_events": ["manual.breaker"],
-    "configured_check_events": [],
-    "system_guard_event": "manual.guard",
-    "system_breaker_event": "manual.breaker",
-    "listener_events": {
-      "manual.guard": ["guard"],
-      "manual.breaker": ["breaker"],
-    },
-    "listener_sources": {
-      "manual.guard": ["automation.resilience"],
-    },
-    "listener_metadata": {
-      "manual.guard": {
-        "sources": ["automation.resilience"],
-        "primary_source": "automation.resilience",
-      }
-    },
-    "event_history": [],
-    "last_event": None,
-    "last_trigger": None,
-    "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
-    "active_listeners": [],
-  }
-  manual_preferences = {  # noqa: E111
-    "manual_guard_event": "manual.guard",
-    "manual_breaker_event": "manual.breaker",
-    "manual_check_event": None,
-  }
+        "manual_check_event": None,
+    }
 
-  manager._resolve_manual_resilience_events = MethodType(  # type: ignore[attr-defined]  # noqa: E111
-    lambda self: manual_events_payload,
-    manager,
-  )
-  manager._manual_event_preferences = MethodType(  # type: ignore[attr-defined]  # noqa: E111
-    lambda self: manual_preferences,
-    manager,
-  )
-  manager._manual_event_source_mapping = MethodType(  # type: ignore[attr-defined]  # noqa: E111
-    lambda self: {
-      "manual.guard": {
-        "preference_key": "manual_guard_event",
-        "listener_sources": ("automation.resilience",),
-      },
-      "manual.breaker": {"preference_key": "manual_breaker_event"},
-    },
-    manager,
-  )
-
-  hass.states = {  # type: ignore[assignment]  # noqa: E111
-    "script.pawcontrol_buddy_resilience_escalation": SimpleNamespace(
-      attributes={
-        "last_triggered": now - timedelta(minutes=1),
-        "fields": {
-          "skip_threshold": {"default": 5},
-          "breaker_threshold": {"default": 4},
-          "followup_script": {"default": "script.alternate"},
-          "statistics_entity_id": {"default": "sensor.alt_statistics"},
-          "escalation_service": {"default": "persistent_notification.create"},
-        },
-      }
+    manager._resolve_manual_resilience_events = MethodType(  # type: ignore[attr-defined]  # noqa: E111
+        lambda self: manual_events_payload,
+        manager,
     )
-  }
+    manager._manual_event_preferences = MethodType(  # type: ignore[attr-defined]  # noqa: E111
+        lambda self: manual_preferences,
+        manager,
+    )
+    manager._manual_event_source_mapping = MethodType(  # type: ignore[attr-defined]  # noqa: E111
+        lambda self: {
+            "manual.guard": {
+                "preference_key": "manual_guard_event",
+                "listener_sources": ("automation.resilience",),
+            },
+            "manual.breaker": {"preference_key": "manual_breaker_event"},
+        },
+        manager,
+    )
 
-  snapshot = manager.get_resilience_escalation_snapshot()  # noqa: E111
-  assert snapshot is not None  # noqa: E111
-  assert snapshot["available"] is True  # noqa: E111
-  assert snapshot["entity_id"] == "script.pawcontrol_buddy_resilience_escalation"  # noqa: E111
-  assert snapshot["manual_events"]["available"] is True  # noqa: E111
-  assert snapshot["manual_events"]["preferred_guard_event"] == "manual.guard"  # noqa: E111
-  assert snapshot["manual_events"]["preferred_breaker_event"] == "manual.breaker"  # noqa: E111
-  assert snapshot["manual_events"]["preferred_check_event"] is None  # noqa: E111
-  assert snapshot["manual_events"]["event_counters"]["total"] == 3  # noqa: E111
-  assert snapshot["manual_events"]["event_counters"]["by_event"] == {  # noqa: E111
-    "manual.breaker": 1,
-    "manual.guard": 2,
-  }
-  assert snapshot["manual_events"]["event_counters"]["by_reason"]["guard"] == 2  # noqa: E111
-  assert snapshot["manual_events"]["active_listeners"] == [  # noqa: E111
-    "manual.breaker",
-    "manual.guard",
-  ]
+    hass.states = {  # type: ignore[assignment]  # noqa: E111
+        "script.pawcontrol_buddy_resilience_escalation": SimpleNamespace(
+            attributes={
+                "last_triggered": now - timedelta(minutes=1),
+                "fields": {
+                    "skip_threshold": {"default": 5},
+                    "breaker_threshold": {"default": 4},
+                    "followup_script": {"default": "script.alternate"},
+                    "statistics_entity_id": {"default": "sensor.alt_statistics"},
+                    "escalation_service": {"default": "persistent_notification.create"},
+                },
+            }
+        )
+    }
 
-  history = snapshot["manual_events"]["event_history"]  # noqa: E111
-  assert isinstance(history, list) and history  # noqa: E111
-  assert history[0]["event_type"] == "manual.guard"  # noqa: E111
-  assert isinstance(history[0]["time_fired"], str)  # noqa: E111
+    snapshot = manager.get_resilience_escalation_snapshot()  # noqa: E111
+    assert snapshot is not None  # noqa: E111
+    assert snapshot["available"] is True  # noqa: E111
+    assert snapshot["entity_id"] == "script.pawcontrol_buddy_resilience_escalation"  # noqa: E111
+    assert snapshot["manual_events"]["available"] is True  # noqa: E111
+    assert snapshot["manual_events"]["preferred_guard_event"] == "manual.guard"  # noqa: E111
+    assert snapshot["manual_events"]["preferred_breaker_event"] == "manual.breaker"  # noqa: E111
+    assert snapshot["manual_events"]["preferred_check_event"] is None  # noqa: E111
+    assert snapshot["manual_events"]["event_counters"]["total"] == 3  # noqa: E111
+    assert snapshot["manual_events"]["event_counters"]["by_event"] == {  # noqa: E111
+        "manual.breaker": 1,
+        "manual.guard": 2,
+    }
+    assert snapshot["manual_events"]["event_counters"]["by_reason"]["guard"] == 2  # noqa: E111
+    assert snapshot["manual_events"]["active_listeners"] == [  # noqa: E111
+        "manual.breaker",
+        "manual.guard",
+    ]
 
-  # The manual payload must be JSON serialisable so diagnostics remain stable.  # noqa: E114, E501
-  json.dumps(snapshot["manual_events"])  # noqa: E111
+    history = snapshot["manual_events"]["event_history"]  # noqa: E111
+    assert isinstance(history, list) and history  # noqa: E111
+    assert history[0]["event_type"] == "manual.guard"  # noqa: E111
+    assert isinstance(history[0]["time_fired"], str)  # noqa: E111
 
-  thresholds = snapshot["thresholds"]  # noqa: E111
-  assert thresholds["skip_threshold"]["active"] == 5  # noqa: E111
-  assert thresholds["breaker_threshold"]["active"] == 4  # noqa: E111
-  assert snapshot["followup_script"]["configured"] is True  # noqa: E111
+    # The manual payload must be JSON serialisable so diagnostics remain stable.  # noqa: E114, E501
+    json.dumps(snapshot["manual_events"])  # noqa: E111
+
+    thresholds = snapshot["thresholds"]  # noqa: E111
+    assert thresholds["skip_threshold"]["active"] == 5  # noqa: E111
+    assert thresholds["breaker_threshold"]["active"] == 4  # noqa: E111
+    assert snapshot["followup_script"]["configured"] is True  # noqa: E111

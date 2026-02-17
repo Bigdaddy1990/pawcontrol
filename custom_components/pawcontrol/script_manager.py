@@ -9,12 +9,12 @@ automation flows without manual YAML editing.
 
 from collections import deque
 from collections.abc import (
-  Callable,
-  Collection,
-  Iterable,
-  Mapping,
-  MutableMapping,
-  Sequence,
+    Callable,
+    Collection,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Sequence,
 )
 from contextlib import suppress
 from datetime import datetime
@@ -34,49 +34,49 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util, slugify
 
 from .const import (
-  CACHE_TIMESTAMP_FUTURE_THRESHOLD,
-  CACHE_TIMESTAMP_STALE_THRESHOLD,
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  DEFAULT_MANUAL_BREAKER_EVENT,
-  DEFAULT_MANUAL_CHECK_EVENT,
-  DEFAULT_MANUAL_GUARD_EVENT,
-  DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-  DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-  DOMAIN,
-  MANUAL_EVENT_SOURCE_CANONICAL,
-  MODULE_NOTIFICATIONS,
-  RESILIENCE_BREAKER_THRESHOLD_MAX,
-  RESILIENCE_BREAKER_THRESHOLD_MIN,
-  RESILIENCE_SKIP_THRESHOLD_MAX,
-  RESILIENCE_SKIP_THRESHOLD_MIN,
+    CACHE_TIMESTAMP_FUTURE_THRESHOLD,
+    CACHE_TIMESTAMP_STALE_THRESHOLD,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    DEFAULT_MANUAL_BREAKER_EVENT,
+    DEFAULT_MANUAL_CHECK_EVENT,
+    DEFAULT_MANUAL_GUARD_EVENT,
+    DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+    DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+    DOMAIN,
+    MANUAL_EVENT_SOURCE_CANONICAL,
+    MODULE_NOTIFICATIONS,
+    RESILIENCE_BREAKER_THRESHOLD_MAX,
+    RESILIENCE_BREAKER_THRESHOLD_MIN,
+    RESILIENCE_SKIP_THRESHOLD_MAX,
+    RESILIENCE_SKIP_THRESHOLD_MIN,
 )
 from .coordinator_support import CacheMonitorRegistrar
 from .error_classification import classify_error_reason
 from .types import (
-  CacheDiagnosticsMetadata,
-  CacheDiagnosticsSnapshot,
-  ConfigEntryOptionsPayload,
-  DogConfigData,
-  JSONMutableMapping,
-  JSONValue,
-  ManualResilienceAutomationEntry,
-  ManualResilienceEventRecord,
-  ManualResilienceEventSelection,
-  ManualResilienceEventSnapshot,
-  ManualResilienceEventSource,
-  ManualResilienceEventsTelemetry,
-  ManualResilienceListenerMetadata,
-  ManualResilienceOptionsSnapshot,
-  ManualResiliencePreferenceKey,
-  ManualResilienceSystemSettingsSnapshot,
-  ResilienceEscalationSnapshot,
-  ResilienceEscalationThresholds,
-  ScriptManagerDogScripts,
-  ScriptManagerSnapshot,
-  ScriptManagerStats,
-  SystemOptions,
-  ensure_dog_modules_mapping,
+    CacheDiagnosticsMetadata,
+    CacheDiagnosticsSnapshot,
+    ConfigEntryOptionsPayload,
+    DogConfigData,
+    JSONMutableMapping,
+    JSONValue,
+    ManualResilienceAutomationEntry,
+    ManualResilienceEventRecord,
+    ManualResilienceEventSelection,
+    ManualResilienceEventSnapshot,
+    ManualResilienceEventSource,
+    ManualResilienceEventsTelemetry,
+    ManualResilienceListenerMetadata,
+    ManualResilienceOptionsSnapshot,
+    ManualResiliencePreferenceKey,
+    ManualResilienceSystemSettingsSnapshot,
+    ResilienceEscalationSnapshot,
+    ResilienceEscalationThresholds,
+    ScriptManagerDogScripts,
+    ScriptManagerSnapshot,
+    ScriptManagerStats,
+    SystemOptions,
+    ensure_dog_modules_mapping,
 )
 
 CONF_ALIAS = getattr(ha_const, "CONF_ALIAS", "alias")
@@ -95,59 +95,59 @@ _RESILIENCE_BLUEPRINT_DOMAIN: Final[str] = "pawcontrol"
 
 
 def _normalise_entry_slug(entry: ConfigEntry) -> str:
-  """Return the slug used for integration-managed scripts."""  # noqa: E111
+    """Return the slug used for integration-managed scripts."""  # noqa: E111
 
-  raw_slug = slugify(getattr(entry, "title", "") or entry.entry_id or DOMAIN)  # noqa: E111
-  return raw_slug or DOMAIN  # noqa: E111
+    raw_slug = slugify(getattr(entry, "title", "") or entry.entry_id or DOMAIN)  # noqa: E111
+    return raw_slug or DOMAIN  # noqa: E111
 
 
 def _resolve_resilience_object_id(entry: ConfigEntry) -> str:
-  """Return the script object id for the resilience escalation helper."""  # noqa: E111
+    """Return the script object id for the resilience escalation helper."""  # noqa: E111
 
-  return f"pawcontrol_{_normalise_entry_slug(entry)}_resilience_escalation"  # noqa: E111
+    return f"pawcontrol_{_normalise_entry_slug(entry)}_resilience_escalation"  # noqa: E111
 
 
 def _resolve_resilience_entity_id(entry: ConfigEntry) -> str:
-  """Return the script entity id for the resilience escalation helper."""  # noqa: E111
+    """Return the script entity id for the resilience escalation helper."""  # noqa: E111
 
-  return f"{SCRIPT_DOMAIN}.{_resolve_resilience_object_id(entry)}"  # noqa: E111
+    return f"{SCRIPT_DOMAIN}.{_resolve_resilience_object_id(entry)}"  # noqa: E111
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:
-  """Return an ISO formatted timestamp for diagnostics payloads."""  # noqa: E111
+    """Return an ISO formatted timestamp for diagnostics payloads."""  # noqa: E111
 
-  if value is None:  # noqa: E111
-    return None
-  return dt_util.as_utc(value).isoformat()  # noqa: E111
+    if value is None:  # noqa: E111
+        return None
+    return dt_util.as_utc(value).isoformat()  # noqa: E111
 
 
 def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]:
-  """Classify ``value`` against the cache timestamp thresholds."""  # noqa: E111
+    """Classify ``value`` against the cache timestamp thresholds."""  # noqa: E111
 
-  if value is None:  # noqa: E111
-    return None, None
+    if value is None:  # noqa: E111
+        return None, None
 
-  delta = dt_util.utcnow() - dt_util.as_utc(value)  # noqa: E111
-  age_seconds = int(delta.total_seconds())  # noqa: E111
+    delta = dt_util.utcnow() - dt_util.as_utc(value)  # noqa: E111
+    age_seconds = int(delta.total_seconds())  # noqa: E111
 
-  if delta < -CACHE_TIMESTAMP_FUTURE_THRESHOLD:  # noqa: E111
-    return "future", age_seconds
-  if delta > CACHE_TIMESTAMP_STALE_THRESHOLD:  # noqa: E111
-    return "stale", age_seconds
-  return None, age_seconds  # noqa: E111
+    if delta < -CACHE_TIMESTAMP_FUTURE_THRESHOLD:  # noqa: E111
+        return "future", age_seconds
+    if delta > CACHE_TIMESTAMP_STALE_THRESHOLD:  # noqa: E111
+        return "stale", age_seconds
+    return None, age_seconds  # noqa: E111
 
 
 MANUAL_EVENT_KEYS: tuple[ManualResiliencePreferenceKey, ...] = (
-  "manual_check_event",
-  "manual_guard_event",
-  "manual_breaker_event",
+    "manual_check_event",
+    "manual_guard_event",
+    "manual_breaker_event",
 )
 
 
 class _FieldDefaultProvider(Protocol):
-  """Protocol for script field objects exposing ``default`` attributes."""  # noqa: E111
+    """Protocol for script field objects exposing ``default`` attributes."""  # noqa: E111
 
-  default: JSONValue  # noqa: E111
+    default: JSONValue  # noqa: E111
 
 
 type ScriptFieldEntry = Mapping[str, JSONValue] | _FieldDefaultProvider
@@ -155,357 +155,357 @@ type ScriptFieldDefinitions = Mapping[str, ScriptFieldEntry]
 
 
 def _coerce_optional_int(value: object) -> int | None:
-  """Return an ``int`` when ``value`` can be losslessly coerced."""  # noqa: E111
+    """Return an ``int`` when ``value`` can be losslessly coerced."""  # noqa: E111
 
-  if isinstance(value, bool):  # noqa: E111
-    # ``bool`` subclasses ``int`` but should not participate in resilience
-    # thresholds to avoid confusing ``True``/``False`` inputs.
-    return int(value) if value else None
-  if isinstance(value, int):  # noqa: E111
-    return value
-  if isinstance(value, float) and value.is_integer():  # noqa: E111
-    return int(value)
-  if isinstance(value, str):  # noqa: E111
-    candidate = value.strip()
-    if not candidate:
-      return None  # noqa: E111
-    try:
-      return int(candidate)  # noqa: E111
-    except ValueError:
-      return None  # noqa: E111
-  return None  # noqa: E111
+    if isinstance(value, bool):  # noqa: E111
+        # ``bool`` subclasses ``int`` but should not participate in resilience
+        # thresholds to avoid confusing ``True``/``False`` inputs.
+        return int(value) if value else None
+    if isinstance(value, int):  # noqa: E111
+        return value
+    if isinstance(value, float) and value.is_integer():  # noqa: E111
+        return int(value)
+    if isinstance(value, str):  # noqa: E111
+        candidate = value.strip()
+        if not candidate:
+            return None  # noqa: E111
+        try:
+            return int(candidate)  # noqa: E111
+        except ValueError:
+            return None  # noqa: E111
+    return None  # noqa: E111
 
 
 def _coerce_manual_history_size(value: object) -> int | None:
-  """Validate manual history length candidates from config mappings."""  # noqa: E111
+    """Validate manual history length candidates from config mappings."""  # noqa: E111
 
-  candidate = _coerce_optional_int(value)  # noqa: E111
-  if candidate is None:  # noqa: E111
-    return None
-  if not (_MANUAL_EVENT_HISTORY_MIN <= candidate <= _MANUAL_EVENT_HISTORY_MAX):  # noqa: E111
-    return None
-  return candidate  # noqa: E111
+    candidate = _coerce_optional_int(value)  # noqa: E111
+    if candidate is None:  # noqa: E111
+        return None
+    if not (_MANUAL_EVENT_HISTORY_MIN <= candidate <= _MANUAL_EVENT_HISTORY_MAX):  # noqa: E111
+        return None
+    return candidate  # noqa: E111
 
 
 def _parse_manual_resilience_system_settings(
-  value: object,
+    value: object,
 ) -> ManualResilienceSystemSettingsSnapshot | None:
-  """Normalise system-settings mappings into typed resilience payloads."""  # noqa: E111
+    """Normalise system-settings mappings into typed resilience payloads."""  # noqa: E111
 
-  if not isinstance(value, Mapping):  # noqa: E111
-    return None
+    if not isinstance(value, Mapping):  # noqa: E111
+        return None
 
-  settings: ManualResilienceSystemSettingsSnapshot = {}  # noqa: E111
+    settings: ManualResilienceSystemSettingsSnapshot = {}  # noqa: E111
 
-  for key in MANUAL_EVENT_KEYS:  # noqa: E111
-    manual_event = _normalise_manual_event(value.get(key))
-    if manual_event is not None:
-      settings[key] = manual_event  # noqa: E111
+    for key in MANUAL_EVENT_KEYS:  # noqa: E111
+        manual_event = _normalise_manual_event(value.get(key))
+        if manual_event is not None:
+            settings[key] = manual_event  # noqa: E111
 
-  skip_threshold = _coerce_optional_int(  # noqa: E111
-    value.get("resilience_skip_threshold"),
-  )
-  if skip_threshold is not None:  # noqa: E111
-    settings["resilience_skip_threshold"] = skip_threshold
+    skip_threshold = _coerce_optional_int(  # noqa: E111
+        value.get("resilience_skip_threshold"),
+    )
+    if skip_threshold is not None:  # noqa: E111
+        settings["resilience_skip_threshold"] = skip_threshold
 
-  breaker_threshold = _coerce_optional_int(  # noqa: E111
-    value.get("resilience_breaker_threshold"),
-  )
-  if breaker_threshold is not None:  # noqa: E111
-    settings["resilience_breaker_threshold"] = breaker_threshold
+    breaker_threshold = _coerce_optional_int(  # noqa: E111
+        value.get("resilience_breaker_threshold"),
+    )
+    if breaker_threshold is not None:  # noqa: E111
+        settings["resilience_breaker_threshold"] = breaker_threshold
 
-  return settings or None  # noqa: E111
+    return settings or None  # noqa: E111
 
 
 def _parse_manual_resilience_options(
-  value: object,
+    value: object,
 ) -> ManualResilienceOptionsSnapshot:
-  """Normalise config-entry options related to manual resilience flows."""  # noqa: E111
+    """Normalise config-entry options related to manual resilience flows."""  # noqa: E111
 
-  options: ManualResilienceOptionsSnapshot = {}  # noqa: E111
+    options: ManualResilienceOptionsSnapshot = {}  # noqa: E111
 
-  if not isinstance(value, Mapping):  # noqa: E111
-    return options
+    if not isinstance(value, Mapping):  # noqa: E111
+        return options
 
-  for key in MANUAL_EVENT_KEYS:  # noqa: E111
-    manual_event = _normalise_manual_event(value.get(key))
-    if manual_event is not None:
-      options[key] = manual_event  # noqa: E111
+    for key in MANUAL_EVENT_KEYS:  # noqa: E111
+        manual_event = _normalise_manual_event(value.get(key))
+        if manual_event is not None:
+            options[key] = manual_event  # noqa: E111
 
-  skip_threshold = _coerce_optional_int(  # noqa: E111
-    value.get("resilience_skip_threshold"),
-  )
-  if skip_threshold is not None:  # noqa: E111
-    options["resilience_skip_threshold"] = skip_threshold
+    skip_threshold = _coerce_optional_int(  # noqa: E111
+        value.get("resilience_skip_threshold"),
+    )
+    if skip_threshold is not None:  # noqa: E111
+        options["resilience_skip_threshold"] = skip_threshold
 
-  breaker_threshold = _coerce_optional_int(  # noqa: E111
-    value.get("resilience_breaker_threshold"),
-  )
-  if breaker_threshold is not None:  # noqa: E111
-    options["resilience_breaker_threshold"] = breaker_threshold
+    breaker_threshold = _coerce_optional_int(  # noqa: E111
+        value.get("resilience_breaker_threshold"),
+    )
+    if breaker_threshold is not None:  # noqa: E111
+        options["resilience_breaker_threshold"] = breaker_threshold
 
-  history_size = _coerce_manual_history_size(  # noqa: E111
-    value.get("manual_event_history_size"),
-  )
-  if history_size is not None:  # noqa: E111
-    options["manual_event_history_size"] = history_size
+    history_size = _coerce_manual_history_size(  # noqa: E111
+        value.get("manual_event_history_size"),
+    )
+    if history_size is not None:  # noqa: E111
+        options["manual_event_history_size"] = history_size
 
-  system_settings = _parse_manual_resilience_system_settings(  # noqa: E111
-    value.get("system_settings"),
-  )
-  if system_settings is not None:  # noqa: E111
-    options["system_settings"] = system_settings
+    system_settings = _parse_manual_resilience_system_settings(  # noqa: E111
+        value.get("system_settings"),
+    )
+    if system_settings is not None:  # noqa: E111
+        options["system_settings"] = system_settings
 
-  return options  # noqa: E111
+    return options  # noqa: E111
 
 
 def _parse_event_selection(
-  value: Mapping[str, object] | None,
+    value: Mapping[str, object] | None,
 ) -> ManualResilienceEventSelection:
-  """Normalise manual event selections used for automation updates."""  # noqa: E111
+    """Normalise manual event selections used for automation updates."""  # noqa: E111
 
-  selection: ManualResilienceEventSelection = {}  # noqa: E111
-  if value is None:  # noqa: E111
-    return selection
+    selection: ManualResilienceEventSelection = {}  # noqa: E111
+    if value is None:  # noqa: E111
+        return selection
 
-  for key in MANUAL_EVENT_KEYS:  # noqa: E111
-    manual_event = _normalise_manual_event(value.get(key))
-    if key in value:
-      selection[key] = manual_event  # noqa: E111
+    for key in MANUAL_EVENT_KEYS:  # noqa: E111
+        manual_event = _normalise_manual_event(value.get(key))
+        if key in value:
+            selection[key] = manual_event  # noqa: E111
 
-  return selection  # noqa: E111
+    return selection  # noqa: E111
 
 
 def _coerce_threshold(
-  value: object,
-  *,
-  default: int,
-  minimum: int,
-  maximum: int,
+    value: object,
+    *,
+    default: int,
+    minimum: int,
+    maximum: int,
 ) -> int:
-  """Return a clamped integer threshold for resilience configuration."""  # noqa: E111
+    """Return a clamped integer threshold for resilience configuration."""  # noqa: E111
 
-  candidate = _coerce_optional_int(value)  # noqa: E111
-  if candidate is None:  # noqa: E111
-    return default
+    candidate = _coerce_optional_int(value)  # noqa: E111
+    if candidate is None:  # noqa: E111
+        return default
 
-  if candidate < minimum:  # noqa: E111
-    return minimum
-  if candidate > maximum:  # noqa: E111
-    return maximum
-  return candidate  # noqa: E111
+    if candidate < minimum:  # noqa: E111
+        return minimum
+    if candidate > maximum:  # noqa: E111
+        return maximum
+    return candidate  # noqa: E111
 
 
 def _extract_field_int(fields: ScriptFieldDefinitions | None, key: str) -> int | None:
-  """Return the integer default stored under ``key`` in ``fields``."""  # noqa: E111
+    """Return the integer default stored under ``key`` in ``fields``."""  # noqa: E111
 
-  if not isinstance(fields, Mapping):  # noqa: E111
-    return None
+    if not isinstance(fields, Mapping):  # noqa: E111
+        return None
 
-  field = fields.get(key)  # noqa: E111
-  candidate: JSONValue | None  # noqa: E111
-  if isinstance(field, Mapping):  # noqa: E111
-    candidate = field.get("default")
-  else:  # noqa: E111
-    candidate = getattr(field, "default", None)
+    field = fields.get(key)  # noqa: E111
+    candidate: JSONValue | None  # noqa: E111
+    if isinstance(field, Mapping):  # noqa: E111
+        candidate = field.get("default")
+    else:  # noqa: E111
+        candidate = getattr(field, "default", None)
 
-  if candidate is None:  # noqa: E111
-    return None
+    if candidate is None:  # noqa: E111
+        return None
 
-  return _coerce_optional_int(candidate)  # noqa: E111
+    return _coerce_optional_int(candidate)  # noqa: E111
 
 
 def resolve_resilience_script_thresholds(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> tuple[int | None, int | None]:
-  """Return skip and breaker thresholds from the generated script entity."""  # noqa: E111
+    """Return skip and breaker thresholds from the generated script entity."""  # noqa: E111
 
-  states = getattr(hass, "states", None)  # noqa: E111
-  if states is None or not hasattr(states, "get"):  # noqa: E111
-    return None, None
+    states = getattr(hass, "states", None)  # noqa: E111
+    if states is None or not hasattr(states, "get"):  # noqa: E111
+        return None, None
 
-  entity_id = _resolve_resilience_entity_id(entry)  # noqa: E111
-  state = states.get(entity_id)  # noqa: E111
-  if state is None:  # noqa: E111
-    return None, None
+    entity_id = _resolve_resilience_entity_id(entry)  # noqa: E111
+    state = states.get(entity_id)  # noqa: E111
+    if state is None:  # noqa: E111
+        return None, None
 
-  attributes = getattr(state, "attributes", {})  # noqa: E111
-  raw_fields = (  # noqa: E111
-    attributes.get("fields")
-    if isinstance(
-      attributes,
-      Mapping,
+    attributes = getattr(state, "attributes", {})  # noqa: E111
+    raw_fields = (  # noqa: E111
+        attributes.get("fields")
+        if isinstance(
+            attributes,
+            Mapping,
+        )
+        else None
     )
-    else None
-  )
-  fields: ScriptFieldDefinitions | None  # noqa: E111
-  if isinstance(raw_fields, Mapping):  # noqa: E111
-    fields = cast(ScriptFieldDefinitions, raw_fields)
-  else:  # noqa: E111
-    fields = None
+    fields: ScriptFieldDefinitions | None  # noqa: E111
+    if isinstance(raw_fields, Mapping):  # noqa: E111
+        fields = cast(ScriptFieldDefinitions, raw_fields)
+    else:  # noqa: E111
+        fields = None
 
-  skip = _extract_field_int(fields, "skip_threshold")  # noqa: E111
-  breaker = _extract_field_int(fields, "breaker_threshold")  # noqa: E111
-  return skip, breaker  # noqa: E111
+    skip = _extract_field_int(fields, "skip_threshold")  # noqa: E111
+    breaker = _extract_field_int(fields, "breaker_threshold")  # noqa: E111
+    return skip, breaker  # noqa: E111
 
 
 def _is_resilience_blueprint(use_blueprint: Mapping[str, object] | None) -> bool:
-  """Return ``True`` when ``use_blueprint`` targets the resilience blueprint."""  # noqa: E111
+    """Return ``True`` when ``use_blueprint`` targets the resilience blueprint."""  # noqa: E111
 
-  if not isinstance(use_blueprint, Mapping):  # noqa: E111
-    return False
+    if not isinstance(use_blueprint, Mapping):  # noqa: E111
+        return False
 
-  identifier = str(  # noqa: E111
-    use_blueprint.get("blueprint_id")
-    or use_blueprint.get("path")
-    or use_blueprint.get("id")
-    or "",
-  )
-  if not identifier:  # noqa: E111
-    return False
+    identifier = str(  # noqa: E111
+        use_blueprint.get("blueprint_id")
+        or use_blueprint.get("path")
+        or use_blueprint.get("id")
+        or "",
+    )
+    if not identifier:  # noqa: E111
+        return False
 
-  normalized = identifier.replace("\\", "/").lower()  # noqa: E111
-  expected_suffix = (  # noqa: E111
-    f"{_RESILIENCE_BLUEPRINT_DOMAIN}/{_RESILIENCE_BLUEPRINT_IDENTIFIER}.yaml"
-  )
-  return normalized.endswith(expected_suffix)  # noqa: E111
+    normalized = identifier.replace("\\", "/").lower()  # noqa: E111
+    expected_suffix = (  # noqa: E111
+        f"{_RESILIENCE_BLUEPRINT_DOMAIN}/{_RESILIENCE_BLUEPRINT_IDENTIFIER}.yaml"
+    )
+    return normalized.endswith(expected_suffix)  # noqa: E111
 
 
 def _normalise_manual_event(value: object) -> str | None:
-  """Return a stripped event string when ``value`` contains text."""  # noqa: E111
+    """Return a stripped event string when ``value`` contains text."""  # noqa: E111
 
-  if not isinstance(value, str):  # noqa: E111
-    return None
-  candidate = value.strip()  # noqa: E111
-  return candidate or None  # noqa: E111
+    if not isinstance(value, str):  # noqa: E111
+        return None
+    candidate = value.strip()  # noqa: E111
+    return candidate or None  # noqa: E111
 
 
 def _serialise_event_data(data: Mapping[str, object]) -> JSONMutableMapping:
-  """Return a JSON-friendly copy of ``data``."""  # noqa: E111
+    """Return a JSON-friendly copy of ``data``."""  # noqa: E111
 
-  serialised: JSONMutableMapping = {}  # noqa: E111
-  for key, value in data.items():  # noqa: E111
-    key_text = str(key)
-    if isinstance(value, str | int | float | bool) or value is None:
-      serialised[key_text] = value  # noqa: E111
-      continue  # noqa: E111
-    if isinstance(value, Mapping):
-      serialised[key_text] = _serialise_event_data(value)  # noqa: E111
-      continue  # noqa: E111
-    if isinstance(value, Sequence) and not isinstance(
-      value,
-      str | bytes | bytearray,
-    ):
-      serialised[key_text] = [  # noqa: E111
-        item
-        if isinstance(item, str | int | float | bool) or item is None
-        else repr(item)
-        for item in value
-      ]
-      continue  # noqa: E111
-    serialised[key_text] = repr(value)
-  return serialised  # noqa: E111
+    serialised: JSONMutableMapping = {}  # noqa: E111
+    for key, value in data.items():  # noqa: E111
+        key_text = str(key)
+        if isinstance(value, str | int | float | bool) or value is None:
+            serialised[key_text] = value  # noqa: E111
+            continue  # noqa: E111
+        if isinstance(value, Mapping):
+            serialised[key_text] = _serialise_event_data(value)  # noqa: E111
+            continue  # noqa: E111
+        if isinstance(value, Sequence) and not isinstance(
+            value,
+            str | bytes | bytearray,
+        ):
+            serialised[key_text] = [  # noqa: E111
+                item
+                if isinstance(item, str | int | float | bool) or item is None
+                else repr(item)
+                for item in value
+            ]
+            continue  # noqa: E111
+        serialised[key_text] = repr(value)
+    return serialised  # noqa: E111
 
 
 class _ScriptManagerCacheMonitor:
-  """Expose script manager state for diagnostics snapshots."""  # noqa: E111
+    """Expose script manager state for diagnostics snapshots."""  # noqa: E111
 
-  __slots__ = ("_manager",)  # noqa: E111
+    __slots__ = ("_manager",)  # noqa: E111
 
-  def __init__(self, manager: PawControlScriptManager) -> None:  # noqa: E111
-    self._manager = manager
+    def __init__(self, manager: PawControlScriptManager) -> None:  # noqa: E111
+        self._manager = manager
 
-  def _build_payload(  # noqa: E111
-    self,
-  ) -> tuple[ScriptManagerStats, ScriptManagerSnapshot, CacheDiagnosticsMetadata]:
-    manager = self._manager
-    created_entities = cast(
-      Iterable[str],
-      getattr(manager, "_created_entities", set()),
-    )
-    dog_scripts = cast(
-      dict[str, Iterable[str]],
-      getattr(manager, "_dog_scripts", {}),
-    )
-    entry_scripts = cast(
-      Iterable[str],
-      getattr(
-        manager,
-        "_entry_scripts",
-        [],
-      ),
-    )
-    last_generation = cast(
-      datetime | None,
-      getattr(manager, "_last_generation", None),
-    )
+    def _build_payload(  # noqa: E111
+        self,
+    ) -> tuple[ScriptManagerStats, ScriptManagerSnapshot, CacheDiagnosticsMetadata]:
+        manager = self._manager
+        created_entities = cast(
+            Iterable[str],
+            getattr(manager, "_created_entities", set()),
+        )
+        dog_scripts = cast(
+            dict[str, Iterable[str]],
+            getattr(manager, "_dog_scripts", {}),
+        )
+        entry_scripts = cast(
+            Iterable[str],
+            getattr(
+                manager,
+                "_entry_scripts",
+                [],
+            ),
+        )
+        last_generation = cast(
+            datetime | None,
+            getattr(manager, "_last_generation", None),
+        )
 
-    created_list = sorted(
-      entity for entity in created_entities if isinstance(entity, str)
-    )
-    per_dog: dict[str, ScriptManagerDogScripts] = {}
-    for dog_id, scripts in dog_scripts.items():
-      if not isinstance(dog_id, str):  # noqa: E111
-        continue
-      script_list = [entity for entity in scripts if isinstance(entity, str)]  # noqa: E111
-      per_dog[dog_id] = {  # noqa: E111
-        "count": len(script_list),
-        "scripts": script_list,
-      }
-    entry_list = [entity for entity in entry_scripts if isinstance(entity, str)]
+        created_list = sorted(
+            entity for entity in created_entities if isinstance(entity, str)
+        )
+        per_dog: dict[str, ScriptManagerDogScripts] = {}
+        for dog_id, scripts in dog_scripts.items():
+            if not isinstance(dog_id, str):  # noqa: E111
+                continue
+            script_list = [entity for entity in scripts if isinstance(entity, str)]  # noqa: E111
+            per_dog[dog_id] = {  # noqa: E111
+                "count": len(script_list),
+                "scripts": script_list,
+            }
+        entry_list = [entity for entity in entry_scripts if isinstance(entity, str)]
 
-    stats: ScriptManagerStats = {
-      "scripts": len(created_list),
-      "dogs": len(per_dog),
-    }
-    if entry_list:
-      stats["entry_scripts"] = len(entry_list)  # noqa: E111
+        stats: ScriptManagerStats = {
+            "scripts": len(created_list),
+            "dogs": len(per_dog),
+        }
+        if entry_list:
+            stats["entry_scripts"] = len(entry_list)  # noqa: E111
 
-    timestamp_issue, age_seconds = _classify_timestamp(last_generation)
-    if age_seconds is not None:
-      stats["last_generated_age_seconds"] = age_seconds  # noqa: E111
+        timestamp_issue, age_seconds = _classify_timestamp(last_generation)
+        if age_seconds is not None:
+            stats["last_generated_age_seconds"] = age_seconds  # noqa: E111
 
-    snapshot: ScriptManagerSnapshot = {
-      "created_entities": created_list,
-      "per_dog": per_dog,
-      "last_generated": _serialize_datetime(last_generation),
-    }
-    if entry_list:
-      snapshot["entry_scripts"] = entry_list  # noqa: E111
+        snapshot: ScriptManagerSnapshot = {
+            "created_entities": created_list,
+            "per_dog": per_dog,
+            "last_generated": _serialize_datetime(last_generation),
+        }
+        if entry_list:
+            snapshot["entry_scripts"] = entry_list  # noqa: E111
 
-    per_dog_payload = cast(JSONMutableMapping, per_dog)
-    diagnostics: CacheDiagnosticsMetadata = {
-      "per_dog": per_dog_payload,
-      "created_entities": created_list,
-      "last_generated": _serialize_datetime(last_generation),
-    }
-    if entry_list:
-      diagnostics["entry_scripts"] = entry_list  # noqa: E111
+        per_dog_payload = cast(JSONMutableMapping, per_dog)
+        diagnostics: CacheDiagnosticsMetadata = {
+            "per_dog": per_dog_payload,
+            "created_entities": created_list,
+            "last_generated": _serialize_datetime(last_generation),
+        }
+        if entry_list:
+            diagnostics["entry_scripts"] = entry_list  # noqa: E111
 
-    if age_seconds is not None:
-      diagnostics["manager_last_generated_age_seconds"] = age_seconds  # noqa: E111
+        if age_seconds is not None:
+            diagnostics["manager_last_generated_age_seconds"] = age_seconds  # noqa: E111
 
-    if timestamp_issue is not None:
-      diagnostics["timestamp_anomalies"] = {"manager": timestamp_issue}  # noqa: E111
+        if timestamp_issue is not None:
+            diagnostics["timestamp_anomalies"] = {"manager": timestamp_issue}  # noqa: E111
 
-    return stats, snapshot, diagnostics
+        return stats, snapshot, diagnostics
 
-  def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
-    stats, snapshot, diagnostics = self._build_payload()
-    return CacheDiagnosticsSnapshot(
-      stats=cast(JSONMutableMapping, dict(stats)),
-      snapshot=cast(JSONMutableMapping, dict(snapshot)),
-      diagnostics=diagnostics,
-    )
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
+        stats, snapshot, diagnostics = self._build_payload()
+        return CacheDiagnosticsSnapshot(
+            stats=cast(JSONMutableMapping, dict(stats)),
+            snapshot=cast(JSONMutableMapping, dict(snapshot)),
+            diagnostics=diagnostics,
+        )
 
-  def get_stats(self) -> JSONMutableMapping:  # noqa: E111
-    stats, _snapshot, _diagnostics = self._build_payload()
-    return cast(JSONMutableMapping, dict(stats))
+    def get_stats(self) -> JSONMutableMapping:  # noqa: E111
+        stats, _snapshot, _diagnostics = self._build_payload()
+        return cast(JSONMutableMapping, dict(stats))
 
-  def get_diagnostics(self) -> CacheDiagnosticsMetadata:  # noqa: E111
-    _stats, _snapshot, diagnostics = self._build_payload()
-    return diagnostics
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:  # noqa: E111
+        _stats, _snapshot, diagnostics = self._build_payload()
+        return diagnostics
 
 
 _SCRIPT_ENTITY_PREFIX: Final[str] = f"{SCRIPT_DOMAIN}."
@@ -516,2431 +516,2461 @@ _MANUAL_EVENT_HISTORY_MAX: Final[int] = 50
 
 
 class PawControlScriptManager:
-  """Create and maintain Home Assistant scripts for PawControl dogs."""  # noqa: E111
-
-  def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:  # noqa: E111
-    """Initialise the script manager."""
-
-    self._hass = hass
-    self._entry = entry
-    self._created_entities: set[str] = set()
-    self._dog_scripts: dict[str, list[str]] = {}
-    self._entry_scripts: list[str] = []
-    self._last_generation: datetime | None = None
-    self._resilience_escalation_definition: JSONMutableMapping | None = None
-    self._manual_event_unsubs: dict[str, Callable[[], None]] = {}
-    self._manual_event_reasons: dict[str, set[str]] = {}
-    self._manual_event_sources: dict[str, ManualResilienceEventSource] = {}
-    self._manual_event_counters: dict[str, int] = {}
-    self._manual_event_unsubscribes: dict[str, CALLBACK_TYPE] = {}
-    self._manual_history_maxlen = self._resolve_manual_history_size()
-    self._manual_event_history: deque[ManualResilienceEventRecord] = deque(
-      maxlen=self._manual_history_maxlen,
-    )
-    self._last_manual_event: ManualResilienceEventRecord | None = None
-    self._entry_slug = _normalise_entry_slug(entry)
-    title = getattr(entry, "title", None)
-    self._entry_title = (
-      title.strip() if isinstance(title, str) and title.strip() else "PawControl"
-    )
-    self._restore_manual_event_history_from_runtime()
-    if self._manual_event_history:
-      self._last_manual_event = cast(  # noqa: E111
-        ManualResilienceEventRecord,
-        dict(
-          self._manual_event_history[-1],
-        ),
-      )
-    self._sync_manual_history_to_runtime()
-
-  async def async_initialize(self) -> None:  # noqa: E111
-    """Reset internal tracking structures prior to script generation."""
-
-    self._created_entities.clear()
-    self._dog_scripts.clear()
-    self._entry_scripts.clear()
-    self._update_manual_history_size()
-    for unsub in list(self._manual_event_unsubs.values()):
-      unsub()  # noqa: E111
-    self._manual_event_unsubs.clear()
-    self._manual_event_reasons.clear()
-    self._manual_event_sources.clear()
-    self._manual_event_counters.clear()
-    if self._manual_event_history:
-      self._last_manual_event = cast(  # noqa: E111
-        ManualResilienceEventRecord,
-        dict(
-          self._manual_event_history[-1],
-        ),
-      )
-    else:
-      self._last_manual_event = None  # noqa: E111
-    self._refresh_manual_event_listeners()
-    self._sync_manual_history_to_runtime()
-    _LOGGER.debug(
-      "Script manager initialised for entry %s",
-      self._entry.entry_id,
-    )
-
-  def register_cache_monitors(  # noqa: E111
-    self,
-    registrar: CacheMonitorRegistrar,
-    *,
-    prefix: str = "script_manager",
-  ) -> None:
-    """Expose script diagnostics through the shared cache monitor registry."""
-
-    if registrar is None:
-      raise ValueError("registrar is required")  # noqa: E111
-
-    _LOGGER.debug(
-      "Registering script manager cache monitor with prefix %s",
-      prefix,
-    )
-    registrar.register_cache_monitor(
-      f"{prefix}_cache",
-      _ScriptManagerCacheMonitor(self),
-    )
-
-  def attach_runtime_manual_history(self, runtime: object) -> None:  # noqa: E111
-    """Attach the current manual event history to ``runtime``."""
-
-    if runtime is None:
-      return  # noqa: E111
-
-    manual_history = getattr(runtime, "manual_event_history", None)
-    if isinstance(manual_history, deque):
-      manual_history.clear()  # noqa: E111
-      manual_history.extend(self._manual_event_history)  # noqa: E111
-      self._manual_event_history = manual_history  # noqa: E111
-      self._update_manual_history_size()  # noqa: E111
-    else:
-      with suppress(AttributeError):  # noqa: E111
-        runtime_any = cast(Any, runtime)
-        runtime_any.manual_event_history = self._manual_event_history
-
-  def sync_manual_event_history(self) -> None:  # noqa: E111
-    """Persist the manual event history back to runtime storage."""
-
-    self._sync_manual_history_to_runtime()
-
-  def _resolve_manual_history_size(self) -> int:  # noqa: E111
-    """Determine the configured manual event history length."""
-
-    raw_options = getattr(self._entry, "options", None)
-    options = _parse_manual_resilience_options(raw_options)
-
-    configured = options.get("manual_event_history_size")
-    if configured is not None:
-      return configured  # noqa: E111
-
-    raw_system_settings = None
-    if isinstance(raw_options, Mapping):
-      raw_system_settings = raw_options.get("system_settings")  # noqa: E111
-
-    raw_data = getattr(self._entry, "data", None)
-
-    for mapping in (raw_system_settings, raw_options, raw_data):
-      if not isinstance(mapping, Mapping):  # noqa: E111
-        continue
-      candidate = _coerce_manual_history_size(  # noqa: E111
-        mapping.get("manual_event_history_size"),
-      )
-      if candidate is not None:  # noqa: E111
-        return candidate
-
-    return _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
-
-  def _update_manual_history_size(self) -> None:  # noqa: E111
-    """Resize the manual event history deque when configuration changes."""
-
-    desired = self._resolve_manual_history_size()
-    current = self._manual_event_history.maxlen or _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
-    if desired == current:
-      self._manual_history_maxlen = desired  # noqa: E111
-      return  # noqa: E111
-
-    self._manual_event_history = deque(
-      self._manual_event_history,
-      maxlen=desired,
-    )
-    self._manual_history_maxlen = desired
-    self._sync_manual_history_to_runtime()
-
-  def export_manual_event_history(self) -> list[ManualResilienceEventRecord]:  # noqa: E111
-    """Return a copy of the recorded manual event history."""
-
-    return [
-      cast(ManualResilienceEventRecord, dict(record))
-      for record in self._manual_event_history
-    ]
-
-  def _resolve_resilience_thresholds(self) -> tuple[int, int]:  # noqa: E111
-    """Return configured guard skip and breaker thresholds."""
-
-    raw_options = getattr(self._entry, "options", None)
-    options = _parse_manual_resilience_options(raw_options)
-    skip_threshold = DEFAULT_RESILIENCE_SKIP_THRESHOLD
-    breaker_threshold = DEFAULT_RESILIENCE_BREAKER_THRESHOLD
-
-    def _merge_candidate(
-      candidate: int | None,
-      *,
-      default: int,
-      minimum: int,
-      maximum: int,
-    ) -> int:
-      if candidate is None:  # noqa: E111
-        return default
-      return _coerce_threshold(  # noqa: E111
-        candidate,
-        default=default,
-        minimum=minimum,
-        maximum=maximum,
-      )
-
-    system_settings = options.get("system_settings")
-    if system_settings is not None:
-      skip_threshold = _merge_candidate(  # noqa: E111
-        system_settings.get("resilience_skip_threshold"),
-        default=skip_threshold,
-        minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-        maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-      )
-      breaker_threshold = _merge_candidate(  # noqa: E111
-        system_settings.get("resilience_breaker_threshold"),
-        default=breaker_threshold,
-        minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-        maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-      )
-
-    skip_threshold = _merge_candidate(
-      options.get("resilience_skip_threshold"),
-      default=skip_threshold,
-      minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-      maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-    )
-    breaker_threshold = _merge_candidate(
-      options.get("resilience_breaker_threshold"),
-      default=breaker_threshold,
-      minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-      maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-    )
-
-    script_skip, script_breaker = resolve_resilience_script_thresholds(
-      self._hass,
-      self._entry,
-    )
-    if script_skip is not None:
-      skip_threshold = _coerce_threshold(  # noqa: E111
-        script_skip,
-        default=skip_threshold,
-        minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-        maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-      )
-    if script_breaker is not None:
-      breaker_threshold = _coerce_threshold(  # noqa: E111
-        script_breaker,
-        default=breaker_threshold,
-        minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-        maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-      )
-
-    return skip_threshold, breaker_threshold
-
-  def ensure_resilience_threshold_options(  # noqa: E111
-    self,
-  ) -> ConfigEntryOptionsPayload | None:
-    """Return updated options when legacy script defaults need migration."""
-
-    raw_options = getattr(self._entry, "options", None)
-    options = _parse_manual_resilience_options(raw_options)
-    system_settings = options.get("system_settings")
-    script_skip, script_breaker = resolve_resilience_script_thresholds(
-      self._hass,
-      self._entry,
-    )
-
-    if not self._should_migrate_resilience_thresholds(
-      script_skip,
-      script_breaker,
-      system_settings,
-    ):
-      return None  # noqa: E111
-
-    migrated_system = self._build_resilience_system_settings(
-      system_settings,
-      script_skip=script_skip,
-      script_breaker=script_breaker,
-    )
-
-    if migrated_system is None:
-      return None  # noqa: E111
-
-    options_mapping: Mapping[str, JSONValue] = (
-      raw_options if isinstance(raw_options, Mapping) else {}
-    )
-
-    return self._apply_resilience_system_settings(options_mapping, migrated_system)
-
-  @staticmethod  # noqa: E111
-  def _should_migrate_resilience_thresholds(  # noqa: E111
-    script_skip: int | None,
-    script_breaker: int | None,
-    system_settings: ManualResilienceSystemSettingsSnapshot | None,
-  ) -> bool:
-    """Return ``True`` when script defaults should populate options."""
-
-    if script_skip is None and script_breaker is None:
-      return False  # noqa: E111
-
-    if system_settings is None:
-      return True  # noqa: E111
-
-    missing_skip = "resilience_skip_threshold" not in system_settings
-    missing_breaker = "resilience_breaker_threshold" not in system_settings
-
-    return missing_skip or missing_breaker
-
-  @staticmethod  # noqa: E111
-  def _build_resilience_system_settings(  # noqa: E111
-    system_settings: ManualResilienceSystemSettingsSnapshot | None,
-    *,
-    script_skip: int | None,
-    script_breaker: int | None,
-  ) -> ManualResilienceSystemSettingsSnapshot | None:
-    """Return a system settings payload with migrated thresholds."""
-
-    original = cast(
-      ManualResilienceSystemSettingsSnapshot,
-      dict(system_settings) if system_settings is not None else {},
-    )
-    updated: ManualResilienceSystemSettingsSnapshot = {}
-    if system_settings is not None:
-      if "manual_check_event" in system_settings:  # noqa: E111
-        updated["manual_check_event"] = system_settings["manual_check_event"]
-      if "manual_guard_event" in system_settings:  # noqa: E111
-        updated["manual_guard_event"] = system_settings["manual_guard_event"]
-      if "manual_breaker_event" in system_settings:  # noqa: E111
-        updated["manual_breaker_event"] = system_settings["manual_breaker_event"]
-      if "resilience_skip_threshold" in system_settings:  # noqa: E111
-        updated["resilience_skip_threshold"] = system_settings[
-          "resilience_skip_threshold"
-        ]
-      if "resilience_breaker_threshold" in system_settings:  # noqa: E111
-        updated["resilience_breaker_threshold"] = system_settings[
-          "resilience_breaker_threshold"
-        ]
-
-    if script_skip is not None and "resilience_skip_threshold" not in updated:
-      updated["resilience_skip_threshold"] = _coerce_threshold(  # noqa: E111
-        script_skip,
-        default=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-        minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-        maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-      )
-
-    if script_breaker is not None and "resilience_breaker_threshold" not in updated:
-      updated["resilience_breaker_threshold"] = _coerce_threshold(  # noqa: E111
-        script_breaker,
-        default=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-        minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-        maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-      )
-
-    if updated == original:
-      return None  # noqa: E111
-
-    return updated
-
-  @staticmethod  # noqa: E111
-  def _apply_resilience_system_settings(  # noqa: E111
-    options: Mapping[str, JSONValue],
-    system_settings: ManualResilienceSystemSettingsSnapshot,
-  ) -> ConfigEntryOptionsPayload:
-    """Return updated options including migrated system settings."""
-
-    updated_options = cast(ConfigEntryOptionsPayload, dict(options))
-    updated_options["system_settings"] = cast(SystemOptions, dict(system_settings))
-
-    for key in ("resilience_skip_threshold", "resilience_breaker_threshold"):
-      if key not in updated_options and key in system_settings:  # noqa: E111
-        updated_options[key] = system_settings[key]
-
-    return updated_options
-
-  def _resolve_manual_resilience_events(self) -> ManualResilienceEventsTelemetry:  # noqa: E111
-    """Return configured manual escalation events from blueprint automations."""
-
-    manager = getattr(self._hass, "config_entries", None)
-    entries_callable = getattr(manager, "async_entries", None)
-    if not callable(entries_callable):
-      return {  # noqa: E111
-        "available": False,
-        "automations": [],
-        "configured_guard_events": [],
-        "configured_breaker_events": [],
-        "configured_check_events": [],
-        "system_guard_event": None,
-        "system_breaker_event": None,
-        "listener_events": {},
-        "listener_sources": {},
-        "listener_metadata": {},
-        "event_history": [],
-        "last_event": None,
-        "last_trigger": None,
-        "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
-        "active_listeners": [],
-      }
-
-    raw_options = getattr(self._entry, "options", None)
-    options = _parse_manual_resilience_options(raw_options)
-    system_guard = options.get("manual_guard_event")
-    system_breaker = options.get("manual_breaker_event")
-
-    system_settings = options.get("system_settings")
-    if system_settings is not None:
-      guard_override = system_settings.get("manual_guard_event")  # noqa: E111
-      breaker_override = system_settings.get("manual_breaker_event")  # noqa: E111
-      if guard_override is not None:  # noqa: E111
-        system_guard = guard_override
-      if breaker_override is not None:  # noqa: E111
-        system_breaker = breaker_override
-
-    automations: list[ManualResilienceAutomationEntry] = []
-    guard_events: set[str] = set()
-    breaker_events: set[str] = set()
-    check_events: set[str] = set()
-    listener_reasons: dict[str, set[str]] = {}
-    listener_sources: dict[str, set[str]] = {}
-    canonical_sources: dict[str, set[str]] = {}
-
-    def _register_listener(event: str | None, reason: str, source: str) -> None:
-      if not event:  # noqa: E111
-        return
-      listener_reasons.setdefault(event, set()).add(reason)  # noqa: E111
-      listener_sources.setdefault(event, set()).add(source)  # noqa: E111
-      canonical = MANUAL_EVENT_SOURCE_CANONICAL.get(source, source)  # noqa: E111
-      canonical_sources.setdefault(event, set()).add(canonical)  # noqa: E111
-
-    try:
-      automation_entries = entries_callable("automation")  # noqa: E111
-    except (AttributeError, TypeError, KeyError):
-      automation_entries = []  # noqa: E111
-
-    _register_listener(system_guard, "guard", "system_options")
-    _register_listener(system_breaker, "breaker", "system_options")
-
-    for entry in automation_entries or []:
-      entry_data = getattr(entry, "data", {})  # noqa: E111
-      if not isinstance(entry_data, Mapping):  # noqa: E111
-        continue
-
-      use_blueprint = entry_data.get("use_blueprint")  # noqa: E111
-      if not _is_resilience_blueprint(use_blueprint):  # noqa: E111
-        continue
-
-      blueprint = cast(Mapping[str, object], use_blueprint)  # noqa: E111
-
-      inputs_key = "input" if "input" in blueprint else "inputs"  # noqa: E111
-      existing_inputs = blueprint.get(inputs_key)  # noqa: E111
-      inputs_mapping = (  # noqa: E111
-        existing_inputs
-        if isinstance(
-          existing_inputs,
-          Mapping,
+    """Create and maintain Home Assistant scripts for PawControl dogs."""  # noqa: E111
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:  # noqa: E111
+        """Initialise the script manager."""
+
+        self._hass = hass
+        self._entry = entry
+        self._created_entities: set[str] = set()
+        self._dog_scripts: dict[str, list[str]] = {}
+        self._entry_scripts: list[str] = []
+        self._last_generation: datetime | None = None
+        self._resilience_escalation_definition: JSONMutableMapping | None = None
+        self._manual_event_unsubs: dict[str, Callable[[], None]] = {}
+        self._manual_event_reasons: dict[str, set[str]] = {}
+        self._manual_event_sources: dict[str, ManualResilienceEventSource] = {}
+        self._manual_event_counters: dict[str, int] = {}
+        self._manual_event_unsubscribes: dict[str, CALLBACK_TYPE] = {}
+        self._manual_history_maxlen = self._resolve_manual_history_size()
+        self._manual_event_history: deque[ManualResilienceEventRecord] = deque(
+            maxlen=self._manual_history_maxlen,
         )
-        else None
-      )
-      inputs_selection = _parse_event_selection(inputs_mapping)  # noqa: E111
-      manual_guard = inputs_selection.get("manual_guard_event")  # noqa: E111
-      manual_breaker = inputs_selection.get("manual_breaker_event")  # noqa: E111
-      manual_check = inputs_selection.get("manual_check_event")  # noqa: E111
+        self._last_manual_event: ManualResilienceEventRecord | None = None
+        self._entry_slug = _normalise_entry_slug(entry)
+        title = getattr(entry, "title", None)
+        self._entry_title = (
+            title.strip() if isinstance(title, str) and title.strip() else "PawControl"
+        )
+        self._restore_manual_event_history_from_runtime()
+        if self._manual_event_history:
+            self._last_manual_event = cast(  # noqa: E111
+                ManualResilienceEventRecord,
+                dict(
+                    self._manual_event_history[-1],
+                ),
+            )
+        self._sync_manual_history_to_runtime()
 
-      if manual_guard:  # noqa: E111
-        guard_events.add(manual_guard)
-        _register_listener(manual_guard, "guard", "blueprint")
-      if manual_breaker:  # noqa: E111
-        breaker_events.add(manual_breaker)
-        _register_listener(manual_breaker, "breaker", "blueprint")
-      if manual_check:  # noqa: E111
-        check_events.add(manual_check)
-        _register_listener(manual_check, "check", "blueprint")
+    async def async_initialize(self) -> None:  # noqa: E111
+        """Reset internal tracking structures prior to script generation."""
 
-      entry_id = getattr(entry, "entry_id", None)  # noqa: E111
-      config_entry_id = entry_id if isinstance(entry_id, str) else None  # noqa: E111
-      title_value = getattr(entry, "title", None)  # noqa: E111
-      title = title_value if isinstance(title_value, str) else None  # noqa: E111
+        self._created_entities.clear()
+        self._dog_scripts.clear()
+        self._entry_scripts.clear()
+        self._update_manual_history_size()
+        for unsub in list(self._manual_event_unsubs.values()):
+            unsub()  # noqa: E111
+        self._manual_event_unsubs.clear()
+        self._manual_event_reasons.clear()
+        self._manual_event_sources.clear()
+        self._manual_event_counters.clear()
+        if self._manual_event_history:
+            self._last_manual_event = cast(  # noqa: E111
+                ManualResilienceEventRecord,
+                dict(
+                    self._manual_event_history[-1],
+                ),
+            )
+        else:
+            self._last_manual_event = None  # noqa: E111
+        self._refresh_manual_event_listeners()
+        self._sync_manual_history_to_runtime()
+        _LOGGER.debug(
+            "Script manager initialised for entry %s",
+            self._entry.entry_id,
+        )
 
-      automation_entry: ManualResilienceAutomationEntry = {  # noqa: E111
-        "config_entry_id": config_entry_id,
-        "title": title,
-        "configured_guard": bool(manual_guard),
-        "configured_breaker": bool(manual_breaker),
-        "configured_check": bool(manual_check),
-      }
-      if manual_guard:  # noqa: E111
-        automation_entry["manual_guard_event"] = manual_guard
-      if manual_breaker:  # noqa: E111
-        automation_entry["manual_breaker_event"] = manual_breaker
-      if manual_check:  # noqa: E111
-        automation_entry["manual_check_event"] = manual_check
+    def register_cache_monitors(  # noqa: E111
+        self,
+        registrar: CacheMonitorRegistrar,
+        *,
+        prefix: str = "script_manager",
+    ) -> None:
+        """Expose script diagnostics through the shared cache monitor registry."""
 
-      automations.append(automation_entry)  # noqa: E111
+        if registrar is None:
+            raise ValueError("registrar is required")  # noqa: E111
 
-    available = bool(automations)
-    if system_guard is not None or system_breaker is not None:
-      available = True  # noqa: E111
+        _LOGGER.debug(
+            "Registering script manager cache monitor with prefix %s",
+            prefix,
+        )
+        registrar.register_cache_monitor(
+            f"{prefix}_cache",
+            _ScriptManagerCacheMonitor(self),
+        )
 
-    if isinstance(raw_options, Mapping):
-      for key in (  # noqa: E111
-        "manual_check_event",
-        "manual_guard_event",
-        "manual_breaker_event",
-      ):
-        option_value = _normalise_manual_event(raw_options.get(key))
-        if option_value:
-          canonical_sources.setdefault(  # noqa: E111
-            option_value,
-            set(),
-          ).add("options")
+    def attach_runtime_manual_history(self, runtime: object) -> None:  # noqa: E111
+        """Attach the current manual event history to ``runtime``."""
 
-      system_settings_map = raw_options.get("system_settings")  # noqa: E111
-      if isinstance(system_settings_map, Mapping):  # noqa: E111
-        for key in (
-          "manual_check_event",
-          "manual_guard_event",
-          "manual_breaker_event",
-        ):
-          option_value = _normalise_manual_event(  # noqa: E111
-            system_settings_map.get(key),
-          )
-          if option_value:  # noqa: E111
-            canonical_sources.setdefault(option_value, set()).add(
-              "system_settings",
+        if runtime is None:
+            return  # noqa: E111
+
+        manual_history = getattr(runtime, "manual_event_history", None)
+        if isinstance(manual_history, deque):
+            manual_history.clear()  # noqa: E111
+            manual_history.extend(self._manual_event_history)  # noqa: E111
+            self._manual_event_history = manual_history  # noqa: E111
+            self._update_manual_history_size()  # noqa: E111
+        else:
+            with suppress(AttributeError):  # noqa: E111
+                runtime_any = cast(Any, runtime)
+                runtime_any.manual_event_history = self._manual_event_history
+
+    def sync_manual_event_history(self) -> None:  # noqa: E111
+        """Persist the manual event history back to runtime storage."""
+
+        self._sync_manual_history_to_runtime()
+
+    def _resolve_manual_history_size(self) -> int:  # noqa: E111
+        """Determine the configured manual event history length."""
+
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
+
+        configured = options.get("manual_event_history_size")
+        if configured is not None:
+            return configured  # noqa: E111
+
+        raw_system_settings = None
+        if isinstance(raw_options, Mapping):
+            raw_system_settings = raw_options.get("system_settings")  # noqa: E111
+
+        raw_data = getattr(self._entry, "data", None)
+
+        for mapping in (raw_system_settings, raw_options, raw_data):
+            if not isinstance(mapping, Mapping):  # noqa: E111
+                continue
+            candidate = _coerce_manual_history_size(  # noqa: E111
+                mapping.get("manual_event_history_size"),
+            )
+            if candidate is not None:  # noqa: E111
+                return candidate
+
+        return _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
+
+    def _update_manual_history_size(self) -> None:  # noqa: E111
+        """Resize the manual event history deque when configuration changes."""
+
+        desired = self._resolve_manual_history_size()
+        current = (
+            self._manual_event_history.maxlen or _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
+        )
+        if desired == current:
+            self._manual_history_maxlen = desired  # noqa: E111
+            return  # noqa: E111
+
+        self._manual_event_history = deque(
+            self._manual_event_history,
+            maxlen=desired,
+        )
+        self._manual_history_maxlen = desired
+        self._sync_manual_history_to_runtime()
+
+    def export_manual_event_history(self) -> list[ManualResilienceEventRecord]:  # noqa: E111
+        """Return a copy of the recorded manual event history."""
+
+        return [
+            cast(ManualResilienceEventRecord, dict(record))
+            for record in self._manual_event_history
+        ]
+
+    def _resolve_resilience_thresholds(self) -> tuple[int, int]:  # noqa: E111
+        """Return configured guard skip and breaker thresholds."""
+
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
+        skip_threshold = DEFAULT_RESILIENCE_SKIP_THRESHOLD
+        breaker_threshold = DEFAULT_RESILIENCE_BREAKER_THRESHOLD
+
+        def _merge_candidate(
+            candidate: int | None,
+            *,
+            default: int,
+            minimum: int,
+            maximum: int,
+        ) -> int:
+            if candidate is None:  # noqa: E111
+                return default
+            return _coerce_threshold(  # noqa: E111
+                candidate,
+                default=default,
+                minimum=minimum,
+                maximum=maximum,
             )
 
-    entry_data = getattr(self._entry, "data", {})
-    if isinstance(entry_data, Mapping):
-      for key in (  # noqa: E111
-        "manual_check_event",
-        "manual_guard_event",
-        "manual_breaker_event",
-      ):
-        data_value = _normalise_manual_event(entry_data.get(key))
-        if data_value:
-          canonical_sources.setdefault(  # noqa: E111
-            data_value,
-            set(),
-          ).add("config_entry")
+        system_settings = options.get("system_settings")
+        if system_settings is not None:
+            skip_threshold = _merge_candidate(  # noqa: E111
+                system_settings.get("resilience_skip_threshold"),
+                default=skip_threshold,
+                minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            )
+            breaker_threshold = _merge_candidate(  # noqa: E111
+                system_settings.get("resilience_breaker_threshold"),
+                default=breaker_threshold,
+                minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            )
 
-    for default_value in (
-      DEFAULT_MANUAL_CHECK_EVENT,
-      DEFAULT_MANUAL_GUARD_EVENT,
-      DEFAULT_MANUAL_BREAKER_EVENT,
-    ):
-      canonical_sources.setdefault(default_value, set()).add("default")  # noqa: E111
+        skip_threshold = _merge_candidate(
+            options.get("resilience_skip_threshold"),
+            default=skip_threshold,
+            minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+            maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+        )
+        breaker_threshold = _merge_candidate(
+            options.get("resilience_breaker_threshold"),
+            default=breaker_threshold,
+            minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+        )
 
-    def _primary_source(source_set: set[str]) -> str | None:
-      for candidate in (  # noqa: E111
-        "system_settings",
-        "options",
-        "config_entry",
-        "blueprint",
-        "default",
-      ):
-        if candidate in source_set:
-          return candidate  # noqa: E111
-      if "disabled" in source_set:  # noqa: E111
-        return "disabled"
-      if source_set:  # noqa: E111
-        return sorted(source_set)[0]
-      return None  # noqa: E111
+        script_skip, script_breaker = resolve_resilience_script_thresholds(
+            self._hass,
+            self._entry,
+        )
+        if script_skip is not None:
+            skip_threshold = _coerce_threshold(  # noqa: E111
+                script_skip,
+                default=skip_threshold,
+                minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            )
+        if script_breaker is not None:
+            breaker_threshold = _coerce_threshold(  # noqa: E111
+                script_breaker,
+                default=breaker_threshold,
+                minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            )
 
-    return {
-      "available": available,
-      "automations": automations,
-      "configured_guard_events": sorted(guard_events),
-      "configured_breaker_events": sorted(breaker_events),
-      "configured_check_events": sorted(check_events),
-      "system_guard_event": system_guard,
-      "system_breaker_event": system_breaker,
-      "listener_events": {
-        event: sorted(reasons) for event, reasons in listener_reasons.items()
-      },
-      "listener_sources": {
-        event: sorted(sources) for event, sources in listener_sources.items()
-      },
-      "listener_metadata": {
-        event: {
-          "sources": sorted(source_set),
-          "primary_source": _primary_source(source_set),
+        return skip_threshold, breaker_threshold
+
+    def ensure_resilience_threshold_options(  # noqa: E111
+        self,
+    ) -> ConfigEntryOptionsPayload | None:
+        """Return updated options when legacy script defaults need migration."""
+
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
+        system_settings = options.get("system_settings")
+        script_skip, script_breaker = resolve_resilience_script_thresholds(
+            self._hass,
+            self._entry,
+        )
+
+        if not self._should_migrate_resilience_thresholds(
+            script_skip,
+            script_breaker,
+            system_settings,
+        ):
+            return None  # noqa: E111
+
+        migrated_system = self._build_resilience_system_settings(
+            system_settings,
+            script_skip=script_skip,
+            script_breaker=script_breaker,
+        )
+
+        if migrated_system is None:
+            return None  # noqa: E111
+
+        options_mapping: Mapping[str, JSONValue] = (
+            raw_options if isinstance(raw_options, Mapping) else {}
+        )
+
+        return self._apply_resilience_system_settings(options_mapping, migrated_system)
+
+    @staticmethod  # noqa: E111
+    def _should_migrate_resilience_thresholds(  # noqa: E111
+        script_skip: int | None,
+        script_breaker: int | None,
+        system_settings: ManualResilienceSystemSettingsSnapshot | None,
+    ) -> bool:
+        """Return ``True`` when script defaults should populate options."""
+
+        if script_skip is None and script_breaker is None:
+            return False  # noqa: E111
+
+        if system_settings is None:
+            return True  # noqa: E111
+
+        missing_skip = "resilience_skip_threshold" not in system_settings
+        missing_breaker = "resilience_breaker_threshold" not in system_settings
+
+        return missing_skip or missing_breaker
+
+    @staticmethod  # noqa: E111
+    def _build_resilience_system_settings(  # noqa: E111
+        system_settings: ManualResilienceSystemSettingsSnapshot | None,
+        *,
+        script_skip: int | None,
+        script_breaker: int | None,
+    ) -> ManualResilienceSystemSettingsSnapshot | None:
+        """Return a system settings payload with migrated thresholds."""
+
+        original = cast(
+            ManualResilienceSystemSettingsSnapshot,
+            dict(system_settings) if system_settings is not None else {},
+        )
+        updated: ManualResilienceSystemSettingsSnapshot = {}
+        if system_settings is not None:
+            if "manual_check_event" in system_settings:  # noqa: E111
+                updated["manual_check_event"] = system_settings["manual_check_event"]
+            if "manual_guard_event" in system_settings:  # noqa: E111
+                updated["manual_guard_event"] = system_settings["manual_guard_event"]
+            if "manual_breaker_event" in system_settings:  # noqa: E111
+                updated["manual_breaker_event"] = system_settings[
+                    "manual_breaker_event"
+                ]
+            if "resilience_skip_threshold" in system_settings:  # noqa: E111
+                updated["resilience_skip_threshold"] = system_settings[
+                    "resilience_skip_threshold"
+                ]
+            if "resilience_breaker_threshold" in system_settings:  # noqa: E111
+                updated["resilience_breaker_threshold"] = system_settings[
+                    "resilience_breaker_threshold"
+                ]
+
+        if script_skip is not None and "resilience_skip_threshold" not in updated:
+            updated["resilience_skip_threshold"] = _coerce_threshold(  # noqa: E111
+                script_skip,
+                default=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+                minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            )
+
+        if script_breaker is not None and "resilience_breaker_threshold" not in updated:
+            updated["resilience_breaker_threshold"] = _coerce_threshold(  # noqa: E111
+                script_breaker,
+                default=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+                minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            )
+
+        if updated == original:
+            return None  # noqa: E111
+
+        return updated
+
+    @staticmethod  # noqa: E111
+    def _apply_resilience_system_settings(  # noqa: E111
+        options: Mapping[str, JSONValue],
+        system_settings: ManualResilienceSystemSettingsSnapshot,
+    ) -> ConfigEntryOptionsPayload:
+        """Return updated options including migrated system settings."""
+
+        updated_options = cast(ConfigEntryOptionsPayload, dict(options))
+        updated_options["system_settings"] = cast(SystemOptions, dict(system_settings))
+
+        for key in ("resilience_skip_threshold", "resilience_breaker_threshold"):
+            if key not in updated_options and key in system_settings:  # noqa: E111
+                updated_options[key] = system_settings[key]
+
+        return updated_options
+
+    def _resolve_manual_resilience_events(self) -> ManualResilienceEventsTelemetry:  # noqa: E111
+        """Return configured manual escalation events from blueprint automations."""
+
+        manager = getattr(self._hass, "config_entries", None)
+        entries_callable = getattr(manager, "async_entries", None)
+        if not callable(entries_callable):
+            return {  # noqa: E111
+                "available": False,
+                "automations": [],
+                "configured_guard_events": [],
+                "configured_breaker_events": [],
+                "configured_check_events": [],
+                "system_guard_event": None,
+                "system_breaker_event": None,
+                "listener_events": {},
+                "listener_sources": {},
+                "listener_metadata": {},
+                "event_history": [],
+                "last_event": None,
+                "last_trigger": None,
+                "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
+                "active_listeners": [],
+            }
+
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
+        system_guard = options.get("manual_guard_event")
+        system_breaker = options.get("manual_breaker_event")
+
+        system_settings = options.get("system_settings")
+        if system_settings is not None:
+            guard_override = system_settings.get("manual_guard_event")  # noqa: E111
+            breaker_override = system_settings.get("manual_breaker_event")  # noqa: E111
+            if guard_override is not None:  # noqa: E111
+                system_guard = guard_override
+            if breaker_override is not None:  # noqa: E111
+                system_breaker = breaker_override
+
+        automations: list[ManualResilienceAutomationEntry] = []
+        guard_events: set[str] = set()
+        breaker_events: set[str] = set()
+        check_events: set[str] = set()
+        listener_reasons: dict[str, set[str]] = {}
+        listener_sources: dict[str, set[str]] = {}
+        canonical_sources: dict[str, set[str]] = {}
+
+        def _register_listener(event: str | None, reason: str, source: str) -> None:
+            if not event:  # noqa: E111
+                return
+            listener_reasons.setdefault(event, set()).add(reason)  # noqa: E111
+            listener_sources.setdefault(event, set()).add(source)  # noqa: E111
+            canonical = MANUAL_EVENT_SOURCE_CANONICAL.get(source, source)  # noqa: E111
+            canonical_sources.setdefault(event, set()).add(canonical)  # noqa: E111
+
+        try:
+            automation_entries = entries_callable("automation")  # noqa: E111
+        except AttributeError, TypeError, KeyError:
+            automation_entries = []  # noqa: E111
+
+        _register_listener(system_guard, "guard", "system_options")
+        _register_listener(system_breaker, "breaker", "system_options")
+
+        for entry in automation_entries or []:
+            entry_data = getattr(entry, "data", {})  # noqa: E111
+            if not isinstance(entry_data, Mapping):  # noqa: E111
+                continue
+
+            use_blueprint = entry_data.get("use_blueprint")  # noqa: E111
+            if not _is_resilience_blueprint(use_blueprint):  # noqa: E111
+                continue
+
+            blueprint = cast(Mapping[str, object], use_blueprint)  # noqa: E111
+
+            inputs_key = "input" if "input" in blueprint else "inputs"  # noqa: E111
+            existing_inputs = blueprint.get(inputs_key)  # noqa: E111
+            inputs_mapping = (  # noqa: E111
+                existing_inputs
+                if isinstance(
+                    existing_inputs,
+                    Mapping,
+                )
+                else None
+            )
+            inputs_selection = _parse_event_selection(inputs_mapping)  # noqa: E111
+            manual_guard = inputs_selection.get("manual_guard_event")  # noqa: E111
+            manual_breaker = inputs_selection.get("manual_breaker_event")  # noqa: E111
+            manual_check = inputs_selection.get("manual_check_event")  # noqa: E111
+
+            if manual_guard:  # noqa: E111
+                guard_events.add(manual_guard)
+                _register_listener(manual_guard, "guard", "blueprint")
+            if manual_breaker:  # noqa: E111
+                breaker_events.add(manual_breaker)
+                _register_listener(manual_breaker, "breaker", "blueprint")
+            if manual_check:  # noqa: E111
+                check_events.add(manual_check)
+                _register_listener(manual_check, "check", "blueprint")
+
+            entry_id = getattr(entry, "entry_id", None)  # noqa: E111
+            config_entry_id = entry_id if isinstance(entry_id, str) else None  # noqa: E111
+            title_value = getattr(entry, "title", None)  # noqa: E111
+            title = title_value if isinstance(title_value, str) else None  # noqa: E111
+
+            automation_entry: ManualResilienceAutomationEntry = {  # noqa: E111
+                "config_entry_id": config_entry_id,
+                "title": title,
+                "configured_guard": bool(manual_guard),
+                "configured_breaker": bool(manual_breaker),
+                "configured_check": bool(manual_check),
+            }
+            if manual_guard:  # noqa: E111
+                automation_entry["manual_guard_event"] = manual_guard
+            if manual_breaker:  # noqa: E111
+                automation_entry["manual_breaker_event"] = manual_breaker
+            if manual_check:  # noqa: E111
+                automation_entry["manual_check_event"] = manual_check
+
+            automations.append(automation_entry)  # noqa: E111
+
+        available = bool(automations)
+        if system_guard is not None or system_breaker is not None:
+            available = True  # noqa: E111
+
+        if isinstance(raw_options, Mapping):
+            for key in (  # noqa: E111
+                "manual_check_event",
+                "manual_guard_event",
+                "manual_breaker_event",
+            ):
+                option_value = _normalise_manual_event(raw_options.get(key))
+                if option_value:
+                    canonical_sources.setdefault(  # noqa: E111
+                        option_value,
+                        set(),
+                    ).add("options")
+
+            system_settings_map = raw_options.get("system_settings")  # noqa: E111
+            if isinstance(system_settings_map, Mapping):  # noqa: E111
+                for key in (
+                    "manual_check_event",
+                    "manual_guard_event",
+                    "manual_breaker_event",
+                ):
+                    option_value = _normalise_manual_event(  # noqa: E111
+                        system_settings_map.get(key),
+                    )
+                    if option_value:  # noqa: E111
+                        canonical_sources.setdefault(option_value, set()).add(
+                            "system_settings",
+                        )
+
+        entry_data = getattr(self._entry, "data", {})
+        if isinstance(entry_data, Mapping):
+            for key in (  # noqa: E111
+                "manual_check_event",
+                "manual_guard_event",
+                "manual_breaker_event",
+            ):
+                data_value = _normalise_manual_event(entry_data.get(key))
+                if data_value:
+                    canonical_sources.setdefault(  # noqa: E111
+                        data_value,
+                        set(),
+                    ).add("config_entry")
+
+        for default_value in (
+            DEFAULT_MANUAL_CHECK_EVENT,
+            DEFAULT_MANUAL_GUARD_EVENT,
+            DEFAULT_MANUAL_BREAKER_EVENT,
+        ):
+            canonical_sources.setdefault(default_value, set()).add("default")  # noqa: E111
+
+        def _primary_source(source_set: set[str]) -> str | None:
+            for candidate in (  # noqa: E111
+                "system_settings",
+                "options",
+                "config_entry",
+                "blueprint",
+                "default",
+            ):
+                if candidate in source_set:
+                    return candidate  # noqa: E111
+            if "disabled" in source_set:  # noqa: E111
+                return "disabled"
+            if source_set:  # noqa: E111
+                return sorted(source_set)[0]
+            return None  # noqa: E111
+
+        return {
+            "available": available,
+            "automations": automations,
+            "configured_guard_events": sorted(guard_events),
+            "configured_breaker_events": sorted(breaker_events),
+            "configured_check_events": sorted(check_events),
+            "system_guard_event": system_guard,
+            "system_breaker_event": system_breaker,
+            "listener_events": {
+                event: sorted(reasons) for event, reasons in listener_reasons.items()
+            },
+            "listener_sources": {
+                event: sorted(sources) for event, sources in listener_sources.items()
+            },
+            "listener_metadata": {
+                event: {
+                    "sources": sorted(source_set),
+                    "primary_source": _primary_source(source_set),
+                }
+                for event, source_set in canonical_sources.items()
+            },
+            "event_history": [],
+            "last_event": None,
+            "last_trigger": None,
+            "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
+            "active_listeners": [],
         }
-        for event, source_set in canonical_sources.items()
-      },
-      "event_history": [],
-      "last_event": None,
-      "last_trigger": None,
-      "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
-      "active_listeners": [],
-    }
 
-  def _manual_event_preferences(  # noqa: E111
-    self,
-  ) -> dict[ManualResiliencePreferenceKey, str | None]:
-    """Return manual event preferences derived from config entry options."""
+    def _manual_event_preferences(  # noqa: E111
+        self,
+    ) -> dict[ManualResiliencePreferenceKey, str | None]:
+        """Return manual event preferences derived from config entry options."""
 
-    options = getattr(self._entry, "options", {})
-    preferences: dict[ManualResiliencePreferenceKey, str | None] = {
-      "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
-      "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
-      "manual_breaker_event": DEFAULT_MANUAL_BREAKER_EVENT,
-    }
+        options = getattr(self._entry, "options", {})
+        preferences: dict[ManualResiliencePreferenceKey, str | None] = {
+            "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
+            "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
+            "manual_breaker_event": DEFAULT_MANUAL_BREAKER_EVENT,
+        }
 
-    if not isinstance(options, Mapping):
-      return preferences  # noqa: E111
+        if not isinstance(options, Mapping):
+            return preferences  # noqa: E111
 
-    system_settings = options.get("system_settings")
-    if not isinstance(system_settings, Mapping):
-      return preferences  # noqa: E111
+        system_settings = options.get("system_settings")
+        if not isinstance(system_settings, Mapping):
+            return preferences  # noqa: E111
 
-    preference_keys: tuple[ManualResiliencePreferenceKey, ...] = (
-      "manual_check_event",
-      "manual_guard_event",
-      "manual_breaker_event",
-    )
-    for key in preference_keys:
-      if key not in system_settings:  # noqa: E111
-        continue
-      manual_value = _normalise_manual_event(system_settings.get(key))  # noqa: E111
-      if manual_value is None:  # noqa: E111
-        preferences[key] = None
-      else:  # noqa: E111
-        preferences[key] = manual_value
+        preference_keys: tuple[ManualResiliencePreferenceKey, ...] = (
+            "manual_check_event",
+            "manual_guard_event",
+            "manual_breaker_event",
+        )
+        for key in preference_keys:
+            if key not in system_settings:  # noqa: E111
+                continue
+            manual_value = _normalise_manual_event(system_settings.get(key))  # noqa: E111
+            if manual_value is None:  # noqa: E111
+                preferences[key] = None
+            else:  # noqa: E111
+                preferences[key] = manual_value
 
-    return preferences
+        return preferences
 
-  def _manual_event_source_mapping(self) -> dict[str, ManualResilienceEventSource]:  # noqa: E111
-    """Return metadata describing tracked manual resilience event types."""
+    def _manual_event_source_mapping(self) -> dict[str, ManualResilienceEventSource]:  # noqa: E111
+        """Return metadata describing tracked manual resilience event types."""
 
-    sources: dict[str, ManualResilienceEventSource] = {}
-    preferences = self._manual_event_preferences()
+        sources: dict[str, ManualResilienceEventSource] = {}
+        preferences = self._manual_event_preferences()
 
-    def _category_from_preference(
-      key: ManualResiliencePreferenceKey,
-    ) -> Literal["check", "guard", "breaker"] | None:
-      if key == "manual_check_event":  # noqa: E111
-        return "check"
-      if key == "manual_guard_event":  # noqa: E111
-        return "guard"
-      if key == "manual_breaker_event":  # noqa: E111
-        return "breaker"
-      return None  # noqa: E111
+        def _category_from_preference(
+            key: ManualResiliencePreferenceKey,
+        ) -> Literal["check", "guard", "breaker"] | None:
+            if key == "manual_check_event":  # noqa: E111
+                return "check"
+            if key == "manual_guard_event":  # noqa: E111
+                return "guard"
+            if key == "manual_breaker_event":  # noqa: E111
+                return "breaker"
+            return None  # noqa: E111
 
-    for preference_key, event_type in preferences.items():
-      if not event_type:  # noqa: E111
-        continue
-      sources[event_type] = {  # noqa: E111
-        "preference_key": preference_key,
-      }
-      category = _category_from_preference(preference_key)  # noqa: E111
-      if category:  # noqa: E111
-        sources[event_type]["configured_role"] = category
+        for preference_key, event_type in preferences.items():
+            if not event_type:  # noqa: E111
+                continue
+            sources[event_type] = {  # noqa: E111
+                "preference_key": preference_key,
+            }
+            category = _category_from_preference(preference_key)  # noqa: E111
+            if category:  # noqa: E111
+                sources[event_type]["configured_role"] = category
 
-    manual_events = self._resolve_manual_resilience_events()
-    listener_metadata = manual_events.get("listener_metadata")
-    canonical_lookup: dict[str, ManualResilienceListenerMetadata] = {}
-    if isinstance(listener_metadata, Mapping):
-      for event, metadata in listener_metadata.items():  # noqa: E111
-        if not isinstance(event, str) or not isinstance(metadata, Mapping):
-          continue  # noqa: E111
-        raw_sources = metadata.get("sources")
-        canonical_tags: list[str] = []
+        manual_events = self._resolve_manual_resilience_events()
+        listener_metadata = manual_events.get("listener_metadata")
+        canonical_lookup: dict[str, ManualResilienceListenerMetadata] = {}
+        if isinstance(listener_metadata, Mapping):
+            for event, metadata in listener_metadata.items():  # noqa: E111
+                if not isinstance(event, str) or not isinstance(metadata, Mapping):
+                    continue  # noqa: E111
+                raw_sources = metadata.get("sources")
+                canonical_tags: list[str] = []
+                if isinstance(raw_sources, Sequence) and not isinstance(
+                    raw_sources,
+                    str | bytes,
+                ):
+                    canonical_tags = [  # noqa: E111
+                        str(source)
+                        for source in raw_sources
+                        if isinstance(source, str) and source
+                    ]
+                canonical_tags = list(dict.fromkeys(canonical_tags))
+                primary_source = metadata.get("primary_source")
+                if isinstance(primary_source, str) and primary_source:
+                    canonical_tags = [  # noqa: E111
+                        primary_source,
+                        *[tag for tag in canonical_tags if tag != primary_source],
+                    ]
+                lookup_entry: ManualResilienceListenerMetadata = {}
+                if canonical_tags:
+                    lookup_entry["source_tags"] = canonical_tags  # noqa: E111
+                if isinstance(primary_source, str) and primary_source:
+                    lookup_entry["primary_source"] = primary_source  # noqa: E111
+                canonical_lookup[event] = lookup_entry
+
+        for role, key in (
+            ("guard", "configured_guard_events"),
+            ("breaker", "configured_breaker_events"),
+            ("check", "configured_check_events"),
+        ):
+            event_list = manual_events.get(key)  # noqa: E111
+            if not isinstance(event_list, Sequence):  # noqa: E111
+                continue
+            for event_type in event_list:  # noqa: E111
+                if not isinstance(event_type, str) or not event_type:
+                    continue  # noqa: E111
+                entry = sources.setdefault(event_type, {})
+                entry.setdefault(
+                    "configured_role",
+                    cast(Literal["check", "guard", "breaker"], role),
+                )
+                metadata_entry = canonical_lookup.get(event_type)
+                if metadata_entry:
+                    tags = metadata_entry.get("source_tags")  # noqa: E111
+                    if isinstance(tags, list):  # noqa: E111
+                        entry["source_tags"] = list(dict.fromkeys(tags))
+                    primary = metadata_entry.get("primary_source")  # noqa: E111
+                    if isinstance(primary, str) and primary:  # noqa: E111
+                        entry["primary_source"] = primary
+
+        for event_type, metadata_entry in canonical_lookup.items():
+            existing_entry = sources.get(event_type)  # noqa: E111
+            if existing_entry is None:  # noqa: E111
+                continue
+            tags = metadata_entry.get("source_tags")  # noqa: E111
+            if isinstance(tags, list):  # noqa: E111
+                existing_entry["source_tags"] = list(dict.fromkeys(tags))
+            primary = metadata_entry.get("primary_source")  # noqa: E111
+            if isinstance(primary, str) and primary:  # noqa: E111
+                existing_entry["primary_source"] = primary
+
+        listener_sources = manual_events.get("listener_sources")
+        if isinstance(listener_sources, Mapping):
+            for event_type, raw_sources in listener_sources.items():  # noqa: E111
+                if not isinstance(raw_sources, Sequence) or isinstance(
+                    raw_sources,
+                    str | bytes | bytearray,
+                ):
+                    continue  # noqa: E111
+                normalised_sources = tuple(
+                    str(source)
+                    for source in raw_sources
+                    if isinstance(source, str) and source
+                )
+                if normalised_sources:
+                    entry = sources.setdefault(event_type, {})  # noqa: E111
+                    entry["listener_sources"] = normalised_sources  # noqa: E111
+
+        return sources
+
+    def _refresh_manual_event_listeners(self) -> None:  # noqa: E111
+        """Subscribe to configured manual escalation events."""
+
+        hass = self._hass
+        bus = getattr(hass, "bus", None)
+        async_listen = getattr(bus, "async_listen", None)
+        if not callable(async_listen):
+            return  # noqa: E111
+
+        sources = self._manual_event_source_mapping()
+        desired_events = set(sources)
+
+        current_events = set(self._manual_event_unsubscribes)
+        for event_type in current_events - desired_events:
+            unsub = self._manual_event_unsubscribes.pop(event_type, None)  # noqa: E111
+            if unsub:  # noqa: E111
+                unsub()
+            self._manual_event_sources.pop(event_type, None)  # noqa: E111
+
+        for event_type in desired_events:
+            if event_type in self._manual_event_unsubscribes:  # noqa: E111
+                self._manual_event_sources[event_type] = sources[event_type]
+                continue
+
+            unsubscribe = async_listen(event_type, self._handle_manual_event)  # noqa: E111
+            if unsubscribe is None:  # noqa: E111
+                continue
+            self._manual_event_unsubscribes[event_type] = unsubscribe  # noqa: E111
+            self._manual_event_sources[event_type] = sources[event_type]  # noqa: E111
+
+    def _unsubscribe_manual_event_listeners(self) -> None:  # noqa: E111
+        """Detach manual escalation event listeners."""
+
+        while self._manual_event_unsubscribes:
+            event_type, unsubscribe = self._manual_event_unsubscribes.popitem()  # noqa: E111
+            try:  # noqa: E111
+                unsubscribe()
+            except Exception:  # pragma: no cover - defensive cleanup  # noqa: E111
+                _LOGGER.debug(
+                    "Error unsubscribing manual listener for %s",
+                    event_type,
+                )
+        self._manual_event_sources.clear()
+
+    def _coerce_manual_event_record(  # noqa: E111
+        self,
+        value: object,
+    ) -> ManualResilienceEventRecord | None:
+        """Normalise ``value`` into a manual event record when possible."""
+
+        if not isinstance(value, Mapping):
+            return None  # noqa: E111
+
+        record: ManualResilienceEventRecord = {}
+
+        event_type = value.get("event_type")
+        if isinstance(event_type, str) and event_type:
+            record["event_type"] = event_type  # noqa: E111
+
+        preference_key = value.get(
+            "preference_key",
+        ) or value.get("matched_preference")
+        if isinstance(preference_key, str) and preference_key in {
+            "manual_check_event",
+            "manual_guard_event",
+            "manual_breaker_event",
+        }:
+            record["preference_key"] = cast(  # noqa: E111
+                ManualResiliencePreferenceKey,
+                preference_key,
+            )
+
+        configured_role = value.get("configured_role") or value.get("category")
+        if isinstance(configured_role, str) and configured_role in {
+            "check",
+            "guard",
+            "breaker",
+        }:
+            record["configured_role"] = cast(  # noqa: E111
+                Literal["check", "guard", "breaker"],
+                configured_role,
+            )
+
+        def _normalise_datetime(value: object) -> datetime | None:
+            if isinstance(value, datetime):  # noqa: E111
+                return dt_util.as_utc(value)
+            if isinstance(value, str):  # noqa: E111
+                parsed = dt_util.parse_datetime(value)
+                if parsed is not None:
+                    return dt_util.as_utc(parsed)  # noqa: E111
+            return None  # noqa: E111
+
+        fired_at = _normalise_datetime(value.get("time_fired"))
+        if fired_at is not None:
+            record["time_fired"] = fired_at  # noqa: E111
+
+        received_at = _normalise_datetime(value.get("received_at"))
+        if received_at is not None:
+            record["received_at"] = received_at  # noqa: E111
+
+        context_id = value.get("context_id")
+        if isinstance(context_id, str) and context_id:
+            record["context_id"] = context_id  # noqa: E111
+
+        user_id = value.get("user_id")
+        if isinstance(user_id, str) and user_id:
+            record["user_id"] = user_id  # noqa: E111
+
+        origin = value.get("origin")
+        if isinstance(origin, str) and origin:
+            record["origin"] = origin  # noqa: E111
+
+        raw_data = value.get("data")
+        if isinstance(raw_data, Mapping):
+            record["data"] = _serialise_event_data(raw_data)  # noqa: E111
+        elif raw_data is None or isinstance(raw_data, dict):
+            record["data"] = cast(JSONMutableMapping | None, raw_data)  # noqa: E111
+
+        raw_sources = value.get("sources")
         if isinstance(raw_sources, Sequence) and not isinstance(
-          raw_sources,
-          str | bytes,
+            raw_sources,
+            str | bytes | bytearray,
         ):
-          canonical_tags = [  # noqa: E111
-            str(source) for source in raw_sources if isinstance(source, str) and source
-          ]
-        canonical_tags = list(dict.fromkeys(canonical_tags))
-        primary_source = metadata.get("primary_source")
-        if isinstance(primary_source, str) and primary_source:
-          canonical_tags = [  # noqa: E111
-            primary_source,
-            *[tag for tag in canonical_tags if tag != primary_source],
-          ]
-        lookup_entry: ManualResilienceListenerMetadata = {}
-        if canonical_tags:
-          lookup_entry["source_tags"] = canonical_tags  # noqa: E111
-        if isinstance(primary_source, str) and primary_source:
-          lookup_entry["primary_source"] = primary_source  # noqa: E111
-        canonical_lookup[event] = lookup_entry
+            sources = tuple(  # noqa: E111
+                str(source)
+                for source in raw_sources
+                if isinstance(source, str) and source
+            )
+            if sources:  # noqa: E111
+                record["sources"] = sources
 
-    for role, key in (
-      ("guard", "configured_guard_events"),
-      ("breaker", "configured_breaker_events"),
-      ("check", "configured_check_events"),
-    ):
-      event_list = manual_events.get(key)  # noqa: E111
-      if not isinstance(event_list, Sequence):  # noqa: E111
-        continue
-      for event_type in event_list:  # noqa: E111
-        if not isinstance(event_type, str) or not event_type:
-          continue  # noqa: E111
-        entry = sources.setdefault(event_type, {})
-        entry.setdefault(
-          "configured_role",
-          cast(Literal["check", "guard", "breaker"], role),
+        return record
+
+    def _restore_manual_event_history_from_runtime(self) -> None:  # noqa: E111
+        """Restore manual event history from ``ConfigEntry.runtime_data``."""
+
+        runtime = getattr(self._entry, "runtime_data", None)
+
+        if isinstance(runtime, Mapping):
+            candidates: object = runtime.get("manual_event_history")  # noqa: E111
+        else:
+            candidates = getattr(runtime, "manual_event_history", None)  # noqa: E111
+
+        if candidates is None:
+            store = self._hass.data.get(DOMAIN)  # noqa: E111
+            if isinstance(store, Mapping):  # noqa: E111
+                payload = store.get(self._entry.entry_id)
+                if isinstance(payload, Mapping):
+                    candidates = payload.get("manual_event_history")  # noqa: E111
+                    if candidates is not None and isinstance(store, MutableMapping):  # noqa: E111
+                        if isinstance(payload, MutableMapping):
+                            payload.pop("manual_event_history", None)  # noqa: E111
+                            if not payload:  # noqa: E111
+                                store.pop(self._entry.entry_id, None)
+                        else:
+                            store.pop(self._entry.entry_id, None)  # noqa: E111
+
+        if not isinstance(candidates, Sequence):
+            return  # noqa: E111
+
+        for value in candidates:
+            record = self._coerce_manual_event_record(value)  # noqa: E111
+            if record is not None:  # noqa: E111
+                self._manual_event_history.append(record)
+
+    def _sync_manual_history_to_runtime(self) -> None:  # noqa: E111
+        """Synchronise the manual event history back to runtime storage."""
+
+        runtime = getattr(self._entry, "runtime_data", None)
+        if runtime is None:
+            return  # noqa: E111
+
+        if isinstance(runtime, MutableMapping):
+            runtime["manual_event_history"] = self.export_manual_event_history()  # noqa: E111
+            return  # noqa: E111
+
+        manual_history = getattr(runtime, "manual_event_history", None)
+        if isinstance(manual_history, deque):
+            if manual_history is not self._manual_event_history:  # noqa: E111
+                manual_history.clear()
+                manual_history.extend(self._manual_event_history)
+                self._manual_event_history = manual_history
+            return  # noqa: E111
+
+        with suppress(AttributeError):
+            runtime_any = cast(Any, runtime)  # noqa: E111
+            runtime_any.manual_event_history = self._manual_event_history  # noqa: E111
+
+    def _serialise_manual_event_record(  # noqa: E111
+        self,
+        record: ManualResilienceEventRecord | Mapping[str, object] | None,
+        *,
+        recorded_at: datetime | str | None = None,
+    ) -> ManualResilienceEventSnapshot | None:
+        """Serialise ``record`` into a diagnostics-friendly snapshot."""
+
+        if not isinstance(record, Mapping):
+            return None  # noqa: E111
+
+        fired_at = record.get("time_fired")
+        fired_dt = (
+            dt_util.as_utc(fired_at)
+            if isinstance(
+                fired_at,
+                datetime,
+            )
+            else None
         )
-        metadata_entry = canonical_lookup.get(event_type)
-        if metadata_entry:
-          tags = metadata_entry.get("source_tags")  # noqa: E111
-          if isinstance(tags, list):  # noqa: E111
-            entry["source_tags"] = list(dict.fromkeys(tags))
-          primary = metadata_entry.get("primary_source")  # noqa: E111
-          if isinstance(primary, str) and primary:  # noqa: E111
-            entry["primary_source"] = primary
+        fired_iso = _serialize_datetime(fired_dt)
+        fired_age: int | None = None
+        if fired_dt is not None:
+            fired_age = int((dt_util.utcnow() - fired_dt).total_seconds())  # noqa: E111
 
-    for event_type, metadata_entry in canonical_lookup.items():
-      existing_entry = sources.get(event_type)  # noqa: E111
-      if existing_entry is None:  # noqa: E111
-        continue
-      tags = metadata_entry.get("source_tags")  # noqa: E111
-      if isinstance(tags, list):  # noqa: E111
-        existing_entry["source_tags"] = list(dict.fromkeys(tags))
-      primary = metadata_entry.get("primary_source")  # noqa: E111
-      if isinstance(primary, str) and primary:  # noqa: E111
-        existing_entry["primary_source"] = primary
+        received_at = record.get("received_at")
+        received_dt = (
+            dt_util.as_utc(received_at)
+            if isinstance(
+                received_at,
+                datetime,
+            )
+            else None
+        )
+        received_iso = _serialize_datetime(received_dt)
+        received_age: int | None = None
+        if received_dt is not None:
+            received_age = int(  # noqa: E111
+                (dt_util.utcnow() - received_dt).total_seconds(),
+            )
 
-    listener_sources = manual_events.get("listener_sources")
-    if isinstance(listener_sources, Mapping):
-      for event_type, raw_sources in listener_sources.items():  # noqa: E111
-        if not isinstance(raw_sources, Sequence) or isinstance(
-          raw_sources,
-          str | bytes | bytearray,
+        configured_role = record.get("configured_role")
+        category: Literal["check", "guard", "breaker", "unknown"]
+        if isinstance(configured_role, str) and configured_role in {
+            "check",
+            "guard",
+            "breaker",
+        }:
+            category = cast(  # noqa: E111
+                Literal["check", "guard", "breaker"],
+                configured_role,
+            )
+        else:
+            category = "unknown"  # noqa: E111
+
+        raw_sources = record.get("sources")
+        if isinstance(raw_sources, Sequence) and not isinstance(
+            raw_sources,
+            str | bytes | bytearray,
         ):
-          continue  # noqa: E111
-        normalised_sources = tuple(
-          str(source) for source in raw_sources if isinstance(source, str) and source
+            sources_iter = [  # noqa: E111
+                str(source)
+                for source in raw_sources
+                if isinstance(source, str) and source
+            ]
+            sources_list: ManualEventSourceList | None = (  # noqa: E111
+                ManualEventSourceList(sources_iter) if sources_iter else None
+            )
+        else:
+            sources_list = None  # noqa: E111
+
+        if recorded_at is not None:
+            if isinstance(recorded_at, datetime):  # noqa: E111
+                recorded_dt = dt_util.as_utc(recorded_at)
+            elif isinstance(recorded_at, str):  # noqa: E111
+                parsed_recorded = dt_util.parse_datetime(recorded_at)
+                recorded_dt = (
+                    dt_util.as_utc(
+                        parsed_recorded,
+                    )
+                    if parsed_recorded
+                    else None
+                )
+            else:  # noqa: E111
+                recorded_dt = None
+        else:
+            raw_recorded = record.get("recorded_at")  # noqa: E111
+            if isinstance(raw_recorded, datetime):  # noqa: E111
+                recorded_dt = dt_util.as_utc(raw_recorded)
+            elif isinstance(raw_recorded, str):  # noqa: E111
+                parsed_recorded = dt_util.parse_datetime(raw_recorded)
+                recorded_dt = (
+                    dt_util.as_utc(
+                        parsed_recorded,
+                    )
+                    if parsed_recorded
+                    else None
+                )
+            else:  # noqa: E111
+                recorded_dt = None
+
+        recorded_age: int | None
+
+        if recorded_dt is not None:
+            recorded_iso = _serialize_datetime(recorded_dt)  # noqa: E111
+            recorded_age = int(  # noqa: E111
+                (dt_util.utcnow() - recorded_dt).total_seconds(),
+            )
+        else:
+            recorded_iso = received_iso  # noqa: E111
+            recorded_age = received_age  # noqa: E111
+
+        event_type_value = record.get("event_type")
+        event_type = (
+            event_type_value
+            if isinstance(
+                event_type_value,
+                str,
+            )
+            else None
         )
-        if normalised_sources:
-          entry = sources.setdefault(event_type, {})  # noqa: E111
-          entry["listener_sources"] = normalised_sources  # noqa: E111
 
-    return sources
+        snapshot: ManualResilienceEventSnapshot = {
+            "event_type": event_type,
+            "category": category,
+            "matched_preference": cast(
+                ManualResiliencePreferenceKey | None,
+                record.get(
+                    "preference_key",
+                ),
+            ),
+            "time_fired": fired_iso,
+            "time_fired_age_seconds": fired_age,
+            "received_at": received_iso,
+            "received_age_seconds": received_age,
+            "origin": cast(str | None, record.get("origin")),
+            "context_id": cast(str | None, record.get("context_id")),
+            "user_id": cast(str | None, record.get("user_id")),
+            "sources": sources_list,
+        }
+        snapshot["recorded_at"] = recorded_iso
+        snapshot["recorded_age_seconds"] = recorded_age
 
-  def _refresh_manual_event_listeners(self) -> None:  # noqa: E111
-    """Subscribe to configured manual escalation events."""
+        data_payload = record.get("data")
+        if isinstance(data_payload, Mapping):
+            snapshot["data"] = cast(JSONMutableMapping, dict(data_payload))  # noqa: E111
+        reasons = record.get("reasons")
+        if isinstance(reasons, Sequence) and not isinstance(
+            reasons,
+            str | bytes | bytearray,
+        ):
+            reasons_list = [  # noqa: E111
+                str(reason) for reason in reasons if isinstance(reason, str) and reason
+            ]
+            if reasons_list:  # noqa: E111
+                snapshot["reasons"] = reasons_list
+        return snapshot
 
-    hass = self._hass
-    bus = getattr(hass, "bus", None)
-    async_listen = getattr(bus, "async_listen", None)
-    if not callable(async_listen):
-      return  # noqa: E111
+    def _serialise_manual_event_history(self) -> list[ManualResilienceEventSnapshot]:  # noqa: E111
+        """Serialise the tracked manual event history."""
 
-    sources = self._manual_event_source_mapping()
-    desired_events = set(sources)
+        snapshots: list[ManualResilienceEventSnapshot] = []
+        for record in self._manual_event_history:
+            snapshot = self._serialise_manual_event_record(record)  # noqa: E111
+            if snapshot is not None:  # noqa: E111
+                snapshots.append(snapshot)
+        return snapshots
 
-    current_events = set(self._manual_event_unsubscribes)
-    for event_type in current_events - desired_events:
-      unsub = self._manual_event_unsubscribes.pop(event_type, None)  # noqa: E111
-      if unsub:  # noqa: E111
-        unsub()
-      self._manual_event_sources.pop(event_type, None)  # noqa: E111
+    def get_manual_event_history(self) -> list[ManualResilienceEventSnapshot]:  # noqa: E111
+        """Return serialised manual event history for diagnostics."""
 
-    for event_type in desired_events:
-      if event_type in self._manual_event_unsubscribes:  # noqa: E111
-        self._manual_event_sources[event_type] = sources[event_type]
-        continue
+        return self._serialise_manual_event_history()
 
-      unsubscribe = async_listen(event_type, self._handle_manual_event)  # noqa: E111
-      if unsubscribe is None:  # noqa: E111
-        continue
-      self._manual_event_unsubscribes[event_type] = unsubscribe  # noqa: E111
-      self._manual_event_sources[event_type] = sources[event_type]  # noqa: E111
+    def get_last_manual_event_snapshot(self) -> ManualResilienceEventSnapshot | None:  # noqa: E111
+        """Return the most recent manual event snapshot when available."""
 
-  def _unsubscribe_manual_event_listeners(self) -> None:  # noqa: E111
-    """Detach manual escalation event listeners."""
+        if self._manual_event_history:
+            return self._serialise_manual_event_record(self._manual_event_history[-1])  # noqa: E111
+        return self._serialise_manual_event_record(self._last_manual_event)
 
-    while self._manual_event_unsubscribes:
-      event_type, unsubscribe = self._manual_event_unsubscribes.popitem()  # noqa: E111
-      try:  # noqa: E111
-        unsubscribe()
-      except Exception:  # pragma: no cover - defensive cleanup  # noqa: E111
-        _LOGGER.debug(
-          "Error unsubscribing manual listener for %s",
-          event_type,
+    def _serialise_last_manual_event(self) -> ManualResilienceEventSnapshot | None:  # noqa: E111
+        """Return the most recent manual event payload for diagnostics."""
+
+        return self.get_last_manual_event_snapshot()
+
+    @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
+    def _handle_manual_event(self, event: Event) -> None:  # noqa: E111
+        """Capture metadata for manual resilience triggers."""
+
+        event_type = getattr(event, "event_type", None)
+        if not isinstance(event_type, str):
+            return  # noqa: E111
+
+        source = self._manual_event_sources.get(event_type, {})
+        preference_key = source.get("preference_key")
+        configured_role = source.get("configured_role")
+        raw_listener_sources = source.get("listener_sources")
+        listener_sources: tuple[str, ...] | None = None
+        if isinstance(raw_listener_sources, Sequence) and not isinstance(
+            raw_listener_sources,
+            str | bytes | bytearray,
+        ):
+            normalised_sources = tuple(  # noqa: E111
+                str(source_label)
+                for source_label in raw_listener_sources
+                if isinstance(source_label, str) and source_label
+            )
+            if normalised_sources:  # noqa: E111
+                listener_sources = normalised_sources
+
+        fired_raw = getattr(event, "time_fired", None)
+        fired_at = (
+            dt_util.as_utc(fired_raw)
+            if isinstance(
+                fired_raw,
+                datetime,
+            )
+            else None
         )
-    self._manual_event_sources.clear()
 
-  def _coerce_manual_event_record(  # noqa: E111
-    self,
-    value: object,
-  ) -> ManualResilienceEventRecord | None:
-    """Normalise ``value`` into a manual event record when possible."""
+        context = getattr(event, "context", None)
+        context_id = getattr(context, "id", None)
+        user_id = getattr(context, "user_id", None)
 
-    if not isinstance(value, Mapping):
-      return None  # noqa: E111
+        raw_data = getattr(event, "data", None)
+        data = (
+            _serialise_event_data(raw_data) if isinstance(raw_data, Mapping) else None
+        )
 
-    record: ManualResilienceEventRecord = {}
+        origin = getattr(event, "origin", None)
+        origin_text = str(origin) if origin is not None else None
 
-    event_type = value.get("event_type")
-    if isinstance(event_type, str) and event_type:
-      record["event_type"] = event_type  # noqa: E111
-
-    preference_key = value.get(
-      "preference_key",
-    ) or value.get("matched_preference")
-    if isinstance(preference_key, str) and preference_key in {
-      "manual_check_event",
-      "manual_guard_event",
-      "manual_breaker_event",
-    }:
-      record["preference_key"] = cast(  # noqa: E111
-        ManualResiliencePreferenceKey,
-        preference_key,
-      )
-
-    configured_role = value.get("configured_role") or value.get("category")
-    if isinstance(configured_role, str) and configured_role in {
-      "check",
-      "guard",
-      "breaker",
-    }:
-      record["configured_role"] = cast(  # noqa: E111
-        Literal["check", "guard", "breaker"],
-        configured_role,
-      )
-
-    def _normalise_datetime(value: object) -> datetime | None:
-      if isinstance(value, datetime):  # noqa: E111
-        return dt_util.as_utc(value)
-      if isinstance(value, str):  # noqa: E111
-        parsed = dt_util.parse_datetime(value)
-        if parsed is not None:
-          return dt_util.as_utc(parsed)  # noqa: E111
-      return None  # noqa: E111
-
-    fired_at = _normalise_datetime(value.get("time_fired"))
-    if fired_at is not None:
-      record["time_fired"] = fired_at  # noqa: E111
-
-    received_at = _normalise_datetime(value.get("received_at"))
-    if received_at is not None:
-      record["received_at"] = received_at  # noqa: E111
-
-    context_id = value.get("context_id")
-    if isinstance(context_id, str) and context_id:
-      record["context_id"] = context_id  # noqa: E111
-
-    user_id = value.get("user_id")
-    if isinstance(user_id, str) and user_id:
-      record["user_id"] = user_id  # noqa: E111
-
-    origin = value.get("origin")
-    if isinstance(origin, str) and origin:
-      record["origin"] = origin  # noqa: E111
-
-    raw_data = value.get("data")
-    if isinstance(raw_data, Mapping):
-      record["data"] = _serialise_event_data(raw_data)  # noqa: E111
-    elif raw_data is None or isinstance(raw_data, dict):
-      record["data"] = cast(JSONMutableMapping | None, raw_data)  # noqa: E111
-
-    raw_sources = value.get("sources")
-    if isinstance(raw_sources, Sequence) and not isinstance(
-      raw_sources,
-      str | bytes | bytearray,
-    ):
-      sources = tuple(  # noqa: E111
-        str(source) for source in raw_sources if isinstance(source, str) and source
-      )
-      if sources:  # noqa: E111
-        record["sources"] = sources
-
-    return record
-
-  def _restore_manual_event_history_from_runtime(self) -> None:  # noqa: E111
-    """Restore manual event history from ``ConfigEntry.runtime_data``."""
-
-    runtime = getattr(self._entry, "runtime_data", None)
-
-    if isinstance(runtime, Mapping):
-      candidates: object = runtime.get("manual_event_history")  # noqa: E111
-    else:
-      candidates = getattr(runtime, "manual_event_history", None)  # noqa: E111
-
-    if candidates is None:
-      store = self._hass.data.get(DOMAIN)  # noqa: E111
-      if isinstance(store, Mapping):  # noqa: E111
-        payload = store.get(self._entry.entry_id)
-        if isinstance(payload, Mapping):
-          candidates = payload.get("manual_event_history")  # noqa: E111
-          if candidates is not None and isinstance(store, MutableMapping):  # noqa: E111
-            if isinstance(payload, MutableMapping):
-              payload.pop("manual_event_history", None)  # noqa: E111
-              if not payload:  # noqa: E111
-                store.pop(self._entry.entry_id, None)
-            else:
-              store.pop(self._entry.entry_id, None)  # noqa: E111
-
-    if not isinstance(candidates, Sequence):
-      return  # noqa: E111
-
-    for value in candidates:
-      record = self._coerce_manual_event_record(value)  # noqa: E111
-      if record is not None:  # noqa: E111
+        record: ManualResilienceEventRecord = {
+            "event_type": event_type,
+            "preference_key": preference_key,
+            "time_fired": fired_at,
+            "received_at": dt_util.utcnow(),
+            "context_id": context_id,
+            "user_id": user_id,
+            "origin": origin_text,
+            "data": data,
+        }
+        if configured_role is not None:
+            record["configured_role"] = configured_role  # noqa: E111
         self._manual_event_history.append(record)
-
-  def _sync_manual_history_to_runtime(self) -> None:  # noqa: E111
-    """Synchronise the manual event history back to runtime storage."""
-
-    runtime = getattr(self._entry, "runtime_data", None)
-    if runtime is None:
-      return  # noqa: E111
-
-    if isinstance(runtime, MutableMapping):
-      runtime["manual_event_history"] = self.export_manual_event_history()  # noqa: E111
-      return  # noqa: E111
-
-    manual_history = getattr(runtime, "manual_event_history", None)
-    if isinstance(manual_history, deque):
-      if manual_history is not self._manual_event_history:  # noqa: E111
-        manual_history.clear()
-        manual_history.extend(self._manual_event_history)
-        self._manual_event_history = manual_history
-      return  # noqa: E111
-
-    with suppress(AttributeError):
-      runtime_any = cast(Any, runtime)  # noqa: E111
-      runtime_any.manual_event_history = self._manual_event_history  # noqa: E111
-
-  def _serialise_manual_event_record(  # noqa: E111
-    self,
-    record: ManualResilienceEventRecord | Mapping[str, object] | None,
-    *,
-    recorded_at: datetime | str | None = None,
-  ) -> ManualResilienceEventSnapshot | None:
-    """Serialise ``record`` into a diagnostics-friendly snapshot."""
-
-    if not isinstance(record, Mapping):
-      return None  # noqa: E111
-
-    fired_at = record.get("time_fired")
-    fired_dt = (
-      dt_util.as_utc(fired_at)
-      if isinstance(
-        fired_at,
-        datetime,
-      )
-      else None
-    )
-    fired_iso = _serialize_datetime(fired_dt)
-    fired_age: int | None = None
-    if fired_dt is not None:
-      fired_age = int((dt_util.utcnow() - fired_dt).total_seconds())  # noqa: E111
-
-    received_at = record.get("received_at")
-    received_dt = (
-      dt_util.as_utc(received_at)
-      if isinstance(
-        received_at,
-        datetime,
-      )
-      else None
-    )
-    received_iso = _serialize_datetime(received_dt)
-    received_age: int | None = None
-    if received_dt is not None:
-      received_age = int(  # noqa: E111
-        (dt_util.utcnow() - received_dt).total_seconds(),
-      )
-
-    configured_role = record.get("configured_role")
-    category: Literal["check", "guard", "breaker", "unknown"]
-    if isinstance(configured_role, str) and configured_role in {
-      "check",
-      "guard",
-      "breaker",
-    }:
-      category = cast(  # noqa: E111
-        Literal["check", "guard", "breaker"],
-        configured_role,
-      )
-    else:
-      category = "unknown"  # noqa: E111
-
-    raw_sources = record.get("sources")
-    if isinstance(raw_sources, Sequence) and not isinstance(
-      raw_sources,
-      str | bytes | bytearray,
-    ):
-      sources_iter = [  # noqa: E111
-        str(source) for source in raw_sources if isinstance(source, str) and source
-      ]
-      sources_list: ManualEventSourceList | None = (  # noqa: E111
-        ManualEventSourceList(sources_iter) if sources_iter else None
-      )
-    else:
-      sources_list = None  # noqa: E111
-
-    if recorded_at is not None:
-      if isinstance(recorded_at, datetime):  # noqa: E111
-        recorded_dt = dt_util.as_utc(recorded_at)
-      elif isinstance(recorded_at, str):  # noqa: E111
-        parsed_recorded = dt_util.parse_datetime(recorded_at)
-        recorded_dt = (
-          dt_util.as_utc(
-            parsed_recorded,
-          )
-          if parsed_recorded
-          else None
+        self._last_manual_event = cast(
+            ManualResilienceEventRecord,
+            dict(record),
         )
-      else:  # noqa: E111
-        recorded_dt = None
-    else:
-      raw_recorded = record.get("recorded_at")  # noqa: E111
-      if isinstance(raw_recorded, datetime):  # noqa: E111
-        recorded_dt = dt_util.as_utc(raw_recorded)
-      elif isinstance(raw_recorded, str):  # noqa: E111
-        parsed_recorded = dt_util.parse_datetime(raw_recorded)
-        recorded_dt = (
-          dt_util.as_utc(
-            parsed_recorded,
-          )
-          if parsed_recorded
-          else None
-        )
-      else:  # noqa: E111
-        recorded_dt = None
+        self._sync_manual_history_to_runtime()
+        reasons: list[str] = []
+        if isinstance(configured_role, str) and configured_role:
+            reasons.append(  # noqa: E111
+                cast(Literal["guard", "breaker"], configured_role),
+            )
+        if reasons:
+            record["reasons"] = reasons  # noqa: E111
 
-    recorded_age: int | None
-
-    if recorded_dt is not None:
-      recorded_iso = _serialize_datetime(recorded_dt)  # noqa: E111
-      recorded_age = int(  # noqa: E111
-        (dt_util.utcnow() - recorded_dt).total_seconds(),
-      )
-    else:
-      recorded_iso = received_iso  # noqa: E111
-      recorded_age = received_age  # noqa: E111
-
-    event_type_value = record.get("event_type")
-    event_type = (
-      event_type_value
-      if isinstance(
-        event_type_value,
-        str,
-      )
-      else None
-    )
-
-    snapshot: ManualResilienceEventSnapshot = {
-      "event_type": event_type,
-      "category": category,
-      "matched_preference": cast(
-        ManualResiliencePreferenceKey | None,
-        record.get(
-          "preference_key",
-        ),
-      ),
-      "time_fired": fired_iso,
-      "time_fired_age_seconds": fired_age,
-      "received_at": received_iso,
-      "received_age_seconds": received_age,
-      "origin": cast(str | None, record.get("origin")),
-      "context_id": cast(str | None, record.get("context_id")),
-      "user_id": cast(str | None, record.get("user_id")),
-      "sources": sources_list,
-    }
-    snapshot["recorded_at"] = recorded_iso
-    snapshot["recorded_age_seconds"] = recorded_age
-
-    data_payload = record.get("data")
-    if isinstance(data_payload, Mapping):
-      snapshot["data"] = cast(JSONMutableMapping, dict(data_payload))  # noqa: E111
-    reasons = record.get("reasons")
-    if isinstance(reasons, Sequence) and not isinstance(
-      reasons,
-      str | bytes | bytearray,
-    ):
-      reasons_list = [  # noqa: E111
-        str(reason) for reason in reasons if isinstance(reason, str) and reason
-      ]
-      if reasons_list:  # noqa: E111
-        snapshot["reasons"] = reasons_list
-    return snapshot
-
-  def _serialise_manual_event_history(self) -> list[ManualResilienceEventSnapshot]:  # noqa: E111
-    """Serialise the tracked manual event history."""
-
-    snapshots: list[ManualResilienceEventSnapshot] = []
-    for record in self._manual_event_history:
-      snapshot = self._serialise_manual_event_record(record)  # noqa: E111
-      if snapshot is not None:  # noqa: E111
-        snapshots.append(snapshot)
-    return snapshots
-
-  def get_manual_event_history(self) -> list[ManualResilienceEventSnapshot]:  # noqa: E111
-    """Return serialised manual event history for diagnostics."""
-
-    return self._serialise_manual_event_history()
-
-  def get_last_manual_event_snapshot(self) -> ManualResilienceEventSnapshot | None:  # noqa: E111
-    """Return the most recent manual event snapshot when available."""
-
-    if self._manual_event_history:
-      return self._serialise_manual_event_record(self._manual_event_history[-1])  # noqa: E111
-    return self._serialise_manual_event_record(self._last_manual_event)
-
-  def _serialise_last_manual_event(self) -> ManualResilienceEventSnapshot | None:  # noqa: E111
-    """Return the most recent manual event payload for diagnostics."""
-
-    return self.get_last_manual_event_snapshot()
-
-  @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
-  def _handle_manual_event(self, event: Event) -> None:  # noqa: E111
-    """Capture metadata for manual resilience triggers."""
-
-    event_type = getattr(event, "event_type", None)
-    if not isinstance(event_type, str):
-      return  # noqa: E111
-
-    source = self._manual_event_sources.get(event_type, {})
-    preference_key = source.get("preference_key")
-    configured_role = source.get("configured_role")
-    raw_listener_sources = source.get("listener_sources")
-    listener_sources: tuple[str, ...] | None = None
-    if isinstance(raw_listener_sources, Sequence) and not isinstance(
-      raw_listener_sources,
-      str | bytes | bytearray,
-    ):
-      normalised_sources = tuple(  # noqa: E111
-        str(source_label)
-        for source_label in raw_listener_sources
-        if isinstance(source_label, str) and source_label
-      )
-      if normalised_sources:  # noqa: E111
-        listener_sources = normalised_sources
-
-    fired_raw = getattr(event, "time_fired", None)
-    fired_at = (
-      dt_util.as_utc(fired_raw)
-      if isinstance(
-        fired_raw,
-        datetime,
-      )
-      else None
-    )
-
-    context = getattr(event, "context", None)
-    context_id = getattr(context, "id", None)
-    user_id = getattr(context, "user_id", None)
-
-    raw_data = getattr(event, "data", None)
-    data = _serialise_event_data(raw_data) if isinstance(raw_data, Mapping) else None
-
-    origin = getattr(event, "origin", None)
-    origin_text = str(origin) if origin is not None else None
-
-    record: ManualResilienceEventRecord = {
-      "event_type": event_type,
-      "preference_key": preference_key,
-      "time_fired": fired_at,
-      "received_at": dt_util.utcnow(),
-      "context_id": context_id,
-      "user_id": user_id,
-      "origin": origin_text,
-      "data": data,
-    }
-    if configured_role is not None:
-      record["configured_role"] = configured_role  # noqa: E111
-    self._manual_event_history.append(record)
-    self._last_manual_event = cast(
-      ManualResilienceEventRecord,
-      dict(record),
-    )
-    self._sync_manual_history_to_runtime()
-    reasons: list[str] = []
-    if isinstance(configured_role, str) and configured_role:
-      reasons.append(  # noqa: E111
-        cast(Literal["guard", "breaker"], configured_role),
-      )
-    if reasons:
-      record["reasons"] = reasons  # noqa: E111
-
-    source_tags = source.get("source_tags")
-    canonical_sources: list[str] = []
-    if isinstance(source_tags, Sequence) and not isinstance(
-      source_tags,
-      str | bytes,
-    ):
-      canonical_sources = [  # noqa: E111
-        str(tag) for tag in source_tags if isinstance(tag, str) and tag
-      ]
-    primary_source = source.get("primary_source")
-    if (
-      isinstance(primary_source, str)
-      and primary_source
-      and primary_source not in canonical_sources
-    ):
-      canonical_sources.insert(0, primary_source)  # noqa: E111
-
-    aggregated_sources = list(listener_sources or ())
-    if canonical_sources:
-      aggregated_sources.extend(  # noqa: E111
-        tag for tag in canonical_sources if tag not in aggregated_sources
-      )
-
-    if aggregated_sources:
-      record["sources"] = ManualEventSourceList(aggregated_sources)  # noqa: E111
-
-    if isinstance(event_type, str) and event_type:
-      self._manual_event_counters[event_type] = (  # noqa: E111
-        self._manual_event_counters.get(event_type, 0) + 1
-      )
-
-    self._last_manual_event = cast(
-      ManualResilienceEventRecord,
-      dict(record),
-    )
-
-  async def async_sync_manual_resilience_events(  # noqa: E111
-    self,
-    events: ManualResilienceEventSelection,
-  ) -> None:
-    """Update resilience blueprint automations with preferred manual events."""
-
-    if not events:
-      return  # noqa: E111
-
-    manager = getattr(self._hass, "config_entries", None)
-    entries_callable = getattr(manager, "async_entries", None)
-    update_entry = getattr(manager, "async_update_entry", None)
-
-    if not callable(entries_callable) or not callable(update_entry):
-      _LOGGER.debug(  # noqa: E111
-        "Skipping manual resilience event sync; config entry API not available",
-      )
-      return  # noqa: E111
-
-    automation_entries = entries_callable("automation") or []
-    if not automation_entries:
-      _LOGGER.debug(  # noqa: E111
-        "Skipping manual resilience event sync; no automation entries discovered",
-      )
-      return  # noqa: E111
-
-    desired_events: ManualResilienceEventSelection = {}
-    for key in ("manual_check_event", "manual_guard_event", "manual_breaker_event"):
-      if key not in events:  # noqa: E111
-        continue
-      desired_events[key] = _normalise_manual_event(events.get(key))  # noqa: E111
-
-    if not desired_events:
-      return  # noqa: E111
-
-    updated_any = False
-
-    for entry in automation_entries:
-      entry_data = getattr(entry, "data", None)  # noqa: E111
-      if not isinstance(entry_data, Mapping):  # noqa: E111
-        continue
-
-      use_blueprint = entry_data.get("use_blueprint")  # noqa: E111
-      if not _is_resilience_blueprint(use_blueprint):  # noqa: E111
-        continue
-
-      blueprint = cast(Mapping[str, object], use_blueprint)  # noqa: E111
-      inputs_key = "input" if "input" in blueprint else "inputs"  # noqa: E111
-      existing_inputs = blueprint.get(inputs_key)  # noqa: E111
-      if isinstance(existing_inputs, Mapping):  # noqa: E111
-        inputs: dict[str, str | None] = dict(existing_inputs)
-      else:  # noqa: E111
-        inputs = {}
-      changed = False  # noqa: E111
-      for key, desired in desired_events.items():  # noqa: E111
-        current_value = inputs.get(key)
-        current_normalised = _normalise_manual_event(current_value)
-        if desired == current_normalised:
-          continue  # noqa: E111
-
-        if desired is None:
-          inputs[key] = ""  # noqa: E111
-        else:
-          inputs[key] = desired  # noqa: E111
-        changed = True
-
-      if not changed:  # noqa: E111
-        continue
-
-      new_blueprint = dict(blueprint)  # noqa: E111
-      new_blueprint[inputs_key] = inputs  # noqa: E111
-
-      new_data = dict(entry_data)  # noqa: E111
-      new_data["use_blueprint"] = new_blueprint  # noqa: E111
-
-      try:  # noqa: E111
-        update_entry(entry, data=new_data)
-      except Exception as err:  # pragma: no cover - defensive guard  # noqa: E111
-        # Classify the error for diagnostics/logging
-        error_classification = classify_error_reason("exception", error=err)
-        _LOGGER.warning(
-          "Failed to update resilience blueprint %s: %s",
-          getattr(entry, "entry_id", "unknown"),
-          err,
-        )
-        _LOGGER.debug(
-          "Resilience blueprint update classified as %s",
-          error_classification,
-        )
-        continue
-
-      updated_any = True  # noqa: E111
-
-    if updated_any:
-      _LOGGER.debug(  # noqa: E111
-        "Synchronized manual resilience events with blueprint inputs",
-      )
-
-    self._refresh_manual_event_listeners()
-
-  def _get_component(  # noqa: E111
-    self,
-    *,
-    require_loaded: bool = True,
-  ) -> EntityComponent[Any] | None:
-    """Return the Home Assistant script entity component."""
-
-    component: EntityComponent[Any] | None = self._hass.data.get(
-      SCRIPT_DOMAIN,
-    )
-    if component is None:
-      if require_loaded:  # noqa: E111
-        raise HomeAssistantError(
-          "The Home Assistant script integration is not loaded. "
-          "Enable the built-in script integration to use PawControl's "
-          "auto-generated scripts.",
-        )
-      return None  # noqa: E111
-
-    return component
-
-  async def async_generate_scripts_for_dogs(  # noqa: E111
-    self,
-    dogs: Sequence[DogConfigData],
-    enabled_modules: Collection[str],
-  ) -> dict[str, list[str]]:
-    """Create or update scripts for every configured dog."""
-
-    if not dogs:
-      return {}  # noqa: E111
-
-    component = self._get_component()
-    if component is None:
-      # ``_get_component`` raises when the script integration is missing, but keep  # noqa: E114, E501
-      # the guard so the type checker understands ``component`` is non-null.  # noqa: E114, E501
-      return {}  # noqa: E111
-    registry = er.async_get(self._hass)
-    created: dict[str, list[str]] = {}
-    processed_dogs: set[str] = set()
-
-    global_notifications_enabled = MODULE_NOTIFICATIONS in enabled_modules
-
-    for dog in dogs:
-      dog_id = dog.get(CONF_DOG_ID)  # noqa: E111
-      if not isinstance(dog_id, str) or not dog_id:  # noqa: E111
-        _LOGGER.debug(
-          "Skipping script generation for invalid dog entry: %s",
-          dog,
-        )
-        continue
-
-      processed_dogs.add(dog_id)  # noqa: E111
-      raw_name = dog.get(CONF_DOG_NAME)  # noqa: E111
-      dog_name = (  # noqa: E111
-        raw_name
-        if isinstance(
-          raw_name,
-          str,
-        )
-        and raw_name.strip()
-        else dog_id
-      )
-      slug = slugify(dog_id)  # noqa: E111
-
-      existing_for_dog = set(self._dog_scripts.get(dog_id, []))  # noqa: E111
-      new_for_dog: list[str] = []  # noqa: E111
-
-      dog_modules = ensure_dog_modules_mapping(dog)  # noqa: E111
-      dog_notifications_enabled = dog_modules.get(  # noqa: E111
-        MODULE_NOTIFICATIONS,
-        global_notifications_enabled,
-      )
-
-      script_definitions = self._build_scripts_for_dog(  # noqa: E111
-        slug,
-        dog_id,
-        dog_name,
-        dog_notifications_enabled,
-      )
-
-      for object_id, raw_config in script_definitions:  # noqa: E111
-        entity_id = f"{_SCRIPT_ENTITY_PREFIX}{object_id}"
-        existing_entity = component.get_entity(entity_id)
-        if existing_entity is not None:
-          await existing_entity.async_remove()  # noqa: E111
-
-        validated_config = SCRIPT_ENTITY_SCHEMA(dict(raw_config))
-        entity = ScriptEntity(
-          self._hass,
-          object_id,
-          validated_config,
-          raw_config,
-          None,
-        )
-        await component.async_add_entities([entity])
-
-        self._created_entities.add(entity_id)
-        new_for_dog.append(entity_id)
-
-        # Preserve user customisations by keeping the registry entry but ensure
-        # it is linked to the PawControl config entry for diagnostics.
-        if (entry := registry.async_get(entity_id)) and (
-          entry.config_entry_id != self._entry.entry_id
+        source_tags = source.get("source_tags")
+        canonical_sources: list[str] = []
+        if isinstance(source_tags, Sequence) and not isinstance(
+            source_tags,
+            str | bytes,
         ):
-          registry.async_update_entity(  # noqa: E111
-            entity_id,
-            config_entry_id=self._entry.entry_id,
-          )
+            canonical_sources = [  # noqa: E111
+                str(tag) for tag in source_tags if isinstance(tag, str) and tag
+            ]
+        primary_source = source.get("primary_source")
+        if (
+            isinstance(primary_source, str)
+            and primary_source
+            and primary_source not in canonical_sources
+        ):
+            canonical_sources.insert(0, primary_source)  # noqa: E111
 
-      # Remove scripts that are no longer needed for this dog (e.g. module disabled)  # noqa: E114, E501
-      obsolete = existing_for_dog - set(new_for_dog)  # noqa: E111
-      for entity_id in obsolete:  # noqa: E111
-        await self._async_remove_script_entity(entity_id)
+        aggregated_sources = list(listener_sources or ())
+        if canonical_sources:
+            aggregated_sources.extend(  # noqa: E111
+                tag for tag in canonical_sources if tag not in aggregated_sources
+            )
 
-      if new_for_dog:  # noqa: E111
-        created[dog_id] = list(new_for_dog)
-        self._dog_scripts[dog_id] = list(new_for_dog)
+        if aggregated_sources:
+            record["sources"] = ManualEventSourceList(aggregated_sources)  # noqa: E111
 
-    # Remove scripts for dogs that were removed from the configuration
-    removed_dogs = set(self._dog_scripts) - processed_dogs
-    for removed_dog in removed_dogs:
-      for entity_id in self._dog_scripts.pop(removed_dog, []):  # noqa: E111
-        await self._async_remove_script_entity(entity_id)
+        if isinstance(event_type, str) and event_type:
+            self._manual_event_counters[event_type] = (  # noqa: E111
+                self._manual_event_counters.get(event_type, 0) + 1
+            )
 
-    entry_script_definitions = self._build_entry_scripts()
-    existing_entry_scripts = set(self._entry_scripts)
-    new_entry_scripts: list[str] = []
-
-    for object_id, raw_config in entry_script_definitions:
-      entity_id = f"{_SCRIPT_ENTITY_PREFIX}{object_id}"  # noqa: E111
-      existing_entity = component.get_entity(entity_id)  # noqa: E111
-      if existing_entity is not None:  # noqa: E111
-        await existing_entity.async_remove()
-
-      validated_config = SCRIPT_ENTITY_SCHEMA(dict(raw_config))  # noqa: E111
-      entity = ScriptEntity(  # noqa: E111
-        self._hass,
-        object_id,
-        validated_config,
-        raw_config,
-        None,
-      )
-      await component.async_add_entities([entity])  # noqa: E111
-
-      self._created_entities.add(entity_id)  # noqa: E111
-      new_entry_scripts.append(entity_id)  # noqa: E111
-
-      if (entry := registry.async_get(entity_id)) and (  # noqa: E111
-        entry.config_entry_id != self._entry.entry_id
-      ):
-        registry.async_update_entity(
-          entity_id,
-          config_entry_id=self._entry.entry_id,
+        self._last_manual_event = cast(
+            ManualResilienceEventRecord,
+            dict(record),
         )
 
-    obsolete_entry_scripts = existing_entry_scripts - set(new_entry_scripts)
-    for entity_id in obsolete_entry_scripts:
-      await self._async_remove_script_entity(entity_id)  # noqa: E111
+    async def async_sync_manual_resilience_events(  # noqa: E111
+        self,
+        events: ManualResilienceEventSelection,
+    ) -> None:
+        """Update resilience blueprint automations with preferred manual events."""
 
-    if new_entry_scripts:
-      created["__entry__"] = list(new_entry_scripts)  # noqa: E111
-      self._entry_scripts = list(new_entry_scripts)  # noqa: E111
-    else:
-      self._entry_scripts = []  # noqa: E111
+        if not events:
+            return  # noqa: E111
 
-    self._last_generation = dt_util.utcnow()
-    self._refresh_manual_event_listeners()
+        manager = getattr(self._hass, "config_entries", None)
+        entries_callable = getattr(manager, "async_entries", None)
+        update_entry = getattr(manager, "async_update_entry", None)
 
-    self._refresh_manual_event_listeners()
+        if not callable(entries_callable) or not callable(update_entry):
+            _LOGGER.debug(  # noqa: E111
+                "Skipping manual resilience event sync; config entry API not available",
+            )
+            return  # noqa: E111
 
-    return created
+        automation_entries = entries_callable("automation") or []
+        if not automation_entries:
+            _LOGGER.debug(  # noqa: E111
+                "Skipping manual resilience event sync; no automation entries discovered",
+            )
+            return  # noqa: E111
 
-  async def async_cleanup(self) -> None:  # noqa: E111
-    """Remove all scripts created by the integration."""
+        desired_events: ManualResilienceEventSelection = {}
+        for key in ("manual_check_event", "manual_guard_event", "manual_breaker_event"):
+            if key not in events:  # noqa: E111
+                continue
+            desired_events[key] = _normalise_manual_event(events.get(key))  # noqa: E111
 
-    component = self._get_component(require_loaded=False)
-    registry = er.async_get(self._hass)
+        if not desired_events:
+            return  # noqa: E111
 
-    for unsub in list(self._manual_event_unsubs.values()):
-      unsub()  # noqa: E111
-    self._manual_event_unsubs.clear()
-    self._manual_event_reasons.clear()
-    self._manual_event_sources.clear()
-    self._manual_event_counters.clear()
-    self._last_manual_event = None
+        updated_any = False
 
-    for entity_id in list(self._created_entities):
-      if component is not None and (entity := component.get_entity(entity_id)):  # noqa: E111
-        await entity.async_remove()
+        for entry in automation_entries:
+            entry_data = getattr(entry, "data", None)  # noqa: E111
+            if not isinstance(entry_data, Mapping):  # noqa: E111
+                continue
 
-      if registry.async_get(entity_id):  # noqa: E111
-        await registry.async_remove(entity_id)
+            use_blueprint = entry_data.get("use_blueprint")  # noqa: E111
+            if not _is_resilience_blueprint(use_blueprint):  # noqa: E111
+                continue
 
-      self._created_entities.discard(entity_id)  # noqa: E111
+            blueprint = cast(Mapping[str, object], use_blueprint)  # noqa: E111
+            inputs_key = "input" if "input" in blueprint else "inputs"  # noqa: E111
+            existing_inputs = blueprint.get(inputs_key)  # noqa: E111
+            if isinstance(existing_inputs, Mapping):  # noqa: E111
+                inputs: dict[str, str | None] = dict(existing_inputs)
+            else:  # noqa: E111
+                inputs = {}
+            changed = False  # noqa: E111
+            for key, desired in desired_events.items():  # noqa: E111
+                current_value = inputs.get(key)
+                current_normalised = _normalise_manual_event(current_value)
+                if desired == current_normalised:
+                    continue  # noqa: E111
 
-    self._dog_scripts.clear()
-    self._entry_scripts.clear()
-    self._unsubscribe_manual_event_listeners()
-    _LOGGER.debug(
-      "Removed all PawControl managed scripts for entry %s",
-      self._entry.entry_id,
-    )
+                if desired is None:
+                    inputs[key] = ""  # noqa: E111
+                else:
+                    inputs[key] = desired  # noqa: E111
+                changed = True
 
-  async def _async_remove_script_entity(self, entity_id: str) -> None:  # noqa: E111
-    """Remove a specific script entity and its registry entry."""
+            if not changed:  # noqa: E111
+                continue
 
-    component = self._get_component(require_loaded=False)
-    registry = er.async_get(self._hass)
+            new_blueprint = dict(blueprint)  # noqa: E111
+            new_blueprint[inputs_key] = inputs  # noqa: E111
 
-    if component is not None and (entity := component.get_entity(entity_id)):
-      await entity.async_remove()  # noqa: E111
+            new_data = dict(entry_data)  # noqa: E111
+            new_data["use_blueprint"] = new_blueprint  # noqa: E111
 
-    if registry.async_get(entity_id):
-      await registry.async_remove(entity_id)  # noqa: E111
+            try:  # noqa: E111
+                update_entry(entry, data=new_data)
+            except Exception as err:  # pragma: no cover - defensive guard  # noqa: E111
+                # Classify the error for diagnostics/logging
+                error_classification = classify_error_reason("exception", error=err)
+                _LOGGER.warning(
+                    "Failed to update resilience blueprint %s: %s",
+                    getattr(entry, "entry_id", "unknown"),
+                    err,
+                )
+                _LOGGER.debug(
+                    "Resilience blueprint update classified as %s",
+                    error_classification,
+                )
+                continue
 
-    self._created_entities.discard(entity_id)
+            updated_any = True  # noqa: E111
 
-  def _build_scripts_for_dog(  # noqa: E111
-    self,
-    slug: str,
-    dog_id: str,
-    dog_name: str,
-    notifications_enabled: bool,
-  ) -> list[tuple[str, ConfigType]]:
-    """Return raw script configurations for a dog."""
+        if updated_any:
+            _LOGGER.debug(  # noqa: E111
+                "Synchronized manual resilience events with blueprint inputs",
+            )
 
-    scripts: list[tuple[str, ConfigType]] = []
+        self._refresh_manual_event_listeners()
 
-    scripts.append(self._build_reset_script(slug, dog_id, dog_name))
-    scripts.append(
-      self._build_setup_script(
-        slug,
-        dog_id,
-        dog_name,
-        notifications_enabled,
-      ),
-    )
+    def _get_component(  # noqa: E111
+        self,
+        *,
+        require_loaded: bool = True,
+    ) -> EntityComponent[Any] | None:
+        """Return the Home Assistant script entity component."""
 
-    if notifications_enabled:
-      scripts.append(  # noqa: E111
-        self._build_confirmation_script(
-          slug,
-          dog_id,
-          dog_name,
-        ),
-      )
-      scripts.append(  # noqa: E111
-        self._build_push_test_script(
-          slug,
-          dog_id,
-          dog_name,
-        ),
-      )
+        component: EntityComponent[Any] | None = self._hass.data.get(
+            SCRIPT_DOMAIN,
+        )
+        if component is None:
+            if require_loaded:  # noqa: E111
+                raise HomeAssistantError(
+                    "The Home Assistant script integration is not loaded. "
+                    "Enable the built-in script integration to use PawControl's "
+                    "auto-generated scripts.",
+                )
+            return None  # noqa: E111
 
-    return scripts
+        return component
 
-  def _build_entry_scripts(self) -> list[tuple[str, ConfigType]]:  # noqa: E111
-    """Return global script definitions scoped to the config entry."""
+    async def async_generate_scripts_for_dogs(  # noqa: E111
+        self,
+        dogs: Sequence[DogConfigData],
+        enabled_modules: Collection[str],
+    ) -> dict[str, list[str]]:
+        """Create or update scripts for every configured dog."""
 
-    scripts: list[tuple[str, ConfigType]] = []
-    scripts.append(self._build_resilience_escalation_script())
-    return scripts
+        if not dogs:
+            return {}  # noqa: E111
 
-  def _build_resilience_escalation_script(self) -> tuple[str, ConfigType]:  # noqa: E111
-    """Create the guard and breaker escalation script definition."""
+        component = self._get_component()
+        if component is None:
+            # ``_get_component`` raises when the script integration is missing, but keep  # noqa: E114, E501
+            # the guard so the type checker understands ``component`` is non-null.  # noqa: E114, E501
+            return {}  # noqa: E111
+        registry = er.async_get(self._hass)
+        created: dict[str, list[str]] = {}
+        processed_dogs: set[str] = set()
 
-    object_id = _resolve_resilience_object_id(self._entry)
-    default_statistics_entity = "sensor.pawcontrol_statistics"
-    skip_threshold_default, breaker_threshold_default = (
-      self._resolve_resilience_thresholds()
-    )
+        global_notifications_enabled = MODULE_NOTIFICATIONS in enabled_modules
 
-    guard_default_title = f"{self._entry_title} guard escalation"
-    guard_default_message = (
-      "Guard skipped {{ skip_count }} call(s) while executing {{ executed_count }} "
-      "request(s). Skip reasons: {{ guard_reason_text }}."
-    )
-    guard_default_notification_id = f"pawcontrol_{self._entry_slug}_guard_escalation"
+        for dog in dogs:
+            dog_id = dog.get(CONF_DOG_ID)  # noqa: E111
+            if not isinstance(dog_id, str) or not dog_id:  # noqa: E111
+                _LOGGER.debug(
+                    "Skipping script generation for invalid dog entry: %s",
+                    dog,
+                )
+                continue
 
-    breaker_default_title = f"{self._entry_title} breaker escalation"
-    breaker_default_message = (
-      "Circuit breakers report {{ breaker_count }} open and {{ half_open_count }} "
-      "half-open guard(s). Open breakers: {{ open_breakers_text }}. "
-      "Half-open breakers: {{ half_open_breakers_text }}."
-    )
-    breaker_default_notification_id = (
-      f"pawcontrol_{self._entry_slug}_breaker_escalation"
-    )
+            processed_dogs.add(dog_id)  # noqa: E111
+            raw_name = dog.get(CONF_DOG_NAME)  # noqa: E111
+            dog_name = (  # noqa: E111
+                raw_name
+                if isinstance(
+                    raw_name,
+                    str,
+                )
+                and raw_name.strip()
+                else dog_id
+            )
+            slug = slugify(dog_id)  # noqa: E111
 
-    variables: ConfigType = {
-      "statistics_entity": (
-        f"{{{{ statistics_entity_id | default('{default_statistics_entity}') }}}}"
-      ),
-      "service_execution": (
-        "{{ state_attr(statistics_entity, 'service_execution') or {} }}"
-      ),
-      "guard": (
-        "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
-        "{% set metrics = data.get('guard_metrics') %}"
-        "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
-      ),
-      "rejection": (
-        "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
-        "{% set metrics = data.get('rejection_metrics') %}"
-        "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
-      ),
-      "skip_count": "{{ guard.get('skipped', 0) | int(0) }}",
-      "executed_count": "{{ guard.get('executed', 0) | int(0) }}",
-      "breaker_count": "{{ rejection.get('open_breaker_count', 0) | int(0) }}",
-      "half_open_count": ("{{ rejection.get('half_open_breaker_count', 0) | int(0) }}"),
-      "guard_reason_text": (
-        "{% set items = guard.get('reasons', {}) | dictsort %}"
-        "{% if items %}"
-        "{% for reason, count in items %}"
-        "{{ reason }} ({{ count }}){% if not loop.last %}, {% endif %}"
-        "{% endfor %}"
-        "{% else %}No guard skip reasons recorded{% endif %}"
-      ),
-      "open_breakers_text": (
-        "{% set names = rejection.get('open_breakers', []) %}"
-        "{% if names %}{{ names | join(', ') }}{% else %}None{% endif %}"
-      ),
-      "half_open_breakers_text": (
-        "{% set names = rejection.get('half_open_breakers', []) %}"
-        "{% if names %}{{ names | join(', ') }}{% else %}None{% endif %}"
-      ),
-    }
+            existing_for_dog = set(self._dog_scripts.get(dog_id, []))  # noqa: E111
+            new_for_dog: list[str] = []  # noqa: E111
 
-    guard_followup: ConfigType = {
-      "choose": [
-        {
-          "conditions": [
-            {
-              "condition": "template",
-              "value_template": ("{{ followup_script | default('') | trim != '' }}"),
-            },
-          ],
-          "sequence": [
-            {
-              "action": "script.turn_on",
-              "target": {"entity_id": "{{ followup_script }}"},
-              "data": {
-                "variables": {
-                  "trigger_reason": "guard",
-                  "skip_count": "{{ skip_count }}",
-                  "executed_count": "{{ executed_count }}",
-                  "guard_reasons": "{{ guard.get('reasons', {}) }}",
-                  "breaker_count": "{{ breaker_count }}",
-                  "half_open_count": "{{ half_open_count }}",
-                },
-              },
-            },
-          ],
-        },
-      ],
-      "default": [],
-    }
+            dog_modules = ensure_dog_modules_mapping(dog)  # noqa: E111
+            dog_notifications_enabled = dog_modules.get(  # noqa: E111
+                MODULE_NOTIFICATIONS,
+                global_notifications_enabled,
+            )
 
-    breaker_followup: ConfigType = {
-      "choose": [
-        {
-          "conditions": [
-            {
-              "condition": "template",
-              "value_template": ("{{ followup_script | default('') | trim != '' }}"),
-            },
-          ],
-          "sequence": [
-            {
-              "action": "script.turn_on",
-              "target": {"entity_id": "{{ followup_script }}"},
-              "data": {
-                "variables": {
-                  "trigger_reason": "breaker",
-                  "breaker_count": "{{ breaker_count }}",
-                  "half_open_count": "{{ half_open_count }}",
-                  "open_breakers": "{{ rejection.get('open_breakers', []) }}",
-                  "half_open_breakers": "{{ rejection.get('half_open_breakers', []) }}",
-                  "skip_count": "{{ skip_count }}",
-                  "executed_count": "{{ executed_count }}",
-                },
-              },
-            },
-          ],
-        },
-      ],
-      "default": [],
-    }
+            script_definitions = self._build_scripts_for_dog(  # noqa: E111
+                slug,
+                dog_id,
+                dog_name,
+                dog_notifications_enabled,
+            )
 
-    sequence: list[ConfigType] = [
-      {"variables": variables},
-      {
-        "choose": [
-          {
-            "conditions": [
-              {
-                "condition": "template",
-                "value_template": (
-                  "{{ (skip_threshold | int(0)) > 0 and "
-                  "skip_count >= (skip_threshold | int(0)) }}"
-                ),
-              },
-            ],
-            "sequence": [
-              {
-                "action": (
-                  "{{ escalation_service | default('persistent_notification.create') }}"
-                ),
-                "data": {
-                  "title": (
-                    f"{{{{ guard_title | default('{guard_default_title}') }}}}"
-                  ),
-                  "message": (
-                    f"{{{{ guard_message | default('{guard_default_message}') }}}}"
-                  ),
-                  "notification_id": (
-                    f"{{{{ guard_notification_id | default('{guard_default_notification_id}') }}}}"  # noqa: E501
-                  ),
-                },
-              },
-              guard_followup,
-            ],
-          },
-          {
-            "conditions": [
-              {
-                "condition": "template",
-                "value_template": (
-                  "{{ (breaker_threshold | int(0)) > 0 and ("
-                  "breaker_count >= (breaker_threshold | int(0)) or "
-                  "half_open_count >= (breaker_threshold | int(0))) }}"
-                ),
-              },
-            ],
-            "sequence": [
-              {
-                "action": (
-                  "{{ escalation_service | default('persistent_notification.create') }}"
-                ),
-                "data": {
-                  "title": (
-                    f"{{{{ breaker_title | default('{breaker_default_title}') }}}}"
-                  ),
-                  "message": (
-                    f"{{{{ breaker_message | default('{breaker_default_message}') }}}}"
-                  ),
-                  "notification_id": (
-                    f"{{{{ breaker_notification_id | default('{breaker_default_notification_id}') }}}}"  # noqa: E501
-                  ),
-                },
-              },
-              breaker_followup,
-            ],
-          },
-        ],
-        "default": [],
-      },
-    ]
+            for object_id, raw_config in script_definitions:  # noqa: E111
+                entity_id = f"{_SCRIPT_ENTITY_PREFIX}{object_id}"
+                existing_entity = component.get_entity(entity_id)
+                if existing_entity is not None:
+                    await existing_entity.async_remove()  # noqa: E111
 
-    fields: ConfigType = {
-      "statistics_entity_id": {
-        CONF_NAME: "Statistics sensor",
-        CONF_DESCRIPTION: (
-          "Entity that exposes PawControl runtime statistics including "
-          "service execution metrics."
-        ),
-        CONF_DEFAULT: default_statistics_entity,
-        "selector": {"entity": {"domain": "sensor"}},
-      },
-      "skip_threshold": {
-        CONF_NAME: "Guard skip threshold",
-        CONF_DESCRIPTION: (
-          "Escalate when skipped guard calls reach or exceed this value. "
-          "Set to 0 to disable guard escalations."
-        ),
-        CONF_DEFAULT: skip_threshold_default,
-        "selector": {"number": {"min": 0, "max": 50, "mode": "box"}},
-      },
-      "breaker_threshold": {
-        CONF_NAME: "Breaker alert threshold",
-        CONF_DESCRIPTION: (
-          "Escalate when open or half-open breaker counts reach this value. "
-          "Set to 0 to disable breaker escalations."
-        ),
-        CONF_DEFAULT: breaker_threshold_default,
-        "selector": {"number": {"min": 0, "max": 10, "mode": "box"}},
-      },
-      "escalation_service": {
-        CONF_NAME: "Escalation service",
-        CONF_DESCRIPTION: (
-          "Service called when an escalation fires. Uses persistent "
-          "notifications by default."
-        ),
-        CONF_DEFAULT: "persistent_notification.create",
-        "selector": {"text": {}},
-      },
-      "guard_title": {
-        CONF_NAME: "Guard alert title",
-        CONF_DESCRIPTION: "Title used when guard skips trigger the escalation.",
-        CONF_DEFAULT: guard_default_title,
-        "selector": {"text": {}},
-      },
-      "guard_message": {
-        CONF_NAME: "Guard alert message",
-        CONF_DESCRIPTION: (
-          "Message body for guard skip escalations. Jinja variables from the "
-          "script (e.g. {{ skip_count }}) are available."
-        ),
-        CONF_DEFAULT: guard_default_message,
-        "selector": {"text": {"multiline": True}},
-      },
-      "guard_notification_id": {
-        CONF_NAME: "Guard notification ID",
-        CONF_DESCRIPTION: (
-          "Notification identifier so repeated alerts update the same "
-          "persistent notification."
-        ),
-        CONF_DEFAULT: guard_default_notification_id,
-        "selector": {"text": {}},
-      },
-      "breaker_title": {
-        CONF_NAME: "Breaker alert title",
-        CONF_DESCRIPTION: "Title used when breaker counts trigger the escalation.",
-        CONF_DEFAULT: breaker_default_title,
-        "selector": {"text": {}},
-      },
-      "breaker_message": {
-        CONF_NAME: "Breaker alert message",
-        CONF_DESCRIPTION: (
-          "Message body for breaker escalations. Script variables such as "
-          "{{ breaker_count }} are available."
-        ),
-        CONF_DEFAULT: breaker_default_message,
-        "selector": {"text": {"multiline": True}},
-      },
-      "breaker_notification_id": {
-        CONF_NAME: "Breaker notification ID",
-        CONF_DESCRIPTION: (
-          "Notification identifier for breaker alerts, keeping updates idempotent."
-        ),
-        CONF_DEFAULT: breaker_default_notification_id,
-        "selector": {"text": {}},
-      },
-      "followup_script": {
-        CONF_NAME: "Follow-up script",
-        CONF_DESCRIPTION: (
-          "Optional script triggered after escalations fire. Receives "
-          "context variables such as skip and breaker counts."
-        ),
-        CONF_DEFAULT: "",
-        "selector": {"entity": {"domain": "script", "multiple": False}},
-      },
-    }
+                validated_config = SCRIPT_ENTITY_SCHEMA(dict(raw_config))
+                entity = ScriptEntity(
+                    self._hass,
+                    object_id,
+                    validated_config,
+                    raw_config,
+                    None,
+                )
+                await component.async_add_entities([entity])
 
-    raw_config: ConfigType = {
-      CONF_ALIAS: f"{self._entry_title} resilience escalation",
-      CONF_DESCRIPTION: (
-        "Escalates guard skips and breaker activations using PawControl's "
-        "runtime service metrics and optional follow-up automations."
-      ),
-      CONF_SEQUENCE: sequence,
-      CONF_FIELDS: fields,
-      CONF_TRACE: {},
-    }
+                self._created_entities.add(entity_id)
+                new_for_dog.append(entity_id)
 
-    field_defaults: JSONMutableMapping = {}
-    for field_name, field_config in fields.items():
-      if isinstance(field_config, Mapping):  # noqa: E111
-        field_defaults[field_name] = field_config.get(CONF_DEFAULT)
+                # Preserve user customisations by keeping the registry entry but ensure
+                # it is linked to the PawControl config entry for diagnostics.
+                if (entry := registry.async_get(entity_id)) and (
+                    entry.config_entry_id != self._entry.entry_id
+                ):
+                    registry.async_update_entity(  # noqa: E111
+                        entity_id,
+                        config_entry_id=self._entry.entry_id,
+                    )
 
-    self._resilience_escalation_definition = {
-      "object_id": object_id,
-      "alias": raw_config[CONF_ALIAS],
-      "description": raw_config[CONF_DESCRIPTION],
-      "field_defaults": field_defaults,
-    }
+            # Remove scripts that are no longer needed for this dog (e.g. module disabled)  # noqa: E114, E501
+            obsolete = existing_for_dog - set(new_for_dog)  # noqa: E111
+            for entity_id in obsolete:  # noqa: E111
+                await self._async_remove_script_entity(entity_id)
 
-    return object_id, raw_config
+            if new_for_dog:  # noqa: E111
+                created[dog_id] = list(new_for_dog)
+                self._dog_scripts[dog_id] = list(new_for_dog)
 
-  def get_resilience_escalation_snapshot(self) -> ResilienceEscalationSnapshot | None:  # noqa: E111
-    """Return diagnostics metadata for the resilience escalation helper."""
+        # Remove scripts for dogs that were removed from the configuration
+        removed_dogs = set(self._dog_scripts) - processed_dogs
+        for removed_dog in removed_dogs:
+            for entity_id in self._dog_scripts.pop(removed_dog, []):  # noqa: E111
+                await self._async_remove_script_entity(entity_id)
 
-    definition = self._resilience_escalation_definition
-    if not isinstance(definition, dict):
-      return None  # noqa: E111
+        entry_script_definitions = self._build_entry_scripts()
+        existing_entry_scripts = set(self._entry_scripts)
+        new_entry_scripts: list[str] = []
 
-    object_id = definition.get("object_id")
-    entity_id: str | None = next(
-      (
-        entity
-        for entity in self._entry_scripts
-        if isinstance(entity, str) and entity.endswith("_resilience_escalation")
-      ),
-      None,
-    )
+        for object_id, raw_config in entry_script_definitions:
+            entity_id = f"{_SCRIPT_ENTITY_PREFIX}{object_id}"  # noqa: E111
+            existing_entity = component.get_entity(entity_id)  # noqa: E111
+            if existing_entity is not None:  # noqa: E111
+                await existing_entity.async_remove()
 
-    if entity_id is None and isinstance(object_id, str):
-      entity_id = f"{SCRIPT_DOMAIN}.{object_id}"  # noqa: E111
+            validated_config = SCRIPT_ENTITY_SCHEMA(dict(raw_config))  # noqa: E111
+            entity = ScriptEntity(  # noqa: E111
+                self._hass,
+                object_id,
+                validated_config,
+                raw_config,
+                None,
+            )
+            await component.async_add_entities([entity])  # noqa: E111
 
-    field_defaults = cast(
-      JSONMutableMapping,
-      definition.get("field_defaults", {}),
-    )
-    manual_events = self._resolve_manual_resilience_events()
-    manual_preferences = self._manual_event_preferences()
-    if not self._manual_event_sources:
-      self._refresh_manual_event_listeners()  # noqa: E111
-    source_mapping = self._manual_event_source_mapping()
-    manual_payload: JSONMutableMapping = cast(
-      JSONMutableMapping,
-      dict(manual_events),
-    )
-    active_listeners = sorted(
-      {*self._manual_event_sources, *source_mapping},
-    )
-    manual_payload["preferred_events"] = cast(
-      JSONValue,
-      dict(manual_preferences),
-    )
-    manual_payload["preferred_guard_event"] = cast(
-      JSONValue,
-      manual_preferences.get("manual_guard_event"),
-    )
-    manual_payload["preferred_breaker_event"] = cast(
-      JSONValue,
-      manual_preferences.get("manual_breaker_event"),
-    )
-    manual_payload["preferred_check_event"] = cast(
-      JSONValue,
-      manual_preferences.get("manual_check_event"),
-    )
-    manual_payload["active_listeners"] = cast(
-      JSONValue,
-      list(active_listeners),
-    )
-    manual_payload["last_event"] = cast(
-      JSONValue,
-      self.get_last_manual_event_snapshot(),
-    )
-    manual_payload["event_history"] = cast(
-      JSONValue,
-      self.get_manual_event_history(),
-    )
+            self._created_entities.add(entity_id)  # noqa: E111
+            new_entry_scripts.append(entity_id)  # noqa: E111
 
-    state = None
-    if entity_id is not None:
-      state = getattr(self._hass, "states", None)  # noqa: E111
-      state = state.get(entity_id) if state is not None else None  # noqa: E111
+            if (entry := registry.async_get(entity_id)) and (  # noqa: E111
+                entry.config_entry_id != self._entry.entry_id
+            ):
+                registry.async_update_entity(
+                    entity_id,
+                    config_entry_id=self._entry.entry_id,
+                )
 
-    state_available = state is not None
-    last_triggered: datetime | None = None
-    if state_available:
-      last_value = getattr(state, "attributes", {}).get("last_triggered")  # noqa: E111
-      if isinstance(last_value, datetime):  # noqa: E111
-        last_triggered = dt_util.as_utc(last_value)
-      elif isinstance(last_value, str):  # noqa: E111
-        parsed = dt_util.parse_datetime(last_value)
-        if parsed is not None:
-          last_triggered = dt_util.as_utc(parsed)  # noqa: E111
+        obsolete_entry_scripts = existing_entry_scripts - set(new_entry_scripts)
+        for entity_id in obsolete_entry_scripts:
+            await self._async_remove_script_entity(entity_id)  # noqa: E111
 
-    last_triggered_age: int | None = None
-    if last_triggered is not None:
-      last_triggered_age = int(  # noqa: E111
-        (dt_util.utcnow() - dt_util.as_utc(last_triggered)).total_seconds(),
-      )
-
-    active_field_defaults: JSONMutableMapping = {}
-    if state_available:
-      fields_attr = getattr(state, "attributes", {}).get("fields")  # noqa: E111
-      if isinstance(fields_attr, Mapping):  # noqa: E111
-        for field_name, field_config in fields_attr.items():
-          if isinstance(field_config, Mapping):  # noqa: E111
-            default_value = field_config.get("default")
-          else:  # noqa: E111
-            default_value = getattr(field_config, "default", None)
-          if default_value is not None or field_name in field_defaults:  # noqa: E111
-            active_field_defaults[field_name] = default_value
-
-    def _active_value(key: str) -> JSONValue | None:
-      if key in active_field_defaults:  # noqa: E111
-        return active_field_defaults[key]
-      return field_defaults.get(key)  # noqa: E111
-
-    thresholds: ResilienceEscalationThresholds = {
-      "skip_threshold": {
-        "default": field_defaults.get("skip_threshold"),
-        "active": _active_value("skip_threshold"),
-      },
-      "breaker_threshold": {
-        "default": field_defaults.get("breaker_threshold"),
-        "active": _active_value("breaker_threshold"),
-      },
-    }
-
-    followup_active = _active_value("followup_script")
-
-    timestamp_issue, last_generated_age = _classify_timestamp(
-      self._last_generation,
-    )
-
-    manual_last_trigger: ManualResilienceEventSnapshot | None = None
-    candidate_record: ManualResilienceEventRecord | Mapping[str, object] | None = None
-    if self._manual_event_history:
-      candidate_record = self._manual_event_history[-1]  # noqa: E111
-    elif isinstance(self._last_manual_event, Mapping):
-      candidate_record = self._last_manual_event  # noqa: E111
-
-    if candidate_record is not None:
-      snapshot = self._serialise_manual_event_record(  # noqa: E111
-        candidate_record,
-        recorded_at=dt_util.utcnow(),
-      )
-      if snapshot is not None:  # noqa: E111
-        manual_last_trigger = snapshot
-
-    counters_by_event: dict[str, int] = {}
-    candidate_events: set[str] = set()
-
-    for key in (
-      "configured_guard_events",
-      "configured_breaker_events",
-      "configured_check_events",
-    ):
-      values = manual_payload.get(key, [])  # noqa: E111
-      if isinstance(values, Iterable):  # noqa: E111
-        for value in values:
-          if isinstance(value, str) and value:  # noqa: E111
-            candidate_events.add(value)
-
-    system_guard_event = manual_payload.get("system_guard_event")
-    if isinstance(system_guard_event, str) and system_guard_event:
-      candidate_events.add(system_guard_event)  # noqa: E111
-
-    system_breaker_event = manual_payload.get("system_breaker_event")
-    if isinstance(system_breaker_event, str) and system_breaker_event:
-      candidate_events.add(system_breaker_event)  # noqa: E111
-
-    listener_events = manual_payload.get("listener_events", {})
-    if isinstance(listener_events, Mapping):
-      candidate_events.update(  # noqa: E111
-        event for event in listener_events if isinstance(event, str)
-      )
-
-    candidate_events.update(
-      event for event in self._manual_event_counters if isinstance(event, str) and event
-    )
-
-    for event in sorted(candidate_events):
-      counters_by_event[event] = int(  # noqa: E111
-        self._manual_event_counters.get(event, 0),
-      )
-
-    counters_by_reason: dict[str, int] = {}
-    if isinstance(listener_events, Mapping):
-      for event, reasons in listener_events.items():  # noqa: E111
-        if not isinstance(event, str):
-          continue  # noqa: E111
-        event_count = counters_by_event.get(event, 0)
-        if not event_count:
-          continue  # noqa: E111
-        if isinstance(reasons, str):
-          reasons_iterable: Iterable[str] = [reasons]  # noqa: E111
-        elif isinstance(reasons, Iterable):
-          reasons_iterable = (reason for reason in reasons if isinstance(reason, str))  # noqa: E111
+        if new_entry_scripts:
+            created["__entry__"] = list(new_entry_scripts)  # noqa: E111
+            self._entry_scripts = list(new_entry_scripts)  # noqa: E111
         else:
-          reasons_iterable = []  # noqa: E111
-        for reason in reasons_iterable:
-          counters_by_reason[reason] = counters_by_reason.get(reason, 0) + event_count  # noqa: E111
+            self._entry_scripts = []  # noqa: E111
 
-    manual_payload["last_trigger"] = cast(JSONValue, manual_last_trigger)
-    manual_payload["event_counters"] = {
-      "total": sum(counters_by_event.values()),
-      "by_event": counters_by_event,
-      "by_reason": dict(sorted(counters_by_reason.items())),
-    }
+        self._last_generation = dt_util.utcnow()
+        self._refresh_manual_event_listeners()
 
-    manual_payload_json = cast(JSONMutableMapping, dict(manual_payload))
+        self._refresh_manual_event_listeners()
 
-    return cast(
-      ResilienceEscalationSnapshot,
-      {
-        "available": entity_id is not None,
-        "state_available": state_available,
-        "entity_id": entity_id,
-        "object_id": object_id,
-        "alias": definition.get("alias"),
-        "description": definition.get("description"),
-        "last_generated": _serialize_datetime(self._last_generation),
-        "last_generated_age_seconds": last_generated_age,
-        "last_generated_status": timestamp_issue,
-        "last_triggered": _serialize_datetime(last_triggered),
-        "last_triggered_age_seconds": last_triggered_age,
-        "thresholds": thresholds,
-        "fields": {
-          key: {
-            "default": field_defaults.get(key),
-            "active": _active_value(key),
-          }
-          for key in field_defaults
-        },
-        "followup_script": {
-          "default": field_defaults.get("followup_script"),
-          "active": followup_active,
-          "configured": bool(followup_active),
-        },
-        "statistics_entity_id": {
-          "default": field_defaults.get("statistics_entity_id"),
-          "active": _active_value("statistics_entity_id"),
-        },
-        "escalation_service": {
-          "default": field_defaults.get("escalation_service"),
-          "active": _active_value("escalation_service"),
-        },
-        "manual_events": manual_payload_json,
-      },
-    )
+        return created
 
-  def _build_confirmation_script(  # noqa: E111
-    self,
-    slug: str,
-    dog_id: str,
-    dog_name: str,
-  ) -> tuple[str, ConfigType]:
-    """Create the confirmation notification script definition."""
+    async def async_cleanup(self) -> None:  # noqa: E111
+        """Remove all scripts created by the integration."""
 
-    object_id = f"pawcontrol_{slug}_outdoor_check"
-    notification_id = f"pawcontrol_{slug}_outdoor_check"
-    default_title = f"{dog_name} outdoor check"
-    default_message = (
-      f"{dog_name} just came back inside. Did everything go well outside?"
-    )
+        component = self._get_component(require_loaded=False)
+        registry = er.async_get(self._hass)
 
-    raw_config: ConfigType = {
-      CONF_ALIAS: f"{dog_name} outdoor confirmation",
-      CONF_DESCRIPTION: (
-        "Sends a push notification asking if the dog finished their outdoor "
-        "break and optionally clears the reminder automatically."
-      ),
-      CONF_SEQUENCE: [
-        {
-          "action": "{{ notify_service | default('notify.notify') }}",
-          "data": {
-            "title": f"{{ title | default('{default_title}') }}",
-            "message": f"{{ message | default('{default_message}') }}",
-            "data": {
-              "notification_id": notification_id,
-              "actions": [
+        for unsub in list(self._manual_event_unsubs.values()):
+            unsub()  # noqa: E111
+        self._manual_event_unsubs.clear()
+        self._manual_event_reasons.clear()
+        self._manual_event_sources.clear()
+        self._manual_event_counters.clear()
+        self._last_manual_event = None
+
+        for entity_id in list(self._created_entities):
+            if component is not None and (entity := component.get_entity(entity_id)):  # noqa: E111
+                await entity.async_remove()
+
+            if registry.async_get(entity_id):  # noqa: E111
+                await registry.async_remove(entity_id)
+
+            self._created_entities.discard(entity_id)  # noqa: E111
+
+        self._dog_scripts.clear()
+        self._entry_scripts.clear()
+        self._unsubscribe_manual_event_listeners()
+        _LOGGER.debug(
+            "Removed all PawControl managed scripts for entry %s",
+            self._entry.entry_id,
+        )
+
+    async def _async_remove_script_entity(self, entity_id: str) -> None:  # noqa: E111
+        """Remove a specific script entity and its registry entry."""
+
+        component = self._get_component(require_loaded=False)
+        registry = er.async_get(self._hass)
+
+        if component is not None and (entity := component.get_entity(entity_id)):
+            await entity.async_remove()  # noqa: E111
+
+        if registry.async_get(entity_id):
+            await registry.async_remove(entity_id)  # noqa: E111
+
+        self._created_entities.discard(entity_id)
+
+    def _build_scripts_for_dog(  # noqa: E111
+        self,
+        slug: str,
+        dog_id: str,
+        dog_name: str,
+        notifications_enabled: bool,
+    ) -> list[tuple[str, ConfigType]]:
+        """Return raw script configurations for a dog."""
+
+        scripts: list[tuple[str, ConfigType]] = []
+
+        scripts.append(self._build_reset_script(slug, dog_id, dog_name))
+        scripts.append(
+            self._build_setup_script(
+                slug,
+                dog_id,
+                dog_name,
+                notifications_enabled,
+            ),
+        )
+
+        if notifications_enabled:
+            scripts.append(  # noqa: E111
+                self._build_confirmation_script(
+                    slug,
+                    dog_id,
+                    dog_name,
+                ),
+            )
+            scripts.append(  # noqa: E111
+                self._build_push_test_script(
+                    slug,
+                    dog_id,
+                    dog_name,
+                ),
+            )
+
+        return scripts
+
+    def _build_entry_scripts(self) -> list[tuple[str, ConfigType]]:  # noqa: E111
+        """Return global script definitions scoped to the config entry."""
+
+        scripts: list[tuple[str, ConfigType]] = []
+        scripts.append(self._build_resilience_escalation_script())
+        return scripts
+
+    def _build_resilience_escalation_script(self) -> tuple[str, ConfigType]:  # noqa: E111
+        """Create the guard and breaker escalation script definition."""
+
+        object_id = _resolve_resilience_object_id(self._entry)
+        default_statistics_entity = "sensor.pawcontrol_statistics"
+        skip_threshold_default, breaker_threshold_default = (
+            self._resolve_resilience_thresholds()
+        )
+
+        guard_default_title = f"{self._entry_title} guard escalation"
+        guard_default_message = (
+            "Guard skipped {{ skip_count }} call(s) while executing {{ executed_count }} "
+            "request(s). Skip reasons: {{ guard_reason_text }}."
+        )
+        guard_default_notification_id = (
+            f"pawcontrol_{self._entry_slug}_guard_escalation"
+        )
+
+        breaker_default_title = f"{self._entry_title} breaker escalation"
+        breaker_default_message = (
+            "Circuit breakers report {{ breaker_count }} open and {{ half_open_count }} "
+            "half-open guard(s). Open breakers: {{ open_breakers_text }}. "
+            "Half-open breakers: {{ half_open_breakers_text }}."
+        )
+        breaker_default_notification_id = (
+            f"pawcontrol_{self._entry_slug}_breaker_escalation"
+        )
+
+        variables: ConfigType = {
+            "statistics_entity": (
+                f"{{{{ statistics_entity_id | default('{default_statistics_entity}') }}}}"
+            ),
+            "service_execution": (
+                "{{ state_attr(statistics_entity, 'service_execution') or {} }}"
+            ),
+            "guard": (
+                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
+                "{% set metrics = data.get('guard_metrics') %}"
+                "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
+            ),
+            "rejection": (
+                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
+                "{% set metrics = data.get('rejection_metrics') %}"
+                "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
+            ),
+            "skip_count": "{{ guard.get('skipped', 0) | int(0) }}",
+            "executed_count": "{{ guard.get('executed', 0) | int(0) }}",
+            "breaker_count": "{{ rejection.get('open_breaker_count', 0) | int(0) }}",
+            "half_open_count": (
+                "{{ rejection.get('half_open_breaker_count', 0) | int(0) }}"
+            ),
+            "guard_reason_text": (
+                "{% set items = guard.get('reasons', {}) | dictsort %}"
+                "{% if items %}"
+                "{% for reason, count in items %}"
+                "{{ reason }} ({{ count }}){% if not loop.last %}, {% endif %}"
+                "{% endfor %}"
+                "{% else %}No guard skip reasons recorded{% endif %}"
+            ),
+            "open_breakers_text": (
+                "{% set names = rejection.get('open_breakers', []) %}"
+                "{% if names %}{{ names | join(', ') }}{% else %}None{% endif %}"
+            ),
+            "half_open_breakers_text": (
+                "{% set names = rejection.get('half_open_breakers', []) %}"
+                "{% if names %}{{ names | join(', ') }}{% else %}None{% endif %}"
+            ),
+        }
+
+        guard_followup: ConfigType = {
+            "choose": [
                 {
-                  "action": "{{ confirm_action | default('PAWCONTROL_CONFIRM') }}",
-                  "title": "{{ confirm_title | default('✅ All good') }}",
+                    "conditions": [
+                        {
+                            "condition": "template",
+                            "value_template": (
+                                "{{ followup_script | default('') | trim != '' }}"
+                            ),
+                        },
+                    ],
+                    "sequence": [
+                        {
+                            "action": "script.turn_on",
+                            "target": {"entity_id": "{{ followup_script }}"},
+                            "data": {
+                                "variables": {
+                                    "trigger_reason": "guard",
+                                    "skip_count": "{{ skip_count }}",
+                                    "executed_count": "{{ executed_count }}",
+                                    "guard_reasons": "{{ guard.get('reasons', {}) }}",
+                                    "breaker_count": "{{ breaker_count }}",
+                                    "half_open_count": "{{ half_open_count }}",
+                                },
+                            },
+                        },
+                    ],
                 },
+            ],
+            "default": [],
+        }
+
+        breaker_followup: ConfigType = {
+            "choose": [
                 {
-                  "action": "{{ remind_action | default('PAWCONTROL_REMIND') }}",
-                  "title": "{{ remind_title | default('🔁 Remind me later') }}",
+                    "conditions": [
+                        {
+                            "condition": "template",
+                            "value_template": (
+                                "{{ followup_script | default('') | trim != '' }}"
+                            ),
+                        },
+                    ],
+                    "sequence": [
+                        {
+                            "action": "script.turn_on",
+                            "target": {"entity_id": "{{ followup_script }}"},
+                            "data": {
+                                "variables": {
+                                    "trigger_reason": "breaker",
+                                    "breaker_count": "{{ breaker_count }}",
+                                    "half_open_count": "{{ half_open_count }}",
+                                    "open_breakers": "{{ rejection.get('open_breakers', []) }}",
+                                    "half_open_breakers": "{{ rejection.get('half_open_breakers', []) }}",
+                                    "skip_count": "{{ skip_count }}",
+                                    "executed_count": "{{ executed_count }}",
+                                },
+                            },
+                        },
+                    ],
                 },
-              ],
-            },
-          },
-        },
-        {
-          "choose": [
+            ],
+            "default": [],
+        }
+
+        sequence: list[ConfigType] = [
+            {"variables": variables},
             {
-              "conditions": [
-                {
-                  "condition": "template",
-                  "value_template": "{{ auto_acknowledge | default(false) }}",
-                },
-              ],
-              "sequence": [
-                {
-                  "action": "pawcontrol.acknowledge_notification",
-                  "data": {"notification_id": notification_id},
-                },
-              ],
+                "choose": [
+                    {
+                        "conditions": [
+                            {
+                                "condition": "template",
+                                "value_template": (
+                                    "{{ (skip_threshold | int(0)) > 0 and "
+                                    "skip_count >= (skip_threshold | int(0)) }}"
+                                ),
+                            },
+                        ],
+                        "sequence": [
+                            {
+                                "action": (
+                                    "{{ escalation_service | default('persistent_notification.create') }}"
+                                ),
+                                "data": {
+                                    "title": (
+                                        f"{{{{ guard_title | default('{guard_default_title}') }}}}"
+                                    ),
+                                    "message": (
+                                        f"{{{{ guard_message | default('{guard_default_message}') }}}}"
+                                    ),
+                                    "notification_id": (
+                                        f"{{{{ guard_notification_id | default('{guard_default_notification_id}') }}}}"  # noqa: E501
+                                    ),
+                                },
+                            },
+                            guard_followup,
+                        ],
+                    },
+                    {
+                        "conditions": [
+                            {
+                                "condition": "template",
+                                "value_template": (
+                                    "{{ (breaker_threshold | int(0)) > 0 and ("
+                                    "breaker_count >= (breaker_threshold | int(0)) or "
+                                    "half_open_count >= (breaker_threshold | int(0))) }}"
+                                ),
+                            },
+                        ],
+                        "sequence": [
+                            {
+                                "action": (
+                                    "{{ escalation_service | default('persistent_notification.create') }}"
+                                ),
+                                "data": {
+                                    "title": (
+                                        f"{{{{ breaker_title | default('{breaker_default_title}') }}}}"
+                                    ),
+                                    "message": (
+                                        f"{{{{ breaker_message | default('{breaker_default_message}') }}}}"
+                                    ),
+                                    "notification_id": (
+                                        f"{{{{ breaker_notification_id | default('{breaker_default_notification_id}') }}}}"  # noqa: E501
+                                    ),
+                                },
+                            },
+                            breaker_followup,
+                        ],
+                    },
+                ],
+                "default": [],
             },
-          ],
-          "default": [],
-        },
-      ],
-      CONF_FIELDS: {
-        "notify_service": {
-          CONF_NAME: "Notification service",
-          CONF_DESCRIPTION: "Service used to deliver the confirmation question.",
-          CONF_DEFAULT: "notify.notify",
-          "selector": {"text": {}},
-        },
-        "title": {
-          CONF_NAME: "Title",
-          CONF_DESCRIPTION: "Title shown in the push notification.",
-          CONF_DEFAULT: default_title,
-          "selector": {"text": {}},
-        },
-        "message": {
-          CONF_NAME: "Message",
-          CONF_DESCRIPTION: "Body text shown in the push notification.",
-          CONF_DEFAULT: default_message,
-          "selector": {"text": {"multiline": True}},
-        },
-        "auto_acknowledge": {
-          CONF_NAME: "Auto acknowledge",
-          CONF_DESCRIPTION: (
-            "Automatically clear the notification after sending the question."
-          ),
-          CONF_DEFAULT: False,
-          "selector": {"boolean": {}},
-        },
-      },
-      CONF_TRACE: {},
-    }
+        ]
 
-    return object_id, raw_config
+        fields: ConfigType = {
+            "statistics_entity_id": {
+                CONF_NAME: "Statistics sensor",
+                CONF_DESCRIPTION: (
+                    "Entity that exposes PawControl runtime statistics including "
+                    "service execution metrics."
+                ),
+                CONF_DEFAULT: default_statistics_entity,
+                "selector": {"entity": {"domain": "sensor"}},
+            },
+            "skip_threshold": {
+                CONF_NAME: "Guard skip threshold",
+                CONF_DESCRIPTION: (
+                    "Escalate when skipped guard calls reach or exceed this value. "
+                    "Set to 0 to disable guard escalations."
+                ),
+                CONF_DEFAULT: skip_threshold_default,
+                "selector": {"number": {"min": 0, "max": 50, "mode": "box"}},
+            },
+            "breaker_threshold": {
+                CONF_NAME: "Breaker alert threshold",
+                CONF_DESCRIPTION: (
+                    "Escalate when open or half-open breaker counts reach this value. "
+                    "Set to 0 to disable breaker escalations."
+                ),
+                CONF_DEFAULT: breaker_threshold_default,
+                "selector": {"number": {"min": 0, "max": 10, "mode": "box"}},
+            },
+            "escalation_service": {
+                CONF_NAME: "Escalation service",
+                CONF_DESCRIPTION: (
+                    "Service called when an escalation fires. Uses persistent "
+                    "notifications by default."
+                ),
+                CONF_DEFAULT: "persistent_notification.create",
+                "selector": {"text": {}},
+            },
+            "guard_title": {
+                CONF_NAME: "Guard alert title",
+                CONF_DESCRIPTION: "Title used when guard skips trigger the escalation.",
+                CONF_DEFAULT: guard_default_title,
+                "selector": {"text": {}},
+            },
+            "guard_message": {
+                CONF_NAME: "Guard alert message",
+                CONF_DESCRIPTION: (
+                    "Message body for guard skip escalations. Jinja variables from the "
+                    "script (e.g. {{ skip_count }}) are available."
+                ),
+                CONF_DEFAULT: guard_default_message,
+                "selector": {"text": {"multiline": True}},
+            },
+            "guard_notification_id": {
+                CONF_NAME: "Guard notification ID",
+                CONF_DESCRIPTION: (
+                    "Notification identifier so repeated alerts update the same "
+                    "persistent notification."
+                ),
+                CONF_DEFAULT: guard_default_notification_id,
+                "selector": {"text": {}},
+            },
+            "breaker_title": {
+                CONF_NAME: "Breaker alert title",
+                CONF_DESCRIPTION: "Title used when breaker counts trigger the escalation.",
+                CONF_DEFAULT: breaker_default_title,
+                "selector": {"text": {}},
+            },
+            "breaker_message": {
+                CONF_NAME: "Breaker alert message",
+                CONF_DESCRIPTION: (
+                    "Message body for breaker escalations. Script variables such as "
+                    "{{ breaker_count }} are available."
+                ),
+                CONF_DEFAULT: breaker_default_message,
+                "selector": {"text": {"multiline": True}},
+            },
+            "breaker_notification_id": {
+                CONF_NAME: "Breaker notification ID",
+                CONF_DESCRIPTION: (
+                    "Notification identifier for breaker alerts, keeping updates idempotent."
+                ),
+                CONF_DEFAULT: breaker_default_notification_id,
+                "selector": {"text": {}},
+            },
+            "followup_script": {
+                CONF_NAME: "Follow-up script",
+                CONF_DESCRIPTION: (
+                    "Optional script triggered after escalations fire. Receives "
+                    "context variables such as skip and breaker counts."
+                ),
+                CONF_DEFAULT: "",
+                "selector": {"entity": {"domain": "script", "multiple": False}},
+            },
+        }
 
-  def _build_reset_script(  # noqa: E111
-    self,
-    slug: str,
-    dog_id: str,
-    dog_name: str,
-  ) -> tuple[str, ConfigType]:
-    """Create the daily reset helper script definition."""
+        raw_config: ConfigType = {
+            CONF_ALIAS: f"{self._entry_title} resilience escalation",
+            CONF_DESCRIPTION: (
+                "Escalates guard skips and breaker activations using PawControl's "
+                "runtime service metrics and optional follow-up automations."
+            ),
+            CONF_SEQUENCE: sequence,
+            CONF_FIELDS: fields,
+            CONF_TRACE: {},
+        }
 
-    object_id = f"pawcontrol_{slug}_daily_reset"
-    raw_config: ConfigType = {
-      CONF_ALIAS: f"{dog_name} reset daily counters",
-      CONF_DESCRIPTION: (
-        "Resets PawControl's counters for the dog and optionally records a "
-        "summary in the logbook."
-      ),
-      CONF_SEQUENCE: [
-        {
-          "action": "pawcontrol.reset_daily_stats",
-          "data": {
-            "dog_id": dog_id,
-            "confirm": "{{ confirm | default(true) }}",
-          },
-        },
-        {
-          "choose": [
+        field_defaults: JSONMutableMapping = {}
+        for field_name, field_config in fields.items():
+            if isinstance(field_config, Mapping):  # noqa: E111
+                field_defaults[field_name] = field_config.get(CONF_DEFAULT)
+
+        self._resilience_escalation_definition = {
+            "object_id": object_id,
+            "alias": raw_config[CONF_ALIAS],
+            "description": raw_config[CONF_DESCRIPTION],
+            "field_defaults": field_defaults,
+        }
+
+        return object_id, raw_config
+
+    def get_resilience_escalation_snapshot(self) -> ResilienceEscalationSnapshot | None:  # noqa: E111
+        """Return diagnostics metadata for the resilience escalation helper."""
+
+        definition = self._resilience_escalation_definition
+        if not isinstance(definition, dict):
+            return None  # noqa: E111
+
+        object_id = definition.get("object_id")
+        entity_id: str | None = next(
+            (
+                entity
+                for entity in self._entry_scripts
+                if isinstance(entity, str) and entity.endswith("_resilience_escalation")
+            ),
+            None,
+        )
+
+        if entity_id is None and isinstance(object_id, str):
+            entity_id = f"{SCRIPT_DOMAIN}.{object_id}"  # noqa: E111
+
+        field_defaults = cast(
+            JSONMutableMapping,
+            definition.get("field_defaults", {}),
+        )
+        manual_events = self._resolve_manual_resilience_events()
+        manual_preferences = self._manual_event_preferences()
+        if not self._manual_event_sources:
+            self._refresh_manual_event_listeners()  # noqa: E111
+        source_mapping = self._manual_event_source_mapping()
+        manual_payload: JSONMutableMapping = cast(
+            JSONMutableMapping,
+            dict(manual_events),
+        )
+        active_listeners = sorted(
+            {*self._manual_event_sources, *source_mapping},
+        )
+        manual_payload["preferred_events"] = cast(
+            JSONValue,
+            dict(manual_preferences),
+        )
+        manual_payload["preferred_guard_event"] = cast(
+            JSONValue,
+            manual_preferences.get("manual_guard_event"),
+        )
+        manual_payload["preferred_breaker_event"] = cast(
+            JSONValue,
+            manual_preferences.get("manual_breaker_event"),
+        )
+        manual_payload["preferred_check_event"] = cast(
+            JSONValue,
+            manual_preferences.get("manual_check_event"),
+        )
+        manual_payload["active_listeners"] = cast(
+            JSONValue,
+            list(active_listeners),
+        )
+        manual_payload["last_event"] = cast(
+            JSONValue,
+            self.get_last_manual_event_snapshot(),
+        )
+        manual_payload["event_history"] = cast(
+            JSONValue,
+            self.get_manual_event_history(),
+        )
+
+        state = None
+        if entity_id is not None:
+            state = getattr(self._hass, "states", None)  # noqa: E111
+            state = state.get(entity_id) if state is not None else None  # noqa: E111
+
+        state_available = state is not None
+        last_triggered: datetime | None = None
+        if state_available:
+            last_value = getattr(state, "attributes", {}).get("last_triggered")  # noqa: E111
+            if isinstance(last_value, datetime):  # noqa: E111
+                last_triggered = dt_util.as_utc(last_value)
+            elif isinstance(last_value, str):  # noqa: E111
+                parsed = dt_util.parse_datetime(last_value)
+                if parsed is not None:
+                    last_triggered = dt_util.as_utc(parsed)  # noqa: E111
+
+        last_triggered_age: int | None = None
+        if last_triggered is not None:
+            last_triggered_age = int(  # noqa: E111
+                (dt_util.utcnow() - dt_util.as_utc(last_triggered)).total_seconds(),
+            )
+
+        active_field_defaults: JSONMutableMapping = {}
+        if state_available:
+            fields_attr = getattr(state, "attributes", {}).get("fields")  # noqa: E111
+            if isinstance(fields_attr, Mapping):  # noqa: E111
+                for field_name, field_config in fields_attr.items():
+                    if isinstance(field_config, Mapping):  # noqa: E111
+                        default_value = field_config.get("default")
+                    else:  # noqa: E111
+                        default_value = getattr(field_config, "default", None)
+                    if default_value is not None or field_name in field_defaults:  # noqa: E111
+                        active_field_defaults[field_name] = default_value
+
+        def _active_value(key: str) -> JSONValue | None:
+            if key in active_field_defaults:  # noqa: E111
+                return active_field_defaults[key]
+            return field_defaults.get(key)  # noqa: E111
+
+        thresholds: ResilienceEscalationThresholds = {
+            "skip_threshold": {
+                "default": field_defaults.get("skip_threshold"),
+                "active": _active_value("skip_threshold"),
+            },
+            "breaker_threshold": {
+                "default": field_defaults.get("breaker_threshold"),
+                "active": _active_value("breaker_threshold"),
+            },
+        }
+
+        followup_active = _active_value("followup_script")
+
+        timestamp_issue, last_generated_age = _classify_timestamp(
+            self._last_generation,
+        )
+
+        manual_last_trigger: ManualResilienceEventSnapshot | None = None
+        candidate_record: ManualResilienceEventRecord | Mapping[str, object] | None = (
+            None
+        )
+        if self._manual_event_history:
+            candidate_record = self._manual_event_history[-1]  # noqa: E111
+        elif isinstance(self._last_manual_event, Mapping):
+            candidate_record = self._last_manual_event  # noqa: E111
+
+        if candidate_record is not None:
+            snapshot = self._serialise_manual_event_record(  # noqa: E111
+                candidate_record,
+                recorded_at=dt_util.utcnow(),
+            )
+            if snapshot is not None:  # noqa: E111
+                manual_last_trigger = snapshot
+
+        counters_by_event: dict[str, int] = {}
+        candidate_events: set[str] = set()
+
+        for key in (
+            "configured_guard_events",
+            "configured_breaker_events",
+            "configured_check_events",
+        ):
+            values = manual_payload.get(key, [])  # noqa: E111
+            if isinstance(values, Iterable):  # noqa: E111
+                for value in values:
+                    if isinstance(value, str) and value:  # noqa: E111
+                        candidate_events.add(value)
+
+        system_guard_event = manual_payload.get("system_guard_event")
+        if isinstance(system_guard_event, str) and system_guard_event:
+            candidate_events.add(system_guard_event)  # noqa: E111
+
+        system_breaker_event = manual_payload.get("system_breaker_event")
+        if isinstance(system_breaker_event, str) and system_breaker_event:
+            candidate_events.add(system_breaker_event)  # noqa: E111
+
+        listener_events = manual_payload.get("listener_events", {})
+        if isinstance(listener_events, Mapping):
+            candidate_events.update(  # noqa: E111
+                event for event in listener_events if isinstance(event, str)
+            )
+
+        candidate_events.update(
+            event
+            for event in self._manual_event_counters
+            if isinstance(event, str) and event
+        )
+
+        for event in sorted(candidate_events):
+            counters_by_event[event] = int(  # noqa: E111
+                self._manual_event_counters.get(event, 0),
+            )
+
+        counters_by_reason: dict[str, int] = {}
+        if isinstance(listener_events, Mapping):
+            for event, reasons in listener_events.items():  # noqa: E111
+                if not isinstance(event, str):
+                    continue  # noqa: E111
+                event_count = counters_by_event.get(event, 0)
+                if not event_count:
+                    continue  # noqa: E111
+                if isinstance(reasons, str):
+                    reasons_iterable: Iterable[str] = [reasons]  # noqa: E111
+                elif isinstance(reasons, Iterable):
+                    reasons_iterable = (
+                        reason for reason in reasons if isinstance(reason, str)
+                    )  # noqa: E111
+                else:
+                    reasons_iterable = []  # noqa: E111
+                for reason in reasons_iterable:
+                    counters_by_reason[reason] = (
+                        counters_by_reason.get(reason, 0) + event_count
+                    )  # noqa: E111
+
+        manual_payload["last_trigger"] = cast(JSONValue, manual_last_trigger)
+        manual_payload["event_counters"] = {
+            "total": sum(counters_by_event.values()),
+            "by_event": counters_by_event,
+            "by_reason": dict(sorted(counters_by_reason.items())),
+        }
+
+        manual_payload_json = cast(JSONMutableMapping, dict(manual_payload))
+
+        return cast(
+            ResilienceEscalationSnapshot,
             {
-              "conditions": [
-                {
-                  "condition": "template",
-                  "value_template": "{{ summary | default('') != '' }}",
+                "available": entity_id is not None,
+                "state_available": state_available,
+                "entity_id": entity_id,
+                "object_id": object_id,
+                "alias": definition.get("alias"),
+                "description": definition.get("description"),
+                "last_generated": _serialize_datetime(self._last_generation),
+                "last_generated_age_seconds": last_generated_age,
+                "last_generated_status": timestamp_issue,
+                "last_triggered": _serialize_datetime(last_triggered),
+                "last_triggered_age_seconds": last_triggered_age,
+                "thresholds": thresholds,
+                "fields": {
+                    key: {
+                        "default": field_defaults.get(key),
+                        "active": _active_value(key),
+                    }
+                    for key in field_defaults
                 },
-              ],
-              "sequence": [
-                {
-                  "action": "logbook.log",
-                  "data": {
-                    "name": "PawControl",
-                    "message": "{{ summary }}",
-                  },
+                "followup_script": {
+                    "default": field_defaults.get("followup_script"),
+                    "active": followup_active,
+                    "configured": bool(followup_active),
                 },
-              ],
+                "statistics_entity_id": {
+                    "default": field_defaults.get("statistics_entity_id"),
+                    "active": _active_value("statistics_entity_id"),
+                },
+                "escalation_service": {
+                    "default": field_defaults.get("escalation_service"),
+                    "active": _active_value("escalation_service"),
+                },
+                "manual_events": manual_payload_json,
             },
-          ],
-          "default": [],
-        },
-      ],
-      CONF_FIELDS: {
-        "confirm": {
-          CONF_NAME: "Require confirmation",
-          CONF_DESCRIPTION: "Require an additional confirmation before resetting counters.",  # noqa: E501
-          CONF_DEFAULT: True,
-          "selector": {"boolean": {}},
-        },
-        "summary": {
-          CONF_NAME: "Log summary",
-          CONF_DESCRIPTION: (
-            "Optional summary that will be written to the logbook after the reset."
-          ),
-          CONF_DEFAULT: "",
-          "selector": {"text": {"multiline": True}},
-        },
-      },
-      CONF_TRACE: {},
-    }
+        )
 
-    return object_id, raw_config
+    def _build_confirmation_script(  # noqa: E111
+        self,
+        slug: str,
+        dog_id: str,
+        dog_name: str,
+    ) -> tuple[str, ConfigType]:
+        """Create the confirmation notification script definition."""
 
-  def _build_push_test_script(  # noqa: E111
-    self,
-    slug: str,
-    dog_id: str,
-    dog_name: str,
-  ) -> tuple[str, ConfigType]:
-    """Create the push notification test script definition."""
+        object_id = f"pawcontrol_{slug}_outdoor_check"
+        notification_id = f"pawcontrol_{slug}_outdoor_check"
+        default_title = f"{dog_name} outdoor check"
+        default_message = (
+            f"{dog_name} just came back inside. Did everything go well outside?"
+        )
 
-    object_id = f"pawcontrol_{slug}_notification_test"
-    default_message = f"Test notification for {dog_name} from PawControl"
-
-    raw_config: ConfigType = {
-      CONF_ALIAS: f"{dog_name} notification test",
-      CONF_DESCRIPTION: (
-        "Sends the PawControl test notification so that you can verify "
-        "push delivery for this dog."
-      ),
-      CONF_SEQUENCE: [
-        {
-          "action": "pawcontrol.notify_test",
-          "data": {
-            "dog_id": dog_id,
-            "message": f"{{ message | default('{default_message}') }}",
-            "priority": "{{ priority | default('normal') }}",
-          },
-        },
-      ],
-      CONF_FIELDS: {
-        "message": {
-          CONF_NAME: "Message",
-          CONF_DESCRIPTION: "Notification message body.",
-          CONF_DEFAULT: default_message,
-          "selector": {"text": {"multiline": True}},
-        },
-        "priority": {
-          CONF_NAME: "Priority",
-          CONF_DESCRIPTION: "Notification priority used for the test message.",
-          CONF_DEFAULT: "normal",
-          "selector": {
-            "select": {
-              "options": ["low", "normal", "high", "urgent"],
+        raw_config: ConfigType = {
+            CONF_ALIAS: f"{dog_name} outdoor confirmation",
+            CONF_DESCRIPTION: (
+                "Sends a push notification asking if the dog finished their outdoor "
+                "break and optionally clears the reminder automatically."
+            ),
+            CONF_SEQUENCE: [
+                {
+                    "action": "{{ notify_service | default('notify.notify') }}",
+                    "data": {
+                        "title": f"{{ title | default('{default_title}') }}",
+                        "message": f"{{ message | default('{default_message}') }}",
+                        "data": {
+                            "notification_id": notification_id,
+                            "actions": [
+                                {
+                                    "action": "{{ confirm_action | default('PAWCONTROL_CONFIRM') }}",
+                                    "title": "{{ confirm_title | default('✅ All good') }}",
+                                },
+                                {
+                                    "action": "{{ remind_action | default('PAWCONTROL_REMIND') }}",
+                                    "title": "{{ remind_title | default('🔁 Remind me later') }}",
+                                },
+                            ],
+                        },
+                    },
+                },
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {
+                                    "condition": "template",
+                                    "value_template": "{{ auto_acknowledge | default(false) }}",
+                                },
+                            ],
+                            "sequence": [
+                                {
+                                    "action": "pawcontrol.acknowledge_notification",
+                                    "data": {"notification_id": notification_id},
+                                },
+                            ],
+                        },
+                    ],
+                    "default": [],
+                },
+            ],
+            CONF_FIELDS: {
+                "notify_service": {
+                    CONF_NAME: "Notification service",
+                    CONF_DESCRIPTION: "Service used to deliver the confirmation question.",
+                    CONF_DEFAULT: "notify.notify",
+                    "selector": {"text": {}},
+                },
+                "title": {
+                    CONF_NAME: "Title",
+                    CONF_DESCRIPTION: "Title shown in the push notification.",
+                    CONF_DEFAULT: default_title,
+                    "selector": {"text": {}},
+                },
+                "message": {
+                    CONF_NAME: "Message",
+                    CONF_DESCRIPTION: "Body text shown in the push notification.",
+                    CONF_DEFAULT: default_message,
+                    "selector": {"text": {"multiline": True}},
+                },
+                "auto_acknowledge": {
+                    CONF_NAME: "Auto acknowledge",
+                    CONF_DESCRIPTION: (
+                        "Automatically clear the notification after sending the question."
+                    ),
+                    CONF_DEFAULT: False,
+                    "selector": {"boolean": {}},
+                },
             },
-          },
-        },
-      },
-      CONF_TRACE: {},
-    }
+            CONF_TRACE: {},
+        }
 
-    return object_id, raw_config
+        return object_id, raw_config
 
-  def _build_setup_script(  # noqa: E111
-    self,
-    slug: str,
-    dog_id: str,
-    dog_name: str,
-    notifications_enabled: bool,
-  ) -> tuple[str, ConfigType]:
-    """Create the daily setup orchestration script definition."""
+    def _build_reset_script(  # noqa: E111
+        self,
+        slug: str,
+        dog_id: str,
+        dog_name: str,
+    ) -> tuple[str, ConfigType]:
+        """Create the daily reset helper script definition."""
 
-    object_id = f"pawcontrol_{slug}_daily_setup"
-    default_message = f"Daily PawControl setup completed for {dog_name}."
+        object_id = f"pawcontrol_{slug}_daily_reset"
+        raw_config: ConfigType = {
+            CONF_ALIAS: f"{dog_name} reset daily counters",
+            CONF_DESCRIPTION: (
+                "Resets PawControl's counters for the dog and optionally records a "
+                "summary in the logbook."
+            ),
+            CONF_SEQUENCE: [
+                {
+                    "action": "pawcontrol.reset_daily_stats",
+                    "data": {
+                        "dog_id": dog_id,
+                        "confirm": "{{ confirm | default(true) }}",
+                    },
+                },
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {
+                                    "condition": "template",
+                                    "value_template": "{{ summary | default('') != '' }}",
+                                },
+                            ],
+                            "sequence": [
+                                {
+                                    "action": "logbook.log",
+                                    "data": {
+                                        "name": "PawControl",
+                                        "message": "{{ summary }}",
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    "default": [],
+                },
+            ],
+            CONF_FIELDS: {
+                "confirm": {
+                    CONF_NAME: "Require confirmation",
+                    CONF_DESCRIPTION: "Require an additional confirmation before resetting counters.",  # noqa: E501
+                    CONF_DEFAULT: True,
+                    "selector": {"boolean": {}},
+                },
+                "summary": {
+                    CONF_NAME: "Log summary",
+                    CONF_DESCRIPTION: (
+                        "Optional summary that will be written to the logbook after the reset."
+                    ),
+                    CONF_DEFAULT: "",
+                    "selector": {"text": {"multiline": True}},
+                },
+            },
+            CONF_TRACE: {},
+        }
 
-    sequence: list[ConfigType] = [
-      {
-        "action": "pawcontrol.reset_daily_stats",
-        "data": {"dog_id": dog_id, "confirm": False},
-      },
-    ]
+        return object_id, raw_config
 
-    fields: dict[str, ConfigType] = {}
+    def _build_push_test_script(  # noqa: E111
+        self,
+        slug: str,
+        dog_id: str,
+        dog_name: str,
+    ) -> tuple[str, ConfigType]:
+        """Create the push notification test script definition."""
 
-    if notifications_enabled:
-      sequence.append(  # noqa: E111
-        {
-          "choose": [
+        object_id = f"pawcontrol_{slug}_notification_test"
+        default_message = f"Test notification for {dog_name} from PawControl"
+
+        raw_config: ConfigType = {
+            CONF_ALIAS: f"{dog_name} notification test",
+            CONF_DESCRIPTION: (
+                "Sends the PawControl test notification so that you can verify "
+                "push delivery for this dog."
+            ),
+            CONF_SEQUENCE: [
+                {
+                    "action": "pawcontrol.notify_test",
+                    "data": {
+                        "dog_id": dog_id,
+                        "message": f"{{ message | default('{default_message}') }}",
+                        "priority": "{{ priority | default('normal') }}",
+                    },
+                },
+            ],
+            CONF_FIELDS: {
+                "message": {
+                    CONF_NAME: "Message",
+                    CONF_DESCRIPTION: "Notification message body.",
+                    CONF_DEFAULT: default_message,
+                    "selector": {"text": {"multiline": True}},
+                },
+                "priority": {
+                    CONF_NAME: "Priority",
+                    CONF_DESCRIPTION: "Notification priority used for the test message.",
+                    CONF_DEFAULT: "normal",
+                    "selector": {
+                        "select": {
+                            "options": ["low", "normal", "high", "urgent"],
+                        },
+                    },
+                },
+            },
+            CONF_TRACE: {},
+        }
+
+        return object_id, raw_config
+
+    def _build_setup_script(  # noqa: E111
+        self,
+        slug: str,
+        dog_id: str,
+        dog_name: str,
+        notifications_enabled: bool,
+    ) -> tuple[str, ConfigType]:
+        """Create the daily setup orchestration script definition."""
+
+        object_id = f"pawcontrol_{slug}_daily_setup"
+        default_message = f"Daily PawControl setup completed for {dog_name}."
+
+        sequence: list[ConfigType] = [
             {
-              "conditions": [
-                {
-                  "condition": "template",
-                  "value_template": "{{ send_notification | default(true) }}",
-                },
-              ],
-              "sequence": [
-                {
-                  "action": "pawcontrol.notify_test",
-                  "data": {
-                    "dog_id": dog_id,
-                    "message": f"{{ message | default('{default_message}') }}",
-                    "priority": "{{ priority | default('normal') }}",
-                  },
-                },
-              ],
+                "action": "pawcontrol.reset_daily_stats",
+                "data": {"dog_id": dog_id, "confirm": False},
             },
-          ],
-          "default": [],
-        },
-      )
+        ]
 
-      fields["send_notification"] = {  # noqa: E111
-        CONF_NAME: "Send verification",
-        CONF_DESCRIPTION: "Send a PawControl notification after resetting counters.",
-        CONF_DEFAULT: True,
-        "selector": {"boolean": {}},
-      }
-      fields["message"] = {  # noqa: E111
-        CONF_NAME: "Verification message",
-        CONF_DESCRIPTION: "Message used when the verification notification is sent.",
-        CONF_DEFAULT: default_message,
-        "selector": {"text": {"multiline": True}},
-      }
-      fields["priority"] = {  # noqa: E111
-        CONF_NAME: "Verification priority",
-        CONF_DESCRIPTION: "Priority level for the verification notification.",
-        CONF_DEFAULT: "normal",
-        "selector": {
-          "select": {
-            "options": ["low", "normal", "high", "urgent"],
-          },
-        },
-      }
+        fields: dict[str, ConfigType] = {}
 
-    raw_config: ConfigType = {
-      CONF_ALIAS: f"{dog_name} daily setup",
-      CONF_DESCRIPTION: (
-        "Runs the documented PawControl setup flow by resetting counters "
-        "and optionally sending a verification notification."
-      ),
-      CONF_SEQUENCE: sequence,
-      CONF_FIELDS: fields,
-      CONF_TRACE: {},
-    }
+        if notifications_enabled:
+            sequence.append(  # noqa: E111
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {
+                                    "condition": "template",
+                                    "value_template": "{{ send_notification | default(true) }}",
+                                },
+                            ],
+                            "sequence": [
+                                {
+                                    "action": "pawcontrol.notify_test",
+                                    "data": {
+                                        "dog_id": dog_id,
+                                        "message": f"{{ message | default('{default_message}') }}",
+                                        "priority": "{{ priority | default('normal') }}",
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    "default": [],
+                },
+            )
 
-    return object_id, raw_config
+            fields["send_notification"] = {  # noqa: E111
+                CONF_NAME: "Send verification",
+                CONF_DESCRIPTION: "Send a PawControl notification after resetting counters.",
+                CONF_DEFAULT: True,
+                "selector": {"boolean": {}},
+            }
+            fields["message"] = {  # noqa: E111
+                CONF_NAME: "Verification message",
+                CONF_DESCRIPTION: "Message used when the verification notification is sent.",
+                CONF_DEFAULT: default_message,
+                "selector": {"text": {"multiline": True}},
+            }
+            fields["priority"] = {  # noqa: E111
+                CONF_NAME: "Verification priority",
+                CONF_DESCRIPTION: "Priority level for the verification notification.",
+                CONF_DEFAULT: "normal",
+                "selector": {
+                    "select": {
+                        "options": ["low", "normal", "high", "urgent"],
+                    },
+                },
+            }
+
+        raw_config: ConfigType = {
+            CONF_ALIAS: f"{dog_name} daily setup",
+            CONF_DESCRIPTION: (
+                "Runs the documented PawControl setup flow by resetting counters "
+                "and optionally sending a verification notification."
+            ),
+            CONF_SEQUENCE: sequence,
+            CONF_FIELDS: fields,
+            CONF_TRACE: {},
+        }
+
+        return object_id, raw_config
 
 
 class ManualEventSourceList(list[str]):
-  """List-like container that compares equal to listener and canonical sources."""  # noqa: E111
+    """List-like container that compares equal to listener and canonical sources."""  # noqa: E111
 
-  def __eq__(  # noqa: E111
-    self,
-    other: object,
-  ) -> bool:  # pragma: no cover - behaviour validated via tests
-    """Normalise ``system_options`` placeholder values during comparisons.
+    def __eq__(  # noqa: E111
+        self,
+        other: object,
+    ) -> bool:  # pragma: no cover - behaviour validated via tests
+        """Normalise ``system_options`` placeholder values during comparisons.
 
-    Manual resilience listeners historically recorded ``"system_options"`` as
-    a placeholder whenever the event originated from config entry options.
-    Older persistence layers therefore store the placeholder as a standalone
-    list entry, while newer telemetry emits the canonical listener list and
-    appends the placeholder for provenance.  The custom equality keeps both
-    representations equivalent so downstream code that still compares raw
-    lists continues to work while the new telemetry retains its richer
-    metadata.
-    """
-    if isinstance(other, list):
-      if other == ["system_options"]:  # noqa: E111
-        return "system_options" in self
-      cleaned = [item for item in self if item != "system_options"]  # noqa: E111
-      return cleaned == other  # noqa: E111
-    return super().__eq__(other)
+        Manual resilience listeners historically recorded ``"system_options"`` as
+        a placeholder whenever the event originated from config entry options.
+        Older persistence layers therefore store the placeholder as a standalone
+        list entry, while newer telemetry emits the canonical listener list and
+        appends the placeholder for provenance.  The custom equality keeps both
+        representations equivalent so downstream code that still compares raw
+        lists continues to work while the new telemetry retains its richer
+        metadata.
+        """
+        if isinstance(other, list):
+            if other == ["system_options"]:  # noqa: E111
+                return "system_options" in self
+            cleaned = [item for item in self if item != "system_options"]  # noqa: E111
+            return cleaned == other  # noqa: E111
+        return super().__eq__(other)

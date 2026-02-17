@@ -32,14 +32,14 @@ repos:
         additional_dependencies:
           - types-pyyaml
         exclude: ^testing/resources/
-        
+
   - repo: https://github.com/JelleZijlstra/autotyping
     rev: 24.9.0
     hooks:
       - id: autotyping
         stages: [pre-commit]
         types: [python]
-        args: [--safe] # or alternatively, --aggressive, or any of the other flags mentioned above 
+        args: [--safe] # or alternatively, --aggressive, or any of the other flags mentioned above
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0

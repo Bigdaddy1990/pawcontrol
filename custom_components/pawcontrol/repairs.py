@@ -21,18 +21,18 @@ from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from .const import (
-  CONF_DOG_ID,
-  CONF_DOG_NAME,
-  CONF_DOGS,
-  CONF_GPS_SOURCE,
-  CONFIG_ENTRY_VERSION,
-  DOMAIN,
-  MODULE_FEEDING,
-  MODULE_GARDEN,
-  MODULE_GPS,
-  MODULE_HEALTH,
-  MODULE_NOTIFICATIONS,
-  MODULE_WALK,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    CONF_GPS_SOURCE,
+    CONFIG_ENTRY_VERSION,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GARDEN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
 from .error_classification import classify_error_reason
@@ -40,24 +40,24 @@ from .exceptions import RepairRequiredError
 from .feeding_translations import async_build_feeding_compliance_summary
 from .push_router import get_entry_push_telemetry_snapshot
 from .runtime_data import (
-  RuntimeDataUnavailableError,
-  describe_runtime_store_status,
-  require_runtime_data,
+    RuntimeDataUnavailableError,
+    describe_runtime_store_status,
+    require_runtime_data,
 )
 from .telemetry import get_runtime_store_health
 from .types import (
-  DogConfigData,
-  DogModulesConfig,
-  FeedingComplianceDisplayMapping,
-  FeedingComplianceEventPayload,
-  FeedingComplianceLocalizedSummary,
-  JSONLikeMapping,
-  JSONMutableMapping,
-  JSONValue,
-  ReconfigureTelemetry,
-  RuntimeStoreHealthLevel,
-  RuntimeStoreLevelDurationAlert,
-  ServiceContextMetadata,
+    DogConfigData,
+    DogModulesConfig,
+    FeedingComplianceDisplayMapping,
+    FeedingComplianceEventPayload,
+    FeedingComplianceLocalizedSummary,
+    JSONLikeMapping,
+    JSONMutableMapping,
+    JSONValue,
+    ReconfigureTelemetry,
+    RuntimeStoreHealthLevel,
+    RuntimeStoreLevelDurationAlert,
+    ServiceContextMetadata,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,11 +68,11 @@ type JSONType = JSONPrimitive | list["JSONType"] | dict[str, "JSONType"]
 
 
 class _NotificationDeliverySummary(TypedDict):
-  """Aggregated delivery error counters for a classification."""  # noqa: E111
+    """Aggregated delivery error counters for a classification."""  # noqa: E111
 
-  services: list[str]  # noqa: E111
-  total_failures: int  # noqa: E111
-  consecutive_failures: int  # noqa: E111
+    services: list[str]  # noqa: E111
+    total_failures: int  # noqa: E111
+    consecutive_failures: int  # noqa: E111
 
 
 # Issue types
@@ -115,832 +115,852 @@ REPAIR_FLOW_PERFORMANCE_OPTIMIZATION = "repair_performance_optimization"
 
 
 def _normalise_issue_severity(
-  severity: str | ir.IssueSeverity,
+    severity: str | ir.IssueSeverity,
 ) -> ir.IssueSeverity:
-  """Return a valid ``IssueSeverity`` for the provided ``severity`` value."""  # noqa: E111
+    """Return a valid ``IssueSeverity`` for the provided ``severity`` value."""  # noqa: E111
 
-  if isinstance(severity, ir.IssueSeverity):  # noqa: E111
-    return severity
+    if isinstance(severity, ir.IssueSeverity):  # noqa: E111
+        return severity
 
-  if isinstance(severity, str):  # noqa: E111
-    try:
-      return ir.IssueSeverity(severity.lower())  # noqa: E111
-    except ValueError:
-      _LOGGER.warning(  # noqa: E111
-        "Unsupported issue severity '%s'; falling back to warning.",
-        severity,
-      )
-      return ir.IssueSeverity.WARNING  # noqa: E111
+    if isinstance(severity, str):  # noqa: E111
+        try:
+            return ir.IssueSeverity(severity.lower())  # noqa: E111
+        except ValueError:
+            _LOGGER.warning(  # noqa: E111
+                "Unsupported issue severity '%s'; falling back to warning.",
+                severity,
+            )
+            return ir.IssueSeverity.WARNING  # noqa: E111
 
-  _LOGGER.warning(  # noqa: E111
-    "Unexpected issue severity type %s; falling back to warning.",
-    type(severity).__name__,
-  )
-  return ir.IssueSeverity.WARNING  # noqa: E111
+    _LOGGER.warning(  # noqa: E111
+        "Unexpected issue severity type %s; falling back to warning.",
+        type(severity).__name__,
+    )
+    return ir.IssueSeverity.WARNING  # noqa: E111
 
 
 def _issue_registry_supports_kwarg(
-  create_issue: object,
-  key: str,
+    create_issue: object,
+    key: str,
 ) -> bool:
-  """Return True when the issue registry supports a keyword argument."""  # noqa: E111
+    """Return True when the issue registry supports a keyword argument."""  # noqa: E111
 
-  try:  # noqa: E111
-    params = signature(create_issue).parameters.values()  # type: ignore[arg-type]
-  except ValueError:  # noqa: E111
-    return False
-  except TypeError:  # noqa: E111
-    return False
+    try:  # noqa: E111
+        params = signature(create_issue).parameters.values()  # type: ignore[arg-type]
+    except ValueError:  # noqa: E111
+        return False
+    except TypeError:  # noqa: E111
+        return False
 
-  return any(param.kind is param.VAR_KEYWORD for param in params) or any(  # noqa: E111
-    param.name == key for param in params
-  )
+    return any(param.kind is param.VAR_KEYWORD for param in params) or any(  # noqa: E111
+        param.name == key for param in params
+    )
 
 
 _RUNTIME_STORE_STATUS_SEVERITY: dict[str, ir.IssueSeverity] = {
-  "future_incompatible": ir.IssueSeverity.ERROR,
-  "needs_migration": ir.IssueSeverity.ERROR,
-  "diverged": ir.IssueSeverity.ERROR,
-  "detached_entry": ir.IssueSeverity.WARNING,
-  "detached_store": ir.IssueSeverity.WARNING,
+    "future_incompatible": ir.IssueSeverity.ERROR,
+    "needs_migration": ir.IssueSeverity.ERROR,
+    "diverged": ir.IssueSeverity.ERROR,
+    "detached_entry": ir.IssueSeverity.WARNING,
+    "detached_store": ir.IssueSeverity.WARNING,
 }
 
 
 async def async_create_issue(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
-  issue_id: str,
-  issue_type: str,
-  data: JSONLikeMapping | None = None,
-  severity: str | ir.IssueSeverity = ir.IssueSeverity.WARNING,
-  *,
-  learn_more_url: str | None = None,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    issue_id: str,
+    issue_type: str,
+    data: JSONLikeMapping | None = None,
+    severity: str | ir.IssueSeverity = ir.IssueSeverity.WARNING,
+    *,
+    learn_more_url: str | None = None,
 ) -> None:
-  """Create a repair issue for the integration.
+    """Create a repair issue for the integration.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-      issue_id: Unique issue identifier
-      issue_type: Type of issue
-      data: Additional issue data
-      severity: Issue severity (``IssueSeverity`` or string such as ``"warning"``)
-  """  # noqa: E111
-  issue_severity = _normalise_issue_severity(severity)  # noqa: E111
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+        issue_id: Unique issue identifier
+        issue_type: Type of issue
+        data: Additional issue data
+        severity: Issue severity (``IssueSeverity`` or string such as ``"warning"``)
+    """  # noqa: E111
+    issue_severity = _normalise_issue_severity(severity)  # noqa: E111
 
-  create_issue = getattr(ir, "async_create_issue", None)  # noqa: E111
-  if not callable(create_issue):  # noqa: E111
-    repair_error = RepairRequiredError(
-      "Issue registry unavailable",
-      context={"issue_id": issue_id, "issue_type": issue_type},
-    )
-    _LOGGER.debug(
-      "Issue registry unavailable; skipping issue %s (type %s): %s",
-      issue_id,
-      issue_type,
-      repair_error,
-    )
-    return
+    create_issue = getattr(ir, "async_create_issue", None)  # noqa: E111
+    if not callable(create_issue):  # noqa: E111
+        repair_error = RepairRequiredError(
+            "Issue registry unavailable",
+            context={"issue_id": issue_id, "issue_type": issue_type},
+        )
+        _LOGGER.debug(
+            "Issue registry unavailable; skipping issue %s (type %s): %s",
+            issue_id,
+            issue_type,
+            repair_error,
+        )
+        return
 
-  issue_data: JSONMutableMapping = {  # noqa: E111
-    "config_entry_id": entry.entry_id,
-    "issue_type": issue_type,
-    "created_at": dt_util.utcnow().isoformat(),
-    "severity": issue_severity.value,
-  }
+    issue_data: JSONMutableMapping = {  # noqa: E111
+        "config_entry_id": entry.entry_id,
+        "issue_type": issue_type,
+        "created_at": dt_util.utcnow().isoformat(),
+        "severity": issue_severity.value,
+    }
 
-  if data:  # noqa: E111
-    issue_data.update(dict(data))
+    if data:  # noqa: E111
+        issue_data.update(dict(data))
 
-  def _serialise_issue_value(value: Any) -> JSONType:  # noqa: E111
-    """Serialise issue metadata to JSON-compatible structures."""
+    def _serialise_issue_value(value: Any) -> JSONType:  # noqa: E111
+        """Serialise issue metadata to JSON-compatible structures."""
 
-    if value is None or isinstance(value, str | int | float | bool):
-      return value  # noqa: E111
+        if value is None or isinstance(value, str | int | float | bool):
+            return value  # noqa: E111
 
-    if isinstance(value, list | tuple | set):
-      return [_serialise_issue_value(item) for item in value]  # noqa: E111
+        if isinstance(value, list | tuple | set):
+            return [_serialise_issue_value(item) for item in value]  # noqa: E111
 
-    if isinstance(value, dict):
-      return {str(key): _serialise_issue_value(item) for key, item in value.items()}  # noqa: E111
+        if isinstance(value, dict):
+            return {
+                str(key): _serialise_issue_value(item) for key, item in value.items()
+            }  # noqa: E111
 
-    return str(value)
+        return str(value)
 
-  def _stringify_placeholder(value: JSONType) -> str:  # noqa: E111
-    """Convert serialised metadata into user-friendly placeholder text."""
+    def _stringify_placeholder(value: JSONType) -> str:  # noqa: E111
+        """Convert serialised metadata into user-friendly placeholder text."""
 
-    if isinstance(value, list):
-      return ", ".join(_stringify_placeholder(item) for item in value)  # noqa: E111
+        if isinstance(value, list):
+            return ", ".join(_stringify_placeholder(item) for item in value)  # noqa: E111
 
-    if isinstance(value, dict):
-      return ", ".join(  # noqa: E111
-        f"{key}={_stringify_placeholder(item)}" for key, item in value.items()
-      )
+        if isinstance(value, dict):
+            return ", ".join(  # noqa: E111
+                f"{key}={_stringify_placeholder(item)}" for key, item in value.items()
+            )
 
-    return str(value)
+        return str(value)
 
-  serialised_issue_data: dict[str, JSONType] = {  # noqa: E111
-    key: _serialise_issue_value(value) for key, value in issue_data.items()
-  }
+    serialised_issue_data: dict[str, JSONType] = {  # noqa: E111
+        key: _serialise_issue_value(value) for key, value in issue_data.items()
+    }
 
-  translation_placeholders = {  # noqa: E111
-    key: _stringify_placeholder(value)
-    for key, value in serialised_issue_data.items()
-    if value is not None
-  }
+    translation_placeholders = {  # noqa: E111
+        key: _stringify_placeholder(value)
+        for key, value in serialised_issue_data.items()
+        if value is not None
+    }
 
-  issue_kwargs: dict[str, object] = {  # noqa: E111
-    "breaks_in_ha_version": None,
-    "is_fixable": True,
-    "issue_domain": DOMAIN,
-    "severity": issue_severity,
-    "translation_key": issue_type,
-    "translation_placeholders": translation_placeholders,
-    "data": serialised_issue_data,
-  }
-  if learn_more_url and _issue_registry_supports_kwarg(  # noqa: E111
-    create_issue,
-    "learn_more_url",
-  ):
-    issue_kwargs["learn_more_url"] = learn_more_url
+    issue_kwargs: dict[str, object] = {  # noqa: E111
+        "breaks_in_ha_version": None,
+        "is_fixable": True,
+        "issue_domain": DOMAIN,
+        "severity": issue_severity,
+        "translation_key": issue_type,
+        "translation_placeholders": translation_placeholders,
+        "data": serialised_issue_data,
+    }
+    if learn_more_url and _issue_registry_supports_kwarg(  # noqa: E111
+        create_issue,
+        "learn_more_url",
+    ):
+        issue_kwargs["learn_more_url"] = learn_more_url
 
-  try:  # noqa: E111
-    result = create_issue(
-      hass,
-      DOMAIN,
-      issue_id,
-      **issue_kwargs,
-    )
-  except Exception as err:  # pragma: no cover - depends on HA internals  # noqa: E111
-    repair_error = RepairRequiredError(
-      "Issue registry call failed",
-      context={"issue_id": issue_id, "issue_type": issue_type},
-    )
-    _LOGGER.warning("Failed to create repair issue: %s (%s)", repair_error, err)
-    return
+    try:  # noqa: E111
+        result = create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            **issue_kwargs,
+        )
+    except Exception as err:  # pragma: no cover - depends on HA internals  # noqa: E111
+        repair_error = RepairRequiredError(
+            "Issue registry call failed",
+            context={"issue_id": issue_id, "issue_type": issue_type},
+        )
+        _LOGGER.warning("Failed to create repair issue: %s (%s)", repair_error, err)
+        return
 
-  if not isawaitable(result):  # noqa: E111
-    _LOGGER.debug(
-      "Issue registry create_issue returned non-awaitable result for %s",
-      issue_id,
-    )
-    return
+    if not isawaitable(result):  # noqa: E111
+        _LOGGER.debug(
+            "Issue registry create_issue returned non-awaitable result for %s",
+            issue_id,
+        )
+        return
 
-  try:  # noqa: E111
-    await result
-  except Exception as err:  # pragma: no cover - depends on HA internals  # noqa: E111
-    repair_error = RepairRequiredError(
-      "Issue registry await failed",
-      context={"issue_id": issue_id, "issue_type": issue_type},
-    )
-    _LOGGER.warning("Failed to await repair issue creation: %s (%s)", repair_error, err)
-    return
+    try:  # noqa: E111
+        await result
+    except Exception as err:  # pragma: no cover - depends on HA internals  # noqa: E111
+        repair_error = RepairRequiredError(
+            "Issue registry await failed",
+            context={"issue_id": issue_id, "issue_type": issue_type},
+        )
+        _LOGGER.warning(
+            "Failed to await repair issue creation: %s (%s)", repair_error, err
+        )
+        return
 
-  _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)  # noqa: E111
+    _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)  # noqa: E111
 
 
 def _normalize_feeding_summary_title(title: str) -> str:
-  """Return backward-compatible feeding alert titles."""  # noqa: E111
+    """Return backward-compatible feeding alert titles."""  # noqa: E111
 
-  lowered = title.lower()  # noqa: E111
-  for token in (" for ", " für ", " para ", " pour "):  # noqa: E111
-    index = lowered.rfind(token)
-    if index > 0:
-      return title[:index].strip()  # noqa: E111
-  return title  # noqa: E111
+    lowered = title.lower()  # noqa: E111
+    for token in (" for ", " für ", " para ", " pour "):  # noqa: E111
+        index = lowered.rfind(token)
+        if index > 0:
+            return title[:index].strip()  # noqa: E111
+    return title  # noqa: E111
 
 
 def _normalize_feeding_score_line(score_line: str | None) -> str | None:
-  """Return a compact score line expected by repairs summaries."""  # noqa: E111
+    """Return a compact score line expected by repairs summaries."""  # noqa: E111
 
-  if not score_line:  # noqa: E111
-    return score_line
-  marker = "% over"  # noqa: E111
-  index = score_line.find(marker)  # noqa: E111
-  if index == -1:  # noqa: E111
-    return score_line
-  compact = score_line[: index + 1]  # noqa: E111
-  return compact.replace(".0%", "%")  # noqa: E111
+    if not score_line:  # noqa: E111
+        return score_line
+    marker = "% over"  # noqa: E111
+    index = score_line.find(marker)  # noqa: E111
+    if index == -1:  # noqa: E111
+        return score_line
+    compact = score_line[: index + 1]  # noqa: E111
+    return compact.replace(".0%", "%")  # noqa: E111
 
 
 async def async_publish_feeding_compliance_issue(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
-  payload: FeedingComplianceEventPayload,
-  *,
-  context_metadata: ServiceContextMetadata | None = None,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    payload: FeedingComplianceEventPayload,
+    *,
+    context_metadata: ServiceContextMetadata | None = None,
 ) -> None:
-  """Create or clear feeding compliance repair issues based on telemetry."""  # noqa: E111
+    """Create or clear feeding compliance repair issues based on telemetry."""  # noqa: E111
 
-  dog_id = payload["dog_id"]  # noqa: E111
-  dog_name = payload.get("dog_name") or dog_id  # noqa: E111
-  issue_id = f"{entry.entry_id}_feeding_compliance_{dog_id}"  # noqa: E111
-  result = payload["result"]  # noqa: E111
-  if not isinstance(result, Mapping):  # noqa: E111
-    return
+    dog_id = payload["dog_id"]  # noqa: E111
+    dog_name = payload.get("dog_name") or dog_id  # noqa: E111
+    issue_id = f"{entry.entry_id}_feeding_compliance_{dog_id}"  # noqa: E111
+    result = payload["result"]  # noqa: E111
+    if not isinstance(result, Mapping):  # noqa: E111
+        return
 
-  language = getattr(getattr(hass, "config", None), "language", None)  # noqa: E111
-  localized_summary = payload.get("localized_summary")  # noqa: E111
-  if localized_summary is None:  # noqa: E111
-    localized_summary = await async_build_feeding_compliance_summary(
-      hass,
-      language,
-      display_name=dog_name,
-      compliance=cast(FeedingComplianceDisplayMapping, result),
+    language = getattr(getattr(hass, "config", None), "language", None)  # noqa: E111
+    localized_summary = payload.get("localized_summary")  # noqa: E111
+    if localized_summary is None:  # noqa: E111
+        localized_summary = await async_build_feeding_compliance_summary(
+            hass,
+            language,
+            display_name=dog_name,
+            compliance=cast(FeedingComplianceDisplayMapping, result),
+        )
+
+    summary_copy: FeedingComplianceLocalizedSummary = {  # noqa: E111
+        "title": _normalize_feeding_summary_title(localized_summary["title"]),
+        "message": localized_summary.get("message"),
+        "score_line": _normalize_feeding_score_line(
+            localized_summary.get("score_line")
+        ),
+        "missed_meals": list(localized_summary.get("missed_meals", [])),
+        "issues": list(localized_summary.get("issues", [])),
+        "recommendations": list(localized_summary.get("recommendations", [])),
+    }
+
+    result_copy = cast(JSONMutableMapping, dict(result))  # noqa: E111
+    summary_json = cast(JSONMutableMapping, dict(summary_copy))  # noqa: E111
+
+    issue_data: JSONMutableMapping = {  # noqa: E111
+        "dog_id": dog_id,
+        "dog_name": dog_name,
+        "days_to_check": payload.get("days_to_check"),
+        "notify_on_issues": payload.get("notify_on_issues"),
+        "notification_sent": payload.get("notification_sent"),
+        "notification_id": payload.get("notification_id"),
+        "result": result_copy,
+        "localized_summary": summary_json,
+        "notification_title": cast(str, summary_json.get("title")),
+        "notification_message": cast(str | None, summary_json.get("message")),
+        "score_line": cast(str | None, summary_json.get("score_line")),
+        "issue_summary": cast(list[str], summary_json.get("issues", [])),
+        "missed_meal_summary": cast(list[str], summary_json.get("missed_meals", [])),
+        "recommendations_summary": cast(
+            list[str],
+            summary_json.get("recommendations", []),
+        ),
+    }
+
+    if context_metadata:  # noqa: E111
+        issue_data["context_metadata"] = cast(
+            JSONMutableMapping,
+            dict(context_metadata),
+        )
+
+    summary_message = summary_copy.get("message")  # noqa: E111
+
+    if cast(str, result.get("status")) != "completed":  # noqa: E111
+        message_value: Any = result.get("message")
+        if not isinstance(message_value, str):
+            message_value = summary_message  # noqa: E111
+        issue_data.update(
+            {
+                "status": cast(str | None, result.get("status")),
+                "message": message_value,
+                "checked_at": cast(str | None, result.get("checked_at")),
+            },
+        )
+
+        await async_create_issue(
+            hass,
+            entry,
+            issue_id,
+            ISSUE_FEEDING_COMPLIANCE_NO_DATA,
+            issue_data,
+            severity=ir.IssueSeverity.WARNING,
+        )
+        return
+
+    completed = cast(JSONMutableMapping, dict(result))  # noqa: E111
+    missed_meals_raw = completed.get("missed_meals", [])  # noqa: E111
+    missed_meals = (  # noqa: E111
+        [dict(entry) for entry in missed_meals_raw if isinstance(entry, Mapping)]
+        if isinstance(missed_meals_raw, Sequence)
+        else []
+    )
+    issues_raw = completed.get("compliance_issues", [])  # noqa: E111
+    issues = (  # noqa: E111
+        [dict(issue) for issue in issues_raw if isinstance(issue, Mapping)]
+        if isinstance(issues_raw, Sequence)
+        else []
+    )
+    recommendations_raw = completed.get("recommendations", [])  # noqa: E111
+    recommendations = (  # noqa: E111
+        [str(rec) for rec in recommendations_raw if isinstance(rec, str)]
+        if isinstance(recommendations_raw, Sequence)
+        and not isinstance(recommendations_raw, str | bytes)
+        else []
     )
 
-  summary_copy: FeedingComplianceLocalizedSummary = {  # noqa: E111
-    "title": _normalize_feeding_summary_title(localized_summary["title"]),
-    "message": localized_summary.get("message"),
-    "score_line": _normalize_feeding_score_line(localized_summary.get("score_line")),
-    "missed_meals": list(localized_summary.get("missed_meals", [])),
-    "issues": list(localized_summary.get("issues", [])),
-    "recommendations": list(localized_summary.get("recommendations", [])),
-  }
-
-  result_copy = cast(JSONMutableMapping, dict(result))  # noqa: E111
-  summary_json = cast(JSONMutableMapping, dict(summary_copy))  # noqa: E111
-
-  issue_data: JSONMutableMapping = {  # noqa: E111
-    "dog_id": dog_id,
-    "dog_name": dog_name,
-    "days_to_check": payload.get("days_to_check"),
-    "notify_on_issues": payload.get("notify_on_issues"),
-    "notification_sent": payload.get("notification_sent"),
-    "notification_id": payload.get("notification_id"),
-    "result": result_copy,
-    "localized_summary": summary_json,
-    "notification_title": cast(str, summary_json.get("title")),
-    "notification_message": cast(str | None, summary_json.get("message")),
-    "score_line": cast(str | None, summary_json.get("score_line")),
-    "issue_summary": cast(list[str], summary_json.get("issues", [])),
-    "missed_meal_summary": cast(list[str], summary_json.get("missed_meals", [])),
-    "recommendations_summary": cast(
-      list[str],
-      summary_json.get("recommendations", []),
-    ),
-  }
-
-  if context_metadata:  # noqa: E111
-    issue_data["context_metadata"] = cast(
-      JSONMutableMapping,
-      dict(context_metadata),
+    score_raw = completed.get("compliance_score", 0)  # noqa: E111
+    score = (  # noqa: E111
+        float(score_raw)
+        if isinstance(
+            score_raw,
+            int | float | str,
+        )
+        else 0.0
+    )
+    has_issues = bool(  # noqa: E111
+        completed.get(
+            "days_with_issues",
+        )
+        or issues
+        or missed_meals
+        or score < 100,
     )
 
-  summary_message = summary_copy.get("message")  # noqa: E111
+    delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
+    if not has_issues:  # noqa: E111
+        if callable(delete_issue):
+            delete_result = delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+            if isawaitable(delete_result):  # noqa: E111
+                await delete_result
+        return
 
-  if cast(str, result.get("status")) != "completed":  # noqa: E111
-    message_value: Any = result.get("message")
-    if not isinstance(message_value, str):
-      message_value = summary_message  # noqa: E111
-    issue_data.update(
-      {
-        "status": cast(str | None, result.get("status")),
-        "message": message_value,
-        "checked_at": cast(str | None, result.get("checked_at")),
-      },
+    severity_enum = getattr(ir, "IssueSeverity", None)  # noqa: E111
+    error_severity: str | ir.IssueSeverity  # noqa: E111
+    warning_severity: str | ir.IssueSeverity  # noqa: E111
+    critical_severity: str | ir.IssueSeverity | None  # noqa: E111
+    warning_candidate: str | ir.IssueSeverity | None = None  # noqa: E111
+
+    if severity_enum is None:  # noqa: E111
+        error_severity = "error"
+        warning_severity = "warning"
+        critical_severity = None
+    else:  # noqa: E111
+        error_severity = getattr(severity_enum, "ERROR", "error")
+        warning_candidate = getattr(severity_enum, "WARNING", None)
+        warning_severity = (
+            warning_candidate if warning_candidate is not None else error_severity
+        )
+        critical_severity = getattr(severity_enum, "CRITICAL", None)
+
+    severity: str | ir.IssueSeverity = error_severity  # noqa: E111
+    if score < 70:  # noqa: E111
+        if critical_severity is not None:
+            severity = critical_severity  # noqa: E111
+        else:
+            _LOGGER.debug(  # noqa: E111
+                "IssueSeverity.CRITICAL unavailable; defaulting to %s severity",
+                getattr(error_severity, "value", error_severity),
+            )
+            severity = error_severity  # noqa: E111
+    elif score >= 90:  # noqa: E111
+        if warning_candidate is None and severity_enum is not None:
+            _LOGGER.debug(  # noqa: E111
+                "IssueSeverity.WARNING unavailable; defaulting to %s severity",
+                getattr(error_severity, "value", error_severity),
+            )
+        severity = warning_severity
+
+    issue_data.update(  # noqa: E111
+        {
+            "status": completed.get("status"),
+            "checked_at": completed.get("checked_at"),
+            "compliance_score": score,
+            "compliance_rate": completed.get("compliance_rate"),
+            "days_analyzed": completed.get("days_analyzed"),
+            "days_with_issues": completed.get("days_with_issues"),
+            "issue_count": len(issues),
+            "missed_meal_count": len(missed_meals),
+            "issues": issues,
+            "missed_meals": missed_meals,
+            "recommendations": recommendations,
+        },
     )
 
-    await async_create_issue(
-      hass,
-      entry,
-      issue_id,
-      ISSUE_FEEDING_COMPLIANCE_NO_DATA,
-      issue_data,
-      severity=ir.IssueSeverity.WARNING,
+    await async_create_issue(  # noqa: E111
+        hass,
+        entry,
+        issue_id,
+        ISSUE_FEEDING_COMPLIANCE_ALERT,
+        issue_data,
+        severity=severity,
     )
-    return
-
-  completed = cast(JSONMutableMapping, dict(result))  # noqa: E111
-  missed_meals_raw = completed.get("missed_meals", [])  # noqa: E111
-  missed_meals = (  # noqa: E111
-    [dict(entry) for entry in missed_meals_raw if isinstance(entry, Mapping)]
-    if isinstance(missed_meals_raw, Sequence)
-    else []
-  )
-  issues_raw = completed.get("compliance_issues", [])  # noqa: E111
-  issues = (  # noqa: E111
-    [dict(issue) for issue in issues_raw if isinstance(issue, Mapping)]
-    if isinstance(issues_raw, Sequence)
-    else []
-  )
-  recommendations_raw = completed.get("recommendations", [])  # noqa: E111
-  recommendations = (  # noqa: E111
-    [str(rec) for rec in recommendations_raw if isinstance(rec, str)]
-    if isinstance(recommendations_raw, Sequence)
-    and not isinstance(recommendations_raw, str | bytes)
-    else []
-  )
-
-  score_raw = completed.get("compliance_score", 0)  # noqa: E111
-  score = (  # noqa: E111
-    float(score_raw)
-    if isinstance(
-      score_raw,
-      int | float | str,
-    )
-    else 0.0
-  )
-  has_issues = bool(  # noqa: E111
-    completed.get(
-      "days_with_issues",
-    )
-    or issues
-    or missed_meals
-    or score < 100,
-  )
-
-  delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
-  if not has_issues:  # noqa: E111
-    if callable(delete_issue):
-      delete_result = delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-      if isawaitable(delete_result):  # noqa: E111
-        await delete_result
-    return
-
-  severity_enum = getattr(ir, "IssueSeverity", None)  # noqa: E111
-  error_severity: str | ir.IssueSeverity  # noqa: E111
-  warning_severity: str | ir.IssueSeverity  # noqa: E111
-  critical_severity: str | ir.IssueSeverity | None  # noqa: E111
-  warning_candidate: str | ir.IssueSeverity | None = None  # noqa: E111
-
-  if severity_enum is None:  # noqa: E111
-    error_severity = "error"
-    warning_severity = "warning"
-    critical_severity = None
-  else:  # noqa: E111
-    error_severity = getattr(severity_enum, "ERROR", "error")
-    warning_candidate = getattr(severity_enum, "WARNING", None)
-    warning_severity = (
-      warning_candidate if warning_candidate is not None else error_severity
-    )
-    critical_severity = getattr(severity_enum, "CRITICAL", None)
-
-  severity: str | ir.IssueSeverity = error_severity  # noqa: E111
-  if score < 70:  # noqa: E111
-    if critical_severity is not None:
-      severity = critical_severity  # noqa: E111
-    else:
-      _LOGGER.debug(  # noqa: E111
-        "IssueSeverity.CRITICAL unavailable; defaulting to %s severity",
-        getattr(error_severity, "value", error_severity),
-      )
-      severity = error_severity  # noqa: E111
-  elif score >= 90:  # noqa: E111
-    if warning_candidate is None and severity_enum is not None:
-      _LOGGER.debug(  # noqa: E111
-        "IssueSeverity.WARNING unavailable; defaulting to %s severity",
-        getattr(error_severity, "value", error_severity),
-      )
-    severity = warning_severity
-
-  issue_data.update(  # noqa: E111
-    {
-      "status": completed.get("status"),
-      "checked_at": completed.get("checked_at"),
-      "compliance_score": score,
-      "compliance_rate": completed.get("compliance_rate"),
-      "days_analyzed": completed.get("days_analyzed"),
-      "days_with_issues": completed.get("days_with_issues"),
-      "issue_count": len(issues),
-      "missed_meal_count": len(missed_meals),
-      "issues": issues,
-      "missed_meals": missed_meals,
-      "recommendations": recommendations,
-    },
-  )
-
-  await async_create_issue(  # noqa: E111
-    hass,
-    entry,
-    issue_id,
-    ISSUE_FEEDING_COMPLIANCE_ALERT,
-    issue_data,
-    severity=severity,
-  )
 
 
 async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Check for common issues and create repair flows if needed.
+    """Check for common issues and create repair flows if needed.
 
-  This function performs comprehensive health checks and identifies
-  potential configuration or operational issues that require user attention.
+    This function performs comprehensive health checks and identifies
+    potential configuration or operational issues that require user attention.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry to check
-  """  # noqa: E111
-  _LOGGER.debug(  # noqa: E111
-    "Checking for issues in Paw Control entry: %s",
-    entry.entry_id,
-  )
-
-  try:  # noqa: E111
-    # Check dog configuration issues
-    await _check_dog_configuration_issues(hass, entry)
-
-    # Check GPS configuration issues
-    await _check_gps_configuration_issues(hass, entry)
-
-    # Check push ingestion health (webhook/MQTT)
-    await _check_push_issues(hass, entry)
-
-    # Check notification configuration issues
-    await _check_notification_configuration_issues(hass, entry)
-    # Check recurring notification delivery errors (auth/unreachable)
-    await _check_notification_delivery_errors(hass, entry)
-
-    # Check telemetry gathered during reconfigure flows
-    await _check_reconfigure_telemetry_issues(hass, entry)
-
-    # Check performance issues
-    await _check_performance_issues(hass, entry)
-
-    # Check storage issues
-    await _check_storage_issues(hass, entry)
-
-    # Check runtime store compatibility issues
-    await _check_runtime_store_health(hass, entry)
-
-    # Surface runtime store duration guard alerts
-    await _check_runtime_store_duration_alerts(hass, entry)
-
-    # Publish cache health diagnostics
-    await _publish_cache_health_issue(hass, entry)
-
-    # Check coordinator health
-    await _check_coordinator_health(hass, entry)
-
-    _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
-
-  except Exception as err:  # noqa: E111
-    _LOGGER.error(
-      "Error during issue check for entry %s: %s",
-      entry.entry_id,
-      err,
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry to check
+    """  # noqa: E111
+    _LOGGER.debug(  # noqa: E111
+        "Checking for issues in Paw Control entry: %s",
+        entry.entry_id,
     )
+
+    try:  # noqa: E111
+        # Check dog configuration issues
+        await _check_dog_configuration_issues(hass, entry)
+
+        # Check GPS configuration issues
+        await _check_gps_configuration_issues(hass, entry)
+
+        # Check push ingestion health (webhook/MQTT)
+        await _check_push_issues(hass, entry)
+
+        # Check notification configuration issues
+        await _check_notification_configuration_issues(hass, entry)
+        # Check recurring notification delivery errors (auth/unreachable)
+        await _check_notification_delivery_errors(hass, entry)
+
+        # Check telemetry gathered during reconfigure flows
+        await _check_reconfigure_telemetry_issues(hass, entry)
+
+        # Check performance issues
+        await _check_performance_issues(hass, entry)
+
+        # Check storage issues
+        await _check_storage_issues(hass, entry)
+
+        # Check runtime store compatibility issues
+        await _check_runtime_store_health(hass, entry)
+
+        # Surface runtime store duration guard alerts
+        await _check_runtime_store_duration_alerts(hass, entry)
+
+        # Publish cache health diagnostics
+        await _publish_cache_health_issue(hass, entry)
+
+        # Check coordinator health
+        await _check_coordinator_health(hass, entry)
+
+        _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
+
+    except Exception as err:  # noqa: E111
+        _LOGGER.error(
+            "Error during issue check for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
 
 
 async def async_schedule_repair_evaluation(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Schedule an asynchronous evaluation of repair issues for ``entry``."""  # noqa: E111
+    """Schedule an asynchronous evaluation of repair issues for ``entry``."""  # noqa: E111
 
-  async def _async_run_checks() -> None:  # noqa: E111
-    try:
-      await async_check_for_issues(hass, entry)  # noqa: E111
-    except Exception as err:  # pragma: no cover - defensive guard
-      _LOGGER.debug("Repair evaluation skipped due to error: %s", err)  # noqa: E111
+    async def _async_run_checks() -> None:  # noqa: E111
+        try:
+            await async_check_for_issues(hass, entry)  # noqa: E111
+        except Exception as err:  # pragma: no cover - defensive guard
+            _LOGGER.debug("Repair evaluation skipped due to error: %s", err)  # noqa: E111
 
-  hass.async_create_task(  # noqa: E111
-    _async_run_checks(),
-    name=f"{DOMAIN}-{entry.entry_id}-repair-evaluation",
-  )
+    hass.async_create_task(  # noqa: E111
+        _async_run_checks(),
+        name=f"{DOMAIN}-{entry.entry_id}-repair-evaluation",
+    )
 
 
 async def _check_dog_configuration_issues(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Check for dog configuration issues.
+    """Check for dog configuration issues.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-  """  # noqa: E111
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
-  raw_dogs = (  # noqa: E111
-    raw_dogs_obj
-    if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
-    else []
-  )
-  dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
-    cast(Mapping[str, JSONValue], dog) for dog in raw_dogs if isinstance(dog, Mapping)
-  ]
-
-  # Check for empty dog configuration  # noqa: E114
-  if not dogs:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_no_dogs",
-      ISSUE_MISSING_DOG_CONFIG,
-      {"dogs_count": 0},
-      severity="error",
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+    """  # noqa: E111
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
+    raw_dogs = (  # noqa: E111
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, str | bytes)
+        else []
     )
-    return
+    dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
+    ]
 
-  # Check for duplicate dog IDs  # noqa: E114
-  dog_ids = [  # noqa: E111
-    dog_id
-    for dog_id in (dog.get(CONF_DOG_ID) for dog in dogs)
-    if isinstance(dog_id, str)
-  ]
-  duplicate_ids = [  # noqa: E111
-    dog_id
-    for dog_id in set(
-      dog_ids,
-    )
-    if dog_ids.count(dog_id) > 1
-  ]
+    # Check for empty dog configuration  # noqa: E114
+    if not dogs:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_no_dogs",
+            ISSUE_MISSING_DOG_CONFIG,
+            {"dogs_count": 0},
+            severity="error",
+        )
+        return
 
-  if duplicate_ids:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_duplicate_dogs",
-      ISSUE_DUPLICATE_DOG_IDS,
-      {
-        "duplicate_ids": duplicate_ids,
-        "total_dogs": len(dogs),
-      },
-      severity="error",
-    )
+    # Check for duplicate dog IDs  # noqa: E114
+    dog_ids = [  # noqa: E111
+        dog_id
+        for dog_id in (dog.get(CONF_DOG_ID) for dog in dogs)
+        if isinstance(dog_id, str)
+    ]
+    duplicate_ids = [  # noqa: E111
+        dog_id
+        for dog_id in set(
+            dog_ids,
+        )
+        if dog_ids.count(dog_id) > 1
+    ]
 
-  # Check for invalid dog data  # noqa: E114
-  invalid_dogs = []  # noqa: E111
-  for dog in dogs:  # noqa: E111
-    dog_id = dog.get(CONF_DOG_ID)
-    dog_name = dog.get(CONF_DOG_NAME)
-    if not isinstance(dog_id, str) or not dog_id or not isinstance(dog_name, str):
-      invalid_dogs.append(  # noqa: E111
-        dog_id if isinstance(dog_id, str) else "unknown",
-      )
+    if duplicate_ids:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_duplicate_dogs",
+            ISSUE_DUPLICATE_DOG_IDS,
+            {
+                "duplicate_ids": duplicate_ids,
+                "total_dogs": len(dogs),
+            },
+            severity="error",
+        )
 
-  if invalid_dogs:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_invalid_dogs",
-      ISSUE_INVALID_DOG_DATA,
-      {
-        "invalid_dogs": invalid_dogs,
-        "total_dogs": len(dogs),
-      },
-      severity="error",
-    )
+    # Check for invalid dog data  # noqa: E114
+    invalid_dogs = []  # noqa: E111
+    for dog in dogs:  # noqa: E111
+        dog_id = dog.get(CONF_DOG_ID)
+        dog_name = dog.get(CONF_DOG_NAME)
+        if not isinstance(dog_id, str) or not dog_id or not isinstance(dog_name, str):
+            invalid_dogs.append(  # noqa: E111
+                dog_id if isinstance(dog_id, str) else "unknown",
+            )
+
+    if invalid_dogs:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_invalid_dogs",
+            ISSUE_INVALID_DOG_DATA,
+            {
+                "invalid_dogs": invalid_dogs,
+                "total_dogs": len(dogs),
+            },
+            severity="error",
+        )
 
 
 async def _check_gps_configuration_issues(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Check for GPS configuration issues.
+    """Check for GPS configuration issues.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-  """  # noqa: E111
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
-  raw_dogs = (  # noqa: E111
-    raw_dogs_obj
-    if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
-    else []
-  )
-  dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
-    cast(Mapping[str, JSONValue], dog) for dog in raw_dogs if isinstance(dog, Mapping)
-  ]
-  gps_enabled_dogs = []  # noqa: E111
-  for dog in dogs:  # noqa: E111
-    modules_raw = dog.get("modules", {})
-    modules = modules_raw if isinstance(modules_raw, Mapping) else {}
-    if modules.get(MODULE_GPS, False):
-      gps_enabled_dogs.append(dog)  # noqa: E111
-
-  if not gps_enabled_dogs:  # noqa: E111
-    return  # No GPS configuration to check
-
-  # Check if GPS sources are properly configured  # noqa: E114
-  gps_config_raw = entry.options.get("gps", {})  # noqa: E111
-  gps_config = gps_config_raw if isinstance(gps_config_raw, Mapping) else {}  # noqa: E111
-
-  # Check for missing GPS source configuration  # noqa: E114
-  if not gps_config.get("gps_source"):  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_missing_gps_source",
-      ISSUE_INVALID_GPS_CONFIG,
-      {
-        "issue": "missing_gps_source",
-        "gps_enabled_dogs": len(gps_enabled_dogs),
-      },
-      severity="warning",
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+    """  # noqa: E111
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
+    raw_dogs = (  # noqa: E111
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, str | bytes)
+        else []
     )
+    dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
+    ]
+    gps_enabled_dogs = []  # noqa: E111
+    for dog in dogs:  # noqa: E111
+        modules_raw = dog.get("modules", {})
+        modules = modules_raw if isinstance(modules_raw, Mapping) else {}
+        if modules.get(MODULE_GPS, False):
+            gps_enabled_dogs.append(dog)  # noqa: E111
 
-  # Check for unrealistic GPS update intervals  # noqa: E114
-  update_interval_raw = gps_config.get("gps_update_interval", 60)  # noqa: E111
-  update_interval = (  # noqa: E111
-    int(update_interval_raw)
-    if isinstance(update_interval_raw, int | float | str)
-    else 60
-  )
-  if update_interval < 10:  # Less than 10 seconds  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_gps_update_too_frequent",
-      ISSUE_GPS_UPDATE_INTERVAL,
-      {
-        "current_interval": update_interval,
-        "recommended_interval": 30,
-      },
-      severity=ir.IssueSeverity.WARNING,
+    if not gps_enabled_dogs:  # noqa: E111
+        return  # No GPS configuration to check
+
+    # Check if GPS sources are properly configured  # noqa: E114
+    gps_config_raw = entry.options.get("gps", {})  # noqa: E111
+    gps_config = gps_config_raw if isinstance(gps_config_raw, Mapping) else {}  # noqa: E111
+
+    # Check for missing GPS source configuration  # noqa: E114
+    if not gps_config.get("gps_source"):  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_missing_gps_source",
+            ISSUE_INVALID_GPS_CONFIG,
+            {
+                "issue": "missing_gps_source",
+                "gps_enabled_dogs": len(gps_enabled_dogs),
+            },
+            severity="warning",
+        )
+
+    # Check for unrealistic GPS update intervals  # noqa: E114
+    update_interval_raw = gps_config.get("gps_update_interval", 60)  # noqa: E111
+    update_interval = (  # noqa: E111
+        int(update_interval_raw)
+        if isinstance(update_interval_raw, int | float | str)
+        else 60
     )
+    if update_interval < 10:  # Less than 10 seconds  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_gps_update_too_frequent",
+            ISSUE_GPS_UPDATE_INTERVAL,
+            {
+                "current_interval": update_interval,
+                "recommended_interval": 30,
+            },
+            severity=ir.IssueSeverity.WARNING,
+        )
 
 
 async def _check_push_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Check push ingestion telemetry and surface actionable issues.
+    """Check push ingestion telemetry and surface actionable issues.
 
-  Issues created:
-  - push_no_data: Push source selected but no accepted push seen after a grace period
-  - push_rejections_high: High rejection counts (likely wrong dog_id/source, replay, rate limit)
-  """  # noqa: E111, E501
-  if not isinstance(getattr(hass, "data", None), Mapping):  # noqa: E111
-    return
+    Issues created:
+    - push_no_data: Push source selected but no accepted push seen after a grace period
+    - push_rejections_high: High rejection counts (likely wrong dog_id/source, replay, rate limit)
+    """  # noqa: E111, E501
+    if not isinstance(getattr(hass, "data", None), Mapping):  # noqa: E111
+        return
 
-  telemetry = get_entry_push_telemetry_snapshot(hass, entry.entry_id)  # noqa: E111
-  dogs_tel = telemetry.get("dogs", {})  # noqa: E111
-  created_at = telemetry.get("created_at")  # noqa: E111
-  created_dt = (  # noqa: E111
-    dt_util.parse_datetime(created_at) if isinstance(created_at, str) else None
-  )
-  now = dt_util.utcnow()  # noqa: E111
-  grace_seconds = 15 * 60  # noqa: E111
-
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
-  raw_dogs = (  # noqa: E111
-    raw_dogs_obj
-    if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
-    else []
-  )
-
-  delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
-
-  for dog in raw_dogs:  # noqa: E111
-    if not isinstance(dog, Mapping):
-      continue  # noqa: E111
-    dog_id = dog.get(CONF_DOG_ID)
-    dog_name = dog.get(CONF_DOG_NAME)
-    if not isinstance(dog_id, str) or not dog_id:
-      continue  # noqa: E111
-
-    gps_cfg = dog.get("gps_config")
-    gps_source = gps_cfg.get(CONF_GPS_SOURCE) if isinstance(gps_cfg, Mapping) else None
-    if gps_source not in {"webhook", "mqtt"}:
-      # Ensure stale push issues are removed if source changed  # noqa: E114
-      for issue_type in (ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH):  # noqa: E111
-        issue_id = f"{entry.entry_id}_{issue_type}_{dog_id}"
-        if callable(delete_issue):
-          delete_result = delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-          if isawaitable(delete_result):  # noqa: E111
-            await delete_result
-      continue  # noqa: E111
-
-    dog_snapshot = dogs_tel.get(dog_id, {}) if isinstance(dogs_tel, Mapping) else {}
-    accepted = (
-      int(dog_snapshot.get("accepted_total", 0))
-      if isinstance(dog_snapshot, Mapping)
-      else 0
+    telemetry = get_entry_push_telemetry_snapshot(hass, entry.entry_id)  # noqa: E111
+    dogs_tel = telemetry.get("dogs", {})  # noqa: E111
+    created_at = telemetry.get("created_at")  # noqa: E111
+    created_dt = (  # noqa: E111
+        dt_util.parse_datetime(created_at) if isinstance(created_at, str) else None
     )
-    rejected = (
-      int(dog_snapshot.get("rejected_total", 0))
-      if isinstance(dog_snapshot, Mapping)
-      else 0
-    )
-    last_reason = (
-      dog_snapshot.get("last_rejection_reason")
-      if isinstance(dog_snapshot, Mapping)
-      else None
+    now = dt_util.utcnow()  # noqa: E111
+    grace_seconds = 15 * 60  # noqa: E111
+
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
+    raw_dogs = (  # noqa: E111
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, str | bytes)
+        else []
     )
 
-    # push_no_data
-    issue_id_no_data = f"{entry.entry_id}_{ISSUE_PUSH_NO_DATA}_{dog_id}"
-    should_no_data = False
-    if accepted == 0 and created_dt is not None:
-      age = (now - created_dt).total_seconds()  # noqa: E111
-      should_no_data = age >= grace_seconds  # noqa: E111
+    delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
 
-    if should_no_data:
-      await async_create_issue(  # noqa: E111
-        hass,
-        entry,
-        issue_id_no_data,
-        ISSUE_PUSH_NO_DATA,
-        {
-          "dog_id": dog_id,
-          "dog_name": dog_name,
-          "gps_source": gps_source,
-        },
-        severity=ir.IssueSeverity.WARNING,
-      )
-    elif callable(delete_issue):
-      delete_result = delete_issue(hass, DOMAIN, issue_id_no_data)  # noqa: E111
-      if isawaitable(delete_result):  # noqa: E111
-        await delete_result
+    for dog in raw_dogs:  # noqa: E111
+        if not isinstance(dog, Mapping):
+            continue  # noqa: E111
+        dog_id = dog.get(CONF_DOG_ID)
+        dog_name = dog.get(CONF_DOG_NAME)
+        if not isinstance(dog_id, str) or not dog_id:
+            continue  # noqa: E111
 
-    # push_rejections_high
-    issue_id_rej = f"{entry.entry_id}_{ISSUE_PUSH_REJECTIONS_HIGH}_{dog_id}"
-    should_rejections_high = rejected >= 20 and rejected > (accepted * 3 + 10)
+        gps_cfg = dog.get("gps_config")
+        gps_source = (
+            gps_cfg.get(CONF_GPS_SOURCE) if isinstance(gps_cfg, Mapping) else None
+        )
+        if gps_source not in {"webhook", "mqtt"}:
+            # Ensure stale push issues are removed if source changed  # noqa: E114
+            for issue_type in (ISSUE_PUSH_NO_DATA, ISSUE_PUSH_REJECTIONS_HIGH):  # noqa: E111
+                issue_id = f"{entry.entry_id}_{issue_type}_{dog_id}"
+                if callable(delete_issue):
+                    delete_result = delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+                    if isawaitable(delete_result):  # noqa: E111
+                        await delete_result
+            continue  # noqa: E111
 
-    if should_rejections_high:
-      await async_create_issue(  # noqa: E111
-        hass,
-        entry,
-        issue_id_rej,
-        ISSUE_PUSH_REJECTIONS_HIGH,
-        {
-          "dog_id": dog_id,
-          "dog_name": dog_name,
-          "gps_source": gps_source,
-          "accepted_total": accepted,
-          "rejected_total": rejected,
-          "last_rejection_reason": last_reason,
-        },
-        severity=ir.IssueSeverity.WARNING,
-      )
-    elif callable(delete_issue):
-      delete_result = delete_issue(hass, DOMAIN, issue_id_rej)  # noqa: E111
-      if isawaitable(delete_result):  # noqa: E111
-        await delete_result
+        dog_snapshot = dogs_tel.get(dog_id, {}) if isinstance(dogs_tel, Mapping) else {}
+        accepted = (
+            int(dog_snapshot.get("accepted_total", 0))
+            if isinstance(dog_snapshot, Mapping)
+            else 0
+        )
+        rejected = (
+            int(dog_snapshot.get("rejected_total", 0))
+            if isinstance(dog_snapshot, Mapping)
+            else 0
+        )
+        last_reason = (
+            dog_snapshot.get("last_rejection_reason")
+            if isinstance(dog_snapshot, Mapping)
+            else None
+        )
+
+        # push_no_data
+        issue_id_no_data = f"{entry.entry_id}_{ISSUE_PUSH_NO_DATA}_{dog_id}"
+        should_no_data = False
+        if accepted == 0 and created_dt is not None:
+            age = (now - created_dt).total_seconds()  # noqa: E111
+            should_no_data = age >= grace_seconds  # noqa: E111
+
+        if should_no_data:
+            await async_create_issue(  # noqa: E111
+                hass,
+                entry,
+                issue_id_no_data,
+                ISSUE_PUSH_NO_DATA,
+                {
+                    "dog_id": dog_id,
+                    "dog_name": dog_name,
+                    "gps_source": gps_source,
+                },
+                severity=ir.IssueSeverity.WARNING,
+            )
+        elif callable(delete_issue):
+            delete_result = delete_issue(hass, DOMAIN, issue_id_no_data)  # noqa: E111
+            if isawaitable(delete_result):  # noqa: E111
+                await delete_result
+
+        # push_rejections_high
+        issue_id_rej = f"{entry.entry_id}_{ISSUE_PUSH_REJECTIONS_HIGH}_{dog_id}"
+        should_rejections_high = rejected >= 20 and rejected > (accepted * 3 + 10)
+
+        if should_rejections_high:
+            await async_create_issue(  # noqa: E111
+                hass,
+                entry,
+                issue_id_rej,
+                ISSUE_PUSH_REJECTIONS_HIGH,
+                {
+                    "dog_id": dog_id,
+                    "dog_name": dog_name,
+                    "gps_source": gps_source,
+                    "accepted_total": accepted,
+                    "rejected_total": rejected,
+                    "last_rejection_reason": last_reason,
+                },
+                severity=ir.IssueSeverity.WARNING,
+            )
+        elif callable(delete_issue):
+            delete_result = delete_issue(hass, DOMAIN, issue_id_rej)  # noqa: E111
+            if isawaitable(delete_result):  # noqa: E111
+                await delete_result
 
 
 async def _check_notification_configuration_issues(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Check for notification configuration issues.
+    """Check for notification configuration issues.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-  """  # noqa: E111
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
-  raw_dogs = (  # noqa: E111
-    raw_dogs_obj
-    if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
-    else []
-  )
-  dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
-    cast(Mapping[str, JSONValue], dog) for dog in raw_dogs if isinstance(dog, Mapping)
-  ]
-  notification_enabled_dogs = []  # noqa: E111
-  for dog in dogs:  # noqa: E111
-    modules_raw = dog.get("modules", {})
-    modules = modules_raw if isinstance(modules_raw, Mapping) else {}
-    if modules.get(MODULE_NOTIFICATIONS, False):
-      notification_enabled_dogs.append(dog)  # noqa: E111
-
-  if not notification_enabled_dogs:  # noqa: E111
-    return  # No notification configuration to check
-
-  # Check if notification services are available  # noqa: E114
-  notification_config_raw = entry.options.get("notifications", {})  # noqa: E111
-  notification_config = (  # noqa: E111
-    notification_config_raw
-    if isinstance(
-      notification_config_raw,
-      Mapping,
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+    """  # noqa: E111
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
+    raw_dogs = (  # noqa: E111
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, str | bytes)
+        else []
     )
-    else {}
-  )
+    dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
+    ]
+    notification_enabled_dogs = []  # noqa: E111
+    for dog in dogs:  # noqa: E111
+        modules_raw = dog.get("modules", {})
+        modules = modules_raw if isinstance(modules_raw, Mapping) else {}
+        if modules.get(MODULE_NOTIFICATIONS, False):
+            notification_enabled_dogs.append(dog)  # noqa: E111
 
-  # Check for mobile app availability  # noqa: E114
-  mobile_enabled_raw = notification_config.get("mobile_notifications", True)  # noqa: E111
-  mobile_enabled = mobile_enabled_raw if isinstance(mobile_enabled_raw, bool) else True  # noqa: E111
-  if mobile_enabled:  # noqa: E111
-    has_mobile_app_service = hass.services.has_service(
-      "notify",
-      "mobile_app",
+    if not notification_enabled_dogs:  # noqa: E111
+        return  # No notification configuration to check
+
+    # Check if notification services are available  # noqa: E114
+    notification_config_raw = entry.options.get("notifications", {})  # noqa: E111
+    notification_config = (  # noqa: E111
+        notification_config_raw
+        if isinstance(
+            notification_config_raw,
+            Mapping,
+        )
+        else {}
     )
 
-    if not has_mobile_app_service:
-      async_services = getattr(hass.services, "async_services", None)  # noqa: E111
-      if callable(async_services):  # noqa: E111
-        notify_services: Any
-        try:
-          notify_services = async_services().get("notify", {})  # noqa: E111
-        except Exception:  # pragma: no cover - defensive fallback
-          notify_services = {}  # noqa: E111
+    # Check for mobile app availability  # noqa: E114
+    mobile_enabled_raw = notification_config.get("mobile_notifications", True)  # noqa: E111
+    mobile_enabled = (
+        mobile_enabled_raw if isinstance(mobile_enabled_raw, bool) else True
+    )  # noqa: E111
+    if mobile_enabled:  # noqa: E111
+        has_mobile_app_service = hass.services.has_service(
+            "notify",
+            "mobile_app",
+        )
 
-        if isinstance(notify_services, dict):
-          has_mobile_app_service = any(  # noqa: E111
-            service.startswith("mobile_app") for service in notify_services
-          )
+        if not has_mobile_app_service:
+            async_services = getattr(hass.services, "async_services", None)  # noqa: E111
+            if callable(async_services):  # noqa: E111
+                notify_services: Any
+                try:
+                    notify_services = async_services().get("notify", {})  # noqa: E111
+                except Exception:  # pragma: no cover - defensive fallback
+                    notify_services = {}  # noqa: E111
 
-    if not has_mobile_app_service:
-      await async_create_issue(  # noqa: E111
-        hass,
-        entry,
-        f"{entry.entry_id}_mobile_app_missing",
-        ISSUE_MISSING_NOTIFICATIONS,
-        {
-          "missing_service": "mobile_app",
-          "notification_enabled_dogs": len(notification_enabled_dogs),
-        },
-        severity="warning",
-      )
+                if isinstance(notify_services, dict):
+                    has_mobile_app_service = any(  # noqa: E111
+                        service.startswith("mobile_app") for service in notify_services
+                    )
+
+        if not has_mobile_app_service:
+            await async_create_issue(  # noqa: E111
+                hass,
+                entry,
+                f"{entry.entry_id}_mobile_app_missing",
+                ISSUE_MISSING_NOTIFICATIONS,
+                {
+                    "missing_service": "mobile_app",
+                    "notification_enabled_dogs": len(notification_enabled_dogs),
+                },
+                severity="warning",
+            )
 
 
 # -----------------------------------------------------------------------------
@@ -949,2153 +969,2166 @@ async def _check_notification_configuration_issues(
 
 
 def _coerce_int(value: object) -> int | None:
-  """Return ``value`` coerced into an integer when safe.
+    """Return ``value`` coerced into an integer when safe.
 
-  This helper is shared between repairs and diagnostics to safely convert
-  arbitrary objects into integers for metrics.
-  """  # noqa: E111
-  if isinstance(value, bool):  # noqa: E111
-    return int(value)
-  if isinstance(value, int):  # noqa: E111
-    return value
-  if isinstance(value, float):  # noqa: E111
-    return int(value)
-  if isinstance(value, str):  # noqa: E111
-    try:
-      return int(value.strip())  # noqa: E111
-    except ValueError:
-      return None  # noqa: E111
-  return None  # noqa: E111
+    This helper is shared between repairs and diagnostics to safely convert
+    arbitrary objects into integers for metrics.
+    """  # noqa: E111
+    if isinstance(value, bool):  # noqa: E111
+        return int(value)
+    if isinstance(value, int):  # noqa: E111
+        return value
+    if isinstance(value, float):  # noqa: E111
+        return int(value)
+    if isinstance(value, str):  # noqa: E111
+        try:
+            return int(value.strip())  # noqa: E111
+        except ValueError:
+            return None  # noqa: E111
+    return None  # noqa: E111
 
 
 async def _check_notification_delivery_errors(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Surface recurring notification delivery errors as repair issues.
+    """Surface recurring notification delivery errors as repair issues.
 
-  This function inspects the runtime delivery status snapshot and creates
-  repair issues when notification services repeatedly fail due to
-  authentication or reachability errors. It uses the ``classify_error_reason``
-  helper to map free-form errors into known categories. When an error class
-  goes away, the corresponding issue is automatically cleared.
-  """  # noqa: E111
+    This function inspects the runtime delivery status snapshot and creates
+    repair issues when notification services repeatedly fail due to
+    authentication or reachability errors. It uses the ``classify_error_reason``
+    helper to map free-form errors into known categories. When an error class
+    goes away, the corresponding issue is automatically cleared.
+    """  # noqa: E111
 
-  # Definitions for each classification we care about  # noqa: E114
-  issue_definitions = {  # noqa: E111
-    "auth_error": {
-      "issue_id": f"{entry.entry_id}_notification_auth_error",
-      "issue_type": ISSUE_NOTIFICATION_AUTH_ERROR,
-      "severity": ir.IssueSeverity.ERROR,
-      "recommended_steps": [
-        "Verify credentials for the affected notification services",
-        "Reauthenticate the notify integration if prompted",
-        "Review system logs for authentication failures",
-      ],
-    },
-    "device_unreachable": {
-      "issue_id": f"{entry.entry_id}_notification_device_unreachable",
-      "issue_type": ISSUE_NOTIFICATION_DEVICE_UNREACHABLE,
-      "severity": ir.IssueSeverity.WARNING,
-      "recommended_steps": [
-        "Confirm target devices are online and reachable",
-        "Check local network connectivity for the devices",
-        "Open logs to review recent delivery failures",
-      ],
-    },
-    "missing_service": {
-      "issue_id": f"{entry.entry_id}_notification_missing_service",
-      "issue_type": ISSUE_NOTIFICATION_MISSING_SERVICE,
-      "severity": ir.IssueSeverity.ERROR,
-      "recommended_steps": [
-        "Ensure the notify integration/service is installed and enabled",
-        "Update notification settings to match the active service name",
-        "Reload the notify integration after correcting configuration",
-      ],
-    },
-    "timeout": {
-      "issue_id": f"{entry.entry_id}_notification_timeout",
-      "issue_type": ISSUE_NOTIFICATION_TIMEOUT,
-      "severity": ir.IssueSeverity.WARNING,
-      "recommended_steps": [
-        "Check connectivity between Home Assistant and the notify target",
-        "Reduce payload size or notification frequency if needed",
-        "Review logs for timeout details and retry guidance",
-      ],
-    },
-    "rate_limited": {
-      "issue_id": f"{entry.entry_id}_notification_rate_limited",
-      "issue_type": ISSUE_NOTIFICATION_RATE_LIMITED,
-      "severity": ir.IssueSeverity.WARNING,
-      "recommended_steps": [
-        "Reduce notification frequency to stay within provider limits",
-        "Review provider rate limits or quotas for your notify service",
-        "Stagger notifications to avoid burst traffic",
-      ],
-    },
-    "guard_skipped": {
-      "issue_id": f"{entry.entry_id}_notification_guard_skipped",
-      "issue_type": ISSUE_NOTIFICATION_GUARD_SKIPPED,
-      "severity": ir.IssueSeverity.WARNING,
-      "recommended_steps": [
-        "Confirm guard conditions allow the notification to run",
-        "Verify required services are enabled before retrying",
-        "Review guard skip reasons in logs and diagnostics",
-      ],
-    },
-    "exception": {
-      "issue_id": f"{entry.entry_id}_notification_delivery_error_exception",
-      "issue_type": ISSUE_NOTIFICATION_DELIVERY_ERROR,
-      "severity": ir.IssueSeverity.WARNING,
-      "recommended_steps": [
-        "Open system logs to review exception details",
-        "Reload the notify integration after resolving errors",
-        "Retry the notification once issues are addressed",
-      ],
-    },
-    "unknown": {
-      "issue_id": f"{entry.entry_id}_notification_delivery_error_unknown",
-      "issue_type": ISSUE_NOTIFICATION_DELIVERY_ERROR,
-      "severity": ir.IssueSeverity.WARNING,
-      "recommended_steps": [
-        "Review system logs for additional error context",
-        "Validate notification service configuration",
-        "Retry delivery after adjustments",
-      ],
-    },
-  }
-  summary_issue = {  # noqa: E111
-    "issue_id": f"{entry.entry_id}_notification_delivery_repeated",
-    "issue_type": ISSUE_NOTIFICATION_DELIVERY_REPEATED,
-    "severity": ir.IssueSeverity.WARNING,
-    "recommended_steps": [
-      "Review notification configuration and service availability",
-      "Check logs for recurring delivery errors",
-      "Retry sending after addressing the root cause",
-    ],
-  }
-  issue_ids = [definition["issue_id"] for definition in issue_definitions.values()]  # noqa: E111
-  issue_ids.append(summary_issue["issue_id"])  # noqa: E111
-
-  try:  # noqa: E111
-    runtime_data = require_runtime_data(hass, entry)
-  except RuntimeDataUnavailableError:  # noqa: E111
-    # If runtime data is unavailable, remove any lingering issues
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      for issue_id in issue_ids:  # noqa: E111
-        await delete_issue(hass, DOMAIN, issue_id)
-    return
-
-  notification_manager = getattr(runtime_data, "notification_manager", None)  # noqa: E111
-  if notification_manager is None:  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      for issue_id in issue_ids:  # noqa: E111
-        await delete_issue(hass, DOMAIN, issue_id)
-    return
-
-  delivery_status = notification_manager.get_delivery_status_snapshot()  # noqa: E111
-  if not isinstance(delivery_status, Mapping):  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      for issue_id in issue_ids:  # noqa: E111
-        await delete_issue(hass, DOMAIN, issue_id)
-    return
-
-  services = delivery_status.get("services")  # noqa: E111
-  if not isinstance(services, Mapping):  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      for issue_id in issue_ids:  # noqa: E111
-        await delete_issue(hass, DOMAIN, issue_id)
-    return
-
-  # We consider an error recurring if there are >=3 consecutive failures  # noqa: E114
-  recurring_threshold = 3  # noqa: E111
-  classified_services: dict[str, _NotificationDeliverySummary] = {  # noqa: E111
-    key: {"services": [], "total_failures": 0, "consecutive_failures": 0}
-    for key in issue_definitions
-  }
-  reasons_by_class: dict[str, set[str]] = {key: set() for key in issue_definitions}  # noqa: E111
-  summary_services: list[str] = []  # noqa: E111
-  summary_total_failures = 0  # noqa: E111
-  summary_consecutive_failures = 0  # noqa: E111
-  summary_reasons: set[str] = set()  # noqa: E111
-
-  for service_name, payload in services.items():  # noqa: E111
-    if not isinstance(service_name, str) or not isinstance(payload, Mapping):
-      continue  # noqa: E111
-    total_failures = _coerce_int(payload.get("total_failures")) or 0
-    consecutive_failures = _coerce_int(payload.get("consecutive_failures")) or 0
-    # Only trigger if consecutive failures meet the threshold
-    if consecutive_failures < recurring_threshold or total_failures <= 0:
-      continue  # noqa: E111
-    last_error_reason = payload.get("last_error_reason")
-    reason_text = (
-      last_error_reason
-      if isinstance(last_error_reason, str) and last_error_reason
-      else None
-    )
-    last_error = payload.get("last_error")
-    error_text = last_error if isinstance(last_error, str) else None
-    classification = classify_error_reason(reason_text, error=error_text)
-    if classification not in issue_definitions:
-      continue  # noqa: E111
-    summary_services.append(service_name)
-    summary_total_failures += total_failures
-    summary_consecutive_failures += consecutive_failures
-    if reason_text:
-      summary_reasons.add(reason_text)  # noqa: E111
-    classified_entry = classified_services[classification]
-    # Append service name and accumulate counts
-    classified_entry["services"].append(service_name)
-    classified_entry["total_failures"] = (
-      classified_entry["total_failures"] + total_failures
-    )
-    classified_entry["consecutive_failures"] = (
-      classified_entry["consecutive_failures"] + consecutive_failures
-    )
-    if reason_text:
-      reasons_by_class[classification].add(reason_text)  # noqa: E111
-
-  # Create or clear issues based on classification results  # noqa: E114
-  delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
-  if summary_services:  # noqa: E111
-    issue_data: JSONMutableMapping = {
-      "services": ", ".join(sorted(summary_services)),
-      "service_count": len(summary_services),
-      "total_failures": summary_total_failures,
-      "consecutive_failures": summary_consecutive_failures,
-      "last_error_reasons": (
-        ", ".join(sorted(summary_reasons)) if summary_reasons else "n/a"
-      ),
-      "recommended_steps": ", ".join(
-        cast(list[str], summary_issue.get("recommended_steps", [])),
-      ),
+    # Definitions for each classification we care about  # noqa: E114
+    issue_definitions = {  # noqa: E111
+        "auth_error": {
+            "issue_id": f"{entry.entry_id}_notification_auth_error",
+            "issue_type": ISSUE_NOTIFICATION_AUTH_ERROR,
+            "severity": ir.IssueSeverity.ERROR,
+            "recommended_steps": [
+                "Verify credentials for the affected notification services",
+                "Reauthenticate the notify integration if prompted",
+                "Review system logs for authentication failures",
+            ],
+        },
+        "device_unreachable": {
+            "issue_id": f"{entry.entry_id}_notification_device_unreachable",
+            "issue_type": ISSUE_NOTIFICATION_DEVICE_UNREACHABLE,
+            "severity": ir.IssueSeverity.WARNING,
+            "recommended_steps": [
+                "Confirm target devices are online and reachable",
+                "Check local network connectivity for the devices",
+                "Open logs to review recent delivery failures",
+            ],
+        },
+        "missing_service": {
+            "issue_id": f"{entry.entry_id}_notification_missing_service",
+            "issue_type": ISSUE_NOTIFICATION_MISSING_SERVICE,
+            "severity": ir.IssueSeverity.ERROR,
+            "recommended_steps": [
+                "Ensure the notify integration/service is installed and enabled",
+                "Update notification settings to match the active service name",
+                "Reload the notify integration after correcting configuration",
+            ],
+        },
+        "timeout": {
+            "issue_id": f"{entry.entry_id}_notification_timeout",
+            "issue_type": ISSUE_NOTIFICATION_TIMEOUT,
+            "severity": ir.IssueSeverity.WARNING,
+            "recommended_steps": [
+                "Check connectivity between Home Assistant and the notify target",
+                "Reduce payload size or notification frequency if needed",
+                "Review logs for timeout details and retry guidance",
+            ],
+        },
+        "rate_limited": {
+            "issue_id": f"{entry.entry_id}_notification_rate_limited",
+            "issue_type": ISSUE_NOTIFICATION_RATE_LIMITED,
+            "severity": ir.IssueSeverity.WARNING,
+            "recommended_steps": [
+                "Reduce notification frequency to stay within provider limits",
+                "Review provider rate limits or quotas for your notify service",
+                "Stagger notifications to avoid burst traffic",
+            ],
+        },
+        "guard_skipped": {
+            "issue_id": f"{entry.entry_id}_notification_guard_skipped",
+            "issue_type": ISSUE_NOTIFICATION_GUARD_SKIPPED,
+            "severity": ir.IssueSeverity.WARNING,
+            "recommended_steps": [
+                "Confirm guard conditions allow the notification to run",
+                "Verify required services are enabled before retrying",
+                "Review guard skip reasons in logs and diagnostics",
+            ],
+        },
+        "exception": {
+            "issue_id": f"{entry.entry_id}_notification_delivery_error_exception",
+            "issue_type": ISSUE_NOTIFICATION_DELIVERY_ERROR,
+            "severity": ir.IssueSeverity.WARNING,
+            "recommended_steps": [
+                "Open system logs to review exception details",
+                "Reload the notify integration after resolving errors",
+                "Retry the notification once issues are addressed",
+            ],
+        },
+        "unknown": {
+            "issue_id": f"{entry.entry_id}_notification_delivery_error_unknown",
+            "issue_type": ISSUE_NOTIFICATION_DELIVERY_ERROR,
+            "severity": ir.IssueSeverity.WARNING,
+            "recommended_steps": [
+                "Review system logs for additional error context",
+                "Validate notification service configuration",
+                "Retry delivery after adjustments",
+            ],
+        },
     }
-    await async_create_issue(
-      hass,
-      entry,
-      summary_issue["issue_id"],
-      summary_issue["issue_type"],
-      issue_data,
-      severity=summary_issue["severity"],
-    )
-  elif callable(delete_issue):  # noqa: E111
-    await delete_issue(hass, DOMAIN, summary_issue["issue_id"])
-
-  for classification, definition in issue_definitions.items():  # noqa: E111
-    services_list = classified_services[classification]["services"]
-    if not services_list:
-      if callable(delete_issue):  # noqa: E111
-        await delete_issue(hass, DOMAIN, definition["issue_id"])
-      continue  # noqa: E111
-    issue_data: JSONMutableMapping = {  # type: ignore[no-redef]
-      "classification": classification,
-      "services": ", ".join(sorted(services_list)),
-      "service_count": len(services_list),
-      "total_failures": classified_services[classification]["total_failures"],
-      "consecutive_failures": classified_services[classification][
-        "consecutive_failures"
-      ],
-      "last_error_reasons": (
-        ", ".join(sorted(reasons_by_class[classification]))
-        if reasons_by_class[classification]
-        else "n/a"
-      ),
-      "recommended_steps": ", ".join(
-        cast(list[str], definition.get("recommended_steps", [])),
-      ),
+    summary_issue = {  # noqa: E111
+        "issue_id": f"{entry.entry_id}_notification_delivery_repeated",
+        "issue_type": ISSUE_NOTIFICATION_DELIVERY_REPEATED,
+        "severity": ir.IssueSeverity.WARNING,
+        "recommended_steps": [
+            "Review notification configuration and service availability",
+            "Check logs for recurring delivery errors",
+            "Retry sending after addressing the root cause",
+        ],
     }
-    await async_create_issue(
-      hass,
-      entry,
-      definition["issue_id"],
-      definition["issue_type"],
-      issue_data,
-      severity=definition["severity"],
-    )
+    issue_ids = [definition["issue_id"] for definition in issue_definitions.values()]  # noqa: E111
+    issue_ids.append(summary_issue["issue_id"])  # noqa: E111
+
+    try:  # noqa: E111
+        runtime_data = require_runtime_data(hass, entry)
+    except RuntimeDataUnavailableError:  # noqa: E111
+        # If runtime data is unavailable, remove any lingering issues
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            for issue_id in issue_ids:  # noqa: E111
+                await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    notification_manager = getattr(runtime_data, "notification_manager", None)  # noqa: E111
+    if notification_manager is None:  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            for issue_id in issue_ids:  # noqa: E111
+                await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    delivery_status = notification_manager.get_delivery_status_snapshot()  # noqa: E111
+    if not isinstance(delivery_status, Mapping):  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            for issue_id in issue_ids:  # noqa: E111
+                await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    services = delivery_status.get("services")  # noqa: E111
+    if not isinstance(services, Mapping):  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            for issue_id in issue_ids:  # noqa: E111
+                await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    # We consider an error recurring if there are >=3 consecutive failures  # noqa: E114
+    recurring_threshold = 3  # noqa: E111
+    classified_services: dict[str, _NotificationDeliverySummary] = {  # noqa: E111
+        key: {"services": [], "total_failures": 0, "consecutive_failures": 0}
+        for key in issue_definitions
+    }
+    reasons_by_class: dict[str, set[str]] = {key: set() for key in issue_definitions}  # noqa: E111
+    summary_services: list[str] = []  # noqa: E111
+    summary_total_failures = 0  # noqa: E111
+    summary_consecutive_failures = 0  # noqa: E111
+    summary_reasons: set[str] = set()  # noqa: E111
+
+    for service_name, payload in services.items():  # noqa: E111
+        if not isinstance(service_name, str) or not isinstance(payload, Mapping):
+            continue  # noqa: E111
+        total_failures = _coerce_int(payload.get("total_failures")) or 0
+        consecutive_failures = _coerce_int(payload.get("consecutive_failures")) or 0
+        # Only trigger if consecutive failures meet the threshold
+        if consecutive_failures < recurring_threshold or total_failures <= 0:
+            continue  # noqa: E111
+        last_error_reason = payload.get("last_error_reason")
+        reason_text = (
+            last_error_reason
+            if isinstance(last_error_reason, str) and last_error_reason
+            else None
+        )
+        last_error = payload.get("last_error")
+        error_text = last_error if isinstance(last_error, str) else None
+        classification = classify_error_reason(reason_text, error=error_text)
+        if classification not in issue_definitions:
+            continue  # noqa: E111
+        summary_services.append(service_name)
+        summary_total_failures += total_failures
+        summary_consecutive_failures += consecutive_failures
+        if reason_text:
+            summary_reasons.add(reason_text)  # noqa: E111
+        classified_entry = classified_services[classification]
+        # Append service name and accumulate counts
+        classified_entry["services"].append(service_name)
+        classified_entry["total_failures"] = (
+            classified_entry["total_failures"] + total_failures
+        )
+        classified_entry["consecutive_failures"] = (
+            classified_entry["consecutive_failures"] + consecutive_failures
+        )
+        if reason_text:
+            reasons_by_class[classification].add(reason_text)  # noqa: E111
+
+    # Create or clear issues based on classification results  # noqa: E114
+    delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
+    if summary_services:  # noqa: E111
+        issue_data: JSONMutableMapping = {
+            "services": ", ".join(sorted(summary_services)),
+            "service_count": len(summary_services),
+            "total_failures": summary_total_failures,
+            "consecutive_failures": summary_consecutive_failures,
+            "last_error_reasons": (
+                ", ".join(sorted(summary_reasons)) if summary_reasons else "n/a"
+            ),
+            "recommended_steps": ", ".join(
+                cast(list[str], summary_issue.get("recommended_steps", [])),
+            ),
+        }
+        await async_create_issue(
+            hass,
+            entry,
+            summary_issue["issue_id"],
+            summary_issue["issue_type"],
+            issue_data,
+            severity=summary_issue["severity"],
+        )
+    elif callable(delete_issue):  # noqa: E111
+        await delete_issue(hass, DOMAIN, summary_issue["issue_id"])
+
+    for classification, definition in issue_definitions.items():  # noqa: E111
+        services_list = classified_services[classification]["services"]
+        if not services_list:
+            if callable(delete_issue):  # noqa: E111
+                await delete_issue(hass, DOMAIN, definition["issue_id"])
+            continue  # noqa: E111
+        issue_data: JSONMutableMapping = {  # type: ignore[no-redef]
+            "classification": classification,
+            "services": ", ".join(sorted(services_list)),
+            "service_count": len(services_list),
+            "total_failures": classified_services[classification]["total_failures"],
+            "consecutive_failures": classified_services[classification][
+                "consecutive_failures"
+            ],
+            "last_error_reasons": (
+                ", ".join(sorted(reasons_by_class[classification]))
+                if reasons_by_class[classification]
+                else "n/a"
+            ),
+            "recommended_steps": ", ".join(
+                cast(list[str], definition.get("recommended_steps", [])),
+            ),
+        }
+        await async_create_issue(
+            hass,
+            entry,
+            definition["issue_id"],
+            definition["issue_type"],
+            issue_data,
+            severity=definition["severity"],
+        )
 
 
 async def _check_outdated_configuration(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Check for outdated configuration that needs migration.
+    """Check for outdated configuration that needs migration.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-  """  # noqa: E111
-  # Check config entry version  # noqa: E114
-  if entry.version < CONFIG_ENTRY_VERSION:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_outdated_config",
-      ISSUE_OUTDATED_CONFIG,
-      {
-        "current_version": entry.version,
-        "required_version": CONFIG_ENTRY_VERSION,
-      },
-      severity=ir.IssueSeverity.WARNING,
-    )
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+    """  # noqa: E111
+    # Check config entry version  # noqa: E114
+    if entry.version < CONFIG_ENTRY_VERSION:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_outdated_config",
+            ISSUE_OUTDATED_CONFIG,
+            {
+                "current_version": entry.version,
+                "required_version": CONFIG_ENTRY_VERSION,
+            },
+            severity=ir.IssueSeverity.WARNING,
+        )
 
 
 async def _check_reconfigure_telemetry_issues(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Surface reconfigure warnings and health summaries via repairs."""  # noqa: E111
+    """Surface reconfigure warnings and health summaries via repairs."""  # noqa: E111
 
-  options: JSONLikeMapping = (  # noqa: E111
-    cast(JSONLikeMapping, entry.options) if isinstance(entry.options, Mapping) else {}
-  )
-  telemetry_raw = options.get("reconfigure_telemetry")  # noqa: E111
-
-  delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
-  warnings_issue_id = f"{entry.entry_id}_reconfigure_warnings"  # noqa: E111
-  health_issue_id = f"{entry.entry_id}_reconfigure_health"  # noqa: E111
-
-  if not isinstance(telemetry_raw, Mapping):  # noqa: E111
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, warnings_issue_id)  # noqa: E111
-      await delete_issue(hass, DOMAIN, health_issue_id)  # noqa: E111
-    return
-
-  telemetry = cast(ReconfigureTelemetry, telemetry_raw)  # noqa: E111
-
-  def _as_list(value: Any) -> list[str]:  # noqa: E111
-    if isinstance(value, Sequence) and not isinstance(value, str | bytes):
-      return [str(item) for item in value if item is not None]  # noqa: E111
-    return []
-
-  timestamp = str(  # noqa: E111
-    telemetry.get("timestamp") or options.get("last_reconfigure") or "",
-  )
-  requested_profile = str(telemetry.get("requested_profile", ""))  # noqa: E111
-  previous_profile = str(telemetry.get("previous_profile", ""))  # noqa: E111
-  warnings = _as_list(telemetry.get("compatibility_warnings"))  # noqa: E111
-
-  if warnings:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      warnings_issue_id,
-      ISSUE_RECONFIGURE_WARNINGS,
-      {
-        "timestamp": timestamp,
-        "requested_profile": requested_profile,
-        "previous_profile": previous_profile,
-        "warnings": warnings,
-      },
-      severity=ir.IssueSeverity.WARNING,
+    options: JSONLikeMapping = (  # noqa: E111
+        cast(JSONLikeMapping, entry.options)
+        if isinstance(entry.options, Mapping)
+        else {}
     )
-  elif callable(delete_issue):  # noqa: E111
-    await delete_issue(hass, DOMAIN, warnings_issue_id)
+    telemetry_raw = options.get("reconfigure_telemetry")  # noqa: E111
 
-  health_summary = telemetry.get("health_summary")  # noqa: E111
-  if isinstance(health_summary, Mapping):  # noqa: E111
-    healthy = bool(health_summary.get("healthy", True))
-    health_issues = _as_list(health_summary.get("issues"))
-    health_warnings = _as_list(health_summary.get("warnings"))
+    delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
+    warnings_issue_id = f"{entry.entry_id}_reconfigure_warnings"  # noqa: E111
+    health_issue_id = f"{entry.entry_id}_reconfigure_health"  # noqa: E111
 
-    if not healthy or health_issues or health_warnings:
-      severity = (  # noqa: E111
-        ir.IssueSeverity.ERROR
-        if (not healthy and health_issues)
-        else ir.IssueSeverity.WARNING
-      )
-      await async_create_issue(  # noqa: E111
-        hass,
-        entry,
-        health_issue_id,
-        ISSUE_RECONFIGURE_HEALTH,
-        {
-          "timestamp": timestamp,
-          "requested_profile": requested_profile,
-          "health_issues": health_issues,
-          "health_warnings": health_warnings,
-        },
-        severity=severity,
-      )
-    elif callable(delete_issue):
-      await delete_issue(hass, DOMAIN, health_issue_id)  # noqa: E111
-  elif callable(delete_issue):  # noqa: E111
-    await delete_issue(hass, DOMAIN, health_issue_id)
+    if not isinstance(telemetry_raw, Mapping):  # noqa: E111
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, warnings_issue_id)  # noqa: E111
+            await delete_issue(hass, DOMAIN, health_issue_id)  # noqa: E111
+        return
+
+    telemetry = cast(ReconfigureTelemetry, telemetry_raw)  # noqa: E111
+
+    def _as_list(value: Any) -> list[str]:  # noqa: E111
+        if isinstance(value, Sequence) and not isinstance(value, str | bytes):
+            return [str(item) for item in value if item is not None]  # noqa: E111
+        return []
+
+    timestamp = str(  # noqa: E111
+        telemetry.get("timestamp") or options.get("last_reconfigure") or "",
+    )
+    requested_profile = str(telemetry.get("requested_profile", ""))  # noqa: E111
+    previous_profile = str(telemetry.get("previous_profile", ""))  # noqa: E111
+    warnings = _as_list(telemetry.get("compatibility_warnings"))  # noqa: E111
+
+    if warnings:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            warnings_issue_id,
+            ISSUE_RECONFIGURE_WARNINGS,
+            {
+                "timestamp": timestamp,
+                "requested_profile": requested_profile,
+                "previous_profile": previous_profile,
+                "warnings": warnings,
+            },
+            severity=ir.IssueSeverity.WARNING,
+        )
+    elif callable(delete_issue):  # noqa: E111
+        await delete_issue(hass, DOMAIN, warnings_issue_id)
+
+    health_summary = telemetry.get("health_summary")  # noqa: E111
+    if isinstance(health_summary, Mapping):  # noqa: E111
+        healthy = bool(health_summary.get("healthy", True))
+        health_issues = _as_list(health_summary.get("issues"))
+        health_warnings = _as_list(health_summary.get("warnings"))
+
+        if not healthy or health_issues or health_warnings:
+            severity = (  # noqa: E111
+                ir.IssueSeverity.ERROR
+                if (not healthy and health_issues)
+                else ir.IssueSeverity.WARNING
+            )
+            await async_create_issue(  # noqa: E111
+                hass,
+                entry,
+                health_issue_id,
+                ISSUE_RECONFIGURE_HEALTH,
+                {
+                    "timestamp": timestamp,
+                    "requested_profile": requested_profile,
+                    "health_issues": health_issues,
+                    "health_warnings": health_warnings,
+                },
+                severity=severity,
+            )
+        elif callable(delete_issue):
+            await delete_issue(hass, DOMAIN, health_issue_id)  # noqa: E111
+    elif callable(delete_issue):  # noqa: E111
+        await delete_issue(hass, DOMAIN, health_issue_id)
 
 
 async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Check for performance-related issues.
+    """Check for performance-related issues.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-  """  # noqa: E111
-  raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
-  raw_dogs = (  # noqa: E111
-    raw_dogs_obj
-    if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, str | bytes)
-    else []
-  )
-  dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
-    cast(Mapping[str, JSONValue], dog) for dog in raw_dogs if isinstance(dog, Mapping)
-  ]
-
-  # Check for too many dogs (performance warning)  # noqa: E114
-  if len(dogs) > 10:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_too_many_dogs",
-      ISSUE_PERFORMANCE_WARNING,
-      {
-        "dog_count": len(dogs),
-        "recommended_max": 10,
-        "suggestion": "Consider performance mode optimization",
-      },
-      severity=ir.IssueSeverity.WARNING,
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+    """  # noqa: E111
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])  # noqa: E111
+    raw_dogs = (  # noqa: E111
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, str | bytes)
+        else []
     )
+    dogs: list[Mapping[str, JSONValue]] = [  # noqa: E111
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
+    ]
 
-  # Check for conflicting module configurations  # noqa: E114
-  high_resource_modules = [MODULE_GPS, MODULE_HEALTH]  # noqa: E111
-  dogs_with_all_modules = []  # noqa: E111
-  for dog in dogs:  # noqa: E111
-    modules_raw = dog.get("modules", {})
-    modules = modules_raw if isinstance(modules_raw, Mapping) else {}
-    if all(modules.get(module, False) for module in high_resource_modules):
-      dogs_with_all_modules.append(dog)  # noqa: E111
+    # Check for too many dogs (performance warning)  # noqa: E114
+    if len(dogs) > 10:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_too_many_dogs",
+            ISSUE_PERFORMANCE_WARNING,
+            {
+                "dog_count": len(dogs),
+                "recommended_max": 10,
+                "suggestion": "Consider performance mode optimization",
+            },
+            severity=ir.IssueSeverity.WARNING,
+        )
 
-  if len(dogs_with_all_modules) > 5:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_resource_intensive_config",
-      ISSUE_MODULE_CONFLICT,
-      {
-        "intensive_dogs": len(dogs_with_all_modules),
-        "total_dogs": len(dogs),
-        "suggestion": "Consider selective module enabling",
-      },
-      severity=ir.IssueSeverity.WARNING,
-    )
+    # Check for conflicting module configurations  # noqa: E114
+    high_resource_modules = [MODULE_GPS, MODULE_HEALTH]  # noqa: E111
+    dogs_with_all_modules = []  # noqa: E111
+    for dog in dogs:  # noqa: E111
+        modules_raw = dog.get("modules", {})
+        modules = modules_raw if isinstance(modules_raw, Mapping) else {}
+        if all(modules.get(module, False) for module in high_resource_modules):
+            dogs_with_all_modules.append(dog)  # noqa: E111
+
+    if len(dogs_with_all_modules) > 5:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_resource_intensive_config",
+            ISSUE_MODULE_CONFLICT,
+            {
+                "intensive_dogs": len(dogs_with_all_modules),
+                "total_dogs": len(dogs),
+                "suggestion": "Consider selective module enabling",
+            },
+            severity=ir.IssueSeverity.WARNING,
+        )
 
 
 async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Check for storage-related issues.
+    """Check for storage-related issues.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-  """  # noqa: E111
-  # Check data retention settings  # noqa: E114
-  retention_raw = entry.options.get("data_retention_days", 90)  # noqa: E111
-  retention_days = (  # noqa: E111
-    int(retention_raw)
-    if isinstance(
-      retention_raw,
-      int | float | str,
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+    """  # noqa: E111
+    # Check data retention settings  # noqa: E114
+    retention_raw = entry.options.get("data_retention_days", 90)  # noqa: E111
+    retention_days = (  # noqa: E111
+        int(retention_raw)
+        if isinstance(
+            retention_raw,
+            int | float | str,
+        )
+        else 90
     )
-    else 90
-  )
 
-  if retention_days > 365:  # More than 1 year  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_high_storage_retention",
-      ISSUE_STORAGE_WARNING,
-      {
-        "current_retention": retention_days,
-        "recommended_max": 365,
-        "suggestion": "Consider reducing data retention period",
-      },
-      severity=ir.IssueSeverity.WARNING,
-    )
+    if retention_days > 365:  # More than 1 year  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_high_storage_retention",
+            ISSUE_STORAGE_WARNING,
+            {
+                "current_retention": retention_days,
+                "recommended_max": 365,
+                "suggestion": "Consider reducing data retention period",
+            },
+            severity=ir.IssueSeverity.WARNING,
+        )
 
 
 async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Surface runtime store compatibility issues through repairs."""  # noqa: E111
+    """Surface runtime store compatibility issues through repairs."""  # noqa: E111
 
-  issue_id = f"{entry.entry_id}_runtime_store"  # noqa: E111
-  snapshot = describe_runtime_store_status(hass, entry)  # noqa: E111
-  status = snapshot.get("status", "current")  # noqa: E111
-  severity = _RUNTIME_STORE_STATUS_SEVERITY.get(status)  # noqa: E111
+    issue_id = f"{entry.entry_id}_runtime_store"  # noqa: E111
+    snapshot = describe_runtime_store_status(hass, entry)  # noqa: E111
+    status = snapshot.get("status", "current")  # noqa: E111
+    severity = _RUNTIME_STORE_STATUS_SEVERITY.get(status)  # noqa: E111
 
-  delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
+    delete_issue = getattr(ir, "async_delete_issue", None)  # noqa: E111
 
-  if severity is None:  # noqa: E111
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
+    if severity is None:  # noqa: E111
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
 
-  entry_snapshot = snapshot.get("entry", {})  # noqa: E111
-  store_snapshot = snapshot.get("store", {})  # noqa: E111
+    entry_snapshot = snapshot.get("entry", {})  # noqa: E111
+    store_snapshot = snapshot.get("store", {})  # noqa: E111
 
-  def _string_or_unknown(value: Any) -> str:  # noqa: E111
-    if value is None:
-      return "n/a"  # noqa: E111
-    return str(value)
+    def _string_or_unknown(value: Any) -> str:  # noqa: E111
+        if value is None:
+            return "n/a"  # noqa: E111
+        return str(value)
 
-  issue_data: JSONMutableMapping = {  # noqa: E111
-    "status": status,
-    "current_version": snapshot.get("current_version"),
-    "minimum_compatible_version": snapshot.get("minimum_compatible_version"),
-    "entry_status": entry_snapshot.get("status"),
-    "store_status": store_snapshot.get("status"),
-    "divergence_detected": snapshot.get("divergence_detected", False),
-  }
+    issue_data: JSONMutableMapping = {  # noqa: E111
+        "status": status,
+        "current_version": snapshot.get("current_version"),
+        "minimum_compatible_version": snapshot.get("minimum_compatible_version"),
+        "entry_status": entry_snapshot.get("status"),
+        "store_status": store_snapshot.get("status"),
+        "divergence_detected": snapshot.get("divergence_detected", False),
+    }
 
-  issue_data["entry_version"] = _string_or_unknown(  # noqa: E111
-    entry_snapshot.get("version"),
-  )
-  issue_data["entry_created_version"] = _string_or_unknown(  # noqa: E111
-    entry_snapshot.get("created_version"),
-  )
-  issue_data["store_version"] = _string_or_unknown(  # noqa: E111
-    store_snapshot.get("version"),
-  )
-  issue_data["store_created_version"] = _string_or_unknown(  # noqa: E111
-    store_snapshot.get("created_version"),
-  )
+    issue_data["entry_version"] = _string_or_unknown(  # noqa: E111
+        entry_snapshot.get("version"),
+    )
+    issue_data["entry_created_version"] = _string_or_unknown(  # noqa: E111
+        entry_snapshot.get("created_version"),
+    )
+    issue_data["store_version"] = _string_or_unknown(  # noqa: E111
+        store_snapshot.get("version"),
+    )
+    issue_data["store_created_version"] = _string_or_unknown(  # noqa: E111
+        store_snapshot.get("created_version"),
+    )
 
-  await async_create_issue(  # noqa: E111
-    hass,
-    entry,
-    issue_id,
-    ISSUE_RUNTIME_STORE_COMPATIBILITY,
-    issue_data,
-    severity=severity,
-  )
+    await async_create_issue(  # noqa: E111
+        hass,
+        entry,
+        issue_id,
+        ISSUE_RUNTIME_STORE_COMPATIBILITY,
+        issue_data,
+        severity=severity,
+    )
 
 
 def _normalise_duration_alerts(
-  summary: Mapping[str, object] | None,
+    summary: Mapping[str, object] | None,
 ) -> list[RuntimeStoreLevelDurationAlert]:
-  """Return guard alerts derived from ``summary`` when present."""  # noqa: E111
+    """Return guard alerts derived from ``summary`` when present."""  # noqa: E111
 
-  if not isinstance(summary, Mapping):  # noqa: E111
-    return []
+    if not isinstance(summary, Mapping):  # noqa: E111
+        return []
 
-  alerts_raw = summary.get("level_duration_guard_alerts")  # noqa: E111
-  if not isinstance(alerts_raw, Sequence):  # noqa: E111
-    return []
+    alerts_raw = summary.get("level_duration_guard_alerts")  # noqa: E111
+    if not isinstance(alerts_raw, Sequence):  # noqa: E111
+        return []
 
-  alerts: list[RuntimeStoreLevelDurationAlert] = []  # noqa: E111
-  for candidate in alerts_raw:  # noqa: E111
-    if not isinstance(candidate, Mapping):
-      continue  # noqa: E111
-    level = candidate.get("level")
-    percentile_seconds = candidate.get("percentile_seconds")
-    guard_limit_seconds = candidate.get("guard_limit_seconds")
-    if (
-      not isinstance(level, str)
-      or not isinstance(percentile_seconds, int | float)
-      or not isinstance(guard_limit_seconds, int | float)
-    ):
-      continue  # noqa: E111
-    alert: RuntimeStoreLevelDurationAlert = {
-      "level": cast(RuntimeStoreHealthLevel, level),
-      "percentile_label": cast(str, candidate.get("percentile_label", "p95")),
-      "percentile_rank": float(candidate.get("percentile_rank", 0.95) or 0.95),
-      "percentile_seconds": float(percentile_seconds),
-      "guard_limit_seconds": float(guard_limit_seconds),
-      "severity": cast(str, candidate.get("severity", "warning")),
-      "recommended_action": cast(str | None, candidate.get("recommended_action")),
-    }
-    alerts.append(alert)
-  return alerts  # noqa: E111
+    alerts: list[RuntimeStoreLevelDurationAlert] = []  # noqa: E111
+    for candidate in alerts_raw:  # noqa: E111
+        if not isinstance(candidate, Mapping):
+            continue  # noqa: E111
+        level = candidate.get("level")
+        percentile_seconds = candidate.get("percentile_seconds")
+        guard_limit_seconds = candidate.get("guard_limit_seconds")
+        if (
+            not isinstance(level, str)
+            or not isinstance(percentile_seconds, int | float)
+            or not isinstance(guard_limit_seconds, int | float)
+        ):
+            continue  # noqa: E111
+        alert: RuntimeStoreLevelDurationAlert = {
+            "level": cast(RuntimeStoreHealthLevel, level),
+            "percentile_label": cast(str, candidate.get("percentile_label", "p95")),
+            "percentile_rank": float(candidate.get("percentile_rank", 0.95) or 0.95),
+            "percentile_seconds": float(percentile_seconds),
+            "guard_limit_seconds": float(guard_limit_seconds),
+            "severity": cast(str, candidate.get("severity", "warning")),
+            "recommended_action": cast(str | None, candidate.get("recommended_action")),
+        }
+        alerts.append(alert)
+    return alerts  # noqa: E111
 
 
 def _resolve_duration_alert_severity(
-  alerts: Sequence[RuntimeStoreLevelDurationAlert],
+    alerts: Sequence[RuntimeStoreLevelDurationAlert],
 ) -> str | ir.IssueSeverity:
-  """Return the issue severity matching ``alerts``."""  # noqa: E111
+    """Return the issue severity matching ``alerts``."""  # noqa: E111
 
-  severity_enum = getattr(ir, "IssueSeverity", None)  # noqa: E111
-  highest = "warning"  # noqa: E111
-  for alert in alerts:  # noqa: E111
-    severity = str(alert.get("severity", "warning")).lower()
-    if severity in {"critical", "error"}:
-      highest = "critical"  # noqa: E111
-      break  # noqa: E111
-    if severity == "warning" and highest != "critical":
-      highest = "warning"  # noqa: E111
+    severity_enum = getattr(ir, "IssueSeverity", None)  # noqa: E111
+    highest = "warning"  # noqa: E111
+    for alert in alerts:  # noqa: E111
+        severity = str(alert.get("severity", "warning")).lower()
+        if severity in {"critical", "error"}:
+            highest = "critical"  # noqa: E111
+            break  # noqa: E111
+        if severity == "warning" and highest != "critical":
+            highest = "warning"  # noqa: E111
 
-  if severity_enum is None:  # noqa: E111
-    return "error" if highest == "critical" else "warning"
+    if severity_enum is None:  # noqa: E111
+        return "error" if highest == "critical" else "warning"
 
-  if highest == "critical":  # noqa: E111
-    critical_value = getattr(severity_enum, "CRITICAL", None)
-    if critical_value is not None:
-      return critical_value  # noqa: E111
-    return getattr(severity_enum, "ERROR", severity_enum.WARNING)
+    if highest == "critical":  # noqa: E111
+        critical_value = getattr(severity_enum, "CRITICAL", None)
+        if critical_value is not None:
+            return critical_value  # noqa: E111
+        return getattr(severity_enum, "ERROR", severity_enum.WARNING)
 
-  warning_value = getattr(severity_enum, "WARNING", None)  # noqa: E111
-  if warning_value is not None:  # noqa: E111
-    return warning_value
-  return getattr(severity_enum, "ERROR", severity_enum.WARNING)  # noqa: E111
+    warning_value = getattr(severity_enum, "WARNING", None)  # noqa: E111
+    if warning_value is not None:  # noqa: E111
+        return warning_value
+    return getattr(severity_enum, "ERROR", severity_enum.WARNING)  # noqa: E111
 
 
 def _format_duration_summary(seconds: float) -> str:
-  """Return a compact human-readable representation for ``seconds``."""  # noqa: E111
+    """Return a compact human-readable representation for ``seconds``."""  # noqa: E111
 
-  hours = seconds / 3600.0  # noqa: E111
-  if hours >= 1:  # noqa: E111
-    return f"{hours:.1f}h"
-  minutes = seconds / 60.0  # noqa: E111
-  if minutes >= 1:  # noqa: E111
-    return f"{minutes:.0f}m"
-  return f"{seconds:.0f}s"  # noqa: E111
+    hours = seconds / 3600.0  # noqa: E111
+    if hours >= 1:  # noqa: E111
+        return f"{hours:.1f}h"
+    minutes = seconds / 60.0  # noqa: E111
+    if minutes >= 1:  # noqa: E111
+        return f"{minutes:.0f}m"
+    return f"{seconds:.0f}s"  # noqa: E111
 
 
 async def _check_runtime_store_duration_alerts(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
-  """Raise a repair issue when timeline durations exceed guard limits."""  # noqa: E111
+    """Raise a repair issue when timeline durations exceed guard limits."""  # noqa: E111
 
-  issue_id = f"{entry.entry_id}_runtime_store_duration_alerts"  # noqa: E111
-  try:  # noqa: E111
-    runtime_data = require_runtime_data(hass, entry)
-  except RuntimeDataUnavailableError:  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
+    issue_id = f"{entry.entry_id}_runtime_store_duration_alerts"  # noqa: E111
+    try:  # noqa: E111
+        runtime_data = require_runtime_data(hass, entry)
+    except RuntimeDataUnavailableError:  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
 
-  history = get_runtime_store_health(runtime_data)  # noqa: E111
-  if not isinstance(history, Mapping):  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
+    history = get_runtime_store_health(runtime_data)  # noqa: E111
+    if not isinstance(history, Mapping):  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
 
-  timeline_summary = None  # noqa: E111
-  summary_candidate = history.get("assessment_timeline_summary")  # noqa: E111
-  if isinstance(summary_candidate, Mapping):  # noqa: E111
-    timeline_summary = summary_candidate
-  else:  # noqa: E111
-    assessment = history.get("assessment")
-    if isinstance(assessment, Mapping):
-      nested_summary = assessment.get("timeline_summary")  # noqa: E111
-      if isinstance(nested_summary, Mapping):  # noqa: E111
-        timeline_summary = nested_summary
+    timeline_summary = None  # noqa: E111
+    summary_candidate = history.get("assessment_timeline_summary")  # noqa: E111
+    if isinstance(summary_candidate, Mapping):  # noqa: E111
+        timeline_summary = summary_candidate
+    else:  # noqa: E111
+        assessment = history.get("assessment")
+        if isinstance(assessment, Mapping):
+            nested_summary = assessment.get("timeline_summary")  # noqa: E111
+            if isinstance(nested_summary, Mapping):  # noqa: E111
+                timeline_summary = nested_summary
 
-  alerts = _normalise_duration_alerts(timeline_summary)  # noqa: E111
-  if not alerts:  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
+    alerts = _normalise_duration_alerts(timeline_summary)  # noqa: E111
+    if not alerts:  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
 
-  severity = _resolve_duration_alert_severity(alerts)  # noqa: E111
-  triggered_levels = ", ".join(sorted({alert["level"] for alert in alerts}))  # noqa: E111
-  alert_summaries = "; ".join(  # noqa: E111
-    f"{alert['level']}: {alert['percentile_label']} "
-    f"{_format_duration_summary(alert['percentile_seconds'])} "
-    f"(guard {_format_duration_summary(alert['guard_limit_seconds'])})"
-    for alert in alerts
-  )
-  recommendations = "; ".join(  # noqa: E111
-    action
-    for action in (alert.get("recommended_action") for alert in alerts)
-    if isinstance(action, str)
-  )
+    severity = _resolve_duration_alert_severity(alerts)  # noqa: E111
+    triggered_levels = ", ".join(sorted({alert["level"] for alert in alerts}))  # noqa: E111
+    alert_summaries = "; ".join(  # noqa: E111
+        f"{alert['level']}: {alert['percentile_label']} "
+        f"{_format_duration_summary(alert['percentile_seconds'])} "
+        f"(guard {_format_duration_summary(alert['guard_limit_seconds'])})"
+        for alert in alerts
+    )
+    recommendations = "; ".join(  # noqa: E111
+        action
+        for action in (alert.get("recommended_action") for alert in alerts)
+        if isinstance(action, str)
+    )
 
-  timeline_window = None  # noqa: E111
-  last_event_timestamp = None  # noqa: E111
-  if isinstance(timeline_summary, Mapping):  # noqa: E111
-    timeline_window = timeline_summary.get("timeline_window_days")
-    last_event_timestamp = timeline_summary.get("last_event_timestamp")
+    timeline_window = None  # noqa: E111
+    last_event_timestamp = None  # noqa: E111
+    if isinstance(timeline_summary, Mapping):  # noqa: E111
+        timeline_window = timeline_summary.get("timeline_window_days")
+        last_event_timestamp = timeline_summary.get("last_event_timestamp")
 
-  issue_data: JSONMutableMapping = {  # noqa: E111
-    "alert_count": len(alerts),
-    "triggered_levels": triggered_levels,
-    "alert_summaries": alert_summaries,
-    "timeline_window_days": timeline_window if timeline_window is not None else "n/a",
-    "last_event_timestamp": last_event_timestamp
-    if last_event_timestamp is not None
-    else "n/a",
-  }
-  issue_data["recommended_actions"] = recommendations or "n/a"  # noqa: E111
+    issue_data: JSONMutableMapping = {  # noqa: E111
+        "alert_count": len(alerts),
+        "triggered_levels": triggered_levels,
+        "alert_summaries": alert_summaries,
+        "timeline_window_days": timeline_window
+        if timeline_window is not None
+        else "n/a",
+        "last_event_timestamp": last_event_timestamp
+        if last_event_timestamp is not None
+        else "n/a",
+    }
+    issue_data["recommended_actions"] = recommendations or "n/a"  # noqa: E111
 
-  await async_create_issue(  # noqa: E111
-    hass,
-    entry,
-    issue_id,
-    ISSUE_RUNTIME_STORE_DURATION_ALERT,
-    issue_data,
-    severity=severity,
-  )
+    await async_create_issue(  # noqa: E111
+        hass,
+        entry,
+        issue_id,
+        ISSUE_RUNTIME_STORE_DURATION_ALERT,
+        issue_data,
+        severity=severity,
+    )
 
 
 async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Publish aggregated cache diagnostics to the repairs dashboard."""  # noqa: E111
+    """Publish aggregated cache diagnostics to the repairs dashboard."""  # noqa: E111
 
-  issue_id = f"{entry.entry_id}_cache_health"  # noqa: E111
-  try:  # noqa: E111
-    runtime_data = require_runtime_data(hass, entry)
-  except RuntimeDataUnavailableError:  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
+    issue_id = f"{entry.entry_id}_cache_health"  # noqa: E111
+    try:  # noqa: E111
+        runtime_data = require_runtime_data(hass, entry)
+    except RuntimeDataUnavailableError:  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
 
-  data_manager = getattr(runtime_data, "data_manager", None)  # noqa: E111
-  if data_manager is None:  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
+    data_manager = getattr(runtime_data, "data_manager", None)  # noqa: E111
+    if data_manager is None:  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
 
-  summary_method = getattr(data_manager, "cache_repair_summary", None)  # noqa: E111
-  if not callable(summary_method):  # noqa: E111
-    return
+    summary_method = getattr(data_manager, "cache_repair_summary", None)  # noqa: E111
+    if not callable(summary_method):  # noqa: E111
+        return
 
-  try:  # noqa: E111
-    summary = summary_method()
-  except Exception as err:  # pragma: no cover - diagnostics guard  # noqa: E111
-    _LOGGER.debug("Skipping cache health issue publication: %s", err)
-    return
+    try:  # noqa: E111
+        summary = summary_method()
+    except Exception as err:  # pragma: no cover - diagnostics guard  # noqa: E111
+        _LOGGER.debug("Skipping cache health issue publication: %s", err)
+        return
 
-  if summary is None:  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
+    if summary is None:  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
 
-  resolved_summary = ensure_cache_repair_aggregate(summary)  # noqa: E111
-  if resolved_summary is None:  # noqa: E111
-    _LOGGER.debug(
-      "Cache repair summary returned unexpected payload: %r",
-      summary,
+    resolved_summary = ensure_cache_repair_aggregate(summary)  # noqa: E111
+    if resolved_summary is None:  # noqa: E111
+        _LOGGER.debug(
+            "Cache repair summary returned unexpected payload: %r",
+            summary,
+        )
+        return
+
+    summary = resolved_summary  # noqa: E111
+
+    if summary.anomaly_count == 0:  # noqa: E111
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
+        return
+
+    severity = summary.severity or ir.IssueSeverity.WARNING.value  # noqa: E111
+    await async_create_issue(  # noqa: E111
+        hass,
+        entry,
+        issue_id,
+        ISSUE_CACHE_HEALTH_SUMMARY,
+        {"summary": summary.to_mapping()},
+        severity=severity,
     )
-    return
-
-  summary = resolved_summary  # noqa: E111
-
-  if summary.anomaly_count == 0:  # noqa: E111
-    delete_issue = getattr(ir, "async_delete_issue", None)
-    if callable(delete_issue):
-      await delete_issue(hass, DOMAIN, issue_id)  # noqa: E111
-    return
-
-  severity = summary.severity or ir.IssueSeverity.WARNING.value  # noqa: E111
-  await async_create_issue(  # noqa: E111
-    hass,
-    entry,
-    issue_id,
-    ISSUE_CACHE_HEALTH_SUMMARY,
-    {"summary": summary.to_mapping()},
-    severity=severity,
-  )
 
 
 async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Check coordinator health and functionality.
+    """Check coordinator health and functionality.
 
-  Args:
-      hass: Home Assistant instance
-      entry: Configuration entry
-  """  # noqa: E111
-  try:  # noqa: E111
-    runtime_data = require_runtime_data(hass, entry)
-  except RuntimeDataUnavailableError:  # noqa: E111
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_coordinator_missing",
-      ISSUE_COORDINATOR_ERROR,
-      {
-        "error": "coordinator_not_initialized",
-        "suggestion": "Try reloading the integration",
-      },
-      severity="error",
-    )
-    return
-  except Exception as err:  # noqa: E111
-    _LOGGER.error("Error checking coordinator health: %s", err)
-    return
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+    """  # noqa: E111
+    try:  # noqa: E111
+        runtime_data = require_runtime_data(hass, entry)
+    except RuntimeDataUnavailableError:  # noqa: E111
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_coordinator_missing",
+            ISSUE_COORDINATOR_ERROR,
+            {
+                "error": "coordinator_not_initialized",
+                "suggestion": "Try reloading the integration",
+            },
+            severity="error",
+        )
+        return
+    except Exception as err:  # noqa: E111
+        _LOGGER.error("Error checking coordinator health: %s", err)
+        return
 
-  coordinator = runtime_data.coordinator  # noqa: E111
+    coordinator = runtime_data.coordinator  # noqa: E111
 
-  if not getattr(coordinator, "last_update_success", True):  # noqa: E111
-    last_update_time = getattr(coordinator, "last_update_time", None)
-    await async_create_issue(
-      hass,
-      entry,
-      f"{entry.entry_id}_coordinator_failed",
-      ISSUE_COORDINATOR_ERROR,
-      {
-        "error": "last_update_failed",
-        "last_update": last_update_time.isoformat() if last_update_time else None,
-        "suggestion": "Check logs for detailed error information",
-      },
-      severity="warning",
-    )
+    if not getattr(coordinator, "last_update_success", True):  # noqa: E111
+        last_update_time = getattr(coordinator, "last_update_time", None)
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_coordinator_failed",
+            ISSUE_COORDINATOR_ERROR,
+            {
+                "error": "last_update_failed",
+                "last_update": last_update_time.isoformat()
+                if last_update_time
+                else None,
+                "suggestion": "Check logs for detailed error information",
+            },
+            severity="warning",
+        )
 
 
 class PawControlRepairsFlow(RepairsFlow):  # type: ignore[misc]
-  """Handle repair flows for Paw Control integration."""  # noqa: E111
+    """Handle repair flows for Paw Control integration."""  # noqa: E111
 
-  def __init__(self) -> None:  # noqa: E111
-    """Initialize the repair flow."""
-    super().__init__()
-    self._issue_data: JSONMutableMapping = {}
-    self._repair_type: str = ""
+    def __init__(self) -> None:  # noqa: E111
+        """Initialize the repair flow."""
+        super().__init__()
+        self._issue_data: JSONMutableMapping = {}
+        self._repair_type: str = ""
 
-  async def async_step_init(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle the initial step of a repair flow.
+    async def async_step_init(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle the initial step of a repair flow.
 
-    Args:
-        user_input: User provided data
+        Args:
+            user_input: User provided data
 
-    Returns:
-        Flow result for next step or completion
-    """
-    self._issue_data = cast(
-      JSONMutableMapping,
-      self.hass.data[ir.DOMAIN][self.issue_id].data,
-    )
-    issue_type_raw = self._issue_data.get("issue_type", "")
-    self._repair_type = (
-      issue_type_raw
-      if isinstance(
-        issue_type_raw,
-        str,
-      )
-      else ""
-    )
-
-    # Route to appropriate repair flow based on issue type
-    if self._repair_type == ISSUE_MISSING_DOG_CONFIG:
-      return await self.async_step_missing_dog_config()  # noqa: E111
-    if self._repair_type == ISSUE_DUPLICATE_DOG_IDS:
-      return await self.async_step_duplicate_dog_ids()  # noqa: E111
-    if self._repair_type == ISSUE_INVALID_GPS_CONFIG:
-      return await self.async_step_invalid_gps_config()  # noqa: E111
-    if self._repair_type == ISSUE_MISSING_NOTIFICATIONS:
-      return await self.async_step_missing_notifications()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_AUTH_ERROR:
-      return await self.async_step_notification_auth_error()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_DEVICE_UNREACHABLE:
-      return await self.async_step_notification_device_unreachable()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_MISSING_SERVICE:
-      return await self.async_step_notification_missing_service()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_TIMEOUT:
-      return await self.async_step_notification_timeout()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_RATE_LIMITED:
-      return await self.async_step_notification_rate_limited()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_GUARD_SKIPPED:
-      return await self.async_step_notification_guard_skipped()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_DELIVERY_ERROR:
-      return await self.async_step_notification_delivery_error()  # noqa: E111
-    if self._repair_type == ISSUE_NOTIFICATION_DELIVERY_REPEATED:
-      return await self.async_step_notification_delivery_error()  # noqa: E111
-    if self._repair_type == ISSUE_OUTDATED_CONFIG:
-      return await self.async_step_outdated_config()  # noqa: E111
-    if self._repair_type in {
-      ISSUE_PERFORMANCE_WARNING,
-      ISSUE_GPS_UPDATE_INTERVAL,
-    }:
-      return await self.async_step_performance_warning()  # noqa: E111
-    if self._repair_type == ISSUE_STORAGE_WARNING:
-      return await self.async_step_storage_warning()  # noqa: E111
-    if self._repair_type == ISSUE_MODULE_CONFLICT:
-      return await self.async_step_module_conflict()  # noqa: E111
-    if self._repair_type == ISSUE_INVALID_DOG_DATA:
-      return await self.async_step_invalid_dog_data()  # noqa: E111
-    if self._repair_type == ISSUE_COORDINATOR_ERROR:
-      return await self.async_step_coordinator_error()  # noqa: E111
-    return await self.async_step_unknown_issue()
-
-  async def async_step_missing_dog_config(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for missing dog configuration.
-
-    Args:
-        user_input: User provided data
-
-    Returns:
-        Flow result for next step or completion
-    """
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "add_dog":  # noqa: E111
-        return await self.async_step_add_first_dog()
-      if action == "reconfigure":  # noqa: E111
-        # Redirect to reconfigure flow
-        return self.async_external_step(
-          step_id="reconfigure",
-          url="/config/integrations",
+        Returns:
+            Flow result for next step or completion
+        """
+        self._issue_data = cast(
+            JSONMutableMapping,
+            self.hass.data[ir.DOMAIN][self.issue_id].data,
         )
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="missing_dog_config",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {"value": "add_dog", "label": "Add a dog now"},
-                  {
-                    "value": "reconfigure",
-                    "label": "Go to integration settings",
-                  },
-                  {"value": "ignore", "label": "Ignore for now"},
-                ],
-              },
-            },
-          ),
-        },
-      ),
-      description_placeholders={
-        "dogs_count": self._issue_data.get("dogs_count", 0),
-      },
-    )
-
-  async def async_step_add_first_dog(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle adding the first dog.
-
-    Args:
-        user_input: User provided data
-
-    Returns:
-        Flow result for next step or completion
-    """
-    errors = {}
-
-    if user_input is not None:
-      try:  # noqa: E111
-        # Validate dog data
-        dog_id_raw = user_input.get("dog_id")
-        dog_name_raw = user_input.get("dog_name")
-
-        if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
-          errors["base"] = "incomplete_data"  # noqa: E111
-        else:
-          dog_id = dog_id_raw.lower().strip()  # noqa: E111
-          dog_name = dog_name_raw.strip()  # noqa: E111
-
-          if not dog_id or not dog_name:  # noqa: E111
-            errors["base"] = "incomplete_data"
-          else:  # noqa: E111
-            # Get the config entry and update it
-            config_entry_id = self._issue_data["config_entry_id"]
-            entry = self.hass.config_entries.async_get_entry(
-              config_entry_id,
+        issue_type_raw = self._issue_data.get("issue_type", "")
+        self._repair_type = (
+            issue_type_raw
+            if isinstance(
+                issue_type_raw,
+                str,
             )
+            else ""
+        )
 
-            if entry:
-              # Create new dog configuration  # noqa: E114
-              dog_breed_raw = user_input.get("dog_breed", "")  # noqa: E111
-              dog_age_raw = user_input.get("dog_age", 3)  # noqa: E111
-              dog_weight_raw = user_input.get("dog_weight", 20.0)  # noqa: E111
-              dog_size_raw = user_input.get("dog_size", "medium")  # noqa: E111
-              new_dog = {  # noqa: E111
-                CONF_DOG_ID: dog_id,
-                CONF_DOG_NAME: dog_name,
-                "dog_breed": dog_breed_raw if isinstance(dog_breed_raw, str) else "",
-                "dog_age": int(dog_age_raw)
-                if isinstance(dog_age_raw, int | float | str)
-                else 3,
-                "dog_weight": float(dog_weight_raw)
-                if isinstance(dog_weight_raw, int | float | str)
-                else 20.0,
-                "dog_size": dog_size_raw if isinstance(dog_size_raw, str) else "medium",
-                "modules": {
-                  "feeding": True,
-                  "walk": True,
-                  "gps": False,
-                  "health": True,
-                  "notifications": True,
+        # Route to appropriate repair flow based on issue type
+        if self._repair_type == ISSUE_MISSING_DOG_CONFIG:
+            return await self.async_step_missing_dog_config()  # noqa: E111
+        if self._repair_type == ISSUE_DUPLICATE_DOG_IDS:
+            return await self.async_step_duplicate_dog_ids()  # noqa: E111
+        if self._repair_type == ISSUE_INVALID_GPS_CONFIG:
+            return await self.async_step_invalid_gps_config()  # noqa: E111
+        if self._repair_type == ISSUE_MISSING_NOTIFICATIONS:
+            return await self.async_step_missing_notifications()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_AUTH_ERROR:
+            return await self.async_step_notification_auth_error()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_DEVICE_UNREACHABLE:
+            return await self.async_step_notification_device_unreachable()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_MISSING_SERVICE:
+            return await self.async_step_notification_missing_service()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_TIMEOUT:
+            return await self.async_step_notification_timeout()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_RATE_LIMITED:
+            return await self.async_step_notification_rate_limited()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_GUARD_SKIPPED:
+            return await self.async_step_notification_guard_skipped()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_DELIVERY_ERROR:
+            return await self.async_step_notification_delivery_error()  # noqa: E111
+        if self._repair_type == ISSUE_NOTIFICATION_DELIVERY_REPEATED:
+            return await self.async_step_notification_delivery_error()  # noqa: E111
+        if self._repair_type == ISSUE_OUTDATED_CONFIG:
+            return await self.async_step_outdated_config()  # noqa: E111
+        if self._repair_type in {
+            ISSUE_PERFORMANCE_WARNING,
+            ISSUE_GPS_UPDATE_INTERVAL,
+        }:
+            return await self.async_step_performance_warning()  # noqa: E111
+        if self._repair_type == ISSUE_STORAGE_WARNING:
+            return await self.async_step_storage_warning()  # noqa: E111
+        if self._repair_type == ISSUE_MODULE_CONFLICT:
+            return await self.async_step_module_conflict()  # noqa: E111
+        if self._repair_type == ISSUE_INVALID_DOG_DATA:
+            return await self.async_step_invalid_dog_data()  # noqa: E111
+        if self._repair_type == ISSUE_COORDINATOR_ERROR:
+            return await self.async_step_coordinator_error()  # noqa: E111
+        return await self.async_step_unknown_issue()
+
+    async def async_step_missing_dog_config(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for missing dog configuration.
+
+        Args:
+            user_input: User provided data
+
+        Returns:
+            Flow result for next step or completion
+        """
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "add_dog":  # noqa: E111
+                return await self.async_step_add_first_dog()
+            if action == "reconfigure":  # noqa: E111
+                # Redirect to reconfigure flow
+                return self.async_external_step(
+                    step_id="reconfigure",
+                    url="/config/integrations",
+                )
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="missing_dog_config",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {"value": "add_dog", "label": "Add a dog now"},
+                                    {
+                                        "value": "reconfigure",
+                                        "label": "Go to integration settings",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ],
+                            },
+                        },
+                    ),
                 },
-              }
-
-            # Update the config entry
-            new_data = entry.data.copy()
-            new_data[CONF_DOGS] = [new_dog]
-
-            self.hass.config_entries.async_update_entry(
-              entry,
-              data=new_data,
-            )
-
-            return await self.async_step_complete_repair()
-          errors["base"] = "config_entry_not_found"  # noqa: E111
-
-      except Exception as err:  # noqa: E111
-        _LOGGER.error("Error adding first dog: %s", err)
-        errors["base"] = "unexpected_error"
-
-    return self.async_show_form(
-      step_id="add_first_dog",
-      data_schema=vol.Schema(
-        {
-          vol.Required("dog_id"): str,
-          vol.Required("dog_name"): str,
-          vol.Optional("dog_breed", default=""): str,
-          vol.Optional("dog_age", default=3): int,
-          vol.Optional("dog_weight", default=20.0): float,
-          vol.Optional("dog_size", default="medium"): selector(
-            {
-              "select": {
-                "options": ["toy", "small", "medium", "large", "giant"],
-              },
+            ),
+            description_placeholders={
+                "dogs_count": self._issue_data.get("dogs_count", 0),
             },
-          ),
-        },
-      ),
-      errors=errors,
-    )
-
-  async def async_step_duplicate_dog_ids(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for duplicate dog IDs.
-
-    Args:
-        user_input: User provided data
-
-    Returns:
-        Flow result for next step or completion
-    """
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "auto_fix":  # noqa: E111
-        # Automatically fix duplicate IDs
-        await self._fix_duplicate_dog_ids()
-        return await self.async_step_complete_repair()
-      if action == "manual_fix":  # noqa: E111
-        return self.async_external_step(
-          step_id="reconfigure",
-          url="/config/integrations",
         )
-      return await self.async_step_complete_repair()  # noqa: E111
 
-    duplicate_ids_raw = self._issue_data.get("duplicate_ids", [])
-    duplicate_ids = (
-      [str(item) for item in duplicate_ids_raw]
-      if isinstance(duplicate_ids_raw, Sequence)
-      and not isinstance(duplicate_ids_raw, str | bytes)
-      else []
-    )
-    total_dogs_raw = self._issue_data.get("total_dogs", 0)
-    total_dogs = (
-      int(total_dogs_raw)
-      if isinstance(
-        total_dogs_raw,
-        int | float | str,
-      )
-      else 0
-    )
+    async def async_step_add_first_dog(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle adding the first dog.
 
-    return self.async_show_form(
-      step_id="duplicate_dog_ids",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "auto_fix",
-                    "label": "Automatically fix duplicate IDs",
-                  },
-                  {
-                    "value": "manual_fix",
-                    "label": "Manually fix in integration settings",
-                  },
-                  {"value": "ignore", "label": "Ignore for now"},
-                ],
-              },
+        Args:
+            user_input: User provided data
+
+        Returns:
+            Flow result for next step or completion
+        """
+        errors = {}
+
+        if user_input is not None:
+            try:  # noqa: E111
+                # Validate dog data
+                dog_id_raw = user_input.get("dog_id")
+                dog_name_raw = user_input.get("dog_name")
+
+                if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
+                    errors["base"] = "incomplete_data"  # noqa: E111
+                else:
+                    dog_id = dog_id_raw.lower().strip()  # noqa: E111
+                    dog_name = dog_name_raw.strip()  # noqa: E111
+
+                    if not dog_id or not dog_name:  # noqa: E111
+                        errors["base"] = "incomplete_data"
+                    else:  # noqa: E111
+                        # Get the config entry and update it
+                        config_entry_id = self._issue_data["config_entry_id"]
+                        entry = self.hass.config_entries.async_get_entry(
+                            config_entry_id,
+                        )
+
+                        if entry:
+                            # Create new dog configuration  # noqa: E114
+                            dog_breed_raw = user_input.get("dog_breed", "")  # noqa: E111
+                            dog_age_raw = user_input.get("dog_age", 3)  # noqa: E111
+                            dog_weight_raw = user_input.get("dog_weight", 20.0)  # noqa: E111
+                            dog_size_raw = user_input.get("dog_size", "medium")  # noqa: E111
+                            new_dog = {  # noqa: E111
+                                CONF_DOG_ID: dog_id,
+                                CONF_DOG_NAME: dog_name,
+                                "dog_breed": dog_breed_raw
+                                if isinstance(dog_breed_raw, str)
+                                else "",
+                                "dog_age": int(dog_age_raw)
+                                if isinstance(dog_age_raw, int | float | str)
+                                else 3,
+                                "dog_weight": float(dog_weight_raw)
+                                if isinstance(dog_weight_raw, int | float | str)
+                                else 20.0,
+                                "dog_size": dog_size_raw
+                                if isinstance(dog_size_raw, str)
+                                else "medium",
+                                "modules": {
+                                    "feeding": True,
+                                    "walk": True,
+                                    "gps": False,
+                                    "health": True,
+                                    "notifications": True,
+                                },
+                            }
+
+                        # Update the config entry
+                        new_data = entry.data.copy()
+                        new_data[CONF_DOGS] = [new_dog]
+
+                        self.hass.config_entries.async_update_entry(
+                            entry,
+                            data=new_data,
+                        )
+
+                        return await self.async_step_complete_repair()
+                    errors["base"] = "config_entry_not_found"  # noqa: E111
+
+            except Exception as err:  # noqa: E111
+                _LOGGER.error("Error adding first dog: %s", err)
+                errors["base"] = "unexpected_error"
+
+        return self.async_show_form(
+            step_id="add_first_dog",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("dog_id"): str,
+                    vol.Required("dog_name"): str,
+                    vol.Optional("dog_breed", default=""): str,
+                    vol.Optional("dog_age", default=3): int,
+                    vol.Optional("dog_weight", default=20.0): float,
+                    vol.Optional("dog_size", default="medium"): selector(
+                        {
+                            "select": {
+                                "options": ["toy", "small", "medium", "large", "giant"],
+                            },
+                        },
+                    ),
+                },
+            ),
+            errors=errors,
+        )
+
+    async def async_step_duplicate_dog_ids(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for duplicate dog IDs.
+
+        Args:
+            user_input: User provided data
+
+        Returns:
+            Flow result for next step or completion
+        """
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "auto_fix":  # noqa: E111
+                # Automatically fix duplicate IDs
+                await self._fix_duplicate_dog_ids()
+                return await self.async_step_complete_repair()
+            if action == "manual_fix":  # noqa: E111
+                return self.async_external_step(
+                    step_id="reconfigure",
+                    url="/config/integrations",
+                )
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        duplicate_ids_raw = self._issue_data.get("duplicate_ids", [])
+        duplicate_ids = (
+            [str(item) for item in duplicate_ids_raw]
+            if isinstance(duplicate_ids_raw, Sequence)
+            and not isinstance(duplicate_ids_raw, str | bytes)
+            else []
+        )
+        total_dogs_raw = self._issue_data.get("total_dogs", 0)
+        total_dogs = (
+            int(total_dogs_raw)
+            if isinstance(
+                total_dogs_raw,
+                int | float | str,
+            )
+            else 0
+        )
+
+        return self.async_show_form(
+            step_id="duplicate_dog_ids",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "auto_fix",
+                                        "label": "Automatically fix duplicate IDs",
+                                    },
+                                    {
+                                        "value": "manual_fix",
+                                        "label": "Manually fix in integration settings",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+            description_placeholders={
+                "duplicate_ids": ", ".join(duplicate_ids),
+                "total_dogs": total_dogs,
             },
-          ),
-        },
-      ),
-      description_placeholders={
-        "duplicate_ids": ", ".join(duplicate_ids),
-        "total_dogs": total_dogs,
-      },
-    )
+        )
 
-  async def async_step_invalid_gps_config(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for invalid GPS configuration.
+    async def async_step_invalid_gps_config(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for invalid GPS configuration.
 
-    Args:
-        user_input: User provided data
+        Args:
+            user_input: User provided data
 
-    Returns:
-        Flow result for next step or completion
-    """
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
+        Returns:
+            Flow result for next step or completion
+        """
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
 
-      if action == "configure_gps":  # noqa: E111
-        return await self.async_step_configure_gps()
-      if action == "disable_gps":  # noqa: E111
-        await self._disable_gps_for_all_dogs()
-        return await self.async_step_complete_repair()
-      return await self.async_step_complete_repair()  # noqa: E111
+            if action == "configure_gps":  # noqa: E111
+                return await self.async_step_configure_gps()
+            if action == "disable_gps":  # noqa: E111
+                await self._disable_gps_for_all_dogs()
+                return await self.async_step_complete_repair()
+            return await self.async_step_complete_repair()  # noqa: E111
 
-    return self.async_show_form(
-      step_id="invalid_gps_config",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "configure_gps",
-                    "label": "Configure GPS settings",
-                  },
-                  {
-                    "value": "disable_gps",
-                    "label": "Disable GPS for all dogs",
-                  },
-                  {"value": "ignore", "label": "Ignore for now"},
-                ],
-              },
+        return self.async_show_form(
+            step_id="invalid_gps_config",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "configure_gps",
+                                        "label": "Configure GPS settings",
+                                    },
+                                    {
+                                        "value": "disable_gps",
+                                        "label": "Disable GPS for all dogs",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+            description_placeholders={
+                "issue": self._issue_data.get("issue", "unknown"),
+                "gps_enabled_dogs": self._issue_data.get("gps_enabled_dogs", 0),
             },
-          ),
-        },
-      ),
-      description_placeholders={
-        "issue": self._issue_data.get("issue", "unknown"),
-        "gps_enabled_dogs": self._issue_data.get("gps_enabled_dogs", 0),
-      },
-    )
+        )
 
-  async def async_step_configure_gps(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle GPS configuration step.
+    async def async_step_configure_gps(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle GPS configuration step.
 
-    Args:
-        user_input: User provided data
+        Args:
+            user_input: User provided data
 
-    Returns:
-        Flow result for next step or completion
-    """
-    if user_input is not None:
-      try:  # noqa: E111
-        # Update GPS configuration
+        Returns:
+            Flow result for next step or completion
+        """
+        if user_input is not None:
+            try:  # noqa: E111
+                # Update GPS configuration
+                config_entry_id = self._issue_data["config_entry_id"]
+                entry = self.hass.config_entries.async_get_entry(
+                    config_entry_id,
+                )
+
+                if entry:
+                    new_options = entry.options.copy()  # noqa: E111
+                    new_options.setdefault("gps", {}).update(  # noqa: E111
+                        {
+                            "gps_source": user_input["gps_source"],
+                            "gps_update_interval": user_input["update_interval"],
+                            "gps_accuracy_filter": user_input["accuracy_filter"],
+                        },
+                    )
+
+                    self.hass.config_entries.async_update_entry(  # noqa: E111
+                        entry,
+                        options=new_options,
+                    )
+
+                    return await self.async_step_complete_repair()  # noqa: E111
+                return self.async_abort(reason="config_entry_not_found")
+
+            except Exception as err:  # noqa: E111
+                _LOGGER.error("Error configuring GPS: %s", err)
+                return self.async_abort(reason="unexpected_error")
+
+        return self.async_show_form(
+            step_id="configure_gps",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("gps_source", default="device_tracker"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    "device_tracker",
+                                    "person_entity",
+                                    "manual",
+                                    "smartphone",
+                                ],
+                            },
+                        },
+                    ),
+                    vol.Required("update_interval", default=60): vol.All(
+                        int,
+                        vol.Range(min=30, max=600),
+                    ),
+                    vol.Required("accuracy_filter", default=100): vol.All(
+                        int,
+                        vol.Range(min=5, max=500),
+                    ),
+                },
+            ),
+        )
+
+    async def async_step_missing_notifications(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for missing notification services.
+
+        Args:
+            user_input: User provided data
+
+        Returns:
+            Flow result for next step or completion
+        """
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "setup_mobile_app":  # noqa: E111
+                return self.async_external_step(
+                    step_id="setup_mobile",
+                    url="/config/mobile_app",
+                )
+            if action == "disable_mobile":  # noqa: E111
+                await self._disable_mobile_notifications()
+                return await self.async_step_complete_repair()
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="missing_notifications",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "setup_mobile_app",
+                                        "label": "Set up Mobile App integration",
+                                    },
+                                    {
+                                        "value": "disable_mobile",
+                                        "label": "Disable mobile notifications",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+            description_placeholders={
+                "missing_service": self._issue_data.get("missing_service", "unknown"),
+                "notification_enabled_dogs": self._issue_data.get(
+                    "notification_enabled_dogs",
+                    0,
+                ),
+            },
+        )
+
+    async def async_step_notification_auth_error(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for notification authentication errors."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "review_services":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_notify_services",
+                    url="/config/integrations",
+                )
+            if action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="notification_auth_error",
+            data_schema=self._notification_delivery_action_schema(
+                [
+                    {
+                        "value": "review_services",
+                        "label": "Review notification service credentials",
+                    },
+                    {"value": "view_logs", "label": "Open system logs"},
+                    {"value": "ignore", "label": "Ignore for now"},
+                ],
+            ),
+            description_placeholders=self._notification_delivery_placeholders(),
+        )
+
+    async def async_step_notification_device_unreachable(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for unreachable notification devices."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "review_devices":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_notify_devices",
+                    url="/config/integrations",
+                )
+            if action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="notification_device_unreachable",
+            data_schema=self._notification_delivery_action_schema(
+                [
+                    {
+                        "value": "review_devices",
+                        "label": "Verify notification devices are online",
+                    },
+                    {"value": "view_logs", "label": "Open system logs"},
+                    {"value": "ignore", "label": "Ignore for now"},
+                ],
+            ),
+            description_placeholders=self._notification_delivery_placeholders(),
+        )
+
+    def _notification_delivery_placeholders(self) -> dict[str, object]:  # noqa: E111
+        """Return shared description placeholders for delivery error repairs."""
+
+        return {
+            "services": self._issue_data.get("services", "unknown"),
+            "service_count": self._issue_data.get("service_count", 0),
+            "total_failures": self._issue_data.get("total_failures", 0),
+            "consecutive_failures": self._issue_data.get("consecutive_failures", 0),
+            "last_error_reasons": self._issue_data.get("last_error_reasons", "n/a"),
+            "classification": self._issue_data.get("classification", "unknown"),
+            "recommended_steps": self._issue_data.get("recommended_steps", ""),
+        }
+
+    def _notification_delivery_action_schema(  # noqa: E111
+        self,
+        options: list[dict[str, str]],
+    ) -> vol.Schema:
+        """Return a selector schema for notification delivery actions."""
+
+        return vol.Schema(
+            {
+                vol.Required("action"): selector(
+                    {
+                        "select": {
+                            "options": options,
+                        },
+                    },
+                ),
+            },
+        )
+
+    async def async_step_notification_missing_service(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for missing notification services."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "review_services":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_notify_services",
+                    url="/config/integrations",
+                )
+            if action == "setup_mobile_app":  # noqa: E111
+                return self.async_external_step(
+                    step_id="setup_mobile",
+                    url="/config/mobile_app",
+                )
+            if action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="notification_missing_service",
+            data_schema=self._notification_delivery_action_schema(
+                [
+                    {
+                        "value": "review_services",
+                        "label": "Review notification integrations",
+                    },
+                    {
+                        "value": "setup_mobile_app",
+                        "label": "Set up Mobile App integration",
+                    },
+                    {"value": "view_logs", "label": "Open system logs"},
+                    {"value": "ignore", "label": "Ignore for now"},
+                ],
+            ),
+            description_placeholders=self._notification_delivery_placeholders(),
+        )
+
+    async def async_step_notification_timeout(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for notification timeout errors."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "review_services":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_notify_services",
+                    url="/config/integrations",
+                )
+            if action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="notification_timeout",
+            data_schema=self._notification_delivery_action_schema(
+                [
+                    {
+                        "value": "review_services",
+                        "label": "Review notification service status",
+                    },
+                    {"value": "view_logs", "label": "Open system logs"},
+                    {"value": "ignore", "label": "Ignore for now"},
+                ],
+            ),
+            description_placeholders=self._notification_delivery_placeholders(),
+        )
+
+    async def async_step_notification_rate_limited(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for rate-limited notification services."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "review_automations":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_automations",
+                    url="/config/automation",
+                )
+            if action == "review_services":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_notify_services",
+                    url="/config/integrations",
+                )
+            if action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="notification_rate_limited",
+            data_schema=self._notification_delivery_action_schema(
+                [
+                    {
+                        "value": "review_automations",
+                        "label": "Review automations for notification bursts",
+                    },
+                    {
+                        "value": "review_services",
+                        "label": "Review notification service limits",
+                    },
+                    {"value": "view_logs", "label": "Open system logs"},
+                    {"value": "ignore", "label": "Ignore for now"},
+                ],
+            ),
+            description_placeholders=self._notification_delivery_placeholders(),
+        )
+
+    async def async_step_notification_guard_skipped(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for guard-skipped notification deliveries."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "review_services":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_notify_services",
+                    url="/config/integrations",
+                )
+            if action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="notification_guard_skipped",
+            data_schema=self._notification_delivery_action_schema(
+                [
+                    {
+                        "value": "review_services",
+                        "label": "Review notification services and guards",
+                    },
+                    {"value": "view_logs", "label": "Open system logs"},
+                    {"value": "ignore", "label": "Ignore for now"},
+                ],
+            ),
+            description_placeholders=self._notification_delivery_placeholders(),
+        )
+
+    async def async_step_notification_delivery_error(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for generic notification delivery errors."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "review_services":  # noqa: E111
+                return self.async_external_step(
+                    step_id="review_notify_services",
+                    url="/config/integrations",
+                )
+            if action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="notification_delivery_error",
+            data_schema=self._notification_delivery_action_schema(
+                [
+                    {
+                        "value": "review_services",
+                        "label": "Review notification services",
+                    },
+                    {"value": "view_logs", "label": "Open system logs"},
+                    {"value": "ignore", "label": "Ignore for now"},
+                ],
+            ),
+            description_placeholders=self._notification_delivery_placeholders(),
+        )
+
+    async def async_step_performance_warning(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle performance warning repair flow.
+
+        Args:
+            user_input: User provided data
+
+        Returns:
+            Flow result for next step or completion
+        """
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "optimize":  # noqa: E111
+                await self._apply_performance_optimizations()
+                return await self.async_step_complete_repair()
+            if action == "configure":  # noqa: E111
+                return self.async_external_step(
+                    step_id="configure",
+                    url="/config/integrations",
+                )
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="performance_warning",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "optimize",
+                                        "label": "Apply automatic optimizations",
+                                    },
+                                    {
+                                        "value": "configure",
+                                        "label": "Configure settings manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore warning"},
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+            description_placeholders=self._issue_data,
+        )
+
+    async def async_step_storage_warning(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for storage warnings."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "reduce_retention":  # noqa: E111
+                await self._reduce_data_retention()
+                return await self.async_step_complete_repair()
+            if action == "configure":  # noqa: E111
+                return self.async_external_step(
+                    step_id="configure_storage",
+                    url="/config/integrations",
+                )
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="storage_warning",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "reduce_retention",
+                                        "label": "Reduce data retention to recommended value",
+                                    },
+                                    {
+                                        "value": "configure",
+                                        "label": "Review storage settings manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore warning"},
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+            description_placeholders={
+                "current_retention": self._issue_data.get("current_retention"),
+                "recommended_max": self._issue_data.get("recommended_max"),
+                "suggestion": self._issue_data.get("suggestion"),
+            },
+        )
+
+    async def async_step_module_conflict(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for high resource module conflicts."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "reduce_load":  # noqa: E111
+                await self._limit_high_resource_modules()
+                return await self.async_step_complete_repair()
+            if action == "optimize":  # noqa: E111
+                await self._apply_performance_optimizations()
+                return await self.async_step_complete_repair()
+            if action == "configure":  # noqa: E111
+                return self.async_external_step(
+                    step_id="configure_modules",
+                    url="/config/integrations",
+                )
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        return self.async_show_form(
+            step_id="module_conflict",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "reduce_load",
+                                        "label": "Disable intensive modules for extra dogs",
+                                    },
+                                    {
+                                        "value": "optimize",
+                                        "label": "Apply automatic optimizations",
+                                    },
+                                    {
+                                        "value": "configure",
+                                        "label": "Adjust modules manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore warning"},
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+            description_placeholders={
+                "intensive_dogs": self._issue_data.get("intensive_dogs"),
+                "total_dogs": self._issue_data.get("total_dogs"),
+                "suggestion": self._issue_data.get("suggestion"),
+            },
+        )
+
+    async def async_step_invalid_dog_data(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for invalid dog configuration data."""
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "clean_up":  # noqa: E111
+                await self._remove_invalid_dogs()
+                return await self.async_step_complete_repair()
+            if action == "reconfigure":  # noqa: E111
+                return self.async_external_step(
+                    step_id="reconfigure",
+                    url="/config/integrations",
+                )
+            return await self.async_step_complete_repair()  # noqa: E111
+
+        invalid_dogs_raw = self._issue_data.get("invalid_dogs", [])
+        invalid_dogs = (
+            [str(dog) for dog in invalid_dogs_raw]
+            if isinstance(invalid_dogs_raw, Sequence)
+            and not isinstance(invalid_dogs_raw, str | bytes)
+            else []
+        )
+        total_dogs_raw = self._issue_data.get("total_dogs")
+        total_dogs = (
+            int(total_dogs_raw)
+            if isinstance(
+                total_dogs_raw,
+                int | float | str,
+            )
+            else 0
+        )
+
+        return self.async_show_form(
+            step_id="invalid_dog_data",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "clean_up",
+                                        "label": "Remove invalid dog entries",
+                                    },
+                                    {
+                                        "value": "reconfigure",
+                                        "label": "Fix dog data manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ],
+                            },
+                        },
+                    ),
+                },
+            ),
+            description_placeholders={
+                "invalid_dogs": ", ".join(invalid_dogs),
+                "total_dogs": total_dogs,
+            },
+        )
+
+    async def async_step_coordinator_error(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle repair flow for coordinator errors."""
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            action = user_input.get("action")  # noqa: E111
+
+            if action == "reload":  # noqa: E111
+                if await self._reload_config_entry():
+                    return await self.async_step_complete_repair()  # noqa: E111
+                errors["base"] = "reload_failed"
+            elif action == "view_logs":  # noqa: E111
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            else:  # noqa: E111
+                return await self.async_step_complete_repair()
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("action"): selector(
+                    {
+                        "select": {
+                            "options": [
+                                {
+                                    "value": "reload",
+                                    "label": "Reload Paw Control",
+                                },
+                                {
+                                    "value": "view_logs",
+                                    "label": "Open system logs",
+                                },
+                                {"value": "ignore", "label": "Ignore for now"},
+                            ],
+                        },
+                    },
+                ),
+            },
+        )
+
+        return self.async_show_form(
+            step_id="coordinator_error",
+            data_schema=data_schema,
+            description_placeholders={
+                "error": self._issue_data.get("error", "unknown"),
+                "last_update": self._issue_data.get("last_update"),
+                "suggestion": self._issue_data.get("suggestion"),
+            },
+            errors=errors,
+        )
+
+    async def async_step_complete_repair(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Complete the repair flow.
+
+        Args:
+            user_input: User provided data
+
+        Returns:
+            Flow result indicating completion
+        """
+        # Remove the issue from the issue registry
+        await ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
+
+        return self.async_create_entry(
+            title="Repair completed",
+            data={"repaired_issue": self._repair_type},
+        )
+
+    async def async_step_unknown_issue(  # noqa: E111
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Handle unknown issue types.
+
+        Args:
+            user_input: User provided data
+
+        Returns:
+            Flow result for completion
+        """
+        return self.async_abort(reason="unknown_issue_type")
+
+    # Helper methods for repair actions  # noqa: E114
+
+    async def _fix_duplicate_dog_ids(self) -> None:  # noqa: E111
+        """Automatically fix duplicate dog IDs."""
         config_entry_id = self._issue_data["config_entry_id"]
-        entry = self.hass.config_entries.async_get_entry(
-          config_entry_id,
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+
+        if not entry:
+            return  # noqa: E111
+
+        dogs = entry.data.get(CONF_DOGS, [])
+        seen_ids = set()
+        fixed_dogs = []
+
+        for dog in dogs:
+            original_id = dog.get(CONF_DOG_ID, "")  # noqa: E111
+            dog_id = original_id  # noqa: E111
+            counter = 1  # noqa: E111
+
+            # Generate unique ID  # noqa: E114
+            while dog_id in seen_ids:  # noqa: E111
+                dog_id = f"{original_id}_{counter}"
+                counter += 1
+
+            seen_ids.add(dog_id)  # noqa: E111
+
+            # Update dog configuration  # noqa: E114
+            fixed_dog = dog.copy()  # noqa: E111
+            fixed_dog[CONF_DOG_ID] = dog_id  # noqa: E111
+            fixed_dogs.append(fixed_dog)  # noqa: E111
+
+        # Update config entry
+        new_data = entry.data.copy()
+        new_data[CONF_DOGS] = fixed_dogs
+
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
+
+    async def _disable_gps_for_all_dogs(self) -> None:  # noqa: E111
+        """Disable GPS module for all dogs."""
+        config_entry_id = self._issue_data["config_entry_id"]
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+
+        if not entry:
+            return  # noqa: E111
+
+        dogs = entry.data.get(CONF_DOGS, [])
+        updated_dogs = []
+
+        for dog in dogs:
+            updated_dog = dog.copy()  # noqa: E111
+            modules = updated_dog.setdefault("modules", {})  # noqa: E111
+            modules[MODULE_GPS] = False  # noqa: E111
+            updated_dogs.append(updated_dog)  # noqa: E111
+
+        new_data = entry.data.copy()
+        new_data[CONF_DOGS] = updated_dogs
+
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
+
+    async def _disable_mobile_notifications(self) -> None:  # noqa: E111
+        """Disable mobile app notifications."""
+        config_entry_id = self._issue_data["config_entry_id"]
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+
+        if not entry:
+            return  # noqa: E111
+
+        new_options = entry.options.copy()
+        notifications = new_options.setdefault("notifications", {})
+        notifications["mobile_notifications"] = False
+
+        self.hass.config_entries.async_update_entry(entry, options=new_options)
+
+    async def _apply_performance_optimizations(self) -> None:  # noqa: E111
+        """Apply automatic performance optimizations."""
+        config_entry_id = self._issue_data["config_entry_id"]
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+
+        if not entry:
+            return  # noqa: E111
+
+        new_options = entry.options.copy()
+
+        # Set performance mode to minimal
+        new_options["performance_mode"] = "minimal"
+
+        # Optimize GPS settings if present
+        if "gps" in new_options:
+            gps_settings = new_options["gps"]  # noqa: E111
+            gps_settings["gps_update_interval"] = max(  # noqa: E111
+                gps_settings.get("gps_update_interval", 60),
+                120,
+            )
+
+        # Reduce data retention
+        new_options["data_retention_days"] = min(
+            new_options.get("data_retention_days", 90),
+            30,
         )
 
-        if entry:
-          new_options = entry.options.copy()  # noqa: E111
-          new_options.setdefault("gps", {}).update(  # noqa: E111
-            {
-              "gps_source": user_input["gps_source"],
-              "gps_update_interval": user_input["update_interval"],
-              "gps_accuracy_filter": user_input["accuracy_filter"],
-            },
-          )
-
-          self.hass.config_entries.async_update_entry(  # noqa: E111
-            entry,
-            options=new_options,
-          )
-
-          return await self.async_step_complete_repair()  # noqa: E111
-        return self.async_abort(reason="config_entry_not_found")
-
-      except Exception as err:  # noqa: E111
-        _LOGGER.error("Error configuring GPS: %s", err)
-        return self.async_abort(reason="unexpected_error")
-
-    return self.async_show_form(
-      step_id="configure_gps",
-      data_schema=vol.Schema(
-        {
-          vol.Required("gps_source", default="device_tracker"): selector(
-            {
-              "select": {
-                "options": [
-                  "device_tracker",
-                  "person_entity",
-                  "manual",
-                  "smartphone",
-                ],
-              },
-            },
-          ),
-          vol.Required("update_interval", default=60): vol.All(
-            int,
-            vol.Range(min=30, max=600),
-          ),
-          vol.Required("accuracy_filter", default=100): vol.All(
-            int,
-            vol.Range(min=5, max=500),
-          ),
-        },
-      ),
-    )
-
-  async def async_step_missing_notifications(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for missing notification services.
-
-    Args:
-        user_input: User provided data
-
-    Returns:
-        Flow result for next step or completion
-    """
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "setup_mobile_app":  # noqa: E111
-        return self.async_external_step(
-          step_id="setup_mobile",
-          url="/config/mobile_app",
-        )
-      if action == "disable_mobile":  # noqa: E111
-        await self._disable_mobile_notifications()
-        return await self.async_step_complete_repair()
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="missing_notifications",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "setup_mobile_app",
-                    "label": "Set up Mobile App integration",
-                  },
-                  {
-                    "value": "disable_mobile",
-                    "label": "Disable mobile notifications",
-                  },
-                  {"value": "ignore", "label": "Ignore for now"},
-                ],
-              },
-            },
-          ),
-        },
-      ),
-      description_placeholders={
-        "missing_service": self._issue_data.get("missing_service", "unknown"),
-        "notification_enabled_dogs": self._issue_data.get(
-          "notification_enabled_dogs",
-          0,
-        ),
-      },
-    )
-
-  async def async_step_notification_auth_error(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for notification authentication errors."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "review_services":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_notify_services",
-          url="/config/integrations",
-        )
-      if action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="notification_auth_error",
-      data_schema=self._notification_delivery_action_schema(
-        [
-          {
-            "value": "review_services",
-            "label": "Review notification service credentials",
-          },
-          {"value": "view_logs", "label": "Open system logs"},
-          {"value": "ignore", "label": "Ignore for now"},
-        ],
-      ),
-      description_placeholders=self._notification_delivery_placeholders(),
-    )
-
-  async def async_step_notification_device_unreachable(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for unreachable notification devices."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "review_devices":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_notify_devices",
-          url="/config/integrations",
-        )
-      if action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="notification_device_unreachable",
-      data_schema=self._notification_delivery_action_schema(
-        [
-          {
-            "value": "review_devices",
-            "label": "Verify notification devices are online",
-          },
-          {"value": "view_logs", "label": "Open system logs"},
-          {"value": "ignore", "label": "Ignore for now"},
-        ],
-      ),
-      description_placeholders=self._notification_delivery_placeholders(),
-    )
-
-  def _notification_delivery_placeholders(self) -> dict[str, object]:  # noqa: E111
-    """Return shared description placeholders for delivery error repairs."""
-
-    return {
-      "services": self._issue_data.get("services", "unknown"),
-      "service_count": self._issue_data.get("service_count", 0),
-      "total_failures": self._issue_data.get("total_failures", 0),
-      "consecutive_failures": self._issue_data.get("consecutive_failures", 0),
-      "last_error_reasons": self._issue_data.get("last_error_reasons", "n/a"),
-      "classification": self._issue_data.get("classification", "unknown"),
-      "recommended_steps": self._issue_data.get("recommended_steps", ""),
-    }
-
-  def _notification_delivery_action_schema(  # noqa: E111
-    self,
-    options: list[dict[str, str]],
-  ) -> vol.Schema:
-    """Return a selector schema for notification delivery actions."""
-
-    return vol.Schema(
-      {
-        vol.Required("action"): selector(
-          {
-            "select": {
-              "options": options,
-            },
-          },
-        ),
-      },
-    )
-
-  async def async_step_notification_missing_service(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for missing notification services."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "review_services":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_notify_services",
-          url="/config/integrations",
-        )
-      if action == "setup_mobile_app":  # noqa: E111
-        return self.async_external_step(
-          step_id="setup_mobile",
-          url="/config/mobile_app",
-        )
-      if action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="notification_missing_service",
-      data_schema=self._notification_delivery_action_schema(
-        [
-          {
-            "value": "review_services",
-            "label": "Review notification integrations",
-          },
-          {
-            "value": "setup_mobile_app",
-            "label": "Set up Mobile App integration",
-          },
-          {"value": "view_logs", "label": "Open system logs"},
-          {"value": "ignore", "label": "Ignore for now"},
-        ],
-      ),
-      description_placeholders=self._notification_delivery_placeholders(),
-    )
-
-  async def async_step_notification_timeout(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for notification timeout errors."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "review_services":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_notify_services",
-          url="/config/integrations",
-        )
-      if action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="notification_timeout",
-      data_schema=self._notification_delivery_action_schema(
-        [
-          {
-            "value": "review_services",
-            "label": "Review notification service status",
-          },
-          {"value": "view_logs", "label": "Open system logs"},
-          {"value": "ignore", "label": "Ignore for now"},
-        ],
-      ),
-      description_placeholders=self._notification_delivery_placeholders(),
-    )
-
-  async def async_step_notification_rate_limited(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for rate-limited notification services."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "review_automations":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_automations",
-          url="/config/automation",
-        )
-      if action == "review_services":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_notify_services",
-          url="/config/integrations",
-        )
-      if action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="notification_rate_limited",
-      data_schema=self._notification_delivery_action_schema(
-        [
-          {
-            "value": "review_automations",
-            "label": "Review automations for notification bursts",
-          },
-          {
-            "value": "review_services",
-            "label": "Review notification service limits",
-          },
-          {"value": "view_logs", "label": "Open system logs"},
-          {"value": "ignore", "label": "Ignore for now"},
-        ],
-      ),
-      description_placeholders=self._notification_delivery_placeholders(),
-    )
-
-  async def async_step_notification_guard_skipped(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for guard-skipped notification deliveries."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "review_services":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_notify_services",
-          url="/config/integrations",
-        )
-      if action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="notification_guard_skipped",
-      data_schema=self._notification_delivery_action_schema(
-        [
-          {
-            "value": "review_services",
-            "label": "Review notification services and guards",
-          },
-          {"value": "view_logs", "label": "Open system logs"},
-          {"value": "ignore", "label": "Ignore for now"},
-        ],
-      ),
-      description_placeholders=self._notification_delivery_placeholders(),
-    )
-
-  async def async_step_notification_delivery_error(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for generic notification delivery errors."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "review_services":  # noqa: E111
-        return self.async_external_step(
-          step_id="review_notify_services",
-          url="/config/integrations",
-        )
-      if action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="notification_delivery_error",
-      data_schema=self._notification_delivery_action_schema(
-        [
-          {
-            "value": "review_services",
-            "label": "Review notification services",
-          },
-          {"value": "view_logs", "label": "Open system logs"},
-          {"value": "ignore", "label": "Ignore for now"},
-        ],
-      ),
-      description_placeholders=self._notification_delivery_placeholders(),
-    )
-
-  async def async_step_performance_warning(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle performance warning repair flow.
-
-    Args:
-        user_input: User provided data
-
-    Returns:
-        Flow result for next step or completion
-    """
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "optimize":  # noqa: E111
-        await self._apply_performance_optimizations()
-        return await self.async_step_complete_repair()
-      if action == "configure":  # noqa: E111
-        return self.async_external_step(
-          step_id="configure",
-          url="/config/integrations",
-        )
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="performance_warning",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "optimize",
-                    "label": "Apply automatic optimizations",
-                  },
-                  {
-                    "value": "configure",
-                    "label": "Configure settings manually",
-                  },
-                  {"value": "ignore", "label": "Ignore warning"},
-                ],
-              },
-            },
-          ),
-        },
-      ),
-      description_placeholders=self._issue_data,
-    )
-
-  async def async_step_storage_warning(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for storage warnings."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "reduce_retention":  # noqa: E111
-        await self._reduce_data_retention()
-        return await self.async_step_complete_repair()
-      if action == "configure":  # noqa: E111
-        return self.async_external_step(
-          step_id="configure_storage",
-          url="/config/integrations",
-        )
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="storage_warning",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "reduce_retention",
-                    "label": "Reduce data retention to recommended value",
-                  },
-                  {
-                    "value": "configure",
-                    "label": "Review storage settings manually",
-                  },
-                  {"value": "ignore", "label": "Ignore warning"},
-                ],
-              },
-            },
-          ),
-        },
-      ),
-      description_placeholders={
-        "current_retention": self._issue_data.get("current_retention"),
-        "recommended_max": self._issue_data.get("recommended_max"),
-        "suggestion": self._issue_data.get("suggestion"),
-      },
-    )
-
-  async def async_step_module_conflict(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for high resource module conflicts."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "reduce_load":  # noqa: E111
-        await self._limit_high_resource_modules()
-        return await self.async_step_complete_repair()
-      if action == "optimize":  # noqa: E111
-        await self._apply_performance_optimizations()
-        return await self.async_step_complete_repair()
-      if action == "configure":  # noqa: E111
-        return self.async_external_step(
-          step_id="configure_modules",
-          url="/config/integrations",
-        )
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    return self.async_show_form(
-      step_id="module_conflict",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "reduce_load",
-                    "label": "Disable intensive modules for extra dogs",
-                  },
-                  {
-                    "value": "optimize",
-                    "label": "Apply automatic optimizations",
-                  },
-                  {
-                    "value": "configure",
-                    "label": "Adjust modules manually",
-                  },
-                  {"value": "ignore", "label": "Ignore warning"},
-                ],
-              },
-            },
-          ),
-        },
-      ),
-      description_placeholders={
-        "intensive_dogs": self._issue_data.get("intensive_dogs"),
-        "total_dogs": self._issue_data.get("total_dogs"),
-        "suggestion": self._issue_data.get("suggestion"),
-      },
-    )
-
-  async def async_step_invalid_dog_data(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for invalid dog configuration data."""
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "clean_up":  # noqa: E111
-        await self._remove_invalid_dogs()
-        return await self.async_step_complete_repair()
-      if action == "reconfigure":  # noqa: E111
-        return self.async_external_step(
-          step_id="reconfigure",
-          url="/config/integrations",
-        )
-      return await self.async_step_complete_repair()  # noqa: E111
-
-    invalid_dogs_raw = self._issue_data.get("invalid_dogs", [])
-    invalid_dogs = (
-      [str(dog) for dog in invalid_dogs_raw]
-      if isinstance(invalid_dogs_raw, Sequence)
-      and not isinstance(invalid_dogs_raw, str | bytes)
-      else []
-    )
-    total_dogs_raw = self._issue_data.get("total_dogs")
-    total_dogs = (
-      int(total_dogs_raw)
-      if isinstance(
-        total_dogs_raw,
-        int | float | str,
-      )
-      else 0
-    )
-
-    return self.async_show_form(
-      step_id="invalid_dog_data",
-      data_schema=vol.Schema(
-        {
-          vol.Required("action"): selector(
-            {
-              "select": {
-                "options": [
-                  {
-                    "value": "clean_up",
-                    "label": "Remove invalid dog entries",
-                  },
-                  {
-                    "value": "reconfigure",
-                    "label": "Fix dog data manually",
-                  },
-                  {"value": "ignore", "label": "Ignore for now"},
-                ],
-              },
-            },
-          ),
-        },
-      ),
-      description_placeholders={
-        "invalid_dogs": ", ".join(invalid_dogs),
-        "total_dogs": total_dogs,
-      },
-    )
-
-  async def async_step_coordinator_error(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle repair flow for coordinator errors."""
-
-    errors: dict[str, str] = {}
-
-    if user_input is not None:
-      action = user_input.get("action")  # noqa: E111
-
-      if action == "reload":  # noqa: E111
-        if await self._reload_config_entry():
-          return await self.async_step_complete_repair()  # noqa: E111
-        errors["base"] = "reload_failed"
-      elif action == "view_logs":  # noqa: E111
-        return self.async_external_step(step_id="view_logs", url="/config/logs")
-      else:  # noqa: E111
-        return await self.async_step_complete_repair()
-
-    data_schema = vol.Schema(
-      {
-        vol.Required("action"): selector(
-          {
-            "select": {
-              "options": [
+        self.hass.config_entries.async_update_entry(entry, options=new_options)
+
+    async def _reduce_data_retention(self) -> None:  # noqa: E111
+        """Reduce stored history to the recommended value."""
+
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            return  # noqa: E111
+
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        if not entry:
+            return  # noqa: E111
+
+        recommended_max = self._issue_data.get("recommended_max")
+        if not isinstance(recommended_max, int):
+            recommended_max = 365  # noqa: E111
+
+        new_options = entry.options.copy()
+        if new_options.get("data_retention_days") == recommended_max:
+            return  # noqa: E111
+
+        new_options["data_retention_days"] = recommended_max
+        self.hass.config_entries.async_update_entry(entry, options=new_options)
+
+    async def _limit_high_resource_modules(self) -> None:  # noqa: E111
+        """Disable heavy modules for dogs beyond the recommended threshold."""
+
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            return  # noqa: E111
+
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        if not entry:
+            return  # noqa: E111
+
+        dogs = entry.data.get(CONF_DOGS, [])
+        updated_dogs: list[DogConfigData] = []
+        high_resource_limit = 5
+        high_resource_count = 0
+
+        for dog in dogs:
+            updated_dog = cast(DogConfigData, dict(dog))  # noqa: E111
+            modules_raw = updated_dog.get("modules", {})  # noqa: E111
+            modules = cast(  # noqa: E111
+                DogModulesConfig,
                 {
-                  "value": "reload",
-                  "label": "Reload Paw Control",
+                    MODULE_FEEDING: bool(
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_FEEDING,
+                            True,
+                        ),
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else True,
+                    MODULE_WALK: bool(
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_WALK,
+                            True,
+                        ),
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else True,
+                    MODULE_GPS: bool(
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_GPS,
+                            False,
+                        ),
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else False,
+                    MODULE_HEALTH: bool(
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_HEALTH,
+                            True,
+                        ),
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else True,
+                    MODULE_NOTIFICATIONS: bool(
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_NOTIFICATIONS,
+                            True,
+                        ),
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else True,
+                    MODULE_GARDEN: bool(
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_GARDEN,
+                            False,
+                        ),
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else False,
                 },
-                {
-                  "value": "view_logs",
-                  "label": "Open system logs",
-                },
-                {"value": "ignore", "label": "Ignore for now"},
-              ],
-            },
-          },
-        ),
-      },
-    )
+            )
 
-    return self.async_show_form(
-      step_id="coordinator_error",
-      data_schema=data_schema,
-      description_placeholders={
-        "error": self._issue_data.get("error", "unknown"),
-        "last_update": self._issue_data.get("last_update"),
-        "suggestion": self._issue_data.get("suggestion"),
-      },
-      errors=errors,
-    )
+            if modules.get(MODULE_GPS) and modules.get(MODULE_HEALTH):  # noqa: E111
+                high_resource_count += 1
+                if high_resource_count > high_resource_limit:
+                    modules["gps"] = False  # noqa: E111
 
-  async def async_step_complete_repair(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Complete the repair flow.
+            updated_dog["modules"] = modules  # noqa: E111
+            updated_dogs.append(updated_dog)  # noqa: E111
 
-    Args:
-        user_input: User provided data
+        if updated_dogs == dogs:
+            return  # noqa: E111
 
-    Returns:
-        Flow result indicating completion
-    """
-    # Remove the issue from the issue registry
-    await ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
+        new_data = entry.data.copy()
+        new_data[CONF_DOGS] = updated_dogs
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
 
-    return self.async_create_entry(
-      title="Repair completed",
-      data={"repaired_issue": self._repair_type},
-    )
+    async def _remove_invalid_dogs(self) -> None:  # noqa: E111
+        """Remove dogs that are missing required identifiers."""
 
-  async def async_step_unknown_issue(  # noqa: E111
-    self,
-    user_input: dict[str, Any] | None = None,
-  ) -> FlowResult:
-    """Handle unknown issue types.
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            return  # noqa: E111
 
-    Args:
-        user_input: User provided data
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        if not entry:
+            return  # noqa: E111
 
-    Returns:
-        Flow result for completion
-    """
-    return self.async_abort(reason="unknown_issue_type")
+        dogs = entry.data.get(CONF_DOGS, [])
+        valid_dogs = [
+            dog for dog in dogs if dog.get(CONF_DOG_ID) and dog.get(CONF_DOG_NAME)
+        ]
 
-  # Helper methods for repair actions  # noqa: E114
+        if len(valid_dogs) == len(dogs):
+            return  # noqa: E111
 
-  async def _fix_duplicate_dog_ids(self) -> None:  # noqa: E111
-    """Automatically fix duplicate dog IDs."""
-    config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        new_data = entry.data.copy()
+        new_data[CONF_DOGS] = valid_dogs
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
 
-    if not entry:
-      return  # noqa: E111
+    async def _reload_config_entry(self) -> bool:  # noqa: E111
+        """Reload the integration config entry to recover from coordinator errors."""
 
-    dogs = entry.data.get(CONF_DOGS, [])
-    seen_ids = set()
-    fixed_dogs = []
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            _LOGGER.error(  # noqa: E111
+                "Missing config entry id while handling coordinator repair",
+            )
+            return False  # noqa: E111
 
-    for dog in dogs:
-      original_id = dog.get(CONF_DOG_ID, "")  # noqa: E111
-      dog_id = original_id  # noqa: E111
-      counter = 1  # noqa: E111
+        try:
+            result = await self.hass.config_entries.async_reload(config_entry_id)  # noqa: E111
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error(  # noqa: E111
+                "Error reloading config entry %s during repair flow: %s",
+                config_entry_id,
+                err,
+            )
+            return False  # noqa: E111
 
-      # Generate unique ID  # noqa: E114
-      while dog_id in seen_ids:  # noqa: E111
-        dog_id = f"{original_id}_{counter}"
-        counter += 1
+        if result is False:
+            _LOGGER.error(  # noqa: E111
+                "Reload of config entry %s reported failure during repair flow",
+                config_entry_id,
+            )
+            return False  # noqa: E111
 
-      seen_ids.add(dog_id)  # noqa: E111
-
-      # Update dog configuration  # noqa: E114
-      fixed_dog = dog.copy()  # noqa: E111
-      fixed_dog[CONF_DOG_ID] = dog_id  # noqa: E111
-      fixed_dogs.append(fixed_dog)  # noqa: E111
-
-    # Update config entry
-    new_data = entry.data.copy()
-    new_data[CONF_DOGS] = fixed_dogs
-
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
-
-  async def _disable_gps_for_all_dogs(self) -> None:  # noqa: E111
-    """Disable GPS module for all dogs."""
-    config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
-
-    if not entry:
-      return  # noqa: E111
-
-    dogs = entry.data.get(CONF_DOGS, [])
-    updated_dogs = []
-
-    for dog in dogs:
-      updated_dog = dog.copy()  # noqa: E111
-      modules = updated_dog.setdefault("modules", {})  # noqa: E111
-      modules[MODULE_GPS] = False  # noqa: E111
-      updated_dogs.append(updated_dog)  # noqa: E111
-
-    new_data = entry.data.copy()
-    new_data[CONF_DOGS] = updated_dogs
-
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
-
-  async def _disable_mobile_notifications(self) -> None:  # noqa: E111
-    """Disable mobile app notifications."""
-    config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
-
-    if not entry:
-      return  # noqa: E111
-
-    new_options = entry.options.copy()
-    notifications = new_options.setdefault("notifications", {})
-    notifications["mobile_notifications"] = False
-
-    self.hass.config_entries.async_update_entry(entry, options=new_options)
-
-  async def _apply_performance_optimizations(self) -> None:  # noqa: E111
-    """Apply automatic performance optimizations."""
-    config_entry_id = self._issue_data["config_entry_id"]
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
-
-    if not entry:
-      return  # noqa: E111
-
-    new_options = entry.options.copy()
-
-    # Set performance mode to minimal
-    new_options["performance_mode"] = "minimal"
-
-    # Optimize GPS settings if present
-    if "gps" in new_options:
-      gps_settings = new_options["gps"]  # noqa: E111
-      gps_settings["gps_update_interval"] = max(  # noqa: E111
-        gps_settings.get("gps_update_interval", 60),
-        120,
-      )
-
-    # Reduce data retention
-    new_options["data_retention_days"] = min(
-      new_options.get("data_retention_days", 90),
-      30,
-    )
-
-    self.hass.config_entries.async_update_entry(entry, options=new_options)
-
-  async def _reduce_data_retention(self) -> None:  # noqa: E111
-    """Reduce stored history to the recommended value."""
-
-    config_entry_id = self._issue_data.get("config_entry_id")
-    if not config_entry_id:
-      return  # noqa: E111
-
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
-    if not entry:
-      return  # noqa: E111
-
-    recommended_max = self._issue_data.get("recommended_max")
-    if not isinstance(recommended_max, int):
-      recommended_max = 365  # noqa: E111
-
-    new_options = entry.options.copy()
-    if new_options.get("data_retention_days") == recommended_max:
-      return  # noqa: E111
-
-    new_options["data_retention_days"] = recommended_max
-    self.hass.config_entries.async_update_entry(entry, options=new_options)
-
-  async def _limit_high_resource_modules(self) -> None:  # noqa: E111
-    """Disable heavy modules for dogs beyond the recommended threshold."""
-
-    config_entry_id = self._issue_data.get("config_entry_id")
-    if not config_entry_id:
-      return  # noqa: E111
-
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
-    if not entry:
-      return  # noqa: E111
-
-    dogs = entry.data.get(CONF_DOGS, [])
-    updated_dogs: list[DogConfigData] = []
-    high_resource_limit = 5
-    high_resource_count = 0
-
-    for dog in dogs:
-      updated_dog = cast(DogConfigData, dict(dog))  # noqa: E111
-      modules_raw = updated_dog.get("modules", {})  # noqa: E111
-      modules = cast(  # noqa: E111
-        DogModulesConfig,
-        {
-          MODULE_FEEDING: bool(
-            cast(Mapping[str, object], modules_raw).get(
-              MODULE_FEEDING,
-              True,
-            ),
-          )
-          if isinstance(modules_raw, Mapping)
-          else True,
-          MODULE_WALK: bool(
-            cast(Mapping[str, object], modules_raw).get(
-              MODULE_WALK,
-              True,
-            ),
-          )
-          if isinstance(modules_raw, Mapping)
-          else True,
-          MODULE_GPS: bool(
-            cast(Mapping[str, object], modules_raw).get(
-              MODULE_GPS,
-              False,
-            ),
-          )
-          if isinstance(modules_raw, Mapping)
-          else False,
-          MODULE_HEALTH: bool(
-            cast(Mapping[str, object], modules_raw).get(
-              MODULE_HEALTH,
-              True,
-            ),
-          )
-          if isinstance(modules_raw, Mapping)
-          else True,
-          MODULE_NOTIFICATIONS: bool(
-            cast(Mapping[str, object], modules_raw).get(
-              MODULE_NOTIFICATIONS,
-              True,
-            ),
-          )
-          if isinstance(modules_raw, Mapping)
-          else True,
-          MODULE_GARDEN: bool(
-            cast(Mapping[str, object], modules_raw).get(
-              MODULE_GARDEN,
-              False,
-            ),
-          )
-          if isinstance(modules_raw, Mapping)
-          else False,
-        },
-      )
-
-      if modules.get(MODULE_GPS) and modules.get(MODULE_HEALTH):  # noqa: E111
-        high_resource_count += 1
-        if high_resource_count > high_resource_limit:
-          modules["gps"] = False  # noqa: E111
-
-      updated_dog["modules"] = modules  # noqa: E111
-      updated_dogs.append(updated_dog)  # noqa: E111
-
-    if updated_dogs == dogs:
-      return  # noqa: E111
-
-    new_data = entry.data.copy()
-    new_data[CONF_DOGS] = updated_dogs
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
-
-  async def _remove_invalid_dogs(self) -> None:  # noqa: E111
-    """Remove dogs that are missing required identifiers."""
-
-    config_entry_id = self._issue_data.get("config_entry_id")
-    if not config_entry_id:
-      return  # noqa: E111
-
-    entry = self.hass.config_entries.async_get_entry(config_entry_id)
-    if not entry:
-      return  # noqa: E111
-
-    dogs = entry.data.get(CONF_DOGS, [])
-    valid_dogs = [
-      dog for dog in dogs if dog.get(CONF_DOG_ID) and dog.get(CONF_DOG_NAME)
-    ]
-
-    if len(valid_dogs) == len(dogs):
-      return  # noqa: E111
-
-    new_data = entry.data.copy()
-    new_data[CONF_DOGS] = valid_dogs
-    self.hass.config_entries.async_update_entry(entry, data=new_data)
-
-  async def _reload_config_entry(self) -> bool:  # noqa: E111
-    """Reload the integration config entry to recover from coordinator errors."""
-
-    config_entry_id = self._issue_data.get("config_entry_id")
-    if not config_entry_id:
-      _LOGGER.error(  # noqa: E111
-        "Missing config entry id while handling coordinator repair",
-      )
-      return False  # noqa: E111
-
-    try:
-      result = await self.hass.config_entries.async_reload(config_entry_id)  # noqa: E111
-    except Exception as err:  # pragma: no cover - defensive logging
-      _LOGGER.error(  # noqa: E111
-        "Error reloading config entry %s during repair flow: %s",
-        config_entry_id,
-        err,
-      )
-      return False  # noqa: E111
-
-    if result is False:
-      _LOGGER.error(  # noqa: E111
-        "Reload of config entry %s reported failure during repair flow",
-        config_entry_id,
-      )
-      return False  # noqa: E111
-
-    return True
+        return True
 
 
 async def async_create_fix_flow(
-  hass: HomeAssistant,
-  issue_id: str,
-  data: JSONLikeMapping | None,
+    hass: HomeAssistant,
+    issue_id: str,
+    data: JSONLikeMapping | None,
 ) -> PawControlRepairsFlow:
-  """Create a repair flow compatible with the Repairs integration.
+    """Create a repair flow compatible with the Repairs integration.
 
-  Home Assistant loads `repairs.py` integration platforms via
-  :func:`homeassistant.helpers.integration_platform.async_process_integration_platforms`
-  and expects them to expose an ``async_create_fix_flow`` coroutine that
-  returns a :class:`~homeassistant.components.repairs.RepairsFlow` instance.
+    Home Assistant loads `repairs.py` integration platforms via
+    :func:`homeassistant.helpers.integration_platform.async_process_integration_platforms`
+    and expects them to expose an ``async_create_fix_flow`` coroutine that
+    returns a :class:`~homeassistant.components.repairs.RepairsFlow` instance.
 
-  Args:
-      hass: Home Assistant instance
-      issue_id: Identifier of the repair issue
-      data: Issue metadata provided by the registry
+    Args:
+        hass: Home Assistant instance
+        issue_id: Identifier of the repair issue
+        data: Issue metadata provided by the registry
 
-  Returns:
-      Repair flow instance bound to the Paw Control handler
-  """  # noqa: E111
-  return PawControlRepairsFlow()  # noqa: E111
+    Returns:
+        Repair flow instance bound to the Paw Control handler
+    """  # noqa: E111
+    return PawControlRepairsFlow()  # noqa: E111
 
 
 async def async_register_repairs(hass: HomeAssistant) -> None:
-  """Register initial repair checks for Paw Control integration."""  # noqa: E111
-  _LOGGER.debug("Registering Paw Control repair checks")  # noqa: E111
+    """Register initial repair checks for Paw Control integration."""  # noqa: E111
+    _LOGGER.debug("Registering Paw Control repair checks")  # noqa: E111
 
-  # Iterate over all loaded entries and run checks for those with runtime data  # noqa: E114, E501
-  for entry in hass.config_entries.async_entries(DOMAIN):  # noqa: E111
-    try:
-      require_runtime_data(hass, entry)  # noqa: E111
-    except RuntimeDataUnavailableError:
-      continue  # noqa: E111
-    await async_check_for_issues(hass, entry)
+    # Iterate over all loaded entries and run checks for those with runtime data  # noqa: E114, E501
+    for entry in hass.config_entries.async_entries(DOMAIN):  # noqa: E111
+        try:
+            require_runtime_data(hass, entry)  # noqa: E111
+        except RuntimeDataUnavailableError:
+            continue  # noqa: E111
+        await async_check_for_issues(hass, entry)

@@ -25,35 +25,35 @@ from homeassistant.util import dt as dt_util
 
 from .coordinator_support import CacheMonitorRegistrar, SupportsCoordinatorSnapshot
 from .types import (
-  CacheDiagnosticsSnapshot,
-  JSONMutableMapping,
-  PersonEntityAttributePayload,
-  PersonEntityConfigInput,
-  PersonEntityCounters,
-  PersonEntityDiagnostics,
-  PersonEntityDiscoveryResult,
-  PersonEntitySnapshot,
-  PersonEntitySnapshotEntry,
-  PersonEntityStats,
-  PersonEntityStorageEntry,
-  PersonEntityValidationResult,
-  PersonNotificationCacheEntry,
-  PersonNotificationContext,
+    CacheDiagnosticsSnapshot,
+    JSONMutableMapping,
+    PersonEntityAttributePayload,
+    PersonEntityConfigInput,
+    PersonEntityCounters,
+    PersonEntityDiagnostics,
+    PersonEntityDiscoveryResult,
+    PersonEntitySnapshot,
+    PersonEntitySnapshotEntry,
+    PersonEntityStats,
+    PersonEntityStorageEntry,
+    PersonEntityValidationResult,
+    PersonNotificationCacheEntry,
+    PersonNotificationContext,
 )
 from .utils import ensure_utc_datetime
 
 
 def _resolve_cache_snapshot_class() -> type[CacheDiagnosticsSnapshot]:
-  """Return the cache snapshot class from the active types module."""  # noqa: E111
+    """Return the cache snapshot class from the active types module."""  # noqa: E111
 
-  try:  # noqa: E111
-    module = import_module("custom_components.pawcontrol.types")
-    snapshot_class = getattr(module, "CacheDiagnosticsSnapshot", None)
-    if isinstance(snapshot_class, type):
-      return snapshot_class  # noqa: E111
-  except Exception:  # noqa: E111
-    pass
-  return CacheDiagnosticsSnapshot  # noqa: E111
+    try:  # noqa: E111
+        module = import_module("custom_components.pawcontrol.types")
+        snapshot_class = getattr(module, "CacheDiagnosticsSnapshot", None)
+        if isinstance(snapshot_class, type):
+            return snapshot_class  # noqa: E111
+    except Exception:  # noqa: E111
+        pass
+    return CacheDiagnosticsSnapshot  # noqa: E111
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,940 +67,945 @@ MAX_DISCOVERY_INTERVAL = 3600  # 1 hour
 
 @dataclass
 class _PersonNotificationCachePayload:
-  """Internal cache payload storing canonical targets and timestamps."""  # noqa: E111
+    """Internal cache payload storing canonical targets and timestamps."""  # noqa: E111
 
-  targets: tuple[str, ...]  # noqa: E111
-  generated_at: datetime  # noqa: E111
+    targets: tuple[str, ...]  # noqa: E111
+    generated_at: datetime  # noqa: E111
 
 
 EntryT = TypeVar("EntryT", bound=PersonNotificationCacheEntry)
 
 
 class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
-  """Typed notification target cache with diagnostics helpers."""  # noqa: E111
+    """Typed notification target cache with diagnostics helpers."""  # noqa: E111
 
-  __slots__ = ("_entries",)  # noqa: E111
+    __slots__ = ("_entries",)  # noqa: E111
 
-  def __init__(self) -> None:  # noqa: E111
-    """Initialize the notification target cache container."""
-    self._entries: dict[str, _PersonNotificationCachePayload] = {}
+    def __init__(self) -> None:  # noqa: E111
+        """Initialize the notification target cache container."""
+        self._entries: dict[str, _PersonNotificationCachePayload] = {}
 
-  def clear(self) -> None:  # noqa: E111
-    """Remove all cached entries."""
+    def clear(self) -> None:  # noqa: E111
+        """Remove all cached entries."""
 
-    self._entries.clear()
+        self._entries.clear()
 
-  def store(  # noqa: E111
-    self,
-    key: str,
-    targets: Sequence[str],
-    generated_at: datetime,
-  ) -> tuple[str, ...]:
-    """Store ``targets`` under ``key`` and return a deduplicated tuple."""
+    def store(  # noqa: E111
+        self,
+        key: str,
+        targets: Sequence[str],
+        generated_at: datetime,
+    ) -> tuple[str, ...]:
+        """Store ``targets`` under ``key`` and return a deduplicated tuple."""
 
-    seen: set[str] = set()
-    canonical: list[str] = []
-    for target in targets:
-      if target in seen:  # noqa: E111
-        continue
-      seen.add(target)  # noqa: E111
-      canonical.append(target)  # noqa: E111
+        seen: set[str] = set()
+        canonical: list[str] = []
+        for target in targets:
+            if target in seen:  # noqa: E111
+                continue
+            seen.add(target)  # noqa: E111
+            canonical.append(target)  # noqa: E111
 
-    payload = _PersonNotificationCachePayload(
-      tuple(canonical),
-      generated_at,
-    )
-    self._entries[key] = payload
-    return payload.targets
+        payload = _PersonNotificationCachePayload(
+            tuple(canonical),
+            generated_at,
+        )
+        self._entries[key] = payload
+        return payload.targets
 
-  def try_get(self, key: str, *, now: datetime, ttl: int) -> tuple[str, ...] | None:  # noqa: E111
-    """Return cached targets when still valid, otherwise ``None``."""
+    def try_get(self, key: str, *, now: datetime, ttl: int) -> tuple[str, ...] | None:  # noqa: E111
+        """Return cached targets when still valid, otherwise ``None``."""
 
-    payload = self._entries.get(key)
-    if payload is None:
-      return None  # noqa: E111
+        payload = self._entries.get(key)
+        if payload is None:
+            return None  # noqa: E111
 
-    age_seconds = (now - payload.generated_at).total_seconds()
-    if age_seconds < ttl:
-      return payload.targets  # noqa: E111
-    return None
+        age_seconds = (now - payload.generated_at).total_seconds()
+        if age_seconds < ttl:
+            return payload.targets  # noqa: E111
+        return None
 
-  def snapshot(self, *, now: datetime, ttl: int) -> dict[str, EntryT]:  # noqa: E111
-    """Return a diagnostics snapshot of cached entries."""
+    def snapshot(self, *, now: datetime, ttl: int) -> dict[str, EntryT]:  # noqa: E111
+        """Return a diagnostics snapshot of cached entries."""
 
-    entries: dict[str, EntryT] = {}
-    for key, payload in self._entries.items():
-      age_seconds = max(  # noqa: E111
-        (now - payload.generated_at).total_seconds(),
-        0.0,
-      )
-      entries[key] = cast(  # noqa: E111
-        EntryT,
-        {
-          "targets": payload.targets,
-          "generated_at": payload.generated_at.isoformat(),
-          "age_seconds": age_seconds,
-          "stale": age_seconds > ttl,
-        },
-      )
-    return entries
+        entries: dict[str, EntryT] = {}
+        for key, payload in self._entries.items():
+            age_seconds = max(  # noqa: E111
+                (now - payload.generated_at).total_seconds(),
+                0.0,
+            )
+            entries[key] = cast(  # noqa: E111
+                EntryT,
+                {
+                    "targets": payload.targets,
+                    "generated_at": payload.generated_at.isoformat(),
+                    "age_seconds": age_seconds,
+                    "stale": age_seconds > ttl,
+                },
+            )
+        return entries
 
-  def __len__(self) -> int:  # noqa: E111
-    """Return the number of cached entries."""
+    def __len__(self) -> int:  # noqa: E111
+        """Return the number of cached entries."""
 
-    return len(self._entries)
+        return len(self._entries)
 
 
 def _empty_person_attributes() -> PersonEntityAttributePayload:
-  """Return an empty attribute payload for person entities."""  # noqa: E111
+    """Return an empty attribute payload for person entities."""  # noqa: E111
 
-  return {}  # noqa: E111
+    return {}  # noqa: E111
 
 
 @dataclass
 class PersonEntityInfo:
-  """Information about a discovered person entity."""  # noqa: E111
+    """Information about a discovered person entity."""  # noqa: E111
 
-  entity_id: str  # noqa: E111
-  name: str  # noqa: E111
-  friendly_name: str  # noqa: E111
-  state: str  # noqa: E111
-  is_home: bool  # noqa: E111
-  last_updated: datetime  # noqa: E111
-  mobile_device_id: str | None = None  # noqa: E111
-  notification_service: str | None = None  # noqa: E111
-  attributes: PersonEntityAttributePayload = field(  # noqa: E111
-    default_factory=_empty_person_attributes,
-  )
-
-  def __post_init__(self) -> None:  # noqa: E111
-    """Post initialization to ensure data consistency."""
-    self.is_home = self.state == STATE_HOME
-
-  def to_dict(self) -> PersonEntityStorageEntry:  # noqa: E111
-    """Convert to dictionary for storage/serialization."""
-    payload: PersonEntityStorageEntry = {
-      "entity_id": self.entity_id,
-      "name": self.name,
-      "friendly_name": self.friendly_name,
-      "state": self.state,
-      "is_home": self.is_home,
-      "last_updated": self.last_updated.isoformat(),
-      "mobile_device_id": self.mobile_device_id,
-      "notification_service": self.notification_service,
-      "attributes": self.attributes,
-    }
-    return payload
-
-  @classmethod  # noqa: E111
-  def from_dict(cls, data: PersonEntityStorageEntry) -> PersonEntityInfo:  # noqa: E111
-    """Create from dictionary."""
-    last_updated = ensure_utc_datetime(data["last_updated"])
-    if last_updated is None:
-      last_updated = dt_util.utcnow()  # noqa: E111
-
-    return cls(
-      entity_id=data["entity_id"],
-      name=data["name"],
-      friendly_name=data["friendly_name"],
-      state=data["state"],
-      is_home=data["is_home"],
-      last_updated=last_updated,
-      mobile_device_id=data.get("mobile_device_id"),
-      notification_service=data.get("notification_service"),
-      attributes=data.get("attributes", {}),
+    entity_id: str  # noqa: E111
+    name: str  # noqa: E111
+    friendly_name: str  # noqa: E111
+    state: str  # noqa: E111
+    is_home: bool  # noqa: E111
+    last_updated: datetime  # noqa: E111
+    mobile_device_id: str | None = None  # noqa: E111
+    notification_service: str | None = None  # noqa: E111
+    attributes: PersonEntityAttributePayload = field(  # noqa: E111
+        default_factory=_empty_person_attributes,
     )
+
+    def __post_init__(self) -> None:  # noqa: E111
+        """Post initialization to ensure data consistency."""
+        self.is_home = self.state == STATE_HOME
+
+    def to_dict(self) -> PersonEntityStorageEntry:  # noqa: E111
+        """Convert to dictionary for storage/serialization."""
+        payload: PersonEntityStorageEntry = {
+            "entity_id": self.entity_id,
+            "name": self.name,
+            "friendly_name": self.friendly_name,
+            "state": self.state,
+            "is_home": self.is_home,
+            "last_updated": self.last_updated.isoformat(),
+            "mobile_device_id": self.mobile_device_id,
+            "notification_service": self.notification_service,
+            "attributes": self.attributes,
+        }
+        return payload
+
+    @classmethod  # noqa: E111
+    def from_dict(cls, data: PersonEntityStorageEntry) -> PersonEntityInfo:  # noqa: E111
+        """Create from dictionary."""
+        last_updated = ensure_utc_datetime(data["last_updated"])
+        if last_updated is None:
+            last_updated = dt_util.utcnow()  # noqa: E111
+
+        return cls(
+            entity_id=data["entity_id"],
+            name=data["name"],
+            friendly_name=data["friendly_name"],
+            state=data["state"],
+            is_home=data["is_home"],
+            last_updated=last_updated,
+            mobile_device_id=data.get("mobile_device_id"),
+            notification_service=data.get("notification_service"),
+            attributes=data.get("attributes", {}),
+        )
 
 
 @dataclass
 class PersonEntityConfig:
-  """Configuration for person entity integration."""  # noqa: E111
+    """Configuration for person entity integration."""  # noqa: E111
 
-  enabled: bool = True  # noqa: E111
-  auto_discovery: bool = True  # noqa: E111
-  discovery_interval: int = DEFAULT_DISCOVERY_INTERVAL  # noqa: E111
-  cache_ttl: int = DEFAULT_CACHE_TTL  # noqa: E111
-  include_away_persons: bool = False  # noqa: E111
-  fallback_to_static: bool = True  # noqa: E111
-  static_notification_targets: list[str] = field(default_factory=list)  # noqa: E111
-  excluded_entities: list[str] = field(default_factory=list)  # noqa: E111
-  notification_mapping: dict[str, str] = field(  # noqa: E111
-    default_factory=dict,
-  )  # entity_id -> service
-  priority_persons: list[str] = field(  # noqa: E111
-    default_factory=list,
-  )  # High priority persons
+    enabled: bool = True  # noqa: E111
+    auto_discovery: bool = True  # noqa: E111
+    discovery_interval: int = DEFAULT_DISCOVERY_INTERVAL  # noqa: E111
+    cache_ttl: int = DEFAULT_CACHE_TTL  # noqa: E111
+    include_away_persons: bool = False  # noqa: E111
+    fallback_to_static: bool = True  # noqa: E111
+    static_notification_targets: list[str] = field(default_factory=list)  # noqa: E111
+    excluded_entities: list[str] = field(default_factory=list)  # noqa: E111
+    notification_mapping: dict[str, str] = field(  # noqa: E111
+        default_factory=dict,
+    )  # entity_id -> service
+    priority_persons: list[str] = field(  # noqa: E111
+        default_factory=list,
+    )  # High priority persons
 
 
 class PersonEntityManager(SupportsCoordinatorSnapshot):
-  """Manager for person entity discovery and notification targeting."""  # noqa: E111
+    """Manager for person entity discovery and notification targeting."""  # noqa: E111
 
-  @staticmethod  # noqa: E111
-  def _coerce_discovery_interval(value: int | None) -> int:  # noqa: E111
-    """Clamp the discovery interval to supported bounds."""
+    @staticmethod  # noqa: E111
+    def _coerce_discovery_interval(value: int | None) -> int:  # noqa: E111
+        """Clamp the discovery interval to supported bounds."""
 
-    if not isinstance(value, int):
-      return DEFAULT_DISCOVERY_INTERVAL  # noqa: E111
-    return max(MIN_DISCOVERY_INTERVAL, min(MAX_DISCOVERY_INTERVAL, value))
+        if not isinstance(value, int):
+            return DEFAULT_DISCOVERY_INTERVAL  # noqa: E111
+        return max(MIN_DISCOVERY_INTERVAL, min(MAX_DISCOVERY_INTERVAL, value))
 
-  @staticmethod  # noqa: E111
-  def _coerce_positive_int(value: int | None, *, default: int) -> int:  # noqa: E111
-    """Return ``default`` when ``value`` is not a positive integer."""
+    @staticmethod  # noqa: E111
+    def _coerce_positive_int(value: int | None, *, default: int) -> int:  # noqa: E111
+        """Return ``default`` when ``value`` is not a positive integer."""
 
-    if not isinstance(value, int) or value <= 0:
-      return default  # noqa: E111
-    return value
+        if not isinstance(value, int) or value <= 0:
+            return default  # noqa: E111
+        return value
 
-  @staticmethod  # noqa: E111
-  def _coerce_string_list(values: Sequence[str] | None) -> list[str]:  # noqa: E111
-    """Return a canonical list of strings from ``values``."""
+    @staticmethod  # noqa: E111
+    def _coerce_string_list(values: Sequence[str] | None) -> list[str]:  # noqa: E111
+        """Return a canonical list of strings from ``values``."""
 
-    if not values:
-      return []  # noqa: E111
-    return [item for item in values if isinstance(item, str)]
+        if not values:
+            return []  # noqa: E111
+        return [item for item in values if isinstance(item, str)]
 
-  @staticmethod  # noqa: E111
-  def _coerce_string_mapping(values: Mapping[str, str] | None) -> dict[str, str]:  # noqa: E111
-    """Return mapping entries with string keys and values only."""
+    @staticmethod  # noqa: E111
+    def _coerce_string_mapping(values: Mapping[str, str] | None) -> dict[str, str]:  # noqa: E111
+        """Return mapping entries with string keys and values only."""
 
-    if not values:
-      return {}  # noqa: E111
-    return {
-      key: val
-      for key, val in values.items()
-      if isinstance(key, str) and isinstance(val, str)
-    }
+        if not values:
+            return {}  # noqa: E111
+        return {
+            key: val
+            for key, val in values.items()
+            if isinstance(key, str) and isinstance(val, str)
+        }
 
-  @classmethod  # noqa: E111
-  def _build_config_from_input(  # noqa: E111
-    cls,
-    config: PersonEntityConfigInput,
-  ) -> PersonEntityConfig:
-    """Normalise ``config`` into a :class:`PersonEntityConfig` instance."""
+    @classmethod  # noqa: E111
+    def _build_config_from_input(  # noqa: E111
+        cls,
+        config: PersonEntityConfigInput,
+    ) -> PersonEntityConfig:
+        """Normalise ``config`` into a :class:`PersonEntityConfig` instance."""
 
-    discovery_interval = cls._coerce_discovery_interval(
-      config.get("discovery_interval"),
-    )
-    cache_ttl = cls._coerce_positive_int(
-      config.get("cache_ttl"),
-      default=DEFAULT_CACHE_TTL,
-    )
-
-    return PersonEntityConfig(
-      enabled=bool(config.get("enabled", True)),
-      auto_discovery=bool(config.get("auto_discovery", True)),
-      discovery_interval=discovery_interval,
-      cache_ttl=cache_ttl,
-      include_away_persons=bool(
-        config.get("include_away_persons", False),
-      ),
-      fallback_to_static=bool(config.get("fallback_to_static", True)),
-      static_notification_targets=cls._coerce_string_list(
-        config.get("static_notification_targets"),
-      ),
-      excluded_entities=cls._coerce_string_list(
-        config.get("excluded_entities"),
-      ),
-      notification_mapping=cls._coerce_string_mapping(
-        config.get("notification_mapping"),
-      ),
-      priority_persons=cls._coerce_string_list(
-        config.get("priority_persons"),
-      ),
-    )
-
-  def __init__(self, hass: HomeAssistant, entry_id: str) -> None:  # noqa: E111
-    """Initialize person entity manager.
-
-    Args:
-        hass: Home Assistant instance
-        entry_id: Configuration entry ID
-    """
-    self.hass = hass
-    self.entry_id = entry_id
-
-    # Configuration and state
-    self._config = PersonEntityConfig()
-    self._persons: dict[str, PersonEntityInfo] = {}
-    self._state_listeners: list[Callable[[], None]] = []
-    self._discovery_task: asyncio.Task[Any] | None = None
-    self._lock = asyncio.Lock()
-    self._cache_registrar: CacheMonitorRegistrar | None = None
-
-    # Performance tracking
-    self._last_discovery = dt_util.now()
-    self._discovery_count = 0
-    self._targets_cache: PersonNotificationCache[PersonNotificationCacheEntry] = (
-      PersonNotificationCache()
-    )
-
-    # Statistics
-    self._stats: PersonEntityCounters = {
-      "persons_discovered": 0,
-      "notifications_targeted": 0,
-      "cache_hits": 0,
-      "cache_misses": 0,
-      "discovery_runs": 0,
-    }
-
-  async def async_initialize(  # noqa: E111
-    self,
-    config: PersonEntityConfigInput | None = None,
-  ) -> None:
-    """Initialize person entity manager with configuration.
-
-    Args:
-        config: Optional configuration override
-    """
-    async with self._lock:
-      await self._async_initialize_locked(config)  # noqa: E111
-
-    if self._cache_registrar is not None:
-      self.register_cache_monitors(self._cache_registrar)  # noqa: E111
-
-  async def _async_initialize_locked(  # noqa: E111
-    self,
-    config: PersonEntityConfigInput | None,
-  ) -> None:
-    """Initialise manager internals while ``_lock`` is held."""
-
-    if config:
-      self._config = self._build_config_from_input(config)  # noqa: E111
-
-    await self._cancel_discovery_task_locked()
-    self._clear_state_listeners_locked()
-    self._targets_cache.clear()
-
-    if not self._config.enabled:
-      self._persons.clear()  # noqa: E111
-      _LOGGER.debug("Person entity integration disabled")  # noqa: E111
-      return  # noqa: E111
-
-    await self._discover_person_entities()
-
-    await self._setup_state_tracking()
-
-    if self._config.auto_discovery:
-      await self._start_discovery_task()  # noqa: E111
-
-    _LOGGER.info(
-      "Person entity manager initialized: %d persons discovered",
-      len(self._persons),
-    )
-
-  async def _discover_person_entities(self) -> None:  # noqa: E111
-    """Discover all person entities in Home Assistant."""
-    try:
-      entity_registry = er.async_get(self.hass)  # noqa: E111
-      discovered_count = 0  # noqa: E111
-
-      # Get all person domain entities from registry  # noqa: E114
-      person_entities = [  # noqa: E111
-        entry
-        for entry in entity_registry.entities.values()
-        if entry.domain == "person" and not entry.disabled_by
-      ]
-
-      new_persons: dict[str, PersonEntityInfo] = {}  # noqa: E111
-
-      for entity_entry in person_entities:  # noqa: E111
-        entity_id = entity_entry.entity_id
-
-        # Skip excluded entities
-        if entity_id in self._config.excluded_entities:
-          continue  # noqa: E111
-
-        # Get current state
-        state = self.hass.states.get(entity_id)
-        if state is None:
-          continue  # noqa: E111
-
-        # Extract person information
-        friendly_name = state.attributes.get(
-          "friendly_name",
-          entity_entry.name or entity_id,
+        discovery_interval = cls._coerce_discovery_interval(
+            config.get("discovery_interval"),
         )
-        name = (
-          entity_entry.name
-          or friendly_name.replace(
-            " ",
-            "_",
-          ).lower()
+        cache_ttl = cls._coerce_positive_int(
+            config.get("cache_ttl"),
+            default=DEFAULT_CACHE_TTL,
         )
 
-        # Try to find associated mobile device
-        mobile_device_id = await self._find_mobile_device_for_person(
-          entity_id,
-          state,
+        return PersonEntityConfig(
+            enabled=bool(config.get("enabled", True)),
+            auto_discovery=bool(config.get("auto_discovery", True)),
+            discovery_interval=discovery_interval,
+            cache_ttl=cache_ttl,
+            include_away_persons=bool(
+                config.get("include_away_persons", False),
+            ),
+            fallback_to_static=bool(config.get("fallback_to_static", True)),
+            static_notification_targets=cls._coerce_string_list(
+                config.get("static_notification_targets"),
+            ),
+            excluded_entities=cls._coerce_string_list(
+                config.get("excluded_entities"),
+            ),
+            notification_mapping=cls._coerce_string_mapping(
+                config.get("notification_mapping"),
+            ),
+            priority_persons=cls._coerce_string_list(
+                config.get("priority_persons"),
+            ),
         )
-        notification_service = self._config.notification_mapping.get(
-          entity_id,
+
+    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:  # noqa: E111
+        """Initialize person entity manager.
+
+        Args:
+            hass: Home Assistant instance
+            entry_id: Configuration entry ID
+        """
+        self.hass = hass
+        self.entry_id = entry_id
+
+        # Configuration and state
+        self._config = PersonEntityConfig()
+        self._persons: dict[str, PersonEntityInfo] = {}
+        self._state_listeners: list[Callable[[], None]] = []
+        self._discovery_task: asyncio.Task[Any] | None = None
+        self._lock = asyncio.Lock()
+        self._cache_registrar: CacheMonitorRegistrar | None = None
+
+        # Performance tracking
+        self._last_discovery = dt_util.now()
+        self._discovery_count = 0
+        self._targets_cache: PersonNotificationCache[PersonNotificationCacheEntry] = (
+            PersonNotificationCache()
         )
 
-        # Create person info
-        person_info = PersonEntityInfo(
-          entity_id=entity_id,
-          name=name,
-          friendly_name=friendly_name,
-          state=state.state,
-          is_home=(state.state == STATE_HOME),
-          last_updated=state.last_updated,
-          mobile_device_id=mobile_device_id,
-          notification_service=notification_service,
-          attributes=dict(state.attributes),
-        )
+        # Statistics
+        self._stats: PersonEntityCounters = {
+            "persons_discovered": 0,
+            "notifications_targeted": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "discovery_runs": 0,
+        }
 
-        new_persons[entity_id] = person_info
-        discovered_count += 1
-
-      # Update persons dictionary  # noqa: E114
-      self._persons = new_persons  # noqa: E111
-      self._stats["persons_discovered"] = len(self._persons)  # noqa: E111
-      self._stats["discovery_runs"] += 1  # noqa: E111
-      self._last_discovery = dt_util.now()  # noqa: E111
-
-      # Clear cache since persons may have changed  # noqa: E114
-      self._targets_cache.clear()  # noqa: E111
-
-      _LOGGER.debug(  # noqa: E111
-        "Discovery completed: %d person entities found, %d home",
-        discovered_count,
-        len(self.get_home_persons()),
-      )
-
-    except Exception as err:
-      _LOGGER.error("Failed to discover person entities: %s", err)  # noqa: E111
-
-  async def _find_mobile_device_for_person(  # noqa: E111
-    self,
-    person_entity_id: str,
-    person_state: State,
-  ) -> str | None:
-    """Find mobile device associated with person entity.
-
-    Args:
-        person_entity_id: Person entity ID
-        person_state: Person state object
-
-    Returns:
-        Mobile device ID if found
-    """
-    try:
-      # Check if person has source attribute pointing to device tracker  # noqa: E114
-      source = person_state.attributes.get("source")  # noqa: E111
-      if source and source.startswith("device_tracker."):  # noqa: E111
-        # Try to map device tracker to mobile device
-        source.replace("device_tracker.", "").replace("_", " ").title()
-
-        # Common mobile app service patterns
-        mobile_patterns = [
-          f"mobile_app_{source.split('.')[-1]}",
-          f"mobile_app_{person_state.attributes.get('friendly_name', '').replace(' ', '_').lower()}",  # noqa: E501
-          f"mobile_app_{person_entity_id.split('.')[-1]}",
-        ]
-
-        # Check if any of these services exist
-        for pattern in mobile_patterns:
-          if self.hass.services.has_service("notify", pattern):  # noqa: E111
-            return pattern
-
-      # Check user_id attribute for Home Assistant user mapping  # noqa: E114
-      user_id = person_state.attributes.get("user_id")  # noqa: E111
-      if user_id:  # noqa: E111
-        # This would require access to user registry which needs caution
-        # For now, we'll use a simplified approach
-        pass
-
-      return None  # noqa: E111
-
-    except Exception as err:
-      _LOGGER.debug(  # noqa: E111
-        "Failed to find mobile device for %s: %s",
-        person_entity_id,
-        err,
-      )
-      return None  # noqa: E111
-
-  async def _setup_state_tracking(self) -> None:  # noqa: E111
-    """Set up state change tracking for person entities."""
-    if not self._persons:
-      return  # noqa: E111
-
-    person_entity_ids = list(self._persons.keys())
-
-    async def handle_person_state_change(
-      event: Event[EventStateChangedData],
+    async def async_initialize(  # noqa: E111
+        self,
+        config: PersonEntityConfigInput | None = None,
     ) -> None:
-      await self._handle_person_state_change(event)  # noqa: E111
+        """Initialize person entity manager with configuration.
 
-    # Track state changes for all person entities
-    listener = async_track_state_change_event(
-      self.hass,
-      person_entity_ids,
-      handle_person_state_change,
-    )
+        Args:
+            config: Optional configuration override
+        """
+        async with self._lock:
+            await self._async_initialize_locked(config)  # noqa: E111
 
-    self._state_listeners.append(listener)
+        if self._cache_registrar is not None:
+            self.register_cache_monitors(self._cache_registrar)  # noqa: E111
 
-    _LOGGER.debug(
-      "Set up state tracking for %d person entities",
-      len(
-        person_entity_ids,
-      ),
-    )
+    async def _async_initialize_locked(  # noqa: E111
+        self,
+        config: PersonEntityConfigInput | None,
+    ) -> None:
+        """Initialise manager internals while ``_lock`` is held."""
 
-  async def _handle_person_state_change(  # noqa: E111
-    self,
-    event: Event[EventStateChangedData],
-  ) -> None:
-    """Handle person entity state changes.
+        if config:
+            self._config = self._build_config_from_input(config)  # noqa: E111
 
-    Args:
-        event: State change event
-    """
-    entity_id = event.data["entity_id"]
-    new_state = event.data["new_state"]
+        await self._cancel_discovery_task_locked()
+        self._clear_state_listeners_locked()
+        self._targets_cache.clear()
 
-    if not new_state or entity_id not in self._persons:
-      return  # noqa: E111
+        if not self._config.enabled:
+            self._persons.clear()  # noqa: E111
+            _LOGGER.debug("Person entity integration disabled")  # noqa: E111
+            return  # noqa: E111
 
-    # Update person info
-    person_info = self._persons[entity_id]
-    old_is_home = person_info.is_home
+        await self._discover_person_entities()
 
-    person_info.state = new_state.state
-    person_info.is_home = new_state.state == STATE_HOME
-    person_info.last_updated = new_state.last_updated
-    person_info.attributes = cast(
-      PersonEntityAttributePayload,
-      dict(new_state.attributes),
-    )
+        await self._setup_state_tracking()
 
-    # Clear cache if home status changed
-    if old_is_home != person_info.is_home:
-      self._targets_cache.clear()  # noqa: E111
+        if self._config.auto_discovery:
+            await self._start_discovery_task()  # noqa: E111
 
-      _LOGGER.debug(  # noqa: E111
-        "Person %s status changed: %s -> %s",
-        person_info.friendly_name,
-        "home" if old_is_home else "away",
-        "home" if person_info.is_home else "away",
-      )
+        _LOGGER.info(
+            "Person entity manager initialized: %d persons discovered",
+            len(self._persons),
+        )
 
-  async def _start_discovery_task(self) -> None:  # noqa: E111
-    """Start periodic discovery task."""
-    if self._discovery_task is not None:
-      return  # noqa: E111
-
-    async def discovery_loop() -> None:
-      while True:  # noqa: E111
+    async def _discover_person_entities(self) -> None:  # noqa: E111
+        """Discover all person entities in Home Assistant."""
         try:
-          await asyncio.sleep(self._config.discovery_interval)  # noqa: E111
-          await self._discover_person_entities()  # noqa: E111
-        except asyncio.CancelledError:
-          break  # noqa: E111
+            entity_registry = er.async_get(self.hass)  # noqa: E111
+            discovered_count = 0  # noqa: E111
+
+            # Get all person domain entities from registry  # noqa: E114
+            person_entities = [  # noqa: E111
+                entry
+                for entry in entity_registry.entities.values()
+                if entry.domain == "person" and not entry.disabled_by
+            ]
+
+            new_persons: dict[str, PersonEntityInfo] = {}  # noqa: E111
+
+            for entity_entry in person_entities:  # noqa: E111
+                entity_id = entity_entry.entity_id
+
+                # Skip excluded entities
+                if entity_id in self._config.excluded_entities:
+                    continue  # noqa: E111
+
+                # Get current state
+                state = self.hass.states.get(entity_id)
+                if state is None:
+                    continue  # noqa: E111
+
+                # Extract person information
+                friendly_name = state.attributes.get(
+                    "friendly_name",
+                    entity_entry.name or entity_id,
+                )
+                name = (
+                    entity_entry.name
+                    or friendly_name.replace(
+                        " ",
+                        "_",
+                    ).lower()
+                )
+
+                # Try to find associated mobile device
+                mobile_device_id = await self._find_mobile_device_for_person(
+                    entity_id,
+                    state,
+                )
+                notification_service = self._config.notification_mapping.get(
+                    entity_id,
+                )
+
+                # Create person info
+                person_info = PersonEntityInfo(
+                    entity_id=entity_id,
+                    name=name,
+                    friendly_name=friendly_name,
+                    state=state.state,
+                    is_home=(state.state == STATE_HOME),
+                    last_updated=state.last_updated,
+                    mobile_device_id=mobile_device_id,
+                    notification_service=notification_service,
+                    attributes=dict(state.attributes),
+                )
+
+                new_persons[entity_id] = person_info
+                discovered_count += 1
+
+            # Update persons dictionary  # noqa: E114
+            self._persons = new_persons  # noqa: E111
+            self._stats["persons_discovered"] = len(self._persons)  # noqa: E111
+            self._stats["discovery_runs"] += 1  # noqa: E111
+            self._last_discovery = dt_util.now()  # noqa: E111
+
+            # Clear cache since persons may have changed  # noqa: E114
+            self._targets_cache.clear()  # noqa: E111
+
+            _LOGGER.debug(  # noqa: E111
+                "Discovery completed: %d person entities found, %d home",
+                discovered_count,
+                len(self.get_home_persons()),
+            )
+
         except Exception as err:
-          _LOGGER.error("Discovery task error: %s", err)  # noqa: E111
-
-    self._discovery_task = asyncio.create_task(discovery_loop())
-
-    _LOGGER.debug(
-      "Started discovery task with %d second interval",
-      self._config.discovery_interval,
-    )
-
-  def get_home_persons(self) -> list[PersonEntityInfo]:  # noqa: E111
-    """Get all persons currently at home.
-
-    Returns:
-        List of person entities at home
-    """
-    return [person for person in self._persons.values() if person.is_home]
-
-  def get_away_persons(self) -> list[PersonEntityInfo]:  # noqa: E111
-    """Get all persons currently away.
-
-    Returns:
-        List of person entities away from home
-    """
-    return [person for person in self._persons.values() if not person.is_home]
-
-  def get_all_persons(self) -> list[PersonEntityInfo]:  # noqa: E111
-    """Get all discovered person entities.
-
-    Returns:
-        List of all person entities
-    """
-    return list(self._persons.values())
-
-  def get_person_by_entity_id(self, entity_id: str) -> PersonEntityInfo | None:  # noqa: E111
-    """Get person info by entity ID.
-
-    Args:
-        entity_id: Person entity ID
-
-    Returns:
-        Person info if found
-    """
-    return self._persons.get(entity_id)
-
-  def get_notification_targets(  # noqa: E111
-    self,
-    include_away: bool | None = None,
-    priority_only: bool = False,
-    cache_key: str | None = None,
-  ) -> list[str]:
-    """Get list of notification targets based on current person states.
-
-    Args:
-        include_away: Whether to include away persons (overrides config)
-        priority_only: Only return priority persons
-        cache_key: Optional cache key for performance
-
-    Returns:
-        List of notification service names
-    """
-    # Use provided setting or config default
-    if include_away is None:
-      include_away = self._config.include_away_persons  # noqa: E111
-
-    # Create cache key
-    if cache_key is None:
-      cache_key = f"targets_{include_away}_{priority_only}"  # noqa: E111
-
-    # Check cache
-    now = dt_util.now()
-    cached_targets = self._targets_cache.try_get(
-      cache_key,
-      now=now,
-      ttl=self._config.cache_ttl,
-    )
-    if cached_targets is not None:
-      self._stats["cache_hits"] += 1  # noqa: E111
-      return list(cached_targets)  # noqa: E111
-
-    self._stats["cache_misses"] += 1
-
-    # Build targets list
-    targets = []
-
-    # Get persons to consider
-    persons = self.get_all_persons() if include_away else self.get_home_persons()
-
-    # Filter by priority if requested
-    if priority_only:
-      persons = [p for p in persons if p.entity_id in self._config.priority_persons]  # noqa: E111
-
-    # Extract notification services
-    for person in persons:
-      # Use explicit mapping first  # noqa: E114
-      if person.notification_service:  # noqa: E111
-        targets.append(person.notification_service)
-      # Try auto-detected mobile device  # noqa: E114
-      elif person.mobile_device_id:  # noqa: E111
-        targets.append(person.mobile_device_id)
-      # Fallback to generic mobile app pattern  # noqa: E114
-      else:  # noqa: E111
-        mobile_service = f"mobile_app_{person.name}"
-        if self.hass.services.has_service("notify", mobile_service):
-          targets.append(mobile_service)  # noqa: E111
-
-    # Add static fallback targets if configured and no persons found
-    if not targets and self._config.fallback_to_static:
-      targets.extend(self._config.static_notification_targets)  # noqa: E111
-
-    stored_targets = self._targets_cache.store(cache_key, targets, now)
-
-    self._stats["notifications_targeted"] += 1
-
-    return list(stored_targets)
-
-  def get_notification_context(self) -> PersonNotificationContext:  # noqa: E111
-    """Get notification context for personalized messages.
-
-    Returns:
-        Context dictionary with person information
-    """
-    home_persons = self.get_home_persons()
-    away_persons = self.get_away_persons()
-
-    return {
-      "persons_home": len(home_persons),
-      "persons_away": len(away_persons),
-      "home_person_names": [p.friendly_name for p in home_persons],
-      "away_person_names": [p.friendly_name for p in away_persons],
-      "total_persons": len(self._persons),
-      "has_anyone_home": len(home_persons) > 0,
-      "everyone_away": len(home_persons) == 0 and len(away_persons) > 0,
-    }
-
-  async def async_force_discovery(self) -> PersonEntityDiscoveryResult:  # noqa: E111
-    """Force immediate person discovery.
-
-    Returns:
-        Discovery results
-    """
-    async with self._lock:
-      old_count = len(self._persons)  # noqa: E111
-      await self._discover_person_entities()  # noqa: E111
-      new_count = len(self._persons)  # noqa: E111
-
-      result: PersonEntityDiscoveryResult = {  # noqa: E111
-        "previous_count": old_count,
-        "current_count": new_count,
-        "persons_added": max(0, new_count - old_count),
-        "persons_removed": max(0, old_count - new_count),
-        "home_persons": len(self.get_home_persons()),
-        "away_persons": len(self.get_away_persons()),
-        "discovery_time": self._last_discovery.isoformat(),
-      }
-
-      return result  # noqa: E111
-
-  async def async_update_config(self, new_config: PersonEntityConfigInput) -> bool:  # noqa: E111
-    """Update person entity configuration.
-
-    Args:
-        new_config: New configuration dictionary
-
-    Returns:
-        True if configuration was updated
-    """
-    async with self._lock:
-      old_enabled = self._config.enabled  # noqa: E111
-
-    try:
-      await self.async_initialize(new_config)  # noqa: E111
-    except Exception as err:
-      _LOGGER.error("Failed to update person entity config: %s", err)  # noqa: E111
-      return False  # noqa: E111
-
-    async with self._lock:
-      new_enabled = self._config.enabled  # noqa: E111
-
-    if old_enabled != new_enabled:
-      if new_enabled:  # noqa: E111
-        _LOGGER.info("Person entity integration enabled")
-      else:  # noqa: E111
-        _LOGGER.info("Person entity integration disabled")
-
-    return True
-
-  def get_statistics(self) -> PersonEntityStats:  # noqa: E111
-    """Get comprehensive statistics.
-
-    Returns:
-        Statistics dictionary
-    """
-    now = dt_util.now()
-    uptime = (now - self._last_discovery).total_seconds()
-
-    cache_hits = self._stats["cache_hits"]
-    cache_misses = self._stats["cache_misses"]
-    total_events = max(1, cache_hits + cache_misses)
-
-    return {
-      **self._stats,
-      "config": {
-        "enabled": self._config.enabled,
-        "auto_discovery": self._config.auto_discovery,
-        "discovery_interval": self._config.discovery_interval,
-        "include_away_persons": self._config.include_away_persons,
-        "fallback_to_static": self._config.fallback_to_static,
-      },
-      "current_state": {
-        "total_persons": len(self._persons),
-        "home_persons": len(self.get_home_persons()),
-        "away_persons": len(self.get_away_persons()),
-        "last_discovery": self._last_discovery.isoformat(),
-        "uptime_seconds": uptime,
-      },
-      "cache": {
-        "cache_entries": len(self._targets_cache),
-        "hit_rate": (cache_hits / total_events) * 100.0,
-      },
-    }
-
-  async def async_validate_configuration(self) -> PersonEntityValidationResult:  # noqa: E111
-    """Validate person entity configuration.
-
-    Returns:
-        Validation results
-    """
-    issues = []
-    recommendations = []
-
-    # Check if any persons were discovered
-    if not self._persons:
-      issues.append("No person entities discovered")  # noqa: E111
-      recommendations.append(  # noqa: E111
-        "Create person entities in Home Assistant for better targeting",
-      )
-
-    # Check static fallback configuration
-    if self._config.fallback_to_static and not self._config.static_notification_targets:
-      issues.append(  # noqa: E111
-        "Fallback to static enabled but no static targets configured",
-      )
-      recommendations.append(  # noqa: E111
-        "Configure static notification targets as fallback",
-      )
-
-    # Check notification mappings
-    unmapped_persons: list[str] = [
-      person.friendly_name
-      for person in self._persons.values()
-      if not person.notification_service and not person.mobile_device_id
-    ]
-    if unmapped_persons:
-      issues.append(  # noqa: E111
-        f"Persons without notification mapping: {', '.join(unmapped_persons)}",
-      )
-      recommendations.append(  # noqa: E111
-        "Configure notification services for all persons",
-      )
-
-    # Check excluded entities
-    person_entity_ids = {p.entity_id for p in self._persons.values()}
-    issues.extend(
-      [
-        f"Excluded entity {excluded} not found"
-        for excluded in self._config.excluded_entities
-        if excluded not in person_entity_ids
-      ],
-    )
-    result: PersonEntityValidationResult = {
-      "valid": len(issues) == 0,
-      "issues": issues,
-      "recommendations": recommendations,
-      "persons_configured": len(self._persons),
-      "notification_targets_available": len(self.get_notification_targets()),
-    }
-
-    return result
-
-  async def async_shutdown(self) -> None:  # noqa: E111
-    """Shutdown person entity manager."""
-
-    async with self._lock:
-      await self._async_shutdown_locked()  # noqa: E111
-
-  async def _async_shutdown_locked(self) -> None:  # noqa: E111
-    """Shutdown internals while ``_lock`` is held."""
-
-    await self._cancel_discovery_task_locked()
-    self._clear_state_listeners_locked()
-
-    self._persons.clear()
-    self._targets_cache.clear()
-
-    _LOGGER.info("Person entity manager shutdown complete")
-
-  def get_diagnostics(self) -> PersonEntityDiagnostics:  # noqa: E111
-    """Return diagnostic metadata used by coordinator cache monitors."""
-
-    now = dt_util.now()
-    cache_entries = self._targets_cache.snapshot(
-      now=now,
-      ttl=self._config.cache_ttl,
-    )
-
-    discovery_task_state: Literal[
-      "not_started",
-      "cancelled",
-      "completed",
-      "running",
-    ]
-    if self._discovery_task is None:
-      discovery_task_state = "not_started"  # noqa: E111
-    elif self._discovery_task.cancelled():
-      discovery_task_state = "cancelled"  # noqa: E111
-    elif self._discovery_task.done():
-      discovery_task_state = "completed"  # noqa: E111
-    else:
-      discovery_task_state = "running"  # noqa: E111
-
-    diagnostics: PersonEntityDiagnostics = {
-      "cache_entries": cache_entries,
-      "discovery_task_state": discovery_task_state,
-      "listener_count": len(self._state_listeners),
-      "manager_last_activity": self._last_discovery.isoformat(),
-      "manager_last_activity_age_seconds": max(
-        (now - self._last_discovery).total_seconds(),
-        0.0,
-      ),
-      "summary": cast(JSONMutableMapping, dict(self.get_notification_context())),
-    }
-
-    return diagnostics
-
-  def _build_person_snapshot(self) -> PersonEntitySnapshot:  # noqa: E111
-    """Return a typed snapshot of discovered person entities."""
-
-    persons: dict[str, PersonEntitySnapshotEntry] = {}
-    for entity_id, info in self._persons.items():
-      persons[entity_id] = {  # noqa: E111
-        "entity_id": info.entity_id,
-        "name": info.name,
-        "friendly_name": info.friendly_name,
-        "state": info.state,
-        "is_home": info.is_home,
-        "last_updated": info.last_updated.isoformat(),
-        "mobile_device_id": info.mobile_device_id,
-        "notification_service": info.notification_service,
-      }
-
-    return {
-      "persons": persons,
-      "notification_context": self.get_notification_context(),
-    }
-
-  def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
-    """Return a coordinator-friendly snapshot of statistics and diagnostics."""
-
-    stats = self.get_statistics()
-    diagnostics = self.get_diagnostics()
-    snapshot = self._build_person_snapshot()
-
-    snapshot_class = _resolve_cache_snapshot_class()
-    return snapshot_class(
-      stats=cast(JSONMutableMapping, dict(stats)),
-      diagnostics=diagnostics,
-      snapshot=cast(JSONMutableMapping, dict(snapshot)),
-    )
-
-  def register_cache_monitors(  # noqa: E111
-    self,
-    registrar: CacheMonitorRegistrar,
-    *,
-    prefix: str = "person_entity",
-  ) -> None:
-    """Register the person targeting cache with the data manager registrar."""
-
-    self._cache_registrar = registrar
-    registrar.register_cache_monitor(f"{prefix}_targets", self)
-
-  async def _cancel_discovery_task_locked(self) -> None:  # noqa: E111
-    """Cancel the periodic discovery task when held under lock."""
-
-    if self._discovery_task is None:
-      return  # noqa: E111
-
-    if not self._discovery_task.done():
-      self._discovery_task.cancel()  # noqa: E111
-      with contextlib.suppress(asyncio.CancelledError):  # noqa: E111
-        await self._discovery_task
-
-    self._discovery_task = None
-
-  def _clear_state_listeners_locked(self) -> None:  # noqa: E111
-    """Detach any registered state listeners while holding the lock."""
-
-    if not self._state_listeners:
-      return  # noqa: E111
-
-    for listener in self._state_listeners:
-      if callable(listener):  # noqa: E111
-        listener()
-
-    self._state_listeners.clear()
+            _LOGGER.error("Failed to discover person entities: %s", err)  # noqa: E111
+
+    async def _find_mobile_device_for_person(  # noqa: E111
+        self,
+        person_entity_id: str,
+        person_state: State,
+    ) -> str | None:
+        """Find mobile device associated with person entity.
+
+        Args:
+            person_entity_id: Person entity ID
+            person_state: Person state object
+
+        Returns:
+            Mobile device ID if found
+        """
+        try:
+            # Check if person has source attribute pointing to device tracker  # noqa: E114
+            source = person_state.attributes.get("source")  # noqa: E111
+            if source and source.startswith("device_tracker."):  # noqa: E111
+                # Try to map device tracker to mobile device
+                source.replace("device_tracker.", "").replace("_", " ").title()
+
+                # Common mobile app service patterns
+                mobile_patterns = [
+                    f"mobile_app_{source.split('.')[-1]}",
+                    f"mobile_app_{person_state.attributes.get('friendly_name', '').replace(' ', '_').lower()}",  # noqa: E501
+                    f"mobile_app_{person_entity_id.split('.')[-1]}",
+                ]
+
+                # Check if any of these services exist
+                for pattern in mobile_patterns:
+                    if self.hass.services.has_service("notify", pattern):  # noqa: E111
+                        return pattern
+
+            # Check user_id attribute for Home Assistant user mapping  # noqa: E114
+            user_id = person_state.attributes.get("user_id")  # noqa: E111
+            if user_id:  # noqa: E111
+                # This would require access to user registry which needs caution
+                # For now, we'll use a simplified approach
+                pass
+
+            return None  # noqa: E111
+
+        except Exception as err:
+            _LOGGER.debug(  # noqa: E111
+                "Failed to find mobile device for %s: %s",
+                person_entity_id,
+                err,
+            )
+            return None  # noqa: E111
+
+    async def _setup_state_tracking(self) -> None:  # noqa: E111
+        """Set up state change tracking for person entities."""
+        if not self._persons:
+            return  # noqa: E111
+
+        person_entity_ids = list(self._persons.keys())
+
+        async def handle_person_state_change(
+            event: Event[EventStateChangedData],
+        ) -> None:
+            await self._handle_person_state_change(event)  # noqa: E111
+
+        # Track state changes for all person entities
+        listener = async_track_state_change_event(
+            self.hass,
+            person_entity_ids,
+            handle_person_state_change,
+        )
+
+        self._state_listeners.append(listener)
+
+        _LOGGER.debug(
+            "Set up state tracking for %d person entities",
+            len(
+                person_entity_ids,
+            ),
+        )
+
+    async def _handle_person_state_change(  # noqa: E111
+        self,
+        event: Event[EventStateChangedData],
+    ) -> None:
+        """Handle person entity state changes.
+
+        Args:
+            event: State change event
+        """
+        entity_id = event.data["entity_id"]
+        new_state = event.data["new_state"]
+
+        if not new_state or entity_id not in self._persons:
+            return  # noqa: E111
+
+        # Update person info
+        person_info = self._persons[entity_id]
+        old_is_home = person_info.is_home
+
+        person_info.state = new_state.state
+        person_info.is_home = new_state.state == STATE_HOME
+        person_info.last_updated = new_state.last_updated
+        person_info.attributes = cast(
+            PersonEntityAttributePayload,
+            dict(new_state.attributes),
+        )
+
+        # Clear cache if home status changed
+        if old_is_home != person_info.is_home:
+            self._targets_cache.clear()  # noqa: E111
+
+            _LOGGER.debug(  # noqa: E111
+                "Person %s status changed: %s -> %s",
+                person_info.friendly_name,
+                "home" if old_is_home else "away",
+                "home" if person_info.is_home else "away",
+            )
+
+    async def _start_discovery_task(self) -> None:  # noqa: E111
+        """Start periodic discovery task."""
+        if self._discovery_task is not None:
+            return  # noqa: E111
+
+        async def discovery_loop() -> None:
+            while True:  # noqa: E111
+                try:
+                    await asyncio.sleep(self._config.discovery_interval)  # noqa: E111
+                    await self._discover_person_entities()  # noqa: E111
+                except asyncio.CancelledError:
+                    break  # noqa: E111
+                except Exception as err:
+                    _LOGGER.error("Discovery task error: %s", err)  # noqa: E111
+
+        self._discovery_task = asyncio.create_task(discovery_loop())
+
+        _LOGGER.debug(
+            "Started discovery task with %d second interval",
+            self._config.discovery_interval,
+        )
+
+    def get_home_persons(self) -> list[PersonEntityInfo]:  # noqa: E111
+        """Get all persons currently at home.
+
+        Returns:
+            List of person entities at home
+        """
+        return [person for person in self._persons.values() if person.is_home]
+
+    def get_away_persons(self) -> list[PersonEntityInfo]:  # noqa: E111
+        """Get all persons currently away.
+
+        Returns:
+            List of person entities away from home
+        """
+        return [person for person in self._persons.values() if not person.is_home]
+
+    def get_all_persons(self) -> list[PersonEntityInfo]:  # noqa: E111
+        """Get all discovered person entities.
+
+        Returns:
+            List of all person entities
+        """
+        return list(self._persons.values())
+
+    def get_person_by_entity_id(self, entity_id: str) -> PersonEntityInfo | None:  # noqa: E111
+        """Get person info by entity ID.
+
+        Args:
+            entity_id: Person entity ID
+
+        Returns:
+            Person info if found
+        """
+        return self._persons.get(entity_id)
+
+    def get_notification_targets(  # noqa: E111
+        self,
+        include_away: bool | None = None,
+        priority_only: bool = False,
+        cache_key: str | None = None,
+    ) -> list[str]:
+        """Get list of notification targets based on current person states.
+
+        Args:
+            include_away: Whether to include away persons (overrides config)
+            priority_only: Only return priority persons
+            cache_key: Optional cache key for performance
+
+        Returns:
+            List of notification service names
+        """
+        # Use provided setting or config default
+        if include_away is None:
+            include_away = self._config.include_away_persons  # noqa: E111
+
+        # Create cache key
+        if cache_key is None:
+            cache_key = f"targets_{include_away}_{priority_only}"  # noqa: E111
+
+        # Check cache
+        now = dt_util.now()
+        cached_targets = self._targets_cache.try_get(
+            cache_key,
+            now=now,
+            ttl=self._config.cache_ttl,
+        )
+        if cached_targets is not None:
+            self._stats["cache_hits"] += 1  # noqa: E111
+            return list(cached_targets)  # noqa: E111
+
+        self._stats["cache_misses"] += 1
+
+        # Build targets list
+        targets = []
+
+        # Get persons to consider
+        persons = self.get_all_persons() if include_away else self.get_home_persons()
+
+        # Filter by priority if requested
+        if priority_only:
+            persons = [
+                p for p in persons if p.entity_id in self._config.priority_persons
+            ]  # noqa: E111
+
+        # Extract notification services
+        for person in persons:
+            # Use explicit mapping first  # noqa: E114
+            if person.notification_service:  # noqa: E111
+                targets.append(person.notification_service)
+            # Try auto-detected mobile device  # noqa: E114
+            elif person.mobile_device_id:  # noqa: E111
+                targets.append(person.mobile_device_id)
+            # Fallback to generic mobile app pattern  # noqa: E114
+            else:  # noqa: E111
+                mobile_service = f"mobile_app_{person.name}"
+                if self.hass.services.has_service("notify", mobile_service):
+                    targets.append(mobile_service)  # noqa: E111
+
+        # Add static fallback targets if configured and no persons found
+        if not targets and self._config.fallback_to_static:
+            targets.extend(self._config.static_notification_targets)  # noqa: E111
+
+        stored_targets = self._targets_cache.store(cache_key, targets, now)
+
+        self._stats["notifications_targeted"] += 1
+
+        return list(stored_targets)
+
+    def get_notification_context(self) -> PersonNotificationContext:  # noqa: E111
+        """Get notification context for personalized messages.
+
+        Returns:
+            Context dictionary with person information
+        """
+        home_persons = self.get_home_persons()
+        away_persons = self.get_away_persons()
+
+        return {
+            "persons_home": len(home_persons),
+            "persons_away": len(away_persons),
+            "home_person_names": [p.friendly_name for p in home_persons],
+            "away_person_names": [p.friendly_name for p in away_persons],
+            "total_persons": len(self._persons),
+            "has_anyone_home": len(home_persons) > 0,
+            "everyone_away": len(home_persons) == 0 and len(away_persons) > 0,
+        }
+
+    async def async_force_discovery(self) -> PersonEntityDiscoveryResult:  # noqa: E111
+        """Force immediate person discovery.
+
+        Returns:
+            Discovery results
+        """
+        async with self._lock:
+            old_count = len(self._persons)  # noqa: E111
+            await self._discover_person_entities()  # noqa: E111
+            new_count = len(self._persons)  # noqa: E111
+
+            result: PersonEntityDiscoveryResult = {  # noqa: E111
+                "previous_count": old_count,
+                "current_count": new_count,
+                "persons_added": max(0, new_count - old_count),
+                "persons_removed": max(0, old_count - new_count),
+                "home_persons": len(self.get_home_persons()),
+                "away_persons": len(self.get_away_persons()),
+                "discovery_time": self._last_discovery.isoformat(),
+            }
+
+            return result  # noqa: E111
+
+    async def async_update_config(self, new_config: PersonEntityConfigInput) -> bool:  # noqa: E111
+        """Update person entity configuration.
+
+        Args:
+            new_config: New configuration dictionary
+
+        Returns:
+            True if configuration was updated
+        """
+        async with self._lock:
+            old_enabled = self._config.enabled  # noqa: E111
+
+        try:
+            await self.async_initialize(new_config)  # noqa: E111
+        except Exception as err:
+            _LOGGER.error("Failed to update person entity config: %s", err)  # noqa: E111
+            return False  # noqa: E111
+
+        async with self._lock:
+            new_enabled = self._config.enabled  # noqa: E111
+
+        if old_enabled != new_enabled:
+            if new_enabled:  # noqa: E111
+                _LOGGER.info("Person entity integration enabled")
+            else:  # noqa: E111
+                _LOGGER.info("Person entity integration disabled")
+
+        return True
+
+    def get_statistics(self) -> PersonEntityStats:  # noqa: E111
+        """Get comprehensive statistics.
+
+        Returns:
+            Statistics dictionary
+        """
+        now = dt_util.now()
+        uptime = (now - self._last_discovery).total_seconds()
+
+        cache_hits = self._stats["cache_hits"]
+        cache_misses = self._stats["cache_misses"]
+        total_events = max(1, cache_hits + cache_misses)
+
+        return {
+            **self._stats,
+            "config": {
+                "enabled": self._config.enabled,
+                "auto_discovery": self._config.auto_discovery,
+                "discovery_interval": self._config.discovery_interval,
+                "include_away_persons": self._config.include_away_persons,
+                "fallback_to_static": self._config.fallback_to_static,
+            },
+            "current_state": {
+                "total_persons": len(self._persons),
+                "home_persons": len(self.get_home_persons()),
+                "away_persons": len(self.get_away_persons()),
+                "last_discovery": self._last_discovery.isoformat(),
+                "uptime_seconds": uptime,
+            },
+            "cache": {
+                "cache_entries": len(self._targets_cache),
+                "hit_rate": (cache_hits / total_events) * 100.0,
+            },
+        }
+
+    async def async_validate_configuration(self) -> PersonEntityValidationResult:  # noqa: E111
+        """Validate person entity configuration.
+
+        Returns:
+            Validation results
+        """
+        issues = []
+        recommendations = []
+
+        # Check if any persons were discovered
+        if not self._persons:
+            issues.append("No person entities discovered")  # noqa: E111
+            recommendations.append(  # noqa: E111
+                "Create person entities in Home Assistant for better targeting",
+            )
+
+        # Check static fallback configuration
+        if (
+            self._config.fallback_to_static
+            and not self._config.static_notification_targets
+        ):
+            issues.append(  # noqa: E111
+                "Fallback to static enabled but no static targets configured",
+            )
+            recommendations.append(  # noqa: E111
+                "Configure static notification targets as fallback",
+            )
+
+        # Check notification mappings
+        unmapped_persons: list[str] = [
+            person.friendly_name
+            for person in self._persons.values()
+            if not person.notification_service and not person.mobile_device_id
+        ]
+        if unmapped_persons:
+            issues.append(  # noqa: E111
+                f"Persons without notification mapping: {', '.join(unmapped_persons)}",
+            )
+            recommendations.append(  # noqa: E111
+                "Configure notification services for all persons",
+            )
+
+        # Check excluded entities
+        person_entity_ids = {p.entity_id for p in self._persons.values()}
+        issues.extend(
+            [
+                f"Excluded entity {excluded} not found"
+                for excluded in self._config.excluded_entities
+                if excluded not in person_entity_ids
+            ],
+        )
+        result: PersonEntityValidationResult = {
+            "valid": len(issues) == 0,
+            "issues": issues,
+            "recommendations": recommendations,
+            "persons_configured": len(self._persons),
+            "notification_targets_available": len(self.get_notification_targets()),
+        }
+
+        return result
+
+    async def async_shutdown(self) -> None:  # noqa: E111
+        """Shutdown person entity manager."""
+
+        async with self._lock:
+            await self._async_shutdown_locked()  # noqa: E111
+
+    async def _async_shutdown_locked(self) -> None:  # noqa: E111
+        """Shutdown internals while ``_lock`` is held."""
+
+        await self._cancel_discovery_task_locked()
+        self._clear_state_listeners_locked()
+
+        self._persons.clear()
+        self._targets_cache.clear()
+
+        _LOGGER.info("Person entity manager shutdown complete")
+
+    def get_diagnostics(self) -> PersonEntityDiagnostics:  # noqa: E111
+        """Return diagnostic metadata used by coordinator cache monitors."""
+
+        now = dt_util.now()
+        cache_entries = self._targets_cache.snapshot(
+            now=now,
+            ttl=self._config.cache_ttl,
+        )
+
+        discovery_task_state: Literal[
+            "not_started",
+            "cancelled",
+            "completed",
+            "running",
+        ]
+        if self._discovery_task is None:
+            discovery_task_state = "not_started"  # noqa: E111
+        elif self._discovery_task.cancelled():
+            discovery_task_state = "cancelled"  # noqa: E111
+        elif self._discovery_task.done():
+            discovery_task_state = "completed"  # noqa: E111
+        else:
+            discovery_task_state = "running"  # noqa: E111
+
+        diagnostics: PersonEntityDiagnostics = {
+            "cache_entries": cache_entries,
+            "discovery_task_state": discovery_task_state,
+            "listener_count": len(self._state_listeners),
+            "manager_last_activity": self._last_discovery.isoformat(),
+            "manager_last_activity_age_seconds": max(
+                (now - self._last_discovery).total_seconds(),
+                0.0,
+            ),
+            "summary": cast(JSONMutableMapping, dict(self.get_notification_context())),
+        }
+
+        return diagnostics
+
+    def _build_person_snapshot(self) -> PersonEntitySnapshot:  # noqa: E111
+        """Return a typed snapshot of discovered person entities."""
+
+        persons: dict[str, PersonEntitySnapshotEntry] = {}
+        for entity_id, info in self._persons.items():
+            persons[entity_id] = {  # noqa: E111
+                "entity_id": info.entity_id,
+                "name": info.name,
+                "friendly_name": info.friendly_name,
+                "state": info.state,
+                "is_home": info.is_home,
+                "last_updated": info.last_updated.isoformat(),
+                "mobile_device_id": info.mobile_device_id,
+                "notification_service": info.notification_service,
+            }
+
+        return {
+            "persons": persons,
+            "notification_context": self.get_notification_context(),
+        }
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
+        """Return a coordinator-friendly snapshot of statistics and diagnostics."""
+
+        stats = self.get_statistics()
+        diagnostics = self.get_diagnostics()
+        snapshot = self._build_person_snapshot()
+
+        snapshot_class = _resolve_cache_snapshot_class()
+        return snapshot_class(
+            stats=cast(JSONMutableMapping, dict(stats)),
+            diagnostics=diagnostics,
+            snapshot=cast(JSONMutableMapping, dict(snapshot)),
+        )
+
+    def register_cache_monitors(  # noqa: E111
+        self,
+        registrar: CacheMonitorRegistrar,
+        *,
+        prefix: str = "person_entity",
+    ) -> None:
+        """Register the person targeting cache with the data manager registrar."""
+
+        self._cache_registrar = registrar
+        registrar.register_cache_monitor(f"{prefix}_targets", self)
+
+    async def _cancel_discovery_task_locked(self) -> None:  # noqa: E111
+        """Cancel the periodic discovery task when held under lock."""
+
+        if self._discovery_task is None:
+            return  # noqa: E111
+
+        if not self._discovery_task.done():
+            self._discovery_task.cancel()  # noqa: E111
+            with contextlib.suppress(asyncio.CancelledError):  # noqa: E111
+                await self._discovery_task
+
+        self._discovery_task = None
+
+    def _clear_state_listeners_locked(self) -> None:  # noqa: E111
+        """Detach any registered state listeners while holding the lock."""
+
+        if not self._state_listeners:
+            return  # noqa: E111
+
+        for listener in self._state_listeners:
+            if callable(listener):  # noqa: E111
+                listener()
+
+        self._state_listeners.clear()

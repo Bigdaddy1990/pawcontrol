@@ -7,14 +7,14 @@ from typing import Final, cast
 
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
 from homeassistant.const import (
-  CONF_DEVICE_ID,
-  CONF_DOMAIN,
-  CONF_ENTITY_ID,
-  CONF_FROM,
-  CONF_METADATA,
-  CONF_PLATFORM,
-  CONF_TO,
-  CONF_TYPE,
+    CONF_DEVICE_ID,
+    CONF_DOMAIN,
+    CONF_ENTITY_ID,
+    CONF_FROM,
+    CONF_METADATA,
+    CONF_PLATFORM,
+    CONF_TO,
+    CONF_TYPE,
 )
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
@@ -23,10 +23,10 @@ import voluptuous as vol
 
 from .const import DOMAIN
 from .device_automation_helpers import (
-  build_device_automation_metadata,
-  build_unique_id,
-  resolve_device_context,
-  resolve_entity_id,
+    build_device_automation_metadata,
+    build_unique_id,
+    resolve_device_context,
+    resolve_entity_id,
 )
 from .types import DeviceTriggerPayload
 
@@ -37,167 +37,169 @@ _ENTITY_ID_VALIDATOR = cast(vol.Any, getattr(cv, "entity_id", cv.string))
 
 @dataclass(frozen=True, slots=True)
 class TriggerDefinition:
-  """Definition for a device trigger tied to an entity."""  # noqa: E111
+    """Definition for a device trigger tied to an entity."""  # noqa: E111
 
-  type: str  # noqa: E111
-  platform: str  # noqa: E111
-  entity_suffix: str  # noqa: E111
-  to_state: str | None = None  # noqa: E111
-  from_state: str | None = None  # noqa: E111
+    type: str  # noqa: E111
+    platform: str  # noqa: E111
+    entity_suffix: str  # noqa: E111
+    to_state: str | None = None  # noqa: E111
+    from_state: str | None = None  # noqa: E111
 
 
 TRIGGER_DEFINITIONS: Final[tuple[TriggerDefinition, ...]] = (
-  TriggerDefinition("hungry", "binary_sensor", "is_hungry", to_state="on"),
-  TriggerDefinition("needs_walk", "binary_sensor", "needs_walk", to_state="on"),
-  TriggerDefinition(
-    "walk_started",
-    "binary_sensor",
-    "walk_in_progress",
-    to_state="on",
-  ),
-  TriggerDefinition(
-    "walk_ended",
-    "binary_sensor",
-    "walk_in_progress",
-    to_state="off",
-  ),
-  TriggerDefinition(
-    "attention_needed",
-    "binary_sensor",
-    "attention_needed",
-    to_state="on",
-  ),
-  TriggerDefinition(
-    "safe_zone_entered",
-    "binary_sensor",
-    "in_safe_zone",
-    to_state="on",
-  ),
-  TriggerDefinition(
-    "safe_zone_left",
-    "binary_sensor",
-    "in_safe_zone",
-    to_state="off",
-  ),
-  TriggerDefinition("status_changed", "sensor", "status"),
+    TriggerDefinition("hungry", "binary_sensor", "is_hungry", to_state="on"),
+    TriggerDefinition("needs_walk", "binary_sensor", "needs_walk", to_state="on"),
+    TriggerDefinition(
+        "walk_started",
+        "binary_sensor",
+        "walk_in_progress",
+        to_state="on",
+    ),
+    TriggerDefinition(
+        "walk_ended",
+        "binary_sensor",
+        "walk_in_progress",
+        to_state="off",
+    ),
+    TriggerDefinition(
+        "attention_needed",
+        "binary_sensor",
+        "attention_needed",
+        to_state="on",
+    ),
+    TriggerDefinition(
+        "safe_zone_entered",
+        "binary_sensor",
+        "in_safe_zone",
+        to_state="on",
+    ),
+    TriggerDefinition(
+        "safe_zone_left",
+        "binary_sensor",
+        "in_safe_zone",
+        to_state="off",
+    ),
+    TriggerDefinition("status_changed", "sensor", "status"),
 )
 
 TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
-  {
-    vol.Required(CONF_TYPE): vol.In({
-      definition.type for definition in TRIGGER_DEFINITIONS
-    }),
-    vol.Optional(CONF_ENTITY_ID): _ENTITY_ID_VALIDATOR,
-    vol.Optional(CONF_FROM): cv.string,
-    vol.Optional(CONF_TO): cv.string,
-  },
+    {
+        vol.Required(CONF_TYPE): vol.In({
+            definition.type for definition in TRIGGER_DEFINITIONS
+        }),
+        vol.Optional(CONF_ENTITY_ID): _ENTITY_ID_VALIDATOR,
+        vol.Optional(CONF_FROM): cv.string,
+        vol.Optional(CONF_TO): cv.string,
+    },
 )
 
 
 async def async_get_triggers(
-  hass: HomeAssistant,
-  device_id: str,
+    hass: HomeAssistant,
+    device_id: str,
 ) -> list[DeviceTriggerPayload]:
-  """List device triggers for PawControl devices."""  # noqa: E111
+    """List device triggers for PawControl devices."""  # noqa: E111
 
-  context = resolve_device_context(hass, device_id)  # noqa: E111
-  if context.dog_id is None:  # noqa: E111
-    return []
+    context = resolve_device_context(hass, device_id)  # noqa: E111
+    if context.dog_id is None:  # noqa: E111
+        return []
 
-  triggers: list[DeviceTriggerPayload] = []  # noqa: E111
-  for definition in TRIGGER_DEFINITIONS:  # noqa: E111
-    unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
-    entity_id = resolve_entity_id(
-      hass,
-      device_id,
-      unique_id,
-      definition.platform,
-    )
-    if entity_id is None:
-      continue  # noqa: E111
+    triggers: list[DeviceTriggerPayload] = []  # noqa: E111
+    for definition in TRIGGER_DEFINITIONS:  # noqa: E111
+        unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
+        entity_id = resolve_entity_id(
+            hass,
+            device_id,
+            unique_id,
+            definition.platform,
+        )
+        if entity_id is None:
+            continue  # noqa: E111
 
-    trigger: DeviceTriggerPayload = {
-      CONF_PLATFORM: "device",
-      CONF_DEVICE_ID: device_id,
-      CONF_DOMAIN: DOMAIN,
-      CONF_METADATA: build_device_automation_metadata(),
-      CONF_TYPE: definition.type,
-      CONF_ENTITY_ID: entity_id,
-    }
-    if definition.from_state is not None:
-      trigger[CONF_FROM] = definition.from_state  # noqa: E111
-    if definition.to_state is not None:
-      trigger[CONF_TO] = definition.to_state  # noqa: E111
-    triggers.append(trigger)
+        trigger: DeviceTriggerPayload = {
+            CONF_PLATFORM: "device",
+            CONF_DEVICE_ID: device_id,
+            CONF_DOMAIN: DOMAIN,
+            CONF_METADATA: build_device_automation_metadata(),
+            CONF_TYPE: definition.type,
+            CONF_ENTITY_ID: entity_id,
+        }
+        if definition.from_state is not None:
+            trigger[CONF_FROM] = definition.from_state  # noqa: E111
+        if definition.to_state is not None:
+            trigger[CONF_TO] = definition.to_state  # noqa: E111
+        triggers.append(trigger)
 
-  return triggers  # noqa: E111
+    return triggers  # noqa: E111
 
 
 async def async_get_trigger_capabilities(
-  hass: HomeAssistant,
-  config: dict[str, str],
+    hass: HomeAssistant,
+    config: dict[str, str],
 ) -> dict[str, vol.Schema]:
-  """Return trigger capability schemas."""  # noqa: E111
+    """Return trigger capability schemas."""  # noqa: E111
 
-  if config.get(CONF_TYPE) != "status_changed":  # noqa: E111
-    return {}
+    if config.get(CONF_TYPE) != "status_changed":  # noqa: E111
+        return {}
 
-  return {  # noqa: E111
-    "extra_fields": vol.Schema(
-      {
-        vol.Optional(CONF_FROM): cv.string,
-        vol.Optional(CONF_TO): cv.string,
-      },
-    ),
-  }
+    return {  # noqa: E111
+        "extra_fields": vol.Schema(
+            {
+                vol.Optional(CONF_FROM): cv.string,
+                vol.Optional(CONF_TO): cv.string,
+            },
+        ),
+    }
 
 
 async def async_attach_trigger(
-  hass: HomeAssistant,
-  config: dict[str, str],
-  action: Callable[[dict[str, object]], object],
-  trigger_info: dict[str, str],
+    hass: HomeAssistant,
+    config: dict[str, str],
+    action: Callable[[dict[str, object]], object],
+    trigger_info: dict[str, str],
 ) -> CALLBACK_TYPE:
-  """Attach a trigger for PawControl device automation."""  # noqa: E111
+    """Attach a trigger for PawControl device automation."""  # noqa: E111
 
-  validated = TRIGGER_SCHEMA(config)  # noqa: E111
-  entity_id = validated.get(CONF_ENTITY_ID)  # noqa: E111
-  if not entity_id:  # noqa: E111
-    raise vol.Invalid("Missing entity_id for PawControl device trigger")
+    validated = TRIGGER_SCHEMA(config)  # noqa: E111
+    entity_id = validated.get(CONF_ENTITY_ID)  # noqa: E111
+    if not entity_id:  # noqa: E111
+        raise vol.Invalid("Missing entity_id for PawControl device trigger")
 
-  trigger_data = {  # noqa: E111
-    "platform": "device",
-    "device_id": validated[CONF_DEVICE_ID],
-    "domain": DOMAIN,
-    "type": validated[CONF_TYPE],
-    "entity_id": entity_id,
-  }
+    trigger_data = {  # noqa: E111
+        "platform": "device",
+        "device_id": validated[CONF_DEVICE_ID],
+        "domain": DOMAIN,
+        "type": validated[CONF_TYPE],
+        "entity_id": entity_id,
+    }
 
-  @callback  # noqa: E111
-  def _handle_event(event: Event) -> None:  # noqa: E111
-    old_state = event.data.get("old_state")
-    new_state = event.data.get("new_state")
+    @callback  # noqa: E111
+    def _handle_event(event: Event) -> None:  # noqa: E111
+        old_state = event.data.get("old_state")
+        new_state = event.data.get("new_state")
 
-    from_state = validated.get(CONF_FROM)
-    to_state = validated.get(CONF_TO)
+        from_state = validated.get(CONF_FROM)
+        to_state = validated.get(CONF_TO)
 
-    if from_state is not None and (old_state is None or old_state.state != from_state):
-      return  # noqa: E111
-    if to_state is not None and (new_state is None or new_state.state != to_state):
-      return  # noqa: E111
+        if from_state is not None and (
+            old_state is None or old_state.state != from_state
+        ):
+            return  # noqa: E111
+        if to_state is not None and (new_state is None or new_state.state != to_state):
+            return  # noqa: E111
 
-    payload = dict(trigger_data)
-    payload.update(
-      {
-        "from_state": old_state,
-        "to_state": new_state,
-        "description": trigger_info.get("description"),
-      },
+        payload = dict(trigger_data)
+        payload.update(
+            {
+                "from_state": old_state,
+                "to_state": new_state,
+                "description": trigger_info.get("description"),
+            },
+        )
+        hass.async_create_task(action(payload))
+
+    return async_track_state_change_event(  # noqa: E111
+        hass,
+        [entity_id],
+        _handle_event,
     )
-    hass.async_create_task(action(payload))
-
-  return async_track_state_change_event(  # noqa: E111
-    hass,
-    [entity_id],
-    _handle_event,
-  )
