@@ -57,7 +57,7 @@ def _import_optional(module_name: str) -> ModuleType | None:
 
     try:  # noqa: E111
         return __import__(module_name, fromlist=["*"])
-    except ImportError, ModuleNotFoundError:  # noqa: E111
+    except (ImportError, ModuleNotFoundError):  # noqa: E111
         return None
 
 
