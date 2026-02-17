@@ -57,7 +57,7 @@ if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
     from homeassistant.helpers.entity_platform import AddEntitiesCallback  # noqa: E111
     from homeassistant.util import dt as dt_util  # noqa: E111
 
-    from .coordinator import PawControlCoordinator  # noqa: E111
+    from ..coordinator import PawControlCoordinator  # noqa: E111
 else:  # pragma: no branch - executed under tests without Home Assistant installed
     try:  # noqa: E111
         from homeassistant.core import Context, HomeAssistant
@@ -175,12 +175,12 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
 
         dt_util = _DateTimeModule()
 
-from .const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
-from .error_classification import classify_error_reason
-from .service_guard import ServiceGuardResult
+from ..const import DEFAULT_MODEL, DEFAULT_SW_VERSION, DOMAIN, MANUFACTURER
+from ..error_classification import classify_error_reason
+from ..service_guard import ServiceGuardResult
 
 if TYPE_CHECKING:
-    from .types import (  # noqa: E111
+    from ..types import (  # noqa: E111
         DeviceLinkDetails,
         JSONLikeMapping,
         JSONMapping,
