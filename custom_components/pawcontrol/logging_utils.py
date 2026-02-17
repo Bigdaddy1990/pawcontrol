@@ -179,7 +179,7 @@ class StructuredLogger:
             # ``_LOGGER.debug("foo %s", bar)`` continue to work.
             try:
                 formatted = message % args + suffix
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 formatted = str(message) + str(args) + suffix
         else:
             formatted = message + suffix
@@ -268,7 +268,7 @@ class StructuredLogger:
         """
         return self._logger
 
-    def isEnabledFor(self, level: int) -> bool:  # noqa: N802 – mirrors stdlib API
+    def isEnabledFor(self, level: int) -> bool:
         """Return ``True`` if *level* would produce a log record.
 
         Delegates directly to the underlying :class:`logging.Logger`.
@@ -360,12 +360,12 @@ def _strip_url_credentials(url: str) -> str:
     """
     try:
         # yarl is available in the HA environment
-        from yarl import URL  # noqa: PLC0415
+        from yarl import URL
 
         parsed = URL(url)
         if parsed.user or parsed.password:
             return str(parsed.with_user(None))
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     return url
 
