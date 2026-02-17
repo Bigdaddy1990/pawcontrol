@@ -374,7 +374,9 @@ def mock_feeding_manager(
     Returns:
         Initialized FeedingManager
     """  # noqa: E111
-    from custom_components.pawcontrol.feeding_manager import FeedingManager  # noqa: E111
+    from custom_components.pawcontrol.feeding_manager import (
+        FeedingManager,  # noqa: E111
+    )
 
     manager = FeedingManager(mock_hass)  # noqa: E111
     _run_async(manager.async_initialize([mock_dog_config]))  # noqa: E111
@@ -413,7 +415,9 @@ def mock_gps_manager(mock_hass, mock_resilience_manager):
     Returns:
         Initialized GPSGeofenceManager
     """  # noqa: E111
-    from custom_components.pawcontrol.gps_manager import GPSGeofenceManager  # noqa: E111
+    from custom_components.pawcontrol.gps_manager import (
+        GPSGeofenceManager,  # noqa: E111
+    )
 
     manager = GPSGeofenceManager(mock_hass)  # noqa: E111
     manager.resilience_manager = mock_resilience_manager  # noqa: E111
@@ -500,7 +504,10 @@ def mock_walk_route(mock_gps_point):
     Returns:
         WalkRoute instance
     """  # noqa: E111
-    from custom_components.pawcontrol.gps_manager import GPSPoint, WalkRoute  # noqa: E111
+    from custom_components.pawcontrol.gps_manager import (  # noqa: E111
+        GPSPoint,
+        WalkRoute,
+    )
 
     route = WalkRoute(  # noqa: E111
         dog_id="test_dog",

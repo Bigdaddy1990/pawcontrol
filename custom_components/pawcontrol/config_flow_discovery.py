@@ -22,7 +22,9 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.components.bluetooth import BluetoothServiceInfoBleak  # noqa: E111
+    from homeassistant.components.bluetooth import (
+        BluetoothServiceInfoBleak,  # noqa: E111
+    )
 else:  # pragma: no cover - only used for typing
     BluetoothServiceInfoBleak = Any  # noqa: E111
 

@@ -4747,7 +4747,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         impact_filter = call.data.get("impact_filter")
 
         try:
-            from .weather_manager import WeatherHealthImpact, WeatherSeverity  # noqa: E111
+            from .weather_manager import (  # noqa: E111
+                WeatherHealthImpact,
+                WeatherSeverity,
+            )
 
             # Convert string filters to enums  # noqa: E114
             severity_enum = None  # noqa: E111
