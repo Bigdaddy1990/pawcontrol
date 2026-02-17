@@ -59,12 +59,14 @@ jobs:
           python -m pip install -r requirements_test.txt
           python -m pip install --upgrade ruff mypy pre-commit pytest-cov
 
+      - name: Enforce Home Assistant push guard
+        run: python -m scripts.homeassistant_push_guard --check
+
       - name: Initial CI quality gate
         id: initial_gate
         continue-on-error: true
         run: |
           set -e
-          python -m scripts.homeassistant_push_guard --check
           ruff check --fix --exit-non-zero-on-fix --output-format=github .
           python -m scripts.sync_contributor_guides --check
           python -m scripts.check_legacy_exception_syntax custom_components/pawcontrol
