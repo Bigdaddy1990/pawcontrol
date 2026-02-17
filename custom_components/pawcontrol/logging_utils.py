@@ -40,6 +40,56 @@ _SENSITIVE_KEYS: frozenset[str] = frozenset({
 _REDACTED = "***REDACTED***"
 
 
+class StructuredLogger:
+    """Compatibility logger that accepts structured keyword fields.
+
+    The historic logging helpers in PawControl accepted calls like
+    ``logger.info("message", dog_id="abc", status="ok")``.
+    Ruff baseline cleanup removed this wrapper inadvertently, so modules
+    that still rely on structured kwargs now fail on import.
+    """
+
+    def __init__(self, name: str) -> None:
+        """Initialise the wrapped stdlib logger."""
+        self._logger = logging.getLogger(name)
+
+    def debug(self, message: str, /, *args: Any, **fields: Any) -> None:
+        """Log a DEBUG message with optional structured fields."""
+        self._logger.debug(self._format(message, fields), *args)
+
+    def info(self, message: str, /, *args: Any, **fields: Any) -> None:
+        """Log an INFO message with optional structured fields."""
+        self._logger.info(self._format(message, fields), *args)
+
+    def warning(self, message: str, /, *args: Any, **fields: Any) -> None:
+        """Log a WARNING message with optional structured fields."""
+        self._logger.warning(self._format(message, fields), *args)
+
+    def error(self, message: str, /, *args: Any, **fields: Any) -> None:
+        """Log an ERROR message with optional structured fields."""
+        self._logger.error(self._format(message, fields), *args)
+
+    def exception(self, message: str, /, *args: Any, **fields: Any) -> None:
+        """Log an exception traceback with optional structured fields."""
+        self._logger.exception(self._format(message, fields), *args)
+
+    def critical(self, message: str, /, *args: Any, **fields: Any) -> None:
+        """Log a CRITICAL message with optional structured fields."""
+        self._logger.critical(self._format(message, fields), *args)
+
+    @staticmethod
+    def _format(message: str, fields: Mapping[str, Any]) -> str:
+        """Append redacted key/value fields to the log message."""
+        if not fields:
+            return message
+
+        safe_fields = redact_sensitive(fields)
+        rendered_fields = " ".join(
+            f"{key}={safe_fields[key]!r}" for key in sorted(safe_fields)
+        )
+        return f"{message} | {rendered_fields}"
+
+
 def redact_sensitive(data: Mapping[str, Any]) -> dict[str, Any]:
     """Return a shallow copy of *data* with sensitive values replaced.
 
@@ -183,4 +233,5 @@ __all__ = [
     "log_config_entry_setup",
     "redact_sensitive",
     "redact_value",
+    "StructuredLogger",
 ]

@@ -9,6 +9,7 @@ Python: 3.14+
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import suppress  # noqa: F401
 import logging
 import time
@@ -321,3 +322,131 @@ class BaseManager(ABC):
             f"(ready={self.is_ready}, "
             f"has_coordinator={self._coordinator is not None})>"
         )
+
+
+_REGISTERED_MANAGERS: dict[str, type[BaseManager]] = {}
+
+
+def register_manager(manager_cls: type[BaseManager]) -> type[BaseManager]:
+    """Register a manager class for compatibility with legacy tests."""
+    _REGISTERED_MANAGERS[manager_cls.MANAGER_NAME] = manager_cls
+    return manager_cls
+
+
+def get_registered_managers() -> dict[str, type[BaseManager]]:
+    """Return a shallow copy of registered manager classes."""
+    return dict(_REGISTERED_MANAGERS)
+
+
+@register_manager
+class DataManager(BaseManager):
+    """Legacy compatibility manager exposing cache helper methods."""
+
+    MANAGER_NAME = "DataManager"
+
+    def __init__(
+        self, hass: HomeAssistant, coordinator: PawControlCoordinator | None = None
+    ) -> None:
+        """Initialise the data manager compatibility shell."""
+        super().__init__(hass, coordinator)
+        self._cache: dict[str, Any] = {}
+
+    async def async_setup(self) -> None:
+        """Set up manager resources."""
+
+    async def async_shutdown(self) -> None:
+        """Tear down manager resources."""
+
+    def get_diagnostics(self) -> JSONMapping:
+        """Return diagnostics for the compatibility data manager."""
+        return {
+            "cache_size": len(self._cache),
+        }
+
+    def get_cache_size(self) -> int:
+        """Return current cache item count."""
+        return len(self._cache)
+
+    def clear_cache(self) -> None:
+        """Clear all cached entries."""
+        self._cache.clear()
+
+
+@register_manager
+class EventManager(BaseManager):
+    """Legacy compatibility manager exposing listener helper methods."""
+
+    MANAGER_NAME = "EventManager"
+
+    def __init__(
+        self, hass: HomeAssistant, coordinator: PawControlCoordinator | None = None
+    ) -> None:
+        """Initialise the event manager compatibility shell."""
+        super().__init__(hass, coordinator)
+        self._listeners: dict[str, list[Callable[..., Any]]] = {}
+
+    async def async_setup(self) -> None:
+        """Set up manager resources."""
+
+    async def async_shutdown(self) -> None:
+        """Tear down manager resources."""
+        self._listeners.clear()
+
+    def get_diagnostics(self) -> JSONMapping:
+        """Return diagnostics for the compatibility event manager."""
+        return {
+            "listener_count": sum(
+                len(callbacks) for callbacks in self._listeners.values()
+            ),
+        }
+
+    def _register_listener(self, event: str, callback: Callable[..., Any]) -> None:
+        """Register an event listener callback."""
+        self._listeners.setdefault(event, []).append(callback)
+
+    def _unregister_listener(self, event: str, callback: Callable[..., Any]) -> None:
+        """Unregister an event listener callback."""
+        callbacks = self._listeners.get(event)
+        if callbacks is None:
+            return
+        with suppress(ValueError):
+            callbacks.remove(callback)
+
+
+async def setup_managers(
+    *managers: BaseManager,
+    stop_on_error: bool = True,
+) -> list[BaseManager]:
+    """Initialise managers and return successfully started instances."""
+    initialized: list[BaseManager] = []
+
+    for manager in managers:
+        try:
+            await manager.async_initialize()
+            initialized.append(manager)
+        except ManagerLifecycleError:
+            if not stop_on_error:
+                continue
+            await shutdown_managers(*reversed(initialized), ignore_errors=True)
+            raise
+
+    return initialized
+
+
+async def shutdown_managers(
+    *managers: BaseManager,
+    ignore_errors: bool = True,
+) -> None:
+    """Shutdown managers in order and optionally propagate failures."""
+    errors: list[ManagerLifecycleError] = []
+
+    for manager in managers:
+        try:
+            await manager.async_teardown()
+        except ManagerLifecycleError as err:
+            if ignore_errors:
+                continue
+            errors.append(err)
+
+    if errors:
+        raise errors[0]
