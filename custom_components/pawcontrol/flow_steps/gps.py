@@ -117,6 +117,8 @@ def _validate_gps_update_interval(
         # Defensive guard: required=True should return an int or raise.
         raise ValidationError(field, value, "gps_update_interval_required")
     return validated
+
+
 def _validate_gps_accuracy(
     value: JSONValue | None,
     *,
@@ -136,11 +138,17 @@ def _validate_gps_accuracy(
         # Defensive guard: required=True should return a float or raise.
         raise ValidationError(field, value, "gps_accuracy_required")
     return validated
+
+
 class GPSDefaultsHost(Protocol):
     """Protocol describing the config flow host requirements."""
+
     _discovery_info: ConfigFlowDiscoveryData
+
+
 class GPSModuleDefaultsMixin(GPSDefaultsHost):
     """Provide GPS-aware defaults for module selection."""
+
     def _get_enhanced_modules_schema(self, dog_config: DogConfigData) -> vol.Schema:
         """Get enhanced modules schema with smart defaults.
 
@@ -214,6 +222,7 @@ class GPSModuleDefaultsMixin(GPSDefaultsHost):
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
     class DogGPSFlowHost(Protocol):
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
@@ -254,9 +263,13 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     DogGPSFlowHost = object
+
+
 class DogGPSFlowMixin(DogGPSFlowHost):
     """Handle GPS configuration steps in the config flow."""
+
     _current_dog_config: DogConfigData | None
+
     async def async_step_dog_gps(
         self,
         user_input: DogGPSStepInput | None = None,
@@ -461,6 +474,7 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     from ..options_flow_shared import OptionsFlowSharedMixin
+
     class GPSOptionsHost(OptionsFlowSharedMixin):
         """Runtime host for GPS options mixin."""
 
@@ -470,6 +484,7 @@ else:  # pragma: no cover
 class GPSOptionsMixin(GPSOptionsHost):
     _current_dog_config: DogConfigData | None
     """Handle per-dog GPS and geofencing options."""
+
     def _current_gps_options(self, dog_id: str) -> GPSOptions:
         """Return the stored GPS configuration with legacy fallbacks."""
 
@@ -889,9 +904,13 @@ class GPSOptionsMixin(GPSOptionsHost):
 
 class GPSOptionsNormalizerHost(Protocol):
     """Protocol describing the options flow host requirements."""
+
     def _coerce_bool(self, value: Any, default: bool) -> bool: ...
+
+
 class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
     """Mixin providing GPS normalization for options payloads."""
+
     @staticmethod
     def _coerce_bool(value: Any, default: bool) -> bool:
         """Return a boolean using Home Assistant style truthiness rules."""
@@ -1069,9 +1088,7 @@ class GPSOptionsNormalizerMixin(GPSOptionsNormalizerHost):
             if isinstance(raw_dog_options, Mapping):
                 for raw_id, raw_entry in raw_dog_options.items():
                     dog_id = str(raw_id)
-                    entry_source = (
-                        raw_entry if isinstance(raw_entry, Mapping) else {}
-                    )
+                    entry_source = raw_entry if isinstance(raw_entry, Mapping) else {}
                     entry = ensure_dog_options_entry(
                         cast(JSONLikeMapping, dict(entry_source)),
                         dog_id=dog_id,

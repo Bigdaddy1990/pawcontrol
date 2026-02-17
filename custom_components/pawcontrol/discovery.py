@@ -51,29 +51,41 @@ type DiscoveryCapabilityList = list[str]
 
 class DiscoveryConnectionInfo(TypedDict, total=False):
     """Connection metadata extracted from the device registry."""
+
     address: str
     mac: str
     usb: str
     configuration_url: str
     via_device_id: str
+
+
 class DiscoveredDeviceMetadata(TypedDict, total=False):
     """Extra metadata describing the registry device."""
+
     identifiers: list[str]
     via_device_id: str | None
     sw_version: str | None
     hw_version: str | None
     configuration_url: str
     area_id: str
+
+
 class LegacyDiscoveryData(DiscoveryConnectionInfo):
     """Legacy payload exported for config flow consumers."""
+
     device_id: str
     name: str
     manufacturer: str
     category: DiscoveryCategory
+
+
 class LegacyDiscoveryEntry(TypedDict):
     """Legacy compatibility wrapper used by config flows."""
+
     source: DiscoveryConnectionType
     data: LegacyDiscoveryData
+
+
 CATEGORY_KEYWORDS: Final[dict[DiscoveryCategory, tuple[str, ...]]] = {
     "gps_tracker": ("tractive", "whistle", "fi", "link", "pawtrack"),
     "smart_feeder": ("petnet", "sureflap", "pawcontrol feeder", "smartfeeder"),
@@ -114,6 +126,7 @@ CATEGORY_PRIORITY: Final[tuple[DiscoveryCategory, ...]] = (
 @dataclass(frozen=True)
 class DiscoveredDevice:
     """Represents a discovered dog-related device."""
+
     device_id: str
     name: str
     category: DiscoveryCategory
@@ -125,6 +138,8 @@ class DiscoveredDevice:
     discovered_at: str
     confidence: float  # 0.0 - 1.0, discovery confidence
     metadata: DiscoveredDeviceMetadata
+
+
 class PawControlDiscovery:
     """Advanced discovery manager for dog-related hardware devices.
 
@@ -132,6 +147,7 @@ class PawControlDiscovery:
     intelligent device classification, confidence scoring, and automatic
     device capability detection.
     """
+
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the discovery manager.
 
@@ -152,9 +168,9 @@ class PawControlDiscovery:
         try:
             self._device_registry = dr.async_get(self.hass)
             self._entity_registry = er.async_get(self.hass)
-            # Perform an initial scan so consumers have current state  # noqa: E114
+            # Perform an initial scan so consumers have current state
             await self.async_discover_devices(quick_scan=True)
-            # Register discovery listeners for real-time detection  # noqa: E114
+            # Register discovery listeners for real-time detection
             await self._register_discovery_listeners()
             _LOGGER.info("Paw Control discovery initialized successfully")
         except Exception as err:
@@ -208,7 +224,7 @@ class PawControlDiscovery:
         discovered_devices: list[DiscoveredDevice] = []
 
         try:
-            # Use timeout to prevent hanging scans  # noqa: E114
+            # Use timeout to prevent hanging scans
             async with asyncio.timeout(scan_timeout):
                 discovery_results = await asyncio.gather(
                     self._discover_registry_devices(categories_list),
@@ -221,7 +237,7 @@ class PawControlDiscovery:
                         continue
 
                     discovered_devices.extend(result)
-            # Remove duplicates and update stored devices  # noqa: E114
+            # Remove duplicates and update stored devices
             unique_devices = self._deduplicate_devices(discovered_devices)
             for device in unique_devices:
                 self._discovered_devices[device.device_id] = device
@@ -244,6 +260,7 @@ class PawControlDiscovery:
             raise PawControlError(f"Device discovery failed: {err}") from err
         finally:
             self._scan_active = False
+
     async def _discover_usb_devices(
         self,
         categories: list[DiscoveryCategory],
@@ -344,6 +361,7 @@ class PawControlDiscovery:
                 return
             matched_categories.add(category)
             confidence += boost
+
         for category, keywords in CATEGORY_KEYWORDS.items():
             if any(keyword in manufacturer or keyword in model for keyword in keywords):
                 _register_category(category, 0.15)
@@ -449,6 +467,7 @@ class PawControlDiscovery:
         try:
             device_registry = self._device_registry or dr.async_get(self.hass)
             entity_registry = self._entity_registry or er.async_get(self.hass)
+
             @callback
             def _handle_device_event(event: DeviceRegistryEvent) -> None:
                 _LOGGER.debug(
@@ -627,6 +646,8 @@ async def async_start_discovery() -> bool:
         True to maintain backward compatibility
     """
     return True
+
+
 # Device discovery manager instance (singleton pattern)
 _discovery_manager: PawControlDiscovery | None = None
 
@@ -646,6 +667,8 @@ async def async_get_discovery_manager(hass: HomeAssistant) -> PawControlDiscover
         await _discovery_manager.async_initialize()
 
     return _discovery_manager
+
+
 async def async_shutdown_discovery_manager() -> None:
     """Shutdown the global discovery manager."""
     global _discovery_manager

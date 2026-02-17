@@ -61,6 +61,8 @@ def translated_grooming_label(
     if values:
         return template.format(**values)
     return template
+
+
 def translated_grooming_template(
     hass: HomeAssistant | None,
     language: str | None,
@@ -86,6 +88,8 @@ def translated_grooming_template(
             default=key,
         )
     return template.format(**values)
+
+
 __all__ = [
     "translated_grooming_label",
     "translated_grooming_template",

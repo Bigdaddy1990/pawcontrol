@@ -140,8 +140,11 @@ if TYPE_CHECKING:
 else:  # pragma: no cover
     NotificationOptionsHost = object
     NotificationOptionsNormalizerHost = object
+
+
 class NotificationOptionsMixin(NotificationOptionsHost):
     """Handle per-dog notification options."""
+
     def _current_notification_options(
         self,
         dog_id: str | None = None,
@@ -172,6 +175,7 @@ class NotificationOptionsMixin(NotificationOptionsHost):
 
 class NotificationOptionsNormalizerMixin(NotificationOptionsNormalizerHost):
     """Mixin providing notification normalization for options payloads."""
+
     def _normalise_notification_options(
         self,
         mutable: JSONMutableMapping,

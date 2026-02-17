@@ -22,6 +22,7 @@ def build_walk_timing_schema_fields(
     defaults: DoorSensorSettingsConfig,
 ) -> dict[vol.Optional, object]:
     """Build schema fields for walk timing settings."""
+
     def _value(key: str, fallback: Any) -> Any:
         return values.get(key, fallback)
 
@@ -78,11 +79,14 @@ def build_walk_timing_schema_fields(
         ),
     )
     return fields
+
+
 def build_auto_end_walks_field(
     values: Mapping[str, Any],
     defaults: DoorSensorSettingsConfig,
 ) -> dict[vol.Optional, object]:
     """Build schema field for the auto-end walks toggle."""
+
     def _value(key: str, fallback: Any) -> Any:
         return values.get(key, fallback)
 

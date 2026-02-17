@@ -27,6 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class WebhookSecurityError(ValidationError):
     """Error raised when webhook payload validation fails."""
+
     def __init__(self, message: str) -> None:
         """Initialize webhook security error."""
         super().__init__(
@@ -47,11 +48,14 @@ class WebhookRequest:
         source_ip: Source IP address
         headers: Request headers
     """
+
     payload: bytes
     signature: str | None
     timestamp: float
     source_ip: str | None = None
     headers: dict[str, str] = field(default_factory=dict)
+
+
 @dataclass
 class RateLimitConfig:
     """Rate limit configuration.
@@ -62,10 +66,13 @@ class RateLimitConfig:
         burst_size: Maximum burst size
         ban_duration_seconds: Ban duration after limit exceeded
     """
+
     requests_per_minute: int = 60
     requests_per_hour: int = 1000
     burst_size: int = 10
     ban_duration_seconds: float = 300.0  # 5 minutes
+
+
 @dataclass
 class RateLimitState:
     """Rate limit state for a source.
@@ -77,11 +84,13 @@ class RateLimitState:
         banned_until: Ban expiration timestamp
         total_requests: Total requests from this source
     """
+
     source: str
     requests_minute: deque[float] = field(default_factory=lambda: deque(maxlen=100))
     requests_hour: deque[float] = field(default_factory=lambda: deque(maxlen=1000))
     banned_until: float | None = None
     total_requests: int = 0
+
     def is_banned(self) -> bool:
         """Check if source is currently banned."""
         if self.banned_until is None:
@@ -117,6 +126,7 @@ class WebhookAuthenticator:
         >>> auth = WebhookAuthenticator(secret="my_secret")
         >>> is_valid = auth.verify_signature(payload, signature)
     """
+
     def __init__(
         self,
         secret: str,
@@ -242,6 +252,7 @@ class WebhookRateLimiter:
         >>> limiter = WebhookRateLimiter(config)
         >>> limiter.check_limit("192.168.1.1")
     """
+
     def __init__(self, config: RateLimitConfig | None = None) -> None:
         """Initialize rate limiter.
 
@@ -352,6 +363,8 @@ class WebhookRateLimiter:
         if source in self._states:
             del self._states[source]
             self._logger.info("Reset rate limit for source", source=source)
+
+
 class WebhookValidator:
     """Validates webhook payloads.
 
@@ -362,6 +375,7 @@ class WebhookValidator:
         >>> validator = WebhookValidator(required_fields=["dog_id", "event"])
         >>> validator.validate_payload(payload)
     """
+
     def __init__(
         self,
         *,
@@ -394,11 +408,12 @@ class WebhookValidator:
         if isinstance(payload, bytes):
             if len(payload) > self._max_payload_size:
                 raise ValidationError(
-                    f"Payload too large: {len(payload)} bytes (max: {self._max_payload_size})"
+                    f"Payload too large: {len(payload)} bytes (max: {self._max_payload_size})"  # noqa: E501
                 )
 
-            # Parse JSON  # noqa: E114
+            # Parse JSON
             import json
+
             try:
                 data = json.loads(payload)
             except json.JSONDecodeError as e:
@@ -430,9 +445,9 @@ class WebhookValidator:
         sanitized: dict[str, Any] = {}
 
         for key, value in data.items():
-            # Sanitize key  # noqa: E114
+            # Sanitize key
             clean_key = str(key).strip()
-            # Sanitize value  # noqa: E114
+            # Sanitize value
             if isinstance(value, str):
                 # Remove control characters
                 clean_value = "".join(
@@ -462,6 +477,7 @@ class WebhookSecurityManager:
         >>> manager = WebhookSecurityManager(hass, secret="my_secret")
         >>> await manager.async_process_webhook(request)
     """
+
     def __init__(
         self,
         hass: HomeAssistant,

@@ -83,8 +83,11 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     ReauthFlowHost = object
+
+
 class ReauthFlowMixin(ReauthFlowHost):
     """Mixin for reauthentication steps and validation."""
+
     @staticmethod
     def _normalise_dog_payload(
         dogs: object,
@@ -255,6 +258,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                 context={"reason": "unexpected"},
             )
             raise ConfigEntryAuthFailed(str(reauth_error)) from reauth_error
+
     async def _validate_reauth_entry_enhanced(self, entry: ConfigEntry) -> None:
         """Enhanced config entry validation for reauthentication."""
 
@@ -328,7 +332,7 @@ class ReauthFlowMixin(ReauthFlowHost):
             if user_input.get("confirm", False):
                 try:
                     _LOGGER.debug(
-                        "Reauthentication confirmation received (event=reauth_confirm entry_id=%s)",
+                        "Reauthentication confirmation received (event=reauth_confirm entry_id=%s)",  # noqa: E501
                         self.reauth_entry.entry_id,
                     )
                     async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
@@ -363,7 +367,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                             )
                         except Exception as err:
                             _LOGGER.warning(
-                                "Config health check failed: %s - proceeding with reauth",
+                                "Config health check failed: %s - proceeding with reauth",  # noqa: E501
                                 err,
                             )
                             summary = cast(

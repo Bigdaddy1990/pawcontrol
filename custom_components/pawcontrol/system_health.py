@@ -55,19 +55,25 @@ from .types import (
 @dataclass(slots=True)
 class GuardIndicatorThresholds:
     """Threshold metadata for guard indicators."""
+
     warning_count: int | None = None
     critical_count: int | None = None
     warning_ratio: float | None = None
     critical_ratio: float | None = None
     source: str = "default"
     source_key: str | None = None
+
+
 @dataclass(slots=True)
 class BreakerIndicatorThresholds:
     """Threshold metadata for breaker indicators."""
+
     warning_count: int | None = None
     critical_count: int | None = None
     source: str = "default"
     source_key: str | None = None
+
+
 def _attach_runtime_store_history(
     info: dict[str, object],
     history: RuntimeStoreHealthHistory | None,
@@ -130,6 +136,8 @@ def _coerce_positive_int(value: Any) -> int | None:
         return result
 
     return None
+
+
 def _extract_api_call_count(stats: Any) -> int:
     """Return the API call count from coordinator statistics.
 
@@ -147,6 +155,8 @@ def _extract_api_call_count(stats: Any) -> int:
         return 0
 
     return _coerce_int(metrics.get("api_calls", 0))
+
+
 def _coerce_str(value: Any) -> str | None:
     """Return ``value`` normalised as a non-empty string."""
     if isinstance(value, str):
@@ -154,6 +164,8 @@ def _coerce_str(value: Any) -> str | None:
         if text:
             return text
     return None
+
+
 def _coerce_str_list(value: Any) -> list[str]:
     """Return ``value`` coerced into a list of non-empty strings."""
     if isinstance(value, str):
@@ -169,11 +181,15 @@ def _coerce_str_list(value: Any) -> list[str]:
         return items
 
     return []
+
+
 def _coerce_event_snapshot(value: Any) -> ManualResilienceEventSnapshot | None:
     """Return ``value`` normalised as a manual resilience event snapshot."""
     if isinstance(value, Mapping):
         return cast(ManualResilienceEventSnapshot, dict(value))
     return None
+
+
 def _coerce_event_history(value: Any) -> list[ManualResilienceEventSnapshot]:
     """Return ``value`` normalised as a history of manual resilience events."""
     if not isinstance(value, Sequence) or isinstance(value, str | bytes | bytearray):
@@ -185,6 +201,8 @@ def _coerce_event_history(value: Any) -> list[ManualResilienceEventSnapshot]:
         if snapshot is not None:
             history.append(snapshot)
     return history
+
+
 def _coerce_automation_entries(value: Any) -> list[ManualResilienceAutomationEntry]:
     """Return ``value`` normalised as automation metadata entries."""
     if not isinstance(value, Sequence) or isinstance(value, str | bytes | bytearray):
@@ -226,6 +244,8 @@ def _coerce_automation_entries(value: Any) -> list[ManualResilienceAutomationEnt
         if entry:
             entries.append(entry)
     return entries
+
+
 def _coerce_int_mapping(value: Any) -> dict[str, int]:
     """Return ``value`` normalised as a mapping of string keys to integers."""
     if not isinstance(value, Mapping):
@@ -238,6 +258,8 @@ def _coerce_int_mapping(value: Any) -> dict[str, int]:
             continue
         normalised[name] = _coerce_int(raw_value, default=0)
     return normalised
+
+
 def _coerce_event_counters(value: Any) -> ManualResilienceEventCounters:
     """Return ``value`` normalised as manual resilience event counters."""
     counters: ManualResilienceEventCounters = {
@@ -252,6 +274,8 @@ def _coerce_event_counters(value: Any) -> ManualResilienceEventCounters:
     counters["by_event"] = _coerce_int_mapping(value.get("by_event"))
     counters["by_reason"] = _coerce_int_mapping(value.get("by_reason"))
     return counters
+
+
 def _coerce_mapping_of_str_lists(value: Any) -> dict[str, list[str]]:
     """Return ``value`` normalised as a mapping of strings to string lists."""
     if not isinstance(value, Mapping):
@@ -264,6 +288,8 @@ def _coerce_mapping_of_str_lists(value: Any) -> dict[str, list[str]]:
             continue
         normalised[name] = _coerce_str_list(raw_value)
     return normalised
+
+
 def _coerce_listener_metadata(
     value: Any,
 ) -> dict[str, ManualResilienceListenerMetadata]:
@@ -285,6 +311,8 @@ def _coerce_listener_metadata(
         if entry:
             normalised[name] = entry
     return normalised
+
+
 def _coerce_preferred_events(
     value: Any,
 ) -> dict[ManualResiliencePreferenceKey, str | None]:
@@ -301,6 +329,8 @@ def _coerce_preferred_events(
     for key in preference_keys:
         preferences[key] = _coerce_str(value.get(key))
     return preferences
+
+
 def _normalise_manual_events_snapshot(
     snapshot: ManualResilienceEventsTelemetry | JSONLikeMapping | None,
 ) -> ManualResilienceEventsTelemetry:
@@ -393,6 +423,8 @@ def _normalise_manual_events_snapshot(
         payload["active_listeners"] = active_listeners
 
     return payload
+
+
 def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapshot:
     """Return an empty service execution snapshot with default thresholds."""
     guard_thresholds = GuardIndicatorThresholds(
@@ -433,6 +465,8 @@ def async_register(
 ) -> None:
     """Register system health callbacks for PawControl."""
     register.async_register_info(system_health_info)
+
+
 async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     """Return basic system health information."""
     entry = _async_get_first_entry(hass)
@@ -535,9 +569,13 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     }
     _attach_runtime_store_history(service_payload, runtime_store_history)
     return cast(SystemHealthInfoPayload, service_payload)
+
+
 def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
     """Return the first loaded PawControl config entry."""
     return next(iter(hass.config_entries.async_entries(DOMAIN)), None)
+
+
 def _extract_service_execution_metrics(
     runtime: PawControlRuntimeData | None,
 ) -> tuple[
@@ -562,6 +600,8 @@ def _extract_service_execution_metrics(
     )
 
     return guard_metrics, entity_factory_guard, rejection_metrics
+
+
 def _extract_threshold_value(
     payload: ResilienceEscalationFieldEntry,
 ) -> tuple[int | None, str | None]:
@@ -571,6 +611,8 @@ def _extract_threshold_value(
         if candidate is not None:
             return candidate, key
     return None, None
+
+
 def _resolve_option_threshold(
     options: ConfigEntryOptionsPayload
     | ManualResilienceOptionsSnapshot
@@ -596,6 +638,8 @@ def _resolve_option_threshold(
         return value, "root_options"
 
     return None, None
+
+
 def _merge_option_thresholds(
     guard_thresholds: GuardIndicatorThresholds,
     breaker_thresholds: BreakerIndicatorThresholds,
@@ -632,6 +676,8 @@ def _merge_option_thresholds(
         )
 
     return guard_thresholds, breaker_thresholds
+
+
 def _resolve_indicator_thresholds(
     runtime: PawControlRuntimeData | None,
     options: ConfigEntryOptionsPayload
@@ -697,6 +743,8 @@ def _resolve_indicator_thresholds(
             )
 
     return _merge_option_thresholds(guard_thresholds, breaker_thresholds, options)
+
+
 def _serialize_threshold(
     *,
     count: int | None,
@@ -711,6 +759,8 @@ def _serialize_threshold(
         payload["percentage"] = round(ratio * 100, 2)
 
     return payload or None
+
+
 def _serialize_guard_thresholds(
     thresholds: GuardIndicatorThresholds,
 ) -> SystemHealthThresholdSummary:
@@ -732,6 +782,8 @@ def _serialize_guard_thresholds(
         summary["critical"] = serialized
 
     return summary
+
+
 def _serialize_breaker_thresholds(
     thresholds: BreakerIndicatorThresholds,
 ) -> SystemHealthThresholdSummary:
@@ -747,6 +799,8 @@ def _serialize_breaker_thresholds(
         summary["critical"] = serialized
 
     return summary
+
+
 def _describe_guard_threshold_source(thresholds: GuardIndicatorThresholds) -> str:
     """Return a human readable label for guard threshold provenance."""
     if thresholds.source == "resilience_script":
@@ -759,6 +813,8 @@ def _describe_guard_threshold_source(thresholds: GuardIndicatorThresholds) -> st
         return "options flow threshold"
 
     return "system default threshold"
+
+
 def _describe_breaker_threshold_source(thresholds: BreakerIndicatorThresholds) -> str:
     """Return a human readable label for breaker threshold provenance."""
     if thresholds.source == "resilience_script":
@@ -771,6 +827,8 @@ def _describe_breaker_threshold_source(thresholds: BreakerIndicatorThresholds) -
         return "options flow threshold"
 
     return "system default threshold"
+
+
 GUARD_SKIP_WARNING_RATIO = 0.25
 GUARD_SKIP_CRITICAL_RATIO = 0.5
 
@@ -831,6 +889,8 @@ def _build_guard_summary(
     }
 
     return summary
+
+
 def _build_breaker_overview(
     rejection_metrics: CoordinatorRejectionMetrics | JSONLikeMapping,
     thresholds: BreakerIndicatorThresholds,
@@ -915,6 +975,8 @@ def _build_breaker_overview(
     }
 
     return overview
+
+
 def _build_service_status(
     guard_summary: SystemHealthGuardSummary,
     breaker_overview: SystemHealthBreakerOverview,
@@ -956,7 +1018,7 @@ def _derive_guard_indicator(
             "level": "critical",
             "color": "red",
             "message": (
-                f"Guard skip count {skip_count} reached the {source_label} ({critical_count})."
+                f"Guard skip count {skip_count} reached the {source_label} ({critical_count})."  # noqa: E501
             ),
             "metric": skip_count,
             "threshold": critical_count,
@@ -1044,7 +1106,7 @@ def _derive_breaker_indicator(
             "level": "critical",
             "color": "red",
             "message": (
-                f"Breaker count {total_breakers} reached the {source_label} ({critical_count})."
+                f"Breaker count {total_breakers} reached the {source_label} ({critical_count})."  # noqa: E501
             ),
             "metric": total_breakers,
             "threshold": critical_count,
@@ -1103,6 +1165,7 @@ def _merge_overall_indicator(
 ) -> SystemHealthIndicatorPayload:
     """Return the highest severity indicator for aggregated status."""
     severity_rank = {"critical": 3, "warning": 2, "normal": 1}
+
     def _rank(indicator: SystemHealthIndicatorPayload) -> int:
         level = cast(str | None, indicator.get("level"))
         return severity_rank.get(level or "", 0)
@@ -1114,6 +1177,8 @@ def _merge_overall_indicator(
     overall = cast(SystemHealthIndicatorPayload, dict(chosen))
     overall.setdefault("context", "overall")
     return overall
+
+
 def _healthy_indicator(
     context: str,
     *,
@@ -1131,6 +1196,8 @@ def _healthy_indicator(
         payload["metric"] = metric
     payload.setdefault("context", context)
     return payload
+
+
 def _coerce_float(value: Any, *, default: float = 0.0) -> float:
     """Return ``value`` coerced to ``float`` when possible."""
     try:

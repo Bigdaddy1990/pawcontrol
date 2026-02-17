@@ -22,10 +22,14 @@ DEFAULT_PROFILE: Final[str] = "standard"
 def _coerce_str(value: object, *, fallback: str = "") -> str:
     """Return the string value or a fallback when not a string."""
     return value if isinstance(value, str) else fallback
+
+
 def _get_profile_title(profile: str, config: Mapping[str, object] | None) -> str:
     """Return a safe profile title string for voluptuous selectors."""
     name = config.get("name") if config else None
     return _coerce_str(name, fallback=profile.title())
+
+
 # Mapping used by voluptuous to offer friendly names in the dropdown.
 PROFILE_TITLES: Final[dict[str, str]] = {
     profile: _get_profile_title(profile, config)
@@ -64,6 +68,8 @@ def validate_profile_selection(user_input: ProfileSelectionInput) -> str:
         raise vol.Invalid("invalid_profile")
 
     return profile
+
+
 def get_profile_selector_options() -> list[ProfileSelectorOption]:
     """Return selector options with descriptive labels for each profile."""
     options: list[ProfileSelectorOption] = []
@@ -76,7 +82,7 @@ def get_profile_selector_options() -> list[ProfileSelectorOption]:
         if isinstance(max_entities, int):
             label_parts.append(f"{max_entities} entities per dog")
         if description:
-            # Use second-person tone to match the global writing guidance.  # noqa: E114
+            # Use second-person tone to match the global writing guidance.
             label_parts.append(description)
         option: ProfileSelectorOption = {
             "value": profile,
@@ -85,6 +91,8 @@ def get_profile_selector_options() -> list[ProfileSelectorOption]:
         options.append(option)
 
     return options
+
+
 def build_profile_summary_text() -> str:
     """Create a human readable summary of all profiles for UI hints."""
     summaries: list[str] = []

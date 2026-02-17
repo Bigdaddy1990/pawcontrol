@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Final, TypeVar, cast, overload
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
     from .types import (
         FeedingComplianceDisplayMapping,
         FeedingComplianceLocalizedSummary,
@@ -71,6 +72,8 @@ async def async_get_feeding_compliance_translations(
         }
 
     return resolved
+
+
 _MAX_MISSED_MEALS: Final[int] = 3
 _MAX_ISSUES: Final[int] = 3
 _MAX_RECOMMENDATIONS: Final[int] = 2
@@ -124,6 +127,8 @@ def _is_structured_message_payload(value: object) -> bool:
         return True
 
     return isinstance(value, Iterable)
+
+
 _T = TypeVar("_T")
 
 
@@ -165,6 +170,8 @@ def _normalise_sequence(
         return _BoundedSequenceSnapshot(cast(Iterable[_T], value), max_items)
 
     return None
+
+
 def _as_float(value: Any) -> float | None:
     """Convert a value to a finite float when possible."""
     if isinstance(value, bool):
@@ -182,6 +189,8 @@ def _as_float(value: Any) -> float | None:
             return None
         return result if isfinite(result) else None
     return None
+
+
 def _normalise_count(value: Any) -> str:
     """Return a human-friendly representation of a meal count."""
     number = _as_float(value)
@@ -190,6 +199,8 @@ def _normalise_count(value: Any) -> str:
     if float(number).is_integer():
         return str(int(number))
     return f"{number:.1f}"
+
+
 def _normalise_date(value: Any) -> str:
     """Return a readable date string or a fallback."""
     if isinstance(value, str):
@@ -197,6 +208,8 @@ def _normalise_date(value: Any) -> str:
         if text:
             return text
     return "unknown"
+
+
 def _normalise_text(value: Any) -> str | None:
     """Normalise arbitrary values into cleaned text."""
     if isinstance(value, str):
@@ -216,6 +229,8 @@ def _normalise_text(value: Any) -> str | None:
     else:
         text = str(value).strip()
     return text or None
+
+
 def _iter_text_candidates(
     value: Any,
     *,
@@ -291,6 +306,8 @@ def _first_text_candidate(value: Any) -> str | None:
         if text:
             return text
     return None
+
+
 def _clean_structured_text_candidate(text: str | None) -> str | None:
     """Filter out non-descriptive structured text candidates."""
     if text is None:
@@ -320,6 +337,8 @@ def _clean_structured_text_candidate(text: str | None) -> str | None:
         return None
 
     return stripped
+
+
 def _format_structured_message(value: Any) -> str | None:
     """Extract readable text from structured compliance message payloads."""
     texts: list[str] = []
@@ -342,6 +361,8 @@ def _format_structured_message(value: Any) -> str | None:
         return texts[0]
 
     return "; ".join(texts)
+
+
 def _collect_missed_meals(
     translations: Mapping[str, str],
     raw_entries: object,
@@ -368,6 +389,8 @@ def _collect_missed_meals(
         if len(summary) >= _MAX_MISSED_MEALS:
             break
     return summary
+
+
 def _describe_issue(issue: Mapping[str, object]) -> str:
     """Return a readable description for an issue entry."""
     issues = cast(
@@ -389,6 +412,8 @@ def _describe_issue(issue: Mapping[str, object]) -> str:
     if text:
         return text
     return "issue"
+
+
 def _collect_issue_summaries(
     translations: Mapping[str, str],
     raw_entries: object,
@@ -414,6 +439,8 @@ def _collect_issue_summaries(
         if len(summary) >= _MAX_ISSUES:
             break
     return summary
+
+
 def _collect_recommendations(
     translations: Mapping[str, str],
     raw_entries: object,
@@ -438,11 +465,13 @@ def _collect_recommendations(
         if len(summary) >= _MAX_RECOMMENDATIONS:
             break
     return summary
+
+
 def _build_localised_sections(
     translations: Mapping[str, str],
     compliance: FeedingComplianceDisplayMapping,
 ) -> tuple[list[str], list[str], list[str]]:
-    """Return localised summary sections for missed meals, issues, and recommendations."""
+    """Return localised summary sections for missed meals, issues, and recommendations."""  # noqa: E501
     missed_summary = _collect_missed_meals(
         translations,
         compliance.get("missed_meals"),
@@ -460,6 +489,8 @@ def _build_localised_sections(
         recommendation_summary.append(translations["no_recommendations"])
 
     return missed_summary, issue_summary, recommendation_summary
+
+
 def _build_feeding_compliance_summary_from_translations(
     translations: Mapping[str, str],
     *,
@@ -543,6 +574,7 @@ def _load_static_common_translations(language: str | None) -> Mapping[str, str]:
     """Load translation ``common`` entries from packaged JSON files."""
     normalized_language = (language or "en").lower()
     translations_path = Path(__file__).resolve().parent / "translations"
+
     def _read_common(lang: str) -> dict[str, str]:
         file_path = translations_path / f"{lang}.json"
         if not file_path.exists():
@@ -557,6 +589,8 @@ def _load_static_common_translations(language: str | None) -> Mapping[str, str]:
     localized = _read_common(normalized_language)
     fallback = _read_common("en")
     return {**fallback, **localized}
+
+
 def get_feeding_compliance_translations(language: str | None) -> dict[str, str]:
     """Return static feeding compliance translations for non-HA unit tests."""
     common = _load_static_common_translations(language)
@@ -593,6 +627,8 @@ def build_feeding_compliance_notification(
         compliance=compliance,
     )
     return summary["title"], summary["message"]
+
+
 async def async_build_feeding_compliance_notification(
     hass: HomeAssistant,
     language: str | None,
@@ -608,12 +644,16 @@ async def async_build_feeding_compliance_notification(
         compliance=compliance,
     )
     return summary["title"], summary["message"]
+
+
 T = TypeVar("T")
 
 
 class _BoundedSequenceSnapshot(Sequence[T]):
     """Cache at most ``limit`` items from an iterable for safe re-iteration."""
+
     __slots__ = ("_cache", "_iterator", "_limit")
+
     def __init__(self, source: Iterable[T], limit: int) -> None:
         self._iterator: Iterator[T] | None = iter(source)
         self._cache: list[T] = []
@@ -627,14 +667,13 @@ class _BoundedSequenceSnapshot(Sequence[T]):
                 break
             yield self._cache[index]
             index += 1
+
     def __len__(self) -> int:  # pragma: no cover - rarely exercised
         self._consume_to(self._limit)
         return len(self._cache)
 
     @overload
-    def __getitem__(
-        self, index: int, /
-    ) -> T:  # pragma: no cover - defensive
+    def __getitem__(self, index: int, /) -> T:  # pragma: no cover - defensive
         """Return the cached item at ``index``."""
 
     @overload

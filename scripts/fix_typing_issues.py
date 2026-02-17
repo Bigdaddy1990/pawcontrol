@@ -1,4 +1,3 @@
-# ruff: noqa: E111
 """Automatically resolve mypy typing issues for PawControl.
 
 This utility is intentionally pragmatic: it applies a set of safe rewrites first

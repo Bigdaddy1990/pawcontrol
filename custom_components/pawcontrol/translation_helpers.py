@@ -40,9 +40,13 @@ def _load_bundled_component_translations(language: str) -> dict[str, str]:
         if isinstance(key, str) and isinstance(value, str):
             resolved[component_translation_key(key)] = value
     return resolved
+
+
 def component_translation_key(key: str) -> str:
     """Return the Home Assistant translation key for ``key``."""
     return f"component.{DOMAIN}.common.{key}"
+
+
 def _get_translation_cache(hass: HomeAssistant) -> MutableMapping[str, dict[str, str]]:
     """Return the translation cache from ``hass.data``."""
     data_obj = getattr(hass, "data", None)
@@ -56,6 +60,8 @@ def _get_translation_cache(hass: HomeAssistant) -> MutableMapping[str, dict[str,
         cache = {}
         domain_data[_TRANSLATION_CACHE_KEY] = cache
     return cache
+
+
 def resolve_translation(
     translations: Mapping[str, str],
     fallback: Mapping[str, str],
@@ -68,6 +74,8 @@ def resolve_translation(
     if translation_key in fallback:
         return fallback[translation_key]
     return default if default is not None else translation_key
+
+
 def resolve_component_translation(
     translations: Mapping[str, str],
     fallback: Mapping[str, str],
@@ -93,6 +101,8 @@ def get_cached_component_translations(
     if cached:
         return cached
     return _load_bundled_component_translations(normalized)
+
+
 def get_cached_component_translation_lookup(
     hass: HomeAssistant,
     language: str | None,
@@ -106,6 +116,8 @@ def get_cached_component_translation_lookup(
         else get_cached_component_translations(hass, "en")
     )
     return translations, fallback
+
+
 async def async_get_component_translations(
     hass: HomeAssistant,
     language: str | None,
@@ -133,6 +145,8 @@ async def async_get_component_translations(
 
     cache[normalized] = translations
     return translations
+
+
 async def async_get_component_translation_lookup(
     hass: HomeAssistant,
     language: str | None,
@@ -146,6 +160,8 @@ async def async_get_component_translation_lookup(
         else await async_get_component_translations(hass, "en")
     )
     return translations, fallback
+
+
 async def async_preload_component_translations(
     hass: HomeAssistant,
     languages: Iterable[str | None],

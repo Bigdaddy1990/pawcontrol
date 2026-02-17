@@ -55,7 +55,10 @@ from .types import (
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
     from datetime import timedelta
+
     from .coordinator import PawControlCoordinator
+
+
 def _fetch_cache_repair_summary(
     coordinator: PawControlCoordinator,
 ) -> CacheRepairAggregate | None:
@@ -89,6 +92,8 @@ def _fetch_cache_repair_summary(
         summary,
     )
     return None
+
+
 def _fetch_reconfigure_summary(
     coordinator: PawControlCoordinator,
 ) -> ReconfigureTelemetrySummary | None:
@@ -102,6 +107,8 @@ def _fetch_reconfigure_summary(
             return summary
     options = getattr(coordinator.config_entry, "options", None)
     return summarise_reconfigure_options(options)
+
+
 def _build_runtime_store_summary(
     coordinator: PawControlCoordinator,
     runtime_data: PawControlRuntimeData | None,
@@ -128,6 +135,8 @@ def _build_runtime_store_summary(
                 dict(assessment),
             )
     return summary
+
+
 def _summarise_resilience(
     breakers: dict[str, CircuitBreakerStatsPayload],
 ) -> CoordinatorResilienceSummary:
@@ -312,11 +321,15 @@ def _summarise_resilience(
         summary["last_rejection_breaker_id"] = rejection_breaker_id
 
     return summary
+
+
 def _extract_stat_value(stats: Any, key: str, default: Any = None) -> Any:
     """Return ``key`` from ``stats`` supporting both mapping and attribute access."""
     if isinstance(stats, Mapping):
         return stats.get(key, default)
     return getattr(stats, key, default)
+
+
 def _normalise_breaker_id(name: Any, stats: Any) -> str:
     """Return a stable breaker identifier derived from diagnostics metadata."""
     candidate = _extract_stat_value(stats, "breaker_id")
@@ -339,6 +352,8 @@ def _normalise_breaker_id(name: Any, stats: Any) -> str:
         breaker_id = str(name)
 
     return breaker_id
+
+
 def _normalise_entity_budget_summary(data: Any) -> EntityBudgetSummary:
     """Return an entity budget summary with guaranteed diagnostics keys."""
     summary: EntityBudgetSummary = {
@@ -366,6 +381,8 @@ def _normalise_entity_budget_summary(data: Any) -> EntityBudgetSummary:
         summary["denied_requests"] = _coerce_int(data.get("denied_requests"))
 
     return summary
+
+
 def _normalise_adaptive_diagnostics(data: Any) -> AdaptivePollingDiagnostics:
     """Return adaptive polling diagnostics with consistent numeric types."""
     diagnostics: AdaptivePollingDiagnostics = {
@@ -404,6 +421,8 @@ def _normalise_adaptive_diagnostics(data: Any) -> AdaptivePollingDiagnostics:
         if idle_grace is not None:
             diagnostics["idle_grace_ms"] = idle_grace
     return diagnostics
+
+
 _REJECTION_SCALAR_KEYS: Final[tuple[str, ...]] = (
     "rejected_call_count",
     "rejection_breaker_count",
@@ -504,6 +523,8 @@ def merge_rejection_metric_values(
                 break
         else:
             mutable_target[key] = {}
+
+
 def derive_rejection_metrics(
     summary: JSONMapping | CoordinatorResilienceSummary | None,
 ) -> CoordinatorRejectionMetrics:
@@ -588,11 +609,15 @@ def derive_rejection_metrics(
     )
 
     return metrics
+
+
 def _derive_rejection_metrics(
     summary: JSONMapping | CoordinatorResilienceSummary,
 ) -> CoordinatorRejectionMetrics:
     """Backwards-compatible wrapper for legacy imports."""
     return derive_rejection_metrics(summary)
+
+
 def _default_guard_metrics() -> HelperManagerGuardMetrics:
     """Return zeroed guard metrics for runtime statistics snapshots."""
     return {
@@ -634,6 +659,8 @@ def _normalise_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
     )
 
     return guard_metrics
+
+
 def resolve_service_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
     """Return aggregated guard metrics stored on runtime performance stats."""
     guard_metrics = _default_guard_metrics()
@@ -653,6 +680,8 @@ def resolve_service_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
         }
 
     return guard_metrics
+
+
 def resolve_entity_factory_guard_metrics(
     payload: Any,
 ) -> EntityFactoryGuardMetricsSnapshot:
@@ -852,6 +881,8 @@ def resolve_entity_factory_guard_metrics(
         payload["entity_factory_guard_metrics"] = dict(snapshot)
 
     return snapshot
+
+
 def _normalise_breaker_state(value: Any) -> str:
     """Return a canonical breaker state used for resilience aggregation."""
     candidate = getattr(value, "value", value)
@@ -871,6 +902,8 @@ def _normalise_breaker_state(value: Any) -> str:
     normalised = "_".join(normalised.split())
     normalised = normalised.lower()
     return normalised or "unknown"
+
+
 def _stringify_breaker_name(name: Any) -> str:
     """Return the original breaker mapping key coerced to a string."""
     if isinstance(name, str) and name:
@@ -884,6 +917,8 @@ def _stringify_breaker_name(name: Any) -> str:
         if text and not text.isspace():
             return text
     return f"breaker_{id(name)}"
+
+
 def _coerce_int(value: Any) -> int:
     """Return ``value`` normalised as an integer for diagnostics payloads."""
     if isinstance(value, bool):
@@ -905,6 +940,8 @@ def _coerce_int(value: Any) -> int:
             return 0
         except TypeError:
             return 0
+
+
 def _normalise_string_list(value: Any) -> list[str]:
     """Return ``value`` coerced into a list of non-empty strings."""
     if value is None:
@@ -934,6 +971,8 @@ def _normalise_string_list(value: Any) -> list[str]:
         return []
 
     return [text] if text else []
+
+
 def _timestamp_from_datetime(value: datetime) -> float | None:
     """Return a POSIX timestamp for ``value`` with robust fallbacks."""
     convert = getattr(dt_util, "as_timestamp", None)
@@ -976,7 +1015,7 @@ def _coerce_float(value: Any) -> float | None:
         try:
             start_of_day = dt_util.start_of_local_day(value)
         except TypeError, ValueError, AttributeError:
-            # ``start_of_local_day`` may be unavailable in some compat paths.  # noqa: E114
+            # ``start_of_local_day`` may be unavailable in some compat paths.  # noqa: E501
             start_of_day = datetime(
                 value.year,
                 value.month,
@@ -1005,6 +1044,8 @@ def _coerce_float(value: Any) -> float | None:
         return None
 
     return number
+
+
 def _store_resilience_diagnostics(
     coordinator: PawControlCoordinator,
     payload: CoordinatorResilienceDiagnostics,
@@ -1015,6 +1056,8 @@ def _store_resilience_diagnostics(
         return
 
     update_runtime_resilience_diagnostics(runtime_data, payload)
+
+
 def _clear_resilience_diagnostics(coordinator: PawControlCoordinator) -> None:
     """Remove stored resilience telemetry when no breakers are available."""
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
@@ -1022,6 +1065,8 @@ def _clear_resilience_diagnostics(coordinator: PawControlCoordinator) -> None:
         return
 
     update_runtime_resilience_diagnostics(runtime_data, None)
+
+
 def collect_resilience_diagnostics(
     coordinator: PawControlCoordinator,
 ) -> CoordinatorResilienceDiagnostics:
@@ -1050,12 +1095,14 @@ def collect_resilience_diagnostics(
     if isinstance(raw, Mapping):
         item_source: Iterable[tuple[Any, Any]] = raw.items()
     elif isinstance(raw, Iterable) and not isinstance(raw, str | bytes | bytearray):
+
         def _iter_items() -> Iterable[tuple[Any, Any]]:
             for item in raw:
                 if isinstance(item, tuple) and len(item) == 2:
                     yield item
                 else:
                     yield str(item), item
+
         item_source = _iter_items()
     else:
         coordinator.logger.debug(
@@ -1127,6 +1174,8 @@ def collect_resilience_diagnostics(
     payload["summary"] = summary
     _store_resilience_diagnostics(coordinator, payload)
     return payload
+
+
 def build_update_statistics(
     coordinator: PawControlCoordinator,
 ) -> CoordinatorStatisticsPayload:
@@ -1166,6 +1215,8 @@ def build_update_statistics(
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats
+
+
 def build_runtime_statistics(
     coordinator: PawControlCoordinator,
 ) -> CoordinatorRuntimeStatisticsPayload:
@@ -1259,6 +1310,8 @@ def build_runtime_statistics(
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats
+
+
 @callback  # type: ignore[untyped-decorator,misc]
 def ensure_background_task(
     coordinator: PawControlCoordinator,
@@ -1308,7 +1361,7 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                     previous = coordinator._metrics.consecutive_errors
                     coordinator._metrics.reset_consecutive()
                     coordinator.logger.info(
-                        "Reset consecutive error count (%d) after %d hours of stability",
+                        "Reset consecutive error count (%d) after %d hours of stability",  # noqa: E501
                         previous,
                         int(hours_since_last_update),
                     )
@@ -1344,6 +1397,8 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                 details=details,
             )
             raise
+
+
 async def shutdown(coordinator: PawControlCoordinator) -> None:
     """Shutdown hook for coordinator teardown."""
     if coordinator._maintenance_unsub:

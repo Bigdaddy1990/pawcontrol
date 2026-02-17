@@ -53,9 +53,12 @@ CONF_STATUS = "status"
 @dataclass(frozen=True, slots=True)
 class ConditionDefinition:
     """Definition for a device condition."""
+
     type: str
     platform: str
     entity_suffix: str
+
+
 CONDITION_DEFINITIONS: Final[tuple[ConditionDefinition, ...]] = (
     ConditionDefinition("is_hungry", "binary_sensor", "is_hungry"),
     ConditionDefinition("needs_walk", "binary_sensor", "needs_walk"),
@@ -108,6 +111,8 @@ async def async_get_conditions(
         )
 
     return conditions
+
+
 async def async_get_condition_capabilities(
     hass: HomeAssistant,
     config: dict[str, str],
@@ -135,6 +140,7 @@ async def async_condition_from_config(
     context = resolve_device_context(hass, device_id)
     entity_id = validated.get(CONF_ENTITY_ID)
     condition_type = validated[CONF_TYPE]
+
     def _evaluate_state(expected_on: bool) -> bool:
         state = hass.states.get(entity_id) if entity_id else None
         if state is None:

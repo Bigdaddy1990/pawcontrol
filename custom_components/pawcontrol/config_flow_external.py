@@ -77,6 +77,8 @@ def _build_external_entities_placeholders(
     placeholder_payload["visitor_enabled"] = visitor_enabled
     placeholder_payload["dog_count"] = dog_count
     return freeze_placeholders(placeholder_payload)
+
+
 if TYPE_CHECKING:
 
     class ExternalFlowHost(Protocol):
@@ -93,6 +95,7 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult:
             """Type-checking stub for the mixin's final step delegation."""
             ...
+
         def async_show_form(
             self,
             *,
@@ -103,20 +106,27 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult:
             """Type-checking stub for Home Assistant form rendering."""
             ...
+
         def _get_available_device_trackers(self) -> dict[str, str]:
             """Type-checking stub for available device trackers."""
             ...
+
         def _get_available_person_entities(self) -> dict[str, str]:
             """Type-checking stub for available person entities."""
             ...
+
         def _get_available_door_sensors(self) -> dict[str, str]:
             """Type-checking stub for available door sensors."""
             ...
+
         def _get_available_notify_services(self) -> dict[str, str]:
             """Type-checking stub for available notification services."""
             ...
+
 else:  # pragma: no cover - used only for type checking
     ExternalFlowHost = object
+
+
 class ExternalEntityConfigurationMixin:
     """Mixin for external entity configuration functionality.
 
@@ -125,6 +135,7 @@ class ExternalEntityConfigurationMixin:
     for Platinum quality scale compliance and ensures proper integration
     with the broader Home Assistant ecosystem.
     """
+
     if TYPE_CHECKING:
         hass: HomeAssistant
         _dogs: list[DogConfigData]
@@ -157,7 +168,7 @@ class ExternalEntityConfigurationMixin:
         flow = cast(ExternalFlowHost, self)
 
         if user_input is not None:
-            # Validate and store external entity selections  # noqa: E114
+            # Validate and store external entity selections
             try:
                 validated_entities = await self._async_validate_external_entities(
                     user_input,
@@ -309,6 +320,7 @@ class ExternalEntityConfigurationMixin:
             target[DOOR_SENSOR_KEY] = new_config[DOOR_SENSOR_KEY]
         if NOTIFY_FALLBACK_KEY in new_config:
             target[NOTIFY_FALLBACK_KEY] = new_config[NOTIFY_FALLBACK_KEY]
+
     async def _async_validate_external_entities(
         self,
         user_input: ExternalEntityConfig,

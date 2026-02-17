@@ -14,8 +14,11 @@ from .translation_helpers import (
 
 class WeatherAlertTranslation(TypedDict):
     """Localized strings for a specific weather alert."""
+
     title: str
     message: str
+
+
 _WEATHER_ALERT_KEYS: Final = (
     "extreme_cold_warning",
     "extreme_heat_warning",
@@ -105,8 +108,11 @@ type WeatherRecommendationTranslations = dict[WeatherRecommendationKey, str]
 
 class WeatherTranslations(TypedDict):
     """Structured translation catalog for weather health guidance."""
+
     alerts: WeatherAlertTranslations
     recommendations: WeatherRecommendationTranslations
+
+
 type LanguageCode = Literal["de", "en", "es", "fr"]
 
 
@@ -127,19 +133,28 @@ SUPPORTED_LANGUAGES: Final[frozenset[LanguageCode]] = frozenset(
 def _weather_alert_title_key(alert: WeatherAlertKey) -> str:
     """Return the translation key name for a weather alert title."""
     return f"weather_alert_{alert}_title"
+
+
 def _weather_alert_message_key(alert: WeatherAlertKey) -> str:
     """Return the translation key name for a weather alert message."""
     return f"weather_alert_{alert}_message"
+
+
 def _weather_recommendation_key(recommendation: WeatherRecommendationKey) -> str:
     """Return the translation key name for a recommendation string."""
     return f"weather_recommendation_{recommendation}"
+
+
 def empty_weather_translations() -> WeatherTranslations:
     """Return an empty weather translations payload."""
     return {"alerts": {}, "recommendations": {}}
+
+
 def _load_static_common_translations(language: str) -> dict[str, str]:
     """Load component ``common`` translations from packaged language files."""
     normalized_language = language.lower()
     translations_path = Path(__file__).resolve().parent / "translations"
+
     def _read_common(lang: str) -> dict[str, str]:
         file_path = translations_path / f"{lang}.json"
         if not file_path.exists():
@@ -154,6 +169,8 @@ def _load_static_common_translations(language: str) -> dict[str, str]:
     fallback = _read_common(DEFAULT_LANGUAGE)
     localized = _read_common(normalized_language)
     return {**fallback, **localized}
+
+
 def get_weather_translations(language: str) -> WeatherTranslations:
     """Return weather translations without requiring Home Assistant runtime APIs."""
     normalized_language = (
@@ -181,6 +198,8 @@ def get_weather_translations(language: str) -> WeatherTranslations:
     }
 
     return {"alerts": alerts, "recommendations": recommendations}
+
+
 async def async_get_weather_translations(
     hass: HomeAssistant,
     language: str,

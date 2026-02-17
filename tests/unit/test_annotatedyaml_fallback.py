@@ -14,57 +14,57 @@ import pytest
 
 @contextmanager
 def _isolated_import(module_name: str) -> Iterator[None]:
-    """Temporarily replace ``module_name`` with a fresh import."""  # noqa: E111
+    """Temporarily replace ``module_name`` with a fresh import."""
 
-    existing = {  # noqa: E111
+    existing = {
         key: value
         for key, value in sys.modules.items()
         if key == module_name or key.startswith(f"{module_name}.")
     }
 
-    for key in existing:  # noqa: E111
+    for key in existing:
         del sys.modules[key]
 
-    try:  # noqa: E111
+    try:
         yield
-    finally:  # noqa: E111
+    finally:
         for key in list(sys.modules):
-            if key == module_name or key.startswith(f"{module_name}."):  # noqa: E111
+            if key == module_name or key.startswith(f"{module_name}."):
                 del sys.modules[key]
         sys.modules.update(existing)
 
 
 @contextmanager
 def _force_stub_loader(*, blocked_modules: tuple[str, ...] = ()) -> Iterator[None]:
-    """Prevent specified modules from resolving so the stub executes."""  # noqa: E111
+    """Prevent specified modules from resolving so the stub executes."""
 
-    original_find_spec = importlib.machinery.PathFinder.find_spec  # noqa: E111
+    original_find_spec = importlib.machinery.PathFinder.find_spec
 
-    def _guard(  # noqa: E111
+    def _guard(
         fullname: str, path: list[str] | None = None, target: object | None = None
     ):
         for module in blocked_modules:
-            if fullname == module:  # noqa: E111
+            if fullname == module:
                 return None
         return original_find_spec(fullname, path, target)
 
-    with patch("importlib.machinery.PathFinder.find_spec", side_effect=_guard):  # noqa: E111
+    with patch("importlib.machinery.PathFinder.find_spec", side_effect=_guard):
         yield
 
 
 @contextmanager
 def _hide_modules(*module_names: str) -> Iterator[None]:
-    """Temporarily remove modules from ``sys.modules`` and block re-imports."""  # noqa: E111
+    """Temporarily remove modules from ``sys.modules`` and block re-imports."""
 
-    removed: dict[str, ModuleType] = {}  # noqa: E111
-    for module in module_names:  # noqa: E111
+    removed: dict[str, ModuleType] = {}
+    for module in module_names:
         for key in list(sys.modules):
-            if key == module or key.startswith(f"{module}."):  # noqa: E111
+            if key == module or key.startswith(f"{module}."):
                 removed[key] = sys.modules.pop(key)
 
-    original_import = builtins.__import__  # noqa: E111
+    original_import = builtins.__import__
 
-    def _guard(  # noqa: E111
+    def _guard(
         name: str,
         globals: dict[str, object] | None = None,
         locals: dict[str, object] | None = None,
@@ -72,22 +72,22 @@ def _hide_modules(*module_names: str) -> Iterator[None]:
         level: int = 0,
     ) -> ModuleType:
         for module in module_names:
-            if name == module or name.startswith(f"{module}."):  # noqa: E111
+            if name == module or name.startswith(f"{module}."):
                 raise ModuleNotFoundError(name)
         return original_import(name, globals, locals, fromlist, level)
 
-    try:  # noqa: E111
+    try:
         builtins.__import__ = _guard  # type: ignore[assignment]
         yield
-    finally:  # noqa: E111
+    finally:
         builtins.__import__ = original_import  # type: ignore[assignment]
         sys.modules.update(removed)
 
 
 def test_fallback_loader_exposes_stub_module(tmp_path: Path) -> None:
-    """The repository fallback exposes ``load_yaml`` from the stub loader."""  # noqa: E111
+    """The repository fallback exposes ``load_yaml`` from the stub loader."""
 
-    with _force_stub_loader(), _isolated_import("annotatedyaml"):  # noqa: E111
+    with _force_stub_loader(), _isolated_import("annotatedyaml"):
         module = importlib.import_module("annotatedyaml")
 
         assert hasattr(module, "load_yaml"), "Stub should expose ``load_yaml``"
@@ -101,12 +101,12 @@ def test_fallback_loader_exposes_stub_module(tmp_path: Path) -> None:
 
 
 def test_fallback_loader_uses_vendored_yaml(tmp_path: Path) -> None:
-    """When system PyYAML is missing the vendored copy provides ``safe_load``."""  # noqa: E111
+    """When system PyYAML is missing the vendored copy provides ``safe_load``."""
 
-    if importlib.util.find_spec("annotatedyaml._vendor.yaml") is None:  # noqa: E111
+    if importlib.util.find_spec("annotatedyaml._vendor.yaml") is None:
         pytest.skip("annotatedyaml does not vendor PyYAML in this environment")
 
-    with (  # noqa: E111
+    with (
         _hide_modules("yaml"),
         _force_stub_loader(blocked_modules=("yaml",)),
         _isolated_import("annotatedyaml"),
@@ -124,12 +124,12 @@ def test_fallback_loader_uses_vendored_yaml(tmp_path: Path) -> None:
 
 
 def test_fallback_loader_rejects_invalid_yaml(tmp_path: Path) -> None:
-    """Invalid YAML surfaces a ``ValueError`` so callers receive actionable errors."""  # noqa: E111
+    """Invalid YAML surfaces a ``ValueError`` so callers receive actionable errors."""
 
-    with _force_stub_loader(), _isolated_import("annotatedyaml"):  # noqa: E111
+    with _force_stub_loader(), _isolated_import("annotatedyaml"):
         module = importlib.import_module("annotatedyaml")
         yaml_path = tmp_path / "config.yaml"
         yaml_path.write_text("bad: [unterminated\n", encoding="utf-8")
 
         with pytest.raises(ValueError):
-            module.load_yaml(str(yaml_path))  # type: ignore[attr-defined]  # noqa: E111
+            module.load_yaml(str(yaml_path))  # type: ignore[attr-defined]

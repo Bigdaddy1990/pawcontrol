@@ -11,8 +11,10 @@ from .types import DogConfigData, DogOptionsMap, JSONValue
 
 class DogOptionsHost(Protocol):
     """Protocol shared by per-dog options mixin hosts."""
+
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
+
     def _clone_options(self) -> dict[str, JSONValue]: ...
     def _current_dog_options(self) -> DogOptionsMap: ...
     def _current_options(self) -> Mapping[str, JSONValue]: ...

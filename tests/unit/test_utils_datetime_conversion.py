@@ -23,37 +23,37 @@ from custom_components.pawcontrol.utils import ensure_utc_datetime
     ],
 )
 def test_ensure_utc_datetime_handles_supported_inputs(value, expected) -> None:
-    """ensure_utc_datetime should coerce supported types into UTC datetimes."""  # noqa: E111
+    """ensure_utc_datetime should coerce supported types into UTC datetimes."""
 
-    result = ensure_utc_datetime(value)  # noqa: E111
+    result = ensure_utc_datetime(value)
 
-    if expected is None:  # noqa: E111
+    if expected is None:
         assert result is None
-    else:  # noqa: E111
+    else:
         assert result == expected
         assert result.tzinfo is UTC
 
 
 def test_ensure_utc_datetime_rejects_invalid_strings() -> None:
-    """Invalid string inputs should return ``None``."""  # noqa: E111
+    """Invalid string inputs should return ``None``."""
 
-    assert ensure_utc_datetime("") is None  # noqa: E111
-    assert ensure_utc_datetime("not-a-date") is None  # noqa: E111
+    assert ensure_utc_datetime("") is None
+    assert ensure_utc_datetime("not-a-date") is None
 
 
 @pytest.mark.parametrize("value", [object(), [2024, 1, 1]])
 def test_ensure_utc_datetime_rejects_unsupported_types(value) -> None:
-    """Unsupported input types should return ``None``."""  # noqa: E111
+    """Unsupported input types should return ``None``."""
 
-    assert ensure_utc_datetime(value) is None  # noqa: E111
+    assert ensure_utc_datetime(value) is None
 
 
 def test_ensure_utc_datetime_converts_naive_datetimes_to_utc() -> None:
-    """Naive datetimes should be normalised to UTC."""  # noqa: E111
+    """Naive datetimes should be normalised to UTC."""
 
-    naive = datetime(2024, 1, 1, 12, 0, 0)  # noqa: E111
+    naive = datetime(2024, 1, 1, 12, 0, 0)
 
-    result = ensure_utc_datetime(naive)  # noqa: E111
+    result = ensure_utc_datetime(naive)
 
-    assert result == datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)  # noqa: E111
-    assert result.tzinfo is UTC  # noqa: E111
+    assert result == datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    assert result.tzinfo is UTC

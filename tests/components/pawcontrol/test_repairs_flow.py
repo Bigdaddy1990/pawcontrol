@@ -12,10 +12,10 @@ from custom_components.pawcontrol import repairs
 async def test_repairs_flow_routes_notification_auth_error(
     hass,
 ) -> None:
-    """Ensure notification auth error routes to the correct flow step."""  # noqa: E111
+    """Ensure notification auth error routes to the correct flow step."""
 
-    issue_id = "entry_notification_auth_error"  # noqa: E111
-    issue_data = {  # noqa: E111
+    issue_id = "entry_notification_auth_error"
+    issue_data = {
         "config_entry_id": "entry",
         "issue_type": repairs.ISSUE_NOTIFICATION_AUTH_ERROR,
         "services": "notify.mobile_app_phone",
@@ -25,14 +25,14 @@ async def test_repairs_flow_routes_notification_auth_error(
         "last_error_reasons": "unauthorized",
     }
 
-    hass.data[ir.DOMAIN] = {issue_id: SimpleNamespace(data=issue_data)}  # noqa: E111
+    hass.data[ir.DOMAIN] = {issue_id: SimpleNamespace(data=issue_data)}
 
-    flow = repairs.PawControlRepairsFlow()  # noqa: E111
-    flow.hass = hass  # noqa: E111
-    flow.issue_id = issue_id  # noqa: E111
+    flow = repairs.PawControlRepairsFlow()
+    flow.hass = hass
+    flow.issue_id = issue_id
 
-    result = await flow.async_step_init()  # noqa: E111
+    result = await flow.async_step_init()
 
-    assert result["type"] == "form"  # noqa: E111
-    assert result["step_id"] == "notification_auth_error"  # noqa: E111
-    assert result["description_placeholders"]["service_count"] == 2  # noqa: E111
+    assert result["type"] == "form"
+    assert result["step_id"] == "notification_auth_error"
+    assert result["description_placeholders"]["service_count"] == 2

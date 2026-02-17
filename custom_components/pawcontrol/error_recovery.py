@@ -48,12 +48,15 @@ class ErrorPattern:
         recovery_action: Optional recovery action
         severity: Error severity (low, medium, high, critical)
     """
+
     exception_type: type[Exception]
     retry_strategy: bool = True
     circuit_breaker: bool = False
     create_repair_issue: bool = False
     recovery_action: Callable[..., Any] | None = None
     severity: str = "medium"
+
+
 @dataclass
 class ErrorStats:
     """Error statistics.
@@ -66,12 +69,14 @@ class ErrorStats:
         last_occurrence: Last occurrence time
         repair_issues_created: Number of repair issues created
     """
+
     exception_type: str
     total_count: int = 0
     recovery_count: int = 0
     unrecovered_count: int = 0
     last_occurrence: datetime | None = None
     repair_issues_created: int = 0
+
     @property
     def recovery_rate(self) -> float:
         """Return recovery rate (0.0-1.0)."""
@@ -104,6 +109,7 @@ class ErrorRecoveryCoordinator:
         >>> await coordinator.async_setup()
         >>> result = await coordinator.handle_error(error, context)
     """
+
     def __init__(self, hass: HomeAssistant, domain: str = "pawcontrol") -> None:
         """Initialize error recovery coordinator.
 
@@ -257,13 +263,13 @@ class ErrorRecoveryCoordinator:
 
         # Attempt recovery if pattern exists
         if pattern:
-            # Create repair issue if needed  # noqa: E114
+            # Create repair issue if needed
             if pattern.create_repair_issue:
                 await self._create_repair_issue(error, pattern, context)
                 result["repair_issue_created"] = True
                 stats.repair_issues_created += 1
 
-            # Attempt recovery action  # noqa: E114
+            # Attempt recovery action
             if pattern.recovery_action:
                 try:
                     recovery_result = await pattern.recovery_action(error, context)
@@ -307,9 +313,9 @@ class ErrorRecoveryCoordinator:
             context: Optional context
         """
         try:
-            # Generate issue ID  # noqa: E114
+            # Generate issue ID
             issue_id = f"{self._domain}_{error.__class__.__name__.lower()}"
-            # Determine severity  # noqa: E114
+            # Determine severity
             severity_map = {
                 "low": ir.IssueSeverity.WARNING,
                 "medium": ir.IssueSeverity.WARNING,
@@ -317,12 +323,12 @@ class ErrorRecoveryCoordinator:
                 "critical": ir.IssueSeverity.CRITICAL,
             }
             severity = severity_map.get(pattern.severity, ir.IssueSeverity.ERROR)
-            # Build description  # noqa: E114
+            # Build description
             description = f"{error.__class__.__name__}: {error}"
             if context:
                 description += f"\n\nContext: {context}"
 
-            # Create issue  # noqa: E114
+            # Create issue
             ir.async_create_issue(
                 self._hass,
                 self._domain,
@@ -413,6 +419,8 @@ def get_error_recovery_coordinator(
     if _error_recovery_coordinator is None:
         _error_recovery_coordinator = ErrorRecoveryCoordinator(hass, domain)
     return _error_recovery_coordinator
+
+
 # Helper functions
 
 

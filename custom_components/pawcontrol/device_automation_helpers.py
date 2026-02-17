@@ -26,15 +26,22 @@ _DEFAULT_METADATA: Final[dict[str, bool]] = {"secondary": False}
 @dataclass(slots=True)
 class PawControlDeviceAutomationContext:
     """Resolved context for device automation lookups."""
+
     device_id: str
     dog_id: str | None
     runtime_data: PawControlRuntimeData | None
+
+
 def build_unique_id(dog_id: str, suffix: str) -> str:
     """Build the stable unique_id used by PawControl entities."""
     return _UNIQUE_ID_FORMAT.format(dog_id=dog_id, suffix=suffix)
+
+
 def build_device_automation_metadata() -> dict[str, bool]:
     """Return metadata for device automations."""
     return dict(_DEFAULT_METADATA)
+
+
 def _extract_dog_id(device_entry: dr.DeviceEntry | None) -> str | None:
     """Extract the dog identifier from a device registry entry."""
     if device_entry is None:
@@ -44,6 +51,8 @@ def _extract_dog_id(device_entry: dr.DeviceEntry | None) -> str | None:
         if domain == DOMAIN:
             return identifier
     return None
+
+
 def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     """Return runtime data extracted from ``value`` when possible."""
     if isinstance(value, PawControlRuntimeData):
@@ -51,6 +60,8 @@ def _coerce_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     if isinstance(value, DomainRuntimeStoreEntry):
         return value.unwrap()
     return None
+
+
 def _resolve_runtime_data_from_store(
     hass: HomeAssistant,
     entry_ids: Iterable[str],
@@ -65,6 +76,8 @@ def _resolve_runtime_data_from_store(
         if runtime_data is not None:
             return runtime_data
     return None
+
+
 def resolve_device_context(
     hass: HomeAssistant,
     device_id: str,
@@ -98,6 +111,8 @@ def resolve_entity_id(
         if entry.unique_id == unique_id and entry.platform == platform:
             return entry.entity_id
     return None
+
+
 def resolve_dog_data(
     runtime_data: PawControlRuntimeData | None,
     dog_id: str | None,
@@ -117,6 +132,8 @@ def resolve_dog_data(
         return dog_data
 
     return None
+
+
 def resolve_status_snapshot(
     runtime_data: PawControlRuntimeData | None,
     dog_id: str | None,

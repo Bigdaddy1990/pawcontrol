@@ -36,11 +36,13 @@ class CacheEntry[T]:
         hit_count: Number of cache hits
         last_access: Last access timestamp
     """
+
     value: T
     timestamp: float
     ttl_seconds: float
     hit_count: int = 0
     last_access: float = field(default_factory=time.time)
+
     @property
     def age_seconds(self) -> float:
         """Return age of entry in seconds."""
@@ -73,11 +75,13 @@ class CacheStats:
         size: Current cache size
         max_size: Maximum cache size
     """
+
     hits: int = 0
     misses: int = 0
     evictions: int = 0
     size: int = 0
     max_size: int = 100
+
     @property
     def hit_rate(self) -> float:
         """Return cache hit rate (0.0-1.0)."""
@@ -104,6 +108,7 @@ class LRUCache[T]:
         >>> cache.set("key", "value")
         >>> value = cache.get("key")
     """
+
     def __init__(
         self,
         *,
@@ -137,18 +142,19 @@ class LRUCache[T]:
                 return None
 
             entry = self._cache[key]
-            # Check expiration  # noqa: E114
+            # Check expiration
             if entry.is_expired:
                 self._cache.pop(key)
                 self._stats.misses += 1
                 self._stats.evictions += 1
                 return None
 
-            # Move to end (most recently used)  # noqa: E114
+            # Move to end (most recently used)
             self._cache.move_to_end(key)
             entry.mark_accessed()
             self._stats.hits += 1
             return entry.value
+
     async def set(
         self,
         key: str,
@@ -163,17 +169,17 @@ class LRUCache[T]:
             ttl: Optional TTL override
         """
         async with self._lock:
-            # Remove if exists  # noqa: E114
+            # Remove if exists
             if key in self._cache:
                 self._cache.pop(key)
 
-            # Evict oldest if at capacity  # noqa: E114
+            # Evict oldest if at capacity
             if len(self._cache) >= self._max_size:
                 oldest_key = next(iter(self._cache))
                 self._cache.pop(oldest_key)
                 self._stats.evictions += 1
 
-            # Add new entry  # noqa: E114
+            # Add new entry
             entry = CacheEntry(
                 value=value,
                 timestamp=time.time(),
@@ -181,6 +187,7 @@ class LRUCache[T]:
             )
             self._cache[key] = entry
             self._stats.size = len(self._cache)
+
     async def delete(self, key: str) -> bool:
         """Delete entry from cache.
 
@@ -196,11 +203,13 @@ class LRUCache[T]:
                 self._stats.size = len(self._cache)
                 return True
             return False
+
     async def clear(self) -> None:
         """Clear all entries from cache."""
         async with self._lock:
             self._cache.clear()
             self._stats.size = 0
+
     def get_stats(self) -> CacheStats:
         """Return cache statistics."""
         self._stats.size = len(self._cache)
@@ -215,6 +224,7 @@ class PersistentCache[T]:
         >>> await cache.async_load()
         >>> await cache.set("key", {"data": "value"})
     """
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -258,10 +268,11 @@ class PersistentCache[T]:
         except Exception as e:
             _LOGGER.error("Failed to load persistent cache: %s", e)
             self._cache = {}
+
     async def async_save(self) -> None:
         """Save cache to storage."""
         try:
-            # Convert to serializable format  # noqa: E114
+            # Convert to serializable format
             data = {
                 key: {
                     "value": entry.value,
@@ -277,6 +288,7 @@ class PersistentCache[T]:
             _LOGGER.debug("Saved %d entries to persistent cache", len(data))
         except Exception as e:
             _LOGGER.error("Failed to save persistent cache: %s", e)
+
     async def get(self, key: str) -> T | None:
         """Get value from cache.
 
@@ -326,6 +338,7 @@ class PersistentCache[T]:
         # Auto-save periodically (every 10 entries)
         if len(self._cache) % 10 == 0:
             await self.async_save()
+
     async def clear(self) -> None:
         """Clear cache."""
         self._cache.clear()
@@ -351,6 +364,7 @@ class TwoLevelCache[T]:
         >>> await cache.async_setup()
         >>> await cache.set("key", {"data": "value"})
     """
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -399,7 +413,7 @@ class TwoLevelCache[T]:
         # Try L2
         value = await self._l2.get(key)
         if value is not None:
-            # Promote to L1  # noqa: E114
+            # Promote to L1
             await self._l1.set(key, value)
             return value
         return None
@@ -474,25 +488,27 @@ def cached(
         ... async def get_dog_data(dog_id: str):
         ...     return await api.fetch(dog_id)
     """
+
     def decorator(func: Any) -> Any:
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # Generate cache key from args  # noqa: E114
+            # Generate cache key from args
             key_parts = [key_prefix]
             key_parts.extend(str(arg) for arg in args)
             key_parts.extend(f"{k}={v}" for k, v in sorted(kwargs.items()))
             cache_key = ":".join(key_parts)
-            # Try cache  # noqa: E114
+            # Try cache
             cached_value = await cache.get(cache_key)
             if cached_value is not None:
                 _LOGGER.debug("Cache hit: %s", cache_key)
                 return cached_value
 
-            # Call function  # noqa: E114
+            # Call function
             _LOGGER.debug("Cache miss: %s", cache_key)
             result = await func(*args, **kwargs)
-            # Store in cache  # noqa: E114
+            # Store in cache
             await cache.set(cache_key, result, l1_ttl=ttl, l2_ttl=ttl * 4)
             return result
+
         return wrapper
 
     return decorator

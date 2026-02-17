@@ -39,14 +39,14 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 class _GardenManagerStub:
-    """Simple stub exposing the garden manager contract used by entities."""  # noqa: E111
+    """Simple stub exposing the garden manager contract used by entities."""
 
-    def __init__(self) -> None:  # noqa: E111
+    def __init__(self) -> None:
         self.build_calls = 0
         self.is_in_calls = 0
         self.pending_calls = 0
 
-    def build_garden_snapshot(self, dog_id: str) -> GardenModulePayload:  # noqa: E111
+    def build_garden_snapshot(self, dog_id: str) -> GardenModulePayload:
         self.build_calls += 1
         confirmation: GardenConfirmationSnapshot = {
             "session_id": "garden-session",
@@ -68,19 +68,19 @@ class _GardenManagerStub:
             },
         }
 
-    def is_dog_in_garden(self, dog_id: str) -> bool:  # noqa: E111
+    def is_dog_in_garden(self, dog_id: str) -> bool:
         self.is_in_calls += 1
         return True
 
-    def has_pending_confirmation(self, dog_id: str) -> bool:  # noqa: E111
+    def has_pending_confirmation(self, dog_id: str) -> bool:
         self.pending_calls += 1
         return True
 
 
 class _CoordinatorStub:
-    """Coordinator stub exposing the attributes required by entity helpers."""  # noqa: E111
+    """Coordinator stub exposing the attributes required by entity helpers."""
 
-    __slots__ = (  # noqa: E111
+    __slots__ = (
         "_dog_data",
         "async_request_refresh",
         "available",
@@ -88,7 +88,7 @@ class _CoordinatorStub:
         "runtime_managers",
     )
 
-    def __init__(  # noqa: E111
+    def __init__(
         self,
         config_entry: MockConfigEntry,
         runtime_managers: CoordinatorRuntimeManagers,
@@ -101,24 +101,24 @@ class _CoordinatorStub:
         self._dog_data: CoordinatorDogData = dog_data or cast(CoordinatorDogData, {})
         self.async_request_refresh = AsyncMock()
 
-    def get_dog_data(self, dog_id: str) -> CoordinatorDogData:  # noqa: E111
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData:
         return self._dog_data
 
 
 def test_garden_binary_sensors_use_runtime_manager_container(
     hass: HomeAssistant,
 ) -> None:
-    """Garden binary sensors should resolve helpers through the runtime container."""  # noqa: E111
+    """Garden binary sensors should resolve helpers through the runtime container."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    entry.add_to_hass(hass)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
 
-    garden_manager = _GardenManagerStub()  # noqa: E111
-    runtime_managers = CoordinatorRuntimeManagers(garden_manager=garden_manager)  # noqa: E111
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    garden_manager = _GardenManagerStub()
+    runtime_managers = CoordinatorRuntimeManagers(garden_manager=garden_manager)
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}  # noqa: E111
-    runtime_data = PawControlRuntimeData(  # noqa: E111
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
+    runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
         data_manager=Mock(),
         notification_manager=Mock(),
@@ -129,60 +129,60 @@ def test_garden_binary_sensors_use_runtime_manager_container(
         dogs=[dog_config],
     )
 
-    store_runtime_data(hass, entry, runtime_data)  # noqa: E111
+    store_runtime_data(hass, entry, runtime_data)
 
-    assert not hasattr(coordinator, "garden_manager")  # noqa: E111
+    assert not hasattr(coordinator, "garden_manager")
 
-    active_sensor = PawControlGardenSessionActiveBinarySensor(  # noqa: E111
+    active_sensor = PawControlGardenSessionActiveBinarySensor(
         coordinator, "dog", "Garden Dog"
     )
-    in_garden_sensor = PawControlInGardenBinarySensor(coordinator, "dog", "Garden Dog")  # noqa: E111
-    pending_sensor = PawControlGardenPoopPendingBinarySensor(  # noqa: E111
+    in_garden_sensor = PawControlInGardenBinarySensor(coordinator, "dog", "Garden Dog")
+    pending_sensor = PawControlGardenPoopPendingBinarySensor(
         coordinator, "dog", "Garden Dog"
     )
 
-    active_sensor.hass = hass  # noqa: E111
-    in_garden_sensor.hass = hass  # noqa: E111
-    pending_sensor.hass = hass  # noqa: E111
+    active_sensor.hass = hass
+    in_garden_sensor.hass = hass
+    pending_sensor.hass = hass
 
-    manager = active_sensor._get_garden_manager()  # noqa: E111
-    assert manager is garden_manager  # noqa: E111
-    data_snapshot = active_sensor._get_garden_data()  # noqa: E111
-    assert data_snapshot.get("status") == "active"  # noqa: E111
-    assert active_sensor.is_on is True  # noqa: E111
-    assert in_garden_sensor.is_on is True  # noqa: E111
-    assert pending_sensor.is_on is True  # noqa: E111
+    manager = active_sensor._get_garden_manager()
+    assert manager is garden_manager
+    data_snapshot = active_sensor._get_garden_data()
+    assert data_snapshot.get("status") == "active"
+    assert active_sensor.is_on is True
+    assert in_garden_sensor.is_on is True
+    assert pending_sensor.is_on is True
 
-    pending_attrs = pending_sensor.extra_state_attributes  # noqa: E111
-    assert pending_attrs["garden_status"] == "active"  # noqa: E111
-    assert pending_attrs["sessions_today"] == 2  # noqa: E111
-    assert pending_attrs["pending_confirmation_count"] == 1  # noqa: E111
-    assert pending_attrs["started_at"] == "2024-01-01T10:00:00+00:00"  # noqa: E111
-    assert pending_attrs["duration_minutes"] == 12.0  # noqa: E111
-    assert pending_attrs["last_seen"] == "2024-01-01T09:42:00+00:00"  # noqa: E111
+    pending_attrs = pending_sensor.extra_state_attributes
+    assert pending_attrs["garden_status"] == "active"
+    assert pending_attrs["sessions_today"] == 2
+    assert pending_attrs["pending_confirmation_count"] == 1
+    assert pending_attrs["started_at"] == "2024-01-01T10:00:00+00:00"
+    assert pending_attrs["duration_minutes"] == 12.0
+    assert pending_attrs["last_seen"] == "2024-01-01T09:42:00+00:00"
 
-    assert garden_manager.build_calls >= 1  # noqa: E111
-    assert garden_manager.is_in_calls >= 1  # noqa: E111
-    assert garden_manager.pending_calls >= 1  # noqa: E111
+    assert garden_manager.build_calls >= 1
+    assert garden_manager.is_in_calls >= 1
+    assert garden_manager.pending_calls >= 1
 
 
 @pytest.mark.asyncio
 async def test_birthdate_date_uses_runtime_data_manager_container(
     hass: HomeAssistant,
 ) -> None:
-    """Birthdate date entity should persist updates through the runtime container."""  # noqa: E111
+    """Birthdate date entity should persist updates through the runtime container."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    entry.add_to_hass(hass)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
 
-    data_manager = Mock()  # noqa: E111
-    data_manager.async_update_dog_profile = AsyncMock()  # noqa: E111
+    data_manager = Mock()
+    data_manager.async_update_dog_profile = AsyncMock()
 
-    runtime_managers = CoordinatorRuntimeManagers(data_manager=data_manager)  # noqa: E111
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    runtime_managers = CoordinatorRuntimeManagers(data_manager=data_manager)
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}  # noqa: E111
-    runtime_data = PawControlRuntimeData(  # noqa: E111
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
+    runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
         data_manager=data_manager,
         notification_manager=Mock(),
@@ -193,15 +193,15 @@ async def test_birthdate_date_uses_runtime_data_manager_container(
         dogs=[dog_config],
     )
 
-    store_runtime_data(hass, entry, runtime_data)  # noqa: E111
+    store_runtime_data(hass, entry, runtime_data)
 
-    entity = PawControlBirthdateDate(coordinator, "dog", "Garden Dog")  # noqa: E111
-    entity.hass = hass  # noqa: E111
-    entity.async_write_ha_state = Mock()  # noqa: E111
+    entity = PawControlBirthdateDate(coordinator, "dog", "Garden Dog")
+    entity.hass = hass
+    entity.async_write_ha_state = Mock()
 
-    await entity.async_set_value(date_cls(2020, 1, 1))  # noqa: E111
+    await entity.async_set_value(date_cls(2020, 1, 1))
 
-    data_manager.async_update_dog_profile.assert_awaited_once_with(  # noqa: E111
+    data_manager.async_update_dog_profile.assert_awaited_once_with(
         "dog", {"birthdate": "2020-01-01"}
     )
 
@@ -210,25 +210,25 @@ async def test_birthdate_date_uses_runtime_data_manager_container(
 async def test_emergency_datetime_uses_runtime_notification_manager(
     hass: HomeAssistant,
 ) -> None:
-    """Emergency datetime entity should dispatch notifications via the container."""  # noqa: E111
+    """Emergency datetime entity should dispatch notifications via the container."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    entry.add_to_hass(hass)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
 
-    notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())  # noqa: E111
-    notification_manager = cast(  # noqa: E111
+    notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())
+    notification_manager = cast(
         "PawControlNotificationManager", notification_manager_stub
     )
 
-    runtime_managers = CoordinatorRuntimeManagers(  # noqa: E111
+    runtime_managers = CoordinatorRuntimeManagers(
         notification_manager=notification_manager
     )
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}  # noqa: E111
-    data_manager_stub = SimpleNamespace(async_update_dog_data=AsyncMock())  # noqa: E111
-    data_manager = cast("PawControlDataManager", data_manager_stub)  # noqa: E111
-    runtime_data = PawControlRuntimeData(  # noqa: E111
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
+    data_manager_stub = SimpleNamespace(async_update_dog_data=AsyncMock())
+    data_manager = cast("PawControlDataManager", data_manager_stub)
+    runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
         data_manager=data_manager,
         notification_manager=notification_manager,
@@ -239,42 +239,42 @@ async def test_emergency_datetime_uses_runtime_notification_manager(
         dogs=[dog_config],
     )
 
-    store_runtime_data(hass, entry, runtime_data)  # noqa: E111
+    store_runtime_data(hass, entry, runtime_data)
 
-    entity = PawControlEmergencyDateTime(coordinator, "dog", "Garden Dog")  # noqa: E111
-    entity.hass = hass  # noqa: E111
-    entity.async_write_ha_state = Mock()  # noqa: E111
-    hass.services.async_call = AsyncMock()  # type: ignore[assignment]  # noqa: E111
+    entity = PawControlEmergencyDateTime(coordinator, "dog", "Garden Dog")
+    entity.hass = hass
+    entity.async_write_ha_state = Mock()
+    hass.services.async_call = AsyncMock()  # type: ignore[assignment]
 
-    await entity.async_set_value(datetime(2024, 1, 1, 12, 0, tzinfo=UTC))  # noqa: E111
+    await entity.async_set_value(datetime(2024, 1, 1, 12, 0, tzinfo=UTC))
 
-    notification_manager.async_send_notification.assert_awaited_once()  # noqa: E111
+    notification_manager.async_send_notification.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_custom_message_text_prefers_notification_manager(
     hass: HomeAssistant,
 ) -> None:
-    """Custom message text should route notifications through the runtime container."""  # noqa: E111
+    """Custom message text should route notifications through the runtime container."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    entry.add_to_hass(hass)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
 
-    notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())  # noqa: E111
-    notification_manager = cast(  # noqa: E111
+    notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())
+    notification_manager = cast(
         "PawControlNotificationManager", notification_manager_stub
     )
-    data_manager_stub = SimpleNamespace(async_update_dog_data=AsyncMock())  # noqa: E111
-    data_manager = cast("PawControlDataManager", data_manager_stub)  # noqa: E111
+    data_manager_stub = SimpleNamespace(async_update_dog_data=AsyncMock())
+    data_manager = cast("PawControlDataManager", data_manager_stub)
 
-    runtime_managers = CoordinatorRuntimeManagers(  # noqa: E111
+    runtime_managers = CoordinatorRuntimeManagers(
         data_manager=data_manager,
         notification_manager=notification_manager,
     )
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}  # noqa: E111
-    runtime_data = PawControlRuntimeData(  # noqa: E111
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
+    runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
         data_manager=data_manager,
         notification_manager=notification_manager,
@@ -285,20 +285,20 @@ async def test_custom_message_text_prefers_notification_manager(
         dogs=[dog_config],
     )
 
-    store_runtime_data(hass, entry, runtime_data)  # noqa: E111
+    store_runtime_data(hass, entry, runtime_data)
 
-    entity = PawControlCustomMessageText(coordinator, "dog", "Garden Dog")  # noqa: E111
-    entity.hass = hass  # noqa: E111
-    entity.async_write_ha_state = Mock()  # noqa: E111
-    entity.native_max = entity._attr_native_max  # noqa: E111
-    hass.services.async_call = AsyncMock()  # type: ignore[assignment]  # noqa: E111
+    entity = PawControlCustomMessageText(coordinator, "dog", "Garden Dog")
+    entity.hass = hass
+    entity.async_write_ha_state = Mock()
+    entity.native_max = entity._attr_native_max
+    hass.services.async_call = AsyncMock()  # type: ignore[assignment]
 
-    await entity.async_set_value("   Hello runtime managers!   ")  # noqa: E111
+    await entity.async_set_value("   Hello runtime managers!   ")
 
-    notification_manager.async_send_notification.assert_awaited_once()  # noqa: E111
-    _args, kwargs = notification_manager.async_send_notification.await_args  # noqa: E111
-    assert kwargs["message"] == "Hello runtime managers!"  # noqa: E111
-    hass.services.async_call.assert_not_awaited()  # noqa: E111
+    notification_manager.async_send_notification.assert_awaited_once()
+    _args, kwargs = notification_manager.async_send_notification.await_args
+    assert kwargs["message"] == "Hello runtime managers!"
+    hass.services.async_call.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -306,20 +306,20 @@ async def test_date_entity_skips_service_call_when_hass_missing(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Date entities should skip service calls when Home Assistant is unavailable."""  # noqa: E111
+    """Date entities should skip service calls when Home Assistant is unavailable."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    runtime_managers = CoordinatorRuntimeManagers()  # noqa: E111
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    runtime_managers = CoordinatorRuntimeManagers()
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    entity = PawControlLastVetVisitDate(coordinator, "dog", "Garden Dog")  # noqa: E111
-    entity.async_write_ha_state = Mock()  # noqa: E111
+    entity = PawControlLastVetVisitDate(coordinator, "dog", "Garden Dog")
+    entity.async_write_ha_state = Mock()
 
-    caplog.clear()  # noqa: E111
-    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):  # noqa: E111
+    caplog.clear()
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_set_value(date_cls(2024, 4, 1))
 
-    assert "Skipping pawcontrol.log_health_data service call" in caplog.text  # noqa: E111
+    assert "Skipping pawcontrol.log_health_data service call" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -327,20 +327,20 @@ async def test_emergency_datetime_skips_services_without_hass(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Emergency datetime should guard hass-dependent service calls."""  # noqa: E111
+    """Emergency datetime should guard hass-dependent service calls."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    runtime_managers = CoordinatorRuntimeManagers()  # noqa: E111
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    runtime_managers = CoordinatorRuntimeManagers()
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    entity = PawControlEmergencyDateTime(coordinator, "dog", "Garden Dog")  # noqa: E111
-    entity.async_write_ha_state = Mock()  # noqa: E111
+    entity = PawControlEmergencyDateTime(coordinator, "dog", "Garden Dog")
+    entity.async_write_ha_state = Mock()
 
-    caplog.clear()  # noqa: E111
-    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):  # noqa: E111
+    caplog.clear()
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_set_value(datetime(2024, 4, 1, 12, 30, tzinfo=UTC))
 
-    assert "Skipping pawcontrol.log_health_data service call" in caplog.text  # noqa: E111
+    assert "Skipping pawcontrol.log_health_data service call" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -348,21 +348,21 @@ async def test_custom_message_text_skips_notify_when_hass_missing(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Custom message text should guard hass-based notifications."""  # noqa: E111
+    """Custom message text should guard hass-based notifications."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    runtime_managers = CoordinatorRuntimeManagers()  # noqa: E111
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    runtime_managers = CoordinatorRuntimeManagers()
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    entity = PawControlCustomMessageText(coordinator, "dog", "Garden Dog")  # noqa: E111
-    entity.async_write_ha_state = Mock()  # noqa: E111
-    entity.native_max = entity._attr_native_max  # noqa: E111
+    entity = PawControlCustomMessageText(coordinator, "dog", "Garden Dog")
+    entity.async_write_ha_state = Mock()
+    entity.native_max = entity._attr_native_max
 
-    caplog.clear()  # noqa: E111
-    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):  # noqa: E111
+    caplog.clear()
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_set_value("  Hello  ")
 
-    assert "Skipping pawcontrol.notify_test service call" in caplog.text  # noqa: E111
+    assert "Skipping pawcontrol.notify_test service call" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -370,20 +370,20 @@ async def test_visitor_mode_switch_skips_service_without_hass(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Visitor mode switch should guard Home Assistant service usage."""  # noqa: E111
+    """Visitor mode switch should guard Home Assistant service usage."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    runtime_managers = CoordinatorRuntimeManagers()  # noqa: E111
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    runtime_managers = CoordinatorRuntimeManagers()
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    entity = PawControlVisitorModeSwitch(coordinator, "dog", "Garden Dog")  # noqa: E111
-    entity.async_write_ha_state = Mock()  # noqa: E111
+    entity = PawControlVisitorModeSwitch(coordinator, "dog", "Garden Dog")
+    entity.async_write_ha_state = Mock()
 
-    caplog.clear()  # noqa: E111
-    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):  # noqa: E111
+    caplog.clear()
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_turn_on()
 
-    assert "Skipping pawcontrol.set_visitor_mode service call" in caplog.text  # noqa: E111
+    assert "Skipping pawcontrol.set_visitor_mode service call" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -391,16 +391,16 @@ async def test_confirm_poop_button_skips_service_without_hass(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Garden confirmation button should guard Home Assistant service usage."""  # noqa: E111
+    """Garden confirmation button should guard Home Assistant service usage."""
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})  # noqa: E111
-    runtime_managers = CoordinatorRuntimeManagers()  # noqa: E111
-    coordinator = _CoordinatorStub(entry, runtime_managers)  # noqa: E111
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    runtime_managers = CoordinatorRuntimeManagers()
+    coordinator = _CoordinatorStub(entry, runtime_managers)
 
-    entity = PawControlConfirmGardenPoopButton(coordinator, "dog", "Garden Dog")  # noqa: E111
+    entity = PawControlConfirmGardenPoopButton(coordinator, "dog", "Garden Dog")
 
-    caplog.clear()  # noqa: E111
-    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):  # noqa: E111
+    caplog.clear()
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_press()
 
-    assert "Skipping pawcontrol.confirm_garden_poop service call" in caplog.text  # noqa: E111
+    assert "Skipping pawcontrol.confirm_garden_poop service call" in caplog.text

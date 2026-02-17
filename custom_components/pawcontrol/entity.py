@@ -44,8 +44,10 @@ class PawControlEntity(
     CoordinatorEntity[PawControlCoordinator],
 ):
     """Common base class shared across all PawControl entities."""
+
     _attr_should_poll = False
     _attr_has_entity_name = True
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -245,7 +247,9 @@ class PawControlEntity(
 
 class PawControlDogEntityBase(PawControlEntity):
     """Shared base class that caches dog data and enriches attributes."""
+
     _cache_ttl: float = 30.0
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -305,6 +309,7 @@ class PawControlDogEntityBase(PawControlEntity):
             attrs["dog_size"] = size
         if (weight := info.get("dog_weight")) is not None:
             attrs["dog_weight"] = weight
+
     def _build_base_state_attributes(
         self,
         extra: Mapping[str, object] | None = None,

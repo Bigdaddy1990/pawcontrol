@@ -11,16 +11,16 @@ install_homeassistant_stubs()
 from homeassistant.util import dt as dt_util
 
 if not hasattr(dt_util, "utcnow"):
-    dt_util.utcnow = lambda: datetime.now(UTC)  # noqa: E111
+    dt_util.utcnow = lambda: datetime.now(UTC)
 
 from custom_components.pawcontrol import helpers as helpers_module
 from custom_components.pawcontrol.helpers import OptimizedDataCache
 
 
 def test_get_handles_expiration(monkeypatch) -> None:
-    """The cache should respect TTL values when retrieving entries."""  # noqa: E111
+    """The cache should respect TTL values when retrieving entries."""
 
-    async def _run() -> None:  # noqa: E111
+    async def _run() -> None:
         cache = OptimizedDataCache(default_ttl_seconds=5)
         base_time = dt_util.utcnow()
 
@@ -47,13 +47,13 @@ def test_get_handles_expiration(monkeypatch) -> None:
         )
         assert await cache.get("expired", default="missing") == "missing"
 
-    asyncio.run(_run())  # noqa: E111
+    asyncio.run(_run())
 
 
 def test_set_normalizes_ttl(monkeypatch) -> None:
-    """Ensure TTL normalization keeps non-positive values from expiring immediately."""  # noqa: E111
+    """Ensure TTL normalization keeps non-positive values from expiring immediately."""
 
-    async def _run() -> None:  # noqa: E111
+    async def _run() -> None:
         cache = OptimizedDataCache(default_ttl_seconds=5)
         base_time = dt_util.utcnow()
 
@@ -77,13 +77,13 @@ def test_set_normalizes_ttl(monkeypatch) -> None:
         assert await cache.get("zero") == "value"
         assert await cache.get("negative") == "value"
 
-    asyncio.run(_run())  # noqa: E111
+    asyncio.run(_run())
 
 
 def test_cleanup_expired_respects_override(monkeypatch) -> None:
-    """cleanup_expired should remove entries based on stored and override TTLs."""  # noqa: E111
+    """cleanup_expired should remove entries based on stored and override TTLs."""
 
-    async def _run() -> None:  # noqa: E111
+    async def _run() -> None:
         cache = OptimizedDataCache(default_ttl_seconds=5)
         base_time = dt_util.utcnow()
 
@@ -112,13 +112,13 @@ def test_cleanup_expired_respects_override(monkeypatch) -> None:
         assert await cache.cleanup_expired(ttl_seconds=6) == 1
         assert await cache.get("long", default=None) is None
 
-    asyncio.run(_run())  # noqa: E111
+    asyncio.run(_run())
 
 
 def test_cleanup_expired_does_not_extend_ttl(monkeypatch) -> None:
-    """An override longer than the stored TTL should not prolong cache life."""  # noqa: E111
+    """An override longer than the stored TTL should not prolong cache life."""
 
-    async def _run() -> None:  # noqa: E111
+    async def _run() -> None:
         cache = OptimizedDataCache(default_ttl_seconds=5)
         base_time = dt_util.utcnow()
 
@@ -136,13 +136,13 @@ def test_cleanup_expired_does_not_extend_ttl(monkeypatch) -> None:
         assert await cache.cleanup_expired(ttl_seconds=30) == 1
         assert await cache.get("short") is None
 
-    asyncio.run(_run())  # noqa: E111
+    asyncio.run(_run())
 
 
 def test_cleanup_diagnostics_reports_override_activity(monkeypatch) -> None:
-    """Diagnostics should surface override-driven cleanup metrics."""  # noqa: E111
+    """Diagnostics should surface override-driven cleanup metrics."""
 
-    async def _run() -> None:  # noqa: E111
+    async def _run() -> None:
         cache = OptimizedDataCache(default_ttl_seconds=300)
         base_time = dt_util.utcnow()
 
@@ -177,4 +177,4 @@ def test_cleanup_diagnostics_reports_override_activity(monkeypatch) -> None:
         assert diagnostics["last_override_ttl"] == 90
         assert diagnostics["last_cleanup"] is not None
 
-    asyncio.run(_run())  # noqa: E111
+    asyncio.run(_run())

@@ -122,6 +122,8 @@ def _merge_config_updates(
     merged: JSONMutableMapping = dict(current) if isinstance(current, Mapping) else {}
     merged.update(dict(updates))
     return merged
+
+
 def _build_gps_tracking_input(
     config: Mapping[str, JSONValue],
 ) -> GPSTrackingConfigInput:
@@ -149,9 +151,13 @@ def _build_gps_tracking_input(
         tracking_input["min_distance_for_point"] = float(legacy_distance)
 
     return tracking_input
+
+
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for number entities."""
     return normalise_entity_attributes(attrs)
+
+
 async def _async_add_entities_in_batches(
     async_add_entities_func: AddEntitiesCallback,
     entities: list[PawControlNumberBase],
@@ -176,7 +182,7 @@ async def _async_add_entities_in_batches(
         batch_size,
     )
 
-    # Process entities in batches  # noqa: E114
+    # Process entities in batches
     for i in range(0, total_entities, batch_size):
         batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
@@ -199,6 +205,8 @@ async def _async_add_entities_in_batches(
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
             await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -223,7 +231,7 @@ async def async_setup_entry(
     coordinator: PawControlCoordinator = runtime_data.coordinator
     dogs: list[DogConfigData] = runtime_data.dogs
     entities: list[PawControlNumberBase] = []
-    # Create number entities for each configured dog  # noqa: E114
+    # Create number entities for each configured dog
     for dog in dogs:
         dog_id: str = dog[DOG_ID_FIELD]
         dog_name: str = dog[DOG_NAME_FIELD]
@@ -275,8 +283,8 @@ async def async_setup_entry(
                 ),
             )
 
-    # Add entities in smaller batches to prevent Entity Registry overload  # noqa: E114
-    # With 46+ number entities (2 dogs), batching prevents Registry flooding  # noqa: E114
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 46+ number entities (2 dogs), batching prevents Registry flooding  # noqa: E501
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
     _LOGGER.info(
         "Created %d number entities for %d dogs using batched approach",
@@ -475,6 +483,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
     all number types. Includes proper device grouping, state persistence,
     validation, and error handling.
     """
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -780,6 +789,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 # Base numbers
 class PawControlDogWeightNumber(PawControlNumberBase):
     """Number entity for the dog's current weight."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -851,6 +861,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
 
 class PawControlDogAgeNumber(PawControlNumberBase):
     """Number entity for the dog's age."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -898,6 +909,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
 
 class PawControlActivityGoalNumber(PawControlNumberBase):
     """Number entity for the dog's daily activity goal."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -932,6 +944,7 @@ class PawControlActivityGoalNumber(PawControlNumberBase):
 # Feeding numbers
 class PawControlDailyFoodAmountNumber(PawControlNumberBase):
     """Number entity for daily food amount in grams."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1005,6 +1018,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
 
 class PawControlFeedingReminderHoursNumber(PawControlNumberBase):
     """Number entity for feeding reminder interval in hours."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1040,6 +1054,7 @@ class PawControlFeedingReminderHoursNumber(PawControlNumberBase):
 
 class PawControlMealsPerDayNumber(PawControlNumberBase):
     """Number entity for number of meals per day."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1074,6 +1089,7 @@ class PawControlMealsPerDayNumber(PawControlNumberBase):
 
 class PawControlPortionSizeNumber(PawControlNumberBase):
     """Number entity for default portion size in grams."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1110,6 +1126,7 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
 
 class PawControlCalorieTargetNumber(PawControlNumberBase):
     """Number entity for daily calorie target."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1147,6 +1164,7 @@ class PawControlCalorieTargetNumber(PawControlNumberBase):
 # Walk numbers
 class PawControlDailyWalkTargetNumber(PawControlNumberBase):
     """Number entity for daily walk target count."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1180,6 +1198,7 @@ class PawControlDailyWalkTargetNumber(PawControlNumberBase):
 
 class PawControlWalkDurationTargetNumber(PawControlNumberBase):
     """Number entity for walk duration target in minutes."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1214,6 +1233,7 @@ class PawControlWalkDurationTargetNumber(PawControlNumberBase):
 
 class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
     """Number entity for walk distance target in meters."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1248,6 +1268,7 @@ class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
 
 class PawControlWalkReminderHoursNumber(PawControlNumberBase):
     """Number entity for walk reminder interval in hours."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1282,6 +1303,7 @@ class PawControlWalkReminderHoursNumber(PawControlNumberBase):
 
 class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
     """Number entity for maximum expected walk speed."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1321,6 +1343,7 @@ class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
 # GPS numbers
 class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
     """Number entity for GPS accuracy threshold in meters."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1357,6 +1380,7 @@ class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
 
 class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
     """Number entity for GPS update interval in seconds."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1393,6 +1417,7 @@ class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
 
 class PawControlGeofenceRadiusNumber(PawControlNumberBase):
     """Number entity for geofence radius in meters."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1427,6 +1452,7 @@ class PawControlGeofenceRadiusNumber(PawControlNumberBase):
 
 class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
     """Number entity for minimum distance for location updates."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1463,6 +1489,7 @@ class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
 
 class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
     """Number entity for GPS battery alert threshold."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1498,6 +1525,7 @@ class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
 # Health numbers
 class PawControlTargetWeightNumber(PawControlNumberBase):
     """Number entity for target weight in kg."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1533,6 +1561,7 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
 
 class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
     """Number entity for weight change alert threshold."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1567,6 +1596,7 @@ class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
 
 class PawControlGroomingIntervalNumber(PawControlNumberBase):
     """Number entity for grooming interval in days."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1601,6 +1631,7 @@ class PawControlGroomingIntervalNumber(PawControlNumberBase):
 
 class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
     """Number entity for vet checkup interval in months."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1636,6 +1667,7 @@ class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
 
 class PawControlHealthScoreThresholdNumber(PawControlNumberBase):
     """Number entity for health score alert threshold."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,

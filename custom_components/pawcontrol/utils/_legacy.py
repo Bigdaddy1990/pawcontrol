@@ -45,17 +45,12 @@ from weakref import WeakKeyDictionary
 if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
     from homeassistant.core import Context, EventOrigin, HomeAssistant
     from homeassistant.exceptions import HomeAssistantError
-    from homeassistant.helpers import (
-        device_registry as dr,
-        entity_registry as er,
-    )
-    from homeassistant.helpers.device_registry import (
-        DeviceEntry,
-        DeviceInfo,
-    )
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
     from homeassistant.helpers.entity import Entity
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
     from homeassistant.util import dt as dt_util
+
     from ..coordinator import PawControlCoordinator
 else:  # pragma: no branch - executed under tests without Home Assistant installed
     try:
@@ -71,23 +66,27 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
         from homeassistant.helpers.entity import Entity
         from homeassistant.helpers.entity_platform import AddEntitiesCallback
         from homeassistant.util import dt as dt_util
-    except (
-        ModuleNotFoundError
-    ):  # pragma: no cover - compatibility shim for tests
+    except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
         class Context:  # type: ignore[override]
             """Placeholder for Home Assistant's request context."""
+
         class EventOrigin:  # type: ignore[override]
             """Enum stand-in representing the origin of a Home Assistant event."""
+
         class HomeAssistant:  # type: ignore[override]
             """Minimal stand-in mirroring :class:`homeassistant.core.HomeAssistant`."""
+
         class Entity:  # type: ignore[override]
             """Lightweight placeholder entity used for tests."""
+
         class HomeAssistantError(Exception):  # type: ignore[override]
             """Fallback Home Assistant error type for test environments."""
+
         @dataclass(slots=True)
         class DeviceEntry:  # type: ignore[override]
             """Fallback representation of Home Assistant's device registry entry."""
+
             id: str = ""
             manufacturer: str | None = None
             model: str | None = None
@@ -96,8 +95,10 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
             suggested_area: str | None = None
             serial_number: str | None = None
             hw_version: str | None = None
+
         class DeviceInfo(TypedDict, total=False):  # type: ignore[override]
             """Fallback device info payload matching Home Assistant expectations."""
+
             identifiers: set[tuple[str, str]]
             name: str
             manufacturer: str
@@ -107,8 +108,10 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
             serial_number: str
             hw_version: str
             suggested_area: str
+
         class _AddEntitiesCallback(Protocol):
             """Callable signature mirroring ``AddEntitiesCallback``."""
+
             def __call__(
                 self,
                 entities: Iterable[Entity],
@@ -197,10 +200,13 @@ type JSONMappingLike = Mapping[str, "JSONValue"]
 @dataclass(frozen=True, slots=True)
 class ErrorContext:
     """Normalised error details for consistent classification."""
+
     classification: str
     reason: str | None
     message: str
     error: Exception | str | None
+
+
 def build_error_context(
     reason: str | None,
     error: Exception | str | None,
@@ -313,6 +319,8 @@ def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
     diagnostics and entity attributes stay serialisable.
     """
     return normalise_json_value(value, _seen)
+
+
 def normalise_entity_attributes(
     data: Mapping[str, object] | None,
 ) -> JSONMutableMapping:
@@ -321,6 +329,8 @@ def normalise_entity_attributes(
         return {}
 
     return cast(JSONMutableMapping, normalize_value(data))
+
+
 def resolve_default_feeding_amount(
     coordinator: PawControlCoordinator,
     dog_id: str,
@@ -328,6 +338,7 @@ def resolve_default_feeding_amount(
 ) -> float:
     """Resolve a default feeding amount for the specified dog."""
     from ..runtime_data import get_runtime_data
+
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
     if runtime_data is None:
         raise HomeAssistantError("Runtime data not available")
@@ -367,30 +378,44 @@ def resolve_default_feeding_amount(
         )
 
     return amount
+
+
 class ServiceCallKeywordArgs(TypedDict, total=False):
     """Keyword arguments forwarded to Home Assistant service calls."""
+
     blocking: bool
     target: JSONMutableMapping
     context: Context
+
+
 class FireEventKeywordArgs(TypedDict, total=False):
     """Keyword arguments supported by Home Assistant bus events."""
+
     context: Context
     origin: EventOrigin
     time_fired: datetime
+
+
 class ConfigurationValidationResult(TypedDict):
     """Validation report returned by :func:`validate_configuration_schema`."""
+
     valid: bool
     missing_keys: list[str]
     unknown_keys: list[str]
     has_all_required: bool
     has_unknown: bool
+
+
 class DeviceRegistryUpdate(TypedDict, total=False):
     """Fields forwarded to ``device_registry.async_update_device``."""
+
     suggested_area: str
     serial_number: str
     hw_version: str
     sw_version: str
     configuration_url: str
+
+
 def _coerce_json_mutable(
     mapping: JSONMappingLike | JSONMutableMapping | None,
 ) -> JSONMutableMapping:
@@ -402,6 +427,8 @@ def _coerce_json_mutable(
         return cast(JSONMutableMapping, dict(mapping))
 
     return {key: cast(JSONValue, value) for key, value in mapping.items()}
+
+
 def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
     """Normalise values into JSON-serialisable payloads."""
     if isinstance(value, int | float | str | bool) or value is None:
@@ -554,12 +581,17 @@ async def async_call_hass_service_if_available(
     if capture is not None:
         capture.append(guard_result)
     return guard_result
+
+
 class PortionValidationResult(TypedDict):
     """Validation outcome for a single portion size."""
+
     valid: bool
     warnings: list[str]
     recommendations: list[str]
     percentage_of_daily: float
+
+
 async def async_fire_event(
     hass: HomeAssistant,
     event_type: str,
@@ -611,6 +643,8 @@ async def async_fire_event(
     if inspect.isawaitable(result):
         return await result
     return result
+
+
 # Cache Home Assistant bus signature support to avoid repeated inspection.
 _SIGNATURE_SUPPORT_CACHE: WeakKeyDictionary[object, tuple[bool, frozenset[str]]] = (
     WeakKeyDictionary()
@@ -650,11 +684,15 @@ def _introspect_bus_keywords(
 
     supported_keywords = frozenset(parameters)
     return accepts_any_kw, supported_keywords
+
+
 def is_number(value: Any) -> TypeGuard[Number]:
     """Return whether ``value`` is a real number (excluding booleans)."""
     if isinstance(value, bool):
         return False
     return isinstance(value, Real)
+
+
 def _normalize_identifier_pair(
     identifier: object,
 ) -> tuple[str, str] | None:
@@ -691,6 +729,8 @@ def _normalize_identifier_pair(
         return None
 
     return domain_str, value_str
+
+
 def create_device_info(
     dog_id: str,
     dog_name: str,
@@ -725,7 +765,7 @@ def create_device_info(
     Returns:
         DeviceInfo dictionary for Home Assistant device registry
     """
-    # Sanitize dog_id for device identifier  # noqa: E114
+    # Sanitize dog_id for device identifier
     sanitized_id = sanitize_dog_id(dog_id)
     identifiers: set[tuple[str, str]] = {(DOMAIN, sanitized_id)}
     if extra_identifiers:
@@ -762,6 +802,8 @@ def create_device_info(
         device_info["suggested_area"] = suggested_area
 
     return device_info
+
+
 async def async_call_add_entities(
     add_entities_callback: AddEntitiesCallback,
     entities: Iterable[Entity],
@@ -847,8 +889,11 @@ async def async_get_or_create_dog_device_entry(
             )
 
     return device
+
+
 class PawControlDeviceLinkMixin:
     """Mixin providing device registry linking for PawControl entities."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Set up default device link metadata."""
 
@@ -975,6 +1020,8 @@ def deep_merge_dicts[T: JSONMutableMapping](
         else:
             result[key] = value
     return result
+
+
 def safe_get_nested[DefaultT](
     data: JSONMapping,
     path: str,
@@ -1008,7 +1055,7 @@ def safe_set_nested[T: JSONMutableMapping](
     """Safely set a dotted path within a JSON-compatible mapping."""
     keys = path.split(separator)
     current: JSONMutableMapping = cast(JSONMutableMapping, data)
-    # Navigate to parent of target key  # noqa: E114
+    # Navigate to parent of target key
     for key in keys[:-1]:
         next_value = current.get(key)
         if not isinstance(next_value, dict):
@@ -1017,9 +1064,11 @@ def safe_set_nested[T: JSONMutableMapping](
             current = branch
         else:
             current = cast(JSONMutableMapping, next_value)
-    # Set the final value  # noqa: E114
+    # Set the final value
     current[keys[-1]] = value
     return data
+
+
 def validate_time_string(time_str: str | None) -> time | None:
     """Validate and parse time string.
 
@@ -1044,6 +1093,8 @@ def validate_time_string(time_str: str | None) -> time | None:
         pass
 
     return None
+
+
 def validate_email(email: str | None) -> bool:
     """Validate email address format.
 
@@ -1056,9 +1107,11 @@ def validate_email(email: str | None) -> bool:
     if not email:
         return False
 
-    # Simple but effective email regex  # noqa: E114
+    # Simple but effective email regex
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.match(pattern, email))
+
+
 def sanitize_dog_id(dog_id: str) -> str:
     """Sanitize dog ID for use as entity identifier.
 
@@ -1068,7 +1121,7 @@ def sanitize_dog_id(dog_id: str) -> str:
     Returns:
         Sanitized dog ID suitable for entity IDs
     """
-    # Convert to lowercase and replace invalid characters  # noqa: E114
+    # Convert to lowercase and replace invalid characters
     sanitized = re.sub(r"[^a-z0-9_]", "_", dog_id.lower())
     sanitized = re.sub(r"_+", "_", sanitized).strip("_")
     if not sanitized:
@@ -1078,10 +1131,14 @@ def sanitize_dog_id(dog_id: str) -> str:
         sanitized = f"dog_{sanitized}"
 
     return sanitized
+
+
 def sanitize_microchip_id(microchip_id: str) -> str | None:
     """Normalize microchip identifiers for consistent device registry entries."""
     sanitized = re.sub(r"[^A-Za-z0-9]", "", microchip_id).upper()
     return sanitized or None
+
+
 def format_duration(seconds: int | float) -> str:
     """Format duration in seconds to human-readable string.
 
@@ -1104,6 +1161,8 @@ def format_duration(seconds: int | float) -> str:
     if remaining_minutes > 0:
         return f"{hours}h {remaining_minutes}m"
     return f"{hours}h"
+
+
 def format_distance(meters: float, unit: str = "metric") -> str:
     """Format distance with appropriate units.
 
@@ -1124,6 +1183,8 @@ def format_distance(meters: float, unit: str = "metric") -> str:
         return f"{int(meters)} m"
     kilometers = meters / 1000
     return f"{kilometers:.1f} km"
+
+
 def calculate_age_from_months(age_months: int) -> dict[str, int]:
     """Calculate years and months from total months.
 
@@ -1168,9 +1229,9 @@ def parse_weight(weight_input: str | float | int) -> float | None:
     if not isinstance(weight_input, str):
         return None
 
-    # Remove whitespace and convert to lowercase  # noqa: E114
+    # Remove whitespace and convert to lowercase
     weight_str = weight_input.strip().lower()
-    # Handle common weight formats  # noqa: E114
+    # Handle common weight formats
     if "kg" in weight_str:
         try:
             return float(weight_str.replace("kg", "").strip())
@@ -1178,7 +1239,7 @@ def parse_weight(weight_input: str | float | int) -> float | None:
             pass
     elif "lb" in weight_str or "lbs" in weight_str:
         try:
-            # Convert pounds to kilograms  # noqa: E114
+            # Convert pounds to kilograms
             lbs = float(
                 weight_str
                 .replace(
@@ -1198,6 +1259,8 @@ def parse_weight(weight_input: str | float | int) -> float | None:
         except ValueError:
             pass
     return None
+
+
 def generate_entity_id(domain: str, dog_id: str, entity_type: str) -> str:
     """Generate entity ID following Home Assistant conventions.
 
@@ -1212,6 +1275,8 @@ def generate_entity_id(domain: str, dog_id: str, entity_type: str) -> str:
     sanitized_dog_id = sanitize_dog_id(dog_id)
     sanitized_type = re.sub(r"[^a-z0-9_]", "_", entity_type.lower())
     return f"{domain}.{sanitized_dog_id}_{sanitized_type}"
+
+
 def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
     """Calculate BMI equivalent for dogs based on breed size.
 
@@ -1222,7 +1287,7 @@ def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
     Returns:
         BMI equivalent or None if invalid
     """
-    # Standard weight ranges for breed sizes (kg)  # noqa: E114
+    # Standard weight ranges for breed sizes (kg)
     size_ranges = {
         "toy": (1.0, 6.0),
         "small": (4.0, 15.0),
@@ -1235,14 +1300,16 @@ def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
         return None
 
     min_weight, max_weight = size_ranges[breed_size]
-    # Calculate relative position within breed size range  # noqa: E114
+    # Calculate relative position within breed size range
     if weight_kg <= min_weight:
         return 15.0  # Underweight
     if weight_kg >= max_weight:
         return 30.0  # Overweight
-    # Linear interpolation between 18.5 (normal low) and 25 (normal high)  # noqa: E114
+    # Linear interpolation between 18.5 (normal low) and 25 (normal high)
     ratio = (weight_kg - min_weight) / (max_weight - min_weight)
     return 18.5 + (ratio * 6.5)  # 18.5 to 25
+
+
 def validate_portion_size(
     portion: float,
     daily_amount: float,
@@ -1346,6 +1413,8 @@ def validate_portion_size(
         )
 
     return result
+
+
 def chunk_list[T](items: Sequence[T], chunk_size: int) -> list[list[T]]:
     """Split a list into chunks of specified size.
 
@@ -1360,6 +1429,8 @@ def chunk_list[T](items: Sequence[T], chunk_size: int) -> list[list[T]]:
         raise ValueError("Chunk size must be positive")
 
     return [list(items[i : i + chunk_size]) for i in range(0, len(items), chunk_size)]
+
+
 def safe_divide(numerator: float, denominator: float, default: float = 0.0) -> float:
     """Safely divide two numbers with default for division by zero.
 
@@ -1389,6 +1460,8 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
         Clamped value
     """
     return max(min_value, min(value, max_value))
+
+
 def is_dict_subset[K, V](subset: Mapping[K, V], superset: Mapping[K, V]) -> bool:
     """Check if one dictionary is a subset of another.
 
@@ -1429,6 +1502,8 @@ def flatten_dict(
         else:
             flattened[new_key] = value
     return flattened
+
+
 def unflatten_dict(
     data: Mapping[str, JSONValue],
     *,
@@ -1440,6 +1515,8 @@ def unflatten_dict(
         safe_set_nested(result, key, value, separator=separator)
 
     return result
+
+
 def extract_numbers(text: str) -> list[float]:
     """Extract all numbers from text string.
 
@@ -1466,7 +1543,7 @@ def generate_unique_id(*parts: str) -> str:
     Returns:
         Generated unique ID
     """
-    # Sanitize each part and join with underscores  # noqa: E114
+    # Sanitize each part and join with underscores
     sanitized_parts = []
     for part in parts:
         if part:
@@ -1476,6 +1553,8 @@ def generate_unique_id(*parts: str) -> str:
                 sanitized_parts.append(sanitized.lower())
 
     return "_".join(sanitized_parts) if sanitized_parts else "unknown"
+
+
 def retry_on_exception(
     max_retries: int = 3,
     delay: float = 1.0,
@@ -1503,6 +1582,7 @@ def retry_on_exception(
     Returns:
         Decorator that provides retry behaviour for async and sync callables.
     """
+
     def decorator(
         func: Callable[P, Awaitable[R]] | Callable[P, R],
     ) -> Callable[P, Awaitable[R]]:
@@ -1556,9 +1636,12 @@ def retry_on_exception(
                     f"{func.__name__} failed without raising a captured exception",
                 )
             raise last_exception
+
         return async_wrapper
 
     return decorator
+
+
 def calculate_time_until(target_time: time) -> timedelta:
     """Calculate time until next occurrence of target time.
 
@@ -1570,16 +1653,18 @@ def calculate_time_until(target_time: time) -> timedelta:
     """
     now = dt_util.now()
     today = now.date()
-    # Try today first  # noqa: E114
+    # Try today first
     target_datetime = datetime.combine(today, target_time)
     target_datetime = dt_util.as_local(target_datetime)
     if target_datetime > now:
         return target_datetime - now
-    # Must be tomorrow  # noqa: E114
+    # Must be tomorrow
     tomorrow = today + timedelta(days=1)
     target_datetime = datetime.combine(tomorrow, target_time)
     target_datetime = dt_util.as_local(target_datetime)
     return target_datetime - now
+
+
 def format_relative_time(dt: datetime) -> str:
     """Format datetime as relative time string.
 
@@ -1590,7 +1675,7 @@ def format_relative_time(dt: datetime) -> str:
         Relative time string
     """
     now = dt_util.now()
-    # Make both timezone-aware for comparison  # noqa: E114
+    # Make both timezone-aware for comparison
     if dt.tzinfo is None:
         dt = cast(datetime, dt_util.as_local(dt))
     if now.tzinfo is None:
@@ -1614,12 +1699,18 @@ def format_relative_time(dt: datetime) -> str:
         return f"{weeks} week{'s' if weeks > 1 else ''} ago"
     months = delta.days // 30
     return f"{months} month{'s' if months > 1 else ''} ago"
+
+
 @overload
 def ensure_utc_datetime(value: None) -> None:  # pragma: no cover - typing helper
     """Return ``None`` when no value is provided."""
+
+
 @overload
 def ensure_utc_datetime(value: DateTimeConvertible) -> datetime | None:
     """Convert supported input types to aware UTC datetimes."""
+
+
 def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:
     """Return a timezone-aware UTC datetime from various input formats."""
     if value is None:
@@ -1650,6 +1741,8 @@ def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:
         dt_value = dt_value.replace(tzinfo=UTC)
 
     return dt_util.as_utc(dt_value)
+
+
 def _parse_datetime_string(value: str) -> datetime | None:
     """Parse ``value`` into a timezone-aware datetime when possible."""
     try:
@@ -1672,6 +1765,8 @@ def _parse_datetime_string(value: str) -> datetime | None:
         return None
 
     return datetime.combine(date_value, datetime.min.time())
+
+
 def _datetime_from_timestamp(value: Number) -> datetime | None:
     """Convert ``value`` into a UTC datetime when it represents a timestamp."""
     try:
@@ -1689,6 +1784,8 @@ def _datetime_from_timestamp(value: Number) -> datetime | None:
         return datetime.fromtimestamp(timestamp, UTC)
 
     return None
+
+
 def ensure_local_datetime(value: datetime | str | None) -> datetime | None:
     """Return a timezone-aware datetime in the configured local timezone."""
     if value is None:
@@ -1707,6 +1804,8 @@ def ensure_local_datetime(value: datetime | str | None) -> datetime | None:
         return None
 
     return dt_util.as_local(dt_value)
+
+
 def merge_configurations(
     base_config: JSONMappingLike | JSONMutableMapping,
     user_config: JSONMappingLike | JSONMutableMapping,
@@ -1735,6 +1834,8 @@ def merge_configurations(
         merged[key] = cast(JSONValue, value)
 
     return merged
+
+
 def validate_configuration_schema(
     config: JSONMappingLike | JSONMutableMapping,
     required_keys: set[str],
@@ -1769,7 +1870,7 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
     Raises:
         ValueError: If unit conversion not supported
     """
-    # Weight conversions  # noqa: E114
+    # Weight conversions
     weight_conversions: dict[tuple[str, str], Callable[[float], float]] = {
         ("kg", "lb"): lambda x: x * 2.20462,
         ("lb", "kg"): lambda x: x * 0.453592,
@@ -1779,7 +1880,7 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
         ("g", "oz"): lambda x: x / 28.3495,
     }
 
-    # Distance conversions  # noqa: E114
+    # Distance conversions
     distance_conversions: dict[tuple[str, str], Callable[[float], float]] = {
         ("m", "ft"): lambda x: x * 3.28084,
         ("ft", "m"): lambda x: x / 3.28084,
@@ -1789,32 +1890,34 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
         ("km", "m"): lambda x: x * 1000,
     }
 
-    # Temperature conversions  # noqa: E114
+    # Temperature conversions
     temp_conversions: dict[tuple[str, str], Callable[[float], float]] = {
         ("c", "f"): lambda x: (x * 9 / 5) + 32,
         ("f", "c"): lambda x: (x - 32) * 5 / 9,
     }
 
-    # Combine all conversions  # noqa: E114
+    # Combine all conversions
     all_conversions = {
         **weight_conversions,
         **distance_conversions,
         **temp_conversions,
     }
 
-    # Normalize unit names  # noqa: E114
+    # Normalize unit names
     from_unit = from_unit.lower().strip()
     to_unit = to_unit.lower().strip()
-    # Handle same unit  # noqa: E114
+    # Handle same unit
     if from_unit == to_unit:
         return value
 
-    # Look up conversion  # noqa: E114
+    # Look up conversion
     conversion_key = (from_unit, to_unit)
     if conversion_key in all_conversions:
         return all_conversions[conversion_key](value)
 
     raise ValueError(f"Conversion from {from_unit} to {to_unit} not supported")
+
+
 _GUARD_CAPTURE: ContextVar[list[ServiceGuardResult] | None] = ContextVar(
     "pawcontrol_service_guard_capture",
     default=None,

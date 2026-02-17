@@ -32,9 +32,12 @@ class UpdateBatch:
         timestamp: When batch was created
         scheduled: Whether update is scheduled
     """
+
     entities: set[str]
     timestamp: datetime
     scheduled: bool = False
+
+
 class EntityUpdateBatcher:
     """Batches entity updates to reduce state writes.
 
@@ -46,6 +49,7 @@ class EntityUpdateBatcher:
         >>> await batcher.async_setup()
         >>> await batcher.schedule_update("sensor.dog_gps")
     """
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -102,6 +106,7 @@ class EntityUpdateBatcher:
         # Start batch task if not running
         if self._batch_task is None or self._batch_task.done():
             self._batch_task = asyncio.create_task(self._process_batch())
+
     async def _process_batch(self) -> None:
         """Process pending updates after batch window."""
         # Wait for batch window
@@ -133,6 +138,7 @@ class EntityUpdateBatcher:
         # Schedule next batch if more pending
         if self._pending:
             self._batch_task = asyncio.create_task(self._process_batch())
+
     def get_stats(self) -> dict[str, Any]:
         """Get batcher statistics.
 
@@ -160,6 +166,7 @@ class SignificantChangeTracker:
         >>> if tracker.is_significant_change("sensor.gps", 45.5231, 45.5232):
         ...     entity.async_write_ha_state()
     """
+
     def __init__(self) -> None:
         """Initialize significant change tracker."""
         self._last_values: dict[str, Any] = {}
@@ -253,7 +260,7 @@ class SignificantChangeTracker:
         if entity_id is None:
             self._last_values.clear()
         else:
-            # Remove all keys for this entity  # noqa: E114
+            # Remove all keys for this entity
             keys_to_remove = [
                 k for k in self._last_values if k.startswith(f"{entity_id}.")
             ]
@@ -272,6 +279,7 @@ class EntityUpdateScheduler:
         >>> await scheduler.async_setup()
         >>> scheduler.register_entity("sensor.gps", update_interval=30)
     """
+
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize entity update scheduler.
 
@@ -288,6 +296,7 @@ class EntityUpdateScheduler:
         # Register common intervals
         for interval in [10, 30, 60, 300, 900]:
             self._setup_interval(interval)
+
     def _setup_interval(self, interval_seconds: int) -> None:
         """Set up update interval.
 
@@ -344,6 +353,7 @@ class EntityUpdateScheduler:
             interval = self._entities[entity_id]["interval"]
             self._intervals[interval].discard(entity_id)
             del self._entities[entity_id]
+
     def async_shutdown(self) -> None:
         """Shut down the scheduler."""
         for unsub in self._unsub_functions:
@@ -390,15 +400,16 @@ def skip_redundant_update(
         ...     async def async_update(self):
         ...         self._attr_latitude = await get_latitude()
     """
+
     def decorator(func: Any) -> Any:
         async def wrapper(self: Any) -> Any:
-            # Get old value  # noqa: E114
+            # Get old value
             old_value = getattr(self, f"_attr_{attribute}", None)
-            # Call original update  # noqa: E114
+            # Call original update
             await func(self)
-            # Get new value  # noqa: E114
+            # Get new value
             new_value = getattr(self, f"_attr_{attribute}", None)
-            # Check significance  # noqa: E114
+            # Check significance
             if not tracker.is_significant_change(
                 self.entity_id,
                 attribute,
@@ -411,6 +422,8 @@ def skip_redundant_update(
         return wrapper
 
     return decorator
+
+
 # Helper functions
 
 
@@ -431,7 +444,7 @@ def calculate_optimal_update_interval(
         >>> interval = calculate_optimal_update_interval("gps", "high")
         >>> assert interval == 10
     """
-    # Base intervals by data type  # noqa: E114
+    # Base intervals by data type
     base_intervals = {
         "gps": 30,
         "walk": 60,
@@ -440,7 +453,7 @@ def calculate_optimal_update_interval(
         "weather": 900,
     }
 
-    # Volatility multipliers  # noqa: E114
+    # Volatility multipliers
     multipliers = {
         "low": 2.0,
         "medium": 1.0,
@@ -450,6 +463,8 @@ def calculate_optimal_update_interval(
     base = base_intervals.get(data_type, 60)
     multiplier = multipliers.get(volatility, 1.0)
     return int(base * multiplier)
+
+
 def estimate_state_write_reduction(
     update_count_before: int,
     update_count_after: int,

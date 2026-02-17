@@ -45,28 +45,28 @@ validate_sensor_entity_id = validation.validate_sensor_entity_id
 
 
 class _FakeStates(dict[str, SimpleNamespace]):
-    """Minimal state registry for validation tests."""  # noqa: E111
+    """Minimal state registry for validation tests."""
 
 
 @dataclass(slots=True)
 class _FakeHomeAssistant:
-    """Minimal Home Assistant stub for validation tests."""  # noqa: E111
+    """Minimal Home Assistant stub for validation tests."""
 
-    states: _FakeStates  # noqa: E111
+    states: _FakeStates
 
 
 class _NotificationChannel(Enum):
-    MOBILE = "mobile"  # noqa: E111
-    EMAIL = "email"  # noqa: E111
+    MOBILE = "mobile"
+    EMAIL = "email"
 
 
 def test_validate_gps_coordinates_success() -> None:
-    latitude, longitude = InputValidator.validate_gps_coordinates(  # noqa: E111
+    latitude, longitude = InputValidator.validate_gps_coordinates(
         52.52,
         13.405,
     )
-    assert latitude == pytest.approx(52.52)  # noqa: E111
-    assert longitude == pytest.approx(13.405)  # noqa: E111
+    assert latitude == pytest.approx(52.52)
+    assert longitude == pytest.approx(13.405)
 
 
 @pytest.mark.parametrize(
@@ -83,10 +83,10 @@ def test_validate_gps_coordinates_invalid(
     longitude: float | None,
     field: str,
 ) -> None:
-    with pytest.raises(ValidationError) as err:  # noqa: E111
+    with pytest.raises(ValidationError) as err:
         InputValidator.validate_gps_coordinates(latitude, longitude)
 
-    assert err.value.field == field  # noqa: E111
+    assert err.value.field == field
 
 
 @pytest.mark.parametrize(
@@ -97,16 +97,16 @@ def test_validate_gps_coordinates_invalid(
     ],
 )
 def test_validate_geofence_radius_bounds(radius: float, field: str) -> None:
-    assert InputValidator.validate_geofence_radius(50) == pytest.approx(50)  # noqa: E111
+    assert InputValidator.validate_geofence_radius(50) == pytest.approx(50)
 
-    with pytest.raises(ValidationError) as err:  # noqa: E111
+    with pytest.raises(ValidationError) as err:
         InputValidator.validate_geofence_radius(radius)
 
-    assert err.value.field == field  # noqa: E111
+    assert err.value.field == field
 
 
 def test_validate_gps_json_schema_accepts_config() -> None:
-    payload = {  # noqa: E111
+    payload = {
         "gps_source": "manual",
         "gps_update_interval": 60,
         "gps_accuracy_filter": 25.0,
@@ -114,41 +114,41 @@ def test_validate_gps_json_schema_accepts_config() -> None:
         "home_zone_radius": 50.0,
     }
 
-    assert validate_json_schema_payload(payload, GPS_DOG_CONFIG_JSON_SCHEMA) == []  # noqa: E111
+    assert validate_json_schema_payload(payload, GPS_DOG_CONFIG_JSON_SCHEMA) == []
 
 
 def test_validate_gps_json_schema_rejects_invalid_payload() -> None:
-    payload = {  # noqa: E111
+    payload = {
         "gps_source": "",
         "gps_update_interval": 2,
     }
 
-    violations = validate_json_schema_payload(payload, GPS_OPTIONS_JSON_SCHEMA)  # noqa: E111
-    assert violations  # noqa: E111
+    violations = validate_json_schema_payload(payload, GPS_OPTIONS_JSON_SCHEMA)
+    assert violations
 
 
 def test_normalize_dog_id_strips_and_normalizes() -> None:
-    assert normalize_dog_id("  My Pup  ") == "my_pup"  # noqa: E111
+    assert normalize_dog_id("  My Pup  ") == "my_pup"
 
 
 def test_normalize_dog_id_rejects_non_string() -> None:
-    with pytest.raises(InputCoercionError):  # noqa: E111
+    with pytest.raises(InputCoercionError):
         normalize_dog_id(123)
 
 
 def test_coerce_helpers_reject_invalid_types() -> None:
-    assert coerce_int("age", "7") == 7  # noqa: E111
-    assert coerce_float("weight", "2.5") == pytest.approx(2.5)  # noqa: E111
+    assert coerce_int("age", "7") == 7
+    assert coerce_float("weight", "2.5") == pytest.approx(2.5)
 
-    with pytest.raises(InputCoercionError):  # noqa: E111
+    with pytest.raises(InputCoercionError):
         coerce_int("age", 2.5)
 
-    with pytest.raises(InputCoercionError):  # noqa: E111
+    with pytest.raises(InputCoercionError):
         coerce_float("weight", "")
 
 
 def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
-    hass = _FakeHomeAssistant(  # noqa: E111
+    hass = _FakeHomeAssistant(
         _FakeStates({
             "binary_sensor.front_door": SimpleNamespace(
                 state="on",
@@ -157,7 +157,7 @@ def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
         })
     )
 
-    assert (  # noqa: E111
+    assert (
         validate_sensor_entity_id(
             hass,
             " binary_sensor.front_door ",
@@ -171,7 +171,7 @@ def test_validate_sensor_entity_id_accepts_valid_entity() -> None:
 
 
 def test_validate_sensor_entity_id_rejects_wrong_device_class() -> None:
-    hass = _FakeHomeAssistant(  # noqa: E111
+    hass = _FakeHomeAssistant(
         _FakeStates({
             "binary_sensor.front_door": SimpleNamespace(
                 state="on",
@@ -180,7 +180,7 @@ def test_validate_sensor_entity_id_rejects_wrong_device_class() -> None:
         })
     )
 
-    with pytest.raises(ValidationError) as err:  # noqa: E111
+    with pytest.raises(ValidationError) as err:
         validate_sensor_entity_id(
             hass,
             "binary_sensor.front_door",
@@ -190,25 +190,25 @@ def test_validate_sensor_entity_id_rejects_wrong_device_class() -> None:
             not_found_constraint="door_sensor_not_found",
         )
 
-    assert err.value.constraint == "door_sensor_not_found"  # noqa: E111
+    assert err.value.constraint == "door_sensor_not_found"
 
 
 def test_validate_dog_name_rejects_invalid_types() -> None:
-    with pytest.raises(ValidationError) as err:  # noqa: E111
+    with pytest.raises(ValidationError) as err:
         validate_dog_name(123)
 
-    assert err.value.constraint == "dog_name_invalid"  # noqa: E111
+    assert err.value.constraint == "dog_name_invalid"
 
 
 def test_validate_dog_name_enforces_length() -> None:
-    with pytest.raises(ValidationError) as err:  # noqa: E111
+    with pytest.raises(ValidationError) as err:
         validate_dog_name(" ")
 
-    assert err.value.constraint == "dog_name_required"  # noqa: E111
+    assert err.value.constraint == "dog_name_required"
 
 
 def test_validate_gps_interval_rejects_non_numeric() -> None:
-    with pytest.raises(ValidationError) as err:  # noqa: E111
+    with pytest.raises(ValidationError) as err:
         validate_gps_interval(
             "fast",
             minimum=5,
@@ -216,24 +216,24 @@ def test_validate_gps_interval_rejects_non_numeric() -> None:
             required=True,
         )
 
-    assert err.value.constraint == "gps_update_interval_not_numeric"  # noqa: E111
+    assert err.value.constraint == "gps_update_interval_not_numeric"
 
 
 def test_validate_notification_targets_normalises_values() -> None:
-    result = validate_notification_targets(  # noqa: E111
+    result = validate_notification_targets(
         ["mobile", "pager", _NotificationChannel.EMAIL, "mobile"],
         enum_type=_NotificationChannel,
     )
 
-    assert result.targets == [  # noqa: E111
+    assert result.targets == [
         _NotificationChannel.MOBILE,
         _NotificationChannel.EMAIL,
     ]
-    assert result.invalid == ["pager"]  # noqa: E111
+    assert result.invalid == ["pager"]
 
 
 def test_validate_time_window_rejects_invalid_time() -> None:
-    with pytest.raises(ValidationError) as err:  # noqa: E111
+    with pytest.raises(ValidationError) as err:
         validate_time_window(
             "25:61",
             "07:00:00",
@@ -245,4 +245,4 @@ def test_validate_time_window_rejects_invalid_time() -> None:
             invalid_end_constraint="quiet_end_invalid",
         )
 
-    assert err.value.constraint == "quiet_start_invalid"  # noqa: E111
+    assert err.value.constraint == "quiet_start_invalid"

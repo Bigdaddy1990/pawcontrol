@@ -28,8 +28,12 @@ from .const import (
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+
 class PawControlValidationError(ServiceValidationError):  # type: ignore[misc]
     """Base validation error for PawControl."""
+
+
 ValidationError = PawControlValidationError
 
 # Validation constants
@@ -68,6 +72,7 @@ TNotificationTarget = TypeVar("TNotificationTarget", bound=Enum)
 
 class InputCoercionError(ValueError):
     """Raised when raw input cannot be coerced to the expected type."""
+
     def __init__(self, field: str, value: Any, message: str) -> None:
         super().__init__(message)
         self.field = field
@@ -78,11 +83,16 @@ class InputCoercionError(ValueError):
 def _is_empty(value: Any) -> bool:
     """Return True when a value should be treated as missing."""
     return value is None or (isinstance(value, str) and not value.strip())
+
+
 @dataclass(frozen=True, slots=True)
 class NotificationTargets[TNotificationTarget: Enum]:
     """Typed result for notification target validation."""
+
     targets: list[TNotificationTarget]
     invalid: list[str]
+
+
 def _coerce_float_with_constraint(
     field: str,
     value: Any,
@@ -105,6 +115,8 @@ def normalize_dog_id(raw_id: Any) -> str:
 
     dog_id_raw = raw_id.strip().lower()
     return re.sub(r"\s+", "_", dog_id_raw)
+
+
 def _parse_time_string(
     field: str,
     value: Any,
@@ -130,6 +142,8 @@ def _parse_time_string(
         raise ValidationError(field, value, invalid_constraint) from err
 
     return parsed.isoformat()
+
+
 def coerce_float(field: str, value: Any) -> float:
     """Convert a value to float while raising typed coercion errors."""
     if isinstance(value, bool):
@@ -274,6 +288,8 @@ def validate_notification_targets[TNotificationTarget: Enum](
         targets.append(target)
 
     return NotificationTargets(targets=targets, invalid=invalid)
+
+
 def validate_time_window(
     start: Any,
     end: Any,
@@ -309,6 +325,8 @@ def validate_time_window(
         raise ValidationError(end_field, end, required_end_constraint)
 
     return start_time, end_time
+
+
 def validate_dog_name(
     name: Any,
     *,
@@ -369,6 +387,8 @@ def validate_dog_name(
         )
 
     return trimmed
+
+
 def validate_name(
     raw_name: Any,
     *,
@@ -398,6 +418,8 @@ def validate_name(
             max_value=max_length,
         )
     return name
+
+
 def validate_coordinate(
     value: Any,
     *,
@@ -430,6 +452,8 @@ def validate_coordinate(
             max_value=maximum,
         )
     return coordinate
+
+
 def validate_gps_source(
     hass: HomeAssistant,
     gps_source: Any,
@@ -458,6 +482,8 @@ def validate_gps_source(
         raise ValidationError(field, candidate, "gps_source_unavailable")
 
     return candidate
+
+
 def validate_notify_service(
     hass: HomeAssistant,
     notify_service: Any,
@@ -480,6 +506,8 @@ def validate_notify_service(
         raise ValidationError(field, candidate, "notify_service_not_found")
 
     return candidate
+
+
 def validate_gps_coordinates(latitude: Any, longitude: Any) -> tuple[float, float]:
     """Compatibility helper that raises ``InvalidCoordinatesError``.
 
@@ -510,6 +538,8 @@ def validate_entity_id(entity_id: Any, *, field: str = "entity_id") -> str:
         raise ValidationError(field, entity_id, "Invalid entity_id format")
 
     return candidate
+
+
 def validate_sensor_entity_id(
     hass: HomeAssistant,
     entity_id: Any,
@@ -549,6 +579,8 @@ def validate_sensor_entity_id(
         if device_class not in device_classes:
             raise ValidationError(field, candidate, not_found_constraint)
     return candidate
+
+
 def validate_interval(
     value: Any,
     *,
@@ -593,6 +625,8 @@ def validate_interval(
             max_value=maximum,
         )
     return interval
+
+
 def validate_gps_update_interval(
     value: Any,
     *,
@@ -678,6 +712,8 @@ def validate_expires_in_hours(
         )
 
     return hours
+
+
 def validate_gps_accuracy_value(
     accuracy: Any,
     *,
@@ -729,6 +765,8 @@ def validate_gps_accuracy_value(
         )
 
     return accuracy
+
+
 def validate_float_range(
     value: Any,
     minimum: float,
@@ -775,6 +813,8 @@ def validate_float_range(
             max_value=maximum,
         )
     return candidate
+
+
 def validate_int_range(
     value: Any,
     *,
@@ -822,6 +862,8 @@ def validate_int_range(
             max_value=maximum,
         )
     return interval
+
+
 def clamp_int_range(
     value: Any,
     *,
@@ -873,6 +915,7 @@ class InputValidator:
     Provides static methods for validating all types of user inputs
     with detailed error reporting and security checks.
     """
+
     @staticmethod
     def validate_dog_id(dog_id: Any, required: bool = True) -> str | None:
         """Validate and sanitize dog identifier.

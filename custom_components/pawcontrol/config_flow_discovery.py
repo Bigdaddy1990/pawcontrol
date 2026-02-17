@@ -22,9 +22,7 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.components.bluetooth import (
-        BluetoothServiceInfoBleak,
-    )
+    from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 else:  # pragma: no cover - only used for typing
     BluetoothServiceInfoBleak = Any
 _LOGGER = logging.getLogger(__name__)
@@ -79,8 +77,11 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     DiscoveryFlowHost = object
+
+
 class DiscoveryFlowMixin(DiscoveryFlowHost):
     """Mixin that provides HA discovery steps for the config flow."""
+
     async def async_step_zeroconf(
         self,
         discovery_info: ZeroconfServiceInfo,

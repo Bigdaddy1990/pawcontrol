@@ -54,9 +54,11 @@ def _normalise_text(value: object | None) -> str:
     """Return a lowercase string suitable for matching against ``value``."""
     if value is None:
         return ""
-    # When ``value`` is an Exception, use its string form; otherwise cast to str  # noqa: E114, E501
+    # When ``value`` is an Exception, use its string form; otherwise cast to str  # noqa: E501
     text = str(value) if isinstance(value, Exception) else str(value)
     return text.strip().lower()
+
+
 def classify_error_reason(
     reason: str | None,
     *,
@@ -77,23 +79,23 @@ def classify_error_reason(
         if classified is not None:
             return classified
     error_text = _normalise_text(error)
-    # Hints to detect authentication/authorization errors  # noqa: E114
+    # Hints to detect authentication/authorization errors
     for hint in _AUTH_HINTS:
         if hint in error_text:
             return "auth_error"
-    # Hints to detect unreachable devices or network issues  # noqa: E114
+    # Hints to detect unreachable devices or network issues
     for hint in _UNREACHABLE_HINTS:
         if hint in error_text:
             return "device_unreachable"
-    # Hints to detect timeout conditions  # noqa: E114
+    # Hints to detect timeout conditions
     for hint in _TIMEOUT_HINTS:
         if hint in error_text:
             return "timeout"
-    # Hints to detect rate limiting  # noqa: E114
+    # Hints to detect rate limiting
     for hint in _RATE_LIMIT_HINTS:
         if hint in error_text:
             return "rate_limited"
-    # Explicitly classify generic exception reasons  # noqa: E114
+    # Explicitly classify generic exception reasons
     if reason_text == "exception":
         return "exception"
 

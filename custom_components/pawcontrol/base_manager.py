@@ -9,7 +9,7 @@ Python: 3.14+
 """
 
 from abc import ABC, abstractmethod
-from contextlib import suppress
+from contextlib import suppress  # noqa: F401
 import logging
 import time
 from typing import TYPE_CHECKING, Any
@@ -62,7 +62,7 @@ class BaseManager(ABC):
     def __init__(
         self,
         hass: HomeAssistant,
-        coordinator: "PawControlCoordinator | None" = None,
+        coordinator: PawControlCoordinator | None = None,
     ) -> None:
         """Initialize the base manager.
 
@@ -90,7 +90,7 @@ class BaseManager(ABC):
         return self._hass
 
     @property
-    def coordinator(self) -> "PawControlCoordinator | None":
+    def coordinator(self) -> PawControlCoordinator | None:
         """Return coordinator instance if available."""
         return self._coordinator
 
@@ -138,7 +138,7 @@ class BaseManager(ABC):
         """
 
     @abstractmethod
-    def get_diagnostics(self) -> "JSONMapping":
+    def get_diagnostics(self) -> JSONMapping:
         """Return diagnostic information about the manager.
 
         Returns:
@@ -227,7 +227,7 @@ class BaseManager(ABC):
                 str(exc),
             ) from exc
 
-    def get_lifecycle_diagnostics(self) -> "JSONMapping":
+    def get_lifecycle_diagnostics(self) -> JSONMapping:
         """Return lifecycle diagnostic information.
 
         Returns:
@@ -264,7 +264,7 @@ class BaseManager(ABC):
                     "Manager has been shut down",
                 )
 
-    def _require_coordinator(self) -> "PawControlCoordinator":
+    def _require_coordinator(self) -> PawControlCoordinator:
         """Ensure coordinator is available.
 
         Returns:

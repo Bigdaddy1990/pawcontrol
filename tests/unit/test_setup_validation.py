@@ -20,10 +20,10 @@ from custom_components.pawcontrol.types import DogConfigData
 
 @pytest.fixture
 def mock_config_entry() -> MagicMock:
-    """Create a mock config entry."""  # noqa: E111
-    entry = MagicMock()  # noqa: E111
-    entry.entry_id = "test_entry_id"  # noqa: E111
-    entry.data = {  # noqa: E111
+    """Create a mock config entry."""
+    entry = MagicMock()
+    entry.entry_id = "test_entry_id"
+    entry.data = {
         CONF_DOGS: [
             {
                 "dog_id": "buddy",
@@ -36,88 +36,88 @@ def mock_config_entry() -> MagicMock:
             },
         ],
     }
-    entry.options = {"entity_profile": "standard"}  # noqa: E111
-    return entry  # noqa: E111
+    entry.options = {"entity_profile": "standard"}
+    return entry
 
 
 @pytest.mark.asyncio
 async def test_async_validate_entry_config_success(mock_config_entry) -> None:
-    """Test successful config validation."""  # noqa: E111
-    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)  # noqa: E111
+    """Test successful config validation."""
+    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
 
-    assert len(dogs) == 1  # noqa: E111
-    assert dogs[0]["dog_id"] == "buddy"  # noqa: E111
-    assert dogs[0]["dog_name"] == "Buddy"  # noqa: E111
-    assert profile == "standard"  # noqa: E111
-    assert "gps" in modules  # noqa: E111
-    assert "feeding" in modules  # noqa: E111
-    assert "health" not in modules  # noqa: E111
+    assert len(dogs) == 1
+    assert dogs[0]["dog_id"] == "buddy"
+    assert dogs[0]["dog_name"] == "Buddy"
+    assert profile == "standard"
+    assert "gps" in modules
+    assert "feeding" in modules
+    assert "health" not in modules
 
 
 @pytest.mark.asyncio
 async def test_async_validate_entry_config_empty_dogs(mock_config_entry) -> None:
-    """Test validation with no dogs configured."""  # noqa: E111
-    mock_config_entry.data = {CONF_DOGS: []}  # noqa: E111
+    """Test validation with no dogs configured."""
+    mock_config_entry.data = {CONF_DOGS: []}
 
-    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)  # noqa: E111
+    dogs, profile, modules = await async_validate_entry_config(mock_config_entry)
 
-    assert len(dogs) == 0  # noqa: E111
-    assert profile == "standard"  # noqa: E111
-    assert len(modules) == 0  # noqa: E111
+    assert len(dogs) == 0
+    assert profile == "standard"
+    assert len(modules) == 0
 
 
 @pytest.mark.asyncio
 async def test_async_validate_entry_config_invalid_dogs_type(mock_config_entry) -> None:
-    """Test validation fails with invalid dogs type."""  # noqa: E111
-    mock_config_entry.data = {CONF_DOGS: "invalid"}  # noqa: E111
+    """Test validation fails with invalid dogs type."""
+    mock_config_entry.data = {CONF_DOGS: "invalid"}
 
-    with pytest.raises(ConfigurationError, match="must be a list"):  # noqa: E111
+    with pytest.raises(ConfigurationError, match="must be a list"):
         await async_validate_entry_config(mock_config_entry)
 
 
 @pytest.mark.asyncio
 async def test_async_validate_entry_config_invalid_dog_entry(mock_config_entry) -> None:
-    """Test validation fails with invalid dog entry."""  # noqa: E111
-    mock_config_entry.data = {CONF_DOGS: ["not_a_dict"]}  # noqa: E111
+    """Test validation fails with invalid dog entry."""
+    mock_config_entry.data = {CONF_DOGS: ["not_a_dict"]}
 
-    with pytest.raises(ConfigurationError, match="must be mappings"):  # noqa: E111
+    with pytest.raises(ConfigurationError, match="must be mappings"):
         await async_validate_entry_config(mock_config_entry)
 
 
 @pytest.mark.asyncio
 async def test_async_validate_entry_config_missing_dog_id(mock_config_entry) -> None:
-    """Test validation fails with missing dog_id."""  # noqa: E111
-    mock_config_entry.data = {CONF_DOGS: [{"dog_name": "Buddy"}]}  # noqa: E111
+    """Test validation fails with missing dog_id."""
+    mock_config_entry.data = {CONF_DOGS: [{"dog_name": "Buddy"}]}
 
-    with pytest.raises(ConfigurationError, match="must include"):  # noqa: E111
+    with pytest.raises(ConfigurationError, match="must include"):
         await async_validate_entry_config(mock_config_entry)
 
 
 def test_validate_profile_standard(mock_config_entry) -> None:
-    """Test profile validation with standard profile."""  # noqa: E111
-    profile = _validate_profile(mock_config_entry)  # noqa: E111
-    assert profile == "standard"  # noqa: E111
+    """Test profile validation with standard profile."""
+    profile = _validate_profile(mock_config_entry)
+    assert profile == "standard"
 
 
 def test_validate_profile_unknown_fallback(mock_config_entry) -> None:
-    """Test profile validation falls back to standard for unknown profile."""  # noqa: E111
-    mock_config_entry.options = {"entity_profile": "unknown_profile"}  # noqa: E111
+    """Test profile validation falls back to standard for unknown profile."""
+    mock_config_entry.options = {"entity_profile": "unknown_profile"}
 
-    profile = _validate_profile(mock_config_entry)  # noqa: E111
-    assert profile == "standard"  # noqa: E111
+    profile = _validate_profile(mock_config_entry)
+    assert profile == "standard"
 
 
 def test_validate_profile_none_fallback(mock_config_entry) -> None:
-    """Test profile validation falls back to standard for None."""  # noqa: E111
-    mock_config_entry.options = {"entity_profile": None}  # noqa: E111
+    """Test profile validation falls back to standard for None."""
+    mock_config_entry.options = {"entity_profile": None}
 
-    profile = _validate_profile(mock_config_entry)  # noqa: E111
-    assert profile == "standard"  # noqa: E111
+    profile = _validate_profile(mock_config_entry)
+    assert profile == "standard"
 
 
 def test_extract_enabled_modules_success() -> None:
-    """Test extracting enabled modules."""  # noqa: E111
-    dogs_config: list[DogConfigData] = [  # noqa: E111
+    """Test extracting enabled modules."""
+    dogs_config: list[DogConfigData] = [
         {
             "dog_id": "buddy",
             "dog_name": "Buddy",
@@ -139,37 +139,37 @@ def test_extract_enabled_modules_success() -> None:
         },
     ]
 
-    modules = _extract_enabled_modules(dogs_config)  # noqa: E111
+    modules = _extract_enabled_modules(dogs_config)
 
-    assert "gps" in modules  # noqa: E111
-    assert "feeding" in modules  # noqa: E111
-    assert "walk" in modules  # noqa: E111
-    assert "notifications" in modules  # noqa: E111
-    assert "health" not in modules  # noqa: E111
+    assert "gps" in modules
+    assert "feeding" in modules
+    assert "walk" in modules
+    assert "notifications" in modules
+    assert "health" not in modules
 
 
 def test_extract_enabled_modules_empty() -> None:
-    """Test extracting modules from empty dogs list."""  # noqa: E111
-    modules = _extract_enabled_modules([])  # noqa: E111
-    assert len(modules) == 0  # noqa: E111
+    """Test extracting modules from empty dogs list."""
+    modules = _extract_enabled_modules([])
+    assert len(modules) == 0
 
 
 def test_extract_enabled_modules_no_modules_config() -> None:
-    """Test extracting modules when no modules configured."""  # noqa: E111
-    dogs_config: list[DogConfigData] = [  # noqa: E111
+    """Test extracting modules when no modules configured."""
+    dogs_config: list[DogConfigData] = [
         {
             "dog_id": "buddy",
             "dog_name": "Buddy",
         },
     ]
 
-    modules = _extract_enabled_modules(dogs_config)  # noqa: E111
-    assert len(modules) == 0  # noqa: E111
+    modules = _extract_enabled_modules(dogs_config)
+    assert len(modules) == 0
 
 
 def test_extract_enabled_modules_invalid_modules_type() -> None:
-    """Test extracting modules with invalid modules type."""  # noqa: E111
-    dogs_config: list[Mapping] = [  # noqa: E111
+    """Test extracting modules with invalid modules type."""
+    dogs_config: list[Mapping] = [
         {
             "dog_id": "buddy",
             "dog_name": "Buddy",
@@ -177,13 +177,13 @@ def test_extract_enabled_modules_invalid_modules_type() -> None:
         },
     ]
 
-    modules = _extract_enabled_modules(dogs_config)  # type: ignore  # noqa: E111
-    assert len(modules) == 0  # noqa: E111
+    modules = _extract_enabled_modules(dogs_config)  # type: ignore
+    assert len(modules) == 0
 
 
 def test_extract_enabled_modules_unknown_module() -> None:
-    """Test extracting modules filters unknown modules."""  # noqa: E111
-    dogs_config: list[DogConfigData] = [  # noqa: E111
+    """Test extracting modules filters unknown modules."""
+    dogs_config: list[DogConfigData] = [
         {
             "dog_id": "buddy",
             "dog_name": "Buddy",
@@ -194,7 +194,7 @@ def test_extract_enabled_modules_unknown_module() -> None:
         },
     ]
 
-    modules = _extract_enabled_modules(dogs_config)  # noqa: E111
+    modules = _extract_enabled_modules(dogs_config)
 
-    assert "gps" in modules  # noqa: E111
-    assert "unknown_module" not in modules  # noqa: E111
+    assert "gps" in modules
+    assert "unknown_module" not in modules

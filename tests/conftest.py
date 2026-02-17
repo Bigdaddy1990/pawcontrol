@@ -8,8 +8,6 @@ remaining lightweight enough to run the full suite (unit, integration,
 diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
 
-# ruff: noqa: E111
-
 import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -39,13 +37,13 @@ from custom_components.pawcontrol.types import (
 from tests.helpers import typed_deepcopy
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry  # noqa: E111
+    from homeassistant.config_entries import ConfigEntry
 
-    from custom_components.pawcontrol.feeding_manager import (  # noqa: E111
+    from custom_components.pawcontrol.feeding_manager import (
         FeedingBatchEntry,
         FeedingManager,
     )
-    from custom_components.pawcontrol.walk_manager import WalkManager  # noqa: E111
+    from custom_components.pawcontrol.walk_manager import WalkManager
 
 
 pytest_plugins = (
@@ -56,22 +54,22 @@ pytest_plugins = (
 
 
 def _run_async(coro):
-    try:  # noqa: E111
+    try:
         asyncio.get_running_loop()
-    except RuntimeError:  # noqa: E111
+    except RuntimeError:
         return asyncio.run(coro)
-    runner_loop = asyncio.new_event_loop()  # noqa: E111
-    try:  # noqa: E111
+    runner_loop = asyncio.new_event_loop()
+    try:
         return runner_loop.run_until_complete(coro)
-    finally:  # noqa: E111
+    finally:
         runner_loop.close()
 
 
 @pytest.fixture
 def hass() -> StubHomeAssistant:
-    """Return a minimal Home Assistant test instance."""  # noqa: E111
+    """Return a minimal Home Assistant test instance."""
 
-    return StubHomeAssistant()  # noqa: E111
+    return StubHomeAssistant()
 
 
 # ==============================================================================
@@ -85,8 +83,8 @@ def mock_dog_config() -> FeedingManagerDogSetupPayload:
 
     Returns:
         Complete dog configuration mapping for FeedingManager
-    """  # noqa: E111
-    config: FeedingManagerDogSetupPayload = {  # noqa: E111
+    """
+    config: FeedingManagerDogSetupPayload = {
         "dog_id": "test_dog",
         "dog_name": "Buddy",
         "breed": "Golden Retriever",
@@ -112,7 +110,7 @@ def mock_dog_config() -> FeedingManagerDogSetupPayload:
             "calories_per_100g": 350,
         },
     }
-    return config  # noqa: E111
+    return config
 
 
 @pytest.fixture
@@ -126,20 +124,20 @@ def mock_multi_dog_config(
 
     Returns:
         List of dog configuration payloads
-    """  # noqa: E111
-    dog1 = typed_deepcopy(mock_dog_config)  # noqa: E111
-    dog1["dog_id"] = "buddy"  # noqa: E111
-    dog1["dog_name"] = "Buddy"  # noqa: E111
-    dog1["weight"] = 30.0  # noqa: E111
+    """
+    dog1 = typed_deepcopy(mock_dog_config)
+    dog1["dog_id"] = "buddy"
+    dog1["dog_name"] = "Buddy"
+    dog1["weight"] = 30.0
 
-    dog2 = typed_deepcopy(mock_dog_config)  # noqa: E111
-    dog2["dog_id"] = "max"  # noqa: E111
-    dog2["dog_name"] = "Max"  # noqa: E111
-    dog2["weight"] = 15.0  # noqa: E111
-    dog2["breed"] = "Beagle"  # noqa: E111
-    dog2["activity_level"] = "high"  # noqa: E111
+    dog2 = typed_deepcopy(mock_dog_config)
+    dog2["dog_id"] = "max"
+    dog2["dog_name"] = "Max"
+    dog2["weight"] = 15.0
+    dog2["breed"] = "Beagle"
+    dog2["activity_level"] = "high"
 
-    return [dog1, dog2]  # noqa: E111
+    return [dog1, dog2]
 
 
 @pytest.fixture
@@ -151,10 +149,10 @@ def mock_config_entry(mock_dog_config: FeedingManagerDogSetupPayload) -> ConfigE
 
     Returns:
         Mock ConfigEntry object
-    """  # noqa: E111
-    from homeassistant.config_entries import ConfigEntry  # noqa: E111
+    """
+    from homeassistant.config_entries import ConfigEntry
 
-    entry = ConfigEntry(  # noqa: E111
+    entry = ConfigEntry(
         domain="pawcontrol",
         data={"dogs": [mock_dog_config]},
         options={
@@ -165,46 +163,46 @@ def mock_config_entry(mock_dog_config: FeedingManagerDogSetupPayload) -> ConfigE
         title="Test PawControl",
     )
 
-    entry.version = 1  # noqa: E111
-    entry.minor_version = 0  # noqa: E111
-    entry.state = "loaded"  # noqa: E111
+    entry.version = 1
+    entry.minor_version = 0
+    entry.state = "loaded"
 
-    return entry  # noqa: E111
+    return entry
 
 
 @pytest.fixture
 def mock_hass() -> Any:
-    """Mock Home Assistant instance with proper async support."""  # noqa: E111
-    from homeassistant.core import HomeAssistant  # noqa: E111
+    """Mock Home Assistant instance with proper async support."""
+    from homeassistant.core import HomeAssistant
 
-    hass = Mock(spec=HomeAssistant)  # noqa: E111
-    hass.data = {}  # noqa: E111
-    hass.states = Mock()  # noqa: E111
-    hass.services = Mock()  # noqa: E111
-    hass.bus = Mock()  # noqa: E111
-    hass.config_entries = Mock()  # noqa: E111
-    hass.config_entries.async_update_entry = Mock()  # noqa: E111
-    hass.config = Mock()  # noqa: E111
-    hass.config.latitude = 52.5200  # noqa: E111
-    hass.config.longitude = 13.4050  # noqa: E111
+    hass = Mock(spec=HomeAssistant)
+    hass.data = {}
+    hass.states = Mock()
+    hass.services = Mock()
+    hass.bus = Mock()
+    hass.config_entries = Mock()
+    hass.config_entries.async_update_entry = Mock()
+    hass.config = Mock()
+    hass.config.latitude = 52.5200
+    hass.config.longitude = 13.4050
 
-    # Mock async methods  # noqa: E114
-    hass.async_create_task = AsyncMock()  # noqa: E111
-    hass.services.async_call = AsyncMock()  # noqa: E111
-    hass.bus.async_fire = AsyncMock()  # noqa: E111
+    # Mock async methods
+    hass.async_create_task = AsyncMock()
+    hass.services.async_call = AsyncMock()
+    hass.bus.async_fire = AsyncMock()
 
-    return hass  # noqa: E111
+    return hass
 
 
 class _MockClientSession(Mock):
-    """Test double that mimics :class:`aiohttp.ClientSession` semantics."""  # noqa: E111
+    """Test double that mimics :class:`aiohttp.ClientSession` semantics."""
 
-    def __init__(self) -> None:  # noqa: E111
+    def __init__(self) -> None:
         super().__init__(spec=ClientSession)
         self.closed = False
 
         async def _close() -> None:
-            self.closed = True  # noqa: E111
+            self.closed = True
 
         self.close = AsyncMock(side_effect=_close)
         self.request = AsyncMock(name="request")
@@ -217,73 +215,73 @@ class _MockClientSession(Mock):
         self.options = AsyncMock(side_effect=self.request, name="options")
 
         def _context_response(*args: Any, **kwargs: Any) -> AsyncMock:
-            """Return an async context manager for ``session.post`` usage."""  # noqa: E111
+            """Return an async context manager for ``session.post`` usage."""
 
-            response = Mock()  # noqa: E111
-            response.status = kwargs.get("status", 200)  # noqa: E111
-            response.text = AsyncMock(return_value=kwargs.get("text", ""))  # noqa: E111
-            response.json = AsyncMock(return_value=kwargs.get("json", {}))  # noqa: E111
+            response = Mock()
+            response.status = kwargs.get("status", 200)
+            response.text = AsyncMock(return_value=kwargs.get("text", ""))
+            response.json = AsyncMock(return_value=kwargs.get("json", {}))
 
-            response.read = AsyncMock(return_value=kwargs.get("body", b""))  # noqa: E111
+            response.read = AsyncMock(return_value=kwargs.get("body", b""))
 
-            response_cm = AsyncMock()  # noqa: E111
-            response_cm.__aenter__.return_value = response  # noqa: E111
-            response_cm.__aexit__.return_value = False  # noqa: E111
-            response_cm.call_args = (args, kwargs)  # noqa: E111
-            return response_cm  # noqa: E111
+            response_cm = AsyncMock()
+            response_cm.__aenter__.return_value = response
+            response_cm.__aexit__.return_value = False
+            response_cm.call_args = (args, kwargs)
+            return response_cm
 
         self.post = AsyncMock(side_effect=_context_response, name="post")
 
         async def _ws_connect(*args: Any, **kwargs: Any) -> AsyncMock:
-            """Return an async context manager for websocket usage."""  # noqa: E111
+            """Return an async context manager for websocket usage."""
 
-            websocket = AsyncMock()  # noqa: E111
-            websocket.closed = False  # noqa: E111
-            websocket.close = AsyncMock(name="close")  # noqa: E111
-            websocket.send_json = AsyncMock(name="send_json")  # noqa: E111
-            websocket.send_str = AsyncMock(name="send_str")  # noqa: E111
-            websocket.send_bytes = AsyncMock(name="send_bytes")  # noqa: E111
-            websocket.receive_json = AsyncMock(  # noqa: E111
+            websocket = AsyncMock()
+            websocket.closed = False
+            websocket.close = AsyncMock(name="close")
+            websocket.send_json = AsyncMock(name="send_json")
+            websocket.send_str = AsyncMock(name="send_str")
+            websocket.send_bytes = AsyncMock(name="send_bytes")
+            websocket.receive_json = AsyncMock(
                 return_value=kwargs.get("receive_json", {}),
                 name="receive_json",
             )
-            websocket.receive_str = AsyncMock(  # noqa: E111
+            websocket.receive_str = AsyncMock(
                 return_value=kwargs.get("receive_str", ""),
                 name="receive_str",
             )
-            websocket.receive_bytes = AsyncMock(  # noqa: E111
+            websocket.receive_bytes = AsyncMock(
                 return_value=kwargs.get("receive_bytes", b""),
                 name="receive_bytes",
             )
 
-            ws_cm = AsyncMock()  # noqa: E111
-            ws_cm.__aenter__.return_value = websocket  # noqa: E111
-            ws_cm.__aexit__.return_value = False  # noqa: E111
-            ws_cm.call_args = (args, kwargs)  # noqa: E111
-            return ws_cm  # noqa: E111
+            ws_cm = AsyncMock()
+            ws_cm.__aenter__.return_value = websocket
+            ws_cm.__aexit__.return_value = False
+            ws_cm.call_args = (args, kwargs)
+            return ws_cm
 
         self.ws_connect = AsyncMock(side_effect=_ws_connect, name="ws_connect")
 
 
 @pytest.fixture
 def session_factory() -> Callable[..., _MockClientSession]:
-    """Return a factory that creates aiohttp session doubles."""  # noqa: E111
+    """Return a factory that creates aiohttp session doubles."""
 
-    def _factory(*, closed: bool = False) -> _MockClientSession:  # noqa: E111
+    def _factory(*, closed: bool = False) -> _MockClientSession:
         session = _MockClientSession()
         session.closed = closed
         return session
 
-    return _factory  # noqa: E111
+    return _factory
 
 
 @pytest.fixture
 def mock_session(
     session_factory: Callable[..., _MockClientSession],
 ) -> _MockClientSession:
-    """Return a reusable aiohttp session double for HTTP entry points."""  # noqa: E111
+    """Return a reusable aiohttp session double for HTTP entry points."""
 
-    return session_factory()  # noqa: E111
+    return session_factory()
 
 
 @pytest.fixture
@@ -295,24 +293,24 @@ def mock_resilience_manager(mock_hass):
 
     Returns:
         Mock ResilienceManager with passthrough execution
-    """  # noqa: E111
-    from custom_components.pawcontrol.resilience import ResilienceManager  # noqa: E111
+    """
+    from custom_components.pawcontrol.resilience import ResilienceManager
 
-    manager = Mock(spec=ResilienceManager)  # noqa: E111
+    manager = Mock(spec=ResilienceManager)
 
-    # Make execute_with_resilience pass through to the actual function  # noqa: E114
-    async def passthrough_execution(func, *args, **kwargs):  # noqa: E111
+    # Make execute_with_resilience pass through to the actual function
+    async def passthrough_execution(func, *args, **kwargs):
         """Execute function without resilience for testing."""
         if len(args) > 0:
-            return await func(*args)  # noqa: E111
+            return await func(*args)
         return await func()
 
-    manager.execute_with_resilience = AsyncMock(  # noqa: E111
+    manager.execute_with_resilience = AsyncMock(
         side_effect=passthrough_execution,
     )
-    manager.get_all_circuit_breakers = Mock(return_value={})  # noqa: E111
+    manager.get_all_circuit_breakers = Mock(return_value={})
 
-    return manager  # noqa: E111
+    return manager
 
 
 @pytest.fixture
@@ -332,19 +330,17 @@ def mock_coordinator(
 
     Returns:
         Mock coordinator instance
-    """  # noqa: E111
-    from custom_components.pawcontrol.coordinator import (
-        PawControlCoordinator,  # noqa: E111
-    )
+    """
+    from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
-    coordinator = PawControlCoordinator(  # noqa: E111
+    coordinator = PawControlCoordinator(
         mock_hass,
         mock_config_entry,
         mock_session,
     )
-    coordinator.resilience_manager = mock_resilience_manager  # noqa: E111
+    coordinator.resilience_manager = mock_resilience_manager
 
-    coordinator.data = {  # noqa: E111
+    coordinator.data = {
         "test_dog": {
             "dog_info": mock_config_entry.data["dogs"][0],
             "status": "online",
@@ -356,9 +352,9 @@ def mock_coordinator(
         },
     }
 
-    coordinator.last_update_success = True  # noqa: E111
+    coordinator.last_update_success = True
 
-    yield coordinator  # noqa: E111
+    yield coordinator
 
 
 @pytest.fixture
@@ -373,15 +369,13 @@ def mock_feeding_manager(
 
     Returns:
         Initialized FeedingManager
-    """  # noqa: E111
-    from custom_components.pawcontrol.feeding_manager import (
-        FeedingManager,  # noqa: E111
-    )
+    """
+    from custom_components.pawcontrol.feeding_manager import FeedingManager
 
-    manager = FeedingManager(mock_hass)  # noqa: E111
-    _run_async(manager.async_initialize([mock_dog_config]))  # noqa: E111
+    manager = FeedingManager(mock_hass)
+    _run_async(manager.async_initialize([mock_dog_config]))
 
-    return manager  # noqa: E111
+    return manager
 
 
 @pytest.fixture
@@ -395,13 +389,13 @@ def mock_walk_manager(
 
     Returns:
         Initialized WalkManager
-    """  # noqa: E111
-    from custom_components.pawcontrol.walk_manager import WalkManager  # noqa: E111
+    """
+    from custom_components.pawcontrol.walk_manager import WalkManager
 
-    manager = WalkManager()  # noqa: E111
-    _run_async(manager.async_initialize([mock_dog_config["dog_id"]]))  # noqa: E111
+    manager = WalkManager()
+    _run_async(manager.async_initialize([mock_dog_config["dog_id"]]))
 
-    return manager  # noqa: E111
+    return manager
 
 
 @pytest.fixture
@@ -414,15 +408,13 @@ def mock_gps_manager(mock_hass, mock_resilience_manager):
 
     Returns:
         Initialized GPSGeofenceManager
-    """  # noqa: E111
-    from custom_components.pawcontrol.gps_manager import (
-        GPSGeofenceManager,  # noqa: E111
-    )
+    """
+    from custom_components.pawcontrol.gps_manager import GPSGeofenceManager
 
-    manager = GPSGeofenceManager(mock_hass)  # noqa: E111
-    manager.resilience_manager = mock_resilience_manager  # noqa: E111
+    manager = GPSGeofenceManager(mock_hass)
+    manager.resilience_manager = mock_resilience_manager
 
-    return manager  # noqa: E111
+    return manager
 
 
 @pytest.fixture
@@ -435,21 +427,19 @@ def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
 
     Returns:
         Initialized NotificationManager
-    """  # noqa: E111
-    from custom_components.pawcontrol.notifications import (
-        PawControlNotificationManager,  # noqa: E111
-    )
+    """
+    from custom_components.pawcontrol.notifications import PawControlNotificationManager
 
-    manager = PawControlNotificationManager(  # noqa: E111
+    manager = PawControlNotificationManager(
         mock_hass,
         "test_entry",
         session=mock_session,
     )
-    manager.resilience_manager = mock_resilience_manager  # noqa: E111
+    manager.resilience_manager = mock_resilience_manager
 
-    _run_async(manager.async_initialize())  # noqa: E111
+    _run_async(manager.async_initialize())
 
-    return manager  # noqa: E111
+    return manager
 
 
 @pytest.fixture
@@ -461,15 +451,13 @@ def mock_data_manager(mock_hass):
 
     Returns:
         Initialized DataManager
-    """  # noqa: E111
-    from custom_components.pawcontrol.data_manager import (
-        PawControlDataManager,  # noqa: E111
-    )
+    """
+    from custom_components.pawcontrol.data_manager import PawControlDataManager
 
-    manager = PawControlDataManager(mock_hass, "test_entry")  # noqa: E111
-    _run_async(manager.async_initialize())  # noqa: E111
+    manager = PawControlDataManager(mock_hass, "test_entry")
+    _run_async(manager.async_initialize())
 
-    return manager  # noqa: E111
+    return manager
 
 
 @pytest.fixture
@@ -478,13 +466,10 @@ def mock_gps_point():
 
     Returns:
         GPSPoint instance
-    """  # noqa: E111
-    from custom_components.pawcontrol.gps_manager import (  # noqa: E111
-        GPSPoint,
-        LocationSource,
-    )
+    """
+    from custom_components.pawcontrol.gps_manager import GPSPoint, LocationSource
 
-    return GPSPoint(  # noqa: E111
+    return GPSPoint(
         latitude=52.5200,
         longitude=13.4050,
         timestamp=datetime.now(UTC),
@@ -503,20 +488,17 @@ def mock_walk_route(mock_gps_point):
 
     Returns:
         WalkRoute instance
-    """  # noqa: E111
-    from custom_components.pawcontrol.gps_manager import (  # noqa: E111
-        GPSPoint,
-        WalkRoute,
-    )
+    """
+    from custom_components.pawcontrol.gps_manager import GPSPoint, WalkRoute
 
-    route = WalkRoute(  # noqa: E111
+    route = WalkRoute(
         dog_id="test_dog",
         start_time=datetime.now(UTC) - timedelta(hours=1),
         end_time=datetime.now(UTC),
     )
 
-    # Add some GPS points  # noqa: E114
-    for i in range(10):  # noqa: E111
+    # Add some GPS points
+    for i in range(10):
         point = GPSPoint(
             latitude=52.5200 + (i * 0.001),
             longitude=13.4050 + (i * 0.001),
@@ -525,10 +507,10 @@ def mock_walk_route(mock_gps_point):
         )
         route.gps_points.append(point)
 
-    route.total_distance_meters = 1500.0  # noqa: E111
-    route.total_duration_seconds = 3600.0  # noqa: E111
+    route.total_distance_meters = 1500.0
+    route.total_duration_seconds = 3600.0
 
-    return route  # noqa: E111
+    return route
 
 
 # ==============================================================================
@@ -542,24 +524,24 @@ def assert_valid_dog_data():
 
     Returns:
         Validation function
-    """  # noqa: E111
+    """
 
-    def _assert(data: CoordinatorDogData) -> None:  # noqa: E111
+    def _assert(data: CoordinatorDogData) -> None:
         """Validate dog data structure."""
         assert "dog_info" in data
         assert "status" in data
         assert data["status"] in ["online", "offline", "unknown"]
 
         if "feeding" in data:
-            assert isinstance(data["feeding"], dict)  # noqa: E111
+            assert isinstance(data["feeding"], dict)
 
         if "walk" in data:
-            assert isinstance(data["walk"], dict)  # noqa: E111
+            assert isinstance(data["walk"], dict)
 
         if "gps" in data:
-            assert isinstance(data["gps"], dict)  # noqa: E111
+            assert isinstance(data["gps"], dict)
 
-    return _assert  # noqa: E111
+    return _assert
 
 
 @pytest.fixture
@@ -568,9 +550,9 @@ def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
 
     Returns:
         Factory function for feeding events
-    """  # noqa: E111
+    """
 
-    def _create(  # noqa: E111
+    def _create(
         dog_id: str = "test_dog",
         amount: float = 200.0,
         meal_type: str = "breakfast",
@@ -594,7 +576,7 @@ def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
         }
         return event
 
-    return _create  # noqa: E111
+    return _create
 
 
 @pytest.fixture
@@ -603,9 +585,9 @@ def create_walk_event():
 
     Returns:
         Factory function for walk events
-    """  # noqa: E111
+    """
 
-    def _create(  # noqa: E111
+    def _create(
         dog_id: str = "test_dog",
         duration_minutes: float = 30.0,
         distance_meters: float = 1500.0,
@@ -627,7 +609,7 @@ def create_walk_event():
         }
         return event
 
-    return _create  # noqa: E111
+    return _create
 
 
 # ==============================================================================
@@ -640,17 +622,17 @@ def pytest_configure(config) -> None:
 
     Args:
         config: Pytest configuration object
-    """  # noqa: E111
-    config.addinivalue_line(  # noqa: E111
+    """
+    config.addinivalue_line(
         "markers",
         "unit: Unit tests that don't require Home Assistant",
     )
-    config.addinivalue_line(  # noqa: E111
+    config.addinivalue_line(
         "markers",
         "integration: Integration tests that require Home Assistant",
     )
-    config.addinivalue_line("markers", "slow: Slow running tests (> 1 second)")  # noqa: E111
-    config.addinivalue_line("markers", "load: Load testing tests")  # noqa: E111
+    config.addinivalue_line("markers", "slow: Slow running tests (> 1 second)")
+    config.addinivalue_line("markers", "load: Load testing tests")
 
 
 def pytest_collection_modifyitems(config, items) -> None:
@@ -659,12 +641,12 @@ def pytest_collection_modifyitems(config, items) -> None:
     Args:
         config: Pytest configuration
         items: Test items collected
-    """  # noqa: E111
-    for item in items:  # noqa: E111
+    """
+    for item in items:
         # Auto-mark integration tests
         if "components" in str(item.fspath):
-            item.add_marker(pytest.mark.integration)  # noqa: E111
+            item.add_marker(pytest.mark.integration)
 
         # Auto-mark unit tests
         if "unit" in str(item.fspath):
-            item.add_marker(pytest.mark.unit)  # noqa: E111
+            item.add_marker(pytest.mark.unit)
