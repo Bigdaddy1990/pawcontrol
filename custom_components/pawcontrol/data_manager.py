@@ -103,35 +103,26 @@ _MODULE_HISTORY_ATTRS: Final[dict[str, tuple[str, str]]] = {
 }
 
 if __name__ not in sys.modules and "pawcontrol_data_manager" in sys.modules:
-    sys.modules[__name__] = sys.modules["pawcontrol_data_manager"]  # noqa: E111
-
-
+    sys.modules[__name__] = sys.modules["pawcontrol_data_manager"]
 class AdaptiveCacheEntry(TypedDict, total=False):
-    """Metadata stored for each AdaptiveCache entry."""  # noqa: E111
-
-    expiry: NotRequired[datetime | None]  # noqa: E111
-    created_at: NotRequired[datetime]  # noqa: E111
-    ttl: NotRequired[int]  # noqa: E111
-    override_applied: NotRequired[bool]  # noqa: E111
-
-
+    """Metadata stored for each AdaptiveCache entry."""
+    expiry: NotRequired[datetime | None]
+    created_at: NotRequired[datetime]
+    ttl: NotRequired[int]
+    override_applied: NotRequired[bool]
 class AdaptiveCacheStats(TypedDict):
-    """Statistics payload returned by :meth:`AdaptiveCache.get_stats`."""  # noqa: E111
-
-    size: int  # noqa: E111
-    hits: int  # noqa: E111
-    misses: int  # noqa: E111
-    hit_rate: float  # noqa: E111
-    memory_mb: float  # noqa: E111
-
-
+    """Statistics payload returned by :meth:`AdaptiveCache.get_stats`."""
+    size: int
+    hits: int
+    misses: int
+    hit_rate: float
+    memory_mb: float
 ValueT = TypeVar("ValueT")
 
 
 class AdaptiveCache[ValueT]:
-    """Simple asynchronous cache used by legacy tests."""  # noqa: E111
-
-    def __init__(self, default_ttl: int = 300) -> None:  # noqa: E111
+    """Simple asynchronous cache used by legacy tests."""
+    def __init__(self, default_ttl: int = 300) -> None:
         """Initialise the cache with the provided default TTL."""
 
         self._default_ttl = default_ttl
@@ -149,119 +140,112 @@ class AdaptiveCache[ValueT]:
             "last_expired_count": 0,
         }
 
-    async def get(self, key: str) -> tuple[ValueT | None, bool]:  # noqa: E111
+    async def get(self, key: str) -> tuple[ValueT | None, bool]:
         """Return cached value for ``key`` and whether it was a cache hit."""
 
         async with self._lock:
-            entry = self._metadata.get(key)  # noqa: E111
-            if entry is None:  # noqa: E111
+            entry = self._metadata.get(key)
+            if entry is None:
                 self._misses += 1
                 return None, False
 
-            now = _utcnow()  # noqa: E111
-            entry = self._normalize_entry_locked(key, entry, now)  # noqa: E111
-
-            expiry = entry.get("expiry")  # noqa: E111
-            if expiry is not None and now > expiry:  # noqa: E111
+            now = _utcnow()
+            entry = self._normalize_entry_locked(key, entry, now)
+            expiry = entry.get("expiry")
+            if expiry is not None and now > expiry:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
                 self._diagnostics["expired_entries"] = (
                     int(self._diagnostics.get("expired_entries", 0)) + 1
                 )
                 if bool(entry.get("override_applied")):
-                    self._diagnostics["expired_via_override"] = (  # noqa: E111
+                    self._diagnostics["expired_via_override"] = (
                         int(self._diagnostics.get("expired_via_override", 0)) + 1
                     )
                 self._diagnostics["last_expired_count"] = 1
                 self._misses += 1
                 return None, False
 
-            self._hits += 1  # noqa: E111
-            return self._data[key], True  # noqa: E111
-
-    async def set(self, key: str, value: ValueT, base_ttl: int = 300) -> None:  # noqa: E111
+            self._hits += 1
+            return self._data[key], True
+    async def set(self, key: str, value: ValueT, base_ttl: int = 300) -> None:
         """Store ``value`` for ``key`` honouring ``base_ttl`` when positive."""
 
         async with self._lock:
-            ttl = base_ttl if base_ttl > 0 else self._default_ttl  # noqa: E111
-            now = _utcnow()  # noqa: E111
-            expiry = None if ttl <= 0 else now + timedelta(seconds=ttl)  # noqa: E111
-            self._data[key] = value  # noqa: E111
-            self._metadata[key] = {  # noqa: E111
+            ttl = base_ttl if base_ttl > 0 else self._default_ttl
+            now = _utcnow()
+            expiry = None if ttl <= 0 else now + timedelta(seconds=ttl)
+            self._data[key] = value
+            self._metadata[key] = {
                 "expiry": expiry,
                 "created_at": now,
                 "ttl": ttl,
                 "override_applied": False,
             }
 
-    async def cleanup_expired(self, ttl_seconds: int | None = None) -> int:  # noqa: E111
+    async def cleanup_expired(self, ttl_seconds: int | None = None) -> int:
         """Remove expired cache entries and return the number purged."""
 
         async with self._lock:
-            now = _utcnow()  # noqa: E111
-            override_ttl: int | None  # noqa: E111
-            if ttl_seconds is None:  # noqa: E111
+            now = _utcnow()
+            override_ttl: int | None
+            if ttl_seconds is None:
                 override_ttl = None
-            else:  # noqa: E111
+            else:
                 override_ttl = int(ttl_seconds)
                 if override_ttl < 0:
-                    override_ttl = 0  # noqa: E111
-
-            expired: list[str] = []  # noqa: E111
-            expired_with_override = 0  # noqa: E111
-            for key, meta in list(self._metadata.items()):  # noqa: E111
+                    override_ttl = 0
+            expired: list[str] = []
+            expired_with_override = 0
+            for key, meta in list(self._metadata.items()):
                 meta = self._normalize_entry_locked(key, meta, now)
                 created_at = meta.get("created_at")
                 if not isinstance(created_at, datetime):
-                    created_at = now  # noqa: E111
-
+                    created_at = now
                 stored_ttl = int(meta.get("ttl", self._default_ttl))
                 effective_ttl = stored_ttl
                 override_applied = False
 
                 if override_ttl is not None:
-                    if override_ttl <= 0:  # noqa: E111
+                    if override_ttl <= 0:
                         effective_ttl = 0
-                    elif stored_ttl <= 0:  # noqa: E111
+                    elif stored_ttl <= 0:
                         effective_ttl = override_ttl
-                    else:  # noqa: E111
+                    else:
                         effective_ttl = min(stored_ttl, override_ttl)
-                    override_applied = effective_ttl != stored_ttl  # noqa: E111
-
+                    override_applied = effective_ttl != stored_ttl
                 expiry: datetime | None
                 if effective_ttl <= 0:
-                    expiry = None  # noqa: E111
+                    expiry = None
                 else:
-                    expiry = created_at + timedelta(seconds=effective_ttl)  # noqa: E111
-
+                    expiry = created_at + timedelta(seconds=effective_ttl)
                 meta["expiry"] = expiry
                 meta["override_applied"] = override_applied
                 self._metadata[key] = meta
 
                 if expiry is not None and now >= expiry:
-                    expired.append(key)  # noqa: E111
-                    if override_applied:  # noqa: E111
+                    expired.append(key)
+                    if override_applied:
                         expired_with_override += 1
 
-            for key in expired:  # noqa: E111
+            for key in expired:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
 
-            self._diagnostics["cleanup_invocations"] += 1  # noqa: E111
-            self._diagnostics["last_cleanup"] = now  # noqa: E111
-            self._diagnostics["last_override_ttl"] = override_ttl  # noqa: E111
-            self._diagnostics["last_expired_count"] = len(expired)  # noqa: E111
-            self._diagnostics["expired_entries"] = int(  # noqa: E111
+            self._diagnostics["cleanup_invocations"] += 1
+            self._diagnostics["last_cleanup"] = now
+            self._diagnostics["last_override_ttl"] = override_ttl
+            self._diagnostics["last_expired_count"] = len(expired)
+            self._diagnostics["expired_entries"] = int(
                 self._diagnostics.get("expired_entries", 0),
             ) + len(expired)
-            self._diagnostics["expired_via_override"] = (  # noqa: E111
+            self._diagnostics["expired_via_override"] = (
                 int(self._diagnostics.get("expired_via_override", 0))
                 + expired_with_override
             )
 
-            return len(expired)  # noqa: E111
-
-    def get_stats(self) -> AdaptiveCacheStats:  # noqa: E111
+            return len(expired)
+    def get_stats(self) -> AdaptiveCacheStats:
         """Return basic cache statistics used by diagnostics."""
 
         total = self._hits + self._misses
@@ -275,7 +259,7 @@ class AdaptiveCache[ValueT]:
         }
         return stats
 
-    def get_diagnostics(self) -> CacheDiagnosticsMetadata:  # noqa: E111
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         """Return cleanup metrics to surface override activity in diagnostics."""
 
         snapshot = cast(CacheDiagnosticsMetadata, dict(self._diagnostics))
@@ -289,7 +273,7 @@ class AdaptiveCache[ValueT]:
         snapshot["tracked_entries"] = len(self._metadata)
         return snapshot
 
-    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         """Return a combined statistics/diagnostics payload for coordinators."""
 
         stats = self.get_stats()
@@ -300,7 +284,7 @@ class AdaptiveCache[ValueT]:
             diagnostics=diagnostics,
         )
 
-    def _normalize_entry_locked(  # noqa: E111
+    def _normalize_entry_locked(
         self,
         key: str,
         entry: AdaptiveCacheEntry,
@@ -311,59 +295,55 @@ class AdaptiveCache[ValueT]:
         ttl = int(entry.get("ttl", self._default_ttl))
         created_at = entry.get("created_at")
         if not isinstance(created_at, datetime):
-            created_at = now  # noqa: E111
+            created_at = now
         elif created_at > now:
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Normalising future AdaptiveCache entry for %s (delta=%s)",
                 key,
                 created_at - now,
             )
-            created_at = now  # noqa: E111
-
+            created_at = now
         entry["created_at"] = created_at
         entry["ttl"] = ttl
         entry["override_applied"] = bool(entry.get("override_applied", False))
 
         if ttl <= 0:
-            entry["expiry"] = None  # noqa: E111
+            entry["expiry"] = None
         else:
-            expiry = entry.get("expiry")  # noqa: E111
-            if not isinstance(expiry, datetime) or expiry <= created_at:  # noqa: E111
+            expiry = entry.get("expiry")
+            if not isinstance(expiry, datetime) or expiry <= created_at:
                 expiry = created_at + timedelta(seconds=ttl)
-            entry["expiry"] = expiry  # noqa: E111
-
+            entry["expiry"] = expiry
         self._metadata[key] = entry
         return entry
 
 
 class _EntityBudgetMonitor:
-    """Expose entity budget tracker internals to the data manager monitor."""  # noqa: E111
-
-    __slots__ = ("_tracker",)  # noqa: E111
-
-    def __init__(self, tracker: Any) -> None:  # noqa: E111
+    """Expose entity budget tracker internals to the data manager monitor."""
+    __slots__ = ("_tracker",)
+    def __init__(self, tracker: Any) -> None:
         self._tracker = tracker
 
-    def _build_payload(self) -> tuple[EntityBudgetStats, EntityBudgetDiagnostics]:  # noqa: E111
+    def _build_payload(self) -> tuple[EntityBudgetStats, EntityBudgetDiagnostics]:
         tracker = self._tracker
         summary_payload: JSONMutableMapping
 
         try:
-            raw_snapshots = tracker.snapshots()  # noqa: E111
+            raw_snapshots = tracker.snapshots()
         except Exception as err:  # pragma: no cover - diagnostics guard
-            snapshots: Iterable[Any] = ()  # noqa: E111
-            summary_payload = _coerce_json_mutable({"error": str(err)})  # noqa: E111
+            snapshots: Iterable[Any] = ()
+            summary_payload = _coerce_json_mutable({"error": str(err)})
         else:
-            snapshots = (  # noqa: E111
+            snapshots = (
                 raw_snapshots
                 if isinstance(raw_snapshots, Iterable)
                 else (raw_snapshots,)
             )
-            try:  # noqa: E111
+            try:
                 summary = tracker.summary()
-            except Exception as err:  # pragma: no cover - defensive guard  # noqa: E111
+            except Exception as err:  # pragma: no cover - defensive guard
                 summary_payload = _coerce_json_mutable({"error": str(err)})
-            else:  # noqa: E111
+            else:
                 summary_payload = (
                     _coerce_json_mutable(summary)
                     if isinstance(summary, Mapping)
@@ -372,8 +352,8 @@ class _EntityBudgetMonitor:
 
         serialised: list[EntityBudgetSnapshotEntry] = []
         for snapshot in snapshots:
-            recorded_at = getattr(snapshot, "recorded_at", None)  # noqa: E111
-            entry: EntityBudgetSnapshotEntry = {  # noqa: E111
+            recorded_at = getattr(snapshot, "recorded_at", None)
+            entry: EntityBudgetSnapshotEntry = {
                 "dog_id": str(getattr(snapshot, "dog_id", "")),
                 "profile": str(getattr(snapshot, "profile", "")),
                 "requested_entities": tuple(
@@ -385,40 +365,37 @@ class _EntityBudgetMonitor:
                 ),
             }
 
-            capacity = getattr(snapshot, "capacity", None)  # noqa: E111
-            if is_number(capacity):  # noqa: E111
+            capacity = getattr(snapshot, "capacity", None)
+            if is_number(capacity):
                 entry["capacity"] = float(cast(Number, capacity))
 
-            base_allocation = getattr(snapshot, "base_allocation", None)  # noqa: E111
-            if is_number(base_allocation):  # noqa: E111
+            base_allocation = getattr(snapshot, "base_allocation", None)
+            if is_number(base_allocation):
                 entry["base_allocation"] = float(cast(Number, base_allocation))
 
-            dynamic_allocation = getattr(snapshot, "dynamic_allocation", None)  # noqa: E111
-            if is_number(dynamic_allocation):  # noqa: E111
+            dynamic_allocation = getattr(snapshot, "dynamic_allocation", None)
+            if is_number(dynamic_allocation):
                 entry["dynamic_allocation"] = float(
                     cast(Number, dynamic_allocation),
                 )
 
-            if isinstance(recorded_at, datetime):  # noqa: E111
+            if isinstance(recorded_at, datetime):
                 entry["recorded_at"] = recorded_at.isoformat()
-            else:  # noqa: E111
+            else:
                 parsed = (
                     None
                     if recorded_at is None
                     else dt_util.parse_datetime(str(recorded_at))
                 )
                 if isinstance(parsed, datetime):
-                    entry["recorded_at"] = dt_util.as_utc(parsed).isoformat()  # noqa: E111
+                    entry["recorded_at"] = dt_util.as_utc(parsed).isoformat()
                 else:
-                    entry["recorded_at"] = None  # noqa: E111
-
-            serialised.append(entry)  # noqa: E111
-
+                    entry["recorded_at"] = None
+            serialised.append(entry)
         try:
-            saturation = float(tracker.saturation())  # noqa: E111
+            saturation = float(tracker.saturation())
         except Exception:  # pragma: no cover - defensive fallback
-            saturation = 0.0  # noqa: E111
-
+            saturation = 0.0
         stats: EntityBudgetStats = {
             "tracked_dogs": len(serialised),
             "saturation_percent": round(max(0.0, min(saturation, 1.0)) * 100.0, 2),
@@ -430,7 +407,7 @@ class _EntityBudgetMonitor:
         }
         return stats, diagnostics
 
-    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, diagnostics = self._build_payload()
         diagnostics_payload = cast(CacheDiagnosticsMetadata, diagnostics)
         return CacheDiagnosticsSnapshot(
@@ -438,29 +415,27 @@ class _EntityBudgetMonitor:
             diagnostics=diagnostics_payload,
         )
 
-    def get_stats(self) -> JSONMutableMapping:  # noqa: E111
+    def get_stats(self) -> JSONMutableMapping:
         stats, _diagnostics = self._build_payload()
         return cast(JSONMutableMapping, dict(stats))
 
-    def get_diagnostics(self) -> CacheDiagnosticsMetadata:  # noqa: E111
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, diagnostics = self._build_payload()
         return cast(CacheDiagnosticsMetadata, diagnostics)
 
 
 class _CoordinatorModuleCacheMonitor:
-    """Wrap coordinator module caches for diagnostics consumption."""  # noqa: E111
-
-    __slots__ = ("_modules",)  # noqa: E111
-
-    def __init__(self, modules: CoordinatorModuleAdapter) -> None:  # noqa: E111
+    """Wrap coordinator module caches for diagnostics consumption."""
+    __slots__ = ("_modules",)
+    def __init__(self, modules: CoordinatorModuleAdapter) -> None:
         self._modules: CoordinatorModuleAdapter = modules
 
-    @staticmethod  # noqa: E111
-    def _metrics_to_stats(  # noqa: E111
+    @staticmethod
+    def _metrics_to_stats(
         metrics: ModuleCacheMetrics | None,
     ) -> ModuleAdapterCacheStats:
         if metrics is None:
-            return {  # noqa: E111
+            return {
                 "entries": 0,
                 "hits": 0,
                 "misses": 0,
@@ -478,16 +453,16 @@ class _CoordinatorModuleCacheMonitor:
             "hit_rate": hit_rate,
         }
 
-    def _aggregate_metrics(self) -> tuple[ModuleAdapterCacheStats, list[str]]:  # noqa: E111
+    def _aggregate_metrics(self) -> tuple[ModuleAdapterCacheStats, list[str]]:
         errors: list[str] = []
         try:
-            metrics = self._modules.cache_metrics()  # noqa: E111
+            metrics = self._modules.cache_metrics()
         except Exception as err:  # pragma: no cover - diagnostics guard
-            errors.append(str(err))  # noqa: E111
-            metrics = None  # noqa: E111
+            errors.append(str(err))
+            metrics = None
         return self._metrics_to_stats(metrics), errors
 
-    def _per_module_snapshots(  # noqa: E111
+    def _per_module_snapshots(
         self,
     ) -> dict[
         str,
@@ -500,120 +475,109 @@ class _CoordinatorModuleCacheMonitor:
             | ModuleAdapterCacheStats,
         ] = {}
         for name in ("feeding", "walk", "geofencing", "health", "weather", "garden"):
-            adapter = getattr(self._modules, name, None)  # noqa: E111
-            if adapter is None:  # noqa: E111
+            adapter = getattr(self._modules, name, None)
+            if adapter is None:
                 continue
-            snapshot_fn = getattr(adapter, "cache_snapshot", None)  # noqa: E111
-            if callable(snapshot_fn):  # noqa: E111
+            snapshot_fn = getattr(adapter, "cache_snapshot", None)
+            if callable(snapshot_fn):
                 try:
-                    snapshot = cast(ModuleAdapterCacheSnapshot, snapshot_fn())  # noqa: E111
+                    snapshot = cast(ModuleAdapterCacheSnapshot, snapshot_fn())
                 except Exception as err:  # pragma: no cover - defensive guard
-                    payload[name] = ModuleAdapterCacheError(error=str(err))  # noqa: E111
-                    continue  # noqa: E111
+                    payload[name] = ModuleAdapterCacheError(error=str(err))
+                    continue
                 payload[name] = snapshot
                 continue
 
-            metrics_fn = getattr(adapter, "cache_metrics", None)  # noqa: E111
-            if callable(metrics_fn):  # noqa: E111
+            metrics_fn = getattr(adapter, "cache_metrics", None)
+            if callable(metrics_fn):
                 try:
-                    metrics = metrics_fn()  # noqa: E111
+                    metrics = metrics_fn()
                 except Exception as err:  # pragma: no cover - defensive guard
-                    payload[name] = ModuleAdapterCacheError(error=str(err))  # noqa: E111
-                    continue  # noqa: E111
+                    payload[name] = ModuleAdapterCacheError(error=str(err))
+                    continue
                 payload[name] = self._metrics_to_stats(metrics)
         return payload
 
-    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, errors = self._aggregate_metrics()
         diagnostics_payload: CacheDiagnosticsMetadata = cast(
             CacheDiagnosticsMetadata,
             {"per_module": self._per_module_snapshots()},
         )
         if errors:
-            diagnostics_payload["errors"] = errors  # noqa: E111
+            diagnostics_payload["errors"] = errors
         return CacheDiagnosticsSnapshot(
             stats=cast(JSONMutableMapping, dict(stats)),
             diagnostics=diagnostics_payload,
         )
 
-    def get_stats(self) -> ModuleAdapterCacheStats:  # noqa: E111
+    def get_stats(self) -> ModuleAdapterCacheStats:
         stats, _errors = self._aggregate_metrics()
         return stats
 
-    def get_diagnostics(self) -> CacheDiagnosticsMetadata:  # noqa: E111
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         diagnostics_payload: CacheDiagnosticsMetadata = cast(
             CacheDiagnosticsMetadata,
             {"per_module": self._per_module_snapshots()},
         )
         _, errors = self._aggregate_metrics()
         if errors:
-            diagnostics_payload["errors"] = errors  # noqa: E111
+            diagnostics_payload["errors"] = errors
         return diagnostics_payload
 
 
 def _estimate_namespace_entries(payload: Any) -> int:
-    """Return a best-effort entry count for namespace payloads."""  # noqa: E111
-
-    if isinstance(payload, Mapping):  # noqa: E111
+    """Return a best-effort entry count for namespace payloads."""
+    if isinstance(payload, Mapping):
         total = 0
         for value in payload.values():
-            total += _estimate_namespace_entries(value)  # noqa: E111
+            total += _estimate_namespace_entries(value)
         return total or len(payload)
 
-    if isinstance(payload, Sequence) and not isinstance(  # noqa: E111
+    if isinstance(payload, Sequence) and not isinstance(
         payload,
         str | bytes | bytearray,
     ):
         return len(payload)
 
-    return 1 if payload not in (None, "", (), [], {}) else 0  # noqa: E111
-
-
+    return 1 if payload not in (None, "", (), [], {}) else 0
 def _find_namespace_timestamp(payload: Any) -> str | None:
-    """Return the first ISO timestamp discovered in ``payload``."""  # noqa: E111
-
-    if isinstance(payload, Mapping):  # noqa: E111
+    """Return the first ISO timestamp discovered in ``payload``."""
+    if isinstance(payload, Mapping):
         for key in ("updated_at", "timestamp", "generated_at", "recorded_at"):
-            candidate = payload.get(key)  # noqa: E111
-            if isinstance(candidate, str):  # noqa: E111
+            candidate = payload.get(key)
+            if isinstance(candidate, str):
                 return candidate
         for value in payload.values():
-            found = _find_namespace_timestamp(value)  # noqa: E111
-            if found is not None:  # noqa: E111
+            found = _find_namespace_timestamp(value)
+            if found is not None:
                 return found
-    elif isinstance(payload, Sequence) and not isinstance(  # noqa: E111
+    elif isinstance(payload, Sequence) and not isinstance(
         payload,
         str | bytes | bytearray,
     ):
         for item in payload:
-            found = _find_namespace_timestamp(item)  # noqa: E111
-            if found is not None:  # noqa: E111
+            found = _find_namespace_timestamp(item)
+            if found is not None:
                 return found
-    return None  # noqa: E111
-
-
+    return None
 def _namespace_has_timestamp_field(payload: Any) -> bool:
-    """Return ``True`` if ``payload`` exposes a timestamp-like field."""  # noqa: E111
-
-    if isinstance(payload, Mapping):  # noqa: E111
+    """Return ``True`` if ``payload`` exposes a timestamp-like field."""
+    if isinstance(payload, Mapping):
         for key in ("updated_at", "timestamp", "generated_at", "recorded_at"):
-            if key in payload:  # noqa: E111
+            if key in payload:
                 return True
         return any(_namespace_has_timestamp_field(value) for value in payload.values())
-    if isinstance(payload, Sequence) and not isinstance(  # noqa: E111
+    if isinstance(payload, Sequence) and not isinstance(
         payload,
         str | bytes | bytearray,
     ):
         return any(_namespace_has_timestamp_field(item) for item in payload)
-    return False  # noqa: E111
-
-
+    return False
 class _StorageNamespaceCacheMonitor:
-    """Expose persisted namespace state for coordinator diagnostics."""  # noqa: E111
-
-    __slots__ = ("_label", "_manager", "_namespace")  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Expose persisted namespace state for coordinator diagnostics."""
+    __slots__ = ("_label", "_manager", "_namespace")
+    def __init__(
         self,
         manager: PawControlDataManager,
         namespace: str,
@@ -623,7 +587,7 @@ class _StorageNamespaceCacheMonitor:
         self._namespace = namespace
         self._label = label
 
-    def _build_payload(  # noqa: E111
+    def _build_payload(
         self,
     ) -> tuple[
         StorageNamespaceStats,
@@ -636,40 +600,38 @@ class _StorageNamespaceCacheMonitor:
         total_entries = 0
 
         for key, value in state.items():
-            dog_id = str(key)  # noqa: E111
-            entry_count = _estimate_namespace_entries(value)  # noqa: E111
-            total_entries += entry_count  # noqa: E111
-
-            summary: StorageNamespaceDogSummary = {  # noqa: E111
+            dog_id = str(key)
+            entry_count = _estimate_namespace_entries(value)
+            total_entries += entry_count
+            summary: StorageNamespaceDogSummary = {
                 "entries": entry_count,
                 "payload_type": type(value).__name__,
             }
 
-            timestamp = _find_namespace_timestamp(value)  # noqa: E111
-            if timestamp is not None:  # noqa: E111
+            timestamp = _find_namespace_timestamp(value)
+            if timestamp is not None:
                 summary["timestamp"] = timestamp
                 parsed = dt_util.parse_datetime(timestamp)
                 if parsed is None:
-                    timestamp_anomalies[dog_id] = "unparseable"  # noqa: E111
-                    summary["timestamp_issue"] = "unparseable"  # noqa: E111
+                    timestamp_anomalies[dog_id] = "unparseable"
+                    summary["timestamp_issue"] = "unparseable"
                 else:
-                    parsed_utc = dt_util.as_utc(parsed)  # noqa: E111
-                    delta = _utcnow() - parsed_utc  # noqa: E111
-                    summary["timestamp_age_seconds"] = int(  # noqa: E111
+                    parsed_utc = dt_util.as_utc(parsed)
+                    delta = _utcnow() - parsed_utc
+                    summary["timestamp_age_seconds"] = int(
                         delta.total_seconds(),
                     )
-                    if delta < -CACHE_TIMESTAMP_FUTURE_THRESHOLD:  # noqa: E111
+                    if delta < -CACHE_TIMESTAMP_FUTURE_THRESHOLD:
                         timestamp_anomalies[dog_id] = "future"
                         summary["timestamp_issue"] = "future"
-                    elif delta > CACHE_TIMESTAMP_STALE_THRESHOLD:  # noqa: E111
+                    elif delta > CACHE_TIMESTAMP_STALE_THRESHOLD:
                         timestamp_anomalies[dog_id] = "stale"
                         summary["timestamp_issue"] = "stale"
-            elif _namespace_has_timestamp_field(value):  # noqa: E111
+            elif _namespace_has_timestamp_field(value):
                 timestamp_anomalies[dog_id] = "missing"
                 summary["timestamp_issue"] = "missing"
 
-            per_dog[dog_id] = summary  # noqa: E111
-
+            per_dog[dog_id] = summary
         stats: StorageNamespaceStats = {
             "namespace": self._label,
             "dogs": len(per_dog),
@@ -689,11 +651,10 @@ class _StorageNamespaceCacheMonitor:
         }
 
         if timestamp_anomalies:
-            diagnostics["timestamp_anomalies"] = timestamp_anomalies  # noqa: E111
-
+            diagnostics["timestamp_anomalies"] = timestamp_anomalies
         return stats, snapshot, diagnostics
 
-    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:  # noqa: E111
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
         diagnostics_payload = diagnostics
         return CacheDiagnosticsSnapshot(
@@ -702,85 +663,69 @@ class _StorageNamespaceCacheMonitor:
             diagnostics=diagnostics_payload,
         )
 
-    def get_stats(self) -> JSONMutableMapping:  # noqa: E111
+    def get_stats(self) -> JSONMutableMapping:
         stats, _snapshot, _diagnostics = self._build_payload()
         return cast(JSONMutableMapping, dict(stats))
 
-    def get_diagnostics(self) -> CacheDiagnosticsMetadata:  # noqa: E111
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, _snapshot, diagnostics = self._build_payload()
         return diagnostics
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:
-    """Convert a datetime into ISO format."""  # noqa: E111
-
-    if value is None:  # noqa: E111
+    """Convert a datetime into ISO format."""
+    if value is None:
         return None
-    return dt_util.as_utc(value).isoformat()  # noqa: E111
-
-
+    return dt_util.as_utc(value).isoformat()
 def _deserialize_datetime(value: Any) -> datetime | None:
-    """Decode ISO formatted datetimes from JSON payloads."""  # noqa: E111
-
-    if value is None:  # noqa: E111
+    """Decode ISO formatted datetimes from JSON payloads."""
+    if value is None:
         return None
-    if isinstance(value, datetime):  # noqa: E111
+    if isinstance(value, datetime):
         return dt_util.as_utc(value)
-    parsed = dt_util.parse_datetime(str(value))  # noqa: E111
-    if parsed is None:  # noqa: E111
+    parsed = dt_util.parse_datetime(str(value))
+    if parsed is None:
         return None
-    return dt_util.as_utc(parsed)  # noqa: E111
-
-
+    return dt_util.as_utc(parsed)
 def _utcnow() -> datetime:
-    """Return the current UTC time honoring patched Home Assistant helpers."""  # noqa: E111
-
-    module = sys.modules.get("homeassistant.util.dt")  # noqa: E111
-    if module is not None:  # noqa: E111
+    """Return the current UTC time honoring patched Home Assistant helpers."""
+    module = sys.modules.get("homeassistant.util.dt")
+    if module is not None:
         candidate = getattr(module, "utcnow", None)
         if callable(candidate):
-            result = candidate()  # noqa: E111
-            if isinstance(result, datetime):  # noqa: E111
+            result = candidate()
+            if isinstance(result, datetime):
                 return result
-    return dt_util.utcnow()  # noqa: E111
-
-
+    return dt_util.utcnow()
 def _serialize_timestamp(value: Any | None) -> str:
-    """Return an ISO timestamp for ``value`` or ``utcnow`` when missing."""  # noqa: E111
-
-    if isinstance(value, datetime):  # noqa: E111
+    """Return an ISO timestamp for ``value`` or ``utcnow`` when missing."""
+    if isinstance(value, datetime):
         return dt_util.as_utc(value).isoformat()
-    if value:  # noqa: E111
+    if value:
         parsed = _deserialize_datetime(value)
         if parsed:
-            return parsed.isoformat()  # noqa: E111
-    return _utcnow().isoformat()  # noqa: E111
-
-
+            return parsed.isoformat()
+    return _utcnow().isoformat()
 def _coerce_mapping(value: JSONLikeMapping | None) -> JSONMutableMapping:
-    """Return a shallow copy of ``value`` ensuring a mutable mapping."""  # noqa: E111
-
-    if value is None:  # noqa: E111
+    """Return a shallow copy of ``value`` ensuring a mutable mapping."""
+    if value is None:
         return {}
-    if isinstance(value, dict):  # noqa: E111
+    if isinstance(value, dict):
         return cast(JSONMutableMapping, dict(value))
-    return {key: item for key, item in value.items()}  # noqa: E111
-
-
+    return {key: item for key, item in value.items()}
 def _merge_dicts(
     base: JSONLikeMapping | None,
     updates: JSONLikeMapping | None,
 ) -> JSONMutableMapping:
-    """Deep merge ``updates`` into ``base`` using Home Assistant semantics."""  # noqa: E111
-
-    merged = _coerce_mapping(base)  # noqa: E111
-    if updates is None:  # noqa: E111
+    """Deep merge ``updates`` into ``base`` using Home Assistant semantics."""
+    merged = _coerce_mapping(base)
+    if updates is None:
         return merged
 
-    for key, value in updates.items():  # noqa: E111
+    for key, value in updates.items():
         existing = merged.get(key)
         if isinstance(value, Mapping) and isinstance(existing, Mapping):
-            merged[key] = cast(  # noqa: E111
+            merged[key] = cast(
                 JSONValue,
                 _merge_dicts(
                     existing,
@@ -788,26 +733,20 @@ def _merge_dicts(
                 ),
             )
         else:
-            merged[key] = value  # noqa: E111
-    return merged  # noqa: E111
-
-
+            merged[key] = value
+    return merged
 def _limit_entries(
     entries: list[JSONMutableMapping],
     *,
     limit: int | None,
 ) -> list[JSONMutableMapping]:
-    """Return ``entries`` optionally constrained to the most recent ``limit``."""  # noqa: E111
-
-    if limit is None or limit <= 0:  # noqa: E111
+    """Return ``entries`` optionally constrained to the most recent ``limit``."""
+    if limit is None or limit <= 0:
         return entries
-    return list(islice(entries, max(len(entries) - limit, 0), None))  # noqa: E111
-
-
+    return list(islice(entries, max(len(entries) - limit, 0), None))
 def _coerce_health_payload(data: HealthData | JSONLikeMapping) -> JSONMutableMapping:
-    """Return a dict payload from ``data`` regardless of the input type."""  # noqa: E111
-
-    if isinstance(data, HealthData):  # noqa: E111
+    """Return a dict payload from ``data`` regardless of the input type."""
+    if isinstance(data, HealthData):
         raw_payload: dict[str, object] = {
             "timestamp": data.timestamp,
             "weight": data.weight,
@@ -825,37 +764,31 @@ def _coerce_health_payload(data: HealthData | JSONLikeMapping) -> JSONMutableMap
         payload = _coerce_json_mutable(
             cast(JSONMappingLike | JSONMutableMapping, raw_payload),
         )
-    elif isinstance(data, Mapping):  # noqa: E111
+    elif isinstance(data, Mapping):
         payload = _coerce_json_mutable(
             cast(JSONMappingLike | JSONMutableMapping, data),
         )
-    else:  # pragma: no cover - guard for unexpected input  # noqa: E111
+    else:  # pragma: no cover - guard for unexpected input
         raise TypeError("health data must be a mapping or HealthData instance")
 
-    payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))  # noqa: E111
-    return payload  # noqa: E111
-
-
+    payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
+    return payload
 def _coerce_medication_payload(data: JSONLikeMapping) -> JSONMutableMapping:
-    """Return normalised medication data for persistence."""  # noqa: E111
-
-    payload = _coerce_json_mutable(  # noqa: E111
+    """Return normalised medication data for persistence."""
+    payload = _coerce_json_mutable(
         cast(JSONMappingLike | JSONMutableMapping, data),
     )
-    payload["administration_time"] = _serialize_timestamp(  # noqa: E111
+    payload["administration_time"] = _serialize_timestamp(
         payload.get("administration_time"),
     )
-    payload.setdefault("logged_at", _utcnow().isoformat())  # noqa: E111
-    return payload  # noqa: E111
-
-
+    payload.setdefault("logged_at", _utcnow().isoformat())
+    return payload
 def _normalise_history_entries(entries: object) -> list[JSONMutableMapping]:
-    """Convert ``entries`` into JSON-compatible mutable mappings."""  # noqa: E111
-
-    if not isinstance(entries, Iterable) or isinstance(entries, bytes | str):  # noqa: E111
+    """Convert ``entries`` into JSON-compatible mutable mappings."""
+    if not isinstance(entries, Iterable) or isinstance(entries, bytes | str):
         return []
 
-    return [  # noqa: E111
+    return [
         cast(
             JSONMutableMapping,
             normalize_value(
@@ -870,29 +803,23 @@ def _normalise_history_entries(entries: object) -> list[JSONMutableMapping]:
 
 
 def _default_session_id_generator() -> str:
-    """Generate a unique identifier for grooming sessions."""  # noqa: E111
-
-    from uuid import uuid4  # noqa: E111
-
-    return uuid4().hex  # noqa: E111
-
-
+    """Generate a unique identifier for grooming sessions."""
+    from uuid import uuid4
+    return uuid4().hex
 @dataclass
 class DogProfile:
-    """Representation of all stored data for a single dog."""  # noqa: E111
-
-    config: DogConfigData  # noqa: E111
-    daily_stats: DailyStats  # noqa: E111
-    feeding_history: list[JSONMutableMapping] = field(default_factory=list)  # noqa: E111
-    walk_history: list[JSONMutableMapping] = field(default_factory=list)  # noqa: E111
-    health_history: list[JSONMutableMapping] = field(default_factory=list)  # noqa: E111
-    medication_history: list[JSONMutableMapping] = field(default_factory=list)  # noqa: E111
-    poop_history: list[JSONMutableMapping] = field(default_factory=list)  # noqa: E111
-    grooming_sessions: list[JSONMutableMapping] = field(default_factory=list)  # noqa: E111
-    current_walk: WalkData | None = None  # noqa: E111
-
-    @classmethod  # noqa: E111
-    def from_storage(  # noqa: E111
+    """Representation of all stored data for a single dog."""
+    config: DogConfigData
+    daily_stats: DailyStats
+    feeding_history: list[JSONMutableMapping] = field(default_factory=list)
+    walk_history: list[JSONMutableMapping] = field(default_factory=list)
+    health_history: list[JSONMutableMapping] = field(default_factory=list)
+    medication_history: list[JSONMutableMapping] = field(default_factory=list)
+    poop_history: list[JSONMutableMapping] = field(default_factory=list)
+    grooming_sessions: list[JSONMutableMapping] = field(default_factory=list)
+    current_walk: WalkData | None = None
+    @classmethod
+    def from_storage(
         cls,
         config: JSONLikeMapping,
         stored: JSONLikeMapping | None,
@@ -901,8 +828,8 @@ class DogProfile:
 
         daily_stats_payload: JSONMappingLike | JSONMutableMapping | None = None
         if stored:
-            raw_daily_stats = stored.get("daily_stats")  # noqa: E111
-            if isinstance(raw_daily_stats, Mapping):  # noqa: E111
+            raw_daily_stats = stored.get("daily_stats")
+            if isinstance(raw_daily_stats, Mapping):
                 daily_stats_payload = cast(
                     JSONMappingLike | JSONMutableMapping,
                     raw_daily_stats,
@@ -949,21 +876,19 @@ class DogProfile:
         )
 
         try:
-            daily_stats = DailyStats.from_dict(  # noqa: E111
+            daily_stats = DailyStats.from_dict(
                 cast(  # type: ignore[redundant-cast]
                     JSONMappingLike | JSONMutableMapping,
                     daily_stats_payload or {},
                 ),
             )
         except Exception:  # pragma: no cover - only triggered by corrupt files
-            daily_stats = DailyStats(date=_utcnow())  # noqa: E111
-
+            daily_stats = DailyStats(date=_utcnow())
         typed_config = ensure_dog_config_data(
             cast(JSONMappingLike | JSONMutableMapping, config),
         )
         if typed_config is None:
-            raise HomeAssistantError("Invalid dog configuration in storage")  # noqa: E111
-
+            raise HomeAssistantError("Invalid dog configuration in storage")
         return cls(
             config=typed_config,
             daily_stats=daily_stats,
@@ -975,7 +900,7 @@ class DogProfile:
             grooming_sessions=grooming_sessions,
         )
 
-    def as_dict(self) -> JSONMutableMapping:  # noqa: E111
+    def as_dict(self) -> JSONMutableMapping:
         """Return a serialisable representation of the profile."""
 
         data: JSONMutableMapping = {
@@ -990,15 +915,13 @@ class DogProfile:
         }
 
         if self.current_walk is not None:
-            data["current_walk"] = _serialize_walk(self.current_walk)  # noqa: E111
-
+            data["current_walk"] = _serialize_walk(self.current_walk)
         return data
 
 
 def _serialize_walk(walk: WalkData) -> JSONMutableMapping:
-    """Serialise a :class:`WalkData` instance into JSON friendly data."""  # noqa: E111
-
-    return {  # noqa: E111
+    """Serialise a :class:`WalkData` instance into JSON friendly data."""
+    return {
         "start_time": _serialize_datetime(walk.start_time),
         "end_time": _serialize_datetime(walk.end_time),
         "duration": walk.duration,
@@ -1016,16 +939,12 @@ def _serialize_walk(walk: WalkData) -> JSONMutableMapping:
 
 
 def _history_sort_key(entry: Mapping[str, JSONValue], field: str) -> str:
-    """Return a sortable key for history entries based on ``field``."""  # noqa: E111
-
-    value = entry.get(field)  # noqa: E111
-    return value if isinstance(value, str) else ""  # noqa: E111
-
-
+    """Return a sortable key for history entries based on ``field``."""
+    value = entry.get(field)
+    return value if isinstance(value, str) else ""
 class PawControlDataManager:
-    """Store and retrieve dog related data for the integration."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Store and retrieve dog related data for the integration."""
+    def __init__(
         self,
         hass: HomeAssistant,
         entry_id: str | None = None,
@@ -1039,25 +958,24 @@ class PawControlDataManager:
         self._coordinator = coordinator
         typed_configs: dict[str, DogConfigData] = {}
         for config in dogs_config or []:
-            if not isinstance(config, Mapping):  # noqa: E111
+            if not isinstance(config, Mapping):
                 continue
-            candidate = cast(dict[str, JSONValue], dict(config))  # noqa: E111
-            dog_id = candidate.get(DOG_ID_FIELD)  # noqa: E111
-            if not isinstance(dog_id, str) or not dog_id:  # noqa: E111
+            candidate = cast(dict[str, JSONValue], dict(config))
+            dog_id = candidate.get(DOG_ID_FIELD)
+            if not isinstance(dog_id, str) or not dog_id:
                 continue
-            if not isinstance(candidate.get(DOG_NAME_FIELD), str):  # noqa: E111
+            if not isinstance(candidate.get(DOG_NAME_FIELD), str):
                 candidate[DOG_NAME_FIELD] = dog_id
-            typed = ensure_dog_config_data(candidate)  # noqa: E111
-            if typed is None:  # noqa: E111
+            typed = ensure_dog_config_data(candidate)
+            if typed is None:
                 continue
-            typed_configs[typed[DOG_ID_FIELD]] = typed  # noqa: E111
-
+            typed_configs[typed[DOG_ID_FIELD]] = typed
         self._dogs_config: dict[str, DogConfigData] = typed_configs
 
         if entry_id is None and coordinator is not None:
-            entry = getattr(coordinator, "config_entry", None)  # noqa: E111
-            entry_id_candidate = getattr(entry, "entry_id", None)  # noqa: E111
-            if isinstance(entry_id_candidate, str):  # noqa: E111
+            entry = getattr(coordinator, "config_entry", None)
+            entry_id_candidate = getattr(entry, "entry_id", None)
+            if isinstance(entry_id_candidate, str):
                 entry_id = entry_id_candidate
 
         self.entry_id = entry_id or "default"
@@ -1087,37 +1005,34 @@ class PawControlDataManager:
         self._cache_registrar_ids: set[int] = set()
         self._auto_register_cache_monitors()
 
-    def _get_runtime_data(self) -> PawControlRuntimeData | None:  # noqa: E111
+    def _get_runtime_data(self) -> PawControlRuntimeData | None:
         """Return the runtime data container when available."""
 
         entry_id = getattr(self, "entry_id", None)
         if not entry_id:
-            return None  # noqa: E111
+            return None
         try:
-            from .runtime_data import get_runtime_data  # noqa: E111
+            from .runtime_data import get_runtime_data
         except ImportError:  # pragma: no cover - defensive
-            return None  # noqa: E111
-
+            return None
         try:
-            return get_runtime_data(self.hass, entry_id)  # noqa: E111
+            return get_runtime_data(self.hass, entry_id)
         except Exception:  # pragma: no cover - runtime retrieval errors
-            return None  # noqa: E111
-
-    def _get_namespace_lock(self, namespace: str) -> asyncio.Lock:  # noqa: E111
+            return None
+    def _get_namespace_lock(self, namespace: str) -> asyncio.Lock:
         """Return a lock used to guard namespace updates."""
 
         locks = getattr(self, "_namespace_locks", None)
         if locks is None:
-            locks = {}  # noqa: E111
-            self._namespace_locks = locks  # noqa: E111
-
+            locks = {}
+            self._namespace_locks = locks
         lock = locks.get(namespace)
         if lock is None:
-            lock = asyncio.Lock()  # noqa: E111
-            locks[namespace] = lock  # noqa: E111
+            lock = asyncio.Lock()
+            locks[namespace] = lock
         return lock
 
-    async def _update_namespace_for_dog(  # noqa: E111
+    async def _update_namespace_for_dog(
         self,
         namespace: str,
         dog_id: str,
@@ -1127,25 +1042,24 @@ class PawControlDataManager:
 
         lock = self._get_namespace_lock(namespace)
         async with lock:
-            data = await self._get_namespace_data(namespace)  # noqa: E111
-            current = data.get(dog_id)  # noqa: E111
-            updated = updater(current)  # noqa: E111
-            if updated is None:  # noqa: E111
+            data = await self._get_namespace_data(namespace)
+            current = data.get(dog_id)
+            updated = updater(current)
+            if updated is None:
                 data.pop(dog_id, None)
-            else:  # noqa: E111
+            else:
                 data[dog_id] = updated
-            await self._save_namespace(namespace, data)  # noqa: E111
-            return updated  # noqa: E111
-
-    def _ensure_profile(self, dog_id: str) -> DogProfile:  # noqa: E111
+            await self._save_namespace(namespace, data)
+            return updated
+    def _ensure_profile(self, dog_id: str) -> DogProfile:
         """Return the profile for ``dog_id`` or raise ``HomeAssistantError``."""
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            raise HomeAssistantError(f"Unknown PawControl dog: {dog_id}")  # noqa: E111
+            raise HomeAssistantError(f"Unknown PawControl dog: {dog_id}")
         return profile
 
-    async def _async_save_profile(self, dog_id: str, profile: DogProfile) -> None:  # noqa: E111
+    async def _async_save_profile(self, dog_id: str, profile: DogProfile) -> None:
         """Persist ``profile`` for ``dog_id`` and update cached config."""
 
         self._dog_profiles[dog_id] = profile
@@ -1153,22 +1067,21 @@ class PawControlDataManager:
             cast(Mapping[str, JSONValue], profile.config),
         )
         if typed_config is None:
-            raise HomeAssistantError(f"Invalid PawControl profile for {dog_id}")  # noqa: E111
-
+            raise HomeAssistantError(f"Invalid PawControl profile for {dog_id}")
         raw_config = cast(JSONMutableMapping, _coerce_json_mutable(profile.config))
         for section, payload in raw_config.items():
-            if section not in typed_config:  # noqa: E111
+            if section not in typed_config:
                 typed_config[section] = payload  # type: ignore[literal-required]
 
         profile.config = typed_config
         self._dogs_config[dog_id] = typed_config
         await self._async_save_dog_data(dog_id)
 
-    def _ensure_metrics_containers(self) -> None:  # noqa: E111
+    def _ensure_metrics_containers(self) -> None:
         """Initialise in-memory metrics containers if missing."""
 
         if not hasattr(self, "_metrics"):
-            self._metrics: JSONMutableMapping = {  # noqa: E111
+            self._metrics: JSONMutableMapping = {
                 "operations": 0,
                 "saves": 0,
                 "errors": 0,
@@ -1176,11 +1089,10 @@ class PawControlDataManager:
                 "visitor_mode_avg_runtime_ms": 0.0,
             }
         if not hasattr(self, "_visitor_timings"):
-            self._visitor_timings: deque[float] = deque(maxlen=50)  # noqa: E111
+            self._visitor_timings: deque[float] = deque(maxlen=50)
         if not hasattr(self, "_metrics_sink"):
-            self._metrics_sink: CoordinatorMetrics | None = None  # noqa: E111
-
-    def _increment_metric(self, key: str, *, increment: int = 1) -> None:  # noqa: E111
+            self._metrics_sink: CoordinatorMetrics | None = None
+    def _increment_metric(self, key: str, *, increment: int = 1) -> None:
         """Increment a numeric metric stored in ``_metrics`` safely."""
 
         self._ensure_metrics_containers()
@@ -1188,28 +1100,28 @@ class PawControlDataManager:
         base = current if isinstance(current, int | float) else 0
         self._metrics[key] = base + increment
 
-    async def async_initialize(self) -> None:  # noqa: E111
+    async def async_initialize(self) -> None:
         """Create storage folders and load persisted data."""
 
         try:
-            self._storage_dir.mkdir(parents=True, exist_ok=True)  # noqa: E111
+            self._storage_dir.mkdir(parents=True, exist_ok=True)
         except OSError as err:
-            raise HomeAssistantError(  # noqa: E111
+            raise HomeAssistantError(
                 f"Unable to prepare PawControl storage at {self._storage_dir}: {err}",
             ) from err
 
         stored = await self._async_load_storage()
         for dog_id, config in self._dogs_config.items():
-            stored_payload = stored.get(dog_id)  # noqa: E111
-            stored_mapping: JSONMappingLike | JSONMutableMapping | None  # noqa: E111
-            if isinstance(stored_payload, Mapping):  # noqa: E111
+            stored_payload = stored.get(dog_id)
+            stored_mapping: JSONMappingLike | JSONMutableMapping | None
+            if isinstance(stored_payload, Mapping):
                 stored_mapping = cast(
                     JSONMappingLike | JSONMutableMapping,
                     stored_payload,
                 )
-            else:  # noqa: E111
+            else:
                 stored_mapping = None
-            self._dog_profiles[dog_id] = DogProfile.from_storage(  # noqa: E111
+            self._dog_profiles[dog_id] = DogProfile.from_storage(
                 cast(JSONMappingLike | JSONMutableMapping, dict(config)),
                 stored_mapping,
             )
@@ -1221,9 +1133,9 @@ class PawControlDataManager:
             "reports",
             "health_reports",
         ):
-            try:  # noqa: E111
+            try:
                 await self._get_namespace_data(namespace)
-            except HomeAssistantError:  # noqa: E111
+            except HomeAssistantError:
                 _LOGGER.debug(
                     "Failed to preload namespace %s during initialization",
                     namespace,
@@ -1231,32 +1143,29 @@ class PawControlDataManager:
 
         self._initialised = True
 
-    async def async_shutdown(self) -> None:  # noqa: E111
+    async def async_shutdown(self) -> None:
         """Persist pending data on shutdown."""
 
         if not self._initialised:
-            return  # noqa: E111
-
+            return
         for dog_id in list(self._dog_profiles):
-            try:  # noqa: E111
+            try:
                 await self._async_save_dog_data(dog_id)
-            except HomeAssistantError:  # noqa: E111
+            except HomeAssistantError:
                 _LOGGER.exception(
                     "Failed to persist PawControl data for %s",
                     dog_id,
                 )
 
-    async def async_log_feeding(self, dog_id: str, feeding: FeedingData) -> bool:  # noqa: E111
+    async def async_log_feeding(self, dog_id: str, feeding: FeedingData) -> bool:
         """Record a feeding event."""
 
         if dog_id not in self._dog_profiles:
-            return False  # noqa: E111
-
+            return False
         async with self._data_lock:
-            profile = self._dog_profiles[dog_id]  # noqa: E111
-            self._maybe_roll_daily_stats(profile, feeding.timestamp)  # noqa: E111
-
-            entry = _coerce_json_mutable(  # noqa: E111
+            profile = self._dog_profiles[dog_id]
+            self._maybe_roll_daily_stats(profile, feeding.timestamp)
+            entry = _coerce_json_mutable(
                 cast(
                     JSONMappingLike | JSONMutableMapping,
                     {
@@ -1271,26 +1180,26 @@ class PawControlDataManager:
                     },
                 ),
             )
-            profile.feeding_history.append(entry)  # noqa: E111
-            profile.daily_stats.register_feeding(  # noqa: E111
+            profile.feeding_history.append(entry)
+            profile.daily_stats.register_feeding(
                 feeding.portion_size,
                 feeding.timestamp,
             )
 
         try:
-            await self._async_save_dog_data(dog_id)  # noqa: E111
+            await self._async_save_dog_data(dog_id)
         except HomeAssistantError:
-            return False  # noqa: E111
+            return False
         except Exception as err:  # pragma: no cover - defensive guard
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Failed to persist feeding data for %s: %s",
                 dog_id,
                 err,
             )
-            return False  # noqa: E111
+            return False
         return True
 
-    async def async_set_visitor_mode(  # noqa: E111
+    async def async_set_visitor_mode(
         self,
         dog_id: str,
         settings: VisitorModeSettingsPayload | JSONLikeMapping | None = None,
@@ -1299,17 +1208,14 @@ class PawControlDataManager:
         """Persist visitor mode configuration for ``dog_id``."""
 
         if not dog_id:
-            raise ValueError("dog_id is required")  # noqa: E111
-
+            raise ValueError("dog_id is required")
         payload: VisitorModeSettingsPayload | JSONLikeMapping | None = settings
         if payload is None and "visitor_data" in kwargs:
-            payload = cast(VisitorModeSettingsPayload, kwargs["visitor_data"])  # noqa: E111
+            payload = cast(VisitorModeSettingsPayload, kwargs["visitor_data"])
         elif payload is None and kwargs:
-            payload = cast(VisitorModeSettingsPayload, kwargs)  # noqa: E111
-
+            payload = cast(VisitorModeSettingsPayload, kwargs)
         if payload is None:
-            raise ValueError("Visitor mode payload is required")  # noqa: E111
-
+            raise ValueError("Visitor mode payload is required")
         payload = _coerce_json_mutable(
             cast(JSONMappingLike | JSONMutableMapping, payload),
         )
@@ -1322,7 +1228,7 @@ class PawControlDataManager:
         self._ensure_metrics_containers()
         started = perf_counter()
         try:
-            await self._update_namespace_for_dog(  # noqa: E111
+            await self._update_namespace_for_dog(
                 namespace,
                 dog_id,
                 lambda current: _merge_dicts(
@@ -1338,19 +1244,19 @@ class PawControlDataManager:
                 ),
             )
         except HomeAssistantError:
-            self._increment_metric("errors")  # noqa: E111
-            raise  # noqa: E111
+            self._increment_metric("errors")
+            raise
         except Exception as err:  # pragma: no cover - defensive guard
-            self._increment_metric("errors")  # noqa: E111
-            raise HomeAssistantError(  # noqa: E111
+            self._increment_metric("errors")
+            raise HomeAssistantError(
                 f"Failed to update visitor mode for {dog_id}: {err}",
             ) from err
         else:
-            self._record_visitor_metrics(perf_counter() - started)  # noqa: E111
-            self._metrics["visitor_mode_last_updated"] = serialized_timestamp  # noqa: E111
+            self._record_visitor_metrics(perf_counter() - started)
+            self._metrics["visitor_mode_last_updated"] = serialized_timestamp
         return True
 
-    async def async_get_visitor_mode_status(  # noqa: E111
+    async def async_get_visitor_mode_status(
         self,
         dog_id: str,
     ) -> VisitorModeSettingsPayload:
@@ -1360,24 +1266,24 @@ class PawControlDataManager:
         data = await self._get_namespace_data(namespace)
         entry = data.get(dog_id)
         if isinstance(entry, Mapping):
-            return cast(VisitorModeSettingsPayload, dict(entry))  # noqa: E111
+            return cast(VisitorModeSettingsPayload, dict(entry))
         return cast(VisitorModeSettingsPayload, {"enabled": False})
 
-    def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:  # noqa: E111
+    def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:
         """Register a metrics sink used for coordinator diagnostics."""
 
         self._ensure_metrics_containers()
         self._metrics_sink = metrics
 
-    def _auto_register_cache_monitors(self) -> None:  # noqa: E111
+    def _auto_register_cache_monitors(self) -> None:
         """Register known coordinator caches for diagnostics snapshots."""
 
         coordinator = self._coordinator
 
         def _try_register(name: str, cache: Any) -> None:
-            try:  # noqa: E111
+            try:
                 self.register_cache_monitor(name, cache)
-            except (  # noqa: E111
+            except (
                 ValueError
             ):  # pragma: no cover - invalid names guarded earlier
                 _LOGGER.debug(
@@ -1386,7 +1292,7 @@ class PawControlDataManager:
                 )
             except (
                 Exception
-            ) as err:  # pragma: no cover - diagnostics guard  # noqa: E111
+            ) as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
                     "Failed to register cache monitor %s: %s",
                     name,
@@ -1426,9 +1332,8 @@ class PawControlDataManager:
         }
 
         for name, monitor in storage_monitors.items():
-            _try_register(name, monitor)  # noqa: E111
-
-    def _register_manager_cache_monitors(  # noqa: E111
+            _try_register(name, monitor)
+    def _register_manager_cache_monitors(
         self,
         manager: Any,
         *,
@@ -1438,42 +1343,37 @@ class PawControlDataManager:
         """Register cache monitors exposed by ``manager`` if available."""
 
         if manager is None:
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Skipping cache monitor registration for %s: manager missing",
                 label,
             )
-            return  # noqa: E111
-
+            return
         registrar = getattr(manager, "register_cache_monitors", None)
         if not callable(registrar):
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Skipping cache monitor registration for %s: registrar unavailable",
                 label,
             )
-            return  # noqa: E111
-
+            return
         registrar_id = id(registrar)
         if registrar_id in self._cache_registrar_ids:
-            _LOGGER.debug("Cache monitors for %s already registered", label)  # noqa: E111
-            return  # noqa: E111
-
+            _LOGGER.debug("Cache monitors for %s already registered", label)
+            return
         try:
-            if prefix is None:  # noqa: E111
+            if prefix is None:
                 registrar(self)
-            else:  # noqa: E111
+            else:
                 registrar(self, prefix=prefix)
         except Exception as err:  # pragma: no cover - diagnostics guard
-            _LOGGER.debug("%s cache registration failed: %s", label, err)  # noqa: E111
+            _LOGGER.debug("%s cache registration failed: %s", label, err)
         else:
-            self._cache_registrar_ids.add(registrar_id)  # noqa: E111
-            _LOGGER.debug("Registered cache monitors for %s", label)  # noqa: E111
-
-    def _register_runtime_cache_monitors_internal(self, runtime: Any | None) -> None:  # noqa: E111
+            self._cache_registrar_ids.add(registrar_id)
+            _LOGGER.debug("Registered cache monitors for %s", label)
+    def _register_runtime_cache_monitors_internal(self, runtime: Any | None) -> None:
         """Register cache monitors exposed by runtime data containers."""
 
         if runtime is None:
-            return  # noqa: E111
-
+            return
         self._register_manager_cache_monitors(
             getattr(runtime, "notification_manager", None),
             prefix=None,
@@ -1500,15 +1400,14 @@ class PawControlDataManager:
             label="Door sensor",
         )
 
-    def _register_coordinator_cache_monitors(self, coordinator: Any | None) -> None:  # noqa: E111
+    def _register_coordinator_cache_monitors(self, coordinator: Any | None) -> None:
         """Register cache monitors exposed directly on the coordinator."""
 
         if coordinator is None:
-            return  # noqa: E111
-
+            return
         modules = getattr(coordinator, "_modules", None)
         if modules is not None:
-            try:  # noqa: E111
+            try:
                 self.register_cache_monitor(
                     "coordinator_modules",
                     _CoordinatorModuleCacheMonitor(
@@ -1517,7 +1416,7 @@ class PawControlDataManager:
                 )
             except (
                 Exception
-            ) as err:  # pragma: no cover - diagnostics guard  # noqa: E111
+            ) as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
                     "Failed to register coordinator module cache monitor: %s",
                     err,
@@ -1525,14 +1424,14 @@ class PawControlDataManager:
 
         tracker = getattr(coordinator, "_entity_budget", None)
         if tracker is not None:
-            try:  # noqa: E111
+            try:
                 self.register_cache_monitor(
                     "entity_budget_tracker",
                     _EntityBudgetMonitor(tracker),
                 )
             except (
                 Exception
-            ) as err:  # pragma: no cover - diagnostics guard  # noqa: E111
+            ) as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
                     "Failed to register entity budget cache monitor: %s",
                     err,
@@ -1564,15 +1463,14 @@ class PawControlDataManager:
             label="Door sensor",
         )
 
-    def register_runtime_cache_monitors(self, runtime: Any | None = None) -> None:  # noqa: E111
+    def register_runtime_cache_monitors(self, runtime: Any | None = None) -> None:
         """Register cache monitors from ``runtime`` or the stored runtime data."""
 
         if runtime is None:
-            runtime = self._get_runtime_data()  # noqa: E111
-
+            runtime = self._get_runtime_data()
         self._register_runtime_cache_monitors_internal(runtime)
 
-    def register_cache_monitor(self, name: str, cache: CacheMonitorTarget) -> None:  # noqa: E111
+    def register_cache_monitor(self, name: str, cache: CacheMonitorTarget) -> None:
         """Expose cache diagnostics in the format consumed by coordinator snapshots.
 
         Coordinators expect monitors to provide a structured payload containing a
@@ -1583,44 +1481,43 @@ class PawControlDataManager:
         """
 
         if not isinstance(name, str) or not name:
-            raise ValueError("Cache monitor name must be a non-empty string")  # noqa: E111
-
+            raise ValueError("Cache monitor name must be a non-empty string")
         _LOGGER.debug("Registering cache monitor: %s", name)
         snapshot_method = getattr(cache, "coordinator_snapshot", None)
         stats_method = getattr(cache, "get_stats", None)
         if not callable(stats_method):
-            stats_method = getattr(cache, "get_metrics", None)  # noqa: E111
+            stats_method = getattr(cache, "get_metrics", None)
         diagnostics_method = getattr(cache, "get_diagnostics", None)
 
         def _snapshot() -> CacheDiagnosticsSnapshot:
-            try:  # noqa: E111
+            try:
                 if callable(snapshot_method):
-                    payload = snapshot_method()  # noqa: E111
-                    if isinstance(payload, CacheDiagnosticsSnapshot):  # noqa: E111
+                    payload = snapshot_method()
+                    if isinstance(payload, CacheDiagnosticsSnapshot):
                         return payload
-                    if isinstance(payload, Mapping):  # noqa: E111
+                    if isinstance(payload, Mapping):
                         return CacheDiagnosticsSnapshot.from_mapping(payload)
 
                 stats_payload: JSONMutableMapping | None = None
                 if callable(stats_method):
-                    raw_stats = stats_method()  # noqa: E111
-                    if isinstance(raw_stats, Mapping):  # noqa: E111
+                    raw_stats = stats_method()
+                    if isinstance(raw_stats, Mapping):
                         stats_payload = cast(
                             JSONMutableMapping,
                             dict(raw_stats),
                         )
-                    elif raw_stats is not None:  # noqa: E111
+                    elif raw_stats is not None:
                         stats_payload = cast(JSONMutableMapping, raw_stats)
 
                 diagnostics_payload: CacheDiagnosticsMetadata | None = None
                 if callable(diagnostics_method):
-                    raw_diagnostics = diagnostics_method()  # noqa: E111
-                    if isinstance(raw_diagnostics, Mapping):  # noqa: E111
+                    raw_diagnostics = diagnostics_method()
+                    if isinstance(raw_diagnostics, Mapping):
                         diagnostics_payload = cast(
                             CacheDiagnosticsMetadata,
                             dict(raw_diagnostics),
                         )
-                    elif raw_diagnostics is not None:  # noqa: E111
+                    elif raw_diagnostics is not None:
                         diagnostics_payload = cast(
                             CacheDiagnosticsMetadata,
                             raw_diagnostics,
@@ -1632,36 +1529,34 @@ class PawControlDataManager:
                 )
             except (
                 Exception
-            ) as err:  # pragma: no cover - diagnostics guard  # noqa: E111
+            ) as err:  # pragma: no cover - diagnostics guard
                 return CacheDiagnosticsSnapshot(error=str(err))
 
         self._cache_monitors[name] = _snapshot
 
-    def cache_snapshots(self) -> CacheDiagnosticsMap:  # noqa: E111
+    def cache_snapshots(self) -> CacheDiagnosticsMap:
         """Return registered cache diagnostics for coordinator use."""
 
         snapshots: CacheDiagnosticsMap = {}
         for name, provider in self._cache_monitors.items():
-            try:  # noqa: E111
+            try:
                 snapshots[name] = provider()
             except (
                 Exception
-            ) as err:  # pragma: no cover - defensive fallback  # noqa: E111
+            ) as err:  # pragma: no cover - defensive fallback
                 snapshots[name] = CacheDiagnosticsSnapshot(error=str(err))
         return snapshots
 
-    def cache_repair_summary(  # noqa: E111
+    def cache_repair_summary(
         self,
         snapshots: CacheDiagnosticsMap | None = None,
     ) -> CacheRepairAggregate | None:
         """Return aggregated cache metrics suitable for Home Assistant repairs."""
 
         if snapshots is None:
-            snapshots = self.cache_snapshots()  # noqa: E111
-
+            snapshots = self.cache_snapshots()
         if not snapshots:
-            return None  # noqa: E111
-
+            return None
         totals = CacheRepairTotals()
 
         caches_with_errors: list[str] = []
@@ -1674,69 +1569,66 @@ class PawControlDataManager:
         issues: list[CacheRepairIssue] = []
 
         def _as_int(value: Any) -> int:
-            number: float | None  # noqa: E111
-            if is_number(value):  # noqa: E111
+            number: float | None
+            if is_number(value):
                 number = float(value)
-            elif isinstance(value, str):  # noqa: E111
+            elif isinstance(value, str):
                 try:
-                    number = float(value.strip())  # noqa: E111
+                    number = float(value.strip())
                 except ValueError:
-                    number = None  # noqa: E111
-            else:  # noqa: E111
+                    number = None
+            else:
                 number = None
 
-            if number is None or not isfinite(number):  # noqa: E111
+            if number is None or not isfinite(number):
                 return 0
 
-            return int(number)  # noqa: E111
-
+            return int(number)
         def _as_float(value: Any) -> float:
-            number: float | None  # noqa: E111
-            if is_number(value):  # noqa: E111
+            number: float | None
+            if is_number(value):
                 number = float(value)
-            elif isinstance(value, str):  # noqa: E111
+            elif isinstance(value, str):
                 try:
-                    number = float(value.strip())  # noqa: E111
+                    number = float(value.strip())
                 except ValueError:
-                    number = None  # noqa: E111
-            else:  # noqa: E111
+                    number = None
+            else:
                 number = None
 
-            if number is None or not isfinite(number):  # noqa: E111
+            if number is None or not isfinite(number):
                 return 0.0
 
-            return number  # noqa: E111
-
+            return number
         for name, payload in snapshots.items():
-            if not isinstance(name, str) or not name:  # noqa: E111
+            if not isinstance(name, str) or not name:
                 continue
 
-            if isinstance(payload, CacheDiagnosticsSnapshot):  # noqa: E111
+            if isinstance(payload, CacheDiagnosticsSnapshot):
                 snapshot_payload = payload
-            elif isinstance(payload, Mapping):  # noqa: E111
+            elif isinstance(payload, Mapping):
                 snapshot_payload = CacheDiagnosticsSnapshot.from_mapping(
                     payload,
                 )
-            else:  # noqa: E111
+            else:
                 snapshot_payload = CacheDiagnosticsSnapshot()
 
-            stats_payload = snapshot_payload.stats  # noqa: E111
-            if isinstance(stats_payload, Mapping):  # noqa: E111
+            stats_payload = snapshot_payload.stats
+            if isinstance(stats_payload, Mapping):
                 entries = _as_int(stats_payload.get("entries"))
                 hits = _as_int(stats_payload.get("hits"))
                 misses = _as_int(stats_payload.get("misses"))
                 hit_rate = _as_float(stats_payload.get("hit_rate"))
-            else:  # noqa: E111
+            else:
                 entries = hits = misses = 0
                 hit_rate = 0.0
 
-            if stats_payload is None or "hit_rate" not in stats_payload:  # noqa: E111
+            if stats_payload is None or "hit_rate" not in stats_payload:
                 loop_total_requests = hits + misses
                 if loop_total_requests:
-                    hit_rate = round(hits / loop_total_requests * 100.0, 2)  # noqa: E111
-
-            diagnostics_payload = snapshot_payload.diagnostics  # noqa: E111
-            diagnostics_map = (  # noqa: E111
+                    hit_rate = round(hits / loop_total_requests * 100.0, 2)
+            diagnostics_payload = snapshot_payload.diagnostics
+            diagnostics_map = (
                 diagnostics_payload
                 if isinstance(
                     diagnostics_payload,
@@ -1745,77 +1637,76 @@ class PawControlDataManager:
                 else {}
             )
 
-            expired_entries = _as_int(diagnostics_map.get("expired_entries"))  # noqa: E111
-            expired_override = _as_int(  # noqa: E111
+            expired_entries = _as_int(diagnostics_map.get("expired_entries"))
+            expired_override = _as_int(
                 diagnostics_map.get("expired_via_override"),
             )
-            pending_expired = _as_int(  # noqa: E111
+            pending_expired = _as_int(
                 diagnostics_map.get("pending_expired_entries"),
             )
-            pending_overrides = _as_int(  # noqa: E111
+            pending_overrides = _as_int(
                 diagnostics_map.get("pending_override_candidates"),
             )
-            override_flags = _as_int(  # noqa: E111
+            override_flags = _as_int(
                 diagnostics_map.get("active_override_flags"),
             )
 
-            timestamp_anomalies_payload = diagnostics_map.get(  # noqa: E111
+            timestamp_anomalies_payload = diagnostics_map.get(
                 "timestamp_anomalies",
             )
-            timestamp_anomaly_map: dict[str, str] = {}  # noqa: E111
-            if isinstance(timestamp_anomalies_payload, Mapping):  # noqa: E111
+            timestamp_anomaly_map: dict[str, str] = {}
+            if isinstance(timestamp_anomalies_payload, Mapping):
                 timestamp_anomaly_map = {
                     str(dog_id): str(reason)
                     for dog_id, reason in timestamp_anomalies_payload.items()
                     if reason is not None
                 }
 
-            errors_payload = diagnostics_map.get("errors")  # noqa: E111
-            if isinstance(errors_payload, Sequence) and not isinstance(  # noqa: E111
+            errors_payload = diagnostics_map.get("errors")
+            if isinstance(errors_payload, Sequence) and not isinstance(
                 errors_payload,
                 str | bytes | bytearray,
             ):
                 error_list = [str(item) for item in errors_payload if item is not None]
-            elif isinstance(errors_payload, str):  # noqa: E111
+            elif isinstance(errors_payload, str):
                 error_list = [errors_payload]
-            elif errors_payload is None:  # noqa: E111
+            elif errors_payload is None:
                 error_list = []
-            else:  # noqa: E111
+            else:
                 error_list = [str(errors_payload)]
 
-            totals.entries += entries  # noqa: E111
-            totals.hits += hits  # noqa: E111
-            totals.misses += misses  # noqa: E111
-            totals.expired_entries += expired_entries  # noqa: E111
-            totals.expired_via_override += expired_override  # noqa: E111
-            totals.pending_expired_entries += pending_expired  # noqa: E111
-            totals.pending_override_candidates += pending_overrides  # noqa: E111
-            totals.active_override_flags += override_flags  # noqa: E111
-
-            low_hit_rate = False  # noqa: E111
-            if hits + misses >= 5 and hit_rate < 60.0:  # noqa: E111
+            totals.entries += entries
+            totals.hits += hits
+            totals.misses += misses
+            totals.expired_entries += expired_entries
+            totals.expired_via_override += expired_override
+            totals.pending_expired_entries += pending_expired
+            totals.pending_override_candidates += pending_overrides
+            totals.active_override_flags += override_flags
+            low_hit_rate = False
+            if hits + misses >= 5 and hit_rate < 60.0:
                 low_hit_rate = True
 
-            if error_list:  # noqa: E111
+            if error_list:
                 caches_with_errors.append(name)
                 anomalies.add(name)
-            if expired_entries > 0:  # noqa: E111
+            if expired_entries > 0:
                 caches_with_expired.append(name)
                 anomalies.add(name)
-            if pending_expired > 0:  # noqa: E111
+            if pending_expired > 0:
                 caches_with_pending.append(name)
                 anomalies.add(name)
-            if override_flags > 0:  # noqa: E111
+            if override_flags > 0:
                 caches_with_override_flags.append(name)
                 anomalies.add(name)
-            if low_hit_rate:  # noqa: E111
+            if low_hit_rate:
                 caches_with_low_hit_rate.append(name)
                 anomalies.add(name)
-            if timestamp_anomaly_map:  # noqa: E111
+            if timestamp_anomaly_map:
                 caches_with_timestamp_anomalies.append(name)
                 anomalies.add(name)
 
-            if (  # noqa: E111
+            if (
                 error_list
                 or expired_entries
                 or pending_expired
@@ -1836,24 +1727,23 @@ class PawControlDataManager:
                     "active_override_flags": override_flags,
                 }
                 if error_list:
-                    issue["errors"] = error_list  # noqa: E111
+                    issue["errors"] = error_list
                 if timestamp_anomaly_map:
-                    issue["timestamp_anomalies"] = timestamp_anomaly_map  # noqa: E111
+                    issue["timestamp_anomalies"] = timestamp_anomaly_map
                 issues.append(issue)
 
         total_requests: float = float(totals.hits) + float(totals.misses)
         if total_requests:
-            totals.overall_hit_rate = round(  # noqa: E111
+            totals.overall_hit_rate = round(
                 float(totals.hits) / total_requests * 100.0,
                 2,
             )
 
         severity = "info"
         if caches_with_errors:
-            severity = "error"  # noqa: E111
+            severity = "error"
         elif anomalies:
-            severity = "warning"  # noqa: E111
-
+            severity = "warning"
         return CacheRepairAggregate(
             total_caches=len(snapshots),
             anomaly_count=len(anomalies),
@@ -1868,7 +1758,7 @@ class PawControlDataManager:
             issues=issues or None,
         )
 
-    def _record_visitor_metrics(self, duration: float) -> None:  # noqa: E111
+    def _record_visitor_metrics(self, duration: float) -> None:
         """Capture visitor-mode runtime metrics and forward to sinks."""
 
         self._ensure_metrics_containers()
@@ -1887,29 +1777,27 @@ class PawControlDataManager:
 
         sink = getattr(self, "_metrics_sink", None)
         if sink is not None:
-            sink.record_visitor_timing(max(duration, 0.0))  # noqa: E111
-
-    def get_daily_feeding_stats(self, dog_id: str) -> JSONMutableMapping | None:  # noqa: E111
+            sink.record_visitor_timing(max(duration, 0.0))
+    def get_daily_feeding_stats(self, dog_id: str) -> JSONMutableMapping | None:
         """Return aggregated feeding information for today."""
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            return None  # noqa: E111
-
+            return None
         today = profile.daily_stats.date.date()
         feedings_today: list[JSONMutableMapping] = []
         total_calories = 0.0
         feeding_times: JSONMutableSequence = []
         for entry in profile.feeding_history:
-            timestamp = _deserialize_datetime(entry.get("timestamp"))  # noqa: E111
-            if not timestamp or timestamp.date() != today:  # noqa: E111
+            timestamp = _deserialize_datetime(entry.get("timestamp"))
+            if not timestamp or timestamp.date() != today:
                 continue
-            feedings_today.append(entry)  # noqa: E111
-            calories = entry.get("calories")  # noqa: E111
-            if isinstance(calories, int | float):  # noqa: E111
+            feedings_today.append(entry)
+            calories = entry.get("calories")
+            if isinstance(calories, int | float):
                 total_calories += float(calories)
-            raw_timestamp = entry.get("timestamp")  # noqa: E111
-            if isinstance(raw_timestamp, str):  # noqa: E111
+            raw_timestamp = entry.get("timestamp")
+            if isinstance(raw_timestamp, str):
                 feeding_times.append(cast(JSONValue, raw_timestamp))
 
         return {
@@ -1919,7 +1807,7 @@ class PawControlDataManager:
             "feeding_times": feeding_times,
         }
 
-    def get_feeding_history(  # noqa: E111
+    def get_feeding_history(
         self,
         dog_id: str,
         *,
@@ -1929,26 +1817,25 @@ class PawControlDataManager:
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            return []  # noqa: E111
-
+            return []
         history = list(profile.feeding_history)
         history.sort(
             key=lambda item: _history_sort_key(item, "timestamp"),
             reverse=True,
         )
         if limit is not None:
-            return history[:limit]  # noqa: E111
+            return history[:limit]
         return history
 
-    async def async_reset_dog_daily_stats(self, dog_id: str) -> None:  # noqa: E111
+    async def async_reset_dog_daily_stats(self, dog_id: str) -> None:
         """Reset the daily statistics for ``dog_id``."""
 
         profile = self._ensure_profile(dog_id)
         async with self._data_lock:
-            profile.daily_stats = DailyStats(date=_utcnow())  # noqa: E111
+            profile.daily_stats = DailyStats(date=_utcnow())
         await self._async_save_profile(dog_id, profile)
 
-    async def async_get_module_data(self, dog_id: str) -> JSONMutableMapping:  # noqa: E111
+    async def async_get_module_data(self, dog_id: str) -> JSONMutableMapping:
         """Return merged module configuration for ``dog_id``."""
 
         profile = self._ensure_profile(dog_id)
@@ -1965,7 +1852,7 @@ class PawControlDataManager:
         modules = _coerce_mapping(modules_payload)
         return _merge_dicts(modules, overrides)
 
-    async def async_get_module_history(  # noqa: E111
+    async def async_get_module_history(
         self,
         module: str,
         dog_id: str,
@@ -1984,17 +1871,14 @@ class PawControlDataManager:
         module_key = module.lower()
         attr_info = _MODULE_HISTORY_ATTRS.get(module_key)
         if attr_info is None:
-            return []  # noqa: E111
-
+            return []
         attribute, timestamp_key = attr_info
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            return []  # noqa: E111
-
+            return []
         entries = getattr(profile, attribute, None)
         if not isinstance(entries, list):
-            return []  # noqa: E111
-
+            return []
         since_bound = (
             _deserialize_datetime(
                 since,
@@ -2012,87 +1896,83 @@ class PawControlDataManager:
 
         prepared: list[tuple[datetime | None, JSONMutableMapping]] = []
         for entry in entries:
-            if not isinstance(entry, Mapping):  # noqa: E111
+            if not isinstance(entry, Mapping):
                 continue
 
-            payload = _coerce_json_mutable(  # noqa: E111
+            payload = _coerce_json_mutable(
                 cast(JSONMappingLike | JSONMutableMapping, entry),
             )
-            timestamp = _deserialize_datetime(payload.get(timestamp_key))  # noqa: E111
-            normalised_payload = cast(  # noqa: E111
+            timestamp = _deserialize_datetime(payload.get(timestamp_key))
+            normalised_payload = cast(
                 JSONMutableMapping,
                 normalize_value(payload),
             )
 
             if since_bound is not None and (
                 timestamp is None or timestamp < since_bound
-            ):  # noqa: E111
+            ):
                 continue
             if until_bound is not None and (
                 timestamp is None or timestamp > until_bound
-            ):  # noqa: E111
+            ):
                 continue
 
-            prepared.append((timestamp, normalised_payload))  # noqa: E111
-
+            prepared.append((timestamp, normalised_payload))
         def _sort_key(
             item: tuple[datetime | None, JSONMutableMapping],
         ) -> tuple[int, str]:
-            timestamp, payload = item  # noqa: E111
-            if timestamp is not None:  # noqa: E111
+            timestamp, payload = item
+            if timestamp is not None:
                 return (1, timestamp.isoformat())
 
-            raw_value = payload.get(timestamp_key)  # noqa: E111
-            if isinstance(raw_value, datetime):  # noqa: E111
+            raw_value = payload.get(timestamp_key)
+            if isinstance(raw_value, datetime):
                 return (1, raw_value.isoformat())
-            if isinstance(raw_value, int | float):  # noqa: E111
+            if isinstance(raw_value, int | float):
                 try:
-                    iso = datetime.fromtimestamp(float(raw_value)).isoformat()  # noqa: E111
+                    iso = datetime.fromtimestamp(float(raw_value)).isoformat()
                 except OverflowError, ValueError:
-                    iso = ""  # noqa: E111
+                    iso = ""
                 return (0, iso)
-            if isinstance(raw_value, str):  # noqa: E111
+            if isinstance(raw_value, str):
                 return (0, raw_value)
-            return (0, "")  # noqa: E111
-
+            return (0, "")
         prepared.sort(key=_sort_key, reverse=True)
 
         ordered = [payload for _timestamp, payload in prepared]
 
         if limit is not None:
-            return ordered[:limit]  # noqa: E111
+            return ordered[:limit]
         return ordered
 
-    async def async_set_dog_power_state(self, dog_id: str, enabled: bool) -> None:  # noqa: E111
+    async def async_set_dog_power_state(self, dog_id: str, enabled: bool) -> None:
         """Persist the main power state for ``dog_id``."""
 
         def updater(current: Any | None) -> JSONMutableMapping:
-            payload = _coerce_mapping(current)  # noqa: E111
-            payload["main_power"] = bool(enabled)  # noqa: E111
-            payload.setdefault("updated_at", _utcnow().isoformat())  # noqa: E111
-            return payload  # noqa: E111
-
+            payload = _coerce_mapping(current)
+            payload["main_power"] = bool(enabled)
+            payload.setdefault("updated_at", _utcnow().isoformat())
+            return payload
         await self._update_namespace_for_dog("module_state", dog_id, updater)
 
-    async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:  # noqa: E111
+    async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:
         """Persist GPS tracking preference for ``dog_id``."""
 
         def updater(current: Any | None) -> JSONMutableMapping:
-            payload = _coerce_mapping(current)  # noqa: E111
-            gps_state_source = (  # noqa: E111
+            payload = _coerce_mapping(current)
+            gps_state_source = (
                 cast(JSONLikeMapping, payload["gps"])
                 if isinstance(payload.get("gps"), Mapping)
                 else None
             )
-            gps_state = _coerce_mapping(gps_state_source)  # noqa: E111
-            gps_state["enabled"] = bool(enabled)  # noqa: E111
-            gps_state["updated_at"] = _utcnow().isoformat()  # noqa: E111
-            payload["gps"] = gps_state  # noqa: E111
-            return payload  # noqa: E111
-
+            gps_state = _coerce_mapping(gps_state_source)
+            gps_state["enabled"] = bool(enabled)
+            gps_state["updated_at"] = _utcnow().isoformat()
+            payload["gps"] = gps_state
+            return payload
         await self._update_namespace_for_dog("module_state", dog_id, updater)
 
-    async def async_log_poop_data(  # noqa: E111
+    async def async_log_poop_data(
         self,
         dog_id: str,
         poop_data: JSONLikeMapping,
@@ -2102,8 +1982,7 @@ class PawControlDataManager:
         """Store poop events for ``dog_id`` with optional history limit."""
 
         if dog_id not in self._dog_profiles:
-            return False  # noqa: E111
-
+            return False
         payload = _coerce_json_mutable(
             cast(JSONMappingLike | JSONMutableMapping, poop_data),
         )
@@ -2111,20 +1990,20 @@ class PawControlDataManager:
         payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
 
         async with self._data_lock:
-            profile = self._dog_profiles[dog_id]  # noqa: E111
-            profile.poop_history.append(payload)  # noqa: E111
-            profile.poop_history[:] = _limit_entries(  # noqa: E111
+            profile = self._dog_profiles[dog_id]
+            profile.poop_history.append(payload)
+            profile.poop_history[:] = _limit_entries(
                 profile.poop_history,
                 limit=limit,
             )
 
         try:
-            await self._async_save_profile(dog_id, profile)  # noqa: E111
+            await self._async_save_profile(dog_id, profile)
         except HomeAssistantError:
-            return False  # noqa: E111
+            return False
         return True
 
-    async def async_start_grooming_session(  # noqa: E111
+    async def async_start_grooming_session(
         self,
         dog_id: str,
         session_data: JSONLikeMapping,
@@ -2143,8 +2022,8 @@ class PawControlDataManager:
         payload["started_at"] = _serialize_timestamp(payload.get("started_at"))
 
         async with self._data_lock:
-            profile.grooming_sessions.append(payload)  # noqa: E111
-            profile.grooming_sessions[:] = _limit_entries(  # noqa: E111
+            profile.grooming_sessions.append(payload)
+            profile.grooming_sessions[:] = _limit_entries(
                 profile.grooming_sessions,
                 limit=50,
             )
@@ -2152,7 +2031,7 @@ class PawControlDataManager:
         await self._async_save_profile(dog_id, profile)
         return session_identifier
 
-    async def async_analyze_patterns(  # noqa: E111
+    async def async_analyze_patterns(
         self,
         dog_id: str,
         analysis_type: str,
@@ -2177,23 +2056,23 @@ class PawControlDataManager:
         window_start = cutoff - tolerance
 
         if analysis_type in {"feeding", "comprehensive"}:
-            feedings_raw = await self.async_get_module_history(  # noqa: E111
+            feedings_raw = await self.async_get_module_history(
                 MODULE_FEEDING,
                 dog_id,
                 since=window_start,
             )
-            feedings: list[tuple[datetime, JSONMutableMapping]] = []  # noqa: E111
-            for entry in feedings_raw:  # noqa: E111
+            feedings: list[tuple[datetime, JSONMutableMapping]] = []
+            for entry in feedings_raw:
                 ts = _deserialize_datetime(entry.get("timestamp"))
                 if ts:
-                    feedings.append((ts, entry))  # noqa: E111
-            feedings.sort(key=lambda item: item[0])  # noqa: E111
-            total = 0.0  # noqa: E111
-            for _, entry in feedings:  # noqa: E111
+                    feedings.append((ts, entry))
+            feedings.sort(key=lambda item: item[0])
+            total = 0.0
+            for _, entry in feedings:
                 portion = entry.get("portion_size")
                 if isinstance(portion, int | float):
-                    total += float(portion)  # noqa: E111
-            result["feeding"] = {  # noqa: E111
+                    total += float(portion)
+            result["feeding"] = {
                 "entries": len(feedings),
                 "total_portion_size": round(total, 2),
                 "first_entry": feedings[0][1] if feedings else None,
@@ -2201,39 +2080,39 @@ class PawControlDataManager:
             }
 
         if analysis_type in {"walking", "comprehensive"}:
-            walks_raw = await self.async_get_module_history(  # noqa: E111
+            walks_raw = await self.async_get_module_history(
                 MODULE_WALK,
                 dog_id,
                 since=window_start,
             )
-            walks: list[tuple[datetime, JSONMutableMapping]] = []  # noqa: E111
-            for entry in walks_raw:  # noqa: E111
+            walks: list[tuple[datetime, JSONMutableMapping]] = []
+            for entry in walks_raw:
                 ts = _deserialize_datetime(entry.get("end_time"))
                 if ts:
-                    walks.append((ts, entry))  # noqa: E111
-            walks.sort(key=lambda item: item[0])  # noqa: E111
-            total_distance = 0.0  # noqa: E111
-            for _, entry in walks:  # noqa: E111
+                    walks.append((ts, entry))
+            walks.sort(key=lambda item: item[0])
+            total_distance = 0.0
+            for _, entry in walks:
                 distance = entry.get("distance")
                 if isinstance(distance, int | float):
-                    total_distance += float(distance)  # noqa: E111
-            result["walking"] = {  # noqa: E111
+                    total_distance += float(distance)
+            result["walking"] = {
                 "entries": len(walks),
                 "total_distance": round(total_distance, 2),
             }
 
         if analysis_type in {"health", "comprehensive"}:
-            health_raw = await self.async_get_module_history(  # noqa: E111
+            health_raw = await self.async_get_module_history(
                 MODULE_HEALTH,
                 dog_id,
                 since=window_start,
             )
-            health_entries = [  # noqa: E111
+            health_entries = [
                 entry
                 for entry in health_raw
                 if _deserialize_datetime(entry.get("timestamp")) is not None
             ]
-            result["health"] = {  # noqa: E111
+            result["health"] = {
                 "entries": len(health_entries),
                 "latest": health_entries[0] if health_entries else None,
             }
@@ -2261,14 +2140,14 @@ class PawControlDataManager:
             and analysis_type in {"feeding", "comprehensive"}
             and hasattr(feeding_manager, "async_analyze_feeding_health")
         ):
-            try:  # noqa: E111
+            try:
                 advanced = await feeding_manager.async_analyze_feeding_health(
                     dog_id,
                     days,
                 )
-            except Exception:  # pragma: no cover - non-critical fallback  # noqa: E111
+            except Exception:  # pragma: no cover - non-critical fallback
                 advanced = None
-            if advanced:  # noqa: E111
+            if advanced:
                 feeding_section = cast(
                     JSONMutableMapping,
                     result.setdefault("feeding", {}),
@@ -2277,7 +2156,7 @@ class PawControlDataManager:
 
         return result
 
-    async def async_generate_report(  # noqa: E111
+    async def async_generate_report(
         self,
         dog_id: str,
         report_type: str,
@@ -2309,14 +2188,12 @@ class PawControlDataManager:
             else None
         )
         if report_window_start is None:
-            report_window_start = now - timedelta(days=max(days, 1))  # noqa: E111
+            report_window_start = now - timedelta(days=max(days, 1))
         if report_window_end is None:
-            report_window_end = now  # noqa: E111
-
+            report_window_end = now
         sections = set(include_sections or [])
         if not sections:
-            sections = {"feeding", "walks", "health"}  # noqa: E111
-
+            sections = {"feeding", "walks", "health"}
         report: JSONMutableMapping = {
             "dog_id": dog_id,
             "report_type": report_type,
@@ -2332,78 +2209,72 @@ class PawControlDataManager:
         walks_section: JSONMutableMapping | None = None
 
         def _within_window(timestamp: Any) -> bool:
-            ts = _deserialize_datetime(timestamp)  # noqa: E111
-            if ts is None:  # noqa: E111
+            ts = _deserialize_datetime(timestamp)
+            if ts is None:
                 return False
-            return report_window_start <= ts <= report_window_end  # noqa: E111
-
+            return report_window_start <= ts <= report_window_end
         if "feeding" in sections:
-            feedings: list[JSONMutableMapping] = []  # noqa: E111
-            total_portion = 0.0  # noqa: E111
-            for entry in profile.feeding_history:  # noqa: E111
+            feedings: list[JSONMutableMapping] = []
+            total_portion = 0.0
+            for entry in profile.feeding_history:
                 if not _within_window(entry.get("timestamp")):
-                    continue  # noqa: E111
+                    continue
                 feedings.append(entry)
                 portion = entry.get("portion_size")
                 if isinstance(portion, int | float):
-                    total_portion += float(portion)  # noqa: E111
-
-            feeding_section = {  # noqa: E111
+                    total_portion += float(portion)
+            feeding_section = {
                 "entries": len(feedings),
                 "total_portion_size": round(total_portion, 2),
             }
-            report["feeding"] = feeding_section  # noqa: E111
-
+            report["feeding"] = feeding_section
         if "walks" in sections:
-            walks: list[JSONMutableMapping] = []  # noqa: E111
-            total_distance = 0.0  # noqa: E111
-            for entry in profile.walk_history:  # noqa: E111
+            walks: list[JSONMutableMapping] = []
+            total_distance = 0.0
+            for entry in profile.walk_history:
                 if not _within_window(entry.get("end_time")):
-                    continue  # noqa: E111
+                    continue
                 walks.append(entry)
                 distance = entry.get("distance")
                 if isinstance(distance, int | float):
-                    total_distance += float(distance)  # noqa: E111
-
-            walks_section = {  # noqa: E111
+                    total_distance += float(distance)
+            walks_section = {
                 "entries": len(walks),
                 "total_distance": round(total_distance, 2),
             }
-            report["walks"] = walks_section  # noqa: E111
-
+            report["walks"] = walks_section
         if "health" in sections:
-            health_entries = [  # noqa: E111
+            health_entries = [
                 entry
                 for entry in profile.health_history
                 if _within_window(entry.get("timestamp"))
             ]
-            report["health"] = {  # noqa: E111
+            report["health"] = {
                 "entries": len(health_entries),
                 "latest": health_entries[-1] if health_entries else None,
             }
 
         if include_recommendations:
-            recommendations: list[str] = []  # noqa: E111
-            if feeding_section is not None and feeding_section.get("entries") == 0:  # noqa: E111
+            recommendations: list[str] = []
+            if feeding_section is not None and feeding_section.get("entries") == 0:
                 recommendations.append(
                     "Log feeding events to improve analysis accuracy.",
                 )
-            if walks_section is not None and walks_section.get("entries") == 0:  # noqa: E111
+            if walks_section is not None and walks_section.get("entries") == 0:
                 recommendations.append(
                     "Schedule regular walks to maintain activity levels.",
                 )
-            report["recommendations"] = recommendations  # noqa: E111
-
+            report["recommendations"] = recommendations
         runtime = self._get_runtime_data()
         feeding_manager = getattr(runtime, "feeding_manager", None)
         if feeding_manager and hasattr(feeding_manager, "async_generate_health_report"):
-            try:  # noqa: E111
+            try:
                 health_report = await feeding_manager.async_generate_health_report(
                     dog_id,
                 )
-            except Exception:  # pragma: no cover - optional enhancement  # noqa: E111
+            except Exception:  # pragma: no cover - optional enhancement
                 health_report = None
-            if health_report:  # noqa: E111
+            if health_report:
                 health_section = cast(
                     JSONMutableMapping,
                     report.setdefault("health", {}),
@@ -2427,18 +2298,18 @@ class PawControlDataManager:
         )
 
         if send_notification:
-            runtime = runtime or self._get_runtime_data()  # noqa: E111
-            notification_manager = getattr(  # noqa: E111
+            runtime = runtime or self._get_runtime_data()
+            notification_manager = getattr(
                 runtime,
                 "notification_manager",
                 None,
             )
-            if notification_manager and hasattr(  # noqa: E111
+            if notification_manager and hasattr(
                 notification_manager,
                 "async_send_notification",
             ):
                 try:
-                    await notification_manager.async_send_notification(  # noqa: E111
+                    await notification_manager.async_send_notification(
                         notification_type=NotificationType.REPORT_READY,
                         title=(
                             f"{profile.config.get('dog_name', dog_id)} {report_type} report"
@@ -2447,14 +2318,14 @@ class PawControlDataManager:
                         priority=NotificationPriority.NORMAL,
                     )
                 except Exception:  # pragma: no cover - notification best-effort
-                    _LOGGER.debug(  # noqa: E111
+                    _LOGGER.debug(
                         "Notification dispatch for report failed",
                         exc_info=True,
                     )
 
         return report
 
-    async def async_generate_weekly_health_report(  # noqa: E111
+    async def async_generate_weekly_health_report(
         self,
         dog_id: str,
         *,
@@ -2489,12 +2360,12 @@ class PawControlDataManager:
         }
 
         if include_medication:
-            medications = await self.async_get_module_history(  # noqa: E111
+            medications = await self.async_get_module_history(
                 MODULE_MEDICATION,
                 dog_id,
                 since=cutoff,
             )
-            report["medication"] = {  # noqa: E111
+            report["medication"] = {
                 "entries": len(medications),
                 "latest": medications[0] if medications else None,
             }
@@ -2517,7 +2388,7 @@ class PawControlDataManager:
 
         return report
 
-    async def async_export_data(  # noqa: E111
+    async def async_export_data(
         self,
         dog_id: str,
         data_type: str,
@@ -2534,11 +2405,11 @@ class PawControlDataManager:
         normalized_type = data_type.lower()
 
         async def _export_garden_sessions() -> Path:
-            runtime_data = self._get_runtime_data()  # noqa: E111
-            garden_manager = getattr(runtime_data, "garden_manager", None)  # noqa: E111
-            if garden_manager is None:  # noqa: E111
+            runtime_data = self._get_runtime_data()
+            garden_manager = getattr(runtime_data, "garden_manager", None)
+            if garden_manager is None:
                 raise HomeAssistantError("Garden manager not available for export")
-            return await garden_manager.async_export_sessions(  # noqa: E111
+            return await garden_manager.async_export_sessions(
                 dog_id,
                 format=format,
                 days=days,
@@ -2547,23 +2418,23 @@ class PawControlDataManager:
             )
 
         async def _export_routes() -> Path:
-            runtime_data = self._get_runtime_data()  # noqa: E111
-            gps_manager = getattr(runtime_data, "gps_geofence_manager", None)  # noqa: E111
-            if gps_manager is None:  # noqa: E111
+            runtime_data = self._get_runtime_data()
+            gps_manager = getattr(runtime_data, "gps_geofence_manager", None)
+            if gps_manager is None:
                 raise HomeAssistantError("GPS manager not available for route export")
 
-            start = _deserialize_datetime(date_from) if date_from else None  # noqa: E111
-            end = _deserialize_datetime(date_to) if date_to else None  # noqa: E111
-            if start is None and days is not None:  # noqa: E111
+            start = _deserialize_datetime(date_from) if date_from else None
+            end = _deserialize_datetime(date_to) if date_to else None
+            if start is None and days is not None:
                 start = _utcnow() - timedelta(days=max(days, 0))
-            if end is None:  # noqa: E111
+            if end is None:
                 end = _utcnow()
 
-            export_format = format.lower()  # noqa: E111
-            if export_format not in {"gpx", "json", "csv"}:  # noqa: E111
+            export_format = format.lower()
+            if export_format not in {"gpx", "json", "csv"}:
                 export_format = "gpx"
 
-            export_payload = await gps_manager.async_export_routes(  # noqa: E111
+            export_payload = await gps_manager.async_export_routes(
                 dog_id=dog_id,
                 export_format=export_format,
                 last_n_routes=0,
@@ -2571,58 +2442,55 @@ class PawControlDataManager:
                 date_to=end,
             )
 
-            if export_payload is None:  # noqa: E111
+            if export_payload is None:
                 raise HomeAssistantError("No GPS routes available for export")
 
-            export_dir = self._storage_dir / "exports"  # noqa: E111
-            export_dir.mkdir(parents=True, exist_ok=True)  # noqa: E111
-            filename = export_payload.get("filename")  # noqa: E111
-            if not filename:  # noqa: E111
+            export_dir = self._storage_dir / "exports"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            filename = export_payload.get("filename")
+            if not filename:
                 timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
                 filename = (
                     f"{self.entry_id}_{dog_id}_routes_{timestamp}.{export_format}"
                 )
-            export_path = export_dir / filename  # noqa: E111
-
-            def _route_payload_from_content(content: object) -> JSONValue:  # noqa: E111
+            export_path = export_dir / filename
+            def _route_payload_from_content(content: object) -> JSONValue:
                 if isinstance(content, Mapping):
-                    return content  # noqa: E111
+                    return content
                 if isinstance(content, Sequence) and not isinstance(
                     content,
                     str | bytes | bytearray,
                 ):
-                    return list(content)  # noqa: E111
+                    return list(content)
                 if content is None:
-                    return {"raw_content": None}  # noqa: E111
+                    return {"raw_content": None}
                 try:
-                    return cast(JSONValue, json.loads(str(content)))  # noqa: E111
+                    return cast(JSONValue, json.loads(str(content)))
                 except json.JSONDecodeError:
-                    return {"raw_content": str(content)}  # noqa: E111
-
-            def _write_route_export() -> None:  # noqa: E111
+                    return {"raw_content": str(content)}
+            def _write_route_export() -> None:
                 content = export_payload.get("content")
                 if export_format == "json":
-                    payload = _route_payload_from_content(content)  # noqa: E111
-                    export_path.write_text(  # noqa: E111
+                    payload = _route_payload_from_content(content)
+                    export_path.write_text(
                         json.dumps(payload, ensure_ascii=False, indent=2),
                         encoding="utf-8",
                     )
                 else:
-                    export_path.write_text(  # noqa: E111
+                    export_path.write_text(
                         str(content or ""),
                         encoding="utf-8",
                     )
 
-            await self._async_add_executor_job(_write_route_export)  # noqa: E111
-            return export_path  # noqa: E111
-
+            await self._async_add_executor_job(_write_route_export)
+            return export_path
         async def _export_single(export_type: str) -> Path:
-            if export_type == "garden":  # noqa: E111
+            if export_type == "garden":
                 return await _export_garden_sessions()
-            if export_type == "routes":  # noqa: E111
+            if export_type == "routes":
                 return await _export_routes()
 
-            module_map: dict[str, tuple[str, str]] = {  # noqa: E111
+            module_map: dict[str, tuple[str, str]] = {
                 "feeding": (MODULE_FEEDING, "timestamp"),
                 "walks": (MODULE_WALK, "end_time"),
                 "walking": (MODULE_WALK, "end_time"),
@@ -2630,36 +2498,35 @@ class PawControlDataManager:
                 "medication": (MODULE_MEDICATION, "administration_time"),
             }
 
-            module_info = module_map.get(export_type)  # noqa: E111
-            if module_info is None:  # noqa: E111
+            module_info = module_map.get(export_type)
+            if module_info is None:
                 raise HomeAssistantError(f"Unsupported export data type: {data_type}")
 
-            module_name, timestamp_key = module_info  # noqa: E111
-
-            start = _deserialize_datetime(date_from) if date_from else None  # noqa: E111
-            end = _deserialize_datetime(date_to) if date_to else None  # noqa: E111
-            if start is None and days is not None:  # noqa: E111
+            module_name, timestamp_key = module_info
+            start = _deserialize_datetime(date_from) if date_from else None
+            end = _deserialize_datetime(date_to) if date_to else None
+            if start is None and days is not None:
                 start = _utcnow() - timedelta(days=max(days, 0))
-            if end is None:  # noqa: E111
+            if end is None:
                 end = _utcnow()
 
-            history = await self.async_get_module_history(  # noqa: E111
+            history = await self.async_get_module_history(
                 module_name,
                 dog_id,
                 since=start,
                 until=end,
             )
 
-            def _sort_key(payload: JSONLikeMapping) -> tuple[int, str]:  # noqa: E111
+            def _sort_key(payload: JSONLikeMapping) -> tuple[int, str]:
                 timestamp = _deserialize_datetime(payload.get(timestamp_key))
                 if timestamp is not None:
-                    return (1, timestamp.isoformat())  # noqa: E111
+                    return (1, timestamp.isoformat())
                 raw_value = payload.get(timestamp_key)
                 if isinstance(raw_value, datetime):
-                    return (1, raw_value.isoformat())  # noqa: E111
+                    return (1, raw_value.isoformat())
                 return (0, str(raw_value))
 
-            entries: list[JSONMutableMapping] = [  # noqa: E111
+            entries: list[JSONMutableMapping] = [
                 cast(
                     JSONMutableMapping,
                     normalize_value(
@@ -2671,57 +2538,51 @@ class PawControlDataManager:
                 for item in sorted(history, key=_sort_key)
             ]
 
-            export_dir = self._storage_dir / "exports"  # noqa: E111
-            export_dir.mkdir(parents=True, exist_ok=True)  # noqa: E111
-
-            timestamp = _utcnow().strftime("%Y%m%d%H%M%S")  # noqa: E111
-            normalized_format = format.lower()  # noqa: E111
-            if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:  # noqa: E111
+            export_dir = self._storage_dir / "exports"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
+            normalized_format = format.lower()
+            if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
                 normalized_format = "json"
 
-            extension = "md" if normalized_format == "markdown" else normalized_format  # noqa: E111
-            filename = (  # noqa: E111
+            extension = "md" if normalized_format == "markdown" else normalized_format
+            filename = (
                 f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}".replace(
                     " ",
                     "_",
                 )
             )
-            export_path = export_dir / filename  # noqa: E111
-
-            if normalized_format == "csv":  # noqa: E111
+            export_path = export_dir / filename
+            if normalized_format == "csv":
                 if entries:
-                    fieldnames = sorted(  # noqa: E111
+                    fieldnames = sorted(
                         {key for entry in entries for key in entry},
                     )
                 else:
-                    fieldnames = []  # noqa: E111
-
+                    fieldnames = []
                 def _write_csv() -> None:
-                    with open(export_path, "w", newline="", encoding="utf-8") as handle:  # noqa: E111
+                    with open(export_path, "w", newline="", encoding="utf-8") as handle:
                         writer = csv.DictWriter(handle, fieldnames=fieldnames)
                         if fieldnames:
-                            writer.writeheader()  # noqa: E111
+                            writer.writeheader()
                         writer.writerows(entries)
 
                 await self._async_add_executor_job(_write_csv)
-            elif normalized_format in {"markdown", "md", "txt"}:  # noqa: E111
-
+            elif normalized_format in {"markdown", "md", "txt"}:
                 def _write_markdown() -> None:
-                    lines = [  # noqa: E111
+                    lines = [
                         f"# {export_type.title()} export for {dog_id}",
                         "",
                     ]
-                    lines.extend(  # noqa: E111
+                    lines.extend(
                         "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
                         for entry in entries
                     )
-                    export_path.write_text("\n".join(lines), encoding="utf-8")  # noqa: E111
-
+                    export_path.write_text("\n".join(lines), encoding="utf-8")
                 await self._async_add_executor_job(_write_markdown)
-            else:  # noqa: E111
-
+            else:
                 def _write_json() -> None:
-                    payload = cast(  # noqa: E111
+                    payload = cast(
                         JSONMutableMapping,
                         normalize_value(
                             {
@@ -2732,30 +2593,26 @@ class PawControlDataManager:
                             },
                         ),
                     )
-                    export_path.write_text(  # noqa: E111
+                    export_path.write_text(
                         json.dumps(payload, ensure_ascii=False, indent=2),
                         encoding="utf-8",
                     )
 
                 await self._async_add_executor_job(_write_json)
 
-            return export_path  # noqa: E111
-
+            return export_path
         if normalized_type == "garden":
-            return await _export_garden_sessions()  # noqa: E111
-
+            return await _export_garden_sessions()
         if normalized_type == "routes":
-            return await _export_routes()  # noqa: E111
-
+            return await _export_routes()
         if normalized_type == "all":
-            export_dir = self._storage_dir / "exports"  # noqa: E111
-            export_dir.mkdir(parents=True, exist_ok=True)  # noqa: E111
-            timestamp = _utcnow().strftime("%Y%m%d%H%M%S")  # noqa: E111
+            export_dir = self._storage_dir / "exports"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
             export_path = export_dir / (
                 f"{self.entry_id}_{dog_id}_all_{timestamp}.json"
-            )  # noqa: E111
-
-            export_types = [  # noqa: E111
+            )
+            export_types = [
                 "feeding",
                 "walks",
                 "health",
@@ -2763,27 +2620,26 @@ class PawControlDataManager:
                 "garden",
                 "routes",
             ]
-            exports: dict[str, str] = {}  # noqa: E111
-            export_manifest = {  # noqa: E111
+            exports: dict[str, str] = {}
+            export_manifest = {
                 "dog_id": dog_id,
                 "data_type": "all",
                 "generated_at": _utcnow().isoformat(),
                 "exports": exports,
             }
 
-            for export_type in export_types:  # noqa: E111
+            for export_type in export_types:
                 exports[export_type] = str(await _export_single(export_type))
 
-            await self._async_add_executor_job(  # noqa: E111
+            await self._async_add_executor_job(
                 export_path.write_text,
                 json.dumps(export_manifest, ensure_ascii=False, indent=2),
                 "utf-8",
             )
-            return export_path  # noqa: E111
-
+            return export_path
         return await _export_single(normalized_type)
 
-    async def async_start_walk(  # noqa: E111
+    async def async_start_walk(
         self,
         dog_id: str,
         *,
@@ -2795,14 +2651,13 @@ class PawControlDataManager:
         """Begin a walk for the provided dog."""
 
         if dog_id not in self._dog_profiles:
-            return False  # noqa: E111
-
+            return False
         async with self._data_lock:
-            profile = self._dog_profiles[dog_id]  # noqa: E111
-            if profile.current_walk is not None:  # noqa: E111
+            profile = self._dog_profiles[dog_id]
+            if profile.current_walk is not None:
                 return False
 
-            profile.current_walk = WalkData(  # noqa: E111
+            profile.current_walk = WalkData(
                 start_time=_utcnow(),
                 location=location,
                 label=label,
@@ -2811,19 +2666,19 @@ class PawControlDataManager:
             )
 
         try:
-            await self._async_save_dog_data(dog_id)  # noqa: E111
+            await self._async_save_dog_data(dog_id)
         except HomeAssistantError:
-            return False  # noqa: E111
+            return False
         except Exception as err:  # pragma: no cover - defensive guard
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Failed to persist walk data for %s: %s",
                 dog_id,
                 err,
             )
-            return False  # noqa: E111
+            return False
         return True
 
-    async def async_end_walk(  # noqa: E111
+    async def async_end_walk(
         self,
         dog_id: str,
         *,
@@ -2835,48 +2690,47 @@ class PawControlDataManager:
         """Complete the current walk for ``dog_id``."""
 
         if dog_id not in self._dog_profiles:
-            return False  # noqa: E111
-
+            return False
         async with self._data_lock:
-            profile = self._dog_profiles[dog_id]  # noqa: E111
-            walk = profile.current_walk  # noqa: E111
-            if walk is None:  # noqa: E111
+            profile = self._dog_profiles[dog_id]
+            walk = profile.current_walk
+            if walk is None:
                 return False
 
-            end_time = _utcnow()  # noqa: E111
-            walk.end_time = end_time  # noqa: E111
-            walk.ended_by = ended_by  # noqa: E111
-            walk.notes = notes  # noqa: E111
-            if rating is not None:  # noqa: E111
+            end_time = _utcnow()
+            walk.end_time = end_time
+            walk.ended_by = ended_by
+            walk.notes = notes
+            if rating is not None:
                 walk.rating = rating
-            if distance is not None:  # noqa: E111
+            if distance is not None:
                 walk.distance = distance
-            if walk.duration is None:  # noqa: E111
+            if walk.duration is None:
                 duration = (end_time - walk.start_time).total_seconds()
                 walk.duration = max(0, round(duration))
 
-            profile.walk_history.append(_serialize_walk(walk))  # noqa: E111
-            profile.current_walk = None  # noqa: E111
-            profile.daily_stats.register_walk(  # noqa: E111
+            profile.walk_history.append(_serialize_walk(walk))
+            profile.current_walk = None
+            profile.daily_stats.register_walk(
                 walk.duration,
                 walk.distance,
                 end_time,
             )
 
         try:
-            await self._async_save_dog_data(dog_id)  # noqa: E111
+            await self._async_save_dog_data(dog_id)
         except HomeAssistantError:
-            return False  # noqa: E111
+            return False
         except Exception as err:  # pragma: no cover - defensive guard
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Failed to persist walk route for %s: %s",
                 dog_id,
                 err,
             )
-            return False  # noqa: E111
+            return False
         return True
 
-    def get_walk_history(  # noqa: E111
+    def get_walk_history(
         self,
         dog_id: str,
         *,
@@ -2886,8 +2740,7 @@ class PawControlDataManager:
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            return []  # noqa: E111
-
+            return []
         history = list(profile.walk_history)
         history.sort(
             key=lambda item: _history_sort_key(
@@ -2897,52 +2750,50 @@ class PawControlDataManager:
             reverse=True,
         )
         if limit is not None:
-            return history[:limit]  # noqa: E111
+            return history[:limit]
         return history
 
-    async def async_update_walk_route(self, dog_id: str, location: GPSLocation) -> bool:  # noqa: E111
+    async def async_update_walk_route(self, dog_id: str, location: GPSLocation) -> bool:
         """Add GPS information to the active walk."""
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None or profile.current_walk is None:
-            return False  # noqa: E111
-
+            return False
         async with self._data_lock:
-            walk = profile.current_walk  # noqa: E111
-            if walk is None:  # noqa: E111
+            walk = profile.current_walk
+            if walk is None:
                 return False
-            route_point: WalkRoutePoint = {  # noqa: E111
+            route_point: WalkRoutePoint = {
                 "latitude": location.latitude,
                 "longitude": location.longitude,
                 "timestamp": location.timestamp.isoformat(),
                 "source": location.source,
             }
-            if location.accuracy is not None:  # noqa: E111
+            if location.accuracy is not None:
                 route_point["accuracy"] = location.accuracy
-            if location.altitude is not None:  # noqa: E111
+            if location.altitude is not None:
                 route_point["altitude"] = location.altitude
-            if location.battery_level is not None:  # noqa: E111
+            if location.battery_level is not None:
                 route_point["battery_level"] = location.battery_level
-            if location.signal_strength is not None:  # noqa: E111
+            if location.signal_strength is not None:
                 route_point["signal_strength"] = location.signal_strength
 
-            walk.route.append(route_point)  # noqa: E111
-            profile.daily_stats.register_gps_update()  # noqa: E111
-
+            walk.route.append(route_point)
+            profile.daily_stats.register_gps_update()
         try:
-            await self._async_save_dog_data(dog_id)  # noqa: E111
+            await self._async_save_dog_data(dog_id)
         except HomeAssistantError:
-            return False  # noqa: E111
+            return False
         except Exception as err:  # pragma: no cover - defensive guard
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Failed to persist health data for %s: %s",
                 dog_id,
                 err,
             )
-            return False  # noqa: E111
+            return False
         return True
 
-    async def async_log_health_data(  # noqa: E111
+    async def async_log_health_data(
         self,
         dog_id: str,
         health: HealthData | JSONLikeMapping,
@@ -2950,8 +2801,7 @@ class PawControlDataManager:
         """Record a health measurement."""
 
         if dog_id not in self._dog_profiles:
-            return False  # noqa: E111
-
+            return False
         payload = _coerce_health_payload(health)
         timestamp = (
             _deserialize_datetime(
@@ -2961,22 +2811,19 @@ class PawControlDataManager:
         )
 
         async with self._data_lock:
-            profile = self._dog_profiles[dog_id]  # noqa: E111
-            self._maybe_roll_daily_stats(profile, timestamp)  # noqa: E111
-
-            entry = _coerce_json_mutable(payload)  # noqa: E111
-            entry["timestamp"] = _serialize_timestamp(timestamp)  # noqa: E111
-
-            profile.health_history.append(entry)  # noqa: E111
-            profile.daily_stats.register_health_event(timestamp)  # noqa: E111
-
+            profile = self._dog_profiles[dog_id]
+            self._maybe_roll_daily_stats(profile, timestamp)
+            entry = _coerce_json_mutable(payload)
+            entry["timestamp"] = _serialize_timestamp(timestamp)
+            profile.health_history.append(entry)
+            profile.daily_stats.register_health_event(timestamp)
         try:
-            await self._async_save_dog_data(dog_id)  # noqa: E111
+            await self._async_save_dog_data(dog_id)
         except HomeAssistantError:
-            return False  # noqa: E111
+            return False
         return True
 
-    async def async_log_medication(  # noqa: E111
+    async def async_log_medication(
         self,
         dog_id: str,
         medication_data: JSONLikeMapping,
@@ -2984,21 +2831,19 @@ class PawControlDataManager:
         """Persist medication information for ``dog_id``."""
 
         if dog_id not in self._dog_profiles:
-            return False  # noqa: E111
-
+            return False
         payload = _coerce_medication_payload(medication_data)
 
         async with self._data_lock:
-            profile = self._dog_profiles[dog_id]  # noqa: E111
-            profile.medication_history.append(payload)  # noqa: E111
-
+            profile = self._dog_profiles[dog_id]
+            profile.medication_history.append(payload)
         try:
-            await self._async_save_dog_data(dog_id)  # noqa: E111
+            await self._async_save_dog_data(dog_id)
         except HomeAssistantError:
-            return False  # noqa: E111
+            return False
         return True
 
-    async def async_update_dog_data(  # noqa: E111
+    async def async_update_dog_data(
         self,
         dog_id: str,
         updates: JSONLikeMapping,
@@ -3008,52 +2853,48 @@ class PawControlDataManager:
         """Merge ``updates`` into the stored dog configuration."""
 
         if dog_id not in self._dog_profiles:
-            return False  # noqa: E111
-
+            return False
         async with self._data_lock:
-            profile = self._dog_profiles[dog_id]  # noqa: E111
-            config = _coerce_json_mutable(  # noqa: E111
+            profile = self._dog_profiles[dog_id]
+            config = _coerce_json_mutable(
                 cast(JSONMappingLike | JSONMutableMapping, profile.config),
             )
-            for section, payload in updates.items():  # noqa: E111
+            for section, payload in updates.items():
                 if isinstance(payload, Mapping):
-                    existing = config.get(section)  # noqa: E111
-                    current = _coerce_mapping(  # noqa: E111
+                    existing = config.get(section)
+                    current = _coerce_mapping(
                         cast(JSONLikeMapping | None, existing)
                         if isinstance(existing, Mapping)
                         else None,
                     )
-                    config[section] = _merge_dicts(  # noqa: E111
+                    config[section] = _merge_dicts(
                         current,
                         payload,
                     )
                 else:
-                    config[section] = cast(JSONValue, payload)  # noqa: E111
-            typed_config = ensure_dog_config_data(  # noqa: E111
+                    config[section] = cast(JSONValue, payload)
+            typed_config = ensure_dog_config_data(
                 cast(JSONMappingLike | JSONMutableMapping, config),
             )
-            if typed_config is None:  # noqa: E111
+            if typed_config is None:
                 raise HomeAssistantError(f"Invalid PawControl update for {dog_id}")
 
-            for section, payload in config.items():  # noqa: E111
+            for section, payload in config.items():
                 if section not in typed_config:
-                    typed_config[section] = payload  # type: ignore[literal-required]    # noqa: E111
-
-            profile.config = typed_config  # noqa: E111
-            self._dogs_config[dog_id] = typed_config  # noqa: E111
-
+                    typed_config[section] = payload  # type: ignore[literal-required]
+            profile.config = typed_config
+            self._dogs_config[dog_id] = typed_config
         if persist:
-            try:  # noqa: E111
+            try:
                 await self._async_save_profile(dog_id, profile)
-            except HomeAssistantError:  # noqa: E111
+            except HomeAssistantError:
                 return False
         else:
-            self._dog_profiles[dog_id] = profile  # noqa: E111
-            self._dogs_config[dog_id] = profile.config  # noqa: E111
-
+            self._dog_profiles[dog_id] = profile
+            self._dogs_config[dog_id] = profile.config
         return True
 
-    async def async_update_dog_profile(  # noqa: E111
+    async def async_update_dog_profile(
         self,
         dog_id: str,
         profile_updates: JSONLikeMapping,
@@ -3068,7 +2909,7 @@ class PawControlDataManager:
             persist=persist,
         )
 
-    def get_health_history(  # noqa: E111
+    def get_health_history(
         self,
         dog_id: str,
         *,
@@ -3078,18 +2919,17 @@ class PawControlDataManager:
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            return []  # noqa: E111
-
+            return []
         history = list(profile.health_history)
         history.sort(
             key=lambda item: _history_sort_key(item, "timestamp"),
             reverse=True,
         )
         if limit is not None:
-            return history[:limit]  # noqa: E111
+            return history[:limit]
         return history
 
-    def get_health_trends(  # noqa: E111
+    def get_health_trends(
         self,
         dog_id: str,
         *,
@@ -3099,8 +2939,7 @@ class PawControlDataManager:
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            return None  # noqa: E111
-
+            return None
         cutoff = _utcnow() - timedelta(days=days)
         tolerance = timedelta(seconds=1)
         relevant = [
@@ -3111,7 +2950,7 @@ class PawControlDataManager:
         ]
 
         if not relevant:
-            return cast(  # noqa: E111
+            return cast(
                 JSONMutableMapping,
                 {
                     "entries": 0,
@@ -3123,11 +2962,11 @@ class PawControlDataManager:
         weights: list[float] = []
         data_points: list[JSONMutableMapping] = []
         for entry in relevant:
-            weight_value = entry.get("weight")  # noqa: E111
-            if not isinstance(weight_value, int | float):  # noqa: E111
+            weight_value = entry.get("weight")
+            if not isinstance(weight_value, int | float):
                 continue
-            weights.append(float(weight_value))  # noqa: E111
-            data_points.append(  # noqa: E111
+            weights.append(float(weight_value))
+            data_points.append(
                 cast(
                     JSONMutableMapping,
                     {
@@ -3137,14 +2976,14 @@ class PawControlDataManager:
                 ),
             )
         if weights:
-            change = weights[-1] - weights[0]  # noqa: E111
-            if change > 0:  # noqa: E111
+            change = weights[-1] - weights[0]
+            if change > 0:
                 direction = "increasing"
-            elif change < 0:  # noqa: E111
+            elif change < 0:
                 direction = "decreasing"
-            else:  # noqa: E111
+            else:
                 direction = "stable"
-            weight_trend: JSONMutableMapping | None = cast(  # noqa: E111
+            weight_trend: JSONMutableMapping | None = cast(
                 JSONMutableMapping,
                 {
                     "start": weights[0],
@@ -3155,14 +2994,12 @@ class PawControlDataManager:
                 },
             )
         else:
-            weight_trend = None  # noqa: E111
-
+            weight_trend = None
         mood_distribution: dict[str, int] = {}
         for entry in relevant:
-            raw_mood = entry.get("mood")  # noqa: E111
-            mood = str(raw_mood if raw_mood is not None else "unknown")  # noqa: E111
-            mood_distribution[mood] = mood_distribution.get(mood, 0) + 1  # noqa: E111
-
+            raw_mood = entry.get("mood")
+            mood = str(raw_mood if raw_mood is not None else "unknown")
+            mood_distribution[mood] = mood_distribution.get(mood, 0) + 1
         status_progression = [
             str(status)
             for status in (entry.get("health_status") for entry in relevant)
@@ -3179,7 +3016,7 @@ class PawControlDataManager:
             },
         )
 
-    def get_metrics(self) -> DataManagerMetricsSnapshot:  # noqa: E111
+    def get_metrics(self) -> DataManagerMetricsSnapshot:
         """Expose lightweight metrics for diagnostics tests."""
 
         metrics: DataManagerMetricsSnapshot = {
@@ -3189,58 +3026,55 @@ class PawControlDataManager:
         }
         return metrics
 
-    async def async_get_registered_dogs(self) -> list[str]:  # noqa: E111
+    async def async_get_registered_dogs(self) -> list[str]:
         """Return the list of configured dog identifiers."""
 
         return list(self._dog_profiles)
 
-    def _namespace_path(self, namespace: str) -> Path:  # noqa: E111
+    def _namespace_path(self, namespace: str) -> Path:
         """Return the file path used to persist a namespace payload."""
 
         safe_namespace = namespace.replace("/", "_")
         return self._storage_dir / f"{self.entry_id}_{safe_namespace}.json"
 
-    async def _get_namespace_data(self, namespace: str) -> StorageNamespacePayload:  # noqa: E111
+    async def _get_namespace_data(self, namespace: str) -> StorageNamespacePayload:
         """Read a JSON payload for ``namespace`` from disk."""
 
         path = self._namespace_path(namespace)
         try:
-            if not Path.exists(path):  # noqa: E111
+            if not Path.exists(path):
                 self._namespace_state[namespace] = {}
                 return {}
-            contents = await self._async_add_executor_job(path.read_text, "utf-8")  # noqa: E111
+            contents = await self._async_add_executor_job(path.read_text, "utf-8")
         except FileNotFoundError:
-            self._namespace_state[namespace] = {}  # noqa: E111
-            return {}  # noqa: E111
+            self._namespace_state[namespace] = {}
+            return {}
         except OSError as err:
-            raise HomeAssistantError(  # noqa: E111
+            raise HomeAssistantError(
                 f"Unable to read PawControl {namespace} data: {err}",
             ) from err
 
         if not contents:
-            self._namespace_state[namespace] = {}  # noqa: E111
-            return {}  # noqa: E111
-
+            self._namespace_state[namespace] = {}
+            return {}
         try:
-            payload = json.loads(contents)  # noqa: E111
+            payload = json.loads(contents)
         except json.JSONDecodeError:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Corrupted PawControl %s data detected at %s",
                 namespace,
                 path,
             )
-            self._namespace_state[namespace] = {}  # noqa: E111
-            return {}  # noqa: E111
-
+            self._namespace_state[namespace] = {}
+            return {}
         if isinstance(payload, dict):
-            snapshot = cast(StorageNamespacePayload, dict(payload))  # noqa: E111
-            self._namespace_state[namespace] = snapshot  # noqa: E111
-            return snapshot  # noqa: E111
-
+            snapshot = cast(StorageNamespacePayload, dict(payload))
+            self._namespace_state[namespace] = snapshot
+            return snapshot
         self._namespace_state[namespace] = {}
         return {}
 
-    async def _save_namespace(  # noqa: E111
+    async def _save_namespace(
         self,
         namespace: str,
         data: StorageNamespacePayload,
@@ -3250,9 +3084,9 @@ class PawControlDataManager:
         path = self._namespace_path(namespace)
         payload = json.dumps(data, ensure_ascii=False, indent=2)
         try:
-            await self._async_add_executor_job(path.write_text, payload, "utf-8")  # noqa: E111
+            await self._async_add_executor_job(path.write_text, payload, "utf-8")
         except OSError as err:
-            raise HomeAssistantError(  # noqa: E111
+            raise HomeAssistantError(
                 f"Unable to persist PawControl {namespace} data: {err}",
             ) from err
 
@@ -3263,7 +3097,7 @@ class PawControlDataManager:
             dict(data),
         )
 
-    async def _async_add_executor_job(  # noqa: E111
+    async def _async_add_executor_job(
         self,
         func: Callable[..., ValueT],
         *args: Any,
@@ -3272,109 +3106,105 @@ class PawControlDataManager:
 
         async_add_executor_job = getattr(self.hass, "async_add_executor_job", None)
         if callable(async_add_executor_job):
-            return await async_add_executor_job(func, *args)  # noqa: E111
+            return await async_add_executor_job(func, *args)
         return func(*args)
 
-    async def _async_load_storage(self) -> JSONMutableMapping:  # noqa: E111
+    async def _async_load_storage(self) -> JSONMutableMapping:
         """Load stored JSON data, falling back to the backup if required."""
 
         try:
-            data = await self._async_add_executor_job(  # noqa: E111
+            data = await self._async_add_executor_job(
                 self._read_storage_payload,
                 self._storage_path,
             )
-            if data is None:  # noqa: E111
+            if data is None:
                 return {}
-            if isinstance(data, Mapping):  # noqa: E111
+            if isinstance(data, Mapping):
                 return _coerce_json_mutable(
                     cast(JSONMappingLike | JSONMutableMapping, data),
                 )
-            return {}  # noqa: E111
+            return {}
         except FileNotFoundError:
-            return {}  # noqa: E111
+            return {}
         except json.JSONDecodeError:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Corrupted PawControl data detected at %s",
                 self._storage_path,
             )
         except OSError as err:
-            raise HomeAssistantError(f"Unable to read PawControl data: {err}") from err  # noqa: E111
-
+            raise HomeAssistantError(f"Unable to read PawControl data: {err}") from err
         try:
-            data = await self._async_add_executor_job(  # noqa: E111
+            data = await self._async_add_executor_job(
                 self._read_storage_payload,
                 self._backup_path,
             )
-            if data is None:  # noqa: E111
+            if data is None:
                 return {}
-            if isinstance(data, Mapping):  # noqa: E111
+            if isinstance(data, Mapping):
                 return _coerce_json_mutable(
                     cast(JSONMappingLike | JSONMutableMapping, data),
                 )
-            return {}  # noqa: E111
+            return {}
         except FileNotFoundError:
-            return {}  # noqa: E111
+            return {}
         except json.JSONDecodeError:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Backup PawControl data is corrupted at %s",
                 self._backup_path,
             )
         except OSError as err:
-            raise HomeAssistantError(  # noqa: E111
+            raise HomeAssistantError(
                 f"Unable to read PawControl backup: {err}",
             ) from err
 
         return {}
 
-    async def _async_save_dog_data(self, dog_id: str) -> None:  # noqa: E111
+    async def _async_save_dog_data(self, dog_id: str) -> None:
         """Persist all dog data to disk."""
 
         async with self._save_lock:
-            payload: JSONMutableMapping = {  # noqa: E111
+            payload: JSONMutableMapping = {
                 k: cast(JSONValue, profile.as_dict())
                 for k, profile in self._dog_profiles.items()
             }
-            try:  # noqa: E111
+            try:
                 await self._async_add_executor_job(
                     self._write_storage,
                     payload,
                 )
-            except OSError as err:  # noqa: E111
+            except OSError as err:
                 raise HomeAssistantError(
                     f"Failed to persist PawControl data: {err}",
                 ) from err
 
-    @staticmethod  # noqa: E111
-    def _read_storage_payload(path: Path) -> Mapping[str, Any] | None:  # noqa: E111
+    @staticmethod
+    def _read_storage_payload(path: Path) -> Mapping[str, Any] | None:
         """Read a JSON payload from ``path`` when it exists."""
 
         if not path.exists():
-            return None  # noqa: E111
+            return None
         with path.open(encoding="utf-8") as handle:
-            return json.load(handle)  # noqa: E111
-
-    def _write_storage(self, payload: JSONMutableMapping) -> None:  # noqa: E111
+            return json.load(handle)
+    def _write_storage(self, payload: JSONMutableMapping) -> None:
         """Write data to the JSON storage file."""
 
         if self._storage_path.exists():
-            self._create_backup()  # noqa: E111
-
+            self._create_backup()
         with open(self._storage_path, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)  # noqa: E111
-
-    def _create_backup(self) -> None:  # noqa: E111
+            json.dump(payload, handle, ensure_ascii=False, indent=2)
+    def _create_backup(self) -> None:
         """Create a best-effort backup copy of the current data file."""
 
         try:
-            data = self._storage_path.read_bytes()  # noqa: E111
+            data = self._storage_path.read_bytes()
         except FileNotFoundError:
-            return  # noqa: E111
+            return
         self._backup_path.write_bytes(data)
 
-    @staticmethod  # noqa: E111
-    def _maybe_roll_daily_stats(profile: DogProfile, timestamp: datetime) -> None:  # noqa: E111
+    @staticmethod
+    def _maybe_roll_daily_stats(profile: DogProfile, timestamp: datetime) -> None:
         """Reset daily statistics when the day changes."""
 
         current_day = dt_util.as_utc(timestamp).date()
         if profile.daily_stats.date.date() != current_day:
-            profile.daily_stats = DailyStats(date=dt_util.as_utc(timestamp))  # noqa: E111
+            profile.daily_stats = DailyStats(date=dt_util.as_utc(timestamp))

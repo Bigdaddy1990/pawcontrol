@@ -39,39 +39,37 @@ class PerformanceMetric:
         min_time_ms: Minimum execution time
         max_time_ms: Maximum execution time
         recent_times: Recent execution times (last 100)
-    """  # noqa: E111
-
-    name: str  # noqa: E111
-    call_count: int = 0  # noqa: E111
-    total_time_ms: float = 0.0  # noqa: E111
-    min_time_ms: float = float("inf")  # noqa: E111
-    max_time_ms: float = 0.0  # noqa: E111
-    recent_times: deque[float] = field(default_factory=lambda: deque(maxlen=100))  # noqa: E111
-
-    @property  # noqa: E111
-    def avg_time_ms(self) -> float:  # noqa: E111
+    """
+    name: str
+    call_count: int = 0
+    total_time_ms: float = 0.0
+    min_time_ms: float = float("inf")
+    max_time_ms: float = 0.0
+    recent_times: deque[float] = field(default_factory=lambda: deque(maxlen=100))
+    @property
+    def avg_time_ms(self) -> float:
         """Return average execution time."""
         return self.total_time_ms / self.call_count if self.call_count > 0 else 0.0
 
-    @property  # noqa: E111
-    def p95_time_ms(self) -> float:  # noqa: E111
+    @property
+    def p95_time_ms(self) -> float:
         """Return 95th percentile execution time."""
         if not self.recent_times:
-            return 0.0  # noqa: E111
+            return 0.0
         sorted_times = sorted(self.recent_times)
         index = int(len(sorted_times) * 0.95)
         return sorted_times[index] if index < len(sorted_times) else 0.0
 
-    @property  # noqa: E111
-    def p99_time_ms(self) -> float:  # noqa: E111
+    @property
+    def p99_time_ms(self) -> float:
         """Return 99th percentile execution time."""
         if not self.recent_times:
-            return 0.0  # noqa: E111
+            return 0.0
         sorted_times = sorted(self.recent_times)
         index = int(len(sorted_times) * 0.99)
         return sorted_times[index] if index < len(sorted_times) else 0.0
 
-    def record(self, duration_ms: float) -> None:  # noqa: E111
+    def record(self, duration_ms: float) -> None:
         """Record an execution time.
 
         Args:
@@ -83,7 +81,7 @@ class PerformanceMetric:
         self.max_time_ms = max(self.max_time_ms, duration_ms)
         self.recent_times.append(duration_ms)
 
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -98,38 +96,36 @@ class PerformanceMetric:
 
 
 class PerformanceMonitor:
-    """Global performance monitoring singleton."""  # noqa: E111
-
-    _instance: PerformanceMonitor | None = None  # noqa: E111
-    _metrics: dict[str, PerformanceMetric]  # noqa: E111
-    _enabled: bool  # noqa: E111
-
-    def __new__(cls) -> PerformanceMonitor:  # noqa: E111
+    """Global performance monitoring singleton."""
+    _instance: PerformanceMonitor | None = None
+    _metrics: dict[str, PerformanceMetric]
+    _enabled: bool
+    def __new__(cls) -> PerformanceMonitor:
         """Ensure singleton instance."""
         if cls._instance is None:
-            cls._instance = super().__new__(cls)  # noqa: E111
-            cls._instance._metrics = {}  # noqa: E111
-            cls._instance._enabled = True  # noqa: E111
+            cls._instance = super().__new__(cls)
+            cls._instance._metrics = {}
+            cls._instance._enabled = True
         return cls._instance
 
-    @classmethod  # noqa: E111
-    def get_instance(cls) -> PerformanceMonitor:  # noqa: E111
+    @classmethod
+    def get_instance(cls) -> PerformanceMonitor:
         """Get singleton instance."""
         if cls._instance is None:
-            cls._instance = cls()  # noqa: E111
+            cls._instance = cls()
         return cls._instance
 
-    def enable(self) -> None:  # noqa: E111
+    def enable(self) -> None:
         """Enable performance monitoring."""
         self._enabled = True
         _LOGGER.info("Performance monitoring enabled")
 
-    def disable(self) -> None:  # noqa: E111
+    def disable(self) -> None:
         """Disable performance monitoring."""
         self._enabled = False
         _LOGGER.info("Performance monitoring disabled")
 
-    def record(self, name: str, duration_ms: float) -> None:  # noqa: E111
+    def record(self, name: str, duration_ms: float) -> None:
         """Record a performance metric.
 
         Args:
@@ -137,14 +133,12 @@ class PerformanceMonitor:
             duration_ms: Duration in milliseconds
         """
         if not self._enabled:
-            return  # noqa: E111
-
+            return
         if name not in self._metrics:
-            self._metrics[name] = PerformanceMetric(name=name)  # noqa: E111
-
+            self._metrics[name] = PerformanceMetric(name=name)
         self._metrics[name].record(duration_ms)
 
-    def get_metric(self, name: str) -> PerformanceMetric | None:  # noqa: E111
+    def get_metric(self, name: str) -> PerformanceMetric | None:
         """Get metric by name.
 
         Args:
@@ -155,13 +149,13 @@ class PerformanceMonitor:
         """
         return self._metrics.get(name)
 
-    def get_all_metrics(self) -> dict[str, PerformanceMetric]:  # noqa: E111
+    def get_all_metrics(self) -> dict[str, PerformanceMetric]:
         """Return all metrics."""
         return dict(self._metrics)
 
     def get_slow_operations(
         self, threshold_ms: float = 100.0
-    ) -> list[PerformanceMetric]:  # noqa: E111
+    ) -> list[PerformanceMetric]:
         """Get operations slower than threshold.
 
         Args:
@@ -176,19 +170,19 @@ class PerformanceMonitor:
             if metric.avg_time_ms > threshold_ms
         ]
 
-    def reset(self) -> None:  # noqa: E111
+    def reset(self) -> None:
         """Reset all metrics."""
         self._metrics.clear()
         _LOGGER.info("Performance metrics reset")
 
-    def get_summary(self) -> dict[str, Any]:  # noqa: E111
+    def get_summary(self) -> dict[str, Any]:
         """Get performance summary.
 
         Returns:
             Summary dictionary
         """
         if not self._metrics:
-            return {  # noqa: E111
+            return {
                 "enabled": self._enabled,
                 "metric_count": 0,
                 "total_calls": 0,
@@ -252,8 +246,7 @@ def track_performance(
         >>> @track_performance("custom_name", slow_threshold_ms=50.0)
         ... def calculate():
         ...     return sum(range(1000))
-    """  # noqa: E111
-
+    """
     def decorator(
         func: Callable[P, T] | Callable[P, Awaitable[T]],
     ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
@@ -261,17 +254,17 @@ def track_performance(
 
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            start = time.perf_counter()  # noqa: E111
-            try:  # noqa: E111
+            start = time.perf_counter()
+            try:
                 async_func = cast(Callable[P, Awaitable[T]], func)
                 result = await async_func(*args, **kwargs)
                 return result
-            finally:  # noqa: E111
+            finally:
                 duration_ms = (time.perf_counter() - start) * 1000
                 _performance_monitor.record(metric_name, duration_ms)
 
                 if log_slow and duration_ms > slow_threshold_ms:
-                    _LOGGER.warning(  # noqa: E111
+                    _LOGGER.warning(
                         "Slow operation: %s took %.2fms (threshold: %.2fms)",
                         metric_name,
                         duration_ms,
@@ -280,16 +273,16 @@ def track_performance(
 
         @functools.wraps(func)
         def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            start = time.perf_counter()  # noqa: E111
-            try:  # noqa: E111
+            start = time.perf_counter()
+            try:
                 sync_func = cast(Callable[P, T], func)
                 return sync_func(*args, **kwargs)
-            finally:  # noqa: E111
+            finally:
                 duration_ms = (time.perf_counter() - start) * 1000
                 _performance_monitor.record(metric_name, duration_ms)
 
                 if log_slow and duration_ms > slow_threshold_ms:
-                    _LOGGER.warning(  # noqa: E111
+                    _LOGGER.warning(
                         "Slow operation: %s took %.2fms (threshold: %.2fms)",
                         metric_name,
                         duration_ms,
@@ -300,9 +293,7 @@ def track_performance(
             return cast(Callable[P, Awaitable[T]], async_wrapper)
         return sync_wrapper
 
-    return cast(Callable[[Callable[P, T]], Callable[P, T]], decorator)  # noqa: E111
-
-
+    return cast(Callable[[Callable[P, T]], Callable[P, T]], decorator)
 def debounce(
     wait_seconds: float,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | None]]]:
@@ -320,42 +311,36 @@ def debounce(
         >>> @debounce(1.0)
         ... async def update_state():
         ...     await coordinator.async_request_refresh()
-    """  # noqa: E111
-
-    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | None]]:  # noqa: E111
+    """
+    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | None]]:
         last_call_time: float = 0.0
         pending_task: asyncio.Task[Any] | None = None
 
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
-            nonlocal last_call_time, pending_task  # noqa: E111
-
-            current_time = time.time()  # noqa: E111
-
+            nonlocal last_call_time, pending_task
+            current_time = time.time()
             # Cancel pending task if exists  # noqa: E114
-            if pending_task and not pending_task.done():  # noqa: E111
+            if pending_task and not pending_task.done():
                 pending_task.cancel()
 
             # If enough time has passed, execute immediately  # noqa: E114
-            if current_time - last_call_time >= wait_seconds:  # noqa: E111
+            if current_time - last_call_time >= wait_seconds:
                 last_call_time = current_time
                 return await func(*args, **kwargs)
 
             # Otherwise, schedule for later  # noqa: E114
-            async def delayed_call() -> T:  # noqa: E111
+            async def delayed_call() -> T:
                 nonlocal last_call_time
                 await asyncio.sleep(wait_seconds)
                 last_call_time = time.time()
                 return await func(*args, **kwargs)
 
-            pending_task = asyncio.create_task(delayed_call())  # noqa: E111
-            return None  # noqa: E111
-
+            pending_task = asyncio.create_task(delayed_call())
+            return None
         return async_wrapper
 
-    return decorator  # noqa: E111
-
-
+    return decorator
 def throttle(
     calls_per_second: float,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
@@ -373,33 +358,27 @@ def throttle(
         >>> @throttle(2.0)  # Max 2 calls per second
         ... async def api_call():
         ...     return await api.fetch()
-    """  # noqa: E111
-
-    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:  # noqa: E111
+    """
+    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
         min_interval = 1.0 / calls_per_second
         last_call_time: float = 0.0
         lock = asyncio.Lock()
 
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            nonlocal last_call_time  # noqa: E111
-
-            async with lock:  # noqa: E111
+            nonlocal last_call_time
+            async with lock:
                 current_time = time.time()
                 time_since_last = current_time - last_call_time
 
                 if time_since_last < min_interval:
-                    await asyncio.sleep(min_interval - time_since_last)  # noqa: E111
-
+                    await asyncio.sleep(min_interval - time_since_last)
                 last_call_time = time.time()
 
-            return await func(*args, **kwargs)  # noqa: E111
-
+            return await func(*args, **kwargs)
         return async_wrapper
 
-    return decorator  # noqa: E111
-
-
+    return decorator
 def batch_calls(
     max_batch_size: int = 10,
     max_wait_ms: float = 100.0,
@@ -419,49 +398,41 @@ def batch_calls(
         >>> @batch_calls(max_batch_size=10, max_wait_ms=100.0)
         ... async def update_entities(entity_ids: list[str]):
         ...     await coordinator.async_update_entities(entity_ids)
-    """  # noqa: E111
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:  # noqa: E111
+    """
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         pending_calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
         batch_task: asyncio.Task[Any] | None = None
         lock = asyncio.Lock()
 
         async def process_batch() -> None:
-            nonlocal pending_calls  # noqa: E111
-
-            await asyncio.sleep(max_wait_ms / 1000)  # noqa: E111
-
-            async with lock:  # noqa: E111
+            nonlocal pending_calls
+            await asyncio.sleep(max_wait_ms / 1000)
+            async with lock:
                 if not pending_calls:
-                    return  # noqa: E111
-
+                    return
                 # Combine all calls
                 batch = pending_calls[:max_batch_size]
                 pending_calls = pending_calls[max_batch_size:]
 
                 # Execute batch
                 for args, kwargs in batch:
-                    try:  # noqa: E111
+                    try:
                         await func(*args, **kwargs)
-                    except Exception as e:  # noqa: E111
+                    except Exception as e:
                         _LOGGER.error("Batch call failed: %s", e)
 
         @functools.wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> None:
-            nonlocal batch_task  # noqa: E111
-
-            async with lock:  # noqa: E111
+            nonlocal batch_task
+            async with lock:
                 pending_calls.append((args, kwargs))
 
                 # Start batch task if not running
                 if batch_task is None or batch_task.done():
-                    batch_task = asyncio.create_task(process_batch())  # noqa: E111
-
+                    batch_task = asyncio.create_task(process_batch())
         return async_wrapper
 
-    return decorator  # noqa: E111
-
-
+    return decorator
 # Performance helpers
 
 
@@ -470,10 +441,8 @@ def get_performance_summary() -> dict[str, Any]:
 
     Returns:
         Performance summary dictionary
-    """  # noqa: E111
-    return _performance_monitor.get_summary()  # noqa: E111
-
-
+    """
+    return _performance_monitor.get_summary()
 def get_slow_operations(threshold_ms: float = 100.0) -> list[dict[str, Any]]:
     """Get slow operations.
 
@@ -482,109 +451,88 @@ def get_slow_operations(threshold_ms: float = 100.0) -> list[dict[str, Any]]:
 
     Returns:
         List of slow operations
-    """  # noqa: E111
-    slow_ops = _performance_monitor.get_slow_operations(threshold_ms)  # noqa: E111
-    return [op.to_dict() for op in slow_ops]  # noqa: E111
-
-
+    """
+    slow_ops = _performance_monitor.get_slow_operations(threshold_ms)
+    return [op.to_dict() for op in slow_ops]
 def reset_performance_metrics() -> None:
-    """Reset all performance metrics."""  # noqa: E111
-    _performance_monitor.reset()  # noqa: E111
-
-
+    """Reset all performance metrics."""
+    _performance_monitor.reset()
 def enable_performance_monitoring() -> None:
-    """Enable performance monitoring."""  # noqa: E111
-    _performance_monitor.enable()  # noqa: E111
-
-
+    """Enable performance monitoring."""
+    _performance_monitor.enable()
 def disable_performance_monitoring() -> None:
-    """Disable performance monitoring."""  # noqa: E111
-    _performance_monitor.disable()  # noqa: E111
-
-
+    """Disable performance monitoring."""
+    _performance_monitor.disable()
 def capture_cache_diagnostics(runtime_data: object | None) -> dict[str, Any] | None:
-    """Capture cache snapshots and repair telemetry when available."""  # noqa: E111
-
-    if runtime_data is None:  # noqa: E111
+    """Capture cache snapshots and repair telemetry when available."""
+    if runtime_data is None:
         return None
 
-    diagnostics: dict[str, Any] = {}  # noqa: E111
-
-    data_manager = getattr(runtime_data, "data_manager", None)  # noqa: E111
-    snapshot_method = getattr(data_manager, "cache_snapshots", None)  # noqa: E111
-    if callable(snapshot_method):  # noqa: E111
+    diagnostics: dict[str, Any] = {}
+    data_manager = getattr(runtime_data, "data_manager", None)
+    snapshot_method = getattr(data_manager, "cache_snapshots", None)
+    if callable(snapshot_method):
         try:
-            snapshots = snapshot_method()  # noqa: E111
+            snapshots = snapshot_method()
         except Exception:  # pragma: no cover - diagnostics guard
-            snapshots = None  # noqa: E111
+            snapshots = None
         if isinstance(snapshots, Mapping):
-            diagnostics["snapshots"] = dict(snapshots)  # noqa: E111
-
-            summary_method = getattr(data_manager, "cache_repair_summary", None)  # noqa: E111
-            if callable(summary_method):  # noqa: E111
+            diagnostics["snapshots"] = dict(snapshots)
+            summary_method = getattr(data_manager, "cache_repair_summary", None)
+            if callable(summary_method):
                 try:
                     summary = summary_method(
                         cast(dict[str, object], diagnostics["snapshots"])
-                    )  # noqa: E111
+                    )
                 except TypeError:
-                    try:  # noqa: E111
+                    try:
                         summary = summary_method()
                     except (
                         Exception
-                    ):  # pragma: no cover - diagnostics guard  # noqa: E111
+                    ):  # pragma: no cover - diagnostics guard
                         summary = None
                 except Exception:  # pragma: no cover - diagnostics guard
-                    summary = None  # noqa: E111
+                    summary = None
                 if summary is not None:
-                    diagnostics["repair_summary"] = summary  # noqa: E111
-
-    for attr_name in ("cache", "_cache", "caches", "_caches"):  # noqa: E111
+                    diagnostics["repair_summary"] = summary
+    for attr_name in ("cache", "_cache", "caches", "_caches"):
         cache = getattr(runtime_data, attr_name, None)
         if isinstance(cache, dict):
-            diagnostics.setdefault("legacy", {})[attr_name] = {"entries": len(cache)}  # noqa: E111
-
-    monitor = getattr(runtime_data, "performance_monitor", None)  # noqa: E111
-    if monitor is not None and hasattr(monitor, "get_summary"):  # noqa: E111
+            diagnostics.setdefault("legacy", {})[attr_name] = {"entries": len(cache)}
+    monitor = getattr(runtime_data, "performance_monitor", None)
+    if monitor is not None and hasattr(monitor, "get_summary"):
         try:
-            diagnostics["performance"] = monitor.get_summary()  # noqa: E111
+            diagnostics["performance"] = monitor.get_summary()
         except Exception:  # pragma: no cover - defensive telemetry collection
-            diagnostics["performance"] = {"status": "unavailable"}  # noqa: E111
-
-    return diagnostics or None  # noqa: E111
-
-
+            diagnostics["performance"] = {"status": "unavailable"}
+    return diagnostics or None
 @dataclass(slots=True)
 class _TrackedPerformanceContext:
-    """Mutable context object exposed by ``performance_tracker``."""  # noqa: E111
-
-    metric_name: str  # noqa: E111
-    started_at: float = field(default_factory=time.perf_counter)  # noqa: E111
-    failure: str | None = None  # noqa: E111
-
-    def mark_failure(self, error: Exception) -> None:  # noqa: E111
+    """Mutable context object exposed by ``performance_tracker``."""
+    metric_name: str
+    started_at: float = field(default_factory=time.perf_counter)
+    failure: str | None = None
+    def mark_failure(self, error: Exception) -> None:
         """Record a failure for the current tracked operation."""
         self.failure = f"{error.__class__.__name__}: {error}"
 
 
 def _ensure_runtime_performance_store(runtime_data: object) -> dict[str, Any]:
-    """Return a mutable diagnostics bucket from runtime data."""  # noqa: E111
-
-    store = getattr(runtime_data, "performance_stats", None)  # noqa: E111
-    if isinstance(store, dict):  # noqa: E111
+    """Return a mutable diagnostics bucket from runtime data."""
+    store = getattr(runtime_data, "performance_stats", None)
+    if isinstance(store, dict):
         return store
 
-    store = getattr(runtime_data, "_performance_stats", None)  # noqa: E111
-    if isinstance(store, dict):  # noqa: E111
+    store = getattr(runtime_data, "_performance_stats", None)
+    if isinstance(store, dict):
         return store
 
-    store = {}  # noqa: E111
-    if hasattr(runtime_data, "performance_stats"):  # noqa: E111
+    store = {}
+    if hasattr(runtime_data, "performance_stats"):
         runtime_data.performance_stats = store
-    elif hasattr(runtime_data, "_performance_stats"):  # noqa: E111
+    elif hasattr(runtime_data, "_performance_stats"):
         runtime_data._performance_stats = store
-    return store  # noqa: E111
-
-
+    return store
 @contextmanager
 def performance_tracker(
     runtime_data: object,
@@ -592,39 +540,33 @@ def performance_tracker(
     *,
     max_samples: int = 50,
 ) -> Any:
-    """Track maintenance execution metadata for diagnostics payloads."""  # noqa: E111
-
-    context = _TrackedPerformanceContext(metric_name=metric_name)  # noqa: E111
-    try:  # noqa: E111
+    """Track maintenance execution metadata for diagnostics payloads."""
+    context = _TrackedPerformanceContext(metric_name=metric_name)
+    try:
         yield context
-    finally:  # noqa: E111
+    finally:
         duration_ms = (time.perf_counter() - context.started_at) * 1000.0
         store = _ensure_runtime_performance_store(runtime_data)
         buckets = store.setdefault("performance_buckets", {})
         if not isinstance(buckets, dict):
-            buckets = {}  # noqa: E111
-            store["performance_buckets"] = buckets  # noqa: E111
-
+            buckets = {}
+            store["performance_buckets"] = buckets
         bucket = buckets.setdefault(
             metric_name, {"runs": 0, "failures": 0, "durations_ms": []}
         )
         if not isinstance(bucket, dict):
-            bucket = {"runs": 0, "failures": 0, "durations_ms": []}  # noqa: E111
-            buckets[metric_name] = bucket  # noqa: E111
-
+            bucket = {"runs": 0, "failures": 0, "durations_ms": []}
+            buckets[metric_name] = bucket
         bucket["runs"] = int(bucket.get("runs", 0) or 0) + 1
         if context.failure:
-            bucket["failures"] = int(bucket.get("failures", 0) or 0) + 1  # noqa: E111
-
+            bucket["failures"] = int(bucket.get("failures", 0) or 0) + 1
         durations = bucket.get("durations_ms")
         if not isinstance(durations, list):
-            durations = []  # noqa: E111
-            bucket["durations_ms"] = durations  # noqa: E111
+            durations = []
+            bucket["durations_ms"] = durations
         durations.append(round(duration_ms, 2))
         if len(durations) > max_samples:
-            del durations[:-max_samples]  # noqa: E111
-
-
+            del durations[:-max_samples]
 def record_maintenance_result(
     runtime_data: object,
     *,
@@ -636,36 +578,35 @@ def record_maintenance_result(
     details: Mapping[str, Any] | None = None,
     max_entries: int = 50,
 ) -> None:
-    """Store maintenance task outcomes on runtime diagnostics state."""  # noqa: E111
-
-    store = _ensure_runtime_performance_store(runtime_data)  # noqa: E111
-    history = store.setdefault("maintenance_results", [])  # noqa: E111
-    if not isinstance(history, list):  # noqa: E111
+    """Store maintenance task outcomes on runtime diagnostics state."""
+    store = _ensure_runtime_performance_store(runtime_data)
+    history = store.setdefault("maintenance_results", [])
+    if not isinstance(history, list):
         history = []
         store["maintenance_results"] = history
 
-    entry: dict[str, Any] = {  # noqa: E111
+    entry: dict[str, Any] = {
         "task": task,
         "status": status,
         "recorded_at": datetime.now(UTC).isoformat(),
         "timestamp": time.time(),
     }
-    if message is not None:  # noqa: E111
+    if message is not None:
         entry["message"] = message
 
-    diagnostics_payload: dict[str, Any] = {}  # noqa: E111
-    if diagnostics is not None:  # noqa: E111
+    diagnostics_payload: dict[str, Any] = {}
+    if diagnostics is not None:
         diagnostics_payload["cache"] = diagnostics
-    if metadata is not None:  # noqa: E111
+    if metadata is not None:
         diagnostics_payload["metadata"] = dict(metadata)
-    if diagnostics_payload:  # noqa: E111
+    if diagnostics_payload:
         entry["diagnostics"] = diagnostics_payload
 
-    if details is not None:  # noqa: E111
+    if details is not None:
         entry["details"] = dict(details)
 
-    history.append(entry)  # noqa: E111
-    if len(history) > max_entries:  # noqa: E111
+    history.append(entry)
+    if len(history) > max_entries:
         del history[:-max_entries]
 
-    store["last_maintenance_result"] = entry  # noqa: E111
+    store["last_maintenance_result"] = entry

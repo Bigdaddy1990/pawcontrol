@@ -35,91 +35,80 @@ ConfigEntryAuthFailed = _AuthFailedType
 HomeAssistantError = HomeAssistantErrorType
 ServiceValidationError = _ServiceValidationErrorType
 UpdateFailed = _UpdateFailedType
-CoordinatorUpdateFailed = _UpdateFailedType
+# NOTE: CoordinatorUpdateFailed was a duplicate alias of UpdateFailed defined here
+# AND re-defined in coordinator.py — that caused py/multiple-definition alerts.
+# The canonical alias lives in coordinator.py as ``CoordinatorUpdateFailed = UpdateFailed``.
+# This module only exposes ``UpdateFailed``; consumers that need the coordinator alias
+# should import it from coordinator.py directly.
 
 
 class ErrorSeverity(Enum):
-    """Error severity levels for better error handling and user experience."""  # noqa: E111
-
-    LOW = "low"  # Minor issues, degraded functionality  # noqa: E111
-    MEDIUM = "medium"  # Significant issues, some features unavailable  # noqa: E111
-    HIGH = "high"  # Major issues, core functionality affected  # noqa: E111
-    CRITICAL = (  # noqa: E111
+    """Error severity levels for better error handling and user experience."""
+    LOW = "low"  # Minor issues, degraded functionality
+    MEDIUM = "medium"  # Significant issues, some features unavailable
+    HIGH = "high"  # Major issues, core functionality affected
+    CRITICAL = (
         "critical"  # System-breaking issues, immediate attention needed
     )
 
 
 class ErrorCategory(Enum):
-    """Error categories for better organization and handling."""  # noqa: E111
-
-    CONFIGURATION = "configuration"  # Configuration and setup errors  # noqa: E111
-    DATA = "data"  # Data validation and processing errors  # noqa: E111
-    NETWORK = "network"  # Network and connectivity errors  # noqa: E111
-    GPS = "gps"  # GPS and location errors  # noqa: E111
-    AUTHENTICATION = (  # noqa: E111
+    """Error categories for better organization and handling."""
+    CONFIGURATION = "configuration"  # Configuration and setup errors
+    DATA = "data"  # Data validation and processing errors
+    NETWORK = "network"  # Network and connectivity errors
+    GPS = "gps"  # GPS and location errors
+    AUTHENTICATION = (
         "authentication"  # Authentication and authorization errors
     )
-    RATE_LIMIT = "rate_limit"  # Rate limiting errors  # noqa: E111
-    STORAGE = "storage"  # Storage and persistence errors  # noqa: E111
-    VALIDATION = "validation"  # Input validation errors  # noqa: E111
-    BUSINESS_LOGIC = "business_logic"  # Business logic violations  # noqa: E111
-    SYSTEM = "system"  # System and resource errors  # noqa: E111
-
-
+    RATE_LIMIT = "rate_limit"  # Rate limiting errors
+    STORAGE = "storage"  # Storage and persistence errors
+    VALIDATION = "validation"  # Input validation errors
+    BUSINESS_LOGIC = "business_logic"  # Business logic violations
+    SYSTEM = "system"  # System and resource errors
 class PawControlErrorKwargs(TypedDict, total=False):
-    """Optional keyword arguments supported by PawControl error helpers."""  # noqa: E111
-
-    severity: ErrorSeverity  # noqa: E111
-    recovery_suggestions: list[str]  # noqa: E111
-    user_message: str  # noqa: E111
-    technical_details: str | None  # noqa: E111
-    timestamp: datetime  # noqa: E111
-
-
+    """Optional keyword arguments supported by PawControl error helpers."""
+    severity: ErrorSeverity
+    recovery_suggestions: list[str]
+    user_message: str
+    technical_details: str | None
+    timestamp: datetime
 def _serialise_json_value(value: object) -> JSONValue:
-    """Convert arbitrary objects to JSON-compatible values for error payloads."""  # noqa: E111
-
-    if value is None or isinstance(value, bool | int | float | str):  # noqa: E111
+    """Convert arbitrary objects to JSON-compatible values for error payloads."""
+    if value is None or isinstance(value, bool | int | float | str):
         return cast(JSONValue, value)
 
-    if isinstance(value, datetime):  # noqa: E111
+    if isinstance(value, datetime):
         return value.isoformat()
 
-    if isinstance(value, Mapping):  # noqa: E111
+    if isinstance(value, Mapping):
         serialised_mapping: dict[str, JSONValue] = {}
         for key, mapping_value in value.items():
-            serialised_mapping[str(key)] = _serialise_json_value(mapping_value)  # noqa: E111
+            serialised_mapping[str(key)] = _serialise_json_value(mapping_value)
         return serialised_mapping
 
-    if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):  # noqa: E111
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
         return [_serialise_json_value(item) for item in value]
 
-    return str(value)  # noqa: E111
-
-
+    return str(value)
 def _ensure_error_context(context: Mapping[str, object] | None) -> ErrorContext:
-    """Normalise error context payloads to JSON-compatible dictionaries."""  # noqa: E111
-
-    if not context:  # noqa: E111
+    """Normalise error context payloads to JSON-compatible dictionaries."""
+    if not context:
         return {}
 
-    normalised: ErrorContext = {}  # noqa: E111
-    for key, value in context.items():  # noqa: E111
+    normalised: ErrorContext = {}
+    for key, value in context.items():
         serialised = _serialise_json_value(value)
         if serialised is not None:
-            normalised[str(key)] = serialised  # noqa: E111
-
-    return normalised  # noqa: E111
-
-
+            normalised[str(key)] = serialised
+    return normalised
 class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
     """Base exception for all Paw Control related errors with enhanced features.
 
     This base class provides structured error information, contextual data,
     and recovery suggestions for better error handling and user experience.
-    """  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """
+    def __init__(
         self,
         message: str,
         *,
@@ -157,7 +146,7 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
         self.timestamp = timestamp or dt_util.utcnow()
         self.stack_trace = traceback.format_stack()
 
-    def to_dict(self) -> ErrorPayload:  # noqa: E111
+    def to_dict(self) -> ErrorPayload:
         """Convert exception to dictionary for serialization.
 
         Returns:
@@ -176,7 +165,7 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
             "exception_type": self.__class__.__name__,
         }
 
-    def add_context(self, key: str, value: object) -> PawControlError:  # noqa: E111
+    def add_context(self, key: str, value: object) -> PawControlError:
         """Add context information to the exception.
 
         Args:
@@ -189,7 +178,7 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
         self.context[str(key)] = _serialise_json_value(value)
         return self
 
-    def add_recovery_suggestion(self, suggestion: str) -> PawControlError:  # noqa: E111
+    def add_recovery_suggestion(self, suggestion: str) -> PawControlError:
         """Add a recovery suggestion to the exception.
 
         Args:
@@ -201,7 +190,7 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
         self.recovery_suggestions.append(suggestion)
         return self
 
-    def with_user_message(self, message: str) -> PawControlError:  # noqa: E111
+    def with_user_message(self, message: str) -> PawControlError:
         """Set user-friendly error message.
 
         Args:
@@ -215,9 +204,8 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
 
 
 class ConfigurationError(PawControlError):
-    """Exception raised for configuration-related errors."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised for configuration-related errors."""
+    def __init__(
         self,
         setting: str,
         value: Any = None,
@@ -236,15 +224,14 @@ class ConfigurationError(PawControlError):
         """
         if value is not None and reason:
             message = (
-                f"Invalid configuration for '{setting}' (value: {value}): {reason}"  # noqa: E111
+                f"Invalid configuration for '{setting}' (value: {value}): {reason}"
             )
         elif value is not None:
-            message = f"Invalid configuration for '{setting}': {value}"  # noqa: E111
+            message = f"Invalid configuration for '{setting}': {value}"
         elif reason:
-            message = f"Invalid configuration for '{setting}': {reason}"  # noqa: E111
+            message = f"Invalid configuration for '{setting}': {reason}"
         else:
-            message = f"Invalid configuration for '{setting}'"  # noqa: E111
-
+            message = f"Invalid configuration for '{setting}'"
         super().__init__(
             message,
             error_code="configuration_error",
@@ -270,9 +257,8 @@ class ConfigurationError(PawControlError):
 
 
 class PawControlSetupError(PawControlError):
-    """Exception raised when integration setup fails."""  # noqa: E111
-
-    def __init__(self, message: str, error_code: str = "setup_failed") -> None:  # noqa: E111
+    """Exception raised when integration setup fails."""
+    def __init__(self, message: str, error_code: str = "setup_failed") -> None:
         """Initialize setup error."""
         super().__init__(
             message,
@@ -283,9 +269,8 @@ class PawControlSetupError(PawControlError):
 
 
 class ReauthRequiredError(PawControlError):
-    """Exception raised when reauthentication is required."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when reauthentication is required."""
+    def __init__(
         self,
         message: str,
         *,
@@ -305,9 +290,8 @@ class ReauthRequiredError(PawControlError):
 
 
 class ReconfigureRequiredError(PawControlError):
-    """Exception raised when reconfiguration is required."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when reconfiguration is required."""
+    def __init__(
         self,
         message: str,
         *,
@@ -325,9 +309,8 @@ class ReconfigureRequiredError(PawControlError):
 
 
 class RepairRequiredError(PawControlError):
-    """Exception raised when a repairs flow should be surfaced."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when a repairs flow should be surfaced."""
+    def __init__(
         self,
         message: str,
         *,
@@ -345,9 +328,8 @@ class RepairRequiredError(PawControlError):
 
 
 class DogNotFoundError(PawControlError):
-    """Exception raised when a dog with the specified ID is not found."""  # noqa: E111
-
-    def __init__(self, dog_id: str, available_dogs: list[str] | None = None) -> None:  # noqa: E111
+    """Exception raised when a dog with the specified ID is not found."""
+    def __init__(self, dog_id: str, available_dogs: list[str] | None = None) -> None:
         """Initialize dog not found error.
 
         Args:
@@ -356,8 +338,7 @@ class DogNotFoundError(PawControlError):
         """
         message = f"Dog with ID '{dog_id}' not found"
         if available_dogs:
-            message += f" (available: {', '.join(available_dogs)})"  # noqa: E111
-
+            message += f" (available: {', '.join(available_dogs)})"
         super().__init__(
             message,
             error_code="dog_not_found",
@@ -380,9 +361,8 @@ class DogNotFoundError(PawControlError):
 
 
 class GPSError(PawControlError):
-    """Base class for GPS-related errors."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Base class for GPS-related errors."""
+    def __init__(
         self,
         message: str,
         dog_id: str | None = None,
@@ -409,9 +389,9 @@ class GPSError(PawControlError):
         )
         context_payload: dict[str, object] = {"dog_id": dog_id}
         if location_context is not None:
-            context_payload["location"] = location_context  # noqa: E111
+            context_payload["location"] = location_context
         if context:
-            context_payload.update(context)  # noqa: E111
+            context_payload.update(context)
         super().__init__(
             message,
             error_code=error_code,
@@ -425,9 +405,8 @@ class GPSError(PawControlError):
 
 
 class InvalidCoordinatesError(GPSError):
-    """Exception raised when invalid GPS coordinates are provided."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when invalid GPS coordinates are provided."""
+    def __init__(
         self,
         latitude: float | None = None,
         longitude: float | None = None,
@@ -441,14 +420,13 @@ class InvalidCoordinatesError(GPSError):
             dog_id: Dog ID if applicable
         """
         if latitude is not None and longitude is not None:
-            message = f"Invalid GPS coordinates: ({latitude}, {longitude})"  # noqa: E111
+            message = f"Invalid GPS coordinates: ({latitude}, {longitude})"
             details = (
-                "Latitude must be between -90 and 90, longitude between -180 and 180"  # noqa: E111
+                "Latitude must be between -90 and 90, longitude between -180 and 180"
             )
         else:
-            message = "Invalid GPS coordinates provided"  # noqa: E111
-            details = "GPS coordinates are missing or malformed"  # noqa: E111
-
+            message = "Invalid GPS coordinates provided"
+            details = "GPS coordinates are missing or malformed"
         super().__init__(
             message,
             dog_id=dog_id,
@@ -478,9 +456,8 @@ class InvalidCoordinatesError(GPSError):
 
 
 class GPSUnavailableError(GPSError):
-    """Exception raised when GPS data is not available."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when GPS data is not available."""
+    def __init__(
         self,
         dog_id: str,
         reason: str | None = None,
@@ -494,10 +471,9 @@ class GPSUnavailableError(GPSError):
             last_known_location: Last known GPS location if available
         """
         if reason:
-            message = f"GPS data is not available for dog '{dog_id}': {reason}"  # noqa: E111
+            message = f"GPS data is not available for dog '{dog_id}': {reason}"
         else:
-            message = f"GPS data is not available for dog '{dog_id}'"  # noqa: E111
-
+            message = f"GPS data is not available for dog '{dog_id}'"
         super().__init__(
             message,
             dog_id=dog_id,
@@ -518,9 +494,8 @@ class GPSUnavailableError(GPSError):
 
 
 class WalkError(PawControlError):
-    """Base class for walk-related errors."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Base class for walk-related errors."""
+    def __init__(
         self,
         message: str,
         dog_id: str,
@@ -543,7 +518,7 @@ class WalkError(PawControlError):
             "walk_id": walk_id,
         }
         if context:
-            base_context.update(context)  # noqa: E111
+            base_context.update(context)
         super().__init__(
             message,
             error_code=error_code,
@@ -557,9 +532,8 @@ class WalkError(PawControlError):
 
 
 class WalkNotInProgressError(WalkError):
-    """Exception raised when trying to end a walk that isn't in progress."""  # noqa: E111
-
-    def __init__(self, dog_id: str, last_walk_time: datetime | None = None) -> None:  # noqa: E111
+    """Exception raised when trying to end a walk that isn't in progress."""
+    def __init__(self, dog_id: str, last_walk_time: datetime | None = None) -> None:
         """Initialize walk not in progress error.
 
         Args:
@@ -590,9 +564,8 @@ class WalkNotInProgressError(WalkError):
 
 
 class WalkAlreadyInProgressError(WalkError):
-    """Exception raised when trying to start a walk that's already in progress."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when trying to start a walk that's already in progress."""
+    def __init__(
         self,
         dog_id: str,
         walk_id: str | None = None,
@@ -629,9 +602,8 @@ class WalkAlreadyInProgressError(WalkError):
 
 
 class ValidationError(PawControlError):
-    """Exception raised when data validation fails."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when data validation fails."""
+    def __init__(
         self,
         field: str,
         value: Any = None,
@@ -651,22 +623,21 @@ class ValidationError(PawControlError):
             valid_values: List of valid values
         """
         if value is not None and constraint:
-            message = f"Validation failed for '{field}' (value: {value}): {constraint}"  # noqa: E111
+            message = f"Validation failed for '{field}' (value: {value}): {constraint}"
         elif value is not None:
-            message = f"Validation failed for '{field}': invalid value {value}"  # noqa: E111
+            message = f"Validation failed for '{field}': invalid value {value}"
         elif constraint:
-            message = f"Validation failed for '{field}': {constraint}"  # noqa: E111
+            message = f"Validation failed for '{field}': {constraint}"
         else:
-            message = f"Validation failed for '{field}'"  # noqa: E111
-
+            message = f"Validation failed for '{field}'"
         # Build recovery suggestions based on constraints
         suggestions = [f"Check the value for '{field}'"]
         if min_value is not None:
-            suggestions.append(f"Value must be at least {min_value}")  # noqa: E111
+            suggestions.append(f"Value must be at least {min_value}")
         if max_value is not None:
-            suggestions.append(f"Value must be at most {max_value}")  # noqa: E111
+            suggestions.append(f"Value must be at most {max_value}")
         if valid_values:
-            suggestions.append(  # noqa: E111
+            suggestions.append(
                 f"Valid values: {', '.join(map(str, valid_values))}",
             )
 
@@ -696,9 +667,8 @@ class ValidationError(PawControlError):
 
 
 class FlowValidationError(PawControlError):
-    """Exception raised when configuration or options flow validation fails."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when configuration or options flow validation fails."""
+    def __init__(
         self,
         *,
         field_errors: Mapping[str, str] | None = None,
@@ -736,22 +706,19 @@ class FlowValidationError(PawControlError):
         self.field_errors = field_errors
         self.base_errors = base_errors
 
-    def as_form_errors(self) -> dict[str, str]:  # noqa: E111
+    def as_form_errors(self) -> dict[str, str]:
         """Return errors in the format expected by Home Assistant forms."""
 
         if self.field_errors:
-            return dict(self.field_errors)  # noqa: E111
-
+            return dict(self.field_errors)
         if self.base_errors:
-            return {"base": self.base_errors[0]}  # noqa: E111
-
+            return {"base": self.base_errors[0]}
         return {"base": "validation_error"}
 
 
 class InvalidMealTypeError(ValidationError):
-    """Exception raised when an invalid meal type is specified."""  # noqa: E111
-
-    def __init__(self, meal_type: str, valid_types: list[str] | None = None) -> None:  # noqa: E111
+    """Exception raised when an invalid meal type is specified."""
+    def __init__(self, meal_type: str, valid_types: list[str] | None = None) -> None:
         """Initialize invalid meal type error.
 
         Args:
@@ -770,9 +737,8 @@ class InvalidMealTypeError(ValidationError):
 
 
 class InvalidWeightError(ValidationError):
-    """Exception raised when an invalid weight value is provided."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when an invalid weight value is provided."""
+    def __init__(
         self,
         weight: float,
         min_weight: float | None = None,
@@ -787,12 +753,11 @@ class InvalidWeightError(ValidationError):
         """
         constraint = "Weight must be a positive number"
         if min_weight is not None and max_weight is not None:
-            constraint = f"Weight must be between {min_weight}kg and {max_weight}kg"  # noqa: E111
+            constraint = f"Weight must be between {min_weight}kg and {max_weight}kg"
         elif min_weight is not None:
-            constraint = f"Weight must be at least {min_weight}kg"  # noqa: E111
+            constraint = f"Weight must be at least {min_weight}kg"
         elif max_weight is not None:
-            constraint = f"Weight must be at most {max_weight}kg"  # noqa: E111
-
+            constraint = f"Weight must be at most {max_weight}kg"
         super().__init__(
             field="weight",
             value=weight,
@@ -807,9 +772,8 @@ class InvalidWeightError(ValidationError):
 
 
 class StorageError(PawControlError):
-    """Exception raised when storage operations fail."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when storage operations fail."""
+    def __init__(
         self,
         operation: str,
         reason: str | None = None,
@@ -825,13 +789,12 @@ class StorageError(PawControlError):
             retry_possible: Whether the operation can be retried
         """
         if reason:
-            message = f"Storage {operation} failed: {reason}"  # noqa: E111
+            message = f"Storage {operation} failed: {reason}"
         else:
-            message = f"Storage {operation} failed"  # noqa: E111
-
+            message = f"Storage {operation} failed"
         suggestions = []
         if retry_possible:
-            suggestions.append("Retry the operation")  # noqa: E111
+            suggestions.append("Retry the operation")
         suggestions.extend(
             [
                 "Check available disk space",
@@ -860,9 +823,8 @@ class StorageError(PawControlError):
 
 
 class RateLimitError(PawControlError):
-    """Exception raised when rate limits are exceeded."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when rate limits are exceeded."""
+    def __init__(
         self,
         action: str,
         limit: str | None = None,
@@ -880,21 +842,20 @@ class RateLimitError(PawControlError):
             max_count: Maximum allowed requests
         """
         if limit and retry_after:
-            message = (  # noqa: E111
+            message = (
                 f"Rate limit exceeded for {action} ({limit}). Retry after {retry_after} seconds"
             )
         elif limit:
-            message = f"Rate limit exceeded for {action} ({limit})"  # noqa: E111
+            message = f"Rate limit exceeded for {action} ({limit})"
         elif retry_after:
             message = (
-                f"Rate limit exceeded for {action}. Retry after {retry_after} seconds"  # noqa: E111
+                f"Rate limit exceeded for {action}. Retry after {retry_after} seconds"
             )
         else:
-            message = f"Rate limit exceeded for {action}"  # noqa: E111
-
+            message = f"Rate limit exceeded for {action}"
         suggestions = []
         if retry_after:
-            suggestions.append(f"Wait {retry_after} seconds before retrying")  # noqa: E111
+            suggestions.append(f"Wait {retry_after} seconds before retrying")
         suggestions.extend(
             [
                 "Reduce the frequency of requests",
@@ -927,9 +888,8 @@ class RateLimitError(PawControlError):
 
 
 class NetworkError(PawControlError):
-    """Exception raised when network operations fail."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when network operations fail."""
+    def __init__(
         self,
         message: str,
         *,
@@ -944,8 +904,7 @@ class NetworkError(PawControlError):
             "Verify the PawControl service is reachable",
         ]
         if retryable:
-            suggestions.append("Try the operation again later")  # noqa: E111
-
+            suggestions.append("Try the operation again later")
         super().__init__(
             message,
             error_code="network_error",
@@ -966,9 +925,8 @@ class NetworkError(PawControlError):
 
 
 class ServiceUnavailableError(NetworkError):
-    """Exception raised when an upstream PawControl service is unavailable."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when an upstream PawControl service is unavailable."""
+    def __init__(
         self,
         message: str,
         *,
@@ -987,14 +945,13 @@ class ServiceUnavailableError(NetworkError):
         self.error_code = "service_unavailable"
         self.user_message = "PawControl service is temporarily unavailable"
         if service_name is not None:
-            self.context["service_name"] = service_name  # noqa: E111
+            self.context["service_name"] = service_name
         self.service_name = service_name
 
 
 class AuthenticationError(PawControlError):
-    """Exception raised when authentication validation fails."""  # noqa: E111
-
-    def __init__(self, message: str, *, service: str | None = None) -> None:  # noqa: E111
+    """Exception raised when authentication validation fails."""
+    def __init__(self, message: str, *, service: str | None = None) -> None:
         """Initialize authentication error."""
 
         super().__init__(
@@ -1013,9 +970,8 @@ class AuthenticationError(PawControlError):
 
 
 class NotificationError(PawControlError):
-    """Exception raised when notification sending fails."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when notification sending fails."""
+    def __init__(
         self,
         notification_type: str,
         reason: str | None = None,
@@ -1031,13 +987,12 @@ class NotificationError(PawControlError):
             fallback_available: Whether fallback notification is available
         """
         if reason:
-            message = f"Failed to send {notification_type} notification: {reason}"  # noqa: E111
+            message = f"Failed to send {notification_type} notification: {reason}"
         else:
-            message = f"Failed to send {notification_type} notification"  # noqa: E111
-
+            message = f"Failed to send {notification_type} notification"
         suggestions = []
         if fallback_available:
-            suggestions.append("Fallback notification method will be used")  # noqa: E111
+            suggestions.append("Fallback notification method will be used")
         suggestions.extend(
             [
                 "Check notification service configuration",
@@ -1069,9 +1024,8 @@ class NotificationError(PawControlError):
 
 
 class DataExportError(PawControlError):
-    """Exception raised when data export fails."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when data export fails."""
+    def __init__(
         self,
         export_type: str,
         reason: str | None = None,
@@ -1081,8 +1035,7 @@ class DataExportError(PawControlError):
         """Initialize data export error."""
         message = f"Failed to export {export_type} data"
         if reason:
-            message += f": {reason}"  # noqa: E111
-
+            message += f": {reason}"
         super().__init__(
             message,
             error_code="data_export_failed",
@@ -1102,9 +1055,8 @@ class DataExportError(PawControlError):
 
 
 class DataImportError(PawControlError):
-    """Exception raised when data import fails."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Exception raised when data import fails."""
+    def __init__(
         self,
         import_type: str,
         reason: str | None = None,
@@ -1114,10 +1066,9 @@ class DataImportError(PawControlError):
         """Initialize data import error."""
         message = f"Failed to import {import_type} data"
         if reason:
-            message += f": {reason}"  # noqa: E111
+            message += f": {reason}"
         if line_number:
-            message += f" at line {line_number}"  # noqa: E111
-
+            message += f" at line {line_number}"
         super().__init__(
             message,
             error_code="data_import_failed",
@@ -1168,13 +1119,11 @@ def get_exception_class(error_code: str) -> type[PawControlError]:
 
     Raises:
         KeyError: If the error code is not found
-    """  # noqa: E111
-    if error_code not in EXCEPTION_MAP:  # noqa: E111
+    """
+    if error_code not in EXCEPTION_MAP:
         raise KeyError(f"Unknown error code: {error_code}")
 
-    return EXCEPTION_MAP[error_code]  # noqa: E111
-
-
+    return EXCEPTION_MAP[error_code]
 def raise_from_error_code(
     error_code: str,
     message: str,
@@ -1192,9 +1141,9 @@ def raise_from_error_code(
 
     Raises:
         PawControlError: The appropriate exception for the error code
-    """  # noqa: E111
-    exception_class = EXCEPTION_MAP.get(error_code, PawControlError)  # noqa: E111
-    if category is not None and context is not None:  # noqa: E111
+    """
+    exception_class = EXCEPTION_MAP.get(error_code, PawControlError)
+    if category is not None and context is not None:
         raise exception_class(
             message,
             error_code=error_code,
@@ -1202,23 +1151,21 @@ def raise_from_error_code(
             context=context,
             **kwargs,
         )
-    if category is not None:  # noqa: E111
+    if category is not None:
         raise exception_class(
             message,
             error_code=error_code,
             category=category,
             **kwargs,
         )
-    if context is not None:  # noqa: E111
+    if context is not None:
         raise exception_class(
             message,
             error_code=error_code,
             context=context,
             **kwargs,
         )
-    raise exception_class(message, error_code=error_code, **kwargs)  # noqa: E111
-
-
+    raise exception_class(message, error_code=error_code, **kwargs)
 def handle_exception_gracefully[**P, T](
     func: Callable[P, T],
     default_return: T | None = None,
@@ -1236,13 +1183,12 @@ def handle_exception_gracefully[**P, T](
 
     Returns:
         Callable that wraps ``func`` and handles exceptions gracefully
-    """  # noqa: E111
-
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:  # noqa: E111
+    """
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
         try:
-            return func(*args, **kwargs)  # noqa: E111
+            return func(*args, **kwargs)
         except PawControlError as e:
-            if log_errors:  # noqa: E111
+            if log_errors:
                 import logging
 
                 logger = logging.getLogger(__name__)
@@ -1252,25 +1198,22 @@ def handle_exception_gracefully[**P, T](
                     e.to_dict(),
                 )
 
-            if reraise_critical and e.severity == ErrorSeverity.CRITICAL:  # noqa: E111
+            if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
                 raise
 
-            return default_return  # noqa: E111
+            return default_return
         except Exception:
-            if log_errors:  # noqa: E111
+            if log_errors:
                 import logging
 
                 logger = logging.getLogger(__name__)
                 logger.exception("Unexpected error in %s", func.__name__)
 
-            if reraise_critical:  # noqa: E111
+            if reraise_critical:
                 raise
 
-            return default_return  # noqa: E111
-
-    return wrapper  # noqa: E111
-
-
+            return default_return
+    return wrapper
 def create_error_context(
     dog_id: str | None = None,
     operation: str | None = None,
@@ -1285,17 +1228,15 @@ def create_error_context(
 
     Returns:
         Structured error context dictionary
-    """  # noqa: E111
-    context: ErrorContext = {"timestamp": dt_util.utcnow().isoformat()}  # noqa: E111
-
-    if dog_id is not None:  # noqa: E111
+    """
+    context: ErrorContext = {"timestamp": dt_util.utcnow().isoformat()}
+    if dog_id is not None:
         context["dog_id"] = dog_id
-    if operation is not None:  # noqa: E111
+    if operation is not None:
         context["operation"] = operation
 
-    for key, value in additional_context.items():  # noqa: E111
+    for key, value in additional_context.items():
         serialised = _serialise_json_value(value)
         if serialised is not None:
-            context[str(key)] = serialised  # noqa: E111
-
-    return context  # noqa: E111
+            context[str(key)] = serialised
+    return context

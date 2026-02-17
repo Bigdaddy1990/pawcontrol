@@ -105,15 +105,14 @@ _LOGGER = logging.getLogger(__name__)
 _TRANSLATIONS_IMPORT_PATH = "homeassistant.helpers.translation"
 _ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
 try:
-    _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)  # noqa: E111
-    _ASYNC_GET_TRANSLATIONS = getattr(  # noqa: E111
+    _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)
+    _ASYNC_GET_TRANSLATIONS = getattr(
         _translations_module,
         "async_get_translations",
         None,
     )
 except ModuleNotFoundError, AttributeError:
-    _ASYNC_GET_TRANSLATIONS = None  # noqa: E111
-
+    _ASYNC_GET_TRANSLATIONS = None
 # Diet compatibility matrix for validation
 DIET_COMPATIBILITY_RULES = {
     "age_exclusive": {
@@ -141,21 +140,18 @@ DIET_COMPATIBILITY_RULES = {
 
 
 def _coerce_bool(value: Any, *, default: bool = False) -> bool:
-    """Coerce an arbitrary value into a boolean flag."""  # noqa: E111
-
-    if isinstance(value, bool):  # noqa: E111
+    """Coerce an arbitrary value into a boolean flag."""
+    if isinstance(value, bool):
         return value
-    if isinstance(value, str):  # noqa: E111
+    if isinstance(value, str):
         lowered = value.strip().lower()
         if lowered in {"1", "true", "yes", "on", "enabled"}:
-            return True  # noqa: E111
+            return True
         if lowered in {"0", "false", "no", "off", "disabled"}:
-            return False  # noqa: E111
-    if isinstance(value, int | float):  # noqa: E111
+            return False
+    if isinstance(value, int | float):
         return bool(value)
-    return default  # noqa: E111
-
-
+    return default
 def _build_add_dog_placeholders(
     *,
     dog_count: int,
@@ -163,31 +159,25 @@ def _build_add_dog_placeholders(
     current_dogs: str,
     remaining_spots: int,
 ) -> ConfigFlowPlaceholders:
-    """Return immutable placeholders for the add-dog form."""  # noqa: E111
-
-    placeholders = clone_placeholders(ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE)  # noqa: E111
-    placeholders["dog_count"] = dog_count  # noqa: E111
-    placeholders["max_dogs"] = max_dogs  # noqa: E111
-    placeholders["current_dogs"] = current_dogs  # noqa: E111
-    placeholders["remaining_spots"] = remaining_spots  # noqa: E111
-    return freeze_placeholders(placeholders)  # noqa: E111
-
-
+    """Return immutable placeholders for the add-dog form."""
+    placeholders = clone_placeholders(ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_count"] = dog_count
+    placeholders["max_dogs"] = max_dogs
+    placeholders["current_dogs"] = current_dogs
+    placeholders["remaining_spots"] = remaining_spots
+    return freeze_placeholders(placeholders)
 def _build_dog_modules_placeholders(
     *,
     dog_name: str,
     dog_size: str,
     dog_age: int,
 ) -> ConfigFlowPlaceholders:
-    """Return immutable placeholders for the module selection step."""  # noqa: E111
-
-    placeholders = clone_placeholders(DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE)  # noqa: E111
-    placeholders["dog_name"] = dog_name  # noqa: E111
-    placeholders["dog_size"] = dog_size  # noqa: E111
-    placeholders["dog_age"] = dog_age  # noqa: E111
-    return freeze_placeholders(placeholders)  # noqa: E111
-
-
+    """Return immutable placeholders for the module selection step."""
+    placeholders = clone_placeholders(DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_name"] = dog_name
+    placeholders["dog_size"] = dog_size
+    placeholders["dog_age"] = dog_age
+    return freeze_placeholders(placeholders)
 def _build_dog_feeding_placeholders(
     *,
     dog_name: str,
@@ -195,16 +185,13 @@ def _build_dog_feeding_placeholders(
     suggested_amount: str,
     portion_info: str,
 ) -> ConfigFlowPlaceholders:
-    """Return immutable placeholders for the feeding configuration step."""  # noqa: E111
-
-    placeholders = clone_placeholders(DOG_FEEDING_PLACEHOLDERS_TEMPLATE)  # noqa: E111
-    placeholders["dog_name"] = dog_name  # noqa: E111
-    placeholders["dog_weight"] = dog_weight  # noqa: E111
-    placeholders["suggested_amount"] = suggested_amount  # noqa: E111
-    placeholders["portion_info"] = portion_info  # noqa: E111
-    return freeze_placeholders(placeholders)  # noqa: E111
-
-
+    """Return immutable placeholders for the feeding configuration step."""
+    placeholders = clone_placeholders(DOG_FEEDING_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_name"] = dog_name
+    placeholders["dog_weight"] = dog_weight
+    placeholders["suggested_amount"] = suggested_amount
+    placeholders["portion_info"] = portion_info
+    return freeze_placeholders(placeholders)
 def _build_add_another_summary_placeholders(
     *,
     dogs_list: str,
@@ -213,17 +200,14 @@ def _build_add_another_summary_placeholders(
     remaining_spots: int,
     at_limit: str,
 ) -> ConfigFlowPlaceholders:
-    """Return immutable placeholders when asking to add another dog."""  # noqa: E111
-
-    placeholders = clone_placeholders(ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE)  # noqa: E111
-    placeholders["dogs_list"] = dogs_list  # noqa: E111
-    placeholders["dog_count"] = dog_count  # noqa: E111
-    placeholders["max_dogs"] = max_dogs  # noqa: E111
-    placeholders["remaining_spots"] = remaining_spots  # noqa: E111
-    placeholders["at_limit"] = at_limit  # noqa: E111
-    return freeze_placeholders(placeholders)  # noqa: E111
-
-
+    """Return immutable placeholders when asking to add another dog."""
+    placeholders = clone_placeholders(ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE)
+    placeholders["dogs_list"] = dogs_list
+    placeholders["dog_count"] = dog_count
+    placeholders["max_dogs"] = max_dogs
+    placeholders["remaining_spots"] = remaining_spots
+    placeholders["at_limit"] = at_limit
+    return freeze_placeholders(placeholders)
 def _build_module_setup_placeholders(
     *,
     total_dogs: str,
@@ -233,25 +217,22 @@ def _build_module_setup_placeholders(
     complexity_info: str,
     next_step_info: str,
 ) -> ConfigFlowPlaceholders:
-    """Return immutable placeholders for the module configuration overview."""  # noqa: E111
-
-    placeholders = clone_placeholders(MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE)  # noqa: E111
-    placeholders["total_dogs"] = total_dogs  # noqa: E111
-    placeholders["gps_dogs"] = gps_dogs  # noqa: E111
-    placeholders["health_dogs"] = health_dogs  # noqa: E111
-    placeholders["suggested_performance"] = suggested_performance  # noqa: E111
-    placeholders["complexity_info"] = complexity_info  # noqa: E111
-    placeholders["next_step_info"] = next_step_info  # noqa: E111
-    return freeze_placeholders(placeholders)  # noqa: E111
-
-
+    """Return immutable placeholders for the module configuration overview."""
+    placeholders = clone_placeholders(MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE)
+    placeholders["total_dogs"] = total_dogs
+    placeholders["gps_dogs"] = gps_dogs
+    placeholders["health_dogs"] = health_dogs
+    placeholders["suggested_performance"] = suggested_performance
+    placeholders["complexity_info"] = complexity_info
+    placeholders["next_step_info"] = next_step_info
+    return freeze_placeholders(placeholders)
 if TYPE_CHECKING:
     from .config_flow_base import (
-        PawControlBaseConfigFlow as DogManagementMixinBase,  # noqa: E111
+        PawControlBaseConfigFlow as DogManagementMixinBase,
     )
 else:
 
-    class DogManagementMixinBase:  # pragma: no cover - runtime shim  # noqa: E111
+    class DogManagementMixinBase:  # pragma: no cover - runtime shim
         """Runtime stand-in for the config flow base during type checking."""
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -261,24 +242,20 @@ else:
             ``PawControlBaseConfigFlow``. Without this forwarding ``__init__``, the
             MRO can terminate at ``object.__init__`` and skip the base flow setup,
             leaving attributes like ``_dogs`` undefined in tests and runtime paths.
-            """  # noqa: E111
-
-            super().__init__(*args, **kwargs)  # noqa: E111
-
-
+            """
+            super().__init__(*args, **kwargs)
 class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
     """Mixin for dog management functionality in configuration flow.
 
     This mixin provides all the methods needed for adding, validating,
     and configuring dogs during the initial setup process with enhanced
     validation, per-dog module configuration, and comprehensive health data.
-    """  # noqa: E111
-
-    if TYPE_CHECKING:  # noqa: E111
+    """
+    if TYPE_CHECKING:
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: E111
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize dog management mixin."""
         super().__init__(*args, **kwargs)
         self._global_modules: ModuleConfigurationSnapshot = {
@@ -290,23 +267,22 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             "debug_logging": False,
         }
 
-    async def _async_get_flow_translations(self, language: str) -> dict[str, str]:  # noqa: E111
+    async def _async_get_flow_translations(self, language: str) -> dict[str, str]:
         """Return config-flow translations for the requested language."""
 
         if _ASYNC_GET_TRANSLATIONS is None:
-            return {}  # noqa: E111
+            return {}
         try:
-            return await _ASYNC_GET_TRANSLATIONS(  # noqa: E111
+            return await _ASYNC_GET_TRANSLATIONS(
                 self.hass,
                 language,
                 "config",
                 {DOMAIN},
             )
         except Exception:  # pragma: no cover - defensive guard for HA API
-            _LOGGER.debug("Failed to load %s translations for config flow", language)  # noqa: E111
-            return {}  # noqa: E111
-
-    async def _async_get_translation_lookup(  # noqa: E111
+            _LOGGER.debug("Failed to load %s translations for config flow", language)
+            return {}
+    async def _async_get_translation_lookup(
         self,
     ) -> tuple[dict[str, str], dict[str, str]]:
         """Return translations with an English fallback mapping."""
@@ -322,7 +298,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         )
         return translations, fallback
 
-    async def async_step_add_dog(  # noqa: E111
+    async def async_step_add_dog(
         self,
         user_input: DogSetupStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -340,16 +316,15 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         if user_input is not None and self._current_dog_config:
             # Finalize any previous dog configuration that wasn't completed  # noqa: E114
-            if self._current_dog_config not in self._dogs:  # noqa: E111
+            if self._current_dog_config not in self._dogs:
                 self._dogs.append(self._current_dog_config)
-            self._current_dog_config = None  # noqa: E111
-
+            self._current_dog_config = None
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 # FIXED: Rate-limited validation to prevent flooding
                 async with VALIDATION_SEMAPHORE:
                     # Add timeout for validation  # noqa: E114
-                    async with asyncio.timeout(5):  # noqa: E111
+                    async with asyncio.timeout(5):
                         validation_result = await self._async_validate_dog_config(
                             user_input,
                         )
@@ -359,28 +334,25 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                     validated_input = validation_result.get(
                         "validated_input", user_input
                     )
-                    dog_config = await self._create_dog_config(validated_input)  # noqa: E111
-
+                    dog_config = await self._create_dog_config(validated_input)
                     # Store temporarily for module configuration  # noqa: E114
-                    self._current_dog_config = dog_config  # noqa: E111
-
+                    self._current_dog_config = dog_config
                     # Small delay after adding dog to prevent registry flooding  # noqa: E114
-                    await asyncio.sleep(ENTITY_CREATION_DELAY)  # noqa: E111
-
-                    _LOGGER.debug(  # noqa: E111
+                    await asyncio.sleep(ENTITY_CREATION_DELAY)
+                    _LOGGER.debug(
                         "Added dog base config: %s (%s)",
                         dog_config[DOG_NAME_FIELD],
                         dog_config[DOG_ID_FIELD],
                     )
 
                     # Continue to module selection for this specific dog  # noqa: E114
-                    return await self.async_step_dog_modules()  # noqa: E111
+                    return await self.async_step_dog_modules()
                 errors = validation_result["errors"]
 
-            except TimeoutError:  # noqa: E111
+            except TimeoutError:
                 _LOGGER.error("Dog validation timed out")
                 errors["base"] = "validation_timeout"
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error adding dog: %s", err)
                 errors["base"] = "add_dog_failed"
 
@@ -413,7 +385,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             ),
         )
 
-    async def async_step_dog_modules(  # noqa: E111
+    async def async_step_dog_modules(
         self,
         user_input: DogModuleSelectionInput | None = None,
     ) -> ConfigFlowResult:
@@ -429,55 +401,52 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             Configuration flow result for next step
         """
         if user_input is not None:
-            current_dog = self._current_dog_config  # noqa: E111
-            if current_dog is None:  # noqa: E111
+            current_dog = self._current_dog_config
+            if current_dog is None:
                 _LOGGER.error(
                     "Dog modules step received input without active dog context",
                 )
                 return await self.async_step_add_dog()
 
-            existing_modules = ensure_dog_modules_config(current_dog)  # noqa: E111
-            if all(key in MODULE_TOGGLE_KEYS for key in user_input):  # noqa: E111
+            existing_modules = ensure_dog_modules_config(current_dog)
+            if all(key in MODULE_TOGGLE_KEYS for key in user_input):
                 modules_input = cast(DogModulesConfig, user_input)
                 selection: DogModuleSelectionInput = {}
                 for module_key, enabled in modules_input.items():
-                    module_literal = cast(ModuleToggleKey, module_key)  # noqa: E111
-                    flag = MODULE_TOGGLE_FLAG_BY_KEY.get(module_literal)  # noqa: E111
-                    if flag is not None:  # noqa: E111
+                    module_literal = cast(ModuleToggleKey, module_key)
+                    flag = MODULE_TOGGLE_FLAG_BY_KEY.get(module_literal)
+                    if flag is not None:
                         selection[flag] = bool(enabled)
                 input_payload: DogModuleSelectionInput = selection
-            else:  # noqa: E111
+            else:
                 input_payload = user_input
 
-            modules: DogModulesConfig = dog_modules_from_flow_input(  # noqa: E111
+            modules: DogModulesConfig = dog_modules_from_flow_input(
                 input_payload,
                 existing=existing_modules,
             )
 
-            current_dog[DOG_MODULES_FIELD] = modules  # noqa: E111
-
-            if modules.get(MODULE_GPS, False):  # noqa: E111
+            current_dog[DOG_MODULES_FIELD] = modules
+            if modules.get(MODULE_GPS, False):
                 return await self.async_step_dog_gps()
-            if modules.get(MODULE_FEEDING, False):  # noqa: E111
+            if modules.get(MODULE_FEEDING, False):
                 return await self.async_step_dog_feeding()
-            if modules.get(MODULE_HEALTH, False) or modules.get(  # noqa: E111
+            if modules.get(MODULE_HEALTH, False) or modules.get(
                 MODULE_MEDICATION,
                 False,
             ):
                 return await self.async_step_dog_health()
 
-            self._dogs.append(current_dog)  # noqa: E111
-            self._current_dog_config = None  # noqa: E111
-            return await self.async_step_add_another_dog()  # noqa: E111
-
+            self._dogs.append(current_dog)
+            self._current_dog_config = None
+            return await self.async_step_add_another_dog()
         # Suggest modules based on dog characteristics
         current_dog = self._current_dog_config
         if current_dog is None:
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Dog modules step invoked without an active dog; returning to add_dog",
             )
-            return await self.async_step_add_dog()  # noqa: E111
-
+            return await self.async_step_add_dog()
         dog_size_raw = current_dog.get(DOG_SIZE_FIELD)
         dog_size = dog_size_raw if isinstance(dog_size_raw, str) else "medium"
 
@@ -546,7 +515,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             ),
         )
 
-    async def async_step_dog_feeding(  # noqa: E111
+    async def async_step_dog_feeding(
         self,
         user_input: DogFeedingStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -563,35 +532,31 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         """
         current_dog = self._current_dog_config
         if current_dog is None:
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Feeding configuration step invoked without active dog; restarting add_dog",
             )
-            return await self.async_step_add_dog()  # noqa: E111
-
+            return await self.async_step_add_dog()
         if user_input is not None:
-            feeding_config: DogFeedingConfig = dog_feeding_config_from_flow(  # noqa: E111
+            feeding_config: DogFeedingConfig = dog_feeding_config_from_flow(
                 user_input,
             )
 
-            current_dog[DOG_FEEDING_CONFIG_FIELD] = feeding_config  # noqa: E111
-
-            modules = ensure_dog_modules_config(current_dog)  # noqa: E111
-            if modules.get(MODULE_HEALTH, False) or modules.get(  # noqa: E111
+            current_dog[DOG_FEEDING_CONFIG_FIELD] = feeding_config
+            modules = ensure_dog_modules_config(current_dog)
+            if modules.get(MODULE_HEALTH, False) or modules.get(
                 MODULE_MEDICATION,
                 False,
             ):
                 return await self.async_step_dog_health()
 
-            self._dogs.append(current_dog)  # noqa: E111
-            self._current_dog_config = None  # noqa: E111
-            return await self.async_step_add_another_dog()  # noqa: E111
-
+            self._dogs.append(current_dog)
+            self._current_dog_config = None
+            return await self.async_step_add_another_dog()
         dog_weight_raw = current_dog.get(DOG_WEIGHT_FIELD)
         if isinstance(dog_weight_raw, int | float):
-            dog_weight_value = float(dog_weight_raw)  # noqa: E111
+            dog_weight_value = float(dog_weight_raw)
         else:
-            dog_weight_value = 20.0  # noqa: E111
-
+            dog_weight_value = 20.0
         dog_size_raw = current_dog.get(DOG_SIZE_FIELD)
         dog_size = dog_size_raw if isinstance(dog_size_raw, str) else "medium"
 
@@ -710,7 +675,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             ),
         )
 
-    async def _async_validate_dog_config(  # noqa: E111
+    async def _async_validate_dog_config(
         self,
         user_input: DogSetupStepInput,
     ) -> DogValidationResult:
@@ -723,37 +688,34 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             Dictionary with validation results and any errors
         """
         try:
-            dog_id_raw = user_input.get(CONF_DOG_ID)  # noqa: E111
-            dog_name_raw = user_input.get(CONF_DOG_NAME)  # noqa: E111
-
-            if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):  # noqa: E111
+            dog_id_raw = user_input.get(CONF_DOG_ID)
+            dog_name_raw = user_input.get(CONF_DOG_NAME)
+            if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
                 return {"valid": False, "errors": {"base": "invalid_dog_data"}}
 
-            dog_id = dog_id_raw.lower().strip()  # noqa: E111
-            dog_name = dog_name_raw.strip()  # noqa: E111
-
+            dog_id = dog_id_raw.lower().strip()
+            dog_name = dog_name_raw.strip()
             # Add small delay between validations to prevent flooding  # noqa: E114
             # Increased micro-delay for rate limiting  # noqa: E114
-            await asyncio.sleep(0.05)  # noqa: E111
-
+            await asyncio.sleep(0.05)
             # Check cache first for performance  # noqa: E114
-            cache_key = self._create_cache_key(dog_id, dog_name, user_input)  # noqa: E111
-            if (cached := self._get_cached_validation(cache_key)) is not None:  # noqa: E111
+            cache_key = self._create_cache_key(dog_id, dog_name, user_input)
+            if (cached := self._get_cached_validation(cache_key)) is not None:
                 return cached
 
-            existing_ids = {  # noqa: E111
+            existing_ids = {
                 str(dog.get(DOG_ID_FIELD)).strip().lower()
                 for dog in self._dogs
                 if isinstance(dog.get(DOG_ID_FIELD), str)
             }
-            existing_names = {  # noqa: E111
+            existing_names = {
                 str(dog.get(DOG_NAME_FIELD)).strip().lower()
                 for dog in self._dogs
                 if isinstance(dog.get(DOG_NAME_FIELD), str)
                 and str(dog.get(DOG_NAME_FIELD)).strip()
             }
 
-            validated = validate_dog_setup_input(  # noqa: E111
+            validated = validate_dog_setup_input(
                 cast(Mapping[str, JSONValue], user_input),
                 existing_ids=existing_ids,
                 existing_names=existing_names,
@@ -761,29 +723,28 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 max_dogs=MAX_DOGS_PER_ENTRY,
             )
 
-            result: DogValidationResult = {  # noqa: E111
+            result: DogValidationResult = {
                 "valid": True,
                 "errors": {},
                 "validated_input": validated,
             }
-            self._update_validation_cache(cache_key, result)  # noqa: E111
-            return result  # noqa: E111
-
+            self._update_validation_cache(cache_key, result)
+            return result
         except FlowValidationError as err:
-            result = {  # noqa: E111
+            result = {
                 "valid": False,
                 "errors": err.as_form_errors(),
             }
-            self._update_validation_cache(cache_key, result)  # noqa: E111
-            return result  # noqa: E111
+            self._update_validation_cache(cache_key, result)
+            return result
         except Exception as err:
-            _LOGGER.error("Error validating dog configuration: %s", err)  # noqa: E111
-            return {  # noqa: E111
+            _LOGGER.error("Error validating dog configuration: %s", err)
+            return {
                 "valid": False,
                 "errors": {"base": "validation_error"},
             }
 
-    def _create_cache_key(  # noqa: E111
+    def _create_cache_key(
         self,
         dog_id: str,
         dog_name: str,
@@ -797,23 +758,21 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         age_token = str(age_val) if age_val is not None else "none"
         return f"{dog_id}_{dog_name}_{weight_token}_{age_token}_{size}_{breed}"
 
-    def _get_cached_validation(self, cache_key: str) -> DogValidationResult | None:  # noqa: E111
+    def _get_cached_validation(self, cache_key: str) -> DogValidationResult | None:
         cached: DogValidationCacheEntry | None = self._validation_cache.get(cache_key)
         if cached is None:
-            return None  # noqa: E111
-
+            return None
         if cached["cached_at"] <= asyncio.get_running_loop().time() - 5:
-            return None  # noqa: E111
-
+            return None
         cached_result = cached["result"]
         if isinstance(cached_result, Mapping):
-            valid = cached_result.get("valid")  # noqa: E111
-            errors = cached_result.get("errors")  # noqa: E111
-            if isinstance(valid, bool) and isinstance(errors, dict):  # noqa: E111
+            valid = cached_result.get("valid")
+            errors = cached_result.get("errors")
+            if isinstance(valid, bool) and isinstance(errors, dict):
                 return cast(DogValidationResult, cached_result)
         return None
 
-    def _update_validation_cache(  # noqa: E111
+    def _update_validation_cache(
         self,
         cache_key: str,
         result: DogValidationResult,
@@ -824,7 +783,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         }
         self._validation_cache[cache_key] = cache_entry
 
-    async def _create_dog_config(self, user_input: DogSetupStepInput) -> DogConfigData:  # noqa: E111
+    async def _create_dog_config(self, user_input: DogSetupStepInput) -> DogConfigData:
         """Create a complete dog configuration with intelligent defaults.
 
         Builds a comprehensive dog configuration with sensible defaults
@@ -847,25 +806,21 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         breed_value_raw = user_input.get(CONF_DOG_BREED)
         if isinstance(breed_value_raw, str) and breed_value_raw.strip():
-            config[DOG_BREED_FIELD] = breed_value_raw.strip()  # noqa: E111
+            config[DOG_BREED_FIELD] = breed_value_raw.strip()
         else:
-            config[DOG_BREED_FIELD] = "Mixed Breed"  # noqa: E111
-
+            config[DOG_BREED_FIELD] = "Mixed Breed"
         dog_age_value = user_input.get(CONF_DOG_AGE)
         if isinstance(dog_age_value, int | float):
-            config[DOG_AGE_FIELD] = int(dog_age_value)  # noqa: E111
-
+            config[DOG_AGE_FIELD] = int(dog_age_value)
         dog_weight_value = user_input.get(CONF_DOG_WEIGHT)
         if isinstance(dog_weight_value, int | float):
-            config[DOG_WEIGHT_FIELD] = float(dog_weight_value)  # noqa: E111
-
+            config[DOG_WEIGHT_FIELD] = float(dog_weight_value)
         dog_size_value = user_input.get(CONF_DOG_SIZE)
         if isinstance(dog_size_value, str):
-            config[DOG_SIZE_FIELD] = dog_size_value  # noqa: E111
-
+            config[DOG_SIZE_FIELD] = dog_size_value
         return config
 
-    def _calculate_suggested_food_amount(self, weight: float, size: str) -> int:  # noqa: E111
+    def _calculate_suggested_food_amount(self, weight: float, size: str) -> int:
         """Calculate suggested daily food amount based on dog characteristics.
 
         Args:
@@ -893,7 +848,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         # Round to nearest 10g
         return round(suggested / 10) * 10
 
-    async def _create_enhanced_dog_schema(  # noqa: E111
+    async def _create_enhanced_dog_schema(
         self,
         user_input: DogSetupStepInput | JSONMapping | None,
         suggested_id: str,
@@ -914,10 +869,9 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         """
         current_values: JSONMapping
         if isinstance(user_input, Mapping):
-            current_values = cast(JSONMapping, user_input)  # noqa: E111
+            current_values = cast(JSONMapping, user_input)
         else:
-            current_values = cast(JSONMapping, {})  # noqa: E111
-
+            current_values = cast(JSONMapping, {})
         return vol.Schema(
             {
                 vol.Required(
@@ -984,7 +938,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             },
         )
 
-    async def async_step_add_another_dog(  # noqa: E111
+    async def async_step_add_another_dog(
         self,
         user_input: AddAnotherDogInput | None = None,
     ) -> ConfigFlowResult:
@@ -1000,15 +954,14 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             Configuration flow result for next step or dog addition
         """
         if user_input is not None:
-            if bool(user_input.get("add_another", False)):  # noqa: E111
+            if bool(user_input.get("add_another", False)):
                 # Clear cache and errors for fresh start
                 self._validation_cache.clear()
                 self._errors.clear()
                 self._current_dog_config = None
                 return await self.async_step_add_dog()
             # All dogs configured, continue to global settings if needed  # noqa: E114
-            return await self.async_step_configure_modules()  # noqa: E111
-
+            return await self.async_step_configure_modules()
         # Check if we've reached the limit
         at_limit = len(self._dogs) >= MAX_DOGS_PER_ENTRY
 
@@ -1032,37 +985,35 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             ),
         )
 
-    def _build_vaccination_records(  # noqa: E111
+    def _build_vaccination_records(
         self,
         user_input: DogHealthStepInput,
     ) -> dict[str, DogVaccinationRecord]:
         """Build vaccination records from user form input."""
 
         def _build_record(date_key: str, next_key: str) -> DogVaccinationRecord | None:
-            date_value = coerce_optional_str(user_input.get(date_key))  # noqa: E111
-            next_value = coerce_optional_str(user_input.get(next_key))  # noqa: E111
-            if date_value is None and next_value is None:  # noqa: E111
+            date_value = coerce_optional_str(user_input.get(date_key))
+            next_value = coerce_optional_str(user_input.get(next_key))
+            if date_value is None and next_value is None:
                 return None
 
-            record: DogVaccinationRecord = {}  # noqa: E111
-            if date_value is not None:  # noqa: E111
+            record: DogVaccinationRecord = {}
+            if date_value is not None:
                 record["date"] = date_value
-            if next_value is not None:  # noqa: E111
+            if next_value is not None:
                 record["next_due"] = next_value
-            return record  # noqa: E111
-
+            return record
         vaccinations: dict[str, DogVaccinationRecord] = {}
 
         if record := _build_record("rabies_vaccination", "rabies_next"):
-            vaccinations["rabies"] = record  # noqa: E111
+            vaccinations["rabies"] = record
         if record := _build_record("dhpp_vaccination", "dhpp_next"):
-            vaccinations["dhpp"] = record  # noqa: E111
+            vaccinations["dhpp"] = record
         if record := _build_record("bordetella_vaccination", "bordetella_next"):
-            vaccinations["bordetella"] = record  # noqa: E111
-
+            vaccinations["bordetella"] = record
         return vaccinations
 
-    def _build_medication_entries(  # noqa: E111
+    def _build_medication_entries(
         self,
         user_input: DogHealthStepInput,
     ) -> list[DogMedicationEntry]:
@@ -1070,41 +1021,38 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         medications: list[DogMedicationEntry] = []
         for slot in ("1", "2"):
-            name = coerce_optional_str(user_input.get(f"medication_{slot}_name"))  # noqa: E111
-            if name is None:  # noqa: E111
+            name = coerce_optional_str(user_input.get(f"medication_{slot}_name"))
+            if name is None:
                 continue
 
-            entry: DogMedicationEntry = {"name": name}  # noqa: E111
-
-            if dosage := coerce_optional_str(  # noqa: E111
+            entry: DogMedicationEntry = {"name": name}
+            if dosage := coerce_optional_str(
                 user_input.get(f"medication_{slot}_dosage"),
             ):
                 entry["dosage"] = dosage
 
-            frequency = coerce_optional_str(  # noqa: E111
+            frequency = coerce_optional_str(
                 user_input.get(f"medication_{slot}_frequency"),
             )
-            if frequency is not None:  # noqa: E111
+            if frequency is not None:
                 entry["frequency"] = frequency or "daily"
 
-            time_value = coerce_optional_str(user_input.get(f"medication_{slot}_time"))  # noqa: E111
-            entry["time"] = time_value or ("08:00:00" if slot == "1" else "20:00:00")  # noqa: E111
-
-            if notes := coerce_optional_str(  # noqa: E111
+            time_value = coerce_optional_str(user_input.get(f"medication_{slot}_time"))
+            entry["time"] = time_value or ("08:00:00" if slot == "1" else "20:00:00")
+            if notes := coerce_optional_str(
                 user_input.get(f"medication_{slot}_notes"),
             ):
                 entry["notes"] = notes
 
-            entry["with_meals"] = _coerce_bool(  # noqa: E111
+            entry["with_meals"] = _coerce_bool(
                 user_input.get(f"medication_{slot}_with_meals"),
                 default=False,
             )
 
-            medications.append(entry)  # noqa: E111
-
+            medications.append(entry)
         return medications
 
-    def _collect_health_conditions(self, user_input: DogHealthStepInput) -> list[str]:  # noqa: E111
+    def _collect_health_conditions(self, user_input: DogHealthStepInput) -> list[str]:
         """Collect health conditions from user input for feeding calculations."""
 
         conditions: list[str] = []
@@ -1119,23 +1067,22 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         }
 
         for field, condition in condition_mapping.items():
-            if _coerce_bool(user_input.get(field), default=False):  # noqa: E111
+            if _coerce_bool(user_input.get(field), default=False):
                 conditions.append(condition)
 
         other_conditions_raw = coerce_optional_str(
             user_input.get("other_health_conditions"),
         )
         if other_conditions_raw:
-            additional = [  # noqa: E111
+            additional = [
                 cond.strip().lower().replace(" ", "_")
                 for cond in other_conditions_raw.split(",")
                 if cond.strip()
             ]
-            conditions.extend(additional)  # noqa: E111
-
+            conditions.extend(additional)
         return conditions
 
-    def _collect_special_diet(self, user_input: DogHealthStepInput) -> list[str]:  # noqa: E111
+    def _collect_special_diet(self, user_input: DogHealthStepInput) -> list[str]:
         """Collect special diet requirements from user input.
 
         Uses SPECIAL_DIET_OPTIONS from const.py to ensure consistency
@@ -1155,7 +1102,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             diet_requirements,
         )
         if validation_result["conflicts"]:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Conflicting diet combinations detected: %s",
                 validation_result["conflicts"],
             )
@@ -1169,7 +1116,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         return diet_requirements
 
-    def _validate_diet_combinations(  # noqa: E111
+    def _validate_diet_combinations(
         self,
         diet_requirements: list[str],
     ) -> DietValidationResult:
@@ -1189,7 +1136,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             "puppy_formula" in diet_requirements
             and "senior_formula" in diet_requirements
         ):
-            conflicts.append(  # noqa: E111
+            conflicts.append(
                 {
                     "type": "age_conflict",
                     "diets": ["puppy_formula", "senior_formula"],
@@ -1202,7 +1149,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             "weight_control" in diet_requirements
             and "puppy_formula" in diet_requirements
         ):
-            warnings.append(  # noqa: E111
+            warnings.append(
                 {
                     "type": "weight_puppy_warning",
                     "diets": ["weight_control", "puppy_formula"],
@@ -1212,17 +1159,17 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         # Raw diet with certain medical conditions
         if "raw_diet" in diet_requirements:
-            medical_conflicts = [  # noqa: E111
+            medical_conflicts = [
                 "prescription",
                 "kidney_support",
                 "diabetic",
                 "sensitive_stomach",
                 "organic",
             ]
-            conflicting_medical = [  # noqa: E111
+            conflicting_medical = [
                 diet for diet in medical_conflicts if diet in diet_requirements
             ]
-            if conflicting_medical:  # noqa: E111
+            if conflicting_medical:
                 warnings.append(
                     {
                         "type": "raw_medical_warning",
@@ -1242,7 +1189,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             diet for diet in prescription_diets if diet in diet_requirements
         ]
         if len(selected_prescriptions) > 1:
-            warnings.append(  # noqa: E111
+            warnings.append(
                 {
                     "type": "multiple_prescription_warning",
                     "diets": selected_prescriptions,
@@ -1252,11 +1199,11 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         # Hypoallergenic conflicts
         if "hypoallergenic" in diet_requirements:
-            potential_allergen_diets = ["organic", "raw_diet"]  # noqa: E111
-            conflicting_allergens = [  # noqa: E111
+            potential_allergen_diets = ["organic", "raw_diet"]
+            conflicting_allergens = [
                 diet for diet in potential_allergen_diets if diet in diet_requirements
             ]
-            if conflicting_allergens:  # noqa: E111
+            if conflicting_allergens:
                 warnings.append(
                     {
                         "type": "hypoallergenic_warning",
@@ -1267,7 +1214,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         # Low fat with high-activity requirements
         if False:
-            warnings.append(  # noqa: E111
+            warnings.append(
                 {
                     "type": "low_fat_activity_warning",
                     "diets": ["low_fat", "high_activity"],
@@ -1283,7 +1230,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             "recommended_vet_consultation": bool(warnings or conflicts),
         }
 
-    def _suggest_activity_level(self, dog_age: int, dog_size: str) -> str:  # noqa: E111
+    def _suggest_activity_level(self, dog_age: int, dog_size: str) -> str:
         """Suggest activity level based on dog characteristics.
 
         Args:
@@ -1296,13 +1243,12 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         # Age-based activity suggestions
         if dog_age < 1:
             return (
-                "moderate"  # Puppies have bursts of energy but need rest  # noqa: E111
+                "moderate"  # Puppies have bursts of energy but need rest
             )
         if dog_age >= 10:
-            return "low"  # Senior dogs generally less active  # noqa: E111
+            return "low"  # Senior dogs generally less active
         if dog_age >= 7:
-            return "moderate"  # Older adults  # noqa: E111
-
+            return "moderate"  # Older adults
         # Size-based activity suggestions for adult dogs
         size_activity_map = {
             "toy": "moderate",  # Small dogs, moderate exercise needs
@@ -1314,7 +1260,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         return size_activity_map.get(dog_size, "moderate")
 
-    async def _get_diet_compatibility_guidance(  # noqa: E111
+    async def _get_diet_compatibility_guidance(
         self,
         dog_age: int,
         dog_size: str,
@@ -1325,21 +1271,18 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         guidance_prefix = "config.error"
 
         def _lookup(key: str) -> str:
-            full_key = f"{guidance_prefix}.diet_guidance_{key}"  # noqa: E111
-            return translations.get(full_key) or fallback.get(full_key) or ""  # noqa: E111
-
+            full_key = f"{guidance_prefix}.diet_guidance_{key}"
+            return translations.get(full_key) or fallback.get(full_key) or ""
         guidance_points: list[str] = []
 
         if dog_age < 2:
-            guidance_points.append(_lookup("puppies"))  # noqa: E111
+            guidance_points.append(_lookup("puppies"))
         elif dog_age >= 7:
-            guidance_points.append(_lookup("seniors"))  # noqa: E111
-
+            guidance_points.append(_lookup("seniors"))
         if dog_size in ("large", "giant"):
-            guidance_points.append(_lookup("large_breed"))  # noqa: E111
+            guidance_points.append(_lookup("large_breed"))
         elif dog_size == "toy":
-            guidance_points.append(_lookup("toy_breed"))  # noqa: E111
-
+            guidance_points.append(_lookup("toy_breed"))
         guidance_points.extend(
             [
                 _lookup("multiple_prescription"),
@@ -1350,10 +1293,10 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
         filtered = [entry for entry in guidance_points if entry]
         if filtered:
-            return "\n".join(filtered)  # noqa: E111
+            return "\n".join(filtered)
         return _lookup("none")
 
-    async def async_step_configure_modules(  # noqa: E111
+    async def async_step_configure_modules(
         self,
         user_input: ModuleConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -1373,7 +1316,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         """
         if user_input is not None:
             # Store global module settings  # noqa: E114
-            self._global_modules = ModuleConfigurationSnapshot(  # noqa: E111
+            self._global_modules = ModuleConfigurationSnapshot(
                 enable_notifications=bool(user_input.get("enable_notifications", True)),
                 enable_dashboard=bool(user_input.get("enable_dashboard", True)),
                 performance_mode=normalize_performance_mode(
@@ -1386,12 +1329,11 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             )
 
             # UPDATED: Redirect to entity profile selection for performance optimization  # noqa: E114, E501
-            _LOGGER.info(  # noqa: E111
+            _LOGGER.info(
                 "Global modules configured for %d dogs, proceeding to entity profile selection",
                 len(self._dogs),
             )
-            return await self.async_step_entity_profile()  # noqa: E111
-
+            return await self.async_step_entity_profile()
         # Analyze configured dogs to suggest global settings
         total_dogs = len(self._dogs)
         has_gps_dogs = sum(
@@ -1404,10 +1346,9 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         # Suggest performance mode based on complexity
         suggested_performance = "minimal"
         if total_dogs >= 3 or has_gps_dogs >= 2:
-            suggested_performance = "balanced"  # noqa: E111
+            suggested_performance = "balanced"
         elif total_dogs >= 5 or has_gps_dogs >= 3:
-            suggested_performance = "full"  # noqa: E111
-
+            suggested_performance = "full"
         # Suggest auto-backup for complex setups
         suggested_backup = total_dogs >= 2 or has_health_tracking >= 1
 
@@ -1471,7 +1412,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             ),
         )
 
-    def _get_setup_complexity_info(self) -> str:  # noqa: E111
+    def _get_setup_complexity_info(self) -> str:
         """Get information about setup complexity for user guidance.
 
         Returns:
@@ -1483,7 +1424,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         )
 
         if total_dogs == 1 and total_modules <= 5:
-            return "Simple setup - minimal resources needed"  # noqa: E111
+            return "Simple setup - minimal resources needed"
         if total_dogs <= 2 and total_modules <= 10:
-            return "Standard setup - balanced performance recommended"  # noqa: E111
+            return "Standard setup - balanced performance recommended"
         return "Complex setup - full performance mode recommended"

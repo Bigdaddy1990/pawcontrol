@@ -19,8 +19,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
 if TYPE_CHECKING:
-    pass  # noqa: E111
-
+    pass
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -32,13 +31,10 @@ class UpdateBatch:
         entities: List of entities to update
         timestamp: When batch was created
         scheduled: Whether update is scheduled
-    """  # noqa: E111
-
-    entities: set[str]  # noqa: E111
-    timestamp: datetime  # noqa: E111
-    scheduled: bool = False  # noqa: E111
-
-
+    """
+    entities: set[str]
+    timestamp: datetime
+    scheduled: bool = False
 class EntityUpdateBatcher:
     """Batches entity updates to reduce state writes.
 
@@ -49,9 +45,8 @@ class EntityUpdateBatcher:
         >>> batcher = EntityUpdateBatcher(hass, batch_window_ms=100)
         >>> await batcher.async_setup()
         >>> await batcher.schedule_update("sensor.dog_gps")
-    """  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """
+    def __init__(
         self,
         hass: HomeAssistant,
         *,
@@ -74,11 +69,11 @@ class EntityUpdateBatcher:
         self._update_count = 0
         self._batch_count = 0
 
-    async def async_setup(self) -> None:  # noqa: E111
+    async def async_setup(self) -> None:
         """Set up the batcher."""
         _LOGGER.debug("Entity update batcher initialized")
 
-    def register_entity(self, entity_id: str, entity: Any) -> None:  # noqa: E111
+    def register_entity(self, entity_id: str, entity: Any) -> None:
         """Register an entity for batched updates.
 
         Args:
@@ -87,7 +82,7 @@ class EntityUpdateBatcher:
         """
         self._entity_registry[entity_id] = entity
 
-    def unregister_entity(self, entity_id: str) -> None:  # noqa: E111
+    def unregister_entity(self, entity_id: str) -> None:
         """Unregister an entity.
 
         Args:
@@ -96,7 +91,7 @@ class EntityUpdateBatcher:
         self._entity_registry.pop(entity_id, None)
         self._pending.discard(entity_id)
 
-    async def schedule_update(self, entity_id: str) -> None:  # noqa: E111
+    async def schedule_update(self, entity_id: str) -> None:
         """Schedule an entity update.
 
         Args:
@@ -106,30 +101,27 @@ class EntityUpdateBatcher:
 
         # Start batch task if not running
         if self._batch_task is None or self._batch_task.done():
-            self._batch_task = asyncio.create_task(self._process_batch())  # noqa: E111
-
-    async def _process_batch(self) -> None:  # noqa: E111
+            self._batch_task = asyncio.create_task(self._process_batch())
+    async def _process_batch(self) -> None:
         """Process pending updates after batch window."""
         # Wait for batch window
         await asyncio.sleep(self._batch_window_ms / 1000)
 
         # Collect pending updates
         if not self._pending:
-            return  # noqa: E111
-
+            return
         batch = list(self._pending)[: self._max_batch_size]
         self._pending.difference_update(batch)
 
         # Process batch
         for entity_id in batch:
-            entity = self._entity_registry.get(entity_id)  # noqa: E111
-            if entity and hasattr(entity, "async_write_ha_state"):  # noqa: E111
+            entity = self._entity_registry.get(entity_id)
+            if entity and hasattr(entity, "async_write_ha_state"):
                 try:
-                    entity.async_write_ha_state()  # noqa: E111
-                    self._update_count += 1  # noqa: E111
+                    entity.async_write_ha_state()
+                    self._update_count += 1
                 except Exception as e:
-                    _LOGGER.error("Failed to update entity %s: %s", entity_id, e)  # noqa: E111
-
+                    _LOGGER.error("Failed to update entity %s: %s", entity_id, e)
         self._batch_count += 1
         _LOGGER.debug(
             "Processed batch %d with %d entities (%d pending)",
@@ -140,9 +132,8 @@ class EntityUpdateBatcher:
 
         # Schedule next batch if more pending
         if self._pending:
-            self._batch_task = asyncio.create_task(self._process_batch())  # noqa: E111
-
-    def get_stats(self) -> dict[str, Any]:  # noqa: E111
+            self._batch_task = asyncio.create_task(self._process_batch())
+    def get_stats(self) -> dict[str, Any]:
         """Get batcher statistics.
 
         Returns:
@@ -168,14 +159,13 @@ class SignificantChangeTracker:
         >>> tracker = SignificantChangeTracker()
         >>> if tracker.is_significant_change("sensor.gps", 45.5231, 45.5232):
         ...     entity.async_write_ha_state()
-    """  # noqa: E111
-
-    def __init__(self) -> None:  # noqa: E111
+    """
+    def __init__(self) -> None:
         """Initialize significant change tracker."""
         self._last_values: dict[str, Any] = {}
         self._thresholds: dict[str, dict[str, Any]] = defaultdict(dict)
 
-    def set_threshold(  # noqa: E111
+    def set_threshold(
         self,
         entity_id: str,
         attribute: str,
@@ -197,7 +187,7 @@ class SignificantChangeTracker:
             "percentage": percentage,
         }
 
-    def is_significant_change(  # noqa: E111
+    def is_significant_change(
         self,
         entity_id: str,
         attribute: str,
@@ -222,23 +212,20 @@ class SignificantChangeTracker:
 
         # First update is always significant
         if key not in self._last_values:
-            self._last_values[key] = new_value  # noqa: E111
-            return True  # noqa: E111
-
+            self._last_values[key] = new_value
+            return True
         old_value = self._last_values[key]
 
         # Different types always significant
         if not isinstance(new_value, type(old_value)):
-            self._last_values[key] = new_value  # noqa: E111
-            return True  # noqa: E111
-
+            self._last_values[key] = new_value
+            return True
         # Strings/bools: any change is significant
         if not isinstance(old_value, (int, float)):
-            significant = old_value != new_value  # noqa: E111
-            if significant:  # noqa: E111
+            significant = old_value != new_value
+            if significant:
                 self._last_values[key] = new_value
-            return significant  # noqa: E111
-
+            return significant
         # Numeric comparison
         thresholds = self._thresholds.get(key, {})
         abs_threshold = absolute_threshold or thresholds.get("absolute")
@@ -246,32 +233,31 @@ class SignificantChangeTracker:
 
         # Absolute threshold
         if abs_threshold is not None and abs(new_value - old_value) < abs_threshold:
-            return False  # noqa: E111
-
+            return False
         # Percentage threshold
         if pct_threshold is not None and old_value != 0:
-            change_pct = abs((new_value - old_value) / old_value)  # noqa: E111
-            if change_pct < pct_threshold:  # noqa: E111
+            change_pct = abs((new_value - old_value) / old_value)
+            if change_pct < pct_threshold:
                 return False
 
         # Change is significant
         self._last_values[key] = new_value
         return True
 
-    def reset(self, entity_id: str | None = None) -> None:  # noqa: E111
+    def reset(self, entity_id: str | None = None) -> None:
         """Reset tracked values.
 
         Args:
             entity_id: Optional entity ID to reset (all if None)
         """
         if entity_id is None:
-            self._last_values.clear()  # noqa: E111
+            self._last_values.clear()
         else:
             # Remove all keys for this entity  # noqa: E114
             keys_to_remove = [
                 k for k in self._last_values if k.startswith(f"{entity_id}.")
-            ]  # noqa: E111
-            for key in keys_to_remove:  # noqa: E111
+            ]
+            for key in keys_to_remove:
                 del self._last_values[key]
 
 
@@ -285,9 +271,8 @@ class EntityUpdateScheduler:
         >>> scheduler = EntityUpdateScheduler(hass)
         >>> await scheduler.async_setup()
         >>> scheduler.register_entity("sensor.gps", update_interval=30)
-    """  # noqa: E111
-
-    def __init__(self, hass: HomeAssistant) -> None:  # noqa: E111
+    """
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize entity update scheduler.
 
         Args:
@@ -298,13 +283,12 @@ class EntityUpdateScheduler:
         self._intervals: dict[int, set[str]] = defaultdict(set)
         self._unsub_functions: list[Any] = []
 
-    async def async_setup(self) -> None:  # noqa: E111
+    async def async_setup(self) -> None:
         """Set up the scheduler."""
         # Register common intervals
         for interval in [10, 30, 60, 300, 900]:
-            self._setup_interval(interval)  # noqa: E111
-
-    def _setup_interval(self, interval_seconds: int) -> None:  # noqa: E111
+            self._setup_interval(interval)
+    def _setup_interval(self, interval_seconds: int) -> None:
         """Set up update interval.
 
         Args:
@@ -313,14 +297,14 @@ class EntityUpdateScheduler:
 
         @callback
         def update_entities(now: datetime) -> None:
-            """Update entities at this interval."""  # noqa: E111
-            entities = self._intervals.get(interval_seconds, set())  # noqa: E111
-            for entity_id in entities:  # noqa: E111
+            """Update entities at this interval."""
+            entities = self._intervals.get(interval_seconds, set())
+            for entity_id in entities:
                 entity_data = self._entities.get(entity_id)
                 if entity_data and entity_data.get("entity"):
-                    try:  # noqa: E111
+                    try:
                         entity_data["entity"].async_write_ha_state()
-                    except Exception as e:  # noqa: E111
+                    except Exception as e:
                         _LOGGER.error("Failed to update entity %s: %s", entity_id, e)
 
         unsub = async_track_time_interval(
@@ -330,7 +314,7 @@ class EntityUpdateScheduler:
         )
         self._unsub_functions.append(unsub)
 
-    def register_entity(  # noqa: E111
+    def register_entity(
         self,
         entity_id: str,
         entity: Any,
@@ -350,24 +334,23 @@ class EntityUpdateScheduler:
         }
         self._intervals[update_interval].add(entity_id)
 
-    def unregister_entity(self, entity_id: str) -> None:  # noqa: E111
+    def unregister_entity(self, entity_id: str) -> None:
         """Unregister entity.
 
         Args:
             entity_id: Entity ID
         """
         if entity_id in self._entities:
-            interval = self._entities[entity_id]["interval"]  # noqa: E111
-            self._intervals[interval].discard(entity_id)  # noqa: E111
-            del self._entities[entity_id]  # noqa: E111
-
-    def async_shutdown(self) -> None:  # noqa: E111
+            interval = self._entities[entity_id]["interval"]
+            self._intervals[interval].discard(entity_id)
+            del self._entities[entity_id]
+    def async_shutdown(self) -> None:
         """Shut down the scheduler."""
         for unsub in self._unsub_functions:
-            unsub()  # noqa: E111
+            unsub()
         self._unsub_functions.clear()
 
-    def get_stats(self) -> dict[str, Any]:  # noqa: E111
+    def get_stats(self) -> dict[str, Any]:
         """Get scheduler statistics.
 
         Returns:
@@ -406,21 +389,17 @@ def skip_redundant_update(
         ...     @skip_redundant_update(tracker, "latitude", absolute=0.0001)
         ...     async def async_update(self):
         ...         self._attr_latitude = await get_latitude()
-    """  # noqa: E111
-
-    def decorator(func: Any) -> Any:  # noqa: E111
+    """
+    def decorator(func: Any) -> Any:
         async def wrapper(self: Any) -> Any:
             # Get old value  # noqa: E114
-            old_value = getattr(self, f"_attr_{attribute}", None)  # noqa: E111
-
+            old_value = getattr(self, f"_attr_{attribute}", None)
             # Call original update  # noqa: E114
-            await func(self)  # noqa: E111
-
+            await func(self)
             # Get new value  # noqa: E114
-            new_value = getattr(self, f"_attr_{attribute}", None)  # noqa: E111
-
+            new_value = getattr(self, f"_attr_{attribute}", None)
             # Check significance  # noqa: E114
-            if not tracker.is_significant_change(  # noqa: E111
+            if not tracker.is_significant_change(
                 self.entity_id,
                 attribute,
                 new_value,
@@ -431,9 +410,7 @@ def skip_redundant_update(
 
         return wrapper
 
-    return decorator  # noqa: E111
-
-
+    return decorator
 # Helper functions
 
 
@@ -453,9 +430,9 @@ def calculate_optimal_update_interval(
     Examples:
         >>> interval = calculate_optimal_update_interval("gps", "high")
         >>> assert interval == 10
-    """  # noqa: E111
+    """
     # Base intervals by data type  # noqa: E114
-    base_intervals = {  # noqa: E111
+    base_intervals = {
         "gps": 30,
         "walk": 60,
         "feeding": 300,
@@ -464,18 +441,15 @@ def calculate_optimal_update_interval(
     }
 
     # Volatility multipliers  # noqa: E114
-    multipliers = {  # noqa: E111
+    multipliers = {
         "low": 2.0,
         "medium": 1.0,
         "high": 0.5,
     }
 
-    base = base_intervals.get(data_type, 60)  # noqa: E111
-    multiplier = multipliers.get(volatility, 1.0)  # noqa: E111
-
-    return int(base * multiplier)  # noqa: E111
-
-
+    base = base_intervals.get(data_type, 60)
+    multiplier = multipliers.get(volatility, 1.0)
+    return int(base * multiplier)
 def estimate_state_write_reduction(
     update_count_before: int,
     update_count_after: int,
@@ -488,13 +462,13 @@ def estimate_state_write_reduction(
 
     Returns:
         Reduction statistics
-    """  # noqa: E111
-    reduction = update_count_before - update_count_after  # noqa: E111
-    reduction_pct = (  # noqa: E111
+    """
+    reduction = update_count_before - update_count_after
+    reduction_pct = (
         (reduction / update_count_before * 100) if update_count_before > 0 else 0.0
     )
 
-    return {  # noqa: E111
+    return {
         "updates_before": update_count_before,
         "updates_after": update_count_after,
         "reduction": reduction,

@@ -12,7 +12,7 @@ from .types import (
 
 if TYPE_CHECKING:
 
-    class MenuOptionsHost(Protocol):  # noqa: E111
+    class MenuOptionsHost(Protocol):
         def async_show_menu(
             self,
             *,
@@ -21,11 +21,9 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult: ...
 
 else:  # pragma: no cover
-    MenuOptionsHost = object  # noqa: E111
-
-
+    MenuOptionsHost = object
 class MenuOptionsMixin(MenuOptionsHost):
-    async def async_step_init(  # noqa: E111
+    async def async_step_init(
         self,
         user_input: OptionsMainMenuInput | None = None,
     ) -> ConfigFlowResult:

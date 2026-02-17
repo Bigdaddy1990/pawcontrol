@@ -14,22 +14,18 @@ def build_dog_status_snapshot(
     dog_id: str,
     dog_data: Mapping[str, object],
 ) -> DogStatusSnapshot:
-    """Return the centralized status snapshot for a dog."""  # noqa: E111
-
-    feeding_data = _coerce_mapping(dog_data.get("feeding"))  # noqa: E111
-    walk_data = _coerce_mapping(dog_data.get("walk"))  # noqa: E111
-    gps_data = _coerce_mapping(dog_data.get("gps"))  # noqa: E111
-
-    on_walk = bool(walk_data.get("walk_in_progress", False))  # noqa: E111
-    needs_walk = bool(walk_data.get("needs_walk", False))  # noqa: E111
-    is_hungry = bool(feeding_data.get("is_hungry", False))  # noqa: E111
-
-    zone = _coerce_zone_name(gps_data.get("zone"))  # noqa: E111
-    geofence_status = _coerce_mapping(gps_data.get("geofence_status"))  # noqa: E111
-    in_safe_zone = _resolve_safe_zone(geofence_status, zone)  # noqa: E111
-    is_home = zone == "home"  # noqa: E111
-
-    state = _derive_status_state(  # noqa: E111
+    """Return the centralized status snapshot for a dog."""
+    feeding_data = _coerce_mapping(dog_data.get("feeding"))
+    walk_data = _coerce_mapping(dog_data.get("walk"))
+    gps_data = _coerce_mapping(dog_data.get("gps"))
+    on_walk = bool(walk_data.get("walk_in_progress", False))
+    needs_walk = bool(walk_data.get("needs_walk", False))
+    is_hungry = bool(feeding_data.get("is_hungry", False))
+    zone = _coerce_zone_name(gps_data.get("zone"))
+    geofence_status = _coerce_mapping(gps_data.get("geofence_status"))
+    in_safe_zone = _resolve_safe_zone(geofence_status, zone)
+    is_home = zone == "home"
+    state = _derive_status_state(
         on_walk=on_walk,
         is_home=is_home,
         is_hungry=is_hungry,
@@ -37,7 +33,7 @@ def build_dog_status_snapshot(
         zone=zone,
     )
 
-    return {  # noqa: E111
+    return {
         "dog_id": dog_id,
         "state": state,
         "zone": zone,
@@ -50,37 +46,28 @@ def build_dog_status_snapshot(
 
 
 def _coerce_mapping(value: object | None) -> JSONMutableMapping:
-    """Return ``value`` as a mutable mapping when possible."""  # noqa: E111
-
-    if isinstance(value, Mapping):  # noqa: E111
+    """Return ``value`` as a mutable mapping when possible."""
+    if isinstance(value, Mapping):
         return cast(JSONMutableMapping, value)
-    return cast(JSONMutableMapping, {})  # noqa: E111
-
-
+    return cast(JSONMutableMapping, {})
 def _coerce_zone_name(value: object | None) -> str | None:
-    """Return a normalized zone name."""  # noqa: E111
-
-    if isinstance(value, str):  # noqa: E111
+    """Return a normalized zone name."""
+    if isinstance(value, str):
         normalized = value.strip()
         if normalized:
-            return normalized  # noqa: E111
-    return None  # noqa: E111
-
-
+            return normalized
+    return None
 def _resolve_safe_zone(geofence_status: JSONMapping, zone: str | None) -> bool:
-    """Determine safe-zone membership from geofence and zone data."""  # noqa: E111
-
-    if geofence_status:  # noqa: E111
+    """Determine safe-zone membership from geofence and zone data."""
+    if geofence_status:
         candidate = geofence_status.get("in_safe_zone")
         if isinstance(candidate, bool):
-            return candidate  # noqa: E111
+            return candidate
         if isinstance(candidate, int | float):
-            return bool(candidate)  # noqa: E111
-    if zone is None:  # noqa: E111
+            return bool(candidate)
+    if zone is None:
         return True
-    return zone in _DEFAULT_SAFE_ZONES  # noqa: E111
-
-
+    return zone in _DEFAULT_SAFE_ZONES
 def _derive_status_state(
     *,
     on_walk: bool,
@@ -89,16 +76,15 @@ def _derive_status_state(
     needs_walk: bool,
     zone: str | None,
 ) -> str:
-    """Return the string status state for the dog."""  # noqa: E111
-
-    if on_walk:  # noqa: E111
+    """Return the string status state for the dog."""
+    if on_walk:
         return "walking"
-    if is_home:  # noqa: E111
+    if is_home:
         if is_hungry:
-            return "hungry"  # noqa: E111
+            return "hungry"
         if needs_walk:
-            return "needs_walk"  # noqa: E111
+            return "needs_walk"
         return "home"
-    if zone:  # noqa: E111
+    if zone:
         return f"at_{zone}"
-    return "away"  # noqa: E111
+    return "away"

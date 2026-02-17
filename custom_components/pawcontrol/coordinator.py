@@ -32,24 +32,27 @@ from .coordinator_accessors import CoordinatorDataAccessMixin
 from .device_api import PawControlDeviceClient
 from .exceptions import ConfigEntryAuthFailed, UpdateFailed, ValidationError
 from .http_client import ensure_shared_client_session
+from .logging_utils import log_api_client_build_error
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
 from .telemetry import get_runtime_performance_stats
 from .types import PawControlConfigEntry
 from .utils import deep_merge_dicts
 
-# Maintain the legacy name to avoid touching the rest of the module logic
+# Single canonical alias — do not re-define CoordinatorUpdateFailed in other modules.
+# See py/multiple-definition fix: exceptions.py also exposes UpdateFailed; importing
+# that alias and re-aliasing here was the root of the multiple-definition alert.
 CoordinatorUpdateFailed = UpdateFailed
 
 if TYPE_CHECKING:
-    from .data_manager import PawControlDataManager  # noqa: E111
-    from .feeding_manager import FeedingManager  # noqa: E111
-    from .garden_manager import GardenManager  # noqa: E111
-    from .geofencing import PawControlGeofencing  # noqa: E111
-    from .gps_manager import GPSGeofenceManager  # noqa: E111
-    from .notifications import PawControlNotificationManager  # noqa: E111
-    from .walk_manager import WalkManager  # noqa: E111
-    from .weather_manager import WeatherHealthManager  # noqa: E111
+    from .data_manager import PawControlDataManager
+    from .feeding_manager import FeedingManager
+    from .garden_manager import GardenManager
+    from .geofencing import PawControlGeofencing
+    from .gps_manager import GPSGeofenceManager
+    from .notifications import PawControlNotificationManager
+    from .walk_manager import WalkManager
+    from .weather_manager import WeatherHealthManager
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,11 +74,9 @@ class PawControlCoordinator(
     CoordinatorDataAccessMixin,
     DataUpdateCoordinator[paw_types.CoordinatorDataPayload],
 ):
-    """Central orchestrator that keeps runtime logic in dedicated helpers."""  # noqa: E111
-
-    _options: paw_types.ConfigEntryOptionsPayload  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Central orchestrator that keeps runtime logic in dedicated helpers."""
+    _options: paw_types.ConfigEntryOptionsPayload
+    def __init__(
         self,
         hass: HomeAssistant,
         entry: PawControlConfigEntry,
@@ -182,14 +183,13 @@ class PawControlCoordinator(
             self._use_external_api,
         )
 
-    def _initial_update_interval(self, entry: PawControlConfigEntry) -> int:  # noqa: E111
+    def _initial_update_interval(self, entry: PawControlConfigEntry) -> int:
         try:
-            return self.registry.calculate_update_interval(entry.options)  # noqa: E111
+            return self.registry.calculate_update_interval(entry.options)
         except ValidationError as err:
-            _LOGGER.warning("Invalid update interval configuration: %s", err)  # noqa: E111
-            return UPDATE_INTERVALS.get("balanced", 120)  # noqa: E111
-
-    def _build_api_client(  # noqa: E111
+            _LOGGER.warning("Invalid update interval configuration: %s", err)
+            return UPDATE_INTERVALS.get("balanced", 120)
+    def _build_api_client(
         self,
         *,
         endpoint: str,
@@ -197,38 +197,35 @@ class PawControlCoordinator(
         resilience_manager: ResilienceManager | None,
     ) -> PawControlDeviceClient | None:
         if not endpoint:
-            return None  # noqa: E111
-
+            return None
         try:
-            return PawControlDeviceClient(  # noqa: E111
+            return PawControlDeviceClient(
                 session=self.session,
                 endpoint=endpoint.strip(),
                 api_key=token.strip() or None,
                 resilience_manager=resilience_manager,
             )
         except ValueError as err:
-            _LOGGER.warning(  # noqa: E111
-                "Invalid Paw Control API endpoint '%s': %s",
-                endpoint,
-                err,
-            )
-            return None  # noqa: E111
+            # Use the logging utility so the token is never included in the
+            # warning message (py/clear-text-logging-sensitive-data fix).
+            log_api_client_build_error(_LOGGER, endpoint, err)
+            return None
 
-    @property  # noqa: E111
-    def use_external_api(self) -> bool:  # noqa: E111
+    @property
+    def use_external_api(self) -> bool:
         """Return whether the external Paw Control API is enabled."""
         return self._use_external_api
 
-    @use_external_api.setter  # noqa: E111
-    def use_external_api(self, value: bool) -> None:  # noqa: E111
+    @use_external_api.setter
+    def use_external_api(self, value: bool) -> None:
         self._use_external_api = bool(value)
 
-    @property  # noqa: E111
-    def api_client(self) -> PawControlDeviceClient | None:  # noqa: E111
+    @property
+    def api_client(self) -> PawControlDeviceClient | None:
         """Return the device API client when configured."""
         return self._api_client
 
-    def report_entity_budget(self, snapshot: EntityBudgetSnapshot) -> None:  # noqa: E111
+    def report_entity_budget(self, snapshot: EntityBudgetSnapshot) -> None:
         """Receive entity budget metrics from the entity factory."""
 
         self._entity_budget.record(snapshot)
@@ -236,7 +233,7 @@ class PawControlCoordinator(
             self._entity_budget.saturation(),
         )
 
-    def attach_runtime_managers(  # noqa: E111
+    def attach_runtime_managers(
         self,
         *,
         data_manager: PawControlDataManager,
@@ -264,71 +261,67 @@ class PawControlCoordinator(
         coordinator_support.bind_runtime_managers(self, self._modules, managers)
 
         if hasattr(data_manager, "set_metrics_sink"):
-            data_manager.set_metrics_sink(self._metrics)  # noqa: E111
-
-    def clear_runtime_managers(self) -> None:  # noqa: E111
+            data_manager.set_metrics_sink(self._metrics)
+    def clear_runtime_managers(self) -> None:
         """Detach runtime managers during teardown or reload."""
         coordinator_support.clear_runtime_managers(self, self._modules)
         self._runtime_managers = paw_types.CoordinatorRuntimeManagers()
 
-    @property  # noqa: E111
-    def runtime_managers(self) -> paw_types.CoordinatorRuntimeManagers:  # noqa: E111
+    @property
+    def runtime_managers(self) -> paw_types.CoordinatorRuntimeManagers:
         """Return the currently attached runtime managers."""
 
         return self._runtime_managers
 
-    @runtime_managers.setter  # noqa: E111
-    def runtime_managers(self, managers: paw_types.CoordinatorRuntimeManagers) -> None:  # noqa: E111
+    @runtime_managers.setter
+    def runtime_managers(self, managers: paw_types.CoordinatorRuntimeManagers) -> None:
         """Replace the cached runtime manager container."""
 
         self._runtime_managers = managers
 
-    async def async_prepare_entry(self) -> None:  # noqa: E111
+    async def async_prepare_entry(self) -> None:
         """Public hook to initialize coordinator state for a config entry."""
 
         if self._setup_complete:
-            return  # noqa: E111
-
+            return
         self._data = {
             dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
         }
         self._modules.clear_caches()
         self._setup_complete = True
 
-    async def _async_update_data(self) -> paw_types.CoordinatorDataPayload:  # noqa: E111
+    async def _async_update_data(self) -> paw_types.CoordinatorDataPayload:
         if len(self.registry) == 0:
-            return {}  # noqa: E111
-
+            return {}
         # async_prepare_entry is idempotent; setup logic runs only once per entry.
         await self.async_prepare_entry()
         dog_ids = self.registry.ids()
         if not dog_ids:
-            raise CoordinatorUpdateFailed("No valid dogs configured")  # noqa: E111
-
+            raise CoordinatorUpdateFailed("No valid dogs configured")
         try:
-            data, _cycle = await self._execute_cycle(dog_ids)  # noqa: E111
+            data, _cycle = await self._execute_cycle(dog_ids)
         except ConfigEntryAuthFailed:
             # Propagate configuration auth failures directly.  # noqa: E114
-            raise  # noqa: E111
+            raise
         except UpdateFailed:
             # Propagate known update failures  # noqa: E114
-            raise  # noqa: E111
+            raise
         except Exception as err:
             # Log and wrap unknown exceptions into CoordinatorUpdateFailed  # noqa: E114
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Unhandled error during coordinator update: %s (%s)",
                 err,
                 err.__class__.__name__,
             )
-            raise CoordinatorUpdateFailed(  # noqa: E111
+            raise CoordinatorUpdateFailed(
                 f"Coordinator update failed: {err}",
             ) from err
 
         # Synchronize module states separately; log but do not raise on failure
         try:
-            await self._synchronize_module_states(data)  # noqa: E111
+            await self._synchronize_module_states(data)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Failed to synchronize module states: %s (%s)",
                 err,
                 err.__class__.__name__,
@@ -346,16 +339,15 @@ class PawControlCoordinator(
         # invoke coordinator.async_request_refresh() through the full HA harness.
         return self._data
 
-    async def _fetch_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData:  # noqa: E111
+    async def _fetch_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData:
         """Delegate to the runtime fetch implementation."""
 
         return await self._runtime._fetch_dog_data(dog_id)
 
-    def _apply_adaptive_interval(self, new_interval: float) -> None:  # noqa: E111
+    def _apply_adaptive_interval(self, new_interval: float) -> None:
         current_seconds = self.update_interval.total_seconds()
         if abs(current_seconds - new_interval) < 0.01:
-            return  # noqa: E111
-
+            return
         _LOGGER.debug(
             "Adaptive polling adjusted interval from %.3fs to %.3fs",
             current_seconds,
@@ -363,7 +355,7 @@ class PawControlCoordinator(
         )
         self.update_interval = timedelta(seconds=new_interval)
 
-    async def _execute_cycle(  # noqa: E111
+    async def _execute_cycle(
         self,
         dog_ids: Sequence[str],
     ) -> tuple[paw_types.CoordinatorDataPayload, RuntimeCycleInfo]:
@@ -388,27 +380,25 @@ class PawControlCoordinator(
         self._last_cycle = cycle
         return data, cycle
 
-    async def _refresh_subset(self, dog_ids: Sequence[str]) -> None:  # noqa: E111
+    async def _refresh_subset(self, dog_ids: Sequence[str]) -> None:
         if not dog_ids:
-            return  # noqa: E111
-
+            return
         data, _cycle = await self._execute_cycle(dog_ids)
         await self._synchronize_module_states(data)
         for dog_id in dog_ids:
-            if dog_id in data:  # noqa: E111
+            if dog_id in data:
                 self._data[dog_id] = data[dog_id]
 
         self.async_set_updated_data(dict(self._data))
 
-    async def async_refresh_dog(self, dog_id: str) -> None:  # noqa: E111
+    async def async_refresh_dog(self, dog_id: str) -> None:
         """Refresh data for a specific dog on demand."""
         if dog_id not in self.registry.ids():
-            _LOGGER.debug("Ignoring refresh for unknown dog_id: %s", dog_id)  # noqa: E111
-            return  # noqa: E111
-
+            _LOGGER.debug("Ignoring refresh for unknown dog_id: %s", dog_id)
+            return
         await self._refresh_subset([dog_id])
 
-    async def async_patch_gps_update(self, dog_id: str) -> None:  # noqa: E111
+    async def async_patch_gps_update(self, dog_id: str) -> None:
         """Patch only GPS-related coordinator payload for ``dog_id``.
 
         This is used by push-style GPS updates (webhooks/BLE/etc.) to avoid a full
@@ -417,25 +407,22 @@ class PawControlCoordinator(
         """
 
         if dog_id not in self.registry.ids():
-            _LOGGER.debug("Ignoring GPS patch for unknown dog_id: %s", dog_id)  # noqa: E111
-            return  # noqa: E111
-
+            _LOGGER.debug("Ignoring GPS patch for unknown dog_id: %s", dog_id)
+            return
         if not self._setup_complete or not self._data or not self.last_update_success:
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Deferring GPS patch for %s because coordinator data is not ready",
                 dog_id,
             )
-            await self.async_request_refresh()  # noqa: E111
-            return  # noqa: E111
-
+            await self.async_request_refresh()
+            return
         current = self._data.get(dog_id)
         if not isinstance(current, Mapping):
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Cannot patch GPS data for %s because no payload is available",
                 dog_id,
             )
-            return  # noqa: E111
-
+            return
         gps_payload = await self._modules.gps.async_get_data(dog_id)
         geofencing_payload = await self._modules.geofencing.async_get_data(dog_id)
 
@@ -451,46 +438,44 @@ class PawControlCoordinator(
         self._data[dog_id] = patched
         self.async_set_updated_data(dict(self._data))
 
-    async def async_request_selective_refresh(  # noqa: E111
+    async def async_request_selective_refresh(
         self,
         dog_ids: Iterable[str] | None = None,
     ) -> None:
         """Refresh a subset of dogs while keeping existing payloads."""
 
         if dog_ids is None:
-            await self.async_request_refresh()  # noqa: E111
-            return  # noqa: E111
-
+            await self.async_request_refresh()
+            return
         unique_ids = [dog_id for dog_id in dict.fromkeys(dog_ids) if dog_id]
         if not unique_ids:
-            return  # noqa: E111
-
+            return
         await self._refresh_subset(unique_ids)
 
-    def get_dog_config(self, dog_id: str) -> paw_types.DogConfigData | None:  # noqa: E111
+    def get_dog_config(self, dog_id: str) -> paw_types.DogConfigData | None:
         """Return the raw configuration for the specified dog."""
 
         return CoordinatorDataAccessMixin.get_dog_config(self, dog_id)
 
-    def get_enabled_modules(self, dog_id: str) -> frozenset[str]:  # noqa: E111
+    def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
         """Return the modules enabled for the given dog."""
         return self.registry.enabled_modules(dog_id)
 
-    def is_module_enabled(self, dog_id: str, module: str) -> bool:  # noqa: E111
+    def is_module_enabled(self, dog_id: str, module: str) -> bool:
         """Return True if the module is enabled for the dog."""
         return module in self.registry.enabled_modules(dog_id)
 
-    def get_dog_ids(self) -> list[str]:  # noqa: E111
+    def get_dog_ids(self) -> list[str]:
         """Return identifiers for all configured dogs."""
 
         return CoordinatorDataAccessMixin.get_dog_ids(self)
 
-    def get_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData | None:  # noqa: E111
+    def get_dog_data(self, dog_id: str) -> paw_types.CoordinatorDogData | None:
         """Return the coordinator data payload for the dog."""
 
         return CoordinatorDataAccessMixin.get_dog_data(self, dog_id)
 
-    async def async_apply_module_updates(  # noqa: E111
+    async def async_apply_module_updates(
         self,
         dog_id: str,
         module: str,
@@ -499,29 +484,26 @@ class PawControlCoordinator(
         """Apply module updates to the coordinator data cache."""
 
         if dog_id not in self.registry.ids():
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Ignoring module update for unknown dog_id: %s",
                 dog_id,
             )
-            return  # noqa: E111
-
+            return
         if not isinstance(module, str) or not module:
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Ignoring module update for %s because module is invalid",
                 dog_id,
             )
-            return  # noqa: E111
-
+            return
         current = self._data.get(dog_id)
         if isinstance(current, Mapping):
             dog_payload: paw_types.JSONMutableMapping = cast(
                 paw_types.JSONMutableMapping, dict(current)
-            )  # noqa: E111
+            )
         else:
             dog_payload = cast(
                 paw_types.JSONMutableMapping, self.registry.empty_payload()
-            )  # noqa: E111
-
+            )
         existing_module = dog_payload.get(module)
         base_payload: paw_types.JSONMutableMapping = (
             dict(existing_module) if isinstance(existing_module, Mapping) else {}
@@ -533,59 +515,55 @@ class PawControlCoordinator(
         updated_payload = dict(self._data)
         setter = getattr(self, "async_set_updated_data", None)
         if callable(setter):
-            result = setter(updated_payload)  # noqa: E111
-            if isawaitable(result):  # noqa: E111
+            result = setter(updated_payload)
+            if isawaitable(result):
                 await result
         else:  # pragma: no cover - exercised via lightweight test stubs
-            self.data = updated_payload  # noqa: E111
-
+            self.data = updated_payload
     async def _synchronize_module_states(
         self, data: paw_types.CoordinatorDataPayload
-    ) -> None:  # noqa: E111
+    ) -> None:
         """Synchronize conflicting module states across managers."""
 
         garden_manager = self.garden_manager
         if garden_manager is None:
-            return  # noqa: E111
-
+            return
         for dog_id, dog_payload in data.items():
-            if not isinstance(dog_payload, Mapping):  # noqa: E111
+            if not isinstance(dog_payload, Mapping):
                 continue
-            mutable_payload = dict(dog_payload)  # noqa: E111
-
-            walk_state = mutable_payload.get(MODULE_WALK)  # noqa: E111
-            walk_active = False  # noqa: E111
-            if isinstance(walk_state, Mapping):  # noqa: E111
+            mutable_payload = dict(dog_payload)
+            walk_state = mutable_payload.get(MODULE_WALK)
+            walk_active = False
+            if isinstance(walk_state, Mapping):
                 walk_active = bool(walk_state.get("walk_in_progress"))
 
-            if not walk_active:  # noqa: E111
+            if not walk_active:
                 continue
 
-            active_session = garden_manager.get_active_session(dog_id)  # noqa: E111
-            if active_session is None:  # noqa: E111
+            active_session = garden_manager.get_active_session(dog_id)
+            if active_session is None:
                 continue
 
-            await garden_manager.async_end_garden_session(  # noqa: E111
+            await garden_manager.async_end_garden_session(
                 dog_id,
                 notes="Paused due to active walk",
                 suppress_notifications=True,
             )
-            mutable_payload[GARDEN_MODULE_FIELD] = cast(  # noqa: E111
+            mutable_payload[GARDEN_MODULE_FIELD] = cast(
                 paw_types.CoordinatorModuleState,
                 garden_manager.build_garden_snapshot(dog_id),
             )
-            data[dog_id] = cast(paw_types.CoordinatorDogData, mutable_payload)  # noqa: E111
-
-    @property  # noqa: E111
-    def available(self) -> bool:  # noqa: E111
+            data[dog_id] = cast(paw_types.CoordinatorDogData, mutable_payload)
+    @property
+    def available(self) -> bool:
         """Return True if the coordinator considers itself healthy."""
         return self.last_update_success and self._metrics.consecutive_errors < 5
 
-    def get_update_statistics(self) -> paw_types.CoordinatorStatisticsPayload:  # noqa: E111
+    def get_update_statistics(self) -> paw_types.CoordinatorStatisticsPayload:
         """Return statistics for the most recent update cycle."""
         return coordinator_tasks.build_update_statistics(self)
 
-    def get_statistics(self) -> paw_types.CoordinatorRuntimeStatisticsPayload:  # noqa: E111
+    def get_statistics(self) -> paw_types.CoordinatorRuntimeStatisticsPayload:
         """Return cumulative runtime statistics for diagnostics."""
         start = perf_counter()
         stats = coordinator_tasks.build_runtime_statistics(self)
@@ -599,7 +577,7 @@ class PawControlCoordinator(
         )
         return stats
 
-    def get_performance_snapshot(self) -> paw_types.CoordinatorPerformanceSnapshot:  # noqa: E111
+    def get_performance_snapshot(self) -> paw_types.CoordinatorPerformanceSnapshot:
         """Return a comprehensive performance snapshot for diagnostics surfaces."""
 
         adaptive = self._adaptive_polling.as_diagnostics()
@@ -624,13 +602,11 @@ class PawControlCoordinator(
         snapshot = cast(paw_types.CoordinatorPerformanceSnapshot, dict(base_snapshot))
 
         if resilience:
-            snapshot["resilience"] = resilience  # noqa: E111
-
+            snapshot["resilience"] = resilience
         rejection_metrics = snapshot.get("rejection_metrics")
         if not isinstance(rejection_metrics, Mapping):
-            rejection_metrics = coordinator_tasks.default_rejection_metrics()  # noqa: E111
-            snapshot["rejection_metrics"] = rejection_metrics  # noqa: E111
-
+            rejection_metrics = coordinator_tasks.default_rejection_metrics()
+            snapshot["rejection_metrics"] = rejection_metrics
         runtime_data = getattr(self.config_entry, "runtime_data", None)
         performance_stats_payload = get_runtime_performance_stats(
             runtime_data,
@@ -648,11 +624,10 @@ class PawControlCoordinator(
         }
 
         if self._last_cycle is not None:
-            snapshot["last_cycle"] = self._last_cycle.to_dict()  # noqa: E111
-
+            snapshot["last_cycle"] = self._last_cycle.to_dict()
         return snapshot
 
-    def get_security_scorecard(self) -> paw_types.CoordinatorSecurityScorecard:  # noqa: E111
+    def get_security_scorecard(self) -> paw_types.CoordinatorSecurityScorecard:
         """Return aggregated pass/fail status for security critical checks."""
 
         adaptive = self._adaptive_polling.as_diagnostics()
@@ -664,19 +639,19 @@ class PawControlCoordinator(
             webhook_status=webhook_status,
         )
 
-    @callback  # type: ignore[untyped-decorator,misc]    # noqa: E111
-    def async_start_background_tasks(self) -> None:  # noqa: E111
+    @callback  # type: ignore[untyped-decorator,misc]
+    def async_start_background_tasks(self) -> None:
         """Start recurring background maintenance tasks."""
         coordinator_tasks.ensure_background_task(self, MAINTENANCE_INTERVAL)
 
-    async def _async_maintenance(self, *_: Any) -> None:  # noqa: E111
+    async def _async_maintenance(self, *_: Any) -> None:
         await coordinator_tasks.run_maintenance(self)
 
-    async def async_shutdown(self) -> None:  # noqa: E111
+    async def async_shutdown(self) -> None:
         """Stop background tasks and release resources."""
         await coordinator_tasks.shutdown(self)
 
-    def _webhook_security_status(self) -> paw_types.WebhookSecurityStatus:  # noqa: E111
+    def _webhook_security_status(self) -> paw_types.WebhookSecurityStatus:
         """Return normalised webhook security information."""
 
         manager = getattr(self, "notification_manager", None)

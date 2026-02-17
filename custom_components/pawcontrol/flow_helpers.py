@@ -16,9 +16,7 @@ from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigFlow, OptionsFlow  # noqa: E111
-
-
+    from homeassistant.config_entries import ConfigFlow, OptionsFlow
 # Type aliases for flow step results
 type FlowStepResult = ConfigFlowResult | FlowResult
 
@@ -42,22 +40,20 @@ def coerce_bool(value: Any, *, default: bool = False) -> bool:
         False
         >>> coerce_bool(None)
         False
-    """  # noqa: E111
-    if isinstance(value, bool):  # noqa: E111
+    """
+    if isinstance(value, bool):
         return value
-    if isinstance(value, str):  # noqa: E111
+    if isinstance(value, str):
         lowered = value.strip().lower()
         if lowered in {"1", "true", "yes", "on", "enabled"}:
-            return True  # noqa: E111
+            return True
         if lowered in {"0", "false", "no", "off", "disabled"}:
-            return False  # noqa: E111
-    if isinstance(value, int | float):  # noqa: E111
+            return False
+    if isinstance(value, int | float):
         return bool(value)
-    if value is None:  # noqa: E111
+    if value is None:
         return default
-    return bool(value)  # noqa: E111
-
-
+    return bool(value)
 def coerce_str(value: Any, *, default: str = "") -> str:
     """Coerce arbitrary user input into a trimmed string.
 
@@ -75,15 +71,13 @@ def coerce_str(value: Any, *, default: str = "") -> str:
         ''
         >>> coerce_str(None, default="N/A")
         'N/A'
-    """  # noqa: E111
-    if isinstance(value, str):  # noqa: E111
+    """
+    if isinstance(value, str):
         trimmed = value.strip()
         return trimmed or default
-    if value is None:  # noqa: E111
+    if value is None:
         return default
-    return str(value)  # noqa: E111
-
-
+    return str(value)
 def coerce_optional_str(value: Any) -> str | None:
     """Return a trimmed string when available, otherwise None.
 
@@ -100,13 +94,11 @@ def coerce_optional_str(value: Any) -> str | None:
         None
         >>> coerce_optional_str(None)
         None
-    """  # noqa: E111
-    if isinstance(value, str):  # noqa: E111
+    """
+    if isinstance(value, str):
         trimmed = value.strip()
         return trimmed or None
-    return None  # noqa: E111
-
-
+    return None
 def coerce_optional_float(value: Any) -> float | None:
     """Coerce arbitrary user input into a float when possible.
 
@@ -123,17 +115,15 @@ def coerce_optional_float(value: Any) -> float | None:
         42.0
         >>> coerce_optional_float("invalid")
         None
-    """  # noqa: E111
-    if isinstance(value, float | int):  # noqa: E111
+    """
+    if isinstance(value, float | int):
         return float(value)
-    if isinstance(value, str):  # noqa: E111
+    if isinstance(value, str):
         try:
-            return float(value.strip())  # noqa: E111
+            return float(value.strip())
         except ValueError:
-            return None  # noqa: E111
-    return None  # noqa: E111
-
-
+            return None
+    return None
 def coerce_optional_int(value: Any) -> int | None:
     """Coerce arbitrary user input into an integer when possible.
 
@@ -150,19 +140,17 @@ def coerce_optional_int(value: Any) -> int | None:
         3
         >>> coerce_optional_int("invalid")
         None
-    """  # noqa: E111
-    if isinstance(value, int):  # noqa: E111
+    """
+    if isinstance(value, int):
         return value
-    if isinstance(value, float):  # noqa: E111
+    if isinstance(value, float):
         return int(value)
-    if isinstance(value, str):  # noqa: E111
+    if isinstance(value, str):
         try:
-            return int(value.strip())  # noqa: E111
+            return int(value.strip())
         except ValueError:
-            return None  # noqa: E111
-    return None  # noqa: E111
-
-
+            return None
+    return None
 # Common form rendering helpers
 
 
@@ -196,13 +184,13 @@ def create_form_result(
         ...     data_schema=USER_SCHEMA,
         ...     errors={"base": "invalid_input"},
         ... )
-    """  # noqa: E111
-    resolved_schema = data_schema or schema  # noqa: E111
-    if resolved_schema is None:  # noqa: E111
+    """
+    resolved_schema = data_schema or schema
+    if resolved_schema is None:
         msg = "data_schema or schema must be provided"
         raise ValueError(msg)
 
-    if flow is None:  # noqa: E111
+    if flow is None:
         return cast(
             FlowStepResult,
             {
@@ -215,7 +203,7 @@ def create_form_result(
             },
         )
 
-    return flow.async_show_form(  # noqa: E111
+    return flow.async_show_form(
         step_id=step_id,
         data_schema=resolved_schema,
         errors=errors or {},
@@ -246,8 +234,8 @@ def create_menu_result(
         >>> result = create_menu_result(
         ...     flow=self, step_id="menu", menu_options=["dogs", "modules", "settings"]
         ... )
-    """  # noqa: E111
-    if flow is None:  # noqa: E111
+    """
+    if flow is None:
         return cast(
             FlowStepResult,
             {
@@ -258,7 +246,7 @@ def create_menu_result(
             },
         )
 
-    return cast(  # noqa: E111
+    return cast(
         FlowStepResult,
         flow.async_show_menu(
             step_id=step_id,
@@ -286,8 +274,8 @@ def create_abort_result(
 
     Examples:
         >>> result = create_abort_result(flow=self, reason="already_configured")
-    """  # noqa: E111
-    if flow is None:  # noqa: E111
+    """
+    if flow is None:
         return cast(
             FlowStepResult,
             {
@@ -297,7 +285,7 @@ def create_abort_result(
             },
         )
 
-    return cast(  # noqa: E111
+    return cast(
         FlowStepResult,
         flow.async_abort(
             reason=reason,
@@ -328,8 +316,8 @@ def create_progress_result(
         >>> result = create_progress_result(
         ...     flow=self, step_id="validate", progress_action="validating"
         ... )
-    """  # noqa: E111
-    if flow is None:  # noqa: E111
+    """
+    if flow is None:
         return cast(
             FlowStepResult,
             {
@@ -340,7 +328,7 @@ def create_progress_result(
             },
         )
 
-    return cast(  # noqa: E111
+    return cast(
         FlowStepResult,
         flow.async_show_progress(
             step_id=step_id,
@@ -368,40 +356,36 @@ def validate_required_field(
 
     Current:
         validate_required_field(field_name, value, errors=errors) -> dict[str, str]
-    """  # noqa: E111
-
-    if args and isinstance(args[0], dict):  # noqa: E111
+    """
+    if args and isinstance(args[0], dict):
         # Backward-compatible positional API.
         if len(args) < 3:
             msg = (
-                "legacy validate_required_field requires errors, field_name, and value"  # noqa: E111
+                "legacy validate_required_field requires errors, field_name, and value"
             )
-            raise TypeError(msg)  # noqa: E111
+            raise TypeError(msg)
         legacy_errors = args[0]
         field_name = args[1]
         value = args[2]
         if len(args) >= 4:
-            error_key = args[3]  # noqa: E111
-
+            error_key = args[3]
         has_value = value is not None and (
             not isinstance(value, str) or bool(value.strip())
         )
         if not has_value:
-            legacy_errors[field_name] = error_key  # noqa: E111
+            legacy_errors[field_name] = error_key
         return has_value
 
-    if len(args) < 2:  # noqa: E111
+    if len(args) < 2:
         msg = "validate_required_field requires field_name and value"
         raise TypeError(msg)
 
-    field_name = args[0]  # noqa: E111
-    value = args[1]  # noqa: E111
-    resolved_errors = errors or {}  # noqa: E111
-    if value is None or (isinstance(value, str) and not value.strip()):  # noqa: E111
+    field_name = args[0]
+    value = args[1]
+    resolved_errors = errors or {}
+    if value is None or (isinstance(value, str) and not value.strip()):
         resolved_errors[field_name] = error_key
-    return resolved_errors  # noqa: E111
-
-
+    return resolved_errors
 def validate_min_max(
     field_name: str,
     value: float | int,
@@ -411,16 +395,13 @@ def validate_min_max(
     errors: dict[str, str] | None = None,
     error_key: str = "out_of_range",
 ) -> dict[str, str]:
-    """Validate that a numeric value is within range."""  # noqa: E111
-
-    resolved_errors = errors or {}  # noqa: E111
-    if min_value is not None and value < min_value:  # noqa: E111
+    """Validate that a numeric value is within range."""
+    resolved_errors = errors or {}
+    if min_value is not None and value < min_value:
         resolved_errors[field_name] = error_key
-    if max_value is not None and value > max_value:  # noqa: E111
+    if max_value is not None and value > max_value:
         resolved_errors[field_name] = error_key
-    return resolved_errors  # noqa: E111
-
-
+    return resolved_errors
 def validate_entity_exists(
     *,
     hass: Any,  # HomeAssistant type
@@ -429,19 +410,16 @@ def validate_entity_exists(
     errors: dict[str, str] | None = None,
     error_key: str = "entity_not_found",
 ) -> dict[str, str]:
-    """Validate that an entity exists in Home Assistant."""  # noqa: E111
-
-    resolved_errors = errors or {}  # noqa: E111
-    if not entity_id or not isinstance(entity_id, str):  # noqa: E111
+    """Validate that an entity exists in Home Assistant."""
+    resolved_errors = errors or {}
+    if not entity_id or not isinstance(entity_id, str):
         resolved_errors[field] = error_key
         return resolved_errors
 
-    state = hass.states.get(entity_id)  # noqa: E111
-    if state is None or state.state in {"unknown", "unavailable"}:  # noqa: E111
+    state = hass.states.get(entity_id)
+    if state is None or state.state in {"unknown", "unavailable"}:
         resolved_errors[field] = error_key
-    return resolved_errors  # noqa: E111
-
-
+    return resolved_errors
 # Schema building helpers
 
 
@@ -467,36 +445,33 @@ def build_select_schema(
 
     Examples:
         >>> schema = build_select_schema("size", ["small", "medium", "large"])
-    """  # noqa: E111
-    from .selector_shim import selector  # noqa: E111
-
-    vol_key: vol.Optional | vol.Required  # noqa: E111
-    if required:  # noqa: E111
+    """
+    from .selector_shim import selector
+    vol_key: vol.Optional | vol.Required
+    if required:
         if default is not None:
-            vol_key = vol.Required(key, default=default)  # noqa: E111
+            vol_key = vol.Required(key, default=default)
         else:
-            vol_key = vol.Required(key)  # noqa: E111
-    else:  # noqa: E111
+            vol_key = vol.Required(key)
+    else:
         vol_key = (
             vol.Optional(key, default=default)
             if default is not None
             else vol.Optional(key)
         )
 
-    config = selector.SelectSelectorConfig(  # noqa: E111
+    config = selector.SelectSelectorConfig(
         options=options,
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
-    if translation_key:  # noqa: E111
+    if translation_key:
         config = selector.SelectSelectorConfig(
             options=options,
             mode=selector.SelectSelectorMode.DROPDOWN,
             translation_key=translation_key,
         )
 
-    return {vol_key: selector.SelectSelector(config)}  # noqa: E111
-
-
+    return {vol_key: selector.SelectSelector(config)}
 def build_number_schema(
     key: str,
     *,
@@ -525,29 +500,28 @@ def build_number_schema(
         >>> schema = build_number_schema(
         ...     "weight", min_value=0.5, max_value=100, unit="kg"
         ... )
-    """  # noqa: E111
-    from .selector_shim import selector  # noqa: E111
-
-    vol_key: vol.Optional | vol.Required  # noqa: E111
-    if required:  # noqa: E111
+    """
+    from .selector_shim import selector
+    vol_key: vol.Optional | vol.Required
+    if required:
         if default is not None:
-            vol_key = vol.Required(key, default=default)  # noqa: E111
+            vol_key = vol.Required(key, default=default)
         else:
-            vol_key = vol.Required(key)  # noqa: E111
-    else:  # noqa: E111
+            vol_key = vol.Required(key)
+    else:
         vol_key = (
             vol.Optional(key, default=default)
             if default is not None
             else vol.Optional(key)
         )
 
-    config = selector.NumberSelectorConfig(  # noqa: E111
+    config = selector.NumberSelectorConfig(
         min=min_value,
         max=max_value,
         step=step,
         mode=selector.NumberSelectorMode.BOX,
     )
-    if unit:  # noqa: E111
+    if unit:
         config = selector.NumberSelectorConfig(
             min=min_value,
             max=max_value,
@@ -556,9 +530,7 @@ def build_number_schema(
             unit_of_measurement=unit,
         )
 
-    return {vol_key: selector.NumberSelector(config)}  # noqa: E111
-
-
+    return {vol_key: selector.NumberSelector(config)}
 def build_text_schema(
     key: str,
     *,
@@ -581,36 +553,33 @@ def build_text_schema(
 
     Examples:
         >>> schema = build_text_schema("name", required=True, autocomplete="name")
-    """  # noqa: E111
-    from .selector_shim import selector  # noqa: E111
-
-    vol_key: vol.Optional | vol.Required  # noqa: E111
-    if required:  # noqa: E111
+    """
+    from .selector_shim import selector
+    vol_key: vol.Optional | vol.Required
+    if required:
         if default is not None:
-            vol_key = vol.Required(key, default=default)  # noqa: E111
+            vol_key = vol.Required(key, default=default)
         else:
-            vol_key = vol.Required(key)  # noqa: E111
-    else:  # noqa: E111
+            vol_key = vol.Required(key)
+    else:
         vol_key = (
             vol.Optional(key, default=default)
             if default is not None
             else vol.Optional(key)
         )
 
-    config = selector.TextSelectorConfig(  # noqa: E111
+    config = selector.TextSelectorConfig(
         type=selector.TextSelectorType.TEXT,
         multiline=multiline,
     )
-    if autocomplete:  # noqa: E111
+    if autocomplete:
         config = selector.TextSelectorConfig(
             type=selector.TextSelectorType.TEXT,
             multiline=multiline,
             autocomplete=autocomplete,
         )
 
-    return {vol_key: selector.TextSelector(config)}  # noqa: E111
-
-
+    return {vol_key: selector.TextSelector(config)}
 def build_boolean_schema(
     key: str,
     *,
@@ -627,12 +596,9 @@ def build_boolean_schema(
 
     Examples:
         >>> schema = build_boolean_schema("enabled", default=True)
-    """  # noqa: E111
-    from .selector_shim import selector  # noqa: E111
-
-    return {vol.Optional(key, default=default): selector.BooleanSelector()}  # noqa: E111
-
-
+    """
+    from .selector_shim import selector
+    return {vol.Optional(key, default=default): selector.BooleanSelector()}
 # Common validation patterns
 
 
@@ -653,17 +619,15 @@ def merge_errors(
     Examples:
         >>> merge_errors({"name": "required"}, {"age": "invalid"})
         {'name': 'required', 'age': 'invalid'}
-    """  # noqa: E111
-    merged: dict[str, str] = {}  # noqa: E111
-    if base_errors:  # noqa: E111
+    """
+    merged: dict[str, str] = {}
+    if base_errors:
         merged.update(base_errors)
-    if new_errors:  # noqa: E111
+    if new_errors:
         merged.update(new_errors)
-    for errors in error_maps:  # noqa: E111
+    for errors in error_maps:
         merged.update(errors)
-    return merged  # noqa: E111
-
-
+    return merged
 def has_errors(errors: dict[str, str]) -> bool:
     """Check if there are any validation errors.
 
@@ -678,10 +642,8 @@ def has_errors(errors: dict[str, str]) -> bool:
         False
         >>> has_errors({"name": "required"})
         True
-    """  # noqa: E111
-    return len(errors) > 0  # noqa: E111
-
-
+    """
+    return len(errors) > 0
 # Flow state management
 
 
@@ -699,14 +661,12 @@ def store_flow_data(
 
     Examples:
         >>> store_flow_data(self, "dog_id", "buddy")
-    """  # noqa: E111
-    flow_data = getattr(flow, "_flow_data", None)  # noqa: E111
-    if not isinstance(flow_data, dict):  # noqa: E111
+    """
+    flow_data = getattr(flow, "_flow_data", None)
+    if not isinstance(flow_data, dict):
         flow_data = {}
         flow._flow_data = flow_data
-    flow_data[key] = value  # noqa: E111
-
-
+    flow_data[key] = value
 def get_flow_data(
     flow: ConfigFlow | OptionsFlow,
     key: str,
@@ -724,13 +684,11 @@ def get_flow_data(
 
     Examples:
         >>> dog_id = get_flow_data(self, "dog_id")
-    """  # noqa: E111
-    flow_data = getattr(flow, "_flow_data", None)  # noqa: E111
-    if not isinstance(flow_data, dict):  # noqa: E111
+    """
+    flow_data = getattr(flow, "_flow_data", None)
+    if not isinstance(flow_data, dict):
         return default
-    return flow_data.get(key, default)  # noqa: E111
-
-
+    return flow_data.get(key, default)
 def clear_flow_data(flow: ConfigFlow | OptionsFlow, key: str | None = None) -> None:
     """Clear all flow context data.
 
@@ -739,11 +697,11 @@ def clear_flow_data(flow: ConfigFlow | OptionsFlow, key: str | None = None) -> N
 
     Examples:
         >>> clear_flow_data(self)
-    """  # noqa: E111
-    flow_data = getattr(flow, "_flow_data", None)  # noqa: E111
-    if not isinstance(flow_data, dict):  # noqa: E111
+    """
+    flow_data = getattr(flow, "_flow_data", None)
+    if not isinstance(flow_data, dict):
         return
-    if key is None:  # noqa: E111
+    if key is None:
         flow._flow_data = {}
-    else:  # noqa: E111
+    else:
         flow_data.pop(key, None)

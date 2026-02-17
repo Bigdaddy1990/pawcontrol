@@ -57,34 +57,28 @@ from .weather_translations import (
 
 
 class ForecastEntry(TypedDict, total=False):
-    """Raw weather forecast entry provided by Home Assistant."""  # noqa: E111
-
-    datetime: datetime | str  # noqa: E111
-    temperature: float | int  # noqa: E111
-    templow: float | int  # noqa: E111
-    temperature_unit: UnitOfTemperature | str  # noqa: E111
-    condition: str  # noqa: E111
-    humidity: float | int  # noqa: E111
-    uv_index: float | int  # noqa: E111
-    wind_speed: float | int  # noqa: E111
-    pressure: float | int  # noqa: E111
-    precipitation: float | int  # noqa: E111
-    precipitation_probability: float | int  # noqa: E111
-
-
+    """Raw weather forecast entry provided by Home Assistant."""
+    datetime: datetime | str
+    temperature: float | int
+    templow: float | int
+    temperature_unit: UnitOfTemperature | str
+    condition: str
+    humidity: float | int
+    uv_index: float | int
+    wind_speed: float | int
+    pressure: float | int
+    precipitation: float | int
+    precipitation_probability: float | int
 class WeatherEntityAttributes(TypedDict, total=False):
-    """Subset of weather entity attributes consumed by the manager."""  # noqa: E111
-
-    temperature: float | int  # noqa: E111
-    humidity: float | int  # noqa: E111
-    uv_index: float | int  # noqa: E111
-    wind_speed: float | int  # noqa: E111
-    pressure: float | int  # noqa: E111
-    visibility: float | int  # noqa: E111
-    temperature_unit: UnitOfTemperature | str  # noqa: E111
-    forecast: Sequence[ForecastEntry]  # noqa: E111
-
-
+    """Subset of weather entity attributes consumed by the manager."""
+    temperature: float | int
+    humidity: float | int
+    uv_index: float | int
+    wind_speed: float | int
+    pressure: float | int
+    visibility: float | int
+    temperature_unit: UnitOfTemperature | str
+    forecast: Sequence[ForecastEntry]
 type ForecastEntries = Sequence[ForecastEntry]
 type AlertField = Literal["title", "message"]
 type ActivityType = Literal["walk", "play", "exercise", "basic_needs"]
@@ -108,41 +102,26 @@ PRIMARY_ACTIVITIES: Final[
 
 
 def _is_alert_field(value: str) -> TypeGuard[AlertField]:
-    """Return whether ``value`` is a valid alert translation field token."""  # noqa: E111
-
-    return value in ALERT_FIELD_TOKENS  # noqa: E111
-
-
+    """Return whether ``value`` is a valid alert translation field token."""
+    return value in ALERT_FIELD_TOKENS
 def _is_weather_alert_key(value: str) -> TypeGuard[WeatherAlertKey]:
-    """Return whether ``value`` is a known weather alert translation key."""  # noqa: E111
-
-    return value in WEATHER_ALERT_KEY_SET  # noqa: E111
-
-
+    """Return whether ``value`` is a known weather alert translation key."""
+    return value in WEATHER_ALERT_KEY_SET
 def _is_weather_recommendation_key(value: str) -> TypeGuard[WeatherRecommendationKey]:
-    """Return whether ``value`` is a known weather recommendation key."""  # noqa: E111
-
-    return value in WEATHER_RECOMMENDATION_KEY_SET  # noqa: E111
-
-
+    """Return whether ``value`` is a known weather recommendation key."""
+    return value in WEATHER_RECOMMENDATION_KEY_SET
 _LOGGER = logging.getLogger(__name__)
 
 
 def get_weather_translations(language: str) -> WeatherTranslations:
-    """Backward-compatible wrapper for weather translation loading."""  # noqa: E111
-
-    return _get_weather_translations(language)  # noqa: E111
-
-
+    """Backward-compatible wrapper for weather translation loading."""
+    return _get_weather_translations(language)
 class WeatherSeverity(Enum):
-    """Weather condition severity levels for dog health."""  # noqa: E111
-
-    LOW = "low"  # noqa: E111
-    MODERATE = "moderate"  # noqa: E111
-    HIGH = "high"  # noqa: E111
-    EXTREME = "extreme"  # noqa: E111
-
-
+    """Weather condition severity levels for dog health."""
+    LOW = "low"
+    MODERATE = "moderate"
+    HIGH = "high"
+    EXTREME = "extreme"
 T = TypeVar("T")
 
 
@@ -152,128 +131,111 @@ type TemperatureThresholdMap = dict[TemperatureBand, SeverityMap[float]]
 
 
 class WeatherHealthImpact(Enum):
-    """Types of health impacts from weather conditions."""  # noqa: E111
-
-    HEAT_STRESS = "heat_stress"  # noqa: E111
-    COLD_STRESS = "cold_stress"  # noqa: E111
-    UV_EXPOSURE = "uv_exposure"  # noqa: E111
-    AIR_QUALITY = "air_quality"  # noqa: E111
-    EXERCISE_LIMITATION = "exercise_limitation"  # noqa: E111
-    HYDRATION_RISK = "hydration_risk"  # noqa: E111
-    PAW_PROTECTION = "paw_protection"  # noqa: E111
-    RESPIRATORY_RISK = "respiratory_risk"  # noqa: E111
-
-
+    """Types of health impacts from weather conditions."""
+    HEAT_STRESS = "heat_stress"
+    COLD_STRESS = "cold_stress"
+    UV_EXPOSURE = "uv_exposure"
+    AIR_QUALITY = "air_quality"
+    EXERCISE_LIMITATION = "exercise_limitation"
+    HYDRATION_RISK = "hydration_risk"
+    PAW_PROTECTION = "paw_protection"
+    RESPIRATORY_RISK = "respiratory_risk"
 class ForecastQuality(Enum):
-    """Quality indicators for weather forecast data."""  # noqa: E111
-
-    EXCELLENT = "excellent"  # <6h old, high confidence  # noqa: E111
-    GOOD = "good"  # <12h old, medium confidence  # noqa: E111
-    FAIR = "fair"  # <24h old, basic data  # noqa: E111
-    POOR = "poor"  # >24h old or incomplete  # noqa: E111
-
-
+    """Quality indicators for weather forecast data."""
+    EXCELLENT = "excellent"  # <6h old, high confidence
+    GOOD = "good"  # <12h old, medium confidence
+    FAIR = "fair"  # <24h old, basic data
+    POOR = "poor"  # >24h old or incomplete
 class ActivityTimeSlot(NamedTuple):
-    """Optimal activity time slot with health score."""  # noqa: E111
-
-    start_time: datetime  # noqa: E111
-    end_time: datetime  # noqa: E111
-    health_score: int  # noqa: E111
-    activity_type: ActivityType  # noqa: E111
-    recommendations: list[str]  # noqa: E111
-    alert_level: WeatherSeverity  # noqa: E111
-
-
+    """Optimal activity time slot with health score."""
+    start_time: datetime
+    end_time: datetime
+    health_score: int
+    activity_type: ActivityType
+    recommendations: list[str]
+    alert_level: WeatherSeverity
 @dataclass
 class ForecastPoint:
-    """Single forecast data point for weather prediction."""  # noqa: E111
-
-    timestamp: datetime  # noqa: E111
-    temperature_c: float | None = None  # noqa: E111
-    temperature_low_c: float | None = None  # noqa: E111
-    humidity_percent: float | None = None  # noqa: E111
-    uv_index: float | None = None  # noqa: E111
-    wind_speed_kmh: float | None = None  # noqa: E111
-    pressure_hpa: float | None = None  # noqa: E111
-    precipitation_mm: float | None = None  # noqa: E111
-    precipitation_probability: int | None = None  # noqa: E111
-    condition: str | None = None  # noqa: E111
-
+    """Single forecast data point for weather prediction."""
+    timestamp: datetime
+    temperature_c: float | None = None
+    temperature_low_c: float | None = None
+    humidity_percent: float | None = None
+    uv_index: float | None = None
+    wind_speed_kmh: float | None = None
+    pressure_hpa: float | None = None
+    precipitation_mm: float | None = None
+    precipitation_probability: int | None = None
+    condition: str | None = None
     # Calculated health metrics  # noqa: E114
-    health_score: int | None = None  # noqa: E111
-    heat_index: float | None = None  # noqa: E111
-    wind_chill: float | None = None  # noqa: E111
-    predicted_alerts: list[WeatherHealthImpact] = field(default_factory=list)  # noqa: E111
-
-    @property  # noqa: E111
-    def is_daytime(self) -> bool:  # noqa: E111
+    health_score: int | None = None
+    heat_index: float | None = None
+    wind_chill: float | None = None
+    predicted_alerts: list[WeatherHealthImpact] = field(default_factory=list)
+    @property
+    def is_daytime(self) -> bool:
         """Check if forecast point is during daytime hours."""
         hour = self.timestamp.hour
         return 6 <= hour <= 19
 
-    @property  # noqa: E111
-    def time_category(self) -> str:  # noqa: E111
+    @property
+    def time_category(self) -> str:
         """Get time category for display purposes."""
         hour = self.timestamp.hour
         if 6 <= hour < 12:
-            return "morning"  # noqa: E111
+            return "morning"
         if 12 <= hour < 17:
-            return "afternoon"  # noqa: E111
+            return "afternoon"
         if 17 <= hour < 21:
-            return "evening"  # noqa: E111
+            return "evening"
         return "night"
 
 
 @dataclass
 class WeatherForecast:
-    """Comprehensive weather forecast with health analysis."""  # noqa: E111
-
-    forecast_points: list[ForecastPoint] = field(default_factory=list)  # noqa: E111
-    source_entity: str | None = None  # noqa: E111
-    generated_at: datetime = field(default_factory=dt_util.utcnow)  # noqa: E111
-    forecast_horizon_hours: int = 24  # noqa: E111
-    quality: ForecastQuality = ForecastQuality.FAIR  # noqa: E111
-
+    """Comprehensive weather forecast with health analysis."""
+    forecast_points: list[ForecastPoint] = field(default_factory=list)
+    source_entity: str | None = None
+    generated_at: datetime = field(default_factory=dt_util.utcnow)
+    forecast_horizon_hours: int = 24
+    quality: ForecastQuality = ForecastQuality.FAIR
     # Summary statistics  # noqa: E114
-    min_health_score: int | None = None  # noqa: E111
-    max_health_score: int | None = None  # noqa: E111
-    avg_health_score: int | None = None  # noqa: E111
-    critical_periods: list[tuple[datetime, datetime]] = field(default_factory=list)  # noqa: E111
-    optimal_activity_windows: list[ActivityTimeSlot] = field(  # noqa: E111
+    min_health_score: int | None = None
+    max_health_score: int | None = None
+    avg_health_score: int | None = None
+    critical_periods: list[tuple[datetime, datetime]] = field(default_factory=list)
+    optimal_activity_windows: list[ActivityTimeSlot] = field(
         default_factory=list,
     )
 
-    @property  # noqa: E111
-    def is_valid(self) -> bool:  # noqa: E111
+    @property
+    def is_valid(self) -> bool:
         """Check if forecast data is valid and recent."""
         if not self.forecast_points:
-            return False  # noqa: E111
-
+            return False
         # Forecast should be less than 6 hours old for excellent quality
         age_hours = (dt_util.utcnow() - self.generated_at).total_seconds() / 3600
         return age_hours < 24  # Accept up to 24h old forecast
 
-    @property  # noqa: E111
-    def forecast_summary(self) -> str:  # noqa: E111
+    @property
+    def forecast_summary(self) -> str:
         """Get human-readable forecast summary."""
         if not self.forecast_points:
-            return "No forecast data available"  # noqa: E111
-
+            return "No forecast data available"
         if self.avg_health_score is None:
-            return "Forecast data incomplete"  # noqa: E111
-
+            return "Forecast data incomplete"
         score = self.avg_health_score
         if score >= 80:
-            return f"Excellent conditions ahead (avg score: {score}/100)"  # noqa: E111
+            return f"Excellent conditions ahead (avg score: {score}/100)"
         if score >= 60:
-            return f"Good conditions with some caution needed (avg score: {score}/100)"  # noqa: E111
+            return f"Good conditions with some caution needed (avg score: {score}/100)"
         if score >= 40:
             return (
-                f"Challenging conditions requiring precautions (avg score: {score}/100)"  # noqa: E111
+                f"Challenging conditions requiring precautions (avg score: {score}/100)"
             )
         return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"  # noqa: E501
 
-    def get_next_optimal_window(  # noqa: E111
+    def get_next_optimal_window(
         self,
         activity_type: ActivityType = "walk",
     ) -> ActivityTimeSlot | None:
@@ -282,142 +244,115 @@ class WeatherForecast:
             if (
                 window.activity_type == activity_type
                 and window.start_time > dt_util.utcnow()
-            ):  # noqa: E111
+            ):
                 return window
         return None
 
-    def get_worst_period(self) -> tuple[datetime, datetime] | None:  # noqa: E111
+    def get_worst_period(self) -> tuple[datetime, datetime] | None:
         """Get the time period with worst weather conditions."""
         if not self.critical_periods:
-            return None  # noqa: E111
+            return None
         return self.critical_periods[0]  # First (most severe) critical period
 
 
 @dataclass(slots=True)
 class ScoreRangeSummary:
-    """Range of forecast health scores for planning."""  # noqa: E111
-
-    min: int | None  # noqa: E111
-    max: int | None  # noqa: E111
-
-
+    """Range of forecast health scores for planning."""
+    min: int | None
+    max: int | None
 @dataclass(slots=True)
 class CriticalPeriodSummary:
-    """Summary of critical forecast periods."""  # noqa: E111
-
-    start: str  # noqa: E111
-    end: str  # noqa: E111
-    duration_hours: float  # noqa: E111
-
-
+    """Summary of critical forecast periods."""
+    start: str
+    end: str
+    duration_hours: float
 @dataclass(slots=True)
 class OptimalWindowSummary:
-    """Summary of optimal activity windows."""  # noqa: E111
-
-    activity: ActivityType  # noqa: E111
-    start: str  # noqa: E111
-    end: str  # noqa: E111
-    health_score: int  # noqa: E111
-    alert_level: WeatherSeverity  # noqa: E111
-    recommendations: list[str]  # noqa: E111
-
-
+    """Summary of optimal activity windows."""
+    activity: ActivityType
+    start: str
+    end: str
+    health_score: int
+    alert_level: WeatherSeverity
+    recommendations: list[str]
 @dataclass(slots=True)
 class ActivityWindowSummary:
-    """Summary for the next recommended activity window."""  # noqa: E111
-
-    start: str  # noqa: E111
-    health_score: int  # noqa: E111
-    alert_level: WeatherSeverity  # noqa: E111
-
-
+    """Summary for the next recommended activity window."""
+    start: str
+    health_score: int
+    alert_level: WeatherSeverity
 @dataclass(slots=True)
 class WorstPeriodSummary:
-    """Summary of the worst forecast period."""  # noqa: E111
-
-    start: str  # noqa: E111
-    end: str  # noqa: E111
-    advice: str  # noqa: E111
-
-
+    """Summary of the worst forecast period."""
+    start: str
+    end: str
+    advice: str
 @dataclass(slots=True)
 class ForecastPlanningSummary:
-    """Typed representation of forecast planning guidance."""  # noqa: E111
-
-    status: Literal["available", "unavailable"]  # noqa: E111
-    message: str | None = None  # noqa: E111
-    forecast_quality: str | None = None  # noqa: E111
-    forecast_summary: str | None = None  # noqa: E111
-    avg_health_score: int | None = None  # noqa: E111
-    score_range: ScoreRangeSummary | None = None  # noqa: E111
-    critical_periods: list[CriticalPeriodSummary] = field(default_factory=list)  # noqa: E111
-    optimal_windows: list[OptimalWindowSummary] = field(default_factory=list)  # noqa: E111
-    next_walk_time: ActivityWindowSummary | None = None  # noqa: E111
-    next_play_time: ActivityWindowSummary | None = None  # noqa: E111
-    next_exercise_time: ActivityWindowSummary | None = None  # noqa: E111
-    worst_period: WorstPeriodSummary | None = None  # noqa: E111
-
-
+    """Typed representation of forecast planning guidance."""
+    status: Literal["available", "unavailable"]
+    message: str | None = None
+    forecast_quality: str | None = None
+    forecast_summary: str | None = None
+    avg_health_score: int | None = None
+    score_range: ScoreRangeSummary | None = None
+    critical_periods: list[CriticalPeriodSummary] = field(default_factory=list)
+    optimal_windows: list[OptimalWindowSummary] = field(default_factory=list)
+    next_walk_time: ActivityWindowSummary | None = None
+    next_play_time: ActivityWindowSummary | None = None
+    next_exercise_time: ActivityWindowSummary | None = None
+    worst_period: WorstPeriodSummary | None = None
 @dataclass
 class WeatherAlert:
-    """Weather-based health alert for dogs."""  # noqa: E111
-
-    alert_type: WeatherHealthImpact  # noqa: E111
-    severity: WeatherSeverity  # noqa: E111
-    title: str  # noqa: E111
-    message: str  # noqa: E111
-    recommendations: list[str] = field(default_factory=list)  # noqa: E111
-    duration_hours: int | None = None  # noqa: E111
-    affected_breeds: list[str] = field(default_factory=list)  # noqa: E111
-    age_considerations: list[str] = field(default_factory=list)  # noqa: E111
-    timestamp: datetime = field(default_factory=dt_util.utcnow)  # noqa: E111
-
-    @property  # noqa: E111
-    def is_active(self) -> bool:  # noqa: E111
+    """Weather-based health alert for dogs."""
+    alert_type: WeatherHealthImpact
+    severity: WeatherSeverity
+    title: str
+    message: str
+    recommendations: list[str] = field(default_factory=list)
+    duration_hours: int | None = None
+    affected_breeds: list[str] = field(default_factory=list)
+    age_considerations: list[str] = field(default_factory=list)
+    timestamp: datetime = field(default_factory=dt_util.utcnow)
+    @property
+    def is_active(self) -> bool:
         """Check if alert is still active based on duration."""
         if self.duration_hours is None:
-            return True  # noqa: E111
-
+            return True
         elapsed = (dt_util.utcnow() - self.timestamp).total_seconds() / 3600
         return elapsed < self.duration_hours
 
 
 @dataclass
 class WeatherConditions:
-    """Current weather conditions relevant to dog health."""  # noqa: E111
-
-    temperature_c: float | None = None  # noqa: E111
-    humidity_percent: float | None = None  # noqa: E111
-    uv_index: float | None = None  # noqa: E111
-    wind_speed_kmh: float | None = None  # noqa: E111
-    pressure_hpa: float | None = None  # noqa: E111
-    visibility_km: float | None = None  # noqa: E111
-    condition: str | None = None  # noqa: E111
-
+    """Current weather conditions relevant to dog health."""
+    temperature_c: float | None = None
+    humidity_percent: float | None = None
+    uv_index: float | None = None
+    wind_speed_kmh: float | None = None
+    pressure_hpa: float | None = None
+    visibility_km: float | None = None
+    condition: str | None = None
     # Calculated values  # noqa: E114
-    heat_index: float | None = None  # noqa: E111
-    wind_chill: float | None = None  # noqa: E111
-    air_quality_index: int | None = None  # noqa: E111
-
+    heat_index: float | None = None
+    wind_chill: float | None = None
+    air_quality_index: int | None = None
     # Metadata  # noqa: E114
-    source_entity: str | None = None  # noqa: E111
-    last_updated: datetime = field(default_factory=dt_util.utcnow)  # noqa: E111
-
-    @property  # noqa: E111
-    def is_valid(self) -> bool:  # noqa: E111
+    source_entity: str | None = None
+    last_updated: datetime = field(default_factory=dt_util.utcnow)
+    @property
+    def is_valid(self) -> bool:
         """Check if weather data is valid and recent."""
         if self.temperature_c is None:
-            return False  # noqa: E111
-
+            return False
         # Data should be less than 2 hours old
         age_hours = (dt_util.utcnow() - self.last_updated).total_seconds() / 3600
         return age_hours < 2
 
 
 class WeatherHealthManager:
-    """Manages weather-based health warnings for dogs."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Manages weather-based health warnings for dogs."""
+    def __init__(
         self,
         hass: HomeAssistant,
         resilience_manager: ResilienceManager | None = None,
@@ -473,63 +408,58 @@ class WeatherHealthManager:
             WeatherSeverity.EXTREME: 95.0,
         }
 
-    async def async_load_translations(self, language: str = "en") -> None:  # noqa: E111
+    async def async_load_translations(self, language: str = "en") -> None:
         """Load translations for weather alerts and recommendations.
 
         Args:
             language: Language code (e.g., 'en', 'de')
         """
         try:
-            if language not in SUPPORTED_LANGUAGES:  # noqa: E111
+            if language not in SUPPORTED_LANGUAGES:
                 _LOGGER.debug(
                     "Weather translations for %s not available, using English fallback",
                     language,
                 )
-            self._translations = get_weather_translations(language)  # noqa: E111
-            if language == DEFAULT_LANGUAGE:  # noqa: E111
+            self._translations = get_weather_translations(language)
+            if language == DEFAULT_LANGUAGE:
                 self._english_translations = self._translations
-            else:  # noqa: E111
+            else:
                 self._english_translations = get_weather_translations(DEFAULT_LANGUAGE)
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Loaded weather translations for language: %s",
                 language,
             )
         except Exception as err:  # pragma: no cover - defensive fallback
-            _LOGGER.warning("Failed to load weather translations: %s", err)  # noqa: E111
-            self._translations = empty_weather_translations()  # noqa: E111
-            self._english_translations = self._translations  # noqa: E111
-
-    @staticmethod  # noqa: E111
-    def _parse_translation_key(key: str) -> WeatherTranslationParts | None:  # noqa: E111
+            _LOGGER.warning("Failed to load weather translations: %s", err)
+            self._translations = empty_weather_translations()
+            self._english_translations = self._translations
+    @staticmethod
+    def _parse_translation_key(key: str) -> WeatherTranslationParts | None:
         """Normalise dotted translation keys into typed translation segments."""
 
         segments = tuple(part for part in key.split(".") if part)
         if segments and segments[0] == TRANSLATION_PREFIX:
-            segments = segments[1:]  # noqa: E111
-
+            segments = segments[1:]
         if not segments:
-            return None  # noqa: E111
-
+            return None
         section = segments[0]
         if section == "alerts":
-            if len(segments) != 3:  # noqa: E111
+            if len(segments) != 3:
                 return None
-            alert_key, field_token = segments[1], segments[2]  # noqa: E111
-            if not _is_weather_alert_key(alert_key) or not _is_alert_field(field_token):  # noqa: E111
+            alert_key, field_token = segments[1], segments[2]
+            if not _is_weather_alert_key(alert_key) or not _is_alert_field(field_token):
                 return None
-            return ("alerts", alert_key, field_token)  # noqa: E111
-
+            return ("alerts", alert_key, field_token)
         if section == "recommendations":
-            if len(segments) != 2:  # noqa: E111
+            if len(segments) != 2:
                 return None
-            recommendation_key = segments[1]  # noqa: E111
-            if not _is_weather_recommendation_key(recommendation_key):  # noqa: E111
+            recommendation_key = segments[1]
+            if not _is_weather_recommendation_key(recommendation_key):
                 return None
-            return ("recommendations", recommendation_key)  # noqa: E111
-
+            return ("recommendations", recommendation_key)
         return None
 
-    def _get_translation(self, key: str, **kwargs: Any) -> str:  # noqa: E111
+    def _get_translation(self, key: str, **kwargs: Any) -> str:
         """Get translated string with variable substitution.
 
         Args:
@@ -542,23 +472,21 @@ class WeatherHealthManager:
 
         parts = self._parse_translation_key(key)
         if parts is None:
-            return key  # noqa: E111
-
+            return key
         try:
-            resolved = self._resolve_translation_value(  # noqa: E111
+            resolved = self._resolve_translation_value(
                 self._translations,
                 parts,
             )
         except ValueError as err:
-            _LOGGER.debug("Translation key not found: %s (%s)", key, err)  # noqa: E111
-            resolved = None  # noqa: E111
-
+            _LOGGER.debug("Translation key not found: %s (%s)", key, err)
+            resolved = None
         if resolved is not None:
-            if not kwargs:  # noqa: E111
+            if not kwargs:
                 return resolved
-            try:  # noqa: E111
+            try:
                 return resolved.format(**kwargs)
-            except (KeyError, ValueError) as err:  # noqa: E111
+            except (KeyError, ValueError) as err:
                 _LOGGER.debug(
                     "Translation formatting failed for %s: %s",
                     key,
@@ -567,7 +495,7 @@ class WeatherHealthManager:
 
         return self._get_english_fallback(parts, key, **kwargs)
 
-    def _get_english_fallback(  # noqa: E111
+    def _get_english_fallback(
         self,
         parts: WeatherTranslationParts,
         original_key: str,
@@ -576,23 +504,20 @@ class WeatherHealthManager:
         """Get English fallback text for translation keys."""
 
         try:
-            resolved = self._resolve_translation_value(  # noqa: E111
+            resolved = self._resolve_translation_value(
                 self._english_translations,
                 parts,
             )
         except ValueError:
-            resolved = None  # noqa: E111
-
+            resolved = None
         if resolved is None:
-            return original_key  # noqa: E111
-
+            return original_key
         try:
-            return resolved.format(**kwargs) if kwargs else resolved  # noqa: E111
+            return resolved.format(**kwargs) if kwargs else resolved
         except KeyError, ValueError:
-            return resolved  # noqa: E111
-
-    @staticmethod  # noqa: E111
-    def _resolve_translation_value(  # noqa: E111
+            return resolved
+    @staticmethod
+    def _resolve_translation_value(
         catalog: WeatherTranslations,
         parts: WeatherTranslationParts,
     ) -> str | None:
@@ -600,26 +525,26 @@ class WeatherHealthManager:
 
         section = parts[0]
         if section == "alerts":
-            alert_parts = cast(AlertTranslationParts, parts)  # noqa: E111
-            _, alert_key, field = alert_parts  # noqa: E111
-            return WeatherHealthManager._resolve_alert_translation(  # noqa: E111
+            alert_parts = cast(AlertTranslationParts, parts)
+            _, alert_key, field = alert_parts
+            return WeatherHealthManager._resolve_alert_translation(
                 catalog["alerts"],
                 alert_key,
                 field,
             )
 
         if section == "recommendations":
-            recommendation_parts = cast(RecommendationTranslationParts, parts)  # noqa: E111
-            _, recommendation_key = recommendation_parts  # noqa: E111
-            return WeatherHealthManager._resolve_recommendation_translation(  # noqa: E111
+            recommendation_parts = cast(RecommendationTranslationParts, parts)
+            _, recommendation_key = recommendation_parts
+            return WeatherHealthManager._resolve_recommendation_translation(
                 catalog["recommendations"],
                 recommendation_key,
             )
 
         raise ValueError(f"Unknown weather translation section: {section}")
 
-    @staticmethod  # noqa: E111
-    def _resolve_alert_translation(  # noqa: E111
+    @staticmethod
+    def _resolve_alert_translation(
         alerts: WeatherAlertTranslations,
         alert_key: WeatherAlertKey,
         field: AlertField,
@@ -627,51 +552,48 @@ class WeatherHealthManager:
         """Resolve an alert translation field from the alerts catalog."""
 
         if alert_key not in alerts:
-            return None  # noqa: E111
-
+            return None
         alert = alerts[alert_key]
         if field not in ALERT_FIELD_TOKENS:
-            raise ValueError(f"Unsupported alert translation field: {field}")  # noqa: E111
-
+            raise ValueError(f"Unsupported alert translation field: {field}")
         value = cast(object, alert.get(field))
         return value if isinstance(value, str) else None
 
-    @staticmethod  # noqa: E111
-    def _resolve_recommendation_translation(  # noqa: E111
+    @staticmethod
+    def _resolve_recommendation_translation(
         recommendations: WeatherRecommendationTranslations,
         recommendation_key: WeatherRecommendationKey,
     ) -> str | None:
         """Resolve a recommendation translation string from the catalog."""
 
         if recommendation_key not in recommendations:
-            return None  # noqa: E111
-
+            return None
         value = cast(object, recommendations[recommendation_key])
         return value if isinstance(value, str) else None
 
-    @staticmethod  # noqa: E111
-    def _coerce_float(value: object) -> float | None:  # noqa: E111
+    @staticmethod
+    def _coerce_float(value: object) -> float | None:
         """Convert integers or floats to float, rejecting bools and others."""
 
         if isinstance(value, bool):
-            return None  # noqa: E111
+            return None
         if isinstance(value, int | float):
-            return float(value)  # noqa: E111
+            return float(value)
         return None
 
-    @staticmethod  # noqa: E111
-    def _coerce_int(value: object) -> int | None:  # noqa: E111
+    @staticmethod
+    def _coerce_int(value: object) -> int | None:
         """Convert numeric values to integers for probability fields."""
 
         if isinstance(value, bool):
-            return None  # noqa: E111
+            return None
         if isinstance(value, int):
-            return value  # noqa: E111
+            return value
         if isinstance(value, float):
-            return int(value)  # noqa: E111
+            return int(value)
         return None
 
-    async def async_update_weather_data(  # noqa: E111
+    async def async_update_weather_data(
         self,
         weather_entity_id: str | None = None,
     ) -> WeatherConditions | None:
@@ -687,25 +609,25 @@ class WeatherHealthManager:
         """
 
         async def _fetch_weather_data() -> WeatherConditions | None:
-            """Internal fetch function wrapped by resilience manager."""  # noqa: E111
+            """Internal fetch function wrapped by resilience manager."""
             # Load translations if not already loaded  # noqa: E114
-            if not self._translations:  # noqa: E111
+            if not self._translations:
                 await self.async_load_translations()
 
             # Find weather entity if not specified  # noqa: E114
-            weather_entity_id_local = weather_entity_id  # noqa: E111
-            if weather_entity_id_local is None:  # noqa: E111
+            weather_entity_id_local = weather_entity_id
+            if weather_entity_id_local is None:
                 weather_entity_id_local = await self._find_weather_entity()
 
-            if weather_entity_id_local is None:  # noqa: E111
+            if weather_entity_id_local is None:
                 _LOGGER.warning(
                     "No weather entity found for weather health monitoring",
                 )
                 return None
 
             # Get weather state  # noqa: E114
-            weather_state = self.hass.states.get(weather_entity_id_local)  # noqa: E111
-            if not weather_state or weather_state.state in [  # noqa: E111
+            weather_state = self.hass.states.get(weather_entity_id_local)
+            if not weather_state or weather_state.state in [
                 STATE_UNAVAILABLE,
                 STATE_UNKNOWN,
             ]:
@@ -716,26 +638,25 @@ class WeatherHealthManager:
                 return None
 
             # Extract weather data  # noqa: E114
-            attributes = cast(  # noqa: E111
+            attributes = cast(
                 WeatherEntityAttributes,
                 weather_state.attributes,
             )
 
-            temperature_c = self._coerce_float(  # noqa: E111
+            temperature_c = self._coerce_float(
                 attributes.get(ATTR_WEATHER_TEMPERATURE),
             )
-            if temperature_c is not None:  # noqa: E111
+            if temperature_c is not None:
                 # Convert temperature to Celsius if needed
                 temp_unit = attributes.get(
                     "temperature_unit",
                     UnitOfTemperature.CELSIUS,
                 )
                 if temp_unit == UnitOfTemperature.FAHRENHEIT:
-                    temperature_c = (temperature_c - 32) * 5 / 9  # noqa: E111
+                    temperature_c = (temperature_c - 32) * 5 / 9
                 elif temp_unit == UnitOfTemperature.KELVIN:
-                    temperature_c = temperature_c - 273.15  # noqa: E111
-
-            self._current_conditions = WeatherConditions(  # noqa: E111
+                    temperature_c = temperature_c - 273.15
+            self._current_conditions = WeatherConditions(
                 temperature_c=temperature_c,
                 humidity_percent=self._coerce_float(
                     attributes.get(ATTR_WEATHER_HUMIDITY),
@@ -758,37 +679,33 @@ class WeatherHealthManager:
             )
 
             # Calculate derived values  # noqa: E114
-            self._calculate_derived_conditions()  # noqa: E111
-
+            self._calculate_derived_conditions()
             # Update alerts based on new conditions  # noqa: E114
-            await self._update_weather_alerts()  # noqa: E111
-
-            _LOGGER.debug(  # noqa: E111
+            await self._update_weather_alerts()
+            _LOGGER.debug(
                 "Updated weather conditions: %.1f°C, %s, UV: %s",
                 temperature_c or 0,
                 weather_state.state,
                 attributes.get(ATTR_WEATHER_UV_INDEX, "unknown"),
             )
 
-            return self._current_conditions  # noqa: E111
-
+            return self._current_conditions
         # RESILIENCE: Wrap weather data fetch with retry logic
         try:
-            if self.resilience_manager:  # noqa: E111
+            if self.resilience_manager:
                 return await self.resilience_manager.execute_with_resilience(
                     _fetch_weather_data,
                     retry_config=self._retry_config,
                 )
             # Fallback if no resilience manager  # noqa: E114
-            return await _fetch_weather_data()  # noqa: E111
+            return await _fetch_weather_data()
         except Exception as err:
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Failed to update weather data after retries: %s",
                 err,
             )
-            return None  # noqa: E111
-
-    async def async_update_forecast_data(  # noqa: E111
+            return None
+    async def async_update_forecast_data(
         self,
         weather_entity_id: str | None = None,
         forecast_horizon_hours: int = 24,
@@ -806,25 +723,25 @@ class WeatherHealthManager:
         """
 
         async def _fetch_forecast_data() -> WeatherForecast | None:
-            """Internal fetch function wrapped by resilience manager."""  # noqa: E111
+            """Internal fetch function wrapped by resilience manager."""
             # Load translations if not already loaded  # noqa: E114
-            if not self._translations:  # noqa: E111
+            if not self._translations:
                 await self.async_load_translations()
 
             # Find weather entity if not specified  # noqa: E114
-            weather_entity_id_local = weather_entity_id  # noqa: E111
-            if weather_entity_id_local is None:  # noqa: E111
+            weather_entity_id_local = weather_entity_id
+            if weather_entity_id_local is None:
                 weather_entity_id_local = await self._find_weather_entity()
 
-            if weather_entity_id_local is None:  # noqa: E111
+            if weather_entity_id_local is None:
                 _LOGGER.warning(
                     "No weather entity found for forecast analysis",
                 )
                 return None
 
             # Get weather entity with forecast data  # noqa: E114
-            weather_state = self.hass.states.get(weather_entity_id_local)  # noqa: E111
-            if not weather_state or weather_state.state in [  # noqa: E111
+            weather_state = self.hass.states.get(weather_entity_id_local)
+            if not weather_state or weather_state.state in [
                 STATE_UNAVAILABLE,
                 STATE_UNKNOWN,
             ]:
@@ -835,29 +752,29 @@ class WeatherHealthManager:
                 return None
 
             # Extract forecast data from attributes  # noqa: E114
-            attributes = cast(  # noqa: E111
+            attributes = cast(
                 WeatherEntityAttributes,
                 weather_state.attributes,
             )
-            forecast_data_raw = attributes.get(ATTR_FORECAST)  # noqa: E111
-            if not isinstance(forecast_data_raw, Sequence):  # noqa: E111
+            forecast_data_raw = attributes.get(ATTR_FORECAST)
+            if not isinstance(forecast_data_raw, Sequence):
                 _LOGGER.debug(
                     "Weather entity %s does not expose a forecast sequence",
                     weather_entity_id_local,
                 )
                 return None
 
-            if not all(isinstance(item, Mapping) for item in forecast_data_raw):  # noqa: E111
+            if not all(isinstance(item, Mapping) for item in forecast_data_raw):
                 _LOGGER.debug(
                     "Weather entity %s returned non-mapping forecast entries",
                     weather_entity_id_local,
                 )
                 return None
 
-            forecast_data: ForecastEntries = [  # noqa: E111
+            forecast_data: ForecastEntries = [
                 cast(ForecastEntry, item) for item in forecast_data_raw
             ]
-            if not forecast_data:  # noqa: E111
+            if not forecast_data:
                 _LOGGER.debug(
                     "No forecast data available in weather entity %s",
                     weather_entity_id,
@@ -865,17 +782,17 @@ class WeatherHealthManager:
                 return None
 
             # Process forecast data into structured format  # noqa: E114
-            forecast_points = await self._process_forecast_data(  # noqa: E111
+            forecast_points = await self._process_forecast_data(
                 forecast_data,
                 forecast_horizon_hours,
             )
 
-            if not forecast_points:  # noqa: E111
+            if not forecast_points:
                 _LOGGER.warning("No valid forecast points generated")
                 return None
 
             # Create forecast object  # noqa: E114
-            self._current_forecast = WeatherForecast(  # noqa: E111
+            self._current_forecast = WeatherForecast(
                 forecast_points=forecast_points,
                 source_entity=weather_entity_id_local,
                 generated_at=dt_util.utcnow(),
@@ -884,40 +801,35 @@ class WeatherHealthManager:
             )
 
             # Calculate health scores for all forecast points  # noqa: E114
-            await self._calculate_forecast_health_scores()  # noqa: E111
-
+            await self._calculate_forecast_health_scores()
             # Calculate summary statistics  # noqa: E114
-            self._calculate_forecast_statistics()  # noqa: E111
-
+            self._calculate_forecast_statistics()
             # Identify optimal activity windows  # noqa: E114
-            await self._identify_optimal_activity_windows()  # noqa: E111
-
-            _LOGGER.debug(  # noqa: E111
+            await self._identify_optimal_activity_windows()
+            _LOGGER.debug(
                 "Updated weather forecast: %d points, %dh horizon, quality: %s",
                 len(forecast_points),
                 forecast_horizon_hours,
                 self._current_forecast.quality.value,
             )
 
-            return self._current_forecast  # noqa: E111
-
+            return self._current_forecast
         # RESILIENCE: Wrap forecast data fetch with retry logic
         try:
-            if self.resilience_manager:  # noqa: E111
+            if self.resilience_manager:
                 return await self.resilience_manager.execute_with_resilience(
                     _fetch_forecast_data,
                     retry_config=self._retry_config,
                 )
             # Fallback if no resilience manager  # noqa: E114
-            return await _fetch_forecast_data()  # noqa: E111
+            return await _fetch_forecast_data()
         except Exception as err:
-            _LOGGER.error(  # noqa: E111
+            _LOGGER.error(
                 "Failed to update weather forecast data after retries: %s",
                 err,
             )
-            return None  # noqa: E111
-
-    async def _process_forecast_data(  # noqa: E111
+            return None
+    async def _process_forecast_data(
         self,
         forecast_data: ForecastEntries,
         horizon_hours: int,
@@ -935,20 +847,18 @@ class WeatherHealthManager:
         cutoff_time = dt_util.utcnow() + timedelta(hours=horizon_hours)
 
         for forecast_item in forecast_data:
-            try:  # noqa: E111
+            try:
                 # Parse forecast timestamp
                 forecast_time_obj = forecast_item.get(ATTR_FORECAST_TIME)
                 forecast_time: datetime | None
                 if isinstance(forecast_time_obj, str):
-                    forecast_time = dt_util.parse_datetime(forecast_time_obj)  # noqa: E111
+                    forecast_time = dt_util.parse_datetime(forecast_time_obj)
                 elif isinstance(forecast_time_obj, datetime):
-                    forecast_time = forecast_time_obj  # noqa: E111
+                    forecast_time = forecast_time_obj
                 else:
-                    forecast_time = None  # noqa: E111
-
+                    forecast_time = None
                 if not forecast_time or forecast_time > cutoff_time:
-                    continue  # noqa: E111
-
+                    continue
                 # Extract temperature data
                 temp_high = self._coerce_float(
                     forecast_item.get(ATTR_FORECAST_TEMP),
@@ -959,19 +869,18 @@ class WeatherHealthManager:
 
                 # Convert temperature units if needed
                 if temp_high is not None:
-                    temp_unit = forecast_item.get(  # noqa: E111
+                    temp_unit = forecast_item.get(
                         "temperature_unit",
                         UnitOfTemperature.CELSIUS,
                     )
-                    if temp_unit == UnitOfTemperature.FAHRENHEIT:  # noqa: E111
+                    if temp_unit == UnitOfTemperature.FAHRENHEIT:
                         temp_high = (temp_high - 32.0) * 5 / 9
                         if temp_low is not None:
-                            temp_low = (temp_low - 32.0) * 5 / 9  # noqa: E111
-                    elif temp_unit == UnitOfTemperature.KELVIN:  # noqa: E111
+                            temp_low = (temp_low - 32.0) * 5 / 9
+                    elif temp_unit == UnitOfTemperature.KELVIN:
                         temp_high = temp_high - 273.15
                         if temp_low is not None:
-                            temp_low = temp_low - 273.15  # noqa: E111
-
+                            temp_low = temp_low - 273.15
                 humidity = self._coerce_float(
                     forecast_item.get(ATTR_FORECAST_HUMIDITY),
                 )
@@ -1019,7 +928,7 @@ class WeatherHealthManager:
 
                 forecast_points.append(forecast_point)
 
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.debug("Error processing forecast item: %s", err)
                 continue
 
@@ -1028,7 +937,7 @@ class WeatherHealthManager:
 
         return forecast_points
 
-    def _assess_forecast_quality(  # noqa: E111
+    def _assess_forecast_quality(
         self,
         forecast_data: ForecastEntries,
     ) -> ForecastQuality:
@@ -1041,40 +950,38 @@ class WeatherHealthManager:
             Quality assessment of forecast data
         """
         if not forecast_data:
-            return ForecastQuality.POOR  # noqa: E111
-
+            return ForecastQuality.POOR
         # Check data completeness
         complete_points = 0
         total_points = len(forecast_data)
 
         for item in forecast_data:
-            required_fields = [ATTR_FORECAST_TIME, ATTR_FORECAST_TEMP]  # noqa: E111
-            optional_fields = [  # noqa: E111
+            required_fields = [ATTR_FORECAST_TIME, ATTR_FORECAST_TEMP]
+            optional_fields = [
                 ATTR_FORECAST_HUMIDITY,
                 ATTR_FORECAST_UV_INDEX,
                 ATTR_FORECAST_CONDITION,
             ]
 
-            has_required = all(item.get(field) is not None for field in required_fields)  # noqa: E111
+            has_required = all(item.get(field) is not None for field in required_fields)
             has_optional = sum(
                 1 for field in optional_fields if item.get(field) is not None
-            )  # noqa: E111
-
-            if has_required and has_optional >= 2:  # noqa: E111
+            )
+            if has_required and has_optional >= 2:
                 complete_points += 1
 
         completeness_ratio = complete_points / total_points if total_points > 0 else 0
 
         # Assess quality based on completeness and data points
         if completeness_ratio >= 0.8 and total_points >= 24:  # Hourly data for 24h
-            return ForecastQuality.EXCELLENT  # noqa: E111
+            return ForecastQuality.EXCELLENT
         if completeness_ratio >= 0.6 and total_points >= 8:  # 3-hourly data
-            return ForecastQuality.GOOD  # noqa: E111
+            return ForecastQuality.GOOD
         if completeness_ratio >= 0.4 and total_points >= 4:  # 6-hourly data
-            return ForecastQuality.FAIR  # noqa: E111
+            return ForecastQuality.FAIR
         return ForecastQuality.POOR
 
-    def _calculate_forecast_point_derived_values(  # noqa: E111
+    def _calculate_forecast_point_derived_values(
         self,
         forecast_point: ForecastPoint,
     ) -> None:
@@ -1084,8 +991,7 @@ class WeatherHealthManager:
             forecast_point: Forecast point to enhance with derived values
         """
         if forecast_point.temperature_c is None:
-            return  # noqa: E111
-
+            return
         temp_c = forecast_point.temperature_c
         temp_f = temp_c * 9 / 5 + 32
 
@@ -1095,10 +1001,9 @@ class WeatherHealthManager:
             and forecast_point.humidity_percent is not None
             and forecast_point.humidity_percent >= 40
         ):
-            humidity = forecast_point.humidity_percent  # noqa: E111
-
+            humidity = forecast_point.humidity_percent
             # Heat index formula (Fahrenheit)  # noqa: E114
-            heat_index_f = (  # noqa: E111
+            heat_index_f = (
                 -42.379
                 + 2.04901523 * temp_f
                 + 10.14333127 * humidity
@@ -1111,18 +1016,16 @@ class WeatherHealthManager:
             )
 
             # Convert back to Celsius  # noqa: E114
-            forecast_point.heat_index = (heat_index_f - 32) * 5 / 9  # noqa: E111
-
+            forecast_point.heat_index = (heat_index_f - 32) * 5 / 9
         # Calculate wind chill if cold and windy
         if (
             temp_c <= 10
             and forecast_point.wind_speed_kmh is not None
             and forecast_point.wind_speed_kmh > 5
         ):
-            wind_mph = forecast_point.wind_speed_kmh * 0.621371  # noqa: E111
-
+            wind_mph = forecast_point.wind_speed_kmh * 0.621371
             # Wind chill formula (Fahrenheit)  # noqa: E114
-            if wind_mph > 3:  # noqa: E111
+            if wind_mph > 3:
                 wind_chill_f = (
                     35.74
                     + 0.6215 * temp_f
@@ -1133,20 +1036,19 @@ class WeatherHealthManager:
                 # Convert back to Celsius
                 forecast_point.wind_chill = (wind_chill_f - 32) * 5 / 9
 
-    async def _calculate_forecast_health_scores(self) -> None:  # noqa: E111
+    async def _calculate_forecast_health_scores(self) -> None:
         """Calculate health scores for all forecast points."""
         if not self._current_forecast or not self._current_forecast.forecast_points:
-            return  # noqa: E111
-
+            return
         for forecast_point in self._current_forecast.forecast_points:
-            forecast_point.health_score = self._calculate_point_health_score(  # noqa: E111
+            forecast_point.health_score = self._calculate_point_health_score(
                 forecast_point,
             )
-            forecast_point.predicted_alerts = self._predict_point_alerts(  # noqa: E111
+            forecast_point.predicted_alerts = self._predict_point_alerts(
                 forecast_point,
             )
 
-    def _calculate_point_health_score(self, forecast_point: ForecastPoint) -> int:  # noqa: E111
+    def _calculate_point_health_score(self, forecast_point: ForecastPoint) -> int:
         """Calculate health score for a single forecast point.
 
         Args:
@@ -1159,87 +1061,85 @@ class WeatherHealthManager:
 
         # Temperature scoring
         if forecast_point.temperature_c is not None:
-            temp = forecast_point.temperature_c  # noqa: E111
+            temp = forecast_point.temperature_c
             effective_temp = (
                 forecast_point.heat_index or forecast_point.wind_chill or temp
-            )  # noqa: E111
-
+            )
             # Ideal temperature range for dogs: 15-22°C  # noqa: E114
-            if 15 <= temp <= 22:  # noqa: E111
+            if 15 <= temp <= 22:
                 score += 0  # Perfect
-            elif 10 <= temp < 15 or 22 < temp <= 25:  # noqa: E111
+            elif 10 <= temp < 15 or 22 < temp <= 25:
                 score -= 10  # Good
-            elif 5 <= temp < 10 or 25 < temp <= 30:  # noqa: E111
+            elif 5 <= temp < 10 or 25 < temp <= 30:
                 score -= 25  # Moderate concern
-            elif 0 <= temp < 5 or 30 < temp <= 35:  # noqa: E111
+            elif 0 <= temp < 5 or 30 < temp <= 35:
                 score -= 40  # High concern
-            else:  # noqa: E111
+            else:
                 score -= 60  # Extreme concern
 
             # Additional penalty for extreme feels-like temperatures  # noqa: E114
-            if effective_temp != temp:  # noqa: E111
+            if effective_temp != temp:
                 temp_diff = abs(effective_temp - temp)
                 if temp_diff > 5:
                     # 2 points per degree difference  # noqa: E114
-                    score -= int(temp_diff * 2)  # noqa: E111
-
+                    score -= int(temp_diff * 2)
         # UV index scoring
         if forecast_point.uv_index is not None:
-            uv = forecast_point.uv_index  # noqa: E111
-            if uv > 8:  # noqa: E111
+            uv = forecast_point.uv_index
+            if uv > 8:
                 score -= 20
-            elif uv > 6:  # noqa: E111
+            elif uv > 6:
                 score -= 10
-            elif uv > 3:  # noqa: E111
+            elif uv > 3:
                 score -= 5
 
         # Humidity scoring
         if forecast_point.humidity_percent is not None:
-            humidity = forecast_point.humidity_percent  # noqa: E111
-            if humidity > 85:  # noqa: E111
+            humidity = forecast_point.humidity_percent
+            if humidity > 85:
                 score -= 15
-            elif humidity > 70:  # noqa: E111
+            elif humidity > 70:
                 score -= 10
-            elif humidity < 30:  # noqa: E111
+            elif humidity < 30:
                 score -= 5
 
         # Precipitation scoring
         if forecast_point.precipitation_probability is not None:
-            precip_prob = forecast_point.precipitation_probability  # noqa: E111
-            if precip_prob > 80:  # noqa: E111
+            precip_prob = forecast_point.precipitation_probability
+            if precip_prob > 80:
                 score -= 15  # Very likely rain
-            elif precip_prob > 50:  # noqa: E111
+            elif precip_prob > 50:
                 score -= 10  # Likely rain
-            elif precip_prob > 30:  # noqa: E111
+            elif precip_prob > 30:
                 score -= 5  # Possible rain
 
         # Wind scoring
         if forecast_point.wind_speed_kmh is not None:
-            wind = forecast_point.wind_speed_kmh  # noqa: E111
-            if wind > 40:  # Very windy  # noqa: E111
+            wind = forecast_point.wind_speed_kmh
+            if wind > 40:  # Very windy
                 score -= 15
-            elif wind > 25:  # Windy  # noqa: E111
+            elif wind > 25:  # Windy
                 score -= 10
-            elif wind > 15:  # Breezy  # noqa: E111
+            elif wind > 15:  # Breezy
                 score -= 5
 
         # Weather condition scoring
         if forecast_point.condition:
-            condition = forecast_point.condition.lower()  # noqa: E111
+            condition = forecast_point.condition.lower()
             if any(
                 keyword in condition for keyword in ["storm", "thunder", "lightning"]
-            ):  # noqa: E111
+            ):
                 score -= 30
-            elif any(keyword in condition for keyword in ["snow", "ice", "sleet"]):  # noqa: E111
+            elif any(keyword in condition for keyword in ["snow", "ice", "sleet"]):
                 score -= 20
-            elif any(keyword in condition for keyword in ["rain", "drizzle"]):  # noqa: E111
+            elif any(keyword in condition for keyword in ["rain", "drizzle"]):
                 score -= 15
-            elif "fog" in condition:  # noqa: E111
+            elif "fog" in condition:
                 score -= 10
 
         return max(0, min(100, score))
 
-    def _predict_point_alerts(  # noqa: E111
+    def _predict_point_alerts(
         self,
         forecast_point: ForecastPoint,
     ) -> list[WeatherHealthImpact]:
@@ -1254,53 +1154,45 @@ class WeatherHealthManager:
         alerts: list[WeatherHealthImpact] = []
 
         if forecast_point.temperature_c is None:
-            return alerts  # noqa: E111
-
+            return alerts
         temp = forecast_point.temperature_c
 
         # Temperature-based alerts
         if temp >= self.temperature_thresholds["hot"][WeatherSeverity.MODERATE]:
-            alerts.append(WeatherHealthImpact.HEAT_STRESS)  # noqa: E111
-
+            alerts.append(WeatherHealthImpact.HEAT_STRESS)
         if temp <= self.temperature_thresholds["cold"][WeatherSeverity.MODERATE]:
-            alerts.append(WeatherHealthImpact.COLD_STRESS)  # noqa: E111
-
+            alerts.append(WeatherHealthImpact.COLD_STRESS)
         # UV alerts
         if (
             forecast_point.uv_index is not None
             and forecast_point.uv_index >= self.uv_thresholds[WeatherSeverity.MODERATE]
         ):
-            alerts.append(WeatherHealthImpact.UV_EXPOSURE)  # noqa: E111
-
+            alerts.append(WeatherHealthImpact.UV_EXPOSURE)
         # Humidity alerts
         if (
             forecast_point.humidity_percent is not None
             and forecast_point.humidity_percent
             >= self.humidity_thresholds[WeatherSeverity.MODERATE]
         ):
-            alerts.append(WeatherHealthImpact.RESPIRATORY_RISK)  # noqa: E111
-
+            alerts.append(WeatherHealthImpact.RESPIRATORY_RISK)
         # Precipitation alerts
         if (
             forecast_point.precipitation_probability is not None
             and forecast_point.precipitation_probability > 60
         ):
-            alerts.append(WeatherHealthImpact.PAW_PROTECTION)  # noqa: E111
-
+            alerts.append(WeatherHealthImpact.PAW_PROTECTION)
         # Storm alerts
         if forecast_point.condition and any(
             keyword in forecast_point.condition.lower()
             for keyword in ["storm", "thunder", "lightning"]
         ):
-            alerts.append(WeatherHealthImpact.EXERCISE_LIMITATION)  # noqa: E111
-
+            alerts.append(WeatherHealthImpact.EXERCISE_LIMITATION)
         return alerts
 
-    def _calculate_forecast_statistics(self) -> None:  # noqa: E111
+    def _calculate_forecast_statistics(self) -> None:
         """Calculate summary statistics for the forecast."""
         if not self._current_forecast or not self._current_forecast.forecast_points:
-            return  # noqa: E111
-
+            return
         health_scores = [
             point.health_score
             for point in self._current_forecast.forecast_points
@@ -1308,9 +1200,9 @@ class WeatherHealthManager:
         ]
 
         if health_scores:
-            self._current_forecast.min_health_score = min(health_scores)  # noqa: E111
-            self._current_forecast.max_health_score = max(health_scores)  # noqa: E111
-            self._current_forecast.avg_health_score = int(  # noqa: E111
+            self._current_forecast.min_health_score = min(health_scores)
+            self._current_forecast.max_health_score = max(health_scores)
+            self._current_forecast.avg_health_score = int(
                 sum(health_scores) / len(health_scores),
             )
 
@@ -1319,31 +1211,29 @@ class WeatherHealthManager:
         current_period_start = None
 
         for point in self._current_forecast.forecast_points:
-            if point.health_score is not None and point.health_score < 40:  # noqa: E111
+            if point.health_score is not None and point.health_score < 40:
                 if current_period_start is None:
-                    current_period_start = point.timestamp  # noqa: E111
-            else:  # noqa: E111
+                    current_period_start = point.timestamp
+            else:
                 if current_period_start is not None:
                     # End of critical period  # noqa: E114
-                    critical_periods.append(  # noqa: E111
+                    critical_periods.append(
                         (current_period_start, point.timestamp),
                     )
-                    current_period_start = None  # noqa: E111
-
+                    current_period_start = None
         # Handle ongoing critical period
         if current_period_start is not None:
-            last_point = self._current_forecast.forecast_points[-1]  # noqa: E111
-            critical_periods.append(  # noqa: E111
+            last_point = self._current_forecast.forecast_points[-1]
+            critical_periods.append(
                 (current_period_start, last_point.timestamp),
             )
 
         self._current_forecast.critical_periods = critical_periods
 
-    async def _identify_optimal_activity_windows(self) -> None:  # noqa: E111
+    async def _identify_optimal_activity_windows(self) -> None:
         """Identify optimal time windows for different activities."""
         if not self._current_forecast or not self._current_forecast.forecast_points:
-            return  # noqa: E111
-
+            return
         # Activity thresholds (minimum health scores)
         activity_thresholds: ActivityThresholdMap = {
             "walk": 60,  # Regular walks
@@ -1353,15 +1243,14 @@ class WeatherHealthManager:
         }
 
         for activity_type, min_score in activity_thresholds.items():
-            windows = self._find_activity_windows(activity_type, min_score)  # noqa: E111
-            self._current_forecast.optimal_activity_windows.extend(windows)  # noqa: E111
-
+            windows = self._find_activity_windows(activity_type, min_score)
+            self._current_forecast.optimal_activity_windows.extend(windows)
         # Sort windows by start time
         self._current_forecast.optimal_activity_windows.sort(
             key=lambda x: x.start_time,
         )
 
-    def _find_activity_windows(  # noqa: E111
+    def _find_activity_windows(
         self,
         activity_type: ActivityType,
         min_score: int,
@@ -1378,28 +1267,27 @@ class WeatherHealthManager:
             List of optimal activity time slots
         """
         if not self._current_forecast:
-            return []  # noqa: E111
-
+            return []
         windows = []
         current_window_start = None
         current_window_scores = []
 
         for point in self._current_forecast.forecast_points:
-            if point.health_score is not None and point.health_score >= min_score:  # noqa: E111
+            if point.health_score is not None and point.health_score >= min_score:
                 # Good conditions for activity
                 if current_window_start is None:
-                    current_window_start = point.timestamp  # noqa: E111
-                    current_window_scores = [point.health_score]  # noqa: E111
+                    current_window_start = point.timestamp
+                    current_window_scores = [point.health_score]
                 else:
-                    current_window_scores.append(point.health_score)  # noqa: E111
-            else:  # noqa: E111
+                    current_window_scores.append(point.health_score)
+            else:
                 # Conditions not suitable, end current window
                 if current_window_start is not None:
-                    window_duration = (  # noqa: E111
+                    window_duration = (
                         point.timestamp - current_window_start
                     ).total_seconds() / 3600
 
-                    if window_duration >= min_duration_hours:  # noqa: E111
+                    if window_duration >= min_duration_hours:
                         # Create activity window
                         avg_score = int(
                             sum(current_window_scores) / len(current_window_scores),
@@ -1407,12 +1295,11 @@ class WeatherHealthManager:
 
                         # Determine alert level based on average score
                         if avg_score >= 80:
-                            alert_level = WeatherSeverity.LOW  # noqa: E111
+                            alert_level = WeatherSeverity.LOW
                         elif avg_score >= 60:
-                            alert_level = WeatherSeverity.MODERATE  # noqa: E111
+                            alert_level = WeatherSeverity.MODERATE
                         else:
-                            alert_level = WeatherSeverity.HIGH  # noqa: E111
-
+                            alert_level = WeatherSeverity.HIGH
                         recommendations = self._get_activity_recommendations(
                             activity_type,
                             avg_score,
@@ -1430,28 +1317,26 @@ class WeatherHealthManager:
                             ),
                         )
 
-                    current_window_start = None  # noqa: E111
-                    current_window_scores = []  # noqa: E111
-
+                    current_window_start = None
+                    current_window_scores = []
         # Handle ongoing window at end of forecast
         if current_window_start is not None and current_window_scores:
-            last_point = self._current_forecast.forecast_points[-1]  # noqa: E111
-            window_duration = (  # noqa: E111
+            last_point = self._current_forecast.forecast_points[-1]
+            window_duration = (
                 last_point.timestamp - current_window_start
             ).total_seconds() / 3600
 
-            if window_duration >= min_duration_hours:  # noqa: E111
+            if window_duration >= min_duration_hours:
                 avg_score = int(
                     sum(current_window_scores) / len(current_window_scores),
                 )
 
                 if avg_score >= 80:
-                    alert_level = WeatherSeverity.LOW  # noqa: E111
+                    alert_level = WeatherSeverity.LOW
                 elif avg_score >= 60:
-                    alert_level = WeatherSeverity.MODERATE  # noqa: E111
+                    alert_level = WeatherSeverity.MODERATE
                 else:
-                    alert_level = WeatherSeverity.HIGH  # noqa: E111
-
+                    alert_level = WeatherSeverity.HIGH
                 recommendations = self._get_activity_recommendations(
                     activity_type,
                     avg_score,
@@ -1471,7 +1356,7 @@ class WeatherHealthManager:
 
         return windows
 
-    def _get_activity_recommendations(  # noqa: E111
+    def _get_activity_recommendations(
         self,
         activity_type: ActivityType,
         avg_score: int,
@@ -1491,14 +1376,14 @@ class WeatherHealthManager:
 
         # Base recommendations by activity type
         if activity_type == "walk":
-            if alert_level == WeatherSeverity.LOW:  # noqa: E111
+            if alert_level == WeatherSeverity.LOW:
                 recommendations.extend(
                     [
                         "Excellent conditions for regular walks",
                         "Normal duration and intensity recommended",
                     ],
                 )
-            else:  # noqa: E111
+            else:
                 recommendations.extend(
                     [
                         "Monitor weather conditions during walk",
@@ -1506,14 +1391,14 @@ class WeatherHealthManager:
                     ],
                 )
         elif activity_type == "play":
-            if alert_level == WeatherSeverity.LOW:  # noqa: E111
+            if alert_level == WeatherSeverity.LOW:
                 recommendations.extend(
                     [
                         "Great time for active play sessions",
                         "Consider outdoor training activities",
                     ],
                 )
-            else:  # noqa: E111
+            else:
                 recommendations.extend(
                     [
                         "Moderate play activities recommended",
@@ -1521,14 +1406,14 @@ class WeatherHealthManager:
                     ],
                 )
         elif activity_type == "exercise":
-            if alert_level == WeatherSeverity.LOW:  # noqa: E111
+            if alert_level == WeatherSeverity.LOW:
                 recommendations.extend(
                     [
                         "Optimal conditions for intensive exercise",
                         "Running and high-energy activities safe",
                     ],
                 )
-            else:  # noqa: E111
+            else:
                 recommendations.extend(
                     [
                         "Reduce exercise intensity",
@@ -1536,7 +1421,7 @@ class WeatherHealthManager:
                     ],
                 )
         elif activity_type == "basic_needs":
-            recommendations.extend(  # noqa: E111
+            recommendations.extend(
                 [
                     "Quick potty breaks acceptable",
                     "Minimize outdoor exposure time",
@@ -1545,13 +1430,12 @@ class WeatherHealthManager:
 
         # Add score-based recommendations
         if avg_score < 50:
-            recommendations.append("Use extra caution during this window")  # noqa: E111
+            recommendations.append("Use extra caution during this window")
         elif avg_score >= 80:
-            recommendations.append("Ideal conditions for this activity")  # noqa: E111
-
+            recommendations.append("Ideal conditions for this activity")
         return recommendations
 
-    async def _find_weather_entity(self) -> str | None:  # noqa: E111
+    async def _find_weather_entity(self) -> str | None:
         """Find a suitable weather entity in Home Assistant.
 
         Returns:
@@ -1566,22 +1450,20 @@ class WeatherHealthManager:
 
         if weather_entities:
             # Prefer entities with "weather" in the name  # noqa: E114
-            for entity_id in weather_entities:  # noqa: E111
+            for entity_id in weather_entities:
                 if "weather" in entity_id.lower():
-                    return entity_id  # noqa: E111
+                    return entity_id
             # Fall back to first available  # noqa: E114
-            return weather_entities[0]  # noqa: E111
-
+            return weather_entities[0]
         return None
 
-    def _calculate_derived_conditions(self) -> None:  # noqa: E111
+    def _calculate_derived_conditions(self) -> None:
         """Calculate derived weather conditions like heat index and wind chill."""
         if (
             not self._current_conditions
             or self._current_conditions.temperature_c is None
         ):
-            return  # noqa: E111
-
+            return
         temp_c = self._current_conditions.temperature_c
         temp_f = temp_c * 9 / 5 + 32  # Convert to Fahrenheit for calculations
 
@@ -1591,10 +1473,9 @@ class WeatherHealthManager:
             and self._current_conditions.humidity_percent is not None
             and self._current_conditions.humidity_percent >= 40
         ):
-            humidity = self._current_conditions.humidity_percent  # noqa: E111
-
+            humidity = self._current_conditions.humidity_percent
             # Heat index formula (Fahrenheit)  # noqa: E114
-            heat_index_f = (  # noqa: E111
+            heat_index_f = (
                 -42.379
                 + 2.04901523 * temp_f
                 + 10.14333127 * humidity
@@ -1607,18 +1488,16 @@ class WeatherHealthManager:
             )
 
             # Convert back to Celsius  # noqa: E114
-            self._current_conditions.heat_index = (heat_index_f - 32) * 5 / 9  # noqa: E111
-
+            self._current_conditions.heat_index = (heat_index_f - 32) * 5 / 9
         # Calculate wind chill if cold and windy
         if (
             temp_c <= 10
             and self._current_conditions.wind_speed_kmh is not None
             and self._current_conditions.wind_speed_kmh > 5
         ):
-            wind_mph = self._current_conditions.wind_speed_kmh * 0.621371  # noqa: E111
-
+            wind_mph = self._current_conditions.wind_speed_kmh * 0.621371
             # Wind chill formula (Fahrenheit)  # noqa: E114
-            if wind_mph > 3:  # noqa: E111
+            if wind_mph > 3:
                 wind_chill_f = (
                     35.74
                     + 0.6215 * temp_f
@@ -1629,11 +1508,10 @@ class WeatherHealthManager:
                 # Convert back to Celsius
                 self._current_conditions.wind_chill = (wind_chill_f - 32) * 5 / 9
 
-    async def _update_weather_alerts(self) -> None:  # noqa: E111
+    async def _update_weather_alerts(self) -> None:
         """Update weather alerts based on current conditions."""
         if not self._current_conditions or not self._current_conditions.is_valid:
-            return  # noqa: E111
-
+            return
         # Clear expired alerts
         self._active_alerts = [
             alert for alert in self._active_alerts if alert.is_active
@@ -1655,7 +1533,7 @@ class WeatherHealthManager:
 
         # Add new alerts that aren't already active
         for new_alert in new_alerts:
-            if not any(  # noqa: E111
+            if not any(
                 existing.alert_type == new_alert.alert_type
                 and existing.severity == new_alert.severity
                 for existing in self._active_alerts
@@ -1667,7 +1545,7 @@ class WeatherHealthManager:
                     new_alert.severity.value,
                 )
 
-    def _check_temperature_alerts(self) -> list[WeatherAlert]:  # noqa: E111
+    def _check_temperature_alerts(self) -> list[WeatherAlert]:
         """Check for temperature-based health alerts.
 
         Returns:
@@ -1679,8 +1557,7 @@ class WeatherHealthManager:
             not self._current_conditions
             or self._current_conditions.temperature_c is None
         ):
-            return alerts  # noqa: E111
-
+            return alerts
         temp = self._current_conditions.temperature_c
         effective_temp = (
             self._current_conditions.heat_index
@@ -1690,7 +1567,7 @@ class WeatherHealthManager:
 
         # Hot weather alerts
         if temp >= self.temperature_thresholds["hot"][WeatherSeverity.EXTREME]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.HEAT_STRESS,
                     severity=WeatherSeverity.EXTREME,
@@ -1733,7 +1610,7 @@ class WeatherHealthManager:
                 ),
             )
         elif temp >= self.temperature_thresholds["hot"][WeatherSeverity.HIGH]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.HEAT_STRESS,
                     severity=WeatherSeverity.HIGH,
@@ -1766,7 +1643,7 @@ class WeatherHealthManager:
                 ),
             )
         elif temp >= self.temperature_thresholds["hot"][WeatherSeverity.MODERATE]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.HEAT_STRESS,
                     severity=WeatherSeverity.MODERATE,
@@ -1794,7 +1671,7 @@ class WeatherHealthManager:
 
         # Cold weather alerts
         if temp <= self.temperature_thresholds["cold"][WeatherSeverity.EXTREME]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.COLD_STRESS,
                     severity=WeatherSeverity.EXTREME,
@@ -1837,7 +1714,7 @@ class WeatherHealthManager:
                 ),
             )
         elif temp <= self.temperature_thresholds["cold"][WeatherSeverity.HIGH]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.COLD_STRESS,
                     severity=WeatherSeverity.HIGH,
@@ -1869,7 +1746,7 @@ class WeatherHealthManager:
 
         return alerts
 
-    def _check_uv_alerts(self) -> list[WeatherAlert]:  # noqa: E111
+    def _check_uv_alerts(self) -> list[WeatherAlert]:
         """Check for UV index-based health alerts.
 
         Returns:
@@ -1878,12 +1755,11 @@ class WeatherHealthManager:
         alerts: list[WeatherAlert] = []
 
         if not self._current_conditions or self._current_conditions.uv_index is None:
-            return alerts  # noqa: E111
-
+            return alerts
         uv = self._current_conditions.uv_index
 
         if uv >= self.uv_thresholds[WeatherSeverity.EXTREME]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.UV_EXPOSURE,
                     severity=WeatherSeverity.EXTREME,
@@ -1920,7 +1796,7 @@ class WeatherHealthManager:
                 ),
             )
         elif uv >= self.uv_thresholds[WeatherSeverity.HIGH]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.UV_EXPOSURE,
                     severity=WeatherSeverity.HIGH,
@@ -1948,7 +1824,7 @@ class WeatherHealthManager:
 
         return alerts
 
-    def _check_humidity_alerts(self) -> list[WeatherAlert]:  # noqa: E111
+    def _check_humidity_alerts(self) -> list[WeatherAlert]:
         """Check for humidity-based health alerts.
 
         Returns:
@@ -1960,12 +1836,11 @@ class WeatherHealthManager:
             not self._current_conditions
             or self._current_conditions.humidity_percent is None
         ):
-            return alerts  # noqa: E111
-
+            return alerts
         humidity = self._current_conditions.humidity_percent
 
         if humidity >= self.humidity_thresholds[WeatherSeverity.HIGH]:
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.RESPIRATORY_RISK,
                     severity=WeatherSeverity.HIGH,
@@ -1997,7 +1872,7 @@ class WeatherHealthManager:
 
         return alerts
 
-    def _check_condition_alerts(self) -> list[WeatherAlert]:  # noqa: E111
+    def _check_condition_alerts(self) -> list[WeatherAlert]:
         """Check for weather condition-based alerts.
 
         Returns:
@@ -2006,13 +1881,12 @@ class WeatherHealthManager:
         alerts: list[WeatherAlert] = []
 
         if not self._current_conditions or not self._current_conditions.condition:
-            return alerts  # noqa: E111
-
+            return alerts
         condition = self._current_conditions.condition.lower()
 
         # Rain/wet conditions
         if any(keyword in condition for keyword in ["rain", "drizzle", "shower"]):
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.PAW_PROTECTION,
                     severity=WeatherSeverity.MODERATE,
@@ -2042,7 +1916,7 @@ class WeatherHealthManager:
 
         # Storm conditions
         if any(keyword in condition for keyword in ["storm", "thunder", "lightning"]):
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.EXERCISE_LIMITATION,
                     severity=WeatherSeverity.HIGH,
@@ -2073,7 +1947,7 @@ class WeatherHealthManager:
 
         # Snow/ice conditions
         if any(keyword in condition for keyword in ["snow", "ice", "sleet"]):
-            alerts.append(  # noqa: E111
+            alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.PAW_PROTECTION,
                     severity=WeatherSeverity.MODERATE,
@@ -2103,7 +1977,7 @@ class WeatherHealthManager:
 
         return alerts
 
-    def get_current_conditions(self) -> WeatherConditions | None:  # noqa: E111
+    def get_current_conditions(self) -> WeatherConditions | None:
         """Get current weather conditions.
 
         Returns:
@@ -2111,7 +1985,7 @@ class WeatherHealthManager:
         """
         return self._current_conditions
 
-    def get_current_forecast(self) -> WeatherForecast | None:  # noqa: E111
+    def get_current_forecast(self) -> WeatherForecast | None:
         """Get current weather forecast.
 
         Returns:
@@ -2119,7 +1993,7 @@ class WeatherHealthManager:
         """
         return self._current_forecast
 
-    def get_next_optimal_activity_time(  # noqa: E111
+    def get_next_optimal_activity_time(
         self,
         activity_type: ActivityType = "walk",
     ) -> ActivityTimeSlot | None:
@@ -2132,11 +2006,10 @@ class WeatherHealthManager:
             Next optimal activity time slot or None
         """
         if not self._current_forecast:
-            return None  # noqa: E111
-
+            return None
         return self._current_forecast.get_next_optimal_window(activity_type)
 
-    def get_forecast_planning_summary(  # noqa: E111
+    def get_forecast_planning_summary(
         self,
         dog_breed: str | None = None,
         dog_age_months: int | None = None,
@@ -2151,7 +2024,7 @@ class WeatherHealthManager:
             Comprehensive forecast planning summary
         """
         if not self._current_forecast or not self._current_forecast.is_valid:
-            return ForecastPlanningSummary(  # noqa: E111
+            return ForecastPlanningSummary(
                 status="unavailable",
                 message="Weather forecast data not available",
             )
@@ -2190,9 +2063,9 @@ class WeatherHealthManager:
 
         # Add next optimal times for common activities
         for activity_literal in PRIMARY_ACTIVITIES:
-            activity: ActivityType = cast(ActivityType, activity_literal)  # noqa: E111
-            next_window = forecast.get_next_optimal_window(activity)  # noqa: E111
-            if next_window:  # noqa: E111
+            activity: ActivityType = cast(ActivityType, activity_literal)
+            next_window = forecast.get_next_optimal_window(activity)
+            if next_window:
                 setattr(
                     summary,
                     f"next_{activity}_time",
@@ -2206,7 +2079,7 @@ class WeatherHealthManager:
         # Add worst period info
         worst_period = forecast.get_worst_period()
         if worst_period:
-            summary.worst_period = WorstPeriodSummary(  # noqa: E111
+            summary.worst_period = WorstPeriodSummary(
                 start=worst_period[0].isoformat(),
                 end=worst_period[1].isoformat(),
                 advice="Plan indoor activities during this time",
@@ -2214,7 +2087,7 @@ class WeatherHealthManager:
 
         return summary
 
-    def get_active_alerts(  # noqa: E111
+    def get_active_alerts(
         self,
         severity_filter: WeatherSeverity | None = None,
         impact_filter: WeatherHealthImpact | None = None,
@@ -2231,72 +2104,68 @@ class WeatherHealthManager:
         alerts = [alert for alert in self._active_alerts if alert.is_active]
 
         if severity_filter:
-            alerts = [alert for alert in alerts if alert.severity == severity_filter]  # noqa: E111
-
+            alerts = [alert for alert in alerts if alert.severity == severity_filter]
         if impact_filter:
-            alerts = [alert for alert in alerts if alert.alert_type == impact_filter]  # noqa: E111
-
+            alerts = [alert for alert in alerts if alert.alert_type == impact_filter]
         return alerts
 
-    def get_weather_health_score(self) -> int:  # noqa: E111
+    def get_weather_health_score(self) -> int:
         """Calculate weather-based health score for dogs (0-100).
 
         Returns:
             Health score where 100 is perfect conditions, 0 is dangerous
         """
         if not self._current_conditions or not self._current_conditions.is_valid:
-            return 50  # Unknown conditions  # noqa: E111
-
+            return 50  # Unknown conditions
         score = 100
 
         # Temperature scoring
         if self._current_conditions.temperature_c is not None:
-            temp = self._current_conditions.temperature_c  # noqa: E111
-
+            temp = self._current_conditions.temperature_c
             # Ideal temperature range for dogs: 15-22°C  # noqa: E114
-            if 15 <= temp <= 22:  # noqa: E111
+            if 15 <= temp <= 22:
                 score += 0  # Perfect
-            elif 10 <= temp < 15 or 22 < temp <= 25:  # noqa: E111
+            elif 10 <= temp < 15 or 22 < temp <= 25:
                 score -= 10  # Good
-            elif 5 <= temp < 10 or 25 < temp <= 30:  # noqa: E111
+            elif 5 <= temp < 10 or 25 < temp <= 30:
                 score -= 25  # Moderate concern
-            elif 0 <= temp < 5 or 30 < temp <= 35:  # noqa: E111
+            elif 0 <= temp < 5 or 30 < temp <= 35:
                 score -= 40  # High concern
-            else:  # noqa: E111
+            else:
                 score -= 60  # Extreme concern
 
         # UV index scoring
         if self._current_conditions.uv_index is not None:
-            uv = self._current_conditions.uv_index  # noqa: E111
-            if uv > 8:  # noqa: E111
+            uv = self._current_conditions.uv_index
+            if uv > 8:
                 score -= 20
-            elif uv > 6:  # noqa: E111
+            elif uv > 6:
                 score -= 10
-            elif uv > 3:  # noqa: E111
+            elif uv > 3:
                 score -= 5
 
         # Humidity scoring
         if self._current_conditions.humidity_percent is not None:
-            humidity = self._current_conditions.humidity_percent  # noqa: E111
-            if humidity > 85:  # noqa: E111
+            humidity = self._current_conditions.humidity_percent
+            if humidity > 85:
                 score -= 15
-            elif humidity > 70:  # noqa: E111
+            elif humidity > 70:
                 score -= 10
-            elif humidity < 30:  # noqa: E111
+            elif humidity < 30:
                 score -= 5
 
         # Active alerts penalty
         for alert in self.get_active_alerts():
-            if alert.severity == WeatherSeverity.EXTREME:  # noqa: E111
+            if alert.severity == WeatherSeverity.EXTREME:
                 score -= 30
-            elif alert.severity == WeatherSeverity.HIGH:  # noqa: E111
+            elif alert.severity == WeatherSeverity.HIGH:
                 score -= 20
-            elif alert.severity == WeatherSeverity.MODERATE:  # noqa: E111
+            elif alert.severity == WeatherSeverity.MODERATE:
                 score -= 10
 
         return max(0, min(100, score))
 
-    def get_recommendations_for_dog(  # noqa: E111
+    def get_recommendations_for_dog(
         self,
         dog_breed: str | None = None,
         dog_age_months: int | None = None,
@@ -2316,22 +2185,20 @@ class WeatherHealthManager:
 
         active_alerts = self.get_active_alerts()
         if not active_alerts:
-            recommendations.append(  # noqa: E111
+            recommendations.append(
                 "Weather conditions are suitable for normal activities",
             )
-            return recommendations  # noqa: E111
-
+            return recommendations
         # Collect all recommendations from active alerts
         for alert in active_alerts:
-            recommendations.extend(alert.recommendations)  # noqa: E111
-
+            recommendations.extend(alert.recommendations)
             # Add breed-specific recommendations  # noqa: E114
-            if dog_breed:  # noqa: E111
+            if dog_breed:
                 breed_lower = dog_breed.lower()
                 if breed_lower in alert.affected_breeds or any(
                     breed_type in breed_lower for breed_type in alert.affected_breeds
                 ):
-                    recommendations.append(  # noqa: E111
+                    recommendations.append(
                         self._get_translation(
                             "weather.recommendations.breed_specific_caution",
                             breed=dog_breed,
@@ -2340,25 +2207,25 @@ class WeatherHealthManager:
                     )
 
             # Add age-specific recommendations  # noqa: E114
-            if dog_age_months is not None:  # noqa: E111
+            if dog_age_months is not None:
                 if dog_age_months < 12 and "puppies" in alert.age_considerations:
-                    recommendations.append(  # noqa: E111
+                    recommendations.append(
                         self._get_translation(
                             "weather.recommendations.puppy_extra_monitoring",
                         ),
                     )
                 elif dog_age_months > 84 and "senior_dogs" in alert.age_considerations:
-                    recommendations.append(  # noqa: E111
+                    recommendations.append(
                         self._get_translation(
                             "weather.recommendations.senior_extra_protection",
                         ),
                     )
 
             # Add health condition considerations  # noqa: E114
-            if health_conditions:  # noqa: E111
+            if health_conditions:
                 for condition in health_conditions:
-                    condition_lower = condition.lower()  # noqa: E111
-                    if condition_lower in ["respiratory", "breathing", "asthma"] and (  # noqa: E111
+                    condition_lower = condition.lower()
+                    if condition_lower in ["respiratory", "breathing", "asthma"] and (
                         alert.alert_type
                         in [
                             WeatherHealthImpact.RESPIRATORY_RISK,
@@ -2370,7 +2237,7 @@ class WeatherHealthManager:
                                 "weather.recommendations.respiratory_monitoring",
                             ),
                         )
-                    elif condition_lower in ["heart", "cardiac"] and (  # noqa: E111
+                    elif condition_lower in ["heart", "cardiac"] and (
                         alert.alert_type
                         in [
                             WeatherHealthImpact.HEAT_STRESS,
@@ -2386,12 +2253,12 @@ class WeatherHealthManager:
         # Remove duplicates while preserving order
         unique_recommendations = []
         for rec in recommendations:
-            if rec not in unique_recommendations:  # noqa: E111
+            if rec not in unique_recommendations:
                 unique_recommendations.append(rec)
 
         return unique_recommendations
 
-    async def async_cleanup(self) -> None:  # noqa: E111
+    async def async_cleanup(self) -> None:
         """Cleanup weather manager resources."""
         self._active_alerts.clear()
         self._current_conditions = None

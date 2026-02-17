@@ -11,16 +11,15 @@ def normalize_language(
     supported: Collection[str] | None = None,
     default: str = "en",
 ) -> str:
-    """Return a normalized language code constrained to ``supported`` values."""  # noqa: E111
-
-    if not default:  # noqa: E111
+    """Return a normalized language code constrained to ``supported`` values."""
+    if not default:
         msg = "default language must be a non-empty string"
         raise ValueError(msg)
 
-    if not language:  # noqa: E111
+    if not language:
         return default
 
-    normalized = (  # noqa: E111
+    normalized = (
         str(language)
         .replace(
             "_",
@@ -30,13 +29,13 @@ def normalize_language(
         .strip()
         .lower()
     )
-    if not normalized:  # noqa: E111
+    if not normalized:
         return default
 
-    if supported is None:  # noqa: E111
+    if supported is None:
         return normalized
 
-    if normalized in supported:  # noqa: E111
+    if normalized in supported:
         return normalized
 
-    return default  # noqa: E111
+    return default

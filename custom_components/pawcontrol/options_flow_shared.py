@@ -78,8 +78,7 @@ from .validation import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry  # noqa: E111
-
+    from homeassistant.config_entries import ConfigEntry
 _LOGGER = logging.getLogger(__name__)
 
 SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = "enable_analytics"
@@ -102,7 +101,7 @@ ADVANCED_SETTINGS_FIELD: Final[Literal["advanced_settings"]] = cast(
 
 if TYPE_CHECKING:
 
-    class OptionsFlowSharedHost(Protocol):  # noqa: E111
+    class OptionsFlowSharedHost(Protocol):
         _EXPORT_VERSION: int
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
@@ -113,15 +112,12 @@ if TYPE_CHECKING:
         def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-    OptionsFlowSharedHost = object  # noqa: E111
-
-
+    OptionsFlowSharedHost = object
 class OptionsFlowSharedMixin(OptionsFlowSharedHost):
-    _current_dog: DogConfigData | None  # noqa: E111
-    _dogs: list[DogConfigData]  # noqa: E111
-
-    @staticmethod  # noqa: E111
-    def _string_sequence(value: Any) -> list[str]:  # noqa: E111
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+    @staticmethod
+    def _string_sequence(value: Any) -> list[str]:
         """Return ``value`` as a list of non-empty strings.
 
         Home Assistant flows frequently persist legacy payloads where a field can be
@@ -130,31 +126,28 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         """
 
         if value is None:
-            return []  # noqa: E111
-
+            return []
         if isinstance(value, str):
-            candidate = value.strip()  # noqa: E111
-            return [candidate] if candidate else []  # noqa: E111
-
+            candidate = value.strip()
+            return [candidate] if candidate else []
         if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
-            values: list[str] = []  # noqa: E111
-            for item in value:  # noqa: E111
+            values: list[str] = []
+            for item in value:
                 candidate = item.strip() if isinstance(item, str) else str(item).strip()
                 if candidate:
-                    values.append(candidate)  # noqa: E111
-            return values  # noqa: E111
-
+                    values.append(candidate)
+            return values
         candidate = str(value).strip()
         return [candidate] if candidate else []
 
-    def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
+    def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Return description placeholders enumerating known manual events."""
 
         choices = self._resolve_manual_event_choices()
         placeholders: dict[str, bool | int | float | str] = {}
         for field, values in choices.items():
-            placeholder_key = f"{field}_options"  # noqa: E111
-            placeholders[placeholder_key] = (  # noqa: E111
+            placeholder_key = f"{field}_options"
+            placeholders[placeholder_key] = (
                 ", ".join(
                     values,
                 )
@@ -163,19 +156,19 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             )
         return freeze_placeholders(placeholders)
 
-    @staticmethod  # noqa: E111
-    def _coerce_manual_event_with_default(  # noqa: E111
+    @staticmethod
+    def _coerce_manual_event_with_default(
         value: Any,
         default: str | None,
     ) -> str | None:
         """Return a normalised manual event or fallback to the provided default."""
 
         if isinstance(value, str):
-            candidate = value.strip()  # noqa: E111
-            return candidate or None  # noqa: E111
+            candidate = value.strip()
+            return candidate or None
         return default
 
-    def _get_reconfigure_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
+    def _get_reconfigure_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Return placeholders describing the latest reconfigure telemetry."""
 
         telemetry = self._reconfigure_telemetry()
@@ -185,15 +178,14 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         placeholders = clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE)
         placeholders["last_reconfigure"] = timestamp
         if not telemetry:
-            placeholders["reconfigure_requested_profile"] = "Not recorded"  # noqa: E111
-            placeholders["reconfigure_previous_profile"] = "Not recorded"  # noqa: E111
-            placeholders["reconfigure_entities"] = "0"  # noqa: E111
-            placeholders["reconfigure_dogs"] = "0"  # noqa: E111
-            placeholders["reconfigure_health"] = "No recent health summary"  # noqa: E111
-            placeholders["reconfigure_warnings"] = "None"  # noqa: E111
-            placeholders["reconfigure_merge_notes"] = "No merge adjustments recorded"  # noqa: E111
-            return freeze_placeholders(placeholders)  # noqa: E111
-
+            placeholders["reconfigure_requested_profile"] = "Not recorded"
+            placeholders["reconfigure_previous_profile"] = "Not recorded"
+            placeholders["reconfigure_entities"] = "0"
+            placeholders["reconfigure_dogs"] = "0"
+            placeholders["reconfigure_health"] = "No recent health summary"
+            placeholders["reconfigure_warnings"] = "None"
+            placeholders["reconfigure_merge_notes"] = "No merge adjustments recorded"
+            return freeze_placeholders(placeholders)
         requested_profile = (
             str(
                 telemetry.get(
@@ -260,29 +252,28 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         )
         return freeze_placeholders(placeholders)
 
-    def _normalise_export_value(self, value: Any) -> JSONValue:  # noqa: E111
+    def _normalise_export_value(self, value: Any) -> JSONValue:
         """Convert complex values into JSON-serialisable primitives."""
 
         return cast(JSONValue, normalize_value(value))
 
-    def _map_import_payload_error(self, error: FlowValidationError) -> str:  # noqa: E111
+    def _map_import_payload_error(self, error: FlowValidationError) -> str:
         """Map dog validation errors to import payload error codes."""
 
         if error.base_errors:
-            return "dog_invalid"  # noqa: E111
-
+            return "dog_invalid"
         field_errors = error.field_errors
         if field_errors.get(CONF_MODULES) == "dog_invalid_modules":
-            return "dog_invalid_modules"  # noqa: E111
+            return "dog_invalid_modules"
         if CONF_DOG_ID in field_errors:
-            if field_errors[CONF_DOG_ID] == "dog_id_already_exists":  # noqa: E111
+            if field_errors[CONF_DOG_ID] == "dog_id_already_exists":
                 return "dog_duplicate"
-            return "dog_missing_id"  # noqa: E111
+            return "dog_missing_id"
         if CONF_DOG_NAME in field_errors:
-            return "dog_invalid"  # noqa: E111
+            return "dog_invalid"
         return "dog_invalid"
 
-    def _build_export_payload(self) -> OptionsExportPayload:  # noqa: E111
+    def _build_export_payload(self) -> OptionsExportPayload:
         """Serialise the current configuration into an export payload."""
 
         typed_options = self._normalise_options_snapshot(self._clone_options())
@@ -299,25 +290,24 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             else ()
         )
         for raw in dogs_iterable:
-            if not isinstance(raw, Mapping):  # noqa: E111
+            if not isinstance(raw, Mapping):
                 continue
-            normalised = cast(  # noqa: E111
+            normalised = cast(
                 DogConfigData,
                 self._normalise_export_value(dict(raw)),
             )
-            dog_id = normalised.get(CONF_DOG_ID)  # noqa: E111
-            if not isinstance(dog_id, str) or not dog_id.strip():  # noqa: E111
+            dog_id = normalised.get(CONF_DOG_ID)
+            if not isinstance(dog_id, str) or not dog_id.strip():
                 continue
-            modules_mapping = ensure_dog_modules_mapping(normalised)  # noqa: E111
-            if modules_mapping:  # noqa: E111
+            modules_mapping = ensure_dog_modules_mapping(normalised)
+            if modules_mapping:
                 normalised[DOG_MODULES_FIELD] = cast(
                     DogModulesConfig,
                     dict(modules_mapping),
                 )
-            elif DOG_MODULES_FIELD in normalised:  # noqa: E111
+            elif DOG_MODULES_FIELD in normalised:
                 normalised.pop(DOG_MODULES_FIELD, None)
-            dogs_payload.append(normalised)  # noqa: E111
-
+            dogs_payload.append(normalised)
         payload: OptionsExportPayload = {
             "version": cast(Literal[1], self._EXPORT_VERSION),
             "options": options,
@@ -326,20 +316,17 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         }
         return payload
 
-    def _validate_import_payload(self, payload: Any) -> OptionsExportPayload:  # noqa: E111
+    def _validate_import_payload(self, payload: Any) -> OptionsExportPayload:
         """Validate and normalise an imported payload."""
 
         if not isinstance(payload, Mapping):
-            raise FlowValidationError(field_errors={"payload": "payload_not_mapping"})  # noqa: E111
-
+            raise FlowValidationError(field_errors={"payload": "payload_not_mapping"})
         version = payload.get("version")
         if version != self._EXPORT_VERSION:
-            raise FlowValidationError(field_errors={"payload": "unsupported_version"})  # noqa: E111
-
+            raise FlowValidationError(field_errors={"payload": "unsupported_version"})
         options_raw = payload.get("options")
         if not isinstance(options_raw, Mapping):
-            raise FlowValidationError(field_errors={"payload": "options_missing"})  # noqa: E111
-
+            raise FlowValidationError(field_errors={"payload": "options_missing"})
         sanitised_options = cast(
             PawControlOptionsData,
             self._normalise_export_value(dict(options_raw)),
@@ -351,35 +338,32 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
         dogs_raw = payload.get("dogs", [])
         if not isinstance(dogs_raw, list):
-            raise FlowValidationError(field_errors={"payload": "dogs_invalid"})  # noqa: E111
-
+            raise FlowValidationError(field_errors={"payload": "dogs_invalid"})
         dogs_payload: list[DogConfigData] = []
         seen_ids: set[str] = set()
         for raw in dogs_raw:
-            if not isinstance(raw, Mapping):  # noqa: E111
+            if not isinstance(raw, Mapping):
                 raise FlowValidationError(field_errors={"payload": "dog_invalid"})
-            normalised = cast(  # noqa: E111
+            normalised = cast(
                 DogConfigData,
                 self._normalise_export_value(dict(raw)),
             )
-            try:  # noqa: E111
+            try:
                 validated = validate_dog_config_payload(
                     cast(Mapping[str, object], normalised),  # type: ignore[arg-type]
                     existing_ids=seen_ids,
                     existing_names=None,
                 )
-            except FlowValidationError as err:  # noqa: E111
+            except FlowValidationError as err:
                 raise FlowValidationError(
                     field_errors={"payload": self._map_import_payload_error(err)},
                 ) from err
-            dog_id = validated[CONF_DOG_ID]  # type: ignore[literal-required]    # noqa: E111
-            seen_ids.add(dog_id)  # noqa: E111
-            dogs_payload.append(validated)  # noqa: E111
-
+            dog_id = validated[CONF_DOG_ID]  # type: ignore[literal-required]
+            seen_ids.add(dog_id)
+            dogs_payload.append(validated)
         created_at = payload.get("created_at")
         if not isinstance(created_at, str) or not created_at:
-            created_at = datetime.now(UTC).isoformat()  # noqa: E111
-
+            created_at = datetime.now(UTC).isoformat()
         result: OptionsExportPayload = {
             "version": cast(Literal[1], self._EXPORT_VERSION),
             "options": merged_options,
@@ -388,73 +372,68 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         }
         return result
 
-    def _current_weather_options(self) -> WeatherOptions:  # noqa: E111
+    def _current_weather_options(self) -> WeatherOptions:
         """Return the stored weather configuration with root fallbacks."""
 
         options = self._current_options()
         raw = options.get("weather_settings", {})
         if isinstance(raw, Mapping):
-            current = cast(WeatherOptions, dict(raw))  # noqa: E111
+            current = cast(WeatherOptions, dict(raw))
         else:
-            current = cast(WeatherOptions, {})  # noqa: E111
-
+            current = cast(WeatherOptions, {})
         if (
             WEATHER_ENTITY_FIELD not in current
             and (entity := options.get(CONF_WEATHER_ENTITY))
             and isinstance(entity, str)
         ):
-            candidate = entity.strip()  # noqa: E111
-            if candidate:  # noqa: E111
+            candidate = entity.strip()
+            if candidate:
                 current[WEATHER_ENTITY_FIELD] = candidate
 
         return current
 
-    def _current_dog_options(self) -> DogOptionsMap:  # noqa: E111
+    def _current_dog_options(self) -> DogOptionsMap:
         """Return the stored per-dog overrides keyed by dog ID."""
 
         raw = self._current_options().get(DOG_OPTIONS_FIELD, {})
         if not isinstance(raw, Mapping):
-            return {}  # noqa: E111
-
+            return {}
         dog_options: DogOptionsMap = {}
         for dog_id, value in raw.items():
-            if not isinstance(value, Mapping):  # noqa: E111
+            if not isinstance(value, Mapping):
                 continue
-            entry = ensure_dog_options_entry(  # noqa: E111
+            entry = ensure_dog_options_entry(
                 cast(JSONLikeMapping, dict(value)),
                 dog_id=str(dog_id),
             )
-            if entry:  # noqa: E111
+            if entry:
                 dog_options[str(dog_id)] = entry
 
         return dog_options
 
-    def _require_current_dog(self) -> DogConfigData | None:  # noqa: E111
+    def _require_current_dog(self) -> DogConfigData | None:
         """Return the current dog, defaulting when only one is configured."""
 
         if self._current_dog is not None:
-            return self._current_dog  # noqa: E111
-
+            return self._current_dog
         if len(self._dogs) == 1:
-            self._current_dog = self._dogs[0]  # noqa: E111
-            return self._current_dog  # noqa: E111
-
+            self._current_dog = self._dogs[0]
+            return self._current_dog
         return None
 
-    def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None:  # noqa: E111
+    def _select_dog_by_id(self, dog_id: str | None) -> DogConfigData | None:
         """Select and store the current dog based on the provided identifier."""
 
         if not isinstance(dog_id, str):
-            self._current_dog = None  # noqa: E111
-            return None  # noqa: E111
-
+            self._current_dog = None
+            return None
         self._current_dog = next(
             (dog for dog in self._dogs if dog.get(DOG_ID_FIELD) == dog_id),
             None,
         )
         return self._current_dog
 
-    def _build_dog_selector_schema(self) -> vol.Schema:  # noqa: E111
+    def _build_dog_selector_schema(self) -> vol.Schema:
         """Return a schema for selecting a dog from the current list."""
         dog_options = [
             {
@@ -475,23 +454,22 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             },
         )
 
-    def _current_system_options(self) -> SystemOptions:  # noqa: E111
+    def _current_system_options(self) -> SystemOptions:
         """Return persisted system settings metadata."""
 
         options = self._current_options()
         raw = options.get("system_settings", {})
         if isinstance(raw, Mapping):
-            system = cast(SystemOptions, dict(raw))  # noqa: E111
+            system = cast(SystemOptions, dict(raw))
         else:
-            system = cast(SystemOptions, {})  # noqa: E111
-
+            system = cast(SystemOptions, {})
         enable_analytics = options.get("enable_analytics")
         enable_cloud_backup = options.get("enable_cloud_backup")
 
         if SYSTEM_ENABLE_ANALYTICS_FIELD not in system:
-            system[SYSTEM_ENABLE_ANALYTICS_FIELD] = bool(enable_analytics)  # noqa: E111
+            system[SYSTEM_ENABLE_ANALYTICS_FIELD] = bool(enable_analytics)
         if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
-            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(  # noqa: E111
+            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(
                 enable_cloud_backup,
             )
 
@@ -540,7 +518,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
         return system
 
-    def _resolve_manual_event_context(  # noqa: E111
+    def _resolve_manual_event_context(
         self,
         current_system: SystemOptions,
         *,
@@ -569,61 +547,58 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         )
 
         if manual_snapshot is None:
-            manual_snapshot = self._manual_events_snapshot()  # noqa: E111
-
+            manual_snapshot = self._manual_events_snapshot()
         if manual_snapshot is not None:
-            system_guard = self._coerce_manual_event(  # noqa: E111
+            system_guard = self._coerce_manual_event(
                 manual_snapshot.get("system_guard_event"),
             )
-            system_breaker = self._coerce_manual_event(  # noqa: E111
+            system_breaker = self._coerce_manual_event(
                 manual_snapshot.get("system_breaker_event"),
             )
 
-            if guard_default is None:  # noqa: E111
+            if guard_default is None:
                 guard_default = system_guard
-            if breaker_default is None:  # noqa: E111
+            if breaker_default is None:
                 breaker_default = system_breaker
 
-            for event in self._string_sequence(  # noqa: E111
+            for event in self._string_sequence(
                 manual_snapshot.get("configured_check_events"),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
-                    check_suggestions.add(normalised)  # noqa: E111
-                    if check_default is None:  # noqa: E111
+                    check_suggestions.add(normalised)
+                    if check_default is None:
                         check_default = normalised
 
-            for event in self._string_sequence(  # noqa: E111
+            for event in self._string_sequence(
                 manual_snapshot.get("configured_guard_events"),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
-                    guard_suggestions.add(normalised)  # noqa: E111
-            for event in self._string_sequence(  # noqa: E111
+                    guard_suggestions.add(normalised)
+            for event in self._string_sequence(
                 manual_snapshot.get("configured_breaker_events"),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
-                    breaker_suggestions.add(normalised)  # noqa: E111
-
-            if check_default is None:  # noqa: E111
+                    breaker_suggestions.add(normalised)
+            if check_default is None:
                 preferred = manual_snapshot.get("preferred_events")
                 if isinstance(preferred, Mapping):
-                    check_default = self._coerce_manual_event(  # noqa: E111
+                    check_default = self._coerce_manual_event(
                         preferred.get("manual_check_event"),
                     )
-            if check_default is None:  # noqa: E111
+            if check_default is None:
                 check_default = self._coerce_manual_event(
                     manual_snapshot.get("preferred_check_event"),
                 )
 
         if guard_default is not None:
-            guard_suggestions.add(guard_default)  # noqa: E111
+            guard_suggestions.add(guard_default)
         if breaker_default is not None:
-            breaker_suggestions.add(breaker_default)  # noqa: E111
+            breaker_suggestions.add(breaker_default)
         if check_default is not None:
-            check_suggestions.add(check_default)  # noqa: E111
-
+            check_suggestions.add(check_default)
         result: JSONMutableMapping = {
             "check_suggestions": sorted(check_suggestions),
             "guard_suggestions": sorted(guard_suggestions),
@@ -634,8 +609,8 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         }
         return result
 
-    @staticmethod  # noqa: E111
-    def _resolve_resilience_threshold_default(  # noqa: E111
+    @staticmethod
+    def _resolve_resilience_threshold_default(
         system: SystemOptions,
         options: Mapping[str, JSONValue],
         *,
@@ -646,15 +621,13 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
         candidate = system.get(field)
         if isinstance(candidate, int):
-            return candidate  # noqa: E111
-
+            return candidate
         legacy_value = options.get(field)
         if isinstance(legacy_value, int):
-            return legacy_value  # noqa: E111
-
+            return legacy_value
         return fallback
 
-    def _resolve_script_threshold_fallbacks(  # noqa: E111
+    def _resolve_script_threshold_fallbacks(
         self,
         *,
         has_skip: bool,
@@ -663,15 +636,13 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         """Return script thresholds when options are missing values."""
 
         if has_skip and has_breaker:
-            return None, None  # noqa: E111
-
+            return None, None
         hass = getattr(self, "hass", None)
         if hass is None:
-            return None, None  # noqa: E111
-
+            return None, None
         return resolve_resilience_script_thresholds(hass, self._entry)
 
-    def _finalise_resilience_threshold(  # noqa: E111
+    def _finalise_resilience_threshold(
         self,
         *,
         candidate: Any,
@@ -685,7 +656,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         """Return the stored threshold, falling back to script defaults when needed."""
 
         if include_script and script_value is not None:
-            return self._coerce_clamped_int(  # noqa: E111
+            return self._coerce_clamped_int(
                 script_value,
                 fallback,
                 minimum=minimum,
@@ -699,15 +670,15 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             maximum=maximum,
         )
 
-    def _current_dashboard_options(self) -> DashboardOptions:  # noqa: E111
+    def _current_dashboard_options(self) -> DashboardOptions:
         """Return the stored dashboard configuration."""
 
         raw = self._current_options().get("dashboard_settings", {})
         if isinstance(raw, Mapping):
-            return cast(DashboardOptions, dict(raw))  # noqa: E111
+            return cast(DashboardOptions, dict(raw))
         return cast(DashboardOptions, {})
 
-    def _current_advanced_options(self) -> AdvancedOptions:  # noqa: E111
+    def _current_advanced_options(self) -> AdvancedOptions:
         """Return advanced configuration merged with root fallbacks."""
 
         options = self._current_options()
@@ -725,64 +696,62 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         defaults = cast(JSONMutableMapping, dict(options))
         return ensure_advanced_options(source, defaults=defaults)
 
-    @staticmethod  # noqa: E111
-    def _coerce_bool(value: Any, default: bool) -> bool:  # noqa: E111
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool:
         """Return a boolean value using Home Assistant style truthiness rules."""
 
         if value is None:
-            return default  # noqa: E111
+            return default
         if isinstance(value, bool):
-            return value  # noqa: E111
+            return value
         if isinstance(value, str):
-            return value.strip().lower() in {"1", "true", "on", "yes"}  # noqa: E111
+            return value.strip().lower() in {"1", "true", "on", "yes"}
         return bool(value)
 
-    @staticmethod  # noqa: E111
-    def _coerce_manual_event(value: Any) -> str | None:  # noqa: E111
+    @staticmethod
+    def _coerce_manual_event(value: Any) -> str | None:
         """Normalise manual event identifiers, returning ``None`` when disabled."""
 
         if isinstance(value, str):
-            candidate = value.strip()  # noqa: E111
-            if candidate:  # noqa: E111
+            candidate = value.strip()
+            if candidate:
                 return candidate
         return None
 
-    @staticmethod  # noqa: E111
-    def _coerce_int(value: Any, default: int) -> int:  # noqa: E111
+    @staticmethod
+    def _coerce_int(value: Any, default: int) -> int:
         """Return an integer, falling back to the provided default on error."""
 
         if value is None:
-            return default  # noqa: E111
+            return default
         try:
-            return coerce_int("options_flow", value)  # noqa: E111
+            return coerce_int("options_flow", value)
         except InputCoercionError:
-            return default  # noqa: E111
-
-    @staticmethod  # noqa: E111
-    def _coerce_time_string(value: Any, default: str) -> str:  # noqa: E111
+            return default
+    @staticmethod
+    def _coerce_time_string(value: Any, default: str) -> str:
         """Normalise selector values into Home Assistant time strings."""
 
         if value is None:
-            return default  # noqa: E111
+            return default
         if isinstance(value, str):
-            return value  # noqa: E111
+            return value
         iso_format = getattr(value, "isoformat", None)
         if callable(iso_format):
-            return str(iso_format())  # noqa: E111
+            return str(iso_format())
         return default
 
-    @staticmethod  # noqa: E111
-    def _coerce_optional_float(value: Any, default: float | None) -> float | None:  # noqa: E111
+    @staticmethod
+    def _coerce_optional_float(value: Any, default: float | None) -> float | None:
         """Return a float or ``None`` when conversion fails."""
 
         if value is None:
-            return default  # noqa: E111
+            return default
         try:
-            return coerce_float("options_flow", value)  # noqa: E111
+            return coerce_float("options_flow", value)
         except InputCoercionError:
-            return default  # noqa: E111
-
-    def _coerce_clamped_float(  # noqa: E111
+            return default
+    def _coerce_clamped_float(
         self,
         value: Any,
         default: float,
@@ -800,7 +769,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             default=default,
         )
 
-    def _coerce_clamped_int(  # noqa: E111
+    def _coerce_clamped_int(
         self,
         value: Any,
         default: int,
@@ -818,23 +787,23 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
             default=default,
         )
 
-    @staticmethod  # noqa: E111
-    def _normalize_choice(value: Any, *, valid: set[str], default: str) -> str:  # noqa: E111
+    @staticmethod
+    def _normalize_choice(value: Any, *, valid: set[str], default: str) -> str:
         """Return a validated selector choice, falling back to ``default``."""
 
         if isinstance(value, str):
-            candidate = value.strip().lower()  # noqa: E111
-            if candidate in valid:  # noqa: E111
+            candidate = value.strip().lower()
+            if candidate in valid:
                 return candidate
 
         if isinstance(default, str):
-            fallback = default.strip().lower()  # noqa: E111
-            if fallback in valid:  # noqa: E111
+            fallback = default.strip().lower()
+            if fallback in valid:
                 return fallback
 
         return sorted(valid)[0]
 
-    def _build_weather_settings(  # noqa: E111
+    def _build_weather_settings(
         self,
         user_input: OptionsWeatherSettingsInput,
         current: WeatherOptions,
@@ -844,11 +813,10 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         raw_entity = user_input.get("weather_entity")
         entity: str | None
         if isinstance(raw_entity, str):
-            candidate = raw_entity.strip()  # noqa: E111
-            entity = None if not candidate or candidate.lower() == "none" else candidate  # noqa: E111
+            candidate = raw_entity.strip()
+            entity = None if not candidate or candidate.lower() == "none" else candidate
         else:
-            entity = cast(str | None, current.get(CONF_WEATHER_ENTITY))  # noqa: E111
-
+            entity = cast(str | None, current.get(CONF_WEATHER_ENTITY))
         raw_interval_default = current.get("weather_update_interval")
         interval_default = (
             raw_interval_default
@@ -922,7 +890,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
         return weather
 
-    def _build_system_settings(  # noqa: E111
+    def _build_system_settings(
         self,
         user_input: OptionsSystemSettingsInput,
         current: SystemOptions,
@@ -1005,33 +973,33 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         }
 
         if "manual_guard_event" in user_input:
-            guard_event = self._coerce_manual_event(  # noqa: E111
+            guard_event = self._coerce_manual_event(
                 user_input.get("manual_guard_event"),
             )
-            if guard_event is None:  # noqa: E111
+            if guard_event is None:
                 system["manual_guard_event"] = None
-            else:  # noqa: E111
+            else:
                 system["manual_guard_event"] = guard_event
         elif "manual_guard_event" in current:
-            guard_event = self._coerce_manual_event(  # noqa: E111
+            guard_event = self._coerce_manual_event(
                 current.get("manual_guard_event"),
             )
-            if guard_event is not None:  # noqa: E111
+            if guard_event is not None:
                 system["manual_guard_event"] = guard_event
 
         if "manual_breaker_event" in user_input:
-            breaker_event = self._coerce_manual_event(  # noqa: E111
+            breaker_event = self._coerce_manual_event(
                 user_input.get("manual_breaker_event"),
             )
-            if breaker_event is None:  # noqa: E111
+            if breaker_event is None:
                 system["manual_breaker_event"] = None
-            else:  # noqa: E111
+            else:
                 system["manual_breaker_event"] = breaker_event
         elif "manual_breaker_event" in current:
-            breaker_event = self._coerce_manual_event(  # noqa: E111
+            breaker_event = self._coerce_manual_event(
                 current.get("manual_breaker_event"),
             )
-            if breaker_event is not None:  # noqa: E111
+            if breaker_event is not None:
                 system["manual_breaker_event"] = breaker_event
 
         reset_time = self._coerce_time_string(
@@ -1040,7 +1008,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         )
         return system, reset_time
 
-    def _build_dashboard_settings(  # noqa: E111
+    def _build_dashboard_settings(
         self,
         user_input: OptionsDashboardSettingsInput,
         current: DashboardOptions,
@@ -1077,7 +1045,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
 
         return dashboard, mode
 
-    def _build_advanced_settings(  # noqa: E111
+    def _build_advanced_settings(
         self,
         user_input: OptionsAdvancedSettingsInput,
         current: AdvancedOptions,
@@ -1101,11 +1069,11 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
         )
         sanitized_input: JSONMutableMapping = {}
         for key, value in user_input.items():
-            if isinstance(value, bool | int | float | str) or value is None:  # noqa: E111
+            if isinstance(value, bool | int | float | str) or value is None:
                 sanitized_input[str(key)] = value
-            elif isinstance(value, Mapping):  # noqa: E111
+            elif isinstance(value, Mapping):
                 sanitized_input[str(key)] = cast(JSONValue, dict(value))
-            elif isinstance(value, Sequence) and not isinstance(  # noqa: E111
+            elif isinstance(value, Sequence) and not isinstance(
                 value,
                 str | bytes | bytearray,
             ):
@@ -1113,7 +1081,7 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
                     JSONValue,
                     [cast(JSONValue, item) for item in value],
                 )
-            else:  # noqa: E111
+            else:
                 _LOGGER.warning(
                     "Advanced options received non-JSON-serializable value for %s; "
                     "storing repr (%s)",
@@ -1122,10 +1090,9 @@ class OptionsFlowSharedMixin(OptionsFlowSharedHost):
                 )
                 sanitized_input[str(key)] = repr(value)
         if CONF_API_ENDPOINT in user_input:
-            sanitized_input[CONF_API_ENDPOINT] = endpoint  # noqa: E111
+            sanitized_input[CONF_API_ENDPOINT] = endpoint
         if CONF_API_TOKEN in user_input:
-            sanitized_input[CONF_API_TOKEN] = token  # noqa: E111
-
+            sanitized_input[CONF_API_TOKEN] = token
         current_advanced = self._current_options().get(ADVANCED_SETTINGS_FIELD, {})
         advanced_defaults = cast(
             JSONMutableMapping,

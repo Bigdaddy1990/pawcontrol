@@ -42,94 +42,80 @@ type WalkHistory = list[WalkSessionSnapshot]
 
 
 class _ModuleDataProvider(Protocol):
-    """Protocol describing objects that expose module data accessors."""  # noqa: E111
-
-    def _get_module_data(self, module: str) -> Mapping[str, JSONValue] | None:  # noqa: E111
+    """Protocol describing objects that expose module data accessors."""
+    def _get_module_data(self, module: str) -> Mapping[str, JSONValue] | None:
         """Return coordinator data for the requested module."""
 
 
 def _walk_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[WalkModuleTelemetry]:
-    module_data = provider._get_module_data("walk")  # noqa: E111
-    if module_data is None or not isinstance(module_data, Mapping):  # noqa: E111
+    module_data = provider._get_module_data("walk")
+    if module_data is None or not isinstance(module_data, Mapping):
         return None
-    return cast(WalkModuleTelemetry, module_data)  # noqa: E111
-
-
+    return cast(WalkModuleTelemetry, module_data)
 def _health_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[HealthModulePayload]:
-    module_data = provider._get_module_data("health")  # noqa: E111
-    if module_data is None or not isinstance(module_data, Mapping):  # noqa: E111
+    module_data = provider._get_module_data("health")
+    if module_data is None or not isinstance(module_data, Mapping):
         return None
-    return cast(HealthModulePayload, module_data)  # noqa: E111
-
-
+    return cast(HealthModulePayload, module_data)
 def _feeding_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[FeedingModuleTelemetry]:
-    module_data = provider._get_module_data("feeding")  # noqa: E111
-    if module_data is None or not isinstance(module_data, Mapping):  # noqa: E111
+    module_data = provider._get_module_data("feeding")
+    if module_data is None or not isinstance(module_data, Mapping):
         return None
-    return cast(FeedingModuleTelemetry, module_data)  # noqa: E111
-
-
+    return cast(FeedingModuleTelemetry, module_data)
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
-    """Return JSON-serialisable attributes for missing sensors."""  # noqa: E111
-
-    return normalise_entity_attributes(attrs)  # noqa: E111
-
-
+    """Return JSON-serialisable attributes for missing sensors."""
+    return normalise_entity_attributes(attrs)
 def calculate_activity_level(
     walk_data: ModuleSnapshot[WalkModuleTelemetry],
     health_data: ModuleSnapshot[HealthModulePayload],
 ) -> str:
-    """Determine the activity level based on walk telemetry and health inputs."""  # noqa: E111
-
-    if walk_data is None and health_data is None:  # noqa: E111
+    """Determine the activity level based on walk telemetry and health inputs."""
+    if walk_data is None and health_data is None:
         return "unknown"
 
-    try:  # noqa: E111
+    try:
         walks_today = int(walk_data["walks_today"]) if walk_data else 0
         total_duration_today = (
             float(walk_data["total_duration_today"]) if walk_data else 0.0
         )
 
         if walks_today >= 3 and total_duration_today >= 90:
-            calculated_level = "very_high"  # noqa: E111
+            calculated_level = "very_high"
         elif walks_today >= 2 and total_duration_today >= 60:
-            calculated_level = "high"  # noqa: E111
+            calculated_level = "high"
         elif walks_today >= 1 and total_duration_today >= 30:
-            calculated_level = "moderate"  # noqa: E111
+            calculated_level = "moderate"
         elif walks_today >= 1 or total_duration_today >= 15:
-            calculated_level = "low"  # noqa: E111
+            calculated_level = "low"
         else:
-            calculated_level = "very_low"  # noqa: E111
-
+            calculated_level = "very_low"
         health_activity: str | None = None
         if health_data and "activity_level" in health_data:
-            candidate = health_data["activity_level"]  # noqa: E111
-            health_activity = candidate if isinstance(candidate, str) else None  # noqa: E111
-
+            candidate = health_data["activity_level"]
+            health_activity = candidate if isinstance(candidate, str) else None
         if health_activity:
-            activity_levels = [  # noqa: E111
+            activity_levels = [
                 "very_low",
                 "low",
                 "moderate",
                 "high",
                 "very_high",
             ]
-            health_index = (  # noqa: E111
+            health_index = (
                 activity_levels.index(health_activity)
                 if health_activity in activity_levels
                 else 2
             )
-            calculated_index = activity_levels.index(calculated_level)  # noqa: E111
-            return activity_levels[max(health_index, calculated_index)]  # noqa: E111
-
+            calculated_index = activity_levels.index(calculated_level)
+            return activity_levels[max(health_index, calculated_index)]
         return calculated_level
-    except TypeError, ValueError, IndexError:  # noqa: E111
+    except TypeError, ValueError, IndexError:
         return "unknown"
 
 
@@ -138,12 +124,11 @@ def calculate_calories_burned_today(
     dog_weight_kg: float,
     health_data: ModuleSnapshot[HealthModulePayload],
 ) -> float:
-    """Estimate calories burned today using walk telemetry and weight."""  # noqa: E111
-
-    if walk_data is None and health_data is None:  # noqa: E111
+    """Estimate calories burned today using walk telemetry and weight."""
+    if walk_data is None and health_data is None:
         return 0.0
 
-    try:  # noqa: E111
+    try:
         total_duration_minutes = (
             float(walk_data["total_duration_today"]) if walk_data else 0.0
         )
@@ -153,14 +138,13 @@ def calculate_calories_burned_today(
 
         calories_burned = 0.0
         if total_duration_minutes > 0:
-            calories_burned += dog_weight_kg * total_duration_minutes * 0.5  # noqa: E111
+            calories_burned += dog_weight_kg * total_duration_minutes * 0.5
         if total_distance_meters > 0:
-            calories_burned += dog_weight_kg * (total_distance_meters / 100.0)  # noqa: E111
-
+            calories_burned += dog_weight_kg * (total_distance_meters / 100.0)
         raw_activity: str | None = None
         if health_data and "activity_level" in health_data:
-            candidate = health_data["activity_level"]  # noqa: E111
-            raw_activity = candidate if isinstance(candidate, str) else None  # noqa: E111
+            candidate = health_data["activity_level"]
+            raw_activity = candidate if isinstance(candidate, str) else None
         activity_level = raw_activity or "moderate"
         multipliers = {
             "very_low": 0.7,
@@ -171,9 +155,9 @@ def calculate_calories_burned_today(
         }
         multiplier = multipliers.get(activity_level, 1.0)
         return round(calories_burned * multiplier, 1)
-    except ValueError:  # noqa: E111
+    except ValueError:
         return 0.0
-    except TypeError:  # noqa: E111
+    except TypeError:
         return 0.0
 
 
@@ -182,55 +166,48 @@ def calculate_hours_since(
     *,
     reference: datetime | None = None,
 ) -> float | None:
-    """Calculate elapsed hours since the provided timestamp."""  # noqa: E111
-
-    if not timestamp:  # noqa: E111
+    """Calculate elapsed hours since the provided timestamp."""
+    if not timestamp:
         return None
 
-    last_event = ensure_utc_datetime(timestamp)  # noqa: E111
-    if last_event is None:  # noqa: E111
+    last_event = ensure_utc_datetime(timestamp)
+    if last_event is None:
         return None
 
-    now = reference or dt_util.utcnow()  # noqa: E111
-    return (now - last_event).total_seconds() / 3600  # noqa: E111
-
-
+    now = reference or dt_util.utcnow()
+    return (now - last_event).total_seconds() / 3600
 def derive_next_feeding_time(
     feeding_data: ModuleSnapshot[FeedingModuleTelemetry],
 ) -> str | None:
-    """Compute the next feeding time based on the configured schedule."""  # noqa: E111
-
-    if feeding_data is None:  # noqa: E111
+    """Compute the next feeding time based on the configured schedule."""
+    if feeding_data is None:
         return None
 
-    try:  # noqa: E111
+    try:
         if "config" not in feeding_data:
-            return None  # noqa: E111
+            return None
         config = feeding_data["config"]
         if "meals_per_day" not in config:
-            return None  # noqa: E111
+            return None
         meals_per_day = int(config["meals_per_day"])
         if meals_per_day <= 0:
-            return None  # noqa: E111
-
+            return None
         hours_between_meals = 24 / meals_per_day
         if "last_feeding" not in feeding_data or feeding_data["last_feeding"] is None:
-            return None  # noqa: E111
+            return None
         last_feeding_dt = ensure_utc_datetime(feeding_data["last_feeding"])
         if last_feeding_dt is None:
-            return None  # noqa: E111
-
+            return None
         next_feeding_dt = last_feeding_dt + timedelta(hours=hours_between_meals)
         return next_feeding_dt.strftime("%H:%M")
-    except TypeError, ValueError, ZeroDivisionError:  # noqa: E111
+    except TypeError, ValueError, ZeroDivisionError:
         return None
 
 
 @register_sensor("activity_level")
 class PawControlActivityLevelSensor(PawControlSensorBase):
-    """Sensor for the current activity level of a dog."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Sensor for the current activity level of a dog."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -246,22 +223,22 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             translation_key="activity_level",
         )
 
-    @property  # noqa: E111
-    def native_value(self) -> str:  # noqa: E111
+    @property
+    def native_value(self) -> str:
         """Return the derived activity level from walk and health payloads."""
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
         return calculate_activity_level(walk_data, health_data)
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return supplemental activity telemetry for diagnostics."""
         attrs = dict(super().extra_state_attributes)
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
 
         if walk_data:
-            with contextlib.suppress(TypeError, ValueError):  # noqa: E111
+            with contextlib.suppress(TypeError, ValueError):
                 last_walk = cast(
                     DateTimeConvertible | None,
                     walk_data.get("last_walk"),
@@ -280,18 +257,16 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
                 )
 
         if health_data:
-            activity_level = health_data.get("activity_level")  # noqa: E111
-            attrs["health_activity_level"] = activity_level  # noqa: E111
-            attrs["activity_source"] = "health_data" if activity_level else "calculated"  # noqa: E111
-
+            activity_level = health_data.get("activity_level")
+            attrs["health_activity_level"] = activity_level
+            attrs["activity_source"] = "health_data" if activity_level else "calculated"
         return _normalise_attributes(attrs)
 
 
 @register_sensor("calories_burned_today")
 class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
-    """Sensor estimating calories burned today."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Sensor estimating calories burned today."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -309,35 +284,34 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
             translation_key="calories_burned_today",
         )
 
-    def _resolve_dog_weight(  # noqa: E111
+    def _resolve_dog_weight(
         self,
         health_data: ModuleSnapshot[HealthModulePayload],
     ) -> float:
         weight = 25.0
         if health_data and "weight" in health_data:
-            reported_weight = health_data["weight"]  # noqa: E111
-            if reported_weight is not None:  # noqa: E111
+            reported_weight = health_data["weight"]
+            if reported_weight is not None:
                 with contextlib.suppress(TypeError, ValueError):
-                    weight = float(reported_weight)  # noqa: E111
-
+                    weight = float(reported_weight)
         dog_data = self._get_dog_data()
         if dog_data and "dog_info" in dog_data:
-            dog_info = dog_data["dog_info"]  # noqa: E111
-            if "dog_weight" in dog_info and dog_info["dog_weight"] is not None:  # noqa: E111
+            dog_info = dog_data["dog_info"]
+            if "dog_weight" in dog_info and dog_info["dog_weight"] is not None:
                 with contextlib.suppress(TypeError, ValueError):
-                    weight = float(dog_info["dog_weight"])  # noqa: E111
+                    weight = float(dog_info["dog_weight"])
         return weight
 
-    @property  # noqa: E111
-    def native_value(self) -> float:  # noqa: E111
+    @property
+    def native_value(self) -> float:
         """Estimate the calories burned today for the active dog."""
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
         dog_weight = self._resolve_dog_weight(health_data)
         return calculate_calories_burned_today(walk_data, dog_weight, health_data)
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Provide supporting data for the calories burned calculation."""
         attrs = dict(super().extra_state_attributes)
         walk_data = _walk_payload(self)
@@ -347,16 +321,16 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
         with contextlib.suppress(TypeError, ValueError):
             walk_minutes = (
                 float(walk_data["total_duration_today"]) if walk_data else 0.0
-            )  # noqa: E111
+            )
             walk_distance = (
                 float(walk_data["total_distance_today"]) if walk_data else 0.0
-            )  # noqa: E111
-            activity_level = "moderate"  # noqa: E111
-            if health_data and "activity_level" in health_data:  # noqa: E111
+            )
+            activity_level = "moderate"
+            if health_data and "activity_level" in health_data:
                 candidate = health_data["activity_level"]
                 if isinstance(candidate, str):
-                    activity_level = candidate  # noqa: E111
-            attrs.update(  # noqa: E111
+                    activity_level = candidate
+            attrs.update(
                 {
                     "dog_weight_kg": dog_weight,
                     "walk_minutes_today": walk_minutes,
@@ -372,9 +346,8 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
 @register_sensor("last_feeding_hours")
 class PawControlLastFeedingHoursSensor(PawControlSensorBase):
-    """Sensor reporting hours since the last feeding."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Sensor reporting hours since the last feeding."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -392,13 +365,12 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             translation_key="last_feeding_hours",
         )
 
-    @property  # noqa: E111
-    def native_value(self) -> float | None:  # noqa: E111
+    @property
+    def native_value(self) -> float | None:
         """Return hours elapsed since the last recorded feeding."""
         feeding_data = _feeding_payload(self)
         if feeding_data is None:
-            return None  # noqa: E111
-
+            return None
         last_feeding = cast(
             DateTimeConvertible | None,
             feeding_data.get("last_feeding"),
@@ -406,31 +378,30 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
         hours_since = calculate_hours_since(last_feeding)
         return round(hours_since, 1) if hours_since is not None else None
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return contextual feeding metadata for diagnostics."""
         attrs = dict(super().extra_state_attributes)
         feeding_data = _feeding_payload(self)
         if feeding_data is None:
-            return _normalise_attributes(attrs)  # noqa: E111
-
+            return _normalise_attributes(attrs)
         with contextlib.suppress(TypeError, ValueError):
-            last_feeding = feeding_data.get("last_feeding")  # noqa: E111
-            feedings_today = int(  # noqa: E111
+            last_feeding = feeding_data.get("last_feeding")
+            feedings_today = int(
                 feeding_data.get("total_feedings_today", 0) or 0,
             )
-            serialized_last_feeding: str | float | int | None  # noqa: E111
-            if isinstance(last_feeding, datetime):  # noqa: E111
+            serialized_last_feeding: str | float | int | None
+            if isinstance(last_feeding, datetime):
                 serialized_last_feeding = dt_util.as_utc(
                     last_feeding,
                 ).isoformat()
-            elif isinstance(last_feeding, float | int):  # noqa: E111
+            elif isinstance(last_feeding, float | int):
                 serialized_last_feeding = float(last_feeding)
-            elif isinstance(last_feeding, str):  # noqa: E111
+            elif isinstance(last_feeding, str):
                 serialized_last_feeding = last_feeding
-            else:  # noqa: E111
+            else:
                 serialized_last_feeding = None
-            attrs.update(  # noqa: E111
+            attrs.update(
                 {
                     "last_feeding_time": serialized_last_feeding,
                     "feedings_today": int(feedings_today),
@@ -441,22 +412,21 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
         return _normalise_attributes(attrs)
 
-    def _is_feeding_overdue(  # noqa: E111
+    def _is_feeding_overdue(
         self,
         feeding_data: ModuleSnapshot[FeedingModuleTelemetry],
     ) -> bool:
         last_feeding = feeding_data.get("last_feeding") if feeding_data else None
         hours_since = calculate_hours_since(last_feeding)
         if hours_since is None:
-            return False  # noqa: E111
+            return False
         return hours_since > 8.0
 
 
 @register_sensor("total_walk_distance")
 class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
-    """Sensor exposing the lifetime walk distance."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Sensor exposing the lifetime walk distance."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -474,64 +444,61 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             translation_key="total_walk_distance",
         )
 
-    @property  # noqa: E111
-    def native_value(self) -> float:  # noqa: E111
+    @property
+    def native_value(self) -> float:
         """Return the lifetime walking distance expressed in kilometres."""
         walk_data = _walk_payload(self)
         if walk_data is None:
-            return 0.0  # noqa: E111
-
+            return 0.0
         try:
-            total_distance_value = cast(  # noqa: E111
+            total_distance_value = cast(
                 float | int | None,
                 walk_data.get("total_distance_lifetime", 0.0),
             )
-            total_distance_meters = float(total_distance_value or 0.0)  # noqa: E111
-            if total_distance_meters == 0.0 and "walks_history" in walk_data:  # noqa: E111
+            total_distance_meters = float(total_distance_value or 0.0)
+            if total_distance_meters == 0.0 and "walks_history" in walk_data:
                 walks_history = walk_data["walks_history"]
                 if walks_history:
-                    for walk in walks_history:  # noqa: E111
+                    for walk in walks_history:
                         with contextlib.suppress(TypeError, ValueError):
-                            distance_value = cast(  # noqa: E111
+                            distance_value = cast(
                                 float | int | None,
                                 walk.get("distance"),
                             )
-                            if isinstance(distance_value, int | float):  # noqa: E111
+                            if isinstance(distance_value, int | float):
                                 total_distance_meters += float(distance_value)
-            return round(total_distance_meters / 1000, 2)  # noqa: E111
+            return round(total_distance_meters / 1000, 2)
         except ValueError:
-            return 0.0  # noqa: E111
+            return 0.0
         except TypeError:
-            return 0.0  # noqa: E111
-
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+            return 0.0
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return aggregated walk distance metrics for the dog."""
         attrs = dict(super().extra_state_attributes)
         walk_data = _walk_payload(self)
         if walk_data is None:
-            return _normalise_attributes(attrs)  # noqa: E111
-
+            return _normalise_attributes(attrs)
         with contextlib.suppress(TypeError, ValueError):
-            total_distance_value = cast(  # noqa: E111
+            total_distance_value = cast(
                 float | int | None,
                 walk_data.get("total_distance_lifetime", 0.0),
             )
-            total_distance_m = float(total_distance_value or 0.0)  # noqa: E111
-            total_walks_value = cast(  # noqa: E111
+            total_distance_m = float(total_distance_value or 0.0)
+            total_walks_value = cast(
                 int | float | None,
                 walk_data.get("total_walks_lifetime", 0),
             )
-            total_walks = int(total_walks_value or 0)  # noqa: E111
-            distance_this_week = cast(  # noqa: E111
+            total_walks = int(total_walks_value or 0)
+            distance_this_week = cast(
                 float | int | None,
                 walk_data.get("distance_this_week", 0.0),
             )
-            distance_this_month = cast(  # noqa: E111
+            distance_this_month = cast(
                 float | int | None,
                 walk_data.get("distance_this_month", 0.0),
             )
-            attrs.update(  # noqa: E111
+            attrs.update(
                 {
                     "total_walks": total_walks,
                     "total_distance_meters": total_distance_m,
@@ -555,9 +522,8 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
 
 @register_sensor("walks_this_week")
 class PawControlWalksThisWeekSensor(PawControlSensorBase):
-    """Sensor tracking the number of walks completed during the current week."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Sensor tracking the number of walks completed during the current week."""
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -574,67 +540,63 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             translation_key="walks_this_week",
         )
 
-    @property  # noqa: E111
-    def native_value(self) -> int:  # noqa: E111
+    @property
+    def native_value(self) -> int:
         """Return the total number of walks completed during the week."""
         walk_data = _walk_payload(self)
         if walk_data is None:
-            return 0  # noqa: E111
-
+            return 0
         try:
-            walks_this_week = int(  # noqa: E111
+            walks_this_week = int(
                 walk_data.get("walks_this_week", 0),
             )
-            if walks_this_week:  # noqa: E111
+            if walks_this_week:
                 return walks_this_week
 
-            if "walks_history" not in walk_data:  # noqa: E111
+            if "walks_history" not in walk_data:
                 return walks_this_week
-            walks_history = walk_data["walks_history"]  # noqa: E111
-
-            now = dt_util.utcnow()  # noqa: E111
-            start_of_week = now - timedelta(days=now.weekday())  # noqa: E111
-            start_of_week = start_of_week.replace(  # noqa: E111
+            walks_history = walk_data["walks_history"]
+            now = dt_util.utcnow()
+            start_of_week = now - timedelta(days=now.weekday())
+            start_of_week = start_of_week.replace(
                 hour=0,
                 minute=0,
                 second=0,
                 microsecond=0,
             )
-            for walk in walks_history:  # noqa: E111
+            for walk in walks_history:
                 walk_time_candidate = walk.get("timestamp")
                 if not walk_time_candidate:
-                    walk_time_candidate = walk.get("end_time")  # noqa: E111
+                    walk_time_candidate = walk.get("end_time")
                 if not isinstance(walk_time_candidate, str | datetime | int | float):
-                    continue  # noqa: E111
+                    continue
                 walk_time = ensure_utc_datetime(walk_time_candidate)
                 if walk_time and walk_time >= start_of_week:
-                    walks_this_week += 1  # noqa: E111
-            return walks_this_week  # noqa: E111
+                    walks_this_week += 1
+            return walks_this_week
         except ValueError:
-            return 0  # noqa: E111
+            return 0
         except TypeError:
-            return 0  # noqa: E111
-
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+            return 0
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose weekly walk statistics derived from coordinator payloads."""
         attrs = dict(super().extra_state_attributes)
         walk_data = _walk_payload(self)
         if walk_data is None:
-            return _normalise_attributes(attrs)  # noqa: E111
-
+            return _normalise_attributes(attrs)
         with contextlib.suppress(TypeError, ValueError):
-            walks_today = int(walk_data.get("walks_today", 0))  # noqa: E111
-            total_duration_this_week = float(  # noqa: E111
+            walks_today = int(walk_data.get("walks_today", 0))
+            total_duration_this_week = float(
                 walk_data.get("total_duration_this_week", 0.0),
             )
-            distance_this_week = float(  # noqa: E111
+            distance_this_week = float(
                 walk_data.get("distance_this_week", 0.0),
             )
-            now = dt_util.utcnow()  # noqa: E111
-            days_this_week = now.weekday() + 1  # noqa: E111
-            avg_walks_per_day = (self.native_value or 0) / max(1, days_this_week)  # noqa: E111
-            attrs.update(  # noqa: E111
+            now = dt_util.utcnow()
+            days_this_week = now.weekday() + 1
+            avg_walks_per_day = (self.native_value or 0) / max(1, days_this_week)
+            attrs.update(
                 {
                     "walks_today": walks_today,
                     "total_duration_this_week_minutes": total_duration_this_week,

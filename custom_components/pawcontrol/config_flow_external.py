@@ -69,21 +69,17 @@ def _build_external_entities_placeholders(
     visitor_enabled: bool,
     dog_count: int,
 ) -> ConfigFlowPlaceholders:
-    """Return immutable placeholders for the external entities step."""  # noqa: E111
-
-    placeholder_payload = clone_placeholders(  # noqa: E111
+    """Return immutable placeholders for the external entities step."""
+    placeholder_payload = clone_placeholders(
         EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE,
     )
-    placeholder_payload["gps_enabled"] = gps_enabled  # noqa: E111
-    placeholder_payload["visitor_enabled"] = visitor_enabled  # noqa: E111
-    placeholder_payload["dog_count"] = dog_count  # noqa: E111
-
-    return freeze_placeholders(placeholder_payload)  # noqa: E111
-
-
+    placeholder_payload["gps_enabled"] = gps_enabled
+    placeholder_payload["visitor_enabled"] = visitor_enabled
+    placeholder_payload["dog_count"] = dog_count
+    return freeze_placeholders(placeholder_payload)
 if TYPE_CHECKING:
 
-    class ExternalFlowHost(Protocol):  # noqa: E111
+    class ExternalFlowHost(Protocol):
         """Type-checking protocol describing the config flow host."""
 
         _dogs: list[DogConfigData]
@@ -95,9 +91,8 @@ if TYPE_CHECKING:
             self,
             user_input: ConfigFlowUserInput | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for the mixin's final step delegation."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for the mixin's final step delegation."""
+            ...
         def async_show_form(
             self,
             *,
@@ -106,29 +101,22 @@ if TYPE_CHECKING:
             description_placeholders: ConfigFlowPlaceholders | None = None,
             errors: dict[str, str] | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for Home Assistant form rendering."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for Home Assistant form rendering."""
+            ...
         def _get_available_device_trackers(self) -> dict[str, str]:
-            """Type-checking stub for available device trackers."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for available device trackers."""
+            ...
         def _get_available_person_entities(self) -> dict[str, str]:
-            """Type-checking stub for available person entities."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for available person entities."""
+            ...
         def _get_available_door_sensors(self) -> dict[str, str]:
-            """Type-checking stub for available door sensors."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for available door sensors."""
+            ...
         def _get_available_notify_services(self) -> dict[str, str]:
-            """Type-checking stub for available notification services."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for available notification services."""
+            ...
 else:  # pragma: no cover - used only for type checking
-    ExternalFlowHost = object  # noqa: E111
-
-
+    ExternalFlowHost = object
 class ExternalEntityConfigurationMixin:
     """Mixin for external entity configuration functionality.
 
@@ -136,9 +124,8 @@ class ExternalEntityConfigurationMixin:
     entities that the integration depends on during setup. This is critical
     for Platinum quality scale compliance and ensures proper integration
     with the broader Home Assistant ecosystem.
-    """  # noqa: E111
-
-    if TYPE_CHECKING:  # noqa: E111
+    """
+    if TYPE_CHECKING:
         hass: HomeAssistant
         _dogs: list[DogConfigData]
         _enabled_modules: DogModulesConfig
@@ -152,7 +139,7 @@ class ExternalEntityConfigurationMixin:
 
         def _get_available_notify_services(self) -> dict[str, str]: ...
 
-    async def async_step_configure_external_entities(  # noqa: E111
+    async def async_step_configure_external_entities(
         self,
         user_input: ExternalEntityConfig | None = None,
     ) -> ConfigFlowResult:
@@ -171,7 +158,7 @@ class ExternalEntityConfigurationMixin:
 
         if user_input is not None:
             # Validate and store external entity selections  # noqa: E114
-            try:  # noqa: E111
+            try:
                 validated_entities = await self._async_validate_external_entities(
                     user_input,
                 )
@@ -180,7 +167,7 @@ class ExternalEntityConfigurationMixin:
                     validated_entities,
                 )
                 return await flow.async_step_final_setup()
-            except FlowValidationError as err:  # noqa: E111
+            except FlowValidationError as err:
                 return flow.async_show_form(
                     step_id="configure_external_entities",
                     data_schema=self._get_external_entities_schema(),
@@ -201,29 +188,26 @@ class ExternalEntityConfigurationMixin:
             ),
         )
 
-    def _get_external_entities_schema(self) -> vol.Schema:  # noqa: E111
+    def _get_external_entities_schema(self) -> vol.Schema:
         """Get schema for external entities configuration."""
         schema: dict[object, object] = {}
 
         if self._enabled_modules.get(MODULE_GPS, False):
-            schema.update(self._build_gps_source_selector())  # noqa: E111
-
+            schema.update(self._build_gps_source_selector())
         if self._enabled_modules.get(MODULE_VISITOR, False):
-            schema.update(self._build_door_sensor_selector())  # noqa: E111
-
+            schema.update(self._build_door_sensor_selector())
         if self._enabled_modules.get(MODULE_NOTIFICATIONS, False):
-            schema.update(self._build_notify_service_selector())  # noqa: E111
-
+            schema.update(self._build_notify_service_selector())
         return vol.Schema(schema)
 
-    def _build_gps_source_selector(self) -> dict[object, object]:  # noqa: E111
+    def _build_gps_source_selector(self) -> dict[object, object]:
         """Build selector schema for GPS source."""
         device_trackers = self._get_available_device_trackers()
         person_entities = self._get_available_person_entities()
 
         options: list[ExternalEntitySelectorOption] = []
         if device_trackers:
-            options.extend(  # noqa: E111
+            options.extend(
                 ExternalEntitySelectorOption(
                     value=entity_id,
                     label=f"📍 {name} (Device Tracker)",
@@ -231,7 +215,7 @@ class ExternalEntityConfigurationMixin:
                 for entity_id, name in device_trackers.items()
             )
         if person_entities:
-            options.extend(  # noqa: E111
+            options.extend(
                 ExternalEntitySelectorOption(
                     value=entity_id,
                     label=f"👤 {name} (Person)",
@@ -240,11 +224,11 @@ class ExternalEntityConfigurationMixin:
             )
 
         if options:
-            selector_config = selector.SelectSelectorConfig(  # noqa: E111
+            selector_config = selector.SelectSelectorConfig(
                 options=options,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
-            return {  # noqa: E111
+            return {
                 vol.Required(CONF_GPS_SOURCE): selector.SelectSelector(selector_config),
             }
 
@@ -263,12 +247,11 @@ class ExternalEntityConfigurationMixin:
             ),
         }
 
-    def _build_door_sensor_selector(self) -> dict[object, object]:  # noqa: E111
+    def _build_door_sensor_selector(self) -> dict[object, object]:
         """Build selector schema for door sensor."""
         door_sensors = self._get_available_door_sensors()
         if not door_sensors:
-            return {}  # noqa: E111
-
+            return {}
         options: list[ExternalEntitySelectorOption] = [
             ExternalEntitySelectorOption(value="", label="None (optional)"),
         ]
@@ -287,12 +270,11 @@ class ExternalEntityConfigurationMixin:
             ),
         }
 
-    def _build_notify_service_selector(self) -> dict[object, object]:  # noqa: E111
+    def _build_notify_service_selector(self) -> dict[object, object]:
         """Build selector schema for notification fallback service."""
         notify_services = self._get_available_notify_services()
         if not notify_services:
-            return {}  # noqa: E111
-
+            return {}
         options: list[ExternalEntitySelectorOption] = [
             ExternalEntitySelectorOption(
                 value="",
@@ -314,7 +296,7 @@ class ExternalEntityConfigurationMixin:
             ),
         }
 
-    def _merge_external_entity_config(  # noqa: E111
+    def _merge_external_entity_config(
         self,
         target: ExternalEntityConfig,
         new_config: ExternalEntityConfig,
@@ -322,15 +304,12 @@ class ExternalEntityConfigurationMixin:
         """Merge external entity selections into the target mapping."""
 
         if GPS_SOURCE_KEY in new_config:
-            target[GPS_SOURCE_KEY] = new_config[GPS_SOURCE_KEY]  # noqa: E111
-
+            target[GPS_SOURCE_KEY] = new_config[GPS_SOURCE_KEY]
         if DOOR_SENSOR_KEY in new_config:
-            target[DOOR_SENSOR_KEY] = new_config[DOOR_SENSOR_KEY]  # noqa: E111
-
+            target[DOOR_SENSOR_KEY] = new_config[DOOR_SENSOR_KEY]
         if NOTIFY_FALLBACK_KEY in new_config:
-            target[NOTIFY_FALLBACK_KEY] = new_config[NOTIFY_FALLBACK_KEY]  # noqa: E111
-
-    async def _async_validate_external_entities(  # noqa: E111
+            target[NOTIFY_FALLBACK_KEY] = new_config[NOTIFY_FALLBACK_KEY]
+    async def _async_validate_external_entities(
         self,
         user_input: ExternalEntityConfig,
     ) -> ExternalEntityConfig:
@@ -354,44 +333,41 @@ class ExternalEntityConfigurationMixin:
         notify_service = cast(str | None, user_input.get(CONF_NOTIFY_FALLBACK))
 
         try:
-            self._merge_external_entity_config(  # noqa: E111
+            self._merge_external_entity_config(
                 validated,
                 self._validate_gps_source(gps_source),
             )
         except ValidationError as err:
-            errors[CONF_GPS_SOURCE] = _map_external_error(err)  # noqa: E111
-
+            errors[CONF_GPS_SOURCE] = _map_external_error(err)
         try:
-            self._merge_external_entity_config(  # noqa: E111
+            self._merge_external_entity_config(
                 validated,
                 self._validate_door_sensor(door_sensor),
             )
         except ValidationError as err:
-            errors[CONF_DOOR_SENSOR] = _map_external_error(err)  # noqa: E111
-
+            errors[CONF_DOOR_SENSOR] = _map_external_error(err)
         try:
-            self._merge_external_entity_config(  # noqa: E111
+            self._merge_external_entity_config(
                 validated,
                 self._validate_notify_service(notify_service),
             )
         except ValidationError as err:
-            if err.constraint == "notify_service_not_found":  # noqa: E111
+            if err.constraint == "notify_service_not_found":
                 service_name = str(err.value) if err.value else "unknown"
                 if isinstance(err.value, str) and "." in err.value:
-                    service_name = err.value.split(".", 1)[1]  # noqa: E111
+                    service_name = err.value.split(".", 1)[1]
                 base_errors.append(f"Notification service {service_name} not found")
-            else:  # noqa: E111
+            else:
                 errors[CONF_NOTIFY_FALLBACK] = _map_external_error(err)
 
         if errors or base_errors:
-            raise FlowValidationError(field_errors=errors, base_errors=base_errors)  # noqa: E111
-
+            raise FlowValidationError(field_errors=errors, base_errors=base_errors)
         return validated
 
-    def _validate_gps_source(self, gps_source: str | None) -> ExternalEntityConfig:  # noqa: E111
+    def _validate_gps_source(self, gps_source: str | None) -> ExternalEntityConfig:
         """Validate GPS source selection."""
         if not gps_source:
-            return {}  # noqa: E111
+            return {}
         validated = validate_gps_source(
             self.hass,
             gps_source,
@@ -400,10 +376,10 @@ class ExternalEntityConfigurationMixin:
         )
         return {GPS_SOURCE_FIELD: validated}
 
-    def _validate_door_sensor(self, door_sensor: str | None) -> ExternalEntityConfig:  # noqa: E111
+    def _validate_door_sensor(self, door_sensor: str | None) -> ExternalEntityConfig:
         """Validate door sensor selection."""
         if not door_sensor:
-            return {}  # noqa: E111
+            return {}
         validated = validate_sensor_entity_id(
             self.hass,
             door_sensor,
@@ -413,16 +389,16 @@ class ExternalEntityConfigurationMixin:
             not_found_constraint="door_sensor_not_found",
         )
         if validated is None:
-            return {}  # noqa: E111
+            return {}
         return {DOOR_SENSOR_FIELD: validated}
 
-    def _validate_notify_service(  # noqa: E111
+    def _validate_notify_service(
         self,
         notify_service: str | None,
     ) -> ExternalEntityConfig:
         """Validate notification service selection."""
         if not notify_service:
-            return {}  # noqa: E111
+            return {}
         validated = validate_notify_service(
             self.hass,
             notify_service,
@@ -432,16 +408,16 @@ class ExternalEntityConfigurationMixin:
 
 
 def _map_external_error(error: ValidationError) -> str:
-    if error.constraint == "gps_source_required":  # noqa: E111
+    if error.constraint == "gps_source_required":
         return "required"
-    if error.constraint == "gps_source_not_found":  # noqa: E111
+    if error.constraint == "gps_source_not_found":
         return "gps_entity_not_found"
-    if error.constraint == "gps_source_unavailable":  # noqa: E111
+    if error.constraint == "gps_source_unavailable":
         return "gps_entity_unavailable"
-    if error.constraint == "door_sensor_not_found":  # noqa: E111
+    if error.constraint == "door_sensor_not_found":
         return "door_sensor_not_found"
-    if error.constraint == "notify_service_invalid":  # noqa: E111
+    if error.constraint == "notify_service_invalid":
         return "invalid_notification_service"
-    if error.constraint == "notify_service_not_found":  # noqa: E111
+    if error.constraint == "notify_service_not_found":
         return "notification_service_not_found"
-    return "invalid_external_entity"  # noqa: E111
+    return "invalid_external_entity"

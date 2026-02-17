@@ -14,8 +14,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    pass  # noqa: E111
-
+    pass
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -29,15 +28,13 @@ class ComplianceIssue:
         message: Human-readable message
         manager_name: Name of the manager
         details: Additional details
-    """  # noqa: E111
-
-    severity: str  # noqa: E111
-    category: str  # noqa: E111
-    message: str  # noqa: E111
-    manager_name: str  # noqa: E111
-    details: dict[str, Any] = field(default_factory=dict)  # noqa: E111
-
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
+    """
+    severity: str
+    category: str
+    message: str
+    manager_name: str
+    details: dict[str, Any] = field(default_factory=dict)
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "severity": self.severity,
@@ -57,14 +54,12 @@ class ComplianceReport:
         is_compliant: Whether manager is fully compliant
         issues: List of compliance issues
         score: Compliance score (0-100)
-    """  # noqa: E111
-
-    manager_name: str  # noqa: E111
-    is_compliant: bool = True  # noqa: E111
-    issues: list[ComplianceIssue] = field(default_factory=list)  # noqa: E111
-    score: int = 100  # noqa: E111
-
-    def add_issue(  # noqa: E111
+    """
+    manager_name: str
+    is_compliant: bool = True
+    issues: list[ComplianceIssue] = field(default_factory=list)
+    score: int = 100
+    def add_issue(
         self,
         severity: str,
         category: str,
@@ -90,14 +85,13 @@ class ComplianceReport:
 
         # Update compliance status
         if severity == "error":
-            self.is_compliant = False  # noqa: E111
-            self.score = max(0, self.score - 25)  # noqa: E111
+            self.is_compliant = False
+            self.score = max(0, self.score - 25)
         elif severity == "warning":
-            self.score = max(0, self.score - 10)  # noqa: E111
+            self.score = max(0, self.score - 10)
         elif severity == "info":
-            self.score = max(0, self.score - 5)  # noqa: E111
-
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
+            self.score = max(0, self.score - 5)
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "manager_name": self.manager_name,
@@ -119,27 +113,26 @@ def check_required_methods(
     Args:
         manager: Manager class to check
         report: Compliance report to update
-    """  # noqa: E111
-    required_methods = {  # noqa: E111
+    """
+    required_methods = {
         "async_setup": "Setup lifecycle method",
         "async_shutdown": "Shutdown lifecycle method",
         "get_diagnostics": "Diagnostics reporting method",
     }
 
-    for method_name, description in required_methods.items():  # noqa: E111
+    for method_name, description in required_methods.items():
         if not hasattr(manager, method_name):
-            report.add_issue(  # noqa: E111
+            report.add_issue(
                 "error",
                 "interface",
                 f"Missing required method: {method_name}",
                 method=method_name,
                 description=description,
             )
-            continue  # noqa: E111
-
+            continue
         method = getattr(manager, method_name)
         if not callable(method):
-            report.add_issue(  # noqa: E111
+            report.add_issue(
                 "error",
                 "interface",
                 f"{method_name} is not callable",
@@ -156,16 +149,16 @@ def check_lifecycle_properties(
     Args:
         manager: Manager class to check
         report: Compliance report to update
-    """  # noqa: E111
-    required_properties = {  # noqa: E111
+    """
+    required_properties = {
         "is_setup": "Setup state tracking",
         "is_shutdown": "Shutdown state tracking",
         "is_ready": "Ready state checking",
     }
 
-    for prop_name, description in required_properties.items():  # noqa: E111
+    for prop_name, description in required_properties.items():
         if not hasattr(manager, prop_name):
-            report.add_issue(  # noqa: E111
+            report.add_issue(
                 "warning",
                 "lifecycle",
                 f"Missing lifecycle property: {prop_name}",
@@ -183,14 +176,14 @@ def check_manager_constants(
     Args:
         manager: Manager class to check
         report: Compliance report to update
-    """  # noqa: E111
-    if not hasattr(manager, "MANAGER_NAME"):  # noqa: E111
+    """
+    if not hasattr(manager, "MANAGER_NAME"):
         report.add_issue(
             "error",
             "interface",
             "Missing MANAGER_NAME class constant",
         )
-    elif not isinstance(manager.MANAGER_NAME, str):  # noqa: E111
+    elif not isinstance(manager.MANAGER_NAME, str):
         report.add_issue(
             "error",
             "interface",
@@ -198,7 +191,7 @@ def check_manager_constants(
             actual_type=type(manager.MANAGER_NAME).__name__,
         )
 
-    if not hasattr(manager, "MANAGER_VERSION"):  # noqa: E111
+    if not hasattr(manager, "MANAGER_VERSION"):
         report.add_issue(
             "warning",
             "interface",
@@ -215,15 +208,15 @@ def check_method_signatures(
     Args:
         manager: Manager class to check
         report: Compliance report to update
-    """  # noqa: E111
+    """
     # Check async_setup signature  # noqa: E114
-    if hasattr(manager, "async_setup"):  # noqa: E111
+    if hasattr(manager, "async_setup"):
         sig = inspect.signature(manager.async_setup)
         params = list(sig.parameters.keys())
 
         # Should have only self parameter
         if len(params) != 1 or params[0] != "self":
-            report.add_issue(  # noqa: E111
+            report.add_issue(
                 "warning",
                 "interface",
                 "async_setup should have only 'self' parameter",
@@ -231,13 +224,13 @@ def check_method_signatures(
             )
 
     # Check async_shutdown signature  # noqa: E114
-    if hasattr(manager, "async_shutdown"):  # noqa: E111
+    if hasattr(manager, "async_shutdown"):
         sig = inspect.signature(manager.async_shutdown)
         params = list(sig.parameters.keys())
 
         # Should have only self parameter
         if len(params) != 1 or params[0] != "self":
-            report.add_issue(  # noqa: E111
+            report.add_issue(
                 "warning",
                 "interface",
                 "async_shutdown should have only 'self' parameter",
@@ -245,13 +238,13 @@ def check_method_signatures(
             )
 
     # Check get_diagnostics signature  # noqa: E114
-    if hasattr(manager, "get_diagnostics"):  # noqa: E111
+    if hasattr(manager, "get_diagnostics"):
         sig = inspect.signature(manager.get_diagnostics)
         params = list(sig.parameters.keys())
 
         # Should have only self parameter
         if len(params) != 1 or params[0] != "self":
-            report.add_issue(  # noqa: E111
+            report.add_issue(
                 "warning",
                 "interface",
                 "get_diagnostics should have only 'self' parameter",
@@ -268,15 +261,15 @@ def check_documentation(
     Args:
         manager: Manager class to check
         report: Compliance report to update
-    """  # noqa: E111
+    """
     # Check class docstring  # noqa: E114
-    if not manager.__doc__:  # noqa: E111
+    if not manager.__doc__:
         report.add_issue(
             "warning",
             "documentation",
             "Missing class docstring",
         )
-    elif len(manager.__doc__.strip()) < 20:  # noqa: E111
+    elif len(manager.__doc__.strip()) < 20:
         report.add_issue(
             "info",
             "documentation",
@@ -285,11 +278,11 @@ def check_documentation(
         )
 
     # Check method docstrings  # noqa: E114
-    methods_to_check = ["async_setup", "async_shutdown", "get_diagnostics"]  # noqa: E111
-    for method_name in methods_to_check:  # noqa: E111
+    methods_to_check = ["async_setup", "async_shutdown", "get_diagnostics"]
+    for method_name in methods_to_check:
         if hasattr(manager, method_name):
-            method = getattr(manager, method_name)  # noqa: E111
-            if not method.__doc__:  # noqa: E111
+            method = getattr(manager, method_name)
+            if not method.__doc__:
                 report.add_issue(
                     "info",
                     "documentation",
@@ -307,11 +300,10 @@ def check_inheritance(
     Args:
         manager: Manager class to check
         report: Compliance report to update
-    """  # noqa: E111
+    """
     # Check if inherits from BaseManager  # noqa: E114
-    from .base_manager import BaseManager  # noqa: E111
-
-    if not issubclass(manager, BaseManager):  # noqa: E111
+    from .base_manager import BaseManager
+    if not issubclass(manager, BaseManager):
         report.add_issue(
             "error",
             "interface",
@@ -337,25 +329,21 @@ def validate_manager_compliance(
         ...     print(f"Manager is compliant (score: {report.score})")
         >>> else:
         ...     print(f"Found {len(report.issues)} issues")
-    """  # noqa: E111
+    """
     # Get class if instance was passed  # noqa: E114
-    if not inspect.isclass(manager):  # noqa: E111
+    if not inspect.isclass(manager):
         manager = manager.__class__
 
-    manager_name = getattr(manager, "MANAGER_NAME", manager.__name__)  # noqa: E111
-    report = ComplianceReport(manager_name=manager_name)  # noqa: E111
-
+    manager_name = getattr(manager, "MANAGER_NAME", manager.__name__)
+    report = ComplianceReport(manager_name=manager_name)
     # Run all checks  # noqa: E114
-    check_inheritance(manager, report)  # noqa: E111
-    check_required_methods(manager, report)  # noqa: E111
-    check_lifecycle_properties(manager, report)  # noqa: E111
-    check_manager_constants(manager, report)  # noqa: E111
-    check_method_signatures(manager, report)  # noqa: E111
-    check_documentation(manager, report)  # noqa: E111
-
-    return report  # noqa: E111
-
-
+    check_inheritance(manager, report)
+    check_required_methods(manager, report)
+    check_lifecycle_properties(manager, report)
+    check_manager_constants(manager, report)
+    check_method_signatures(manager, report)
+    check_documentation(manager, report)
+    return report
 def validate_all_managers(
     *managers: type[Any] | Any,
 ) -> dict[str, ComplianceReport]:
@@ -371,16 +359,13 @@ def validate_all_managers(
         >>> reports = validate_all_managers(DataManager, EventManager)
         >>> for name, report in reports.items():
         ...     print(f"{name}: {report.score}/100")
-    """  # noqa: E111
-    reports: dict[str, ComplianceReport] = {}  # noqa: E111
-
-    for manager in managers:  # noqa: E111
+    """
+    reports: dict[str, ComplianceReport] = {}
+    for manager in managers:
         report = validate_manager_compliance(manager)
         reports[report.manager_name] = report
 
-    return reports  # noqa: E111
-
-
+    return reports
 def print_compliance_report(
     report: ComplianceReport,
     logger: logging.Logger | None = None,
@@ -394,27 +379,27 @@ def print_compliance_report(
     Examples:
         >>> report = validate_manager_compliance(MyManager)
         >>> print_compliance_report(report)
-    """  # noqa: E111
-    if logger is None:  # noqa: E111
+    """
+    if logger is None:
         logger = _LOGGER
 
-    logger.info(  # noqa: E111
+    logger.info(
         "Compliance report for %s: score=%d/100, compliant=%s",
         report.manager_name,
         report.score,
         report.is_compliant,
     )
 
-    if report.issues:  # noqa: E111
+    if report.issues:
         logger.info("Found %d issues:", len(report.issues))
         for issue in report.issues:
-            level_map = {  # noqa: E111
+            level_map = {
                 "error": logger.error,
                 "warning": logger.warning,
                 "info": logger.info,
             }
-            log_func = level_map.get(issue.severity, logger.info)  # noqa: E111
-            log_func(  # noqa: E111
+            log_func = level_map.get(issue.severity, logger.info)
+            log_func(
                 "  [%s/%s] %s",
                 issue.severity.upper(),
                 issue.category,
@@ -437,8 +422,8 @@ def get_compliance_summary(
         >>> reports = validate_all_managers(manager1, manager2)
         >>> summary = get_compliance_summary(reports)
         >>> print(f"Average score: {summary['average_score']}")
-    """  # noqa: E111
-    if not reports:  # noqa: E111
+    """
+    if not reports:
         return {
             "manager_count": 0,
             "compliant_count": 0,
@@ -446,11 +431,10 @@ def get_compliance_summary(
             "total_issues": 0,
         }
 
-    compliant_count = sum(1 for r in reports.values() if r.is_compliant)  # noqa: E111
-    total_issues = sum(len(r.issues) for r in reports.values())  # noqa: E111
-    average_score = sum(r.score for r in reports.values()) / len(reports)  # noqa: E111
-
-    return {  # noqa: E111
+    compliant_count = sum(1 for r in reports.values() if r.is_compliant)
+    total_issues = sum(len(r.issues) for r in reports.values())
+    average_score = sum(r.score for r in reports.values()) / len(reports)
+    return {
         "manager_count": len(reports),
         "compliant_count": compliant_count,
         "non_compliant_count": len(reports) - compliant_count,
@@ -491,13 +475,13 @@ def get_compliance_level(score: int) -> str:
         'platinum'
         >>> get_compliance_level(72)
         'silver'
-    """  # noqa: E111
-    if score >= PLATINUM_COMPLIANCE_THRESHOLD:  # noqa: E111
+    """
+    if score >= PLATINUM_COMPLIANCE_THRESHOLD:
         return "platinum"
-    if score >= GOLD_COMPLIANCE_THRESHOLD:  # noqa: E111
+    if score >= GOLD_COMPLIANCE_THRESHOLD:
         return "gold"
-    if score >= SILVER_COMPLIANCE_THRESHOLD:  # noqa: E111
+    if score >= SILVER_COMPLIANCE_THRESHOLD:
         return "silver"
-    if score >= BRONZE_COMPLIANCE_THRESHOLD:  # noqa: E111
+    if score >= BRONZE_COMPLIANCE_THRESHOLD:
         return "bronze"
-    return "needs_improvement"  # noqa: E111
+    return "needs_improvement"

@@ -32,8 +32,7 @@ from .logging_utils import StructuredLogger
 from .resilience import FallbackStrategy, RetryStrategy
 
 if TYPE_CHECKING:
-    pass  # noqa: E111
-
+    pass
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -48,16 +47,13 @@ class ErrorPattern:
         create_repair_issue: Whether to create repair issue
         recovery_action: Optional recovery action
         severity: Error severity (low, medium, high, critical)
-    """  # noqa: E111
-
-    exception_type: type[Exception]  # noqa: E111
-    retry_strategy: bool = True  # noqa: E111
-    circuit_breaker: bool = False  # noqa: E111
-    create_repair_issue: bool = False  # noqa: E111
-    recovery_action: Callable[..., Any] | None = None  # noqa: E111
-    severity: str = "medium"  # noqa: E111
-
-
+    """
+    exception_type: type[Exception]
+    retry_strategy: bool = True
+    circuit_breaker: bool = False
+    create_repair_issue: bool = False
+    recovery_action: Callable[..., Any] | None = None
+    severity: str = "medium"
 @dataclass
 class ErrorStats:
     """Error statistics.
@@ -69,22 +65,20 @@ class ErrorStats:
         unrecovered_count: Failed recoveries
         last_occurrence: Last occurrence time
         repair_issues_created: Number of repair issues created
-    """  # noqa: E111
-
-    exception_type: str  # noqa: E111
-    total_count: int = 0  # noqa: E111
-    recovery_count: int = 0  # noqa: E111
-    unrecovered_count: int = 0  # noqa: E111
-    last_occurrence: datetime | None = None  # noqa: E111
-    repair_issues_created: int = 0  # noqa: E111
-
-    @property  # noqa: E111
-    def recovery_rate(self) -> float:  # noqa: E111
+    """
+    exception_type: str
+    total_count: int = 0
+    recovery_count: int = 0
+    unrecovered_count: int = 0
+    last_occurrence: datetime | None = None
+    repair_issues_created: int = 0
+    @property
+    def recovery_rate(self) -> float:
         """Return recovery rate (0.0-1.0)."""
         total = self.recovery_count + self.unrecovered_count
         return self.recovery_count / total if total > 0 else 0.0
 
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "exception_type": self.exception_type,
@@ -109,9 +103,8 @@ class ErrorRecoveryCoordinator:
         >>> coordinator = ErrorRecoveryCoordinator(hass)
         >>> await coordinator.async_setup()
         >>> result = await coordinator.handle_error(error, context)
-    """  # noqa: E111
-
-    def __init__(self, hass: HomeAssistant, domain: str = "pawcontrol") -> None:  # noqa: E111
+    """
+    def __init__(self, hass: HomeAssistant, domain: str = "pawcontrol") -> None:
         """Initialize error recovery coordinator.
 
         Args:
@@ -128,12 +121,12 @@ class ErrorRecoveryCoordinator:
         self._retry_strategy = RetryStrategy()
         self._fallback_strategy = FallbackStrategy(default_value=None)
 
-    async def async_setup(self) -> None:  # noqa: E111
+    async def async_setup(self) -> None:
         """Set up error recovery coordinator."""
         self._register_default_patterns()
         self._logger.info("Error recovery coordinator initialized")
 
-    def _register_default_patterns(self) -> None:  # noqa: E111
+    def _register_default_patterns(self) -> None:
         """Register default error patterns."""
         # Network errors: retry with circuit breaker
         self._patterns[NetworkError] = ErrorPattern(
@@ -207,7 +200,7 @@ class ErrorRecoveryCoordinator:
             severity="high",
         )
 
-    def register_pattern(self, pattern: ErrorPattern) -> None:  # noqa: E111
+    def register_pattern(self, pattern: ErrorPattern) -> None:
         """Register error pattern.
 
         Args:
@@ -218,7 +211,7 @@ class ErrorRecoveryCoordinator:
             f"Registered error pattern for {pattern.exception_type.__name__}"
         )
 
-    async def handle_error(  # noqa: E111
+    async def handle_error(
         self,
         error: Exception,
         *,
@@ -265,45 +258,42 @@ class ErrorRecoveryCoordinator:
         # Attempt recovery if pattern exists
         if pattern:
             # Create repair issue if needed  # noqa: E114
-            if pattern.create_repair_issue:  # noqa: E111
+            if pattern.create_repair_issue:
                 await self._create_repair_issue(error, pattern, context)
                 result["repair_issue_created"] = True
                 stats.repair_issues_created += 1
 
             # Attempt recovery action  # noqa: E114
-            if pattern.recovery_action:  # noqa: E111
+            if pattern.recovery_action:
                 try:
-                    recovery_result = await pattern.recovery_action(error, context)  # noqa: E111
-                    result["recovered"] = True  # noqa: E111
-                    result["recovery_method"] = "recovery_action"  # noqa: E111
-                    result["recovery_result"] = recovery_result  # noqa: E111
-                    stats.recovery_count += 1  # noqa: E111
+                    recovery_result = await pattern.recovery_action(error, context)
+                    result["recovered"] = True
+                    result["recovery_method"] = "recovery_action"
+                    result["recovery_result"] = recovery_result
+                    stats.recovery_count += 1
                     self._logger.info(
                         f"Error recovered via recovery action: {error_type}"
-                    )  # noqa: E111
+                    )
                 except Exception as recovery_error:
-                    self._logger.error(  # noqa: E111
+                    self._logger.error(
                         f"Recovery action failed: {recovery_error}",
                         exc_info=True,
                     )
-                    stats.unrecovered_count += 1  # noqa: E111
-
+                    stats.unrecovered_count += 1
         # Use fallback if provided and not recovered
         if not result["recovered"] and fallback_value is not None:
-            result["fallback_used"] = True  # noqa: E111
-            result["fallback_value"] = fallback_value  # noqa: E111
-            self._logger.info(f"Using fallback value for {error_type}")  # noqa: E111
-
+            result["fallback_used"] = True
+            result["fallback_value"] = fallback_value
+            self._logger.info(f"Using fallback value for {error_type}")
         # Log recovery result
         if result["recovered"]:
-            self._logger.info("Error recovery successful", **result)  # noqa: E111
+            self._logger.info("Error recovery successful", **result)
         else:
-            self._logger.warning("Error recovery failed", **result)  # noqa: E111
-            stats.unrecovered_count += 1  # noqa: E111
-
+            self._logger.warning("Error recovery failed", **result)
+            stats.unrecovered_count += 1
         return result
 
-    async def _create_repair_issue(  # noqa: E111
+    async def _create_repair_issue(
         self,
         error: Exception,
         pattern: ErrorPattern,
@@ -318,24 +308,22 @@ class ErrorRecoveryCoordinator:
         """
         try:
             # Generate issue ID  # noqa: E114
-            issue_id = f"{self._domain}_{error.__class__.__name__.lower()}"  # noqa: E111
-
+            issue_id = f"{self._domain}_{error.__class__.__name__.lower()}"
             # Determine severity  # noqa: E114
-            severity_map = {  # noqa: E111
+            severity_map = {
                 "low": ir.IssueSeverity.WARNING,
                 "medium": ir.IssueSeverity.WARNING,
                 "high": ir.IssueSeverity.ERROR,
                 "critical": ir.IssueSeverity.CRITICAL,
             }
-            severity = severity_map.get(pattern.severity, ir.IssueSeverity.ERROR)  # noqa: E111
-
+            severity = severity_map.get(pattern.severity, ir.IssueSeverity.ERROR)
             # Build description  # noqa: E114
-            description = f"{error.__class__.__name__}: {error}"  # noqa: E111
-            if context:  # noqa: E111
+            description = f"{error.__class__.__name__}: {error}"
+            if context:
                 description += f"\n\nContext: {context}"
 
             # Create issue  # noqa: E114
-            ir.async_create_issue(  # noqa: E111
+            ir.async_create_issue(
                 self._hass,
                 self._domain,
                 issue_id,
@@ -348,18 +336,18 @@ class ErrorRecoveryCoordinator:
                 },
             )
 
-            self._logger.info(  # noqa: E111
+            self._logger.info(
                 f"Created repair issue: {issue_id}",
                 severity=pattern.severity,
             )
 
         except Exception as e:
-            self._logger.error(  # noqa: E111
+            self._logger.error(
                 f"Failed to create repair issue: {e}",
                 exc_info=True,
             )
 
-    def get_stats(self) -> dict[str, ErrorStats]:  # noqa: E111
+    def get_stats(self) -> dict[str, ErrorStats]:
         """Get error statistics.
 
         Returns:
@@ -367,7 +355,7 @@ class ErrorRecoveryCoordinator:
         """
         return dict(self._stats)
 
-    def get_recovery_summary(self) -> dict[str, Any]:  # noqa: E111
+    def get_recovery_summary(self) -> dict[str, Any]:
         """Get recovery summary.
 
         Returns:
@@ -398,7 +386,7 @@ class ErrorRecoveryCoordinator:
             ),
         }
 
-    def reset_stats(self) -> None:  # noqa: E111
+    def reset_stats(self) -> None:
         """Reset error statistics."""
         self._stats.clear()
         self._logger.info("Error statistics reset")
@@ -420,13 +408,11 @@ def get_error_recovery_coordinator(
 
     Returns:
         ErrorRecoveryCoordinator instance
-    """  # noqa: E111
-    global _error_recovery_coordinator  # noqa: E111
-    if _error_recovery_coordinator is None:  # noqa: E111
+    """
+    global _error_recovery_coordinator
+    if _error_recovery_coordinator is None:
         _error_recovery_coordinator = ErrorRecoveryCoordinator(hass, domain)
-    return _error_recovery_coordinator  # noqa: E111
-
-
+    return _error_recovery_coordinator
 # Helper functions
 
 
@@ -455,9 +441,9 @@ async def handle_error_with_recovery(
         ...     recovery = await handle_error_with_recovery(hass, e)
         ...     if recovery["recovered"]:
         ...         result = recovery["recovery_result"]
-    """  # noqa: E111
-    coordinator = get_error_recovery_coordinator(hass)  # noqa: E111
-    return await coordinator.handle_error(  # noqa: E111
+    """
+    coordinator = get_error_recovery_coordinator(hass)
+    return await coordinator.handle_error(
         error,
         context=context,
         fallback_value=fallback_value,

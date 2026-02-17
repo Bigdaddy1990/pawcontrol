@@ -37,11 +37,9 @@ from .types import (
 _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry  # noqa: E111
-
-    from .entity_factory import EntityFactory  # noqa: E111
-
-    class ProfileOptionsHost(Protocol):  # noqa: E111
+    from homeassistant.config_entries import ConfigEntry
+    from .entity_factory import EntityFactory
+    class ProfileOptionsHost(Protocol):
         @property
         def _entry(self) -> ConfigEntry: ...
 
@@ -52,15 +50,12 @@ if TYPE_CHECKING:
         def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-    ProfileOptionsHost = object  # noqa: E111
-
-
+    ProfileOptionsHost = object
 class ProfileOptionsMixin(ProfileOptionsHost):
-    _entry: ConfigEntry  # noqa: E111
-    _profile_cache: dict[str, ConfigFlowPlaceholders]  # noqa: E111
-    _entity_estimates_cache: dict[str, JSONMutableMapping]  # noqa: E111
-
-    async def async_step_entity_profiles(  # noqa: E111
+    _entry: ConfigEntry
+    _profile_cache: dict[str, ConfigFlowPlaceholders]
+    _entity_estimates_cache: dict[str, JSONMutableMapping]
+    async def async_step_entity_profiles(
         self,
         user_input: EntityProfileOptionsInput | None = None,
     ) -> ConfigFlowResult:
@@ -70,7 +65,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         how many entities are created per dog.
         """
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 current_profile = validate_profile_selection(
                     cast(ProfileSelectionInput, user_input),
                 )
@@ -78,7 +73,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
                 if preview_estimate:
                     # Show entity count preview  # noqa: E114
-                    return await self.async_step_profile_preview(  # noqa: E111
+                    return await self.async_step_profile_preview(
                         {"profile": current_profile},
                     )
 
@@ -94,7 +89,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
                 return self.async_create_entry(title="", data=typed_options)
 
-            except vol.Invalid as err:  # noqa: E111
+            except vol.Invalid as err:
                 _LOGGER.warning(
                     "Invalid profile selection in options flow: %s",
                     err,
@@ -104,7 +99,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
                     data_schema=self._get_entity_profiles_schema(user_input),
                     errors={"base": "invalid_profile"},
                 )
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error updating entity profile: %s", err)
                 return self.async_show_form(
                     step_id="entity_profiles",
@@ -120,7 +115,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
             ),
         )
 
-    def _get_entity_profiles_schema(  # noqa: E111
+    def _get_entity_profiles_schema(
         self,
         user_input: EntityProfileOptionsInput | None = None,
     ) -> vol.Schema:
@@ -136,8 +131,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         )
 
         if current_profile not in ENTITY_PROFILES:
-            current_profile = DEFAULT_PROFILE  # noqa: E111
-
+            current_profile = DEFAULT_PROFILE
         profile_options = get_profile_selector_options()
 
         return vol.Schema(
@@ -158,7 +152,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
             },
         )
 
-    async def _get_profile_description_placeholders_cached(  # noqa: E111
+    async def _get_profile_description_placeholders_cached(
         self,
     ) -> ConfigFlowPlaceholders:
         """Get description placeholders with caching for better performance."""
@@ -166,14 +160,14 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         dogs_raw = self._entry.data.get(CONF_DOGS, [])
         current_dogs: list[DogConfigData] = []
         if isinstance(dogs_raw, Sequence):
-            for dog in dogs_raw:  # noqa: E111
+            for dog in dogs_raw:
                 if not isinstance(dog, Mapping):
-                    continue  # noqa: E111
+                    continue
                 normalised = ensure_dog_config_data(
                     cast(Mapping[str, JSONValue], dog),
                 )
                 if normalised is not None:
-                    current_dogs.append(normalised)  # noqa: E111
+                    current_dogs.append(normalised)
         current_dogs = current_dogs
         current_dogs = current_dogs
         dog_entries: list[Mapping[str, JSONValue]] = cast(
@@ -193,14 +187,14 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         telemetry = self._reconfigure_telemetry()
         telemetry_digest = ""
         if telemetry:
-            try:  # noqa: E111
+            try:
                 telemetry_digest = json.dumps(
                     self._normalise_export_value(dict(telemetry)),
                     sort_keys=True,
                 )
-            except ValueError:  # noqa: E111
+            except ValueError:
                 telemetry_digest = repr(sorted(telemetry.items()))
-            except TypeError:  # noqa: E111
+            except TypeError:
                 telemetry_digest = repr(sorted(telemetry.items()))
         serializable_dogs = [
             cast(JSONMutableMapping, dict(dog)) for dog in current_dogs
@@ -214,8 +208,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
         cached = self._profile_cache.get(cache_key)
         if cached is not None:
-            return cached  # noqa: E111
-
+            return cached
         total_estimate = 0
         profile_compatibility_issues: list[str] = []
 
@@ -235,14 +228,13 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         dog_entries_local = dog_entries
 
         for dog_config in dog_entries_local:
-            modules_config = ensure_dog_modules_mapping(dog_config)  # noqa: E111
-            estimate = await self._entity_factory.estimate_entity_count_async(  # noqa: E111
+            modules_config = ensure_dog_modules_mapping(dog_config)
+            estimate = await self._entity_factory.estimate_entity_count_async(
                 current_profile,
                 modules_config,
             )
-            total_estimate += estimate  # noqa: E111
-
-            if not self._entity_factory.validate_profile_for_modules(  # noqa: E111
+            total_estimate += estimate
+            if not self._entity_factory.validate_profile_for_modules(
                 current_profile,
                 modules_config,
             ):
@@ -288,12 +280,12 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         self._profile_cache[cache_key] = frozen_placeholders
         return frozen_placeholders
 
-    async def _get_profile_description_placeholders(self) -> ConfigFlowPlaceholders:  # noqa: E111
+    async def _get_profile_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Get description placeholders for profile selection."""
 
         return await self._get_profile_description_placeholders_cached()
 
-    def _get_performance_impact_description(self, profile: str) -> str:  # noqa: E111
+    def _get_performance_impact_description(self, profile: str) -> str:
         """Get performance impact description for profile."""
         impact_descriptions = {
             "basic": "Minimal resource usage, fastest startup",
@@ -304,7 +296,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         }
         return impact_descriptions.get(profile, "Balanced performance")
 
-    async def _calculate_profile_preview_optimized(  # noqa: E111
+    async def _calculate_profile_preview_optimized(
         self,
         profile: str,
     ) -> JSONMutableMapping:
@@ -313,22 +305,21 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         dogs_raw = self._entry.data.get(CONF_DOGS, [])
         current_dogs: list[DogConfigData] = []
         if isinstance(dogs_raw, Sequence):
-            for dog in dogs_raw:  # noqa: E111
+            for dog in dogs_raw:
                 if not isinstance(dog, Mapping):
-                    continue  # noqa: E111
+                    continue
                 normalised = ensure_dog_config_data(
                     cast(Mapping[str, JSONValue], dog),
                 )
                 if normalised is not None:
-                    current_dogs.append(normalised)  # noqa: E111
+                    current_dogs.append(normalised)
         dog_entries = cast(list[Mapping[str, JSONValue]], current_dogs)
 
         cache_key = f"{profile}_{len(current_dogs)}_{hash(json.dumps(current_dogs, sort_keys=True))}"
 
         cached_preview = self._entity_estimates_cache.get(cache_key)
         if cached_preview is not None:
-            return cached_preview  # noqa: E111
-
+            return cached_preview
         entity_breakdown: list[JSONMutableMapping] = []
         total_entities = 0
         performance_score = 100.0
@@ -345,22 +336,19 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         )
 
         for dog_config in dog_entries:
-            dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")  # noqa: E111
-            dog_id = dog_config.get(CONF_DOG_ID, "unknown")  # noqa: E111
-            modules_config = ensure_dog_modules_mapping(dog_config)  # noqa: E111
-
-            estimate = await self._entity_factory.estimate_entity_count_async(  # noqa: E111
+            dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
+            dog_id = dog_config.get(CONF_DOG_ID, "unknown")
+            modules_config = ensure_dog_modules_mapping(dog_config)
+            estimate = await self._entity_factory.estimate_entity_count_async(
                 profile,
                 modules_config,
             )
-            total_entities += estimate  # noqa: E111
-
-            enabled_modules = [  # noqa: E111
+            total_entities += estimate
+            enabled_modules = [
                 module for module, enabled in modules_config.items() if enabled
             ]
-            utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0  # noqa: E111
-
-            entity_breakdown.append(  # noqa: E111
+            utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0
+            entity_breakdown.append(
                 cast(
                     JSONMutableMapping,
                     {
@@ -373,9 +361,9 @@ class ProfileOptionsMixin(ProfileOptionsHost):
                 ),
             )
 
-            if utilization > 80:  # noqa: E111
+            if utilization > 80:
                 performance_score -= 10
-            elif utilization > 60:  # noqa: E111
+            elif utilization > 60:
                 performance_score -= 5
 
         raw_profile = self._entry.options.get("entity_profile")
@@ -388,10 +376,10 @@ class ProfileOptionsMixin(ProfileOptionsHost):
             else "standard"
         )
         if profile == current_profile:
-            current_total = total_entities  # noqa: E111
+            current_total = total_entities
         else:
-            current_total = 0  # noqa: E111
-            for dog_config in dog_entries:  # noqa: E111
+            current_total = 0
+            for dog_config in dog_entries:
                 modules = ensure_dog_modules_mapping(dog_config)
                 current_total += await self._entity_factory.estimate_entity_count_async(
                     current_profile,
@@ -418,7 +406,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         self._entity_estimates_cache[cache_key] = preview
         return preview
 
-    def _get_profile_recommendation_enhanced(  # noqa: E111
+    def _get_profile_recommendation_enhanced(
         self,
         total_entities: int,
         dog_count: int,
@@ -427,14 +415,14 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         """Get enhanced profile recommendation with performance considerations."""
 
         if performance_score < 70:
-            return "⚠️ Consider 'basic' or 'standard' profile for better performance"  # noqa: E111
+            return "⚠️ Consider 'basic' or 'standard' profile for better performance"
         if performance_score < 85:
-            return "💡 'Standard' profile recommended for balanced performance"  # noqa: E111
+            return "💡 'Standard' profile recommended for balanced performance"
         if dog_count == 1 and total_entities < 15:
-            return "✨ 'Advanced' profile available for full features"  # noqa: E111
+            return "✨ 'Advanced' profile available for full features"
         return "✅ Current profile is well-suited for your configuration"
 
-    def _get_profile_warnings(  # noqa: E111
+    def _get_profile_warnings(
         self,
         profile: str,
         dogs: list[DogConfigData],
@@ -444,30 +432,29 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         warnings: list[str] = []
 
         for dog in dogs:
-            dog_config = dog  # noqa: E111
-            module_flags = ensure_dog_modules_mapping(  # noqa: E111
+            dog_config = dog
+            module_flags = ensure_dog_modules_mapping(
                 cast(Mapping[str, JSONValue], dog_config),
             )
-            dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")  # noqa: E111
-
-            if profile == "gps_focus" and not module_flags.get(MODULE_GPS, False):  # noqa: E111
+            dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
+            if profile == "gps_focus" and not module_flags.get(MODULE_GPS, False):
                 warnings.append(
                     f"🛰️ {dog_name}: GPS focus profile but GPS module disabled",
                 )
 
-            if profile == "health_focus" and not module_flags.get(MODULE_HEALTH, False):  # noqa: E111
+            if profile == "health_focus" and not module_flags.get(MODULE_HEALTH, False):
                 warnings.append(
                     f"🏥 {dog_name}: Health focus profile but health module disabled",
                 )
 
-            if profile == "basic" and sum(module_flags.values()) > 3:  # noqa: E111
+            if profile == "basic" and sum(module_flags.values()) > 3:
                 warnings.append(
                     f"⚡ {dog_name}: Many modules enabled for basic profile",
                 )
 
         return warnings
 
-    async def async_step_profile_preview(  # noqa: E111
+    async def async_step_profile_preview(
         self,
         user_input: OptionsProfilePreviewInput | None = None,
     ) -> ConfigFlowResult:
@@ -479,43 +466,40 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         profile = raw_profile if isinstance(raw_profile, str) else "standard"
 
         if user_input is not None:
-            if user_input.get("apply_profile"):  # noqa: E111
+            if user_input.get("apply_profile"):
                 new_options = self._clone_options()
                 new_options["entity_profile"] = profile
                 typed_options = self._normalise_options_snapshot(new_options)
                 self._invalidate_profile_caches()
                 return self.async_create_entry(title="", data=typed_options)
 
-            return await self.async_step_entity_profiles()  # noqa: E111
-
+            return await self.async_step_entity_profiles()
         preview_data = await self._calculate_profile_preview_optimized(profile)
         breakdown_lines = []
 
         def as_float(value: object) -> float:
-            return float(value) if isinstance(value, int | float) else 0.0  # noqa: E111
-
+            return float(value) if isinstance(value, int | float) else 0.0
         def as_int(value: object) -> int:
-            return int(value) if isinstance(value, int | float) else 0  # noqa: E111
-
+            return int(value) if isinstance(value, int | float) else 0
         entity_breakdown = cast(
             list[JSONMutableMapping],
             preview_data.get("entity_breakdown", []),
         )
         for item in entity_breakdown:
-            modules_raw = item.get("modules", ())  # noqa: E111
-            modules_sequence = (  # noqa: E111
+            modules_raw = item.get("modules", ())
+            modules_sequence = (
                 modules_raw
                 if isinstance(modules_raw, Sequence)
                 and not isinstance(modules_raw, str)
                 else ()
             )
-            modules_display = (  # noqa: E111
+            modules_display = (
                 ", ".join(
                     cast(Sequence[str], modules_sequence),
                 )
                 or "none"
             )
-            breakdown_lines.append(  # noqa: E111
+            breakdown_lines.append(
                 f"• {item.get('dog_name', 'Unknown')}: {item.get('entities', 0)} "
                 f"entities (modules: {modules_display}, "
                 f"utilization: {as_float(item.get('utilization', 0.0)):.1f}%)",
@@ -581,7 +565,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
             ),
         )
 
-    async def async_step_performance_settings(  # noqa: E111
+    async def async_step_performance_settings(
         self,
         user_input: OptionsPerformanceSettingsInput | None = None,
     ) -> ConfigFlowResult:
@@ -590,7 +574,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         NEW: Combines entity profiles with other performance settings
         """
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 current_options = self._current_options()
                 new_options = self._clone_options()
 
@@ -609,15 +593,14 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
                 raw_batch = current_options.get("batch_size")
                 if isinstance(raw_batch, int):
-                    batch_default: int = raw_batch  # noqa: E111
+                    batch_default: int = raw_batch
                 else:
-                    batch_default = 15  # noqa: E111
-
+                    batch_default = 15
                 raw_cache = current_options.get("cache_ttl")
                 if isinstance(raw_cache, int):
-                    cache_default: int = raw_cache  # noqa: E111
+                    cache_default: int = raw_cache
                 else:
-                    cache_default = 300  # noqa: E111
+                    cache_default = 300
                 selective_default = bool(
                     current_options.get("selective_refresh", True),
                 )
@@ -650,7 +633,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
 
                 return self.async_create_entry(title="", data=typed_options)
 
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error updating performance settings: %s", err)
                 return self.async_show_form(
                     step_id="performance_settings",
@@ -665,7 +648,7 @@ class ProfileOptionsMixin(ProfileOptionsHost):
             data_schema=self._get_performance_settings_schema(),
         )
 
-    def _get_performance_settings_schema(  # noqa: E111
+    def _get_performance_settings_schema(
         self,
         user_input: OptionsPerformanceSettingsInput | None = None,
     ) -> vol.Schema:
@@ -676,9 +659,9 @@ class ProfileOptionsMixin(ProfileOptionsHost):
         # Profile options
         profile_options = []
         for profile_name, profile_config in ENTITY_PROFILES.items():
-            max_entities = profile_config["max_entities"]  # noqa: E111
-            description = profile_config["description"]  # noqa: E111
-            profile_options.append(  # noqa: E111
+            max_entities = profile_config["max_entities"]
+            description = profile_config["description"]
+            profile_options.append(
                 {
                     "value": profile_name,
                     "label": f"{profile_name.title()} ({max_entities}/dog) - {description}",

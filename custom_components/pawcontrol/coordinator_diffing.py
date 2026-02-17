@@ -29,29 +29,27 @@ class DataDiff:
         removed_keys: Keys present in old data but not new
         modified_keys: Keys present in both with different values
         unchanged_keys: Keys present in both with same values
-    """  # noqa: E111
-
-    added_keys: frozenset[str] = field(default_factory=frozenset)  # noqa: E111
-    removed_keys: frozenset[str] = field(default_factory=frozenset)  # noqa: E111
-    modified_keys: frozenset[str] = field(default_factory=frozenset)  # noqa: E111
-    unchanged_keys: frozenset[str] = field(default_factory=frozenset)  # noqa: E111
-
-    @property  # noqa: E111
-    def has_changes(self) -> bool:  # noqa: E111
+    """
+    added_keys: frozenset[str] = field(default_factory=frozenset)
+    removed_keys: frozenset[str] = field(default_factory=frozenset)
+    modified_keys: frozenset[str] = field(default_factory=frozenset)
+    unchanged_keys: frozenset[str] = field(default_factory=frozenset)
+    @property
+    def has_changes(self) -> bool:
         """Return True if there are any changes."""
         return bool(self.added_keys or self.removed_keys or self.modified_keys)
 
-    @property  # noqa: E111
-    def change_count(self) -> int:  # noqa: E111
+    @property
+    def change_count(self) -> int:
         """Return total number of changes."""
         return len(self.added_keys) + len(self.removed_keys) + len(self.modified_keys)
 
-    @property  # noqa: E111
-    def changed_keys(self) -> frozenset[str]:  # noqa: E111
+    @property
+    def changed_keys(self) -> frozenset[str]:
         """Return all keys that changed (added, removed, or modified)."""
         return self.added_keys | self.removed_keys | self.modified_keys
 
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "added": sorted(self.added_keys),
@@ -71,25 +69,23 @@ class DogDataDiff:
         dog_id: Dog identifier
         module_diffs: Per-module change information
         overall_diff: Summary of top-level changes
-    """  # noqa: E111
-
-    dog_id: str  # noqa: E111
-    module_diffs: Mapping[str, DataDiff] = field(default_factory=dict)  # noqa: E111
-    overall_diff: DataDiff = field(default_factory=DataDiff)  # noqa: E111
-
-    @property  # noqa: E111
-    def has_changes(self) -> bool:  # noqa: E111
+    """
+    dog_id: str
+    module_diffs: Mapping[str, DataDiff] = field(default_factory=dict)
+    overall_diff: DataDiff = field(default_factory=DataDiff)
+    @property
+    def has_changes(self) -> bool:
         """Return True if there are any changes."""
         return any(diff.has_changes for diff in self.module_diffs.values())
 
-    @property  # noqa: E111
-    def changed_modules(self) -> frozenset[str]:  # noqa: E111
+    @property
+    def changed_modules(self) -> frozenset[str]:
         """Return modules that have changes."""
         return frozenset(
             module for module, diff in self.module_diffs.items() if diff.has_changes
         )
 
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "dog_id": self.dog_id,
@@ -110,14 +106,12 @@ class CoordinatorDataDiff:
         dog_diffs: Per-dog change information
         added_dogs: Dog IDs added in new data
         removed_dogs: Dog IDs removed from old data
-    """  # noqa: E111
-
-    dog_diffs: Mapping[str, DogDataDiff] = field(default_factory=dict)  # noqa: E111
-    added_dogs: frozenset[str] = field(default_factory=frozenset)  # noqa: E111
-    removed_dogs: frozenset[str] = field(default_factory=frozenset)  # noqa: E111
-
-    @property  # noqa: E111
-    def has_changes(self) -> bool:  # noqa: E111
+    """
+    dog_diffs: Mapping[str, DogDataDiff] = field(default_factory=dict)
+    added_dogs: frozenset[str] = field(default_factory=frozenset)
+    removed_dogs: frozenset[str] = field(default_factory=frozenset)
+    @property
+    def has_changes(self) -> bool:
         """Return True if there are any changes."""
         return bool(
             self.added_dogs
@@ -125,20 +119,20 @@ class CoordinatorDataDiff:
             or any(diff.has_changes for diff in self.dog_diffs.values())
         )
 
-    @property  # noqa: E111
-    def changed_dogs(self) -> frozenset[str]:  # noqa: E111
+    @property
+    def changed_dogs(self) -> frozenset[str]:
         """Return dog IDs that have changes."""
         changed = frozenset(
             dog_id for dog_id, diff in self.dog_diffs.items() if diff.has_changes
         )
         return changed | self.added_dogs | self.removed_dogs
 
-    @property  # noqa: E111
-    def change_count(self) -> int:  # noqa: E111
+    @property
+    def change_count(self) -> int:
         """Return the number of changed dogs including adds/removals."""
         return len(self.changed_dogs)
 
-    def to_dict(self) -> dict[str, Any]:  # noqa: E111
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "has_changes": self.has_changes,
@@ -160,37 +154,35 @@ def _compare_values(old_value: Any, new_value: Any) -> bool:
 
     Returns:
         True if values are equal, False otherwise
-    """  # noqa: E111
+    """
     # Fast path for identical objects  # noqa: E114
-    if old_value is new_value:  # noqa: E111
+    if old_value is new_value:
         return True
 
     # Handle None  # noqa: E114
-    if old_value is None or new_value is None:  # noqa: E111
+    if old_value is None or new_value is None:
         return old_value == new_value
 
     # Handle different types  # noqa: E114
-    if type(old_value) is not type(new_value):  # noqa: E111
+    if type(old_value) is not type(new_value):
         return False
 
     # Handle mappings recursively  # noqa: E114
-    if isinstance(old_value, Mapping) and isinstance(new_value, Mapping):  # noqa: E111
+    if isinstance(old_value, Mapping) and isinstance(new_value, Mapping):
         if old_value.keys() != new_value.keys():
-            return False  # noqa: E111
+            return False
         return all(_compare_values(old_value[k], new_value[k]) for k in old_value)
 
     # Handle sequences recursively (but not strings)  # noqa: E114
-    if isinstance(old_value, (list, tuple)) and isinstance(new_value, (list, tuple)):  # noqa: E111
+    if isinstance(old_value, (list, tuple)) and isinstance(new_value, (list, tuple)):
         if len(old_value) != len(new_value):
-            return False  # noqa: E111
+            return False
         return all(
             _compare_values(o, n) for o, n in zip(old_value, new_value, strict=False)
         )
 
     # Default equality  # noqa: E114
-    return old_value == new_value  # noqa: E111
-
-
+    return old_value == new_value
 def compute_data_diff(
     old_data: Mapping[str, Any] | None,
     new_data: Mapping[str, Any] | None,
@@ -214,30 +206,26 @@ def compute_data_diff(
         frozenset({'a'})
         >>> diff.modified_keys
         frozenset({'b'})
-    """  # noqa: E111
-    if old_data is None:  # noqa: E111
+    """
+    if old_data is None:
         old_data = {}
-    if new_data is None:  # noqa: E111
+    if new_data is None:
         new_data = {}
 
-    old_keys = set(old_data.keys())  # noqa: E111
-    new_keys = set(new_data.keys())  # noqa: E111
-
-    added = frozenset(new_keys - old_keys)  # noqa: E111
-    removed = frozenset(old_keys - new_keys)  # noqa: E111
-
+    old_keys = set(old_data.keys())
+    new_keys = set(new_data.keys())
+    added = frozenset(new_keys - old_keys)
+    removed = frozenset(old_keys - new_keys)
     # Check for modifications in common keys  # noqa: E114
-    common_keys = old_keys & new_keys  # noqa: E111
-    modified: set[str] = set()  # noqa: E111
-    unchanged: set[str] = set()  # noqa: E111
-
-    for key in common_keys:  # noqa: E111
+    common_keys = old_keys & new_keys
+    modified: set[str] = set()
+    unchanged: set[str] = set()
+    for key in common_keys:
         if not _compare_values(old_data[key], new_data[key]):
-            modified.add(key)  # noqa: E111
+            modified.add(key)
         else:
-            unchanged.add(key)  # noqa: E111
-
-    return DataDiff(  # noqa: E111
+            unchanged.add(key)
+    return DataDiff(
         added_keys=added,
         removed_keys=removed,
         modified_keys=frozenset(modified),
@@ -266,44 +254,41 @@ def compute_dog_diff(
         >>> diff = compute_dog_diff("buddy", old, new)
         >>> diff.changed_modules
         frozenset({'gps'})
-    """  # noqa: E111
-    if old_dog_data is None:  # noqa: E111
+    """
+    if old_dog_data is None:
         old_dog_data = {}
-    if new_dog_data is None:  # noqa: E111
+    if new_dog_data is None:
         new_dog_data = {}
 
     # Compute overall diff at dog level  # noqa: E114
-    overall_diff = compute_data_diff(old_dog_data, new_dog_data)  # noqa: E111
-
+    overall_diff = compute_data_diff(old_dog_data, new_dog_data)
     # Compute per-module diffs  # noqa: E114
-    all_modules = set(old_dog_data.keys()) | set(new_dog_data.keys())  # noqa: E111
-    module_diffs: dict[str, DataDiff] = {}  # noqa: E111
-
-    for module in all_modules:  # noqa: E111
+    all_modules = set(old_dog_data.keys()) | set(new_dog_data.keys())
+    module_diffs: dict[str, DataDiff] = {}
+    for module in all_modules:
         old_module = old_dog_data.get(module)
         new_module = new_dog_data.get(module)
 
         if isinstance(old_module, Mapping) and isinstance(new_module, Mapping):
-            module_diffs[module] = compute_data_diff(old_module, new_module)  # noqa: E111
+            module_diffs[module] = compute_data_diff(old_module, new_module)
         elif old_module is None and new_module is not None:
             # Module added  # noqa: E114
-            module_diffs[module] = DataDiff(  # noqa: E111
+            module_diffs[module] = DataDiff(
                 added_keys=frozenset(
                     new_module.keys() if isinstance(new_module, Mapping) else []
                 )
             )
         elif old_module is not None and new_module is None:
             # Module removed  # noqa: E114
-            module_diffs[module] = DataDiff(  # noqa: E111
+            module_diffs[module] = DataDiff(
                 removed_keys=frozenset(
                     old_module.keys() if isinstance(old_module, Mapping) else []
                 )
             )
         elif not _compare_values(old_module, new_module):
             # Module changed but not a mapping (e.g., scalar value)  # noqa: E114
-            module_diffs[module] = DataDiff(modified_keys=frozenset([module]))  # noqa: E111
-
-    return DogDataDiff(  # noqa: E111
+            module_diffs[module] = DataDiff(modified_keys=frozenset([module]))
+    return DogDataDiff(
         dog_id=dog_id,
         module_diffs=module_diffs,
         overall_diff=overall_diff,
@@ -331,28 +316,25 @@ def compute_coordinator_diff(
         frozenset({'max'})
         >>> diff.changed_dogs
         frozenset({'buddy', 'max'})
-    """  # noqa: E111
-    if old_data is None:  # noqa: E111
+    """
+    if old_data is None:
         old_data = {}
-    if new_data is None:  # noqa: E111
+    if new_data is None:
         new_data = {}
 
-    old_dogs = set(old_data.keys())  # noqa: E111
-    new_dogs = set(new_data.keys())  # noqa: E111
-
-    added_dogs = frozenset(new_dogs - old_dogs)  # noqa: E111
-    removed_dogs = frozenset(old_dogs - new_dogs)  # noqa: E111
-
+    old_dogs = set(old_data.keys())
+    new_dogs = set(new_data.keys())
+    added_dogs = frozenset(new_dogs - old_dogs)
+    removed_dogs = frozenset(old_dogs - new_dogs)
     # Compute per-dog diffs  # noqa: E114
-    all_dogs = old_dogs | new_dogs  # noqa: E111
-    dog_diffs: dict[str, DogDataDiff] = {}  # noqa: E111
-
-    for dog_id in all_dogs:  # noqa: E111
+    all_dogs = old_dogs | new_dogs
+    dog_diffs: dict[str, DogDataDiff] = {}
+    for dog_id in all_dogs:
         old_dog = old_data.get(dog_id)
         new_dog = new_data.get(dog_id)
         dog_diffs[dog_id] = compute_dog_diff(dog_id, old_dog, new_dog)
 
-    return CoordinatorDataDiff(  # noqa: E111
+    return CoordinatorDataDiff(
         dog_diffs=dog_diffs,
         added_dogs=added_dogs,
         removed_dogs=removed_dogs,
@@ -379,41 +361,35 @@ def should_notify_entities(
         >>> diff = CoordinatorDataDiff(...)
         >>> should_notify_entities(diff, dog_id="buddy", module="gps")
         True
-    """  # noqa: E111
-    if not diff.has_changes:  # noqa: E111
+    """
+    if not diff.has_changes:
         return False
 
     # If no filters, notify if any changes exist  # noqa: E114
-    if dog_id is None and module is None:  # noqa: E111
+    if dog_id is None and module is None:
         return True
 
     # If dog_id filter specified  # noqa: E114
-    if dog_id is not None:  # noqa: E111
+    if dog_id is not None:
         if dog_id in diff.added_dogs or dog_id in diff.removed_dogs:
-            return True  # noqa: E111
-
+            return True
         dog_diff = diff.dog_diffs.get(dog_id)
         if dog_diff is None:
-            return False  # noqa: E111
-
+            return False
         if not dog_diff.has_changes:
-            return False  # noqa: E111
-
+            return False
         # If module filter also specified
         if module is not None:
-            return module in dog_diff.changed_modules  # noqa: E111
-
+            return module in dog_diff.changed_modules
         return True
 
     # If only module filter specified (check all dogs)  # noqa: E114
-    if module is not None:  # noqa: E111
+    if module is not None:
         return any(
             module in dog_diff.changed_modules for dog_diff in diff.dog_diffs.values()
         )
 
-    return False  # noqa: E111
-
-
+    return False
 class SmartDiffTracker:
     """Tracks data changes and provides smart diffing capabilities.
 
@@ -426,25 +402,24 @@ class SmartDiffTracker:
         >>> diff = tracker.last_diff
         >>> if should_notify_entities(diff, dog_id="buddy", module="gps"):
         ...     # Notify GPS entities for buddy
-    """  # noqa: E111
-
-    def __init__(self) -> None:  # noqa: E111
+    """
+    def __init__(self) -> None:
         """Initialize the diff tracker."""
         self._previous_data: CoordinatorDataPayload | None = None
         self._last_diff: CoordinatorDataDiff | None = None
         self._update_count = 0
 
-    @property  # noqa: E111
-    def last_diff(self) -> CoordinatorDataDiff | None:  # noqa: E111
+    @property
+    def last_diff(self) -> CoordinatorDataDiff | None:
         """Return the most recent diff."""
         return self._last_diff
 
-    @property  # noqa: E111
-    def update_count(self) -> int:  # noqa: E111
+    @property
+    def update_count(self) -> int:
         """Return number of updates processed."""
         return self._update_count
 
-    def update(self, new_data: CoordinatorDataPayload) -> CoordinatorDataDiff:  # noqa: E111
+    def update(self, new_data: CoordinatorDataPayload) -> CoordinatorDataDiff:
         """Update with new data and compute diff.
 
         Args:
@@ -454,14 +429,14 @@ class SmartDiffTracker:
             Diff from previous data to new data
         """
         if self._previous_data is None:
-            diff = compute_coordinator_diff({}, new_data)  # noqa: E111
+            diff = compute_coordinator_diff({}, new_data)
         else:
-            diff = compute_coordinator_diff(self._previous_data, new_data)  # noqa: E111
+            diff = compute_coordinator_diff(self._previous_data, new_data)
         self._previous_data = dict(new_data)  # Deep copy top level
         self._last_diff = diff
         self._update_count += 1
         if diff.has_changes:
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Data diff computed: %d dogs changed, %d added, %d removed",
                 len([d for d in diff.dog_diffs.values() if d.has_changes]),
                 len(diff.added_dogs),
@@ -470,13 +445,13 @@ class SmartDiffTracker:
 
         return diff
 
-    def reset(self) -> None:  # noqa: E111
+    def reset(self) -> None:
         """Reset tracker state."""
         self._previous_data = None
         self._last_diff = None
         self._update_count = 0
 
-    def get_changed_entities(  # noqa: E111
+    def get_changed_entities(
         self,
         diff: CoordinatorDataDiff | None = None,
         *,
@@ -500,11 +475,9 @@ class SmartDiffTracker:
             >>> # Returns: frozenset({'buddy.gps.latitude', 'buddy.gps.longitude'})
         """
         if diff is None:
-            diff = self._last_diff  # noqa: E111
-
+            diff = self._last_diff
         if diff is None or not diff.has_changes:
-            return frozenset()  # noqa: E111
-
+            return frozenset()
         entity_keys: set[str] = set()
 
         # Filter by dog_id if specified
@@ -513,28 +486,27 @@ class SmartDiffTracker:
         )
 
         for check_dog_id in dog_ids_to_check:
-            if check_dog_id in diff.added_dogs or check_dog_id in diff.removed_dogs:  # noqa: E111
+            if check_dog_id in diff.added_dogs or check_dog_id in diff.removed_dogs:
                 # All entities for this dog should update
                 if module is not None:
-                    entity_keys.add(f"{check_dog_id}.{module}")  # noqa: E111
+                    entity_keys.add(f"{check_dog_id}.{module}")
                 else:
-                    entity_keys.add(check_dog_id)  # noqa: E111
+                    entity_keys.add(check_dog_id)
                 continue
 
-            dog_diff = diff.dog_diffs.get(check_dog_id)  # noqa: E111
-            if dog_diff is None:  # noqa: E111
+            dog_diff = diff.dog_diffs.get(check_dog_id)
+            if dog_diff is None:
                 continue
 
             # Filter by module if specified  # noqa: E114
-            modules_to_check = (  # noqa: E111
+            modules_to_check = (
                 [module] if module is not None else list(dog_diff.module_diffs.keys())
             )
 
-            for check_module in modules_to_check:  # noqa: E111
+            for check_module in modules_to_check:
                 module_diff = dog_diff.module_diffs.get(check_module)
                 if module_diff is not None and module_diff.has_changes:
-                    entity_keys.add(f"{check_dog_id}.{check_module}")  # noqa: E111
-
+                    entity_keys.add(f"{check_dog_id}.{check_module}")
         return frozenset(entity_keys)
 
 
@@ -562,21 +534,18 @@ def get_changed_fields(
         frozenset({'x', 'y'})
         >>> get_changed_fields(diff, include_modified=False)
         frozenset({'x'})
-    """  # noqa: E111
-    fields: set[str] = set()  # noqa: E111
-
-    if include_added:  # noqa: E111
+    """
+    fields: set[str] = set()
+    if include_added:
         fields.update(diff.added_keys)
 
-    if include_modified:  # noqa: E111
+    if include_modified:
         fields.update(diff.modified_keys)
 
-    if include_removed:  # noqa: E111
+    if include_removed:
         fields.update(diff.removed_keys)
 
-    return frozenset(fields)  # noqa: E111
-
-
+    return frozenset(fields)
 def log_diff_summary(
     diff: CoordinatorDataDiff,
     logger: logging.Logger | None = None,
@@ -591,38 +560,37 @@ def log_diff_summary(
         >>> diff = compute_coordinator_diff(old_data, new_data)
         >>> log_diff_summary(diff)
         # Logs: "Coordinator diff: 2 dogs changed (gps, walk modules)"
-    """  # noqa: E111
-    if logger is None:  # noqa: E111
+    """
+    if logger is None:
         logger = _LOGGER
 
-    if not diff.has_changes:  # noqa: E111
+    if not diff.has_changes:
         logger.debug("Coordinator diff: No changes detected")
         return
 
-    changed_count = len([d for d in diff.dog_diffs.values() if d.has_changes])  # noqa: E111
-    added_count = len(diff.added_dogs)  # noqa: E111
-    removed_count = len(diff.removed_dogs)  # noqa: E111
-
-    summary_parts = []  # noqa: E111
-    if changed_count > 0:  # noqa: E111
+    changed_count = len([d for d in diff.dog_diffs.values() if d.has_changes])
+    added_count = len(diff.added_dogs)
+    removed_count = len(diff.removed_dogs)
+    summary_parts = []
+    if changed_count > 0:
         summary_parts.append(f"{changed_count} dogs changed")
-    if added_count > 0:  # noqa: E111
+    if added_count > 0:
         summary_parts.append(f"{added_count} added")
-    if removed_count > 0:  # noqa: E111
+    if removed_count > 0:
         summary_parts.append(f"{removed_count} removed")
 
     # Collect changed modules across all dogs  # noqa: E114
-    all_changed_modules: set[str] = set()  # noqa: E111
-    for dog_diff in diff.dog_diffs.values():  # noqa: E111
+    all_changed_modules: set[str] = set()
+    for dog_diff in diff.dog_diffs.values():
         all_changed_modules.update(dog_diff.changed_modules)
 
-    module_info = (  # noqa: E111
+    module_info = (
         f" ({', '.join(sorted(all_changed_modules))} modules)"
         if all_changed_modules
         else ""
     )
 
-    logger.debug(  # noqa: E111
+    logger.debug(
         "Coordinator diff: %s%s",
         ", ".join(summary_parts),
         module_info,

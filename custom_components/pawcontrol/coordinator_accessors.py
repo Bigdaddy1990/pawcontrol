@@ -19,38 +19,34 @@ _TYPED_MODULES: frozenset[CoordinatorTypedModuleName] = frozenset(
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
-    from .coordinator_support import DogConfigRegistry  # noqa: E111
-
-
+    from .coordinator_support import DogConfigRegistry
 class CoordinatorDataAccessMixin:
-    """Provide read helpers for coordinator managed state."""  # noqa: E111
-
-    registry: DogConfigRegistry  # noqa: E111
-    _data: CoordinatorDataPayload  # noqa: E111
-    runtime_managers: CoordinatorRuntimeManagers  # noqa: E111
-
-    def get_dog_config(self, dog_id: str) -> DogConfigData | None:  # noqa: E111
+    """Provide read helpers for coordinator managed state."""
+    registry: DogConfigRegistry
+    _data: CoordinatorDataPayload
+    runtime_managers: CoordinatorRuntimeManagers
+    def get_dog_config(self, dog_id: str) -> DogConfigData | None:
         """Return the configuration payload for a dog."""
 
         return self.registry.get(dog_id)
 
-    def get_dog_ids(self) -> list[str]:  # noqa: E111
+    def get_dog_ids(self) -> list[str]:
         """Return all configured dog identifiers."""
 
         return self.registry.ids()
 
-    def get_configured_dog_ids(self) -> list[str]:  # noqa: E111
+    def get_configured_dog_ids(self) -> list[str]:
         """Return helper alias for existing dog identifiers."""
 
         return self.get_dog_ids()
 
-    def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:  # noqa: E111
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
         """Return the cached runtime payload for a dog."""
 
         return self._data.get(dog_id)
 
-    @overload  # noqa: E111
-    def get_module_data(  # noqa: E111
+    @overload
+    def get_module_data(
         self,
         dog_id: str,
         module: Literal[
@@ -65,15 +61,15 @@ class CoordinatorDataAccessMixin:
     ) -> CoordinatorModuleState:
         """Return coordinator data for a typed module."""
 
-    @overload  # noqa: E111
-    def get_module_data(  # noqa: E111
+    @overload
+    def get_module_data(
         self,
         dog_id: str,
         module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return cached data for a module without strict typing."""
 
-    def get_module_data(  # noqa: E111
+    def get_module_data(
         self,
         dog_id: str,
         module: str,
@@ -81,11 +77,10 @@ class CoordinatorDataAccessMixin:
         """Return cached data for a specific module."""
 
         if not isinstance(module, str):
-            return cast(CoordinatorUntypedModuleState, {})  # noqa: E111
-
+            return cast(CoordinatorUntypedModuleState, {})
         dog_data = self._data.get(dog_id)
         if not dog_data:
-            return (  # noqa: E111
+            return (
                 cast(CoordinatorModuleState, {"status": "unknown"})
                 if CoordinatorDataAccessMixin._is_typed_module(module)
                 else cast(CoordinatorUntypedModuleState, {})
@@ -93,36 +88,34 @@ class CoordinatorDataAccessMixin:
 
         module_data = dog_data.get(module)
         if CoordinatorDataAccessMixin._is_typed_module(module):
-            if isinstance(module_data, Mapping):  # noqa: E111
+            if isinstance(module_data, Mapping):
                 return cast(CoordinatorModuleState, module_data)
-            return cast(CoordinatorModuleState, {"status": "unknown"})  # noqa: E111
-
+            return cast(CoordinatorModuleState, {"status": "unknown"})
         if isinstance(module_data, Mapping):
-            return cast(CoordinatorUntypedModuleState, module_data)  # noqa: E111
-
+            return cast(CoordinatorUntypedModuleState, module_data)
         return cast(CoordinatorUntypedModuleState, {})
 
-    @staticmethod  # noqa: E111
-    def _is_typed_module(module: str) -> TypeGuard[CoordinatorTypedModuleName]:  # noqa: E111
+    @staticmethod
+    def _is_typed_module(module: str) -> TypeGuard[CoordinatorTypedModuleName]:
         """Return True if ``module`` stores structured coordinator state."""
 
         return module in _TYPED_MODULES
 
-    def get_configured_dog_name(self, dog_id: str) -> str | None:  # noqa: E111
+    def get_configured_dog_name(self, dog_id: str) -> str | None:
         """Return the configured display name for a dog."""
 
         return self.registry.get_name(dog_id)
 
-    def get_dog_info(self, dog_id: str) -> DogConfigData:  # noqa: E111
+    def get_dog_info(self, dog_id: str) -> DogConfigData:
         """Return the latest dog info payload, falling back to config."""
 
         dog_data = self.get_dog_data(dog_id)
         if dog_data is not None:
-            dog_info = dog_data.get("dog_info")  # noqa: E111
-            if isinstance(dog_info, Mapping):  # noqa: E111
+            dog_info = dog_data.get("dog_info")
+            if isinstance(dog_info, Mapping):
                 return dog_info
 
         config = self.registry.get(dog_id)
         if config is not None:
-            return config  # noqa: E111
+            return config
         return cast(DogConfigData, {})

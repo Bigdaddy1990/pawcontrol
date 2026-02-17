@@ -19,31 +19,25 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
-    from homeassistant.const import Platform  # noqa: E111
-
-    NumberSelectorType = Any  # noqa: E111
+    from homeassistant.const import Platform
+    NumberSelectorType = Any
 else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
-    try:  # noqa: E111
+    try:
         from homeassistant.const import Platform
-    except ModuleNotFoundError:  # noqa: E111
-
+    except ModuleNotFoundError:
         class Platform(StrEnum):  # type: ignore[misc]
-            """Minimal Platform enum used when Home Assistant isn't installed."""  # noqa: E111
-
-            SENSOR = "sensor"  # noqa: E111
-            BINARY_SENSOR = "binary_sensor"  # noqa: E111
-            BUTTON = "button"  # noqa: E111
-            SWITCH = "switch"  # noqa: E111
-            NUMBER = "number"  # noqa: E111
-            SELECT = "select"  # noqa: E111
-            TEXT = "text"  # noqa: E111
-            DEVICE_TRACKER = "device_tracker"  # noqa: E111
-            DATE = "date"  # noqa: E111
-            DATETIME = "datetime"  # noqa: E111
-
-    NumberSelectorType = Any  # noqa: E111
-
-
+            """Minimal Platform enum used when Home Assistant isn't installed."""
+            SENSOR = "sensor"
+            BINARY_SENSOR = "binary_sensor"
+            BUTTON = "button"
+            SWITCH = "switch"
+            NUMBER = "number"
+            SELECT = "select"
+            TEXT = "text"
+            DEVICE_TRACKER = "device_tracker"
+            DATE = "date"
+            DATETIME = "datetime"
+    NumberSelectorType = Any
 from .selector_shim import selector
 
 # OPTIMIZED: Storage versions for data persistence

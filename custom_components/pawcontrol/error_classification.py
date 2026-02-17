@@ -51,14 +51,12 @@ _RATE_LIMIT_HINTS: Final[tuple[str, ...]] = (
 
 
 def _normalise_text(value: object | None) -> str:
-    """Return a lowercase string suitable for matching against ``value``."""  # noqa: E111
-    if value is None:  # noqa: E111
+    """Return a lowercase string suitable for matching against ``value``."""
+    if value is None:
         return ""
     # When ``value`` is an Exception, use its string form; otherwise cast to str  # noqa: E114, E501
-    text = str(value) if isinstance(value, Exception) else str(value)  # noqa: E111
-    return text.strip().lower()  # noqa: E111
-
-
+    text = str(value) if isinstance(value, Exception) else str(value)
+    return text.strip().lower()
 def classify_error_reason(
     reason: str | None,
     *,
@@ -72,34 +70,31 @@ def classify_error_reason(
     known values such as ``auth_error``, ``device_unreachable``, ``timeout``,
     ``rate_limited``, ``missing_service``, ``guard_skipped``, ``exception`` or
     ``unknown``.
-    """  # noqa: E111
-
-    reason_text = _normalise_text(reason)  # noqa: E111
-    if reason_text:  # noqa: E111
+    """
+    reason_text = _normalise_text(reason)
+    if reason_text:
         classified = _REASON_CLASSIFICATIONS.get(reason_text)
         if classified is not None:
-            return classified  # noqa: E111
-
-    error_text = _normalise_text(error)  # noqa: E111
+            return classified
+    error_text = _normalise_text(error)
     # Hints to detect authentication/authorization errors  # noqa: E114
-    for hint in _AUTH_HINTS:  # noqa: E111
+    for hint in _AUTH_HINTS:
         if hint in error_text:
-            return "auth_error"  # noqa: E111
+            return "auth_error"
     # Hints to detect unreachable devices or network issues  # noqa: E114
-    for hint in _UNREACHABLE_HINTS:  # noqa: E111
+    for hint in _UNREACHABLE_HINTS:
         if hint in error_text:
-            return "device_unreachable"  # noqa: E111
+            return "device_unreachable"
     # Hints to detect timeout conditions  # noqa: E114
-    for hint in _TIMEOUT_HINTS:  # noqa: E111
+    for hint in _TIMEOUT_HINTS:
         if hint in error_text:
-            return "timeout"  # noqa: E111
+            return "timeout"
     # Hints to detect rate limiting  # noqa: E114
-    for hint in _RATE_LIMIT_HINTS:  # noqa: E111
+    for hint in _RATE_LIMIT_HINTS:
         if hint in error_text:
-            return "rate_limited"  # noqa: E111
-
+            return "rate_limited"
     # Explicitly classify generic exception reasons  # noqa: E114
-    if reason_text == "exception":  # noqa: E111
+    if reason_text == "exception":
         return "exception"
 
-    return "unknown"  # noqa: E111
+    return "unknown"

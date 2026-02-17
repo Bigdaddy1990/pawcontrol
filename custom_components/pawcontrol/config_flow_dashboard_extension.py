@@ -79,45 +79,38 @@ def _build_dashboard_configure_placeholders(
     dashboard_info: str,
     features: str,
 ) -> ConfigFlowPlaceholders:
-    """Return immutable placeholders for the dashboard configuration form."""  # noqa: E111
-
-    placeholders = clone_placeholders(  # noqa: E111
+    """Return immutable placeholders for the dashboard configuration form."""
+    placeholders = clone_placeholders(
         DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE,
     )
-    placeholders["dog_count"] = dog_count  # noqa: E111
-    placeholders["dashboard_info"] = dashboard_info  # noqa: E111
-    placeholders["features"] = features  # noqa: E111
-    return freeze_placeholders(placeholders)  # noqa: E111
-
-
+    placeholders["dog_count"] = dog_count
+    placeholders["dashboard_info"] = dashboard_info
+    placeholders["features"] = features
+    return freeze_placeholders(placeholders)
 def _translated_dashboard_info_line(
     language: str | None,
     key: str,
     *,
     count: int | None = None,
 ) -> str:
-    """Return a localized dashboard info line."""  # noqa: E111
-
-    translations = _DASHBOARD_INFO_TRANSLATIONS.get(key)  # noqa: E111
-    if translations is None:  # noqa: E111
+    """Return a localized dashboard info line."""
+    translations = _DASHBOARD_INFO_TRANSLATIONS.get(key)
+    if translations is None:
         template = key
-    else:  # noqa: E111
+    else:
         template = (
             translations.get(normalize_dashboard_language(language))
             or translations.get("en")
             or key
         )
 
-    if count is not None:  # noqa: E111
+    if count is not None:
         return template.format(count=count)
 
-    return template  # noqa: E111
-
-
+    return template
 class DashboardFlowMixin:
-    """Mixin adding dashboard configuration steps to the config flow."""  # noqa: E111
-
-    if TYPE_CHECKING:  # noqa: E111
+    """Mixin adding dashboard configuration steps to the config flow."""
+    if TYPE_CHECKING:
         _dogs: list[DogConfigData]
         _enabled_modules: DogModulesConfig
         _dashboard_config: DashboardSetupConfig
@@ -126,16 +119,14 @@ class DashboardFlowMixin:
             self,
             user_input: ExternalEntityConfig | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for the GPS entity configuration step."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for the GPS entity configuration step."""
+            ...
         async def async_step_final_setup(
             self,
             user_input: ConfigFlowUserInput | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for the concluding config flow step."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for the concluding config flow step."""
+            ...
         def async_show_form(
             self,
             *,
@@ -144,10 +135,9 @@ class DashboardFlowMixin:
             description_placeholders: ConfigFlowPlaceholders | None = None,
             errors: dict[str, str] | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for Home Assistant form rendering."""  # noqa: E111
-            ...  # noqa: E111
-
-    async def async_step_configure_dashboard(  # noqa: E111
+            """Type-checking stub for Home Assistant form rendering."""
+            ...
+    async def async_step_configure_dashboard(
         self,
         user_input: DashboardConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -160,20 +150,20 @@ class DashboardFlowMixin:
         has_multiple_dogs = len(self._dogs) > 1
 
         if user_input is not None:
-            has_gps_enabled = self._enabled_modules.get(MODULE_GPS, False) or any(  # noqa: E111
+            has_gps_enabled = self._enabled_modules.get(MODULE_GPS, False) or any(
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                     MODULE_GPS,
                     False,
                 )
                 for dog in self._dogs
             )
-            str(  # noqa: E111
+            str(
                 user_input.get(
                     "dashboard_mode",
                     DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",
                 ),
             )
-            dashboard_config: DashboardSetupConfig = {  # noqa: E111
+            dashboard_config: DashboardSetupConfig = {
                 DASHBOARD_ENABLED_FIELD: True,
                 DASHBOARD_AUTO_CREATE_FIELD: bool(
                     user_input.get(
@@ -197,12 +187,10 @@ class DashboardFlowMixin:
                 SHOW_STATISTICS_FIELD: bool(user_input.get("show_statistics", True)),
                 SHOW_MAPS_FIELD: bool(user_input.get("show_maps", True)),
             }
-            self._dashboard_config = dashboard_config  # noqa: E111
-
-            if bool(has_gps_enabled):  # noqa: E111
+            self._dashboard_config = dashboard_config
+            if bool(has_gps_enabled):
                 return await self.async_step_configure_external_entities()
-            return await self.async_step_final_setup()  # noqa: E111
-
+            return await self.async_step_final_setup()
         has_gps_enabled = bool(
             self._enabled_modules.get(MODULE_GPS, False)
             or any(
@@ -217,7 +205,7 @@ class DashboardFlowMixin:
         hass_language: str | None = None
         hass = getattr(self, "hass", None)
         if hass is not None:
-            hass_language = getattr(  # noqa: E111
+            hass_language = getattr(
                 getattr(hass, "config", None),
                 "language",
                 None,
@@ -290,7 +278,7 @@ class DashboardFlowMixin:
             description_placeholders=dict(placeholders),
         )
 
-    def _get_dashboard_info(self, language: str | None) -> str:  # noqa: E111
+    def _get_dashboard_info(self, language: str | None) -> str:
         """Get dashboard information for display."""
 
         info = [
@@ -301,7 +289,7 @@ class DashboardFlowMixin:
         ]
 
         if len(self._dogs) > 1:
-            info.append(  # noqa: E111
+            info.append(
                 _translated_dashboard_info_line(
                     language,
                     "multi_dog",
@@ -311,7 +299,7 @@ class DashboardFlowMixin:
 
         return "\n".join(info)
 
-    def _build_dashboard_features_string(  # noqa: E111
+    def _build_dashboard_features_string(
         self,
         language: str | None,
         has_gps_enabled: bool,
@@ -321,11 +309,9 @@ class DashboardFlowMixin:
         feature_keys = ["status_cards", "activity_tracking", "quick_actions"]
 
         if has_gps_enabled:
-            feature_keys.append("location_maps")  # noqa: E111
-
+            feature_keys.append("location_maps")
         if len(self._dogs) > 1:
-            feature_keys.append("multi_dog_overview")  # noqa: E111
-
+            feature_keys.append("multi_dog_overview")
         return ", ".join(
             translated_dashboard_feature(language, key) for key in feature_keys
         )

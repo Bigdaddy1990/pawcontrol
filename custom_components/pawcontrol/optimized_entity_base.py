@@ -87,9 +87,8 @@ _LOGGER = logging.getLogger(__name__)
 def _normalise_attributes(
     attributes: OptimizedEntityAttributesPayload,
 ) -> OptimizedEntityAttributesPayload:
-    """Return a JSON-serialisable copy of entity attributes."""  # noqa: E111
-
-    return cast(  # noqa: E111
+    """Return a JSON-serialisable copy of entity attributes."""
+    return cast(
         OptimizedEntityAttributesPayload,
         normalize_value(attributes),
     )
@@ -114,36 +113,24 @@ MEMORY_OPTIMIZATION: Final[OptimizedEntityMemoryConfig] = {
 
 @dataclass(slots=True)
 class _StateCacheEntry:
-    """State cache entry storing payload snapshots and coordinator status."""  # noqa: E111
-
-    payload: OptimizedEntityStateCachePayload  # noqa: E111
-    timestamp: float  # noqa: E111
-    coordinator_available: bool | None = None  # noqa: E111
-
-
+    """State cache entry storing payload snapshots and coordinator status."""
+    payload: OptimizedEntityStateCachePayload
+    timestamp: float
+    coordinator_available: bool | None = None
 @dataclass(slots=True)
 class _AttributesCacheEntry:
-    """Attribute cache entry storing generated attributes and timestamp."""  # noqa: E111
-
-    attributes: OptimizedEntityAttributesPayload  # noqa: E111
-    timestamp: float  # noqa: E111
-
-
+    """Attribute cache entry storing generated attributes and timestamp."""
+    attributes: OptimizedEntityAttributesPayload
+    timestamp: float
 @dataclass(slots=True)
 class _AvailabilityCacheEntry:
-    """Availability cache entry tracking coordinator state transitions."""  # noqa: E111
-
-    available: bool  # noqa: E111
-    timestamp: float  # noqa: E111
-    coordinator_available: bool  # noqa: E111
-
-
+    """Availability cache entry tracking coordinator state transitions."""
+    available: bool
+    timestamp: float
+    coordinator_available: bool
 class _TimestampedEntry(Protocol):
-    """Protocol describing timestamped cache entries."""  # noqa: E111
-
-    timestamp: float  # noqa: E111
-
-
+    """Protocol describing timestamped cache entries."""
+    timestamp: float
 _STATE_CACHE: dict[str, _StateCacheEntry] = {}
 _ATTRIBUTES_CACHE: dict[str, _AttributesCacheEntry] = {}
 _AVAILABILITY_CACHE: dict[str, _AvailabilityCacheEntry] = {}
@@ -156,11 +143,8 @@ _PERFORMANCE_METRICS: dict[str, list[float]] = {}
 
 
 def _utcnow_timestamp() -> float:
-    """Return a UTC timestamp that honours patched Home Assistant helpers."""  # noqa: E111
-
-    return dt_util.utcnow().timestamp()  # noqa: E111
-
-
+    """Return a UTC timestamp that honours patched Home Assistant helpers."""
+    return dt_util.utcnow().timestamp()
 def _normalize_cache_timestamp(
     cache_time: float,
     now: float,
@@ -176,42 +160,36 @@ def _normalize_cache_timestamp(
     instead of leaking stale data, so the timestamp is normalised to ``now``
     whenever it drifts ahead of the current time beyond the permitted
     ``tolerance``.
-    """  # noqa: E111
-
-    if cache_time <= now:  # noqa: E111
+    """
+    if cache_time <= now:
         return cache_time, False
 
-    if cache_time - now <= tolerance:  # noqa: E111
+    if cache_time - now <= tolerance:
         return now, True
 
-    _LOGGER.debug(  # noqa: E111
+    _LOGGER.debug(
         "Detected future cache timestamp %.3f (now=%.3f); normalising",
         cache_time,
         now,
     )
-    return now, True  # noqa: E111
-
-
+    return now, True
 def _coordinator_is_available(coordinator: Any) -> bool:
-    """Return True if the coordinator exposes an available flag set to truthy."""  # noqa: E111
-
-    if coordinator is None:  # noqa: E111
+    """Return True if the coordinator exposes an available flag set to truthy."""
+    if coordinator is None:
         return True
 
-    available = getattr(coordinator, "available", True)  # noqa: E111
-
-    if callable(available):  # noqa: E111
+    available = getattr(coordinator, "available", True)
+    if callable(available):
         try:
-            available = available()  # noqa: E111
+            available = available()
         except TypeError:
-            return True  # noqa: E111
-
-    if inspect.isawaitable(available):  # noqa: E111
+            return True
+    if inspect.isawaitable(available):
         return True
 
-    try:  # noqa: E111
+    try:
         return bool(available)
-    except Exception:  # pragma: no cover - defensive conversions  # noqa: E111
+    except Exception:  # pragma: no cover - defensive conversions
         return True
 
 
@@ -221,33 +199,29 @@ def _call_coordinator_method(
     *args: Any,
     **kwargs: Any,
 ) -> Any | None:
-    """Safely call a coordinator helper if it exists and returns synchronously."""  # noqa: E111
-
-    if coordinator is None:  # noqa: E111
+    """Safely call a coordinator helper if it exists and returns synchronously."""
+    if coordinator is None:
         return None
 
-    target = getattr(coordinator, method, None)  # noqa: E111
-    if target is None:  # noqa: E111
+    target = getattr(coordinator, method, None)
+    if target is None:
         return None
 
-    try:  # noqa: E111
+    try:
         result = target(*args, **kwargs)
-    except TypeError:  # noqa: E111
+    except TypeError:
         return None
-    except Exception as err:  # pragma: no cover - defensive guard  # noqa: E111
+    except Exception as err:  # pragma: no cover - defensive guard
         _LOGGER.debug("Coordinator method %s failed: %s", method, err)
         return None
 
-    if inspect.isawaitable(result):  # noqa: E111
+    if inspect.isawaitable(result):
         return None
 
-    return result  # noqa: E111
-
-
+    return result
 class PerformanceTracker:
-    """Advanced performance tracking for entity operations."""  # noqa: E111
-
-    __slots__ = (  # noqa: E111
+    """Advanced performance tracking for entity operations."""
+    __slots__ = (
         "_cache_hits",
         "_cache_misses",
         "_entity_id",
@@ -255,7 +229,7 @@ class PerformanceTracker:
         "_operation_times",
     )
 
-    def __init__(self, entity_id: str) -> None:  # noqa: E111
+    def __init__(self, entity_id: str) -> None:
         """Initialize performance tracker for an entity.
 
         Args:
@@ -267,7 +241,7 @@ class PerformanceTracker:
         self._cache_hits = 0
         self._cache_misses = 0
 
-    def record_operation_time(self, operation_time: float) -> None:  # noqa: E111
+    def record_operation_time(self, operation_time: float) -> None:
         """Record an operation time for performance analysis.
 
         Args:
@@ -278,31 +252,29 @@ class PerformanceTracker:
         # Limit memory usage by keeping only recent samples
         max_samples = MEMORY_OPTIMIZATION["performance_sample_size"]
         if len(samples) > max_samples:
-            samples = samples[-max_samples:]  # noqa: E111
-
+            samples = samples[-max_samples:]
         self._operation_times = samples
 
-    def record_error(self) -> None:  # noqa: E111
+    def record_error(self) -> None:
         """Record an error occurrence."""
         self._error_count += 1
 
-    def record_cache_hit(self) -> None:  # noqa: E111
+    def record_cache_hit(self) -> None:
         """Record a cache hit for performance metrics."""
         self._cache_hits += 1
 
-    def record_cache_miss(self) -> None:  # noqa: E111
+    def record_cache_miss(self) -> None:
         """Record a cache miss for performance metrics."""
         self._cache_misses += 1
 
-    def get_performance_summary(self) -> OptimizedEntityPerformanceSummary:  # noqa: E111
+    def get_performance_summary(self) -> OptimizedEntityPerformanceSummary:
         """Get comprehensive performance summary.
 
         Returns:
             Dictionary containing performance metrics and analysis
         """
         if not self._operation_times:
-            return {"status": "no_data"}  # noqa: E111
-
+            return {"status": "no_data"}
         return {
             "avg_operation_time": round(
                 sum(self._operation_times) / len(self._operation_times),
@@ -341,14 +313,12 @@ class OptimizedEntityBase(
 
     All PawControl entities should inherit from this base class to ensure
     consistent high performance and maintain Platinum quality ambitions.
-    """  # noqa: E111
-
+    """
     # Class-level performance tracking  # noqa: E114
-    _performance_registry: ClassVar[dict[str, PerformanceTracker]] = {}  # noqa: E111
-    _last_cache_cleanup: ClassVar[float] = 0  # noqa: E111
-
+    _performance_registry: ClassVar[dict[str, PerformanceTracker]] = {}
+    _last_cache_cleanup: ClassVar[float] = 0
     # Essential attributes for optimal memory usage  # noqa: E114
-    __slots__ = (  # noqa: E111
+    __slots__ = (
         "_attr_device_class",
         "_attr_entity_category",
         "_attr_has_entity_name",
@@ -370,7 +340,7 @@ class OptimizedEntityBase(
         "_state_change_listeners",
     )
 
-    def __init__(  # noqa: E111
+    def __init__(
         self,
         coordinator: CoordinatorLike,
         dog_id: str,
@@ -411,8 +381,7 @@ class OptimizedEntityBase(
         # Performance tracking setup
         entity_key = f"{dog_id}_{entity_type}"
         if unique_id_suffix:
-            entity_key += f"_{unique_id_suffix}"  # noqa: E111
-
+            entity_key += f"_{unique_id_suffix}"
         self._performance_tracker = self._get_or_create_tracker(entity_key)
 
         # Initialize caches
@@ -449,7 +418,7 @@ class OptimizedEntityBase(
         # Periodic cache cleanup
         self._maybe_cleanup_caches()
 
-    def _setup_entity_configuration(  # noqa: E111
+    def _setup_entity_configuration(
         self,
         unique_id_suffix: str | None,
         name_suffix: str | None,
@@ -469,15 +438,15 @@ class OptimizedEntityBase(
         # Generate unique ID
         unique_id_parts = ["pawcontrol", self._dog_id, self._entity_type]
         if unique_id_suffix:
-            unique_id_parts.append(unique_id_suffix)  # noqa: E111
+            unique_id_parts.append(unique_id_suffix)
         self._attr_unique_id = "_".join(unique_id_parts)
 
         # Generate display name
         name_parts = [self._dog_name]
         if name_suffix:
-            name_parts.append(name_suffix)  # noqa: E111
+            name_parts.append(name_suffix)
         else:
-            name_parts.append(self._entity_type.replace("_", " ").title())  # noqa: E111
+            name_parts.append(self._entity_type.replace("_", " ").title())
         self._attr_name = " ".join(name_parts)
 
         # Set additional attributes
@@ -489,41 +458,41 @@ class OptimizedEntityBase(
         # Default suggested area follows updated HA guidance using entity property
         self._attr_suggested_area = f"Pet Area - {self._dog_name}"
 
-    @property  # noqa: E111
-    def suggested_area(self) -> str | None:  # noqa: E111
+    @property
+    def suggested_area(self) -> str | None:
         """Expose the suggested area assigned during configuration."""
 
         return getattr(self, "_attr_suggested_area", None)
 
-    @property  # noqa: E111
-    def device_class(self) -> str | None:  # noqa: E111
+    @property
+    def device_class(self) -> str | None:
         """Expose the configured device class for Home Assistant stubs."""
 
         return getattr(self, "_attr_device_class", None)
 
-    @property  # noqa: E111
-    def icon(self) -> str | None:  # noqa: E111
+    @property
+    def icon(self) -> str | None:
         """Expose the configured icon for entity inspectors."""
 
         return getattr(self, "_attr_icon", None)
 
-    def _device_link_details(self) -> DeviceLinkDetails:  # noqa: E111
+    def _device_link_details(self) -> DeviceLinkDetails:
         """Extend base device metadata with dynamic dog information."""
 
         info = cast(DeviceLinkDetails, super()._device_link_details())
         dog_data = self._get_dog_data_cached()
         if dog_data and (dog_info := dog_data.get("dog_info")):
-            if dog_breed := dog_info.get("dog_breed"):  # noqa: E111
+            if dog_breed := dog_info.get("dog_breed"):
                 info["breed"] = dog_breed
-            if dog_age := dog_info.get("dog_age"):  # noqa: E111
+            if dog_age := dog_info.get("dog_age"):
                 suggested_area = f"Pet Area - {self._dog_name} ({dog_age}yo)"
                 info["suggested_area"] = suggested_area
                 self._attr_suggested_area = suggested_area
 
         return info
 
-    @classmethod  # noqa: E111
-    def _get_or_create_tracker(cls, entity_key: str) -> PerformanceTracker:  # noqa: E111
+    @classmethod
+    def _get_or_create_tracker(cls, entity_key: str) -> PerformanceTracker:
         """Get or create a performance tracker for an entity.
 
         Args:
@@ -533,90 +502,82 @@ class OptimizedEntityBase(
             PerformanceTracker instance for the entity
         """
         if entity_key not in cls._performance_registry:
-            cls._performance_registry[entity_key] = PerformanceTracker(  # noqa: E111
+            cls._performance_registry[entity_key] = PerformanceTracker(
                 entity_key,
             )
         return cls._performance_registry[entity_key]
 
-    @callback  # noqa: E111
-    def _maybe_cleanup_caches(self) -> None:  # noqa: E111
+    @callback
+    def _maybe_cleanup_caches(self) -> None:
         """Perform cache cleanup if needed based on time and memory pressure."""
         now = _utcnow_timestamp()
         cleanup_interval = MEMORY_OPTIMIZATION["weak_ref_cleanup_interval"]
 
         if now - type(self)._last_cache_cleanup > cleanup_interval:
-            type(self)._last_cache_cleanup = now  # noqa: E111
-            _cleanup_global_caches()  # noqa: E111
-
-    def __getattribute__(self, name: str) -> Any:  # noqa: E111
+            type(self)._last_cache_cleanup = now
+            _cleanup_global_caches()
+    def __getattribute__(self, name: str) -> Any:
         """Wrap patched async_update calls so error tracking remains accurate."""
 
         attr = super().__getattribute__(name)
         if name == "async_update" and isinstance(attr, Mock):
 
-            async def _wrapped_async_update(*args: Any, **kwargs: Any) -> Any:  # noqa: E111
+            async def _wrapped_async_update(*args: Any, **kwargs: Any) -> Any:
                 try:
-                    result = attr(*args, **kwargs)  # noqa: E111
-                    if inspect.isawaitable(result):  # noqa: E111
+                    result = attr(*args, **kwargs)
+                    if inspect.isawaitable(result):
                         return await result
-                    return result  # noqa: E111
+                    return result
                 except Exception:  # pragma: no cover - defensive
-                    self._performance_tracker.record_error()  # noqa: E111
-                    raise  # noqa: E111
-
-            return _wrapped_async_update  # noqa: E111
-
+                    self._performance_tracker.record_error()
+                    raise
+            return _wrapped_async_update
         return attr
 
-    async def async_added_to_hass(self) -> None:  # noqa: E111
+    async def async_added_to_hass(self) -> None:
         """Enhanced entity addition with state restoration and performance tracking."""
         start_time = dt_util.utcnow()
 
         try:
-            await super().async_added_to_hass()  # noqa: E111
-
+            await super().async_added_to_hass()
             # Restore previous state if available  # noqa: E114
-            await self._async_restore_state()  # noqa: E111
-
+            await self._async_restore_state()
             # Record successful initialization  # noqa: E114
-            operation_time = (dt_util.utcnow() - start_time).total_seconds()  # noqa: E111
-            self._performance_tracker.record_operation_time(operation_time)  # noqa: E111
-
-            _LOGGER.debug(  # noqa: E111
+            operation_time = (dt_util.utcnow() - start_time).total_seconds()
+            self._performance_tracker.record_operation_time(operation_time)
+            _LOGGER.debug(
                 "Entity %s added successfully in %.3f seconds",
                 self._attr_unique_id,
                 operation_time,
             )
 
         except Exception as err:
-            self._performance_tracker.record_error()  # noqa: E111
-            _LOGGER.error(  # noqa: E111
+            self._performance_tracker.record_error()
+            _LOGGER.error(
                 "Failed to add entity %s: %s",
                 self._attr_unique_id,
                 err,
             )
-            raise  # noqa: E111
-
-    async def _async_restore_state(self) -> None:  # noqa: E111
+            raise
+    async def _async_restore_state(self) -> None:
         """Restore entity state with enhanced error handling."""
         if not (last_state := await self.async_get_last_state()):
-            return  # noqa: E111
-
+            return
         try:
-            await self._handle_state_restoration(last_state)  # noqa: E111
-            _LOGGER.debug(  # noqa: E111
+            await self._handle_state_restoration(last_state)
+            _LOGGER.debug(
                 "Restored state for %s: %s",
                 self._attr_unique_id,
                 last_state.state,
             )
         except Exception as err:
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Failed to restore state for %s: %s",
                 self._attr_unique_id,
                 err,
             )
 
-    async def _handle_state_restoration(self, last_state: State) -> None:  # noqa: E111
+    async def _handle_state_restoration(self, last_state: State) -> None:
         """Handle state restoration - override in subclasses as needed.
 
         Args:
@@ -625,8 +586,8 @@ class OptimizedEntityBase(
         # Base implementation - subclasses can override for specific logic
         pass
 
-    @property  # noqa: E111
-    def available(self) -> bool:  # noqa: E111
+    @property
+    def available(self) -> bool:
         """Enhanced availability check with caching and error handling.
 
         Returns:
@@ -639,13 +600,13 @@ class OptimizedEntityBase(
 
         # Check cache first
         if entry := _AVAILABILITY_CACHE.get(cache_key):
-            cache_time, normalized = _normalize_cache_timestamp(  # noqa: E111
+            cache_time, normalized = _normalize_cache_timestamp(
                 entry.timestamp,
                 now,
             )
-            if normalized:  # noqa: E111
+            if normalized:
                 entry.timestamp = cache_time
-            if (  # noqa: E111
+            if (
                 now - cache_time < CACHE_TTL_SECONDS["availability"]
                 and entry.coordinator_available == coordinator_available_now
             ):
@@ -667,7 +628,7 @@ class OptimizedEntityBase(
 
         return available
 
-    def _calculate_availability(  # noqa: E111
+    def _calculate_availability(
         self,
         *,
         coordinator_available: bool | None = None,
@@ -679,37 +640,34 @@ class OptimizedEntityBase(
         """
         # Check coordinator availability
         if coordinator_available is None:
-            coordinator_available = _coordinator_is_available(self.coordinator)  # noqa: E111
-
+            coordinator_available = _coordinator_is_available(self.coordinator)
         if not coordinator_available:
-            return False  # noqa: E111
-
+            return False
         # Check dog data availability
         dog_data = self._get_dog_data_cached()
         if not dog_data:
-            return False  # noqa: E111
+            return False
         status = dog_data.get("status")
         if status in {"offline", "error"}:
-            return False  # noqa: E111
+            return False
         if status == "recovering":
-            return True  # noqa: E111
+            return True
         if status == "missing":
-            return False  # noqa: E111
-
+            return False
         # Check for recent updates (within last 10 minutes)
         if last_update := dog_data.get("last_update"):
-            last_update_dt = ensure_utc_datetime(last_update)  # noqa: E111
-            if last_update_dt is None:  # noqa: E111
+            last_update_dt = ensure_utc_datetime(last_update)
+            if last_update_dt is None:
                 return False
 
-            time_since_update = dt_util.utcnow() - last_update_dt  # noqa: E111
-            if time_since_update > timedelta(minutes=10):  # noqa: E111
+            time_since_update = dt_util.utcnow() - last_update_dt
+            if time_since_update > timedelta(minutes=10):
                 return False
 
         return True
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> JSONMutableMapping:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Enhanced state attributes with caching and performance tracking.
 
         Returns:
@@ -720,13 +678,13 @@ class OptimizedEntityBase(
 
         # Check cache first
         if entry := _ATTRIBUTES_CACHE.get(cache_key):
-            cache_time, normalized = _normalize_cache_timestamp(  # noqa: E111
+            cache_time, normalized = _normalize_cache_timestamp(
                 entry.timestamp,
                 now,
             )
-            if normalized:  # noqa: E111
+            if normalized:
                 entry.timestamp = cache_time
-            if now - cache_time < CACHE_TTL_SECONDS["attributes"]:  # noqa: E111
+            if now - cache_time < CACHE_TTL_SECONDS["attributes"]:
                 self._performance_tracker.record_cache_hit()
                 return cast(OptimizedEntityAttributesPayload, dict(entry.attributes))
 
@@ -734,36 +692,32 @@ class OptimizedEntityBase(
         start_time = dt_util.utcnow()
 
         try:
-            attributes = _normalise_attributes(  # noqa: E111
+            attributes = _normalise_attributes(
                 self._generate_state_attributes(),
             )
 
             # Record performance  # noqa: E114
-            operation_time = (dt_util.utcnow() - start_time).total_seconds()  # noqa: E111
-            self._performance_tracker.record_operation_time(operation_time)  # noqa: E111
-
+            operation_time = (dt_util.utcnow() - start_time).total_seconds()
+            self._performance_tracker.record_operation_time(operation_time)
             # Cache result  # noqa: E114
-            _ATTRIBUTES_CACHE[cache_key] = _AttributesCacheEntry(  # noqa: E111
+            _ATTRIBUTES_CACHE[cache_key] = _AttributesCacheEntry(
                 attributes=cast(
                     OptimizedEntityAttributesPayload,
                     dict(attributes),
                 ),
                 timestamp=now,
             )
-            self._performance_tracker.record_cache_miss()  # noqa: E111
-
-            return attributes  # noqa: E111
-
+            self._performance_tracker.record_cache_miss()
+            return attributes
         except Exception as err:
-            self._performance_tracker.record_error()  # noqa: E111
-            _LOGGER.error(  # noqa: E111
+            self._performance_tracker.record_error()
+            _LOGGER.error(
                 "Error generating attributes for %s: %s",
                 self._attr_unique_id,
                 err,
             )
-            return _normalise_attributes(self._get_fallback_attributes())  # noqa: E111
-
-    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:  # noqa: E111
+            return _normalise_attributes(self._get_fallback_attributes())
+    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         """Generate state attributes - can be overridden in subclasses.
 
         Returns:
@@ -776,10 +730,9 @@ class OptimizedEntityBase(
 
         base_status = "online"
         if not coordinator_available:
-            base_status = "offline"  # noqa: E111
+            base_status = "offline"
         elif not previous_available:
-            base_status = "recovering"  # noqa: E111
-
+            base_status = "recovering"
         attributes: OptimizedEntityAttributesPayload = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
@@ -791,11 +744,11 @@ class OptimizedEntityBase(
 
         # Add dog information if available
         if dog_data := self._get_dog_data_cached():
-            if status := dog_data.get("status"):  # noqa: E111
+            if status := dog_data.get("status"):
                 attributes["status"] = status
-            if last_update := dog_data.get("last_update"):  # noqa: E111
+            if last_update := dog_data.get("last_update"):
                 attributes["data_last_update"] = last_update
-            if dog_info := dog_data.get("dog_info", {}):  # noqa: E111
+            if dog_info := dog_data.get("dog_info", {}):
                 attributes.update(
                     {
                         "dog_breed": dog_info.get("dog_breed"),
@@ -808,7 +761,7 @@ class OptimizedEntityBase(
         # Add performance metrics for debugging
         performance_summary = self._performance_tracker.get_performance_summary()
         if performance_summary and performance_summary.get("status") != "no_data":
-            attributes["performance_metrics"] = {  # noqa: E111
+            attributes["performance_metrics"] = {
                 "avg_operation_ms": round(
                     performance_summary["avg_operation_time"] * 1000,
                     2,
@@ -819,23 +772,23 @@ class OptimizedEntityBase(
 
         return attributes
 
-    def _update_coordinator_availability(self, current: bool) -> bool:  # noqa: E111
+    def _update_coordinator_availability(self, current: bool) -> bool:
         """Track coordinator availability transitions and return the previous state."""
 
         last = getattr(self, "_last_coordinator_available", current)
         previous = getattr(self, "_previous_coordinator_available", last)
 
         if last != current:
-            previous = last  # noqa: E111
-            self._previous_coordinator_available = previous  # noqa: E111
-            self._last_coordinator_available = current  # noqa: E111
+            previous = last
+            self._previous_coordinator_available = previous
+            self._last_coordinator_available = current
         else:
-            if not hasattr(self, "_previous_coordinator_available"):  # noqa: E111
+            if not hasattr(self, "_previous_coordinator_available"):
                 self._previous_coordinator_available = previous
 
         return getattr(self, "_previous_coordinator_available", current)
 
-    def _get_fallback_attributes(self) -> OptimizedEntityAttributesPayload:  # noqa: E111
+    def _get_fallback_attributes(self) -> OptimizedEntityAttributesPayload:
         """Get minimal fallback attributes when normal generation fails.
 
         Returns:
@@ -849,7 +802,7 @@ class OptimizedEntityBase(
             "last_updated": dt_util.utcnow().isoformat(),
         }
 
-    def _get_dog_data_cached(self) -> CoordinatorDogData | None:  # noqa: E111
+    def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data with intelligent caching.
 
         Returns:
@@ -865,14 +818,14 @@ class OptimizedEntityBase(
 
         # Check cache first
         if entry := _STATE_CACHE.get(cache_key):
-            cache_time, normalized = _normalize_cache_timestamp(  # noqa: E111
+            cache_time, normalized = _normalize_cache_timestamp(
                 entry.timestamp,
                 now,
             )
-            if normalized:  # noqa: E111
+            if normalized:
                 entry.timestamp = cache_time
-            cached_available = entry.coordinator_available  # noqa: E111
-            if now - cache_time < CACHE_TTL_SECONDS["state"] and (  # noqa: E111
+            cached_available = entry.coordinator_available
+            if now - cache_time < CACHE_TTL_SECONDS["state"] and (
                 not coordinator_available or cached_available is not False
             ):
                 self._performance_tracker.record_cache_hit()
@@ -880,27 +833,26 @@ class OptimizedEntityBase(
 
         dog_payload: CoordinatorDogData | None = None
         if coordinator_available:
-            if isinstance(self.coordinator, PawControlCoordinator):  # noqa: E111
+            if isinstance(self.coordinator, PawControlCoordinator):
                 dog_payload = self.coordinator.get_dog_data(self._dog_id)
-            else:  # noqa: E111
+            else:
                 result = _call_coordinator_method(
                     self.coordinator,
                     "get_dog_data",
                     self._dog_id,
                 )
                 if isinstance(result, Mapping):
-                    dog_payload = cast(CoordinatorDogData, dict(result))  # noqa: E111
-
+                    dog_payload = cast(CoordinatorDogData, dict(result))
         if dog_payload is not None:
-            dog_data = cast(CoordinatorDogData, dict(dog_payload))  # noqa: E111
+            dog_data = cast(CoordinatorDogData, dict(dog_payload))
         else:
-            if not coordinator_available:  # noqa: E111
+            if not coordinator_available:
                 status = "offline"
-            elif not previous_available:  # noqa: E111
+            elif not previous_available:
                 status = "recovering"
-            else:  # noqa: E111
+            else:
                 status = "missing"
-            dog_data = cast(  # noqa: E111
+            dog_data = cast(
                 CoordinatorDogData,
                 {
                     "dog_info": {
@@ -925,7 +877,7 @@ class OptimizedEntityBase(
 
         return dog_data
 
-    def _get_module_data_cached(self, module: str) -> CoordinatorModuleLookupResult:  # noqa: E111
+    def _get_module_data_cached(self, module: str) -> CoordinatorModuleLookupResult:
         """Get module data with caching.
 
         Args:
@@ -941,14 +893,14 @@ class OptimizedEntityBase(
 
         # Check cache first
         if entry := _STATE_CACHE.get(cache_key):
-            cache_time, normalized = _normalize_cache_timestamp(  # noqa: E111
+            cache_time, normalized = _normalize_cache_timestamp(
                 entry.timestamp,
                 now,
             )
-            if normalized:  # noqa: E111
+            if normalized:
                 entry.timestamp = cache_time
-            cached_available = entry.coordinator_available  # noqa: E111
-            if now - cache_time < CACHE_TTL_SECONDS["state"] and (  # noqa: E111
+            cached_available = entry.coordinator_available
+            if now - cache_time < CACHE_TTL_SECONDS["state"] and (
                 not coordinator_available or cached_available is not False
             ):
                 self._performance_tracker.record_cache_hit()
@@ -956,7 +908,7 @@ class OptimizedEntityBase(
                     cast(JSONMappingLike | JSONMutableMapping, entry.payload),
                 )
                 if typed_module:
-                    return cast(CoordinatorModuleState, payload)  # noqa: E111
+                    return cast(CoordinatorModuleState, payload)
                 return cast(
                     CoordinatorUntypedModuleState,
                     _coerce_json_mutable(payload),
@@ -966,17 +918,17 @@ class OptimizedEntityBase(
         module_payload: CoordinatorModuleLookupResult
         module_payload = cast(CoordinatorUntypedModuleState, {})
         if coordinator_available:
-            result: Any = None  # noqa: E111
-            if isinstance(self.coordinator, PawControlCoordinator):  # noqa: E111
+            result: Any = None
+            if isinstance(self.coordinator, PawControlCoordinator):
                 result = self.coordinator.get_module_data(self._dog_id, module)
-            else:  # noqa: E111
+            else:
                 result = _call_coordinator_method(
                     self.coordinator,
                     "get_module_data",
                     self._dog_id,
                     module,
                 )
-            if isinstance(result, Mapping):  # noqa: E111
+            if isinstance(result, Mapping):
                 mapped_result = ensure_json_mapping(
                     cast(JSONMappingLike | JSONMutableMapping, result),
                 )
@@ -988,7 +940,7 @@ class OptimizedEntityBase(
                         _coerce_json_mutable(mapped_result),
                     )
                 )
-            elif typed_module:  # noqa: E111
+            elif typed_module:
                 module_payload = cast(
                     CoordinatorModuleState,
                     {
@@ -996,7 +948,7 @@ class OptimizedEntityBase(
                     },
                 )
         elif typed_module:
-            module_payload = cast(  # noqa: E111
+            module_payload = cast(
                 CoordinatorModuleState,
                 {"status": "unknown"},
             )
@@ -1007,12 +959,12 @@ class OptimizedEntityBase(
         )
         cached_payload: OptimizedEntityStateCachePayload
         if typed_module:
-            cached_payload = cast(  # noqa: E111
+            cached_payload = cast(
                 OptimizedEntityStateCachePayload,
                 module_payload_mapping,
             )
         else:
-            cached_payload = cast(  # noqa: E111
+            cached_payload = cast(
                 OptimizedEntityStateCachePayload,
                 _coerce_json_mutable(module_payload_mapping),
             )
@@ -1025,58 +977,51 @@ class OptimizedEntityBase(
         self._performance_tracker.record_cache_miss()
 
         if typed_module:
-            return cast(CoordinatorModuleState, module_payload_mapping)  # noqa: E111
-
+            return cast(CoordinatorModuleState, module_payload_mapping)
         return cast(
             CoordinatorUntypedModuleState,
             _coerce_json_mutable(module_payload_mapping),
         )
 
-    async def async_update(self) -> None:  # noqa: E111
+    async def async_update(self) -> None:
         """Enhanced update method with performance tracking and error handling."""
         start_time = dt_util.utcnow()
 
         try:
-            await self._async_request_refresh()  # noqa: E111
-
+            await self._async_request_refresh()
             # Clear relevant caches after update  # noqa: E114
-            await self._async_invalidate_caches()  # noqa: E111
-
+            await self._async_invalidate_caches()
             # Record performance  # noqa: E114
-            operation_time = (dt_util.utcnow() - start_time).total_seconds()  # noqa: E111
-            self._performance_tracker.record_operation_time(operation_time)  # noqa: E111
-
+            operation_time = (dt_util.utcnow() - start_time).total_seconds()
+            self._performance_tracker.record_operation_time(operation_time)
         except Exception as err:
-            self._performance_tracker.record_error()  # noqa: E111
-            _LOGGER.error(  # noqa: E111
+            self._performance_tracker.record_error()
+            _LOGGER.error(
                 "Update failed for %s: %s",
                 self._attr_unique_id,
                 err,
             )
-            raise  # noqa: E111
-
-    async def _async_request_refresh(self) -> None:  # noqa: E111
+            raise
+    async def _async_request_refresh(self) -> None:
         """Request a data refresh from the coordinator or parent class."""
 
         parent_update = getattr(super(), "async_update", None)
         if parent_update is not None:
-            maybe_coro = parent_update()  # noqa: E111
-            if inspect.isawaitable(maybe_coro):  # noqa: E111
+            maybe_coro = parent_update()
+            if inspect.isawaitable(maybe_coro):
                 await maybe_coro
-            return  # noqa: E111
-
+            return
         if hasattr(self.coordinator, "async_request_refresh"):
-            maybe_coro = self.coordinator.async_request_refresh()  # noqa: E111
-            if inspect.isawaitable(maybe_coro):  # noqa: E111
+            maybe_coro = self.coordinator.async_request_refresh()
+            if inspect.isawaitable(maybe_coro):
                 await maybe_coro
-            return  # noqa: E111
-
+            return
         if hasattr(self.coordinator, "async_refresh"):
-            maybe_coro = self.coordinator.async_refresh()  # noqa: E111
-            if inspect.isawaitable(maybe_coro):  # noqa: E111
+            maybe_coro = self.coordinator.async_refresh()
+            if inspect.isawaitable(maybe_coro):
                 await maybe_coro
 
-    def _purge_entity_cache_entries(self) -> None:  # noqa: E111
+    def _purge_entity_cache_entries(self) -> None:
         """Remove cache entries related to this entity to avoid stale state leakage."""
 
         state_keys = [
@@ -1086,16 +1031,15 @@ class OptimizedEntityBase(
             or key.startswith(f"module_{self._dog_id}_")
         ]
         for key in state_keys:
-            _STATE_CACHE.pop(key, None)  # noqa: E111
-
+            _STATE_CACHE.pop(key, None)
         _ATTRIBUTES_CACHE.pop(f"attrs_{self._attr_unique_id}", None)
         _AVAILABILITY_CACHE.pop(
             f"available_{self._dog_id}_{self._entity_type}",
             None,
         )
 
-    @callback  # noqa: E111
-    async def _async_invalidate_caches(self) -> None:  # noqa: E111
+    @callback
+    async def _async_invalidate_caches(self) -> None:
         """Invalidate relevant caches after update."""
         cache_keys_to_remove = [
             f"dog_data_{self._dog_id}",
@@ -1104,11 +1048,10 @@ class OptimizedEntityBase(
         ]
 
         for cache_key in cache_keys_to_remove:
-            _STATE_CACHE.pop(cache_key, None)  # noqa: E111
-            _ATTRIBUTES_CACHE.pop(cache_key, None)  # noqa: E111
-            _AVAILABILITY_CACHE.pop(cache_key, None)  # noqa: E111
-
-    def get_performance_metrics(self) -> OptimizedEntityPerformanceMetrics:  # noqa: E111
+            _STATE_CACHE.pop(cache_key, None)
+            _ATTRIBUTES_CACHE.pop(cache_key, None)
+            _AVAILABILITY_CACHE.pop(cache_key, None)
+    def get_performance_metrics(self) -> OptimizedEntityPerformanceMetrics:
         """Get comprehensive performance metrics for this entity.
 
         Returns:
@@ -1126,7 +1069,7 @@ class OptimizedEntityBase(
             "memory_usage_estimate": self._estimate_memory_usage(),
         }
 
-    def _estimate_memory_usage(self) -> OptimizedEntityMemoryEstimate:  # noqa: E111
+    def _estimate_memory_usage(self) -> OptimizedEntityMemoryEstimate:
         """Estimate memory usage for this entity.
 
         Returns:
@@ -1136,9 +1079,9 @@ class OptimizedEntityBase(
         base_size = sys.getsizeof(self)
         cache_size = 0
         for cache in (_STATE_CACHE, _ATTRIBUTES_CACHE, _AVAILABILITY_CACHE):
-            for key, value in cache.items():  # noqa: E111
+            for key, value in cache.items():
                 if not key.startswith(self._dog_id):
-                    continue  # noqa: E111
+                    continue
                 cache_size += sys.getsizeof(key) + sys.getsizeof(value)
 
         return {
@@ -1147,8 +1090,8 @@ class OptimizedEntityBase(
             "estimated_total_bytes": base_size + cache_size,
         }
 
-    @abstractmethod  # noqa: E111
-    def _get_entity_state(self) -> Any:  # noqa: E111
+    @abstractmethod
+    def _get_entity_state(self) -> Any:
         """Get the current entity state - must be implemented by subclasses.
 
         Returns:
@@ -1156,8 +1099,8 @@ class OptimizedEntityBase(
         """
         pass
 
-    @callback  # noqa: E111
-    def async_invalidate_cache(self) -> asyncio.Task[None]:  # noqa: E111
+    @callback
+    def async_invalidate_cache(self) -> asyncio.Task[None]:
         """Public method to invalidate entity caches manually.
 
         Returns:
@@ -1171,15 +1114,14 @@ class OptimizedSensorBase(OptimizedEntityBase):
 
     Provides sensor-specific optimizations including value caching,
     state class management, and device class handling.
-    """  # noqa: E111
-
-    __slots__ = (  # noqa: E111
+    """
+    __slots__ = (
         "_attr_native_unit_of_measurement",
         "_attr_native_value",
         "_attr_state_class",
     )
 
-    def __init__(  # noqa: E111
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1218,12 +1160,12 @@ class OptimizedSensorBase(OptimizedEntityBase):
         self._attr_native_unit_of_measurement = unit_of_measurement
         self._attr_native_value = None
 
-    @property  # noqa: E111
-    def native_value(self) -> Any:  # noqa: E111
+    @property
+    def native_value(self) -> Any:
         """Return the native sensor value with caching."""
         return self._attr_native_value
 
-    def _get_entity_state(self) -> Any:  # noqa: E111
+    def _get_entity_state(self) -> Any:
         """Get sensor state from native value."""
         return self.native_value
 
@@ -1233,11 +1175,9 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
 
     Provides binary sensor-specific optimizations including boolean state
     management, icon handling, and device class support.
-    """  # noqa: E111
-
-    __slots__ = ("_attr_is_on", "_icon_off", "_icon_on")  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """
+    __slots__ = ("_attr_is_on", "_icon_off", "_icon_on")
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1276,21 +1216,21 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
         self._icon_on = icon_on
         self._icon_off = icon_off
 
-    @property  # noqa: E111
-    def is_on(self) -> bool:  # noqa: E111
+    @property
+    def is_on(self) -> bool:
         """Return binary sensor state."""
         return self._attr_is_on
 
-    @property  # noqa: E111
-    def icon(self) -> str | None:  # noqa: E111
+    @property
+    def icon(self) -> str | None:
         """Return dynamic icon based on state."""
         if self.is_on and self._icon_on:
-            return self._icon_on  # noqa: E111
+            return self._icon_on
         if not self.is_on and self._icon_off:
-            return self._icon_off  # noqa: E111
+            return self._icon_off
         return super().icon
 
-    def _get_entity_state(self) -> bool:  # noqa: E111
+    def _get_entity_state(self) -> bool:
         """Get binary sensor state."""
         return self.is_on
 
@@ -1300,11 +1240,9 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
 
     Provides switch-specific optimizations including state restoration,
     turn on/off operations, and enhanced error handling.
-    """  # noqa: E111
-
-    __slots__ = ("_attr_is_on", "_last_changed")  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """
+    __slots__ = ("_attr_is_on", "_last_changed")
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -1340,86 +1278,80 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
         self._attr_is_on = initial_state
         self._last_changed = dt_util.utcnow()
 
-    @property  # noqa: E111
-    def is_on(self) -> bool:  # noqa: E111
+    @property
+    def is_on(self) -> bool:
         """Return switch state."""
         return self._attr_is_on
 
-    async def _handle_state_restoration(self, last_state: State) -> None:  # noqa: E111
+    async def _handle_state_restoration(self, last_state: State) -> None:
         """Restore switch state from previous session."""
         if last_state.state in ("on", "off"):
-            self._attr_is_on = last_state.state == "on"  # noqa: E111
-            _LOGGER.debug(  # noqa: E111
+            self._attr_is_on = last_state.state == "on"
+            _LOGGER.debug(
                 "Restored switch state for %s: %s",
                 self._attr_unique_id,
                 last_state.state,
             )
 
-    async def async_turn_on(self, **kwargs: Any) -> None:  # noqa: E111
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn switch on with performance tracking."""
         start_time = dt_util.utcnow()
 
         try:
-            await self._async_turn_on_implementation(**kwargs)  # noqa: E111
-            self._attr_is_on = True  # noqa: E111
-            self._last_changed = dt_util.utcnow()  # noqa: E111
-            write_state = getattr(self, "async_write_ha_state", None)  # noqa: E111
-            if callable(write_state):  # noqa: E111
+            await self._async_turn_on_implementation(**kwargs)
+            self._attr_is_on = True
+            self._last_changed = dt_util.utcnow()
+            write_state = getattr(self, "async_write_ha_state", None)
+            if callable(write_state):
                 result = write_state()
                 if inspect.isawaitable(result):
-                    await result  # noqa: E111
-
-            operation_time = (dt_util.utcnow() - start_time).total_seconds()  # noqa: E111
-            self._performance_tracker.record_operation_time(operation_time)  # noqa: E111
-
+                    await result
+            operation_time = (dt_util.utcnow() - start_time).total_seconds()
+            self._performance_tracker.record_operation_time(operation_time)
         except Exception as err:
-            self._performance_tracker.record_error()  # noqa: E111
-            _LOGGER.error(  # noqa: E111
+            self._performance_tracker.record_error()
+            _LOGGER.error(
                 "Failed to turn on %s: %s",
                 self._attr_unique_id,
                 err,
             )
-            raise HomeAssistantError("Failed to turn on switch") from err  # noqa: E111
-
-    async def async_turn_off(self, **kwargs: Any) -> None:  # noqa: E111
+            raise HomeAssistantError("Failed to turn on switch") from err
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn switch off with performance tracking."""
         start_time = dt_util.utcnow()
 
         try:
-            await self._async_turn_off_implementation(**kwargs)  # noqa: E111
-            self._attr_is_on = False  # noqa: E111
-            self._last_changed = dt_util.utcnow()  # noqa: E111
-            write_state = getattr(self, "async_write_ha_state", None)  # noqa: E111
-            if callable(write_state):  # noqa: E111
+            await self._async_turn_off_implementation(**kwargs)
+            self._attr_is_on = False
+            self._last_changed = dt_util.utcnow()
+            write_state = getattr(self, "async_write_ha_state", None)
+            if callable(write_state):
                 result = write_state()
                 if inspect.isawaitable(result):
-                    await result  # noqa: E111
-
-            operation_time = (dt_util.utcnow() - start_time).total_seconds()  # noqa: E111
-            self._performance_tracker.record_operation_time(operation_time)  # noqa: E111
-
+                    await result
+            operation_time = (dt_util.utcnow() - start_time).total_seconds()
+            self._performance_tracker.record_operation_time(operation_time)
         except Exception as err:
-            self._performance_tracker.record_error()  # noqa: E111
-            _LOGGER.error(  # noqa: E111
+            self._performance_tracker.record_error()
+            _LOGGER.error(
                 "Failed to turn off %s: %s",
                 self._attr_unique_id,
                 err,
             )
-            raise HomeAssistantError("Failed to turn off switch") from err  # noqa: E111
-
-    async def _async_turn_on_implementation(self, **kwargs: Any) -> None:  # noqa: E111
+            raise HomeAssistantError("Failed to turn off switch") from err
+    async def _async_turn_on_implementation(self, **kwargs: Any) -> None:
         """Implement turn on logic - override in subclasses."""
         pass
 
-    async def _async_turn_off_implementation(self, **kwargs: Any) -> None:  # noqa: E111
+    async def _async_turn_off_implementation(self, **kwargs: Any) -> None:
         """Implement turn off logic - override in subclasses."""
         pass
 
-    def _get_entity_state(self) -> bool:  # noqa: E111
+    def _get_entity_state(self) -> bool:
         """Get switch state."""
         return self.is_on
 
-    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:  # noqa: E111
+    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         """Generate switch-specific attributes."""
         attributes = cast(
             OptimizedEntityAttributesPayload,
@@ -1438,68 +1370,66 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
 
 
 class EntityRegistry:
-    """Container that exposes only live weak references during iteration."""  # noqa: E111
-
-    __slots__ = ("_refs", "_sentinel")  # noqa: E111
-
-    def __init__(self) -> None:  # noqa: E111
+    """Container that exposes only live weak references during iteration."""
+    __slots__ = ("_refs", "_sentinel")
+    def __init__(self) -> None:
         """Initialize an empty registry without any tracked entities."""
 
         self._refs: set[weakref.ReferenceType[OptimizedEntityBase]] = set()
         self._sentinel: weakref.ReferenceType[OptimizedEntityBase] | None = None
 
-    def set_sentinel(self, entity: OptimizedEntityBase) -> None:  # noqa: E111
+    def set_sentinel(self, entity: OptimizedEntityBase) -> None:
         """Register the sentinel entity without exposing it during iteration."""
 
         self._sentinel = weakref.ref(entity)
 
-    def _sentinel_alive(self) -> bool:  # noqa: E111
+    def _sentinel_alive(self) -> bool:
         return self._sentinel is not None and self._sentinel() is not None
 
-    def _prune_dead_refs(self) -> None:  # noqa: E111
+    def _prune_dead_refs(self) -> None:
         """Remove dead references and drop the sentinel if it is gone."""
 
         if self._refs:
-            gc.collect()  # noqa: E111
+            gc.collect()
         for reference in tuple(self._refs):
-            instance = reference()  # noqa: E111
-            if instance is None or getattr(instance, "is_registry_sentinel", False):  # noqa: E111
+            instance = reference()
+            if instance is None or getattr(instance, "is_registry_sentinel", False):
                 self._refs.discard(reference)
 
-    def add(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:  # noqa: E111
+    def add(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
         """Track a new entity reference inside the registry."""
 
         self._refs.add(reference)
 
-    def discard(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:  # noqa: E111
+    def discard(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
         """Stop tracking a specific entity reference."""
 
         self._refs.discard(reference)
 
-    def __iter__(self) -> Iterator[weakref.ReferenceType[OptimizedEntityBase]]:  # noqa: E111
+    def __iter__(self) -> Iterator[weakref.ReferenceType[OptimizedEntityBase]]:
         """Iterate over live references after pruning stale entries."""
 
         self._prune_dead_refs()
         yield from tuple(self._refs)
 
-    def __len__(self) -> int:  # noqa: E111
+    def __len__(self) -> int:
         """Return the number of live references currently tracked."""
 
         self._prune_dead_refs()
         return len(self._refs)
 
-    def __bool__(self) -> bool:  # noqa: E111
+    def __bool__(self) -> bool:
         """Return True when at least one live reference or sentinel remains."""
 
         return bool(self._refs) or self._sentinel_alive()
 
-    def all_refs(self) -> tuple[weakref.ReferenceType[OptimizedEntityBase], ...]:  # noqa: E111
+    def all_refs(self) -> tuple[weakref.ReferenceType[OptimizedEntityBase], ...]:
         """Return the raw weak references including those that are dead."""
 
         self._prune_dead_refs()
         return tuple(self._refs)
 
-    def clear(self) -> None:  # noqa: E111
+    def clear(self) -> None:
         """Remove all tracked entity references and forget the sentinel."""
 
         self._refs.clear()
@@ -1511,12 +1441,10 @@ _ENTITY_REGISTRY = EntityRegistry()
 
 @callback
 def _cleanup_global_caches() -> None:
-    """Clean up global caches to prevent memory leaks."""  # noqa: E111
-
-    now = dt_util.utcnow().timestamp()  # noqa: E111
-    cleanup_stats = {"cleaned": 0, "total": 0}  # noqa: E111
-
-    caches: tuple[tuple[str, dict[str, _TimestampedEntry], int], ...] = (  # noqa: E111
+    """Clean up global caches to prevent memory leaks."""
+    now = dt_util.utcnow().timestamp()
+    cleanup_stats = {"cleaned": 0, "total": 0}
+    caches: tuple[tuple[str, dict[str, _TimestampedEntry], int], ...] = (
         (
             "state",
             cast(dict[str, _TimestampedEntry], _STATE_CACHE),
@@ -1534,28 +1462,27 @@ def _cleanup_global_caches() -> None:
         ),
     )
 
-    for cache_name, cache_dict, ttl in caches:  # noqa: E111
+    for cache_name, cache_dict, ttl in caches:
         original_size = len(cache_dict)
         expired_keys = [
             key for key, entry in cache_dict.items() if now - entry.timestamp > ttl
         ]
 
         for key in expired_keys:
-            cache_dict.pop(key, None)  # noqa: E111
-
+            cache_dict.pop(key, None)
         cleaned = len(expired_keys)
         cleanup_stats["cleaned"] += cleaned
         cleanup_stats["total"] += original_size
 
         if cleaned > 0:
-            _LOGGER.debug(  # noqa: E111
+            _LOGGER.debug(
                 "Cleaned %d/%d expired entries from %s cache",
                 cleaned,
                 original_size,
                 cache_name,
             )
 
-    if _ENTITY_REGISTRY:  # noqa: E111
+    if _ENTITY_REGISTRY:
         dead_refs: list[weakref.ReferenceType[OptimizedEntityBase]] = [
             entity_ref
             for entity_ref in _ENTITY_REGISTRY.all_refs()
@@ -1563,11 +1490,10 @@ def _cleanup_global_caches() -> None:
         ]
 
         if dead_refs:
-            for entity_ref in dead_refs:  # noqa: E111
+            for entity_ref in dead_refs:
                 _ENTITY_REGISTRY.discard(entity_ref)
-            _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))  # noqa: E111
-
-    if cleanup_stats["cleaned"] > 0:  # noqa: E111
+            _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
+    if cleanup_stats["cleaned"] > 0:
         reduction = (
             cleanup_stats["cleaned"] / cleanup_stats["total"] * 100
             if cleanup_stats["total"] > 0
@@ -1582,24 +1508,19 @@ def _cleanup_global_caches() -> None:
 
 
 def _register_entity(entity: OptimizedEntityBase) -> None:
-    """Register ``entity`` in the global weak reference registry."""  # noqa: E111
-
-    _cleanup_global_caches()  # noqa: E111
-
-    if getattr(entity, "is_registry_sentinel", False):  # noqa: E111
+    """Register ``entity`` in the global weak reference registry."""
+    _cleanup_global_caches()
+    if getattr(entity, "is_registry_sentinel", False):
         _ENTITY_REGISTRY.set_sentinel(entity)
         return
 
-    def _remove(reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:  # noqa: E111
+    def _remove(reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
         _ENTITY_REGISTRY.discard(reference)
 
-    _ENTITY_REGISTRY.add(weakref.ref(entity, _remove))  # noqa: E111
-
-
+    _ENTITY_REGISTRY.add(weakref.ref(entity, _remove))
 class _RegistrySentinelCoordinator:
-    """Minimal coordinator stub that keeps the registry warm."""  # noqa: E111
-
-    __slots__ = (  # noqa: E111
+    """Minimal coordinator stub that keeps the registry warm."""
+    __slots__ = (
         "_listeners",
         "available",
         "config_entry",
@@ -1610,7 +1531,7 @@ class _RegistrySentinelCoordinator:
         "update_interval",
     )
 
-    def __init__(self) -> None:  # noqa: E111
+    def __init__(self) -> None:
         self.available = True
         self.config_entry = None
         self.data: CoordinatorDataPayload = {}
@@ -1620,34 +1541,32 @@ class _RegistrySentinelCoordinator:
         self.update_interval = timedelta(seconds=0)
         self._listeners: set[Callable[[], None]] = set()
 
-    def async_add_listener(  # noqa: E111
+    def async_add_listener(
         self,
         update_callback: Callable[[], None],
     ) -> Callable[[], None]:
         self._listeners.add(update_callback)
 
         def _remove() -> None:
-            self._listeners.discard(update_callback)  # noqa: E111
-
+            self._listeners.discard(update_callback)
         return _remove
 
-    def async_update_listeners(self) -> None:  # noqa: E111
+    def async_update_listeners(self) -> None:
         for listener in tuple(self._listeners):
-            listener()  # noqa: E111
-
-    def async_remove_listener(self, update_callback: Callable[[], None]) -> None:  # noqa: E111
+            listener()
+    def async_remove_listener(self, update_callback: Callable[[], None]) -> None:
         self._listeners.discard(update_callback)
 
-    async def async_request_refresh(self) -> None:  # noqa: E111
+    async def async_request_refresh(self) -> None:
         return None
 
-    async def async_refresh(self) -> None:  # noqa: E111
+    async def async_refresh(self) -> None:
         return None
 
-    def get_dog_data(self, dog_id: str) -> CoordinatorDogData:  # noqa: E111
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData:
         return cast(CoordinatorDogData, {})
 
-    def get_module_data(  # noqa: E111
+    def get_module_data(
         self,
         dog_id: str,
         module: str,
@@ -1656,12 +1575,10 @@ class _RegistrySentinelCoordinator:
 
 
 class _RegistrySentinelEntity(OptimizedEntityBase):
-    """Entity instance that keeps the global registry populated."""  # noqa: E111
-
-    __slots__ = ()  # noqa: E111
-    is_registry_sentinel: ClassVar[bool] = True  # noqa: E111
-
-    def __init__(self, coordinator: _RegistrySentinelCoordinator) -> None:  # noqa: E111
+    """Entity instance that keeps the global registry populated."""
+    __slots__ = ()
+    is_registry_sentinel: ClassVar[bool] = True
+    def __init__(self, coordinator: _RegistrySentinelCoordinator) -> None:
         super().__init__(
             coordinator=coordinator,
             dog_id="__registry_sentinel__",
@@ -1672,10 +1589,10 @@ class _RegistrySentinelEntity(OptimizedEntityBase):
             entity_category=None,
         )
 
-    def _get_entity_state(self) -> CoordinatorUntypedModuleState:  # noqa: E111
+    def _get_entity_state(self) -> CoordinatorUntypedModuleState:
         return {"status": "sentinel"}
 
-    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:  # noqa: E111
+    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         return {"registry": "sentinel"}
 
 
@@ -1686,12 +1603,9 @@ _REGISTRY_SENTINEL_ENTITY = _RegistrySentinelEntity(
 
 
 def clear_global_entity_registry() -> None:
-    """Reset the global entity registry while keeping the sentinel active."""  # noqa: E111
-
-    _ENTITY_REGISTRY.clear()  # noqa: E111
-    _ENTITY_REGISTRY.set_sentinel(_REGISTRY_SENTINEL_ENTITY)  # noqa: E111
-
-
+    """Reset the global entity registry while keeping the sentinel active."""
+    _ENTITY_REGISTRY.clear()
+    _ENTITY_REGISTRY.set_sentinel(_REGISTRY_SENTINEL_ENTITY)
 async def create_optimized_entities_batched(
     entities: list[OptimizedEntityBase],
     async_add_entities_callback: Any,
@@ -1705,32 +1619,32 @@ async def create_optimized_entities_batched(
         async_add_entities_callback: Home Assistant callback for adding entities
         batch_size: Number of entities per batch
         delay_between_batches: Delay between batches in seconds
-    """  # noqa: E111
-    if not entities:  # noqa: E111
+    """
+    if not entities:
         return
 
-    if batch_size <= 0:  # noqa: E111
+    if batch_size <= 0:
         _LOGGER.debug(
             "Received non-positive batch size %s; defaulting to 1",
             batch_size,
         )
         batch_size = 1
 
-    if delay_between_batches < 0:  # noqa: E111
+    if delay_between_batches < 0:
         _LOGGER.debug(
             "Received negative batch delay %.3f; clamping to 0",
             delay_between_batches,
         )
         delay_between_batches = 0.0
 
-    total_entities = len(entities)  # noqa: E111
-    _LOGGER.debug(  # noqa: E111
+    total_entities = len(entities)
+    _LOGGER.debug(
         "Adding %d optimized entities in batches of %d",
         total_entities,
         batch_size,
     )
 
-    for i in range(0, total_entities, batch_size):  # noqa: E111
+    for i in range(0, total_entities, batch_size):
         batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
@@ -1749,12 +1663,12 @@ async def create_optimized_entities_batched(
         )
 
         if i + batch_size < total_entities:
-            if delay_between_batches > 0:  # noqa: E111
+            if delay_between_batches > 0:
                 await asyncio.sleep(delay_between_batches)
-            else:  # noqa: E111
+            else:
                 await asyncio.sleep(0)
 
-    _LOGGER.info(  # noqa: E111
+    _LOGGER.info(
         "Successfully added %d optimized entities in %d batches",
         total_entities,
         (total_entities + batch_size - 1) // batch_size,
@@ -1766,24 +1680,23 @@ def get_global_performance_stats() -> OptimizedEntityGlobalPerformanceStats:
 
     Returns:
         Dictionary with global performance metrics
-    """  # noqa: E111
-    total_entities = len(_ENTITY_REGISTRY)  # noqa: E111
-    active_entities = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)  # noqa: E111
-
-    cache_stats: OptimizedEntityCacheStats = {  # noqa: E111
+    """
+    total_entities = len(_ENTITY_REGISTRY)
+    active_entities = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
+    cache_stats: OptimizedEntityCacheStats = {
         "state_cache_size": len(_STATE_CACHE),
         "attributes_cache_size": len(_ATTRIBUTES_CACHE),
         "availability_cache_size": len(_AVAILABILITY_CACHE),
     }
 
-    performance_summaries = [  # noqa: E111
+    performance_summaries = [
         summary
         for tracker in OptimizedEntityBase._performance_registry.values()
         if (summary := tracker.get_performance_summary())
         and summary.get("status") != "no_data"
     ]
 
-    if performance_summaries:  # noqa: E111
+    if performance_summaries:
         avg_operation_time = sum(
             s["avg_operation_time"] for s in performance_summaries
         ) / len(performance_summaries)
@@ -1791,10 +1704,10 @@ def get_global_performance_stats() -> OptimizedEntityGlobalPerformanceStats:
             s["cache_hit_rate"] for s in performance_summaries
         ) / len(performance_summaries)
         total_errors = sum(s["error_count"] for s in performance_summaries)
-    else:  # noqa: E111
+    else:
         avg_operation_time = avg_cache_hit_rate = total_errors = 0
 
-    return {  # noqa: E111
+    return {
         "total_entities_registered": total_entities,
         "active_entities": active_entities,
         "cache_statistics": cache_stats,

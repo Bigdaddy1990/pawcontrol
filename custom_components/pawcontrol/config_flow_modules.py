@@ -96,9 +96,8 @@ _DASHBOARD_FEATURE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 
 
 def normalize_dashboard_language(language: str | None) -> str:
-    """Normalise Home Assistant languages for dashboard translations."""  # noqa: E111
-
-    return normalize_language(  # noqa: E111
+    """Normalise Home Assistant languages for dashboard translations."""
+    return normalize_language(
         language,
         supported=_SUPPORTED_DASHBOARD_LANGUAGES,
         default="en",
@@ -106,28 +105,24 @@ def normalize_dashboard_language(language: str | None) -> str:
 
 
 def translated_dashboard_setup(language: str | None, key: str, **values: str) -> str:
-    """Return a localized dashboard setup summary string."""  # noqa: E111
-
-    translations = _DASHBOARD_SETUP_TRANSLATIONS.get(key)  # noqa: E111
-    if translations is None:  # noqa: E111
+    """Return a localized dashboard setup summary string."""
+    translations = _DASHBOARD_SETUP_TRANSLATIONS.get(key)
+    if translations is None:
         return key.format(**values) if values else key
 
-    template = (  # noqa: E111
+    template = (
         translations.get(normalize_dashboard_language(language))
         or translations.get("en")
         or key
     )
-    return template.format(**values)  # noqa: E111
-
-
+    return template.format(**values)
 def translated_dashboard_feature(language: str | None, key: str) -> str:
-    """Return a localized dashboard feature description."""  # noqa: E111
-
-    translations = _DASHBOARD_FEATURE_TRANSLATIONS.get(key)  # noqa: E111
-    if translations is None:  # noqa: E111
+    """Return a localized dashboard feature description."""
+    translations = _DASHBOARD_FEATURE_TRANSLATIONS.get(key)
+    if translations is None:
         return key
 
-    return (  # noqa: E111
+    return (
         translations.get(normalize_dashboard_language(language))
         or translations.get("en")
         or key
@@ -137,9 +132,8 @@ def translated_dashboard_feature(language: str | None, key: str) -> str:
 def _coerce_module_global_settings(
     user_input: ModuleConfigurationStepInput,
 ) -> ConfigFlowGlobalSettings:
-    """Normalise module configuration input into structured settings."""  # noqa: E111
-
-    return ConfigFlowGlobalSettings(  # noqa: E111
+    """Normalise module configuration input into structured settings."""
+    return ConfigFlowGlobalSettings(
         performance_mode=normalize_performance_mode(
             user_input.get("performance_mode"),
             fallback="balanced",
@@ -160,9 +154,8 @@ def _coerce_dashboard_configuration(
     per_dog_default: bool,
     mode_default: str,
 ) -> DashboardSetupConfig:
-    """Normalise dashboard configuration values from the setup form."""  # noqa: E111
-
-    return DashboardSetupConfig(  # noqa: E111
+    """Normalise dashboard configuration values from the setup form."""
+    return DashboardSetupConfig(
         dashboard_enabled=True,
         dashboard_auto_create=user_input.get("auto_create_dashboard", True),
         dashboard_per_dog=user_input.get("create_per_dog_dashboards", per_dog_default),
@@ -189,9 +182,8 @@ def _coerce_dashboard_configuration(
 def _coerce_feeding_configuration(
     user_input: FeedingConfigurationStepInput,
 ) -> FeedingSetupConfig:
-    """Normalise feeding configuration values captured during setup."""  # noqa: E111
-
-    return FeedingSetupConfig(  # noqa: E111
+    """Normalise feeding configuration values captured during setup."""
+    return FeedingSetupConfig(
         default_daily_food_amount=user_input.get("daily_food_amount", 500.0),
         default_meals_per_day=user_input.get("meals_per_day", 2),
         default_food_type=user_input.get("food_type", "dry_food"),
@@ -211,9 +203,8 @@ def _build_module_placeholders(
     summary: ModuleConfigurationSummary,
     dog_count: int,
 ) -> ModuleConfigurationPlaceholders:
-    """Return the placeholders rendered for the module configuration step."""  # noqa: E111
-
-    return ModuleConfigurationPlaceholders(  # noqa: E111
+    """Return the placeholders rendered for the module configuration step."""
+    return ModuleConfigurationPlaceholders(
         dog_count=dog_count,
         module_summary=summary["description"],
         total_modules=summary["total"],
@@ -228,9 +219,8 @@ def _build_dashboard_placeholders(
     dashboard_info: str,
     features: str,
 ) -> DashboardConfigurationPlaceholders:
-    """Return the placeholders for the dashboard configuration step."""  # noqa: E111
-
-    return DashboardConfigurationPlaceholders(  # noqa: E111
+    """Return the placeholders for the dashboard configuration step."""
+    return DashboardConfigurationPlaceholders(
         dog_count=dog_count,
         dashboard_info=dashboard_info,
         features=features,
@@ -242,18 +232,16 @@ def _build_feeding_placeholders(
     dog_count: int,
     summary: str,
 ) -> FeedingConfigurationPlaceholders:
-    """Return the placeholders rendered for the feeding configuration step."""  # noqa: E111
-
-    return FeedingConfigurationPlaceholders(  # noqa: E111
+    """Return the placeholders rendered for the feeding configuration step."""
+    return FeedingConfigurationPlaceholders(
         dog_count=dog_count,
         feeding_summary=summary,
     )
 
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant  # noqa: E111
-
-    class ModuleFlowHost(Protocol):  # noqa: E111
+    from homeassistant.core import HomeAssistant
+    class ModuleFlowHost(Protocol):
         """Type-checking protocol describing the module flow host."""
 
         _dogs: list[DogConfigData]
@@ -268,30 +256,26 @@ if TYPE_CHECKING:
             self,
             user_input: ExternalEntityConfig | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for the external entity step."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for the external entity step."""
+            ...
         async def async_step_configure_feeding_details(
             self,
             user_input: FeedingConfigurationStepInput | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for the feeding configuration step."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for the feeding configuration step."""
+            ...
         async def async_step_configure_dashboard(
             self,
             user_input: DashboardConfigurationStepInput | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for the dashboard configuration step."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for the dashboard configuration step."""
+            ...
         async def async_step_final_setup(
             self,
             user_input: ConfigFlowUserInput | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for the final setup step."""  # noqa: E111
-            ...  # noqa: E111
-
+            """Type-checking stub for the final setup step."""
+            ...
         def async_show_form(
             self,
             *,
@@ -300,19 +284,16 @@ if TYPE_CHECKING:
             description_placeholders: ConfigFlowPlaceholders | None = None,
             errors: dict[str, str] | None = None,
         ) -> ConfigFlowResult:
-            """Type-checking stub for form rendering within the flow."""  # noqa: E111
-            ...  # noqa: E111
-
-
+            """Type-checking stub for form rendering within the flow."""
+            ...
 class ModuleConfigurationMixin:
     """Mixin for global module configuration after per-dog setup.
 
     This mixin now handles global settings and dashboard configuration
     after individual dogs have been configured with their specific modules.
     Per-dog module selection has been moved to config_flow_dogs.py.
-    """  # noqa: E111
-
-    async def async_step_configure_modules(  # noqa: E111
+    """
+    async def async_step_configure_modules(
         self,
         user_input: ModuleConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -331,12 +312,12 @@ class ModuleConfigurationMixin:
 
         if user_input is not None:
             # Store global settings  # noqa: E114
-            flow._global_settings = _coerce_module_global_settings(  # noqa: E111
+            flow._global_settings = _coerce_module_global_settings(
                 user_input,
             )
 
             # Check if any dog has dashboard enabled  # noqa: E114
-            dashboard_enabled = any(  # noqa: E111
+            dashboard_enabled = any(
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                     MODULE_DASHBOARD,
                     True,
@@ -344,11 +325,11 @@ class ModuleConfigurationMixin:
                 for dog in flow._dogs
             )
 
-            if dashboard_enabled:  # noqa: E111
+            if dashboard_enabled:
                 return await flow.async_step_configure_dashboard()
 
             # Check if feeding details need configuration  # noqa: E114
-            feeding_enabled = any(  # noqa: E111
+            feeding_enabled = any(
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                     MODULE_FEEDING,
                     False,
@@ -356,11 +337,11 @@ class ModuleConfigurationMixin:
                 for dog in flow._dogs
             )
 
-            if feeding_enabled:  # noqa: E111
+            if feeding_enabled:
                 return await flow.async_step_configure_feeding_details()
 
             # Check if we need external entity configuration  # noqa: E114
-            gps_enabled = any(  # noqa: E111
+            gps_enabled = any(
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                     MODULE_GPS,
                     False,
@@ -368,15 +349,13 @@ class ModuleConfigurationMixin:
                 for dog in flow._dogs
             )
 
-            if gps_enabled:  # noqa: E111
+            if gps_enabled:
                 return await flow.async_step_configure_external_entities()
 
-            return await flow.async_step_final_setup()  # noqa: E111
-
+            return await flow.async_step_final_setup()
         # Only show this step if we have dogs configured
         if not flow._dogs:
-            return await flow.async_step_final_setup()  # noqa: E111
-
+            return await flow.async_step_final_setup()
         # Analyze configured modules across all dogs
         module_summary = self._analyze_configured_modules()
 
@@ -446,7 +425,7 @@ class ModuleConfigurationMixin:
             ),
         )
 
-    async def async_step_configure_dashboard(  # noqa: E111
+    async def async_step_configure_dashboard(
         self,
         user_input: DashboardConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -465,7 +444,7 @@ class ModuleConfigurationMixin:
 
         if user_input is not None:
             # Determine which dogs have dashboard enabled  # noqa: E114
-            dashboard_dogs = [  # noqa: E111
+            dashboard_dogs = [
                 dog
                 for dog in flow._dogs
                 if cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
@@ -475,7 +454,7 @@ class ModuleConfigurationMixin:
             ]
 
             # Store dashboard configuration  # noqa: E114
-            flow._dashboard_config = _coerce_dashboard_configuration(  # noqa: E111
+            flow._dashboard_config = _coerce_dashboard_configuration(
                 user_input,
                 has_gps=self._has_gps_dogs(),
                 has_health=self._has_health_dogs(),
@@ -485,11 +464,10 @@ class ModuleConfigurationMixin:
             )
 
             # Continue to external entities if GPS is enabled  # noqa: E114
-            if self._has_gps_dogs():  # noqa: E111
+            if self._has_gps_dogs():
                 return await flow.async_step_configure_external_entities()
 
-            return await flow.async_step_final_setup()  # noqa: E111
-
+            return await flow.async_step_final_setup()
         # Count dogs with dashboard enabled
         dashboard_dogs = [
             dog
@@ -630,7 +608,7 @@ class ModuleConfigurationMixin:
             ),
         )
 
-    def _analyze_configured_modules(self) -> ModuleConfigurationSummary:  # noqa: E111
+    def _analyze_configured_modules(self) -> ModuleConfigurationSummary:
         """Analyze which modules are configured across all dogs.
 
         Returns:
@@ -642,31 +620,30 @@ class ModuleConfigurationMixin:
         total_modules = 0
 
         for dog in flow._dogs:
-            modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))  # noqa: E111
-            for module_name, enabled in modules.items():  # noqa: E111
+            modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
+            for module_name, enabled in modules.items():
                 if enabled:
-                    module_counts[module_name] = (  # noqa: E111
+                    module_counts[module_name] = (
                         module_counts.get(
                             module_name,
                             0,
                         )
                         + 1
                     )
-                    total_modules += 1  # noqa: E111
-
+                    total_modules += 1
         gps_dogs = module_counts.get(MODULE_GPS, 0)
         health_dogs = module_counts.get(MODULE_HEALTH, 0)
         feeding_dogs = module_counts.get(MODULE_FEEDING, 0)
 
         description_parts: list[str] = []
         if gps_dogs > 0:
-            description_parts.append(f"{gps_dogs} dogs with GPS")  # noqa: E111
+            description_parts.append(f"{gps_dogs} dogs with GPS")
         if health_dogs > 0:
-            description_parts.append(  # noqa: E111
+            description_parts.append(
                 f"{health_dogs} dogs with health monitoring",
             )
         if feeding_dogs > 0:
-            description_parts.append(  # noqa: E111
+            description_parts.append(
                 f"{feeding_dogs} dogs with feeding tracking",
             )
 
@@ -681,7 +658,7 @@ class ModuleConfigurationMixin:
             else "Basic monitoring",
         )
 
-    def _suggest_performance_mode(  # noqa: E111
+    def _suggest_performance_mode(
         self,
         module_summary: ModuleConfigurationSummary,
     ) -> str:
@@ -701,14 +678,14 @@ class ModuleConfigurationMixin:
 
         # High complexity: many dogs with GPS or many modules
         if gps_dogs >= 3 or total_modules >= 15:
-            return "full"  # noqa: E111
+            return "full"
         # Medium complexity
         if gps_dogs > 0 or total_dogs > 2 or total_modules >= 8:
-            return "balanced"  # noqa: E111
+            return "balanced"
         # Low complexity
         return "minimal"
 
-    def _has_gps_dogs(self) -> bool:  # noqa: E111
+    def _has_gps_dogs(self) -> bool:
         """Check if any dog has GPS enabled."""
         flow = cast("ModuleFlowHost", self)
 
@@ -720,7 +697,7 @@ class ModuleConfigurationMixin:
             for dog in flow._dogs
         )
 
-    def _has_health_dogs(self) -> bool:  # noqa: E111
+    def _has_health_dogs(self) -> bool:
         """Check if any dog has health monitoring enabled."""
         flow = cast("ModuleFlowHost", self)
 
@@ -732,7 +709,7 @@ class ModuleConfigurationMixin:
             for dog in flow._dogs
         )
 
-    def _has_feeding_dogs(self) -> bool:  # noqa: E111
+    def _has_feeding_dogs(self) -> bool:
         """Check if any dog has feeding tracking enabled."""
         flow = cast("ModuleFlowHost", self)
 
@@ -744,7 +721,7 @@ class ModuleConfigurationMixin:
             for dog in flow._dogs
         )
 
-    def _get_dashboard_setup_info(self) -> str:  # noqa: E111
+    def _get_dashboard_setup_info(self) -> str:
         """Get dashboard setup information string.
 
         Returns:
@@ -755,22 +732,21 @@ class ModuleConfigurationMixin:
         hass_language: str | None = getattr(flow.hass.config, "language", None)
 
         if module_summary["total"] == 0:
-            return translated_dashboard_setup(hass_language, "basic")  # noqa: E111
-
+            return translated_dashboard_setup(hass_language, "basic")
         features: list[str] = []
         if module_summary["gps_dogs"] > 0:
-            features.append(  # noqa: E111
+            features.append(
                 translated_dashboard_feature(
                     hass_language,
                     "live_location_tracking",
                 ),
             )
         if module_summary["health_dogs"] > 0:
-            features.append(  # noqa: E111
+            features.append(
                 translated_dashboard_feature(hass_language, "health_charts"),
             )
         if module_summary["feeding_dogs"] > 0:
-            features.append(  # noqa: E111
+            features.append(
                 translated_dashboard_feature(
                     hass_language,
                     "feeding_schedules",
@@ -778,7 +754,7 @@ class ModuleConfigurationMixin:
             )
 
         if features:
-            return translated_dashboard_setup(  # noqa: E111
+            return translated_dashboard_setup(
                 hass_language,
                 "include_prefix",
                 features=", ".join(features),
@@ -786,7 +762,7 @@ class ModuleConfigurationMixin:
 
         return translated_dashboard_setup(hass_language, "standard")
 
-    def _get_dashboard_features_string(self, has_gps: bool) -> str:  # noqa: E111
+    def _get_dashboard_features_string(self, has_gps: bool) -> str:
         """Get dashboard features string.
 
         Args:
@@ -805,16 +781,14 @@ class ModuleConfigurationMixin:
         ]
 
         if has_gps:
-            feature_keys.append("location_maps")  # noqa: E111
-
+            feature_keys.append("location_maps")
         if len(flow._dogs) > 1:
-            feature_keys.append("multi_dog_overview")  # noqa: E111
-
+            feature_keys.append("multi_dog_overview")
         return ", ".join(
             translated_dashboard_feature(hass_language, key) for key in feature_keys
         )
 
-    async def async_step_configure_feeding_details(  # noqa: E111
+    async def async_step_configure_feeding_details(
         self,
         user_input: FeedingConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
@@ -830,16 +804,15 @@ class ModuleConfigurationMixin:
 
         if user_input is not None:
             # Store feeding configuration  # noqa: E114
-            flow._feeding_config = _coerce_feeding_configuration(  # noqa: E111
+            flow._feeding_config = _coerce_feeding_configuration(
                 user_input,
             )
 
             # Continue to GPS configuration if needed  # noqa: E114
-            if self._has_gps_dogs():  # noqa: E111
+            if self._has_gps_dogs():
                 return await flow.async_step_configure_external_entities()
 
-            return await flow.async_step_final_setup()  # noqa: E111
-
+            return await flow.async_step_final_setup()
         # Get feeding dogs for context
         feeding_dogs: list[DogConfigData] = [
             dog
@@ -951,7 +924,7 @@ class ModuleConfigurationMixin:
             ),
         )
 
-    def _get_feeding_summary(self, feeding_dogs: list[DogConfigData]) -> str:  # noqa: E111
+    def _get_feeding_summary(self, feeding_dogs: list[DogConfigData]) -> str:
         """Get summary of dogs with feeding enabled.
 
         Args:
@@ -961,19 +934,16 @@ class ModuleConfigurationMixin:
             Feeding summary string
         """
         if not feeding_dogs:
-            return "No dogs with feeding tracking"  # noqa: E111
-
+            return "No dogs with feeding tracking"
         if len(feeding_dogs) == 1:
-            dog_name = feeding_dogs[0].get("dog_name", "Unknown")  # noqa: E111
-            return f"Feeding configuration for {dog_name}"  # noqa: E111
-
+            dog_name = feeding_dogs[0].get("dog_name", "Unknown")
+            return f"Feeding configuration for {dog_name}"
         dog_names = [dog.get("dog_name", "Unknown") for dog in feeding_dogs[:3]]
         if len(feeding_dogs) > 3:
-            dog_names.append(f"...and {len(feeding_dogs) - 3} more")  # noqa: E111
-
+            dog_names.append(f"...and {len(feeding_dogs) - 3} more")
         return f"Feeding configuration for: {', '.join(dog_names)}"
 
-    def _get_dogs_module_summary(self) -> str:  # noqa: E111
+    def _get_dogs_module_summary(self) -> str:
         """Get summary of dogs and their modules.
 
         Returns:
@@ -982,16 +952,13 @@ class ModuleConfigurationMixin:
         flow = cast("ModuleFlowHost", self)
 
         if not flow._dogs:
-            return "No dogs configured yet"  # noqa: E111
-
+            return "No dogs configured yet"
         summary_parts: list[str] = []
         for dog in flow._dogs[:3]:  # Show first 3 dogs
-            dog_name = dog.get("dog_name", "Unknown")  # noqa: E111
-            modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))  # noqa: E111
-            enabled_count = sum(1 for enabled in modules.values() if bool(enabled))  # noqa: E111
-            summary_parts.append(f"{dog_name}: {enabled_count} modules")  # noqa: E111
-
+            dog_name = dog.get("dog_name", "Unknown")
+            modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
+            enabled_count = sum(1 for enabled in modules.values() if bool(enabled))
+            summary_parts.append(f"{dog_name}: {enabled_count} modules")
         if len(flow._dogs) > 3:
-            summary_parts.append(f"...and {len(flow._dogs) - 3} more")  # noqa: E111
-
+            summary_parts.append(f"...and {len(flow._dogs) - 3} more")
         return " | ".join(summary_parts)

@@ -43,13 +43,10 @@ type JSONSequence = Sequence[JSONValue]
 
 
 class APIAuthenticationResult(TypedDict):
-    """Structured authentication probe response."""  # noqa: E111
-
-    authenticated: bool  # noqa: E111
-    api_version: str | None  # noqa: E111
-    capabilities: CapabilityList | None  # noqa: E111
-
-
+    """Structured authentication probe response."""
+    authenticated: bool
+    api_version: str | None
+    capabilities: CapabilityList | None
 type HealthStatus = Literal[
     "healthy",
     "degraded",
@@ -61,49 +58,36 @@ type HealthStatus = Literal[
 
 
 class APIHealthStatus(TypedDict):
-    """Structured payload returned by :meth:`async_test_api_health`."""  # noqa: E111
-
-    healthy: bool  # noqa: E111
-    reachable: bool  # noqa: E111
-    authenticated: bool  # noqa: E111
-    response_time_ms: float | None  # noqa: E111
-    error: str | None  # noqa: E111
-    status: HealthStatus  # noqa: E111
-    api_version: str | None  # noqa: E111
-    capabilities: CapabilityList | None  # noqa: E111
-
-
+    """Structured payload returned by :meth:`async_test_api_health`."""
+    healthy: bool
+    reachable: bool
+    authenticated: bool
+    response_time_ms: float | None
+    error: str | None
+    status: HealthStatus
+    api_version: str | None
+    capabilities: CapabilityList | None
 class _APIAuthPayload(TypedDict, total=False):
-    """Subset of fields returned by PawControl API authentication endpoints."""  # noqa: E111
-
-    version: str  # noqa: E111
-    capabilities: NotRequired[JSONSequence]  # noqa: E111
-
-
+    """Subset of fields returned by PawControl API authentication endpoints."""
+    version: str
+    capabilities: NotRequired[JSONSequence]
 class _RequestOptions(TypedDict, total=False):
-    """Subset of aiohttp request keyword arguments used by the validator."""  # noqa: E111
-
-    allow_redirects: bool  # noqa: E111
-    ssl: bool  # noqa: E111
-
-
+    """Subset of aiohttp request keyword arguments used by the validator."""
+    allow_redirects: bool
+    ssl: bool
 @dataclass
 class APIValidationResult:
-    """Results from API validation check."""  # noqa: E111
-
-    valid: bool  # noqa: E111
-    reachable: bool  # noqa: E111
-    authenticated: bool  # noqa: E111
-    response_time_ms: float | None  # noqa: E111
-    error_message: str | None  # noqa: E111
-    api_version: str | None  # noqa: E111
-    capabilities: CapabilityList | None  # noqa: E111
-
-
+    """Results from API validation check."""
+    valid: bool
+    reachable: bool
+    authenticated: bool
+    response_time_ms: float | None
+    error_message: str | None
+    api_version: str | None
+    capabilities: CapabilityList | None
 class APIValidator:
-    """Validates API connections and credentials for PawControl."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Validates API connections and credentials for PawControl."""
+    def __init__(
         self,
         hass: HomeAssistant,
         session: aiohttp.ClientSession,
@@ -129,14 +113,13 @@ class APIValidator:
             # aiohttp accepts ``ssl=False`` to bypass certificate validation.  # noqa: E114
             # We only store the override when explicitly requested so production  # noqa: E114
             # systems keep the secure defaults provided by Home Assistant.  # noqa: E114
-            self._ssl_override = False  # noqa: E111
-
-    @property  # noqa: E111
-    def session(self) -> aiohttp.ClientSession:  # noqa: E111
+            self._ssl_override = False
+    @property
+    def session(self) -> aiohttp.ClientSession:
         """Return the HTTP session leveraged for validation calls."""
         return self._session
 
-    async def async_validate_api_connection(  # noqa: E111
+    async def async_validate_api_connection(
         self,
         api_endpoint: str,
         api_token: str | None = None,
@@ -159,7 +142,7 @@ class APIValidator:
 
         try:
             # Validate endpoint format  # noqa: E114
-            if not self._validate_endpoint_format(api_endpoint):  # noqa: E111
+            if not self._validate_endpoint_format(api_endpoint):
                 return APIValidationResult(
                     valid=False,
                     reachable=False,
@@ -171,10 +154,10 @@ class APIValidator:
                 )
 
             # Test connection reachability  # noqa: E114
-            async with asyncio.timeout(API_CONNECTION_TIMEOUT):  # noqa: E111
+            async with asyncio.timeout(API_CONNECTION_TIMEOUT):
                 reachable = await self._test_endpoint_reachability(api_endpoint)
 
-            if not reachable:  # noqa: E111
+            if not reachable:
                 return APIValidationResult(
                     valid=False,
                     reachable=False,
@@ -186,23 +169,21 @@ class APIValidator:
                 )
 
             # Test authentication if token provided  # noqa: E114
-            authenticated = False  # noqa: E111
-            api_version: str | None = None  # noqa: E111
-            capabilities: CapabilityList | None = None  # noqa: E111
-
-            if api_token:  # noqa: E111
+            authenticated = False
+            api_version: str | None = None
+            capabilities: CapabilityList | None = None
+            if api_token:
                 async with asyncio.timeout(API_TOKEN_VALIDATION_TIMEOUT):
-                    auth_result = await self._test_authentication(  # noqa: E111
+                    auth_result = await self._test_authentication(
                         api_endpoint,
                         api_token,
                     )
-                    authenticated = auth_result["authenticated"]  # noqa: E111
-                    api_version = auth_result["api_version"]  # noqa: E111
-                    capabilities = auth_result["capabilities"]  # noqa: E111
-
+                    authenticated = auth_result["authenticated"]
+                    api_version = auth_result["api_version"]
+                    capabilities = auth_result["capabilities"]
                 if not authenticated:
-                    response_time_ms = (time.monotonic() - start_time) * 1000  # noqa: E111
-                    return APIValidationResult(  # noqa: E111
+                    response_time_ms = (time.monotonic() - start_time) * 1000
+                    return APIValidationResult(
                         valid=False,
                         reachable=True,
                         authenticated=False,
@@ -213,9 +194,8 @@ class APIValidator:
                     )
 
             # Calculate response time  # noqa: E114
-            response_time_ms = (time.monotonic() - start_time) * 1000  # noqa: E111
-
-            return APIValidationResult(  # noqa: E111
+            response_time_ms = (time.monotonic() - start_time) * 1000
+            return APIValidationResult(
                 valid=True,
                 reachable=True,
                 authenticated=authenticated if api_token else False,
@@ -226,8 +206,8 @@ class APIValidator:
             )
 
         except TimeoutError:
-            response_time_ms = (time.monotonic() - start_time) * 1000  # noqa: E111
-            return APIValidationResult(  # noqa: E111
+            response_time_ms = (time.monotonic() - start_time) * 1000
+            return APIValidationResult(
                 valid=False,
                 reachable=False,
                 authenticated=False,
@@ -237,9 +217,9 @@ class APIValidator:
                 capabilities=None,
             )
         except Exception as err:
-            _LOGGER.error("API validation failed: %s", err)  # noqa: E111
-            response_time_ms = (time.monotonic() - start_time) * 1000  # noqa: E111
-            return APIValidationResult(  # noqa: E111
+            _LOGGER.error("API validation failed: %s", err)
+            response_time_ms = (time.monotonic() - start_time) * 1000
+            return APIValidationResult(
                 valid=False,
                 reachable=False,
                 authenticated=False,
@@ -249,7 +229,7 @@ class APIValidator:
                 capabilities=None,
             )
 
-    def _validate_endpoint_format(self, endpoint: str) -> bool:  # noqa: E111
+    def _validate_endpoint_format(self, endpoint: str) -> bool:
         """Validate API endpoint format.
 
         Args:
@@ -259,22 +239,18 @@ class APIValidator:
             True if format is valid
         """
         if not endpoint or not isinstance(endpoint, str):
-            return False  # noqa: E111
-
+            return False
         # Must start with http:// or https://
         if not endpoint.startswith(("http://", "https://")):
-            return False  # noqa: E111
-
+            return False
         # Basic URL validation
         try:
-            from urllib.parse import urlparse  # noqa: E111
-
-            result = urlparse(endpoint)  # noqa: E111
-            return bool(result.scheme and result.netloc)  # noqa: E111
+            from urllib.parse import urlparse
+            result = urlparse(endpoint)
+            return bool(result.scheme and result.netloc)
         except Exception:
-            return False  # noqa: E111
-
-    async def _test_endpoint_reachability(self, endpoint: str) -> bool:  # noqa: E111
+            return False
+    async def _test_endpoint_reachability(self, endpoint: str) -> bool:
         """Test if endpoint is reachable.
 
         Args:
@@ -284,31 +260,28 @@ class APIValidator:
             True if endpoint is reachable
         """
         try:
-            session = self._session  # noqa: E111
-
-            request_kwargs: _RequestOptions  # noqa: E111
-            if self._ssl_override is None:  # noqa: E111
+            session = self._session
+            request_kwargs: _RequestOptions
+            if self._ssl_override is None:
                 request_kwargs = {"allow_redirects": True}
-            else:  # noqa: E111
+            else:
                 request_kwargs = {
                     "allow_redirects": True,
                     "ssl": self._ssl_override,
                 }
 
-            response_ctx = await session.get(endpoint, **request_kwargs)  # noqa: E111
-
-            async with response_ctx:  # noqa: E111
+            response_ctx = await session.get(endpoint, **request_kwargs)
+            async with response_ctx:
                 # Any response (even 404) means the endpoint is reachable
                 return True
 
         except aiohttp.ClientError as err:
-            _LOGGER.debug("Endpoint not reachable: %s", err)  # noqa: E111
-            return False  # noqa: E111
+            _LOGGER.debug("Endpoint not reachable: %s", err)
+            return False
         except Exception as err:
-            _LOGGER.debug("Unexpected error testing reachability: %s", err)  # noqa: E111
-            return False  # noqa: E111
-
-    async def _test_authentication(  # noqa: E111
+            _LOGGER.debug("Unexpected error testing reachability: %s", err)
+            return False
+    async def _test_authentication(
         self,
         endpoint: str,
         token: str,
@@ -323,78 +296,75 @@ class APIValidator:
             Dictionary with authentication results
         """
         try:
-            session = self._session  # noqa: E111
-
+            session = self._session
             # Construct auth endpoint (common patterns)  # noqa: E114
             # Try the most common validation endpoints before falling back to  # noqa: E114
             # the base URL with an auth header.  # noqa: E114
-            auth_endpoints: tuple[str, ...] = (  # noqa: E111
+            auth_endpoints: tuple[str, ...] = (
                 f"{endpoint}/auth/validate",
                 f"{endpoint}/api/auth",
                 f"{endpoint}/validate",
                 endpoint,
             )
 
-            headers: dict[str, str] = {  # noqa: E111
+            headers: dict[str, str] = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             }
 
-            request_kwargs: _RequestOptions  # noqa: E111
+            request_kwargs: _RequestOptions
             request_kwargs = (
                 {} if self._ssl_override is None else {"ssl": self._ssl_override}
-            )  # noqa: E111
-
+            )
             # Try each endpoint until one works  # noqa: E114
-            for auth_endpoint in auth_endpoints:  # noqa: E111
+            for auth_endpoint in auth_endpoints:
                 try:
-                    async with session.get(  # noqa: E111
+                    async with session.get(
                         auth_endpoint,
                         headers=headers,
                         **request_kwargs,
                     ) as response:
                         if response.status in AUTH_SUCCESS_STATUS_CODES:
                             # Try to parse response for additional info  # noqa: E114
-                            try:  # noqa: E111
+                            try:
                                 data = await response.json()
-                            except Exception:  # noqa: E111
+                            except Exception:
                                 return APIAuthenticationResult(
                                     authenticated=True,
                                     api_version=None,
                                     capabilities=None,
                                 )
-                            if not isinstance(data, Mapping):  # noqa: E111
+                            if not isinstance(data, Mapping):
                                 return APIAuthenticationResult(
                                     authenticated=True,
                                     api_version=None,
                                     capabilities=None,
                                 )
-                            payload = cast(_APIAuthPayload, data)  # noqa: E111
-                            return APIAuthenticationResult(  # noqa: E111
+                            payload = cast(_APIAuthPayload, data)
+                            return APIAuthenticationResult(
                                 authenticated=True,
                                 api_version=_extract_api_version(payload),
                                 capabilities=_extract_capabilities(payload),
                             )
 
                 except aiohttp.ClientError:
-                    continue  # noqa: E111
-
+                    continue
             # No endpoint accepted the token  # noqa: E114
-            return APIAuthenticationResult(  # noqa: E111
+            return APIAuthenticationResult(
                 authenticated=False,
                 api_version=None,
                 capabilities=None,
             )
 
         except Exception as err:
-            _LOGGER.error("Authentication test failed: %s", err)  # noqa: E111
-            return APIAuthenticationResult(  # noqa: E111
+            _LOGGER.error("Authentication test failed: %s", err)
+            return APIAuthenticationResult(
                 authenticated=False,
                 api_version=None,
                 capabilities=None,
             )
 
-    async def async_test_api_health(  # noqa: E111
+    async def async_test_api_health(
         self,
         api_endpoint: str,
         api_token: str | None = None,
@@ -409,7 +379,7 @@ class APIValidator:
             Health check results dictionary
         """
         try:
-            async with asyncio.timeout(API_HEALTH_CHECK_TIMEOUT):  # noqa: E111
+            async with asyncio.timeout(API_HEALTH_CHECK_TIMEOUT):
                 validation_result = await self.async_validate_api_connection(
                     api_endpoint,
                     api_token,
@@ -428,16 +398,15 @@ class APIValidator:
 
                 # Determine overall health
                 if not validation_result.reachable:
-                    health_status["status"] = "unreachable"  # noqa: E111
+                    health_status["status"] = "unreachable"
                 elif not validation_result.authenticated and api_token:
-                    health_status["status"] = "authentication_failed"  # noqa: E111
+                    health_status["status"] = "authentication_failed"
                 elif validation_result.valid:
-                    health_status["status"] = "healthy"  # noqa: E111
-
+                    health_status["status"] = "healthy"
                 return health_status
 
         except TimeoutError:
-            return APIHealthStatus(  # noqa: E111
+            return APIHealthStatus(
                 healthy=False,
                 reachable=False,
                 authenticated=False,
@@ -448,8 +417,8 @@ class APIValidator:
                 capabilities=None,
             )
         except Exception as err:
-            _LOGGER.error("API health check failed: %s", err)  # noqa: E111
-            return APIHealthStatus(  # noqa: E111
+            _LOGGER.error("API health check failed: %s", err)
+            return APIHealthStatus(
                 healthy=False,
                 reachable=False,
                 authenticated=False,
@@ -460,32 +429,26 @@ class APIValidator:
                 capabilities=None,
             )
 
-    async def async_close(self) -> None:  # noqa: E111
+    async def async_close(self) -> None:
         """Close the API validator and cleanup resources."""
         if not self._session.closed:
             # The validator never owns the session; leave lifecycle management to  # noqa: E114, E501
             # Home Assistant to avoid closing the shared pool.  # noqa: E114
-            return  # noqa: E111
-
-
+            return
 def _extract_api_version(data: JSONMapping | _APIAuthPayload) -> str | None:
-    """Return the reported API version when present."""  # noqa: E111
-
-    if isinstance(data, Mapping):  # noqa: E111
+    """Return the reported API version when present."""
+    if isinstance(data, Mapping):
         version = data.get("version")
         if isinstance(version, str):
-            return version  # noqa: E111
-    return None  # noqa: E111
-
-
+            return version
+    return None
 def _extract_capabilities(data: JSONMapping | _APIAuthPayload) -> CapabilityList | None:
-    """Return normalised capability data from a JSON payload."""  # noqa: E111
-
-    if not isinstance(data, Mapping):  # noqa: E111
+    """Return normalised capability data from a JSON payload."""
+    if not isinstance(data, Mapping):
         return None
 
-    capabilities = data.get("capabilities")  # noqa: E111
-    if isinstance(capabilities, Sequence) and not isinstance(  # noqa: E111
+    capabilities = data.get("capabilities")
+    if isinstance(capabilities, Sequence) and not isinstance(
         capabilities,
         str | bytes | bytearray,
     ):
@@ -493,7 +456,7 @@ def _extract_capabilities(data: JSONMapping | _APIAuthPayload) -> CapabilityList
             capability for capability in capabilities if isinstance(capability, str)
         ]
         if string_capabilities:
-            return list(string_capabilities)  # noqa: E111
+            return list(string_capabilities)
         if len(capabilities) == 0:
-            return []  # noqa: E111
-    return None  # noqa: E111
+            return []
+    return None

@@ -68,14 +68,13 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry  # noqa: E111
-
+    from homeassistant.config_entries import ConfigEntry
 _LOGGER = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
 
-    class DogManagementOptionsHost(Protocol):  # noqa: E111
+    class DogManagementOptionsHost(Protocol):
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -87,32 +86,28 @@ if TYPE_CHECKING:
         def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-    DogManagementOptionsHost = object  # noqa: E111
-
-
+    DogManagementOptionsHost = object
 class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsHost):
-    _current_dog: DogConfigData | None  # noqa: E111
-    _dogs: list[DogConfigData]  # noqa: E111
-
-    async def async_step_manage_dogs(  # noqa: E111
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+    async def async_step_manage_dogs(
         self,
         user_input: OptionsMenuInput | None = None,
     ) -> ConfigFlowResult:
         """Manage dogs - add, edit, or remove dogs."""
         if user_input is not None:
-            action = user_input.get("action")  # noqa: E111
-            if action == "add_dog":  # noqa: E111
+            action = user_input.get("action")
+            if action == "add_dog":
                 return await self.async_step_add_new_dog()
-            if action == "edit_dog":  # noqa: E111
+            if action == "edit_dog":
                 return await self.async_step_select_dog_to_edit()
-            if action == "remove_dog":  # noqa: E111
+            if action == "remove_dog":
                 return await self.async_step_select_dog_to_remove()
-            if action == "configure_modules":  # NEW: Module configuration  # noqa: E111
+            if action == "configure_modules":  # NEW: Module configuration
                 return await self.async_step_select_dog_for_modules()
-            if action == "configure_door_sensor":  # noqa: E111
+            if action == "configure_door_sensor":
                 return await self.async_step_select_dog_for_door_sensor()
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         # Show dog management menu
         dogs_raw = self._entry.data.get(CONF_DOGS, [])
         current_dogs: list[JSONLikeMapping] = (
@@ -163,7 +158,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             ),
         )
 
-    async def async_step_select_dog_for_modules(  # noqa: E111
+    async def async_step_select_dog_for_modules(
         self,
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
@@ -174,11 +169,10 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         current_dogs = list(self._dogs)
 
         if not current_dogs:
-            return await self.async_step_manage_dogs()  # noqa: E111
-
+            return await self.async_step_manage_dogs()
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")  # noqa: E111
-            self._current_dog = next(  # noqa: E111
+            selected_dog_id = user_input.get("dog_id")
+            self._current_dog = next(
                 (
                     dog
                     for dog in current_dogs
@@ -186,10 +180,9 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 ),
                 None,
             )
-            if self._current_dog:  # noqa: E111
+            if self._current_dog:
                 return await self.async_step_configure_dog_modules()
-            return await self.async_step_manage_dogs()  # noqa: E111
-
+            return await self.async_step_manage_dogs()
         # Create selection options
         dog_options = [
             {
@@ -213,7 +206,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             ),
         )
 
-    async def async_step_configure_dog_modules(  # noqa: E111
+    async def async_step_configure_dog_modules(
         self,
         user_input: OptionsDogModulesInput | None = None,
     ) -> ConfigFlowResult:
@@ -222,18 +215,17 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         NEW: Per-dog module configuration with entity count preview
         """
         if not self._current_dog:
-            return await self.async_step_manage_dogs()  # noqa: E111
-
+            return await self.async_step_manage_dogs()
         if user_input is not None:
-            dog_id = self._current_dog.get(DOG_ID_FIELD)  # noqa: E111
-            if not isinstance(dog_id, str):  # noqa: E111
+            dog_id = self._current_dog.get(DOG_ID_FIELD)
+            if not isinstance(dog_id, str):
                 return self.async_show_form(
                     step_id="configure_dog_modules",
                     data_schema=self._get_dog_modules_schema(),
                     errors={"base": "invalid_dog"},
                 )
 
-            updated_modules = {  # noqa: E111
+            updated_modules = {
                 MODULE_FEEDING: bool(user_input.get("module_feeding", True)),
                 MODULE_WALK: bool(user_input.get("module_walk", True)),
                 MODULE_GPS: bool(user_input.get("module_gps", False)),
@@ -247,7 +239,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 "training": bool(user_input.get("module_training", False)),
             }
 
-            try:  # noqa: E111
+            try:
                 modules_payload = ensure_dog_modules_config(updated_modules)
                 dog_index = next(
                     (
@@ -259,39 +251,37 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 )
 
                 if dog_index >= 0:
-                    candidate = cast(  # noqa: E111
+                    candidate = cast(
                         DogConfigData,
                         {
                             **self._dogs[dog_index],
                             DOG_MODULES_FIELD: modules_payload,
                         },
                     )
-                    normalised = ensure_dog_config_data(  # noqa: E111
+                    normalised = ensure_dog_config_data(
                         cast(Mapping[str, JSONValue], candidate),
                     )
-                    if normalised is None:  # noqa: E111
+                    if normalised is None:
                         raise FlowValidationError(
                             base_errors=["invalid_dog_config"],
                         )
 
-                    self._dogs[dog_index] = normalised  # noqa: E111
-                    self._current_dog = normalised  # noqa: E111
-
-                    typed_dogs = self._normalise_entry_dogs(self._dogs)  # noqa: E111
-                    new_data = {**self._entry.data, CONF_DOGS: typed_dogs}  # noqa: E111
-
-                    self.hass.config_entries.async_update_entry(  # noqa: E111
+                    self._dogs[dog_index] = normalised
+                    self._current_dog = normalised
+                    typed_dogs = self._normalise_entry_dogs(self._dogs)
+                    new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
+                    self.hass.config_entries.async_update_entry(
                         self._entry,
                         data=new_data,
                     )
-                    self._dogs = typed_dogs  # noqa: E111
-            except FlowValidationError as err:  # noqa: E111
+                    self._dogs = typed_dogs
+            except FlowValidationError as err:
                 return self.async_show_form(
                     step_id="configure_dog_modules",
                     data_schema=self._get_dog_modules_schema(),
                     errors=err.as_form_errors(),
                 )
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error configuring dog modules: %s", err)
                 return self.async_show_form(
                     step_id="configure_dog_modules",
@@ -299,22 +289,19 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                     errors={"base": "module_config_failed"},
                 )
 
-            dog_options = self._current_dog_options()  # noqa: E111
-            existing = dog_options.get(dog_id, {})  # noqa: E111
-            entry = ensure_dog_options_entry(  # noqa: E111
+            dog_options = self._current_dog_options()
+            existing = dog_options.get(dog_id, {})
+            entry = ensure_dog_options_entry(
                 cast(JSONLikeMapping, dict(existing)),
                 dog_id=dog_id,
             )
-            entry[DOG_ID_FIELD] = dog_id  # noqa: E111
-            entry[DOG_MODULES_FIELD] = modules_payload  # noqa: E111
-            dog_options[dog_id] = entry  # noqa: E111
-
-            new_options = self._clone_options()  # noqa: E111
-            new_options[DOG_OPTIONS_FIELD] = dog_options  # noqa: E111
-            self._invalidate_profile_caches()  # noqa: E111
-
-            return self.async_create_entry(title="", data=new_options)  # noqa: E111
-
+            entry[DOG_ID_FIELD] = dog_id
+            entry[DOG_MODULES_FIELD] = modules_payload
+            dog_options[dog_id] = entry
+            new_options = self._clone_options()
+            new_options[DOG_OPTIONS_FIELD] = dog_options
+            self._invalidate_profile_caches()
+            return self.async_create_entry(title="", data=new_options)
         return self.async_show_form(
             step_id="configure_dog_modules",
             data_schema=self._get_dog_modules_schema(),
@@ -323,7 +310,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             ),
         )
 
-    def _get_door_sensor_settings_schema(  # noqa: E111
+    def _get_door_sensor_settings_schema(
         self,
         available: Mapping[str, str],
         *,
@@ -336,20 +323,19 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         values = dict(user_input or {})
         sensor_default = values.get(CONF_DOOR_SENSOR)
         if not isinstance(sensor_default, str):
-            sensor_default = current_sensor or ""  # noqa: E111
-
+            sensor_default = current_sensor or ""
         schema_dict: dict[Any, Any] = {}
 
         if available:
-            options = [{"value": "", "label": "None (disable)"}]  # noqa: E111
-            options.extend(  # noqa: E111
+            options = [{"value": "", "label": "None (disable)"}]
+            options.extend(
                 {
                     "value": entity_id,
                     "label": f"🚪 {name}",
                 }
                 for entity_id, name in sorted(available.items())
             )
-            schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (  # noqa: E111
+            schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (
                 selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=options,
@@ -358,7 +344,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 )
             )
         else:
-            schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (  # noqa: E111
+            schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (
                 selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -368,8 +354,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             )
 
         def _value(key: str, fallback: Any) -> Any:
-            return values.get(key, fallback)  # noqa: E111
-
+            return values.get(key, fallback)
         schema_dict.update(
             build_walk_timing_schema_fields(values, defaults),
         )
@@ -421,11 +406,10 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
         return vol.Schema(schema_dict)
 
-    def _get_dog_modules_schema(self) -> vol.Schema:  # noqa: E111
+    def _get_dog_modules_schema(self) -> vol.Schema:
         """Get modules configuration schema for current dog."""
         if not self._current_dog:
-            return vol.Schema({})  # noqa: E111
-
+            return vol.Schema({})
         current_modules = ensure_dog_modules_mapping(self._current_dog)
 
         return vol.Schema(
@@ -477,42 +461,40 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             },
         )
 
-    def _get_available_door_sensors(self) -> dict[str, str]:  # noqa: E111
+    def _get_available_door_sensors(self) -> dict[str, str]:
         """Return mapping of available door sensors by friendly name."""
 
         sensors: dict[str, str] = {}
         for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
-            state = self.hass.states.get(entity_id)  # noqa: E111
-            if state is None:  # noqa: E111
+            state = self.hass.states.get(entity_id)
+            if state is None:
                 continue
-            device_class = state.attributes.get("device_class")  # noqa: E111
-            if device_class not in DOOR_SENSOR_DEVICE_CLASSES:  # noqa: E111
+            device_class = state.attributes.get("device_class")
+            if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
                 continue
-            friendly_name = state.attributes.get("friendly_name", entity_id)  # noqa: E111
-            sensors[entity_id] = str(friendly_name)  # noqa: E111
+            friendly_name = state.attributes.get("friendly_name", entity_id)
+            sensors[entity_id] = str(friendly_name)
         return sensors
 
-    async def _async_get_module_description_placeholders(  # noqa: E111
+    async def _async_get_module_description_placeholders(
         self,
     ) -> ConfigFlowPlaceholders:
         """Async wrapper for module description placeholders."""
 
         if self.hass is not None:
-            hass_config = getattr(self.hass, "config", None)  # noqa: E111
+            hass_config = getattr(self.hass, "config", None)
             hass_language = (
                 getattr(hass_config, "language", None) if hass_config else None
-            )  # noqa: E111
-            await async_preload_component_translations(self.hass, {hass_language, "en"})  # noqa: E111
-
+            )
+            await async_preload_component_translations(self.hass, {hass_language, "en"})
         return self._get_module_description_placeholders()
 
-    def _get_module_description_placeholders(  # noqa: E111
+    def _get_module_description_placeholders(
         self,
     ) -> ConfigFlowPlaceholders:
         """Get description placeholders for module configuration."""
         if not self._current_dog:
-            return freeze_placeholders({})  # noqa: E111
-
+            return freeze_placeholders({})
         profile_value = self._entry.options.get("entity_profile", "standard")
         current_profile = (
             profile_value
@@ -526,8 +508,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
         hass_language: str | None = None
         if self.hass is not None:
-            hass_config = getattr(self.hass, "config", None)  # noqa: E111
-            if hass_config is not None:  # noqa: E111
+            hass_config = getattr(self.hass, "config", None)
+            if hass_config is not None:
                 hass_language = getattr(hass_config, "language", None)
             # Translations are loaded lazily in the UI layer; keep this helper sync for  # noqa: E114, E501
             # tests and placeholder generation paths that call it directly.  # noqa: E114
@@ -590,14 +572,14 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
     # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...  # noqa: E114, E501
 
-    async def async_step_add_new_dog(  # noqa: E111
+    async def async_step_add_new_dog(
         self,
         user_input: OptionsDogEditInput | None = None,
     ) -> ConfigFlowResult:
         """Add a new dog to the configuration."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 validated = validate_dog_setup_input(
                     cast(Mapping[str, JSONValue], user_input),
                     existing_ids={
@@ -658,9 +640,9 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 self._invalidate_profile_caches()
 
                 return await self.async_step_init()
-            except FlowValidationError as err:  # noqa: E111
+            except FlowValidationError as err:
                 errors.update(err.as_form_errors())
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error adding new dog: %s", err)
                 errors["base"] = "add_dog_failed"
 
@@ -670,7 +652,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             errors=errors,
         )
 
-    def _get_add_dog_schema(self) -> vol.Schema:  # noqa: E111
+    def _get_add_dog_schema(self) -> vol.Schema:
         """Get schema for adding a new dog."""
         return vol.Schema(
             {
@@ -715,7 +697,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             },
         )
 
-    def _get_remove_dog_schema(  # noqa: E111
+    def _get_remove_dog_schema(
         self,
         dogs: Sequence[Mapping[str, JSONValue]],
     ) -> vol.Schema:
@@ -723,11 +705,11 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
         dog_options: list[dict[str, str]] = []
         for dog in dogs:
-            dog_id = dog.get(DOG_ID_FIELD)  # noqa: E111
-            dog_name = dog.get(DOG_NAME_FIELD)  # noqa: E111
-            if not isinstance(dog_id, str) or not dog_id:  # noqa: E111
+            dog_id = dog.get(DOG_ID_FIELD)
+            dog_name = dog.get(DOG_NAME_FIELD)
+            if not isinstance(dog_id, str) or not dog_id:
                 continue
-            label_name = (  # noqa: E111
+            label_name = (
                 dog_name
                 if isinstance(
                     dog_name,
@@ -736,7 +718,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 and dog_name
                 else dog_id
             )
-            dog_options.append(  # noqa: E111
+            dog_options.append(
                 {
                     "value": dog_id,
                     "label": f"{label_name} ({dog_id})",
@@ -758,7 +740,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             },
         )
 
-    async def async_step_select_dog_to_edit(  # noqa: E111
+    async def async_step_select_dog_to_edit(
         self,
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
@@ -766,22 +748,21 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
         current_dogs: list[DogConfigData] = []
         if isinstance(current_dogs_raw, Sequence):
-            for dog in current_dogs_raw:  # noqa: E111
+            for dog in current_dogs_raw:
                 if isinstance(dog, Mapping):
-                    normalised = ensure_dog_config_data(  # noqa: E111
+                    normalised = ensure_dog_config_data(
                         cast(Mapping[str, JSONValue], dog),
                     )
-                    if normalised is not None:  # noqa: E111
+                    if normalised is not None:
                         current_dogs.append(normalised)
         current_dogs = current_dogs
         current_dogs = current_dogs
 
         if not current_dogs:
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")  # noqa: E111
-            self._current_dog = next(  # noqa: E111
+            selected_dog_id = user_input.get("dog_id")
+            self._current_dog = next(
                 (
                     dog
                     for dog in current_dogs
@@ -789,10 +770,9 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 ),
                 None,
             )
-            if self._current_dog:  # noqa: E111
+            if self._current_dog:
                 return await self.async_step_edit_dog()
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         # Create selection options
         dog_options = [
             {
@@ -816,16 +796,15 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             ),
         )
 
-    async def async_step_edit_dog(  # noqa: E111
+    async def async_step_edit_dog(
         self,
         user_input: OptionsDogEditInput | None = None,
     ) -> ConfigFlowResult:
         """Edit the selected dog."""
         if not self._current_dog:
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         if user_input is not None:
-            try:  # noqa: E111
+            try:
                 target_id = self._current_dog[DOG_ID_FIELD]
                 dog_index = next(
                     (
@@ -837,47 +816,44 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 )
 
                 if dog_index >= 0:
-                    existing_names = {  # noqa: E111
+                    existing_names = {
                         str(dog.get(DOG_NAME_FIELD)).strip().lower()
                         for dog in self._dogs
                         if isinstance(dog.get(DOG_NAME_FIELD), str)
                         and dog.get(DOG_ID_FIELD) != target_id
                         and str(dog.get(DOG_NAME_FIELD)).strip()
                     }
-                    candidate = validate_dog_update_input(  # noqa: E111
+                    candidate = validate_dog_update_input(
                         cast(DogConfigData, dict(self._dogs[dog_index])),
                         cast(Mapping[str, JSONValue], user_input),
                         existing_names=existing_names,
                     )
-                    normalised = ensure_dog_config_data(  # noqa: E111
+                    normalised = ensure_dog_config_data(
                         cast(Mapping[str, JSONValue], candidate),
                     )
-                    if normalised is None:  # noqa: E111
+                    if normalised is None:
                         raise FlowValidationError(
                             base_errors=["invalid_dog_config"],
                         )
 
-                    self._dogs[dog_index] = normalised  # noqa: E111
-                    typed_dogs = self._normalise_entry_dogs(self._dogs)  # noqa: E111
-                    self._dogs = typed_dogs  # noqa: E111
-                    self._current_dog = normalised  # noqa: E111
-
-                    new_data = {**self._entry.data, CONF_DOGS: typed_dogs}  # noqa: E111
-
-                    self.hass.config_entries.async_update_entry(  # noqa: E111
+                    self._dogs[dog_index] = normalised
+                    typed_dogs = self._normalise_entry_dogs(self._dogs)
+                    self._dogs = typed_dogs
+                    self._current_dog = normalised
+                    new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
+                    self.hass.config_entries.async_update_entry(
                         self._entry,
                         data=new_data,
                     )
-                    self._invalidate_profile_caches()  # noqa: E111
-
+                    self._invalidate_profile_caches()
                 return await self.async_step_init()
-            except FlowValidationError as err:  # noqa: E111
+            except FlowValidationError as err:
                 return self.async_show_form(
                     step_id="edit_dog",
                     data_schema=self._get_edit_dog_schema(),
                     errors=err.as_form_errors(),
                 )
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.error("Error editing dog: %s", err)
                 return self.async_show_form(
                     step_id="edit_dog",
@@ -890,11 +866,10 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             data_schema=self._get_edit_dog_schema(),
         )
 
-    def _get_edit_dog_schema(self) -> vol.Schema:  # noqa: E111
+    def _get_edit_dog_schema(self) -> vol.Schema:
         """Get schema for editing a dog with current values pre-filled."""
         if not self._current_dog:
-            return vol.Schema({})  # noqa: E111
-
+            return vol.Schema({})
         return vol.Schema(
             {
                 vol.Optional(
@@ -945,7 +920,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             },
         )
 
-    async def async_step_select_dog_to_remove(  # noqa: E111
+    async def async_step_select_dog_to_remove(
         self,
         user_input: OptionsDogRemovalInput | None = None,
     ) -> ConfigFlowResult:
@@ -953,10 +928,9 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
         current_dogs = list(self._dogs)
 
         if not current_dogs:
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         if user_input is not None:
-            if user_input.get("confirm_remove"):  # noqa: E111
+            if user_input.get("confirm_remove"):
                 selected_dog_id = user_input.get("dog_id")
                 # Remove the selected dog
                 updated_dogs = [
@@ -966,13 +940,13 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 ]
 
                 try:
-                    typed_dogs = self._normalise_entry_dogs(updated_dogs)  # noqa: E111
+                    typed_dogs = self._normalise_entry_dogs(updated_dogs)
                 except FlowValidationError as err:  # pragma: no cover - defensive guard
-                    _LOGGER.error(  # noqa: E111
+                    _LOGGER.error(
                         "Invalid dog configuration during removal: %s",
                         err,
                     )
-                    return self.async_show_form(  # noqa: E111
+                    return self.async_show_form(
                         step_id="select_dog_to_remove",
                         data_schema=self._get_remove_dog_schema(
                             cast(Sequence[Mapping[str, JSONValue]], current_dogs),
@@ -991,22 +965,19 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 if self._current_dog and (
                     self._current_dog.get(DOG_ID_FIELD) == selected_dog_id
                 ):
-                    self._current_dog = typed_dogs[0] if typed_dogs else None  # noqa: E111
-
+                    self._current_dog = typed_dogs[0] if typed_dogs else None
                 new_options = self._clone_options()
                 dog_options = self._current_dog_options()
                 if isinstance(selected_dog_id, str) and selected_dog_id in dog_options:
-                    dog_options.pop(selected_dog_id, None)  # noqa: E111
-                    new_options[DOG_OPTIONS_FIELD] = dog_options  # noqa: E111
-
+                    dog_options.pop(selected_dog_id, None)
+                    new_options[DOG_OPTIONS_FIELD] = dog_options
                 self._invalidate_profile_caches()
 
                 typed_options = self._normalise_options_snapshot(new_options)
 
                 return self.async_create_entry(title="", data=typed_options)
 
-            return await self.async_step_init()  # noqa: E111
-
+            return await self.async_step_init()
         # Create removal confirmation form
         return self.async_show_form(
             step_id="select_dog_to_remove",

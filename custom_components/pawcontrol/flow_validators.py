@@ -26,11 +26,8 @@ def validate_flow_dog_name(
     field: str = CONF_DOG_NAME,
     required: bool = True,
 ) -> str | None:
-    """Validate dog names submitted through config or options flows."""  # noqa: E111
-
-    return validate_dog_name(name, field=field, required=required)  # noqa: E111
-
-
+    """Validate dog names submitted through config or options flows."""
+    return validate_dog_name(name, field=field, required=required)
 def validate_flow_gps_coordinates(
     latitude: Any,
     longitude: Any,
@@ -38,9 +35,8 @@ def validate_flow_gps_coordinates(
     latitude_field: str = "latitude",
     longitude_field: str = "longitude",
 ) -> tuple[float, float]:
-    """Validate GPS coordinates for flow submission."""  # noqa: E111
-
-    return InputValidator.validate_gps_coordinates(  # noqa: E111
+    """Validate GPS coordinates for flow submission."""
+    return InputValidator.validate_gps_coordinates(
         latitude,
         longitude,
         latitude_field=latitude_field,
@@ -56,9 +52,8 @@ def validate_flow_gps_accuracy(
     max_value: float,
     required: bool = True,
 ) -> float | None:
-    """Validate GPS accuracy settings submitted via flows."""  # noqa: E111
-
-    return InputValidator.validate_gps_accuracy(  # noqa: E111
+    """Validate GPS accuracy settings submitted via flows."""
+    return InputValidator.validate_gps_accuracy(
         value,
         field=field,
         min_value=min_value,
@@ -75,9 +70,8 @@ def validate_flow_geofence_radius(
     max_value: float,
     required: bool = True,
 ) -> float | None:
-    """Validate geofence radius settings submitted via flows."""  # noqa: E111
-
-    return InputValidator.validate_geofence_radius(  # noqa: E111
+    """Validate geofence radius settings submitted via flows."""
+    return InputValidator.validate_geofence_radius(
         value,
         field=field,
         min_value=min_value,
@@ -96,9 +90,8 @@ def validate_flow_gps_interval(
     clamp: bool = False,
     required: bool = False,
 ) -> int | None:
-    """Validate GPS update intervals submitted via flows."""  # noqa: E111
-
-    return validate_gps_interval(  # noqa: E111
+    """Validate GPS update intervals submitted via flows."""
+    return validate_gps_interval(
         value,
         field=field,
         minimum=minimum,
@@ -119,9 +112,8 @@ def validate_flow_timer_interval(
     clamp: bool = False,
     required: bool = False,
 ) -> int:
-    """Validate timer/interval values submitted via flows."""  # noqa: E111
-
-    return validate_interval(  # noqa: E111
+    """Validate timer/interval values submitted via flows."""
+    return validate_interval(
         value,
         field=field,
         minimum=minimum,
@@ -141,9 +133,8 @@ def validate_flow_time_window(
     default_start: str | None = None,
     default_end: str | None = None,
 ) -> tuple[str, str]:
-    """Validate a start/end time window for flow inputs."""  # noqa: E111
-
-    return validate_time_window(  # noqa: E111
+    """Validate a start/end time window for flow inputs."""
+    return validate_time_window(
         start,
         end,
         start_field=start_field,

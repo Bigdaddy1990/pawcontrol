@@ -40,8 +40,7 @@ from .types import (
 from .validation import ValidationError, validate_sensor_entity_id
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry  # noqa: E111
-
+    from homeassistant.config_entries import ConfigEntry
 _LOGGER = logging.getLogger(__name__)
 
 RuntimeDataResolver = Callable[[Any, Any], PawControlRuntimeData]
@@ -49,38 +48,32 @@ IssueCreator = Callable[..., Awaitable[None]]
 
 
 def _resolve_require_runtime_data() -> RuntimeDataResolver:
-    """Return the patched runtime data helper when available."""  # noqa: E111
-
-    try:  # noqa: E111
+    """Return the patched runtime data helper when available."""
+    try:
         options_flow_module = import_module(
             "custom_components.pawcontrol.options_flow_support"
         )
         patched = getattr(options_flow_module, "require_runtime_data", None)
         if callable(patched):
-            return patched  # noqa: E111
-    except Exception:  # noqa: E111
+            return patched
+    except Exception:
         pass
-    return require_runtime_data  # noqa: E111
-
-
+    return require_runtime_data
 def _resolve_async_create_issue() -> IssueCreator:
-    """Return the patched repairs helper when available."""  # noqa: E111
-
-    try:  # noqa: E111
+    """Return the patched repairs helper when available."""
+    try:
         options_flow_module = import_module(
             "custom_components.pawcontrol.options_flow_support"
         )
         patched = getattr(options_flow_module, "async_create_issue", None)
         if callable(patched):
-            return patched  # noqa: E111
-    except Exception:  # noqa: E111
+            return patched
+    except Exception:
         pass
-    return async_create_issue  # noqa: E111
-
-
+    return async_create_issue
 if TYPE_CHECKING:
 
-    class DoorSensorOptionsHost(Protocol):  # noqa: E111
+    class DoorSensorOptionsHost(Protocol):
         _current_dog: DogConfigData | None
         _dogs: list[DogConfigData]
 
@@ -92,14 +85,11 @@ if TYPE_CHECKING:
         def __getattr__(self, name: str) -> Any: ...
 
 else:  # pragma: no cover
-    DoorSensorOptionsHost = object  # noqa: E111
-
-
+    DoorSensorOptionsHost = object
 class DoorSensorOptionsMixin(DoorSensorOptionsHost):
-    _current_dog: DogConfigData | None  # noqa: E111
-    _dogs: list[DogConfigData]  # noqa: E111
-
-    async def async_step_select_dog_for_door_sensor(  # noqa: E111
+    _current_dog: DogConfigData | None
+    _dogs: list[DogConfigData]
+    async def async_step_select_dog_for_door_sensor(
         self,
         user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
@@ -107,11 +97,10 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
 
         current_dogs = list(self._dogs)
         if not current_dogs:
-            return await self.async_step_manage_dogs()  # noqa: E111
-
+            return await self.async_step_manage_dogs()
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")  # noqa: E111
-            self._current_dog = next(  # noqa: E111
+            selected_dog_id = user_input.get("dog_id")
+            self._current_dog = next(
                 (
                     dog
                     for dog in current_dogs
@@ -119,10 +108,9 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                 ),
                 None,
             )
-            if self._current_dog:  # noqa: E111
+            if self._current_dog:
                 return await self.async_step_configure_door_sensor()
-            return await self.async_step_manage_dogs()  # noqa: E111
-
+            return await self.async_step_manage_dogs()
         dog_options = [
             {
                 "value": dog.get(DOG_ID_FIELD),
@@ -145,25 +133,22 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
             ),
         )
 
-    async def async_step_configure_door_sensor(  # noqa: E111
+    async def async_step_configure_door_sensor(
         self,
         user_input: OptionsDoorSensorInput | None = None,
     ) -> ConfigFlowResult:
         """Configure door sensor entity and overrides for the current dog."""
 
         if not self._current_dog:
-            return await self.async_step_manage_dogs()  # noqa: E111
-
+            return await self.async_step_manage_dogs()
         dog_id = cast(str | None, self._current_dog.get(DOG_ID_FIELD))
         if not isinstance(dog_id, str) or not dog_id:
-            return await self.async_step_manage_dogs()  # noqa: E111
-
+            return await self.async_step_manage_dogs()
         raw_dog_name = self._current_dog.get(CONF_DOG_NAME)
         if isinstance(raw_dog_name, str) and raw_dog_name.strip():
-            dog_name = raw_dog_name.strip()  # noqa: E111
+            dog_name = raw_dog_name.strip()
         else:
-            dog_name = dog_id  # noqa: E111
-
+            dog_name = dog_id
         available_sensors = self._get_available_door_sensors()
         existing_sensor = cast(
             str | None,
@@ -172,11 +157,11 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
         existing_payload = self._current_dog.get(CONF_DOOR_SENSOR_SETTINGS)
         existing_settings: Mapping[str, bool | int | float | str | None] | None = None
         if isinstance(existing_payload, Mapping):
-            filtered_settings: dict[str, bool | int | float | str | None] = {}  # noqa: E111
-            for key, value in existing_payload.items():  # noqa: E111
+            filtered_settings: dict[str, bool | int | float | str | None] = {}
+            for key, value in existing_payload.items():
                 if isinstance(value, bool | int | float | str) or value is None:
-                    filtered_settings[str(key)] = value  # noqa: E111
-            existing_settings = filtered_settings  # noqa: E111
+                    filtered_settings[str(key)] = value
+            existing_settings = filtered_settings
         base_settings = (
             ensure_door_sensor_settings_config(existing_settings)
             if isinstance(existing_settings, Mapping)
@@ -187,18 +172,18 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            sensor_value = user_input.get(CONF_DOOR_SENSOR)  # noqa: E111
-            trimmed_sensor: str | None  # noqa: E111
-            if isinstance(sensor_value, str):  # noqa: E111
+            sensor_value = user_input.get(CONF_DOOR_SENSOR)
+            trimmed_sensor: str | None
+            if isinstance(sensor_value, str):
                 trimmed_sensor = sensor_value.strip()
                 if not trimmed_sensor:
-                    trimmed_sensor = None  # noqa: E111
-            else:  # noqa: E111
+                    trimmed_sensor = None
+            else:
                 trimmed_sensor = None
 
-            if trimmed_sensor:  # noqa: E111
+            if trimmed_sensor:
                 try:
-                    trimmed_sensor = validate_sensor_entity_id(  # noqa: E111
+                    trimmed_sensor = validate_sensor_entity_id(
                         self.hass,
                         trimmed_sensor,
                         field=CONF_DOOR_SENSOR,
@@ -207,10 +192,9 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                         not_found_constraint="door_sensor_not_found",
                     )
                 except ValidationError:
-                    errors[CONF_DOOR_SENSOR] = "door_sensor_not_found"  # noqa: E111
-
-            settings_overrides: dict[str, bool | int | float | str | None] = {}  # noqa: E111
-            for key in (  # noqa: E111
+                    errors[CONF_DOOR_SENSOR] = "door_sensor_not_found"
+            settings_overrides: dict[str, bool | int | float | str | None] = {}
+            for key in (
                 *WALK_SETTINGS_FIELDS,
                 "door_closed_delay",
                 "require_confirmation",
@@ -218,9 +202,8 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
             ):
                 value = user_input.get(key)
                 if isinstance(value, bool | int | float | str) or value is None:
-                    settings_overrides[key] = value  # noqa: E111
-
-            if not errors:  # noqa: E111
+                    settings_overrides[key] = value
+            if not errors:
                 normalised_settings = ensure_door_sensor_settings_config(
                     cast(
                         Mapping[str, bool | int | float | str | None],
@@ -233,9 +216,9 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                 sensor_store = trimmed_sensor
                 settings_store: DoorSensorSettingsPayload | None
                 if not sensor_store or settings_payload == default_payload:
-                    settings_store = None  # noqa: E111
+                    settings_store = None
                 else:
-                    settings_store = cast(  # noqa: E111
+                    settings_store = cast(
                         DoorSensorSettingsPayload,
                         settings_payload,
                     )
@@ -251,36 +234,36 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                     dict(self._current_dog),
                 )
                 if sensor_store is None:
-                    updated_dog.pop(CONF_DOOR_SENSOR, None)  # noqa: E111
-                    updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)  # noqa: E111
+                    updated_dog.pop(CONF_DOOR_SENSOR, None)
+                    updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)
                 else:
-                    updated_dog[CONF_DOOR_SENSOR] = sensor_store  # noqa: E111
-                    if settings_store is None:  # noqa: E111
+                    updated_dog[CONF_DOOR_SENSOR] = sensor_store
+                    if settings_store is None:
                         updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)
-                    else:  # noqa: E111
+                    else:
                         updated_dog[CONF_DOOR_SENSOR_SETTINGS] = cast(
                             JSONValue,
                             settings_store,
                         )
 
                 try:
-                    normalised_dog = ensure_dog_config_data(updated_dog)  # noqa: E111
-                    if normalised_dog is None:  # noqa: E111
+                    normalised_dog = ensure_dog_config_data(updated_dog)
+                    if normalised_dog is None:
                         errors["base"] = "door_sensor_not_found"
                 except ValueError:
-                    errors["base"] = "door_sensor_not_found"  # noqa: E111
+                    errors["base"] = "door_sensor_not_found"
                 else:
-                    persist_updates: JSONMutableMapping = {}  # noqa: E111
-                    if existing_sensor_trimmed != sensor_store:  # noqa: E111
+                    persist_updates: JSONMutableMapping = {}
+                    if existing_sensor_trimmed != sensor_store:
                         persist_updates[CONF_DOOR_SENSOR] = sensor_store
 
-                    existing_settings_payload = existing_settings  # noqa: E111
-                    if isinstance(existing_settings_payload, Mapping):  # noqa: E111
+                    existing_settings_payload = existing_settings
+                    if isinstance(existing_settings_payload, Mapping):
                         existing_settings_payload = dict(
                             existing_settings_payload,
                         )
 
-                    if (  # noqa: E111
+                    if (
                         existing_settings_payload is not None
                         or settings_store is not None
                     ) and existing_settings_payload != settings_store:
@@ -289,42 +272,42 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                             settings_store,
                         )
 
-                    data_manager = None  # noqa: E111
-                    if persist_updates:  # noqa: E111
+                    data_manager = None
+                    if persist_updates:
                         try:
-                            runtime = _resolve_require_runtime_data()(  # noqa: E111
+                            runtime = _resolve_require_runtime_data()(
                                 self.hass,
                                 self._entry,
                             )
                         except RuntimeDataUnavailableError:
-                            _LOGGER.error(  # noqa: E111
+                            _LOGGER.error(
                                 f"Runtime data unavailable while updating door sensor overrides for dog {dog_id}",  # noqa: E501
                             )
-                            errors["base"] = "runtime_cache_unavailable"  # noqa: E111
+                            errors["base"] = "runtime_cache_unavailable"
                         else:
-                            data_manager = getattr(  # noqa: E111
+                            data_manager = getattr(
                                 runtime,
                                 "data_manager",
                                 None,
                             )
-                            if data_manager is None:  # noqa: E111
+                            if data_manager is None:
                                 _LOGGER.error(
                                     f"Door sensor overrides require an active data manager; runtime payload missing data_manager for dog {dog_id}",  # noqa: E501
                                 )
                                 errors["base"] = "runtime_cache_unavailable"
-                    if data_manager and persist_updates and "base" not in errors:  # noqa: E111
+                    if data_manager and persist_updates and "base" not in errors:
                         try:
-                            await data_manager.async_update_dog_data(  # noqa: E111
+                            await data_manager.async_update_dog_data(
                                 dog_id,
                                 persist_updates,
                             )
                         except Exception as err:  # pragma: no cover - defensive
-                            _LOGGER.error(  # noqa: E111
+                            _LOGGER.error(
                                 "Failed to persist door sensor overrides for %s: %s",
                                 dog_id,
                                 err,
                             )
-                            failure = record_door_sensor_persistence_failure(  # noqa: E111
+                            failure = record_door_sensor_persistence_failure(
                                 runtime,
                                 dog_id=dog_id,
                                 dog_name=dog_name,
@@ -332,12 +315,12 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                                 settings=settings_store,
                                 error=err,
                             )
-                            issue_timestamp = (  # noqa: E111
+                            issue_timestamp = (
                                 failure["recorded_at"]
                                 if failure and "recorded_at" in failure
                                 else dt_util.utcnow().isoformat()
                             )
-                            issue_payload: JSONMutableMapping = {  # noqa: E111
+                            issue_payload: JSONMutableMapping = {
                                 "dog_id": dog_id,
                                 "dog_name": dog_name,
                                 "door_sensor": sensor_store
@@ -347,7 +330,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                                 "error": str(err),
                                 "timestamp": issue_timestamp,
                             }
-                            try:  # noqa: E111
+                            try:
                                 await _resolve_async_create_issue()(
                                     self.hass,
                                     self._entry,
@@ -358,20 +341,20 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                                 )
                             except (
                                 Exception
-                            ) as issue_err:  # pragma: no cover  # noqa: E111
+                            ) as issue_err:  # pragma: no cover
                                 _LOGGER.debug(
                                     "Skipping repair issue publication for %s: %s",
                                     dog_id,
                                     issue_err,
                                 )
-                            errors["base"] = "door_sensor_update_failed"  # noqa: E111
-                    elif persist_updates and "base" not in errors:  # noqa: E111
+                            errors["base"] = "door_sensor_update_failed"
+                    elif persist_updates and "base" not in errors:
                         _LOGGER.debug(
                             "Data manager unavailable while updating door sensor for %s",
                             dog_id,
                         )
 
-                    if not errors and normalised_dog is not None:  # noqa: E111
+                    if not errors and normalised_dog is not None:
                         dog_index = next(
                             (
                                 i
@@ -381,17 +364,16 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                             -1,
                         )
                         if dog_index >= 0:
-                            self._dogs[dog_index] = normalised_dog  # noqa: E111
-                            typed_dogs = self._normalise_entry_dogs(self._dogs)  # noqa: E111
-                            self._dogs = typed_dogs  # noqa: E111
-                            self._current_dog = typed_dogs[dog_index]  # noqa: E111
-
-                            new_data = {**self._entry.data, CONF_DOGS: typed_dogs}  # noqa: E111
-                            self.hass.config_entries.async_update_entry(  # noqa: E111
+                            self._dogs[dog_index] = normalised_dog
+                            typed_dogs = self._normalise_entry_dogs(self._dogs)
+                            self._dogs = typed_dogs
+                            self._current_dog = typed_dogs[dog_index]
+                            new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
+                            self.hass.config_entries.async_update_entry(
                                 self._entry,
                                 data=new_data,
                             )
-                            self._invalidate_profile_caches()  # noqa: E111
+                            self._invalidate_profile_caches()
                         return await self.async_step_manage_dogs()
 
         description_placeholders = {

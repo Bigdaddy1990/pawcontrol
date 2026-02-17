@@ -8,16 +8,14 @@ from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar, cast
 from aiohttp import ClientSession
 
 try:
-    from homeassistant.util import dt as dt_util  # noqa: E111
+    from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
-    class _DateTimeModule:  # noqa: E111
+    class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
-            return datetime.now(UTC)  # noqa: E111
-
-    dt_util = _DateTimeModule()  # noqa: E111
-
+            return datetime.now(UTC)
+    dt_util = _DateTimeModule()
 from .const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -61,54 +59,40 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-    from .data_manager import PawControlDataManager  # noqa: E111
-    from .feeding_manager import FeedingManager  # noqa: E111
-    from .garden_manager import GardenManager  # noqa: E111
-    from .gps_manager import GPSGeofenceManager  # noqa: E111
-    from .walk_manager import WalkManager  # noqa: E111
-    from .weather_manager import WeatherHealthManager  # noqa: E111
-
+    from .data_manager import PawControlDataManager
+    from .feeding_manager import FeedingManager
+    from .garden_manager import GardenManager
+    from .gps_manager import GPSGeofenceManager
+    from .walk_manager import WalkManager
+    from .weather_manager import WeatherHealthManager
 _LOGGER = logging.getLogger(__name__)
 
 
 class ModuleAdapterCacheStats(TypedDict):
-    """Runtime statistics exposed by module adapter caches."""  # noqa: E111
-
-    entries: int  # noqa: E111
-    hits: int  # noqa: E111
-    misses: int  # noqa: E111
-    hit_rate: float  # noqa: E111
-
-
+    """Runtime statistics exposed by module adapter caches."""
+    entries: int
+    hits: int
+    misses: int
+    hit_rate: float
 class ModuleAdapterCacheMetadata(TypedDict, total=False):
-    """Metadata describing cache behaviour for diagnostics."""  # noqa: E111
-
-    ttl_seconds: float | None  # noqa: E111
-    last_cleanup: datetime | None  # noqa: E111
-    last_expired_count: int  # noqa: E111
-    expired_total: int  # noqa: E111
-
-
+    """Metadata describing cache behaviour for diagnostics."""
+    ttl_seconds: float | None
+    last_cleanup: datetime | None
+    last_expired_count: int
+    expired_total: int
 class ModuleAdapterCacheSnapshot(TypedDict):
-    """Snapshot exported by module adapter caches for telemetry."""  # noqa: E111
-
-    stats: ModuleAdapterCacheStats  # noqa: E111
-    metadata: ModuleAdapterCacheMetadata  # noqa: E111
-
-
+    """Snapshot exported by module adapter caches for telemetry."""
+    stats: ModuleAdapterCacheStats
+    metadata: ModuleAdapterCacheMetadata
 class ModuleAdapterCacheError(TypedDict):
-    """Error payload returned when cache telemetry fails."""  # noqa: E111
-
-    error: str  # noqa: E111
-
-
+    """Error payload returned when cache telemetry fails."""
+    error: str
 PayloadT = TypeVar("PayloadT")
 
 
 class _ExpiringCache[PayloadT]:
-    """Cache that evicts entries after a fixed TTL."""  # noqa: E111
-
-    __slots__ = (  # noqa: E111
+    """Cache that evicts entries after a fixed TTL."""
+    __slots__ = (
         "_data",
         "_evicted_total",
         "_hits",
@@ -118,7 +102,7 @@ class _ExpiringCache[PayloadT]:
         "_ttl",
     )
 
-    def __init__(self, ttl: timedelta) -> None:  # noqa: E111
+    def __init__(self, ttl: timedelta) -> None:
         self._data: dict[str, tuple[PayloadT, datetime]] = {}
         self._evicted_total = 0
         self._hits = 0
@@ -127,46 +111,43 @@ class _ExpiringCache[PayloadT]:
         self._misses = 0
         self._ttl = ttl
 
-    def get(self, key: str) -> PayloadT | None:  # noqa: E111
+    def get(self, key: str) -> PayloadT | None:
         """Return cached data if it has not expired."""
 
         if key not in self._data:
-            self._misses += 1  # noqa: E111
-            return None  # noqa: E111
-
+            self._misses += 1
+            return None
         value, timestamp = self._data[key]
         if dt_util.utcnow() - timestamp > self._ttl:
-            self._misses += 1  # noqa: E111
-            del self._data[key]  # noqa: E111
-            return None  # noqa: E111
-
+            self._misses += 1
+            del self._data[key]
+            return None
         self._hits += 1
         return value
 
-    def set(self, key: str, value: PayloadT) -> None:  # noqa: E111
+    def set(self, key: str, value: PayloadT) -> None:
         """Store a value in the cache."""
 
         self._data[key] = (value, dt_util.utcnow())
 
-    def cleanup(self, now: datetime) -> int:  # noqa: E111
+    def cleanup(self, now: datetime) -> int:
         """Remove all expired entries and return count of evicted items."""
 
         expired: list[str] = []
         for key, (_, timestamp) in self._data.items():
-            if now - timestamp > self._ttl:  # noqa: E111
+            if now - timestamp > self._ttl:
                 expired.append(key)
 
         for key in expired:
-            del self._data[key]  # noqa: E111
-
+            del self._data[key]
         expired_count = len(expired)
         if expired_count:
-            self._evicted_total += expired_count  # noqa: E111
+            self._evicted_total += expired_count
         self._last_cleanup = now
         self._last_expired = expired_count
         return expired_count
 
-    def clear(self) -> None:  # noqa: E111
+    def clear(self) -> None:
         """Reset the cache entirely."""
 
         self._data.clear()
@@ -176,7 +157,7 @@ class _ExpiringCache[PayloadT]:
         self._last_expired = 0
         self._misses = 0
 
-    def metrics(self) -> ModuleCacheMetrics:  # noqa: E111
+    def metrics(self) -> ModuleCacheMetrics:
         """Return current metrics for this cache."""
 
         return ModuleCacheMetrics(
@@ -185,20 +166,20 @@ class _ExpiringCache[PayloadT]:
             misses=self._misses,
         )
 
-    def metadata(self) -> ModuleAdapterCacheMetadata:  # noqa: E111
+    def metadata(self) -> ModuleAdapterCacheMetadata:
         """Return metadata describing cache state for diagnostics."""
 
         metadata: ModuleAdapterCacheMetadata = {
             "ttl_seconds": self._ttl.total_seconds(),
         }
         if self._last_cleanup is not None:
-            metadata["last_cleanup"] = self._last_cleanup  # noqa: E111
-            metadata["last_expired_count"] = self._last_expired  # noqa: E111
+            metadata["last_cleanup"] = self._last_cleanup
+            metadata["last_expired_count"] = self._last_expired
         if self._evicted_total:
-            metadata["expired_total"] = self._evicted_total  # noqa: E111
+            metadata["expired_total"] = self._evicted_total
         return metadata
 
-    def snapshot(self) -> ModuleAdapterCacheSnapshot:  # noqa: E111
+    def snapshot(self) -> ModuleAdapterCacheSnapshot:
         """Return a typed snapshot of cache statistics and metadata."""
 
         metrics = self.metrics()
@@ -215,117 +196,105 @@ class _ExpiringCache[PayloadT]:
 
 
 def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
-    """Return a typed health alert entry with defaulted metadata."""  # noqa: E111
-
-    alert_type = str(payload.get("type", "custom"))  # noqa: E111
-    raw_message = payload.get("message")  # noqa: E111
-    message = str(raw_message or alert_type.replace("_", " ").title())  # noqa: E111
-
-    raw_severity = str(payload.get("severity", "medium")).lower()  # noqa: E111
-    severity: Literal["low", "medium", "high", "critical"]  # noqa: E111
-    if raw_severity in {"low", "medium", "high", "critical"}:  # noqa: E111
+    """Return a typed health alert entry with defaulted metadata."""
+    alert_type = str(payload.get("type", "custom"))
+    raw_message = payload.get("message")
+    message = str(raw_message or alert_type.replace("_", " ").title())
+    raw_severity = str(payload.get("severity", "medium")).lower()
+    severity: Literal["low", "medium", "high", "critical"]
+    if raw_severity in {"low", "medium", "high", "critical"}:
         severity = cast(
             Literal["low", "medium", "high", "critical"],
             raw_severity,
         )
-    else:  # noqa: E111
+    else:
         severity = "medium"
 
-    details: JSONMutableMapping | None = None  # noqa: E111
-    raw_details = payload.get("details")  # noqa: E111
-    if isinstance(raw_details, Mapping):  # noqa: E111
+    details: JSONMutableMapping | None = None
+    raw_details = payload.get("details")
+    if isinstance(raw_details, Mapping):
         details = cast(
             JSONMutableMapping,
             {str(key): cast(JSONValue, value) for key, value in raw_details.items()},
         )
 
-    alert: HealthAlertEntry = {  # noqa: E111
+    alert: HealthAlertEntry = {
         "type": alert_type,
         "message": message,
         "severity": severity,
         "action_required": bool(payload.get("action_required", False)),
     }
-    if details is not None:  # noqa: E111
+    if details is not None:
         alert["details"] = details
-    return alert  # noqa: E111
-
-
+    return alert
 def _normalise_health_medication(
     payload: Mapping[str, object],
 ) -> HealthMedicationReminder:
-    """Normalise stored medication payloads into typed reminders."""  # noqa: E111
-
-    name = str(payload.get("name", payload.get("medication", "medication")))  # noqa: E111
-    entry: HealthMedicationReminder = {"name": name}  # noqa: E111
-
-    if "dosage" in payload:  # noqa: E111
+    """Normalise stored medication payloads into typed reminders."""
+    name = str(payload.get("name", payload.get("medication", "medication")))
+    entry: HealthMedicationReminder = {"name": name}
+    if "dosage" in payload:
         dosage = payload.get("dosage")
         entry["dosage"] = str(dosage) if dosage is not None else None
 
-    if "frequency" in payload:  # noqa: E111
+    if "frequency" in payload:
         frequency = payload.get("frequency")
         entry["frequency"] = str(frequency) if frequency is not None else None
 
-    if "next_dose" in payload:  # noqa: E111
+    if "next_dose" in payload:
         next_dose = payload.get("next_dose")
         entry["next_dose"] = str(next_dose) if next_dose is not None else None
 
-    if "notes" in payload:  # noqa: E111
+    if "notes" in payload:
         notes = payload.get("notes")
         entry["notes"] = str(notes) if notes is not None else None
 
-    if "with_meals" in payload:  # noqa: E111
+    if "with_meals" in payload:
         entry["with_meals"] = bool(payload.get("with_meals"))
 
-    return entry  # noqa: E111
-
-
+    return entry
 class _BaseModuleAdapter[PayloadT]:
-    """Base helper for adapters that maintain a TTL cache."""  # noqa: E111
-
-    __slots__ = ("_cache", "_ttl")  # noqa: E111
-
-    def __init__(self, ttl: timedelta | None) -> None:  # noqa: E111
+    """Base helper for adapters that maintain a TTL cache."""
+    __slots__ = ("_cache", "_ttl")
+    def __init__(self, ttl: timedelta | None) -> None:
         self._ttl = ttl
         self._cache: _ExpiringCache[PayloadT] | None = (
             _ExpiringCache(ttl) if ttl else None
         )
 
-    def _cached(self, key: str) -> PayloadT | None:  # noqa: E111
+    def _cached(self, key: str) -> PayloadT | None:
         if not self._cache:
-            return None  # noqa: E111
+            return None
         return self._cache.get(key)
 
-    def _remember(self, key: str, value: PayloadT) -> None:  # noqa: E111
+    def _remember(self, key: str, value: PayloadT) -> None:
         if not self._cache:
-            return  # noqa: E111
+            return
         self._cache.set(key, value)
 
-    def cleanup(self, now: datetime) -> int:  # noqa: E111
+    def cleanup(self, now: datetime) -> int:
         if not self._cache:
-            return 0  # noqa: E111
+            return 0
         return self._cache.cleanup(now)
 
-    def clear(self) -> None:  # noqa: E111
+    def clear(self) -> None:
         if self._cache:
-            self._cache.clear()  # noqa: E111
-
-    def cache_metrics(self) -> ModuleCacheMetrics:  # noqa: E111
+            self._cache.clear()
+    def cache_metrics(self) -> ModuleCacheMetrics:
         if not self._cache:
-            return ModuleCacheMetrics()  # noqa: E111
+            return ModuleCacheMetrics()
         return self._cache.metrics()
 
-    def cache_snapshot(self) -> ModuleAdapterCacheSnapshot:  # noqa: E111
+    def cache_snapshot(self) -> ModuleAdapterCacheSnapshot:
         if not self._cache:
-            stats: ModuleAdapterCacheStats = {  # noqa: E111
+            stats: ModuleAdapterCacheStats = {
                 "entries": 0,
                 "hits": 0,
                 "misses": 0,
                 "hit_rate": 0.0,
             }
-            metadata: ModuleAdapterCacheMetadata = {"ttl_seconds": None}  # noqa: E111
-            return {"stats": stats, "metadata": metadata}  # noqa: E111
-
+            metadata: ModuleAdapterCacheMetadata = {"ttl_seconds": None}
+            return {"stats": stats, "metadata": metadata}
         snapshot = self._cache.snapshot()
         metadata = snapshot["metadata"]
         metadata.setdefault(
@@ -336,9 +305,8 @@ class _BaseModuleAdapter[PayloadT]:
 
 
 class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
-    """Adapter that exposes feeding information through the coordinator."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Adapter that exposes feeding information through the coordinator."""
+    def __init__(
         self,
         *,
         session: ClientSession,
@@ -356,50 +324,48 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
         self._manager: FeedingManager | None = None
         self._api_client = api_client
 
-    def attach(self, manager: FeedingManager | None) -> None:  # noqa: E111
+    def attach(self, manager: FeedingManager | None) -> None:
         """Attach the feeding manager instance."""
 
         self._manager = manager
 
-    async def async_get_data(self, dog_id: str) -> FeedingModulePayload:  # noqa: E111
+    async def async_get_data(self, dog_id: str) -> FeedingModulePayload:
         """Return the latest feeding context for the dog."""
 
         if (cached := self._cached(dog_id)) is not None:
-            return cached  # noqa: E111
-
+            return cached
         if self._manager is not None:
-            try:  # noqa: E111
+            try:
                 manager_data = await self._manager.async_get_feeding_data(dog_id)
             except (
                 Exception
-            ) as err:  # pragma: no cover - defensive logging  # noqa: E111
+            ) as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Feeding manager unavailable for %s: %s",
                     dog_id,
                     err,
                 )
-            else:  # noqa: E111
+            else:
                 payload = cast(FeedingModulePayload, dict(manager_data))
                 payload.setdefault("status", "ready")
                 self._remember(dog_id, payload)
                 return payload
 
         if self._use_external_api and self._api_client is not None:
-            try:  # noqa: E111
+            try:
                 payload = cast(
                     FeedingModulePayload,
                     dict(await self._api_client.async_get_feeding_payload(dog_id)),
                 )
-            except RateLimitError:  # noqa: E111
+            except RateLimitError:
                 raise
-            except NetworkError:  # noqa: E111
+            except NetworkError:
                 raise
-            except Exception as err:  # pragma: no cover - unexpected  # noqa: E111
+            except Exception as err:  # pragma: no cover - unexpected
                 raise NetworkError(f"Device API error: {err}") from err
-            payload.setdefault("status", "ready")  # noqa: E111
-            self._remember(dog_id, payload)  # noqa: E111
-            return payload  # noqa: E111
-
+            payload.setdefault("status", "ready")
+            self._remember(dog_id, payload)
+            return payload
         default_data: FeedingModulePayload = FeedingModulePayload(
             status="ready",
             last_feeding=None,
@@ -440,43 +406,38 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
 
 
 class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
-    """Expose detailed walk data using the walk manager."""  # noqa: E111
-
-    def __init__(self, *, ttl: timedelta | None = None) -> None:  # noqa: E111
+    """Expose detailed walk data using the walk manager."""
+    def __init__(self, *, ttl: timedelta | None = None) -> None:
         """Initialise the walk adapter with optional caching."""
         super().__init__(ttl)
         self._manager: WalkManager | None = None
 
-    def attach(self, manager: WalkManager | None) -> None:  # noqa: E111
+    def attach(self, manager: WalkManager | None) -> None:
         """Attach the walk manager used to gather live metrics."""
         self._manager = manager
 
-    async def async_get_data(self, dog_id: str) -> WalkModulePayload:  # noqa: E111
+    async def async_get_data(self, dog_id: str) -> WalkModulePayload:
         """Return cached or live walk telemetry for the given dog."""
         if (cached := self._cached(dog_id)) is not None:
-            return cached  # noqa: E111
-
+            return cached
         if self._manager is None:
-            return self._default_payload()  # noqa: E111
-
+            return self._default_payload()
         try:
-            walk_data = await self._manager.async_get_walk_data(dog_id)  # noqa: E111
+            walk_data = await self._manager.async_get_walk_data(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Failed to fetch walk data for %s: %s",
                 dog_id,
                 err,
             )
-            return self._default_payload(status="error", message=str(err))  # noqa: E111
-
+            return self._default_payload(status="error", message=str(err))
         if not walk_data:
-            return self._default_payload(status="empty")  # noqa: E111
-
+            return self._default_payload(status="empty")
         payload = cast(WalkModulePayload, walk_data)
         self._remember(dog_id, payload)
         return payload
 
-    def _default_payload(  # noqa: E111
+    def _default_payload(
         self,
         *,
         status: str = "unavailable",
@@ -498,37 +459,34 @@ class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
             "status": status,
         }
         if message:
-            payload["message"] = message  # noqa: E111
+            payload["message"] = message
         return payload
 
 
 class GPSModuleAdapter:
-    """Return GPS-centric data leveraging the GPS manager."""  # noqa: E111
-
-    def __init__(self) -> None:  # noqa: E111
+    """Return GPS-centric data leveraging the GPS manager."""
+    def __init__(self) -> None:
         """Initialise the GPS adapter without caching."""
         self._manager: GPSGeofenceManager | None = None
 
-    def attach(self, manager: GPSGeofenceManager | None) -> None:  # noqa: E111
+    def attach(self, manager: GPSGeofenceManager | None) -> None:
         """Attach the GPS manager that supplies live coordinates."""
         self._manager = manager
 
-    async def async_get_data(self, dog_id: str) -> GPSModulePayload:  # noqa: E111
+    async def async_get_data(self, dog_id: str) -> GPSModulePayload:
         """Return the latest GPS fix and active route information."""
         if not self._manager:
-            raise GPSUnavailableError(dog_id, "GPS manager not available")  # noqa: E111
-
+            raise GPSUnavailableError(dog_id, "GPS manager not available")
         try:
-            current_location = await self._manager.async_get_current_location(dog_id)  # noqa: E111
-            active_route = await self._manager.async_get_active_route(dog_id)  # noqa: E111
+            current_location = await self._manager.async_get_current_location(dog_id)
+            active_route = await self._manager.async_get_active_route(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Failed to retrieve GPS data for %s: %s",
                 dog_id,
                 err,
             )
-            raise GPSUnavailableError(dog_id, str(err)) from err  # noqa: E111
-
+            raise GPSUnavailableError(dog_id, str(err)) from err
         payload: GPSModulePayload = {
             "latitude": current_location.latitude if current_location else None,
             "longitude": current_location.longitude if current_location else None,
@@ -553,25 +511,23 @@ class GPSModuleAdapter:
 
 
 class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
-    """Expose geofence metadata from the GPS manager."""  # noqa: E111
-
-    def __init__(self, *, ttl: timedelta) -> None:  # noqa: E111
+    """Expose geofence metadata from the GPS manager."""
+    def __init__(self, *, ttl: timedelta) -> None:
         """Initialise the geofencing adapter with a cache TTL."""
         super().__init__(ttl)
         self._manager: GPSGeofenceManager | None = None
 
-    def attach(self, manager: GPSGeofenceManager | None) -> None:  # noqa: E111
+    def attach(self, manager: GPSGeofenceManager | None) -> None:
         """Attach the geofence manager used to fetch zone information."""
         self._manager = manager
 
-    async def async_get_data(self, dog_id: str) -> GeofencingModulePayload:  # noqa: E111
+    async def async_get_data(self, dog_id: str) -> GeofencingModulePayload:
         """Return cached or live geofence details for the dog."""
         if (cached := self._cached(dog_id)) is not None:
-            return cached  # noqa: E111
-
+            return cached
         payload: GeofencingModulePayload
         if not self._manager:
-            payload = {  # noqa: E111
+            payload = {
                 "status": "unavailable",
                 "message": "geofencing disabled",
                 "zones_configured": 0,
@@ -581,11 +537,11 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
                 "last_update": None,
             }
         else:
-            try:  # noqa: E111
+            try:
                 geofence_status = await self._manager.async_get_geofence_status(dog_id)
             except (
                 Exception
-            ) as err:  # pragma: no cover - defensive logging  # noqa: E111
+            ) as err:  # pragma: no cover - defensive logging
                 _LOGGER.warning(
                     "Failed to fetch geofence status for %s: %s",
                     dog_id,
@@ -600,7 +556,7 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
                     "safe_zone_breaches": 0,
                     "last_update": None,
                 }
-            else:  # noqa: E111
+            else:
                 payload = {
                     "status": "active",
                     "zones_configured": geofence_status.get("zones_configured", 0),
@@ -616,16 +572,15 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
 
 
 class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
-    """Combine stored health data with live feeding/walk metrics."""  # noqa: E111
-
-    def __init__(self, *, ttl: timedelta | None = None) -> None:  # noqa: E111
+    """Combine stored health data with live feeding/walk metrics."""
+    def __init__(self, *, ttl: timedelta | None = None) -> None:
         """Initialise the health adapter with optional caching."""
         super().__init__(ttl)
         self._feeding_manager: FeedingManager | None = None
         self._data_manager: PawControlDataManager | None = None
         self._walk_manager: WalkManager | None = None
 
-    def attach(  # noqa: E111
+    def attach(
         self,
         *,
         feeding_manager: FeedingManager | None,
@@ -637,11 +592,10 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
         self._data_manager = data_manager
         self._walk_manager = walk_manager
 
-    async def async_get_data(self, dog_id: str) -> HealthModulePayload:  # noqa: E111
+    async def async_get_data(self, dog_id: str) -> HealthModulePayload:
         """Build a composite health payload using cached and live data."""
         if (cached := self._cached(dog_id)) is not None:
-            return cached  # noqa: E111
-
+            return cached
         medications: HealthMedicationQueue = []
         health_alerts: HealthAlertList = []
         health_data: HealthModulePayload = HealthModulePayload(
@@ -654,7 +608,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
         )
 
         if self._data_manager is not None:
-            try:  # noqa: E111
+            try:
                 entries = await self._data_manager.async_get_module_history(
                     MODULE_HEALTH,
                     dog_id,
@@ -662,16 +616,16 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 )
             except (
                 Exception
-            ) as err:  # pragma: no cover - defensive logging  # noqa: E111
+            ) as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Unable to load stored health entries for %s: %s",
                     dog_id,
                     err,
                 )
-            else:  # noqa: E111
+            else:
                 if entries:
-                    latest = entries[0]  # noqa: E111
-                    if isinstance(latest, Mapping):  # noqa: E111
+                    latest = entries[0]
+                    if isinstance(latest, Mapping):
                         latest_payload = cast(
                             HealthModulePayload,
                             dict(latest),
@@ -679,31 +633,31 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                         health_data.update(latest_payload)
                         health_data.setdefault("status", "healthy")
 
-                    stored_medications = latest.get("medications")  # noqa: E111
-                    if isinstance(stored_medications, list):  # noqa: E111
+                    stored_medications = latest.get("medications")
+                    if isinstance(stored_medications, list):
                         for medication in stored_medications:
-                            if isinstance(medication, dict):  # noqa: E111
+                            if isinstance(medication, dict):
                                 medications.append(
                                     _normalise_health_medication(medication),
                                 )
-                            elif isinstance(medication, str):  # noqa: E111
+                            elif isinstance(medication, str):
                                 medications.append(
                                     _normalise_health_medication(
                                         {"name": medication},
                                     ),
                                 )
 
-                    stored_alerts = latest.get("health_alerts")  # noqa: E111
-                    if isinstance(stored_alerts, list):  # noqa: E111
+                    stored_alerts = latest.get("health_alerts")
+                    if isinstance(stored_alerts, list):
                         for stored_alert in stored_alerts:
-                            if isinstance(stored_alert, dict):  # noqa: E111
+                            if isinstance(stored_alert, dict):
                                 health_alerts.append(
                                     cast(  # type: ignore[redundant-cast]
                                         HealthAlertEntry,
                                         _normalise_health_alert(stored_alert),
                                     ),
                                 )
-                            elif isinstance(stored_alert, str):  # noqa: E111
+                            elif isinstance(stored_alert, str):
                                 health_alerts.append(
                                     _normalise_health_alert(
                                         {
@@ -718,18 +672,17 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                                     ),
                                 )
 
-                    health_data["medications"] = medications  # noqa: E111
-                    health_data["health_alerts"] = health_alerts  # noqa: E111
-
+                    health_data["medications"] = medications
+                    health_data["health_alerts"] = health_alerts
         feeding_context: FeedingSnapshot | None = None
         if self._feeding_manager is not None:
-            try:  # noqa: E111
+            try:
                 feeding_context = await self._feeding_manager.async_get_feeding_data(
                     dog_id,
                 )
             except (
                 Exception
-            ) as err:  # pragma: no cover - defensive logging  # noqa: E111
+            ) as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Failed to gather feeding context for %s: %s",
                     dog_id,
@@ -737,8 +690,8 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 )
 
         if feeding_context is not None:
-            summary = feeding_context.get("health_summary", {})  # noqa: E111
-            if summary:  # noqa: E111
+            summary = feeding_context.get("health_summary", {})
+            if summary:
                 health_data.update(
                     {
                         "weight": summary.get("current_weight", health_data["weight"]),
@@ -753,7 +706,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     },
                 )
 
-            if feeding_context.get("health_conditions") and not health_data.get(  # noqa: E111
+            if feeding_context.get("health_conditions") and not health_data.get(
                 "health_conditions",
             ):
                 health_data["health_conditions"] = feeding_context.get(
@@ -761,7 +714,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     [],
                 )
 
-            if feeding_context.get("health_emergency"):  # noqa: E111
+            if feeding_context.get("health_emergency"):
                 emergency: JSONMutableMapping = cast(
                     JSONMutableMapping,
                     dict(
@@ -782,108 +735,103 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 emergency_alert["details"] = emergency
                 health_alerts.append(emergency_alert)
 
-            if feeding_context.get("medication_with_meals"):  # noqa: E111
+            if feeding_context.get("medication_with_meals"):
                 medications.append(
                     _normalise_health_medication(
                         {"name": "meal_medication", "with_meals": True},
                     ),
                 )
 
-            health_data["health_status"] = feeding_context.get(  # noqa: E111
+            health_data["health_status"] = feeding_context.get(
                 "health_feeding_status",
                 health_data.get(
                     "health_status",
                     "healthy",
                 ),
             )
-            health_data["daily_calorie_target"] = feeding_context.get(  # noqa: E111
+            health_data["daily_calorie_target"] = feeding_context.get(
                 "daily_calorie_target",
             )
-            health_data["total_calories_today"] = feeding_context.get(  # noqa: E111
+            health_data["total_calories_today"] = feeding_context.get(
                 "total_calories_today",
             )
-            health_data["weight_goal_progress"] = feeding_context.get(  # noqa: E111
+            health_data["weight_goal_progress"] = feeding_context.get(
                 "weight_goal_progress",
             )
-            health_data["weight_goal"] = feeding_context.get("weight_goal")  # noqa: E111
-            if feeding_context.get("daily_activity_level"):  # noqa: E111
+            health_data["weight_goal"] = feeding_context.get("weight_goal")
+            if feeding_context.get("daily_activity_level"):
                 health_data["activity_level"] = feeding_context.get(
                     "daily_activity_level",
                 )
 
         if self._walk_manager is not None and "activity_level" not in health_data:
-            try:  # noqa: E111
+            try:
                 walk_overview = await self._walk_manager.async_get_walk_data(dog_id)
             except (
                 Exception
-            ) as err:  # pragma: no cover - defensive logging  # noqa: E111
+            ) as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Walk context unavailable for %s: %s",
                     dog_id,
                     err,
                 )
-            else:  # noqa: E111
+            else:
                 if walk_overview and walk_overview.get("daily_walks"):
-                    health_data["activity_level"] = "active"  # noqa: E111
+                    health_data["activity_level"] = "active"
                 elif walk_overview:
-                    health_data["activity_level"] = "low"  # noqa: E111
-
+                    health_data["activity_level"] = "low"
         payload = health_data
         self._remember(dog_id, payload)
         return payload
 
 
 class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
-    """Adapter for weather-informed health data."""  # noqa: E111
-
-    def __init__(self, *, config_entry: PawControlConfigEntry, ttl: timedelta) -> None:  # noqa: E111
+    """Adapter for weather-informed health data."""
+    def __init__(self, *, config_entry: PawControlConfigEntry, ttl: timedelta) -> None:
         """Initialise the weather adapter with config context."""
         super().__init__(ttl)
         self._config_entry = config_entry
         self._manager: WeatherHealthManager | None = None
 
-    def attach(self, manager: WeatherHealthManager | None) -> None:  # noqa: E111
+    def attach(self, manager: WeatherHealthManager | None) -> None:
         """Attach the weather health manager to source observations."""
         self._manager = manager
 
-    def _resolve_dog_config(self, dog_id: str) -> JSONLikeMapping | None:  # noqa: E111
+    def _resolve_dog_config(self, dog_id: str) -> JSONLikeMapping | None:
         """Return the config entry mapping for ``dog_id`` if available."""
 
         raw_dogs = self._config_entry.data.get(CONF_DOGS)
         if not isinstance(raw_dogs, list):
-            return None  # noqa: E111
-
+            return None
         for candidate in raw_dogs:
-            if not isinstance(candidate, Mapping):  # noqa: E111
+            if not isinstance(candidate, Mapping):
                 continue
-            configured_id = candidate.get(CONF_DOG_ID)  # noqa: E111
-            if isinstance(configured_id, str) and configured_id == dog_id:  # noqa: E111
+            configured_id = candidate.get(CONF_DOG_ID)
+            if isinstance(configured_id, str) and configured_id == dog_id:
                 return cast(JSONLikeMapping, candidate)
 
         return None
 
-    async def async_get_data(self, dog_id: str) -> WeatherModulePayload:  # noqa: E111
+    async def async_get_data(self, dog_id: str) -> WeatherModulePayload:
         """Return weather-adjusted health information for a dog."""
         if (cached := self._cached(dog_id)) is not None:
-            return cached  # noqa: E111
-
+            return cached
         if self._manager is None:
-            payload: WeatherModulePayload = WeatherModulePayload(  # noqa: E111
+            payload: WeatherModulePayload = WeatherModulePayload(
                 status="disabled",
                 health_score=None,
                 alerts=[],
                 recommendations=[],
             )
-            self._remember(dog_id, payload)  # noqa: E111
-            return payload  # noqa: E111
-
+            self._remember(dog_id, payload)
+            return payload
         weather_entity = self._config_entry.options.get(CONF_WEATHER_ENTITY)
         if isinstance(weather_entity, str) and weather_entity:
-            try:  # noqa: E111
+            try:
                 await self._manager.async_update_weather_data(weather_entity)
             except (
                 Exception
-            ) as err:  # pragma: no cover - defensive logging  # noqa: E111
+            ) as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Failed to refresh weather data from %s: %s",
                     weather_entity,
@@ -896,21 +844,20 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
         health_conditions: list[str] | None = None
 
         if dog_config is not None:
-            raw_breed = dog_config.get(CONF_DOG_BREED)  # noqa: E111
-            if isinstance(raw_breed, str) and raw_breed.strip():  # noqa: E111
+            raw_breed = dog_config.get(CONF_DOG_BREED)
+            if isinstance(raw_breed, str) and raw_breed.strip():
                 dog_breed = raw_breed
 
-            raw_age = dog_config.get(CONF_DOG_AGE)  # noqa: E111
-            if isinstance(raw_age, int):  # noqa: E111
+            raw_age = dog_config.get(CONF_DOG_AGE)
+            if isinstance(raw_age, int):
                 dog_age_months = raw_age
-            elif isinstance(raw_age, str):  # noqa: E111
+            elif isinstance(raw_age, str):
                 try:
-                    dog_age_months = int(raw_age)  # noqa: E111
+                    dog_age_months = int(raw_age)
                 except ValueError:
-                    dog_age_months = None  # noqa: E111
-
-            raw_conditions = dog_config.get("health_conditions")  # noqa: E111
-            if isinstance(raw_conditions, list):  # noqa: E111
+                    dog_age_months = None
+            raw_conditions = dog_config.get("health_conditions")
+            if isinstance(raw_conditions, list):
                 health_conditions = [
                     str(condition)
                     for condition in raw_conditions
@@ -918,7 +865,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 ]
 
         try:
-            alerts: list[WeatherAlertPayload] = [  # noqa: E111
+            alerts: list[WeatherAlertPayload] = [
                 WeatherAlertPayload(
                     type=getattr(
                         alert.alert_type,
@@ -939,16 +886,16 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 )
                 for alert in self._manager.get_active_alerts()
             ]
-            recommendations = self._manager.get_recommendations_for_dog(  # noqa: E111
+            recommendations = self._manager.get_recommendations_for_dog(
                 dog_breed=dog_breed,
                 dog_age_months=dog_age_months,
                 health_conditions=health_conditions,
             )
-            health_score = self._manager.get_weather_health_score()  # noqa: E111
-            conditions = self._manager.get_current_conditions()  # noqa: E111
+            health_score = self._manager.get_weather_health_score()
+            conditions = self._manager.get_current_conditions()
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning("Failed to build weather health data: %s", err)  # noqa: E111
-            payload = WeatherModulePayload(  # noqa: E111
+            _LOGGER.warning("Failed to build weather health data: %s", err)
+            payload = WeatherModulePayload(
                 status="error",
                 alerts=[],
                 recommendations=[],
@@ -956,13 +903,13 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 health_score=None,
             )
         else:
-            payload = WeatherModulePayload(  # noqa: E111
+            payload = WeatherModulePayload(
                 status="ready",
                 health_score=health_score,
                 alerts=alerts,
                 recommendations=recommendations,
             )
-            if conditions is not None:  # noqa: E111
+            if conditions is not None:
                 payload["conditions"] = WeatherConditionsPayload(
                     temperature_c=conditions.temperature_c,
                     humidity_percent=conditions.humidity_percent,
@@ -977,24 +924,22 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
 
 
 class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
-    """Adapter that exposes garden activity data."""  # noqa: E111
-
-    def __init__(self, *, ttl: timedelta | None = None) -> None:  # noqa: E111
+    """Adapter that exposes garden activity data."""
+    def __init__(self, *, ttl: timedelta | None = None) -> None:
         """Initialise the garden adapter and optional cache."""
         super().__init__(ttl)
         self._manager: GardenManager | None = None
 
-    def attach(self, manager: GardenManager | None) -> None:  # noqa: E111
+    def attach(self, manager: GardenManager | None) -> None:
         """Attach the garden manager used to pull session data."""
         self._manager = manager
 
-    async def async_get_data(self, dog_id: str) -> GardenModulePayload:  # noqa: E111
+    async def async_get_data(self, dog_id: str) -> GardenModulePayload:
         """Return garden status details for the requested dog."""
         if (cached := self._cached(dog_id)) is not None:
-            return cached  # noqa: E111
-
+            return cached
         if self._manager is None:
-            payload: GardenModulePayload = {  # noqa: E111
+            payload: GardenModulePayload = {
                 "status": "disabled",
                 "sessions_today": 0,
                 "time_today_minutes": 0.0,
@@ -1008,18 +953,17 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
                 "pending_confirmations": [],
                 "weather_summary": None,
             }
-            self._remember(dog_id, payload)  # noqa: E111
-            return payload  # noqa: E111
-
+            self._remember(dog_id, payload)
+            return payload
         try:
-            snapshot = self._manager.build_garden_snapshot(dog_id)  # noqa: E111
+            snapshot = self._manager.build_garden_snapshot(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning(  # noqa: E111
+            _LOGGER.warning(
                 "Failed to build garden snapshot for %s: %s",
                 dog_id,
                 err,
             )
-            payload = cast(  # noqa: E111
+            payload = cast(
                 GardenModulePayload,
                 {
                     "status": "error",
@@ -1037,9 +981,8 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
                     "weather_summary": None,
                 },
             )
-            self._remember(dog_id, payload)  # noqa: E111
-            return payload  # noqa: E111
-
+            self._remember(dog_id, payload)
+            return payload
         snapshot.setdefault("status", "idle")
         payload = snapshot
         self._remember(dog_id, payload)
@@ -1047,9 +990,8 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
 
 
 class CoordinatorModuleAdapters:
-    """Container that owns all module adapters used by the coordinator."""  # noqa: E111
-
-    def __init__(  # noqa: E111
+    """Container that owns all module adapters used by the coordinator."""
+    def __init__(
         self,
         *,
         session: ClientSession,
@@ -1076,7 +1018,7 @@ class CoordinatorModuleAdapters:
         )
         self.garden = GardenModuleAdapter(ttl=cache_ttl)
 
-    def attach_managers(  # noqa: E111
+    def attach_managers(
         self,
         *,
         data_manager: PawControlDataManager | None,
@@ -1099,7 +1041,7 @@ class CoordinatorModuleAdapters:
         self.weather.attach(weather_health_manager)
         self.garden.attach(garden_manager)
 
-    def detach_managers(self) -> None:  # noqa: E111
+    def detach_managers(self) -> None:
         """Detach all runtime managers when tearing down the coordinator."""
         self.feeding.attach(None)
         self.walk.attach(None)
@@ -1113,7 +1055,7 @@ class CoordinatorModuleAdapters:
         self.weather.attach(None)
         self.garden.attach(None)
 
-    def build_tasks(  # noqa: E111
+    def build_tasks(
         self,
         dog_id: str,
         modules: DogModulesMapping,
@@ -1122,48 +1064,48 @@ class CoordinatorModuleAdapters:
         tasks: list[CoordinatorModuleTask] = []
 
         if modules.get(MODULE_FEEDING):
-            tasks.append(  # noqa: E111
+            tasks.append(
                 CoordinatorModuleTask(
                     module="feeding",
                     coroutine=self.feeding.async_get_data(dog_id),
                 ),
             )
         if modules.get(MODULE_WALK):
-            tasks.append(  # noqa: E111
+            tasks.append(
                 CoordinatorModuleTask(
                     module="walk",
                     coroutine=self.walk.async_get_data(dog_id),
                 ),
             )
         if modules.get(MODULE_GPS):
-            tasks.append(  # noqa: E111
+            tasks.append(
                 CoordinatorModuleTask(
                     module="gps",
                     coroutine=self.gps.async_get_data(dog_id),
                 ),
             )
-            tasks.append(  # noqa: E111
+            tasks.append(
                 CoordinatorModuleTask(
                     module="geofencing",
                     coroutine=self.geofencing.async_get_data(dog_id),
                 ),
             )
         if modules.get(MODULE_HEALTH):
-            tasks.append(  # noqa: E111
+            tasks.append(
                 CoordinatorModuleTask(
                     module="health",
                     coroutine=self.health.async_get_data(dog_id),
                 ),
             )
         if modules.get(MODULE_WEATHER):
-            tasks.append(  # noqa: E111
+            tasks.append(
                 CoordinatorModuleTask(
                     module="weather",
                     coroutine=self.weather.async_get_data(dog_id),
                 ),
             )
         if modules.get(MODULE_GARDEN):
-            tasks.append(  # noqa: E111
+            tasks.append(
                 CoordinatorModuleTask(
                     module="garden",
                     coroutine=self.garden.async_get_data(dog_id),
@@ -1172,7 +1114,7 @@ class CoordinatorModuleAdapters:
 
         return tasks
 
-    def cleanup_expired(self, now: datetime) -> int:  # noqa: E111
+    def cleanup_expired(self, now: datetime) -> int:
         """Expire cached entries and return the number of evictions."""
         expired = 0
         for adapter in (
@@ -1183,10 +1125,10 @@ class CoordinatorModuleAdapters:
             self.weather,
             self.garden,
         ):
-            expired += adapter.cleanup(now)  # noqa: E111
+            expired += adapter.cleanup(now)
         return expired
 
-    def clear_caches(self) -> None:  # noqa: E111
+    def clear_caches(self) -> None:
         """Clear all adapter caches, typically during manual refreshes."""
         for adapter in (
             self.feeding,
@@ -1196,9 +1138,8 @@ class CoordinatorModuleAdapters:
             self.weather,
             self.garden,
         ):
-            adapter.clear()  # noqa: E111
-
-    def cache_metrics(self) -> ModuleCacheMetrics:  # noqa: E111
+            adapter.clear()
+    def cache_metrics(self) -> ModuleCacheMetrics:
         """Aggregate cache metrics from every module adapter."""
         metrics = ModuleCacheMetrics()
         for adapter in (
@@ -1209,9 +1150,8 @@ class CoordinatorModuleAdapters:
             self.weather,
             self.garden,
         ):
-            adapter_metrics = adapter.cache_metrics()  # noqa: E111
-            metrics.entries += adapter_metrics.entries  # noqa: E111
-            metrics.hits += adapter_metrics.hits  # noqa: E111
-            metrics.misses += adapter_metrics.misses  # noqa: E111
-
+            adapter_metrics = adapter.cache_metrics()
+            metrics.entries += adapter_metrics.entries
+            metrics.hits += adapter_metrics.hits
+            metrics.misses += adapter_metrics.misses
         return metrics

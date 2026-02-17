@@ -39,15 +39,14 @@ def translated_grooming_label(
     key: str,
     **values: object,
 ) -> str:
-    """Return a localized grooming label."""  # noqa: E111
-
-    translation_key = GROOMING_LABEL_TRANSLATION_KEYS.get(key)  # noqa: E111
-    if translation_key is None:  # noqa: E111
+    """Return a localized grooming label."""
+    translation_key = GROOMING_LABEL_TRANSLATION_KEYS.get(key)
+    if translation_key is None:
         return key.format(**values) if values else key
 
-    if hass is None:  # noqa: E111
+    if hass is None:
         template = translation_key
-    else:  # noqa: E111
+    else:
         translations, fallback = get_cached_component_translation_lookup(
             hass,
             language,
@@ -59,26 +58,23 @@ def translated_grooming_label(
             default=key,
         )
 
-    if values:  # noqa: E111
+    if values:
         return template.format(**values)
-    return template  # noqa: E111
-
-
+    return template
 def translated_grooming_template(
     hass: HomeAssistant | None,
     language: str | None,
     key: str,
     **values: object,
 ) -> str:
-    """Return a localized grooming template string."""  # noqa: E111
-
-    translation_key = GROOMING_TEMPLATE_TRANSLATION_KEYS.get(key)  # noqa: E111
-    if translation_key is None:  # noqa: E111
+    """Return a localized grooming template string."""
+    translation_key = GROOMING_TEMPLATE_TRANSLATION_KEYS.get(key)
+    if translation_key is None:
         return key.format(**values)
 
-    if hass is None:  # noqa: E111
+    if hass is None:
         template = translation_key
-    else:  # noqa: E111
+    else:
         translations, fallback = get_cached_component_translation_lookup(
             hass,
             language,
@@ -89,9 +85,7 @@ def translated_grooming_template(
             translation_key,
             default=key,
         )
-    return template.format(**values)  # noqa: E111
-
-
+    return template.format(**values)
 __all__ = [
     "translated_grooming_label",
     "translated_grooming_template",

@@ -22,16 +22,15 @@ from homeassistant.helpers import config_validation as cv
 # builds do not ship the helpers module that defines it, so we avoid importing it at
 # runtime and provide a safe fallback.
 if TYPE_CHECKING:  # pragma: no cover
-    try:  # noqa: E111
+    try:
         from homeassistant.helpers.condition import ConditionCheckerType
-    except ImportError:  # noqa: E111
+    except ImportError:
         try:
-            from homeassistant.helpers.typing import ConditionCheckerType  # noqa: E111
+            from homeassistant.helpers.typing import ConditionCheckerType
         except ImportError:
-            ConditionCheckerType = Callable[..., bool]  # noqa: E111
+            ConditionCheckerType = Callable[..., bool]
 else:
-    ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]  # noqa: E111
-
+    ConditionCheckerType = Callable[..., bool]  # type: ignore[assignment]
 import voluptuous as vol
 
 from .const import DOMAIN
@@ -53,13 +52,10 @@ CONF_STATUS = "status"
 
 @dataclass(frozen=True, slots=True)
 class ConditionDefinition:
-    """Definition for a device condition."""  # noqa: E111
-
-    type: str  # noqa: E111
-    platform: str  # noqa: E111
-    entity_suffix: str  # noqa: E111
-
-
+    """Definition for a device condition."""
+    type: str
+    platform: str
+    entity_suffix: str
 CONDITION_DEFINITIONS: Final[tuple[ConditionDefinition, ...]] = (
     ConditionDefinition("is_hungry", "binary_sensor", "is_hungry"),
     ConditionDefinition("needs_walk", "binary_sensor", "needs_walk"),
@@ -84,14 +80,13 @@ async def async_get_conditions(
     hass: HomeAssistant,
     device_id: str,
 ) -> list[DeviceConditionPayload]:
-    """List device conditions for PawControl devices."""  # noqa: E111
-
-    context = resolve_device_context(hass, device_id)  # noqa: E111
-    if context.dog_id is None:  # noqa: E111
+    """List device conditions for PawControl devices."""
+    context = resolve_device_context(hass, device_id)
+    if context.dog_id is None:
         return []
 
-    conditions: list[DeviceConditionPayload] = []  # noqa: E111
-    for definition in CONDITION_DEFINITIONS:  # noqa: E111
+    conditions: list[DeviceConditionPayload] = []
+    for definition in CONDITION_DEFINITIONS:
         unique_id = build_unique_id(context.dog_id, definition.entity_suffix)
         entity_id = resolve_entity_id(
             hass,
@@ -100,8 +95,7 @@ async def async_get_conditions(
             definition.platform,
         )
         if entity_id is None:
-            continue  # noqa: E111
-
+            continue
         conditions.append(
             {
                 CONF_CONDITION: "device",
@@ -113,19 +107,16 @@ async def async_get_conditions(
             },
         )
 
-    return conditions  # noqa: E111
-
-
+    return conditions
 async def async_get_condition_capabilities(
     hass: HomeAssistant,
     config: dict[str, str],
 ) -> dict[str, vol.Schema]:
-    """Return condition capability schemas."""  # noqa: E111
-
-    if config.get(CONF_TYPE) != "status_is":  # noqa: E111
+    """Return condition capability schemas."""
+    if config.get(CONF_TYPE) != "status_is":
         return {}
 
-    return {  # noqa: E111
+    return {
         "extra_fields": vol.Schema(
             {
                 vol.Required(CONF_STATUS): cv.string,
@@ -138,65 +129,62 @@ async def async_condition_from_config(
     hass: HomeAssistant,
     config: dict[str, str],
 ) -> ConditionCheckerType:
-    """Create a condition checker for PawControl device automation."""  # noqa: E111
-
-    validated = CONDITION_SCHEMA(config)  # noqa: E111
-    device_id = validated[CONF_DEVICE_ID]  # noqa: E111
-    context = resolve_device_context(hass, device_id)  # noqa: E111
-    entity_id = validated.get(CONF_ENTITY_ID)  # noqa: E111
-    condition_type = validated[CONF_TYPE]  # noqa: E111
-
-    def _evaluate_state(expected_on: bool) -> bool:  # noqa: E111
+    """Create a condition checker for PawControl device automation."""
+    validated = CONDITION_SCHEMA(config)
+    device_id = validated[CONF_DEVICE_ID]
+    context = resolve_device_context(hass, device_id)
+    entity_id = validated.get(CONF_ENTITY_ID)
+    condition_type = validated[CONF_TYPE]
+    def _evaluate_state(expected_on: bool) -> bool:
         state = hass.states.get(entity_id) if entity_id else None
         if state is None:
-            return False  # noqa: E111
+            return False
         return (state.state == STATE_ON) is expected_on
 
-    def _evaluate_status(expected_status: str) -> bool:  # noqa: E111
+    def _evaluate_status(expected_status: str) -> bool:
         snapshot = resolve_status_snapshot(context.runtime_data, context.dog_id)
         if snapshot is not None:
-            return snapshot.get("state") == expected_status  # noqa: E111
-
+            return snapshot.get("state") == expected_status
         state = hass.states.get(entity_id) if entity_id else None
         if state is None:
-            return False  # noqa: E111
+            return False
         return state.state == expected_status
 
-    def _condition(  # noqa: E111
+    def _condition(
         _hass: HomeAssistant,
         _variables: Mapping[str, Any] | None,
     ) -> bool:
         match condition_type:
-            case "is_hungry":  # noqa: E111
+            case "is_hungry":
                 snapshot = resolve_status_snapshot(context.runtime_data, context.dog_id)
                 if snapshot is not None:
-                    return bool(snapshot.get("is_hungry", False))  # noqa: E111
+                    return bool(snapshot.get("is_hungry", False))
                 return _evaluate_state(True)
-            case "needs_walk":  # noqa: E111
+            case "needs_walk":
                 snapshot = resolve_status_snapshot(context.runtime_data, context.dog_id)
                 if snapshot is not None:
-                    return bool(snapshot.get("needs_walk", False))  # noqa: E111
+                    return bool(snapshot.get("needs_walk", False))
                 return _evaluate_state(True)
-            case "on_walk":  # noqa: E111
+            case "on_walk":
                 snapshot = resolve_status_snapshot(context.runtime_data, context.dog_id)
                 if snapshot is not None:
-                    return bool(snapshot.get("on_walk", False))  # noqa: E111
+                    return bool(snapshot.get("on_walk", False))
                 return _evaluate_state(True)
-            case "in_safe_zone":  # noqa: E111
+            case "in_safe_zone":
                 snapshot = resolve_status_snapshot(context.runtime_data, context.dog_id)
                 if snapshot is not None:
-                    return bool(snapshot.get("in_safe_zone", True))  # noqa: E111
+                    return bool(snapshot.get("in_safe_zone", True))
                 return _evaluate_state(True)
-            case "attention_needed":  # noqa: E111
+            case "attention_needed":
                 return _evaluate_state(True)
-            case "status_is":  # noqa: E111
+            case "status_is":
                 expected = validated.get(CONF_STATUS)
                 if not expected:
-                    _LOGGER.debug("Missing status value for status_is condition")  # noqa: E111
-                    return False  # noqa: E111
+                    _LOGGER.debug("Missing status value for status_is condition")
+                    return False
                 return _evaluate_status(expected)
-            case _:  # noqa: E111
+            case _:
                 _LOGGER.debug("Unknown PawControl condition type: %s", condition_type)
                 return False
 
-    return _condition  # noqa: E111
+    return _condition

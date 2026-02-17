@@ -116,18 +116,17 @@ _PROFILE_BASE_PLATFORMS: Final[dict[str, set[Platform]]] = {
 
 
 def _cleanup_platform_cache() -> None:
-    """Drop expired cache entries and cap cache size."""  # noqa: E111
-
-    now = time.monotonic()  # noqa: E111
-    expired_keys = [  # noqa: E111
+    """Drop expired cache entries and cap cache size."""
+    now = time.monotonic()
+    expired_keys = [
         key
         for key, (_, timestamp) in _PLATFORM_CACHE.items()
         if now - timestamp > _CACHE_TTL_SECONDS
     ]
-    for key in expired_keys:  # noqa: E111
+    for key in expired_keys:
         _PLATFORM_CACHE.pop(key, None)
 
-    while len(_PLATFORM_CACHE) > _MAX_CACHE_SIZE:  # noqa: E111
+    while len(_PLATFORM_CACHE) > _MAX_CACHE_SIZE:
         oldest_key = min(
             _PLATFORM_CACHE.items(),
             key=lambda item: item[1][1],
@@ -139,82 +138,73 @@ def get_platforms_for_profile_and_modules(
     dogs: Sequence[DogConfigData],
     profile: str,
 ) -> tuple[Platform, ...]:
-    """Return enabled Home Assistant platforms for the configured profile."""  # noqa: E111
-
-    if not dogs:  # noqa: E111
+    """Return enabled Home Assistant platforms for the configured profile."""
+    if not dogs:
         return _DEFAULT_PLATFORMS
 
-    active_modules: set[str] = set()  # noqa: E111
-    for dog in dogs:  # noqa: E111
+    active_modules: set[str] = set()
+    for dog in dogs:
         modules = dog.get("modules")
         if not isinstance(modules, Mapping):
-            continue  # noqa: E111
+            continue
         for module_name, enabled in modules.items():
-            if enabled and module_name in _MODULE_PLATFORM_MAP:  # noqa: E111
+            if enabled and module_name in _MODULE_PLATFORM_MAP:
                 active_modules.add(module_name)
 
-    cache_key = (len(dogs), profile, frozenset(active_modules))  # noqa: E111
+    cache_key = (len(dogs), profile, frozenset(active_modules))
     # BUG FIX: _cleanup_platform_cache() uses time.monotonic() for expiry checks.
     # Using time.time() here made the timestamps incompatible, so entries stored
     # with time.time() were never expired by _cleanup_platform_cache (which
     # compares against monotonic values).  Both must use the same clock.
-    now = time.monotonic()  # noqa: E111
-    cached = _PLATFORM_CACHE.get(cache_key)  # noqa: E111
-    if cached and now - cached[1] <= _CACHE_TTL_SECONDS:  # noqa: E111
+    now = time.monotonic()
+    cached = _PLATFORM_CACHE.get(cache_key)
+    if cached and now - cached[1] <= _CACHE_TTL_SECONDS:
         return cached[0]
 
-    _cleanup_platform_cache()  # noqa: E111
-
-    platforms = set(_PROFILE_BASE_PLATFORMS.get(profile, _DEFAULT_PLATFORMS))  # noqa: E111
-    for module_name in active_modules:  # noqa: E111
+    _cleanup_platform_cache()
+    platforms = set(_PROFILE_BASE_PLATFORMS.get(profile, _DEFAULT_PLATFORMS))
+    for module_name in active_modules:
         platforms.update(_MODULE_PLATFORM_MAP[module_name])
 
-    resolved = tuple(sorted(platforms, key=lambda platform: platform.value))  # noqa: E111
-    _PLATFORM_CACHE[cache_key] = (resolved, now)  # noqa: E111
-    return resolved  # noqa: E111
-
-
+    resolved = tuple(sorted(platforms, key=lambda platform: platform.value))
+    _PLATFORM_CACHE[cache_key] = (resolved, now)
+    return resolved
 def _enable_debug_logging(entry: PawControlConfigEntry) -> bool:
-    """Enable package-level debug logging when requested by the entry."""  # noqa: E111
-    global _DEFAULT_LOGGER_LEVEL  # noqa: E111
-    requested = bool(entry.options.get("debug_logging"))  # noqa: E111
-    entry_id = entry.entry_id  # noqa: E111
-
-    package_logger = logging.getLogger(__package__)  # noqa: E111
-    if not requested:  # noqa: E111
+    """Enable package-level debug logging when requested by the entry."""
+    global _DEFAULT_LOGGER_LEVEL
+    requested = bool(entry.options.get("debug_logging"))
+    entry_id = entry.entry_id
+    package_logger = logging.getLogger(__package__)
+    if not requested:
         _DEBUG_LOGGER_ENTRIES.discard(entry_id)
         return False
 
-    if entry_id not in _DEBUG_LOGGER_ENTRIES:  # noqa: E111
+    if entry_id not in _DEBUG_LOGGER_ENTRIES:
         if not _DEBUG_LOGGER_ENTRIES:
-            current_level = package_logger.level  # noqa: E111
+            current_level = package_logger.level
             _DEFAULT_LOGGER_LEVEL = (
                 current_level if current_level != logging.NOTSET else None
-            )  # noqa: E111
+            )
         _DEBUG_LOGGER_ENTRIES.add(entry_id)
 
-    if package_logger.level != logging.DEBUG:  # noqa: E111
+    if package_logger.level != logging.DEBUG:
         package_logger.setLevel(logging.DEBUG)
 
-    return True  # noqa: E111
-
-
+    return True
 def _disable_debug_logging(entry: PawControlConfigEntry) -> None:
-    """Disable debug logging when no entry keeps it enabled."""  # noqa: E111
-    entry_id = entry.entry_id  # noqa: E111
-    package_logger = logging.getLogger(__package__)  # noqa: E111
-
-    removed = entry_id in _DEBUG_LOGGER_ENTRIES  # noqa: E111
-    _DEBUG_LOGGER_ENTRIES.discard(entry_id)  # noqa: E111
-
-    if not removed:  # noqa: E111
+    """Disable debug logging when no entry keeps it enabled."""
+    entry_id = entry.entry_id
+    package_logger = logging.getLogger(__package__)
+    removed = entry_id in _DEBUG_LOGGER_ENTRIES
+    _DEBUG_LOGGER_ENTRIES.discard(entry_id)
+    if not removed:
         return
 
-    if _DEBUG_LOGGER_ENTRIES:  # noqa: E111
+    if _DEBUG_LOGGER_ENTRIES:
         return
 
-    target_level = _DEFAULT_LOGGER_LEVEL  # noqa: E111
-    package_logger.setLevel(  # noqa: E111
+    target_level = _DEFAULT_LOGGER_LEVEL
+    package_logger.setLevel(
         target_level if target_level is not None else logging.NOTSET,
     )
 
@@ -228,17 +218,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     Returns:
         True if setup successful
-    """  # noqa: E111
-    domain_data = hass.data.setdefault(DOMAIN, {})  # noqa: E111
-
+    """
+    domain_data = hass.data.setdefault(DOMAIN, {})
     # Register integration-level services  # noqa: E114
-    if "service_manager" not in domain_data:  # noqa: E111
+    if "service_manager" not in domain_data:
         domain_data["service_manager"] = PawControlServiceManager(hass)
         _LOGGER.debug("Registered PawControl services")
 
-    return True  # noqa: E111
-
-
+    return True
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -256,13 +243,11 @@ async def async_setup_entry(
         ConfigEntryNotReady: If setup prerequisites not met
         ConfigEntryAuthFailed: If authentication fails
         PawControlSetupError: If setup validation fails
-    """  # noqa: E111
-    setup_start_time = time.monotonic()  # noqa: E111
-    _LOGGER.debug("Setting up PawControl integration entry: %s", entry.entry_id)  # noqa: E111
-
-    debug_logging_tracked = _enable_debug_logging(entry)  # noqa: E111
-
-    try:  # noqa: E111
+    """
+    setup_start_time = time.monotonic()
+    _LOGGER.debug("Setting up PawControl integration entry: %s", entry.entry_id)
+    debug_logging_tracked = _enable_debug_logging(entry)
+    try:
         # Validate configuration
         dogs_config, profile, enabled_modules = await async_validate_entry_config(entry)
 
@@ -293,11 +278,11 @@ async def async_setup_entry(
 
         # Setup daily reset scheduler (non-critical)
         if not skip_optional_setup:
-            try:  # noqa: E111
+            try:
                 reset_unsub = await async_setup_daily_reset_scheduler(hass, entry)
                 if reset_unsub:
-                    runtime_data.daily_reset_unsub = reset_unsub  # noqa: E111
-            except Exception as err:  # noqa: E111
+                    runtime_data.daily_reset_unsub = reset_unsub
+            except Exception as err:
                 _LOGGER.warning(
                     "Failed to setup daily reset scheduler (non-critical): %s",
                     err,
@@ -305,18 +290,15 @@ async def async_setup_entry(
 
         # Start background tasks
         if not skip_optional_setup:
-            runtime_data.coordinator.async_start_background_tasks()  # noqa: E111
-
+            runtime_data.coordinator.async_start_background_tasks()
             # Start background task health monitoring  # noqa: E114
-            monitor_task = hass.async_create_task(  # noqa: E111
+            monitor_task = hass.async_create_task(
                 _async_monitor_background_tasks(runtime_data),
             )
-            runtime_data.background_monitor_task = monitor_task  # noqa: E111
-
+            runtime_data.background_monitor_task = monitor_task
         # Run repair checks
         if not skip_optional_setup:
-            await async_check_for_issues(hass, entry)  # noqa: E111
-
+            await async_check_for_issues(hass, entry)
         # Log setup completion
         setup_duration = time.monotonic() - setup_start_time
         helper_count = (
@@ -346,19 +328,19 @@ async def async_setup_entry(
         )
         return True
 
-    except (  # noqa: E111
+    except (
         ConfigEntryNotReady,
         ConfigEntryAuthFailed,
         PawControlSetupError,
     ):
         if debug_logging_tracked:
-            _disable_debug_logging(entry)  # noqa: E111
+            _disable_debug_logging(entry)
         raise
 
-    except Exception as err:  # noqa: E111
+    except Exception as err:
         setup_duration = time.monotonic() - setup_start_time
         if debug_logging_tracked:
-            _disable_debug_logging(entry)  # noqa: E111
+            _disable_debug_logging(entry)
         _LOGGER.exception("Unexpected setup error after %.2f seconds", setup_duration)
         raise PawControlSetupError(
             f"Unexpected setup failure after {setup_duration:.2f}s "
@@ -374,18 +356,18 @@ def _should_skip_optional_setup(hass: HomeAssistant) -> bool:
 
     Returns:
         True if optional setup should be skipped
-    """  # noqa: E111
-    services = getattr(hass, "services", None)  # noqa: E111
-    if services is None:  # noqa: E111
+    """
+    services = getattr(hass, "services", None)
+    if services is None:
         return True
 
-    service_module = getattr(type(services), "__module__", "")  # noqa: E111
-    async_call = getattr(services, "async_call", None)  # noqa: E111
-    async_call_module = (  # noqa: E111
+    service_module = getattr(type(services), "__module__", "")
+    async_call = getattr(services, "async_call", None)
+    async_call_module = (
         getattr(type(async_call), "__module__", "") if async_call is not None else ""
     )
 
-    return service_module.startswith("unittest.mock") or async_call_module.startswith(  # noqa: E111
+    return service_module.startswith("unittest.mock") or async_call_module.startswith(
         "unittest.mock",
     )
 
@@ -395,15 +377,13 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
 
     Args:
         runtime_data: Runtime data containing managers
-    """  # noqa: E111
-    monitoring_interval = 300  # 5 minutes  # noqa: E111
-
-    while True:  # noqa: E111
+    """
+    monitoring_interval = 300  # 5 minutes
+    while True:
         try:
-            await asyncio.sleep(monitoring_interval)  # noqa: E111
-
+            await asyncio.sleep(monitoring_interval)
             # Check garden manager background tasks  # noqa: E114
-            if hasattr(runtime_data, "garden_manager") and runtime_data.garden_manager:  # noqa: E111
+            if hasattr(runtime_data, "garden_manager") and runtime_data.garden_manager:
                 garden_manager = runtime_data.garden_manager
 
                 # Check if cleanup task is still running
@@ -412,7 +392,7 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
                     and garden_manager._cleanup_task
                     and garden_manager._cleanup_task.done()
                 ):
-                    _LOGGER.warning(  # noqa: E111
+                    _LOGGER.warning(
                         "Garden manager cleanup task died, attempting restart",
                     )
 
@@ -422,20 +402,17 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
                     and garden_manager._stats_update_task
                     and garden_manager._stats_update_task.done()
                 ):
-                    _LOGGER.warning(  # noqa: E111
+                    _LOGGER.warning(
                         "Garden manager stats update task died, attempting restart",
                     )
 
             # Log task health status periodically  # noqa: E114
-            _LOGGER.debug("Background task health check completed")  # noqa: E111
-
+            _LOGGER.debug("Background task health check completed")
         except asyncio.CancelledError:
-            _LOGGER.debug("Background task monitoring cancelled")  # noqa: E111
-            break  # noqa: E111
+            _LOGGER.debug("Background task monitoring cancelled")
+            break
         except Exception as err:
-            _LOGGER.error("Error in background task monitoring: %s", err)  # noqa: E111
-
-
+            _LOGGER.error("Error in background task monitoring: %s", err)
 async def async_unload_entry(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -448,103 +425,91 @@ async def async_unload_entry(
 
     Returns:
         True if unload successful
-    """  # noqa: E111
-    unload_start_time = time.monotonic()  # noqa: E111
-
+    """
+    unload_start_time = time.monotonic()
     # Unregister external integrations  # noqa: E114
-    await async_unregister_entry_webhook(hass, entry)  # noqa: E111
-    await async_unregister_entry_mqtt(hass, entry)  # noqa: E111
-    await async_unload_external_bindings(hass, entry)  # noqa: E111
-
+    await async_unregister_entry_webhook(hass, entry)
+    await async_unregister_entry_mqtt(hass, entry)
+    await async_unload_external_bindings(hass, entry)
     # Get runtime data  # noqa: E114
-    runtime_data = get_runtime_data(hass, entry)  # noqa: E111
-
+    runtime_data = get_runtime_data(hass, entry)
     # Get dogs config for platform determination  # noqa: E114
 
     # Unload platforms  # noqa: E114
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)  # noqa: E111
-
-    if not unload_ok:  # noqa: E111
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if not unload_ok:
         _LOGGER.error("One or more platforms failed to unload cleanly")
         return False
 
     # Cleanup runtime data  # noqa: E114
-    if runtime_data:  # noqa: E111
+    if runtime_data:
         await async_cleanup_runtime_data(runtime_data)
 
     # Remove from runtime storage  # noqa: E114
-    pop_runtime_data(hass, entry)  # noqa: E111
-
+    pop_runtime_data(hass, entry)
     # Platform selection cache depends on active dog modules/profile snapshots.  # noqa: E114, E501
-    _PLATFORM_CACHE.clear()  # noqa: E111
-
+    _PLATFORM_CACHE.clear()
     # Cleanup service manager if last entry  # noqa: E114
-    domain_data = hass.data.get(DOMAIN, {})  # noqa: E111
-    service_manager = domain_data.get("service_manager")  # noqa: E111
-    if service_manager:  # noqa: E111
+    domain_data = hass.data.get(DOMAIN, {})
+    service_manager = domain_data.get("service_manager")
+    if service_manager:
         loaded_entries = hass.config_entries.async_loaded_entries(DOMAIN)
         if len(loaded_entries) <= 1:
-            try:  # noqa: E111
+            try:
                 await asyncio.wait_for(service_manager.async_shutdown(), timeout=10)
-            except TimeoutError:  # noqa: E111
+            except TimeoutError:
                 _LOGGER.warning("Service manager shutdown timed out")
-            except Exception as err:  # noqa: E111
+            except Exception as err:
                 _LOGGER.warning("Error shutting down service manager: %s", err)
 
-    _disable_debug_logging(entry)  # noqa: E111
-
-    unload_duration = time.monotonic() - unload_start_time  # noqa: E111
-    _LOGGER.info(  # noqa: E111
+    _disable_debug_logging(entry)
+    unload_duration = time.monotonic() - unload_start_time
+    _LOGGER.info(
         "PawControl unload completed in %.2f seconds: success=%s",
         unload_duration,
         unload_ok,
     )
-    return unload_ok  # noqa: E111
-
-
+    return unload_ok
 async def async_remove_config_entry_device(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
     device_entry: DeviceEntry,
 ) -> bool:
-    """Determine whether a stale PawControl device can be removed."""  # noqa: E111
-
-    def _iter_dogs(source: Any) -> list[DogConfigData]:  # noqa: E111
+    """Determine whether a stale PawControl device can be removed."""
+    def _iter_dogs(source: Any) -> list[DogConfigData]:
         dogs: list[DogConfigData] = []
 
         if isinstance(source, Mapping):
-            for dog_id, dog_cfg in source.items():  # noqa: E111
+            for dog_id, dog_cfg in source.items():
                 if not isinstance(dog_cfg, Mapping):
-                    continue  # noqa: E111
+                    continue
                 candidate = dict(dog_cfg)
                 candidate.setdefault(DOG_ID_FIELD, str(dog_id))
                 if not isinstance(candidate.get(DOG_NAME_FIELD), str):
-                    candidate[DOG_NAME_FIELD] = str(candidate[DOG_ID_FIELD])  # noqa: E111
+                    candidate[DOG_NAME_FIELD] = str(candidate[DOG_ID_FIELD])
                 normalised = ensure_dog_config_data(candidate)
                 if normalised is not None:
-                    dogs.append(normalised)  # noqa: E111
-            return dogs  # noqa: E111
-
+                    dogs.append(normalised)
+            return dogs
         if isinstance(source, Sequence) and not isinstance(
             source,
             str | bytes | bytearray,
         ):
-            for dog_cfg in source:  # noqa: E111
+            for dog_cfg in source:
                 if not isinstance(dog_cfg, Mapping):
-                    continue  # noqa: E111
+                    continue
                 candidate = dict(dog_cfg)
                 if DOG_ID_FIELD not in candidate:
-                    continue  # noqa: E111
+                    continue
                 if not isinstance(candidate.get(DOG_NAME_FIELD), str):
-                    candidate[DOG_NAME_FIELD] = str(candidate[DOG_ID_FIELD])  # noqa: E111
+                    candidate[DOG_NAME_FIELD] = str(candidate[DOG_ID_FIELD])
                 normalised = ensure_dog_config_data(candidate)
                 if normalised is not None:
-                    dogs.append(normalised)  # noqa: E111
-            return dogs  # noqa: E111
-
+                    dogs.append(normalised)
+            return dogs
         return dogs
 
-    identifiers = {  # noqa: E111
+    identifiers = {
         identifier
         for identifier in device_entry.identifiers
         if isinstance(identifier, tuple)
@@ -552,83 +517,79 @@ async def async_remove_config_entry_device(
         and identifier[0] == DOMAIN
     }
 
-    if not identifiers:  # noqa: E111
+    if not identifiers:
         _LOGGER.debug(
             "Device %s is not managed by PawControl; skipping removal",
             device_entry.id,
         )
         return False
 
-    def _iter_configured_dog_ids(  # noqa: E111
+    def _iter_configured_dog_ids(
         source: Any,
     ) -> Iterable[tuple[str, str]]:
         for dog in _iter_dogs(source):
-            dog_id = dog[DOG_ID_FIELD]  # noqa: E111
-            sanitized = sanitize_dog_id(dog_id)  # noqa: E111
-            if not sanitized:  # noqa: E111
+            dog_id = dog[DOG_ID_FIELD]
+            sanitized = sanitize_dog_id(dog_id)
+            if not sanitized:
                 continue
-            yield sanitized, dog_id  # noqa: E111
-
-    runtime_data = get_runtime_data(hass, entry)  # noqa: E111
-    active_ids: dict[str, str] = {}  # noqa: E111
-    if runtime_data and isinstance(runtime_data.dogs, Sequence):  # noqa: E111
+            yield sanitized, dog_id
+    runtime_data = get_runtime_data(hass, entry)
+    active_ids: dict[str, str] = {}
+    if runtime_data and isinstance(runtime_data.dogs, Sequence):
         active_ids = {
             sanitized: dog_id
             for sanitized, dog_id in _iter_configured_dog_ids(runtime_data.dogs)
         }
 
-    for sanitized, dog_id in _iter_configured_dog_ids(entry.data.get(CONF_DOGS)):  # noqa: E111
+    for sanitized, dog_id in _iter_configured_dog_ids(entry.data.get(CONF_DOGS)):
         active_ids.setdefault(sanitized, dog_id)
 
     # Check options  # noqa: E114
-    options_source: Any | None = None  # noqa: E111
-    if isinstance(entry.options, Mapping):  # noqa: E111
+    options_source: Any | None = None
+    if isinstance(entry.options, Mapping):
         options_source = entry.options.get(CONF_DOGS)
 
-    for sanitized, dog_id in _iter_configured_dog_ids(options_source):  # noqa: E111
+    for sanitized, dog_id in _iter_configured_dog_ids(options_source):
         active_ids.setdefault(sanitized, dog_id)
 
-    def _iter_option_dogs(source: Any) -> Iterable[tuple[str, str]]:  # noqa: E111
+    def _iter_option_dogs(source: Any) -> Iterable[tuple[str, str]]:
         if isinstance(source, Mapping):
-            for key, value in source.items():  # noqa: E111
+            for key, value in source.items():
                 candidates: set[str] = set()
                 if isinstance(key, str) and key:
-                    candidates.add(key)  # noqa: E111
+                    candidates.add(key)
                 if isinstance(value, Mapping):
-                    raw_id = value.get(DOG_ID_FIELD)  # noqa: E111
-                    if isinstance(raw_id, str) and raw_id:  # noqa: E111
+                    raw_id = value.get(DOG_ID_FIELD)
+                    if isinstance(raw_id, str) and raw_id:
                         candidates.add(raw_id)
                 for candidate in candidates:
-                    sanitized_candidate = sanitize_dog_id(candidate)  # noqa: E111
-                    if sanitized_candidate:  # noqa: E111
+                    sanitized_candidate = sanitize_dog_id(candidate)
+                    if sanitized_candidate:
                         yield sanitized_candidate, candidate
         elif isinstance(source, Sequence) and not isinstance(
             source,
             str | bytes | bytearray,
         ):
-            for value in source:  # noqa: E111
+            for value in source:
                 if not isinstance(value, Mapping):
-                    continue  # noqa: E111
+                    continue
                 raw_id = value.get(DOG_ID_FIELD)
                 if not isinstance(raw_id, str) or not raw_id:
-                    continue  # noqa: E111
+                    continue
                 sanitized_candidate = sanitize_dog_id(raw_id)
                 if sanitized_candidate:
-                    yield sanitized_candidate, raw_id  # noqa: E111
-
-    if isinstance(entry.options, Mapping):  # noqa: E111
+                    yield sanitized_candidate, raw_id
+    if isinstance(entry.options, Mapping):
         dog_options_source = entry.options.get(CONF_DOG_OPTIONS)
         for sanitized, dog_id in _iter_option_dogs(dog_options_source):
-            active_ids.setdefault(sanitized, dog_id)  # noqa: E111
-
-    dog_options_data = entry.data.get(CONF_DOG_OPTIONS)  # noqa: E111
-    for sanitized, dog_id in _iter_option_dogs(dog_options_data):  # noqa: E111
+            active_ids.setdefault(sanitized, dog_id)
+    dog_options_data = entry.data.get(CONF_DOG_OPTIONS)
+    for sanitized, dog_id in _iter_option_dogs(dog_options_data):
         active_ids.setdefault(sanitized, dog_id)
 
-    configured = {identifier[1] for identifier in identifiers}  # noqa: E111
-
-    still_present = configured & set(active_ids)  # noqa: E111
-    if still_present:  # noqa: E111
+    configured = {identifier[1] for identifier in identifiers}
+    still_present = configured & set(active_ids)
+    if still_present:
         _LOGGER.debug(
             "Refusing to remove PawControl device %s because dogs %s are still configured",
             device_entry.id,
@@ -636,14 +597,12 @@ async def async_remove_config_entry_device(
         )
         return False
 
-    _LOGGER.debug(  # noqa: E111
+    _LOGGER.debug(
         "Allowing removal of PawControl device %s with identifiers %s",
         device_entry.id,
         configured,
     )
-    return True  # noqa: E111
-
-
+    return True
 async def async_reload_entry(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -653,22 +612,20 @@ async def async_reload_entry(
     Args:
         hass: Home Assistant instance
         entry: Config entry to reload
-    """  # noqa: E111
-    reload_start_time = time.monotonic()  # noqa: E111
-    _LOGGER.debug("Reloading PawControl integration entry: %s", entry.entry_id)  # noqa: E111
-
-    unload_ok = await async_unload_entry(hass, entry)  # noqa: E111
-    if not unload_ok:  # noqa: E111
+    """
+    reload_start_time = time.monotonic()
+    _LOGGER.debug("Reloading PawControl integration entry: %s", entry.entry_id)
+    unload_ok = await async_unload_entry(hass, entry)
+    if not unload_ok:
         _LOGGER.warning(
             "Reload aborted because unload failed for entry %s",
             entry.entry_id,
         )
         return
 
-    await async_setup_entry(hass, entry)  # noqa: E111
-
-    reload_duration = time.monotonic() - reload_start_time  # noqa: E111
-    _LOGGER.info(  # noqa: E111
+    await async_setup_entry(hass, entry)
+    reload_duration = time.monotonic() - reload_start_time
+    _LOGGER.info(
         "PawControl reload completed in %.2f seconds",
         reload_duration,
     )
