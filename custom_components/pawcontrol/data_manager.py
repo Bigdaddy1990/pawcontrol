@@ -2599,10 +2599,10 @@ class PawControlDataManager:
                 normalized_format = "json"
 
             extension = "md" if normalized_format == "markdown" else normalized_format
-            filename = f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}".replace(
-                " ",
-                "_",
+            raw_filename = (
+                f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}"
             )
+            filename = raw_filename.replace(" ", "_")
             export_path = export_dir / filename
             if normalized_format == "csv":
                 if entries:
