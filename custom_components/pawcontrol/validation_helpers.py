@@ -32,6 +32,8 @@ def validate_unique_dog_name(
         raise ValidationError(field, raw_name, "dog_name_already_exists")
 
     return dog_name
+
+
 def validate_coordinate_pair(
     latitude: Any,
     longitude: Any,
@@ -53,6 +55,8 @@ def validate_coordinate_pair(
         maximum=180.0,
     )
     return cast(float, lat), cast(float, lon)
+
+
 def format_coordinate_validation_error(error: ValidationError) -> str:
     """Format coordinate validation errors for service responses."""
     field = error.field.replace("_", " ")
@@ -66,6 +70,8 @@ def format_coordinate_validation_error(error: ValidationError) -> str:
             return f"{field} must be between {error.min_value} and {error.max_value}"
         return f"{field} is out of range"
     return f"{field} is invalid"
+
+
 def validate_service_coordinates(
     latitude: Any,
     longitude: Any,

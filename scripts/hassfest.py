@@ -40,138 +40,138 @@ IOT_CLASS_VALUES = {
 
 
 def _load_manifest(manifest_path: Path) -> dict[str, Any]:
-    manifest_text = manifest_path.read_text(encoding="utf-8")  # noqa: E111
-    manifest = json.loads(manifest_text)  # noqa: E111
-    if not isinstance(manifest, dict):  # noqa: E111
+    manifest_text = manifest_path.read_text(encoding="utf-8")
+    manifest = json.loads(manifest_text)
+    if not isinstance(manifest, dict):
         msg = "manifest.json must contain a JSON object"
         raise ValueError(msg)
-    return manifest  # noqa: E111
+    return manifest
 
 
 def _validate_manifest(manifest_path: Path) -> list[str]:
-    errors: list[str] = []  # noqa: E111
-    if not manifest_path.is_file():  # noqa: E111
+    errors: list[str] = []
+    if not manifest_path.is_file():
         return ["manifest.json is missing"]
 
-    try:  # noqa: E111
+    try:
         manifest = _load_manifest(manifest_path)
-    except (json.JSONDecodeError, ValueError) as exc:  # noqa: E111
+    except (json.JSONDecodeError, ValueError) as exc:
         errors.append(f"invalid manifest.json: {exc}")
         return errors
 
-    missing_keys = sorted(REQUIRED_KEYS - manifest.keys())  # noqa: E111
-    if missing_keys:  # noqa: E111
+    missing_keys = sorted(REQUIRED_KEYS - manifest.keys())
+    if missing_keys:
         errors.append(
             f"manifest.json is missing required keys: {', '.join(missing_keys)}",
         )
 
-    for key in REQUIRED_LIST_KEYS:  # noqa: E111
+    for key in REQUIRED_LIST_KEYS:
         value = manifest.get(key)
         if not isinstance(value, list) or not value:
-            errors.append(f"manifest.{key} must be a non-empty list")  # noqa: E111
+            errors.append(f"manifest.{key} must be a non-empty list")
 
-    if not isinstance(manifest.get("config_flow"), bool):  # noqa: E111
+    if not isinstance(manifest.get("config_flow"), bool):
         errors.append("manifest.config_flow must be a boolean")
 
-    domain = manifest.get("domain")  # noqa: E111
-    expected_domain = manifest_path.parent.name  # noqa: E111
-    if domain != expected_domain:  # noqa: E111
+    domain = manifest.get("domain")
+    expected_domain = manifest_path.parent.name
+    if domain != expected_domain:
         errors.append(
             f"manifest.domain '{domain}' does not match integration folder '{expected_domain}'",  # noqa: E501
         )
 
-    quality_scale = manifest.get("quality_scale")  # noqa: E111
-    if quality_scale not in QUALITY_SCALE_LEVELS:  # noqa: E111
+    quality_scale = manifest.get("quality_scale")
+    if quality_scale not in QUALITY_SCALE_LEVELS:
         errors.append(
             "manifest.quality_scale must be one of: "
             + ", ".join(sorted(QUALITY_SCALE_LEVELS)),
         )
 
-    loggers = manifest.get("loggers")  # noqa: E111
-    if isinstance(loggers, list):  # noqa: E111
+    loggers = manifest.get("loggers")
+    if isinstance(loggers, list):
         expected_logger = f"custom_components.{expected_domain}"
         if expected_logger not in loggers:
-            errors.append(  # noqa: E111
+            errors.append(
                 f"manifest.loggers must include 'custom_components.{expected_domain}'",
             )
 
-    supported_by = manifest.get("supported_by")  # noqa: E111
-    if supported_by is not None and (  # noqa: E111
+    supported_by = manifest.get("supported_by")
+    if supported_by is not None and (
         not isinstance(supported_by, str) or not supported_by
     ):
         errors.append("manifest.supported_by must be null or a non-empty string")
 
-    iot_class = manifest.get("iot_class")  # noqa: E111
-    if iot_class not in IOT_CLASS_VALUES:  # noqa: E111
+    iot_class = manifest.get("iot_class")
+    if iot_class not in IOT_CLASS_VALUES:
         errors.append(
             "manifest.iot_class must be one of: " + ", ".join(sorted(IOT_CLASS_VALUES)),
         )
 
-    return errors  # noqa: E111
+    return errors
 
 
 def _validate_translations(integration_path: Path) -> list[str]:
-    errors: list[str] = []  # noqa: E111
-    translations_dir = integration_path / "translations"  # noqa: E111
-    strings_path = integration_path / "strings.json"  # noqa: E111
+    errors: list[str] = []
+    translations_dir = integration_path / "translations"
+    strings_path = integration_path / "strings.json"
 
-    if not translations_dir.is_dir():  # noqa: E111
+    if not translations_dir.is_dir():
         errors.append("translations directory is missing")
-    if not strings_path.is_file():  # noqa: E111
+    if not strings_path.is_file():
         errors.append("strings.json is missing")
 
-    def _load_object(path: Path) -> dict[str, Any] | None:  # noqa: E111
+    def _load_object(path: Path) -> dict[str, Any] | None:
         try:
-            loaded = json.loads(path.read_text(encoding="utf-8"))  # noqa: E111
+            loaded = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            errors.append(f"{path.name} is not valid JSON")  # noqa: E111
-            return None  # noqa: E111
+            errors.append(f"{path.name} is not valid JSON")
+            return None
         if not isinstance(loaded, dict):
-            errors.append(f"{path.name} must contain a JSON object")  # noqa: E111
-            return None  # noqa: E111
+            errors.append(f"{path.name} must contain a JSON object")
+            return None
         return loaded
 
-    if strings_path.is_file():  # noqa: E111
+    if strings_path.is_file():
         _load_object(strings_path)
 
-    if translations_dir.is_dir():  # noqa: E111
+    if translations_dir.is_dir():
         english_translation = translations_dir / "en.json"
         if not english_translation.is_file():
-            errors.append("translations/en.json is missing")  # noqa: E111
+            errors.append("translations/en.json is missing")
         else:
-            _load_object(english_translation)  # noqa: E111
+            _load_object(english_translation)
 
-    return errors  # noqa: E111
+    return errors
 
 
 def run(argv: Iterable[str] | None = None) -> int:
-    parser = ArgumentParser(description="Validate Home Assistant integration metadata")  # noqa: E111
-    parser.add_argument(  # noqa: E111
+    parser = ArgumentParser(description="Validate Home Assistant integration metadata")
+    parser.add_argument(
         "--integration-path",
         type=Path,
         required=True,
         help="Path to the integration directory (e.g. custom_components/pawcontrol)",
     )
-    args = parser.parse_args(list(argv) if argv is not None else None)  # noqa: E111
+    args = parser.parse_args(list(argv) if argv is not None else None)
 
-    integration_path = args.integration_path  # noqa: E111
-    manifest_path = integration_path / "manifest.json"  # noqa: E111
+    integration_path = args.integration_path
+    manifest_path = integration_path / "manifest.json"
 
-    errors = _validate_manifest(manifest_path)  # noqa: E111
-    errors.extend(_validate_translations(integration_path))  # noqa: E111
+    errors = _validate_manifest(manifest_path)
+    errors.extend(_validate_translations(integration_path))
 
-    if errors:  # noqa: E111
+    if errors:
         for error in errors:
-            print(f"ERROR: {error}", file=sys.stderr)  # noqa: E111
+            print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
-    print(f"hassfest stub: validated {integration_path}")  # noqa: E111
-    return 0  # noqa: E111
+    print(f"hassfest stub: validated {integration_path}")
+    return 0
 
 
 def main() -> int:
-    return run()  # noqa: E111
+    return run()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())  # noqa: E111
+    raise SystemExit(main())

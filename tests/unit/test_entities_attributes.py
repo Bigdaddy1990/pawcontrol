@@ -14,53 +14,49 @@ from custom_components.pawcontrol.types import CoordinatorDogData, PawControlCon
 
 @dataclass
 class _DummyEntry:
-    entry_id: str  # noqa: E111
+    entry_id: str
 
 
 class _DummyCoordinator:
-    """Minimal coordinator double for entity attribute tests."""  # noqa: E111
+    """Minimal coordinator double for entity attribute tests."""
 
-    def __init__(self) -> None:  # noqa: E111
+    def __init__(self) -> None:
         self.data: dict[str, CoordinatorDogData] = {}
         self.config_entry = cast(PawControlConfigEntry, _DummyEntry("entry"))
         self.last_update_success = True
         self.runtime_managers = None
 
-    def async_add_listener(  # noqa: E111
-        self, _callback
-    ):  # pragma: no cover - protocol stub
+    def async_add_listener(self, _callback):  # pragma: no cover - protocol stub
         return lambda: None
 
-    async def async_request_refresh(  # noqa: E111
+    async def async_request_refresh(
         self,
     ) -> None:  # pragma: no cover - stub
         return None
 
-    def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:  # noqa: E111
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
         return self.data.get(dog_id)
 
-    def get_enabled_modules(  # noqa: E111
-        self, dog_id: str
-    ) -> frozenset[str]:  # pragma: no cover
+    def get_enabled_modules(self, dog_id: str) -> frozenset[str]:  # pragma: no cover
         return frozenset()
 
-    @property  # noqa: E111
+    @property
     def available(
         self,
-    ) -> bool:  # pragma: no cover - compatibility helper  # noqa: E111
+    ) -> bool:  # pragma: no cover - compatibility helper
         return True
 
 
 @dataclass
 class _ComplexPayload:
-    label: str  # noqa: E111
-    duration: timedelta  # noqa: E111
+    label: str
+    duration: timedelta
 
 
 class _AttributeEntity(PawControlDogEntityBase):
-    """Expose extra attributes for normalization checks."""  # noqa: E111
+    """Expose extra attributes for normalization checks."""
 
-    def __init__(  # noqa: E111
+    def __init__(
         self,
         coordinator: PawControlCoordinator,
         dog_id: str,
@@ -69,8 +65,8 @@ class _AttributeEntity(PawControlDogEntityBase):
         super().__init__(coordinator, dog_id, dog_name)
         self._attr_unique_id = f"pawcontrol_{dog_id}_attributes"
 
-    @property  # noqa: E111
-    def extra_state_attributes(self):  # noqa: E111
+    @property
+    def extra_state_attributes(self):
         payload = _ComplexPayload("snapshot", timedelta(minutes=5))
         attrs = self._build_base_state_attributes(
             {
@@ -85,30 +81,30 @@ class _AttributeEntity(PawControlDogEntityBase):
 
 @pytest.mark.asyncio
 async def test_entity_attributes_normalise_complex_types(hass) -> None:
-    """Ensure entity attributes are normalized into JSON-serialisable values."""  # noqa: E111
+    """Ensure entity attributes are normalized into JSON-serialisable values."""
 
-    coordinator = _DummyCoordinator()  # noqa: E111
-    entity = _AttributeEntity(  # noqa: E111
+    coordinator = _DummyCoordinator()
+    entity = _AttributeEntity(
         cast(PawControlCoordinator, coordinator),
         "dog-1",
         "Buddy",
     )
-    entity.hass = hass  # noqa: E111
+    entity.hass = hass
 
-    attrs = entity.extra_state_attributes  # noqa: E111
+    attrs = entity.extra_state_attributes
 
-    assert attrs["as_of"] == "2024-05-01T12:00:00+00:00"  # noqa: E111
-    assert attrs["delta"] == "0:15:00"  # noqa: E111
-    assert attrs["payload"] == {"label": "snapshot", "duration": "0:05:00"}  # noqa: E111
-    assert set(cast(list[int], attrs["values"])) == {1, 2}  # noqa: E111
+    assert attrs["as_of"] == "2024-05-01T12:00:00+00:00"
+    assert attrs["delta"] == "0:15:00"
+    assert attrs["payload"] == {"label": "snapshot", "duration": "0:05:00"}
+    assert set(cast(list[int], attrs["values"])) == {1, 2}
 
 
 @pytest.mark.asyncio
 async def test_garden_sensor_attributes_normalise_datetimes(hass) -> None:
-    """Ensure garden attributes normalise datetime values."""  # noqa: E111
+    """Ensure garden attributes normalise datetime values."""
 
-    coordinator = _DummyCoordinator()  # noqa: E111
-    coordinator.data["dog-1"] = cast(  # noqa: E111
+    coordinator = _DummyCoordinator()
+    coordinator.data["dog-1"] = cast(
         CoordinatorDogData,
         {
             "dog_info": {"dog_id": "dog-1", "dog_name": "Buddy"},
@@ -126,14 +122,14 @@ async def test_garden_sensor_attributes_normalise_datetimes(hass) -> None:
         },
     )
 
-    entity = PawControlGardenTimeTodaySensor(  # noqa: E111
+    entity = PawControlGardenTimeTodaySensor(
         cast(PawControlCoordinator, coordinator),
         "dog-1",
         "Buddy",
     )
-    entity.hass = hass  # noqa: E111
+    entity.hass = hass
 
-    attrs = entity.extra_state_attributes  # noqa: E111
+    attrs = entity.extra_state_attributes
 
-    assert attrs["started_at"] == "2024-05-01T08:30:00+00:00"  # noqa: E111
-    assert attrs["last_seen"] == "2024-05-01T09:00:00+00:00"  # noqa: E111
+    assert attrs["started_at"] == "2024-05-01T08:30:00+00:00"
+    assert attrs["last_seen"] == "2024-05-01T09:00:00+00:00"

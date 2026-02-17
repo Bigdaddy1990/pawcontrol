@@ -85,6 +85,7 @@ type EntityCreationValue = (
 @dataclass(slots=True, frozen=True)
 class EntityCreationConfig(Mapping[str, EntityCreationValue]):
     """Immutable mapping describing an entity creation payload."""
+
     dog_id: str
     entity_type: str
     module: str
@@ -94,6 +95,7 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
     platform: Platform
     performance_impact: EntityPerformanceImpact
     extras: Mapping[str, EntityCreationValue] = field(default_factory=dict)
+
     def __getitem__(self, key: str) -> EntityCreationValue:
         """Return the requested creation attribute for mapping compatibility."""
 
@@ -168,6 +170,7 @@ type EntityProfileValue = (
 @dataclass(slots=True, frozen=True)
 class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
     """Strongly typed entity profile metadata container."""
+
     name: str
     description: str
     max_entities: int
@@ -176,6 +179,7 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
     platforms: tuple[Platform, ...]
     priority_threshold: int
     preferred_modules: tuple[str, ...] = ()
+
     def __getitem__(self, key: str) -> EntityProfileValue:
         """Return the requested profile metadata attribute."""
 
@@ -224,6 +228,7 @@ type EntityProfilesTable = Mapping[str, EntityProfileDefinition]
 @dataclass(slots=True, frozen=True)
 class EntityPerformanceMetrics(Mapping[str, float | int | str]):
     """Immutable performance metrics emitted by :meth:`EntityFactory`."""
+
     profile: str
     estimated_entities: int
     max_entities: int
@@ -231,6 +236,7 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
     utilization_percentage: float
     enabled_modules: int
     total_modules: int
+
     def __getitem__(self, key: str) -> float | int | str:
         """Return the requested performance metric value."""
 
@@ -529,6 +535,7 @@ _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
 @dataclass(slots=True, frozen=True)
 class EntityEstimate:
     """Container for cached entity estimation results."""
+
     profile: str
     final_count: int
     raw_total: int
@@ -536,9 +543,12 @@ class EntityEstimate:
     enabled_modules: int
     total_modules: int
     module_signature: tuple[tuple[str, bool], ...]
+
+
 @dataclass(slots=True)
 class EntityBudget:
     """Track entity allocation against a profile budget."""
+
     dog_id: str
     profile: str
     capacity: int
@@ -546,6 +556,7 @@ class EntityBudget:
     dynamic_allocation: int = 0
     requested_entities: list[str] = field(default_factory=list)
     denied_requests: list[str] = field(default_factory=list)
+
     def __post_init__(self) -> None:
         """Normalize base allocation to remain within the capacity."""
 
@@ -558,6 +569,7 @@ class EntityBudget:
                 self.profile,
             )
             self.base_allocation = self.capacity
+
     @property
     def remaining(self) -> int:
         """Return remaining entity slots in the budget."""
@@ -597,6 +609,7 @@ class EntityFactory:
     Provides centralized entity creation with performance optimization
     based on selected profile and module configuration.
     """
+
     def __init__(
         self,
         coordinator: PawControlCoordinator | None,
@@ -648,6 +661,7 @@ class EntityFactory:
             self._prewarm_caches()
         if self._runtime_guard_floor < _MIN_OPERATION_DURATION:
             self._runtime_guard_floor = _MIN_OPERATION_DURATION
+
     def _prewarm_caches(self) -> None:
         """Warm up internal caches for consistent performance."""
 
@@ -841,6 +855,7 @@ class EntityFactory:
         except RuntimeError:
             self._loop_ref = None
             self._loop_supports_callbacks = False
+
     def _ensure_loop_state(self) -> None:
         """Refresh cached event loop information when necessary."""
 
@@ -893,7 +908,7 @@ class EntityFactory:
 
         cached_estimate = self._estimate_cache.get(cache_key)
         if cached_estimate is not None:
-            # Move the cached entry to the end to maintain LRU semantics  # noqa: E114
+            # Move the cached entry to the end to maintain LRU semantics
             self._estimate_cache.move_to_end(cache_key)
             return cached_estimate
         estimate = self._compute_entity_estimate(
@@ -1304,6 +1319,7 @@ class EntityFactory:
                 enum_value = getattr(current, "value", None)
                 if enum_value is not None:
                     stack.append(enum_value)
+
     @staticmethod
     def _enum_contains_platform(enum_value: Enum, resolved: Platform) -> bool:
         """Return ``True`` if the enum contains the resolved platform value."""
@@ -1385,7 +1401,7 @@ class EntityFactory:
         if platform not in profile_config.platforms:
             return False
         if profile == "basic":
-            # Only essential entities  # noqa: E114
+            # Only essential entities
             essential_types = {
                 Platform.SENSOR,
                 Platform.BUTTON,
@@ -1400,7 +1416,7 @@ class EntityFactory:
             )
 
         if profile == "gps_focus":
-            # GPS-related entities prioritized  # noqa: E114
+            # GPS-related entities prioritized
             preferred_modules = profile_config.preferred_modules
             gps_types = {
                 Platform.DEVICE_TRACKER,
@@ -1412,7 +1428,7 @@ class EntityFactory:
                 module in preferred_modules or priority >= 7
             )
         if profile == "health_focus":
-            # Health-related entities prioritized  # noqa: E114
+            # Health-related entities prioritized
             preferred_modules = profile_config.preferred_modules
             health_types = {
                 Platform.SENSOR,
@@ -1425,7 +1441,7 @@ class EntityFactory:
                 module in preferred_modules or priority >= 7
             )
         if profile == "advanced":
-            # Almost all entities created, minimal filtering  # noqa: E114
+            # Almost all entities created, minimal filtering
             return priority >= 3
         # standard profile
         # Balanced approach with moderate filtering
@@ -1687,7 +1703,7 @@ class EntityFactory:
                 1 for mod in preferred_modules if modules_mapping.get(mod, False)
             )
             enabled_total = sum(1 for enabled in modules_mapping.values() if enabled)
-            # At least 50% of enabled modules should align with preferred modules  # noqa: E114, E501
+            # At least 50% of enabled modules should align with preferred modules  # noqa: E501
             if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:
                 return False
 

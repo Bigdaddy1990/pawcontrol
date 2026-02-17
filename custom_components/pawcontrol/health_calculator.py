@@ -33,6 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class BodyConditionScore(Enum):
     """Body condition score classification (1-9 scale)."""
+
     EMACIATED = 1  # Severely underweight
     VERY_THIN = 2  # Underweight
     THIN = 3  # Slightly underweight
@@ -42,28 +43,40 @@ class BodyConditionScore(Enum):
     HEAVY = 7  # Overweight
     OBESE = 8  # Significantly overweight
     SEVERELY_OBESE = 9  # Severely obese
+
+
 class LifeStage(Enum):
     """Life stage classification for nutritional needs."""
+
     PUPPY = "puppy"  # 0-12 months
     YOUNG_ADULT = "young_adult"  # 1-2 years
     ADULT = "adult"  # 2-7 years
     SENIOR = "senior"  # 7-10 years
     GERIATRIC = "geriatric"  # 10+ years
+
+
 class ActivityLevel(Enum):
     """Activity level classification."""
+
     VERY_LOW = "very_low"  # Inactive, elderly, sick
     LOW = "low"  # Light exercise, indoor
     MODERATE = "moderate"  # Regular walks
     HIGH = "high"  # Active, long walks
     VERY_HIGH = "very_high"  # Working, athletic dogs
+
+
 class DietSafetyResult(TypedDict):
     """Structured information about calculated portion safety."""
+
     safe: bool
     warnings: list[str]
     recommendations: list[str]
     portion_per_kg: float
+
+
 class DietInteractionDetails(TypedDict):
     """Detailed description of how special diets interact."""
+
     synergistic: list[tuple[str, str]]
     neutral: list[tuple[str, str]]
     caution: list[tuple[str, str]]
@@ -71,10 +84,15 @@ class DietInteractionDetails(TypedDict):
     recommendations: list[str]
     overall_complexity: int
     risk_level: Literal["low", "medium", "high"]
+
+
 class FeedingHistoryDaySummary(TypedDict):
     """Internal summary bucket for daily feeding analysis."""
+
     calories: float
     meals: int
+
+
 @dataclass(init=False)
 class HealthMetrics:
     """Comprehensive health metrics for a dog.
@@ -85,7 +103,8 @@ class HealthMetrics:
             and is leveraged by weather specific advice to tailor
             recommendations.
     """
-    # Basic measurements  # noqa: E114
+
+    # Basic measurements
     current_weight: float
     age_months: int | None = None
     breed: str | None = field(
@@ -100,22 +119,23 @@ class HealthMetrics:
     )
     height_cm: float | None = None
     ideal_weight: float | None = None
-    # Health assessments  # noqa: E114
+    # Health assessments
     body_condition_score: BodyConditionScore | None = None
     activity_level: ActivityLevel | None = None
     life_stage: LifeStage | None = None
-    # Health conditions  # noqa: E114
+    # Health conditions
     health_conditions: list[str] = field(default_factory=list)
     medications: list[str] = field(default_factory=list)
     special_diet: list[str] = field(default_factory=list)
-    # Calculated values  # noqa: E114
+    # Calculated values
     daily_calorie_requirement: float | None = None
     portion_adjustment_factor: float = 1.0
     weight_goal: str | None = None  # "maintain", "lose", "gain"
-    # NEW: Weather-related adjustments  # noqa: E114
+    # NEW: Weather-related adjustments
     weather_conditions: WeatherConditionsPayload | None = None
     weather_health_score: int | None = None
     _BREED_ALLOWED_CHARACTERS = frozenset(" -'")
+
     def __init__(
         self,
         current_weight: float,
@@ -188,7 +208,8 @@ class HealthMetrics:
 
 class HealthCalculator:
     """Enhanced health calculator for comprehensive dog health metrics."""
-    # Calorie requirements per kg by life stage (kcal/kg/day)  # noqa: E114
+
+    # Calorie requirements per kg by life stage (kcal/kg/day)
     BASE_CALORIE_REQUIREMENTS: ClassVar[dict[LifeStage, int]] = {
         LifeStage.PUPPY: 130,  # Growing puppies need more calories
         LifeStage.YOUNG_ADULT: 110,  # Active young adults
@@ -197,7 +218,7 @@ class HealthCalculator:
         LifeStage.GERIATRIC: 75,  # Reduced activity and metabolism
     }
 
-    # Activity level multipliers  # noqa: E114
+    # Activity level multipliers
     ACTIVITY_MULTIPLIERS: ClassVar[dict[ActivityLevel, float]] = {
         ActivityLevel.VERY_LOW: 0.8,  # Sedentary, sick, or elderly
         ActivityLevel.LOW: 0.9,  # Light activity
@@ -206,7 +227,7 @@ class HealthCalculator:
         ActivityLevel.VERY_HIGH: 1.6,  # Working or athletic dogs
     }
 
-    # Body condition score adjustments for portion size  # noqa: E114
+    # Body condition score adjustments for portion size
     BCS_ADJUSTMENTS: ClassVar[dict[BodyConditionScore, float]] = {
         BodyConditionScore.EMACIATED: 1.5,  # Increase portions significantly
         BodyConditionScore.VERY_THIN: 1.3,  # Increase portions
@@ -219,7 +240,7 @@ class HealthCalculator:
         BodyConditionScore.SEVERELY_OBESE: 0.6,  # Major reduction
     }
 
-    # Health condition adjustments  # noqa: E114
+    # Health condition adjustments
     HEALTH_CONDITION_ADJUSTMENTS: ClassVar[dict[str, float]] = {
         "diabetes": 0.9,  # Controlled portions
         "kidney_disease": 0.85,  # Reduced protein/phosphorus
@@ -314,10 +335,10 @@ class HealthCalculator:
             Body condition score
         """
         if visual_assessment is not None:
-            # Use provided assessment if available  # noqa: E114
+            # Use provided assessment if available
             return BodyConditionScore(min(9, max(1, visual_assessment)))
         if ideal_weight is None or ideal_weight <= 0:
-            # Default to ideal if no ideal weight provided  # noqa: E114
+            # Default to ideal if no ideal weight provided
             return BodyConditionScore.IDEAL
         # Calculate based on weight deviation
         weight_ratio = current_weight / ideal_weight
@@ -447,17 +468,13 @@ class HealthCalculator:
             weight_goal = feeding_goals.get("weight_goal")
             if weight_goal == "lose":
                 if health_metrics.life_stage == LifeStage.PUPPY:
-                    adjustment_factor *= (
-                        0.9  # gentler reduction for growth
-                    )
+                    adjustment_factor *= 0.9  # gentler reduction for growth
                 else:
-                    adjustment_factor *= (
-                        0.8  # 20% reduction for weight loss
-                    )
+                    adjustment_factor *= 0.8  # 20% reduction for weight loss
             elif weight_goal == "gain":
                 adjustment_factor *= 1.2  # 20% increase for weight gain
 
-            # Time-based adjustments  # noqa: E114
+            # Time-based adjustments
             weight_loss_rate = feeding_goals.get(
                 "weight_loss_rate",
                 "moderate",
@@ -510,7 +527,7 @@ class HealthCalculator:
                 # Multiple prescription diets need careful portion control
                 adjustment *= 0.95
                 _LOGGER.info(
-                    "Multiple prescription diets: applying 5%% portion reduction for safety",
+                    "Multiple prescription diets: applying 5%% portion reduction for safety",  # noqa: E501
                 )
 
             elif warning_type == "raw_medical_warning":
@@ -524,27 +541,27 @@ class HealthCalculator:
                 # Weight control for puppies - less restrictive than adults
                 adjustment *= 1.05  # Actually increase slightly for growing puppy
                 _LOGGER.info(
-                    "Weight control for puppy: applying 5%% portion increase for growth",
+                    "Weight control for puppy: applying 5%% portion increase for growth",  # noqa: E501
                 )
 
             elif warning_type == "hypoallergenic_warning":
                 # Hypoallergenic with other diets - standard portions but monitor
                 adjustment *= 0.98  # Very minor reduction for safety
                 _LOGGER.info(
-                    "Hypoallergenic diet combination: minor portion adjustment for monitoring",
+                    "Hypoallergenic diet combination: minor portion adjustment for monitoring",  # noqa: E501
                 )
 
             elif warning_type == "low_fat_activity_warning":
                 # Low fat with joint support - may need calorie compensation
                 adjustment *= 1.05  # Slight increase to compensate for low fat
                 _LOGGER.info(
-                    "Low fat diet with joint support needs: applying 5%% portion increase",
+                    "Low fat diet with joint support needs: applying 5%% portion increase",  # noqa: E501
                 )
 
         # Additional adjustments based on total diet complexity
         total_diets = diet_validation["total_diets"]
         if total_diets >= 4:
-            # Complex diet combinations need careful monitoring  # noqa: E114
+            # Complex diet combinations need careful monitoring
             adjustment *= 0.97  # 3% reduction for very complex diets
             _LOGGER.info(
                 "Complex diet combination (%d diets): applying 3%% portion reduction for safety",  # noqa: E501
@@ -553,7 +570,7 @@ class HealthCalculator:
 
         # Veterinary consultation recommendation adjustment
         if diet_validation["recommended_vet_consultation"]:
-            # When vet consultation is recommended, use more conservative portions  # noqa: E114, E501
+            # When vet consultation is recommended, use more conservative portions  # noqa: E501
             adjustment *= 0.95
             _LOGGER.info(
                 "Veterinary consultation recommended: applying 5%% conservative portion adjustment",  # noqa: E501
@@ -604,7 +621,7 @@ class HealthCalculator:
         # Check portion size relative to body weight
         if dog_weight > 0:
             portion_per_kg = calculated_portion / dog_weight
-            # General safety thresholds (grams per kg body weight per meal)  # noqa: E114
+            # General safety thresholds (grams per kg body weight per meal)  # noqa: E501
             if life_stage == LifeStage.PUPPY:
                 min_threshold, max_threshold = 15, 80  # Puppies need more food
             elif life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]:
@@ -893,8 +910,8 @@ class HealthCalculator:
             return breed_weights[breed.lower().replace(" ", "_")]
         # Height-based estimation if available
         if height_cm and height_cm > 0:
-            # Rough estimation: weight = height^2 * breed_factor  # noqa: E114
-            # Breed factor varies by build type  # noqa: E114
+            # Rough estimation: weight = height^2 * breed_factor
+            # Breed factor varies by build type
             if height_cm < 25:  # Small dogs
                 min_weight = (height_cm**1.8) * 0.002
                 max_weight = (height_cm**1.8) * 0.003
@@ -992,6 +1009,7 @@ class HealthCalculator:
             report["health_score"] -= 20
         elif bcs == BodyConditionScore.IDEAL:
             report["positive_indicators"].append("ideal_body_condition")
+
     @staticmethod
     def _assess_health_conditions(
         health_metrics: HealthMetrics,
@@ -1041,6 +1059,7 @@ class HealthCalculator:
             )
         elif health_metrics.activity_level == ActivityLevel.VERY_HIGH:
             report["positive_indicators"].append("excellent_activity_level")
+
     @staticmethod
     def _finalize_status(report: HealthReport) -> None:
         score = report["health_score"]
@@ -1052,6 +1071,7 @@ class HealthCalculator:
             report["overall_status"] = "needs_attention"
         else:
             report["overall_status"] = "concerning"
+
     @staticmethod
     def _assess_weather_impact(
         health_metrics: HealthMetrics,
@@ -1119,21 +1139,21 @@ class HealthCalculator:
         # Temperature-specific assessments for health conditions
         if weather_conditions.temperature_c is not None:
             temp = weather_conditions.temperature_c
-            # Heat concerns for specific health conditions  # noqa: E114
+            # Heat concerns for specific health conditions
             if temp > 25 and "heart_disease" in health_metrics.health_conditions:
                 report["recommendations"].append(
                     "Heart condition + hot weather: Avoid strenuous activity",
                 )
                 report["health_score"] -= 10
 
-            # Cold concerns for arthritis  # noqa: E114
+            # Cold concerns for arthritis
             if temp < 10 and "arthritis" in health_metrics.health_conditions:
                 report["recommendations"].append(
                     "Arthritis + cold weather: Ensure warm environment",
                 )
                 report["health_score"] -= 5
 
-            # Respiratory concerns with humidity  # noqa: E114
+            # Respiratory concerns with humidity
             if (
                 weather_conditions.humidity_percent
                 and weather_conditions.humidity_percent > 80
@@ -1164,7 +1184,7 @@ class HealthCalculator:
 
         Returns:
             Weather-adjusted activity level
-        """
+        """  # noqa: E501
         if not weather_conditions or not weather_conditions.is_valid:
             return base_activity_level
         # Start with base level
@@ -1173,7 +1193,7 @@ class HealthCalculator:
         # Temperature-based adjustments
         if weather_conditions.temperature_c is not None:
             temp = weather_conditions.temperature_c
-            # Hot weather reductions  # noqa: E114
+            # Hot weather reductions
             if temp > 35:  # Extreme heat
                 if adjusted_level == ActivityLevel.VERY_HIGH:
                     adjusted_level = ActivityLevel.LOW
@@ -1187,19 +1207,17 @@ class HealthCalculator:
                     adjusted_level = ActivityLevel.MODERATE
                 elif adjusted_level == ActivityLevel.HIGH:
                     adjusted_level = ActivityLevel.LOW
-            # Cold weather considerations  # noqa: E114
+            # Cold weather considerations
             elif temp < -10:  # Extreme cold
                 if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
                     adjusted_level = ActivityLevel.MODERATE
-            elif (
-                temp < 0 and adjusted_level == ActivityLevel.VERY_HIGH
-            ):  # High cold
+            elif temp < 0 and adjusted_level == ActivityLevel.VERY_HIGH:  # High cold
                 adjusted_level = ActivityLevel.HIGH
 
         # Breed-specific weather adjustments
         if dog_breed:
             breed_lower = dog_breed.lower()
-            # Brachycephalic breeds more sensitive to heat/humidity  # noqa: E114
+            # Brachycephalic breeds more sensitive to heat/humidity
             if any(
                 breed in breed_lower for breed in ["bulldog", "pug", "boxer", "boston"]
             ) and (
@@ -1219,7 +1237,7 @@ class HealthCalculator:
                     adjusted_level = ActivityLevel.MODERATE
                 elif adjusted_level == ActivityLevel.MODERATE:
                     adjusted_level = ActivityLevel.LOW
-            # Cold-sensitive breeds  # noqa: E114
+            # Cold-sensitive breeds
             if (
                 any(
                     breed in breed_lower
@@ -1286,13 +1304,13 @@ class HealthCalculator:
         # Temperature-based adjustments
         if weather_conditions.temperature_c is not None:
             temp = weather_conditions.temperature_c
-            # Hot weather - dogs may eat less  # noqa: E114
+            # Hot weather - dogs may eat less
             if temp > 30:
                 adjustment_factor *= 0.9  # 10% reduction in hot weather
             elif temp > 35:
                 adjustment_factor *= 0.85  # 15% reduction in extreme heat
 
-            # Cold weather - dogs may need more calories  # noqa: E114
+            # Cold weather - dogs may need more calories
             elif temp < 5:
                 adjustment_factor *= 1.05  # 5% increase in cold weather
             elif temp < -5:
@@ -1307,10 +1325,8 @@ class HealthCalculator:
                 or weather_conditions.temperature_c < 0
             )
         ):
-            # If activity is reduced due to weather, slightly reduce portions  # noqa: E114
-            adjustment_factor *= (
-                0.95  # 5% reduction for weather-limited activity
-            )
+            # If activity is reduced due to weather, slightly reduce portions  # noqa: E501
+            adjustment_factor *= 0.95  # 5% reduction for weather-limited activity
 
         return round(base_portion * adjustment_factor, 1)
 

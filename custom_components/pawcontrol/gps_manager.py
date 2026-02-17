@@ -67,18 +67,25 @@ _TASK_CANCEL_TIMEOUT = 5.0
 
 class GeofenceEventType(Enum):
     """Types of geofence events."""
+
     ENTERED = "entered"
     EXITED = "exited"
     BREACH = "breach"  # Outside safe zone for too long
     RETURN = "return"  # Back within safe zone
+
+
 class GPSAccuracy(Enum):
     """GPS accuracy levels."""
+
     EXCELLENT = "excellent"  # <5m
     GOOD = "good"  # 5-15m
     FAIR = "fair"  # 15-50m
     POOR = "poor"  # >50m
+
+
 class LocationSource(Enum):
     """Source of location data."""
+
     DEVICE_TRACKER = "device_tracker"
     MANUAL_INPUT = "manual_input"
     COMPANION_APP = "companion_app"
@@ -86,9 +93,12 @@ class LocationSource(Enum):
     WEBHOOK = "webhook"
     MQTT = "mqtt"
     ENTITY = "entity"
+
+
 @dataclass
 class GPSPoint:
     """Single GPS coordinate point with metadata."""
+
     latitude: float
     longitude: float
     timestamp: datetime = field(default_factory=dt_util.utcnow)
@@ -98,6 +108,7 @@ class GPSPoint:
     heading: float | None = None
     source: LocationSource = LocationSource.DEVICE_TRACKER
     battery_level: int | None = None
+
     @property
     def accuracy_level(self) -> GPSAccuracy:
         """Get accuracy level based on accuracy value."""
@@ -124,6 +135,7 @@ class GPSPoint:
 @dataclass
 class GeofenceZone:
     """Geofence zone definition with safety parameters."""
+
     name: str
     center_lat: float
     center_lon: float
@@ -131,10 +143,9 @@ class GeofenceZone:
     zone_type: str = "safe_zone"  # safe_zone, danger_zone, activity_zone
     enabled: bool = True
     notifications_enabled: bool = True
-    breach_timeout_minutes: int = (
-        15  # Time outside zone before breach alert
-    )
+    breach_timeout_minutes: int = 15  # Time outside zone before breach alert
     created_at: datetime = field(default_factory=dt_util.utcnow)
+
     def contains_point(self, lat: float, lon: float) -> bool:
         """Check if a point is within this geofence zone."""
         distance = calculate_distance(
@@ -153,6 +164,7 @@ class GeofenceZone:
 @dataclass
 class GeofenceEvent:
     """Geofence event with context information."""
+
     dog_id: str
     zone: GeofenceZone
     event_type: GeofenceEventType
@@ -161,6 +173,7 @@ class GeofenceEvent:
     timestamp: datetime = field(default_factory=dt_util.utcnow)
     previous_status: bool | None = None  # Was inside zone before event
     duration_outside: timedelta | None = None  # For breach events
+
     @property
     def severity(self) -> str:
         """Get event severity level."""
@@ -181,12 +194,14 @@ class GeofenceEvent:
 @dataclass
 class RouteSegment:
     """Segment of a route with GPS points and statistics."""
+
     start_point: GPSPoint
     end_point: GPSPoint
     distance_meters: float
     duration_seconds: float
     avg_speed_mps: float | None = None
     elevation_gain: float | None = None
+
     @property
     def duration_minutes(self) -> float:
         """Get duration in minutes."""
@@ -201,6 +216,7 @@ class RouteSegment:
 @dataclass
 class WalkRoute:
     """Complete walk route with GPS tracking data."""
+
     dog_id: str
     start_time: datetime
     end_time: datetime | None = None
@@ -212,6 +228,7 @@ class WalkRoute:
     max_speed_mps: float | None = None
     geofence_events: list[GeofenceEvent] = field(default_factory=list)
     route_quality: GPSAccuracy = GPSAccuracy.FAIR
+
     @property
     def is_active(self) -> bool:
         """Check if route is currently being tracked."""
@@ -237,6 +254,7 @@ class WalkRoute:
 
 class GPSTrackingConfig(NamedTuple):
     """GPS tracking configuration for a dog."""
+
     enabled: bool = True
     auto_start_walk: bool = True
     track_route: bool = True
@@ -247,9 +265,13 @@ class GPSTrackingConfig(NamedTuple):
     update_interval: int = 60  # seconds
     min_distance_for_point: float = 10.0  # meters
     route_smoothing: bool = True
+
+
 def _coerce_tracking_bool(value: object | None, default: bool) -> bool:
     """Return a boolean configuration flag, falling back to ``default``."""
     return value if isinstance(value, bool) else default
+
+
 def _coerce_tracking_float(value: object | None, default: float) -> float:
     """Return a floating-point configuration value with defensive conversion."""
     if isinstance(value, bool):
@@ -257,6 +279,8 @@ def _coerce_tracking_float(value: object | None, default: float) -> float:
     if isinstance(value, int | float):
         return float(value)
     return default
+
+
 def _coerce_tracking_int(value: object | None, default: int) -> int:
     """Return an integer configuration value while filtering bools."""
     if isinstance(value, bool):
@@ -266,6 +290,8 @@ def _coerce_tracking_int(value: object | None, default: int) -> int:
     if isinstance(value, float):
         return int(value)
     return default
+
+
 def _build_tracking_config(config: GPSTrackingConfigInput) -> GPSTrackingConfig:
     """Normalise external GPS tracking inputs into the runtime configuration."""
     return GPSTrackingConfig(
@@ -315,14 +341,14 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     Returns:
         Distance in meters
     """
-    # Earth's radius in meters  # noqa: E114
+    # Earth's radius in meters
     earth_radius_m = 6_371_000
-    # Convert to radians  # noqa: E114
+    # Convert to radians
     lat1_rad = math.radians(lat1)
     lon1_rad = math.radians(lon1)
     lat2_rad = math.radians(lat2)
     lon2_rad = math.radians(lon2)
-    # Haversine formula  # noqa: E114
+    # Haversine formula
     dlat = lat2_rad - lat1_rad
     dlon = lon2_rad - lon1_rad
     a = (
@@ -332,6 +358,8 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return earth_radius_m * c
+
+
 def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate bearing between two GPS points.
 
@@ -355,8 +383,11 @@ def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> flo
     bearing = math.atan2(y, x)
     bearing_degrees = math.degrees(bearing)
     return (bearing_degrees + 360) % 360
+
+
 class GPSGeofenceManager:
     """Manages GPS tracking and geofencing for PawControl dogs."""
+
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize GPS and geofencing manager.
 
@@ -416,11 +447,11 @@ class GPSGeofenceManager:
         try:
             gps_config = _build_tracking_config(config)
             self._dog_configs[dog_id] = gps_config
-            # Initialize zone status tracking  # noqa: E114
+            # Initialize zone status tracking
             if dog_id not in self._zone_status:
                 self._zone_status[dog_id] = {}
 
-            # Initialize route history  # noqa: E114
+            # Initialize route history
             if dog_id not in self._route_history:
                 self._route_history[dog_id] = []
 
@@ -435,6 +466,7 @@ class GPSGeofenceManager:
         except Exception as err:
             _LOGGER.error("Failed to configure GPS for %s: %s", dog_id, err)
             raise
+
     async def async_setup_geofence_zone(
         self,
         dog_id: str,
@@ -485,17 +517,17 @@ class GPSGeofenceManager:
             if dog_id not in self._geofence_zones:
                 self._geofence_zones[dog_id] = []
 
-            # Remove existing zone with same name  # noqa: E114
+            # Remove existing zone with same name
             self._geofence_zones[dog_id] = [
                 z for z in self._geofence_zones[dog_id] if z.name != zone_name
             ]
 
-            # Add new zone  # noqa: E114
+            # Add new zone
             self._geofence_zones[dog_id].append(zone)
-            # Initialize zone status  # noqa: E114
+            # Initialize zone status
             if dog_id not in self._zone_status:
                 self._zone_status[dog_id] = {}
-            # Assume inside initially  # noqa: E114
+            # Assume inside initially
             self._zone_status[dog_id][zone_name] = True
             _LOGGER.info(
                 "Setup geofence zone for %s: %s at %.6f,%.6f radius=%dm",
@@ -513,6 +545,7 @@ class GPSGeofenceManager:
                 err,
             )
             raise
+
     async def async_setup_safe_zone(
         self,
         dog_id: str,
@@ -560,18 +593,18 @@ class GPSGeofenceManager:
             Route/session ID for the tracking session
         """
         try:
-            # End any existing active route  # noqa: E114
+            # End any existing active route
             if dog_id in self._active_routes:
                 await self.async_end_gps_tracking(dog_id, save_route=True)
 
-            # Create new route  # noqa: E114
+            # Create new route
             route = WalkRoute(
                 dog_id=dog_id,
                 start_time=dt_util.utcnow(),
             )
 
             self._active_routes[dog_id] = route
-            # Start tracking task if configured  # noqa: E114
+            # Start tracking task if configured
             config = self._dog_configs.get(dog_id)
             if config and config.enabled and track_route:
                 await self._start_tracking_task(dog_id)
@@ -593,6 +626,7 @@ class GPSGeofenceManager:
                 err,
             )
             raise
+
     async def async_end_gps_tracking(
         self,
         dog_id: str,
@@ -615,9 +649,9 @@ class GPSGeofenceManager:
                 _LOGGER.warning("No active GPS tracking found for %s", dog_id)
                 return None
 
-            # Stop tracking task  # noqa: E114
+            # Stop tracking task
             await self._stop_tracking_task(dog_id)
-            # Finalize route  # noqa: E114
+            # Finalize route
             route.end_time = dt_util.utcnow()
             if route.gps_points:
                 # Calculate final statistics
@@ -628,14 +662,14 @@ class GPSGeofenceManager:
                     if dog_id not in self._route_history:
                         self._route_history[dog_id] = []
                     self._route_history[dog_id].append(route)
-                    # Limit history size (keep last 100 routes)  # noqa: E114
+                    # Limit history size (keep last 100 routes)
                     self._enforce_route_history_limit(dog_id)
-            # Ensure history never grows beyond the configured limit even when a  # noqa: E114
-            # route is discarded (for example, when no GPS points were recorded).  # noqa: E114, E501
+            # Ensure history never grows beyond the configured limit even when a  # noqa: E501
+            # route is discarded (for example, when no GPS points were recorded).  # noqa: E501
             self._enforce_route_history_limit(dog_id)
-            # Remove from active routes  # noqa: E114
+            # Remove from active routes
             del self._active_routes[dog_id]
-            # Update stats  # noqa: E114
+            # Update stats
             self._stats["routes_completed"] += 1
             self._stats["last_update"] = dt_util.utcnow()
             _LOGGER.info(
@@ -650,6 +684,7 @@ class GPSGeofenceManager:
         except Exception as err:
             _LOGGER.error("Failed to end GPS tracking for %s: %s", dog_id, err)
             raise
+
     async def async_add_gps_point(
         self,
         dog_id: str,
@@ -682,7 +717,7 @@ class GPSGeofenceManager:
             if timestamp is None:
                 timestamp = dt_util.utcnow()
 
-            # Create GPS point  # noqa: E114
+            # Create GPS point
             gps_point = GPSPoint(
                 latitude=latitude,
                 longitude=longitude,
@@ -692,7 +727,7 @@ class GPSGeofenceManager:
                 source=source,
             )
 
-            # Check accuracy threshold  # noqa: E114
+            # Check accuracy threshold
             config = self._dog_configs.get(dog_id)
             if config and accuracy and accuracy > config.accuracy_threshold:
                 _LOGGER.debug(
@@ -703,9 +738,9 @@ class GPSGeofenceManager:
                 )
                 return False
 
-            # Update last known location  # noqa: E114
+            # Update last known location
             self._last_locations[dog_id] = gps_point
-            # Add to active route if tracking  # noqa: E114
+            # Add to active route if tracking
             route = self._active_routes.get(dog_id)
             if route:
                 # Check minimum distance filter
@@ -731,9 +766,9 @@ class GPSGeofenceManager:
                 # Update route statistics
                 if len(route.gps_points) > 1:
                     await self._update_route_with_new_point(route, gps_point)
-            # Check geofence zones  # noqa: E114
+            # Check geofence zones
             await self._check_geofence_zones(dog_id, gps_point)
-            # Update stats  # noqa: E114
+            # Update stats
             self._stats["gps_points_processed"] += 1
             self._stats["last_update"] = dt_util.utcnow()
             _LOGGER.debug(
@@ -748,6 +783,7 @@ class GPSGeofenceManager:
         except Exception as err:
             _LOGGER.error("Failed to add GPS point for %s: %s", dog_id, err)
             return False
+
     async def async_export_routes(
         self,
         dog_id: str,
@@ -774,7 +810,7 @@ class GPSGeofenceManager:
                 _LOGGER.warning("No route history found for %s", dog_id)
                 return None
 
-            # Filter routes by date if specified  # noqa: E114
+            # Filter routes by date if specified
             if date_from or date_to:
                 filtered_routes = []
                 for route in routes:
@@ -785,7 +821,7 @@ class GPSGeofenceManager:
                     filtered_routes.append(route)
                 routes = filtered_routes
 
-            # Limit to last N routes  # noqa: E114
+            # Limit to last N routes
             if last_n_routes > 0:
                 routes = routes[-last_n_routes:]
 
@@ -796,7 +832,7 @@ class GPSGeofenceManager:
                 )
                 return None
 
-            # Export based on format  # noqa: E114
+            # Export based on format
             if export_format.lower() == "gpx":
                 return await self._export_routes_gpx(dog_id, routes)
             if export_format.lower() == "json":
@@ -807,6 +843,7 @@ class GPSGeofenceManager:
         except Exception as err:
             _LOGGER.error("Failed to export routes for %s: %s", dog_id, err)
             raise
+
     async def async_get_current_location(self, dog_id: str) -> GPSPoint | None:
         """Get the current/last known location for a dog.
 
@@ -914,6 +951,7 @@ class GPSGeofenceManager:
             return
         if len(history) > 100:
             self._route_history[dog_id] = history[-100:]
+
     async def _start_tracking_task(self, dog_id: str) -> None:
         """Start background tracking task for a dog."""
         await self._stop_tracking_task(dog_id)  # Stop any existing task
@@ -921,11 +959,12 @@ class GPSGeofenceManager:
         config = self._dog_configs.get(dog_id)
         if not config or not config.enabled:
             return
+
         async def _tracking_loop() -> None:
             """Background task for GPS tracking."""
             try:
                 while dog_id in self._active_routes:
-                    # Try to get location from device tracker  # noqa: E114
+                    # Try to get location from device tracker
                     try:
                         await asyncio.wait_for(
                             self._update_location_from_device_tracker(dog_id),
@@ -940,7 +979,7 @@ class GPSGeofenceManager:
                             dog_id,
                         )
 
-                    # Wait for next update  # noqa: E114
+                    # Wait for next update
                     await asyncio.sleep(config.update_interval)
             except asyncio.CancelledError:
                 _LOGGER.debug("GPS tracking task cancelled for %s", dog_id)
@@ -962,9 +1001,7 @@ class GPSGeofenceManager:
                 if inspect.isawaitable(current):
                     try:
                         current = await current
-                    except (
-                        Exception
-                    ) as err:  # pragma: no cover - defensive guard
+                    except Exception as err:  # pragma: no cover - defensive guard
                         _LOGGER.debug(
                             "Awaiting scheduled task wrapper failed for %s: %s",
                             dog_id,
@@ -976,6 +1013,7 @@ class GPSGeofenceManager:
 
         def _loop_factory() -> Coroutine[Any, Any, None]:
             return _tracking_loop()
+
         task_name = f"pawcontrol_gps_tracking_{dog_id}"
         task_handle: asyncio.Task[Any] | None = None
 
@@ -1052,10 +1090,10 @@ class GPSGeofenceManager:
 
         async def _fetch_device_tracker_location() -> None:
             """Internal function to fetch location - wrapped by retry logic."""
-            # Try to find device tracker entity for this dog  # noqa: E114
+            # Try to find device tracker entity for this dog
             entity_registry = er.async_get(self.hass)
             dr.async_get(self.hass)
-            # Look for device tracker entities that might belong to this dog  # noqa: E114
+            # Look for device tracker entities that might belong to this dog  # noqa: E501
             for entity in entity_registry.entities.values():
                 if (
                     entity.platform == "device_tracker"
@@ -1077,7 +1115,7 @@ class GPSGeofenceManager:
                                 source=LocationSource.DEVICE_TRACKER,
                             )
                             return
-            # Could also check for companion app entities, etc.  # noqa: E114
+            # Could also check for companion app entities, etc.
 
         # RESILIENCE: Wrap in retry logic for transient failures
         try:
@@ -1087,7 +1125,7 @@ class GPSGeofenceManager:
             )
         except Exception as err:
             _LOGGER.debug(
-                "Failed to update location from device tracker for %s after retries: %s",
+                "Failed to update location from device tracker for %s after retries: %s",  # noqa: E501
                 dog_id,
                 err,
             )
@@ -1108,7 +1146,7 @@ class GPSGeofenceManager:
                 gps_point.longitude,
             )
             was_inside = zone_status.get(zone.name, True)
-            # Check for zone transitions  # noqa: E114
+            # Check for zone transitions
             if is_inside != was_inside:
                 event_type = (
                     GeofenceEventType.ENTERED if is_inside else GeofenceEventType.EXITED
@@ -1202,7 +1240,7 @@ class GPSGeofenceManager:
             else:
                 duration = event_payload.get("duration_seconds")
                 minutes = duration / 60 if isinstance(duration, int) else 0.0
-                message = f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"
+                message = f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"  # noqa: E501
                 priority = NotificationPriority.URGENT
 
             coordinates: GeofenceNotificationCoordinates = {
@@ -1237,6 +1275,7 @@ class GPSGeofenceManager:
 
         except Exception as err:
             _LOGGER.error("Failed to send geofence notification: %s", err)
+
     async def _calculate_route_statistics(self, route: WalkRoute) -> None:
         """Calculate comprehensive statistics for a completed route."""
         if not route.gps_points:
@@ -1251,7 +1290,7 @@ class GPSGeofenceManager:
         for i in range(1, len(route.gps_points)):
             prev_point = route.gps_points[i - 1]
             curr_point = route.gps_points[i]
-            # Calculate distance  # noqa: E114
+            # Calculate distance
             distance = calculate_distance(
                 prev_point.latitude,
                 prev_point.longitude,
@@ -1259,17 +1298,15 @@ class GPSGeofenceManager:
                 curr_point.longitude,
             )
 
-            # Calculate time  # noqa: E114
+            # Calculate time
             time_diff = (curr_point.timestamp - prev_point.timestamp).total_seconds()
-            # Skip invalid segments  # noqa: E114
-            if (
-                time_diff <= 0 or distance > 1000
-            ):  # Skip if >1km between points
+            # Skip invalid segments
+            if time_diff <= 0 or distance > 1000:  # Skip if >1km between points
                 continue
 
-            # Calculate speed  # noqa: E114
+            # Calculate speed
             speed_mps = distance / time_diff if time_diff > 0 else 0
-            # Create segment  # noqa: E114
+            # Create segment
             segment = RouteSegment(
                 start_point=prev_point,
                 end_point=curr_point,
@@ -1301,6 +1338,7 @@ class GPSGeofenceManager:
             route.route_quality = GPSAccuracy.FAIR
         else:
             route.route_quality = GPSAccuracy.POOR
+
     async def _update_route_with_new_point(
         self,
         route: WalkRoute,

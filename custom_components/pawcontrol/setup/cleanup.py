@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
     from ..types import PawControlConfigEntry, PawControlRuntimeData
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,15 +31,15 @@ async def async_cleanup_runtime_data(runtime_data: PawControlRuntimeData) -> Non
         # All managers shut down, listeners removed, tasks cancelled
     """
     cleanup_start = time.monotonic()
-    # Cancel background monitoring task  # noqa: E114
+    # Cancel background monitoring task
     await _async_cancel_background_monitor(runtime_data)
-    # Clean up managers  # noqa: E114
+    # Clean up managers
     await _async_cleanup_managers(runtime_data)
-    # Remove listeners  # noqa: E114
+    # Remove listeners
     _remove_listeners(runtime_data)
-    # Shutdown core managers  # noqa: E114
+    # Shutdown core managers
     await _async_shutdown_core_managers(runtime_data)
-    # Clear coordinator references  # noqa: E114
+    # Clear coordinator references
     _clear_coordinator_references(runtime_data)
     cleanup_duration = time.monotonic() - cleanup_start
     _LOGGER.debug(
@@ -59,13 +60,15 @@ async def async_register_cleanup(
         entry: Config entry
         runtime_data: Runtime data
     """
-    # Add reload listener  # noqa: E114
+    # Add reload listener
     reload_unsub = entry.add_update_listener(_async_reload_entry_wrapper(hass))
     if callable(reload_unsub):
         runtime_data.reload_unsub = reload_unsub
         if hasattr(entry, "async_on_unload"):
             entry.async_on_unload(reload_unsub)
     _LOGGER.debug("Registered cleanup handlers for entry %s", entry.entry_id)
+
+
 def _async_reload_entry_wrapper(
     hass: HomeAssistant,
 ) -> Callable[[HomeAssistant, PawControlConfigEntry], Any]:
@@ -77,6 +80,7 @@ def _async_reload_entry_wrapper(
     Returns:
         Async function that reloads the entry
     """
+
     async def _reload(
         hass_inner: HomeAssistant,
         entry: PawControlConfigEntry,
@@ -87,6 +91,8 @@ def _async_reload_entry_wrapper(
         await async_reload_entry(hass_inner, entry)
 
     return _reload
+
+
 async def _async_cancel_background_monitor(runtime_data: PawControlRuntimeData) -> None:
     """Cancel background monitoring task.
 
@@ -107,6 +113,8 @@ async def _async_cancel_background_monitor(runtime_data: PawControlRuntimeData) 
             )
         finally:
             runtime_data.background_monitor_task = None
+
+
 async def _async_cleanup_managers(runtime_data: PawControlRuntimeData) -> None:
     """Clean up optional managers.
 
@@ -137,19 +145,21 @@ def _remove_listeners(runtime_data: PawControlRuntimeData) -> None:
     Args:
         runtime_data: Runtime data
     """
-    # Remove daily reset scheduler  # noqa: E114
+    # Remove daily reset scheduler
     if getattr(runtime_data, "daily_reset_unsub", None):
         try:
             runtime_data.daily_reset_unsub()
         except Exception as err:
             _LOGGER.warning("Error canceling daily reset scheduler: %s", err)
-    # Remove reload listener  # noqa: E114
+    # Remove reload listener
     reload_unsub = getattr(runtime_data, "reload_unsub", None)
     if callable(reload_unsub):
         try:
             reload_unsub()
         except Exception as err:
             _LOGGER.warning("Error removing config entry listener: %s", err)
+
+
 async def _async_shutdown_core_managers(runtime_data: PawControlRuntimeData) -> None:
     """Shut down core managers.
 

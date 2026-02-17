@@ -72,6 +72,8 @@ def _validate_dog_id(
     if existing_ids and dog_id in existing_ids:
         return dog_id, "dog_id_already_exists"
     return dog_id, None
+
+
 def _coerce_int(field: str, value: object) -> int:
     try:
         return coerce_int(field, value)
@@ -192,6 +194,8 @@ def validate_dog_setup_input(
     if dog_breed is not None:
         validated["dog_breed"] = dog_breed
     return validated
+
+
 def is_dog_config_payload_valid(dog: Mapping[str, object]) -> bool:
     """Return whether a dog configuration payload is structurally valid."""
     try:
@@ -203,6 +207,8 @@ def is_dog_config_payload_valid(dog: Mapping[str, object]) -> bool:
     except FlowValidationError:
         return False
     return True
+
+
 def validate_dog_config_payload(
     user_input: FlowInputMapping,
     *,
@@ -277,6 +283,8 @@ def validate_dog_config_payload(
         normalized_payload.pop(DOG_MODULES_FIELD, None)
 
     return cast(DogConfigData, normalized_payload)
+
+
 def validate_dog_update_input(
     current_dog: DogConfigData,
     user_input: FlowInputMapping,
@@ -380,6 +388,8 @@ def validate_dog_update_input(
     if dog_weight is None and DOG_WEIGHT_FIELD in candidate:
         candidate.pop(DOG_WEIGHT_FIELD, None)
     return candidate
+
+
 def validate_dog_import_input(
     user_input: FlowInputMapping,
     *,

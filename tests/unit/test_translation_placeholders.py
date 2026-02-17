@@ -43,61 +43,61 @@ RECONFIGURE_ENTITY_KEYS = {
 
 
 def _load_translation(path: Path) -> dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))  # noqa: E111
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("path", TRANSLATION_FILES, ids=lambda path: path.name)
 def test_reconfigure_warning_placeholders_present(path: Path) -> None:
-    """Ensure reconfigure warning translations keep all format placeholders."""  # noqa: E111
+    """Ensure reconfigure warning translations keep all format placeholders."""
 
-    payload = _load_translation(path)  # noqa: E111
-    issues = payload.get("issues")  # noqa: E111
-    assert isinstance(issues, dict)  # noqa: E111
+    payload = _load_translation(path)
+    issues = payload.get("issues")
+    assert isinstance(issues, dict)
 
-    warning = issues.get("reconfigure_warnings")  # noqa: E111
-    assert isinstance(warning, dict)  # noqa: E111
+    warning = issues.get("reconfigure_warnings")
+    assert isinstance(warning, dict)
 
-    description = warning.get("description")  # noqa: E111
-    assert isinstance(description, str)  # noqa: E111
+    description = warning.get("description")
+    assert isinstance(description, str)
 
-    for key in sorted(RECONFIGURE_WARNING_KEYS):  # noqa: E111
+    for key in sorted(RECONFIGURE_WARNING_KEYS):
         assert f"{{{key}}}" in description, f"missing {{{key}}} in {path}"
 
 
 @pytest.mark.parametrize("path", TRANSLATION_FILES, ids=lambda path: path.name)
 def test_reconfigure_health_placeholders_present(path: Path) -> None:
-    """Ensure reconfigure health translations keep all format placeholders."""  # noqa: E111
+    """Ensure reconfigure health translations keep all format placeholders."""
 
-    payload = _load_translation(path)  # noqa: E111
-    issues = payload.get("issues")  # noqa: E111
-    assert isinstance(issues, dict)  # noqa: E111
+    payload = _load_translation(path)
+    issues = payload.get("issues")
+    assert isinstance(issues, dict)
 
-    health = issues.get("reconfigure_health")  # noqa: E111
-    assert isinstance(health, dict)  # noqa: E111
+    health = issues.get("reconfigure_health")
+    assert isinstance(health, dict)
 
-    description = health.get("description")  # noqa: E111
-    assert isinstance(description, str)  # noqa: E111
+    description = health.get("description")
+    assert isinstance(description, str)
 
-    for key in sorted(RECONFIGURE_HEALTH_KEYS):  # noqa: E111
+    for key in sorted(RECONFIGURE_HEALTH_KEYS):
         assert f"{{{key}}}" in description, f"missing {{{key}}} in {path}"
 
 
 @pytest.mark.parametrize("path", TRANSLATION_FILES, ids=lambda path: path.name)
 def test_reconfigure_entity_placeholders_present(path: Path) -> None:
-    """Ensure reconfigure entity profile translations include all placeholders."""  # noqa: E111
+    """Ensure reconfigure entity profile translations include all placeholders."""
 
-    payload = _load_translation(path)  # noqa: E111
-    config_flow = payload.get("config")  # noqa: E111
-    assert isinstance(config_flow, dict)  # noqa: E111
+    payload = _load_translation(path)
+    config_flow = payload.get("config")
+    assert isinstance(config_flow, dict)
 
-    steps = config_flow.get("step")  # noqa: E111
-    assert isinstance(steps, dict)  # noqa: E111
+    steps = config_flow.get("step")
+    assert isinstance(steps, dict)
 
-    profile = steps.get("entity_profile")  # noqa: E111
-    assert isinstance(profile, dict)  # noqa: E111
+    profile = steps.get("entity_profile")
+    assert isinstance(profile, dict)
 
-    description = profile.get("description")  # noqa: E111
-    assert isinstance(description, str)  # noqa: E111
+    description = profile.get("description")
+    assert isinstance(description, str)
 
-    for key in sorted(RECONFIGURE_ENTITY_KEYS):  # noqa: E111
+    for key in sorted(RECONFIGURE_ENTITY_KEYS):
         assert f"{{{key}}}" in description, f"missing {{{key}}} in {path}"

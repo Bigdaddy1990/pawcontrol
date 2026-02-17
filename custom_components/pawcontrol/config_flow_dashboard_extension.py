@@ -87,6 +87,8 @@ def _build_dashboard_configure_placeholders(
     placeholders["dashboard_info"] = dashboard_info
     placeholders["features"] = features
     return freeze_placeholders(placeholders)
+
+
 def _translated_dashboard_info_line(
     language: str | None,
     key: str,
@@ -108,8 +110,11 @@ def _translated_dashboard_info_line(
         return template.format(count=count)
 
     return template
+
+
 class DashboardFlowMixin:
     """Mixin adding dashboard configuration steps to the config flow."""
+
     if TYPE_CHECKING:
         _dogs: list[DogConfigData]
         _enabled_modules: DogModulesConfig
@@ -121,12 +126,14 @@ class DashboardFlowMixin:
         ) -> ConfigFlowResult:
             """Type-checking stub for the GPS entity configuration step."""
             ...
+
         async def async_step_final_setup(
             self,
             user_input: ConfigFlowUserInput | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the concluding config flow step."""
             ...
+
         def async_show_form(
             self,
             *,
@@ -137,6 +144,7 @@ class DashboardFlowMixin:
         ) -> ConfigFlowResult:
             """Type-checking stub for Home Assistant form rendering."""
             ...
+
     async def async_step_configure_dashboard(
         self,
         user_input: DashboardConfigurationStepInput | None = None,

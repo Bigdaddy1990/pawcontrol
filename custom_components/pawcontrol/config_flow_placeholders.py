@@ -27,6 +27,8 @@ def _build_add_dog_summary_placeholders(
     placeholders["max_dogs"] = str(max_dogs)
     placeholders["discovery_hint"] = discovery_hint
     return freeze_placeholders(placeholders)
+
+
 def _build_dog_modules_form_placeholders(
     *,
     dog_name: str,
@@ -39,6 +41,8 @@ def _build_dog_modules_form_placeholders(
     placeholders["dogs_configured"] = str(dogs_configured)
     placeholders["smart_defaults"] = smart_defaults
     return freeze_placeholders(placeholders)
+
+
 def _build_add_another_placeholders(
     *,
     dogs_configured: int,

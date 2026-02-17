@@ -15,6 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
         @staticmethod
         def utcnow() -> datetime:
             return datetime.now(UTC)
+
     dt_util = _DateTimeModule()
 from .const import (
     CONF_DOG_AGE,
@@ -70,28 +71,41 @@ _LOGGER = logging.getLogger(__name__)
 
 class ModuleAdapterCacheStats(TypedDict):
     """Runtime statistics exposed by module adapter caches."""
+
     entries: int
     hits: int
     misses: int
     hit_rate: float
+
+
 class ModuleAdapterCacheMetadata(TypedDict, total=False):
     """Metadata describing cache behaviour for diagnostics."""
+
     ttl_seconds: float | None
     last_cleanup: datetime | None
     last_expired_count: int
     expired_total: int
+
+
 class ModuleAdapterCacheSnapshot(TypedDict):
     """Snapshot exported by module adapter caches for telemetry."""
+
     stats: ModuleAdapterCacheStats
     metadata: ModuleAdapterCacheMetadata
+
+
 class ModuleAdapterCacheError(TypedDict):
     """Error payload returned when cache telemetry fails."""
+
     error: str
+
+
 PayloadT = TypeVar("PayloadT")
 
 
 class _ExpiringCache[PayloadT]:
     """Cache that evicts entries after a fixed TTL."""
+
     __slots__ = (
         "_data",
         "_evicted_total",
@@ -227,6 +241,8 @@ def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
     if details is not None:
         alert["details"] = details
     return alert
+
+
 def _normalise_health_medication(
     payload: Mapping[str, object],
 ) -> HealthMedicationReminder:
@@ -253,9 +269,13 @@ def _normalise_health_medication(
         entry["with_meals"] = bool(payload.get("with_meals"))
 
     return entry
+
+
 class _BaseModuleAdapter[PayloadT]:
     """Base helper for adapters that maintain a TTL cache."""
+
     __slots__ = ("_cache", "_ttl")
+
     def __init__(self, ttl: timedelta | None) -> None:
         self._ttl = ttl
         self._cache: _ExpiringCache[PayloadT] | None = (
@@ -280,6 +300,7 @@ class _BaseModuleAdapter[PayloadT]:
     def clear(self) -> None:
         if self._cache:
             self._cache.clear()
+
     def cache_metrics(self) -> ModuleCacheMetrics:
         if not self._cache:
             return ModuleCacheMetrics()
@@ -306,6 +327,7 @@ class _BaseModuleAdapter[PayloadT]:
 
 class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
     """Adapter that exposes feeding information through the coordinator."""
+
     def __init__(
         self,
         *,
@@ -337,9 +359,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
         if self._manager is not None:
             try:
                 manager_data = await self._manager.async_get_feeding_data(dog_id)
-            except (
-                Exception
-            ) as err:  # pragma: no cover - defensive logging
+            except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Feeding manager unavailable for %s: %s",
                     dog_id,
@@ -407,6 +427,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
 
 class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
     """Expose detailed walk data using the walk manager."""
+
     def __init__(self, *, ttl: timedelta | None = None) -> None:
         """Initialise the walk adapter with optional caching."""
         super().__init__(ttl)
@@ -465,6 +486,7 @@ class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
 
 class GPSModuleAdapter:
     """Return GPS-centric data leveraging the GPS manager."""
+
     def __init__(self) -> None:
         """Initialise the GPS adapter without caching."""
         self._manager: GPSGeofenceManager | None = None
@@ -512,6 +534,7 @@ class GPSModuleAdapter:
 
 class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
     """Expose geofence metadata from the GPS manager."""
+
     def __init__(self, *, ttl: timedelta) -> None:
         """Initialise the geofencing adapter with a cache TTL."""
         super().__init__(ttl)
@@ -539,9 +562,7 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
         else:
             try:
                 geofence_status = await self._manager.async_get_geofence_status(dog_id)
-            except (
-                Exception
-            ) as err:  # pragma: no cover - defensive logging
+            except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.warning(
                     "Failed to fetch geofence status for %s: %s",
                     dog_id,
@@ -573,6 +594,7 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
 
 class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
     """Combine stored health data with live feeding/walk metrics."""
+
     def __init__(self, *, ttl: timedelta | None = None) -> None:
         """Initialise the health adapter with optional caching."""
         super().__init__(ttl)
@@ -614,9 +636,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     dog_id,
                     limit=1,
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover - defensive logging
+            except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Unable to load stored health entries for %s: %s",
                     dog_id,
@@ -680,9 +700,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 feeding_context = await self._feeding_manager.async_get_feeding_data(
                     dog_id,
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover - defensive logging
+            except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Failed to gather feeding context for %s: %s",
                     dog_id,
@@ -767,9 +785,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
         if self._walk_manager is not None and "activity_level" not in health_data:
             try:
                 walk_overview = await self._walk_manager.async_get_walk_data(dog_id)
-            except (
-                Exception
-            ) as err:  # pragma: no cover - defensive logging
+            except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Walk context unavailable for %s: %s",
                     dog_id,
@@ -787,6 +803,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
 
 class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
     """Adapter for weather-informed health data."""
+
     def __init__(self, *, config_entry: PawControlConfigEntry, ttl: timedelta) -> None:
         """Initialise the weather adapter with config context."""
         super().__init__(ttl)
@@ -829,9 +846,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
         if isinstance(weather_entity, str) and weather_entity:
             try:
                 await self._manager.async_update_weather_data(weather_entity)
-            except (
-                Exception
-            ) as err:  # pragma: no cover - defensive logging
+            except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
                     "Failed to refresh weather data from %s: %s",
                     weather_entity,
@@ -925,6 +940,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
 
 class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
     """Adapter that exposes garden activity data."""
+
     def __init__(self, *, ttl: timedelta | None = None) -> None:
         """Initialise the garden adapter and optional cache."""
         super().__init__(ttl)
@@ -991,6 +1007,7 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
 
 class CoordinatorModuleAdapters:
     """Container that owns all module adapters used by the coordinator."""
+
     def __init__(
         self,
         *,
@@ -1139,6 +1156,7 @@ class CoordinatorModuleAdapters:
             self.garden,
         ):
             adapter.clear()
+
     def cache_metrics(self) -> ModuleCacheMetrics:
         """Aggregate cache metrics from every module adapter."""
         metrics = ModuleCacheMetrics()

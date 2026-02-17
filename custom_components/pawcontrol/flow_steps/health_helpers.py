@@ -37,6 +37,8 @@ def build_dog_health_placeholders(
     placeholders["special_diet_count"] = special_diet_count
     placeholders["health_diet_info"] = health_diet_info
     return freeze_placeholders(placeholders)
+
+
 def normalise_string_sequence(value: Any) -> list[str]:
     """Return a normalised list of strings for sequence-based metadata."""
     if isinstance(value, Sequence) and not isinstance(value, str | bytes):
@@ -52,6 +54,8 @@ def normalise_string_sequence(value: Any) -> list[str]:
             normalised.append(str(item))
         return normalised
     return []
+
+
 def summarise_health_summary(summary: Any) -> str:
     """Convert a health summary mapping into a user-facing string."""
     if not isinstance(summary, Mapping):
@@ -72,6 +76,8 @@ def summarise_health_summary(summary: Any) -> str:
         segments.append(f"Warnings: {', '.join(warnings)}")
 
     return " | ".join(segments)
+
+
 def build_health_settings_payload(
     user_input: OptionsHealthSettingsInput,
     current: HealthOptions,

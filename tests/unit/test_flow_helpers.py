@@ -38,9 +38,9 @@ from custom_components.pawcontrol.flow_helpers import (
 
 
 class TestTypeCoercion:
-    """Test type coercion functions."""  # noqa: E111
+    """Test type coercion functions."""
 
-    def test_coerce_bool_true_values(self) -> None:  # noqa: E111
+    def test_coerce_bool_true_values(self) -> None:
         """Test coerce_bool with true values."""
         assert coerce_bool(True) is True
         assert coerce_bool("true") is True
@@ -51,7 +51,7 @@ class TestTypeCoercion:
         assert coerce_bool("1") is True
         assert coerce_bool(1) is True
 
-    def test_coerce_bool_false_values(self) -> None:  # noqa: E111
+    def test_coerce_bool_false_values(self) -> None:
         """Test coerce_bool with false values."""
         assert coerce_bool(False) is False
         assert coerce_bool("false") is False
@@ -62,7 +62,7 @@ class TestTypeCoercion:
         assert coerce_bool(None) is False
         assert coerce_bool("") is False
 
-    def test_coerce_str(self) -> None:  # noqa: E111
+    def test_coerce_str(self) -> None:
         """Test coerce_str function."""
         assert coerce_str("test") == "test"
         assert coerce_str("  test  ") == "test"
@@ -70,7 +70,7 @@ class TestTypeCoercion:
         assert coerce_str(True) == "True"
         assert coerce_str(None) == ""
 
-    def test_coerce_optional_str(self) -> None:  # noqa: E111
+    def test_coerce_optional_str(self) -> None:
         """Test coerce_optional_str function."""
         assert coerce_optional_str("test") == "test"
         assert coerce_optional_str("  test  ") == "test"
@@ -78,7 +78,7 @@ class TestTypeCoercion:
         assert coerce_optional_str(None) is None
         assert coerce_optional_str("  ") is None
 
-    def test_coerce_optional_float(self) -> None:  # noqa: E111
+    def test_coerce_optional_float(self) -> None:
         """Test coerce_optional_float function."""
         assert coerce_optional_float(1.5) == 1.5
         assert coerce_optional_float("1.5") == 1.5
@@ -88,7 +88,7 @@ class TestTypeCoercion:
         assert coerce_optional_float("") is None
         assert coerce_optional_float("invalid") is None
 
-    def test_coerce_optional_int(self) -> None:  # noqa: E111
+    def test_coerce_optional_int(self) -> None:
         """Test coerce_optional_int function."""
         assert coerce_optional_int(5) == 5
         assert coerce_optional_int("5") == 5
@@ -101,9 +101,9 @@ class TestTypeCoercion:
 
 
 class TestFormRendering:
-    """Test form rendering functions."""  # noqa: E111
+    """Test form rendering functions."""
 
-    def test_create_form_result(self) -> None:  # noqa: E111
+    def test_create_form_result(self) -> None:
         """Test create_form_result function."""
         schema = Schema({CONF_NAME: str})
         result = create_form_result(
@@ -118,7 +118,7 @@ class TestFormRendering:
         assert result["description_placeholders"] == {"test": "value"}
         assert result["errors"] == {}
 
-    def test_create_form_result_with_errors(self) -> None:  # noqa: E111
+    def test_create_form_result_with_errors(self) -> None:
         """Test create_form_result with errors."""
         schema = Schema({CONF_NAME: str})
         errors = {"base": "invalid_input"}
@@ -130,7 +130,7 @@ class TestFormRendering:
 
         assert result["errors"] == errors
 
-    def test_create_menu_result(self) -> None:  # noqa: E111
+    def test_create_menu_result(self) -> None:
         """Test create_menu_result function."""
         menu_options = ["option1", "option2", "option3"]
         result = create_menu_result(menu_options=menu_options)
@@ -139,7 +139,7 @@ class TestFormRendering:
         assert result["step_id"] == "menu"
         assert result["menu_options"] == menu_options
 
-    def test_create_menu_result_with_placeholders(self) -> None:  # noqa: E111
+    def test_create_menu_result_with_placeholders(self) -> None:
         """Test create_menu_result fallback placeholders."""
         result = create_menu_result(
             menu_options=["option1"],
@@ -151,14 +151,14 @@ class TestFormRendering:
         assert result["description_placeholders"] == {"dog_count": "1"}
         assert result["description_placeholders"] == {"dog_count": "1"}
 
-    def test_create_abort_result(self) -> None:  # noqa: E111
+    def test_create_abort_result(self) -> None:
         """Test create_abort_result function."""
         result = create_abort_result(reason="test_reason")
 
         assert result["type"] == data_entry_flow.FlowResultType.ABORT
         assert result["reason"] == "test_reason"
 
-    def test_create_progress_result(self) -> None:  # noqa: E111
+    def test_create_progress_result(self) -> None:
         """Test create_progress_result function."""
         result = create_progress_result(
             step_id="test_step",
@@ -171,9 +171,9 @@ class TestFormRendering:
 
 
 class TestErrorHandling:
-    """Test error handling functions."""  # noqa: E111
+    """Test error handling functions."""
 
-    def test_validate_required_field_valid(self) -> None:  # noqa: E111
+    def test_validate_required_field_valid(self) -> None:
         """Test validate_required_field with valid value."""
         errors = validate_required_field(
             "test_field",
@@ -182,7 +182,7 @@ class TestErrorHandling:
         )
         assert errors == {}
 
-    def test_validate_required_field_empty(self) -> None:  # noqa: E111
+    def test_validate_required_field_empty(self) -> None:
         """Test validate_required_field with empty value."""
         errors = validate_required_field(
             "test_field",
@@ -191,7 +191,7 @@ class TestErrorHandling:
         )
         assert errors == {"test_field": "required"}
 
-    def test_validate_required_field_legacy_api(self) -> None:  # noqa: E111
+    def test_validate_required_field_legacy_api(self) -> None:
         """Test validate_required_field legacy mutation/boolean API."""
         errors: dict[str, str] = {}
 
@@ -200,7 +200,7 @@ class TestErrorHandling:
         assert is_valid is False
         assert errors == {"test_field": "required"}
 
-    def test_validate_required_field_legacy_api_valid(self) -> None:  # noqa: E111
+    def test_validate_required_field_legacy_api_valid(self) -> None:
         """Test validate_required_field legacy API with valid input."""
         errors: dict[str, str] = {}
 
@@ -209,7 +209,7 @@ class TestErrorHandling:
         assert is_valid is True
         assert errors == {}
 
-    def test_validate_required_field_none(self) -> None:  # noqa: E111
+    def test_validate_required_field_none(self) -> None:
         """Test validate_required_field with None value."""
         errors = validate_required_field(
             "test_field",
@@ -218,7 +218,7 @@ class TestErrorHandling:
         )
         assert errors == {"test_field": "required"}
 
-    def test_validate_min_max_valid(self) -> None:  # noqa: E111
+    def test_validate_min_max_valid(self) -> None:
         """Test validate_min_max with valid value."""
         errors = validate_min_max(
             "test_field",
@@ -229,7 +229,7 @@ class TestErrorHandling:
         )
         assert errors == {}
 
-    def test_validate_min_max_too_low(self) -> None:  # noqa: E111
+    def test_validate_min_max_too_low(self) -> None:
         """Test validate_min_max with value too low."""
         errors = validate_min_max(
             "test_field",
@@ -240,7 +240,7 @@ class TestErrorHandling:
         )
         assert errors == {"test_field": "out_of_range"}
 
-    def test_validate_min_max_too_high(self) -> None:  # noqa: E111
+    def test_validate_min_max_too_high(self) -> None:
         """Test validate_min_max with value too high."""
         errors = validate_min_max(
             "test_field",
@@ -251,7 +251,7 @@ class TestErrorHandling:
         )
         assert errors == {"test_field": "out_of_range"}
 
-    def test_validate_entity_exists_valid(self) -> None:  # noqa: E111
+    def test_validate_entity_exists_valid(self) -> None:
         """Test validate_entity_exists with valid entity."""
         mock_hass = MagicMock()
         mock_hass.states.get.return_value = MagicMock()
@@ -264,7 +264,7 @@ class TestErrorHandling:
         )
         assert errors == {}
 
-    def test_validate_entity_exists_invalid(self) -> None:  # noqa: E111
+    def test_validate_entity_exists_invalid(self) -> None:
         """Test validate_entity_exists with invalid entity."""
         mock_hass = MagicMock()
         mock_hass.states.get.return_value = None
@@ -277,7 +277,7 @@ class TestErrorHandling:
         )
         assert errors == {"test_field": "entity_not_found"}
 
-    def test_merge_errors(self) -> None:  # noqa: E111
+    def test_merge_errors(self) -> None:
         """Test merge_errors function."""
         errors1 = {"field1": "error1"}
         errors2 = {"field2": "error2"}
@@ -290,7 +290,7 @@ class TestErrorHandling:
             "field3": "error3",
         }
 
-    def test_merge_errors_overwrite(self) -> None:  # noqa: E111
+    def test_merge_errors_overwrite(self) -> None:
         """Test merge_errors with overlapping keys."""
         errors1 = {"field": "error1"}
         errors2 = {"field": "error2"}
@@ -298,7 +298,7 @@ class TestErrorHandling:
         merged = merge_errors(errors1, errors2)
         assert merged == {"field": "error2"}
 
-    def test_merge_errors_with_legacy_keywords(self) -> None:  # noqa: E111
+    def test_merge_errors_with_legacy_keywords(self) -> None:
         """Test merge_errors supports legacy keyword arguments."""
         merged = merge_errors(
             {"field3": "error3"},
@@ -312,16 +312,16 @@ class TestErrorHandling:
             "field3": "error3",
         }
 
-    def test_has_errors(self) -> None:  # noqa: E111
+    def test_has_errors(self) -> None:
         """Test has_errors function."""
         assert has_errors({}) is False
         assert has_errors({"field": "error"}) is True
 
 
 class TestSchemaBuilding:
-    """Test schema building functions."""  # noqa: E111
+    """Test schema building functions."""
 
-    def test_build_select_schema(self) -> None:  # noqa: E111
+    def test_build_select_schema(self) -> None:
         """Test build_select_schema function."""
         schema = build_select_schema(
             key="test_key",
@@ -332,7 +332,7 @@ class TestSchemaBuilding:
         # Schema should be a vol.Schema
         assert schema is not None
 
-    def test_build_number_schema(self) -> None:  # noqa: E111
+    def test_build_number_schema(self) -> None:
         """Test build_number_schema function."""
         schema = build_number_schema(
             key="test_key",
@@ -343,7 +343,7 @@ class TestSchemaBuilding:
 
         assert schema is not None
 
-    def test_build_text_schema(self) -> None:  # noqa: E111
+    def test_build_text_schema(self) -> None:
         """Test build_text_schema function."""
         schema = build_text_schema(
             key="test_key",
@@ -352,7 +352,7 @@ class TestSchemaBuilding:
 
         assert schema is not None
 
-    def test_build_boolean_schema(self) -> None:  # noqa: E111
+    def test_build_boolean_schema(self) -> None:
         """Test build_boolean_schema function."""
         schema = build_boolean_schema(
             key="test_key",
@@ -363,9 +363,9 @@ class TestSchemaBuilding:
 
 
 class TestFlowStateManagement:
-    """Test flow state management functions."""  # noqa: E111
+    """Test flow state management functions."""
 
-    def test_store_and_get_flow_data(self) -> None:  # noqa: E111
+    def test_store_and_get_flow_data(self) -> None:
         """Test storing and retrieving flow data."""
         mock_flow = MagicMock()
         test_data = {"key": "value", "number": 123}
@@ -375,7 +375,7 @@ class TestFlowStateManagement:
 
         assert retrieved == test_data
 
-    def test_get_flow_data_default(self) -> None:  # noqa: E111
+    def test_get_flow_data_default(self) -> None:
         """Test get_flow_data with default value."""
         mock_flow = MagicMock()
         mock_flow.context = {}
@@ -383,7 +383,7 @@ class TestFlowStateManagement:
         retrieved = get_flow_data(mock_flow, "nonexistent", default="default_value")
         assert retrieved == "default_value"
 
-    def test_clear_flow_data(self) -> None:  # noqa: E111
+    def test_clear_flow_data(self) -> None:
         """Test clearing flow data."""
         mock_flow = MagicMock()
         test_data = {"key": "value"}
@@ -394,7 +394,7 @@ class TestFlowStateManagement:
 
         assert retrieved is None
 
-    def test_flow_data_isolation(self) -> None:  # noqa: E111
+    def test_flow_data_isolation(self) -> None:
         """Test that flow data is isolated by key."""
         mock_flow = MagicMock()
 
@@ -406,16 +406,16 @@ class TestFlowStateManagement:
 
 
 class TestEdgeCases:
-    """Test edge cases and error conditions."""  # noqa: E111
+    """Test edge cases and error conditions."""
 
-    def test_coerce_bool_edge_cases(self) -> None:  # noqa: E111
+    def test_coerce_bool_edge_cases(self) -> None:
         """Test coerce_bool with edge cases."""
         assert coerce_bool([]) is False
         assert coerce_bool({}) is False
         assert coerce_bool([1]) is True
         assert coerce_bool({"key": "value"}) is True
 
-    def test_validate_min_max_none_bounds(self) -> None:  # noqa: E111
+    def test_validate_min_max_none_bounds(self) -> None:
         """Test validate_min_max with None bounds."""
         errors = validate_min_max(
             "test_field",
@@ -426,7 +426,7 @@ class TestEdgeCases:
         )
         assert errors == {}
 
-    def test_validate_entity_exists_empty_entity_id(self) -> None:  # noqa: E111
+    def test_validate_entity_exists_empty_entity_id(self) -> None:
         """Test validate_entity_exists with empty entity_id."""
         mock_hass = MagicMock()
         errors = validate_entity_exists(
@@ -437,7 +437,7 @@ class TestEdgeCases:
         )
         assert errors == {"test_field": "entity_not_found"}
 
-    def test_merge_errors_empty(self) -> None:  # noqa: E111
+    def test_merge_errors_empty(self) -> None:
         """Test merge_errors with no arguments."""
         merged = merge_errors()
         assert merged == {}

@@ -7,9 +7,9 @@ from custom_components.pawcontrol.selector_shim import selector
 
 
 def test_number_selector_config_matches_expected_dict() -> None:
-    """Ensure the fallback config mirrors Home Assistant's typed dict behaviour."""  # noqa: E111
+    """Ensure the fallback config mirrors Home Assistant's typed dict behaviour."""
 
-    config = selector.NumberSelectorConfig(  # noqa: E111
+    config = selector.NumberSelectorConfig(
         min=0.0,
         max=10.0,
         step=1,
@@ -17,75 +17,73 @@ def test_number_selector_config_matches_expected_dict() -> None:
         mode=selector.NumberSelectorMode.BOX,
     )
 
-    assert isinstance(config, dict)  # noqa: E111
-    assert config["min"] == 0.0  # noqa: E111
-    assert config["mode"] is selector.NumberSelectorMode.BOX  # noqa: E111
+    assert isinstance(config, dict)
+    assert config["min"] == 0.0
+    assert config["mode"] is selector.NumberSelectorMode.BOX
 
 
 def test_select_selector_accepts_string_sequence() -> None:
-    """Verify the shim preserves string options when validating values."""  # noqa: E111
+    """Verify the shim preserves string options when validating values."""
 
-    options = ["gps", "manual"]  # noqa: E111
-    config = selector.SelectSelectorConfig(options=options)  # noqa: E111
+    options = ["gps", "manual"]
+    config = selector.SelectSelectorConfig(options=options)
 
-    instance = selector.SelectSelector(config)  # noqa: E111
-    assert instance(config["options"][0]) == "gps"  # noqa: E111
+    instance = selector.SelectSelector(config)
+    assert instance(config["options"][0]) == "gps"
 
 
 def test_select_selector_accepts_typed_dict_sequence() -> None:
-    """Ensure the shim stores typed dict option payloads without mutation."""  # noqa: E111
+    """Ensure the shim stores typed dict option payloads without mutation."""
 
-    options = [  # noqa: E111
+    options = [
         selector.SelectOptionDict(value="gps", label="GPS"),
         selector.SelectOptionDict(value="manual", label="Manual"),
     ]
-    config = selector.SelectSelectorConfig(options=options)  # noqa: E111
+    config = selector.SelectSelectorConfig(options=options)
 
-    instance = selector.SelectSelector(config)  # noqa: E111
-    assert instance(config["options"][1]["value"]) == "manual"  # noqa: E111
+    instance = selector.SelectSelector(config)
+    assert instance(config["options"][1]["value"]) == "manual"
 
 
 def test_fallback_does_not_expose_legacy_select_option() -> None:
-    """Ensure the shim drops the legacy ``SelectOption`` dataclass."""  # noqa: E111
+    """Ensure the shim drops the legacy ``SelectOption`` dataclass."""
 
-    if (  # noqa: E111
-        selector_shim.ha_selector is not None
-    ):  # pragma: no cover - passthrough env
+    if selector_shim.ha_selector is not None:  # pragma: no cover - passthrough env
         pytest.skip("Home Assistant selector module is available")
 
-    assert not hasattr(selector, "SelectOption")  # noqa: E111
-    assert hasattr(selector, "SelectOptionDict")  # noqa: E111
+    assert not hasattr(selector, "SelectOption")
+    assert hasattr(selector, "SelectOptionDict")
 
 
 def test_text_selector_handles_expanded_type_set() -> None:
-    """The shim should expose the same selector types as Home Assistant."""  # noqa: E111
+    """The shim should expose the same selector types as Home Assistant."""
 
-    text_config = selector.TextSelectorConfig(  # noqa: E111
+    text_config = selector.TextSelectorConfig(
         type=selector.TextSelectorType.EMAIL,
         multiline=False,
     )
 
-    text_selector = selector.TextSelector(text_config)  # noqa: E111
-    assert text_selector("user@example.com") == "user@example.com"  # noqa: E111
+    text_selector = selector.TextSelector(text_config)
+    assert text_selector("user@example.com") == "user@example.com"
 
 
 def test_time_selector_passthrough() -> None:
-    """Time selector should return the provided value without mutation."""  # noqa: E111
+    """Time selector should return the provided value without mutation."""
 
-    time_selector = selector.TimeSelector(selector.TimeSelectorConfig())  # noqa: E111
-    assert time_selector("12:00:00") == "12:00:00"  # noqa: E111
+    time_selector = selector.TimeSelector(selector.TimeSelectorConfig())
+    assert time_selector("12:00:00") == "12:00:00"
 
 
 def test_boolean_selector_defaults_to_empty_config() -> None:
-    """Boolean selector fallback should store an empty configuration dict."""  # noqa: E111
+    """Boolean selector fallback should store an empty configuration dict."""
 
-    selector_instance = selector.BooleanSelector()  # noqa: E111
-    assert selector_instance.config == {}  # noqa: E111
-    assert selector_instance(True) is True  # noqa: E111
+    selector_instance = selector.BooleanSelector()
+    assert selector_instance.config == {}
+    assert selector_instance(True) is True
 
 
 def test_selector_namespace_is_callable() -> None:
-    """The selector namespace should also accept schema shorthand calls."""  # noqa: E111
+    """The selector namespace should also accept schema shorthand calls."""
 
-    config = {"boolean": {}}  # noqa: E111
-    assert selector(config) == config  # noqa: E111
+    config = {"boolean": {}}
+    assert selector(config) == config

@@ -92,12 +92,15 @@ DEFAULT_NOTIFICATION_PRIORITY: Final[NotificationPriority] = "normal"
 @dataclass(slots=True)
 class PerformanceCounters:
     """Snapshot of performance counters maintained by the monitor."""
+
     operations: int = 0
     errors: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
     avg_operation_time: float = 0.0
     last_cleanup: datetime | None = None
+
+
 DEFAULT_DATA_KEYS: Final[tuple[StorageNamespaceKey, ...]] = (
     "walks",
     "feedings",
@@ -109,20 +112,27 @@ DEFAULT_DATA_KEYS: Final[tuple[StorageNamespaceKey, ...]] = (
 
 class QueuedEvent(TypedDict):
     """Typed structure representing a queued domain event."""
+
     type: str
     dog_id: str
     data: JSONMutableMapping
     timestamp: str
+
+
 class PerformanceMetrics(TypedDict):
     """Runtime metrics tracked by the performance monitor."""
+
     operations: int
     errors: int
     cache_hits: int
     cache_misses: int
     avg_operation_time: float
     last_cleanup: str | None
+
+
 class OptimizedCacheStats(TypedDict):
     """Primary statistics reported by :class:`OptimizedDataCache`."""
+
     entries: int
     memory_mb: float
     total_accesses: int
@@ -130,20 +140,29 @@ class OptimizedCacheStats(TypedDict):
     hits: int
     misses: int
     hit_rate: float
+
+
 class OptimizedCacheMetrics(OptimizedCacheStats):
     """Extended metrics payload including override bookkeeping."""
+
     default_ttl_seconds: int
     tracked_keys: int
     override_candidates: int
+
+
 class OptimizedCacheSnapshot(TypedDict):
     """Combined snapshot returned to coordinator diagnostics."""
+
     stats: OptimizedCacheMetrics
     diagnostics: CacheDiagnosticsMetadata
+
+
 ValueT = TypeVar("ValueT")
 
 
 class OptimizedDataCache[ValueT]:
     """High-performance in-memory cache with automatic cleanup."""
+
     def __init__(
         self,
         default_ttl_seconds: int = 300,
@@ -185,6 +204,7 @@ class OptimizedDataCache[ValueT]:
 
             self._misses += 1
             return default
+
     async def set(self, key: str, value: ValueT, ttl_seconds: int = 300) -> None:
         """Set cached value with TTL and memory management."""
         async with self._lock:
@@ -193,6 +213,7 @@ class OptimizedDataCache[ValueT]:
             self._timestamps[key] = now
             self._access_count[key] = self._access_count.get(key, 0) + 1
             self._ttls[key] = self._normalize_ttl(ttl_seconds)
+
     async def _evict_lru(self) -> None:
         """Evict least recently used item."""
         if not self._timestamps:
@@ -417,6 +438,7 @@ class OptimizedDataCache[ValueT]:
 
 class PawControlDataStorage:
     """OPTIMIZED: Manages persistent data storage with batching and caching."""
+
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize optimized storage manager."""
         self.hass = hass
@@ -463,13 +485,13 @@ class PawControlDataStorage:
     async def async_load_all_data(self) -> StorageNamespaceState:
         """OPTIMIZED: Load with caching and concurrent operations."""
         try:
-            # Check cache first  # noqa: E114
+            # Check cache first
             cache_key = "all_data"
             cached_data = await self._cache.get(cache_key)
             if isinstance(cached_data, dict):
                 return cast(StorageNamespaceState, cached_data)
 
-            # Load all data stores concurrently  # noqa: E114
+            # Load all data stores concurrently
             load_tasks = [
                 self._load_store_data_cached(store_key) for store_key in self._stores
             ]
@@ -487,7 +509,7 @@ class PawControlDataStorage:
                 else:
                     payload = result if isinstance(result, dict) else {}
                     data[store_key] = payload
-            # Cache the loaded data  # noqa: E114
+            # Cache the loaded data
             await self._cache.set(cache_key, data, ttl_seconds=300)
             _LOGGER.debug("Loaded data for %d stores", len(data))
             return data
@@ -496,6 +518,7 @@ class PawControlDataStorage:
         except Exception as err:
             _LOGGER.error("Failed to load integration data: %s", err)
             raise HomeAssistantError(f"Data loading failed: {err}") from err
+
     async def _load_store_data_cached(
         self,
         store_key: StorageNamespaceKey,
@@ -512,7 +535,7 @@ class PawControlDataStorage:
         try:
             data = await store.async_load()
             result = data or {}
-            # Cache the result  # noqa: E114
+            # Cache the result
             payload = result if isinstance(result, dict) else {}
             await self._cache.set(f"store_{store_key}", payload, ttl_seconds=600)
             return cast(StorageNamespacePayload, payload)
@@ -521,6 +544,7 @@ class PawControlDataStorage:
         except Exception as err:
             _LOGGER.error("Failed to load %s store: %s", store_key, err)
             return cast(StorageNamespacePayload, {})
+
     async def async_save_data(
         self,
         store_key: StorageNamespaceKey,
@@ -554,10 +578,10 @@ class PawControlDataStorage:
             if not self._dirty_stores:
                 return
 
-            # Get current dirty stores  # noqa: E114
+            # Get current dirty stores
             stores_to_save = self._dirty_stores.copy()
             self._dirty_stores.clear()
-            # Save all dirty stores concurrently  # noqa: E114
+            # Save all dirty stores concurrently
             save_tasks: list[Awaitable[None]] = []
             task_store_keys: list[StorageNamespaceKey] = []
             for store_key in stores_to_save:
@@ -634,7 +658,7 @@ class PawControlDataStorage:
         try:
             data = await self._load_store_data_cached(store_key)
             original_size = self._count_entries(data)
-            # Clean old entries AND enforce size limits  # noqa: E114
+            # Clean old entries AND enforce size limits
             cleaned_data = self._cleanup_store_data(data, cutoff_date)
             cleaned_data = self._enforce_size_limits(cleaned_data)
             cleaned_size = self._count_entries(cleaned_data)
@@ -648,6 +672,7 @@ class PawControlDataStorage:
         except Exception as err:
             _LOGGER.error("Failed to cleanup %s data: %s", store_key, err)
             return 0
+
     def _cleanup_store_data(
         self,
         data: StorageNamespacePayload,
@@ -692,7 +717,7 @@ class PawControlDataStorage:
         for key, value in data.items():
             if isinstance(value, list):
                 if len(value) > MAX_HISTORY_ITEMS:
-                    # Sort by timestamp (newest first) and keep most recent  # noqa: E114
+                    # Sort by timestamp (newest first) and keep most recent  # noqa: E501
                     try:
                         sorted_value = sorted(
                             value,
@@ -771,8 +796,11 @@ class PawControlDataStorage:
         # Final batch save
         if self._dirty_stores:
             await self._batch_save(delay=0)
+
+
 class PawControlData:
     """OPTIMIZED: Main data management with performance improvements."""
+
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize optimized data manager."""
         self.hass = hass
@@ -846,18 +874,18 @@ class PawControlData:
                     if scheduled_coro is not event_coro:
                         event_coro.close()
                 elif self._is_task_like(maybe_task):
-                    # Test environments sometimes return task sentinels. Keep  # noqa: E114
-                    # a reference to them so assertions can verify scheduling  # noqa: E114
-                    # behaviour, but close the coroutine to avoid resource  # noqa: E114
-                    # warnings as the sentinel will never execute it.  # noqa: E114
+                    # Test environments sometimes return task sentinels. Keep  # noqa: E501
+                    # a reference to them so assertions can verify scheduling  # noqa: E501
+                    # behaviour, but close the coroutine to avoid resource
+                    # warnings as the sentinel will never execute it.
                     event_coro.close()
                     task = cast(asyncio.Task[Any], maybe_task)
                 else:
-                    # Some test harnesses return sentinel objects instead of  # noqa: E114
-                    # real asyncio tasks. Close the coroutine to avoid a  # noqa: E114
-                    # "coroutine was never awaited" warning and track the  # noqa: E114
-                    # returned handle so callers can assert that scheduling  # noqa: E114
-                    # occurred.  # noqa: E114
+                    # Some test harnesses return sentinel objects instead of  # noqa: E501
+                    # real asyncio tasks. Close the coroutine to avoid a
+                    # "coroutine was never awaited" warning and track the
+                    # returned handle so callers can assert that scheduling  # noqa: E501
+                    # occurred.
                     event_coro.close()
                     task = cast(asyncio.Task[Any], maybe_task)
             if task is None:
@@ -866,6 +894,7 @@ class PawControlData:
                 if not (isinstance(task, asyncio.Task) and type(task) is asyncio.Task):
                     event_coro.close()
             self._event_task = task
+
     @staticmethod
     def _is_task_like(candidate: Any) -> bool:
         """Return True if *candidate* behaves like an asyncio.Task."""
@@ -1014,6 +1043,7 @@ class PawControlData:
                 walk_data.get("active"),
             )
             walk_data["active"] = cast(WalkNamespaceValue, normalized_active)
+
     @staticmethod
     def _serialize_health_namespace(
         namespace: Mapping[str, object],
@@ -1270,7 +1300,7 @@ class PawControlData:
         """Process feeding events in batch."""
         try:
             dog_id = events[0]["dog_id"]
-            # Ensure data structure exists  # noqa: E114
+            # Ensure data structure exists
             feedings_namespace = self._ensure_namespace("feedings")
             existing_history = feedings_namespace.get(dog_id)
             if isinstance(existing_history, list):
@@ -1279,21 +1309,21 @@ class PawControlData:
                 dog_history = []
                 feedings_namespace[dog_id] = cast(JSONValue, dog_history)
 
-            # Add all feeding entries  # noqa: E114
+            # Add all feeding entries
             for event in events:
                 feeding_data = event["data"]
                 if "timestamp" not in feeding_data:
                     feeding_data["timestamp"] = event["timestamp"]
                 dog_history.append(feeding_data)
 
-            # Enforce size limits  # noqa: E114
+            # Enforce size limits
             if len(dog_history) > MAX_HISTORY_ITEMS:
                 # Keep most recent entries
                 dog_history[:] = dog_history[-MAX_HISTORY_ITEMS:]
 
-            # Save to storage (will be batched)  # noqa: E114
+            # Save to storage (will be batched)
             await self.storage.async_save_data("feedings", feedings_namespace)
-            # Fire events for each feeding  # noqa: E114
+            # Fire events for each feeding
             for event in events:
                 await async_fire_event(
                     self.hass,
@@ -1314,7 +1344,8 @@ class PawControlData:
             raise
         except Exception as err:
             _LOGGER.error("Failed to process feeding batch: %s", err)
-    # Similar optimized methods for other event types...  # noqa: E114
+
+    # Similar optimized methods for other event types...
     async def _process_health_batch(self, events: list[QueuedEvent]) -> None:
         """Process health events in batch."""
         if not events:
@@ -1386,6 +1417,7 @@ class PawControlData:
             raise
         except Exception as err:
             _LOGGER.error("Failed to process health event batch: %s", err)
+
     async def _process_walk_batch(self, events: list[QueuedEvent]) -> None:
         """Process walk events in batch."""
         if not events:
@@ -1537,7 +1569,8 @@ class PawControlData:
             raise
         except Exception as err:
             _LOGGER.error("Failed to process walk event batch: %s", err)
-    # Keep existing methods but add async optimizations where needed  # noqa: E114
+
+    # Keep existing methods but add async optimizations where needed
     async def async_start_walk(
         self,
         dog_id: str,
@@ -1547,7 +1580,7 @@ class PawControlData:
         if not self._is_valid_dog_id(dog_id):
             raise HomeAssistantError(f"Invalid dog ID: {dog_id}")
         try:
-            # Ensure walks data structure exists  # noqa: E114
+            # Ensure walks data structure exists
             walk_namespace_payload = self._ensure_namespace("walks")
             walk_namespace = walk_namespace_payload
             walk_entry = walk_namespace.setdefault(
@@ -1564,7 +1597,7 @@ class PawControlData:
             if not isinstance(dog_walks.get("history"), list):
                 dog_walks["history"] = cast(list[WalkHistoryEntry], [])
 
-            # Check if a walk is already active  # noqa: E114
+            # Check if a walk is already active
             active_payload = self._normalize_walk_event_entry(
                 dog_id,
                 dog_walks.get("active"),
@@ -1586,7 +1619,7 @@ class PawControlData:
             else:
                 walk_payload = cast(JSONMutableMapping, dict(walk_data))
 
-            # Set active walk  # noqa: E114
+            # Set active walk
             timestamp_raw = walk_payload.get("timestamp")
             timestamp_override = (
                 timestamp_raw if isinstance(timestamp_raw, str) else None
@@ -1604,13 +1637,13 @@ class PawControlData:
                 ),
             )
 
-            # Save immediately for real-time operations  # noqa: E114
+            # Save immediately for real-time operations
             await self.storage.async_save_data(
                 "walks",
                 self._serialize_walk_namespace(walk_namespace),
             )
 
-            # Fire event  # noqa: E114
+            # Fire event
             await async_fire_event(
                 self.hass,
                 EVENT_WALK_STARTED,
@@ -1623,6 +1656,7 @@ class PawControlData:
         except Exception as err:
             _LOGGER.error("Failed to start walk for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to start walk: {err}") from err
+
     def _is_valid_dog_id(self, dog_id: str) -> bool:
         """Validate dog ID with caching."""
         # Cache valid dog IDs for performance
@@ -1650,6 +1684,7 @@ class PawControlData:
 
 class PawControlNotificationManager:
     """OPTIMIZED: Async notification manager with queue management."""
+
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize optimized notification manager."""
         self.hass = hass
@@ -1687,7 +1722,7 @@ class PawControlNotificationManager:
                     continue
                 # Process normal priority (with rate limiting)
                 if self._notification_queue:
-                    # Rate limit: max 3 notifications per 30 seconds  # noqa: E114
+                    # Rate limit: max 3 notifications per 30 seconds
                     batch_size = min(3, len(self._notification_queue))
                     batch = [
                         self._notification_queue.popleft()
@@ -1695,7 +1730,7 @@ class PawControlNotificationManager:
                         if self._notification_queue
                     ]
 
-                    # Send batch concurrently  # noqa: E114
+                    # Send batch concurrently
                     if batch:
                         await asyncio.gather(
                             *[self._send_notification_now(notif) for notif in batch],
@@ -1757,6 +1792,7 @@ class PawControlNotificationManager:
             self._high_priority_queue.append(notification)
         else:
             self._notification_queue.append(notification)
+
     async def _send_notification_now(
         self,
         notification: QueuedNotificationPayload,
@@ -1854,6 +1890,7 @@ class PawControlNotificationManager:
             return datetime.strptime(time_input, "%H:%M:%S").time()
         except ValueError:
             return None
+
     def _calculate_notification_allowed(
         self,
         dog_id: str,
@@ -1884,7 +1921,7 @@ class PawControlNotificationManager:
             return True
         # Handle quiet hours that span midnight
         if quiet_start_time > quiet_end_time:
-            # Quiet hours span midnight (e.g., 22:00 to 07:00)  # noqa: E114
+            # Quiet hours span midnight (e.g., 22:00 to 07:00)
             return not (now >= quiet_start_time or now <= quiet_end_time)
         # Quiet hours within same day
         return not (quiet_start_time <= now <= quiet_end_time)
@@ -1944,9 +1981,12 @@ def _data_encoder(obj: Any) -> Any:
     if hasattr(obj, "isoformat"):  # Handle date objects
         return obj.isoformat()
     return str(obj)
+
+
 # OPTIMIZATION: Add performance monitoring utilities
 class PerformanceMonitor:
     """Monitor performance metrics for the integration."""
+
     def __init__(self) -> None:
         """Initialize performance monitor."""
         self._metrics: PerformanceCounters = PerformanceCounters()
@@ -1996,6 +2036,7 @@ class PerformanceMonitor:
         ) -> Callable[P, Awaitable[R] | R]:
             func_label = label or getattr(func, "__qualname__", func.__name__)
             if inspect.iscoroutinefunction(func):
+
                 @wraps(func)
                 async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
                     loop = asyncio.get_running_loop()
@@ -2059,7 +2100,9 @@ class PerformanceMonitor:
                             func_label,
                         )
                     return result
+
             return sync_wrapper
+
         return decorator
 
     def get_metrics(self) -> PerformanceMonitorSnapshot:

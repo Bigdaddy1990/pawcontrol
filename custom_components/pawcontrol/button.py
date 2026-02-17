@@ -106,9 +106,12 @@ def _normalise_attributes(
 ) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for button entities."""
     return normalise_entity_attributes(attrs)
+
+
 @runtime_checkable
 class ServiceRegistryLike(Protocol):
     """Protocol describing the Home Assistant service registry surface."""
+
     async def async_call(
         self,
         domain: str,
@@ -125,18 +128,25 @@ type ServiceRegistryType = ServiceRegistry | ServiceRegistryLike
 
 class ButtonRule(TypedDict, total=False):
     """Typed metadata describing how to build a button for a module."""
+
     factory: type[PawControlButtonBase]
     type: str
     priority: int
     profiles: Sequence[str]
     args: Sequence[str]
+
+
 class ButtonCandidate(TypedDict):
     """Candidate button produced by a rule before profile filtering."""
+
     button: PawControlButtonBase
     type: str
     priority: int
+
+
 class _ServiceRegistryProxy(ServiceRegistryLike):
     """Proxy around Home Assistant's service registry to allow patching."""
+
     def __init__(self, registry: ServiceRegistryType) -> None:
         self._registry = registry
 
@@ -186,6 +196,8 @@ def _prepare_service_proxy(
         return services
 
     return None
+
+
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
 
@@ -231,6 +243,8 @@ def _resolve_profile_button_limit(profile: str) -> int:
     if profile in PROFILE_BUTTON_LIMITS:
         return PROFILE_BUTTON_LIMITS[cast(ProfileButtonKey, profile)]
     return 6
+
+
 # Button priorities (1=highest, 4=lowest) for profile-based selection
 BUTTON_PRIORITIES = {
     # Core buttons (always included)
@@ -274,6 +288,7 @@ class ProfileAwareButtonFactory:
 
     OPTIMIZED: Reduced redundant calls, improved caching, thread-safe operations.
     """
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -300,7 +315,7 @@ class ProfileAwareButtonFactory:
         )
 
     def _initialize_button_rules(self) -> None:
-        """Pre-calculate button creation rules for each module to improve performance."""
+        """Pre-calculate button creation rules for each module to improve performance."""  # noqa: E501
         self._button_rules_cache = {
             MODULE_FEEDING: self._get_feeding_button_rules(),
             MODULE_WALK: self._get_walk_button_rules(),
@@ -676,7 +691,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up PawControl button platform with profile-based optimization."""
-    # OPTIMIZED: Consistent runtime_data usage for Platinum readiness  # noqa: E114
+    # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
@@ -698,7 +713,7 @@ async def async_setup_entry(
         _LOGGER.warning("No dogs configured for button platform")
         return
 
-    # Get profile from runtime data (consistent with other platforms)  # noqa: E114
+    # Get profile from runtime data (consistent with other platforms)
     profile = runtime_data.entity_profile
     _LOGGER.info(
         "Setting up buttons with profile '%s' for %d dogs",
@@ -708,9 +723,9 @@ async def async_setup_entry(
         ),
     )
 
-    # Initialize profile-aware factory  # noqa: E114
+    # Initialize profile-aware factory
     button_factory = ProfileAwareButtonFactory(coordinator, profile)
-    # Create profile-optimized entities  # noqa: E114
+    # Create profile-optimized entities
     all_entities: list[PawControlButtonBase] = []
     total_buttons_created = 0
     for dog in dog_configs:
@@ -729,7 +744,7 @@ async def async_setup_entry(
             profile,
         )
 
-    # OPTIMIZATION: Smart batching based on reduced button count  # noqa: E114
+    # OPTIMIZATION: Smart batching based on reduced button count
     batch_size = 15  # Increased batch size for fewer entities
     if total_buttons_created <= batch_size:
         # Small setup: Add all at once
@@ -767,7 +782,7 @@ async def async_setup_entry(
             len(dog_configs),
         )
 
-    # Log profile statistics  # noqa: E114
+    # Log profile statistics
     max_possible = _resolve_profile_button_limit(profile)
     efficiency = (
         (max_possible * len(dog_configs) - total_buttons_created)
@@ -778,7 +793,7 @@ async def async_setup_entry(
     )
 
     _LOGGER.info(
-        "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",
+        "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",  # noqa: E501
         profile,
         total_buttons_created / len(dog_configs),
         max_possible,
@@ -788,6 +803,7 @@ async def async_setup_entry(
 
 class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     """Optimized base button class with thread-safe caching and improved performance."""
+
     _attr_should_poll = False
     _attr_has_entity_name = True
     _attr_device_class: ButtonDeviceClass | None
@@ -799,6 +815,7 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     _action_description: str | None
     _button_type: str
     _last_pressed: str | None
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1008,6 +1025,7 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
         except Exception as err:
             _LOGGER.error("%s: %s", error_message, err)
             raise HomeAssistantError(f"{error_message}: {err}") from err
+
     async def async_press(self) -> None:
         """Handle button press with timestamp tracking."""
         self._last_pressed = dt_util.utcnow().isoformat()
@@ -1023,6 +1041,7 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
 
 class PawControlTestNotificationButton(PawControlButtonBase):
     """Button to send test notification."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1056,6 +1075,7 @@ class PawControlTestNotificationButton(PawControlButtonBase):
 
 class PawControlResetDailyStatsButton(PawControlButtonBase):
     """Button to reset daily statistics."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1109,6 +1129,7 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
 
 class PawControlRefreshDataButton(PawControlButtonBase):
     """Button to trigger a coordinator refresh."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1135,8 +1156,11 @@ class PawControlRefreshDataButton(PawControlButtonBase):
         except Exception as err:
             _LOGGER.error("Failed to refresh coordinator data: %s", err)
             raise HomeAssistantError(f"Failed to refresh data: {err}") from err
+
+
 class PawControlSyncDataButton(PawControlButtonBase):
     """Button to request a high-priority selective refresh."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1166,8 +1190,11 @@ class PawControlSyncDataButton(PawControlButtonBase):
         except Exception as err:
             _LOGGER.error("Failed to sync data: %s", err)
             raise HomeAssistantError(f"Failed to sync data: {err}") from err
+
+
 class PawControlToggleVisitorModeButton(PawControlButtonBase):
     """Button to toggle visitor mode."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1219,7 +1246,8 @@ class PawControlToggleVisitorModeButton(PawControlButtonBase):
 
 class PawControlMarkFedButton(PawControlButtonBase):
     """Button to mark dog as fed with optimized meal type detection."""
-    # OPTIMIZATION: Pre-calculated meal schedule lookup table  # noqa: E114
+
+    # OPTIMIZATION: Pre-calculated meal schedule lookup table
     _meal_schedule: ClassVar[dict[range, str]] = {
         range(5, 11): "breakfast",
         range(11, 16): "lunch",
@@ -1274,6 +1302,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
 
 class PawControlFeedNowButton(PawControlButtonBase):
     """Immediate feeding button for quick manual feedings."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1316,7 +1345,9 @@ class PawControlFeedNowButton(PawControlButtonBase):
 
 class PawControlFeedMealButton(PawControlButtonBase):
     """Button for specific meal type."""
+
     _meal_type: str
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1359,6 +1390,7 @@ class PawControlFeedMealButton(PawControlButtonBase):
 
 class PawControlLogCustomFeedingButton(PawControlButtonBase):
     """Button for custom feeding."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1394,6 +1426,7 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
 
 class PawControlStartWalkButton(PawControlButtonBase):
     """Button to start walk with enhanced error handling."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1449,6 +1482,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
         except Exception as err:
             _LOGGER.error("Failed to start walk: %s", err)
             raise HomeAssistantError(f"Failed to start walk: {err}") from err
+
     @property
     def available(self) -> bool:
         """Available if no walk in progress."""
@@ -1465,6 +1499,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
 
 class PawControlEndWalkButton(PawControlButtonBase):
     """Button to end walk with enhanced validation."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1514,6 +1549,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
         except Exception as err:
             _LOGGER.error("Failed to end walk: %s", err)
             raise HomeAssistantError(f"Failed to end walk: {err}") from err
+
     @property
     def available(self) -> bool:
         """Available if walk in progress."""
@@ -1530,6 +1566,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
 
 class PawControlQuickWalkButton(PawControlButtonBase):
     """Button for quick walk with atomic operation."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1577,6 +1614,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
 
 class PawControlLogWalkManuallyButton(PawControlButtonBase):
     """Button for manual walk logging."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1623,6 +1661,7 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
 
 class PawControlRefreshLocationButton(PawControlButtonBase):
     """Button to refresh GPS location."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1658,6 +1697,7 @@ class PawControlRefreshLocationButton(PawControlButtonBase):
 
 class PawControlUpdateLocationButton(PawControlRefreshLocationButton):
     """Alias button for update location functionality used in tests."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1673,6 +1713,7 @@ class PawControlUpdateLocationButton(PawControlRefreshLocationButton):
 
 class PawControlExportRouteButton(PawControlButtonBase):
     """Button to export route data."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1707,6 +1748,7 @@ class PawControlExportRouteButton(PawControlButtonBase):
 
 class PawControlCenterMapButton(PawControlButtonBase):
     """Button to center map on dog location."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1735,6 +1777,7 @@ class PawControlCenterMapButton(PawControlButtonBase):
 
 class PawControlCallDogButton(PawControlButtonBase):
     """Button to call GPS tracker."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1762,13 +1805,16 @@ class PawControlCallDogButton(PawControlButtonBase):
                     f"GPS tracker not available for {self._dog_id}",
                 )
 
-            # Log call request  # noqa: E114
+            # Log call request
             _LOGGER.info("GPS tracker call requested for %s", self._dog_name)
         except Exception as err:
             _LOGGER.error("Failed to call tracker: %s", err)
             raise HomeAssistantError(f"Failed to call tracker: {err}") from err
+
+
 class PawControlLogWeightButton(PawControlButtonBase):
     """Button to log weight measurement."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1820,8 +1866,11 @@ class PawControlLogWeightButton(PawControlButtonBase):
                 raise
             _LOGGER.error("Failed to log weight: %s", err)
             raise HomeAssistantError(f"Failed to log weight: {err}") from err
+
+
 class PawControlLogMedicationButton(PawControlButtonBase):
     """Button to log medication administration."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1880,6 +1929,7 @@ class PawControlLogMedicationButton(PawControlButtonBase):
 
 class PawControlStartGroomingButton(PawControlButtonBase):
     """Button to start grooming session."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1945,8 +1995,11 @@ class PawControlStartGroomingButton(PawControlButtonBase):
                 error=str(err),
             )
             raise HomeAssistantError(error_message) from err
+
+
 class PawControlScheduleVetButton(PawControlButtonBase):
     """Button to schedule veterinary appointment."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -1984,6 +2037,7 @@ class PawControlScheduleVetButton(PawControlButtonBase):
 
 class PawControlHealthCheckButton(PawControlButtonBase):
     """Button for comprehensive health check."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -2025,6 +2079,7 @@ class PawControlHealthCheckButton(PawControlButtonBase):
 
 class PawControlStartGardenSessionButton(PawControlButtonBase):
     """Button to start a garden session."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -2074,6 +2129,7 @@ class PawControlStartGardenSessionButton(PawControlButtonBase):
 
 class PawControlEndGardenSessionButton(PawControlButtonBase):
     """Button to end a garden session."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -2123,6 +2179,7 @@ class PawControlEndGardenSessionButton(PawControlButtonBase):
 
 class PawControlLogGardenActivityButton(PawControlButtonBase):
     """Button to log a general garden activity."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -2180,6 +2237,7 @@ class PawControlLogGardenActivityButton(PawControlButtonBase):
 
 class PawControlConfirmGardenPoopButton(PawControlButtonBase):
     """Button to confirm a garden poop event."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,

@@ -12,6 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class ConfigFlowPerformanceMonitor:
     """Monitor performance of config flow operations."""
+
     def __init__(self) -> None:
         """Initialise empty metric buckets for tracking config flow performance."""
         self.operation_times: dict[str, list[float]] = {}
@@ -26,6 +27,7 @@ class ConfigFlowPerformanceMonitor:
         # Keep cache size bounded to avoid memory bloat
         if len(times) > 100:
             self.operation_times[operation] = times[-50:]
+
     def record_validation(self, validation_type: str) -> None:
         """Record a validation invocation."""
 

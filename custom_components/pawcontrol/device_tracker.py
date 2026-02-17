@@ -66,6 +66,8 @@ _LOGGER = logging.getLogger(__name__)
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for device tracker entities."""
     return normalise_entity_attributes(attrs)
+
+
 # Coordinator drives refreshes, so we can safely allow unlimited parallel
 # updates for this read-only platform while still complying with the
 # ``parallel-updates`` quality scale rule.
@@ -193,8 +195,10 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     NEW: Implements device_tracker.{dog}_gps per requirements_inventory.md
     with route tracking, geofencing, and location history.
     """
+
     _attr_should_poll = False
     _attr_has_entity_name = True
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -290,6 +294,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             return None
         except TypeError:
             return None
+
     @property
     def longitude(self) -> float | None:
         """Return the GPS longitude."""
@@ -303,6 +308,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             return None
         except TypeError:
             return None
+
     @property
     def location_accuracy(self) -> int | None:
         """Return the GPS accuracy in meters."""
@@ -316,6 +322,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             return DEFAULT_GPS_ACCURACY
         except TypeError:
             return DEFAULT_GPS_ACCURACY
+
     @property
     def battery_level(self) -> int | None:
         """Return GPS tracker battery level."""
@@ -329,6 +336,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             return None
         except TypeError:
             return None
+
     @property
     def location_name(self) -> str | None:
         """Return the current location name/zone."""
@@ -356,7 +364,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
 
         gps_data = self._get_gps_data()
         if gps_data:
-            # Basic GPS info  # noqa: E114
+            # Basic GPS info
             altitude = gps_data.get("altitude")
             speed = gps_data.get("speed")
             heading = gps_data.get("heading")
@@ -390,7 +398,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             if isinstance(distance_from_home, int | float):
                 attrs["distance_from_home"] = float(distance_from_home)
 
-            # Route information  # noqa: E114
+            # Route information
             current_route = gps_data.get("current_route")
             if current_route:
                 attrs["route_active"] = bool(current_route.get("active", True))
@@ -409,7 +417,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                     ).isoformat()
                 elif isinstance(route_start, str):
                     attrs["route_start_time"] = route_start
-            # Geofencing info  # noqa: E114
+            # Geofencing info
             geofence_status = gps_data.get("geofence_status")
             if geofence_status:
                 in_safe_zone = geofence_status.get("in_safe_zone", False)
@@ -430,7 +438,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                     ),
                 )
 
-            # Walk integration  # noqa: E114
+            # Walk integration
             walk_info = gps_data.get("walk_info")
             if walk_info:
                 attrs["walk_active"] = bool(walk_info.get("active", False))
@@ -480,7 +488,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             timestamp: Location timestamp
         """
         try:
-            # Validate coordinates  # noqa: E114
+            # Validate coordinates
             if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
                 _LOGGER.error(
                     "Invalid GPS coordinates for %s: lat=%s, lon=%s",
@@ -493,7 +501,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             if timestamp is None:
                 timestamp = dt_util.utcnow()
 
-            # Check minimum update interval to prevent spam  # noqa: E114
+            # Check minimum update interval to prevent spam
             if (
                 self._last_update
                 and (timestamp - self._last_update).total_seconds()
@@ -520,7 +528,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 "priority": LOCATION_SOURCE_PRIORITY.get(source, 1),
             }
 
-            # Update location if this source has higher priority  # noqa: E114
+            # Update location if this source has higher priority
             last_location = self._last_location
             if (
                 last_location is None
@@ -539,7 +547,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 self.async_write_ha_state()
 
                 _LOGGER.debug(
-                    "Updated GPS location for %s: %.6f,%.6f (accuracy: %dm, source: %s)",
+                    "Updated GPS location for %s: %.6f,%.6f (accuracy: %dm, source: %s)",  # noqa: E501
                     self._dog_name,
                     latitude,
                     longitude,
@@ -565,7 +573,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             if not current_route or not current_route.get("active", False):
                 return
 
-            # Add point to route  # noqa: E114
+            # Add point to route
             route_point: GPSRoutePoint = {
                 "latitude": location_data["latitude"],
                 "longitude": location_data["longitude"],
@@ -577,7 +585,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             }
 
             self._route_points.append(route_point)
-            # Cleanup old route points and enforce retention limits  # noqa: E114
+            # Cleanup old route points and enforce retention limits
             cutoff_time = dt_util.utcnow() - ROUTE_POINT_MAX_AGE
             self._route_points.prune(
                 cutoff=cutoff_time,
@@ -618,7 +626,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 "source": location_data["source"],
             }
 
-            # Update route points if tracking  # noqa: E114
+            # Update route points if tracking
             gps_data = self._get_gps_data()
             current_route = (
                 gps_data.get("current_route") if isinstance(gps_data, Mapping) else None
@@ -688,9 +696,9 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             route_id = f"route_{self._dog_id}_{int(dt_util.utcnow().timestamp())}"
             start_time = dt_util.utcnow()
             start_time_iso = dt_util.as_utc(start_time).isoformat()
-            # Clear previous route points  # noqa: E114
+            # Clear previous route points
             self._route_points.clear()
-            # Update GPS data with new route info  # noqa: E114
+            # Update GPS data with new route info
             gps_data = self._get_gps_data() or cast(GPSModulePayload, {})
             gps_data["current_route"] = {
                 "id": route_id,
@@ -716,6 +724,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 err,
             )
             raise
+
     async def async_stop_route_recording(
         self,
         save_route: bool = True,
@@ -754,7 +763,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             ).isoformat()
 
             duration = (end_time - start_time).total_seconds()
-            # Calculate route distance (simplified)  # noqa: E114
+            # Calculate route distance (simplified)
             distance = self._calculate_route_distance(
                 self._route_points.view(),
             )
@@ -779,7 +788,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 "point_count": len(serialized_points),
             }
 
-            # Mark route as inactive  # noqa: E114
+            # Mark route as inactive
             current_route["active"] = False
             current_route["end_time"] = end_time_iso
             current_route["duration"] = duration
@@ -788,7 +797,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             if save_route:
                 # Save route (would normally store in database/coordinator)
                 _LOGGER.info(
-                    "Completed route recording for %s: %.2f km in %.1f minutes (%d points)",
+                    "Completed route recording for %s: %.2f km in %.1f minutes (%d points)",  # noqa: E501
                     self._dog_name,
                     distance / 1000,
                     duration / 60,
@@ -804,6 +813,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 err,
             )
             return None
+
     def _calculate_route_distance(self, points: Sequence[GPSRoutePoint]) -> float:
         """Calculate total distance of route points in meters.
 
@@ -819,7 +829,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
 
         try:
             from math import atan2, cos, radians, sin, sqrt
-            # Earth's radius in meters  # noqa: E114
+
+            # Earth's radius in meters
             earth_radius_m = 6_371_000
             for i in range(1, len(points)):
                 lat1 = radians(points[i - 1]["latitude"])
@@ -876,6 +887,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 err,
             )
             return None
+
     async def _export_route_gpx(self) -> GPSRouteExportGPXPayload:
         """Export route as GPX format."""
         # Simplified GPX export matching the typed payload contract
@@ -989,7 +1001,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
 
         payload: GPSRouteExportJSONPayload = {
             "format": "json",
-            "filename": f"{self._dog_id}_route_{export_time.strftime('%Y%m%d_%H%M%S')}.json",
+            "filename": f"{self._dog_id}_route_{export_time.strftime('%Y%m%d_%H%M%S')}.json",  # noqa: E501
             "content": json_content,
             "routes_count": 1,
         }

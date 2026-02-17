@@ -37,42 +37,45 @@ ServiceValidationError = _ServiceValidationErrorType
 UpdateFailed = _UpdateFailedType
 # NOTE: CoordinatorUpdateFailed was a duplicate alias of UpdateFailed defined here
 # AND re-defined in coordinator.py — that caused py/multiple-definition alerts.
-# The canonical alias lives in coordinator.py as ``CoordinatorUpdateFailed = UpdateFailed``.
+# The canonical alias lives in coordinator.py as ``CoordinatorUpdateFailed = UpdateFailed``.  # noqa: E501
 # This module only exposes ``UpdateFailed``; consumers that need the coordinator alias
 # should import it from coordinator.py directly.
 
 
 class ErrorSeverity(Enum):
     """Error severity levels for better error handling and user experience."""
+
     LOW = "low"  # Minor issues, degraded functionality
     MEDIUM = "medium"  # Significant issues, some features unavailable
     HIGH = "high"  # Major issues, core functionality affected
-    CRITICAL = (
-        "critical"  # System-breaking issues, immediate attention needed
-    )
+    CRITICAL = "critical"  # System-breaking issues, immediate attention needed
 
 
 class ErrorCategory(Enum):
     """Error categories for better organization and handling."""
+
     CONFIGURATION = "configuration"  # Configuration and setup errors
     DATA = "data"  # Data validation and processing errors
     NETWORK = "network"  # Network and connectivity errors
     GPS = "gps"  # GPS and location errors
-    AUTHENTICATION = (
-        "authentication"  # Authentication and authorization errors
-    )
+    AUTHENTICATION = "authentication"  # Authentication and authorization errors
     RATE_LIMIT = "rate_limit"  # Rate limiting errors
     STORAGE = "storage"  # Storage and persistence errors
     VALIDATION = "validation"  # Input validation errors
     BUSINESS_LOGIC = "business_logic"  # Business logic violations
     SYSTEM = "system"  # System and resource errors
+
+
 class PawControlErrorKwargs(TypedDict, total=False):
     """Optional keyword arguments supported by PawControl error helpers."""
+
     severity: ErrorSeverity
     recovery_suggestions: list[str]
     user_message: str
     technical_details: str | None
     timestamp: datetime
+
+
 def _serialise_json_value(value: object) -> JSONValue:
     """Convert arbitrary objects to JSON-compatible values for error payloads."""
     if value is None or isinstance(value, bool | int | float | str):
@@ -91,6 +94,8 @@ def _serialise_json_value(value: object) -> JSONValue:
         return [_serialise_json_value(item) for item in value]
 
     return str(value)
+
+
 def _ensure_error_context(context: Mapping[str, object] | None) -> ErrorContext:
     """Normalise error context payloads to JSON-compatible dictionaries."""
     if not context:
@@ -102,12 +107,15 @@ def _ensure_error_context(context: Mapping[str, object] | None) -> ErrorContext:
         if serialised is not None:
             normalised[str(key)] = serialised
     return normalised
+
+
 class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
     """Base exception for all Paw Control related errors with enhanced features.
 
     This base class provides structured error information, contextual data,
     and recovery suggestions for better error handling and user experience.
     """
+
     def __init__(
         self,
         message: str,
@@ -205,6 +213,7 @@ class PawControlError(HomeAssistantErrorType):  # type: ignore[misc]
 
 class ConfigurationError(PawControlError):
     """Exception raised for configuration-related errors."""
+
     def __init__(
         self,
         setting: str,
@@ -258,6 +267,7 @@ class ConfigurationError(PawControlError):
 
 class PawControlSetupError(PawControlError):
     """Exception raised when integration setup fails."""
+
     def __init__(self, message: str, error_code: str = "setup_failed") -> None:
         """Initialize setup error."""
         super().__init__(
@@ -270,6 +280,7 @@ class PawControlSetupError(PawControlError):
 
 class ReauthRequiredError(PawControlError):
     """Exception raised when reauthentication is required."""
+
     def __init__(
         self,
         message: str,
@@ -291,6 +302,7 @@ class ReauthRequiredError(PawControlError):
 
 class ReconfigureRequiredError(PawControlError):
     """Exception raised when reconfiguration is required."""
+
     def __init__(
         self,
         message: str,
@@ -310,6 +322,7 @@ class ReconfigureRequiredError(PawControlError):
 
 class RepairRequiredError(PawControlError):
     """Exception raised when a repairs flow should be surfaced."""
+
     def __init__(
         self,
         message: str,
@@ -329,6 +342,7 @@ class RepairRequiredError(PawControlError):
 
 class DogNotFoundError(PawControlError):
     """Exception raised when a dog with the specified ID is not found."""
+
     def __init__(self, dog_id: str, available_dogs: list[str] | None = None) -> None:
         """Initialize dog not found error.
 
@@ -351,7 +365,7 @@ class DogNotFoundError(PawControlError):
             recovery_suggestions=[
                 "Check if the dog ID is spelled correctly",
                 "Verify the dog is configured in the integration",
-                f"Available dogs: {', '.join(available_dogs) if available_dogs else 'None'}",
+                f"Available dogs: {', '.join(available_dogs) if available_dogs else 'None'}",  # noqa: E501
             ],
             user_message=f"The dog '{dog_id}' was not found. Please check the dog ID.",
         )
@@ -362,6 +376,7 @@ class DogNotFoundError(PawControlError):
 
 class GPSError(PawControlError):
     """Base class for GPS-related errors."""
+
     def __init__(
         self,
         message: str,
@@ -406,6 +421,7 @@ class GPSError(PawControlError):
 
 class InvalidCoordinatesError(GPSError):
     """Exception raised when invalid GPS coordinates are provided."""
+
     def __init__(
         self,
         latitude: float | None = None,
@@ -457,6 +473,7 @@ class InvalidCoordinatesError(GPSError):
 
 class GPSUnavailableError(GPSError):
     """Exception raised when GPS data is not available."""
+
     def __init__(
         self,
         dog_id: str,
@@ -495,6 +512,7 @@ class GPSUnavailableError(GPSError):
 
 class WalkError(PawControlError):
     """Base class for walk-related errors."""
+
     def __init__(
         self,
         message: str,
@@ -533,6 +551,7 @@ class WalkError(PawControlError):
 
 class WalkNotInProgressError(WalkError):
     """Exception raised when trying to end a walk that isn't in progress."""
+
     def __init__(self, dog_id: str, last_walk_time: datetime | None = None) -> None:
         """Initialize walk not in progress error.
 
@@ -565,6 +584,7 @@ class WalkNotInProgressError(WalkError):
 
 class WalkAlreadyInProgressError(WalkError):
     """Exception raised when trying to start a walk that's already in progress."""
+
     def __init__(
         self,
         dog_id: str,
@@ -603,6 +623,7 @@ class WalkAlreadyInProgressError(WalkError):
 
 class ValidationError(PawControlError):
     """Exception raised when data validation fails."""
+
     def __init__(
         self,
         field: str,
@@ -668,6 +689,7 @@ class ValidationError(PawControlError):
 
 class FlowValidationError(PawControlError):
     """Exception raised when configuration or options flow validation fails."""
+
     def __init__(
         self,
         *,
@@ -718,6 +740,7 @@ class FlowValidationError(PawControlError):
 
 class InvalidMealTypeError(ValidationError):
     """Exception raised when an invalid meal type is specified."""
+
     def __init__(self, meal_type: str, valid_types: list[str] | None = None) -> None:
         """Initialize invalid meal type error.
 
@@ -738,6 +761,7 @@ class InvalidMealTypeError(ValidationError):
 
 class InvalidWeightError(ValidationError):
     """Exception raised when an invalid weight value is provided."""
+
     def __init__(
         self,
         weight: float,
@@ -773,6 +797,7 @@ class InvalidWeightError(ValidationError):
 
 class StorageError(PawControlError):
     """Exception raised when storage operations fail."""
+
     def __init__(
         self,
         operation: str,
@@ -824,6 +849,7 @@ class StorageError(PawControlError):
 
 class RateLimitError(PawControlError):
     """Exception raised when rate limits are exceeded."""
+
     def __init__(
         self,
         action: str,
@@ -842,9 +868,7 @@ class RateLimitError(PawControlError):
             max_count: Maximum allowed requests
         """
         if limit and retry_after:
-            message = (
-                f"Rate limit exceeded for {action} ({limit}). Retry after {retry_after} seconds"
-            )
+            message = f"Rate limit exceeded for {action} ({limit}). Retry after {retry_after} seconds"  # noqa: E501
         elif limit:
             message = f"Rate limit exceeded for {action} ({limit})"
         elif retry_after:
@@ -889,6 +913,7 @@ class RateLimitError(PawControlError):
 
 class NetworkError(PawControlError):
     """Exception raised when network operations fail."""
+
     def __init__(
         self,
         message: str,
@@ -926,6 +951,7 @@ class NetworkError(PawControlError):
 
 class ServiceUnavailableError(NetworkError):
     """Exception raised when an upstream PawControl service is unavailable."""
+
     def __init__(
         self,
         message: str,
@@ -951,6 +977,7 @@ class ServiceUnavailableError(NetworkError):
 
 class AuthenticationError(PawControlError):
     """Exception raised when authentication validation fails."""
+
     def __init__(self, message: str, *, service: str | None = None) -> None:
         """Initialize authentication error."""
 
@@ -971,6 +998,7 @@ class AuthenticationError(PawControlError):
 
 class NotificationError(PawControlError):
     """Exception raised when notification sending fails."""
+
     def __init__(
         self,
         notification_type: str,
@@ -1025,6 +1053,7 @@ class NotificationError(PawControlError):
 
 class DataExportError(PawControlError):
     """Exception raised when data export fails."""
+
     def __init__(
         self,
         export_type: str,
@@ -1056,6 +1085,7 @@ class DataExportError(PawControlError):
 
 class DataImportError(PawControlError):
     """Exception raised when data import fails."""
+
     def __init__(
         self,
         import_type: str,
@@ -1124,6 +1154,8 @@ def get_exception_class(error_code: str) -> type[PawControlError]:
         raise KeyError(f"Unknown error code: {error_code}")
 
     return EXCEPTION_MAP[error_code]
+
+
 def raise_from_error_code(
     error_code: str,
     message: str,
@@ -1166,6 +1198,8 @@ def raise_from_error_code(
             **kwargs,
         )
     raise exception_class(message, error_code=error_code, **kwargs)
+
+
 def handle_exception_gracefully[**P, T](
     func: Callable[P, T],
     default_return: T | None = None,
@@ -1184,6 +1218,7 @@ def handle_exception_gracefully[**P, T](
     Returns:
         Callable that wraps ``func`` and handles exceptions gracefully
     """
+
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
         try:
             return func(*args, **kwargs)
@@ -1213,7 +1248,10 @@ def handle_exception_gracefully[**P, T](
                 raise
 
             return default_return
+
     return wrapper
+
+
 def create_error_context(
     dog_id: str | None = None,
     operation: str | None = None,

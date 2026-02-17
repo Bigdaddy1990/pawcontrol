@@ -50,6 +50,8 @@ def _coerce_mapping(value: object | None) -> JSONMutableMapping:
     if isinstance(value, Mapping):
         return cast(JSONMutableMapping, value)
     return cast(JSONMutableMapping, {})
+
+
 def _coerce_zone_name(value: object | None) -> str | None:
     """Return a normalized zone name."""
     if isinstance(value, str):
@@ -57,6 +59,8 @@ def _coerce_zone_name(value: object | None) -> str | None:
         if normalized:
             return normalized
     return None
+
+
 def _resolve_safe_zone(geofence_status: JSONMapping, zone: str | None) -> bool:
     """Determine safe-zone membership from geofence and zone data."""
     if geofence_status:
@@ -68,6 +72,8 @@ def _resolve_safe_zone(geofence_status: JSONMapping, zone: str | None) -> bool:
     if zone is None:
         return True
     return zone in _DEFAULT_SAFE_ZONES
+
+
 def _derive_status_state(
     *,
     on_walk: bool,

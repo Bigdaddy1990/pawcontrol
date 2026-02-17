@@ -42,9 +42,12 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     ImportExportOptionsHost = object
+
+
 class ImportExportOptionsMixin(ImportExportOptionsHost):
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
+
     async def async_step_import_export(
         self,
         user_input: OptionsImportExportInput | None = None,

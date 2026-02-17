@@ -28,6 +28,8 @@ _ENTRY_CREATED_VERSION_ATTR = "_pawcontrol_runtime_store_created_version"
 def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
     """Return the entry identifier for ``entry_or_id``."""
     return entry_or_id if isinstance(entry_or_id, str) else entry_or_id.entry_id
+
+
 def _get_entry(
     hass: HomeAssistant,
     entry_or_id: PawControlConfigEntry | str,
@@ -40,6 +42,8 @@ def _get_entry(
         return cast(PawControlConfigEntry, entry)
 
     return entry_or_id
+
+
 @overload
 def _get_domain_store(
     hass: HomeAssistant,
@@ -87,6 +91,8 @@ def _get_domain_store(
         data_obj[DOMAIN] = domain_data
 
     return cast(DomainRuntimeStore, domain_data)
+
+
 def _as_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     """Return ``value`` when it looks like runtime data, otherwise ``None``."""
     if isinstance(value, PawControlRuntimeData):
@@ -106,6 +112,8 @@ def _as_runtime_data(value: object | None) -> PawControlRuntimeData | None:
         return None
 
     return cast(PawControlRuntimeData, value)
+
+
 def _coerce_version(candidate: object | None) -> int | None:
     """Return a positive integer version extracted from ``candidate``."""
     if isinstance(candidate, bool):
@@ -113,6 +121,8 @@ def _coerce_version(candidate: object | None) -> int | None:
     if isinstance(candidate, int) and candidate > 0:
         return candidate
     return None
+
+
 def _stamp_runtime_schema(
     entry_id: str,
     runtime_data: PawControlRuntimeData,
@@ -161,6 +171,8 @@ def _stamp_runtime_schema(
     runtime_data.schema_created_version = created_schema_version
     runtime_data.schema_version = schema_version
     return schema_version, created_schema_version
+
+
 def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
     """Return a :class:`DomainRuntimeStoreEntry` if ``value`` resembles one."""
     if isinstance(value, DomainRuntimeStoreEntry):
@@ -249,6 +261,8 @@ def _resolve_entry_status(
         return "upgrade_pending"
 
     return "current"
+
+
 def _build_runtime_store_snapshot(
     *,
     available: bool,
@@ -268,6 +282,8 @@ def _build_runtime_store_snapshot(
         "status": status,
     }
     return snapshot
+
+
 def _cleanup_domain_store(
     hass: HomeAssistant,
     store: DomainRuntimeStore | None,
@@ -318,6 +334,8 @@ def _apply_entry_metadata(
     entry.runtime_data = store_entry.unwrap()
     setattr(entry, _ENTRY_VERSION_ATTR, store_entry.version)
     setattr(entry, _ENTRY_CREATED_VERSION_ATTR, store_entry.created_version)
+
+
 def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:
     """Remove runtime data from an entry to avoid stale references."""
     if entry is None:
@@ -369,6 +387,8 @@ def _normalise_store_entry(
     )
 
     return upgraded_entry.ensure_current()
+
+
 def store_runtime_data(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -382,6 +402,8 @@ def store_runtime_data(
     _apply_entry_metadata(entry, store_entry)
     store = _get_domain_store(hass, create=True)
     store[entry.entry_id] = store_entry
+
+
 def get_runtime_data(
     hass: HomeAssistant,
     entry_or_id: PawControlConfigEntry | str,
@@ -461,6 +483,8 @@ def get_runtime_data(
     if entry is not None:
         _apply_entry_metadata(entry, current_entry)
     return runtime_data
+
+
 def describe_runtime_store_status(
     hass: HomeAssistant,
     entry_or_id: PawControlConfigEntry | str,
@@ -605,10 +629,16 @@ def pop_runtime_data(
         _cleanup_domain_store(hass, store)
 
     return store_runtime
+
+
 class RuntimeDataUnavailableError(HomeAssistantError):  # type: ignore[misc]
     """Raised when PawControl runtime data cannot be resolved."""
+
+
 class RuntimeDataIncompatibleError(RuntimeDataUnavailableError):
     """Raised when a runtime payload targets an unsupported schema version."""
+
+
 def require_runtime_data(
     hass: HomeAssistant,
     entry_or_id: PawControlConfigEntry | str,

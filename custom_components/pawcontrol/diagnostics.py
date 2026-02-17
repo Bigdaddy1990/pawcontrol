@@ -93,6 +93,8 @@ from .utils import normalize_value
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .notifications import PawControlNotificationManager
+
+
 def _resolve_data_manager(
     runtime_data: PawControlRuntimeData | None,
 ) -> PawControlDataManager | None:
@@ -101,6 +103,8 @@ def _resolve_data_manager(
         return None
 
     return runtime_data.runtime_managers.data_manager
+
+
 def _resolve_notification_manager(
     runtime_data: PawControlRuntimeData | None,
 ) -> PawControlNotificationManager | None:
@@ -109,10 +113,15 @@ def _resolve_notification_manager(
         return None
 
     return runtime_data.runtime_managers.notification_manager
+
+
 class SetupFlagSnapshot(TypedDict):
     """Snapshot describing a persisted setup flag state."""
+
     value: bool
     source: str
+
+
 SETUP_FLAG_LABELS = {
     "enable_analytics": "Analytics telemetry",
     "enable_cloud_backup": "Cloud backup",
@@ -178,6 +187,8 @@ try:
     )
 except ModuleNotFoundError, AttributeError:
     _ASYNC_GET_TRANSLATIONS = None
+
+
 async def _async_get_translations_wrapper(
     hass: HomeAssistant,
     language: str,
@@ -189,6 +200,8 @@ async def _async_get_translations_wrapper(
         return {}
 
     return await _ASYNC_GET_TRANSLATIONS(hass, language, category, integrations)
+
+
 async_get_translations = _async_get_translations_wrapper
 
 
@@ -206,6 +219,7 @@ async def _async_resolve_setup_flag_translations(
     """Return localised labels for setup flag diagnostics."""
     config_language = cast(str | None, getattr(hass.config, "language", None))
     target_language = (language or config_language or "en").lower()
+
     async def _async_fetch(lang: str) -> dict[str, str]:
         if _ASYNC_GET_TRANSLATIONS is None:
             return {}
@@ -217,6 +231,7 @@ async def _async_resolve_setup_flag_translations(
                 lang,
             )
             return {}
+
     translations = await _async_fetch(target_language)
     fallback_language = "en"
     if target_language == fallback_language:
@@ -247,6 +262,8 @@ async def _async_resolve_setup_flag_translations(
     )
 
     return target_language, flag_labels, source_labels, title, description
+
+
 def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnapshot]:
     """Return analytics, backup, and debug logging flag states and sources."""
     raw_options = entry.options
@@ -277,6 +294,7 @@ def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnap
         else {}
     )
     entry_data = cast(JSONMapping, entry.data)
+
     def _resolve_flag(
         key: str,
         *,
@@ -309,6 +327,8 @@ def _summarise_setup_flags(entry: ConfigEntry) -> dict[str, bool]:
     """Return analytics, backup, and debug logging flags for diagnostics."""
     snapshots = _collect_setup_flag_snapshots(entry)
     return {key: snapshot["value"] for key, snapshot in snapshots.items()}
+
+
 async def _async_build_setup_flags_panel(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -477,6 +497,8 @@ def _apply_rejection_metrics_to_performance(
 ) -> None:
     """Copy rejection metrics into the coordinator performance snapshot."""
     merge_rejection_metric_values(performance_metrics, rejection_metrics)
+
+
 def _build_default_rejection_metrics_payload() -> JSONMutableMapping:
     """Return a JSON-safe default rejection metrics payload."""
     return cast(
@@ -590,6 +612,8 @@ def _build_statistics_payload(
         )
 
     return stats
+
+
 def _entity_registry_entries_for_config_entry(
     entity_registry: er.EntityRegistry,
     entry_id: str,
@@ -650,10 +674,10 @@ async def async_get_config_entry_diagnostics(
         entry.entry_id,
     )
 
-    # Get runtime data using the shared helper (runtime adoption still being proven)  # noqa: E114, E501
+    # Get runtime data using the shared helper (runtime adoption still being proven)  # noqa: E501
     runtime_data = get_runtime_data(hass, entry)
     coordinator = runtime_data.coordinator if runtime_data else None
-    # Base diagnostics structure  # noqa: E114
+    # Base diagnostics structure
     cache_snapshots = _collect_cache_diagnostics(runtime_data)
     diagnostics_payload: dict[str, object] = {
         "config_entry": await _get_config_entry_diagnostics(entry),
@@ -719,7 +743,7 @@ async def async_get_config_entry_diagnostics(
         normalize_value(diagnostics_payload),
     )
 
-    # Redact sensitive information  # noqa: E114
+    # Redact sensitive information
     redacted_diagnostics = cast(
         JSONMutableMapping,
         _redact_sensitive_data(cast(JSONValue, normalised_payload)),
@@ -730,6 +754,8 @@ async def async_get_config_entry_diagnostics(
         entry.entry_id,
     )
     return redacted_diagnostics
+
+
 def _get_resilience_escalation_snapshot(
     runtime_data: PawControlRuntimeData | None,
 ) -> ResilienceEscalationSnapshot:
@@ -794,6 +820,8 @@ def _get_resilience_diagnostics(
         }
 
     return cast(JSONMutableMapping, normalize_value(payload))
+
+
 async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMapping:
     """Get configuration entry diagnostic information.
 
@@ -926,6 +954,8 @@ def _collect_cache_diagnostics(
         normalised[name] = _normalise_cache_snapshot(payload)
 
     return normalised or None
+
+
 def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
     """Coerce arbitrary cache payloads into diagnostics-friendly snapshots."""
     if isinstance(payload, CacheDiagnosticsSnapshot):
@@ -979,6 +1009,8 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
         snapshot.snapshot = {"value": normalize_value(payload)}
 
     return snapshot
+
+
 def _serialise_cache_diagnostics_payload(
     payload: JSONLikeMapping | CacheDiagnosticsMap,
 ) -> JSONMutableMapping:
@@ -987,6 +1019,8 @@ def _serialise_cache_diagnostics_payload(
     for name, snapshot in payload.items():
         serialised[str(name)] = _serialise_cache_snapshot(snapshot)
     return serialised
+
+
 def _serialise_cache_snapshot(snapshot: object) -> JSONMutableMapping:
     """Return a JSON-serialisable payload for a cache diagnostics snapshot."""
     snapshot_input: object
@@ -1010,6 +1044,8 @@ def _serialise_cache_snapshot(snapshot: object) -> JSONMutableMapping:
         snapshot_payload.pop("repair_summary", None)
 
     return cast(JSONMutableMapping, normalize_value(snapshot_payload))
+
+
 async def _get_integration_status(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -1147,6 +1183,8 @@ def _build_notification_rejection_metrics(
     payload["service_last_error_reasons"] = last_error_reasons
     payload["service_last_errors"] = last_errors
     return payload
+
+
 # -----------------------------------------------------------------------------
 # Guard and Notification Error Aggregation
 # -----------------------------------------------------------------------------
@@ -1181,7 +1219,7 @@ def _build_guard_notification_error_metrics(
     classified_errors: dict[str, int] = {}
     guard_reasons: dict[str, int] = {}
     guard_skipped = 0
-    # Process guard metrics (skip counts and reasons)  # noqa: E114
+    # Process guard metrics (skip counts and reasons)
     if isinstance(guard_metrics, Mapping):
         guard_skipped = _coerce_int(guard_metrics.get("skipped")) or 0
         reasons_raw = guard_metrics.get("reasons")
@@ -1200,7 +1238,7 @@ def _build_guard_notification_error_metrics(
     notification_failures = 0
     notification_reasons: dict[str, int] = {}
     services_with_failures: list[str] = []
-    # Process notification delivery failures  # noqa: E114
+    # Process notification delivery failures
     if isinstance(delivery, Mapping):
         services = delivery.get("services")
         if isinstance(services, Mapping):
@@ -1251,6 +1289,8 @@ def _build_guard_notification_error_metrics(
     }
     payload["classified_errors"] = classified_errors
     return payload
+
+
 def _get_guard_notification_error_metrics(
     runtime_data: PawControlRuntimeData | None,
 ) -> JSONMutableMapping:
@@ -1275,6 +1315,8 @@ def _get_guard_notification_error_metrics(
         if isinstance(delivery, Mapping):
             delivery_status = delivery
     return _build_guard_notification_error_metrics(guard_metrics, delivery_status)
+
+
 async def _get_coordinator_diagnostics(
     coordinator: PawControlCoordinator | None,
 ) -> JSONMutableMapping:
@@ -1339,13 +1381,13 @@ async def _get_entities_diagnostics(
         Entities diagnostics
     """
     entity_registry = er.async_get(hass)
-    # Get all entities for this integration  # noqa: E114
+    # Get all entities for this integration
     entities = _entity_registry_entries_for_config_entry(
         entity_registry,
         entry.entry_id,
     )
 
-    # Group entities by platform  # noqa: E114
+    # Group entities by platform
     entities_by_platform: dict[str, list[JSONMutableMapping]] = {}
     for entity in entities:
         platform = entity.platform
@@ -1413,7 +1455,7 @@ async def _get_devices_diagnostics(
         Devices diagnostics
     """
     device_registry = dr.async_get(hass)
-    # Get all devices for this integration  # noqa: E114
+    # Get all devices for this integration
     devices = _device_registry_entries_for_config_entry(
         device_registry,
         entry.entry_id,
@@ -1703,6 +1745,8 @@ async def _get_performance_metrics(
         )
 
     return cast(JSONMutableMapping, normalize_value(metrics_output))
+
+
 async def _get_door_sensor_diagnostics(
     runtime_data: PawControlRuntimeData | None,
 ) -> JSONMutableMapping:
@@ -1771,6 +1815,8 @@ async def _get_door_sensor_diagnostics(
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.debug("Could not capture door sensor diagnostics: %s", err)
     return diagnostics
+
+
 async def _get_service_execution_diagnostics(
     runtime_data: PawControlRuntimeData | None,
 ) -> JSONMutableMapping:
@@ -1850,6 +1896,8 @@ async def _get_service_execution_diagnostics(
         diagnostics["service_call_telemetry"] = telemetry_payload
 
     return cast(JSONMutableMapping, normalize_value(diagnostics))
+
+
 def _get_bool_coercion_diagnostics(
     runtime_data: PawControlRuntimeData | None,
 ) -> BoolCoercionDiagnosticsPayload:
@@ -1866,6 +1914,8 @@ def _get_bool_coercion_diagnostics(
         payload["metrics"] = metrics
 
     return payload
+
+
 def _normalise_service_guard_metrics(
     payload: Any,
 ) -> ServiceGuardMetricsSnapshot | None:
@@ -1909,6 +1959,8 @@ def _normalise_service_guard_metrics(
         guard_metrics["last_results"] = last_results_payload
 
     return guard_metrics
+
+
 def _build_service_guard_metrics_export(
     payload: Any,
 ) -> ServiceGuardMetricsSnapshot:
@@ -1926,6 +1978,8 @@ def _build_service_guard_metrics_export(
     merged = ServiceGuardSnapshot.zero_metrics()
     merged.update(normalised)
     return merged
+
+
 def _normalise_service_call_telemetry(payload: Any) -> JSONMutableMapping | None:
     """Return a JSON-safe snapshot of service call telemetry metrics."""
     if not isinstance(payload, Mapping):
@@ -1945,6 +1999,8 @@ def _normalise_service_call_telemetry(payload: Any) -> JSONMutableMapping | None
         }
 
     return telemetry_payload
+
+
 def _coerce_int(value: Any) -> int | None:
     """Convert ``value`` into an integer when possible."""
     if isinstance(value, bool):
@@ -1962,6 +2018,8 @@ def _coerce_int(value: Any) -> int | None:
         except ValueError:
             return None
     return None
+
+
 async def _get_data_statistics(
     runtime_data: PawControlRuntimeData | None,
     cache_snapshots: CacheDiagnosticsMap | None,
@@ -2027,8 +2085,8 @@ async def _get_recent_errors(entry_id: str) -> list[RecentErrorEntry]:
     Returns:
         List of recent error information
     """
-    # In a real implementation, this would collect actual error logs  # noqa: E114
-    # from the Home Assistant logging system  # noqa: E114
+    # In a real implementation, this would collect actual error logs
+    # from the Home Assistant logging system
     return [
         {
             "note": "Error collection not implemented in this version",
@@ -2087,15 +2145,17 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     Returns:
         List of loaded platform names
     """
-    # Check which platforms have been loaded by checking entity registry  # noqa: E114
+    # Check which platforms have been loaded by checking entity registry
     entity_registry = er.async_get(hass)
     entities = _entity_registry_entries_for_config_entry(
         entity_registry,
         entry.entry_id,
     )
 
-    # Get unique platforms  # noqa: E114
+    # Get unique platforms
     return list({entity.platform for entity in entities})
+
+
 async def _get_registered_services(hass: HomeAssistant) -> list[str]:
     """Get list of registered services for this domain.
 
@@ -2107,6 +2167,8 @@ async def _get_registered_services(hass: HomeAssistant) -> list[str]:
     """
     domain_services = hass.services.async_services().get(DOMAIN, {})
     return list(domain_services.keys())
+
+
 def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdown:
     """Calculate module usage statistics across all dogs.
 
@@ -2149,7 +2211,7 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
             if modules.get(module, False):
                 module_counts[module] += 1
 
-    # Calculate percentages  # noqa: E114
+    # Calculate percentages
     module_percentages: dict[str, float] = {}
     for module, count in module_counts.items():
         percentage = (count / total_dogs * 100) if total_dogs > 0 else 0

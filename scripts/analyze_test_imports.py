@@ -11,13 +11,13 @@ from typing import NamedTuple
 
 
 class ImportIssue(NamedTuple):
-    """Represents an import that needs to be fixed."""  # noqa: E111
+    """Represents an import that needs to be fixed."""
 
-    file_path: Path  # noqa: E111
-    line_number: int  # noqa: E111
-    old_import: str  # noqa: E111
-    new_import: str  # noqa: E111
-    severity: str  # 'critical', 'warning', 'info'  # noqa: E111
+    file_path: Path
+    line_number: int
+    old_import: str
+    new_import: str
+    severity: str  # 'critical', 'warning', 'info'
 
 
 # Mapping of moved functions to their new locations
@@ -54,18 +54,18 @@ def analyze_test_file(test_file: Path) -> list[ImportIssue]:
 
     Returns:
         List of import issues found
-    """  # noqa: E111
-    issues: list[ImportIssue] = []  # noqa: E111
+    """
+    issues: list[ImportIssue] = []
 
-    try:  # noqa: E111
+    try:
         content = test_file.read_text(encoding="utf-8")
         lines = content.splitlines()
 
         for line_num, line in enumerate(lines, start=1):
-            # Check for direct imports from __init__  # noqa: E114
-            if "from custom_components.pawcontrol import" in line:  # noqa: E111
+            # Check for direct imports from __init__
+            if "from custom_components.pawcontrol import" in line:
                 for func_name, new_module in MOVED_FUNCTIONS.items():
-                    if func_name in line:  # noqa: E111
+                    if func_name in line:
                         old_import = line.strip()
                         new_import = old_import.replace(
                             "from custom_components.pawcontrol import",
@@ -81,11 +81,11 @@ def analyze_test_file(test_file: Path) -> list[ImportIssue]:
                             ),
                         )
 
-            # Check for patch decorators  # noqa: E114
-            if "@patch(" in line or "@mock.patch(" in line:  # noqa: E111
+            # Check for patch decorators
+            if "@patch(" in line or "@mock.patch(" in line:
                 for func_name, new_module in MOVED_FUNCTIONS.items():
-                    pattern = f"custom_components\\.pawcontrol\\.{func_name}"  # noqa: E111
-                    if re.search(pattern, line):  # noqa: E111
+                    pattern = f"custom_components\\.pawcontrol\\.{func_name}"
+                    if re.search(pattern, line):
                         old_import = line.strip()
                         new_import = old_import.replace(
                             f"custom_components.pawcontrol.{func_name}",
@@ -101,67 +101,67 @@ def analyze_test_file(test_file: Path) -> list[ImportIssue]:
                             ),
                         )
 
-    except Exception as err:  # noqa: E111
+    except Exception as err:
         print(f"Error analyzing {test_file}: {err}")
 
-    return issues  # noqa: E111
+    return issues
 
 
 def main() -> None:
-    """Main entry point."""  # noqa: E111
-    project_root = Path(__file__).parent.parent  # noqa: E111
-    tests_dir = project_root / "tests"  # noqa: E111
+    """Main entry point."""
+    project_root = Path(__file__).parent.parent
+    tests_dir = project_root / "tests"
 
-    if not tests_dir.exists():  # noqa: E111
+    if not tests_dir.exists():
         print(f"Tests directory not found: {tests_dir}")
         return
 
-    print("🔍 Analyzing test files for import issues...")  # noqa: E111
-    print("=" * 80)  # noqa: E111
+    print("🔍 Analyzing test files for import issues...")
+    print("=" * 80)
 
-    all_issues: list[ImportIssue] = []  # noqa: E111
+    all_issues: list[ImportIssue] = []
 
-    # Scan all test files  # noqa: E114
-    for test_file in tests_dir.rglob("test_*.py"):  # noqa: E111
+    # Scan all test files
+    for test_file in tests_dir.rglob("test_*.py"):
         issues = analyze_test_file(test_file)
         all_issues.extend(issues)
 
-    # Group issues by severity  # noqa: E114
-    critical_issues = [i for i in all_issues if i.severity == "critical"]  # noqa: E111
-    warning_issues = [i for i in all_issues if i.severity == "warning"]  # noqa: E111
-    info_issues = [i for i in all_issues if i.severity == "info"]  # noqa: E111
+    # Group issues by severity
+    critical_issues = [i for i in all_issues if i.severity == "critical"]
+    warning_issues = [i for i in all_issues if i.severity == "warning"]
+    info_issues = [i for i in all_issues if i.severity == "info"]
 
-    # Report results  # noqa: E114
-    print("\n📊 ANALYSIS RESULTS:")  # noqa: E111
-    print(f"   Critical issues: {len(critical_issues)}")  # noqa: E111
-    print(f"   Warnings:        {len(warning_issues)}")  # noqa: E111
-    print(f"   Info:            {len(info_issues)}")  # noqa: E111
-    print(f"   Total:           {len(all_issues)}")  # noqa: E111
+    # Report results
+    print("\n📊 ANALYSIS RESULTS:")
+    print(f"   Critical issues: {len(critical_issues)}")
+    print(f"   Warnings:        {len(warning_issues)}")
+    print(f"   Info:            {len(info_issues)}")
+    print(f"   Total:           {len(all_issues)}")
 
-    if critical_issues:  # noqa: E111
+    if critical_issues:
         print("\n🔴 CRITICAL ISSUES (Must fix):")
         print("-" * 80)
         for issue in critical_issues:
-            print(f"\nFile: {issue.file_path.relative_to(project_root)}")  # noqa: E111
-            print(f"Line {issue.line_number}:")  # noqa: E111
-            print(f"  OLD: {issue.old_import}")  # noqa: E111
-            print(f"  NEW: {issue.new_import}")  # noqa: E111
+            print(f"\nFile: {issue.file_path.relative_to(project_root)}")
+            print(f"Line {issue.line_number}:")
+            print(f"  OLD: {issue.old_import}")
+            print(f"  NEW: {issue.new_import}")
 
-    if warning_issues:  # noqa: E111
+    if warning_issues:
         print("\n🟡 WARNINGS (Should fix):")
         print("-" * 80)
         for issue in warning_issues:
-            print(f"\nFile: {issue.file_path.relative_to(project_root)}")  # noqa: E111
-            print(f"Line {issue.line_number}: {issue.old_import}")  # noqa: E111
+            print(f"\nFile: {issue.file_path.relative_to(project_root)}")
+            print(f"Line {issue.line_number}: {issue.old_import}")
 
-    # Generate fix script  # noqa: E114
-    if all_issues:  # noqa: E111
+    # Generate fix script
+    if all_issues:
         print("\n📝 Generating automated fix script...")
         fix_script_path = project_root / "scripts" / "fix_test_imports.py"
         generate_fix_script(fix_script_path, all_issues, project_root)
         print(f"   Fix script created: {fix_script_path}")
         print("\n   Run: python scripts/fix_test_imports.py")
-    else:  # noqa: E111
+    else:
         print("\n✅ No import issues found! Tests should work as-is.")
 
 
@@ -176,7 +176,7 @@ def generate_fix_script(
         output_path: Where to save the fix script
         issues: List of issues to fix
         project_root: Project root directory
-    """  # noqa: E111
+    """
     script_content = '''#!/usr/bin/env python3
 """Automatically fix test imports after refactoring.
 
@@ -193,10 +193,10 @@ def fix_imports() -> None:
     project_root = Path(__file__).parent.parent
 
     fixes = [
-'''  # noqa: E111
+'''
 
-    # Add fixes  # noqa: E114
-    for issue in issues:  # noqa: E111
+    # Add fixes
+    for issue in issues:
         rel_path = issue.file_path.relative_to(project_root)
         script_content += f"""        (
             project_root / "{rel_path}",
@@ -231,12 +231,12 @@ if __name__ == "__main__":
     print("🔧 Fixing test imports...")
     fix_imports()
     print("✅ Import fixes complete!")
-"""  # noqa: E111, E501
+"""  # noqa: E501
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)  # noqa: E111
-    output_path.write_text(script_content, encoding="utf-8")  # noqa: E111
-    output_path.chmod(0o755)  # noqa: E111
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(script_content, encoding="utf-8")
+    output_path.chmod(0o755)
 
 
 if __name__ == "__main__":
-    main()  # noqa: E111
+    main()

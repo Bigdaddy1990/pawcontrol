@@ -51,8 +51,11 @@ _LOGGER = logging.getLogger(__name__)
 
 class HealthSummaryHost(Protocol):
     """Protocol describing the config flow host requirements."""
+
+
 class HealthSummaryMixin(HealthSummaryHost):
     """Provide health summary formatting for reconfigure flows."""
+
     def _summarise_health_summary(self, summary: Any) -> str:
         """Convert a health summary mapping into a user-facing string."""
 
@@ -113,8 +116,11 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     DogHealthFlowHost = object
+
+
 class DogHealthFlowMixin(DogHealthFlowHost):
     """Handle health configuration steps in the config flow."""
+
     async def async_step_dog_health(
         self,
         user_input: DogHealthStepInput | None = None,
@@ -124,7 +130,7 @@ class DogHealthFlowMixin(DogHealthFlowHost):
         current_dog = self._current_dog_config
         if current_dog is None:
             _LOGGER.error(
-                "Health configuration step invoked without active dog; restarting add_dog",
+                "Health configuration step invoked without active dog; restarting add_dog",  # noqa: E501
             )
             return await self.async_step_add_dog()
         if user_input is not None:
@@ -283,11 +289,13 @@ class DogHealthFlowMixin(DogHealthFlowHost):
 
 if TYPE_CHECKING:
     from ..options_flow_hosts import DogOptionsHost
+
     class HealthOptionsHost(DogOptionsHost):
         """Type-checking host for health options mixin."""
 
 else:  # pragma: no cover
     from ..options_flow_shared import OptionsFlowSharedMixin
+
     class HealthOptionsHost(OptionsFlowSharedMixin):
         """Runtime host for health options mixin."""
 
@@ -296,6 +304,7 @@ else:  # pragma: no cover
 
 class HealthOptionsMixin(HealthOptionsHost):
     """Handle per-dog health options."""
+
     def _current_health_options(self, dog_id: str) -> HealthOptions:
         """Return the stored health configuration as a typed mapping."""
 

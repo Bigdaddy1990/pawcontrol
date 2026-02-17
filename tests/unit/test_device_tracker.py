@@ -11,29 +11,29 @@ from custom_components.pawcontrol.types import GPSModulePayload
 
 
 class DummyCoordinator:
-    """Lightweight coordinator stub exposing the tracker access surface."""  # noqa: E111
+    """Lightweight coordinator stub exposing the tracker access surface."""
 
-    available = True  # noqa: E111
+    available = True
 
-    def __init__(self, dog_data: Mapping[str, object] | None) -> None:  # noqa: E111
+    def __init__(self, dog_data: Mapping[str, object] | None) -> None:
         self._dog_data = dog_data
         self.config_entry = None
 
-    def get_dog_data(self, dog_id: str) -> Mapping[str, object] | None:  # noqa: E111
+    def get_dog_data(self, dog_id: str) -> Mapping[str, object] | None:
         return self._dog_data
 
 
 def _build_tracker(payload: GPSModulePayload | None) -> PawControlGPSTracker:
-    coordinator = DummyCoordinator({"gps": payload} if payload is not None else {})  # noqa: E111
-    tracker = PawControlGPSTracker(coordinator, "dog-1", "Maple")  # noqa: E111
-    return tracker  # noqa: E111
+    coordinator = DummyCoordinator({"gps": payload} if payload is not None else {})
+    tracker = PawControlGPSTracker(coordinator, "dog-1", "Maple")
+    return tracker
 
 
 def test_extra_state_attributes_coerce_runtime_payload() -> None:
-    """Ensure GPS telemetry is exported as JSON-safe, typed attributes."""  # noqa: E111
+    """Ensure GPS telemetry is exported as JSON-safe, typed attributes."""
 
-    now = datetime.now(tz=UTC)  # noqa: E111
-    payload: GPSModulePayload = {  # noqa: E111
+    now = datetime.now(tz=UTC)
+    payload: GPSModulePayload = {
         "status": "tracking",
         "altitude": 12.5,
         "speed": 4.2,
@@ -67,29 +67,29 @@ def test_extra_state_attributes_coerce_runtime_payload() -> None:
         },
     }
 
-    tracker = _build_tracker(payload)  # noqa: E111
-    attrs = tracker.extra_state_attributes  # noqa: E111
+    tracker = _build_tracker(payload)
+    attrs = tracker.extra_state_attributes
 
-    assert attrs["dog_id"] == "dog-1"  # noqa: E111
-    assert attrs["tracker_type"] == "gps"  # noqa: E111
-    assert attrs["route_active"] is True  # noqa: E111
-    assert attrs["route_points"] == 3  # noqa: E111
-    assert attrs["zone_name"] == "Backyard"  # noqa: E111
-    assert attrs["walk_id"] == "walk-1"  # noqa: E111
-    assert isinstance(attrs["last_seen"], str)  # noqa: E111
-    assert attrs["route_start_time"] is not None  # noqa: E111
-    assert isinstance(attrs["distance_from_home"], float)  # noqa: E111
-    json.dumps(attrs)  # noqa: E111
+    assert attrs["dog_id"] == "dog-1"
+    assert attrs["tracker_type"] == "gps"
+    assert attrs["route_active"] is True
+    assert attrs["route_points"] == 3
+    assert attrs["zone_name"] == "Backyard"
+    assert attrs["walk_id"] == "walk-1"
+    assert isinstance(attrs["last_seen"], str)
+    assert attrs["route_start_time"] is not None
+    assert isinstance(attrs["distance_from_home"], float)
+    json.dumps(attrs)
 
 
 @pytest.mark.asyncio
 async def test_async_export_route_json_builds_typed_payload() -> None:
-    """The JSON route exporter should emit the typed export payload."""  # noqa: E111
+    """The JSON route exporter should emit the typed export payload."""
 
-    now = datetime.now(tz=UTC)  # noqa: E111
-    tracker = _build_tracker({"status": "tracking"})  # noqa: E111
+    now = datetime.now(tz=UTC)
+    tracker = _build_tracker({"status": "tracking"})
 
-    tracker._route_points.append(  # type: ignore[attr-defined]  # noqa: E111
+    tracker._route_points.append(  # type: ignore[attr-defined]
         {
             "latitude": 40.1,
             "longitude": -74.5,
@@ -97,7 +97,7 @@ async def test_async_export_route_json_builds_typed_payload() -> None:
             "accuracy": 5,
         }
     )
-    tracker._route_points.append(  # type: ignore[attr-defined]  # noqa: E111
+    tracker._route_points.append(  # type: ignore[attr-defined]
         {
             "latitude": 40.2,
             "longitude": -74.6,
@@ -106,23 +106,23 @@ async def test_async_export_route_json_builds_typed_payload() -> None:
         }
     )
 
-    payload = await tracker.async_export_route("json")  # noqa: E111
-    assert payload is not None  # noqa: E111
-    assert payload["format"] == "json"  # noqa: E111
-    assert payload["routes_count"] == 1  # noqa: E111
+    payload = await tracker.async_export_route("json")
+    assert payload is not None
+    assert payload["format"] == "json"
+    assert payload["routes_count"] == 1
 
-    route = payload["content"]["routes"][0]  # noqa: E111
-    assert route["route_quality"] == "basic"  # noqa: E111
-    assert route["duration_minutes"] is not None  # noqa: E111
-    assert route["gps_points"][0]["timestamp"].endswith("Z") is False  # noqa: E111
+    route = payload["content"]["routes"][0]
+    assert route["route_quality"] == "basic"
+    assert route["duration_minutes"] is not None
+    assert route["gps_points"][0]["timestamp"].endswith("Z") is False
 
 
 @pytest.mark.asyncio
 async def test_async_export_route_handles_invalid_format() -> None:
-    """Unsupported export formats should return ``None`` without raising."""  # noqa: E111
+    """Unsupported export formats should return ``None`` without raising."""
 
-    tracker = _build_tracker({"status": "tracking"})  # noqa: E111
-    tracker._route_points.append(  # type: ignore[attr-defined]  # noqa: E111
+    tracker = _build_tracker({"status": "tracking"})
+    tracker._route_points.append(  # type: ignore[attr-defined]
         {
             "latitude": 40.0,
             "longitude": -74.0,
@@ -131,4 +131,4 @@ async def test_async_export_route_handles_invalid_format() -> None:
         }
     )
 
-    assert await tracker.async_export_route("unsupported") is None  # noqa: E111
+    assert await tracker.async_export_route("unsupported") is None

@@ -43,12 +43,16 @@ _DEBOUNCE_SECONDS: Final[float] = 2.0
 class _Binding:
     unsub: Callable[[], None]
     task: asyncio.Task[None] | None
+
+
 def _domain_store(hass: HomeAssistant) -> dict[str, Any]:
     store = hass.data.setdefault(DOMAIN, {})
     if not isinstance(store, dict):
         hass.data[DOMAIN] = {}
         store = hass.data[DOMAIN]
     return cast(dict[str, Any], store)
+
+
 def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371000.0
     phi1 = math.radians(lat1)
@@ -60,6 +64,8 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         + math.cos(phi1) * math.cos(phi2) * math.sin(dl / 2) ** 2
     )
     return 2 * r * math.asin(math.sqrt(a))
+
+
 def _extract_coords(
     state_obj: Any,
 ) -> tuple[float | None, float | None, float | None, float | None]:
@@ -79,6 +85,8 @@ def _extract_coords(
             float(alt) if isinstance(alt, (int, float)) else None,
         )
     return None, None, None, None
+
+
 async def async_setup_external_bindings(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
@@ -162,6 +170,7 @@ async def async_setup_external_bindings(
         dog_id_str = dog_id
         if dog_id_str in bindings:
             continue
+
         @callback  # type: ignore[untyped-decorator,misc]
         def _on_change(
             event: Event,
@@ -176,10 +185,13 @@ async def async_setup_external_bindings(
             binding.task = hass.async_create_task(
                 _process_change(dog_id, source, event)
             )
+
         unsub = event_helper.async_track_state_change_event(hass, [source], _on_change)
         bindings[dog_id_str] = _Binding(unsub=unsub, task=None)
 
     _LOGGER.debug("External GPS bindings ready for entry %s", entry.entry_id)
+
+
 async def async_unload_external_bindings(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:

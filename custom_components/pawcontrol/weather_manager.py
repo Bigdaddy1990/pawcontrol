@@ -58,6 +58,7 @@ from .weather_translations import (
 
 class ForecastEntry(TypedDict, total=False):
     """Raw weather forecast entry provided by Home Assistant."""
+
     datetime: datetime | str
     temperature: float | int
     templow: float | int
@@ -69,8 +70,11 @@ class ForecastEntry(TypedDict, total=False):
     pressure: float | int
     precipitation: float | int
     precipitation_probability: float | int
+
+
 class WeatherEntityAttributes(TypedDict, total=False):
     """Subset of weather entity attributes consumed by the manager."""
+
     temperature: float | int
     humidity: float | int
     uv_index: float | int
@@ -79,6 +83,8 @@ class WeatherEntityAttributes(TypedDict, total=False):
     visibility: float | int
     temperature_unit: UnitOfTemperature | str
     forecast: Sequence[ForecastEntry]
+
+
 type ForecastEntries = Sequence[ForecastEntry]
 type AlertField = Literal["title", "message"]
 type ActivityType = Literal["walk", "play", "exercise", "basic_needs"]
@@ -104,24 +110,35 @@ PRIMARY_ACTIVITIES: Final[
 def _is_alert_field(value: str) -> TypeGuard[AlertField]:
     """Return whether ``value`` is a valid alert translation field token."""
     return value in ALERT_FIELD_TOKENS
+
+
 def _is_weather_alert_key(value: str) -> TypeGuard[WeatherAlertKey]:
     """Return whether ``value`` is a known weather alert translation key."""
     return value in WEATHER_ALERT_KEY_SET
+
+
 def _is_weather_recommendation_key(value: str) -> TypeGuard[WeatherRecommendationKey]:
     """Return whether ``value`` is a known weather recommendation key."""
     return value in WEATHER_RECOMMENDATION_KEY_SET
+
+
 _LOGGER = logging.getLogger(__name__)
 
 
 def get_weather_translations(language: str) -> WeatherTranslations:
     """Backward-compatible wrapper for weather translation loading."""
     return _get_weather_translations(language)
+
+
 class WeatherSeverity(Enum):
     """Weather condition severity levels for dog health."""
+
     LOW = "low"
     MODERATE = "moderate"
     HIGH = "high"
     EXTREME = "extreme"
+
+
 T = TypeVar("T")
 
 
@@ -132,6 +149,7 @@ type TemperatureThresholdMap = dict[TemperatureBand, SeverityMap[float]]
 
 class WeatherHealthImpact(Enum):
     """Types of health impacts from weather conditions."""
+
     HEAT_STRESS = "heat_stress"
     COLD_STRESS = "cold_stress"
     UV_EXPOSURE = "uv_exposure"
@@ -140,23 +158,32 @@ class WeatherHealthImpact(Enum):
     HYDRATION_RISK = "hydration_risk"
     PAW_PROTECTION = "paw_protection"
     RESPIRATORY_RISK = "respiratory_risk"
+
+
 class ForecastQuality(Enum):
     """Quality indicators for weather forecast data."""
+
     EXCELLENT = "excellent"  # <6h old, high confidence
     GOOD = "good"  # <12h old, medium confidence
     FAIR = "fair"  # <24h old, basic data
     POOR = "poor"  # >24h old or incomplete
+
+
 class ActivityTimeSlot(NamedTuple):
     """Optimal activity time slot with health score."""
+
     start_time: datetime
     end_time: datetime
     health_score: int
     activity_type: ActivityType
     recommendations: list[str]
     alert_level: WeatherSeverity
+
+
 @dataclass
 class ForecastPoint:
     """Single forecast data point for weather prediction."""
+
     timestamp: datetime
     temperature_c: float | None = None
     temperature_low_c: float | None = None
@@ -167,11 +194,12 @@ class ForecastPoint:
     precipitation_mm: float | None = None
     precipitation_probability: int | None = None
     condition: str | None = None
-    # Calculated health metrics  # noqa: E114
+    # Calculated health metrics
     health_score: int | None = None
     heat_index: float | None = None
     wind_chill: float | None = None
     predicted_alerts: list[WeatherHealthImpact] = field(default_factory=list)
+
     @property
     def is_daytime(self) -> bool:
         """Check if forecast point is during daytime hours."""
@@ -194,12 +222,13 @@ class ForecastPoint:
 @dataclass
 class WeatherForecast:
     """Comprehensive weather forecast with health analysis."""
+
     forecast_points: list[ForecastPoint] = field(default_factory=list)
     source_entity: str | None = None
     generated_at: datetime = field(default_factory=dt_util.utcnow)
     forecast_horizon_hours: int = 24
     quality: ForecastQuality = ForecastQuality.FAIR
-    # Summary statistics  # noqa: E114
+    # Summary statistics
     min_health_score: int | None = None
     max_health_score: int | None = None
     avg_health_score: int | None = None
@@ -258,38 +287,54 @@ class WeatherForecast:
 @dataclass(slots=True)
 class ScoreRangeSummary:
     """Range of forecast health scores for planning."""
+
     min: int | None
     max: int | None
+
+
 @dataclass(slots=True)
 class CriticalPeriodSummary:
     """Summary of critical forecast periods."""
+
     start: str
     end: str
     duration_hours: float
+
+
 @dataclass(slots=True)
 class OptimalWindowSummary:
     """Summary of optimal activity windows."""
+
     activity: ActivityType
     start: str
     end: str
     health_score: int
     alert_level: WeatherSeverity
     recommendations: list[str]
+
+
 @dataclass(slots=True)
 class ActivityWindowSummary:
     """Summary for the next recommended activity window."""
+
     start: str
     health_score: int
     alert_level: WeatherSeverity
+
+
 @dataclass(slots=True)
 class WorstPeriodSummary:
     """Summary of the worst forecast period."""
+
     start: str
     end: str
     advice: str
+
+
 @dataclass(slots=True)
 class ForecastPlanningSummary:
     """Typed representation of forecast planning guidance."""
+
     status: Literal["available", "unavailable"]
     message: str | None = None
     forecast_quality: str | None = None
@@ -302,9 +347,12 @@ class ForecastPlanningSummary:
     next_play_time: ActivityWindowSummary | None = None
     next_exercise_time: ActivityWindowSummary | None = None
     worst_period: WorstPeriodSummary | None = None
+
+
 @dataclass
 class WeatherAlert:
     """Weather-based health alert for dogs."""
+
     alert_type: WeatherHealthImpact
     severity: WeatherSeverity
     title: str
@@ -314,6 +362,7 @@ class WeatherAlert:
     affected_breeds: list[str] = field(default_factory=list)
     age_considerations: list[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=dt_util.utcnow)
+
     @property
     def is_active(self) -> bool:
         """Check if alert is still active based on duration."""
@@ -326,6 +375,7 @@ class WeatherAlert:
 @dataclass
 class WeatherConditions:
     """Current weather conditions relevant to dog health."""
+
     temperature_c: float | None = None
     humidity_percent: float | None = None
     uv_index: float | None = None
@@ -333,13 +383,14 @@ class WeatherConditions:
     pressure_hpa: float | None = None
     visibility_km: float | None = None
     condition: str | None = None
-    # Calculated values  # noqa: E114
+    # Calculated values
     heat_index: float | None = None
     wind_chill: float | None = None
     air_quality_index: int | None = None
-    # Metadata  # noqa: E114
+    # Metadata
     source_entity: str | None = None
     last_updated: datetime = field(default_factory=dt_util.utcnow)
+
     @property
     def is_valid(self) -> bool:
         """Check if weather data is valid and recent."""
@@ -352,6 +403,7 @@ class WeatherConditions:
 
 class WeatherHealthManager:
     """Manages weather-based health warnings for dogs."""
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -433,6 +485,7 @@ class WeatherHealthManager:
             _LOGGER.warning("Failed to load weather translations: %s", err)
             self._translations = empty_weather_translations()
             self._english_translations = self._translations
+
     @staticmethod
     def _parse_translation_key(key: str) -> WeatherTranslationParts | None:
         """Normalise dotted translation keys into typed translation segments."""
@@ -516,6 +569,7 @@ class WeatherHealthManager:
             return resolved.format(**kwargs) if kwargs else resolved
         except KeyError, ValueError:
             return resolved
+
     @staticmethod
     def _resolve_translation_value(
         catalog: WeatherTranslations,
@@ -610,11 +664,11 @@ class WeatherHealthManager:
 
         async def _fetch_weather_data() -> WeatherConditions | None:
             """Internal fetch function wrapped by resilience manager."""
-            # Load translations if not already loaded  # noqa: E114
+            # Load translations if not already loaded
             if not self._translations:
                 await self.async_load_translations()
 
-            # Find weather entity if not specified  # noqa: E114
+            # Find weather entity if not specified
             weather_entity_id_local = weather_entity_id
             if weather_entity_id_local is None:
                 weather_entity_id_local = await self._find_weather_entity()
@@ -625,7 +679,7 @@ class WeatherHealthManager:
                 )
                 return None
 
-            # Get weather state  # noqa: E114
+            # Get weather state
             weather_state = self.hass.states.get(weather_entity_id_local)
             if not weather_state or weather_state.state in [
                 STATE_UNAVAILABLE,
@@ -637,7 +691,7 @@ class WeatherHealthManager:
                 )
                 return None
 
-            # Extract weather data  # noqa: E114
+            # Extract weather data
             attributes = cast(
                 WeatherEntityAttributes,
                 weather_state.attributes,
@@ -678,9 +732,9 @@ class WeatherHealthManager:
                 last_updated=dt_util.utcnow(),
             )
 
-            # Calculate derived values  # noqa: E114
+            # Calculate derived values
             self._calculate_derived_conditions()
-            # Update alerts based on new conditions  # noqa: E114
+            # Update alerts based on new conditions
             await self._update_weather_alerts()
             _LOGGER.debug(
                 "Updated weather conditions: %.1f°C, %s, UV: %s",
@@ -690,6 +744,7 @@ class WeatherHealthManager:
             )
 
             return self._current_conditions
+
         # RESILIENCE: Wrap weather data fetch with retry logic
         try:
             if self.resilience_manager:
@@ -697,7 +752,7 @@ class WeatherHealthManager:
                     _fetch_weather_data,
                     retry_config=self._retry_config,
                 )
-            # Fallback if no resilience manager  # noqa: E114
+            # Fallback if no resilience manager
             return await _fetch_weather_data()
         except Exception as err:
             _LOGGER.error(
@@ -705,6 +760,7 @@ class WeatherHealthManager:
                 err,
             )
             return None
+
     async def async_update_forecast_data(
         self,
         weather_entity_id: str | None = None,
@@ -724,11 +780,11 @@ class WeatherHealthManager:
 
         async def _fetch_forecast_data() -> WeatherForecast | None:
             """Internal fetch function wrapped by resilience manager."""
-            # Load translations if not already loaded  # noqa: E114
+            # Load translations if not already loaded
             if not self._translations:
                 await self.async_load_translations()
 
-            # Find weather entity if not specified  # noqa: E114
+            # Find weather entity if not specified
             weather_entity_id_local = weather_entity_id
             if weather_entity_id_local is None:
                 weather_entity_id_local = await self._find_weather_entity()
@@ -739,7 +795,7 @@ class WeatherHealthManager:
                 )
                 return None
 
-            # Get weather entity with forecast data  # noqa: E114
+            # Get weather entity with forecast data
             weather_state = self.hass.states.get(weather_entity_id_local)
             if not weather_state or weather_state.state in [
                 STATE_UNAVAILABLE,
@@ -751,7 +807,7 @@ class WeatherHealthManager:
                 )
                 return None
 
-            # Extract forecast data from attributes  # noqa: E114
+            # Extract forecast data from attributes
             attributes = cast(
                 WeatherEntityAttributes,
                 weather_state.attributes,
@@ -781,7 +837,7 @@ class WeatherHealthManager:
                 )
                 return None
 
-            # Process forecast data into structured format  # noqa: E114
+            # Process forecast data into structured format
             forecast_points = await self._process_forecast_data(
                 forecast_data,
                 forecast_horizon_hours,
@@ -791,7 +847,7 @@ class WeatherHealthManager:
                 _LOGGER.warning("No valid forecast points generated")
                 return None
 
-            # Create forecast object  # noqa: E114
+            # Create forecast object
             self._current_forecast = WeatherForecast(
                 forecast_points=forecast_points,
                 source_entity=weather_entity_id_local,
@@ -800,11 +856,11 @@ class WeatherHealthManager:
                 quality=self._assess_forecast_quality(forecast_data),
             )
 
-            # Calculate health scores for all forecast points  # noqa: E114
+            # Calculate health scores for all forecast points
             await self._calculate_forecast_health_scores()
-            # Calculate summary statistics  # noqa: E114
+            # Calculate summary statistics
             self._calculate_forecast_statistics()
-            # Identify optimal activity windows  # noqa: E114
+            # Identify optimal activity windows
             await self._identify_optimal_activity_windows()
             _LOGGER.debug(
                 "Updated weather forecast: %d points, %dh horizon, quality: %s",
@@ -814,6 +870,7 @@ class WeatherHealthManager:
             )
 
             return self._current_forecast
+
         # RESILIENCE: Wrap forecast data fetch with retry logic
         try:
             if self.resilience_manager:
@@ -821,7 +878,7 @@ class WeatherHealthManager:
                     _fetch_forecast_data,
                     retry_config=self._retry_config,
                 )
-            # Fallback if no resilience manager  # noqa: E114
+            # Fallback if no resilience manager
             return await _fetch_forecast_data()
         except Exception as err:
             _LOGGER.error(
@@ -829,6 +886,7 @@ class WeatherHealthManager:
                 err,
             )
             return None
+
     async def _process_forecast_data(
         self,
         forecast_data: ForecastEntries,
@@ -1002,7 +1060,7 @@ class WeatherHealthManager:
             and forecast_point.humidity_percent >= 40
         ):
             humidity = forecast_point.humidity_percent
-            # Heat index formula (Fahrenheit)  # noqa: E114
+            # Heat index formula (Fahrenheit)
             heat_index_f = (
                 -42.379
                 + 2.04901523 * temp_f
@@ -1015,7 +1073,7 @@ class WeatherHealthManager:
                 - 0.00000199 * temp_f * temp_f * humidity * humidity
             )
 
-            # Convert back to Celsius  # noqa: E114
+            # Convert back to Celsius
             forecast_point.heat_index = (heat_index_f - 32) * 5 / 9
         # Calculate wind chill if cold and windy
         if (
@@ -1024,7 +1082,7 @@ class WeatherHealthManager:
             and forecast_point.wind_speed_kmh > 5
         ):
             wind_mph = forecast_point.wind_speed_kmh * 0.621371
-            # Wind chill formula (Fahrenheit)  # noqa: E114
+            # Wind chill formula (Fahrenheit)
             if wind_mph > 3:
                 wind_chill_f = (
                     35.74
@@ -1065,7 +1123,7 @@ class WeatherHealthManager:
             effective_temp = (
                 forecast_point.heat_index or forecast_point.wind_chill or temp
             )
-            # Ideal temperature range for dogs: 15-22°C  # noqa: E114
+            # Ideal temperature range for dogs: 15-22°C
             if 15 <= temp <= 22:
                 score += 0  # Perfect
             elif 10 <= temp < 15 or 22 < temp <= 25:
@@ -1077,11 +1135,11 @@ class WeatherHealthManager:
             else:
                 score -= 60  # Extreme concern
 
-            # Additional penalty for extreme feels-like temperatures  # noqa: E114
+            # Additional penalty for extreme feels-like temperatures
             if effective_temp != temp:
                 temp_diff = abs(effective_temp - temp)
                 if temp_diff > 5:
-                    # 2 points per degree difference  # noqa: E114
+                    # 2 points per degree difference
                     score -= int(temp_diff * 2)
         # UV index scoring
         if forecast_point.uv_index is not None:
@@ -1216,7 +1274,7 @@ class WeatherHealthManager:
                     current_period_start = point.timestamp
             else:
                 if current_period_start is not None:
-                    # End of critical period  # noqa: E114
+                    # End of critical period
                     critical_periods.append(
                         (current_period_start, point.timestamp),
                     )
@@ -1449,11 +1507,11 @@ class WeatherHealthManager:
         ]
 
         if weather_entities:
-            # Prefer entities with "weather" in the name  # noqa: E114
+            # Prefer entities with "weather" in the name
             for entity_id in weather_entities:
                 if "weather" in entity_id.lower():
                     return entity_id
-            # Fall back to first available  # noqa: E114
+            # Fall back to first available
             return weather_entities[0]
         return None
 
@@ -1474,7 +1532,7 @@ class WeatherHealthManager:
             and self._current_conditions.humidity_percent >= 40
         ):
             humidity = self._current_conditions.humidity_percent
-            # Heat index formula (Fahrenheit)  # noqa: E114
+            # Heat index formula (Fahrenheit)
             heat_index_f = (
                 -42.379
                 + 2.04901523 * temp_f
@@ -1487,7 +1545,7 @@ class WeatherHealthManager:
                 - 0.00000199 * temp_f * temp_f * humidity * humidity
             )
 
-            # Convert back to Celsius  # noqa: E114
+            # Convert back to Celsius
             self._current_conditions.heat_index = (heat_index_f - 32) * 5 / 9
         # Calculate wind chill if cold and windy
         if (
@@ -1496,7 +1554,7 @@ class WeatherHealthManager:
             and self._current_conditions.wind_speed_kmh > 5
         ):
             wind_mph = self._current_conditions.wind_speed_kmh * 0.621371
-            # Wind chill formula (Fahrenheit)  # noqa: E114
+            # Wind chill formula (Fahrenheit)
             if wind_mph > 3:
                 wind_chill_f = (
                     35.74
@@ -2122,7 +2180,7 @@ class WeatherHealthManager:
         # Temperature scoring
         if self._current_conditions.temperature_c is not None:
             temp = self._current_conditions.temperature_c
-            # Ideal temperature range for dogs: 15-22°C  # noqa: E114
+            # Ideal temperature range for dogs: 15-22°C
             if 15 <= temp <= 22:
                 score += 0  # Perfect
             elif 10 <= temp < 15 or 22 < temp <= 25:
@@ -2192,7 +2250,7 @@ class WeatherHealthManager:
         # Collect all recommendations from active alerts
         for alert in active_alerts:
             recommendations.extend(alert.recommendations)
-            # Add breed-specific recommendations  # noqa: E114
+            # Add breed-specific recommendations
             if dog_breed:
                 breed_lower = dog_breed.lower()
                 if breed_lower in alert.affected_breeds or any(
@@ -2206,7 +2264,7 @@ class WeatherHealthManager:
                         ),
                     )
 
-            # Add age-specific recommendations  # noqa: E114
+            # Add age-specific recommendations
             if dog_age_months is not None:
                 if dog_age_months < 12 and "puppies" in alert.age_considerations:
                     recommendations.append(
@@ -2221,7 +2279,7 @@ class WeatherHealthManager:
                         ),
                     )
 
-            # Add health condition considerations  # noqa: E114
+            # Add health condition considerations
             if health_conditions:
                 for condition in health_conditions:
                     condition_lower = condition.lower()

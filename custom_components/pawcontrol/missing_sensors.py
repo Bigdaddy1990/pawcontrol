@@ -43,6 +43,7 @@ type WalkHistory = list[WalkSessionSnapshot]
 
 class _ModuleDataProvider(Protocol):
     """Protocol describing objects that expose module data accessors."""
+
     def _get_module_data(self, module: str) -> Mapping[str, JSONValue] | None:
         """Return coordinator data for the requested module."""
 
@@ -54,6 +55,8 @@ def _walk_payload(
     if module_data is None or not isinstance(module_data, Mapping):
         return None
     return cast(WalkModuleTelemetry, module_data)
+
+
 def _health_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[HealthModulePayload]:
@@ -61,6 +64,8 @@ def _health_payload(
     if module_data is None or not isinstance(module_data, Mapping):
         return None
     return cast(HealthModulePayload, module_data)
+
+
 def _feeding_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[FeedingModuleTelemetry]:
@@ -68,9 +73,13 @@ def _feeding_payload(
     if module_data is None or not isinstance(module_data, Mapping):
         return None
     return cast(FeedingModuleTelemetry, module_data)
+
+
 def _normalise_attributes(attrs: Mapping[str, object]) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for missing sensors."""
     return normalise_entity_attributes(attrs)
+
+
 def calculate_activity_level(
     walk_data: ModuleSnapshot[WalkModuleTelemetry],
     health_data: ModuleSnapshot[HealthModulePayload],
@@ -176,6 +185,8 @@ def calculate_hours_since(
 
     now = reference or dt_util.utcnow()
     return (now - last_event).total_seconds() / 3600
+
+
 def derive_next_feeding_time(
     feeding_data: ModuleSnapshot[FeedingModuleTelemetry],
 ) -> str | None:
@@ -207,6 +218,7 @@ def derive_next_feeding_time(
 @register_sensor("activity_level")
 class PawControlActivityLevelSensor(PawControlSensorBase):
     """Sensor for the current activity level of a dog."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -266,6 +278,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 @register_sensor("calories_burned_today")
 class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     """Sensor estimating calories burned today."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -347,6 +360,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 @register_sensor("last_feeding_hours")
 class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     """Sensor reporting hours since the last feeding."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -426,6 +440,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 @register_sensor("total_walk_distance")
 class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     """Sensor exposing the lifetime walk distance."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -472,6 +487,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             return 0.0
         except TypeError:
             return 0.0
+
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return aggregated walk distance metrics for the dog."""
@@ -523,6 +539,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
 @register_sensor("walks_this_week")
 class PawControlWalksThisWeekSensor(PawControlSensorBase):
     """Sensor tracking the number of walks completed during the current week."""
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -578,6 +595,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             return 0
         except TypeError:
             return 0
+
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose weekly walk statistics derived from coordinator payloads."""

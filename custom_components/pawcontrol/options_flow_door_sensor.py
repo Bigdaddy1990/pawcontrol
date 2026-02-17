@@ -59,6 +59,8 @@ def _resolve_require_runtime_data() -> RuntimeDataResolver:
     except Exception:
         pass
     return require_runtime_data
+
+
 def _resolve_async_create_issue() -> IssueCreator:
     """Return the patched repairs helper when available."""
     try:
@@ -71,6 +73,8 @@ def _resolve_async_create_issue() -> IssueCreator:
     except Exception:
         pass
     return async_create_issue
+
+
 if TYPE_CHECKING:
 
     class DoorSensorOptionsHost(Protocol):
@@ -86,9 +90,12 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     DoorSensorOptionsHost = object
+
+
 class DoorSensorOptionsMixin(DoorSensorOptionsHost):
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
+
     async def async_step_select_dog_for_door_sensor(
         self,
         user_input: OptionsDogSelectionInput | None = None,
@@ -339,9 +346,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                                     cast(JSONLikeMapping, issue_payload),
                                     severity="error",
                                 )
-                            except (
-                                Exception
-                            ) as issue_err:  # pragma: no cover
+                            except Exception as issue_err:  # pragma: no cover
                                 _LOGGER.debug(
                                     "Skipping repair issue publication for %s: %s",
                                     dog_id,
@@ -350,7 +355,7 @@ class DoorSensorOptionsMixin(DoorSensorOptionsHost):
                             errors["base"] = "door_sensor_update_failed"
                     elif persist_updates and "base" not in errors:
                         _LOGGER.debug(
-                            "Data manager unavailable while updating door sensor for %s",
+                            "Data manager unavailable while updating door sensor for %s",  # noqa: E501
                             dog_id,
                         )
 

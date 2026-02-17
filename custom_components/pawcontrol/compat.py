@@ -49,6 +49,8 @@ def _build_exception(
     if extra_attrs:
         namespace.update(extra_attrs)
     return type(name, (base,), namespace)
+
+
 def _import_optional(module_name: str) -> ModuleType | None:
     """Import a module when available, returning ``None`` in fallback mode."""
     try:
@@ -90,18 +92,25 @@ async def support_entry_unload(hass: Any, domain: str) -> bool:
     """Return ``True`` if the registered handler exposes an unload hook."""
     handler = HANDLERS.get(domain)
     return bool(handler and hasattr(handler, "async_unload_entry"))
+
+
 async def support_remove_from_device(hass: Any, domain: str) -> bool:
     """Return ``True`` if the handler exposes a remove-device hook."""
     handler = HANDLERS.get(domain)
     return bool(handler and hasattr(handler, "async_remove_config_entry_device"))
+
+
 @dataclass(slots=True)
 class _BoundExceptionAlias:
     """Container describing an installed exception alias binding."""
+
     source: str
     module_name: str
     target: str
     combine_with_current: bool
     callback: _ExceptionRebindCallback
+
+
 _BOUND_EXCEPTION_ALIASES: dict[tuple[str, str], _BoundExceptionAlias] = {}
 
 
@@ -127,16 +136,22 @@ def _notify_exception_callbacks() -> None:
             callback(mapping)
         except Exception:  # pragma: no cover - defensive guard for test hooks
             continue
+
+
 def register_exception_rebind_callback(
     callback: _ExceptionRebindCallback,
 ) -> Callable[[], None]:
     """Register a callback that fires whenever exception bindings change."""
     _EXCEPTION_REBIND_CALLBACKS.append(callback)
     callback(_current_exception_mapping())
+
     def _unregister() -> None:
         with suppress(ValueError):  # pragma: no branch - suppress missing callback
             _EXCEPTION_REBIND_CALLBACKS.remove(callback)
+
     return _unregister
+
+
 def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
     """Return the module that should receive a rebound alias."""
     if isinstance(module, ModuleType):
@@ -182,12 +197,12 @@ def bind_exception_alias(
     combine_with_current: bool = False,
 ) -> Callable[[], None]:
     """Keep ``module.attr`` in sync with the active Home Assistant class."""
-    # ``module`` may be supplied as a module object, a module name, or omitted to  # noqa: E114, E501
-    # infer the caller.  The binding survives module reloads by resolving fresh  # noqa: E114, E501
-    # module objects from :data:`sys.modules` each time the callback fires.  # noqa: E114
+    # ``module`` may be supplied as a module object, a module name, or omitted to  # noqa: E501
+    # infer the caller.  The binding survives module reloads by resolving fresh  # noqa: E501
+    # module objects from :data:`sys.modules` each time the callback fires.  # noqa: E501
 
-    # Default to the caller's module so integration files can bind aliases  # noqa: E114
-    # without importing ``sys`` purely for ``sys.modules[__name__]``.  # noqa: E114
+    # Default to the caller's module so integration files can bind aliases
+    # without importing ``sys`` purely for ``sys.modules[__name__]``.
 
     module_obj = _resolve_binding_module(module)
     target = attr or name
@@ -201,12 +216,14 @@ def bind_exception_alias(
         with suppress(ValueError):
             _EXCEPTION_REBIND_CALLBACKS.remove(previous.callback)
     bound: _BoundExceptionAlias | None = None
+
     def _unregister() -> None:
         stored = _BOUND_EXCEPTION_ALIASES.get(key)
         if stored is bound:
             _BOUND_EXCEPTION_ALIASES.pop(key, None)
         with suppress(ValueError):
             _EXCEPTION_REBIND_CALLBACKS.remove(_apply)
+
     def _apply(mapping: dict[str, type[Exception]]) -> None:
         current_module = sys.modules.get(module_name)
         if not isinstance(current_module, ModuleType):
@@ -247,6 +264,8 @@ def bind_exception_alias(
     _apply(_current_exception_mapping())
     _EXCEPTION_REBIND_CALLBACKS.append(_apply)
     return _unregister
+
+
 def _get_exception(
     name: str,
     default_factory: Callable[[], type[Exception]],
@@ -262,8 +281,12 @@ def _get_exception(
         return attr
 
     return default_factory()
+
+
 class _FallbackHomeAssistantError(RuntimeError):
     """Fallback base error used when Home Assistant isn't installed."""
+
+
 HomeAssistantError: type[Exception] = _FallbackHomeAssistantError
 _HOMEASSISTANT_ERROR_IS_FALLBACK = True
 
@@ -289,6 +312,7 @@ def _config_entry_error_factory() -> type[Exception]:
 
 def _auth_failed_factory() -> type[Exception]:
     base = ConfigEntryError
+
     def _init(
         self: Any,
         message: str | None = None,
@@ -304,6 +328,8 @@ def _auth_failed_factory() -> type[Exception]:
         "__init__": _init,
     }
     return type("ConfigEntryAuthFailed", (base,), namespace)
+
+
 def _not_ready_factory() -> type[Exception]:
     base = ConfigEntryError
     return type(
@@ -366,9 +392,13 @@ def _refresh_exception_symbols(exceptions_module: ModuleType | None) -> None:
     )
 
     _notify_exception_callbacks()
+
+
 def ensure_homeassistant_exception_symbols() -> None:
     """Ensure exception exports mirror the active Home Assistant module."""
     _refresh_exception_symbols(sys.modules.get("homeassistant.exceptions"))
+
+
 ConfigEntryError = _config_entry_error_factory()
 ConfigEntryAuthFailed = _auth_failed_factory()
 ConfigEntryNotReady = _not_ready_factory()
@@ -380,8 +410,11 @@ _refresh_exception_symbols(_ha_exceptions)
 def _utcnow() -> datetime:
     """Return the current UTC time."""
     return datetime.now(tz=UTC)
+
+
 class ConfigEntryState(Enum):
     """Minimal stand-in mirroring Home Assistant config entry states."""
+
     NOT_LOADED = ("not_loaded", True)
     LOADED = ("loaded", True)
     SETUP_IN_PROGRESS = ("setup_in_progress", False)
@@ -390,6 +423,7 @@ class ConfigEntryState(Enum):
     MIGRATION_ERROR = ("migration_error", False)
     FAILED_UNLOAD = ("failed_unload", False)
     UNLOAD_IN_PROGRESS = ("unload_in_progress", False)
+
     def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
         """Create enum members that store the recoverability flag."""
 
@@ -423,11 +457,15 @@ class ConfigEntryState(Enum):
 
 class ConfigEntryChange(Enum):
     """Enum describing why a config entry update listener fired."""
+
     ADDED = "added"
     REMOVED = "removed"
     UPDATED = "updated"
+
+
 class ConfigSubentry:
     """Minimal compatibility stand-in for Home Assistant subentries."""
+
     def __init__(
         self,
         *,
@@ -471,9 +509,13 @@ def _build_subentries(
         )
 
     return subentries
+
+
 class ConfigEntry[RuntimeT]:
     """Lightweight ConfigEntry implementation for test environments."""
+
     _id_source = count(1)
+
     def __init__(
         self,
         entry_id: str | None = None,
@@ -641,6 +683,7 @@ class ConfigEntry[RuntimeT]:
         )
         if isinstance(manager, dict):  # pragma: no branch - test helper hook
             manager[self.entry_id] = self
+
     def add_update_listener(
         self,
         listener: Callable[[Any, ConfigEntry[RuntimeT]], Awaitable[None] | None],
@@ -664,9 +707,7 @@ class ConfigEntry[RuntimeT]:
         self._on_unload.append(callback)
         return callback
 
-    async def async_setup(
-        self, hass: Any
-    ) -> bool:  # pragma: no cover - helper
+    async def async_setup(self, hass: Any) -> bool:  # pragma: no cover - helper
         """Mark the entry as loaded when set up in tests."""
 
         self._hass = hass
@@ -702,29 +743,33 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
 
     parameter_names = {parameter.name for parameter in signature.parameters.values()}
     return {"domain", "entry_id"}.issubset(parameter_names)
+
+
 def _is_enum_type(value: Any) -> bool:
     """Return ``True`` if ``value`` is an :class:`Enum` subclass."""
     return isinstance(value, type) and issubclass(value, Enum)
+
+
 def _sync_config_entry_symbols(
     config_entries_module: Any | None,
     core_module: Any | None,
 ) -> None:
     """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""
-    # The compatibility layer needs to operate in two very different execution  # noqa: E114, E501
-    # environments:  # noqa: E114
-    #  # noqa: E114
-    # 1. When the integration runs inside Home Assistant we should defer to the  # noqa: E114, E501
-    #    real ``ConfigEntry`` implementation that ships with HA so that we do  # noqa: E114, E501
-    #    not accidentally diverge from core behaviour.  # noqa: E114
-    # 2. When tests import PawControl without Home Assistant installed we fall  # noqa: E114, E501
-    #    back to the lightweight shim defined in this module.  In that  # noqa: E114
-    #    situation multiple imports may race each other, so we patch both the  # noqa: E114, E501
-    #    module globals and the ``homeassistant`` namespaces to ensure every  # noqa: E114
-    #    caller sees the same symbols.  # noqa: E114
-    #  # noqa: E114
-    # The branching below therefore checks whether a real Home Assistant  # noqa: E114
-    # implementation is available and, if not, injects the compatibility  # noqa: E114
-    # classes in the places the rest of the codebase expects to find them.  # noqa: E114
+    # The compatibility layer needs to operate in two very different execution  # noqa: E501
+    # environments:
+    #
+    # 1. When the integration runs inside Home Assistant we should defer to the  # noqa: E501
+    #    real ``ConfigEntry`` implementation that ships with HA so that we do  # noqa: E501
+    #    not accidentally diverge from core behaviour.
+    # 2. When tests import PawControl without Home Assistant installed we fall  # noqa: E501
+    #    back to the lightweight shim defined in this module.  In that
+    #    situation multiple imports may race each other, so we patch both the  # noqa: E501
+    #    module globals and the ``homeassistant`` namespaces to ensure every  # noqa: E501
+    #    caller sees the same symbols.
+    #
+    # The branching below therefore checks whether a real Home Assistant
+    # implementation is available and, if not, injects the compatibility
+    # classes in the places the rest of the codebase expects to find them.
     if config_entries_module is not None:
         module_entry_cls = getattr(config_entries_module, "ConfigEntry", None)
         if _should_use_module_entry(module_entry_cls):
@@ -761,6 +806,8 @@ def _sync_config_entry_symbols(
             globals()["ConfigEntryChange"] = cast(type[Enum], change_cls)
         else:
             core_module.ConfigEntryChange = ConfigEntryChange
+
+
 _sync_config_entry_symbols(_ha_config_entries, _ha_core)
 
 
@@ -777,6 +824,7 @@ def _fallback_service_registry() -> type[Any]:
         registry = getattr(_ha_core, "ServiceRegistry", None)
         if isinstance(registry, type):  # pragma: no cover - prefer HA implementation
             return registry
+
     @dataclass
     class _ServiceCall:
         domain: str
@@ -788,6 +836,7 @@ def _fallback_service_registry() -> type[Any]:
 
         def __init__(self) -> None:
             self._services: dict[str, dict[str, Callable[..., Any]]] = {}
+
         def async_register(
             self,
             domain: str,
@@ -796,6 +845,7 @@ def _fallback_service_registry() -> type[Any]:
             schema: Any | None = None,
         ) -> None:
             self._services.setdefault(domain, {})[service] = handler
+
         async def async_call(
             self,
             domain: str,
@@ -811,9 +861,13 @@ def _fallback_service_registry() -> type[Any]:
 
         def async_services(self) -> dict[str, dict[str, Callable[..., Any]]]:
             return self._services
+
         def has_service(self, domain: str, service: str) -> bool:
             return service in self._services.get(domain, {})
+
     return ServiceRegistry
+
+
 ServiceRegistry = _fallback_service_registry()
 
 

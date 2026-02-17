@@ -14,11 +14,15 @@ from ..types import (
 def validation_error_key(error: ValidationError, fallback: str) -> str:
     """Return a translation key for a validation error."""
     return error.constraint or fallback
+
+
 def build_dog_gps_placeholders(*, dog_name: str) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the GPS configuration step."""
     placeholders = clone_placeholders(DOG_GPS_PLACEHOLDERS_TEMPLATE)
     placeholders["dog_name"] = dog_name
     return freeze_placeholders(placeholders)
+
+
 def build_gps_source_options(
     gps_sources: Mapping[str, str],
 ) -> dict[str, str]:

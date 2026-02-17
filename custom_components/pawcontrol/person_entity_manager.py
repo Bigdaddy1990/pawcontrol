@@ -53,6 +53,8 @@ def _resolve_cache_snapshot_class() -> type[CacheDiagnosticsSnapshot]:
     except Exception:
         pass
     return CacheDiagnosticsSnapshot
+
+
 _LOGGER = logging.getLogger(__name__)
 
 # Configuration constants
@@ -65,14 +67,19 @@ MAX_DISCOVERY_INTERVAL = 3600  # 1 hour
 @dataclass
 class _PersonNotificationCachePayload:
     """Internal cache payload storing canonical targets and timestamps."""
+
     targets: tuple[str, ...]
     generated_at: datetime
+
+
 EntryT = TypeVar("EntryT", bound=PersonNotificationCacheEntry)
 
 
 class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
     """Typed notification target cache with diagnostics helpers."""
+
     __slots__ = ("_entries",)
+
     def __init__(self) -> None:
         """Initialize the notification target cache container."""
         self._entries: dict[str, _PersonNotificationCachePayload] = {}
@@ -144,9 +151,12 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
 def _empty_person_attributes() -> PersonEntityAttributePayload:
     """Return an empty attribute payload for person entities."""
     return {}
+
+
 @dataclass
 class PersonEntityInfo:
     """Information about a discovered person entity."""
+
     entity_id: str
     name: str
     friendly_name: str
@@ -200,6 +210,7 @@ class PersonEntityInfo:
 @dataclass
 class PersonEntityConfig:
     """Configuration for person entity integration."""
+
     enabled: bool = True
     auto_discovery: bool = True
     discovery_interval: int = DEFAULT_DISCOVERY_INTERVAL
@@ -218,6 +229,7 @@ class PersonEntityConfig:
 
 class PersonEntityManager(SupportsCoordinatorSnapshot):
     """Manager for person entity discovery and notification targeting."""
+
     @staticmethod
     def _coerce_discovery_interval(value: int | None) -> int:
         """Clamp the discovery interval to supported bounds."""
@@ -339,6 +351,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             await self._async_initialize_locked(config)
         if self._cache_registrar is not None:
             self.register_cache_monitors(self._cache_registrar)
+
     async def _async_initialize_locked(
         self,
         config: PersonEntityConfigInput | None,
@@ -371,7 +384,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         try:
             entity_registry = er.async_get(self.hass)
             discovered_count = 0
-            # Get all person domain entities from registry  # noqa: E114
+            # Get all person domain entities from registry
             person_entities = [
                 entry
                 for entry in entity_registry.entities.values()
@@ -427,12 +440,12 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 new_persons[entity_id] = person_info
                 discovered_count += 1
 
-            # Update persons dictionary  # noqa: E114
+            # Update persons dictionary
             self._persons = new_persons
             self._stats["persons_discovered"] = len(self._persons)
             self._stats["discovery_runs"] += 1
             self._last_discovery = dt_util.now()
-            # Clear cache since persons may have changed  # noqa: E114
+            # Clear cache since persons may have changed
             self._targets_cache.clear()
             _LOGGER.debug(
                 "Discovery completed: %d person entities found, %d home",
@@ -442,6 +455,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         except Exception as err:
             _LOGGER.error("Failed to discover person entities: %s", err)
+
     async def _find_mobile_device_for_person(
         self,
         person_entity_id: str,
@@ -457,7 +471,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             Mobile device ID if found
         """
         try:
-            # Check if person has source attribute pointing to device tracker  # noqa: E114
+            # Check if person has source attribute pointing to device tracker  # noqa: E501
             source = person_state.attributes.get("source")
             if source and source.startswith("device_tracker."):
                 # Try to map device tracker to mobile device
@@ -475,7 +489,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                     if self.hass.services.has_service("notify", pattern):
                         return pattern
 
-            # Check user_id attribute for Home Assistant user mapping  # noqa: E114
+            # Check user_id attribute for Home Assistant user mapping
             user_id = person_state.attributes.get("user_id")
             if user_id:
                 # This would require access to user registry which needs caution
@@ -490,6 +504,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 err,
             )
             return None
+
     async def _setup_state_tracking(self) -> None:
         """Set up state change tracking for person entities."""
         if not self._persons:
@@ -500,6 +515,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             event: Event[EventStateChangedData],
         ) -> None:
             await self._handle_person_state_change(event)
+
         # Track state changes for all person entities
         listener = async_track_state_change_event(
             self.hass,
@@ -556,6 +572,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         """Start periodic discovery task."""
         if self._discovery_task is not None:
             return
+
         async def discovery_loop() -> None:
             while True:
                 try:
@@ -565,6 +582,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                     break
                 except Exception as err:
                     _LOGGER.error("Discovery task error: %s", err)
+
         self._discovery_task = asyncio.create_task(discovery_loop())
 
         _LOGGER.debug(
@@ -654,13 +672,13 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             ]
         # Extract notification services
         for person in persons:
-            # Use explicit mapping first  # noqa: E114
+            # Use explicit mapping first
             if person.notification_service:
                 targets.append(person.notification_service)
-            # Try auto-detected mobile device  # noqa: E114
+            # Try auto-detected mobile device
             elif person.mobile_device_id:
                 targets.append(person.mobile_device_id)
-            # Fallback to generic mobile app pattern  # noqa: E114
+            # Fallback to generic mobile app pattern
             else:
                 mobile_service = f"mobile_app_{person.name}"
                 if self.hass.services.has_service("notify", mobile_service):
@@ -714,6 +732,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             }
 
             return result
+
     async def async_update_config(self, new_config: PersonEntityConfigInput) -> bool:
         """Update person entity configuration.
 
@@ -841,6 +860,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         async with self._lock:
             await self._async_shutdown_locked()
+
     async def _async_shutdown_locked(self) -> None:
         """Shutdown internals while ``_lock`` is held."""
 

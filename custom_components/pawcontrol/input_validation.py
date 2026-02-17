@@ -30,9 +30,11 @@ class ValidationResult:
         sanitized_value: Sanitized value
         errors: List of validation errors
     """
+
     is_valid: bool
     sanitized_value: Any
     errors: list[str]
+
     def __bool__(self) -> bool:
         """Boolean conversion returns is_valid."""
         return self.is_valid
@@ -49,7 +51,8 @@ class InputSanitizer:
         >>> clean = sanitizer.sanitize_html("<script>alert('xss')</script>")
         >>> # Result: "&lt;script&gt;alert('xss')&lt;/script&gt;"
     """
-    # Dangerous patterns to detect  # noqa: E114
+
+    # Dangerous patterns to detect
     SQL_INJECTION_PATTERNS = [
         re.compile(r"(\bUNION\b.*\bSELECT\b)", re.IGNORECASE),
         re.compile(r"(\bDROP\b.*\bTABLE\b)", re.IGNORECASE),
@@ -225,6 +228,7 @@ class InputValidator:
         >>> result = validator.validate_email("user@example.com")
         >>> assert result.is_valid
     """
+
     def __init__(self) -> None:
         """Initialize input validator."""
         self._sanitizer = InputSanitizer()
@@ -443,17 +447,17 @@ class InputValidator:
         sanitized = {}
 
         for field, rules in schema.items():
-            # Check required  # noqa: E114
+            # Check required
             if rules.get("required") and field not in data:
                 errors.append(f"Missing required field: {field}")
                 continue
 
-            # Skip if not present and not required  # noqa: E114
+            # Skip if not present and not required
             if field not in data:
                 continue
 
             value = data[field]
-            # Validate by type  # noqa: E114
+            # Validate by type
             field_type = rules.get("type", "str")
             if field_type == "str":
                 result = self.validate_string(
@@ -546,6 +550,8 @@ def sanitize_user_input(text: str, max_length: int = 1000) -> str:
     """
     sanitizer = InputSanitizer()
     return sanitizer.sanitize_string(text, max_length=max_length)
+
+
 def validate_and_sanitize(
     value: Any,
     validator_func: str,

@@ -21,11 +21,13 @@ from .types import (
 
 if TYPE_CHECKING:
     from .options_flow_hosts import DogOptionsHost
+
     class FeedingOptionsHost(DogOptionsHost):
         """Type-checking host for feeding options mixin."""
 
 else:  # pragma: no cover
     from .options_flow_shared import OptionsFlowSharedMixin
+
     class FeedingOptionsHost(OptionsFlowSharedMixin):
         """Runtime host for feeding options mixin."""
 
@@ -34,6 +36,7 @@ else:  # pragma: no cover
 
 class FeedingOptionsMixin(FeedingOptionsHost):
     """Handle per-dog feeding options."""
+
     @staticmethod
     def _coerce_meals_per_day(value: Any, default: int) -> int:
         """Coerce meal counts to a bounded integer."""

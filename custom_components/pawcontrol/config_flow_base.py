@@ -140,10 +140,12 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
     methods used across all configuration flow steps. It implements proper
     rate limiting and caching for optimal performance.
     """
+
     domain = DOMAIN
     VERSION: ClassVar[int] = 1
-    # Increased for new per-dog configuration features  # noqa: E114
+    # Increased for new per-dog configuration features
     MINOR_VERSION: ClassVar[int] = 2
+
     def __init__(self) -> None:
         """Initialize base configuration flow."""
         super().__init__()
@@ -238,7 +240,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
         Returns:
             True if weight matches size expectations
         """
-        # Consistent realistic weight ranges with overlap to accommodate breed variations
+        # Consistent realistic weight ranges with overlap to accommodate breed variations  # noqa: E501
         size_ranges = {
             "toy": (1.0, 15.0),  # Chihuahua, Yorkshire Terrier
             # Beagle, Cocker Spaniel (overlap with toy/medium)
@@ -329,7 +331,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
             if not breed_info or breed_info == "":
                 breed_info = "Mixed Breed"
 
-            # Size emoji mapping  # noqa: E114
+            # Size emoji mapping
             size_emojis = {
                 "toy": "🐭",
                 "small": "🐕",
@@ -340,11 +342,11 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
             dog_size = dog.get(DOG_SIZE_FIELD)
             size_key = dog_size if isinstance(dog_size, str) else "medium"
             size_emoji = size_emojis.get(size_key, "🐶")
-            # Enabled modules count  # noqa: E114
+            # Enabled modules count
             modules_mapping = ensure_dog_modules_mapping(dog)
             enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)
             total_modules = len(modules_mapping)
-            # Special configurations  # noqa: E114
+            # Special configurations
             special_configs = []
             if dog.get(DOG_GPS_CONFIG_FIELD):
                 special_configs.append("📍 GPS")
@@ -414,7 +416,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
 
         # Use size-based suggestion if available
         if size in size_breeds:
-            # Return first breed that roughly matches weight  # noqa: E114
+            # Return first breed that roughly matches weight
             for breed in size_breeds[size]:
                 return breed
 
@@ -444,7 +446,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
 
         # Handle common name patterns
         if " " in name_lower:
-            # Multi-word names: take first word + first letter of others  # noqa: E114
+            # Multi-word names: take first word + first letter of others
             parts = name_lower.split()
             if len(parts) == 2:
                 suggestion = f"{parts[0]}_{parts[1][0]}"
@@ -476,7 +478,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
                 suggestion = f"{original_suggestion}_{counter}"
                 counter += 1
 
-            # Prevent infinite loops  # noqa: E114
+            # Prevent infinite loops
             if counter > 100:
                 suggestion = f"{original_suggestion}_{time.time():.0f}"[-20:]
                 break
@@ -553,9 +555,7 @@ class PawControlBaseConfigFlow(ConfigFlow):  # type: ignore[misc]
         # Get all notification services
         services = self.hass.services.async_services().get("notify", {})
         for service_name in services:
-            if (
-                service_name != "persistent_notification"
-            ):  # Exclude default
+            if service_name != "persistent_notification":  # Exclude default
                 service_id = f"notify.{service_name}"
                 # Create friendly name from service name
                 friendly_name = service_name.replace("_", " ").title()

@@ -89,6 +89,8 @@ def _resolve_setup_flag_supported_languages(
     if not languages:
         languages.add("en")
     return frozenset(languages)
+
+
 def _resolve_get_runtime_data() -> RuntimeDataGetter:
     """Return the patched runtime data helper when available."""
     try:
@@ -101,6 +103,8 @@ def _resolve_get_runtime_data() -> RuntimeDataGetter:
     except Exception:
         pass
     return _get_runtime_data
+
+
 LAST_RECONFIGURE_FIELD: Final[Literal["last_reconfigure"]] = cast(
     Literal["last_reconfigure"],
     CONF_LAST_RECONFIGURE,
@@ -136,6 +140,7 @@ class PawControlOptionsFlow(
     UPDATED: Includes entity profile management for performance optimization
     ENHANCED: GPS and Geofencing configuration per requirements
     """
+
     _EXPORT_VERSION: ClassVar[int] = 1
     _MANUAL_EVENT_FIELDS: ClassVar[tuple[ManualEventField, ...]] = (
         "manual_check_event",
@@ -254,9 +259,7 @@ class PawControlOptionsFlow(
 
         if ADVANCED_SETTINGS_FIELD in mutable:
             raw_advanced = mutable.get(ADVANCED_SETTINGS_FIELD)
-            advanced_source = (
-                raw_advanced if isinstance(raw_advanced, Mapping) else {}
-            )
+            advanced_source = raw_advanced if isinstance(raw_advanced, Mapping) else {}
             mutable[ADVANCED_SETTINGS_FIELD] = cast(
                 JSONValue,
                 ensure_advanced_options(
@@ -551,10 +554,12 @@ class PawControlOptionsFlow(
             if not normalised:
                 return
             sources.setdefault(normalised, set()).add(source)
+
         def _as_manual_event_source(source: object) -> ManualEventSource | None:
             if isinstance(source, str) and source in self._MANUAL_SOURCE_BADGE_KEYS:
                 return cast(ManualEventSource, source)
             return None
+
         default_map = {
             "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
             "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
@@ -643,7 +648,7 @@ class PawControlOptionsFlow(
                 and "blueprint" in existing_sources
                 and not (existing_sources - {"blueprint"})
             ):
-                # Blueprint-only defaults should not inherit the integration default tag.
+                # Blueprint-only defaults should not inherit the integration default tag.  # noqa: E501
                 pass
             else:
                 existing_sources.add("default")
@@ -681,6 +686,7 @@ class PawControlOptionsFlow(
             if source_set:
                 return sorted(source_set)[0]
             return None
+
         def _source_badge(source: ManualEventSource | None) -> str | None:
             if not source:
                 return None
@@ -688,6 +694,7 @@ class PawControlOptionsFlow(
             if not translation_key:
                 return None
             return self._setup_flag_translation(translation_key, language=language)
+
         def _help_text(source_list: Sequence[str]) -> str | None:
             help_segments: list[str] = []
             for source_name in source_list:
@@ -701,6 +708,7 @@ class PawControlOptionsFlow(
             if help_segments:
                 return " ".join(help_segments)
             return None
+
         disabled_sources: list[ManualEventSource] = ["disabled"]
         disabled_badge = _source_badge("disabled")
         disabled_help = _help_text(disabled_sources)
@@ -740,14 +748,15 @@ class PawControlOptionsFlow(
             if "default" in sources:
                 return (4, value)
             return (5, value)
+
         for value, source_tags in sorted(event_sources.items(), key=_priority):
             description_parts: list[str] = []
             sorted_source_tags = sorted(source_tags)
             sorted_sources = [str(source) for source in sorted_source_tags]
             for source in sorted_sources:
                 if source == "default" and "blueprint" in source_tags:
-                    # Blueprint suggestions inherit the integration default but should not  # noqa: E114, E501
-                    # surface that tag in the description list.  # noqa: E114
+                    # Blueprint suggestions inherit the integration default but should not  # noqa: E501
+                    # surface that tag in the description list.
                     continue
                 key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(
                     cast(ManualEventSource, source),

@@ -28,7 +28,7 @@ MAX_GEOFENCE_RADIUS = geofencing.MAX_GEOFENCE_RADIUS
 
 
 def test_geofence_zone_accepts_valid_coordinates() -> None:
-    zone = GeofenceZone(  # noqa: E111
+    zone = GeofenceZone(
         id="home",
         name="Home",
         type=GeofenceType.HOME_ZONE,
@@ -37,7 +37,7 @@ def test_geofence_zone_accepts_valid_coordinates() -> None:
         radius=50,
     )
 
-    assert zone.name == "Home"  # noqa: E111
+    assert zone.name == "Home"
 
 
 @pytest.mark.parametrize(
@@ -48,7 +48,7 @@ def test_geofence_zone_rejects_invalid_coordinates(
     latitude: float,
     longitude: float,
 ) -> None:
-    with pytest.raises(ValueError):  # noqa: E111
+    with pytest.raises(ValueError):
         GeofenceZone(
             id="bad",
             name="Bad",
@@ -60,7 +60,7 @@ def test_geofence_zone_rejects_invalid_coordinates(
 
 
 def test_geofence_zone_rejects_invalid_radius() -> None:
-    with pytest.raises(ValueError):  # noqa: E111
+    with pytest.raises(ValueError):
         GeofenceZone(
             id="bad-radius",
             name="Bad radius",
@@ -73,7 +73,7 @@ def test_geofence_zone_rejects_invalid_radius() -> None:
 
 @pytest.mark.parametrize("radius", [MIN_GEOFENCE_RADIUS, MAX_GEOFENCE_RADIUS])
 def test_geofence_zone_accepts_radius_bounds(radius: float) -> None:
-    zone = GeofenceZone(  # noqa: E111
+    zone = GeofenceZone(
         id=f"radius-{radius}",
         name="Radius bound",
         type=GeofenceType.SAFE_ZONE,
@@ -82,11 +82,11 @@ def test_geofence_zone_accepts_radius_bounds(radius: float) -> None:
         radius=radius,
     )
 
-    assert zone.radius == radius  # noqa: E111
+    assert zone.radius == radius
 
 
 def test_geofence_zone_rejects_radius_above_maximum() -> None:
-    with pytest.raises(ValueError):  # noqa: E111
+    with pytest.raises(ValueError):
         GeofenceZone(
             id="too-large",
             name="Too large",

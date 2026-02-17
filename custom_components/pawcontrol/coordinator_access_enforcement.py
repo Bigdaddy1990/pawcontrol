@@ -24,6 +24,7 @@ T = TypeVar("T")
 
 class CoordinatorAccessViolation(RuntimeError):
     """Raised when data access bypasses the coordinator."""
+
     def __init__(self, message: str, *, entity_id: str | None = None) -> None:
         """Initialize the exception.
 
@@ -54,6 +55,7 @@ def require_coordinator[**P, T](
         ... def get_dog_status(self):
         ...     return self.coordinator.data[self.dog_id]
     """
+
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         if not args:
@@ -80,6 +82,8 @@ def require_coordinator[**P, T](
         return func(*args, **kwargs)
 
     return wrapper
+
+
 def require_coordinator_data(
     *,
     dog_id_attr: str = "dog_id",
@@ -103,6 +107,7 @@ def require_coordinator_data(
         ...     # self.coordinator.data[self.dog_id] is guaranteed
         ...     return self.coordinator.data[self.dog_id]["gps"]
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -126,7 +131,7 @@ def require_coordinator_data(
                     entity_id=entity_id,
                 )
 
-            # Get dog_id from instance  # noqa: E114
+            # Get dog_id from instance
             dog_id = getattr(instance, dog_id_attr, None)
             if dog_id is None:
                 raise CoordinatorAccessViolation(
@@ -134,7 +139,7 @@ def require_coordinator_data(
                     entity_id=entity_id,
                 )
 
-            # Check if data exists for this dog  # noqa: E114
+            # Check if data exists for this dog
             if not allow_missing and dog_id not in coordinator.data:
                 raise CoordinatorAccessViolation(
                     f"Coordinator has no data for dog '{dog_id}'",
@@ -142,9 +147,12 @@ def require_coordinator_data(
                 )
 
             return func(*args, **kwargs)
+
         return wrapper
 
     return decorator
+
+
 def coordinator_only_property[T](
     func: Callable[[Any], T],
 ) -> property:
@@ -161,12 +169,15 @@ def coordinator_only_property[T](
         ... def current_location(self):
         ...     return self.coordinator.data[self.dog_id]["gps"]["location"]
     """
+
     @functools.wraps(func)
     @require_coordinator
     def wrapper(self: Any) -> T:
         return func(self)
 
     return property(wrapper)
+
+
 def log_direct_access_warning(
     entity_id: str,
     attribute: str,
@@ -196,6 +207,8 @@ def log_direct_access_warning(
         message += f" Use {coordinator_method} instead."
 
     _LOGGER.warning(message)
+
+
 class CoordinatorDataProxy:
     """Proxy for coordinator data that logs access patterns.
 
@@ -206,6 +219,7 @@ class CoordinatorDataProxy:
         >>> proxy = CoordinatorDataProxy(coordinator.data, "sensor.buddy_gps")
         >>> location = proxy["buddy"]["gps"]["location"]  # Logged
     """
+
     def __init__(
         self,
         data: dict[str, Any],
@@ -301,11 +315,11 @@ def validate_coordinator_usage(
         ...     print(f"Found {results['issue_count']} issues")
     """
     issues: list[str] = []
-    # Check if data is being accessed properly  # noqa: E114
+    # Check if data is being accessed properly
     if coordinator.data is None:
         issues.append("Coordinator data is None")
 
-    # Check if managers are attached  # noqa: E114
+    # Check if managers are attached
     runtime_managers = coordinator.runtime_managers
     if runtime_managers.data_manager is None:
         issues.append("Data manager not attached")
@@ -313,7 +327,7 @@ def validate_coordinator_usage(
     if runtime_managers.feeding_manager is None and log_warnings:
         _LOGGER.debug("Feeding manager not attached (may be intentional)")
 
-    # Check if adaptive polling is working  # noqa: E114
+    # Check if adaptive polling is working
     if hasattr(coordinator, "_adaptive_polling"):
         adaptive = coordinator._adaptive_polling
         if hasattr(adaptive, "as_diagnostics"):

@@ -10,10 +10,10 @@ from typing import Any
 
 # ❌ VORHER (Nicht JSON-serializable):
 class OldSensorExample:
-    """Old implementation without serialization."""  # noqa: E111
+    """Old implementation without serialization."""
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity state attributes (BROKEN!)."""
         return {
             "last_update": datetime.now(),  # ❌ Not JSON-serializable!
@@ -27,10 +27,10 @@ from custom_components.pawcontrol.utils.serialize import serialize_entity_attrib
 
 
 class NewSensorExample:
-    """New implementation with serialization."""  # noqa: E111
+    """New implementation with serialization."""
 
-    @property  # noqa: E111
-    def extra_state_attributes(self) -> dict[str, Any]:  # noqa: E111
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity state attributes (FIXED!)."""
         raw_attrs = {
             "last_update": self._last_update,  # datetime

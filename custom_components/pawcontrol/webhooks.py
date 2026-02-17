@@ -41,24 +41,32 @@ def _any_dog_expects_webhook(entry: ConfigEntry) -> bool:
         if isinstance(gps_cfg, dict) and gps_cfg.get(CONF_GPS_SOURCE) == "webhook":
             return True
     return False
+
+
 WEBHOOK_NAME = "PawControl Push Endpoint"
 
 
 def _new_webhook_id() -> str:
-    # Home Assistant webhook_id is opaque; keep it URL-safe.  # noqa: E114
+    # Home Assistant webhook_id is opaque; keep it URL-safe.
     import secrets
+
     return secrets.token_urlsafe(24)
+
+
 def _new_webhook_secret() -> str:
     import secrets
-    # This is used for HMAC signing/verification in WebhookSecurityManager.  # noqa: E114
+
+    # This is used for HMAC signing/verification in WebhookSecurityManager.  # noqa: E501
     return secrets.token_urlsafe(32)
+
+
 async def async_ensure_webhook_config(
     hass: HomeAssistant,
     entry: ConfigEntry,
 ) -> None:
     """Ensure the config entry has webhook credentials when push is enabled."""
     enabled = bool(entry.options.get(CONF_WEBHOOK_ENABLED, DEFAULT_WEBHOOK_ENABLED))
-    # Only create/maintain webhook credentials when at least one dog uses webhook AND webhook is enabled.  # noqa: E114, E501
+    # Only create/maintain webhook credentials when at least one dog uses webhook AND webhook is enabled.  # noqa: E501
     if not enabled or not _any_dog_expects_webhook(entry):
         return
 
@@ -87,6 +95,8 @@ async def async_ensure_webhook_config(
     _LOGGER.info(
         "Generated webhook credentials for PawControl entry %s", entry.entry_id
     )
+
+
 async def async_register_entry_webhook(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -100,8 +110,8 @@ async def async_register_entry_webhook(
     if not isinstance(webhook_id, str) or not webhook_id:
         return
 
-    # Idempotency: unregister first if it exists (safe no-op if not registered).  # noqa: E114, E501
-    try:  # noqa: E111, SIM105
+    # Idempotency: unregister first if it exists (safe no-op if not registered).  # noqa: E501
+    try:  # noqa: SIM105
         async_unregister(hass, webhook_id)
     except Exception:  # pragma: no cover
         # Older HA versions or differing behavior: ignore.
@@ -137,9 +147,12 @@ def get_entry_webhook_url(hass: HomeAssistant, entry: ConfigEntry) -> str | None
     if not isinstance(webhook_id, str) or not webhook_id:
         return None
 
-    # This helper exists in the webhook component.  # noqa: E114
+    # This helper exists in the webhook component.
     from homeassistant.components.webhook import async_generate_url
+
     return async_generate_url(hass, webhook_id)
+
+
 async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) -> Any:
     """Handle inbound webhook requests.
 
@@ -153,10 +166,10 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
         "timestamp": "2026-01-29T12:34:56Z"
       }
     """
-    # Read raw body once (we need it for HMAC verification and JSON parse)  # noqa: E114
+    # Read raw body once (we need it for HMAC verification and JSON parse)
     raw = await request.read()
     headers: Mapping[str, str] = request.headers
-    # Resolve which entry owns this webhook_id  # noqa: E114
+    # Resolve which entry owns this webhook_id
     entry = _resolve_entry_for_webhook_id(hass, webhook_id)
     if entry is None:
         return _json_response({"ok": False, "error": "unknown_webhook"}, status=404)
@@ -222,6 +235,8 @@ async def _handle_webhook(hass: HomeAssistant, webhook_id: str, request: Any) ->
     if "dog_id" in result:
         body["dog_id"] = result["dog_id"]
     return _json_response(body, status=status)
+
+
 def _resolve_entry_for_webhook_id(
     hass: HomeAssistant, webhook_id: str
 ) -> ConfigEntry | None:
@@ -230,7 +245,10 @@ def _resolve_entry_for_webhook_id(
         if entry.options.get(CONF_WEBHOOK_ID) == webhook_id:
             return entry
     return None
+
+
 def _json_response(payload: dict[str, Any], *, status: int = 200) -> Any:
-    # Avoid importing aiohttp at import-time for type-checkers; Home Assistant already uses it.  # noqa: E114, E501
+    # Avoid importing aiohttp at import-time for type-checkers; Home Assistant already uses it.  # noqa: E501
     from aiohttp import web
+
     return web.json_response(payload, status=status)

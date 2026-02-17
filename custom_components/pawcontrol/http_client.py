@@ -24,13 +24,13 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
     """
     if session is None:
         raise ValueError(
-            f"{owner} requires Home Assistant's shared aiohttp ClientSession; received None.",
+            f"{owner} requires Home Assistant's shared aiohttp ClientSession; received None.",  # noqa: E501
         )
 
     request = getattr(session, "request", None)
     if not callable(request):
         raise ValueError(
-            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",
+            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",  # noqa: E501
         )
 
     def _is_coroutine(func: Callable[..., Any] | None) -> bool:
@@ -56,7 +56,7 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
         # private ``_request`` coroutine. Accept this pattern to avoid rejecting the
         # managed Home Assistant session while still guarding synchronous callables.
         raise ValueError(
-            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",
+            f"{owner} received an object without an aiohttp-compatible 'request' coroutine.",  # noqa: E501
         )
 
     closed_attr = getattr(session, "closed", False)
@@ -67,4 +67,6 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
         )
 
     return cast(ClientSession, session)
+
+
 __all__ = ["ensure_shared_client_session"]

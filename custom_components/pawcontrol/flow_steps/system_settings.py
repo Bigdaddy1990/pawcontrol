@@ -74,7 +74,9 @@ from ..types import (
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+
     from ..types import PawControlRuntimeData
+
     RuntimeDataGetter = Callable[
         [HomeAssistant, ConfigEntry], PawControlRuntimeData | None
     ]
@@ -95,6 +97,8 @@ def _resolve_get_runtime_data() -> RuntimeDataGetter:
     except Exception:
         pass
     return _get_runtime_data
+
+
 if TYPE_CHECKING:
 
     class SystemSettingsOptionsHost(Protocol):
@@ -108,9 +112,12 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     SystemSettingsOptionsHost = object
+
+
 class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
+
     async def async_step_push_settings(
         self,
         user_input: PushSettingsInput | None = None,
@@ -128,7 +135,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
         if user_input is not None:
             new_options = self._clone_options()
             mutable = cast(JSONMutableMapping, dict(new_options))
-            # Webhook  # noqa: E114
+            # Webhook
             mutable[CONF_WEBHOOK_ENABLED] = bool(
                 user_input.get(
                     CONF_WEBHOOK_ENABLED,
@@ -151,7 +158,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                 # allow clearing secret from UI
                 mutable.pop(CONF_WEBHOOK_SECRET, None)
 
-            # MQTT  # noqa: E114
+            # MQTT
             mutable[CONF_MQTT_ENABLED] = bool(
                 user_input.get(
                     CONF_MQTT_ENABLED,
@@ -166,7 +173,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                     CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC
                 )
 
-            # Router limits  # noqa: E114
+            # Router limits
             mutable[CONF_PUSH_PAYLOAD_MAX_BYTES] = self._coerce_int(
                 user_input.get(CONF_PUSH_PAYLOAD_MAX_BYTES),
                 int(
@@ -346,7 +353,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
                             },
                         )
 
-                    # Check if it's a weather entity  # noqa: E114
+                    # Check if it's a weather entity
                     if not candidate.startswith("weather."):
                         return self.async_show_form(
                             step_id="weather_settings",
@@ -809,6 +816,7 @@ class SystemSettingsOptionsMixin(SystemSettingsOptionsHost):
             if override:
                 return override
             return manual_defaults[field]
+
         return vol.Schema(
             {
                 vol.Optional(

@@ -8,8 +8,6 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
-# ruff: noqa: E111
-
 import asyncio
 from collections import deque
 from collections.abc import Awaitable, Callable, Mapping
@@ -40,12 +38,14 @@ class PerformanceMetric:
         max_time_ms: Maximum execution time
         recent_times: Recent execution times (last 100)
     """
+
     name: str
     call_count: int = 0
     total_time_ms: float = 0.0
     min_time_ms: float = float("inf")
     max_time_ms: float = 0.0
     recent_times: deque[float] = field(default_factory=lambda: deque(maxlen=100))
+
     @property
     def avg_time_ms(self) -> float:
         """Return average execution time."""
@@ -97,9 +97,11 @@ class PerformanceMetric:
 
 class PerformanceMonitor:
     """Global performance monitoring singleton."""
+
     _instance: PerformanceMonitor | None = None
     _metrics: dict[str, PerformanceMetric]
     _enabled: bool
+
     def __new__(cls) -> PerformanceMonitor:
         """Ensure singleton instance."""
         if cls._instance is None:
@@ -247,6 +249,7 @@ def track_performance(
         ... def calculate():
         ...     return sum(range(1000))
     """
+
     def decorator(
         func: Callable[P, T] | Callable[P, Awaitable[T]],
     ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
@@ -294,6 +297,8 @@ def track_performance(
         return sync_wrapper
 
     return cast(Callable[[Callable[P, T]], Callable[P, T]], decorator)
+
+
 def debounce(
     wait_seconds: float,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T | None]]]:
@@ -312,6 +317,7 @@ def debounce(
         ... async def update_state():
         ...     await coordinator.async_request_refresh()
     """
+
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T | None]]:
         last_call_time: float = 0.0
         pending_task: asyncio.Task[Any] | None = None
@@ -320,16 +326,16 @@ def debounce(
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
             nonlocal last_call_time, pending_task
             current_time = time.time()
-            # Cancel pending task if exists  # noqa: E114
+            # Cancel pending task if exists
             if pending_task and not pending_task.done():
                 pending_task.cancel()
 
-            # If enough time has passed, execute immediately  # noqa: E114
+            # If enough time has passed, execute immediately
             if current_time - last_call_time >= wait_seconds:
                 last_call_time = current_time
                 return await func(*args, **kwargs)
 
-            # Otherwise, schedule for later  # noqa: E114
+            # Otherwise, schedule for later
             async def delayed_call() -> T:
                 nonlocal last_call_time
                 await asyncio.sleep(wait_seconds)
@@ -338,9 +344,12 @@ def debounce(
 
             pending_task = asyncio.create_task(delayed_call())
             return None
+
         return async_wrapper
 
     return decorator
+
+
 def throttle(
     calls_per_second: float,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
@@ -359,6 +368,7 @@ def throttle(
         ... async def api_call():
         ...     return await api.fetch()
     """
+
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
         min_interval = 1.0 / calls_per_second
         last_call_time: float = 0.0
@@ -376,9 +386,12 @@ def throttle(
                 last_call_time = time.time()
 
             return await func(*args, **kwargs)
+
         return async_wrapper
 
     return decorator
+
+
 def batch_calls(
     max_batch_size: int = 10,
     max_wait_ms: float = 100.0,
@@ -399,6 +412,7 @@ def batch_calls(
         ... async def update_entities(entity_ids: list[str]):
         ...     await coordinator.async_update_entities(entity_ids)
     """
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         pending_calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
         batch_task: asyncio.Task[Any] | None = None
@@ -430,9 +444,12 @@ def batch_calls(
                 # Start batch task if not running
                 if batch_task is None or batch_task.done():
                     batch_task = asyncio.create_task(process_batch())
+
         return async_wrapper
 
     return decorator
+
+
 # Performance helpers
 
 
@@ -443,6 +460,8 @@ def get_performance_summary() -> dict[str, Any]:
         Performance summary dictionary
     """
     return _performance_monitor.get_summary()
+
+
 def get_slow_operations(threshold_ms: float = 100.0) -> list[dict[str, Any]]:
     """Get slow operations.
 
@@ -454,15 +473,23 @@ def get_slow_operations(threshold_ms: float = 100.0) -> list[dict[str, Any]]:
     """
     slow_ops = _performance_monitor.get_slow_operations(threshold_ms)
     return [op.to_dict() for op in slow_ops]
+
+
 def reset_performance_metrics() -> None:
     """Reset all performance metrics."""
     _performance_monitor.reset()
+
+
 def enable_performance_monitoring() -> None:
     """Enable performance monitoring."""
     _performance_monitor.enable()
+
+
 def disable_performance_monitoring() -> None:
     """Disable performance monitoring."""
     _performance_monitor.disable()
+
+
 def capture_cache_diagnostics(runtime_data: object | None) -> dict[str, Any] | None:
     """Capture cache snapshots and repair telemetry when available."""
     if runtime_data is None:
@@ -487,9 +514,7 @@ def capture_cache_diagnostics(runtime_data: object | None) -> dict[str, Any] | N
                 except TypeError:
                     try:
                         summary = summary_method()
-                    except (
-                        Exception
-                    ):  # pragma: no cover - diagnostics guard
+                    except Exception:  # pragma: no cover - diagnostics guard
                         summary = None
                 except Exception:  # pragma: no cover - diagnostics guard
                     summary = None
@@ -506,12 +531,16 @@ def capture_cache_diagnostics(runtime_data: object | None) -> dict[str, Any] | N
         except Exception:  # pragma: no cover - defensive telemetry collection
             diagnostics["performance"] = {"status": "unavailable"}
     return diagnostics or None
+
+
 @dataclass(slots=True)
 class _TrackedPerformanceContext:
     """Mutable context object exposed by ``performance_tracker``."""
+
     metric_name: str
     started_at: float = field(default_factory=time.perf_counter)
     failure: str | None = None
+
     def mark_failure(self, error: Exception) -> None:
         """Record a failure for the current tracked operation."""
         self.failure = f"{error.__class__.__name__}: {error}"
@@ -533,6 +562,8 @@ def _ensure_runtime_performance_store(runtime_data: object) -> dict[str, Any]:
     elif hasattr(runtime_data, "_performance_stats"):
         runtime_data._performance_stats = store
     return store
+
+
 @contextmanager
 def performance_tracker(
     runtime_data: object,
@@ -567,6 +598,8 @@ def performance_tracker(
         durations.append(round(duration_ms, 2))
         if len(durations) > max_samples:
             del durations[:-max_samples]
+
+
 def record_maintenance_result(
     runtime_data: object,
     *,

@@ -10,8 +10,6 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
-# ruff: noqa: E111
-
 import asyncio
 from collections.abc import Awaitable, Callable, Mapping
 import importlib
@@ -134,7 +132,7 @@ DIET_COMPATIBILITY_RULES = {
             "sensitive_stomach",
         ],
         "type": "warning",
-        "message": "Raw diets may require veterinary supervision with medical conditions",
+        "message": "Raw diets may require veterinary supervision with medical conditions",  # noqa: E501
     },
 }
 
@@ -152,6 +150,8 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     if isinstance(value, int | float):
         return bool(value)
     return default
+
+
 def _build_add_dog_placeholders(
     *,
     dog_count: int,
@@ -166,6 +166,8 @@ def _build_add_dog_placeholders(
     placeholders["current_dogs"] = current_dogs
     placeholders["remaining_spots"] = remaining_spots
     return freeze_placeholders(placeholders)
+
+
 def _build_dog_modules_placeholders(
     *,
     dog_name: str,
@@ -178,6 +180,8 @@ def _build_dog_modules_placeholders(
     placeholders["dog_size"] = dog_size
     placeholders["dog_age"] = dog_age
     return freeze_placeholders(placeholders)
+
+
 def _build_dog_feeding_placeholders(
     *,
     dog_name: str,
@@ -192,6 +196,8 @@ def _build_dog_feeding_placeholders(
     placeholders["suggested_amount"] = suggested_amount
     placeholders["portion_info"] = portion_info
     return freeze_placeholders(placeholders)
+
+
 def _build_add_another_summary_placeholders(
     *,
     dogs_list: str,
@@ -208,6 +214,8 @@ def _build_add_another_summary_placeholders(
     placeholders["remaining_spots"] = remaining_spots
     placeholders["at_limit"] = at_limit
     return freeze_placeholders(placeholders)
+
+
 def _build_module_setup_placeholders(
     *,
     total_dogs: str,
@@ -226,10 +234,10 @@ def _build_module_setup_placeholders(
     placeholders["complexity_info"] = complexity_info
     placeholders["next_step_info"] = next_step_info
     return freeze_placeholders(placeholders)
+
+
 if TYPE_CHECKING:
-    from .config_flow_base import (
-        PawControlBaseConfigFlow as DogManagementMixinBase,
-    )
+    from .config_flow_base import PawControlBaseConfigFlow as DogManagementMixinBase
 else:
 
     class DogManagementMixinBase:  # pragma: no cover - runtime shim
@@ -244,6 +252,8 @@ else:
             leaving attributes like ``_dogs`` undefined in tests and runtime paths.
             """
             super().__init__(*args, **kwargs)
+
+
 class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
     """Mixin for dog management functionality in configuration flow.
 
@@ -251,6 +261,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
     and configuring dogs during the initial setup process with enhanced
     validation, per-dog module configuration, and comprehensive health data.
     """
+
     if TYPE_CHECKING:
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
@@ -282,6 +293,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         except Exception:  # pragma: no cover - defensive guard for HA API
             _LOGGER.debug("Failed to load %s translations for config flow", language)
             return {}
+
     async def _async_get_translation_lookup(
         self,
     ) -> tuple[dict[str, str], dict[str, str]]:
@@ -315,7 +327,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         errors: dict[str, str] = {}
 
         if user_input is not None and self._current_dog_config:
-            # Finalize any previous dog configuration that wasn't completed  # noqa: E114
+            # Finalize any previous dog configuration that wasn't completed  # noqa: E501
             if self._current_dog_config not in self._dogs:
                 self._dogs.append(self._current_dog_config)
             self._current_dog_config = None
@@ -323,21 +335,21 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             try:
                 # FIXED: Rate-limited validation to prevent flooding
                 async with VALIDATION_SEMAPHORE:
-                    # Add timeout for validation  # noqa: E114
+                    # Add timeout for validation
                     async with asyncio.timeout(5):
                         validation_result = await self._async_validate_dog_config(
                             user_input,
                         )
 
                 if validation_result["valid"]:
-                    # Create dog configuration with enhanced defaults  # noqa: E114
+                    # Create dog configuration with enhanced defaults
                     validated_input = validation_result.get(
                         "validated_input", user_input
                     )
                     dog_config = await self._create_dog_config(validated_input)
-                    # Store temporarily for module configuration  # noqa: E114
+                    # Store temporarily for module configuration
                     self._current_dog_config = dog_config
-                    # Small delay after adding dog to prevent registry flooding  # noqa: E114
+                    # Small delay after adding dog to prevent registry flooding  # noqa: E501
                     await asyncio.sleep(ENTITY_CREATION_DELAY)
                     _LOGGER.debug(
                         "Added dog base config: %s (%s)",
@@ -345,7 +357,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                         dog_config[DOG_ID_FIELD],
                     )
 
-                    # Continue to module selection for this specific dog  # noqa: E114
+                    # Continue to module selection for this specific dog
                     return await self.async_step_dog_modules()
                 errors = validation_result["errors"]
 
@@ -533,7 +545,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         current_dog = self._current_dog_config
         if current_dog is None:
             _LOGGER.error(
-                "Feeding configuration step invoked without active dog; restarting add_dog",
+                "Feeding configuration step invoked without active dog; restarting add_dog",  # noqa: E501
             )
             return await self.async_step_add_dog()
         if user_input is not None:
@@ -695,10 +707,10 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
 
             dog_id = dog_id_raw.lower().strip()
             dog_name = dog_name_raw.strip()
-            # Add small delay between validations to prevent flooding  # noqa: E114
-            # Increased micro-delay for rate limiting  # noqa: E114
+            # Add small delay between validations to prevent flooding
+            # Increased micro-delay for rate limiting
             await asyncio.sleep(0.05)
-            # Check cache first for performance  # noqa: E114
+            # Check cache first for performance
             cache_key = self._create_cache_key(dog_id, dog_name, user_input)
             if (cached := self._get_cached_validation(cache_key)) is not None:
                 return cached
@@ -960,7 +972,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 self._errors.clear()
                 self._current_dog_config = None
                 return await self.async_step_add_dog()
-            # All dogs configured, continue to global settings if needed  # noqa: E114
+            # All dogs configured, continue to global settings if needed
             return await self.async_step_configure_modules()
         # Check if we've reached the limit
         at_limit = len(self._dogs) >= MAX_DOGS_PER_ENTRY
@@ -1003,6 +1015,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             if next_value is not None:
                 record["next_due"] = next_value
             return record
+
         vaccinations: dict[str, DogVaccinationRecord] = {}
 
         if record := _build_record("rabies_vaccination", "rabies_next"):
@@ -1106,7 +1119,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 "Conflicting diet combinations detected: %s",
                 validation_result["conflicts"],
             )
-            # Log conflicts but don't prevent configuration - user might have vet guidance  # noqa: E114, E501
+            # Log conflicts but don't prevent configuration - user might have vet guidance  # noqa: E501
 
         _LOGGER.debug(
             "Collected special diet requirements: %s from input: %s",
@@ -1218,7 +1231,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 {
                     "type": "low_fat_activity_warning",
                     "diets": ["low_fat", "high_activity"],
-                    "message": "Low fat diets may need veterinary review for highly active dogs",
+                    "message": "Low fat diets may need veterinary review for highly active dogs",  # noqa: E501
                 },
             )
 
@@ -1242,9 +1255,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         """
         # Age-based activity suggestions
         if dog_age < 1:
-            return (
-                "moderate"  # Puppies have bursts of energy but need rest
-            )
+            return "moderate"  # Puppies have bursts of energy but need rest
         if dog_age >= 10:
             return "low"  # Senior dogs generally less active
         if dog_age >= 7:
@@ -1273,6 +1284,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
         def _lookup(key: str) -> str:
             full_key = f"{guidance_prefix}.diet_guidance_{key}"
             return translations.get(full_key) or fallback.get(full_key) or ""
+
         guidance_points: list[str] = []
 
         if dog_age < 2:
@@ -1315,7 +1327,7 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
             Configuration flow result for entity profile selection
         """
         if user_input is not None:
-            # Store global module settings  # noqa: E114
+            # Store global module settings
             self._global_modules = ModuleConfigurationSnapshot(
                 enable_notifications=bool(user_input.get("enable_notifications", True)),
                 enable_dashboard=bool(user_input.get("enable_dashboard", True)),
@@ -1328,9 +1340,9 @@ class DogManagementMixin(GardenModuleSelectorMixin, DogManagementMixinBase):
                 debug_logging=bool(user_input.get("debug_logging", False)),
             )
 
-            # UPDATED: Redirect to entity profile selection for performance optimization  # noqa: E114, E501
+            # UPDATED: Redirect to entity profile selection for performance optimization  # noqa: E501
             _LOGGER.info(
-                "Global modules configured for %d dogs, proceeding to entity profile selection",
+                "Global modules configured for %d dogs, proceeding to entity profile selection",  # noqa: E501
                 len(self._dogs),
             )
             return await self.async_step_entity_profile()

@@ -18,69 +18,69 @@ _SOURCE_PREFIX = "setup_flags_panel_source_"
 
 
 def _translation_languages() -> list[str]:
-    languages = sorted(path.stem for path in TRANSLATIONS_DIR.glob("*.json"))  # noqa: E111
-    assert "en" in languages, "English translation must always be present"  # noqa: E111
-    languages.remove("en")  # noqa: E111
-    return ["en", *languages]  # noqa: E111
+    languages = sorted(path.stem for path in TRANSLATIONS_DIR.glob("*.json"))
+    assert "en" in languages, "English translation must always be present"
+    languages.remove("en")
+    return ["en", *languages]
 
 
 def _split_table_row(row: str) -> list[str]:
-    return [cell.strip() for cell in row.strip().strip("|").split("|")]  # noqa: E111
+    return [cell.strip() for cell in row.strip().strip("|").split("|")]
 
 
 def _parse_localization_table(
     doc_content: str,
 ) -> tuple[list[str], dict[str, dict[str, str]]]:
-    lines = doc_content.splitlines()  # noqa: E111
-    start_index: int | None = None  # noqa: E111
-    end_index: int | None = None  # noqa: E111
-    for index, line in enumerate(lines):  # noqa: E111
+    lines = doc_content.splitlines()
+    start_index: int | None = None
+    end_index: int | None = None
+    for index, line in enumerate(lines):
         stripped = line.strip()
         if stripped == TABLE_START_MARKER:
-            start_index = index  # noqa: E111
+            start_index = index
         elif stripped == TABLE_END_MARKER and start_index is not None:
-            end_index = index  # noqa: E111
-            break  # noqa: E111
+            end_index = index
+            break
 
-    if start_index is None or end_index is None or end_index <= start_index:  # noqa: E111
+    if start_index is None or end_index is None or end_index <= start_index:
         raise AssertionError(
             "Localization table markers missing from docs/diagnostics.md"
         )
 
-    table_lines = [  # noqa: E111
+    table_lines = [
         line for line in lines[start_index + 1 : end_index] if line.startswith("|")
     ]
 
-    header: list[str] | None = None  # noqa: E111
-    rows: list[list[str]] = []  # noqa: E111
-    for line in table_lines:  # noqa: E111
+    header: list[str] | None = None
+    rows: list[list[str]] = []
+    for line in table_lines:
         cells = _split_table_row(line)
         if header is None:
-            header = cells  # noqa: E111
-            continue  # noqa: E111
+            header = cells
+            continue
 
         if all(cell.startswith("-") for cell in cells):
-            continue  # noqa: E111
+            continue
 
         rows.append(cells)
 
-    if header is None:  # noqa: E111
+    if header is None:
         raise AssertionError("Localization table missing from docs/diagnostics.md")
 
-    if header[0] != "Übersetzungsschlüssel":  # noqa: E111
+    if header[0] != "Übersetzungsschlüssel":
         raise AssertionError("Unexpected localization table header")
 
-    languages: list[str] = []  # noqa: E111
-    for cell in header[1:]:  # noqa: E111
+    languages: list[str] = []
+    for cell in header[1:]:
         match = re.search(r"\(`([a-z0-9_-]+)`\)", cell)
         if match is None:
-            raise AssertionError(f"Missing language code in header cell '{cell}'")  # noqa: E111
+            raise AssertionError(f"Missing language code in header cell '{cell}'")
         languages.append(match.group(1))
 
-    doc_rows: dict[str, dict[str, str]] = {}  # noqa: E111
-    for cells in rows:  # noqa: E111
+    doc_rows: dict[str, dict[str, str]] = {}
+    for cells in rows:
         if len(cells) != len(header):
-            continue  # noqa: E111
+            continue
 
         key_cell = cells[0]
         match = re.match(
@@ -88,7 +88,7 @@ def _parse_localization_table(
             key_cell,
         )
         if match is None:
-            continue  # noqa: E111
+            continue
 
         key = match.group(1)
         doc_rows[key] = {
@@ -96,41 +96,41 @@ def _parse_localization_table(
             for language, value in zip(languages, cells[1:], strict=True)
         }
 
-    return languages, doc_rows  # noqa: E111
+    return languages, doc_rows
 
 
 def _load_json(path: Path) -> dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))  # noqa: E111
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _expected_setup_flag_keys() -> dict[str, str]:
-    strings = _load_json(STRINGS_PATH)  # noqa: E111
-    common = strings["common"]  # noqa: E111
-    relevant_keys = {  # noqa: E111
+    strings = _load_json(STRINGS_PATH)
+    common = strings["common"]
+    relevant_keys = {
         key: value
         for key, value in common.items()
         if key.startswith(_FLAG_PREFIX) or key.startswith(_SOURCE_PREFIX)
     }
-    return relevant_keys  # noqa: E111
+    return relevant_keys
 
 
 def test_setup_flag_supported_languages_match_translations() -> None:
-    expected_languages = {path.stem for path in TRANSLATIONS_DIR.glob("*.json")}  # noqa: E111
-    if STRINGS_PATH.exists():  # noqa: E111
+    expected_languages = {path.stem for path in TRANSLATIONS_DIR.glob("*.json")}
+    if STRINGS_PATH.exists():
         expected_languages.add("en")
-    if not expected_languages:  # noqa: E111
+    if not expected_languages:
         expected_languages.add("en")
-    assert (  # noqa: E111
+    assert (
         frozenset(expected_languages)
         == PawControlOptionsFlow._SETUP_FLAG_SUPPORTED_LANGUAGES
     )
 
 
 def test_translations_include_setup_flag_keys() -> None:
-    expected = _expected_setup_flag_keys()  # noqa: E111
-    expected_keys = set(expected)  # noqa: E111
+    expected = _expected_setup_flag_keys()
+    expected_keys = set(expected)
 
-    for language in _translation_languages():  # noqa: E111
+    for language in _translation_languages():
         path = TRANSLATIONS_DIR / f"{language}.json"
         translation = _load_json(path)
         common = translation.get("common", {})
@@ -146,29 +146,29 @@ def test_translations_include_setup_flag_keys() -> None:
         )
 
         if language == "en":
-            for key, value in expected.items():  # noqa: E111
+            for key, value in expected.items():
                 assert common[key] == value, (path, key)
 
 
 def test_documentation_lists_all_setup_flag_translations() -> None:
-    expected = _expected_setup_flag_keys()  # noqa: E111
-    doc_content = DOC_PATH.read_text(encoding="utf-8")  # noqa: E111
-    languages, doc_rows = _parse_localization_table(doc_content)  # noqa: E111
+    expected = _expected_setup_flag_keys()
+    doc_content = DOC_PATH.read_text(encoding="utf-8")
+    languages, doc_rows = _parse_localization_table(doc_content)
 
-    translation_languages = _translation_languages()  # noqa: E111
-    assert languages == translation_languages, (languages, translation_languages)  # noqa: E111
+    translation_languages = _translation_languages()
+    assert languages == translation_languages, (languages, translation_languages)
 
-    doc_keys = set(doc_rows)  # noqa: E111
-    assert doc_keys == set(expected), (sorted(expected), sorted(doc_keys))  # noqa: E111
+    doc_keys = set(doc_rows)
+    assert doc_keys == set(expected), (sorted(expected), sorted(doc_keys))
 
-    translations = {  # noqa: E111
+    translations = {
         language: _load_json(TRANSLATIONS_DIR / f"{language}.json")["common"]
         for language in translation_languages
     }
 
-    for key, expected_translations in doc_rows.items():  # noqa: E111
+    for key, expected_translations in doc_rows.items():
         for language in translation_languages:
-            assert expected_translations[language] == translations[language][key], (  # noqa: E111
+            assert expected_translations[language] == translations[language][key], (
                 key,
                 language,
                 expected_translations[language],

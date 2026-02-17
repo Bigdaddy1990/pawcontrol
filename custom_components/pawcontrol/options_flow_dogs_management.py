@@ -87,9 +87,12 @@ if TYPE_CHECKING:
 
 else:  # pragma: no cover
     DogManagementOptionsHost = object
+
+
 class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsHost):
     _current_dog: DogConfigData | None
     _dogs: list[DogConfigData]
+
     async def async_step_manage_dogs(
         self,
         user_input: OptionsMenuInput | None = None,
@@ -355,6 +358,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
 
         def _value(key: str, fallback: Any) -> Any:
             return values.get(key, fallback)
+
         schema_dict.update(
             build_walk_timing_schema_fields(values, defaults),
         )
@@ -511,8 +515,8 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             hass_config = getattr(self.hass, "config", None)
             if hass_config is not None:
                 hass_language = getattr(hass_config, "language", None)
-            # Translations are loaded lazily in the UI layer; keep this helper sync for  # noqa: E114, E501
-            # tests and placeholder generation paths that call it directly.  # noqa: E114
+            # Translations are loaded lazily in the UI layer; keep this helper sync for  # noqa: E501
+            # tests and placeholder generation paths that call it directly.  # noqa: E501
 
         # Calculate current entity count
         current_estimate = self._entity_factory.estimate_entity_count(
@@ -570,7 +574,7 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
             },
         )
 
-    # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...  # noqa: E114, E501
+    # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...  # noqa: E501
 
     async def async_step_add_new_dog(
         self,
@@ -988,11 +992,11 @@ class DogManagementOptionsMixin(GardenModuleSelectorMixin, DogManagementOptionsH
                 freeze_placeholders(
                     {
                         "warning": (
-                            "This will permanently remove the selected dog and all associated data!"
+                            "This will permanently remove the selected dog and all associated data!"  # noqa: E501
                         ),
                     },
                 ),
             ),
         )
 
-    # NEW: Weather Settings Configuration  # noqa: E114
+    # NEW: Weather Settings Configuration
