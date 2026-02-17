@@ -33,7 +33,6 @@ repos:
           - types-pyyaml
         exclude: ^testing/resources/
         
-  - repos:
   - repo: https://github.com/JelleZijlstra/autotyping
     rev: 24.9.0
     hooks:
@@ -66,7 +65,7 @@ repos:
         args:
           - --unsafe
           - --allow-multiple-documents
-        exclude: ^(tests/|docs/|examples?/)
+        exclude: ^(docs/)
       - id: check-json
       - id: check-toml
       - id: end-of-file-fixer
@@ -83,7 +82,7 @@ repos:
       - id: pretty-format-json
         args:
           - --autofix
-        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|scripts/)
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|scripts/)
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
 
