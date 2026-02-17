@@ -111,7 +111,11 @@ class InputSanitizer:
                     pattern=pattern.pattern,
                     input_length=len(text),
                 )
-                raise ValidationError("Invalid input: SQL injection pattern detected")
+                raise ValidationError(
+                    "input_text",
+                    value=None,  # Never log raw user input
+                    constraint="SQL injection pattern detected",
+                )
 
         # Escape single quotes
         return text.replace("'", "''")
@@ -136,13 +140,25 @@ class InputSanitizer:
         try:
             parsed = urllib.parse.urlparse(url)
         except Exception as e:
-            raise ValidationError(f"Invalid URL: {e}") from e
+            raise ValidationError(
+                "url",
+                value=url,
+                constraint=f"URL could not be parsed: {e}",
+            ) from e
         # Check scheme
         if parsed.scheme not in ("http", "https", ""):
-            raise ValidationError(f"Invalid URL scheme: {parsed.scheme}")
+            raise ValidationError(
+                "url_scheme",
+                value=parsed.scheme,
+                constraint="Only http and https schemes are permitted",
+            )
         # Check for javascript: protocol
         if "javascript:" in url.lower():
-            raise ValidationError("Invalid URL: JavaScript protocol not allowed")
+            raise ValidationError(
+                "url_scheme",
+                value="javascript",
+                constraint="JavaScript protocol is not allowed",
+            )
         # URL encode and return
         return urllib.parse.urlunparse(parsed)
 
@@ -165,7 +181,11 @@ class InputSanitizer:
         # Check for traversal patterns
         for pattern in self.PATH_TRAVERSAL_PATTERNS:
             if pattern.search(path):
-                raise ValidationError("Invalid path: Path traversal not allowed")
+                raise ValidationError(
+                    "path",
+                    value=path,
+                    constraint="Path traversal sequences (../) are not allowed",
+                )
 
         # Normalize path
         normalized = str(Path(path).resolve())
@@ -577,6 +597,10 @@ def validate_and_sanitize(
     validate_method = getattr(validator, validator_func)
     result = validate_method(value, **kwargs)
     if not result.is_valid:
-        raise ValidationError(f"Validation failed: {result.errors}")
+        raise ValidationError(
+            "value",
+            value=value,
+            constraint=f"Validation failed: {result.errors}",
+        )
 
     return result.sanitized_value

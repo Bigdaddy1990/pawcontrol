@@ -168,11 +168,16 @@ class WebhookAuthenticator:
         # Combine payload with timestamp
         message = f"{timestamp}:{payload.decode()}".encode()
 
-        # Generate HMAC
+        # Generate HMAC — use hmac.new() with explicit digestmod keyword so
+        # the call is unambiguous under Python 3.14's stricter deprecation
+        # warnings.  ``getattr(hashlib, algorithm)`` resolves e.g. sha256.
+        digest_func = getattr(hashlib, self._algorithm, None)
+        if digest_func is None:
+            raise ValueError(f"Unsupported HMAC algorithm: {self._algorithm!r}")
         signature = hmac.new(
             self._secret,
             message,
-            getattr(hashlib, self._algorithm),
+            digestmod=digest_func,
         ).hexdigest()
 
         return signature, timestamp
@@ -408,26 +413,42 @@ class WebhookValidator:
         if isinstance(payload, bytes):
             if len(payload) > self._max_payload_size:
                 raise ValidationError(
-                    f"Payload too large: {len(payload)} bytes (max: {self._max_payload_size})"  # noqa: E501
+                    "payload_size",
+                    value=len(payload),
+                    constraint=(
+                        f"Maximum allowed size is {self._max_payload_size} bytes"
+                    ),
                 )
 
-            # Parse JSON
-            import json
+            # Parse JSON — imported locally to keep module-level imports minimal.
+            import json  # noqa: PLC0415
 
             try:
                 data = json.loads(payload)
             except json.JSONDecodeError as e:
                 self._logger.error("Invalid JSON payload", error=str(e))
-                raise ValidationError(f"Invalid JSON: {e}") from e
+                raise ValidationError(
+                    "payload_json",
+                    value=None,
+                    constraint=f"Payload must be valid JSON: {e}",
+                ) from e
         else:
             data = payload
         # Validate type
         if not isinstance(data, dict):
-            raise ValidationError(f"Payload must be a dictionary, got {type(data)}")
+            raise ValidationError(
+                "payload_type",
+                value=type(data).__name__,
+                constraint="Payload must be a JSON object (dict)",
+            )
         # Check required fields
         missing_fields = [f for f in self._required_fields if f not in data]
         if missing_fields:
-            raise ValidationError(f"Missing required fields: {missing_fields}")
+            raise ValidationError(
+                "payload_fields",
+                value=missing_fields,
+                constraint=f"Required fields missing: {missing_fields}",
+            )
         # Sanitize strings
         sanitized = self._sanitize_payload(data)
 
